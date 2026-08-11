@@ -1,0 +1,628 @@
+// BGSCET MBA — REEP Tracking Dashboard
+// Data model per "Data Model & Build Notes for the Tech Team" (wireframes v1),
+// extended with the AI Resume Builder and the time-usage analytics engine.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  STUDENT
+  MENTOR
+  DIRECTOR
+  ADMIN
+}
+
+enum Stage {
+  REBOOT
+  EXCEL
+  EXCEL_ADVANCED
+  ELEVATE
+}
+
+/// The four REEP Developmental Dimensions a course rolls up into.
+enum Dimension {
+  PROFESSIONAL
+  THINKING
+  TECHNICAL
+  METAPHYSICAL
+}
+
+/// How a course delivers its hours.
+enum CourseModel {
+  TEACHING_PLUS_SELF_LEARN
+  SUPERVISED_SELF_LEARN
+  INSTRUCTOR_LED
+}
+
+/// The three learning modes the Time Usage Log splits hours by.
+enum LearningMode {
+  INSTRUCTOR_LED
+  SUPERVISED_LAB
+  INDEPENDENT
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+/// Derived from the actual-vs-expected completion curve.
+enum PaceStatus {
+  ON_TRACK
+  BEHIND
+  AT_RISK
+}
+
+/// How a lab check-in was captured. Badge infrastructure may not exist at
+/// launch, so MANUAL (mentor-confirmed) is a first-class fallback.
+enum CheckInSource {
+  BADGE
+  LAB_PC
+  MANUAL
+  SELF_REPORTED
+}
+
+enum AlertRuleKey {
+  NO_CHECKIN_N_DAYS
+  PACE_BELOW_THRESHOLD
+  ATTENDANCE_BELOW_THRESHOLD
+  CERT_OVERDUE
+  LOW_FOCUS_QUALITY
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum MentorAction {
+  NONE
+  FLAGGED
+  NUDGE_SENT
+  ONE_ON_ONE_SCHEDULED
+}
+
+enum ScheduleType {
+  LAB_SESSION
+  LECTURE
+  CERT_DEADLINE
+  MENTOR_MEETING
+}
+
+enum ResumeStatus {
+  DRAFT
+  GENERATED
+  FINALISED
+}
+
+/// How an assistant run ended. EXHAUSTED and REFUSED are not failures — the
+/// first answered from what it had gathered before the step budget ran out, the
+/// second declined a question outside the asker's data scope. Both are worth
+/// telling apart from FAILED when reading the log.
+enum AgentRunStatus {
+  ANSWERED
+  EXHAUSTED
+  REFUSED
+  FAILED
+}
+
+/// The things a REEP student actually spends a day on. A fixed catalogue makes
+/// the log one tap instead of a paragraph, and — more importantly — makes the
+/// data comparable across a cohort. OTHER exists because a fixed list always
+/// misses something; it carries a free-text description.
+enum ActivityType {
+  LECTURE
+  SUPERVISED_LAB
+  ONLINE_COURSE
+  PRACTICE_PROBLEMS
+  GROUP_STUDY
+  ASSIGNMENT
+  PROJECT_WORK
+  READING
+  REVISION
+  MOCK_INTERVIEW
+  PRESENTATION_PREP
+  APTITUDE_PREP
+  INDUSTRY_VISIT
+  MENTOR_MEETING
+  OTHER
+}
+
+enum UploadKind {
+  /// Completion certificate for a REEP certification — the manual counterpart
+  /// to the provider API sync, and what a mentor spot-checks against.
+  CERTIFICATE_PROOF
+  /// An existing CV the resume builder can read rather than starting blank.
+  RESUME
+  PROFILE_PHOTO
+  /// Internship / organizational-study reports, ID proof, anything else.
+  DOCUMENT
+}
+
+enum UploadStatus {
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         Role
+  avatarInitials String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  student   Student?
+  mentor    Mentor?
+  agentRuns AgentRun[]
+
+  @@map("users")
+}
+
+model Cohort {
+  id        String   @id @default(cuid())
+  code      String   @unique // e.g. MBA-2026-B
+  name      String // e.g. MBA Batch 2025-27 — Section B
+  batchLabel String // e.g. 2025-27
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+
+  students   Student[]
+  alertRules AlertRuleConfig[]
+
+  @@map("cohorts")
+}
+
+model Mentor {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String  @default("Prof.")
+  department  String  @default("MBA")
+  mentorGroup String // e.g. MBA-2026-B
+
+  mentees Student[]
+  notes   MentorNote[]
+
+  @@map("mentors")
+}
+
+model Student {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usn             String   @unique // e.g. 1BG24MBA001
+  cohortId        String
+  cohort          Cohort   @relation(fields: [cohortId], references: [id])
+  mentorId        String?
+  mentor          Mentor?  @relation(fields: [mentorId], references: [id])
+  currentStage    Stage    @default(EXCEL)
+  currentSemester Int      @default(1)
+  enrolledAt      DateTime @default(now())
+
+  /// Weekly self-learning hour target used by the Time Log "vs. Target" chart.
+  weeklyHourTarget Float @default(12)
+
+  enrollments   Enrollment[]
+  certProgress  CertificationProgress[]
+  labSessions   LabSession[]
+  attendance    AttendanceRecord[]
+  mentorNotes   MentorNote[]
+  alerts        Alert[]
+  scheduleItems ScheduleItem[]
+  resumes       Resume[]
+  profile       StudentProfile?
+  uploads       Upload[]
+
+  @@index([cohortId])
+  @@index([mentorId])
+  @@map("students")
+}
+
+// ---------------------------------------------------------------------------
+// Curriculum
+// ---------------------------------------------------------------------------
+
+model Course {
+  code                     String      @id // REE101
+  name                     String
+  stage                    Stage
+  dimension                Dimension
+  semester                 Int
+  teachingHours            Float       @default(0)
+  selfLearningHoursRequired Float      @default(0)
+  modelType                CourseModel
+  /// Number of weeks the course is expected to run over — drives the expected
+  /// completion curve used for pace status.
+  durationWeeks            Int         @default(16)
+  description              String?
+
+  certifications Certification[]
+  enrollments    Enrollment[]
+  labSessions    LabSession[]
+  attendance     AttendanceRecord[]
+  scheduleItems  ScheduleItem[]
+
+  @@index([stage])
+  @@map("courses")
+}
+
+model Certification {
+  code          String  @id // e.g. CERT-REE101-LEAD
+  courseCode    String
+  course        Course  @relation(fields: [courseCode], references: [code], onDelete: Cascade)
+  name          String
+  provider      String  @default("Coursera")
+  requiredHours Float   @default(10)
+  link          String?
+  isOptional    Boolean @default(false)
+  /// Weeks from course start by which this cert should be complete.
+  dueWeek       Int     @default(12)
+
+  progress CertificationProgress[]
+  uploads  Upload[]
+
+  @@index([courseCode])
+  @@map("certifications")
+}
+
+// ---------------------------------------------------------------------------
+// Progress
+// ---------------------------------------------------------------------------
+
+model Enrollment {
+  id         String @id @default(cuid())
+  studentId  String
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseCode String
+  course     Course  @relation(fields: [courseCode], references: [code], onDelete: Cascade)
+
+  status                ProgressStatus @default(IN_PROGRESS)
+  /// Instructor-led hours actually attended.
+  teachingHoursAttended Float          @default(0)
+  /// Supervised-lab + independent hours logged against this course.
+  selfLearningHoursLogged Float        @default(0)
+  /// Lecture sessions attended / total, for INSTRUCTOR_LED courses.
+  lecturesAttended      Int            @default(0)
+  lecturesTotal         Int            @default(0)
+  startedAt             DateTime       @default(now())
+  completedAt           DateTime?
+
+  @@unique([studentId, courseCode])
+  @@index([courseCode])
+  @@map("enrollments")
+}
+
+model CertificationProgress {
+  id       String @id @default(cuid())
+  studentId String
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  certCode String
+  cert     Certification @relation(fields: [certCode], references: [code], onDelete: Cascade)
+
+  status       ProgressStatus @default(NOT_STARTED)
+  progressPct  Float          @default(0)
+  hoursLogged  Float          @default(0)
+  dueDate      DateTime
+  startedAt    DateTime?
+  completedAt  DateTime?
+  /// Null when the value is student self-reported rather than provider-pulled.
+  lastSyncedAt DateTime?
+  selfReported Boolean        @default(true)
+
+  @@unique([studentId, certCode])
+  @@index([studentId, status])
+  @@map("certification_progress")
+}
+
+// ---------------------------------------------------------------------------
+// Time usage / focus tracking
+// ---------------------------------------------------------------------------
+
+/// One check-in → check-out block. Covers all three learning modes; the
+/// SUPERVISED_LAB rows are what the mentor Focus Log reads.
+model LabSession {
+  id         String  @id @default(cuid())
+  studentId  String
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseCode String
+  course     Course  @relation(fields: [courseCode], references: [code], onDelete: Cascade)
+
+  module       String
+  /// What the student was doing. Defaults to ONLINE_COURSE for rows created by
+  /// the badge/lab-PC check-in flow, which cannot know the activity by itself.
+  activity     ActivityType  @default(ONLINE_COURSE)
+  /// Free text, required when `activity` is OTHER and optional otherwise.
+  activityNote String?
+  mode         LearningMode  @default(SUPERVISED_LAB)
+  source       CheckInSource @default(LAB_PC)
+  checkInAt    DateTime
+  checkOutAt   DateTime?
+  /// Minutes; null while a session is still open.
+  durationMin  Int?
+
+  /// Provider-reported completion % captured at check-in and at check-out.
+  /// The delta is the signal that logged time turned into real progress.
+  progressAtCheckIn  Float?
+  progressAtCheckOut Float?
+  progressDeltaPct   Float?
+
+  mentorConfirmed Boolean @default(false)
+  notes           String?
+
+  /// When the row was written, as opposed to when the studying happened.
+  /// A student may log a day they have already lived, so `checkInAt` alone
+  /// cannot tell a mentor whether an entry was recorded that evening or
+  /// backfilled in one sitting six weeks later — and only the second of those
+  /// is worth a second look.
+  createdAt DateTime @default(now())
+
+  @@index([studentId, checkInAt])
+  @@index([courseCode])
+  @@map("lab_sessions")
+}
+
+/// Instructor-led lecture attendance, separate from lab check-ins.
+model AttendanceRecord {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseCode  String
+  course      Course   @relation(fields: [courseCode], references: [code], onDelete: Cascade)
+  sessionDate DateTime
+  sessionNo   Int
+  present     Boolean  @default(true)
+
+  @@unique([studentId, courseCode, sessionNo])
+  @@index([studentId, sessionDate])
+  @@map("attendance_records")
+}
+
+// ---------------------------------------------------------------------------
+// Mentoring
+// ---------------------------------------------------------------------------
+
+model MentorNote {
+  id           String       @id @default(cuid())
+  mentorId     String
+  mentor       Mentor       @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  noteText     String
+  linkedAction MentorAction @default(NONE)
+  createdAt    DateTime     @default(now())
+
+  @@index([studentId, createdAt])
+  @@map("mentor_notes")
+}
+
+model Alert {
+  id            String        @id @default(cuid())
+  studentId     String
+  student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  ruleTriggered AlertRuleKey
+  severity      AlertSeverity @default(WARNING)
+  message       String
+  /// Snapshot of the values that fired the rule, for auditability.
+  context       Json?
+  triggeredAt   DateTime      @default(now())
+  resolvedAt    DateTime?
+  resolvedBy    String?
+
+  @@index([studentId, resolvedAt])
+  @@index([ruleTriggered])
+  @@map("alerts")
+}
+
+/// Admin-configurable thresholds, per cohort. Never hard-coded.
+model AlertRuleConfig {
+  id       String       @id @default(cuid())
+  cohortId String
+  cohort   Cohort       @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  ruleKey  AlertRuleKey
+  enabled  Boolean      @default(true)
+  /// e.g. { "days": 5 } or { "deviationPct": 25 } or { "minAttendancePct": 75 }
+  params   Json
+  severity AlertSeverity @default(WARNING)
+
+  @@unique([cohortId, ruleKey])
+  @@map("alert_rule_configs")
+}
+
+model ScheduleItem {
+  id         String       @id @default(cuid())
+  studentId  String
+  student    Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseCode String?
+  course     Course?      @relation(fields: [courseCode], references: [code])
+  type       ScheduleType
+  title      String
+  startsAt   DateTime
+  location   String?
+
+  @@index([studentId, startsAt])
+  @@map("schedule_items")
+}
+
+// ---------------------------------------------------------------------------
+// Program-level configuration
+// ---------------------------------------------------------------------------
+
+/// Director-configurable placement-readiness composite. Weightings change
+/// year to year, so the formula lives in data, not code.
+model PlacementCriteria {
+  id                  String   @id @default(cuid())
+  name                String   @default("Default")
+  active              Boolean  @default(true)
+  minReepCompletionPct Float   @default(80)
+  requireCoreCerts    Boolean  @default(true)
+  minAttendancePct    Float    @default(85)
+  minCertCompletionPct Float   @default(75)
+  updatedAt           DateTime @updatedAt
+
+  @@map("placement_criteria")
+}
+
+// ---------------------------------------------------------------------------
+// AI Resume Builder
+// ---------------------------------------------------------------------------
+
+/// Student-supplied context the REEP data cannot provide (contact details,
+/// prior work, projects). Kept as structured JSON so the form can evolve.
+model StudentProfile {
+  id        String  @id @default(cuid())
+  studentId String  @unique
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  phone         String?
+  email         String?
+  linkedinUrl   String?
+  githubUrl     String?
+  portfolioUrl  String?
+  city          String?
+  careerSummary String?
+
+  /// [{ degree, institution, year, score }]
+  education   Json @default("[]")
+  /// [{ title, org, startDate, endDate, bullets: [] }]
+  experience  Json @default("[]")
+  /// [{ name, description, tech: [], link }]
+  projects    Json @default("[]")
+  /// [{ name, level }]
+  skills      Json @default("[]")
+  /// [{ title, issuer, year }] — non-REEP awards
+  achievements Json @default("[]")
+
+  updatedAt DateTime @updatedAt
+
+  @@map("student_profiles")
+}
+
+model Resume {
+  id        String       @id @default(cuid())
+  studentId String
+  student   Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  version   Int          @default(1)
+  title     String       @default("REEP Resume")
+  targetRole     String?
+  targetIndustry String?
+  jobDescription String?
+  status    ResumeStatus @default(DRAFT)
+
+  /// Structured resume: { header, summary, education[], experience[],
+  /// certifications[], projects[], skills{}, reepHighlights[] }
+  content   Json
+  markdown  String       @default("")
+  /// Which REEP facts the generator used, so claims are auditable.
+  evidence  Json?
+  /// ATS / completeness scoring produced alongside the draft.
+  scoring   Json?
+
+  model       String?
+  generatedBy String   @default("fallback") // "anthropic" | "fallback"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([studentId, createdAt])
+  @@map("resumes")
+}
+
+// ---------------------------------------------------------------------------
+// Assistant
+// ---------------------------------------------------------------------------
+
+/// One question put to the assistant, and everything it did to answer.
+///
+/// The trace is the point of this table. A student asking about their own marks
+/// and a director asking about a cohort run the *same* agent over the same
+/// tools; the only difference is the scope resolved from the session. Recording
+/// that scope, the tools it actually reached for, and any access it was denied
+/// is what makes "the assistant cannot read another student's record" something
+/// an administrator can verify after the fact rather than take on trust.
+model AgentRun {
+  id      String @id @default(cuid())
+  actorId String
+  actor   User   @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  role    Role
+
+  /// "self" or "programme" — what this run was allowed to read, stamped at run
+  /// time so promoting a student to staff later cannot rewrite what an old run
+  /// was permitted to see.
+  scope    String
+  question String
+  answer   String @default("")
+  status   AgentRunStatus
+
+  /// Ordered steps: { tool, args, factId, digest, denied?, error? }.
+  trace Json
+  /// Fact ids the answer cited, after filtering against what the tools returned.
+  citations Json
+
+  model      String?
+  steps      Int      @default(0)
+  durationMs Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([status])
+  @@map("agent_runs")
+}
+
+// ---------------------------------------------------------------------------
+// Uploads
+// ---------------------------------------------------------------------------
+
+/// A file a student has uploaded. Bytes live on disk (or object storage in
+/// production) under `storedName`; only metadata is in the database, so the
+/// table stays small and the file store can move without a migration.
+model Upload {
+  id         String     @id @default(cuid())
+  studentId  String
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  kind       UploadKind
+
+  /// Set when kind is CERTIFICATE_PROOF — which certification this evidences.
+  certCode   String?
+  cert       Certification? @relation(fields: [certCode], references: [code], onDelete: SetNull)
+
+  title        String
+  originalName String
+  /// Filename on disk. Random, so an uploaded name can never traverse a path.
+  storedName   String  @unique
+  mimeType     String
+  sizeBytes    Int
+
+  status       UploadStatus @default(PENDING_REVIEW)
+  /// Mentor who verified or rejected the proof, and why.
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?
+
+  uploadedAt DateTime @default(now())
+
+  @@index([studentId, kind])
+  @@index([certCode])
+  @@index([status])
+  @@map("uploads")
+}

@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+build/
+.env
+.env.local
+*.log
+.DS_Store
+next-env.d.ts
+tsconfig.tsbuildinfo
+/prisma/generated
+
+# uploaded files (bytes live on disk, metadata in Postgres)
+storage/
+dev.log

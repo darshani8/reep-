@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: reep-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: reep
+      POSTGRES_PASSWORD: reep_dev_password
+      POSTGRES_DB: reep_dev
+    # 5433 on the host so this never collides with the PostgreSQL 17
+    # service already listening on 5432 on this machine.
+    ports:
+      - "5433:5432"
+    volumes:
+      - reep_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reep -d reep_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  reep_pgdata:

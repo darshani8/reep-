@@ -1,0 +1,32 @@
+Title: Business Analyst — Graduate Programme
+Company: Acme Analytics Pvt. Ltd.
+Location: Bengaluru, KA, India
+Url: https://www.example.com/careers/business-analyst-graduate
+Posted: 2026-08-09
+Department: Data & Insights
+Workplace: hybrid
+Type: Full Time
+---
+Copy the posting text below this line, exactly as you read it.
+
+About the role
+
+We are hiring a Business Analyst into our 2026 graduate intake. You will sit with
+the Data & Insights team and turn messy operational data into decisions the
+commercial team can act on.
+
+What you will do
+- Build and maintain dashboards in Power BI and Tableau
+- Write SQL against our warehouse to answer questions from the business
+- Model scenarios in advanced Excel, including pivot tables and Power Query
+- Present findings to non-technical stakeholders every fortnight
+
+What we are looking for
+- MBA or equivalent, graduating in 2026 or 2027
+- Working knowledge of SQL and at least one BI tool
+- Comfortable with statistics and A/B testing fundamentals
+- Clear written and spoken communication in English
+
+Nice to have
+- Python for data analysis, pandas in particular
+- Exposure to dbt or a similar transformation tool

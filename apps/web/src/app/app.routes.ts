@@ -7,6 +7,7 @@ import { StudentOverviewComponent } from './features/student/overview/student-ov
 import { JobsComponent } from './features/student/jobs/jobs.component';
 import { CertificationsComponent } from './features/student/certifications/certifications.component';
 import { ProfileComponent } from './features/student/profile/profile.component';
+import { LeaderboardsComponent } from './features/student/leaderboards/leaderboards.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 
 /**
@@ -33,7 +34,7 @@ export const routes: Routes = [
       placeholder('student/skilling', 'Skilling'),
       placeholder('student/time-log', 'Time log'),
       placeholder('student/courses', 'Courses'),
-      placeholder('student/leaderboards', 'Leaderboards'),
+      { path: 'student/leaderboards', component: LeaderboardsComponent },
       placeholder('student/uploads', 'Uploads'),
       placeholder('student/resume', 'Resume'),
       { path: 'student/jobs', component: JobsComponent },

@@ -1,5 +1,3 @@
-import { notFound } from 'next/navigation';
-
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 
@@ -39,7 +37,29 @@ export default async function MentorStudentIndexPage() {
   // same thing at all, which is why the scope decision is made by role in
   // `getMentorCohortForSession` rather than by `session.mentorId ? … : null`.
   const scoped = await getMentorCohortForSession(session);
-  if (scoped.kind === 'denied') notFound();
+
+  // `denied` is the broken-mentor case: role MENTOR, no `Mentor` row, so no
+  // student is in scope. It used to be a `notFound()`, which is safe but says
+  // the wrong thing — the screen exists and the account is real; what is missing
+  // is the mentor group. An empty list with the reason on it is the same refusal
+  // and can actually be acted on. It lists nobody either way, which is the
+  // property that matters: the alternative this branch is guarding against is a
+  // roster of the entire programme.
+  if (scoped.kind === 'denied') {
+    return (
+      <>
+        <PageIntro
+          title="Your students"
+          subtitle="Open a student to see how their time is turning into progress."
+        />
+        <EmptyState
+          title="No students are in scope for this account."
+          hint="This account has the mentor role but no mentor group on record, so there is no mentee list to draw. The programme office can attach one to it."
+        />
+        <IndexTechNote />
+      </>
+    );
+  }
 
   if (scoped.kind === 'no-group') {
     return (
@@ -88,6 +108,14 @@ export default async function MentorStudentIndexPage() {
       <PageIntro
         title="Your students"
         subtitle={`${data.mentor.mentorGroup} · open a student to see how their time is turning into progress.`}
+        // Leave requests come *from* this list — a mentee applying names their
+        // own mentor as first approver — so this is the door to the leave desk
+        // until it has a place of its own in the sidebar.
+        action={
+          <Button href="/mentor/leave" sx={{ color: 'text.secondary' }}>
+            Leave desk
+          </Button>
+        }
       />
 
       <Grid container spacing={2.5} sx={{ mb: 5 }}>

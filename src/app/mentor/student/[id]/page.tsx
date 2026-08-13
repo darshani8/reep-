@@ -8,7 +8,6 @@ import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 
-import { FocusActionBar } from '@/components/focus-actions';
 import { FocusNotes } from '@/components/focus-notes';
 import { FocusQualityPanel } from '@/components/focus-quality';
 import { FocusTimeline } from '@/components/focus-timeline';
@@ -61,6 +60,7 @@ import {
   sendNudge,
 } from './actions';
 import { CertGrid, type CertRow } from './cert-grid';
+import { MeetingNotePanel } from './meeting-notes';
 
 export const metadata = { title: 'Student — Mentor' };
 export const dynamic = 'force-dynamic';
@@ -292,11 +292,15 @@ export default async function MentorStudentDetailPage({
               <FocusQualityPanel focus={focus} consistency={consistency} firstName={firstName} />
             </SectionCard>
 
-            <SectionCard title="Mentor notes" subtitle="Newest first">
+            <SectionCard
+              title="Mentor notes"
+              subtitle="Newest first — each one dated by the meeting and by when it was written"
+            >
               <FocusNotes
                 notes={notes.map((note) => ({
                   id: note.id,
                   noteText: note.noteText,
+                  meetingAt: note.meetingAt,
                   createdAt: note.createdAt,
                   linkedAction: note.linkedAction,
                   authorName: `${note.mentor.title} ${note.mentor.user.name}`,
@@ -321,9 +325,10 @@ export default async function MentorStudentDetailPage({
 
       <UploadsPanel studentId={student.id} firstName={firstName} />
 
-      <FocusActionBar
+      <MeetingNotePanel
         studentId={student.id}
         studentName={student.user.name}
+        defaultMeetingAt={localDateTimeValue(new Date())}
         onFlag={flagForFollowUp}
         onNudge={sendNudge}
         onSchedule={scheduleOneOnOne}
@@ -341,7 +346,11 @@ export default async function MentorStudentDetailPage({
         someone physically present in the lab whose completion number has not moved in
         weeks. Every button on the action bar writes a <code>MentorNote</code> with its
         linked action, so a student can be shown the whole record of what was said
-        about them and when. &ldquo;Log time&rdquo; writes through the same{' '}
+        about them and when. Each note carries two timestamps and the log prints both:{' '}
+        <code>meetingAt</code> is when the conversation happened and is editable, because
+        Friday&rsquo;s 1:1 is often typed up on Monday and a booked 1:1 has not happened
+        yet; <code>createdAt</code> is when the row was written and is not editable,
+        which is what makes it evidence. &ldquo;Log time&rdquo; writes through the same{' '}
         <code>recordActivity()</code> the student&rsquo;s own form uses, so a mentor cannot
         enter a day the student would have been refused; the row lands as{' '}
         <code>MANUAL</code> and already mentor-confirmed rather than{' '}
@@ -350,6 +359,14 @@ export default async function MentorStudentDetailPage({
       </TechNote>
     </>
   );
+}
+
+/// What `<input type="datetime-local">` wants: `YYYY-MM-DDTHH:mm`, in the
+/// server's local time, with no offset — the same wall-clock reading the browser
+/// will show and the action will parse back.
+function localDateTimeValue(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 /// Formatted on the server, so no Date crosses into a client component.

@@ -136,9 +136,34 @@ export async function authenticate(
   if (!user) return null;
   if (!verifyPassword(password, user.passwordHash)) return null;
 
+  const now = new Date();
+
+  // `lastLoginAt` answers "are they still here?" and nothing else. A streak
+  // needs the days in between, and a login *count* cannot tell thirty visits in
+  // one evening from thirty consecutive days — hence one `LoginDay` row per
+  // user per day, upserted in the same statement as the timestamp so a sign-in
+  // can never be half-recorded.
+  //
+  // The day is the *local* calendar date reinterpreted at UTC midnight, which
+  // is what a `@db.Date` column stores and what `currentDayKey` in `streak.ts`
+  // reads back. Writing `now` straight into it would put an evening in IST on
+  // the following day and hand the student a streak with a hole in it.
+  const day = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+
   await prisma.user.update({
     where: { id: user.id },
-    data: { lastLoginAt: new Date() },
+    data: {
+      lastLoginAt: now,
+      loginDays: {
+        upsert: {
+          where: { userId_day: { userId: user.id, day } },
+          create: { day },
+          // Nothing to change: the row's existence is the whole fact, so a
+          // second sign-in on the same day is a no-op rather than a duplicate.
+          update: {},
+        },
+      },
+    },
   });
 
   return {

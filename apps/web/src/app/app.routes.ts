@@ -5,6 +5,7 @@ import { AppShellComponent } from './layout/app-shell.component';
 import { authGuard } from './core/auth.guard';
 import { StudentOverviewComponent } from './features/student/overview/student-overview.component';
 import { JobsComponent } from './features/student/jobs/jobs.component';
+import { CertificationsComponent } from './features/student/certifications/certifications.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 
 /**
@@ -27,7 +28,7 @@ export const routes: Routes = [
     children: [
       // --- student ---
       { path: 'student', component: StudentOverviewComponent },
-      placeholder('student/certifications', 'Certifications'),
+      { path: 'student/certifications', component: CertificationsComponent },
       placeholder('student/skilling', 'Skilling'),
       placeholder('student/time-log', 'Time log'),
       placeholder('student/courses', 'Courses'),

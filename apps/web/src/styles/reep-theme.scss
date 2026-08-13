@@ -202,6 +202,50 @@ body {
   top: 8px;
 }
 
+/* --- buttons (ported from the MuiButton theme) --------------------------- */
+/* Used on every screen, so global. radius 7, minHeight 38 (32 small), the
+   secondary contained fill for the primary action, outlined at the divider. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--reep-text-primary);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.btn:hover {
+  background: var(--reep-action-hover);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.btn--primary {
+  background: var(--reep-secondary-main);
+  color: var(--reep-secondary-contrast);
+}
+.btn--primary:hover:not(:disabled) {
+  background: var(--reep-secondary-dark);
+}
+.btn--outlined {
+  border-color: var(--reep-divider);
+}
+.btn--small {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.8125rem;
+}
+
 /* Translucency is a preference, not a requirement — the same fallbacks the
    React app declares, so a browser that cannot blur, or a reader who asked it
    not to, gets an opaque surface rather than unreadable text. */

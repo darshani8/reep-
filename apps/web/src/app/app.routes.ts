@@ -4,6 +4,7 @@ import { LoginComponent } from './features/login/login.component';
 import { AppShellComponent } from './layout/app-shell.component';
 import { authGuard } from './core/auth.guard';
 import { StudentOverviewComponent } from './features/student/overview/student-overview.component';
+import { JobsComponent } from './features/student/jobs/jobs.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 
 /**
@@ -33,7 +34,7 @@ export const routes: Routes = [
       placeholder('student/leaderboards', 'Leaderboards'),
       placeholder('student/uploads', 'Uploads'),
       placeholder('student/resume', 'Resume'),
-      placeholder('student/jobs', 'Jobs'),
+      { path: 'student/jobs', component: JobsComponent },
       placeholder('student/assistant', 'REEP Agent'),
       placeholder('student/profile', 'Profile'),
 

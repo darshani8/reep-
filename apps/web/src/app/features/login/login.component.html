@@ -1,0 +1,142 @@
+<div class="login">
+  <!-- compact brand strip (below lg) -->
+  <div class="brand-strip">
+    <div class="brand-strip__name">
+      <span class="brand-strip__reep">REEP</span>
+      <span class="brand-strip__sub">Tracking Dashboard</span>
+    </div>
+    <span class="brand-strip__tag">Reboot. Excel. Elevate.</span>
+  </div>
+
+  <div class="login__row">
+    <!-- brand panel (lg and up) -->
+    <aside class="panel">
+      <div>
+        <div class="panel__reep">REEP</div>
+        <div class="panel__sub">Tracking Dashboard</div>
+      </div>
+
+      <div class="panel__pitch">
+        <p class="panel__headline">Reboot. Excel. Elevate.</p>
+        <p class="panel__body">
+          One place to see how far you have come in the programme, the hours you
+          have put into each way of learning, and the certifications that carry
+          you to placement readiness.
+        </p>
+      </div>
+
+      <div class="panel__foot">BGSCET MBA · Reboot, Excel, Elevate Programme</div>
+    </aside>
+
+    <!-- sign in -->
+    <main class="signin">
+      <div class="signin__inner">
+        <h1 class="reep-h1">Sign in</h1>
+        <p class="signin__subtitle reep-body2">{{ subtitle }}</p>
+
+        <form class="form" (submit)="submit($event)">
+          <div class="field" [class.field--filled]="!!email">
+            <input
+              id="email"
+              class="field__input"
+              type="email"
+              name="email"
+              autocomplete="username"
+              placeholder=" "
+              required
+              [(ngModel)]="email"
+            />
+            <label class="field__label" for="email">Email</label>
+          </div>
+
+          <div class="field" [class.field--filled]="!!password">
+            <input
+              id="password"
+              class="field__input field__input--adorned"
+              [type]="showPassword() ? 'text' : 'password'"
+              name="password"
+              autocomplete="current-password"
+              placeholder=" "
+              required
+              [(ngModel)]="password"
+            />
+            <label class="field__label" for="password">Password</label>
+            <button
+              type="button"
+              class="field__adornment"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              (click)="togglePassword()"
+            >
+              @if (showPassword()) {
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"
+                  />
+                </svg>
+              } @else {
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                  />
+                </svg>
+              }
+            </button>
+          </div>
+
+          @if (error()) {
+            <div class="alert alert--error reep-body2" role="alert">{{ error() }}</div>
+          }
+
+          <button type="submit" class="btn btn--primary btn--tall" [disabled]="pending()">
+            @if (pending()) {
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Signing in…</span>
+            } @else {
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="btn__icon">
+                <path
+                  fill="currentColor"
+                  d="M11 7l-1.41 1.41L12.17 11H3v2h9.17l-2.58 2.59L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"
+                />
+              </svg>
+              <span>Sign in</span>
+            }
+          </button>
+        </form>
+
+        <!-- Demo accounts. This build is an internal review prototype, so the
+             seeded logins are deliberately on the page. -->
+        <div class="demo">
+          <h2 class="reep-h4">Demo accounts</h2>
+          <p class="demo__hint reep-caption">
+            Choose one to fill the form. They all use the password
+            <code class="demo__code">{{ demoPassword }}</code>.
+          </p>
+
+          <div class="demo__list">
+            @for (account of demoAccounts; track account.email) {
+              <button
+                type="button"
+                class="demo__item"
+                [class.demo__item--chosen]="email === account.email"
+                (click)="fillFrom(account.email)"
+              >
+                <span class="demo__who reep-subtitle1">{{ account.who }}</span>
+                <span class="demo__role reep-caption">{{ account.role }} · {{ account.email }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <p class="technote">
+          Signing in checks the password against a scrypt hash and hands back a
+          signed session token, held in an http-only cookie for twelve hours.
+          Every page then verifies the token and the role for itself. A
+          <code>?next=</code> value is followed only when it is a path on this
+          site. The demo accounts above are seed data for this review build.
+        </p>
+      </div>
+    </main>
+  </div>
+</div>

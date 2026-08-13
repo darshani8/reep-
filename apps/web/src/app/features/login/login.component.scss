@@ -1,0 +1,355 @@
+/* Sign in — measurements are the MUI original: 8px spacing unit, lg 1200px,
+   sm 600px. Colours are ported tokens only; nothing is hard-coded. */
+
+:host {
+  display: block;
+}
+
+.login {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- compact brand strip (below lg) ------------------------------------- */
+.brand-strip {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  background-color: var(--reep-primary-main);
+  color: var(--reep-primary-contrast);
+}
+.brand-strip__name {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.brand-strip__reep {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.brand-strip__sub {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  opacity: 0.72;
+}
+.brand-strip__tag {
+  display: none;
+  font-size: 0.75rem;
+  opacity: 0.72;
+}
+
+.login__row {
+  flex: 1;
+  display: flex;
+}
+
+/* --- brand panel (lg and up) -------------------------------------------- */
+.panel {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 44%;
+  max-width: 620px;
+  padding: 56px;
+  background-color: var(--reep-primary-main);
+  color: var(--reep-primary-contrast);
+}
+.panel__reep {
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.panel__sub {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  opacity: 0.7;
+}
+.panel__pitch {
+  max-width: 420px;
+}
+.panel__headline {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.panel__body {
+  margin: 16px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  opacity: 0.78;
+}
+.panel__foot {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  opacity: 0.55;
+}
+
+/* --- sign in ------------------------------------------------------------- */
+.signin {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background-color: var(--reep-bg-default);
+}
+.signin__inner {
+  width: 100%;
+  max-width: 400px;
+}
+.reep-h1 {
+  margin: 0;
+  color: var(--reep-text-primary);
+}
+.signin__subtitle {
+  margin: 4px 0 0;
+  color: var(--reep-text-secondary);
+}
+
+/* --- form ---------------------------------------------------------------- */
+.form {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Outlined text field with a floating, notched label — the MUI OutlinedInput
+   look, rebuilt on tokens. The label's background is the page cream so it cuts
+   the top border exactly as MUI's notch does. */
+.field {
+  position: relative;
+}
+.field__input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 8.5px 14px;
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+  color: var(--reep-text-primary);
+  background: transparent;
+  border: 1px solid var(--reep-divider);
+  border-radius: 7px;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+.field__input--adorned {
+  padding-right: 44px;
+}
+.field__input:hover {
+  border-color: var(--reep-text-primary);
+}
+.field__input:focus {
+  border-color: var(--reep-primary-main);
+  border-width: 2px;
+  /* keep the box the same size when the border thickens */
+  padding: 7.5px 13px;
+}
+.field__input--adorned:focus {
+  padding-right: 43px;
+}
+.field__label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 4px;
+  font-size: 0.9375rem;
+  color: var(--reep-text-secondary);
+  background: var(--reep-bg-default);
+  pointer-events: none;
+  transition: top 120ms ease, font-size 120ms ease, color 120ms ease;
+}
+.field:focus-within .field__label,
+.field--filled .field__label {
+  top: 0;
+  font-size: 0.75rem;
+}
+.field:focus-within .field__label {
+  color: var(--reep-primary-main);
+}
+.field__adornment {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--reep-text-secondary);
+  cursor: pointer;
+}
+.field__adornment:hover {
+  background: var(--reep-action-hover);
+}
+
+/* --- alert --------------------------------------------------------------- */
+.alert {
+  border-radius: 8px;
+  border: 1px solid var(--reep-divider);
+  background-color: var(--reep-action-hover);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+}
+.alert--error {
+  color: var(--reep-error-main);
+}
+
+/* --- buttons ------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 7px;
+  padding-inline: 16px;
+  cursor: pointer;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.btn--primary {
+  background-color: var(--reep-secondary-main);
+  color: var(--reep-secondary-contrast);
+  width: 100%;
+}
+.btn--primary:hover:not(:disabled) {
+  background-color: var(--reep-secondary-dark);
+}
+.btn--tall {
+  min-height: 46px;
+  margin-top: 4px;
+}
+.btn__icon {
+  margin-right: -2px;
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: reep-spin 0.7s linear infinite;
+}
+@keyframes reep-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- demo accounts card -------------------------------------------------- */
+.demo {
+  margin-top: 32px;
+  background-color: var(--reep-bg-paper);
+  border-radius: 8px;
+  padding: 20px;
+}
+.demo h2 {
+  margin: 0;
+  color: var(--reep-text-primary);
+}
+.demo__hint {
+  margin: 4px 0 0;
+  color: var(--reep-text-secondary);
+}
+.demo__code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--reep-bg-default);
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+}
+.demo__list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.demo__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--reep-text-primary);
+  cursor: pointer;
+  font-family: var(--reep-font-stack);
+}
+.demo__item:hover {
+  background-color: var(--reep-action-hover);
+}
+.demo__item--chosen,
+.demo__item--chosen:hover {
+  background-color: var(--reep-action-selected);
+}
+.demo__who {
+  color: var(--reep-text-primary);
+}
+.demo__role {
+  margin-top: 1px;
+  color: var(--reep-text-secondary);
+  font-weight: 400;
+}
+
+/* --- tech note ----------------------------------------------------------- */
+.technote {
+  margin: 24px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--reep-divider);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--reep-text-disabled);
+}
+.technote code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+}
+
+/* --- breakpoints (MUI lg 1200, sm 600) ----------------------------------- */
+@media (min-width: 600px) {
+  .brand-strip {
+    padding: 16px 32px;
+  }
+  .brand-strip__tag {
+    display: block;
+  }
+  .signin {
+    padding: 64px 40px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .brand-strip {
+    display: none;
+  }
+  .panel {
+    display: flex;
+  }
+}

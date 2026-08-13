@@ -1,0 +1,119 @@
+:host {
+  display: block;
+}
+.err {
+  color: var(--reep-error-main);
+}
+.saved {
+  color: var(--reep-success-main);
+  font-weight: 500;
+}
+.note {
+  margin-top: 20px;
+  color: var(--reep-text-disabled);
+  max-width: 60ch;
+}
+
+.daybar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.daybar__label {
+  font-weight: 600;
+  color: var(--reep-text-primary);
+}
+.daybar__today {
+  margin-left: 6px;
+  color: var(--reep-secondary-main);
+  font-weight: 500;
+}
+
+.remaining {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--reep-text-primary);
+  margin-bottom: 8px;
+}
+.remaining--over {
+  color: var(--reep-error-main);
+}
+.bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--reep-cell-well);
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+.bar__fill {
+  height: 100%;
+  background: var(--reep-secondary-main);
+  transition: width 120ms ease;
+}
+.bar__fill--over {
+  background: var(--reep-error-main);
+}
+
+.buckets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 640px;
+}
+.bucket {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--reep-divider);
+}
+.bucket:first-child {
+  border-top: 0;
+}
+.bucket__label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--reep-text-primary);
+}
+.bucket__hint {
+  margin-top: 2px;
+  color: var(--reep-text-disabled);
+  max-width: 44ch;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.stepper__btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 8px;
+  background: var(--reep-bg-paper);
+  color: var(--reep-text-primary);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.stepper__btn:hover {
+  background: var(--reep-action-hover);
+}
+.stepper__value {
+  width: 68px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--reep-text-primary);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 24px;
+}

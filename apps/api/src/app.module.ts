@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { StudentModule } from './student/student.module';
 import { JobsModule } from './jobs/jobs.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { TimesheetModule } from './timesheet/timesheet.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     StudentModule,
     JobsModule,
     LeaderboardModule,
+    TimesheetModule,
   ],
   controllers: [AppController],
   providers: [AppService],

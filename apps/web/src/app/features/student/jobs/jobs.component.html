@@ -1,0 +1,128 @@
+@if (view(); as v) {
+  <kit-page-intro
+    title="Jobs"
+    [subtitle]="v.rows.length === 0
+      ? 'No vacancies have been imported yet. The placement cell uploads a sheet each week.'
+      : 'The weekly sheet from the placement cell, split by degree level. You are on the ' + levelLabel[ownLevel()] + ' board — the other one is here to browse.'"
+  >
+    <a action class="btn btn--outlined" href="/student/profile">My skills</a>
+  </kit-page-intro>
+
+  @if (heldCount() === 0) {
+    <kit-banner title="Add your skills and every posting gets a match percentage">
+      The match column compares what you can prove against what each posting asks for.
+      You have not recorded any skills yet, so there is nothing to compare.
+      <a action class="btn btn--small" href="/student/profile">Add skills</a>
+    </kit-banner>
+  } @else if (verifiedSkills() === 0) {
+    <kit-banner tone="warning" title="None of your skills are verified yet">
+      Only skills your mentor has checked against evidence count towards a match.
+      Upload a certificate and the column starts scoring.
+      <a action class="btn btn--small" href="/student/uploads">Upload evidence</a>
+    </kit-banner>
+  }
+
+  <div class="stats">
+    <kit-stat label="Open vacancies" [value]="openRows().length"
+      [hint]="closedCount() > 0 ? closedCount() + ' more have closed' : 'Every posting on this board is still open'" />
+    <kit-stat label="You have applied to" [value]="appliedCount()"
+      [tone]="appliedCount() > 0 ? 'good' : 'neutral'" hint="Your own tick — not a confirmed submission" />
+    <kit-stat label="Strong matches" [value]="strongCount()"
+      [tone]="strongCount() > 0 ? 'good' : 'neutral'"
+      [hint]="verifiedSkills() === 0 ? 'Needs at least one verified skill' : '70% or more of what the posting asks for'" />
+    <kit-stat label="Closing this week" [value]="closingSoon()"
+      [tone]="closingSoon() > 0 ? 'warning' : 'neutral'"
+      [hint]="closingSoon() > 0 ? 'Apply before they go' : 'Nothing closes in the next 7 days'" />
+  </div>
+
+  <!-- UG / PG tabs -->
+  <div class="tabs no-print" role="tablist" aria-label="Undergraduate and post graduate vacancies">
+    @for (lvl of levels; track lvl) {
+      <button
+        type="button"
+        role="tab"
+        class="tab"
+        [class.tab--active]="level() === lvl"
+        [attr.aria-selected]="level() === lvl"
+        (click)="setLevel(lvl)"
+      >
+        {{ levelLabel[lvl] }} · {{ count(lvl) }}{{ lvl === ownLevel() ? ' · yours' : '' }}
+      </button>
+    }
+  </div>
+
+  <kit-section
+    [title]="levelLabel[level()] + ' vacancies'"
+    [subtitle]="level() === ownLevel()
+      ? 'The board for your own cohort. Four things you can do with every row.'
+      : 'You are on the ' + levelLabel[ownLevel()] + ' programme — these are here to read, and most will not take your degree.'"
+  >
+    @if (visibleRows().length === 0) {
+      <kit-empty
+        [title]="'No ' + levelLabel[level()] + ' vacancies on the board.'"
+        [hint]="v.rows.length === 0
+          ? 'The placement cell uploads the weekly sheet from the director screens. Nothing has been imported yet.'
+          : 'The other tab has ' + count(otherLevel()) + ' postings on it.'"
+      >
+        <button action type="button" class="btn btn--small" (click)="setLevel(otherLevel())">
+          Show the {{ levelLabel[otherLevel()] }} board
+        </button>
+      </kit-empty>
+    } @else {
+      <div class="table-wrap">
+        <table class="jobs">
+          <thead>
+            <tr>
+              <th>Vacancy</th>
+              <th class="jobs__match">Match</th>
+              <th>Closes</th>
+              <th class="jobs__apply">Apply</th>
+              <th class="jobs__applied">Applied</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of visibleRows(); track row.id) {
+              <tr [class.jobs__row--closed]="row.isClosed">
+                <td>
+                  <div class="jobs__title">{{ row.title }}</div>
+                  <div class="jobs__meta reep-caption">
+                    {{ row.company }}@if (row.location) { · {{ row.location }} } · {{ row.postedLabel }}
+                  </div>
+                </td>
+                <td class="jobs__match">
+                  <div class="jobs__match-value" [style.color]="toneInk[row.matchTone]">{{ row.matchLabel }}</div>
+                  <div class="jobs__match-hint reep-caption">{{ row.matchHint }}</div>
+                </td>
+                <td>
+                  <span [style.color]="toneInk[row.closesTone]">{{ row.closesLabel }}</span>
+                </td>
+                <td class="jobs__apply">
+                  @if (row.applyUrl) {
+                    <button type="button" class="btn btn--small" (click)="openApply(row)">Apply</button>
+                  } @else {
+                    <span class="reep-caption jobs__nolink">No link</span>
+                  }
+                  @if (row.openedLabel && !row.applied) {
+                    <div class="jobs__opened reep-caption">{{ row.openedLabel }}, not yet applied</div>
+                  }
+                  <a class="jobs__cv reep-caption" [href]="'/student/jobs/' + row.id + '/cv'">Build CV</a>
+                </td>
+                <td class="jobs__applied">
+                  <label class="check" [attr.aria-label]="'Applied to ' + row.title">
+                    <input type="checkbox" [checked]="row.applied" (change)="toggleApplied(row)" />
+                  </label>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </kit-section>
+} @else if (error()) {
+  <kit-page-intro title="Jobs" />
+  <p class="reep-body2 err">{{ error() }}</p>
+} @else {
+  <kit-page-intro title="Jobs" />
+  <p class="reep-body2 err">Loading…</p>
+}

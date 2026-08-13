@@ -94,10 +94,54 @@ async function writeNote(
   mentorId: string,
   linkedAction: MentorAction,
   noteText: string,
+  /// When the conversation happened, if it was not now. Left off by the one-tap
+  /// actions, which are recording something that is happening as they are
+  /// clicked, and `meetingAt` defaults to now in the schema for exactly them.
+  meetingAt?: Date,
 ) {
   await prisma.mentorNote.create({
-    data: { studentId, mentorId, linkedAction, noteText },
+    data: { studentId, mentorId, linkedAction, noteText, ...(meetingAt ? { meetingAt } : {}) },
   });
+}
+
+/// How far either side of now a meeting timestamp is believable. A note about a
+/// conversation two years ago, or one booked for 2206, is a typo in a
+/// `datetime-local` field rather than a record anybody meant to write.
+const MEETING_WINDOW_DAYS = 365;
+
+/**
+ * Read the meeting timestamp off the form.
+ *
+ * `datetime-local` submits `YYYY-MM-DDTHH:mm` with no offset, which JavaScript
+ * parses as *local* time — which is what is wanted here, since the mentor typed
+ * a wall-clock time in the room they were sitting in.
+ *
+ * An empty field is not an error: it means "now", which is what the column
+ * defaults to. A field with something unparseable in it is an error, because
+ * silently filing it as now would date the conversation wrongly and there would
+ * be nothing on the screen to say so.
+ */
+function parseMeetingAt(
+  raw: string,
+  now: Date,
+): { ok: true; meetingAt?: Date } | { ok: false; message: string } {
+  const value = raw.trim();
+  if (!value) return { ok: true };
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return { ok: false, message: 'That is not a date and time. Leave it alone to record now.' };
+  }
+
+  const windowMs = MEETING_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  if (Math.abs(parsed.getTime() - now.getTime()) > windowMs) {
+    return {
+      ok: false,
+      message: `Meetings are recorded within a year either side of today — check the year on that date.`,
+    };
+  }
+
+  return { ok: true, meetingAt: parsed };
 }
 
 function firstName(name: string): string {
@@ -166,6 +210,10 @@ export async function scheduleOneOnOne(studentId: string): Promise<MentorActionR
         mentorId: author.mentorId,
         linkedAction: 'ONE_ON_ONE_SCHEDULED',
         noteText: `1:1 review scheduled for ${when} to walk through the pace gap and agree a weekly hour commitment.`,
+        // The one action whose meeting is in the future. `meetingAt` is the slot,
+        // `createdAt` is now, and the note log shows both — which is how a
+        // mentor scanning it can tell a booking from a write-up.
+        meetingAt,
       },
     }),
     prisma.scheduleItem.create({
@@ -197,13 +245,35 @@ export async function addNote(
     return { ok: false, message: `Notes are capped at ${NOTE_MAX_CHARS} characters.` };
   }
 
+  const now = new Date();
+  const meeting = parseMeetingAt(String(formData.get('meetingAt') ?? ''), now);
+  if (!meeting.ok) return meeting;
+
   const author = await resolveAuthor(studentId);
   if (!author.ok) return author;
 
-  await writeNote(studentId, author.mentorId, 'NONE', noteText);
+  await writeNote(studentId, author.mentorId, 'NONE', noteText, meeting.meetingAt);
 
   revalidatePath(`/mentor/student/${studentId}`);
-  return { ok: true, message: 'Note saved.' };
+
+  // Say which meeting was recorded whenever it is not simply now, so a mentor
+  // who mistyped the date finds out from the confirmation rather than from the
+  // log three weeks later.
+  const when = meeting.meetingAt;
+  if (!when || Math.abs(when.getTime() - now.getTime()) < 60_000) {
+    return { ok: true, message: 'Note saved.' };
+  }
+  return {
+    ok: true,
+    message: `Note saved against your meeting on ${when.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })}.`,
+  };
 }
 
 // ---------------------------------------------------------------------------

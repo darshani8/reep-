@@ -584,6 +584,31 @@ describe('FIXED the mentee guards read a missing mentor group as programme scope
     }
   });
 
+  it('gives the mentee list no roster to draw for a mentor with no mentor group', async () => {
+    // `/mentor/student` renders one row per entry in `scoped.cohort.roster`, so
+    // what protects that screen is not the branch it takes but the fact that the
+    // closed answer carries no roster to map at all. Asserting the *shape* is
+    // what makes the guarantee survive somebody rewriting the page: there is no
+    // `cohort` on this value, so there is no list of students to render however
+    // the branches are arranged. The screen shows an empty state with the reason
+    // on it — an empty list, not the programme.
+    for (const session of broken) {
+      const scoped = await queries.getMentorCohortForSession(session);
+
+      expect(scoped.kind).toBe('denied');
+      expect(scoped).not.toHaveProperty('cohort');
+    }
+
+    // And the other half of the same screen: a director legitimately has no
+    // mentor group either, and must keep being told so rather than refused.
+    const director = await queries.getMentorCohortForSession(
+      makeStaffSession({ role: 'DIRECTOR' }),
+    );
+
+    expect(director.kind).toBe('no-group');
+    expect(director).not.toHaveProperty('cohort');
+  });
+
   it('still gives a director and an admin everything they had before', async () => {
     // The other half of the fix. Failing closed for a broken mentor is worth
     // nothing if it also narrows the staff who are meant to see the programme.

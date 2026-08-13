@@ -14,11 +14,24 @@ import type { MentorAction } from '@prisma/client';
  *
  * Entries are separated by a hairline rather than marked with a coloured rule:
  * a note is not a status, and a stack of accent bars is ink spent on nothing.
+ *
+ * Every entry shows **two** timestamps, and that is the point rather than
+ * clutter. `meetingAt` is when the conversation happened and is the one a mentor
+ * means when they say "when did we last speak"; `createdAt` is when the note was
+ * typed and cannot be edited. A note written up on Monday about Friday's meeting
+ * is the ordinary case, and a log that shows only one of the two either dates
+ * the conversation wrongly or loses the record of when it was written down.
+ * Where they agree the line reads as a small redundancy, which is the price of
+ * never having to wonder which of the two a single date meant.
  */
 
 export type FocusNote = {
   id: string;
   noteText: string;
+  /// When the conversation happened — editable by the author when they write up
+  /// a meeting after the fact, or book one ahead.
+  meetingAt: Date;
+  /// When the row was written. Immutable, and the reason the pair is shown.
   createdAt: Date;
   linkedAction: MentorAction;
   authorName: string;
@@ -75,7 +88,9 @@ export function FocusNotes({ notes }: { notes: FocusNote[] }) {
               color="text.secondary"
               sx={{ mt: 0.75, display: 'block' }}
             >
-              {note.authorName} · {formatNoteDate(note.createdAt)}
+              {note.authorName} · Met {formatMeeting(note.meetingAt)} · Written{' '}
+              {formatNoteDate(note.createdAt)}
+              {note.meetingAt > note.createdAt ? ' (scheduled)' : ''}
             </Typography>
           </Box>
         );
@@ -89,5 +104,19 @@ function formatNoteDate(date: Date): string {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+  });
+}
+
+/// The meeting carries a time as well as a day — "we spoke on the 7th" and "we
+/// spoke at 3:30 on the 7th" are different amounts of record, and a 1:1 booked
+/// for next Tuesday is useless without the hour.
+function formatMeeting(date: Date): string {
+  return date.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
   });
 }

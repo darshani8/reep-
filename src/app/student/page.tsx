@@ -18,9 +18,17 @@ import {
   TechNote,
   type Tone,
 } from '@/components/kit';
+import { SgpaChart, SubjectMarksChart, SubjectMarksKey } from '@/components/marks-chart';
+import { MocksChart, MocksKey } from '@/components/mocks-chart';
+import { RankedBarChart } from '@/components/reep-charts';
+import { SkillBadges } from '@/components/skill-badges';
+import { SkillRecommendations } from '@/components/skill-recommendations';
+import { StreakTile } from '@/components/streak-tile';
+import { SwocChart, SwocHighlights } from '@/components/swoc-chart';
 import { GlassPanel, NeuPanel, NeuStat, SurfaceScene } from '@/components/surfaces';
 import { requireStudent } from '@/lib/auth';
-import { getStudentHome } from '@/lib/queries';
+import { getStudentLanding } from '@/lib/landing/queries';
+import { ATTENDANCE_COMFORT_PCT } from '@/lib/landing/tiles';
 import {
   DIMENSION_LABEL,
   MODE_SHORT,
@@ -33,22 +41,45 @@ import type { PaceStatus } from '@prisma/client';
 export const metadata = { title: 'REEP Journey — Student' };
 export const dynamic = 'force-dynamic';
 
-/// Pace is the one thing on this page that earns a hue: it is a status the
-/// student is meant to act on. Everything else — stages, dimensions — is a
-/// measurement, and reads in ink.
+/// Pace is one of the two things on this page that earn a hue: it is a status
+/// the student is meant to act on. Attendance is the other, and only because it
+/// is the one number a placement decision is refused on. Everything else —
+/// stages, dimensions, marks, mocks, streaks — is a measurement, and reads in
+/// ink.
 const PACE_TONE: Record<PaceStatus, Tone> = {
   ON_TRACK: 'good',
   BEHIND: 'warning',
   AT_RISK: 'critical',
 };
 
+/**
+ * The screen a student lands on, and the one they see most.
+ *
+ * Eight tiles, all of them fed by a single `getStudentLanding` call — eight
+ * independent panels is exactly the shape that produces eight sequential
+ * queries by accident, so the page holds no `await` of its own beyond that one.
+ *
+ * Nothing here re-derives anything. The badge wall and the five suggestions are
+ * the same components `/student/skilling` renders, from the same board; the
+ * stage rail and dimension meters are the same `progress.ts` figures every
+ * other screen quotes. A landing page that computed its own version of a number
+ * shown elsewhere would be the fastest way to make the whole product look
+ * unreliable.
+ *
+ * Every tile is written for two students at once: one with three semesters of
+ * marks, twelve SWOC entries and a 40-day streak, and a fresher who signed in
+ * for the first time ninety seconds ago. The second is the harder case and the
+ * one that gets skipped, so each panel below states what its empty state is —
+ * a sentence about what will appear and how, never a blank box and never a
+ * chart with no axis.
+ */
 export default async function StudentHomePage() {
   const { studentId } = await requireStudent();
-  const data = await getStudentHome(studentId);
+  const data = await getStudentLanding(studentId);
   if (!data) notFound();
 
-  const { student, stages, dimensions, currentCourses, upcoming, openAlerts, overallPct } =
-    data;
+  const { home, attendance, marks, swoc, mocks, streak, streakRail, skills } = data;
+  const { student, stages, dimensions, currentCourses, upcoming, openAlerts, overallPct } = home;
   const firstName = student.user.name.split(' ')[0];
 
   return (
@@ -67,21 +98,36 @@ export default async function StudentHomePage() {
         />
 
         <Grid container spacing={2.5}>
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 6, md: 3 }}>
             <NeuStat
               label="Overall completion"
               value={`${overallPct.toFixed(0)}%`}
               progress={overallPct}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 6, md: 3 }}>
             <NeuStat
-              label="Courses in progress"
-              value={currentCourses.length}
-              hint="In your current stage"
+              label="Attendance"
+              value={`${attendance.overallPct.toFixed(0)}%`}
+              tone={attendance.overallPct >= ATTENDANCE_COMFORT_PCT ? 'good' : 'warning'}
+              progress={attendance.overallPct}
+              hint={
+                attendance.sessions === 0
+                  ? 'No sessions recorded yet'
+                  : `${attendance.present} of ${attendance.sessions} sessions`
+              }
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 6, md: 3 }}>
+            <NeuStat
+              label={streak.current === 1 ? 'Day running' : 'Days running'}
+              value={streak.current}
+              hint={
+                streak.longest > 0 ? `Your best is ${streak.longest}` : 'Your streak starts today'
+              }
+            />
+          </Grid>
+          <Grid size={{ xs: 6, md: 3 }}>
             <NeuStat
               label="Open flags"
               value={openAlerts.length}
@@ -104,7 +150,7 @@ export default async function StudentHomePage() {
         </InfoBanner>
       ) : null}
 
-      {/* --- the journey rail ------------------------------------------- */}
+      {/* --- tile 1 · stage of REEP --------------------------------------- */}
       {/* Four tiles of the same material, so the one you are standing on is
           told apart by an accent edge rather than by being a different object. */}
       <SectionCard
@@ -190,6 +236,168 @@ export default async function StudentHomePage() {
           })}
         </Grid>
       </SectionCard>
+
+      <Grid container spacing={{ xs: 0, lg: 5 }}>
+        {/* --- tile 2 · attendance --------------------------------------- */}
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <SectionCard
+            title="Attendance"
+            subtitle={
+              attendance.sessions === 0
+                ? 'Instructor-led sessions'
+                : `${attendance.present} of ${attendance.sessions} instructor-led sessions attended · ${ATTENDANCE_COMFORT_PCT}% is the placement floor`
+            }
+          >
+            {attendance.byCourse.length === 0 ? (
+              <EmptyState
+                title="No sessions recorded against you yet."
+                hint="Attendance appears here as soon as your first instructor-led session is marked. Until then you are counted as fully present."
+              />
+            ) : (
+              // Worst course first, on the shared ranked-bar chart the director
+              // screens already use — a 100% course and a 60% course have to be
+              // coloured by the same rule everywhere or the colour means
+              // nothing.
+              <RankedBarChart data={attendance.byCourse} scale="percentage" unit="%" />
+            )}
+          </SectionCard>
+        </Grid>
+
+        {/* --- tile 8 · login streak ------------------------------------- */}
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <SectionCard title="Login streak" subtitle="Days you have signed in, back to back">
+            <StreakTile streak={streak} rail={streakRail} />
+          </SectionCard>
+        </Grid>
+      </Grid>
+
+      {/* --- tile 3 · VTU marks ------------------------------------------ */}
+      <SectionCard
+        title="University marks"
+        subtitle={
+          marks.cgpa != null
+            ? `SGPA by semester, and the subject breakdown for the latest one · CGPA ${marks.cgpa.toFixed(2)}`
+            : 'SGPA by semester, and the subject breakdown for the latest one'
+        }
+        action={
+          marks.latest?.resultClass ? (
+            <Typography variant="caption" color="text.secondary">
+              {marks.latest.resultClass}
+            </Typography>
+          ) : null
+        }
+      >
+        <Grid container spacing={{ xs: 4, lg: 5 }}>
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <SgpaChart data={marks.sgpaSeries} />
+          </Grid>
+
+          <Grid size={{ xs: 12, lg: 6 }}>
+            {marks.latest == null ? (
+              <EmptyState
+                title="No semester on record yet."
+                hint="Your subject marks appear here once the department uploads the internal assessment sheet for the semester you are sitting."
+              />
+            ) : (
+              <Box>
+                <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.08em' }}>
+                  Semester {marks.latest.semester}
+                </Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 1.5 }}>
+                  {marks.latest.published
+                    ? `Published · SGPA ${marks.latest.sgpa?.toFixed(2)}${
+                        marks.latest.backlogs > 0
+                          ? ` · ${marks.latest.backlogs} backlog${marks.latest.backlogs === 1 ? '' : 's'}`
+                          : ''
+                      }`
+                    : 'In progress — internals recorded, external paper not yet sat'}
+                </Typography>
+                <SubjectMarksChart data={marks.latest.subjects} />
+                <SubjectMarksKey data={marks.latest.subjects} />
+              </Box>
+            )}
+          </Grid>
+        </Grid>
+      </SectionCard>
+
+      <Grid container spacing={{ xs: 0, lg: 5 }}>
+        {/* --- tile 4 · SWOC -------------------------------------------- */}
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <SectionCard
+            title="How you are read"
+            subtitle="SWOC from the placement cell, your mentor and the programme manager — kept separate on purpose"
+          >
+            {swoc.total === 0 ? (
+              // The three desks are still named below, so a fresher learns who
+              // writes about them before anyone has.
+              <EmptyState
+                title="Nothing recorded about you yet."
+                hint="Three desks write here — the placement cell, your mentor and the programme manager. Their readings are never merged, so where they disagree you will see both."
+              />
+            ) : (
+              <SwocChart data={swoc.bars} />
+            )}
+            <SwocHighlights highlights={swoc.highlights} />
+          </SectionCard>
+        </Grid>
+
+        {/* --- tile 5 · mocks taken ------------------------------------- */}
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <SectionCard
+            title="Mocks taken"
+            subtitle="Group discussions, interviews and aptitude tests sat with the placement cell"
+          >
+            {/* Rendered whatever the counts are: a nought against "Aptitude
+                test" is the one number this tile exists to show. */}
+            <MocksChart data={mocks.bars} />
+            <MocksKey data={mocks.bars} />
+          </SectionCard>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={{ xs: 0, lg: 5 }}>
+        {/* --- tile 6 · skills badges ----------------------------------- */}
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <SectionCard
+            title="Your skills"
+            subtitle="Verified badges and claims still with your mentor"
+            action={
+              <Button href="/student/skilling" size="small">
+                Claim a skill
+              </Button>
+            }
+          >
+            {skills == null ? (
+              <EmptyState
+                title="Your skill profile could not be loaded."
+                hint="Open /student/skilling to see it in full. If it keeps happening, your mentor can check the roster."
+              />
+            ) : (
+              <SkillBadges
+                verified={skills.badges}
+                claims={skills.openClaims}
+                emptyHint="Upload the certificate for a course you have finished and your mentor will verify the skill behind it."
+              />
+            )}
+          </SectionCard>
+        </Grid>
+
+        {/* --- tile 7 · top five skilling recommendations ---------------- */}
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <SectionCard
+            title="Learn this next"
+            subtitle={
+              skills == null || skills.openJobCount === 0
+                ? 'Ranked against the postings on your jobs board'
+                : `Ranked against ${skills.openJobCount} open posting${
+                    skills.openJobCount === 1 ? '' : 's'
+                  } for your cohort`
+            }
+          >
+            <SkillRecommendations recommendations={skills?.recommendations ?? []} />
+          </SectionCard>
+        </Grid>
+      </Grid>
 
       <Grid container spacing={{ xs: 0, lg: 5 }}>
         {/* --- development dimensions ----------------------------------- */}
@@ -337,18 +545,20 @@ export default async function StudentHomePage() {
       </SectionCard>
 
       <TechNote>
-        Stage % is a weighted average of (teaching-hours attended +
-        certification-hours completed) across that stage&apos;s courses, weighted by each
-        course&apos;s total hours. Dimension scores roll up from each course&apos;s tagged
-        Developmental Dimension using the same weighting. Both live in{' '}
-        <code>src/lib/progress.ts</code>, so there is one definition of &ldquo;progress&rdquo;
-        in the codebase. The depth on this screen is presentation only — the frosted hero,
-        the extruded stage tiles and their carved meters all come from custom properties in{' '}
-        <code>src/theme.ts</code> and compose the same <code>StatCard</code> and{' '}
-        <code>ProgressMeter</code> every other screen uses, so no number, tone or contrast
-        ratio changes with the styling. It flattens to plain surfaces for print, where the
-        browser drops backgrounds, and for readers who have asked their system for reduced
-        transparency.
+        Every tile on this screen comes from one <code>getStudentLanding</code> call in{' '}
+        <code>src/lib/landing/queries.ts</code> — eight panels is exactly the shape that turns
+        into eight sequential queries by accident, so the whole page is a single{' '}
+        <code>Promise.all</code> and the shaping happens in <code>landing/tiles.ts</code>, which
+        imports neither Prisma nor <code>server-only</code> and is unit-tested. Stage % and the
+        dimension meters are <code>src/lib/progress.ts</code>, so this page and{' '}
+        <code>/student/courses</code> cannot disagree; the badges and the five suggestions are
+        the same components and the same board as <code>/student/skilling</code>. The SWOC chart
+        is grouped rather than stacked because the three desks are never merged — a taller bar
+        would mean &ldquo;more agreement&rdquo; while reading as &ldquo;more strength&rdquo;. The
+        streak is <code>src/lib/streak.ts</code> over <code>LoginDay</code> rows written by{' '}
+        <code>authenticate()</code>, with no window cap: <code>consistency()</code> in{' '}
+        <code>analytics.ts</code> measures study days over a fixed 30, which would tie every
+        student who turned up all term. Sundays are stepped over rather than counted as misses.
       </TechNote>
     </SurfaceScene>
   );

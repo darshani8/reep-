@@ -158,6 +158,105 @@ enum UploadStatus {
   REJECTED
 }
 
+/// The five buckets the daily time sheet splits a student's 24 hours into.
+///
+/// Deliberately *not* `ActivityType`. That enum has fifteen values and answers
+/// "what kind of study was this block?", which is what pace, focus quality and
+/// the alert rules read. This one answers "where did the day go?", and a
+/// question a student is meant to answer in five taps before bed cannot have
+/// fifteen options. The two tables live side by side; neither replaces the other.
+enum DayActivity {
+  SLEEPING
+  LEISURE
+  LECTURES
+  COURSEWORK
+  SKILLING
+}
+
+/// Who is speaking in a SWOC entry.
+///
+/// The same student is read differently by the placement cell, by their mentor
+/// and by the programme manager, and the value of the SWOC board is precisely
+/// that the three readings sit next to each other rather than being averaged
+/// into one. A DIRECTOR writes under whichever of these they are acting as, so
+/// the source is a property of the *entry*, never of the author's Role — which
+/// is why this is a hard three-value enum and no new Role was added for it.
+enum SwocSource {
+  PLACEMENT
+  MENTOR
+  PM
+}
+
+/// SWOC, not SWOT: the fourth quadrant is Challenge.
+///
+/// A threat is something done to you; a challenge is something you can be
+/// coached through, which is the only framing that makes sense on a page a
+/// nineteen-year-old reads about themselves.
+enum SwocKind {
+  STRENGTH
+  WEAKNESS
+  OPPORTUNITY
+  CHALLENGE
+}
+
+/// The three rehearsals the placement cell runs.
+enum MockType {
+  GD
+  INTERVIEW
+  APTITUDE
+}
+
+/// Undergraduate or postgraduate.
+///
+/// The jobs sheet carries both, and a BBA vacancy shown to an MBA student is
+/// noise that trains them to ignore the board. Every job and every cohort
+/// declares its level so the feed can be filtered rather than skimmed.
+enum DegreeLevel {
+  UG
+  PG
+}
+
+/// Where a leave request has got to.
+///
+/// FIRST_APPROVED is a distinct state rather than a flag because it is the one
+/// a queue is built on: "waiting for the second signature" has to be askable
+/// without joining to the decision columns.
+enum LeaveStatus {
+  SUBMITTED
+  FIRST_APPROVED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// One approver's verdict. Null means they have not looked yet — which is why
+/// this enum has no PENDING member; absence already says it.
+enum LeaveDecision {
+  APPROVED
+  REJECTED
+}
+
+/// The life of a sign-up before it becomes a Student row.
+///
+/// AUTO_APPROVED is kept apart from APPROVED so an administrator can always
+/// tell which admissions a rule waved through and which a human read.
+enum RegistrationStatus {
+  DRAFT
+  PENDING_VERIFICATION
+  PENDING_REVIEW
+  AUTO_APPROVED
+  APPROVED
+  REJECTED
+}
+
+/// What happened when the mailer was handed a message.
+enum MailStatus {
+  SENT
+  FAILED
+  /// Suppressed on purpose — a dedupe hit, or a recipient who has opted out.
+  SUPPRESSED
+}
+
 // ---------------------------------------------------------------------------
 // Identity
 // ---------------------------------------------------------------------------
@@ -176,6 +275,14 @@ model User {
   mentor    Mentor?
   agentRuns AgentRun[]
 
+  loginDays            LoginDay[]
+  swocAuthored         SwocEntry[]    @relation("SwocAuthor")
+  mocksEvaluated       MockAttempt[]  @relation("MockEvaluator")
+  leaveRequests        LeaveRequest[] @relation("LeaveRequester")
+  leaveFirstApprovals  LeaveRequest[] @relation("LeaveFirstApprover")
+  leaveSecondApprovals LeaveRequest[] @relation("LeaveSecondApprover")
+  mentorGroupsApproved Mentor[]       @relation("MentorFirstApprover")
+
   @@map("users")
 }
 
@@ -184,12 +291,19 @@ model Cohort {
   code      String   @unique // e.g. MBA-2026-B
   name      String // e.g. MBA Batch 2025-27 — Section B
   batchLabel String // e.g. 2025-27
+  /// UG or PG. Required and undefaulted on purpose: which vacancies a cohort is
+  /// eligible for is an admissions fact, and a wrong guess quietly shows a BBA
+  /// batch MBA-only postings. Existing rows were backfilled to PG in the
+  /// migration, because at the time it ran every cohort in the programme was.
+  degreeLevel DegreeLevel
   startDate DateTime
   endDate   DateTime
   createdAt DateTime @default(now())
 
-  students   Student[]
-  alertRules AlertRuleConfig[]
+  students          Student[]
+  alertRules        AlertRuleConfig[]
+  registrations     Registration[]
+  registrationRules RegistrationRule[]
 
   @@map("cohorts")
 }
@@ -201,6 +315,14 @@ model Mentor {
   title       String  @default("Prof.")
   department  String  @default("MBA")
   mentorGroup String // e.g. MBA-2026-B
+
+  /// Who signs the *first* approval for leave coming out of this mentor group.
+  /// Normally the mentor themself, so it is null in the ordinary case and the
+  /// approval router falls back to `userId`. It exists for the mentor on
+  /// sabbatical: their group's requests have to route somewhere, and recording
+  /// the substitution here is the only way to do that without inventing a Role.
+  firstApproverUserId String?
+  firstApprover       User?   @relation("MentorFirstApprover", fields: [firstApproverUserId], references: [id], onDelete: SetNull)
 
   mentees Student[]
   notes   MentorNote[]
@@ -234,6 +356,14 @@ model Student {
   resumes       Resume[]
   profile       StudentProfile?
   uploads       Upload[]
+
+  timeSheet       TimeSheetEntry[]
+  skills          StudentSkill[]
+  skillClaims     SkillClaim[]
+  semesterResults SemesterResult[]
+  swoc            SwocEntry[]
+  mockAttempts    MockAttempt[]
+  jobApplications JobApplication[]
 
   @@index([cohortId])
   @@index([mentorId])
@@ -411,9 +541,17 @@ model MentorNote {
   student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   noteText     String
   linkedAction MentorAction @default(NONE)
+  /// When the conversation happened, as against when the note was typed. Most
+  /// notes are written in the room, so this defaults to now rather than forcing
+  /// every caller to repeat `new Date()`; the column exists for the two cases
+  /// that break that assumption — a 1:1 booked for next Tuesday, and a mentor
+  /// writing up Friday's meeting on Monday morning. Rows that predate the
+  /// column were backfilled from `createdAt` in the migration.
+  meetingAt    DateTime     @default(now())
   createdAt    DateTime     @default(now())
 
   @@index([studentId, createdAt])
+  @@index([studentId, meetingAt])
   @@map("mentor_notes")
 }
 
@@ -509,10 +647,25 @@ model StudentProfile {
   experience  Json @default("[]")
   /// [{ name, description, tech: [], link }]
   projects    Json @default("[]")
-  /// [{ name, level }]
+  /// @deprecated Free-text skills, superseded by the `StudentSkill` join onto
+  /// the `Skill` catalogue. Two students typing "MS Excel" and "Advanced Excel"
+  /// produce two skills here and one there, and a job-match percentage is only
+  /// meaningful over the catalogue. Still read by the resume builder for
+  /// profiles written before the catalogue existed; write to `StudentSkill`.
   skills      Json @default("[]")
   /// [{ title, issuer, year }] — non-REEP awards
   achievements Json @default("[]")
+
+  /// The verified profile photo, once a mentor has approved the upload. Stored
+  /// as a pointer rather than a path so the file store can move without
+  /// touching this table, exactly as `Upload` does.
+  photoUploadId String?
+  photoUpload   Upload? @relation("ProfilePhoto", fields: [photoUploadId], references: [id], onDelete: SetNull)
+
+  /// Removes the student from every leaderboard, in both directions: they stop
+  /// appearing to peers and they stop seeing peer ranks. Opting out must never
+  /// cost them their own figures, which they read from their own record.
+  leaderboardOptOut Boolean @default(false)
 
   updatedAt DateTime @updatedAt
 
@@ -528,6 +681,12 @@ model Resume {
   targetRole     String?
   targetIndustry String?
   jobDescription String?
+  /// The posting this version was tailored against, when the student started
+  /// from the jobs board rather than from a blank target. Nullable and
+  /// SetNull-on-delete: a resume outlives the vacancy that prompted it, and
+  /// `jobDescription` above keeps the text even after the row goes.
+  jobId          String?
+  job            Job?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
   status    ResumeStatus @default(DRAFT)
 
   /// Structured resume: { header, summary, education[], experience[],
@@ -621,8 +780,573 @@ model Upload {
 
   uploadedAt DateTime @default(now())
 
+  skillEvidence StudentSkill[]
+  skillClaims   SkillClaim[]
+  profilePhotos StudentProfile[] @relation("ProfilePhoto")
+
   @@index([studentId, kind])
   @@index([certCode])
   @@index([status])
   @@map("uploads")
+}
+
+// ---------------------------------------------------------------------------
+// Daily time sheet
+// ---------------------------------------------------------------------------
+
+/// One student, one day, one of the five buckets, in minutes.
+///
+/// This table sits *alongside* `LabSession`, which is the fine-grained study
+/// record. The two answer different questions and are collected differently: a
+/// lab session is captured by a badge or a check-in as it happens, while a time
+/// sheet is a student reconstructing yesterday in five taps. Folding them
+/// together would mean either asking for badge-level precision on sleep or
+/// accepting self-reported minutes into the pace calculation, and neither is
+/// worth it.
+///
+/// The unique key is (student, day, activity) rather than a row per tap, so
+/// re-submitting a day corrects it instead of double-counting it. Nothing here
+/// forces the five buckets to sum to 1440 — a student who logs six hours and
+/// stops has told us something true, and a validator that rejected it would
+/// only teach them to make numbers up.
+model TimeSheetEntry {
+  id        String      @id @default(cuid())
+  studentId String
+  student   Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  /// Date only. The bucket belongs to a calendar day, not an instant, and a
+  /// timestamp here would silently shift a day across a timezone change.
+  day       DateTime    @db.Date
+  activity  DayActivity
+  minutes   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, day, activity])
+  @@index([studentId, day])
+  @@map("time_sheet_entries")
+}
+
+// ---------------------------------------------------------------------------
+// Skills
+// ---------------------------------------------------------------------------
+
+/// The controlled skill vocabulary.
+///
+/// A job row says "Advanced Excel", a student types "MS-Excel", a certificate
+/// is titled "Excel Skills for Business". Without one canonical row and a list
+/// of aliases to fold onto it, every match percentage on the jobs board is zero
+/// and the board looks broken rather than empty.
+model Skill {
+  id       String   @id @default(cuid())
+  /// Stable machine key — `excel`, `power-bi`. Referenced by importers and by
+  /// `Job.requiredSkills`, so it is the one field not to rename casually.
+  slug     String   @unique
+  name     String
+  /// Grouping for the profile UI: Technical, Analytics, Business, Soft Skills…
+  category String
+  /// Spellings seen in the wild that mean this skill. Matched case-insensitively
+  /// by the job importer; the canonical `name` need not be repeated here.
+  aliases  String[]
+
+  createdAt DateTime @default(now())
+
+  students StudentSkill[]
+  claims   SkillClaim[]
+
+  @@index([category])
+  @@map("skills")
+}
+
+/// A skill a student holds, and how much anyone should believe it.
+///
+/// `verified` is the whole point of the table. A self-declared skill is worth
+/// showing to the student and worth matching loosely against a posting; a skill
+/// a mentor has checked against evidence is worth putting on a resume. Keeping
+/// both in one row, rather than one table for claims and one for facts, means
+/// verification is an edit and never a migration of rows between tables.
+model StudentSkill {
+  id        String  @id @default(cuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  skillId   String
+  skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  /// 1 Aware · 2 Beginner · 3 Working · 4 Proficient · 5 Expert. A small
+  /// integer rather than an enum because the ladder is drawn as a bar and
+  /// compared numerically far more often than it is switched on.
+  level    Int     @default(3)
+  verified Boolean @default(false)
+
+  /// The certificate or artefact a mentor verified against, when there was one.
+  evidenceUploadId String?
+  evidenceUpload   Upload? @relation(fields: [evidenceUploadId], references: [id], onDelete: SetNull)
+
+  addedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, skillId])
+  @@index([skillId])
+  @@map("student_skills")
+}
+
+/// A request to have a skill verified, with the file that backs it.
+///
+/// Separate from `StudentSkill` because a claim has a history a fact does not:
+/// it can be rejected, re-submitted with better evidence, and rejected again,
+/// and the mentor deciding the third one wants to see the first two. Status
+/// reuses `UploadStatus` rather than duplicating its three values — a claim is
+/// judged by the same person, on the same screen, under the same rule as the
+/// upload attached to it.
+model SkillClaim {
+  id        String  @id @default(cuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  skillId   String
+  skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  uploadId  String
+  upload    Upload  @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  /// The level being claimed, which the reviewer may grant or reduce.
+  claimedLevel Int          @default(3)
+  status       UploadStatus @default(PENDING_REVIEW)
+  /// Reviewer's user id. A plain column rather than a relation, matching
+  /// `Upload.reviewedById` — the reviewer is an audit stamp, not something the
+  /// row is queried by.
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId, status])
+  @@index([status])
+  @@index([skillId])
+  @@map("skill_claims")
+}
+
+// ---------------------------------------------------------------------------
+// University results
+// ---------------------------------------------------------------------------
+
+/// One published VTU semester result.
+///
+/// REEP progress and university marks are different truths about the same
+/// student and are deliberately not merged: a student can be ahead on every
+/// certification and still carry a backlog subject, and the mentor screen has
+/// to be able to say so. `publishedOn` is nullable because a semester in
+/// progress has a row — so the subject list can be shown — before it has a
+/// result.
+model SemesterResult {
+  id        String  @id @default(cuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  semester  Int
+
+  sgpa Float?
+  cgpa Float?
+  /// VTU's own wording — "FIRST CLASS WITH DISTINCTION", "FIRST CLASS", "PASS".
+  /// Free text because it is transcribed from the published sheet, and an enum
+  /// member that did not exist would lose the transcription rather than flag it.
+  resultClass String?
+  publishedOn DateTime?
+
+  subjects SubjectMark[]
+
+  @@unique([studentId, semester])
+  @@index([studentId])
+  @@map("semester_results")
+}
+
+/// One subject inside a semester result.
+///
+/// Internal and external are stored separately, not folded into `total`,
+/// because the diagnostic a mentor acts on lives in the split: strong internals
+/// with a weak external is exam technique, and the reverse is coursework
+/// discipline.
+model SubjectMark {
+  id               String         @id @default(cuid())
+  semesterResultId String
+  semesterResult   SemesterResult @relation(fields: [semesterResultId], references: [id], onDelete: Cascade)
+
+  subjectCode String
+  subjectName String
+  credits     Int     @default(4)
+  /// Out of 50 under the VTU CBCS scheme, as is `external`.
+  internal    Int     @default(0)
+  external    Int     @default(0)
+  total       Int     @default(0)
+  passed      Boolean @default(true)
+
+  @@unique([semesterResultId, subjectCode])
+  @@map("subject_marks")
+}
+
+// ---------------------------------------------------------------------------
+// SWOC
+// ---------------------------------------------------------------------------
+
+/// One observation about a student, attributed to one of three viewpoints.
+///
+/// The board is only useful if it stays un-averaged: the placement cell's "weak
+/// at structured problem solving" and the mentor's "strongest analyst in the
+/// group" are both true, and the disagreement *is* the finding. So every entry
+/// carries its source and no code path merges them.
+model SwocEntry {
+  id        String     @id @default(cuid())
+  studentId String
+  student   Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  source    SwocSource
+  kind      SwocKind
+  text      String
+  /// 1–5, how strongly the author holds this. Orders a quadrant so the top of
+  /// each column is the thing worth acting on.
+  weight    Int        @default(3)
+
+  /// The staff member who wrote it. Nullable because entries can arrive from a
+  /// bulk placement-cell import that names no individual.
+  authorUserId String?
+  author       User?    @relation("SwocAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  recordedAt   DateTime @default(now())
+
+  @@index([studentId, kind])
+  @@index([studentId, source])
+  @@map("swoc_entries")
+}
+
+// ---------------------------------------------------------------------------
+// Mock assessments
+// ---------------------------------------------------------------------------
+
+/// One rehearsal — a group discussion, an interview, or an aptitude paper.
+///
+/// `score` and `maxScore` are both nullable and both stored, rather than one
+/// percentage, because a GD is often run as a debrief with no number at all,
+/// and the papers that do score are marked out of different totals across
+/// terms. Normalising at write time would throw away the only thing that makes
+/// two attempts comparable later.
+model MockAttempt {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  type      MockType
+  takenOn   DateTime
+
+  score    Float?
+  maxScore Float?
+
+  evaluatorUserId String?
+  evaluator       User?   @relation("MockEvaluator", fields: [evaluatorUserId], references: [id], onDelete: SetNull)
+  notes           String?
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId, takenOn])
+  @@index([type, takenOn])
+  @@map("mock_attempts")
+}
+
+// ---------------------------------------------------------------------------
+// Engagement streak
+// ---------------------------------------------------------------------------
+
+/// One row per user per day they signed in.
+///
+/// `User.lastLoginAt` answers "are they still here?" and nothing else; a streak
+/// needs the days in between, and a login *count* cannot tell thirty visits in
+/// one evening from thirty consecutive days. A date-typed unique key makes the
+/// second sign-in of a day a no-op upsert.
+model LoginDay {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day    DateTime @db.Date
+
+  @@unique([userId, day])
+  @@index([day])
+  @@map("login_days")
+}
+
+// ---------------------------------------------------------------------------
+// Jobs
+// ---------------------------------------------------------------------------
+
+/// A vacancy from the weekly staff-uploaded sheet.
+///
+/// `sourceRef` is the sheet's own identifier for the row, and its uniqueness is
+/// what makes a re-upload an update instead of twenty duplicates on the board.
+/// It is nullable because a job typed in by hand has no source row, and
+/// Postgres lets many nulls coexist under a unique index.
+model Job {
+  id        String  @id @default(cuid())
+  sourceRef String? @unique
+
+  title       String
+  company     String
+  degreeLevel DegreeLevel
+  location    String?
+  applyUrl    String?
+  description String      @default("")
+  /// Canonical `Skill.slug` values, denormalised onto the row. The match
+  /// percentage is computed for every visible job on every load of the board,
+  /// and a join table would turn one query into a fan-out for no gain — the
+  /// list is rewritten wholesale by the importer, never edited a member at a
+  /// time.
+  requiredSkills String[]
+
+  postedOn DateTime
+  closesOn DateTime?
+
+  /// Which import wrote this row, so a bad sheet can be traced and undone.
+  importRunId String?
+  importRun   JobImportRun? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications JobApplication[]
+  resumes      Resume[]
+
+  @@index([degreeLevel, postedOn])
+  @@index([closesOn])
+  @@map("jobs")
+}
+
+/// A student's application against a posting.
+///
+/// `selfReported` is the honest default: the dashboard cannot see the
+/// employer's portal, so almost every row is a student ticking "I applied".
+/// Saying so explicitly stops a placement report from reading these as
+/// confirmed submissions.
+model JobApplication {
+  id        String  @id @default(cuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  jobId     String
+  job       Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  appliedAt    DateTime @default(now())
+  selfReported Boolean  @default(true)
+  notes        String?
+
+  @@unique([studentId, jobId])
+  @@index([jobId])
+  @@map("job_applications")
+}
+
+/// One upload of the weekly jobs sheet.
+///
+/// Kept even when it fails, and especially then: "the board is stale" and "the
+/// board is stale because Tuesday's sheet had a broken date column" are
+/// different problems, and only the row that recorded the errors tells them
+/// apart.
+model JobImportRun {
+  id           String    @id @default(cuid())
+  fileName     String?
+  /// Staff member who ran the import. A plain column, as on `Upload`.
+  uploadedById String?
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+
+  rowsSeen    Int  @default(0)
+  rowsCreated Int  @default(0)
+  rowsUpdated Int  @default(0)
+  /// [{ row, column, message }] — per-row rejections, so a partly good sheet
+  /// still imports and the operator is told exactly which lines did not.
+  errors      Json @default("[]")
+
+  jobs Job[]
+
+  @@index([startedAt])
+  @@map("job_import_runs")
+}
+
+// ---------------------------------------------------------------------------
+// Leave
+// ---------------------------------------------------------------------------
+
+/// A leave request and its two signatures.
+///
+/// The approvals are spelled out as two sets of columns rather than a generic
+/// approvals table because the workflow is exactly two steps deep and always
+/// will be — mentor, then programme office. A join table would buy flexibility
+/// nobody asked for and cost every queue screen a join.
+///
+/// The requester is a `User`, not a `Student`: staff take leave too, and the
+/// second approver wants both queues in one list.
+model LeaveRequest {
+  id              String      @id @default(cuid())
+  requesterUserId String
+  requester       User        @relation("LeaveRequester", fields: [requesterUserId], references: [id], onDelete: Cascade)
+  fromDate        DateTime    @db.Date
+  toDate          DateTime    @db.Date
+  reason          String
+  status          LeaveStatus @default(SUBMITTED)
+
+  firstApproverUserId String?
+  firstApprover       User?          @relation("LeaveFirstApprover", fields: [firstApproverUserId], references: [id], onDelete: SetNull)
+  firstDecision       LeaveDecision?
+  firstDecidedAt      DateTime?
+  firstNote           String?
+
+  secondApproverUserId String?
+  secondApprover       User?          @relation("LeaveSecondApprover", fields: [secondApproverUserId], references: [id], onDelete: SetNull)
+  secondDecision       LeaveDecision?
+  secondDecidedAt      DateTime?
+  secondNote           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([requesterUserId, createdAt])
+  @@index([firstApproverUserId, status])
+  @@index([secondApproverUserId, status])
+  @@map("leave_requests")
+}
+
+// ---------------------------------------------------------------------------
+// Registration
+// ---------------------------------------------------------------------------
+
+/// An application to join the programme, before there is a student to point at.
+///
+/// This model has no foreign key to `Student`, and that is structural rather
+/// than an oversight. `Student.cohortId` is a required FK and so is
+/// `Upload.studentId`, so a `Student` row cannot exist until a cohort has been
+/// decided — which is the very thing approval decides. A relation from here
+/// would force a half-built student into the table and let every staff screen
+/// that lists students count applicants.
+///
+/// After approval the created student's id is written back to
+/// `approvedStudentId` as a plain string. It is a breadcrumb for the audit
+/// trail, deliberately not a relation: deleting a student must not resurrect
+/// their application as pending.
+model Registration {
+  id    String  @id @default(cuid())
+  name  String
+  email String  @unique
+  usn   String?
+  phone String?
+
+  degreeLevel DegreeLevel        @default(PG)
+  /// The cohort applied for. Nullable — an applicant may not know, and a rule
+  /// or a reviewer assigns it.
+  cohortId    String?
+  cohort      Cohort?            @relation(fields: [cohortId], references: [id], onDelete: SetNull)
+  status      RegistrationStatus @default(DRAFT)
+
+  /// Which rule decided this, when one did.
+  matchedRuleId  String?
+  matchedRule    RegistrationRule? @relation(fields: [matchedRuleId], references: [id], onDelete: SetNull)
+  /// Human-readable reason, shown on the review queue: "email domain matched
+  /// bgscet.ac.in", or "USN does not match any active batch".
+  decisionReason String?
+
+  emailVerifiedAt DateTime?
+  /// Reviewer's user id — a plain column, as on `Upload`.
+  reviewedById    String?
+  reviewedAt      DateTime?
+  reviewNote      String?
+
+  /// Set once the application became a Student. See the note above: a string,
+  /// not a relation.
+  approvedStudentId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  verifications EmailVerification[]
+
+  @@index([status, createdAt])
+  @@map("registrations")
+}
+
+/// When a registration may be waved through without a human reading it.
+///
+/// The conditions live in data for the same reason `AlertRuleConfig` does: the
+/// admissions office changes them between intakes, and a hard-coded domain
+/// check becomes a deploy every August. All populated conditions must match;
+/// the lowest `priority` among the matches decides, so a narrow rule can sit
+/// above a broad one without either being rewritten.
+model RegistrationRule {
+  id      String  @id @default(cuid())
+  name    String
+  enabled Boolean @default(true)
+
+  /// Everything after the "@", lowercased. Null means "any domain".
+  emailDomain String?
+  /// Regex the USN must satisfy, e.g. `^1BG2[0-9]MBA[0-9]{3}$`.
+  usnPattern  String?
+  degreeLevel DegreeLevel?
+
+  /// Cohort the applicant is placed in when this rule fires.
+  cohortId String?
+  cohort   Cohort? @relation(fields: [cohortId], references: [id], onDelete: SetNull)
+
+  /// False means "matched, and still send it to a human" — a rule can exist to
+  /// route and label an application without approving it.
+  autoApprove Boolean @default(false)
+  priority    Int     @default(100)
+
+  createdAt DateTime @default(now())
+
+  registrations Registration[]
+
+  @@index([enabled, priority])
+  @@map("registration_rules")
+}
+
+/// A single-use email confirmation link.
+///
+/// Only the hash of the token is stored. The token itself exists in the email
+/// and nowhere else, so a leaked dump of this table cannot be used to confirm
+/// anybody's address. `consumedAt` is kept rather than the row deleted, so a
+/// second click on the same link can be told apart from an expired one and
+/// given the right message.
+model EmailVerification {
+  id             String       @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([registrationId])
+  @@map("email_verifications")
+}
+
+// ---------------------------------------------------------------------------
+// Outbound mail
+// ---------------------------------------------------------------------------
+
+/// Every message the mailer was asked to send, keyed so it is asked only once.
+///
+/// `dedupeKey` is the entire point of the table. "Weekly job alert" means one
+/// email on Monday, but the job that sends it can be re-run by a retry, by a
+/// second worker, or by an operator who is not sure the first run worked — and
+/// each of those is another email to a student who now ignores all of them. The
+/// caller builds a key from the message and its period
+/// (`job-alert:<studentId>:2026-W32`) and the unique index turns the second
+/// attempt into a caught conflict instead of a delivery.
+///
+/// `kind` is free text rather than an enum on purpose: the catalogue of
+/// messages grows with the product, and a new template should not need a
+/// migration before it can be sent.
+model MailLog {
+  id        String     @id @default(cuid())
+  kind      String
+  recipient String
+  dedupeKey String     @unique
+  subject   String?
+  status    MailStatus @default(SENT)
+  /// The driver's complaint, when status is FAILED.
+  error     String?
+  sentAt    DateTime   @default(now())
+
+  @@index([kind, sentAt])
+  @@index([recipient, sentAt])
+  @@map("mail_logs")
 }

@@ -30,10 +30,13 @@ import CloudUploadOutlined from '@mui/icons-material/CloudUploadOutlined';
 import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
 import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
+import EventBusyOutlined from '@mui/icons-material/EventBusyOutlined';
 import FactCheckOutlined from '@mui/icons-material/FactCheckOutlined';
 import GroupsOutlined from '@mui/icons-material/GroupsOutlined';
 import HomeOutlined from '@mui/icons-material/HomeOutlined';
+import HowToRegOutlined from '@mui/icons-material/HowToRegOutlined';
 import InsightsOutlined from '@mui/icons-material/InsightsOutlined';
+import LeaderboardOutlined from '@mui/icons-material/LeaderboardOutlined';
 import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import MenuBookOutlined from '@mui/icons-material/MenuBookOutlined';
@@ -41,9 +44,11 @@ import MenuRounded from '@mui/icons-material/MenuRounded';
 import NotificationsNoneOutlined from '@mui/icons-material/NotificationsNoneOutlined';
 import PersonOutlineOutlined from '@mui/icons-material/PersonOutlineOutlined';
 import PersonSearchOutlined from '@mui/icons-material/PersonSearchOutlined';
+import PsychologyOutlined from '@mui/icons-material/PsychologyOutlined';
 import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined';
 import SupervisorAccountOutlined from '@mui/icons-material/SupervisorAccountOutlined';
 import TuneOutlined from '@mui/icons-material/TuneOutlined';
+import UploadFileOutlined from '@mui/icons-material/UploadFileOutlined';
 import WorkOutlineOutlined from '@mui/icons-material/WorkOutlineOutlined';
 import WorkspacePremiumOutlined from '@mui/icons-material/WorkspacePremiumOutlined';
 
@@ -59,10 +64,17 @@ const NAV: Record<ShellRole, NavEntry[]> = {
   student: [
     { href: '/student', label: 'Overview', icon: <HomeOutlined /> },
     { href: '/student/certifications', label: 'Certifications', icon: <WorkspacePremiumOutlined /> },
+    { href: '/student/skilling', label: 'Skilling', icon: <PsychologyOutlined /> },
+    // The day sheet. `/student/time-log/sessions` is the older per-course record
+    // and keeps its own entry off this list deliberately: it is reachable from
+    // the day sheet, and two adjacent items both reading "time" is how a student
+    // ends up logging the same evening twice.
     { href: '/student/time-log', label: 'Time log', icon: <ScheduleOutlined /> },
     { href: '/student/courses', label: 'Courses', icon: <MenuBookOutlined /> },
+    { href: '/student/leaderboards', label: 'Leaderboards', icon: <LeaderboardOutlined /> },
     { href: '/student/uploads', label: 'Uploads', icon: <CloudUploadOutlined /> },
     { href: '/student/resume', label: 'Resume', icon: <DescriptionOutlined /> },
+    { href: '/student/jobs', label: 'Jobs', icon: <WorkOutlineOutlined /> },
     { href: '/student/assistant', label: 'REEP Agent', icon: <ChatBubbleOutlineOutlined /> },
     { href: '/student/profile', label: 'Profile', icon: <PersonOutlineOutlined /> },
   ],
@@ -72,15 +84,24 @@ const NAV: Record<ShellRole, NavEntry[]> = {
     { href: '/mentor/alerts', label: 'Alerts', icon: <NotificationsNoneOutlined /> },
     { href: '/mentor/uploads', label: 'Verifications', icon: <FactCheckOutlined /> },
     { href: '/mentor/reports', label: 'Reports', icon: <AssessmentOutlined /> },
+    // One entry, not two. `/mentor/leave` is where you apply and
+    // `/mentor/leave/approvals` is where you sign for someone else; the desk
+    // links across to the queue and `isActive` lights this row for both.
+    { href: '/mentor/leave', label: 'Leave', icon: <EventBusyOutlined /> },
     { href: '/mentor/assistant', label: 'REEP Agent', icon: <ChatBubbleOutlineOutlined /> },
     { href: '/mentor/settings', label: 'Thresholds', icon: <TuneOutlined /> },
   ],
   director: [
     { href: '/director', label: 'Analytics', icon: <InsightsOutlined /> },
+    // High in the list because it is the only staff screen that holds people
+    // waiting on a decision — everything below it describes students who are
+    // already in the programme.
+    { href: '/director/registrations', label: 'Registrations', icon: <HowToRegOutlined /> },
     { href: '/director/mentors', label: 'Mentor assignment', icon: <SupervisorAccountOutlined /> },
     { href: '/director/courses', label: 'Courses', icon: <MenuBookOutlined /> },
     { href: '/director/certifications', label: 'Certifications', icon: <WorkspacePremiumOutlined /> },
     { href: '/director/placement', label: 'Placement', icon: <WorkOutlineOutlined /> },
+    { href: '/director/jobs', label: 'Jobs sheet', icon: <UploadFileOutlined /> },
     { href: '/director/assistant', label: 'REEP Agent', icon: <ChatBubbleOutlineOutlined /> },
     { href: '/director/exports', label: 'Exports', icon: <DownloadOutlined /> },
   ],
@@ -195,8 +216,8 @@ export function AppShell({
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* Every page puts the app bar and a 6–7 item drawer before the content.
-          Without a bypass that is ~10 tab stops on every single navigation. */}
+      {/* Every page puts the app bar and an 8–11 item drawer before the content.
+          Without a bypass that is ~14 tab stops on every single navigation. */}
       <Box component="a" href="#main" className="skip-link no-print">
         Skip to content
       </Box>

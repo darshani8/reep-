@@ -69,6 +69,58 @@ export async function saveProfileAction(
   return { ok: true, savedAt: Date.now() };
 }
 
+export type LeaderboardVisibilityState = {
+  ok?: boolean;
+  error?: string;
+  /// The value now stored. Undefined before the student has touched the
+  /// control in this session and the page has not told the form what it is.
+  optOut?: boolean;
+};
+
+/**
+ * The one control on this page that changes what *other* students see.
+ *
+ * It is a separate action from `saveProfileAction`, and that is a decision
+ * rather than tidiness. Folded into the big form, the checkbox's value would
+ * ride along with every "Save profile" — so a form rendered without knowing the
+ * stored flag would post `false` for it and quietly put an opted-out student
+ * back on every board, on a save they made about their phone number. Here the
+ * column is written only when this form is submitted, and only to a value the
+ * student stated explicitly: the intent arrives as the string `true` or
+ * `false`, and anything else is rejected rather than coerced. An absent
+ * checkbox posts nothing at all, which `Boolean(formData.get(…))` would have
+ * read as "opt me back in".
+ *
+ * Upsert, not update: a student who has never opened this page has no
+ * `StudentProfile` row, and opting out must not require them to fill in a
+ * career summary first.
+ */
+export async function setLeaderboardOptOutAction(
+  _prev: LeaderboardVisibilityState,
+  formData: FormData,
+): Promise<LeaderboardVisibilityState> {
+  const { studentId } = await requireStudent();
+
+  const intent = String(formData.get('optOut') ?? '');
+  if (intent !== 'true' && intent !== 'false') {
+    return { error: 'Choose whether you appear on the leaderboards.' };
+  }
+  const leaderboardOptOut = intent === 'true';
+
+  await prisma.studentProfile.upsert({
+    where: { studentId },
+    update: { leaderboardOptOut },
+    create: { studentId, leaderboardOptOut },
+  });
+
+  revalidatePath('/student/profile');
+  // The boards read this flag for every student in the cohort, so a stale
+  // render would keep showing a name that has just been withdrawn.
+  revalidatePath('/student/leaderboards');
+
+  return { ok: true, optOut: leaderboardOptOut };
+}
+
 export type TargetState = { ok?: boolean; error?: string; hours?: number };
 
 export async function saveWeeklyTargetAction(

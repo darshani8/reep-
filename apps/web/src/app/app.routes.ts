@@ -6,6 +6,7 @@ import { authGuard } from './core/auth.guard';
 import { StudentOverviewComponent } from './features/student/overview/student-overview.component';
 import { JobsComponent } from './features/student/jobs/jobs.component';
 import { CertificationsComponent } from './features/student/certifications/certifications.component';
+import { ProfileComponent } from './features/student/profile/profile.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 
 /**
@@ -37,7 +38,7 @@ export const routes: Routes = [
       placeholder('student/resume', 'Resume'),
       { path: 'student/jobs', component: JobsComponent },
       placeholder('student/assistant', 'REEP Agent'),
-      placeholder('student/profile', 'Profile'),
+      { path: 'student/profile', component: ProfileComponent },
 
       // --- mentor ---
       placeholder('mentor', 'Cohort'),

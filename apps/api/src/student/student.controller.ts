@@ -1,11 +1,12 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Body, Put } from '@nestjs/common';
 
 import { Roles, Session, SessionGuard } from '../auth/session.guard';
 import type { SessionPayload } from '../auth/session.types';
 import { StudentService, type StudentMeta } from './student.service';
 import { CertificationsService, type CertificationsView } from './certifications.service';
+import { ProfileService, type ProfileView } from './profile.service';
 
 /**
  * Everything under /api/student is a signed-in STUDENT reading their OWN record.
@@ -20,6 +21,7 @@ export class StudentController {
   constructor(
     private readonly student: StudentService,
     private readonly certifications: CertificationsService,
+    private readonly profile: ProfileService,
   ) {}
 
   private studentId(session: SessionPayload): string {
@@ -36,5 +38,34 @@ export class StudentController {
   @Get('certifications')
   certificationsList(@Session() session: SessionPayload): Promise<CertificationsView> {
     return this.certifications.list(this.studentId(session));
+  }
+
+  @Get('profile')
+  getProfile(@Session() session: SessionPayload): Promise<ProfileView> {
+    return this.profile.get(this.studentId(session));
+  }
+
+  @Put('profile/contact')
+  saveContact(
+    @Session() session: SessionPayload,
+    @Body() body: Record<string, string>,
+  ): Promise<{ ok: true }> {
+    return this.profile.saveContact(this.studentId(session), body);
+  }
+
+  @Put('profile/leaderboard')
+  setOptOut(
+    @Session() session: SessionPayload,
+    @Body() body: { optOut?: boolean },
+  ): Promise<{ ok: true }> {
+    return this.profile.setOptOut(this.studentId(session), body.optOut === true);
+  }
+
+  @Put('profile/target')
+  setTarget(
+    @Session() session: SessionPayload,
+    @Body() body: { weeklyHourTarget?: number },
+  ): Promise<{ ok: true }> {
+    return this.profile.setTarget(this.studentId(session), Number(body.weeklyHourTarget));
   }
 }

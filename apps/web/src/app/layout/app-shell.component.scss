@@ -1,0 +1,255 @@
+/* App shell — measurements ported from app-shell.tsx: 236px drawer, 60px bar,
+   1240 content column, lg breakpoint 1200px. Tokens only. */
+
+$drawer: 236px;
+$bar: 60px;
+
+:host {
+  display: block;
+}
+
+.shell {
+  min-height: 100vh;
+  background-color: var(--reep-bg-default);
+}
+
+/* --- top bar ------------------------------------------------------------- */
+.appbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: $bar;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  background-color: var(--reep-bg-default);
+  color: var(--reep-text-primary);
+  border-bottom: 1px solid var(--reep-divider);
+  z-index: 20;
+}
+.appbar__menu-btn,
+.appbar__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--reep-text-disabled);
+  cursor: pointer;
+}
+.appbar__menu-btn:hover,
+.appbar__icon-btn:hover {
+  background-color: var(--reep-action-hover);
+}
+.appbar__who {
+  flex: 1;
+  min-width: 0;
+}
+.appbar__name {
+  line-height: 1.3;
+  color: var(--reep-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.appbar__meta {
+  color: var(--reep-text-disabled);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account {
+  position: relative;
+}
+.account__btn {
+  display: inline-flex;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.account__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--reep-action-selected);
+  color: var(--reep-text-primary);
+}
+.account__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+}
+.account__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 190px;
+  background-color: var(--reep-bg-paper);
+  border: 1px solid var(--reep-divider);
+  border-radius: 8px;
+  box-shadow: var(--reep-glass-shadow);
+  z-index: 26;
+  overflow: hidden;
+}
+.account__header {
+  padding: 10px 16px;
+}
+.account__role {
+  color: var(--reep-text-disabled);
+}
+.account__divider {
+  height: 1px;
+  background-color: var(--reep-divider);
+}
+.account__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--reep-text-primary);
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+.account__item:hover {
+  background-color: var(--reep-action-hover);
+}
+
+/* --- drawer -------------------------------------------------------------- */
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: $drawer;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--reep-bg-default);
+  border-right: 1px solid var(--reep-divider);
+  z-index: 30;
+  transform: translateX(-100%);
+  transition: transform 200ms ease;
+}
+.drawer--open {
+  transform: translateX(0);
+}
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 29;
+}
+.drawer__brand {
+  padding: 28px 24px 24px;
+}
+.drawer__reep {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--reep-text-primary);
+}
+.drawer__role {
+  margin-top: 4px;
+  color: var(--reep-text-disabled);
+}
+.drawer__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px;
+  flex: 1;
+}
+.drawer__list li {
+  margin-bottom: 2px;
+}
+.nav__item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 7px 12px;
+  border-radius: 7px;
+  text-decoration: none;
+  color: var(--reep-text-secondary);
+}
+.nav__item:hover {
+  background-color: var(--reep-action-hover);
+}
+.nav__icon {
+  min-width: 32px;
+  color: var(--reep-text-disabled);
+}
+.nav__label {
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+.nav__item--active {
+  background-color: var(--reep-action-hover);
+  color: var(--reep-text-primary);
+}
+.nav__item--active .nav__icon {
+  color: var(--reep-secondary-main);
+}
+.nav__item--active .nav__label {
+  font-weight: 600;
+}
+.drawer__foot {
+  padding: 20px 24px;
+  color: var(--reep-text-disabled);
+}
+
+/* --- content ------------------------------------------------------------- */
+.content {
+  padding-top: $bar;
+}
+.content:focus {
+  outline: none;
+}
+.content__column {
+  padding: 32px 20px 96px;
+  max-width: 1240px;
+}
+
+/* --- lg and up: permanent drawer, offset bar + content ------------------ */
+@media (min-width: 1200px) {
+  .appbar {
+    left: $drawer;
+  }
+  .appbar__menu-btn {
+    display: none;
+  }
+  .drawer {
+    transform: none;
+    transition: none;
+  }
+  .drawer-backdrop {
+    display: none;
+  }
+  .content {
+    margin-left: $drawer;
+  }
+  .content__column {
+    padding: 40px 48px 96px;
+  }
+}
+
+@media (min-width: 600px) {
+  .content__column {
+    padding: 40px 32px 104px;
+  }
+}

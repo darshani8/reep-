@@ -1,0 +1,98 @@
+@if (view(); as v) {
+  <kit-page-intro
+    title="Certifications"
+    [subtitle]="v.requiredTotal === 0
+      ? 'No required certifications are mapped to your courses yet.'
+      : 'You have finished ' + v.requiredDone + ' of the ' + v.requiredTotal + ' certifications required across REEP.'"
+  />
+
+  @if (v.missingProofCount > 0) {
+    <kit-banner title="Send your certificates to your mentor">
+      {{ v.missingProofCount === 1
+        ? 'You have finished a certification but not uploaded the certificate yet.'
+        : v.missingProofCount + ' finished certifications have no certificate uploaded yet.' }}
+      Once the file is there your mentor can mark the progress verified.
+      <a action class="btn btn--small" href="/student/uploads">Go to Uploads</a>
+    </kit-banner>
+  }
+
+  <div class="stats">
+    <kit-stat label="Required" [value]="counts().required"
+      [hint]="counts().optional > 0 ? 'Plus ' + counts().optional + ' optional, not counted here' : 'Every one listed is mandatory'" />
+    <kit-stat label="Completed" [value]="counts().completed" tone="good"
+      [hint]="visibleRows().length > 0 ? completedPct() + '% of the ones shown' : 'Nothing to show yet'" />
+    <kit-stat label="In progress" [value]="counts().inProgress" tone="warning"
+      hint="Started and keeping up with the plan" />
+    <kit-stat label="Overdue" [value]="counts().overdue" tone="critical"
+      [hint]="counts().overdue > 0 ? 'Behind the pace needed to finish in time' : 'Nothing behind pace'" />
+  </div>
+
+  <div class="tabs no-print" role="tablist" aria-label="Show one REEP stage at a time">
+    @for (tab of tabs(); track tab.key) {
+      <button type="button" role="tab" class="tab"
+        [class.tab--active]="stage() === tab.key"
+        [attr.aria-selected]="stage() === tab.key"
+        (click)="setStage(tab.key)">{{ tab.label }}</button>
+    }
+  </div>
+
+  <kit-section
+    [title]="stage() === 'ALL' ? 'All certifications' : stageLabel() + ' certifications'"
+    [subtitle]="stage() === 'ALL'
+      ? 'Every certification mapped to your courses'
+      : visibleRows().length + ' of your ' + v.rows.length + ' certifications sit in this stage'"
+  >
+    @if (visibleRows().length === 0) {
+      <kit-empty
+        [title]="stage() === 'ALL' ? 'No certifications yet.' : 'Nothing mapped to ' + stageLabel() + ' yet.'"
+        hint="Certifications appear here as soon as you are enrolled on the courses that carry them." />
+    } @else {
+      <div class="table-wrap">
+        <table class="certs">
+          <thead>
+            <tr>
+              <th>Certification</th>
+              <th>Provider</th>
+              <th class="certs__prog">Progress</th>
+              <th>Status</th>
+              <th>Due</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of visibleRows(); track row.id) {
+              <tr>
+                <td>
+                  <div class="certs__name">
+                    {{ row.name }}
+                    @if (row.isOptional) { <span class="certs__opt reep-caption">optional</span> }
+                  </div>
+                  <div class="certs__meta reep-caption">{{ row.courseCode }} · {{ row.stageLabel }} · {{ row.hoursLabel }}</div>
+                </td>
+                <td class="reep-caption">{{ row.sourceLabel }}</td>
+                <td class="certs__prog">
+                  <div class="meter">
+                    <div class="meter__fill" [style.width.%]="row.actualPct" [style.background]="toneInk[row.statusTone]"></div>
+                    @if (row.showExpected) {
+                      <div class="meter__expected" [style.left.%]="row.expectedPct" title="Expected by today"></div>
+                    }
+                  </div>
+                  <div class="certs__pct reep-caption tabular">
+                    {{ row.actualPct }}%@if (row.showExpected) { <span class="certs__exp"> · {{ row.expectedPct }}% expected</span> }
+                  </div>
+                </td>
+                <td><span [style.color]="toneInk[row.statusTone]">{{ row.statusLabel }}</span></td>
+                <td><span [style.color]="toneInk[row.dueTone]">{{ row.dueLabel }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </kit-section>
+} @else if (error()) {
+  <kit-page-intro title="Certifications" />
+  <p class="err reep-body2">{{ error() }}</p>
+} @else {
+  <kit-page-intro title="Certifications" />
+  <p class="err reep-body2">Loading…</p>
+}

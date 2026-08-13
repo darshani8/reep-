@@ -15,6 +15,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { AuthService } from '../../core/auth.service';
 import { HOME_FOR_ROLE } from '../../core/session';
@@ -91,11 +92,18 @@ export class LoginComponent {
     try {
       const session = await this.auth.login(this.email, this.password, this.safeNext);
       await this.router.navigateByUrl(this.safeNext ?? HOME_FOR_ROLE[session.role]);
-    } catch {
-      // The backend answers a bad credential with 401; anything else is a
-      // connection problem. The message stays deliberately vague, as the React
-      // action's did — it never reveals whether the email exists.
-      this.error.set('Those credentials do not match an account.');
+    } catch (err) {
+      // Only a real 401 is a credential problem — and the message stays
+      // deliberately vague there, as the React action's did, never revealing
+      // whether the email exists. Anything else (the API down, the dev proxy
+      // not forwarding /api) is a connection problem, and saying "wrong
+      // password" for that sends the user hunting for the wrong fault.
+      const status = err instanceof HttpErrorResponse ? err.status : 0;
+      this.error.set(
+        status === 401
+          ? 'Those credentials do not match an account.'
+          : 'Could not reach the sign-in service. Is the API running on :3200?',
+      );
     } finally {
       this.pending.set(false);
     }

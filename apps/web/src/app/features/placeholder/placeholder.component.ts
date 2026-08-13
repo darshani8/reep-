@@ -1,21 +1,21 @@
 /**
- * A holding screen for a role area whose pages have not been migrated to Angular
- * yet. It is honest rather than blank: the shell, nav and auth all work, and
- * this says plainly that the content is still being ported — so a mentor or
- * director signing in lands somewhere coherent instead of a broken route.
+ * A holding screen for a nav destination whose page has not been migrated to
+ * Angular yet. It is honest rather than blank: the shell, nav, routing and auth
+ * all work, each link navigates here and highlights correctly, and this names
+ * the screen (from the route's `title` data) so navigation is visibly working
+ * while the real content is still being ported.
  */
 
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 
 @Component({
   selector: 'app-placeholder',
   standalone: true,
   template: `
-    <h1 class="reep-h1 title">Being migrated</h1>
+    <h1 class="reep-h1 title">{{ title || 'Being migrated' }}</h1>
     <p class="body reep-body2">
-      This area is being ported to Angular, screen by screen. The sign-in, the
-      shell and the navigation you are using are already the new stack; these
-      pages land next.
+      This screen is being ported to Angular. The sign-in, the shell and the
+      navigation you are using are already the new stack; this page lands next.
     </p>
   `,
   styles: [
@@ -34,4 +34,7 @@ import { Component } from '@angular/core';
     `,
   ],
 })
-export class PlaceholderComponent {}
+export class PlaceholderComponent {
+  /// Bound from the route's `data.title` via withComponentInputBinding().
+  @Input() title = '';
+}

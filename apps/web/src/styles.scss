@@ -1,0 +1,8 @@
+/* Global styles for the Angular REEP app.
+ *
+ * The design system lives in reep-theme.scss — the exact tokens ported from the
+ * Next.js app's src/theme.ts, so a component here reads the identical CSS
+ * variable an MUI component read there. Everything visual is built on those
+ * tokens; nothing hard-codes a colour. */
+
+@use './styles/reep-theme';

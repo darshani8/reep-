@@ -13,3 +13,7 @@ tsconfig.tsbuildinfo
 # uploaded files (bytes live on disk, metadata in Postgres)
 storage/
 dev.log
+
+# Angular / Nest build output and caches
+dist/
+.angular/

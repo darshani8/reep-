@@ -1,0 +1,241 @@
+/**
+ * The REEP design system, ported from the Next.js app's `src/theme.ts` to
+ * framework-agnostic CSS custom properties.
+ *
+ * This is the foundation of the pixel-perfect migration. The React app drives
+ * MUI through `cssVariables: { colorSchemeSelector: 'data-theme' }`, which means
+ * every colour, radius and shadow on screen is already a CSS variable switched
+ * by a `data-theme` attribute on the root. Porting is therefore not a
+ * reinterpretation — it is transcribing those exact values so an Angular
+ * component reads the identical token an MUI component did. Every hex, every
+ * rgba, every measured contrast decision in `theme.ts` is reproduced here
+ * unchanged; the comments explaining *why* each value is what it is live in
+ * `theme.ts` and are not repeated.
+ *
+ * Light is the default (bare `:root`); dark is `:root[data-theme="dark"]`, the
+ * same attribute MUI's own variables switch on, so a theme toggle flips both the
+ * palette and the effect tokens together exactly as it does today.
+ */
+
+/* --- fonts ---------------------------------------------------------------- */
+/* Inter, loaded the way next/font loaded it — a --font-inter variable the app
+   already references. Wired to the actual @font-face in the Angular app's
+   global styles so the stack below resolves identically. */
+
+:root {
+  --font-inter: 'Inter';
+
+  /* --- palette · light ---------------------------------------------------- */
+  --reep-primary-main: #1c1810;
+  --reep-primary-light: #443c2d;
+  --reep-primary-dark: #100d08;
+  --reep-primary-contrast: #f8f4ec;
+
+  --reep-secondary-main: #8a5a1e;
+  --reep-secondary-light: #a8752f;
+  --reep-secondary-dark: #6b4413;
+  --reep-secondary-contrast: #f8f4ec;
+
+  --reep-success-main: #8b5f1c;
+  --reep-warning-main: #62471f;
+  --reep-error-main: #3a301f;
+  --reep-info-main: #8a5a1e;
+
+  --reep-bg-default: #efe9dd;
+  --reep-bg-paper: #f8f4ec;
+
+  --reep-text-primary: #1c1810;
+  --reep-text-secondary: #5a5142;
+  --reep-text-disabled: #6d6353;
+
+  --reep-divider: rgba(28, 24, 16, 0.12);
+  --reep-action-hover: rgba(28, 24, 16, 0.04);
+  --reep-action-selected: rgba(138, 90, 30, 0.10);
+
+  /* --- shape & radii ------------------------------------------------------ */
+  --reep-radius: 8px;
+  --reep-radius-control: 7px;
+  --reep-radius-chip: 6px;
+
+  /* --- surface tokens · light (verbatim from theme.ts) -------------------- */
+  --reep-glass-bg: rgba(252, 249, 242, 0.58);
+  --reep-glass-solid: #faf7f0;
+  --reep-glass-border: rgba(255, 252, 245, 0.75);
+  --reep-glass-shadow: 0 10px 34px rgba(58, 48, 31, 0.10);
+  --reep-glass-highlight: inset 0 1px 0 rgba(255, 253, 247, 0.9);
+
+  --reep-neu-bg: linear-gradient(145deg, #faf7f0, #eae3d4);
+  --reep-neu-flat: #efe9dd;
+  --reep-neu-shadow: 7px 7px 16px rgba(58, 48, 31, 0.13), -7px -7px 16px rgba(255, 252, 244, 0.92);
+  --reep-neu-shadow-lift: 10px 10px 22px rgba(58, 48, 31, 0.16), -10px -10px 22px rgba(255, 253, 247, 1);
+  --reep-neu-inset: inset 2px 2px 5px rgba(58, 48, 31, 0.16), inset -2px -2px 5px rgba(255, 252, 244, 0.9);
+
+  --reep-bloom-a: rgba(176, 124, 44, 0.20);
+  --reep-bloom-b: rgba(138, 90, 30, 0.14);
+  --reep-bloom-c: rgba(212, 161, 85, 0.11);
+
+  --reep-chip-good: #83591b;
+  --reep-chip-accent: #83591b;
+
+  --reep-cell-well: #f1ece1;
+  --reep-cell-well-hover: #ece5d7;
+  --reep-cell-well-inset: inset 1px 1px 2px rgba(58, 48, 31, 0.07), inset -1px -1px 2px rgba(255, 252, 244, 0.7);
+}
+
+:root[data-theme='dark'] {
+  /* --- palette · dark ----------------------------------------------------- */
+  --reep-primary-main: #f5f1e8;
+  --reep-primary-light: #fffdf7;
+  --reep-primary-dark: #cdc6b6;
+  --reep-primary-contrast: #14120d;
+
+  --reep-secondary-main: #d9a85f;
+  --reep-secondary-light: #e8c48c;
+  --reep-secondary-dark: #ab7b32;
+  --reep-secondary-contrast: #14120d;
+
+  --reep-success-main: #ab7b32;
+  --reep-warning-main: #d4a155;
+  --reep-error-main: #ead5b6;
+  --reep-info-main: #d9a85f;
+
+  --reep-bg-default: #14120d;
+  --reep-bg-paper: #1e1a14;
+
+  --reep-text-primary: #f5f1e8;
+  --reep-text-secondary: #b0a894;
+  --reep-text-disabled: #968d79;
+
+  --reep-divider: rgba(245, 241, 232, 0.12);
+  --reep-action-hover: rgba(245, 241, 232, 0.05);
+  --reep-action-selected: rgba(217, 168, 95, 0.15);
+
+  /* --- surface tokens · dark (verbatim from theme.ts) --------------------- */
+  --reep-glass-bg: rgba(36, 31, 24, 0.60);
+  --reep-glass-solid: #221e17;
+  --reep-glass-border: rgba(245, 241, 232, 0.09);
+  --reep-glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.48);
+  --reep-glass-highlight: inset 0 1px 0 rgba(245, 241, 232, 0.07);
+
+  --reep-neu-bg: linear-gradient(145deg, #241f18, #100e09);
+  --reep-neu-flat: #1e1a14;
+  --reep-neu-shadow: 7px 7px 16px rgba(0, 0, 0, 0.55), -7px -7px 16px rgba(245, 241, 232, 0.03);
+  --reep-neu-shadow-lift: 10px 10px 22px rgba(0, 0, 0, 0.65), -10px -10px 22px rgba(245, 241, 232, 0.042);
+  --reep-neu-inset: inset 2px 2px 5px rgba(0, 0, 0, 0.6), inset -2px -2px 5px rgba(245, 241, 232, 0.038);
+
+  --reep-bloom-a: rgba(171, 123, 50, 0.26);
+  --reep-bloom-b: rgba(124, 93, 46, 0.20);
+  --reep-bloom-c: rgba(212, 161, 85, 0.10);
+
+  --reep-chip-good: #b7802e;
+  --reep-chip-accent: #d9a85f;
+
+  --reep-cell-well: #191510;
+  --reep-cell-well-hover: #221d15;
+  --reep-cell-well-inset: inset 1px 1px 2px rgba(0, 0, 0, 0.5), inset -1px -1px 2px rgba(245, 241, 232, 0.03);
+}
+
+/* --- typography scale (from theme.ts `typography`) ------------------------ */
+/* Kept as classes rather than element selectors: MUI's Typography maps variant
+   to element by config, not by tag, so `h1` here is the visual scale, applied
+   wherever the React app wrote `variant="h1"`. */
+
+:root {
+  --reep-font-stack: var(--font-inter), system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.reep-h1 { font-size: 1.625rem; font-weight: 600; letter-spacing: -0.021em; line-height: 1.25; }
+.reep-h2 { font-size: 1.3125rem; font-weight: 600; letter-spacing: -0.017em; line-height: 1.3; }
+.reep-h3 { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.011em; line-height: 1.4; }
+.reep-h4 { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.006em; }
+.reep-subtitle1 { font-size: 0.9375rem; font-weight: 500; }
+.reep-subtitle2 { font-size: 0.8125rem; font-weight: 500; }
+.reep-body1 { font-size: 0.9375rem; line-height: 1.6; }
+.reep-body2 { font-size: 0.8125rem; line-height: 1.6; }
+.reep-caption { font-size: 0.75rem; line-height: 1.5; }
+
+/* --- baseline (from MuiCssBaseline styleOverrides) ----------------------- */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--reep-text-primary);
+  background-color: var(--reep-bg-default);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* One focus ring, everywhere — the accent at 2px with a 2px offset, exactly as
+   the React app's `*:focus-visible` rule draws it. */
+*:focus-visible {
+  outline: 2px solid var(--reep-secondary-main);
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1400;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  background-color: var(--reep-bg-paper);
+  color: var(--reep-text-primary);
+  border: 1px solid var(--reep-divider);
+}
+.skip-link:focus {
+  left: 8px;
+  top: 8px;
+}
+
+/* Translucency is a preference, not a requirement — the same fallbacks the
+   React app declares, so a browser that cannot blur, or a reader who asked it
+   not to, gets an opaque surface rather than unreadable text. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .reep-glass {
+    background: var(--reep-glass-solid) !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .reep-glass {
+    background: var(--reep-glass-solid) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .reep-ambient {
+    display: none;
+  }
+}
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .reep-ambient {
+    display: none !important;
+  }
+  .reep-glass,
+  .reep-neu {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: 1px solid #e3e3e0 !important;
+  }
+}

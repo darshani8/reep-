@@ -1,0 +1,68 @@
+<kit-page-intro title="Profile" subtitle="The details your resume and job matches are built from. Kept private to you, your mentor and the programme office." />
+
+@if (error()) {
+  <p class="err reep-body2">{{ error() }}</p>
+} @else if (loaded()) {
+  <!-- contact -->
+  <kit-section title="Contact & links" subtitle="What a resume header carries. A bare handle is fine — links get https:// added.">
+    <div class="form">
+      <div class="grid2">
+        <label class="fld"><span class="fld__label">Phone</span>
+          <input class="fld__input" [(ngModel)]="phone" name="phone" autocomplete="tel" /></label>
+        <label class="fld"><span class="fld__label">Contact email</span>
+          <input class="fld__input" [(ngModel)]="email" name="email" type="email" /></label>
+        <label class="fld"><span class="fld__label">LinkedIn</span>
+          <input class="fld__input" [(ngModel)]="linkedinUrl" name="linkedinUrl" placeholder="linkedin.com/in/…" /></label>
+        <label class="fld"><span class="fld__label">GitHub</span>
+          <input class="fld__input" [(ngModel)]="githubUrl" name="githubUrl" placeholder="github.com/…" /></label>
+        <label class="fld"><span class="fld__label">Portfolio</span>
+          <input class="fld__input" [(ngModel)]="portfolioUrl" name="portfolioUrl" /></label>
+        <label class="fld"><span class="fld__label">City</span>
+          <input class="fld__input" [(ngModel)]="city" name="city" /></label>
+      </div>
+      <label class="fld"><span class="fld__label">Career summary</span>
+        <textarea class="fld__input fld__area" [(ngModel)]="careerSummary" name="careerSummary" rows="3"></textarea></label>
+
+      @if (skills().length > 0) {
+        <div class="skills">
+          <span class="fld__label">Your skills</span>
+          <div class="skills__list">
+            @for (s of skills(); track s) { <span class="chip">{{ s }}</span> }
+          </div>
+          <span class="reep-caption skills__note">Add and verify skills on the Skilling page — they drive your job match percentages.</span>
+        </div>
+      }
+
+      <div class="actions">
+        <button type="button" class="btn btn--primary" (click)="saveContact()">Save details</button>
+        @if (contactSaved()) { <span class="saved reep-caption">Saved</span> }
+        @if (contactError()) { <span class="err reep-caption">{{ contactError() }}</span> }
+      </div>
+    </div>
+  </kit-section>
+
+  <!-- weekly target -->
+  <kit-section title="Weekly study target" subtitle="Used as the denominator on your time-log charts. 1–60 hours.">
+    <div class="row">
+      <input class="fld__input fld__num" type="number" min="1" max="60" step="0.5" [(ngModel)]="weeklyHourTarget" name="target" />
+      <span class="reep-body2 row__unit">hours / week</span>
+      <button type="button" class="btn btn--small btn--outlined" (click)="saveTarget()">Save target</button>
+      @if (targetSaved()) { <span class="saved reep-caption">Saved</span> }
+      @if (targetError()) { <span class="err reep-caption">{{ targetError() }}</span> }
+    </div>
+  </kit-section>
+
+  <!-- leaderboard visibility -->
+  <kit-section title="Leaderboard visibility" subtitle="The one setting that changes what other students see about you.">
+    <label class="toggle">
+      <input type="checkbox" [checked]="optOut" (change)="toggleOptOut($any($event.target).checked)" />
+      <span class="reep-body2">Hide me from the leaderboards</span>
+    </label>
+    <p class="reep-caption toggle__note">
+      When hidden, your name appears on nobody else's board — but you still see your own position on every one.
+      @if (optOutSaved()) { <span class="saved">· Saved</span> }
+    </p>
+  </kit-section>
+} @else {
+  <p class="err reep-body2">Loading…</p>
+}

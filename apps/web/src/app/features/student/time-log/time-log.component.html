@@ -1,0 +1,46 @@
+<kit-page-intro title="Time sheet" subtitle="Where the day went, in five buckets. Estimate in half-hours — it should take under a minute." />
+
+<kit-section>
+  <div class="daybar">
+    <button type="button" class="btn btn--small btn--outlined" (click)="goDay(-1)">‹ Previous day</button>
+    <div class="daybar__label">
+      {{ day() }}@if (isToday()) { <span class="daybar__today reep-caption">today</span> }
+    </div>
+    <button type="button" class="btn btn--small btn--outlined" (click)="goDay(1)">Next day ›</button>
+    <button type="button" class="btn btn--small" (click)="copyYesterday()">Copy yesterday</button>
+  </div>
+
+  <div class="remaining" [class.remaining--over]="over()" aria-live="polite">{{ remainingText() }}</div>
+  <div class="bar">
+    <div class="bar__fill" [class.bar__fill--over]="over()" [style.width.%]="(total() / 1440) * 100"></div>
+  </div>
+
+  <div class="buckets">
+    @for (def of activities; track def.activity) {
+      <div class="bucket">
+        <div class="bucket__head">
+          <div class="bucket__label">{{ def.label }}</div>
+          <div class="bucket__hint reep-caption">{{ def.hint }}</div>
+        </div>
+        <div class="stepper">
+          <button type="button" class="stepper__btn" (click)="step(def.activity, -1)" [attr.aria-label]="'Less ' + def.label">−</button>
+          <div class="stepper__value tabular">{{ hoursLabel(def.activity) }}</div>
+          <button type="button" class="stepper__btn" (click)="step(def.activity, 1)" [attr.aria-label]="'More ' + def.label">+</button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn btn--primary" [disabled]="over() || saving()" (click)="save()">
+      {{ saving() ? 'Saving…' : 'Save day' }}
+    </button>
+    @if (saved()) { <span class="saved reep-caption">Saved</span> }
+    @if (over()) { <span class="err reep-caption">Over 24 hours — take some off before saving.</span> }
+    @if (error()) { <span class="err reep-caption">{{ error() }}</span> }
+  </div>
+
+  <p class="reep-caption note">
+    These five are separate from the course-linked session log — this one answers "where did the whole day go?", including sleep and rest.
+  </p>
+</kit-section>

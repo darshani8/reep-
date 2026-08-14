@@ -10,6 +10,7 @@ reep_py database created (see .env.example).
 from sqlalchemy import select
 
 from .db import SessionLocal
+from .models.academics import SemesterResult, SubjectMark
 from .models.profile import StudentProfile
 from .models.user import Role, Student, User
 from .security import hash_password
@@ -57,6 +58,45 @@ def main() -> None:
             print(f"created {student_email} / student123 (+ profile)")
         else:
             print(f"{student_email} already exists")
+
+        # Idempotently give the test student one semester result with subjects.
+        stu_user = db.scalar(select(User).where(User.email == student_email))
+        stu = (
+            db.scalar(select(Student).where(Student.user_id == stu_user.id)) if stu_user else None
+        )
+        if stu and db.scalar(select(SemesterResult).where(SemesterResult.student_id == stu.id)) is None:
+            result = SemesterResult(
+                student_id=stu.id,
+                semester=1,
+                sgpa=8.2,
+                cgpa=8.2,
+                closed_backlogs=0,
+                live_backlogs=0,
+                result_class="FIRST CLASS WITH DISTINCTION",
+            )
+            result.subjects = [
+                SubjectMark(
+                    subject_code="22MBA11",
+                    subject_name="Management & Organisational Behaviour",
+                    credits=4,
+                    internal=42,
+                    external=40,
+                    total=82,
+                    passed=True,
+                ),
+                SubjectMark(
+                    subject_code="22MBA12",
+                    subject_name="Managerial Economics",
+                    credits=4,
+                    internal=38,
+                    external=36,
+                    total=74,
+                    passed=True,
+                ),
+            ]
+            db.add(result)
+            db.commit()
+            print("added a semester result (2 subjects) for the test student")
     finally:
         db.close()
 

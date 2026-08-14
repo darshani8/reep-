@@ -9,6 +9,7 @@
  */
 
 import { Component, computed, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 
 import { environment } from '../../../../environments/environment';
 import { PageIntroComponent, SectionComponent, StatComponent, EmptyComponent, BannerComponent } from '../../../shared/kit/kit.components';
@@ -35,6 +36,8 @@ interface JobRow {
   applyUrl: string | null;
   applied: boolean;
   openedLabel: string | null;
+  eligible: boolean;
+  eligibilityReasons: string[];
 }
 
 interface JobsBoardView {
@@ -42,15 +45,18 @@ interface JobsBoardView {
   counts: Record<Level, number>;
   heldCount: number;
   verifiedSkills: number;
+  eligibility: { placementEligible: boolean; latestCgpa: number | null; liveBacklogs: number; totalGapMonths: number };
   rows: JobRow[];
 }
+
+type EligibilityFilter = 'all' | 'eligible' | 'ineligible';
 
 const LEVEL_LABEL: Record<Level, string> = { UG: 'Undergraduate', PG: 'Post Graduate' };
 
 @Component({
   selector: 'app-student-jobs',
   standalone: true,
-  imports: [PageIntroComponent, SectionComponent, StatComponent, EmptyComponent, BannerComponent],
+  imports: [DecimalPipe, PageIntroComponent, SectionComponent, StatComponent, EmptyComponent, BannerComponent],
   templateUrl: './jobs.component.html',
   styleUrl: './jobs.component.scss',
 })
@@ -62,17 +68,30 @@ export class JobsComponent {
   readonly view = signal<JobsBoardView | null>(null);
   readonly error = signal<string | null>(null);
   readonly level = signal<Level>('PG');
+  readonly eligFilter = signal<EligibilityFilter>('all');
 
-  readonly visibleRows = computed(() => {
+  readonly levelRows = computed(() => {
     const v = this.view();
     if (!v) return [];
     return v.rows.filter((r) => r.degreeLevel === this.level());
   });
-  readonly openRows = computed(() => this.visibleRows().filter((r) => !r.isClosed));
-  readonly appliedCount = computed(() => this.visibleRows().filter((r) => r.applied).length);
+  readonly visibleRows = computed(() => {
+    const f = this.eligFilter();
+    if (f === 'all') return this.levelRows();
+    return this.levelRows().filter((r) => (f === 'eligible' ? r.eligible : !r.eligible));
+  });
+  readonly eligibleCount = computed(() => this.levelRows().filter((r) => r.eligible).length);
+  readonly ineligibleCount = computed(() => this.levelRows().filter((r) => !r.eligible).length);
+  readonly eligibility = computed(() => this.view()?.eligibility ?? null);
+  readonly openRows = computed(() => this.levelRows().filter((r) => !r.isClosed));
+  readonly appliedCount = computed(() => this.levelRows().filter((r) => r.applied).length);
   readonly strongCount = computed(() => this.openRows().filter((r) => (r.matchPct ?? 0) >= 70).length);
   readonly closingSoon = computed(() => this.openRows().filter((r) => r.closesSort <= 7).length);
-  readonly closedCount = computed(() => this.visibleRows().length - this.openRows().length);
+  readonly closedCount = computed(() => this.levelRows().length - this.openRows().length);
+
+  setEligFilter(f: EligibilityFilter): void {
+    this.eligFilter.set(f);
+  }
 
   readonly ownLevel = computed(() => this.view()?.ownLevel ?? 'PG');
   readonly heldCount = computed(() => this.view()?.heldCount ?? 0);

@@ -48,6 +48,42 @@
   background: var(--reep-text-primary);
 }
 
+/* eligibility filter */
+.elig-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.chip {
+  padding: 4px 12px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 999px;
+  background: transparent;
+  font-family: var(--reep-font-stack);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--reep-text-secondary);
+  cursor: pointer;
+}
+.chip--active {
+  background: var(--reep-action-selected);
+  color: var(--reep-text-primary);
+  border-color: transparent;
+}
+.chip--good.chip--active {
+  color: var(--reep-success-main);
+}
+.elig-you {
+  margin-left: auto;
+  color: var(--reep-text-disabled);
+}
+.jobs__inelig {
+  margin-top: 4px;
+  color: var(--reep-warning-main);
+}
+
 /* the table */
 .table-wrap {
   overflow-x: auto;

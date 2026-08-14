@@ -10,6 +10,7 @@ import { ProfileComponent } from './features/student/profile/profile.component';
 import { LeaderboardsComponent } from './features/student/leaderboards/leaderboards.component';
 import { TimeLogComponent } from './features/student/time-log/time-log.component';
 import { OffersComponent } from './features/student/offers/offers.component';
+import { AcademicsComponent } from './features/student/academics/academics.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 
 /**
@@ -33,6 +34,7 @@ export const routes: Routes = [
       // --- student ---
       { path: 'student', component: StudentOverviewComponent },
       { path: 'student/certifications', component: CertificationsComponent },
+      { path: 'student/academics', component: AcademicsComponent },
       placeholder('student/skilling', 'Skilling'),
       { path: 'student/time-log', component: TimeLogComponent },
       placeholder('student/courses', 'Courses'),

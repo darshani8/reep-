@@ -7,6 +7,7 @@ import type { SessionPayload } from '../auth/session.types';
 import { StudentService, type StudentMeta } from './student.service';
 import { CertificationsService, type CertificationsView } from './certifications.service';
 import { ProfileService, type ProfileView } from './profile.service';
+import { AcademicsService, type AcademicsView, type QualificationInput } from './academics.service';
 
 /**
  * Everything under /api/student is a signed-in STUDENT reading their OWN record.
@@ -22,6 +23,7 @@ export class StudentController {
     private readonly student: StudentService,
     private readonly certifications: CertificationsService,
     private readonly profile: ProfileService,
+    private readonly academics: AcademicsService,
   ) {}
 
   private studentId(session: SessionPayload): string {
@@ -67,5 +69,18 @@ export class StudentController {
     @Body() body: { weeklyHourTarget?: number },
   ): Promise<{ ok: true }> {
     return this.profile.setTarget(this.studentId(session), Number(body.weeklyHourTarget));
+  }
+
+  @Get('academics')
+  getAcademics(@Session() session: SessionPayload): Promise<AcademicsView> {
+    return this.academics.get(this.studentId(session));
+  }
+
+  @Put('academics')
+  saveAcademics(
+    @Session() session: SessionPayload,
+    @Body() body: { qualifications: QualificationInput[]; gap: AcademicsView['gap'] },
+  ): Promise<AcademicsView> {
+    return this.academics.save(this.studentId(session), body);
   }
 }

@@ -44,6 +44,7 @@ const NAV: Record<ShellRole, NavEntry[]> = {
   student: nav('/student', [
     ['', 'Overview', 'home'],
     ['certifications', 'Certifications', 'workspace_premium'],
+    ['academics', 'Academics', 'school'],
     ['skilling', 'Skilling', 'psychology'],
     ['time-log', 'Time log', 'schedule'],
     ['courses', 'Courses', 'menu_book'],

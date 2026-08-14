@@ -6,11 +6,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from collections import defaultdict
+from datetime import datetime
 
 from ..db import get_db
 from ..deps import get_current_session
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
+from ..models.mock import MockAttempt
 from ..models.profile import StudentProfile
 from ..models.swoc import SwocEntry
 from ..models.user import Student
@@ -262,3 +264,39 @@ def my_swoc(
         opportunities=buckets["OPPORTUNITY"],
         challenges=buckets["CHALLENGE"],
     )
+
+
+class MockAttemptOut(BaseModel):
+    type: str
+    taken_on: datetime
+    score: float | None
+    max_score: float | None
+    percent: float | None
+    notes: str | None
+
+
+@router.get("/mocks", response_model=list[MockAttemptOut])
+def my_mocks(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[MockAttemptOut]:
+    student_id = _require_student(session)
+    rows = db.scalars(
+        select(MockAttempt)
+        .where(MockAttempt.student_id == student_id)
+        .order_by(MockAttempt.taken_on.desc())
+    ).all()
+    return [
+        MockAttemptOut(
+            type=r.type.value,
+            taken_on=r.taken_on,
+            score=r.score,
+            max_score=r.max_score,
+            percent=(
+                round(100 * r.score / r.max_score, 1)
+                if (r.score is not None and r.max_score)
+                else None
+            ),
+            notes=r.notes,
+        )
+        for r in rows
+    ]

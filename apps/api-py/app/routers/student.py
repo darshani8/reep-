@@ -12,6 +12,7 @@ from ..deps import get_current_session
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
 from ..models.profile import StudentProfile
+from ..models.user import Student
 
 router = APIRouter(prefix="/student", tags=["student"])
 
@@ -177,4 +178,45 @@ def my_attendance(
         present=present_total,
         total=grand_total,
         by_course=by_course,
+    )
+
+
+class DashboardOut(BaseModel):
+    name: str
+    usn: str | None
+    current_stage: str
+    current_semester: int
+    latest_cgpa: float | None
+    attendance_percent: float
+
+
+@router.get("/dashboard", response_model=DashboardOut)
+def dashboard(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> DashboardOut:
+    """One call for the landing page: REEP stage, latest CGPA, and attendance %."""
+    student_id = _require_student(session)
+    stu = db.get(Student, student_id)
+    if stu is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
+
+    latest = db.scalar(
+        select(SemesterResult)
+        .where(SemesterResult.student_id == student_id)
+        .order_by(SemesterResult.semester.desc())
+        .limit(1)
+    )
+    att = db.execute(
+        select(AttendanceRecord.present).where(AttendanceRecord.student_id == student_id)
+    ).all()
+    total = len(att)
+    present = sum(1 for (p,) in att if p)
+
+    return DashboardOut(
+        name=session.get("name", ""),
+        usn=stu.usn,
+        current_stage=stu.current_stage.value,
+        current_semester=stu.current_semester,
+        latest_cgpa=latest.cgpa if latest else None,
+        attendance_percent=round(100 * present / total, 1) if total else 0.0,
     )

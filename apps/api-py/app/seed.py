@@ -15,7 +15,7 @@ from .db import SessionLocal
 from .models.academics import SemesterResult, SubjectMark
 from .models.attendance import AttendanceRecord
 from .models.profile import StudentProfile
-from .models.user import Role, Student, User
+from .models.user import Role, Stage, Student, User
 from .security import hash_password
 
 
@@ -67,6 +67,12 @@ def main() -> None:
         stu = (
             db.scalar(select(Student).where(Student.user_id == stu_user.id)) if stu_user else None
         )
+        if stu and stu.usn is None:
+            stu.usn = "1BG24MBA001"
+            stu.current_stage = Stage.EXCEL_ADVANCED
+            stu.current_semester = 2
+            db.commit()
+            print("backfilled student USN + stage")
         if stu and db.scalar(select(SemesterResult).where(SemesterResult.student_id == stu.id)) is None:
             result = SemesterResult(
                 student_id=stu.id,

@@ -260,6 +260,34 @@
   }
 }
 
+/* --- SSO ----------------------------------------------------------------- */
+.sso {
+  margin-top: 20px;
+}
+.sso__or {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--reep-text-disabled);
+  font-size: 0.75rem;
+  margin-bottom: 14px;
+}
+.sso__or::before,
+.sso__or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--reep-divider);
+}
+.sso__or span {
+  padding: 0 12px;
+}
+.sso__btn {
+  width: 100%;
+  min-height: 46px;
+  text-decoration: none;
+}
+
 /* --- demo accounts card -------------------------------------------------- */
 .demo {
   margin-top: 32px;

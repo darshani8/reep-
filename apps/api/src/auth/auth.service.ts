@@ -27,7 +27,37 @@ export class AuthService {
     });
     if (!user) return null;
     if (!verifyPassword(password, user.passwordHash)) return null;
+    return this.establishSession(user);
+  }
 
+  /**
+   * Sign in a user Google/Microsoft has already authenticated by a verified
+   * institutional email — the SSO path (roadmap Phase A). It matches an EXISTING
+   * account only; SSO never creates one, because an account is a registration
+   * decision (cohort, USN, approval) an OAuth handshake has no business making.
+   * A verified email with no REEP account returns null, and the caller sends the
+   * visitor to registration rather than logging a stranger in.
+   */
+  async ssoSignIn(email: string): Promise<SessionPayload | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      include: { student: true, mentor: true },
+    });
+    if (!user) return null;
+    return this.establishSession(user);
+  }
+
+  /// The shared tail of every sign-in: stamp lastLoginAt, record the LoginDay the
+  /// streak reads, and project the session payload. One definition so a password
+  /// login and an SSO login are recorded identically.
+  private async establishSession(user: {
+    id: string;
+    email: string;
+    name: string;
+    role: SessionPayload['role'];
+    student: { id: string } | null;
+    mentor: { id: string } | null;
+  }): Promise<SessionPayload> {
     const now = new Date();
     const day = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
@@ -36,11 +66,7 @@ export class AuthService {
       data: {
         lastLoginAt: now,
         loginDays: {
-          upsert: {
-            where: { userId_day: { userId: user.id, day } },
-            create: { day },
-            update: {},
-          },
+          upsert: { where: { userId_day: { userId: user.id, day } }, create: { day }, update: {} },
         },
       },
     });

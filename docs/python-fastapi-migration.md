@@ -68,5 +68,11 @@ Python — FastAPI
 
 ## Status log
 
-- Phase 1 scaffolded and running (health + auth). Data-backed endpoints need
-  Postgres up (`npm run db:up`) and the `reep_py` database created.
+- Phase 1 scaffolded and running (health + auth). Merged to main.
+- Docker/Postgres up; `reep_py` created. Alembic wired; auth-slice migration
+  `f65867efe738` (users, students, mentors, login_days) applied to `reep_py`.
+  End-to-end login verified against real Postgres (200 + session cookie).
+- Universal LLM adapter (`app/ai/llm.py`) added — OpenAI-compatible, any
+  provider via env, with the student-data egress gate ported from the Next.js
+  app. One set of keys drives both stacks. (Phase 4 foundation; CrewAI layers on
+  top via LiteLLM once keys are added.)

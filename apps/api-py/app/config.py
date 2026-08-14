@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     web_origin: str = "http://localhost:4200"
     env: str = "dev"
 
+    # Universal LLM adapter (see app/ai/llm.py). Same names as the Next.js app,
+    # so one set of keys drives both stacks. Any OpenAI-compatible provider.
+    llm_base_url: str = ""
+    llm_model: str = ""
+    llm_api_key: str = ""
+    llm_timeout_ms: int = 300000
+    llm_allow_remote_student_data: bool = False
+
     @property
     def is_prod(self) -> bool:
         return self.env.lower() == "prod"

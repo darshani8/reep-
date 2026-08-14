@@ -18,6 +18,7 @@ from .models.mock import MockAttempt, MockType
 from .models.profile import StudentProfile
 from .models.skill import Skill, StudentSkill
 from .models.swoc import SwocEntry, SwocKind, SwocSource
+from .models.timesheet import DayActivity, TimeSheetEntry
 from .models.user import LoginDay, Role, Stage, Student, User
 from .security import hash_password
 
@@ -194,6 +195,32 @@ def main() -> None:
             if added:
                 db.commit()
                 print(f"seeded {added} login-day(s) for a streak")
+
+        # Idempotently add 3 days of time-sheet entries (5 activities each).
+        if stu and db.scalar(
+            select(TimeSheetEntry).where(TimeSheetEntry.student_id == stu.id)
+        ) is None:
+            today = date.today()
+            plan = [
+                (DayActivity.SLEEPING, 420),
+                (DayActivity.LECTURES, 240),
+                (DayActivity.COURSEWORK, 90),
+                (DayActivity.SKILLING, 120),
+                (DayActivity.LEISURE, 120),
+            ]
+            entries = [
+                TimeSheetEntry(
+                    student_id=stu.id,
+                    day=today - timedelta(days=delta),
+                    activity=act,
+                    minutes=mins,
+                )
+                for delta in range(3)
+                for act, mins in plan
+            ]
+            db.add_all(entries)
+            db.commit()
+            print(f"added timesheet entries ({len(entries)})")
     finally:
         db.close()
 

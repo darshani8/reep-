@@ -16,6 +16,7 @@ from ..models.mock import MockAttempt
 from ..models.profile import StudentProfile
 from ..models.skill import StudentSkill
 from ..models.swoc import SwocEntry
+from ..models.timesheet import TimeSheetEntry
 from ..models.user import LoginDay, Student
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -368,4 +369,51 @@ def my_streak(
 
     return StreakOut(
         current=current, longest=longest, days_active=len(days), last_active=days[-1]
+    )
+
+
+class TimeSheetEntryOut(BaseModel):
+    day: date
+    activity: str
+    minutes: int
+
+
+class TimeSheetSummaryOut(BaseModel):
+    window_days: int
+    by_activity_minutes: dict[str, int]
+    skilling_hours: float
+    weekly_hour_target: float
+    entries: list[TimeSheetEntryOut]
+
+
+@router.get("/timesheet", response_model=TimeSheetSummaryOut)
+def my_timesheet(
+    days: int = 7,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> TimeSheetSummaryOut:
+    """The self-learning time log over the last `days`, with per-activity totals
+    and the SKILLING-hours-vs-target the chart draws."""
+    student_id = _require_student(session)
+    window = max(1, min(days, 90))
+    since = date.today() - timedelta(days=window - 1)
+    rows = db.scalars(
+        select(TimeSheetEntry)
+        .where(TimeSheetEntry.student_id == student_id, TimeSheetEntry.day >= since)
+        .order_by(TimeSheetEntry.day)
+    ).all()
+
+    by_activity: dict[str, int] = {}
+    for r in rows:
+        by_activity[r.activity.value] = by_activity.get(r.activity.value, 0) + r.minutes
+
+    stu = db.get(Student, student_id)
+    return TimeSheetSummaryOut(
+        window_days=window,
+        by_activity_minutes=by_activity,
+        skilling_hours=round(by_activity.get("SKILLING", 0) / 60, 1),
+        weekly_hour_target=stu.weekly_hour_target if stu else 12.0,
+        entries=[
+            TimeSheetEntryOut(day=r.day, activity=r.activity.value, minutes=r.minutes) for r in rows
+        ],
     )

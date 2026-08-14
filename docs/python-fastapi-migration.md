@@ -14,7 +14,7 @@ Angular (latest) — Angular Material / Tailwind · Signals · ReactiveForms
 Python — FastAPI
   ├── Routers: /api/resume, /api/agent/chat, + the ported REST surface
   ├── Resume generation: ReportLab (PDF engine)
-  └── AI agent layer: CrewAI on Gemini
+  └── AI agent layer: Google ADK (any provider via LiteLLM)
         ├── Student Profile Manager Agent (memory & parsing)
         └── Resume Optimizer Agent (tailoring & formatting)
   Data: PostgreSQL via SQLAlchemy (fresh schema) + Alembic migrations
@@ -54,9 +54,11 @@ Python — FastAPI
 - [ ] **Phase 3 — REST surface.** Port the 24 route handlers + 12 server actions
   to FastAPI routers, preserving `mentorScope()`/`menteeWhere()` authorization.
   Repoint Angular at FastAPI, slice by slice.
-- [ ] **Phase 4 — AI agent layer.** CrewAI workflow on Gemini: Student Profile
-  Manager + Resume Optimizer agents. `POST /api/agent/chat` with SSE streaming.
-  Enforce the egress gate (paid/local for student PII).
+- [~] **Phase 4 — AI agent layer.** Google ADK (any provider via LiteLLM):
+  Student Profile Manager + Resume Optimizer agents. `POST /api/agent/chat` with
+  SSE streaming. Enforce the egress gate (paid/local for student PII).
+  *Started:* general agent + authenticated `/api/agent/chat` live on Groq;
+  SSE + student-data agents next.
 - [ ] **Phase 5 — Resume engine.** ReportLab PDF generation behind
   `/api/resume`, driven by the Resume Optimizer agent.
 - [ ] **Phase 6 — Angular parity.** Every screen currently only in Next.js
@@ -74,5 +76,9 @@ Python — FastAPI
   End-to-end login verified against real Postgres (200 + session cookie).
 - Universal LLM adapter (`app/ai/llm.py`) added — OpenAI-compatible, any
   provider via env, with the student-data egress gate ported from the Next.js
-  app. One set of keys drives both stacks. (Phase 4 foundation; CrewAI layers on
-  top via LiteLLM once keys are added.)
+  app. One set of keys drives both stacks.
+- AI framework: **Google ADK** (replaces CrewAI), reaching any provider via
+  LiteLLM. Universal multi-provider auto-select added and live-tested on Groq.
+  `POST /api/agent/chat` (authenticated) runs an ADK agent end to end — verified
+  login -> chat -> "Tokyo." on groq/llama-3.3-70b-versatile. SSE streaming and
+  the student-data agents (behind the egress gate) are next.

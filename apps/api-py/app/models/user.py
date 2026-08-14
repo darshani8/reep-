@@ -10,7 +10,7 @@ import enum
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, Enum, Float, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db import Base
@@ -25,6 +25,15 @@ class Role(str, enum.Enum):
     MENTOR = "MENTOR"
     DIRECTOR = "DIRECTOR"
     ADMIN = "ADMIN"
+
+
+class Stage(str, enum.Enum):
+    """The REEP developmental stages, in order."""
+
+    REBOOT = "REBOOT"
+    EXCEL = "EXCEL"
+    EXCEL_ADVANCED = "EXCEL_ADVANCED"
+    ELEVATE = "ELEVATE"
 
 
 class User(Base):
@@ -50,6 +59,18 @@ class Student(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True)
+    # Nullable / server-defaulted so the column adds cleanly onto existing rows.
+    usn: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
+    cohort_id: Mapped[str | None] = mapped_column(String, nullable=True)  # FK to Cohort later
+    mentor_id: Mapped[str | None] = mapped_column(ForeignKey("mentors.id"), nullable=True)
+    current_stage: Mapped[Stage] = mapped_column(
+        Enum(Stage, name="stage"), default=Stage.EXCEL, server_default="EXCEL"
+    )
+    current_semester: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    enrolled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    weekly_hour_target: Mapped[float] = mapped_column(Float, default=12, server_default="12")
 
     user: Mapped[User] = relationship(back_populates="student")
 

@@ -1,21 +1,20 @@
-"""Dev bootstrap: create the current tables and a demo director.
+"""Dev seed: insert a demo director. Run AFTER migrations:
 
+    python -m alembic upgrade head
     python -m app.seed
 
-Uses Base.metadata.create_all so the app is runnable before Alembic is wired
-(Phase 2 replaces this with real migrations). Requires the DB to be reachable
-(docker compose up + the reep_py database created — see .env.example).
+Data only — Alembic owns the schema now. Requires the DB reachable and the
+reep_py database created (see .env.example).
 """
 
 from sqlalchemy import select
 
-from .db import Base, SessionLocal, engine
+from .db import SessionLocal
 from .models.user import Role, User
 from .security import hash_password
 
 
 def main() -> None:
-    Base.metadata.create_all(engine)
     db = SessionLocal()
     try:
         email = "director@bgscet.ac.in"

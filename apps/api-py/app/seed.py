@@ -15,6 +15,7 @@ from .db import SessionLocal
 from .models.academics import SemesterResult, SubjectMark
 from .models.attendance import AttendanceRecord
 from .models.profile import StudentProfile
+from .models.swoc import SwocEntry, SwocKind, SwocSource
 from .models.user import Role, Stage, Student, User
 from .security import hash_password
 
@@ -127,6 +128,19 @@ def main() -> None:
             db.add_all(records)
             db.commit()
             print("added attendance (40 sessions across 2 courses)")
+
+        # Idempotently add a few SWOC entries across the viewpoints.
+        if stu and db.scalar(select(SwocEntry).where(SwocEntry.student_id == stu.id)) is None:
+            db.add_all(
+                [
+                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.STRENGTH, text="Strong analytical and quantitative skills.", weight=5),
+                    SwocEntry(student_id=stu.id, source=SwocSource.PLACEMENT, kind=SwocKind.WEAKNESS, text="Needs structured problem-solving practice.", weight=4),
+                    SwocEntry(student_id=stu.id, source=SwocSource.PM, kind=SwocKind.OPPORTUNITY, text="Fintech internships opening this quarter.", weight=3),
+                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.CHALLENGE, text="Public speaking under time pressure.", weight=3),
+                ]
+            )
+            db.commit()
+            print("added SWOC entries (4 across quadrants)")
     finally:
         db.close()
 

@@ -7,10 +7,13 @@ Data only — Alembic owns the schema now. Requires the DB reachable and the
 reep_py database created (see .env.example).
 """
 
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import select
 
 from .db import SessionLocal
 from .models.academics import SemesterResult, SubjectMark
+from .models.attendance import AttendanceRecord
 from .models.profile import StudentProfile
 from .models.user import Role, Student, User
 from .security import hash_password
@@ -97,6 +100,27 @@ def main() -> None:
             db.add(result)
             db.commit()
             print("added a semester result (2 subjects) for the test student")
+
+        # Idempotently add attendance: 2 courses x 20 sessions (~85% overall).
+        if stu and db.scalar(
+            select(AttendanceRecord).where(AttendanceRecord.student_id == stu.id)
+        ) is None:
+            base = datetime(2026, 1, 6, tzinfo=timezone.utc)
+            records = []
+            for code, present_count in (("22MBA11", 18), ("22MBA12", 16)):  # of 20
+                for n in range(1, 21):
+                    records.append(
+                        AttendanceRecord(
+                            student_id=stu.id,
+                            course_code=code,
+                            session_date=base + timedelta(days=n),
+                            session_no=n,
+                            present=(n <= present_count),
+                        )
+                    )
+            db.add_all(records)
+            db.commit()
+            print("added attendance (40 sessions across 2 courses)")
     finally:
         db.close()
 

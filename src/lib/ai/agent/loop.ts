@@ -27,7 +27,7 @@ import 'server-only';
  * result is four wasted model calls and a transcript that reads like probing.
  */
 
-import { completeJson, llmConfig } from '../llm';
+import { completeJson, llmConfig, studentDataEgressAllowed } from '../llm';
 
 import { adoptDecision } from './decide';
 import { AGENT_SYSTEM, DECISION_SCHEMA, renderState, type PriorTurn } from './prompt';
@@ -73,6 +73,27 @@ export async function runAgent({
       status: 'FAILED',
       answer:
         'The assistant is not configured on this server. An administrator needs to set LLM_BASE_URL and LLM_MODEL — see the AI Resume Builder section of the README.',
+      citations: [],
+      steps: [],
+      model: null,
+      durationMs: Date.now() - startedAt,
+    };
+  }
+
+  // The same gate the resume writer passes through, and for the same reason: to
+  // answer, this agent reads the student's own REEP records — marks, attendance,
+  // the lot — through its tools and puts them in the prompt. If the configured
+  // model runs off this machine, that record would be POSTed to a third party
+  // (a hosted OpenAI-compatible endpoint such as Gemini or Groq). It refuses
+  // unless an administrator has said so out loud, rather than leaking the record
+  // the way the resume path did before Phase 0. A loopback model is always fine.
+  if (!studentDataEgressAllowed(config)) {
+    return {
+      status: 'REFUSED',
+      answer:
+        `The assistant reads your REEP records to answer, and the model configured here (${config.baseUrl}) runs off this machine. ` +
+        'To keep student data on the machine it will not be sent to a third-party model unless an administrator sets ' +
+        'LLM_ALLOW_REMOTE_STUDENT_DATA=true. Point LLM_BASE_URL at a local model, or ask an administrator.',
       citations: [],
       steps: [],
       model: null,

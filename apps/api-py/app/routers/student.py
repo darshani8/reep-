@@ -12,6 +12,7 @@ from ..deps import get_current_session
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
 from ..models.profile import StudentProfile
+from ..models.swoc import SwocEntry
 from ..models.user import Student
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -219,4 +220,45 @@ def dashboard(
         current_semester=stu.current_semester,
         latest_cgpa=latest.cgpa if latest else None,
         attendance_percent=round(100 * present / total, 1) if total else 0.0,
+    )
+
+
+class SwocItemOut(BaseModel):
+    source: str
+    text: str
+    weight: int
+
+
+class SwocBoardOut(BaseModel):
+    strengths: list[SwocItemOut]
+    weaknesses: list[SwocItemOut]
+    opportunities: list[SwocItemOut]
+    challenges: list[SwocItemOut]
+
+
+@router.get("/swoc", response_model=SwocBoardOut)
+def my_swoc(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> SwocBoardOut:
+    student_id = _require_student(session)
+    rows = db.scalars(
+        select(SwocEntry)
+        .where(SwocEntry.student_id == student_id)
+        .order_by(SwocEntry.weight.desc())
+    ).all()
+    buckets: dict[str, list[SwocItemOut]] = {
+        "STRENGTH": [],
+        "WEAKNESS": [],
+        "OPPORTUNITY": [],
+        "CHALLENGE": [],
+    }
+    for r in rows:
+        buckets[r.kind.value].append(
+            SwocItemOut(source=r.source.value, text=r.text, weight=r.weight)
+        )
+    return SwocBoardOut(
+        strengths=buckets["STRENGTH"],
+        weaknesses=buckets["WEAKNESS"],
+        opportunities=buckets["OPPORTUNITY"],
+        challenges=buckets["CHALLENGE"],
     )

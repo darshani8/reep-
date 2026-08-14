@@ -3,4 +3,5 @@
 from . import academics  # noqa: F401
 from . import attendance  # noqa: F401
 from . import profile  # noqa: F401
+from . import swoc  # noqa: F401
 from . import user  # noqa: F401

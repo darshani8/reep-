@@ -29,11 +29,26 @@ class Settings(BaseSettings):
     llm_model: str = ""
     llm_api_key: str = ""
     llm_timeout_ms: int = 300000
-    llm_allow_remote_student_data: bool = False
+    # A string (not bool) so a blank value is valid and safely means "off",
+    # matching the Next.js gate where only the exact string "true" enables it.
+    llm_allow_remote_student_data: str = ""
+
+    # Per-provider keys for universal auto-select (app/ai/llm.py). Paste any one;
+    # the adapter picks the first present. The explicit LLM_* trio above wins
+    # over these when fully set.
+    groq_api_key: str = ""
+    mistral_api_key: str = ""
+    openrouter_api_key: str = ""
+    cohere_api_key: str = ""
+    gemini_api_key: str = ""
 
     @property
     def is_prod(self) -> bool:
         return self.env.lower() == "prod"
+
+    @property
+    def allow_remote_student_data(self) -> bool:
+        return self.llm_allow_remote_student_data.strip().lower() == "true"
 
     @property
     def sqlalchemy_url(self) -> str:

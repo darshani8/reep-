@@ -43,19 +43,54 @@ class LLMConfig:
     model: str
     api_key: str
     timeout_s: float
+    provider: str = "custom"
+
+
+@dataclass(frozen=True)
+class Provider:
+    name: str
+    base_url: str
+    default_model: str
+    key_attr: str
+
+
+# Auto-select order — paste any one provider key and it just works. Each speaks
+# the OpenAI-compatible /chat/completions protocol.
+_PROVIDERS = [
+    Provider("groq", "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", "groq_api_key"),
+    Provider("mistral", "https://api.mistral.ai/v1", "mistral-small-latest", "mistral_api_key"),
+    Provider("openrouter", "https://openrouter.ai/api/v1", "meta-llama/llama-3.3-70b-instruct:free", "openrouter_api_key"),
+    Provider("gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash", "gemini_api_key"),
+    Provider("cohere", "https://api.cohere.ai/compatibility/v1", "command-r", "cohere_api_key"),
+]
+
+
+def _timeout_s() -> float:
+    return max(1.0, settings.llm_timeout_ms / 1000)
 
 
 def llm_config() -> LLMConfig | None:
+    """Resolve the active LLM.
+
+    1. Explicit override — LLM_BASE_URL + LLM_MODEL set (key optional for a local
+       model). Wins when present.
+    2. Auto-select — the first provider in _PROVIDERS whose key is set, so pasting
+       any GROQ_API_KEY / MISTRAL_API_KEY / … is enough, no code change.
+    """
     base = settings.llm_base_url.strip().rstrip("/")
     model = settings.llm_model.strip()
-    if not base or not model:
-        return None
-    return LLMConfig(
-        base_url=base,
-        model=model,
-        api_key=settings.llm_api_key.strip(),
-        timeout_s=max(1.0, settings.llm_timeout_ms / 1000),
-    )
+    key = settings.llm_api_key.strip()
+    if base and model and (key or is_loopback(base)):
+        return LLMConfig(base, model, key, _timeout_s(), provider="custom")
+
+    for p in _PROVIDERS:
+        pkey = getattr(settings, p.key_attr, "").strip()
+        if pkey:
+            # Auto mode uses the provider's own default model. A stray LLM_MODEL
+            # meant for another provider must not leak in (it would 404). Pin a
+            # specific model via the explicit LLM_BASE_URL+LLM_MODEL+LLM_API_KEY trio.
+            return LLMConfig(p.base_url, p.default_model, pkey, _timeout_s(), provider=p.name)
+    return None
 
 
 def is_loopback(base_url: str) -> bool:
@@ -67,7 +102,7 @@ def student_data_egress_allowed(base_url: str) -> bool:
     identical policy to studentDataEgressAllowed() in the Next.js app."""
     if is_loopback(base_url):
         return True
-    return settings.llm_allow_remote_student_data
+    return settings.allow_remote_student_data
 
 
 def complete_chat(

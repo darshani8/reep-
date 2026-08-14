@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta, timezone
 from sqlalchemy import select
 
 from .db import SessionLocal
+from .models.academic_history import AcademicGap, AcademicQualification, QualificationLevel
 from .models.academics import SemesterResult, SubjectMark
 from .models.attendance import AttendanceRecord
 from .models.mock import MockAttempt, MockType
@@ -221,6 +222,24 @@ def main() -> None:
             db.add_all(entries)
             db.commit()
             print(f"added timesheet entries ({len(entries)})")
+
+        # Idempotently add prior qualifications + a gap row.
+        if stu and db.scalar(
+            select(AcademicQualification).where(AcademicQualification.student_id == stu.id)
+        ) is None:
+            db.add_all(
+                [
+                    AcademicQualification(student_id=stu.id, level=QualificationLevel.TENTH, institution="St. Joseph's High School", board="CBSE", year=2018, marks=88, max_marks=100, medium="English"),
+                    AcademicQualification(student_id=stu.id, level=QualificationLevel.TWELFTH, institution="Sri Chaitanya PU College", board="Karnataka PUC", year=2020, marks=82, max_marks=100, medium="English"),
+                    AcademicQualification(student_id=stu.id, level=QualificationLevel.UNDERGRAD, institution="Bangalore University", year=2024, marks=72, max_marks=100),
+                ]
+            )
+            db.commit()
+            print("added academic qualifications (3)")
+        if stu and db.scalar(select(AcademicGap).where(AcademicGap.student_id == stu.id)) is None:
+            db.add(AcademicGap(student_id=stu.id, twelfth_to_grad_mo=0, grad_to_pg_mo=0))
+            db.commit()
+            print("added academic gap row")
     finally:
         db.close()
 

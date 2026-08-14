@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from ..db import get_db
 from ..deps import get_current_session
@@ -16,7 +16,7 @@ from ..models.mock import MockAttempt
 from ..models.profile import StudentProfile
 from ..models.skill import StudentSkill
 from ..models.swoc import SwocEntry
-from ..models.user import Student
+from ..models.user import LoginDay, Student
 
 router = APIRouter(prefix="/student", tags=["student"])
 
@@ -331,3 +331,41 @@ def my_skills(
     ]
     # Grouped by category, strongest first within each.
     return sorted(out, key=lambda s: (s.category, -s.level))
+
+
+class StreakOut(BaseModel):
+    current: int
+    longest: int
+    days_active: int
+    last_active: date | None
+
+
+@router.get("/streak", response_model=StreakOut)
+def my_streak(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> StreakOut:
+    """Login streak from LoginDay (one row per active day). Current counts back
+    from today (or yesterday, so an as-yet-unopened today doesn't break it)."""
+    days = sorted(
+        set(db.scalars(select(LoginDay.day).where(LoginDay.user_id == session["userId"])).all())
+    )
+    if not days:
+        return StreakOut(current=0, longest=0, days_active=0, last_active=None)
+
+    longest = run = 1
+    for prev, cur in zip(days, days[1:]):
+        run = run + 1 if cur - prev == timedelta(days=1) else 1
+        longest = max(longest, run)
+
+    today = date.today()
+    current = 0
+    if days[-1] in (today, today - timedelta(days=1)):
+        current = 1
+        i = len(days) - 1
+        while i > 0 and days[i] - days[i - 1] == timedelta(days=1):
+            current += 1
+            i -= 1
+
+    return StreakOut(
+        current=current, longest=longest, days_active=len(days), last_active=days[-1]
+    )

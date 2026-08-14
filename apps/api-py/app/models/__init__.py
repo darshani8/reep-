@@ -6,4 +6,5 @@ from . import mock  # noqa: F401
 from . import profile  # noqa: F401
 from . import skill  # noqa: F401
 from . import swoc  # noqa: F401
+from . import timesheet  # noqa: F401
 from . import user  # noqa: F401

@@ -7,7 +7,7 @@ Data only — Alembic owns the schema now. Requires the DB reachable and the
 reep_py database created (see .env.example).
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
 
@@ -18,7 +18,7 @@ from .models.mock import MockAttempt, MockType
 from .models.profile import StudentProfile
 from .models.skill import Skill, StudentSkill
 from .models.swoc import SwocEntry, SwocKind, SwocSource
-from .models.user import Role, Stage, Student, User
+from .models.user import LoginDay, Role, Stage, Student, User
 from .security import hash_password
 
 
@@ -178,6 +178,22 @@ def main() -> None:
             )
             db.commit()
             print("added student skills (3)")
+
+        # Idempotently seed a 5-day login streak ending today.
+        if stu_user:
+            existing_days = set(
+                db.scalars(select(LoginDay.day).where(LoginDay.user_id == stu_user.id)).all()
+            )
+            today = date.today()
+            added = 0
+            for delta in range(5):  # today .. today-4
+                day = today - timedelta(days=delta)
+                if day not in existing_days:
+                    db.add(LoginDay(user_id=stu_user.id, day=day))
+                    added += 1
+            if added:
+                db.commit()
+                print(f"seeded {added} login-day(s) for a streak")
     finally:
         db.close()
 

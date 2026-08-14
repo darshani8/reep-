@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 
 from ..db import get_db
 from ..deps import get_current_session
+from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
 from ..models.mock import MockAttempt
@@ -416,4 +417,72 @@ def my_timesheet(
         entries=[
             TimeSheetEntryOut(day=r.day, activity=r.activity.value, minutes=r.minutes) for r in rows
         ],
+    )
+
+
+class QualificationOut(BaseModel):
+    level: str
+    institution: str
+    board: str | None
+    year: int
+    marks: float
+    max_marks: float
+    percent: float
+    medium: str | None
+    location: str | None
+    subjects: str | None
+
+
+class AcademicGapOut(BaseModel):
+    twelfth_to_grad_mo: int
+    diploma_to_grad_mo: int
+    grad_to_pg_mo: int
+    other_mo: int
+    total_mo: int
+
+
+class AcademicsOut(BaseModel):
+    qualifications: list[QualificationOut]
+    gap: AcademicGapOut
+
+
+@router.get("/academics", response_model=AcademicsOut)
+def my_academics(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> AcademicsOut:
+    student_id = _require_student(session)
+    quals = db.scalars(
+        select(AcademicQualification)
+        .where(AcademicQualification.student_id == student_id)
+        .order_by(AcademicQualification.year)
+    ).all()
+    gap = db.get(AcademicGap, student_id)
+    gap_out = AcademicGapOut(
+        twelfth_to_grad_mo=gap.twelfth_to_grad_mo if gap else 0,
+        diploma_to_grad_mo=gap.diploma_to_grad_mo if gap else 0,
+        grad_to_pg_mo=gap.grad_to_pg_mo if gap else 0,
+        other_mo=gap.other_mo if gap else 0,
+        total_mo=(
+            gap.twelfth_to_grad_mo + gap.diploma_to_grad_mo + gap.grad_to_pg_mo + gap.other_mo
+            if gap
+            else 0
+        ),
+    )
+    return AcademicsOut(
+        qualifications=[
+            QualificationOut(
+                level=q.level.value,
+                institution=q.institution,
+                board=q.board,
+                year=q.year,
+                marks=q.marks,
+                max_marks=q.max_marks,
+                percent=round(100 * q.marks / q.max_marks, 1) if q.max_marks else 0.0,
+                medium=q.medium,
+                location=q.location,
+                subjects=q.subjects,
+            )
+            for q in quals
+        ],
+        gap=gap_out,
     )

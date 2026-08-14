@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     cohere_api_key: str = ""
     gemini_api_key: str = ""
+    # Sakana Fugu — OpenAI-compatible meta-router (https://api.sakana.ai/v1).
+    sakana_api_key: str = ""
 
     # LiveKit (voice assistant) — a free LiveKit Cloud project. The /api/voice
     # endpoints return 503 until all three are set.

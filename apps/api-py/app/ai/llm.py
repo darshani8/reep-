@@ -57,6 +57,9 @@ class Provider:
 # Auto-select order — paste any one provider key and it just works. Each speaks
 # the OpenAI-compatible /chat/completions protocol.
 _PROVIDERS = [
+    # Sakana Fugu is itself a multi-model router; first, so a SAKANA_API_KEY (when
+    # present) takes precedence. Falls through to the others when it is unset.
+    Provider("sakana", "https://api.sakana.ai/v1", "fugu-ultra", "sakana_api_key"),
     Provider("groq", "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", "groq_api_key"),
     Provider("mistral", "https://api.mistral.ai/v1", "mistral-small-latest", "mistral_api_key"),
     Provider("openrouter", "https://openrouter.ai/api/v1", "meta-llama/llama-3.3-70b-instruct:free", "openrouter_api_key"),

@@ -9,6 +9,7 @@ import { CertificationsComponent } from './features/student/certifications/certi
 import { ProfileComponent } from './features/student/profile/profile.component';
 import { LeaderboardsComponent } from './features/student/leaderboards/leaderboards.component';
 import { TimeLogComponent } from './features/student/time-log/time-log.component';
+import { OffersComponent } from './features/student/offers/offers.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 
 /**
@@ -39,6 +40,7 @@ export const routes: Routes = [
       placeholder('student/uploads', 'Uploads'),
       placeholder('student/resume', 'Resume'),
       { path: 'student/jobs', component: JobsComponent },
+      { path: 'student/offers', component: OffersComponent },
       placeholder('student/assistant', 'REEP Agent'),
       { path: 'student/profile', component: ProfileComponent },
 

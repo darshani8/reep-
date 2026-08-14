@@ -51,6 +51,23 @@
     }
   </div>
 
+  <!-- eligibility summary + filter (the Opportunities-tab gate) -->
+  @if (eligibility(); as e) {
+    @if (!e.placementEligible) {
+      <kit-banner tone="critical" title="You are not cleared for placements">
+        The placement office has not marked this account eligible, so applications are blocked. Speak to the office if you believe this is wrong.
+      </kit-banner>
+    }
+    <div class="elig-filter no-print">
+      <button type="button" class="chip" [class.chip--active]="eligFilter() === 'all'" (click)="setEligFilter('all')">All · {{ levelRows().length }}</button>
+      <button type="button" class="chip chip--good" [class.chip--active]="eligFilter() === 'eligible'" (click)="setEligFilter('eligible')">Eligible · {{ eligibleCount() }}</button>
+      <button type="button" class="chip chip--muted" [class.chip--active]="eligFilter() === 'ineligible'" (click)="setEligFilter('ineligible')">Not eligible · {{ ineligibleCount() }}</button>
+      <span class="elig-you reep-caption">
+        Your record: CGPA {{ e.latestCgpa != null ? (e.latestCgpa | number:'1.2-2') : '—' }} · {{ e.liveBacklogs }} live backlog{{ e.liveBacklogs === 1 ? '' : 's' }}
+      </span>
+    </div>
+  }
+
   <kit-section
     [title]="levelLabel[level()] + ' vacancies'"
     [subtitle]="level() === ownLevel()
@@ -88,6 +105,11 @@
                   <div class="jobs__meta reep-caption">
                     {{ row.company }}@if (row.location) { · {{ row.location }} } · {{ row.postedLabel }}
                   </div>
+                  @if (!row.eligible) {
+                    <div class="jobs__inelig reep-caption" title="{{ row.eligibilityReasons.join(' ') }}">
+                      Not eligible — {{ row.eligibilityReasons[0] }}
+                    </div>
+                  }
                 </td>
                 <td class="jobs__match">
                   <div class="jobs__match-value" [style.color]="toneInk[row.matchTone]">{{ row.matchLabel }}</div>
@@ -97,7 +119,9 @@
                   <span [style.color]="toneInk[row.closesTone]">{{ row.closesLabel }}</span>
                 </td>
                 <td class="jobs__apply">
-                  @if (row.applyUrl) {
+                  @if (!row.eligible) {
+                    <span class="reep-caption jobs__nolink">Not eligible</span>
+                  } @else if (row.applyUrl) {
                     <button type="button" class="btn btn--small" (click)="openApply(row)">Apply</button>
                   } @else {
                     <span class="reep-caption jobs__nolink">No link</span>

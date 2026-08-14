@@ -1241,6 +1241,13 @@ model Job {
   postedOn DateTime
   closesOn DateTime?
 
+  /// Per-posting eligibility overrides (roadmap Phase B). Null means "use the
+  /// active PlacementCriteria default" — so a recruiter's stricter cut-off
+  /// ("8.0 CGPA, no live backlogs") gates this posting alone, exactly as
+  /// pod.ai's Opportunities tab marks each row Eligible / Non-Eligible.
+  minCgpa         Float?
+  maxLiveBacklogs Int?
+
   /// Which import wrote this row, so a bad sheet can be traced and undone.
   importRunId String?
   importRun   JobImportRun? @relation(fields: [importRunId], references: [id], onDelete: SetNull)

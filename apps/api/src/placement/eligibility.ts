@@ -75,9 +75,11 @@ export function eligibleFor(
     reasons.push('The placement office has not cleared this account for placements.');
   }
 
-  if (facts.latestCgpa == null) {
-    reasons.push('No CGPA is on record yet, so the CGPA cut-off cannot be met.');
-  } else if (facts.latestCgpa < criteria.minCgpa) {
+  // A missing CGPA means "not assessed yet", not "disqualified" — REEP imports
+  // marks from the office, and a fresher with none on record should not be
+  // barred from the whole board. Only an actual below-cut-off CGPA blocks; the
+  // hard gates are the office flag, backlogs and gap.
+  if (facts.latestCgpa != null && facts.latestCgpa < criteria.minCgpa) {
     reasons.push(
       `CGPA ${facts.latestCgpa.toFixed(2)} is below the ${criteria.minCgpa.toFixed(2)} cut-off.`,
     );

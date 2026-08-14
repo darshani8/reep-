@@ -39,10 +39,11 @@ describe('eligibleFor', () => {
     expect(r.reasons.some((x) => x.includes('5.40') && x.includes('6.00'))).toBe(true);
   });
 
-  it('treats a missing CGPA as failing the cut-off, not passing it', () => {
+  it('treats a missing CGPA as unassessed, not disqualified', () => {
+    // A fresher with no marks imported yet is not barred from the whole board;
+    // the office flag, backlogs and gap are the hard gates.
     const r = eligibleFor({ ...CLEAR, latestCgpa: null }, CRITERIA, JOB);
-    expect(r.eligible).toBe(false);
-    expect(r.reasons.some((x) => x.includes('No CGPA'))).toBe(true);
+    expect(r.eligible).toBe(true);
   });
 
   it('blocks a live backlog when the drive needs none', () => {

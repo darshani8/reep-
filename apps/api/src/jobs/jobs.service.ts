@@ -21,6 +21,7 @@ import {
   type MatchBand,
 } from './match';
 import { relativeDay } from './relative-day';
+import { eligibleFor, type EligibilityCriteria, type StudentEligibilityFacts } from '../placement/eligibility';
 
 type Tone = 'good' | 'warning' | 'critical' | 'info' | 'neutral' | 'accent';
 
@@ -47,6 +48,11 @@ export interface JobRow {
   applyUrl: string | null;
   applied: boolean;
   openedLabel: string | null;
+  /// Whether the student may apply to THIS posting (its cut-offs, or the active
+  /// default). `eligibilityReasons` is empty when eligible, else the exact
+  /// blockers, so the board can tell them what to fix.
+  eligible: boolean;
+  eligibilityReasons: string[];
 }
 
 export interface JobsBoardView {
@@ -54,6 +60,14 @@ export interface JobsBoardView {
   counts: Record<DegreeLevel, number>;
   heldCount: number;
   verifiedSkills: number;
+  /// The student's own baseline: are they cleared to apply at all, and their
+  /// figures, so the board can show a one-line eligibility summary.
+  eligibility: {
+    placementEligible: boolean;
+    latestCgpa: number | null;
+    liveBacklogs: number;
+    totalGapMonths: number;
+  };
   rows: JobRow[];
 }
 
@@ -68,32 +82,48 @@ const BOARD_JOB_FIELDS = {
   requiredSkills: true,
   postedOn: true,
   closesOn: true,
+  minCgpa: true,
+  maxLiveBacklogs: true,
 } as const;
+
+const DEFAULT_CRITERIA: EligibilityCriteria = { minCgpa: 6.0, maxLiveBacklogs: 0, maxGapMonths: 24 };
 
 @Injectable()
 export class JobsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async board(studentId: string): Promise<JobsBoardView> {
-    const [student, jobs, catalogue, held, applications] = await Promise.all([
-      this.prisma.student.findUnique({
-        where: { id: studentId },
-        select: { cohort: { select: { degreeLevel: true } } },
-      }),
-      this.prisma.job.findMany({
-        orderBy: [{ postedOn: 'desc' }, { company: 'asc' }],
-        select: BOARD_JOB_FIELDS,
-      }),
-      this.prisma.skill.findMany({ select: { slug: true, name: true, aliases: true } }),
-      this.prisma.studentSkill.findMany({
-        where: { studentId },
-        select: { level: true, verified: true, skill: { select: { slug: true } } },
-      }),
-      this.prisma.jobApplication.findMany({
-        where: { studentId },
-        select: { jobId: true, notes: true, appliedAt: true },
-      }),
-    ]);
+    const [student, jobs, catalogue, held, applications, profile, results, gap, criteriaRow] =
+      await Promise.all([
+        this.prisma.student.findUnique({
+          where: { id: studentId },
+          select: { cohort: { select: { degreeLevel: true } } },
+        }),
+        this.prisma.job.findMany({
+          orderBy: [{ postedOn: 'desc' }, { company: 'asc' }],
+          select: BOARD_JOB_FIELDS,
+        }),
+        this.prisma.skill.findMany({ select: { slug: true, name: true, aliases: true } }),
+        this.prisma.studentSkill.findMany({
+          where: { studentId },
+          select: { level: true, verified: true, skill: { select: { slug: true } } },
+        }),
+        this.prisma.jobApplication.findMany({
+          where: { studentId },
+          select: { jobId: true, notes: true, appliedAt: true },
+        }),
+        this.prisma.studentProfile.findUnique({
+          where: { studentId },
+          select: { placementEligible: true, interestedInJobs: true, interestedInInternships: true },
+        }),
+        this.prisma.semesterResult.findMany({
+          where: { studentId },
+          select: { semester: true, cgpa: true, liveBacklogs: true },
+          orderBy: { semester: 'desc' },
+        }),
+        this.prisma.academicGap.findUnique({ where: { studentId } }),
+        this.prisma.placementCriteria.findFirst({ where: { active: true } }),
+      ]);
 
     if (!student) throw new NotFoundException('Student record not found.');
 
@@ -106,7 +136,29 @@ export class JobsService {
     const apps = new Map(applications.map((a) => [a.jobId, { notes: a.notes, appliedAt: a.appliedAt }]));
     const now = new Date();
 
-    const rows = jobs.map((job) => this.toRow(job, catalogueSkills, heldSkills, apps, now));
+    // The student's placement facts, gathered once and read against each posting.
+    const latestCgpa = results.find((r) => r.cgpa != null)?.cgpa ?? null;
+    const liveBacklogs = results.reduce((sum, r) => sum + r.liveBacklogs, 0);
+    const totalGapMonths = gap
+      ? gap.twelfthToGradMo + gap.diplomaToGradMo + gap.gradToPgMo + gap.otherMo
+      : 0;
+    const facts: StudentEligibilityFacts = {
+      placementEligible: profile?.placementEligible ?? true,
+      latestCgpa,
+      liveBacklogs,
+      totalGapMonths,
+      interestedInJobs: profile?.interestedInJobs ?? true,
+      interestedInInternships: profile?.interestedInInternships ?? true,
+    };
+    const defaultCriteria: EligibilityCriteria = criteriaRow
+      ? {
+          minCgpa: criteriaRow.minCgpa,
+          maxLiveBacklogs: criteriaRow.maxLiveBacklogs,
+          maxGapMonths: criteriaRow.maxGapMonths,
+        }
+      : DEFAULT_CRITERIA;
+
+    const rows = jobs.map((job) => this.toRow(job, catalogueSkills, heldSkills, apps, now, facts, defaultCriteria));
 
     const counts = {
       UG: jobs.filter((j) => j.degreeLevel === 'UG').length,
@@ -118,6 +170,7 @@ export class JobsService {
       counts,
       heldCount: heldSkills.length,
       verifiedSkills: heldSkills.filter((s) => s.verified).length,
+      eligibility: { placementEligible: facts.placementEligible, latestCgpa, liveBacklogs, totalGapMonths },
       rows,
     };
   }
@@ -134,17 +187,28 @@ export class JobsService {
       requiredSkills: string[];
       postedOn: Date;
       closesOn: Date | null;
+      minCgpa: number | null;
+      maxLiveBacklogs: number | null;
     },
     catalogue: CatalogueSkill[],
     held: HeldSkill[],
     apps: Map<string, { notes: string | null; appliedAt: Date }>,
     now: Date,
+    facts: StudentEligibilityFacts,
+    defaultCriteria: EligibilityCriteria,
   ): JobRow {
     const match = matchJob(job, catalogue, held);
     const summary = matchSummary(match);
     const closes = describeClosing(job.closesOn, now);
     const application = apps.get(job.id);
     const state = applicationState(application);
+
+    // This posting's own cut-offs override the active default where set.
+    const verdict = eligibleFor(facts, {
+      minCgpa: job.minCgpa ?? defaultCriteria.minCgpa,
+      maxLiveBacklogs: job.maxLiveBacklogs ?? defaultCriteria.maxLiveBacklogs,
+      maxGapMonths: defaultCriteria.maxGapMonths,
+    }, { roleType: 'FULL_TIME' });
 
     return {
       id: job.id,
@@ -168,6 +232,8 @@ export class JobsService {
         state === 'opened' && application
           ? `Opened ${relativeDay(application.appliedAt, now).toLowerCase()}`
           : null,
+      eligible: verdict.eligible,
+      eligibilityReasons: verdict.reasons,
     };
   }
 

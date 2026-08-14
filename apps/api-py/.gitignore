@@ -5,3 +5,8 @@ __pycache__/
 .env.local
 .pytest_cache/
 .mypy_cache/
+
+# Local SQLite chat-memory bank
+*.db
+*.db-wal
+*.db-shm

@@ -14,6 +14,7 @@ from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
 from ..models.mock import MockAttempt
 from ..models.profile import StudentProfile
+from ..models.skill import StudentSkill
 from ..models.swoc import SwocEntry
 from ..models.user import Student
 
@@ -300,3 +301,33 @@ def my_mocks(
         )
         for r in rows
     ]
+
+
+class StudentSkillOut(BaseModel):
+    slug: str
+    name: str
+    category: str
+    level: int
+    verified: bool
+
+
+@router.get("/skills", response_model=list[StudentSkillOut])
+def my_skills(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[StudentSkillOut]:
+    student_id = _require_student(session)
+    rows = db.scalars(
+        select(StudentSkill).where(StudentSkill.student_id == student_id)
+    ).all()
+    out = [
+        StudentSkillOut(
+            slug=r.skill.slug,
+            name=r.skill.name,
+            category=r.skill.category,
+            level=r.level,
+            verified=r.verified,
+        )
+        for r in rows
+    ]
+    # Grouped by category, strongest first within each.
+    return sorted(out, key=lambda s: (s.category, -s.level))

@@ -16,6 +16,7 @@ from .models.academics import SemesterResult, SubjectMark
 from .models.attendance import AttendanceRecord
 from .models.mock import MockAttempt, MockType
 from .models.profile import StudentProfile
+from .models.skill import Skill, StudentSkill
 from .models.swoc import SwocEntry, SwocKind, SwocSource
 from .models.user import Role, Stage, Student, User
 from .security import hash_password
@@ -154,6 +155,29 @@ def main() -> None:
             )
             db.commit()
             print("added mock attempts (2)")
+
+        # Idempotently seed a small skill catalogue + the student's skills.
+        if db.scalar(select(Skill)) is None:
+            db.add_all(
+                [
+                    Skill(slug="excel", name="MS Excel", category="Analytics", aliases=["advanced excel"]),
+                    Skill(slug="power-bi", name="Power BI", category="Analytics", aliases=[]),
+                    Skill(slug="financial-modeling", name="Financial Modeling", category="Business", aliases=[]),
+                ]
+            )
+            db.commit()
+            print("added skill catalogue (3)")
+        if stu and db.scalar(select(StudentSkill).where(StudentSkill.student_id == stu.id)) is None:
+            catalogue = {s.slug: s for s in db.scalars(select(Skill)).all()}
+            db.add_all(
+                [
+                    StudentSkill(student_id=stu.id, skill_id=catalogue["excel"].id, level=4, verified=True),
+                    StudentSkill(student_id=stu.id, skill_id=catalogue["power-bi"].id, level=3, verified=False),
+                    StudentSkill(student_id=stu.id, skill_id=catalogue["financial-modeling"].id, level=3, verified=False),
+                ]
+            )
+            db.commit()
+            print("added student skills (3)")
     finally:
         db.close()
 

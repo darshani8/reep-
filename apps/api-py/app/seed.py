@@ -14,6 +14,7 @@ from sqlalchemy import select
 from .db import SessionLocal
 from .models.academics import SemesterResult, SubjectMark
 from .models.attendance import AttendanceRecord
+from .models.mock import MockAttempt, MockType
 from .models.profile import StudentProfile
 from .models.swoc import SwocEntry, SwocKind, SwocSource
 from .models.user import Role, Stage, Student, User
@@ -141,6 +142,18 @@ def main() -> None:
             )
             db.commit()
             print("added SWOC entries (4 across quadrants)")
+
+        # Idempotently add a couple of mock-assessment attempts.
+        if stu and db.scalar(select(MockAttempt).where(MockAttempt.student_id == stu.id)) is None:
+            base = datetime(2026, 2, 1, tzinfo=timezone.utc)
+            db.add_all(
+                [
+                    MockAttempt(student_id=stu.id, type=MockType.APTITUDE, taken_on=base, score=72, max_score=100, notes="Solid quant; revise data interpretation."),
+                    MockAttempt(student_id=stu.id, type=MockType.GD, taken_on=base + timedelta(days=7), score=7, max_score=10, notes="Good points; interrupt less."),
+                ]
+            )
+            db.commit()
+            print("added mock attempts (2)")
     finally:
         db.close()
 

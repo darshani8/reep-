@@ -50,6 +50,16 @@ export class ChatVoiceService {
   private room: Room | null = null;
   private readonly audioElements: HTMLAudioElement[] = [];
 
+  /** Load the shared conversation (text + voice) for a session into chatHistory. */
+  async loadHistory(sessionId: string): Promise<void> {
+    const res = await firstValueFrom(
+      this.http.get<{ turns: ChatTurn[] }>(
+        `/api/agent/history?session_id=${encodeURIComponent(sessionId)}`,
+      ),
+    );
+    this.chatHistory.set(res.turns);
+  }
+
   /** Send one text turn and append the reply. Optimistically shows the user turn. */
   async sendMessage(sessionId: string, message: string): Promise<void> {
     this.chatHistory.update((h) => [...h, { role: 'user', content: message }]);

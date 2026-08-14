@@ -45,6 +45,18 @@ class ChatOut(BaseModel):
     model: str
 
 
+class HistoryOut(BaseModel):
+    session_id: str
+    turns: list[dict]
+
+
+@router.get("/history", response_model=HistoryOut)
+def history(session_id: str, session: dict = Depends(get_current_session)) -> HistoryOut:
+    """The unified conversation for a session — written by BOTH the text chat and
+    the voice worker, so a reconnecting client can restore the full thread."""
+    return HistoryOut(session_id=session_id, turns=get_history(session_id))
+
+
 @router.post("/chat", response_model=ChatOut)
 def chat(body: ChatIn, session: dict = Depends(get_current_session)) -> ChatOut:
     cfg = llm_config()

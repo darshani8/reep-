@@ -13,11 +13,11 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 
-import ChatBubbleOutlineOutlined from '@mui/icons-material/ChatBubbleOutlineOutlined';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import OpenInFullRounded from '@mui/icons-material/OpenInFullRounded';
 
 import { AgentChat, type ChatTurn } from '@/components/agent-chat';
+import { GeminiIcon } from '@/components/gemini-icon';
 
 /**
  * The agent, reachable from every screen.
@@ -113,7 +113,7 @@ export function AgentLauncher() {
             zIndex: (theme) => theme.zIndex.drawer - 1,
           }}
         >
-          <ChatBubbleOutlineOutlined />
+          <GeminiIcon />
         </Fab>
       </Tooltip>
 

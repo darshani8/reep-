@@ -25,7 +25,6 @@ import Typography from '@mui/material/Typography';
 import { useColorScheme } from '@mui/material/styles';
 
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
-import ChatBubbleOutlineOutlined from '@mui/icons-material/ChatBubbleOutlineOutlined';
 import CloudUploadOutlined from '@mui/icons-material/CloudUploadOutlined';
 import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
@@ -52,6 +51,8 @@ import UploadFileOutlined from '@mui/icons-material/UploadFileOutlined';
 import WorkOutlineOutlined from '@mui/icons-material/WorkOutlineOutlined';
 import WorkspacePremiumOutlined from '@mui/icons-material/WorkspacePremiumOutlined';
 
+import { GeminiIcon } from '@/components/gemini-icon';
+
 const DRAWER_WIDTH = 236;
 
 export type ShellRole = 'student' | 'mentor' | 'director';
@@ -75,7 +76,7 @@ const NAV: Record<ShellRole, NavEntry[]> = {
     { href: '/student/uploads', label: 'Uploads', icon: <CloudUploadOutlined /> },
     { href: '/student/resume', label: 'Resume', icon: <DescriptionOutlined /> },
     { href: '/student/jobs', label: 'Jobs', icon: <WorkOutlineOutlined /> },
-    { href: '/student/assistant', label: 'REEP Agent', icon: <ChatBubbleOutlineOutlined /> },
+    { href: '/student/assistant', label: 'REEP Agent', icon: <GeminiIcon /> },
     { href: '/student/profile', label: 'Profile', icon: <PersonOutlineOutlined /> },
   ],
   mentor: [
@@ -88,7 +89,7 @@ const NAV: Record<ShellRole, NavEntry[]> = {
     // `/mentor/leave/approvals` is where you sign for someone else; the desk
     // links across to the queue and `isActive` lights this row for both.
     { href: '/mentor/leave', label: 'Leave', icon: <EventBusyOutlined /> },
-    { href: '/mentor/assistant', label: 'REEP Agent', icon: <ChatBubbleOutlineOutlined /> },
+    { href: '/mentor/assistant', label: 'REEP Agent', icon: <GeminiIcon /> },
     { href: '/mentor/settings', label: 'Thresholds', icon: <TuneOutlined /> },
   ],
   director: [
@@ -102,7 +103,7 @@ const NAV: Record<ShellRole, NavEntry[]> = {
     { href: '/director/certifications', label: 'Certifications', icon: <WorkspacePremiumOutlined /> },
     { href: '/director/placement', label: 'Placement', icon: <WorkOutlineOutlined /> },
     { href: '/director/jobs', label: 'Jobs sheet', icon: <UploadFileOutlined /> },
-    { href: '/director/assistant', label: 'REEP Agent', icon: <ChatBubbleOutlineOutlined /> },
+    { href: '/director/assistant', label: 'REEP Agent', icon: <GeminiIcon /> },
     { href: '/director/exports', label: 'Exports', icon: <DownloadOutlined /> },
   ],
 };

@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     cohere_api_key: str = ""
     gemini_api_key: str = ""
 
+    # LiveKit (voice assistant) — a free LiveKit Cloud project. The /api/voice
+    # endpoints return 503 until all three are set.
+    livekit_url: str = ""
+    livekit_api_key: str = ""
+    livekit_api_secret: str = ""
+
     @property
     def is_prod(self) -> bool:
         return self.env.lower() == "prod"

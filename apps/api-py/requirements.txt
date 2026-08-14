@@ -13,3 +13,6 @@ httpx>=0.27
 google-adk>=2.7
 # Lets ADK reach non-Gemini providers (Groq, Mistral, OpenRouter, …)
 litellm>=1.96
+# LiveKit access-token minting for /api/voice/token (voice worker deps are in
+# requirements-voice.txt — a separate, heavier environment)
+livekit-api>=1.2

@@ -1,0 +1,8 @@
+# Voice worker (voice_agent.py) — install in a SEPARATE environment from the
+# FastAPI server. The audio/ML stack is heavy; Python 3.12 is recommended.
+#
+#   python -m venv .venv-voice && .venv-voice/Scripts/pip install -r requirements-voice.txt
+#
+# Gemini Live (native speech-to-speech) via the Google plugin — no OpenAI TTS
+# and no Google Cloud STT needed; just a Gemini API key + a LiveKit project.
+livekit-agents[google]~=1.5

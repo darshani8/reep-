@@ -82,3 +82,13 @@ Python — FastAPI
   `POST /api/agent/chat` (authenticated) runs an ADK agent end to end — verified
   login -> chat -> "Tokyo." on groq/llama-3.3-70b-versatile. SSE streaming and
   the student-data agents (behind the egress gate) are next.
+- Unified text + voice assistant: a centralized SQLite memory bank
+  (`app/memory.py`, one row-per-turn `chat_history`) is SHARED by
+  `POST /api/agent/chat` and the voice worker, keyed by session_id — verified
+  live (a fact from turn 1 recalled in turn 2). `POST /api/voice/token` mints
+  LiveKit JWTs with identity=session_id (verified). `voice_agent.py` runs
+  **Gemini Live** (native speech-to-speech — no OpenAI/Google-Cloud) as a
+  separate worker (`requirements-voice.txt`; needs LiveKit + Gemini creds to
+  run). Angular `apps/web/src/app/core/chat-voice.service.ts` (signals) drives
+  both text and voice; `livekit-client` installed. The spec's deprecated
+  `VoicePipelineAgent` API was replaced with the current `AgentSession`.

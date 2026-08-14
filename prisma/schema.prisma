@@ -282,6 +282,7 @@ model User {
   leaveFirstApprovals  LeaveRequest[] @relation("LeaveFirstApprover")
   leaveSecondApprovals LeaveRequest[] @relation("LeaveSecondApprover")
   mentorGroupsApproved Mentor[]       @relation("MentorFirstApprover")
+  offerApprovals       PlacementOffer[] @relation("OfferApprover")
 
   @@map("users")
 }
@@ -364,6 +365,9 @@ model Student {
   swoc            SwocEntry[]
   mockAttempts    MockAttempt[]
   jobApplications JobApplication[]
+  placementOffers PlacementOffer[]
+  qualifications  AcademicQualification[]
+  academicGap     AcademicGap?
 
   @@index([cohortId])
   @@index([mentorId])
@@ -617,9 +621,137 @@ model PlacementCriteria {
   requireCoreCerts    Boolean  @default(true)
   minAttendancePct    Float    @default(85)
   minCertCompletionPct Float   @default(75)
+  /// Academic eligibility gates the placement funnel reads — the pod.ai-style
+  /// rules Indian recruiters filter on. Director-set, one criteria set active.
+  minCgpa             Float    @default(6.0)
+  maxLiveBacklogs     Int      @default(0)
+  maxGapMonths        Int      @default(24)
   updatedAt           DateTime @updatedAt
 
   @@map("placement_criteria")
+}
+
+// ---------------------------------------------------------------------------
+// Placement funnel — offers & eligibility  (roadmap Phase A/B)
+//
+// Turns REEP's self-reported "I applied" tick into a real outcome trail:
+// a structured, approved offer record carrying compensation and documents, and
+// the academic history + gates an eligibility engine reads. The model is the
+// one decoded from pod.ai's /offers/create and /academics — see
+// docs/reep-pod-roadmap.md.
+// ---------------------------------------------------------------------------
+
+enum OfferRoleType {
+  FULL_TIME
+  FULL_TIME_PLUS_INTERNSHIP
+  INTERNSHIP
+}
+
+enum OfferChannel {
+  ON_CAMPUS
+  OFF_CAMPUS
+  POOL
+  REFERRAL
+}
+
+enum OfferWorkMode {
+  REMOTE
+  ONSITE
+  HYBRID
+}
+
+enum OfferStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+model PlacementOffer {
+  id            String        @id @default(cuid())
+  studentId     String
+  student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  /// The on-campus posting this came from, when it did. Null for off-campus.
+  jobId         String?
+  job           Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  roleType      OfferRoleType
+  jobTitle      String
+  organisation  String        // -> a Company relation if a recruiter side is ever built
+  channel       OfferChannel  @default(ON_CAMPUS)
+  joiningDate   DateTime?
+  workMode      OfferWorkMode @default(ONSITE)
+  location      String?
+
+  /// Rupees. CTC is the headline; fixedGross the guaranteed cash; bonuses the
+  /// variable components as [{ label, amountInr }].
+  ctcInr        Int           @default(0)
+  fixedGrossInr Int           @default(0)
+  bonuses       Json          @default("[]")
+
+  /// Reuse the hardened Upload store (magic-byte sniffing) for the documents.
+  offerLetterUploadId String?
+  loiUploadId         String?
+
+  jobDescription String?
+  bondDetails    String?
+  otherBenefits  String?
+
+  /// DRAFT is editable; submitting locks it and routes to a director. The
+  /// approval mirrors the leave workflow's single-decision shape.
+  status        OfferStatus   @default(DRAFT)
+  approvedById  String?
+  approvedBy    User?         @relation("OfferApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  decidedAt     DateTime?
+  decisionNote  String?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([studentId, status])
+  @@map("placement_offers")
+}
+
+/// The full 10th → PG academic chain, beyond the VTU `SemesterResult`. Backlogs
+/// and gaps live here because the eligibility engine reads them the way a
+/// recruiter's "no live backlogs, < N months gap" rule does.
+enum QualificationLevel {
+  TENTH
+  TWELFTH
+  DIPLOMA
+  UNDERGRAD
+  POSTGRAD
+}
+
+model AcademicQualification {
+  id          String             @id @default(cuid())
+  studentId   String
+  student     Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  level       QualificationLevel
+  institution String
+  board       String?
+  year        Int
+  marks       Float
+  maxMarks    Float              @default(100)
+  medium      String?
+  location    String?
+  subjects    String?
+
+  @@index([studentId, level])
+  @@map("academic_qualifications")
+}
+
+/// Education gaps in months, one row per student. A gap over the criteria's
+/// threshold is a common placement disqualifier, modelled explicitly not inferred.
+model AcademicGap {
+  studentId       String  @id
+  student         Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  twelfthToGradMo Int     @default(0)
+  diplomaToGradMo Int     @default(0)
+  gradToPgMo      Int     @default(0)
+  otherMo         Int     @default(0)
+
+  @@map("academic_gaps")
 }
 
 // ---------------------------------------------------------------------------
@@ -640,6 +772,13 @@ model StudentProfile {
   portfolioUrl  String?
   city          String?
   careerSummary String?
+
+  /// Placement policy (roadmap Phase A). `placementEligible` is ADMIN-set
+  /// (director/PM) and read-only to the student — the gate pod.ai puts on who
+  /// may apply. The interest flags are the student's own.
+  placementEligible       Boolean @default(true)
+  interestedInJobs        Boolean @default(true)
+  interestedInInternships Boolean @default(true)
 
   /// [{ degree, institution, year, score }]
   education   Json @default("[]")
@@ -945,6 +1084,11 @@ model SemesterResult {
 
   sgpa Float?
   cgpa Float?
+  /// Backlogs the placement eligibility engine reads: a company's "no live
+  /// backlogs" rule gates on `liveBacklogs`; `closedBacklogs` is history.
+  closedBacklogs    Int     @default(0)
+  liveBacklogs      Int     @default(0)
+  marksheetUploadId String?
   /// VTU's own wording — "FIRST CLASS WITH DISTINCTION", "FIRST CLASS", "PASS".
   /// Free text because it is transcribed from the published sheet, and an enum
   /// member that did not exist would lose the transcription rather than flag it.
@@ -1106,6 +1250,7 @@ model Job {
 
   applications JobApplication[]
   resumes      Resume[]
+  offers       PlacementOffer[]
 
   @@index([degreeLevel, postedOn])
   @@index([closesOn])

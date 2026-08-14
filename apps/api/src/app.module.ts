@@ -9,6 +9,7 @@ import { StudentModule } from './student/student.module';
 import { JobsModule } from './jobs/jobs.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { TimesheetModule } from './timesheet/timesheet.module';
+import { OffersModule } from './offers/offers.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TimesheetModule } from './timesheet/timesheet.module';
     JobsModule,
     LeaderboardModule,
     TimesheetModule,
+    OffersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

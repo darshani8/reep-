@@ -51,6 +51,7 @@ const NAV: Record<ShellRole, NavEntry[]> = {
     ['uploads', 'Uploads', 'cloud_upload'],
     ['resume', 'Resume', 'description'],
     ['jobs', 'Jobs', 'work'],
+    ['offers', 'Offers', 'card_membership'],
     ['assistant', 'REEP Agent', 'chat_bubble'],
     ['profile', 'Profile', 'person'],
   ]),

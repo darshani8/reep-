@@ -5,9 +5,12 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from collections import defaultdict
+
 from ..db import get_db
 from ..deps import get_current_session
 from ..models.academics import SemesterResult
+from ..models.attendance import AttendanceRecord
 from ..models.profile import StudentProfile
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -126,3 +129,52 @@ def my_results(
         )
         for r in rows
     ]
+
+
+class CourseAttendanceOut(BaseModel):
+    course_code: str
+    present: int
+    total: int
+    percent: float
+
+
+class AttendanceSummaryOut(BaseModel):
+    overall_percent: float
+    present: int
+    total: int
+    by_course: list[CourseAttendanceOut]
+
+
+@router.get("/attendance", response_model=AttendanceSummaryOut)
+def my_attendance(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> AttendanceSummaryOut:
+    student_id = _require_student(session)
+    rows = db.execute(
+        select(AttendanceRecord.course_code, AttendanceRecord.present).where(
+            AttendanceRecord.student_id == student_id
+        )
+    ).all()
+
+    per_course: dict[str, list[int]] = defaultdict(lambda: [0, 0])  # code -> [present, total]
+    present_total = grand_total = 0
+    for course_code, present in rows:
+        per_course[course_code][1] += 1
+        grand_total += 1
+        if present:
+            per_course[course_code][0] += 1
+            present_total += 1
+
+    def pct(p: int, t: int) -> float:
+        return round(100 * p / t, 1) if t else 0.0
+
+    by_course = [
+        CourseAttendanceOut(course_code=code, present=p, total=t, percent=pct(p, t))
+        for code, (p, t) in sorted(per_course.items())
+    ]
+    return AttendanceSummaryOut(
+        overall_percent=pct(present_total, grand_total),
+        present=present_total,
+        total=grand_total,
+        by_course=by_course,
+    )

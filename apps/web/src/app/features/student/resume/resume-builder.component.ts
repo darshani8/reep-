@@ -17,7 +17,6 @@
  */
 
 import { Component, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 
 import { ResumeBuilderService } from './resume-builder.service';
 
@@ -186,7 +185,6 @@ const STEP_GROUPS: StepGroup[] = [
   selector: 'app-resume-builder',
   standalone: true,
   imports: [
-    DatePipe,
     RbBasicComponent,
     RbContactComponent,
     RbFamilyComponent,
@@ -226,11 +224,84 @@ export class ResumeBuilderComponent {
     return STEP_GROUPS[0].steps[0];
   });
 
+  /**
+   * Per-section fill state for the stepper dots, keyed by section key:
+   * 'done' (every leaf filled), 'partial' (some filled) or 'empty' (none).
+   * Derived purely from svc.section(key); read-only mirror sections
+   * (education / attachments / certifications) live in other domains and so
+   * stay 'empty' here until their slice is populated.
+   */
+  readonly stepStates = computed<Record<string, 'done' | 'partial' | 'empty'>>(() => {
+    // touch the map so this recomputes on every patch/load
+    this.svc.data();
+    const out: Record<string, 'done' | 'partial' | 'empty'> = {};
+    for (const g of STEP_GROUPS) {
+      for (const s of g.steps) {
+        const { filled, total } = this.countLeaves(this.svc.section(s.key, null));
+        out[s.key] = filled === 0 ? 'empty' : total > 0 && filled >= total ? 'done' : 'partial';
+      }
+    }
+    return out;
+  });
+
+  /**
+   * Save-bar state, in priority order: a save in flight, then unsaved local
+   * edits, then a clean/saved profile. Text + colour together — never colour
+   * alone — are chosen from this in the template.
+   */
+  readonly saveState = computed<'saving' | 'unsaved' | 'saved' | 'clean'>(() => {
+    if (this.svc.saving()) return 'saving';
+    if (this.svc.dirty()) return 'unsaved';
+    return this.svc.savedAt() ? 'saved' : 'clean';
+  });
+
+  /** "Saved just now" within a minute of the last save, else "Saved at HH:MM". */
+  readonly savedLabel = computed<string>(() => {
+    const iso = this.svc.savedAt();
+    if (!iso) return '';
+    const then = new Date(iso);
+    const secs = (Date.now() - then.getTime()) / 1000;
+    if (secs < 60) return 'Saved just now';
+    const hh = String(then.getHours()).padStart(2, '0');
+    const mm = String(then.getMinutes()).padStart(2, '0');
+    return `Saved at ${hh}:${mm}`;
+  });
+
   constructor() {
     void this.svc.load();
   }
 
   save(): void {
     void this.svc.save();
+  }
+
+  /**
+   * Count filled vs total primitive leaves in a stored section slice.
+   * Strings count as filled when non-blank; booleans and numbers always count
+   * as filled (a deliberate choice); empty arrays/objects contribute nothing.
+   */
+  private countLeaves(v: unknown): { filled: number; total: number } {
+    if (v === null || v === undefined) return { filled: 0, total: 0 };
+    if (Array.isArray(v)) {
+      return v.reduce(
+        (acc, item) => {
+          const c = this.countLeaves(item);
+          return { filled: acc.filled + c.filled, total: acc.total + c.total };
+        },
+        { filled: 0, total: 0 },
+      );
+    }
+    if (typeof v === 'object') {
+      return Object.values(v as Record<string, unknown>).reduce<{ filled: number; total: number }>(
+        (acc, item) => {
+          const c = this.countLeaves(item);
+          return { filled: acc.filled + c.filled, total: acc.total + c.total };
+        },
+        { filled: 0, total: 0 },
+      );
+    }
+    if (typeof v === 'string') return { filled: v.trim() ? 1 : 0, total: 1 };
+    // number | boolean | other primitive
+    return { filled: 1, total: 1 };
   }
 }

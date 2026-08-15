@@ -1,10 +1,10 @@
 // Screen-specific tweaks only — the layout classes (.panel, .dt-header, .dt-btn,
-// .ts-grid, .ts-cell, .icon) all live globally in src/styles/reep-v2.scss.
+// .ts-grid, .ts-cell, .chip, .icon) all live globally in src/styles/reep-v2.scss.
 :host {
   display: block;
 }
 
-// A short, non-blocking note for the load / save states (info + error).
+// A short, non-blocking note for the load / save states (info + error) — risk-toned.
 .ts-note {
   display: flex;
   align-items: center;
@@ -17,9 +17,17 @@
   margin-bottom: 16px;
 }
 
-.ts-saved {
-  color: var(--good);
-  font-weight: 700;
+// The out-of-range advisory — warn-toned, sits below the grid.
+.ts-flag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(168, 117, 47, 0.12);
+  color: var(--warn);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
 }
 
 // The hours cell holds a whole/half number — drop the native spinners so the
@@ -33,9 +41,98 @@
   margin: 0;
 }
 
+// An out-of-range cell: colour AND text together (the "max 24 h" flag below it).
+.ts-cell.over {
+  border-color: var(--risk);
+}
+.ts-cell.over input {
+  border-color: var(--risk);
+  color: var(--risk);
+}
+.ts-cell .cell-flag {
+  color: var(--risk);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
 .dt-btn[disabled] {
   opacity: 0.55;
   cursor: default;
+}
+
+// --- 24-hour visual total ---------------------------------------------------
+// A slim stacked bar. The five segments always sum to the track; a dashed mark
+// pins the 24 h boundary, so anything past it reads as "over a full day".
+.ts-bar {
+  position: relative;
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--paper-0);
+  box-shadow: var(--press);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.ts-seg {
+  flex: 0 0 auto;
+  height: 100%;
+  min-width: 2px;
+  transition: width 0.18s ease;
+}
+.ts-seg:first-child {
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+}
+// The 24 h boundary marker — a firm ink line the eye can read against any segment.
+.ts-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--ink-900);
+  transform: translateX(-1px);
+}
+
+.ts-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 14px;
+  font-size: 11.5px;
+  color: var(--ink-500);
+}
+.ts-leg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ts-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.ts-total-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ts-total {
+  font-size: 13px;
+  color: var(--ink-500);
+}
+.ts-total strong {
+  font-size: 16px;
+  color: var(--ink-900);
+}
+
+.ts-help {
+  font-size: 11.5px;
+  color: var(--ink-400);
+  line-height: 1.5;
 }
 
 // The mockup fixes five columns; wrap on narrow screens so nothing overflows.

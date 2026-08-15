@@ -65,6 +65,34 @@ interface BasicData {
         color: var(--risk);
         margin-top: 6px;
       }
+      /* "why we ask" line above a sensitive field */
+      .sensitive-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 5px;
+        font-size: 11.5px;
+        line-height: 1.4;
+        color: var(--ink-500);
+        margin-bottom: 6px;
+      }
+      .sensitive-note .icon {
+        font-size: 14px;
+        flex: 0 0 auto;
+        margin-top: 1px;
+      }
+      /* small "why it matters" pill on placement-critical fields */
+      .reqp {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--amber-700);
+        background: rgba(138, 90, 30, 0.1);
+        padding: 2px 6px;
+        border-radius: 5px;
+        margin-left: 6px;
+        white-space: nowrap;
+      }
     `,
   ],
 })

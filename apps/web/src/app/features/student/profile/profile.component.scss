@@ -31,7 +31,151 @@
   margin-bottom: 0;
 }
 
-/* Checkbox preference rows inside the placement card. */
+/* --- Field-level validation ------------------------------------------------
+   Status is never carried by colour alone: an invalid field pairs the red
+   border with a red icon + message underneath. */
+.field--invalid input,
+.field--invalid textarea {
+  border-color: var(--risk);
+  background: rgba(139, 58, 46, 0.05);
+}
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--risk);
+}
+.field-error .icon {
+  font-size: 14px;
+}
+
+.validation-summary {
+  margin-bottom: 4px;
+}
+
+/* --- Save-state pill -------------------------------------------------------
+   Text + icon + colour together for each state of the save lifecycle. */
+.save-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(28, 24, 16, 0.06);
+  color: var(--ink-500);
+}
+.save-state .icon {
+  font-size: 15px;
+}
+.save-state .save-time {
+  font-weight: 600;
+  opacity: 0.8;
+}
+.save-state[data-kind='unsaved'] {
+  background: rgba(168, 117, 47, 0.14);
+  color: var(--warn);
+}
+.save-state[data-kind='saving'] {
+  background: rgba(28, 24, 16, 0.06);
+  color: var(--ink-700);
+}
+.save-state[data-kind='saved'] {
+  background: rgba(92, 122, 58, 0.12);
+  color: var(--good);
+}
+.save-state[data-kind='error'] {
+  background: rgba(139, 58, 46, 0.12);
+  color: var(--risk);
+}
+.save-state .icon.spin {
+  animation: profile-spin 0.9s linear infinite;
+}
+@keyframes profile-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .save-state .icon.spin {
+    animation: none;
+  }
+}
+
+/* --- Placement-completion meter ------------------------------------------- */
+.completion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.completion-title {
+  margin: 0;
+}
+.completion-pct {
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.completion-pct[data-band='full'] {
+  color: var(--good);
+}
+.completion-pct[data-band='mid'] {
+  color: var(--warn);
+}
+.completion-pct[data-band='low'] {
+  color: var(--risk);
+}
+.meter {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--paper-0);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.meter-fill[data-band='full'] {
+  background: var(--good);
+}
+.meter-fill[data-band='mid'] {
+  background: var(--warn);
+}
+.meter-fill[data-band='low'] {
+  background: var(--risk);
+}
+
+/* --- Grouped-control explanation note ------------------------------------- */
+.group-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--paper-0);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--ink-700);
+  line-height: 1.45;
+}
+.group-note .icon {
+  font-size: 16px;
+  color: var(--amber-600);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Checkbox preference rows inside the placement / privacy cards. */
 .pref-row {
   display: flex;
   align-items: center;
@@ -53,4 +197,11 @@
 
 .skills-wrap {
   gap: 6px;
+}
+
+/* Visible keyboard focus for every interactive control on this screen. */
+.pref-row input:focus-visible,
+.dt-btn:focus-visible {
+  outline: 2px solid var(--amber-600);
+  outline-offset: 2px;
 }

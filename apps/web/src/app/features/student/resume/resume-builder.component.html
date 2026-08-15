@@ -43,7 +43,19 @@
               [class.active]="step() === s.key"
               (click)="step.set(s.key)"
             >
-              <span class="step-dot"></span> {{ s.label }}
+              <span
+                class="step-dot"
+                [class.done]="stepStates()[s.key] === 'done'"
+                [class.partial]="stepStates()[s.key] === 'partial'"
+                [attr.title]="
+                  stepStates()[s.key] === 'done'
+                    ? 'Complete'
+                    : stepStates()[s.key] === 'partial'
+                      ? 'Partly filled'
+                      : 'Not started'
+                "
+              ></span>
+              {{ s.label }}
             </div>
           }
         }
@@ -86,13 +98,31 @@
         </div>
 
         <div class="footbar">
-          <div class="hint">
-            <span class="icon" style="font-size:16px">history</span>
-            @if (svc.savedAt()) {
-              Last saved {{ svc.savedAt() | date: 'd MMM y, HH:mm' }} · changes are versioned
-            } @else {
-              Not saved yet · changes are versioned
+          <div class="save-state">
+            <!-- STATUS = text + colour together; the chip tone and label move as one. -->
+            @switch (saveState()) {
+              @case ('saving') {
+                <span class="chip neutral save-chip">
+                  <span class="icon spin">progress_activity</span> Saving…
+                </span>
+              }
+              @case ('unsaved') {
+                <span class="chip warn save-chip">
+                  <span class="icon">edit</span> Unsaved changes
+                </span>
+              }
+              @case ('saved') {
+                <span class="chip good save-chip">
+                  <span class="icon">check_circle</span> {{ savedLabel() }}
+                </span>
+              }
+              @default {
+                <span class="chip neutral save-chip">
+                  <span class="icon">history</span> Not saved yet
+                </span>
+              }
             }
+            <span class="foot-note">Changes are versioned &amp; autosaved</span>
           </div>
           <div class="foot-actions">
             @if (step() === 'education') {

@@ -51,6 +51,23 @@ const LINK_TYPES = ['LinkedIn', 'GitHub', 'Portfolio', 'Other'] as const;
   standalone: true,
   imports: [FormsModule],
   templateUrl: './contact.component.html',
+  styles: [
+    `
+      /* small "why it matters" pill on placement-critical fields */
+      .reqp {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--amber-700);
+        background: rgba(138, 90, 30, 0.1);
+        padding: 2px 6px;
+        border-radius: 5px;
+        margin-left: 6px;
+        white-space: nowrap;
+      }
+    `,
+  ],
 })
 export class RbContactComponent {
   private readonly svc = inject(ResumeBuilderService);

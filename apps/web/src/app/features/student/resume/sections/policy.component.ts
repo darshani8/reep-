@@ -25,6 +25,23 @@ interface PolicyModel {
   selector: 'rb-policy',
   standalone: true,
   imports: [FormsModule],
+  styles: [
+    `
+      /* small "why it matters" pill on placement-critical fields */
+      .reqp {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--amber-700);
+        background: rgba(138, 90, 30, 0.1);
+        padding: 2px 6px;
+        border-radius: 5px;
+        margin-left: 6px;
+        white-space: nowrap;
+      }
+    `,
+  ],
   template: `
     <div class="card">
       <h3>Placement policy</h3>
@@ -33,7 +50,7 @@ interface PolicyModel {
       </div>
 
       <div class="field">
-        <label>Eligible for placements</label>
+        <label>Eligible for placements <span class="reqp">Required for placement profile</span></label>
         <div class="radio-row">
           <label>
             <input
@@ -60,7 +77,7 @@ interface PolicyModel {
 
       <div class="grid2" style="margin-top:6px;">
         <div class="field">
-          <label>Interested in jobs <span class="req">*</span></label>
+          <label>Interested in jobs <span class="req">*</span><span class="reqp">Required for placement profile</span></label>
           <select
             class="ctrl"
             [ngModel]="model.interested_jobs"
@@ -72,7 +89,7 @@ interface PolicyModel {
           </select>
         </div>
         <div class="field">
-          <label>Interested in internships <span class="req">*</span></label>
+          <label>Interested in internships <span class="req">*</span><span class="reqp">Required for placement profile</span></label>
           <select
             class="ctrl"
             [ngModel]="model.interested_internships"

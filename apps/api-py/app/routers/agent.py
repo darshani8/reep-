@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session
 
 from .. import conversations as convo
 from .. import knowledge
+from ..ai import orchestrator
 from ..ai.llm import complete_chat, llm_config, stream_chat
 from ..db import SessionLocal, get_db
 from ..deps import get_current_session
@@ -70,6 +71,33 @@ class HistoryOut(BaseModel):
     turns: list[dict]
 
 
+class AskIn(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+
+
+class ActionOut(BaseModel):
+    label: str
+    route: str
+    reason: str
+
+
+class SourceOut(BaseModel):
+    label: str
+    type: str  # "student-record" | "policy"
+
+
+class AssistantResponse(BaseModel):
+    answer: str
+    actions: list[ActionOut] = []
+    sources: list[SourceOut] = []
+    limitations: list[str] = []
+
+
+class AskOut(AssistantResponse):
+    conversation_id: str
+    model: str
+
+
 def _persist_run(
     db: Session,
     session: dict,
@@ -78,9 +106,12 @@ def _persist_run(
     outcome: AgentRunStatus,
     model: str | None,
     started: datetime,
+    trace: list | None = None,
+    citations: list | None = None,
 ) -> None:
     """One audit row per question — scope stamped at run time (mirrors the
-    Next.js AgentRun store)."""
+    Next.js AgentRun store). The structured assistant path stores its actions in
+    `trace` and its sources in `citations`."""
     scope = "self" if session.get("role") == "STUDENT" else "programme"
     db.add(
         AgentRun(
@@ -90,8 +121,8 @@ def _persist_run(
             question=question,
             answer=answer,
             status=outcome,
-            trace=[],
-            citations=[],
+            trace=trace or [],
+            citations=citations or [],
             model=model,
             duration_ms=int((datetime.now(timezone.utc) - started).total_seconds() * 1000),
         )
@@ -189,6 +220,57 @@ def chat_stream(
         event_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.post("/ask", response_model=AskOut)
+def ask(
+    body: AskIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> AskOut:
+    """The STRUCTURED, tool-backed assistant path.
+
+    Unlike /chat (free-form prose), this runs the orchestrator: it classifies the
+    question, grounds the answer in read-only student tools or approved knowledge,
+    and returns a typed AssistantResponse (answer + actions + sources +
+    limitations). The conversation is server-owned (derived from the session), the
+    user turn and the assistant's answer text are persisted, and one AgentRun audit
+    row records the structured actions/sources in trace/citations.
+
+    Personalised (student-data) intents only run for STUDENT accounts; a non-student
+    still gets policy/general answers with a stated limitation. The orchestrator
+    degrades gracefully on any LLM/provider fault, so this endpoint does not 502.
+    """
+    started = datetime.now(timezone.utc)
+    cfg = llm_config()
+    model_label = f"{cfg.provider}:{cfg.model}" if cfg else "deterministic"
+
+    # Server-owned: the conversation is derived from the session, never the body.
+    conversation = convo.get_or_create(db, session["userId"], Role(session["role"]))
+    convo.append_message(db, conversation.id, "user", body.message)
+
+    result = orchestrator.answer_question(
+        db, session.get("studentId"), session.get("role"), body.message
+    )
+
+    convo.append_message(db, conversation.id, "assistant", result["answer"])
+    _persist_run(
+        db,
+        session,
+        body.message,
+        result["answer"],
+        AgentRunStatus.ANSWERED,
+        model_label,
+        started,
+        trace=result["actions"],
+        citations=result["sources"],
+    )
+
+    return AskOut(
+        conversation_id=conversation.id,
+        model=model_label,
+        **result,
     )
 
 

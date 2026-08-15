@@ -50,9 +50,20 @@ class Settings(BaseSettings):
     livekit_api_key: str = ""
     livekit_api_secret: str = ""
 
+    # Where uploaded files are stored on disk (only metadata lives in the DB).
+    # Empty -> apps/api-py/var/uploads (gitignored). Object storage in production.
+    upload_dir: str = ""
+
     @property
     def is_prod(self) -> bool:
         return self.env.lower() == "prod"
+
+    @property
+    def uploads_path(self) -> Path:
+        """Resolved directory for the file store (created on first use)."""
+        if self.upload_dir.strip():
+            return Path(self.upload_dir)
+        return Path(__file__).resolve().parent.parent / "var" / "uploads"
 
     @property
     def allow_remote_student_data(self) -> bool:

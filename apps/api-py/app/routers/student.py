@@ -1,6 +1,6 @@
 """Student self-service endpoints. First slice: read your own profile."""
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
 from ..deps import get_current_session
+from ..filestore import UploadRejected, read_bytes, save_bytes
 from ..resume_pdf import render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
@@ -35,7 +36,7 @@ from ..models.skill import Skill, SkillClaim, StudentSkill
 from ..models.swoc import SwocEntry
 from ..models.resume_profile import ResumeProfile
 from ..models.timesheet import DayActivity, TimeSheetEntry
-from ..models.upload import Upload
+from ..models.upload import Upload, UploadKind
 from ..models.user import LoginDay, Student
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -1241,22 +1242,87 @@ def my_uploads(
         .where(Upload.student_id == student_id)
         .order_by(Upload.uploaded_at.desc())
     ).all()
-    return [
-        UploadRowOut(
-            id=u.id,
-            kind=u.kind.value,
-            cert_code=u.cert_code,
-            title=u.title,
-            original_name=u.original_name,
-            mime_type=u.mime_type,
-            size_bytes=u.size_bytes,
-            status=u.status.value,
-            review_note=u.review_note,
-            reviewed_at=u.reviewed_at,
-            uploaded_at=u.uploaded_at,
+    return [_upload_row(u) for u in rows]
+
+
+def _upload_row(u: Upload) -> "UploadRowOut":
+    return UploadRowOut(
+        id=u.id,
+        kind=u.kind.value,
+        cert_code=u.cert_code,
+        title=u.title,
+        original_name=u.original_name,
+        mime_type=u.mime_type,
+        size_bytes=u.size_bytes,
+        status=u.status.value,
+        review_note=u.review_note,
+        reviewed_at=u.reviewed_at,
+        uploaded_at=u.uploaded_at,
+    )
+
+
+@router.post("/uploads", response_model=UploadRowOut, status_code=status.HTTP_201_CREATED)
+async def create_upload(
+    file: UploadFile = File(...),
+    kind: str = Form("DOCUMENT"),
+    title: str = Form(""),
+    cert_code: str | None = Form(None),
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> "UploadRowOut":
+    """Upload a document (multipart). The type is decided by magic bytes, not the
+    client — PDF/PNG/JPEG only, 10 MB max — and the row starts PENDING_REVIEW."""
+    student_id = _require_student(session)
+    try:
+        upload_kind = UploadKind(kind)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown upload kind."
         )
-        for u in rows
-    ]
+    content = await file.read()
+    try:
+        stored_name, mime, size = save_bytes(content)
+    except UploadRejected as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+
+    upload = Upload(
+        student_id=student_id,
+        kind=upload_kind,
+        cert_code=cert_code or None,
+        title=title.strip() or (file.filename or "Upload"),
+        original_name=file.filename or stored_name,
+        stored_name=stored_name,
+        mime_type=mime,
+        size_bytes=size,
+    )
+    db.add(upload)
+    db.commit()
+    db.refresh(upload)
+    return _upload_row(upload)
+
+
+@router.get("/uploads/{upload_id}/file")
+def download_upload(
+    upload_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Stream one of the student's own uploaded files back."""
+    student_id = _require_student(session)
+    upload = db.get(Upload, upload_id)
+    if upload is None or upload.student_id != student_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
+    try:
+        content = read_bytes(upload.stored_name)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Stored file is missing."
+        )
+    return Response(
+        content=content,
+        media_type=upload.mime_type,
+        headers={"Content-Disposition": f'inline; filename="{upload.original_name}"'},
+    )
 
 
 class SkillClaimOut(BaseModel):

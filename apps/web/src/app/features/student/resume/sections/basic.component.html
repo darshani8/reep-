@@ -75,7 +75,7 @@
   <h3>Personal</h3>
   <div class="grid2">
     <div class="field">
-      <label>Gender <span class="req">*</span></label>
+      <label>Gender <span class="req">*</span><span class="reqp">Required for placement profile</span></label>
       <select class="ctrl" [ngModel]="m.gender" (ngModelChange)="m.gender = $event; push()">
         <option value="">Select</option>
         <option value="Female">Female</option>
@@ -84,7 +84,7 @@
       </select>
     </div>
     <div class="field">
-      <label>Date of birth <span class="req">*</span></label>
+      <label>Date of birth <span class="req">*</span><span class="reqp">Required for placement profile</span></label>
       <input
         class="ctrl"
         type="date"
@@ -150,6 +150,11 @@
     </div>
     <div class="field">
       <label>Medical history</label>
+      <small class="sensitive-note">
+        <span class="icon">info</span>
+        Optional. Collected only so the placement office can arrange reasonable
+        accommodations; visible to your mentor and the placement office, never to recruiters.
+      </small>
       <input
         class="ctrl"
         placeholder="Anything the placement office should know"

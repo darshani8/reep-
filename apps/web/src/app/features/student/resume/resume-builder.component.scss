@@ -42,3 +42,37 @@
   display: flex;
   gap: 8px;
 }
+
+/* --- sticky save bar --- */
+/* The footbar is pinned to the bottom of the main column (only .body scrolls),
+   so the save state is always visible. Emphasise it and stack the status chip
+   above the versioning note. */
+.save-state {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.save-chip {
+  align-self: flex-start;
+}
+.save-chip .icon {
+  font-size: 14px;
+}
+.foot-note {
+  font-size: 11px;
+  color: var(--ink-500);
+}
+.save-chip .icon.spin {
+  animation: rb-spin 0.9s linear infinite;
+}
+@keyframes rb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .save-chip .icon.spin {
+    animation: none;
+  }
+}

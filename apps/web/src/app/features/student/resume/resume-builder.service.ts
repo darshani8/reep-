@@ -34,6 +34,17 @@ export class ResumeBuilderService {
   readonly savedAt = signal<string | null>(null);
   /** Last load/save error message, or null. */
   readonly error = signal<string | null>(null);
+  /**
+   * True when the local `data` has changed since the last successful save.
+   * Flips true on every patch(), false when a save() succeeds. Drives the
+   * sticky save bar's "Unsaved changes" state.
+   */
+  readonly dirty = signal(false);
+
+  /** Pending autosave timer (debounced flush after patch()). */
+  private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Debounce window before an edit is autosaved, in ms. */
+  private readonly AUTOSAVE_MS = 1500;
 
   /** Fetch the whole profile and completeness; sets `loaded` on success. */
   async load(): Promise<void> {
@@ -60,24 +71,51 @@ export class ResumeBuilderService {
     return this.data()[key] ?? fallback;
   }
 
-  /** Replace one section's slice, leaving every other section untouched. */
+  /**
+   * Replace one section's slice, leaving every other section untouched.
+   * Marks the profile dirty and schedules a debounced autosave so typing is
+   * not lost even if the student never presses Save.
+   */
   patch(key: string, value: any): void {
     this.data.update((d) => ({ ...d, [key]: value }));
+    this.dirty.set(true);
+    this.scheduleAutosave();
+  }
+
+  /** (Re)arm the debounce timer; the last edit within the window wins. */
+  private scheduleAutosave(): void {
+    if (this.autosaveTimer) clearTimeout(this.autosaveTimer);
+    this.autosaveTimer = setTimeout(() => {
+      this.autosaveTimer = null;
+      // Only fire when there is still something to save and no save is running;
+      // a manual Save mid-window clears dirty and this becomes a no-op.
+      if (this.dirty() && !this.saving()) void this.save();
+    }, this.AUTOSAVE_MS);
   }
 
   /** Flush the whole profile map; updates `completeness` and `savedAt`. */
   async save(): Promise<void> {
+    // A manual/auto save supersedes any pending debounce.
+    if (this.autosaveTimer) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = null;
+    }
     this.saving.set(true);
     this.error.set(null);
+    // Snapshot the payload and optimistically clear dirty; edits made while the
+    // PUT is in flight re-set dirty (and re-arm autosave) so nothing is lost.
+    this.dirty.set(false);
+    const payload = JSON.stringify({ data: this.data() });
     try {
       const res = await fetch(`${environment.apiBase}/student/resume-profile`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: this.data() }),
+        body: payload,
       });
       if (!res.ok) {
         this.error.set('Could not save your changes. Please try again.');
+        this.dirty.set(true);
         return;
       }
       const body = (await res.json()) as { completeness?: number };
@@ -85,6 +123,7 @@ export class ResumeBuilderService {
       this.savedAt.set(new Date().toISOString());
     } catch {
       this.error.set('Could not reach the server.');
+      this.dirty.set(true);
     } finally {
       this.saving.set(false);
     }

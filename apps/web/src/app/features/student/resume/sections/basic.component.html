@@ -14,11 +14,23 @@
     <div style="width:190px; flex:0 0 auto;">
       <div class="field">
         <label>Photo</label>
-        <div class="dropzone">
-          <span class="icon">add_a_photo</span>Drop a picture or click to upload<small
-            >Must be below 3MB</small
-          >
-        </div>
+        @if (photoUrl(); as url) {
+          <img [src]="url" alt="Profile photo" class="photo-preview" />
+        }
+        <button
+          type="button"
+          class="dropzone dropzone--action"
+          [disabled]="uploadingPhoto()"
+          (click)="photoPicker.click()"
+        >
+          <span class="icon">add_a_photo</span>
+          {{ uploadingPhoto() ? 'Uploading…' : (photoUrl() ? 'Replace photo' : 'Click to upload') }}
+          <small>PNG or JPEG</small>
+        </button>
+        <input #photoPicker type="file" accept="image/png,image/jpeg" hidden (change)="onPhotoFile($event)" />
+        @if (photoError()) {
+          <small class="photo-err">{{ photoError() }}</small>
+        }
       </div>
     </div>
     <div style="flex:1;">

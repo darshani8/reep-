@@ -5,11 +5,27 @@
   </div>
 </div>
 
-<div class="dropzone"><span class="icon">cloud_upload</span>Certificate proof, CV, photo, documents</div>
-<p class="dz-note">
-  Uploading from the browser is not wired up yet — files are attached to your record by the programme
-  office. This page lists what is already on file and how each one was reviewed.
-</p>
+<div class="dz-controls">
+  <label class="dz-kind">
+    Document type
+    <select [value]="kind()" (change)="setKind($any($event.target).value)">
+      <option value="DOCUMENT">Document</option>
+      <option value="CERTIFICATE_PROOF">Certificate proof</option>
+      <option value="RESUME">CV / Resume</option>
+      <option value="PROFILE_PHOTO">Profile photo</option>
+    </select>
+  </label>
+</div>
+
+<button type="button" class="dropzone dropzone--action" [disabled]="uploading()" (click)="picker.click()">
+  <span class="icon">cloud_upload</span>
+  {{ uploading() ? 'Uploading…' : 'Click to upload — PDF, PNG or JPEG, up to 10 MB' }}
+</button>
+<input #picker type="file" accept="application/pdf,image/png,image/jpeg" hidden (change)="onFile($event)" />
+
+@if (uploadError()) {
+  <p class="err">{{ uploadError() }}</p>
+}
 
 @if (error()) {
   <p class="err">{{ error() }}</p>

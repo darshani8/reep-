@@ -67,3 +67,11 @@ def read_bytes(stored_name: str) -> bytes:
     if not path.is_file():
         raise FileNotFoundError(stored_name)
     return path.read_bytes()
+
+
+def delete(stored_name: str) -> None:
+    """Remove a stored file. Rejects any path separator in the name (same guard as
+    read_bytes); silently ignores a file that is already gone."""
+    if not stored_name or "/" in stored_name or "\\" in stored_name or ".." in stored_name:
+        raise FileNotFoundError(stored_name)
+    (_store_dir() / stored_name).unlink(missing_ok=True)

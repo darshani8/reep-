@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
 from ..deps import get_current_session
-from ..filestore import UploadRejected, read_bytes, save_bytes
+from ..filestore import UploadRejected, delete as filestore_delete, read_bytes, save_bytes
 from ..resume_pdf import render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
@@ -1410,6 +1410,24 @@ def download_upload(
         media_type=upload.mime_type,
         headers={"Content-Disposition": f'inline; filename="{upload.original_name}"'},
     )
+
+
+@router.delete("/uploads/{upload_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_upload(
+    upload_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Delete one of the student's own uploads — the stored bytes then the row.
+    A student can only delete their own upload."""
+    student_id = _require_student(session)
+    upload = db.get(Upload, upload_id)
+    if upload is None or upload.student_id != student_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
+    filestore_delete(upload.stored_name)
+    db.delete(upload)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 class SkillClaimOut(BaseModel):

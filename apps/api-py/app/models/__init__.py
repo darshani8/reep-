@@ -11,6 +11,7 @@ from . import conversation  # noqa: F401
 from . import course  # noqa: F401
 from . import job  # noqa: F401
 from . import job_import_run  # noqa: F401
+from . import knowledge  # noqa: F401
 from . import lab  # noqa: F401
 from . import leave  # noqa: F401
 from . import mail  # noqa: F401

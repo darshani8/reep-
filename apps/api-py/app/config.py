@@ -44,6 +44,15 @@ class Settings(BaseSettings):
     # Sakana Fugu — OpenAI-compatible meta-router (https://api.sakana.ai/v1).
     sakana_api_key: str = ""
 
+    # Knowledge-Base embedder (app/ai/embeddings.py). OPTIONAL: leave the base URL
+    # blank and retrieval falls back to Postgres full-text — no embeddings needed.
+    # The KB is public policy text (no student PII), so it may be sent to any
+    # OpenAI-compatible /embeddings endpoint. When set, POSTs to
+    # {embedding_base_url}/embeddings with embedding_model.
+    embedding_base_url: str = ""
+    embedding_model: str = ""
+    embedding_api_key: str = ""
+
     # LiveKit (voice assistant) — a free LiveKit Cloud project. The /api/voice
     # endpoints return 503 until all three are set.
     livekit_url: str = ""

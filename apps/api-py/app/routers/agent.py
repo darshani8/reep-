@@ -28,6 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import conversations as convo
+from .. import knowledge
 from ..ai.llm import complete_chat, llm_config, stream_chat
 from ..db import SessionLocal, get_db
 from ..deps import get_current_session
@@ -250,3 +251,39 @@ def runs(
         )
         for r in rows
     ]
+
+
+class KnowledgeHit(BaseModel):
+    chunk_text: str
+    document_title: str
+    source_type: str
+    source_url: str | None
+    anchor: str | None
+    score: float
+
+
+class KnowledgeSearchOut(BaseModel):
+    results: list[KnowledgeHit]
+
+
+@router.get("/knowledge/search", response_model=KnowledgeSearchOut)
+def knowledge_search(
+    q: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> KnowledgeSearchOut:
+    """Retrieve APPROVED Knowledge-Base chunks that ground an answer to `q`.
+
+    STUDENT-only and scoped to the 'student' audience: this surfaces the
+    "explain the rules" layer (policy/FAQ/guidance), never any live student
+    fact. Returns an empty list when nothing approved matches, so the caller can
+    say "no approved answer" rather than inventing one. Meant for the
+    frontend/orchestrator to build grounded, cited replies later.
+    """
+    if session.get("role") != Role.STUDENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Knowledge search is available to student accounts.",
+        )
+    hits = knowledge.search(db, q, audience="student", limit=5)
+    return KnowledgeSearchOut(results=[KnowledgeHit(**h) for h in hits])

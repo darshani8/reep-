@@ -21,4 +21,5 @@ from . import schedule  # noqa: F401
 from . import skill  # noqa: F401
 from . import swoc  # noqa: F401
 from . import timesheet  # noqa: F401
+from . import upload  # noqa: F401
 from . import user  # noqa: F401

@@ -21,6 +21,7 @@ from .models.cohort import Cohort
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
 from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
+from .models.upload import Upload, UploadKind, UploadStatus
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
 from .models.placement_criteria import PlacementCriteria
@@ -410,6 +411,21 @@ def main() -> None:
             db.add(PlacementCriteria(name="Default", active=True))
             db.commit()
             print("added placement criteria (default)")
+
+        # Idempotently seed sample uploads awaiting mentor review: a profile
+        # photo, a certificate proof (tied to the seeded certification), and a
+        # resume — one already VERIFIED so the review states are visible.
+        if stu and db.scalar(select(Upload).where(Upload.student_id == stu.id)) is None:
+            base = datetime.now(timezone.utc)
+            db.add_all(
+                [
+                    Upload(student_id=stu.id, kind=UploadKind.PROFILE_PHOTO, title="Profile photo", original_name="me.jpg", stored_name="up_photo_0001.jpg", mime_type="image/jpeg", size_bytes=184_320, status=UploadStatus.PENDING_REVIEW, uploaded_at=base - timedelta(days=2)),
+                    Upload(student_id=stu.id, kind=UploadKind.CERTIFICATE_PROOF, cert_code="CERT-22MBA11-LEAD", title="Leadership certificate", original_name="leadership_completion.pdf", stored_name="up_cert_0002.pdf", mime_type="application/pdf", size_bytes=524_288, status=UploadStatus.PENDING_REVIEW, uploaded_at=base - timedelta(days=1)),
+                    Upload(student_id=stu.id, kind=UploadKind.RESUME, title="Existing CV", original_name="resume_v1.pdf", stored_name="up_resume_0003.pdf", mime_type="application/pdf", size_bytes=98_304, status=UploadStatus.VERIFIED, reviewed_at=base - timedelta(hours=6), review_note="Looks good.", uploaded_at=base - timedelta(days=3)),
+                ]
+            )
+            db.commit()
+            print("added uploads (3: 2 pending, 1 verified)")
     finally:
         db.close()
 

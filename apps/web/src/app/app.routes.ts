@@ -11,7 +11,11 @@ import { LeaderboardsComponent } from './features/student/leaderboards/leaderboa
 import { TimeLogComponent } from './features/student/time-log/time-log.component';
 import { OffersComponent } from './features/student/offers/offers.component';
 import { AcademicsComponent } from './features/student/academics/academics.component';
+import { SkillingComponent } from './features/student/skilling/skilling.component';
+import { CoursesComponent } from './features/student/courses/courses.component';
+import { UploadsComponent } from './features/student/uploads/uploads.component';
 import { AssistantComponent } from './features/assistant/assistant.component';
+import { RegistrationComponent } from './features/register/registration.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 
 /**
@@ -27,6 +31,7 @@ function placeholder(path: string, title: string): Route {
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegistrationComponent },
   {
     path: '',
     component: AppShellComponent,
@@ -36,11 +41,11 @@ export const routes: Routes = [
       { path: 'student', component: StudentOverviewComponent },
       { path: 'student/certifications', component: CertificationsComponent },
       { path: 'student/academics', component: AcademicsComponent },
-      placeholder('student/skilling', 'Skilling'),
+      { path: 'student/skilling', component: SkillingComponent },
       { path: 'student/time-log', component: TimeLogComponent },
-      placeholder('student/courses', 'Courses'),
+      { path: 'student/courses', component: CoursesComponent },
       { path: 'student/leaderboards', component: LeaderboardsComponent },
-      placeholder('student/uploads', 'Uploads'),
+      { path: 'student/uploads', component: UploadsComponent },
       placeholder('student/resume', 'Resume'),
       { path: 'student/jobs', component: JobsComponent },
       { path: 'student/offers', component: OffersComponent },

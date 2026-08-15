@@ -1,89 +1,58 @@
 /**
- * Student leaderboards — the Angular port of src/app/student/leaderboards.
+ * Student leaderboards — the "Leaderboards" panel (mockup data-p="leaderboards").
  *
- * Five boards, the viewer's own standing across all of them as stat tiles and
- * one chart, and the active board's table. Every figure a peer could not see is
- * already absent from the payload (scope.ts fences it server-side); this screen
- * only ever renders a name, a rank and a band for anyone but the viewer.
+ * Five cohort boards (Certificates / Skills / VTU results / Streak / Mocks taken)
+ * as a .tabs-row, each rendering the .lb-row ranking visual — rank pill, initials
+ * avatar, name, and the metric total, with the viewer's own row highlighted (.me).
+ *
+ * There is deliberately NO backend for this yet: student.py exposes /skills,
+ * /streak, /mocks, /results and /certifications individually, but no aggregated,
+ * cohort-scoped /leaderboards endpoint. Inventing a fetch here would 404. So the
+ * boards stay empty and every tab shows a "coming soon" state until that endpoint
+ * exists; the .lb-row @for below is the shape it will paint when it does.
  */
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 
-import { environment } from '../../../../environments/environment';
-import { PageIntroComponent, SectionComponent, StatComponent, EmptyComponent, BannerComponent } from '../../../shared/kit/kit.components';
-import { BarChartComponent } from '../../../shared/charts/bar-chart.component';
-
-interface BoardRow {
+/** One ranked cohort peer — the shape a future /student/leaderboards row will take. */
+interface LbEntry {
   rank: number;
-  ordinal: string;
-  displayName: string;
-  band: string;
-  isViewer: boolean;
-  yourValueLabel: string | null;
+  initials: string;
+  name: string;
+  is_me: boolean;
+  value_label: string;
 }
-interface BoardView {
+
+interface Tab {
   key: string;
   label: string;
-  blurb: string;
-  rankingKey: string;
-  tieBreak: string;
-  emptyHint: string;
-  actionHref: string;
-  actionLabel: string;
-  rows: BoardRow[];
-  you: { rank: number; ordinal: string; outOf: number; valueLabel: string; band: string; onBoard: boolean; empty: boolean; standingPct: number } | null;
-  ranked: number;
-  hasFigures: boolean;
-  optedOutPeers: number;
-  viewerAppended: boolean;
-}
-interface LeaderboardsView {
-  available: boolean;
-  cohortLabel?: string;
-  cohortSize?: number;
-  viewerOptedOut?: boolean;
-  boards?: BoardView[];
-  standings?: { label: string; value: number }[];
 }
 
 @Component({
   selector: 'app-student-leaderboards',
   standalone: true,
-  imports: [PageIntroComponent, SectionComponent, StatComponent, EmptyComponent, BannerComponent, BarChartComponent],
   templateUrl: './leaderboards.component.html',
   styleUrl: './leaderboards.component.scss',
 })
 export class LeaderboardsComponent {
-  readonly view = signal<LeaderboardsView | null>(null);
-  readonly error = signal<string | null>(null);
-  readonly activeKey = signal<string>('streak');
+  readonly tabs: Tab[] = [
+    { key: 'certificates', label: 'Certificates' },
+    { key: 'skills', label: 'Skills' },
+    { key: 'vtu', label: 'VTU results' },
+    { key: 'streak', label: 'Streak' },
+    { key: 'mocks', label: 'Mocks taken' },
+  ];
 
-  readonly boards = computed(() => this.view()?.boards ?? []);
-  readonly active = computed(() => this.boards().find((b) => b.key === this.activeKey()) ?? this.boards()[0] ?? null);
-  readonly standings = computed(() => this.view()?.standings ?? []);
+  readonly active = signal<string>('certificates');
 
-  constructor() {
-    void this.load();
-  }
+  /// No endpoint yet — every board is empty, so the "coming soon" state shows.
+  readonly rows = signal<LbEntry[]>([]);
 
-  private async load(): Promise<void> {
-    try {
-      const res = await fetch(`${environment.apiBase}/student/leaderboards`, { credentials: 'include' });
-      if (!res.ok) {
-        this.error.set('Could not load the leaderboards.');
-        return;
-      }
-      this.view.set((await res.json()) as LeaderboardsView);
-    } catch {
-      this.error.set('Could not reach the server.');
-    }
-  }
+  readonly activeLabel = computed(
+    () => this.tabs.find((t) => t.key === this.active())?.label ?? 'Leaderboards',
+  );
 
-  setBoard(key: string): void {
-    this.activeKey.set(key);
-  }
-
-  nothingRanked(b: BoardView): boolean {
-    return b.ranked === 0 || (!b.hasFigures && (b.you?.empty ?? true));
+  setTab(key: string): void {
+    this.active.set(key);
   }
 }

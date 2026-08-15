@@ -1,0 +1,614 @@
+/**
+ * REEP v2 design system — global.
+ *
+ * A verbatim port of the `<style>` block in docs/design-v2/student-app.html: the
+ * token :root, the base body / icon / typography rules and every component class
+ * the v2 student UI is built from. This file is intentionally NOT component
+ * scoped — the classes (.card, .dt-table, .chip, .desktop-*, .reg-*, …) are used
+ * across many standalone components and must resolve globally.
+ *
+ * Two deliberate deviations from the mockup:
+ *   - The demo-harness rules (.meta-bar, .meta-tabs, .meta-note, .wrap,
+ *     .stage-view) are omitted — they belong to the static prototype's tab
+ *     switcher, not the Angular app.
+ *   - `.panel` is a plain block. The prototype toggled panels with
+ *     `display:none` / `.panel.active`; Angular's router renders exactly one
+ *     screen at a time, so the toggle is gone.
+ */
+
+:root {
+  --ink-900: #1c1810;
+  --ink-800: #2a231a;
+  --ink-700: #443c2d;
+  --ink-500: #5a5142;
+  --ink-400: #847a67;
+  --paper-0: #efe9dd;
+  --paper-1: #f8f4ec;
+  --paper-2: #fffdf8;
+  --amber-700: #6b4413;
+  --amber-600: #8a5a1e;
+  --amber-500: #a8752f;
+  --amber-400: #c99a4e;
+  --amber-300: #e8c48c;
+  --line: rgba(28, 24, 16, 0.12);
+  --good: #5c7a3a;
+  --warn: #a8752f;
+  --risk: #8b3a2e;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow-lift: 0 4px 10px rgba(28, 24, 16, 0.08), 0 16px 40px rgba(28, 24, 16, 0.1);
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: #d8d0bd;
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+.icon {
+  font-family: 'Material Symbols Rounded';
+  font-variation-settings: 'opsz' 24, 'wght' 400, 'FILL' 0, 'GRAD' 0;
+  font-size: 20px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+button {
+  font-family: var(--font);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* --- registration (own frame, no sidebar) --- */
+.reg-frame {
+  width: 820px;
+  max-width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lift);
+  background: var(--paper-2);
+  padding: 40px;
+}
+.reg-frame h2 {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.reg-sub {
+  color: var(--ink-500);
+  font-size: 13.5px;
+  margin-bottom: 26px;
+}
+.reg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.field {
+  margin-bottom: 14px;
+}
+.field label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-500);
+  display: block;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper-1);
+  font-size: 13.5px;
+  font-family: var(--font);
+}
+.dropzone {
+  border: 2px dashed var(--line);
+  border-radius: var(--radius-md);
+  padding: 26px;
+  text-align: center;
+  color: var(--ink-500);
+  background: var(--paper-1);
+  margin-bottom: 16px;
+}
+.dropzone .icon {
+  font-size: 28px;
+  color: var(--amber-600);
+  margin-bottom: 6px;
+  display: block;
+}
+.autofill-note {
+  background: rgba(92, 122, 58, 0.1);
+  color: var(--good);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  margin-bottom: 18px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.dt-btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper-1);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dt-btn.primary {
+  background: var(--ink-900);
+  color: var(--paper-1);
+  border-color: var(--ink-900);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.chip.good {
+  background: rgba(92, 122, 58, 0.12);
+  color: var(--good);
+}
+.chip.warn {
+  background: rgba(168, 117, 47, 0.14);
+  color: var(--warn);
+}
+.chip.risk {
+  background: rgba(139, 58, 46, 0.12);
+  color: var(--risk);
+}
+.chip .icon {
+  font-size: 14px;
+}
+.reg-approval {
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.reg-approval.ok {
+  background: rgba(92, 122, 58, 0.1);
+  color: var(--good);
+}
+.reg-approval.flag {
+  background: rgba(168, 117, 47, 0.12);
+  color: var(--warn);
+}
+
+/* --- desktop app --- */
+.desktop-frame {
+  width: 1300px;
+  max-width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lift);
+  background: var(--paper-0);
+  border: 1px solid #00000018;
+}
+.desktop-titlebar {
+  background: var(--ink-900);
+  color: var(--paper-1);
+  padding: 8px 16px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.desktop-shell {
+  display: flex;
+  min-height: 740px;
+}
+.desktop-nav {
+  width: 220px;
+  background: var(--paper-1);
+  border-right: 1px solid var(--line);
+  padding: 18px 14px;
+  flex: 0 0 auto;
+}
+.desktop-nav .brand {
+  font-weight: 800;
+  font-size: 16px;
+  padding: 6px 10px 18px;
+}
+.desktop-nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-500);
+  margin-bottom: 2px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.desktop-nav a.active {
+  background: var(--ink-900);
+  color: var(--paper-1);
+}
+.desktop-nav .sec-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-400);
+  padding: 16px 12px 6px;
+  font-weight: 700;
+}
+.desktop-main {
+  flex: 1;
+  padding: 24px 30px;
+  overflow: auto;
+}
+.panel {
+  display: block;
+}
+.dt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.dt-title {
+  font-size: 19px;
+  font-weight: 800;
+}
+.dt-sub {
+  color: var(--ink-500);
+  font-size: 13px;
+  margin-top: 3px;
+}
+.dt-toolbar {
+  display: flex;
+  gap: 8px;
+}
+.dense-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.dense-stat {
+  background: var(--paper-1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+}
+.dense-stat .lbl {
+  font-size: 11px;
+  color: var(--ink-500);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dense-stat .val {
+  font-size: 22px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+.dt-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--paper-1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 12.6px;
+  margin-bottom: 18px;
+}
+.dt-table th {
+  text-align: left;
+  padding: 9px 13px;
+  background: var(--paper-0);
+  color: var(--ink-500);
+  font-weight: 700;
+  font-size: 10.8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dt-table td {
+  padding: 9px 13px;
+  border-top: 1px solid var(--line);
+  vertical-align: middle;
+}
+.tabs-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.tabs-row button {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-500);
+  border-bottom: 2px solid transparent;
+}
+.tabs-row button.active {
+  color: var(--ink-900);
+  border-color: var(--ink-900);
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+}
+.card {
+  background: var(--paper-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.card h4 {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* fake charts */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding-top: 10px;
+}
+.bar-chart .bar {
+  flex: 1;
+  background: linear-gradient(180deg, var(--amber-400), var(--amber-600));
+  border-radius: 5px 5px 0 0;
+  position: relative;
+}
+.bar-chart .bar span {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-500);
+}
+.bar-labels {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.bar-labels div {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  color: var(--ink-500);
+}
+.donut {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: conic-gradient(var(--amber-600) 0% 62%, var(--line) 62% 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+.donut span {
+  background: var(--paper-1);
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+}
+.swoc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.swoc-box {
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 12px;
+}
+.swoc-box b {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.swoc-s {
+  background: rgba(92, 122, 58, 0.1);
+  color: var(--good);
+}
+.swoc-w {
+  background: rgba(139, 58, 46, 0.1);
+  color: var(--risk);
+}
+.swoc-o {
+  background: rgba(168, 117, 47, 0.1);
+  color: var(--warn);
+}
+.swoc-c {
+  background: var(--paper-2);
+  color: var(--ink-500);
+  border: 1px solid var(--line);
+}
+.badge-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.badge {
+  width: 64px;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--ink-500);
+}
+.badge .ico {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--amber-400), var(--amber-700));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 6px;
+}
+.badge.locked .ico {
+  background: var(--line);
+  color: var(--ink-400);
+}
+.reco-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.reco-row:last-child {
+  border-bottom: none;
+}
+.reco-rank {
+  width: 20px;
+  font-weight: 800;
+  color: var(--amber-600);
+}
+.streak-row {
+  display: flex;
+  gap: 6px;
+}
+.streak-day {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--line);
+}
+.streak-day.on {
+  background: var(--amber-600);
+}
+.match-bar {
+  width: 60px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.match-fill {
+  height: 100%;
+  background: var(--good);
+}
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+.lb-row.me {
+  background: var(--ink-900);
+  color: var(--paper-1);
+}
+.lb-row:not(.me) {
+  background: var(--paper-1);
+  border: 1px solid var(--line);
+}
+.lb-rank {
+  width: 22px;
+  font-weight: 800;
+  text-align: center;
+}
+.lb-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--amber-500);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ts-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.ts-cell {
+  background: var(--paper-1);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+.ts-cell .icon {
+  font-size: 24px;
+  color: var(--amber-600);
+  display: block;
+  margin-bottom: 8px;
+}
+.ts-cell input {
+  width: 60px;
+  text-align: center;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  font-family: var(--font);
+  font-size: 13px;
+}
+.ts-cell small {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-500);
+  margin-top: 6px;
+}

@@ -1,152 +1,198 @@
-@if (view(); as v) {
-  <kit-page-intro
-    title="Jobs"
-    [subtitle]="v.rows.length === 0
-      ? 'No vacancies have been imported yet. The placement cell uploads a sheet each week.'
-      : 'The weekly sheet from the placement cell, split by degree level. You are on the ' + levelLabel[ownLevel()] + ' board — the other one is here to browse.'"
-  >
-    <a action class="btn btn--outlined" href="/student/profile">My skills</a>
-  </kit-page-intro>
-
-  @if (heldCount() === 0) {
-    <kit-banner title="Add your skills and every posting gets a match percentage">
-      The match column compares what you can prove against what each posting asks for.
-      You have not recorded any skills yet, so there is nothing to compare.
-      <a action class="btn btn--small" href="/student/profile">Add skills</a>
-    </kit-banner>
-  } @else if (verifiedSkills() === 0) {
-    <kit-banner tone="warning" title="None of your skills are verified yet">
-      Only skills your mentor has checked against evidence count towards a match.
-      Upload a certificate and the column starts scoring.
-      <a action class="btn btn--small" href="/student/uploads">Upload evidence</a>
-    </kit-banner>
-  }
-
-  <div class="stats">
-    <kit-stat label="Open vacancies" [value]="openRows().length"
-      [hint]="closedCount() > 0 ? closedCount() + ' more have closed' : 'Every posting on this board is still open'" />
-    <kit-stat label="You have applied to" [value]="appliedCount()"
-      [tone]="appliedCount() > 0 ? 'good' : 'neutral'" hint="Your own tick — not a confirmed submission" />
-    <kit-stat label="Strong matches" [value]="strongCount()"
-      [tone]="strongCount() > 0 ? 'good' : 'neutral'"
-      [hint]="verifiedSkills() === 0 ? 'Needs at least one verified skill' : '70% or more of what the posting asks for'" />
-    <kit-stat label="Closing this week" [value]="closingSoon()"
-      [tone]="closingSoon() > 0 ? 'warning' : 'neutral'"
-      [hint]="closingSoon() > 0 ? 'Apply before they go' : 'Nothing closes in the next 7 days'" />
-  </div>
-
-  <!-- UG / PG tabs -->
-  <div class="tabs no-print" role="tablist" aria-label="Undergraduate and post graduate vacancies">
-    @for (lvl of levels; track lvl) {
-      <button
-        type="button"
-        role="tab"
-        class="tab"
-        [class.tab--active]="level() === lvl"
-        [attr.aria-selected]="level() === lvl"
-        (click)="setLevel(lvl)"
-      >
-        {{ levelLabel[lvl] }} · {{ count(lvl) }}{{ lvl === ownLevel() ? ' · yours' : '' }}
-      </button>
-    }
-  </div>
-
-  <!-- eligibility summary + filter (the Opportunities-tab gate) -->
-  @if (eligibility(); as e) {
-    @if (!e.placementEligible) {
-      <kit-banner tone="critical" title="You are not cleared for placements">
-        The placement office has not marked this account eligible, so applications are blocked. Speak to the office if you believe this is wrong.
-      </kit-banner>
-    }
-    <div class="elig-filter no-print">
-      <button type="button" class="chip" [class.chip--active]="eligFilter() === 'all'" (click)="setEligFilter('all')">All · {{ levelRows().length }}</button>
-      <button type="button" class="chip chip--good" [class.chip--active]="eligFilter() === 'eligible'" (click)="setEligFilter('eligible')">Eligible · {{ eligibleCount() }}</button>
-      <button type="button" class="chip chip--muted" [class.chip--active]="eligFilter() === 'ineligible'" (click)="setEligFilter('ineligible')">Not eligible · {{ ineligibleCount() }}</button>
-      <span class="elig-you reep-caption">
-        Your record: CGPA {{ e.latestCgpa != null ? (e.latestCgpa | number:'1.2-2') : '—' }} · {{ e.liveBacklogs }} live backlog{{ e.liveBacklogs === 1 ? '' : 's' }}
-      </span>
+<div class="panel">
+  <div class="dt-header">
+    <div>
+      <div class="dt-title">Jobs</div>
+      <div class="dt-sub">Updated weekly · auto alert emailed to matching students</div>
     </div>
-  }
+  </div>
 
-  <kit-section
-    [title]="levelLabel[level()] + ' vacancies'"
-    [subtitle]="level() === ownLevel()
-      ? 'The board for your own cohort. Four things you can do with every row.'
-      : 'You are on the ' + levelLabel[ownLevel()] + ' programme — these are here to read, and most will not take your degree.'"
-  >
-    @if (visibleRows().length === 0) {
-      <kit-empty
-        [title]="'No ' + levelLabel[level()] + ' vacancies on the board.'"
-        [hint]="v.rows.length === 0
-          ? 'The placement cell uploads the weekly sheet from the director screens. Nothing has been imported yet.'
-          : 'The other tab has ' + count(otherLevel()) + ' postings on it.'"
-      >
-        <button action type="button" class="btn btn--small" (click)="setLevel(otherLevel())">
-          Show the {{ levelLabel[otherLevel()] }} board
-        </button>
-      </kit-empty>
-    } @else {
-      <div class="table-wrap">
-        <table class="jobs">
-          <thead>
+  <div class="tabs-row">
+    <button [class.active]="subtab() === 'opportunities'" (click)="setSubtab('opportunities')">Opportunities</button>
+    <button [class.active]="subtab() === 'applications'" (click)="setSubtab('applications')">Applications</button>
+    <button [class.active]="subtab() === 'offers'" (click)="setSubtab('offers')">Offers</button>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px;">
+    <!-- LEFT: the active subtab -->
+    <div>
+      @if (subtab() === 'opportunities') {
+        <div class="tabs-row level-toggle">
+          <button [class.active]="level() === 'UG'" (click)="setLevel('UG')">Undergraduate</button>
+          <button [class.active]="level() === 'PG'" (click)="setLevel('PG')">Postgraduate</button>
+        </div>
+
+        @if (loading()) {
+          <div class="card"><div class="dt-sub">Loading opportunities…</div></div>
+        } @else if (error()) {
+          <div class="card">
+            <h4>Board unavailable</h4>
+            <div class="dt-sub">{{ error() }}</div>
+          </div>
+        } @else {
+          <table class="dt-table">
             <tr>
-              <th>Vacancy</th>
-              <th class="jobs__match">Match</th>
-              <th>Closes</th>
-              <th class="jobs__apply">Apply</th>
-              <th class="jobs__applied">Applied</th>
+              <th>Role</th><th>Company</th><th>Match</th><th>Apply</th><th>Applied</th><th>CV builder</th>
             </tr>
-          </thead>
-          <tbody>
-            @for (row of visibleRows(); track row.id) {
-              <tr [class.jobs__row--closed]="row.isClosed">
+            @for (row of opportunityRows(); track row.id) {
+              <tr>
+                <td>{{ row.title }}</td>
+                <td>{{ row.company }}</td>
                 <td>
-                  <div class="jobs__title">{{ row.title }}</div>
-                  <div class="jobs__meta reep-caption">
-                    {{ row.company }}@if (row.location) { · {{ row.location }} } · {{ row.postedLabel }}
-                  </div>
-                  @if (!row.eligible) {
-                    <div class="jobs__inelig reep-caption" title="{{ row.eligibilityReasons.join(' ') }}">
-                      Not eligible — {{ row.eligibilityReasons[0] }}
-                    </div>
-                  }
-                </td>
-                <td class="jobs__match">
-                  <div class="jobs__match-value" [style.color]="toneInk[row.matchTone]">{{ row.matchLabel }}</div>
-                  <div class="jobs__match-hint reep-caption">{{ row.matchHint }}</div>
+                  <span class="match-bar"><span class="match-fill" [style.width.%]="row.match_percent"></span></span>{{ row.match_percent }}%
                 </td>
                 <td>
-                  <span [style.color]="toneInk[row.closesTone]">{{ row.closesLabel }}</span>
+                  <button
+                    class="dt-btn primary sm"
+                    [disabled]="row.applied || !row.eligible"
+                    [attr.title]="!row.eligible ? row.reasons.join('; ') : null"
+                    (click)="apply(row)"
+                  >Apply</button>
                 </td>
-                <td class="jobs__apply">
-                  @if (!row.eligible) {
-                    <span class="reep-caption jobs__nolink">Not eligible</span>
-                  } @else if (row.applyUrl) {
-                    <button type="button" class="btn btn--small" (click)="openApply(row)">Apply</button>
+                <td>
+                  @if (row.applied) {
+                    <span class="chip good"><span class="icon">check</span>Applied</span>
+                  } @else if (!row.eligible) {
+                    <span class="chip risk" [attr.title]="row.reasons.join('; ')"><span class="icon">block</span>Not eligible</span>
                   } @else {
-                    <span class="reep-caption jobs__nolink">No link</span>
+                    <span class="chip warn"><span class="icon">schedule</span>Not yet</span>
                   }
-                  @if (row.openedLabel && !row.applied) {
-                    <div class="jobs__opened reep-caption">{{ row.openedLabel }}, not yet applied</div>
-                  }
-                  <a class="jobs__cv reep-caption" [href]="'/student/jobs/' + row.id + '/cv'">Build CV</a>
                 </td>
-                <td class="jobs__applied">
-                  <label class="check" [attr.aria-label]="'Applied to ' + row.title">
-                    <input type="checkbox" [checked]="row.applied" (change)="toggleApplied(row)" />
-                  </label>
-                </td>
+                <td><button class="dt-btn sm">Build CV</button></td>
               </tr>
+            } @empty {
+              <tr><td colspan="6" style="text-align:center; color:var(--ink-500);">No {{ level() === 'UG' ? 'undergraduate' : 'postgraduate' }} roles on the board yet</td></tr>
             }
-          </tbody>
+          </table>
+        }
+      }
+
+      @if (subtab() === 'applications') {
+        @if (loading()) {
+          <div class="card"><div class="dt-sub">Loading applications…</div></div>
+        } @else {
+          <table class="dt-table">
+            <tr><th>Role</th><th>Company</th><th>Applied on</th><th>Status</th></tr>
+            @for (row of appliedRows(); track row.id) {
+              <tr>
+                <td>{{ row.title }}</td>
+                <td>{{ row.company }}</td>
+                <td>—</td>
+                <td><span class="chip warn"><span class="icon">hourglass_top</span>Under review</span></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" style="text-align:center; color:var(--ink-500);">No applications yet</td></tr>
+            }
+          </table>
+        }
+      }
+
+      @if (subtab() === 'offers') {
+        <div class="card">
+          <h4>
+            Have you received an offer directly?
+            <button class="dt-btn primary sm" (click)="openOfferForm()">+ Create Offer</button>
+          </h4>
+          <div class="dt-sub">Self-report an off-platform offer for TPO/mentor records and approval.</div>
+        </div>
+
+        @if (formOpen()) {
+          <div class="card">
+            <h4>New offer</h4>
+            <div class="reg-grid">
+              <div class="field">
+                <label>Role / job title</label>
+                <input [(ngModel)]="form.job_title" placeholder="e.g. Business Analyst" />
+              </div>
+              <div class="field">
+                <label>Company</label>
+                <input [(ngModel)]="form.organisation" placeholder="e.g. Nova Fintech" />
+              </div>
+              <div class="field">
+                <label>Offer type</label>
+                <select [(ngModel)]="form.role_type">
+                  <option value="FULL_TIME">Full-time job</option>
+                  <option value="FULL_TIME_PLUS_INTERNSHIP">Job + internship</option>
+                  <option value="INTERNSHIP">Internship</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Channel</label>
+                <select [(ngModel)]="form.channel">
+                  <option value="ON_CAMPUS">On campus</option>
+                  <option value="OFF_CAMPUS">Off campus</option>
+                  <option value="POOL">Pool</option>
+                  <option value="REFERRAL">Referral</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Work mode</label>
+                <select [(ngModel)]="form.work_mode">
+                  <option value="ONSITE">Onsite</option>
+                  <option value="REMOTE">Remote</option>
+                  <option value="HYBRID">Hybrid</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Location</label>
+                <input [(ngModel)]="form.location" placeholder="e.g. Bengaluru" />
+              </div>
+              <div class="field">
+                <label>CTC (₹ / year)</label>
+                <input type="number" [(ngModel)]="form.ctc_inr" min="0" />
+              </div>
+              <div class="field">
+                <label>Fixed gross (₹ / year)</label>
+                <input type="number" [(ngModel)]="form.fixed_gross_inr" min="0" />
+              </div>
+            </div>
+            @if (formError()) {
+              <div class="dt-sub" style="color:var(--risk);">{{ formError() }}</div>
+            }
+            <div class="dt-toolbar" style="margin-top:12px;">
+              <button class="dt-btn primary sm" [disabled]="saving()" (click)="createOffer()">
+                {{ saving() ? 'Saving…' : 'Save offer' }}
+              </button>
+              <button class="dt-btn sm" [disabled]="saving()" (click)="closeOfferForm()">Cancel</button>
+            </div>
+          </div>
+        }
+
+        <table class="dt-table">
+          <tr><th>Role</th><th>Company</th><th>Status</th></tr>
+          @for (o of offers(); track o.id) {
+            <tr>
+              <td>{{ o.job_title }}</td>
+              <td>{{ o.organisation }}</td>
+              <td>
+                @let s = offerStatus(o.status);
+                <span class="chip {{ s.cls }}"><span class="icon">{{ s.icon }}</span>{{ s.label }}</span>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3" style="text-align:center; color:var(--ink-500);">
+                {{ offersError() ? offersError() : 'No offers yet' }}
+              </td>
+            </tr>
+          }
         </table>
+      }
+    </div>
+
+    <!-- RIGHT: counts computed client-side -->
+    <div>
+      <div class="card">
+        <h4>Opportunities <span style="font-weight:800">{{ oppCount() }}</span></h4>
+        <div class="dt-sub">Eligible for: {{ eligibleCount() }} of {{ oppCount() }}</div>
       </div>
-    }
-  </kit-section>
-} @else if (error()) {
-  <kit-page-intro title="Jobs" />
-  <p class="reep-body2 err">{{ error() }}</p>
-} @else {
-  <kit-page-intro title="Jobs" />
-  <p class="reep-body2 err">Loading…</p>
-}
+      <div class="card">
+        <h4>Applications <span style="font-weight:800">{{ appliedCount() }}</span></h4>
+        <div class="dt-sub">{{ appliedBreakdown() }}</div>
+      </div>
+      <div class="card">
+        <h4>Offers <span style="font-weight:800">{{ offerCount() }}</span></h4>
+        <div class="dt-sub">{{ offerBreakdown() }}</div>
+      </div>
+    </div>
+  </div>
+</div>

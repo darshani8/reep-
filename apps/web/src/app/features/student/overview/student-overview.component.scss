@@ -1,0 +1,13 @@
+/* Screen-specific tweaks only — every visual class (.card, .donut, .bar-chart,
+ * .swoc-*, .badge, .streak-*, .chip, .grid-*, .dt-*) lives in the global
+ * reep-v2.scss and is reused as-is. Nothing here redefines those. */
+
+:host {
+  display: block;
+}
+
+/* The mockup nests the panel in .desktop-main (its own scroll padding). As a
+ * routed screen this component owns no frame, so keep the last card flush. */
+.card:last-child {
+  margin-bottom: 0;
+}

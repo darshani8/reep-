@@ -1,0 +1,48 @@
+<div class="dt-header">
+  <div>
+    <div class="dt-title">Courses</div>
+    @if (state() === 'ready' && courses().length) {
+      <div class="dt-sub">
+        {{ courses().length }} enrolled · {{ completedCount() }} completed
+      </div>
+    }
+  </div>
+</div>
+
+@if (state() === 'loading') {
+  <div class="card c-note">Loading your courses…</div>
+} @else if (state() === 'error') {
+  <div class="card c-note">
+    We could not load your courses just now. Please refresh in a moment.
+  </div>
+} @else if (!courses().length) {
+  <div class="card c-note">
+    You are not enrolled in any courses yet. They appear here once the office
+    registers you for the semester.
+  </div>
+} @else {
+  <table class="dt-table">
+    <tr>
+      <th>Course</th>
+      <th>Stage</th>
+      <th>Modules</th>
+      <th>Status</th>
+    </tr>
+    @for (c of courses(); track c.code) {
+      <tr>
+        <td>
+          <div class="c-name">{{ c.name }}</div>
+          <div class="c-code">{{ c.code }} · Sem {{ c.semester }}</div>
+        </td>
+        <td>{{ stageLabel(c.stage) }}</td>
+        <td>{{ c.lectures_attended }}/{{ c.lectures_total }}</td>
+        <td>
+          @let chip = statusChip(c.status);
+          <span class="chip {{ chip.cls }}">
+            <span class="icon">{{ chip.icon }}</span>{{ chip.label }}
+          </span>
+        </td>
+      </tr>
+    }
+  </table>
+}

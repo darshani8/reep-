@@ -1,0 +1,31 @@
+/**
+ * Screen-specific tweaks only. The frame, fields, dropzones, buttons and
+ * approval banners are all global `.reg-*` / `.field` / `.dropzone` / `.dt-btn`
+ * classes from styles/reep-v2.scss — not redefined here. This file only centres
+ * the standalone (no-shell) frame on the page and styles the one extra link the
+ * mockup did not carry.
+ */
+
+:host {
+  display: block;
+}
+
+.reg-screen {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 48px 16px;
+  background: var(--paper-1);
+}
+
+.reg-signin-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-500);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

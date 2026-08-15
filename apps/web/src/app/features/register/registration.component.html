@@ -1,0 +1,102 @@
+<div class="reg-screen">
+  <div class="reg-frame">
+    <h2>Student registration</h2>
+    <div class="reg-sub">Fill the form yourself, or upload your CV and we'll auto-fill what we can read from it.</div>
+
+    @if (result(); as r) {
+      <!-- decided: surface the rule engine's verdict -->
+      @if (approved()) {
+        <div class="reg-approval ok">
+          <span class="icon">check_circle</span>
+          <div>
+            <b>Domain matched — auto-approved.</b>
+            {{ r.decision_reason ?? (r.email + ' is within an approved domain. Your account is active immediately.') }}
+          </div>
+        </div>
+      } @else {
+        <div class="reg-approval flag">
+          <span class="icon">flag</span>
+          <div>
+            <b>Held for review.</b>
+            {{ r.decision_reason ?? 'Your registration was routed to a director for manual approval before the account activates.' }}
+          </div>
+        </div>
+      }
+
+      <div style="margin-top:20px; display:flex; gap:10px;">
+        <a class="dt-btn primary" routerLink="/login">
+          Continue to sign in <span class="icon" style="font-size:16px">arrow_forward</span>
+        </a>
+        <button type="button" class="dt-btn" (click)="reset()">Submit another</button>
+      </div>
+    } @else {
+      <!-- the application form -->
+      <form (submit)="submit($event)">
+        <div class="dropzone">
+          <span class="icon">upload_file</span>Upload CV to auto-fill (PDF/DOCX)<br>
+          <button type="button" class="dt-btn" style="margin-top:10px" disabled>Choose file</button>
+        </div>
+        <div class="autofill-note">
+          <span class="icon">auto_awesome</span> CV auto-fill is coming soon — please fill the fields below yourself.
+        </div>
+
+        <div class="reg-grid">
+          <div class="field">
+            <label for="reg-name">Full name</label>
+            <input id="reg-name" name="fullName" [(ngModel)]="fullName" placeholder="Your full name" autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="reg-usn">USN</label>
+            <input id="reg-usn" name="usn" [(ngModel)]="usn" placeholder="e.g. 1BG24MBA014">
+          </div>
+          <div class="field">
+            <label for="reg-college-email">College email</label>
+            <input id="reg-college-email" name="collegeEmail" type="email" [(ngModel)]="collegeEmail" placeholder="you@bgscet.ac.in" autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="reg-personal-email">Personal email</label>
+            <input id="reg-personal-email" name="personalEmail" type="email" [(ngModel)]="personalEmail" placeholder="optional">
+          </div>
+          <div class="field">
+            <label for="reg-phone">Phone</label>
+            <input id="reg-phone" name="phone" [(ngModel)]="phone" placeholder="+91 …" autocomplete="tel">
+          </div>
+          <div class="field">
+            <label for="reg-linkedin">LinkedIn profile</label>
+            <input id="reg-linkedin" name="linkedin" [(ngModel)]="linkedin" placeholder="linkedin.com/in/…">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="reg-degree">Degree level</label>
+          <select id="reg-degree" name="degreeLevel" [(ngModel)]="degreeLevel">
+            <option value="PG">Post Graduate (PG)</option>
+            <option value="UG">Undergraduate (UG)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Professional photo</label>
+          <div class="dropzone" style="padding:16px;">
+            <span class="icon" style="font-size:20px; margin-bottom:0">photo_camera</span> Upload a headshot
+          </div>
+        </div>
+
+        @if (error(); as e) {
+          <div class="reg-approval flag" style="margin-top:10px;">
+            <span class="icon">error</span>
+            <div>{{ e }}</div>
+          </div>
+        }
+
+        <div style="margin-top:20px; display:flex; gap:10px; align-items:center;">
+          <button type="submit" class="dt-btn primary" [disabled]="pending()">
+            {{ pending() ? 'Submitting…' : 'Submit registration' }}
+            <span class="icon" style="font-size:16px">arrow_forward</span>
+          </button>
+          <a class="reg-signin-link" routerLink="/login">Already registered? Sign in</a>
+        </div>
+      </form>
+    }
+  </div>
+</div>

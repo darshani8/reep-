@@ -2,165 +2,24 @@
   display: block;
 }
 
-.err {
-  color: var(--reep-text-secondary);
+/* UG / PG pill toggle — the mockup's inline overrides on a .tabs-row, kept here
+   so the markup stays clean. Global .tabs-row / .active still supply the rest. */
+.level-toggle {
+  border-bottom: none;
+  margin-bottom: 10px;
+}
+.level-toggle button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-right: 6px;
 }
 
-/* stat tiles */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
+/* the mockup's compact in-table / in-card buttons (padding:5px 10px; 11.5px) */
+.dt-btn.sm {
+  padding: 5px 10px;
+  font-size: 11.5px;
 }
-
-/* UG / PG tabs — ported from the MuiTabs theme */
-.tabs {
-  display: flex;
-  gap: 24px;
-  border-bottom: 1px solid var(--reep-divider);
-  margin-bottom: 32px;
-  overflow-x: auto;
-}
-.tab {
-  position: relative;
-  padding: 8px 2px;
-  border: none;
-  background: transparent;
-  font-family: var(--reep-font-stack);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--reep-text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.tab--active {
-  color: var(--reep-text-primary);
-  font-weight: 600;
-}
-.tab--active::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  background: var(--reep-text-primary);
-}
-
-/* eligibility filter */
-.elig-filter {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-.chip {
-  padding: 4px 12px;
-  border: 1px solid var(--reep-divider);
-  border-radius: 999px;
-  background: transparent;
-  font-family: var(--reep-font-stack);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--reep-text-secondary);
-  cursor: pointer;
-}
-.chip--active {
-  background: var(--reep-action-selected);
-  color: var(--reep-text-primary);
-  border-color: transparent;
-}
-.chip--good.chip--active {
-  color: var(--reep-success-main);
-}
-.elig-you {
-  margin-left: auto;
-  color: var(--reep-text-disabled);
-}
-.jobs__inelig {
-  margin-top: 4px;
-  color: var(--reep-warning-main);
-}
-
-/* the table */
-.table-wrap {
-  overflow-x: auto;
-}
-.jobs {
-  width: 100%;
-  min-width: 640px;
-  border-collapse: collapse;
-  font-size: 0.8125rem;
-}
-.jobs th {
-  text-align: left;
-  padding: 8px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--reep-text-secondary);
-  border-bottom: 1px solid var(--reep-divider);
-}
-.jobs th:not(:first-child),
-.jobs td:not(:first-child) {
-  border-left: 1px solid var(--reep-divider);
-}
-.jobs td {
-  padding: 12px 8px;
-  border-bottom: 1px solid var(--reep-divider);
-  vertical-align: top;
-}
-.jobs__row--closed {
-  opacity: 0.6;
-}
-.jobs__title {
-  font-weight: 500;
-  color: var(--reep-text-primary);
-  font-size: 0.875rem;
-}
-.jobs__meta {
-  margin-top: 2px;
-  color: var(--reep-text-disabled);
-}
-.jobs__match {
-  min-width: 160px;
-}
-.jobs__match-value {
-  font-weight: 600;
-  font-size: 0.9375rem;
-}
-.jobs__match-hint {
-  margin-top: 2px;
-  color: var(--reep-text-disabled);
-  max-width: 34ch;
-}
-.jobs__apply {
-  min-width: 120px;
-}
-.jobs__opened {
-  margin-top: 4px;
-  color: var(--reep-text-disabled);
-}
-.jobs__cv {
-  display: inline-block;
-  margin-top: 6px;
-  color: var(--reep-secondary-main);
-  text-decoration: none;
-}
-.jobs__cv:hover {
-  text-decoration: underline;
-}
-.jobs__nolink {
-  color: var(--reep-text-disabled);
-}
-.jobs__applied {
-  width: 72px;
-  text-align: center;
-}
-.check input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--reep-secondary-main);
-  cursor: pointer;
+.dt-btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
 }

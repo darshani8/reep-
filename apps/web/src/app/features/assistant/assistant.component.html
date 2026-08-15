@@ -1,6 +1,6 @@
 <kit-page-intro
   title="REEP Agent"
-  subtitle="Ask about deadlines, the placement process, how to read your dashboard — anything about REEP. For your own marks or attendance, open the records view; the assistant keeps those private."
+  subtitle="Ask about deadlines, the placement process, how to read your dashboard — anything about REEP."
 >
   <button
     action
@@ -15,6 +15,12 @@
   </button>
 </kit-page-intro>
 
+<p class="assist-note reep-body2">
+  The REEP Agent is a general helper — it does not see your private records, marks or attendance. For
+  your own figures, open <a class="assist-note__link" routerLink="/student/records">your records</a>.
+  For anything it can't resolve, contact your mentor.
+</p>
+
 @if (error()) {
   <p class="err reep-body2" role="alert">{{ error() }}</p>
 }
@@ -23,7 +29,19 @@
   <div #scroller class="chat__log" role="log" aria-live="polite">
     @if (history().length === 0) {
       <div class="chat__empty reep-body2">
-        Start the conversation — try “What do I need to do before placements open?”
+        <p class="chat__empty-lead">Start the conversation, or pick a starter below.</p>
+        <div class="quick-prompts quick-prompts--empty">
+          @for (prompt of quickPrompts; track prompt) {
+            <button
+              type="button"
+              class="quick-prompt"
+              [disabled]="sending()"
+              (click)="sendPrompt(prompt)"
+            >
+              {{ prompt }}
+            </button>
+          }
+        </div>
       </div>
     } @else {
       @for (turn of history(); track $index) {
@@ -41,6 +59,21 @@
     }
   </div>
 
+  @if (history().length > 0) {
+    <div class="quick-prompts quick-prompts--bar" role="group" aria-label="Quick prompts">
+      @for (prompt of quickPrompts; track prompt) {
+        <button
+          type="button"
+          class="quick-prompt"
+          [disabled]="sending()"
+          (click)="sendPrompt(prompt)"
+        >
+          {{ prompt }}
+        </button>
+      }
+    </div>
+  }
+
   <div class="chat__compose">
     <textarea
       class="chat__input"
@@ -52,11 +85,12 @@
     ></textarea>
     <button
       type="button"
-      class="btn chat__send"
+      class="btn btn--primary chat__send"
       [disabled]="sending() || draft().trim().length === 0"
       (click)="send()"
     >
       Send
     </button>
   </div>
+  <p class="chat__hint reep-caption">Enter to send · Shift+Enter for a new line</p>
 </div>

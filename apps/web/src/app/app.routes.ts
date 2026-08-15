@@ -13,6 +13,7 @@ import { OffersComponent } from './features/student/offers/offers.component';
 import { AcademicsComponent } from './features/student/academics/academics.component';
 import { SkillingComponent } from './features/student/skilling/skilling.component';
 import { CoursesComponent } from './features/student/courses/courses.component';
+import { RecordsComponent } from './features/student/records/records.component';
 import { UploadsComponent } from './features/student/uploads/uploads.component';
 import { ResumeBuilderComponent } from './features/student/resume/resume-builder.component';
 import { AssistantComponent } from './features/assistant/assistant.component';
@@ -45,6 +46,7 @@ export const routes: Routes = [
       { path: 'student/skilling', component: SkillingComponent },
       { path: 'student/time-log', component: TimeLogComponent },
       { path: 'student/courses', component: CoursesComponent },
+      { path: 'student/records', component: RecordsComponent },
       { path: 'student/leaderboards', component: LeaderboardsComponent },
       { path: 'student/uploads', component: UploadsComponent },
       { path: 'student/resume', component: ResumeBuilderComponent },

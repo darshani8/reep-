@@ -14,6 +14,7 @@
  */
 
 import { Component, computed, inject, signal, effect, ElementRef, viewChild } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/auth.service';
 import { ChatVoiceService } from '../../core/chat-voice.service';
@@ -22,7 +23,7 @@ import { PageIntroComponent } from '../../shared/kit/kit.components';
 @Component({
   selector: 'app-assistant',
   standalone: true,
-  imports: [PageIntroComponent],
+  imports: [PageIntroComponent, RouterLink],
   templateUrl: './assistant.component.html',
   styleUrl: './assistant.component.scss',
 })
@@ -37,6 +38,14 @@ export class AssistantComponent {
   readonly draft = signal('');
   readonly sending = signal(false);
   readonly error = signal<string | null>(null);
+
+  /// One-tap starters. Clicking a chip fills the draft and sends it.
+  readonly quickPrompts = [
+    'What should I complete this week?',
+    'Am I placement-ready?',
+    'Show jobs I qualify for',
+    'How do I verify a skill?',
+  ];
 
   /// Per-user stable id, so the thread (text + voice) persists across reloads.
   readonly sessionId = computed(() => `assistant-${this.auth.session()?.userId ?? 'anon'}`);
@@ -82,6 +91,13 @@ export class AssistantComponent {
       event.preventDefault();
       void this.send();
     }
+  }
+
+  /// A quick-prompt chip: drop the text into the composer and send it.
+  sendPrompt(prompt: string): void {
+    if (this.sending()) return;
+    this.draft.set(prompt);
+    void this.send();
   }
 
   async send(): Promise<void> {

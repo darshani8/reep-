@@ -1,19 +1,27 @@
+# dependencies
 node_modules/
-.next/
-out/
-build/
+
+# python virtualenv + caches
+**/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+# env / secrets
 .env
 .env.local
+**/.env
+
+# logs
 *.log
+
+# OS
 .DS_Store
-next-env.d.ts
-tsconfig.tsbuildinfo
-/prisma/generated
 
-# uploaded files (bytes live on disk, metadata in Postgres)
-storage/
-dev.log
-
-# Angular / Nest build output and caches
+# Angular build output + cache
 dist/
 .angular/
+
+# uploaded files (bytes on disk; only metadata is in Postgres)
+apps/api-py/var/

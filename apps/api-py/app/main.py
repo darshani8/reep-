@@ -31,12 +31,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Health is infra liveness — unprefixed at /health.
 app.include_router(health.router)
-app.include_router(auth.router)
+# agent + voice already carry /api in their own prefix (/api/agent, /api/voice).
 app.include_router(agent.router)
 app.include_router(voice.router)
-app.include_router(student.router)
-app.include_router(mentor.router)
-app.include_router(director.router)
-app.include_router(leave.router)
-app.include_router(registration.router)
+# Domain routers mount under a single /api prefix, so the whole surface the
+# Angular client calls lives under /api — matching environment.apiBase and the
+# dev proxy (apps/web/proxy.conf.json), with no path rewriting.
+app.include_router(auth.router, prefix="/api")
+app.include_router(student.router, prefix="/api")
+app.include_router(mentor.router, prefix="/api")
+app.include_router(director.router, prefix="/api")
+app.include_router(leave.router, prefix="/api")
+app.include_router(registration.router, prefix="/api")

@@ -2,7 +2,7 @@
 the mentor router's require_director guard. Compute-only over existing data.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -12,6 +12,7 @@ from ..deps import get_current_session
 from ..models.alert import Alert
 from ..models.cohort import Cohort
 from ..models.offer import OfferStatus, PlacementOffer
+from ..models.placement_criteria import PlacementCriteria
 from ..models.user import Student
 from .mentor import require_director
 
@@ -109,3 +110,43 @@ def cohorts(
         )
         for c in rows
     ]
+
+
+class CriteriaOut(BaseModel):
+    name: str
+    active: bool
+    min_cgpa: float
+    max_live_backlogs: int
+    max_gap_months: int
+    min_attendance_pct: float
+    min_reep_completion_pct: float
+    min_cert_completion_pct: float
+    require_core_certs: bool
+
+
+@router.get("/criteria", response_model=CriteriaOut)
+def criteria(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> CriteriaOut:
+    require_director(session)
+    c = db.scalar(
+        select(PlacementCriteria)
+        .where(PlacementCriteria.active.is_(True))
+        .order_by(PlacementCriteria.updated_at.desc())
+        .limit(1)
+    )
+    if c is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No active placement criteria set."
+        )
+    return CriteriaOut(
+        name=c.name,
+        active=c.active,
+        min_cgpa=c.min_cgpa,
+        max_live_backlogs=c.max_live_backlogs,
+        max_gap_months=c.max_gap_months,
+        min_attendance_pct=c.min_attendance_pct,
+        min_reep_completion_pct=c.min_reep_completion_pct,
+        min_cert_completion_pct=c.min_cert_completion_pct,
+        require_core_certs=c.require_core_certs,
+    )

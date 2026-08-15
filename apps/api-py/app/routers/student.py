@@ -26,6 +26,7 @@ from ..models.offer import (
     OfferWorkMode,
     PlacementOffer,
 )
+from ..models.placement_criteria import PlacementCriteria
 from ..models.profile import StudentProfile
 from ..models.resume import Resume, ResumeStatus
 from ..models.schedule import ScheduleItem
@@ -551,19 +552,40 @@ def my_jobs(
             select(JobApplication.job_id).where(JobApplication.student_id == student_id)
         ).all()
     )
+    # Active placement criteria supply the defaults when a posting has no override.
+    crit = db.scalar(
+        select(PlacementCriteria)
+        .where(PlacementCriteria.active.is_(True))
+        .order_by(PlacementCriteria.updated_at.desc())
+        .limit(1)
+    )
+    gap = db.get(AcademicGap, student_id)
+    gap_months = (
+        gap.twelfth_to_grad_mo + gap.diploma_to_grad_mo + gap.grad_to_pg_mo + gap.other_mo
+        if gap
+        else 0
+    )
 
     rows: list[JobRowOut] = []
     for j in db.scalars(select(Job).order_by(Job.posted_on.desc())).all():
         required = set(j.required_skills or [])
         match = round(100 * len(skill_slugs & required) / len(required), 1) if required else 100.0
+        # Per-posting override wins; else fall back to the active criteria.
+        min_cgpa = j.min_cgpa if j.min_cgpa is not None else (crit.min_cgpa if crit else None)
+        max_backlogs = (
+            j.max_live_backlogs
+            if j.max_live_backlogs is not None
+            else (crit.max_live_backlogs if crit else None)
+        )
+        max_gap = crit.max_gap_months if crit else None
         reasons: list[str] = []
         # A null CGPA is unassessed (not blocking); only an actual below-cutoff blocks.
-        if j.min_cgpa is not None and latest_cgpa is not None and latest_cgpa < j.min_cgpa:
-            reasons.append(f"CGPA {latest_cgpa} is below the required {j.min_cgpa}")
-        if j.max_live_backlogs is not None and live_backlogs > j.max_live_backlogs:
-            reasons.append(
-                f"{live_backlogs} live backlog(s) exceeds the limit of {j.max_live_backlogs}"
-            )
+        if min_cgpa is not None and latest_cgpa is not None and latest_cgpa < min_cgpa:
+            reasons.append(f"CGPA {latest_cgpa} is below the required {min_cgpa}")
+        if max_backlogs is not None and live_backlogs > max_backlogs:
+            reasons.append(f"{live_backlogs} live backlog(s) exceeds the limit of {max_backlogs}")
+        if max_gap is not None and gap_months > max_gap:
+            reasons.append(f"education gap {gap_months}mo exceeds the limit of {max_gap}mo")
         rows.append(
             JobRowOut(
                 id=j.id,

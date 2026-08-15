@@ -20,14 +20,35 @@
     }
   </div>
 
-  @if (rows().length === 0) {
+  @if (loading()) {
+    <div class="card lb-empty">
+      <span class="icon">hourglass_top</span>
+      <div><div class="lb-empty__title">Loading the {{ activeLabel() }} board…</div></div>
+    </div>
+  } @else if (optedOut()) {
+    <div class="card lb-empty">
+      <span class="icon">visibility_off</span>
+      <div>
+        <div class="lb-empty__title">You've opted out of leaderboards</div>
+        <div class="dt-sub">
+          You are hidden from every board — and, in turn, you don't see peer rankings. Turn this
+          off in your profile to take part again.
+        </div>
+      </div>
+    </div>
+  } @else if (error()) {
+    <div class="card lb-empty">
+      <span class="icon">error</span>
+      <div><div class="lb-empty__title">{{ error() }}</div></div>
+    </div>
+  } @else if (rows().length === 0) {
     <div class="card lb-empty">
       <span class="icon">leaderboard</span>
       <div>
-        <div class="lb-empty__title">Leaderboards are coming soon</div>
+        <div class="lb-empty__title">No ranking yet</div>
         <div class="dt-sub">
-          The {{ activeLabel() }} board will rank your cohort here once results are published.
-          You will see each classmate's position and total, with your own row highlighted.
+          The {{ activeLabel() }} board has no results for your cohort yet. You will see each
+          classmate's position and total here, with your own row highlighted.
         </div>
       </div>
     </div>

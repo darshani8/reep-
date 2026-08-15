@@ -2,6 +2,7 @@
 # and Alembic autogenerate). Add new model modules here as the schema grows.
 from . import academic_history  # noqa: F401
 from . import academics  # noqa: F401
+from . import agent_run  # noqa: F401
 from . import alert  # noqa: F401
 from . import attendance  # noqa: F401
 from . import certification  # noqa: F401

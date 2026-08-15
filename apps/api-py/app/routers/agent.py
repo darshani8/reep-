@@ -13,12 +13,19 @@ assistant, so `carries_student_data` stays False; wire it True on any path that
 injects a student's private records, and remote free models are refused.
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from ..ai.llm import complete_chat, llm_config
+from ..db import get_db
 from ..deps import get_current_session
 from ..memory import get_history, save_message
+from ..models.agent_run import AgentRun, AgentRunStatus
+from ..models.user import Role
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
@@ -57,8 +64,41 @@ def history(session_id: str, session: dict = Depends(get_current_session)) -> Hi
     return HistoryOut(session_id=session_id, turns=get_history(session_id))
 
 
+def _persist_run(
+    db: Session,
+    session: dict,
+    question: str,
+    answer: str,
+    outcome: AgentRunStatus,
+    model: str | None,
+    started: datetime,
+) -> None:
+    """One audit row per question — scope stamped at run time (mirrors the
+    Next.js AgentRun store)."""
+    scope = "self" if session.get("role") == "STUDENT" else "programme"
+    db.add(
+        AgentRun(
+            actor_id=session["userId"],
+            role=Role(session["role"]),
+            scope=scope,
+            question=question,
+            answer=answer,
+            status=outcome,
+            trace=[],
+            citations=[],
+            model=model,
+            duration_ms=int((datetime.now(timezone.utc) - started).total_seconds() * 1000),
+        )
+    )
+    db.commit()
+
+
 @router.post("/chat", response_model=ChatOut)
-def chat(body: ChatIn, session: dict = Depends(get_current_session)) -> ChatOut:
+def chat(
+    body: ChatIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> ChatOut:
     cfg = llm_config()
     if cfg is None:
         raise HTTPException(
@@ -66,6 +106,8 @@ def chat(body: ChatIn, session: dict = Depends(get_current_session)) -> ChatOut:
             detail="No LLM provider configured — set a provider key in apps/api-py/.env.",
         )
 
+    started = datetime.now(timezone.utc)
+    model_label = f"{cfg.provider}:{cfg.model}"
     save_message(body.session_id, "user", body.message)
     history = get_history(body.session_id, limit=HISTORY_LIMIT)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, *history]
@@ -73,9 +115,46 @@ def chat(body: ChatIn, session: dict = Depends(get_current_session)) -> ChatOut:
     try:
         reply = complete_chat(messages, max_tokens=1024)
     except Exception as exc:  # network / provider / quota — never 500 the UI
+        _persist_run(db, session, body.message, "", AgentRunStatus.FAILED, model_label, started)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"LLM request failed: {exc}"
         )
 
     save_message(body.session_id, "assistant", reply)
-    return ChatOut(reply=reply, session_id=body.session_id, model=f"{cfg.provider}:{cfg.model}")
+    _persist_run(db, session, body.message, reply, AgentRunStatus.ANSWERED, model_label, started)
+    return ChatOut(reply=reply, session_id=body.session_id, model=model_label)
+
+
+class RunOut(BaseModel):
+    id: str
+    scope: str
+    question: str
+    status: str
+    model: str | None
+    duration_ms: int
+    created_at: datetime
+
+
+@router.get("/runs", response_model=list[RunOut])
+def runs(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[RunOut]:
+    """The caller's own recent assistant runs (audit trail)."""
+    rows = db.scalars(
+        select(AgentRun)
+        .where(AgentRun.actor_id == session["userId"])
+        .order_by(AgentRun.created_at.desc())
+        .limit(50)
+    ).all()
+    return [
+        RunOut(
+            id=r.id,
+            scope=r.scope,
+            question=r.question,
+            status=r.status.value,
+            model=r.model,
+            duration_ms=r.duration_ms,
+            created_at=r.created_at,
+        )
+        for r in rows
+    ]

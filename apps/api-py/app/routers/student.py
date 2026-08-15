@@ -30,7 +30,7 @@ from ..models.placement_criteria import PlacementCriteria
 from ..models.profile import StudentProfile
 from ..models.resume import Resume, ResumeStatus
 from ..models.schedule import ScheduleItem
-from ..models.skill import Skill, StudentSkill
+from ..models.skill import Skill, SkillClaim, StudentSkill
 from ..models.swoc import SwocEntry
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload
@@ -1233,3 +1233,88 @@ def my_uploads(
         )
         for u in rows
     ]
+
+
+class SkillClaimOut(BaseModel):
+    id: str
+    skill_id: str
+    skill_name: str
+    upload_id: str
+    claimed_level: int
+    status: str
+    review_note: str | None
+    reviewed_at: datetime | None
+    created_at: datetime
+
+
+class SkillClaimIn(BaseModel):
+    skill_id: str
+    upload_id: str
+    claimed_level: int = Field(default=3, ge=1, le=5)
+
+
+@router.get("/skill-claims", response_model=list[SkillClaimOut])
+def my_skill_claims(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[SkillClaimOut]:
+    """A student's own skill claims and their review state."""
+    student_id = _require_student(session)
+    rows = db.execute(
+        select(SkillClaim, Skill.name)
+        .join(Skill, SkillClaim.skill_id == Skill.id)
+        .where(SkillClaim.student_id == student_id)
+        .order_by(SkillClaim.created_at.desc())
+    ).all()
+    return [
+        SkillClaimOut(
+            id=sc.id,
+            skill_id=sc.skill_id,
+            skill_name=name,
+            upload_id=sc.upload_id,
+            claimed_level=sc.claimed_level,
+            status=sc.status.value,
+            review_note=sc.review_note,
+            reviewed_at=sc.reviewed_at,
+            created_at=sc.created_at,
+        )
+        for sc, name in rows
+    ]
+
+
+@router.post("/skill-claims", response_model=SkillClaimOut, status_code=status.HTTP_201_CREATED)
+def create_skill_claim(
+    body: SkillClaimIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> SkillClaimOut:
+    """Claim a skill level, backed by one of your own uploads, for mentor review."""
+    student_id = _require_student(session)
+    skill = db.get(Skill, body.skill_id)
+    if skill is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Skill not found.")
+    upload = db.get(Upload, body.upload_id)
+    if upload is None or upload.student_id != student_id:
+        # Never let a claim point at someone else's upload.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Evidence upload not found."
+        )
+    claim = SkillClaim(
+        student_id=student_id,
+        skill_id=body.skill_id,
+        upload_id=body.upload_id,
+        claimed_level=body.claimed_level,
+    )
+    db.add(claim)
+    db.commit()
+    db.refresh(claim)
+    return SkillClaimOut(
+        id=claim.id,
+        skill_id=claim.skill_id,
+        skill_name=skill.name,
+        upload_id=claim.upload_id,
+        claimed_level=claim.claimed_level,
+        status=claim.status.value,
+        review_note=claim.review_note,
+        reviewed_at=claim.reviewed_at,
+        created_at=claim.created_at,
+    )

@@ -31,7 +31,7 @@ from .models.mock import MockAttempt, MockType
 from .models.placement_criteria import PlacementCriteria
 from .models.profile import StudentProfile
 from .models.schedule import ScheduleItem, ScheduleType
-from .models.skill import Skill, StudentSkill
+from .models.skill import Skill, SkillClaim, StudentSkill
 from .models.swoc import SwocEntry, SwocKind, SwocSource
 from .models.timesheet import DayActivity, TimeSheetEntry
 from .models.user import LoginDay, Mentor, Role, Stage, Student, User
@@ -430,6 +430,20 @@ def main() -> None:
             )
             db.commit()
             print("added uploads (3: 2 pending, 1 verified)")
+
+        # Idempotently seed one pending skill claim: the student claims a level
+        # on a catalogue skill, backed by their certificate-proof upload.
+        if stu and db.scalar(select(SkillClaim).where(SkillClaim.student_id == stu.id)) is None:
+            skill = db.scalar(select(Skill).order_by(Skill.slug))
+            evidence = db.scalar(
+                select(Upload).where(Upload.student_id == stu.id, Upload.kind == UploadKind.CERTIFICATE_PROOF)
+            )
+            if skill and evidence:
+                db.add(
+                    SkillClaim(student_id=stu.id, skill_id=skill.id, upload_id=evidence.id, claimed_level=4)
+                )
+                db.commit()
+                print("added skill claim (1, pending)")
 
         # Idempotently seed two registration rules: a narrow MBA-USN auto-approve
         # rule (priority 10) that assigns the seeded cohort, and a broad

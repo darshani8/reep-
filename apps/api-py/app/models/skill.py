@@ -2,6 +2,10 @@
 that carries proficiency and whether a mentor verified it (ported from Prisma).
 The catalogue exists so "MS Excel" and "Advanced Excel" match one skill, which is
 what makes a job-match percentage meaningful.
+
+SkillClaim is the review workflow that feeds StudentSkill: a student claims a
+level backed by an Upload, and a reviewer grants or reduces it. It reuses the
+existing `upload_status` PG enum (create_type=False).
 """
 
 import uuid
@@ -11,6 +15,7 @@ from sqlalchemy import (
     ARRAY,
     Boolean,
     DateTime,
+    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -21,6 +26,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db import Base
+from .upload import UploadStatus
 
 
 def _uuid() -> str:
@@ -59,3 +65,34 @@ class StudentSkill(Base):
     )
 
     skill: Mapped[Skill] = relationship()
+
+
+class SkillClaim(Base):
+    """A student's claim to a skill level, backed by an uploaded artefact, that a
+    reviewer grants or reduces. `claimed_level` is what the student asserts; the
+    reviewer may grant it or lower it. Reuses the Upload review status; reviewer
+    is a plain audit-stamp column, as on Upload."""
+
+    __tablename__ = "skill_claims"
+    __table_args__ = (
+        Index("ix_skillclaim_student_status", "student_id", "status"),
+        Index("ix_skillclaim_status", "status"),
+        Index("ix_skillclaim_skill", "skill_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))
+    skill_id: Mapped[str] = mapped_column(ForeignKey("skills.id", ondelete="CASCADE"))
+    upload_id: Mapped[str] = mapped_column(ForeignKey("uploads.id", ondelete="CASCADE"))
+
+    # The level being claimed, which the reviewer may grant or reduce.
+    claimed_level: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
+    status: Mapped[UploadStatus] = mapped_column(
+        Enum(UploadStatus, name="upload_status", create_type=False),
+        default=UploadStatus.PENDING_REVIEW,
+        server_default="PENDING_REVIEW",
+    )
+    reviewed_by_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

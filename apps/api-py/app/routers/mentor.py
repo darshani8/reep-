@@ -19,6 +19,7 @@ from ..models.alert import Alert
 from ..models.lab import LabSession
 from ..models.mentor_note import MentorAction, MentorNote
 from ..models.offer import OfferStatus, PlacementOffer
+from ..models.skill import Skill, SkillClaim, StudentSkill
 from ..models.upload import Upload, UploadStatus
 from ..models.user import Student, User
 
@@ -471,3 +472,126 @@ def review_upload(
         select(User.name).join(Student, Student.user_id == User.id).where(Student.id == up.student_id)
     )
     return _upload_out(up, name or "")
+
+
+class SkillClaimReviewOut(BaseModel):
+    id: str
+    student_id: str
+    student_name: str
+    skill_id: str
+    skill_name: str
+    upload_id: str
+    claimed_level: int
+    status: str
+    reviewed_by_id: str | None
+    reviewed_at: datetime | None
+    review_note: str | None
+    created_at: datetime
+
+
+def _claim_out(sc: SkillClaim, student_name: str, skill_name: str) -> SkillClaimReviewOut:
+    return SkillClaimReviewOut(
+        id=sc.id,
+        student_id=sc.student_id,
+        student_name=student_name,
+        skill_id=sc.skill_id,
+        skill_name=skill_name,
+        upload_id=sc.upload_id,
+        claimed_level=sc.claimed_level,
+        status=sc.status.value,
+        reviewed_by_id=sc.reviewed_by_id,
+        reviewed_at=sc.reviewed_at,
+        review_note=sc.review_note,
+        created_at=sc.created_at,
+    )
+
+
+@router.get("/skill-claims/pending", response_model=list[SkillClaimReviewOut])
+def pending_skill_claims(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[SkillClaimReviewOut]:
+    """Skill claims awaiting review, scoped to the mentor's group."""
+    require_mentor(session)
+    query = (
+        select(SkillClaim, User.name, Skill.name)
+        .join(Student, SkillClaim.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+        .join(Skill, SkillClaim.skill_id == Skill.id)
+        .where(SkillClaim.status == UploadStatus.PENDING_REVIEW)
+    )
+    if session["role"] == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            return []
+        query = query.where(Student.mentor_id == mentor_id)
+    rows = db.execute(query.order_by(SkillClaim.created_at)).all()
+    return [_claim_out(sc, sname, skname) for sc, sname, skname in rows]
+
+
+class SkillClaimReviewIn(BaseModel):
+    decision: str  # "GRANT" | "REJECT"
+    granted_level: int | None = Field(default=None, ge=1, le=5)
+    note: str | None = None
+
+
+@router.post("/skill-claims/{claim_id}/review", response_model=SkillClaimReviewOut)
+def review_skill_claim(
+    claim_id: str,
+    body: SkillClaimReviewIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> SkillClaimReviewOut:
+    """Grant (optionally at a reduced level) or reject a skill claim. Granting
+    upserts the student's verified StudentSkill at the granted level and points
+    it at the evidence upload — the claim is how a skill becomes verified."""
+    require_mentor(session)
+    sc = db.get(SkillClaim, claim_id)
+    if sc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Claim not found.")
+    _assert_can_access_student(session, sc.student_id, db)
+    if sc.status != UploadStatus.PENDING_REVIEW:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Only a pending claim can be reviewed."
+        )
+    decision = body.decision.upper()
+    if decision in ("GRANT", "APPROVE", "VERIFY"):
+        granted = body.granted_level or sc.claimed_level
+        sc.status = UploadStatus.VERIFIED
+        # Upsert the verified StudentSkill at the granted level.
+        existing = db.scalar(
+            select(StudentSkill).where(
+                StudentSkill.student_id == sc.student_id,
+                StudentSkill.skill_id == sc.skill_id,
+            )
+        )
+        if existing is None:
+            db.add(
+                StudentSkill(
+                    student_id=sc.student_id,
+                    skill_id=sc.skill_id,
+                    level=granted,
+                    verified=True,
+                    evidence_upload_id=sc.upload_id,
+                )
+            )
+        else:
+            existing.level = granted
+            existing.verified = True
+            existing.evidence_upload_id = sc.upload_id
+    elif decision in ("REJECT", "REJECTED"):
+        sc.status = UploadStatus.REJECTED
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="decision must be GRANT or REJECT.",
+        )
+    sc.reviewed_by_id = session["userId"]
+    sc.reviewed_at = datetime.now(timezone.utc)
+    sc.review_note = body.note
+    db.commit()
+    db.refresh(sc)
+    sname = db.scalar(
+        select(User.name).join(Student, Student.user_id == User.id).where(Student.id == sc.student_id)
+    )
+    skname = db.scalar(select(Skill.name).where(Skill.id == sc.skill_id))
+    return _claim_out(sc, sname or "", skname or "")

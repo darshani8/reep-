@@ -7,17 +7,46 @@
   </div>
 
   <div class="grid-2">
-    <!-- Claim a skill — dropzone placeholder (file upload not built server-side) -->
+    <!-- Claim a skill — pick a skill + level, upload the certificate as proof -->
     <div class="card">
       <h4>Claim a skill</h4>
-      <div class="dropzone dropzone--soon" aria-disabled="true">
+      <div class="claim-fields">
+        <label class="claim-label">
+          Skill
+          <select [value]="claimSkillId()" (change)="claimSkillId.set($any($event.target).value)">
+            <option value="">Choose a skill…</option>
+            @for (s of catalogue(); track s.id) {
+              <option [value]="s.id">{{ s.name }} · {{ s.category }}</option>
+            }
+          </select>
+        </label>
+        <label class="claim-label">
+          Level
+          <select [value]="claimLevel()" (change)="claimLevel.set(+$any($event.target).value)">
+            <option value="3">Working</option>
+            <option value="1">Aware</option>
+            <option value="2">Beginner</option>
+            <option value="4">Proficient</option>
+            <option value="5">Expert</option>
+          </select>
+        </label>
+      </div>
+      <button
+        type="button"
+        class="dropzone dropzone--action"
+        [disabled]="!claimSkillId() || claiming()"
+        (click)="picker.click()"
+      >
         <span class="icon">workspace_premium</span>
-        Upload certificate to claim skill
-      </div>
-      <div class="soon-note">
-        <span class="icon">hourglass_empty</span>
-        File upload coming soon
-      </div>
+        {{ claiming() ? 'Submitting…' : (claimSkillId() ? 'Upload certificate (PDF/PNG/JPEG) to claim' : 'Choose a skill first') }}
+      </button>
+      <input #picker type="file" accept="application/pdf,image/png,image/jpeg" hidden (change)="onClaimFile($event)" />
+      @if (claimError()) {
+        <div class="state-note"><span class="icon">error</span>{{ claimError() }}</div>
+      }
+      @if (claimOk()) {
+        <div class="state-note"><span class="icon">check_circle</span>Claim submitted — pending mentor review.</div>
+      }
     </div>
 
     <!-- My skills — grouped by category, verified vs not -->

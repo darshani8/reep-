@@ -16,6 +16,7 @@ from .models.academic_history import AcademicGap, AcademicQualification, Qualifi
 from .models.academics import SemesterResult, SubjectMark
 from .models.alert import Alert, AlertRuleKey, AlertSeverity
 from .models.attendance import AttendanceRecord
+from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
@@ -316,6 +317,26 @@ def main() -> None:
             )
             db.commit()
             print("added schedule items (3)")
+
+        # Idempotently seed two courses + the student's enrollments.
+        if db.scalar(select(Course)) is None:
+            db.add_all(
+                [
+                    Course(code="22MBA11", name="Management & Organisational Behaviour", stage=Stage.EXCEL, dimension=Dimension.PROFESSIONAL, semester=1, model_type=CourseModel.INSTRUCTOR_LED, teaching_hours=40, self_learning_hours_required=20),
+                    Course(code="22MBA12", name="Managerial Economics", stage=Stage.EXCEL, dimension=Dimension.THINKING, semester=1, model_type=CourseModel.TEACHING_PLUS_SELF_LEARN, teaching_hours=40, self_learning_hours_required=20),
+                ]
+            )
+            db.commit()
+            print("added courses (2)")
+        if stu and db.scalar(select(Enrollment).where(Enrollment.student_id == stu.id)) is None:
+            db.add_all(
+                [
+                    Enrollment(student_id=stu.id, course_code="22MBA11", status=ProgressStatus.IN_PROGRESS, teaching_hours_attended=32, lectures_attended=18, lectures_total=20),
+                    Enrollment(student_id=stu.id, course_code="22MBA12", status=ProgressStatus.IN_PROGRESS, teaching_hours_attended=28, lectures_attended=16, lectures_total=20),
+                ]
+            )
+            db.commit()
+            print("added enrollments (2)")
     finally:
         db.close()
 

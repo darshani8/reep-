@@ -20,6 +20,7 @@ from .models.job import DegreeLevel, Job
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
 from .models.profile import StudentProfile
+from .models.schedule import ScheduleItem, ScheduleType
 from .models.skill import Skill, StudentSkill
 from .models.swoc import SwocEntry, SwocKind, SwocSource
 from .models.timesheet import DayActivity, TimeSheetEntry
@@ -302,6 +303,19 @@ def main() -> None:
             )
             db.commit()
             print("added jobs (3)")
+
+        # Idempotently add a few upcoming schedule items for the student.
+        if stu and db.scalar(select(ScheduleItem).where(ScheduleItem.student_id == stu.id)) is None:
+            now = datetime.now(timezone.utc)
+            db.add_all(
+                [
+                    ScheduleItem(student_id=stu.id, type=ScheduleType.MENTOR_MEETING, title="1:1 with mentor", starts_at=now + timedelta(days=1), location="Cabin 3"),
+                    ScheduleItem(student_id=stu.id, type=ScheduleType.LECTURE, title="Managerial Economics", starts_at=now + timedelta(days=2), course_code="22MBA12", location="Room 201"),
+                    ScheduleItem(student_id=stu.id, type=ScheduleType.CERT_DEADLINE, title="Power BI certification due", starts_at=now + timedelta(days=5)),
+                ]
+            )
+            db.commit()
+            print("added schedule items (3)")
     finally:
         db.close()
 

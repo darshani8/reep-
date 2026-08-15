@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from ..db import get_db
 from ..deps import get_current_session
@@ -23,6 +23,7 @@ from ..models.offer import (
     PlacementOffer,
 )
 from ..models.profile import StudentProfile
+from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, StudentSkill
 from ..models.swoc import SwocEntry
 from ..models.timesheet import TimeSheetEntry
@@ -770,3 +771,36 @@ def update_profile(
     db.commit()
     db.refresh(prof)
     return _profile_out(prof)
+
+
+class ScheduleItemOut(BaseModel):
+    id: str
+    type: str
+    title: str
+    starts_at: datetime
+    location: str | None
+    course_code: str | None
+
+
+@router.get("/schedule", response_model=list[ScheduleItemOut])
+def my_schedule(
+    upcoming: bool = True,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[ScheduleItemOut]:
+    student_id = _require_student(session)
+    query = select(ScheduleItem).where(ScheduleItem.student_id == student_id)
+    if upcoming:
+        query = query.where(ScheduleItem.starts_at >= datetime.now(timezone.utc))
+    rows = db.scalars(query.order_by(ScheduleItem.starts_at)).all()
+    return [
+        ScheduleItemOut(
+            id=i.id,
+            type=i.type.value,
+            title=i.title,
+            starts_at=i.starts_at,
+            location=i.location,
+            course_code=i.course_code,
+        )
+        for i in rows
+    ]

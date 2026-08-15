@@ -19,6 +19,7 @@ from ..models.alert import Alert
 from ..models.lab import LabSession
 from ..models.mentor_note import MentorAction, MentorNote
 from ..models.offer import OfferStatus, PlacementOffer
+from ..models.upload import Upload, UploadStatus
 from ..models.user import Student, User
 
 router = APIRouter(prefix="/mentor", tags=["mentor"])
@@ -368,3 +369,105 @@ def confirm_focus(
     db.commit()
     db.refresh(ls)
     return _focus_row(ls)
+
+
+class UploadOut(BaseModel):
+    id: str
+    student_id: str
+    student_name: str
+    kind: str
+    cert_code: str | None
+    title: str
+    original_name: str
+    mime_type: str
+    size_bytes: int
+    status: str
+    reviewed_by_id: str | None
+    reviewed_at: datetime | None
+    review_note: str | None
+    uploaded_at: datetime
+
+
+def _upload_out(u: Upload, student_name: str) -> UploadOut:
+    return UploadOut(
+        id=u.id,
+        student_id=u.student_id,
+        student_name=student_name,
+        kind=u.kind.value,
+        cert_code=u.cert_code,
+        title=u.title,
+        original_name=u.original_name,
+        mime_type=u.mime_type,
+        size_bytes=u.size_bytes,
+        status=u.status.value,
+        reviewed_by_id=u.reviewed_by_id,
+        reviewed_at=u.reviewed_at,
+        review_note=u.review_note,
+        uploaded_at=u.uploaded_at,
+    )
+
+
+@router.get("/uploads/pending", response_model=list[UploadOut])
+def pending_uploads(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[UploadOut]:
+    """Documents awaiting review — profile photos, certificate proofs, offer
+    letters — scoped to the mentor's own group (DIRECTOR/ADMIN see all)."""
+    require_mentor(session)
+    query = (
+        select(Upload, User.name)
+        .join(Student, Upload.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+        .where(Upload.status == UploadStatus.PENDING_REVIEW)
+    )
+    if session["role"] == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            return []  # no Mentor group => nobody (never the whole programme)
+        query = query.where(Student.mentor_id == mentor_id)
+    rows = db.execute(query.order_by(Upload.uploaded_at)).all()
+    return [_upload_out(u, name) for u, name in rows]
+
+
+class UploadReviewIn(BaseModel):
+    decision: str  # "VERIFY" | "REJECT"
+    note: str | None = None
+
+
+@router.post("/uploads/{upload_id}/review", response_model=UploadOut)
+def review_upload(
+    upload_id: str,
+    body: UploadReviewIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> UploadOut:
+    """Verify or reject a submitted document. Scope-checked: a MENTOR can only
+    touch an upload from a student in their own group."""
+    require_mentor(session)
+    up = db.get(Upload, upload_id)
+    if up is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
+    _assert_can_access_student(session, up.student_id, db)
+    if up.status != UploadStatus.PENDING_REVIEW:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Only a pending upload can be reviewed."
+        )
+    decision = body.decision.upper()
+    if decision in ("VERIFY", "VERIFIED", "APPROVE"):
+        up.status = UploadStatus.VERIFIED
+    elif decision in ("REJECT", "REJECTED"):
+        up.status = UploadStatus.REJECTED
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="decision must be VERIFY or REJECT.",
+        )
+    up.reviewed_by_id = session["userId"]
+    up.reviewed_at = datetime.now(timezone.utc)
+    up.review_note = body.note
+    db.commit()
+    db.refresh(up)
+    name = db.scalar(
+        select(User.name).join(Student, Student.user_id == User.id).where(Student.id == up.student_id)
+    )
+    return _upload_out(up, name or "")

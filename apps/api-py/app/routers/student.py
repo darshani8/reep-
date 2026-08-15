@@ -33,6 +33,7 @@ from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, StudentSkill
 from ..models.swoc import SwocEntry
 from ..models.timesheet import DayActivity, TimeSheetEntry
+from ..models.upload import Upload
 from ..models.user import LoginDay, Student
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -1188,4 +1189,47 @@ def my_focus(
             mentor_confirmed=ls.mentor_confirmed,
         )
         for ls in rows
+    ]
+
+
+class UploadRowOut(BaseModel):
+    id: str
+    kind: str
+    cert_code: str | None
+    title: str
+    original_name: str
+    mime_type: str
+    size_bytes: int
+    status: str
+    review_note: str | None
+    reviewed_at: datetime | None
+    uploaded_at: datetime
+
+
+@router.get("/uploads", response_model=list[UploadRowOut])
+def my_uploads(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[UploadRowOut]:
+    """A student's own submitted documents and their review state."""
+    student_id = _require_student(session)
+    rows = db.scalars(
+        select(Upload)
+        .where(Upload.student_id == student_id)
+        .order_by(Upload.uploaded_at.desc())
+    ).all()
+    return [
+        UploadRowOut(
+            id=u.id,
+            kind=u.kind.value,
+            cert_code=u.cert_code,
+            title=u.title,
+            original_name=u.original_name,
+            mime_type=u.mime_type,
+            size_bytes=u.size_bytes,
+            status=u.status.value,
+            review_note=u.review_note,
+            reviewed_at=u.reviewed_at,
+            uploaded_at=u.uploaded_at,
+        )
+        for u in rows
     ]

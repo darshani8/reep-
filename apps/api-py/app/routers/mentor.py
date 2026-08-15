@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..deps import get_current_session
 from ..models.alert import Alert
+from ..models.lab import LabSession
 from ..models.mentor_note import MentorAction, MentorNote
 from ..models.offer import OfferStatus, PlacementOffer
 from ..models.user import Student, User
@@ -313,3 +314,57 @@ def decide_offer(
         select(User.name).join(Student, Student.user_id == User.id).where(Student.id == offer.student_id)
     )
     return _offer_row(offer, name or "")
+
+
+class FocusRowOut(BaseModel):
+    id: str
+    course_code: str
+    module: str
+    activity: str
+    duration_min: int | None
+    check_in_at: datetime
+    mentor_confirmed: bool
+
+
+def _focus_row(ls: LabSession) -> FocusRowOut:
+    return FocusRowOut(
+        id=ls.id,
+        course_code=ls.course_code,
+        module=ls.module,
+        activity=ls.activity.value,
+        duration_min=ls.duration_min,
+        check_in_at=ls.check_in_at,
+        mentor_confirmed=ls.mentor_confirmed,
+    )
+
+
+@router.get("/students/{student_id}/focus", response_model=list[FocusRowOut])
+def student_focus(
+    student_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[FocusRowOut]:
+    _assert_can_access_student(session, student_id, db)
+    rows = db.scalars(
+        select(LabSession)
+        .where(LabSession.student_id == student_id)
+        .order_by(LabSession.check_in_at.desc())
+    ).all()
+    return [_focus_row(ls) for ls in rows]
+
+
+@router.post("/focus/{session_id}/confirm", response_model=FocusRowOut)
+def confirm_focus(
+    session_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> FocusRowOut:
+    require_mentor(session)
+    ls = db.get(LabSession, session_id)
+    if ls is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+    _assert_can_access_student(session, ls.student_id, db)
+    ls.mentor_confirmed = True
+    db.commit()
+    db.refresh(ls)
+    return _focus_row(ls)

@@ -52,7 +52,7 @@
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
@@ -61,7 +61,11 @@ body {
   background: var(--paper-0);
   color: var(--ink-900);
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
+  /* Only the horizontal axis is locked (setting overflow-x makes overflow-y
+     compute to auto). The full-bleed shell contains its OWN vertical scroll via
+     .v2-stage/.desktop-main; pages OUTSIDE the shell (login, register) must
+     still scroll the document, so we must not hide the body's vertical axis. */
+  overflow-x: hidden;
 }
 
 .icon {

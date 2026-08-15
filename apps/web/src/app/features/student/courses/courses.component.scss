@@ -1,11 +1,37 @@
-// Layout + typography live in the global reep-v2 classes (.dt-header, .dt-table,
-// .chip, .card, .dt-sub). Only the two per-cell text tweaks are screen-specific.
+// The warm v2 palette + shared classes (.card, .chip, .dt-btn, .dt-sub) live in
+// the global reep-v2.scss. Only the progress-plan layout and the local meter /
+// neutral-chip tones — which the global sheet doesn't define — are scoped here.
 :host {
   display: block;
 }
 
+.c-note {
+  color: var(--ink-500);
+}
+
+.plan-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.plan-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .c-name {
   font-weight: 700;
+  font-size: 14px;
 }
 
 .c-code {
@@ -14,6 +40,97 @@
   font-size: 11px;
 }
 
-.c-note {
+// --- progress meter (not in the global sheet) ---
+.plan-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.meter {
+  height: 8px;
+  border-radius: 5px;
+  background: var(--line);
+  overflow: hidden;
+  box-shadow: var(--press);
+}
+
+.meter__fill {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--amber-400), var(--amber-600));
+  transition: width 0.3s ease;
+}
+
+.plan-pct {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--ink-500);
+}
+
+.plan-next {
+  font-size: 12.5px;
+  color: var(--ink-800);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plan-next .icon {
+  font-size: 16px;
+  color: var(--amber-600);
+}
+
+.plan-next-label {
+  font-weight: 700;
+}
+
+.plan-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--ink-500);
+}
+
+.fact .icon {
+  font-size: 15px;
+}
+
+.plan-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+// A smaller dt-btn and a router-link styled as a button.
+.dt-btn.sm {
+  padding: 7px 12px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+// Neutral chip tone (the global sheet ships good/warn/risk only).
+.chip.neutral {
+  background: rgba(28, 24, 16, 0.06);
+  color: var(--ink-500);
+}
+
+.chip.unlocks {
+  font-weight: 600;
+}
+
+// Visible keyboard focus on the interactive Continue control.
+.dt-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-soft), var(--edge-hi), var(--ring);
 }

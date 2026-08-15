@@ -1,14 +1,16 @@
 /**
- * Student courses — the Angular port of the `data-p="courses"` mockup panel.
+ * Student courses — a PROGRESS PLAN over GET /student/courses.
  *
- * A single dt-table (Course / Stage / Modules) driven by GET /student/courses.
- * "Modules" is the lecture ratio (attended / total) the endpoint already shapes;
- * a status chip is added per row. All shaping — the lecture ratio, the stage
- * enum, the enrolment status — comes from the FastAPI endpoint, so this renders
- * ready rows and only prettifies the enum labels for display.
+ * Each enrolment renders as a warm v2 card that answers "where am I, and what do
+ * I do next?": a % progress meter, the single NEXT TASK, the stage it belongs to,
+ * an estimate of what's left, a Continue CTA and an "Unlocks" line. All shaping —
+ * the lecture ratio, the stage enum, progress_pct, next_task and unlocks — is
+ * computed server-side (rule-based, no LLM); this component only maps the enum
+ * labels onto tones and lays the fields out.
  */
 
 import { Component, computed, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 
@@ -24,6 +26,10 @@ interface Course {
   lectures_attended: number;
   lectures_total: number;
   lecture_percent: number;
+  // Progress-plan fields from the enriched endpoint.
+  progress_pct: number;
+  next_task: string;
+  unlocks: string;
 }
 
 type LoadState = 'loading' | 'ready' | 'error';
@@ -37,7 +43,7 @@ interface Chip {
 @Component({
   selector: 'app-student-courses',
   standalone: true,
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './courses.component.html',
   styleUrl: './courses.component.scss',
 })
@@ -47,6 +53,9 @@ export class CoursesComponent {
 
   readonly completedCount = computed(
     () => this.courses().filter((c) => c.status === 'COMPLETED').length,
+  );
+  readonly inProgressCount = computed(
+    () => this.courses().filter((c) => c.status === 'IN_PROGRESS').length,
   );
 
   constructor() {
@@ -86,7 +95,12 @@ export class CoursesComponent {
       case 'OVERDUE':
         return { cls: 'risk', icon: 'warning', label: 'Overdue' };
       default:
-        return { cls: '', icon: 'schedule', label: 'Not started' };
+        return { cls: 'neutral', icon: 'schedule', label: 'Not started' };
     }
+  }
+
+  /// Lectures still to attend — the honest "time remaining" a course can offer.
+  lecturesLeft(c: Course): number {
+    return Math.max(0, c.lectures_total - c.lectures_attended);
   }
 }

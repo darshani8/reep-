@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>REEP Design System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* ==========================================================================
+   REEP Design System — reference sheet
+   --------------------------------------------------------------------------
+   Every value below is transcribed from apps/web/src/styles/reep-theme.scss,
+   which is itself a verbatim port of the Next.js app's src/theme.ts. Nothing
+   here is reinterpreted: if a hex on this page disagrees with the stylesheet,
+   the stylesheet is right and this page is stale.
+
+   Theme handling has two independent layers:
+
+     1. The page chrome follows the reader's theme — bare :root is light,
+        prefers-color-scheme flips it, and an explicit data-theme wins over both.
+     2. The specimen panels force a theme with .t-light / .t-dark, so both
+        palettes are visible at once regardless of what the reader is using.
+        Custom properties inherit, so a panel's own declaration beats the
+        inherited root — which is what makes layer 2 survive layer 1.
+   ========================================================================== */
+
+/* --- light: the default ground -------------------------------------------- */
+:root,
+.t-light {
+  --reep-primary-main: #1c1810;
+  --reep-primary-light: #443c2d;
+  --reep-primary-dark: #100d08;
+  --reep-primary-contrast: #f8f4ec;
+
+  --reep-secondary-main: #8a5a1e;
+  --reep-secondary-light: #a8752f;
+  --reep-secondary-dark: #6b4413;
+  --reep-secondary-contrast: #f8f4ec;
+
+  --reep-success-main: #8b5f1c;
+  --reep-warning-main: #62471f;
+  --reep-error-main: #3a301f;
+  --reep-info-main: #8a5a1e;
+
+  --reep-bg-default: #efe9dd;
+  --reep-bg-paper: #f8f4ec;
+
+  --reep-text-primary: #1c1810;
+  --reep-text-secondary: #5a5142;
+  --reep-text-disabled: #6d6353;
+
+  --reep-divider: rgba(28, 24, 16, 0.12);
+  --reep-action-hover: rgba(28, 24, 16, 0.04);
+  --reep-action-selected: rgba(138, 90, 30, 0.10);
+
+  --reep-glass-bg: rgba(252, 249, 242, 0.58);
+  --reep-glass-solid: #faf7f0;
+  --reep-glass-border: rgba(255, 252, 245, 0.75);
+  --reep-glass-shadow: 0 10px 34px rgba(58, 48, 31, 0.10);
+  --reep-glass-highlight: inset 0 1px 0 rgba(255, 253, 247, 0.9);
+
+  --reep-neu-bg: linear-gradient(145deg, #faf7f0, #eae3d4);
+  --reep-neu-flat: #efe9dd;
+  --reep-neu-shadow: 7px 7px 16px rgba(58, 48, 31, 0.13), -7px -7px 16px rgba(255, 252, 244, 0.92);
+  --reep-neu-shadow-lift: 10px 10px 22px rgba(58, 48, 31, 0.16), -10px -10px 22px rgba(255, 253, 247, 1);
+  --reep-neu-inset: inset 2px 2px 5px rgba(58, 48, 31, 0.16), inset -2px -2px 5px rgba(255, 252, 244, 0.9);
+
+  --reep-bloom-a: rgba(176, 124, 44, 0.20);
+  --reep-bloom-b: rgba(138, 90, 30, 0.14);
+  --reep-bloom-c: rgba(212, 161, 85, 0.11);
+
+  --reep-chip-good: #83591b;
+  --reep-chip-accent: #83591b;
+
+  --reep-cell-well: #f1ece1;
+  --reep-cell-well-hover: #ece5d7;
+  --reep-cell-well-inset: inset 1px 1px 2px rgba(58, 48, 31, 0.07), inset -1px -1px 2px rgba(255, 252, 244, 0.7);
+
+  --reep-radius: 8px;
+  --reep-radius-control: 7px;
+  --reep-radius-chip: 6px;
+
+  --reep-font-stack: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --reep-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* --- dark: the same tokens, redefined ------------------------------------- */
+/* Written once as a value list and applied at three selectors so all three
+   reader states resolve: OS-dark with no stamp, an explicit dark stamp, and a
+   forced specimen panel. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --reep-primary-main: #f5f1e8;
+    --reep-primary-light: #fffdf7;
+    --reep-primary-dark: #cdc6b6;
+    --reep-primary-contrast: #14120d;
+
+    --reep-secondary-main: #d9a85f;
+    --reep-secondary-light: #e8c48c;
+    --reep-secondary-dark: #ab7b32;
+    --reep-secondary-contrast: #14120d;
+
+    --reep-success-main: #ab7b32;
+    --reep-warning-main: #d4a155;
+    --reep-error-main: #ead5b6;
+    --reep-info-main: #d9a85f;
+
+    --reep-bg-default: #14120d;
+    --reep-bg-paper: #1e1a14;
+
+    --reep-text-primary: #f5f1e8;
+    --reep-text-secondary: #b0a894;
+    --reep-text-disabled: #968d79;
+
+    --reep-divider: rgba(245, 241, 232, 0.12);
+    --reep-action-hover: rgba(245, 241, 232, 0.05);
+    --reep-action-selected: rgba(217, 168, 95, 0.15);
+
+    --reep-glass-bg: rgba(36, 31, 24, 0.60);
+    --reep-glass-solid: #221e17;
+    --reep-glass-border: rgba(245, 241, 232, 0.09);
+    --reep-glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.48);
+    --reep-glass-highlight: inset 0 1px 0 rgba(245, 241, 232, 0.07);
+
+    --reep-neu-bg: linear-gradient(145deg, #241f18, #100e09);
+    --reep-neu-flat: #1e1a14;
+    --reep-neu-shadow: 7px 7px 16px rgba(0, 0, 0, 0.55), -7px -7px 16px rgba(245, 241, 232, 0.03);
+    --reep-neu-shadow-lift: 10px 10px 22px rgba(0, 0, 0, 0.65), -10px -10px 22px rgba(245, 241, 232, 0.042);
+    --reep-neu-inset: inset 2px 2px 5px rgba(0, 0, 0, 0.6), inset -2px -2px 5px rgba(245, 241, 232, 0.038);
+
+    --reep-bloom-a: rgba(171, 123, 50, 0.26);
+    --reep-bloom-b: rgba(124, 93, 46, 0.20);
+    --reep-bloom-c: rgba(212, 161, 85, 0.10);
+
+    --reep-chip-good: #b7802e;
+    --reep-chip-accent: #d9a85f;
+
+    --reep-cell-well: #191510;
+    --reep-cell-well-hover: #221d15;
+    --reep-cell-well-inset: inset 1px 1px 2px rgba(0, 0, 0, 0.5), inset -1px -1px 2px rgba(245, 241, 232, 0.03);
+  }
+}
+
+:root[data-theme="dark"],
+.t-dark {
+  --reep-primary-main: #f5f1e8;
+  --reep-primary-light: #fffdf7;
+  --reep-primary-dark: #cdc6b6;
+  --reep-primary-contrast: #14120d;
+
+  --reep-secondary-main: #d9a85f;
+  --reep-secondary-light: #e8c48c;
+  --reep-secondary-dark: #ab7b32;
+  --reep-secondary-contrast: #14120d;
+
+  --reep-success-main: #ab7b32;
+  --reep-warning-main: #d4a155;
+  --reep-error-main: #ead5b6;
+  --reep-info-main: #d9a85f;
+
+  --reep-bg-default: #14120d;
+  --reep-bg-paper: #1e1a14;
+
+  --reep-text-primary: #f5f1e8;
+  --reep-text-secondary: #b0a894;
+  --reep-text-disabled: #968d79;
+
+  --reep-divider: rgba(245, 241, 232, 0.12);
+  --reep-action-hover: rgba(245, 241, 232, 0.05);
+  --reep-action-selected: rgba(217, 168, 95, 0.15);
+
+  --reep-glass-bg: rgba(36, 31, 24, 0.60);
+  --reep-glass-solid: #221e17;
+  --reep-glass-border: rgba(245, 241, 232, 0.09);
+  --reep-glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.48);
+  --reep-glass-highlight: inset 0 1px 0 rgba(245, 241, 232, 0.07);
+
+  --reep-neu-bg: linear-gradient(145deg, #241f18, #100e09);
+  --reep-neu-flat: #1e1a14;
+  --reep-neu-shadow: 7px 7px 16px rgba(0, 0, 0, 0.55), -7px -7px 16px rgba(245, 241, 232, 0.03);
+  --reep-neu-shadow-lift: 10px 10px 22px rgba(0, 0, 0, 0.65), -10px -10px 22px rgba(245, 241, 232, 0.042);
+  --reep-neu-inset: inset 2px 2px 5px rgba(0, 0, 0, 0.6), inset -2px -2px 5px rgba(245, 241, 232, 0.038);
+
+  --reep-bloom-a: rgba(171, 123, 50, 0.26);
+  --reep-bloom-b: rgba(124, 93, 46, 0.20);
+  --reep-bloom-c: rgba(212, 161, 85, 0.10);
+
+  --reep-chip-good: #b7802e;
+  --reep-chip-accent: #d9a85f;
+
+  --reep-cell-well: #191510;
+  --reep-cell-well-hover: #221d15;
+  --reep-cell-well-inset: inset 1px 1px 2px rgba(0, 0, 0, 0.5), inset -1px -1px 2px rgba(245, 241, 232, 0.03);
+}
+
+/* --- page baseline (mirrors MuiCssBaseline) ------------------------------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--reep-text-primary);
+  background-color: var(--reep-bg-default);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* The one focus ring, everywhere — verbatim from the stylesheet. */
+*:focus-visible {
+  outline: 2px solid var(--reep-secondary-main);
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* --- type scale (verbatim) ------------------------------------------------ */
+.reep-h1 { font-size: 1.625rem; font-weight: 600; letter-spacing: -0.021em; line-height: 1.25; }
+.reep-h2 { font-size: 1.3125rem; font-weight: 600; letter-spacing: -0.017em; line-height: 1.3; }
+.reep-h3 { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.011em; line-height: 1.4; }
+.reep-h4 { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.006em; }
+.reep-subtitle1 { font-size: 0.9375rem; font-weight: 500; }
+.reep-subtitle2 { font-size: 0.8125rem; font-weight: 500; }
+.reep-body1 { font-size: 0.9375rem; line-height: 1.6; }
+.reep-body2 { font-size: 0.8125rem; line-height: 1.6; }
+.reep-caption { font-size: 0.75rem; line-height: 1.5; }
+
+/* --- page furniture ------------------------------------------------------- */
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+}
+
+.masthead {
+  padding: 56px 0 32px;
+  border-bottom: 1px solid var(--reep-divider);
+  margin-bottom: 8px;
+}
+.masthead__eyebrow {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--reep-secondary-main);
+  margin: 0 0 12px;
+}
+.masthead h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.masthead__lede {
+  margin: 14px 0 0;
+  max-width: 66ch;
+  color: var(--reep-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+.masthead__meta {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 0.75rem;
+  color: var(--reep-text-disabled);
+}
+.masthead__meta code {
+  font-family: var(--reep-mono);
+  font-size: 0.72rem;
+  color: var(--reep-text-secondary);
+}
+
+/* sticky section nav */
+.tocbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 0;
+  margin-bottom: 40px;
+  background: var(--reep-bg-default);
+  border-bottom: 1px solid var(--reep-divider);
+}
+.tocbar a {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--reep-text-secondary);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.tocbar a:hover {
+  background: var(--reep-action-selected);
+  color: var(--reep-text-primary);
+}
+
+/* a titled block separated by a hairline, not a card — the kit's Section */
+.section { margin-bottom: 56px; scroll-margin-top: 68px; }
+.section__head {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 10px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--reep-divider);
+}
+.section__title { margin: 0; color: var(--reep-text-primary); }
+.section__subtitle { margin: 4px 0 0; color: var(--reep-text-secondary); max-width: 70ch; }
+
+.note {
+  margin: 0 0 24px;
+  padding: 12px 16px;
+  border: 1px solid var(--reep-divider);
+  border-radius: var(--reep-radius);
+  background: var(--reep-action-hover);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--reep-text-secondary);
+  max-width: 78ch;
+}
+.note strong { color: var(--reep-text-primary); font-weight: 600; }
+.note code, .inline-code {
+  font-family: var(--reep-mono);
+  font-size: 0.78em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--reep-action-selected);
+  color: var(--reep-text-primary);
+}
+
+/* --- paired light/dark specimen panels ------------------------------------ */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+.panel {
+  padding: 22px;
+  border-radius: var(--reep-radius);
+  border: 1px solid var(--reep-divider);
+  background: var(--reep-bg-default);
+  color: var(--reep-text-primary);
+}
+.panel__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--reep-text-disabled);
+}
+.panel__label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--reep-divider);
+}
+
+/* --- colour swatches ------------------------------------------------------ */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 14px;
+}
+.swatch { min-width: 0; }
+.swatch__chip {
+  height: 56px;
+  border-radius: var(--reep-radius-chip);
+  border: 1px solid var(--reep-divider);
+}
+.swatch__name {
+  margin-top: 7px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--reep-text-primary);
+  overflow-wrap: anywhere;
+}
+.swatch__hex {
+  font-family: var(--reep-mono);
+  font-size: 0.6875rem;
+  color: var(--reep-text-disabled);
+  text-transform: uppercase;
+}
+.group-label {
+  margin: 26px 0 12px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--reep-text-secondary);
+}
+.group-label:first-of-type { margin-top: 0; }
+
+/* --- type specimens ------------------------------------------------------- */
+.specimen {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px 24px;
+  align-items: baseline;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--reep-divider);
+}
+.specimen:last-child { border-bottom: 0; }
+.specimen__spec {
+  font-family: var(--reep-mono);
+  font-size: 0.6875rem;
+  color: var(--reep-text-disabled);
+  text-align: right;
+  white-space: nowrap;
+}
+.specimen__spec b {
+  display: block;
+  font-family: var(--reep-font-stack);
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--reep-text-secondary);
+  margin-bottom: 2px;
+}
+
+/* --- surfaces ------------------------------------------------------------- */
+.surfaces {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 18px;
+}
+.surface {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 104px;
+  padding: 14px;
+  border-radius: var(--reep-radius);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.surface__caption { color: var(--reep-text-secondary); }
+.s-glass {
+  background: var(--reep-glass-bg);
+  border: 1px solid var(--reep-glass-border);
+  box-shadow: var(--reep-glass-shadow), var(--reep-glass-highlight);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.s-neu { background: var(--reep-neu-bg); box-shadow: var(--reep-neu-shadow); }
+.s-neu-lift { background: var(--reep-neu-bg); box-shadow: var(--reep-neu-shadow-lift); }
+.s-neu-inset { background: var(--reep-neu-flat); box-shadow: var(--reep-neu-inset); }
+.s-well {
+  background: var(--reep-cell-well);
+  box-shadow: var(--reep-cell-well-inset);
+}
+.bloom-stage {
+  position: relative;
+  overflow: hidden;
+  min-height: 104px;
+  border-radius: var(--reep-radius);
+  border: 1px solid var(--reep-divider);
+  background: var(--reep-bg-default);
+}
+.bloom-stage span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(26px);
+}
+.bloom-a { width: 110px; height: 110px; top: -26px; left: -16px; background: var(--reep-bloom-a); }
+.bloom-b { width: 96px; height: 96px; bottom: -30px; right: 12px; background: var(--reep-bloom-b); }
+.bloom-c { width: 84px; height: 84px; top: 24px; right: -22px; background: var(--reep-bloom-c); }
+.bloom-stage em {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  font-style: normal;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--reep-text-secondary);
+}
+
+.recipe {
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--reep-radius);
+  border: 1px solid var(--reep-divider);
+  background: var(--reep-action-hover);
+  overflow-x: auto;
+}
+.recipe pre {
+  margin: 0;
+  font-family: var(--reep-mono);
+  font-size: 0.7rem;
+  line-height: 1.85;
+  color: var(--reep-text-secondary);
+  white-space: pre;
+}
+.recipe .tok { color: var(--reep-secondary-main); }
+
+/* --- kit component demos -------------------------------------------------- */
+.demo {
+  padding: 24px;
+  border: 1px solid var(--reep-divider);
+  border-radius: var(--reep-radius);
+  background: var(--reep-bg-paper);
+}
+.demo + .demo { margin-top: 18px; }
+.demo__tag {
+  display: block;
+  margin: 0 0 18px;
+  font-family: var(--reep-mono);
+  font-size: 0.6875rem;
+  color: var(--reep-text-disabled);
+}
+
+.intro { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-end; }
+.intro__title { margin: 0; color: var(--reep-text-primary); }
+.intro__subtitle { margin: 6px 0 0; max-width: 68ch; color: var(--reep-text-secondary); }
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 26px;
+}
+.stat { padding: 4px 0; }
+.stat__value { font-size: 2rem; font-weight: 600; line-height: 1.05; letter-spacing: -0.028em; }
+.stat__label { margin-top: 6px; color: var(--reep-text-secondary); }
+.stat__hint { margin-top: 4px; color: var(--reep-text-disabled); }
+
+.empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 44px 24px; text-align: center; }
+.empty__title { color: var(--reep-text-secondary); }
+.empty__hint { max-width: 48ch; color: var(--reep-text-disabled); }
+
+.banner {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 8px;
+  background: var(--reep-action-hover);
+}
+.banner + .banner { margin-top: 12px; }
+.banner__title { font-size: 0.875rem; font-weight: 600; color: var(--reep-text-primary); margin-bottom: 2px; }
+.banner__text { color: var(--reep-text-secondary); }
+.banner[data-tone="warning"] .banner__title { color: var(--reep-warning-main); }
+.banner[data-tone="critical"] .banner__title { color: var(--reep-error-main); }
+.banner[data-tone="good"] .banner__title { color: var(--reep-success-main); }
+
+/* buttons — ported from the MuiButton theme */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--reep-text-primary);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.btn:hover { background: var(--reep-action-hover); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn--primary { background: var(--reep-secondary-main); color: var(--reep-secondary-contrast); }
+.btn--primary:hover:not(:disabled) { background: var(--reep-secondary-dark); }
+.btn--outlined { border-color: var(--reep-divider); }
+.btn--small { min-height: 32px; padding: 0 12px; font-size: 0.8125rem; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+/* chips */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 4px 12px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 999px;
+  background: transparent;
+  font-family: var(--reep-font-stack);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--reep-text-secondary);
+  cursor: pointer;
+}
+.chip--active { background: var(--reep-action-selected); color: var(--reep-text-primary); border-color: transparent; }
+.chip--good.chip--active { color: var(--reep-success-main); }
+
+/* the jobs table */
+.table-wrap { overflow-x: auto; }
+.jobs { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 0.8125rem; }
+.jobs th {
+  text-align: left;
+  padding: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--reep-text-secondary);
+  border-bottom: 1px solid var(--reep-divider);
+}
+.jobs th:not(:first-child),
+.jobs td:not(:first-child) { border-left: 1px solid var(--reep-divider); }
+.jobs td { padding: 12px 8px; border-bottom: 1px solid var(--reep-divider); vertical-align: top; }
+.jobs__row--closed { opacity: 0.6; }
+.jobs__title { font-weight: 500; color: var(--reep-text-primary); font-size: 0.875rem; }
+.jobs__meta { margin-top: 2px; color: var(--reep-text-disabled); font-size: 0.75rem; }
+.jobs__match-value { font-weight: 600; }
+.jobs__hint { color: var(--reep-text-disabled); font-size: 0.75rem; margin-top: 2px; }
+
+/* focus-ring demo */
+.ring-demo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: var(--reep-radius-control);
+  border: 1px solid var(--reep-divider);
+  background: var(--reep-bg-paper);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--reep-text-primary);
+  outline: 2px solid var(--reep-secondary-main);
+  outline-offset: 2px;
+}
+
+/* radii */
+.radii { display: flex; flex-wrap: wrap; gap: 22px; }
+.radius-demo { text-align: center; }
+.radius-demo div {
+  width: 92px;
+  height: 68px;
+  border: 1px solid var(--reep-divider);
+  background: var(--reep-action-hover);
+}
+.radius-demo span {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--reep-mono);
+  font-size: 0.6875rem;
+  color: var(--reep-text-disabled);
+}
+
+/* token reference table */
+.tokens { width: 100%; border-collapse: collapse; font-size: 0.8125rem; min-width: 560px; }
+.tokens th {
+  text-align: left;
+  padding: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--reep-text-secondary);
+  border-bottom: 1px solid var(--reep-divider);
+}
+.tokens td { padding: 10px 8px; border-bottom: 1px solid var(--reep-divider); vertical-align: top; }
+.tokens td:first-child { font-family: var(--reep-mono); font-size: 0.72rem; color: var(--reep-secondary-main); white-space: nowrap; }
+.tokens td:nth-child(2) { color: var(--reep-text-secondary); }
+
+.foot {
+  margin-top: 72px;
+  padding-top: 24px;
+  border-top: 1px solid var(--reep-divider);
+  font-size: 0.75rem;
+  color: var(--reep-text-disabled);
+  max-width: 78ch;
+}
+.foot code { font-family: var(--reep-mono); color: var(--reep-text-secondary); }
+
+@media (max-width: 640px) {
+  .specimen { grid-template-columns: 1fr; gap: 6px; }
+  .specimen__spec { text-align: left; }
+  .masthead { padding-top: 36px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="masthead__eyebrow">BGSCET MBA · REEP Tracking Dashboard</p>
+    <h1>REEP Design System</h1>
+    <p class="masthead__lede">
+      The tokens, type scale and shared kit every REEP screen is built from. Values are transcribed
+      from <code>reep-theme.scss</code>, itself a verbatim port of the React app's <code>theme.ts</code> —
+      so an Angular component reads the identical token an MUI component did.
+    </p>
+    <div class="masthead__meta">
+      <span>Source · <code>apps/web/src/styles/reep-theme.scss</code></span>
+      <span>Kit · <code>apps/web/src/app/shared/kit/</code></span>
+      <span>Themes · light + dark, switched on <code>data-theme</code></span>
+    </div>
+  </header>
+
+  <nav class="tocbar" aria-label="Sections">
+    <a href="#colour">Colour</a>
+    <a href="#type">Typography</a>
+    <a href="#shape">Shape</a>
+    <a href="#surfaces">Surfaces</a>
+    <a href="#kit">Kit</a>
+    <a href="#controls">Controls</a>
+    <a href="#patterns">Patterns</a>
+    <a href="#a11y">Focus &amp; fallbacks</a>
+    <a href="#tokens">Token index</a>
+  </nav>
+
+  <!-- ===================================================================== -->
+  <section class="section" id="colour">
+    <div class="section__head">
+      <div>
+        <h2 class="reep-h2 section__title">Colour</h2>
+        <p class="reep-caption section__subtitle">
+          Both palettes shown at once — the left panel is always light, the right always dark,
+          whatever theme you are reading this page in.
+        </p>
+      </div>
+    </div>
+
+    <p class="note">
+      <strong>Status is monochrome here, and that is deliberate.</strong> Success, warning and error are
+      brown steps (<code>#8b5f1c</code>, <code>#62471f</code>, <code>#3a301f</code>), not the usual
+      green/amber/red. It holds the warm identity together, but it means <em>colour alone cannot carry
+      state</em> — every status must also be named in words or marked by position. The
+      <code>Tone</code> vocabulary below is what keeps that honest.
+    </p>
+
+    <div class="pair">
+      <div class="panel t-light">
+        <p class="panel__label">Light</p>
+
+        <p class="group-label">Brand</p>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch__chip" style="background:#1c1810"></div><div class="swatch__name">primary-main</div><div class="swatch__hex">#1c1810</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#443c2d"></div><div class="swatch__name">primary-light</div><div class="swatch__hex">#443c2d</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#100d08"></div><div class="swatch__name">primary-dark</div><div class="swatch__hex">#100d08</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#8a5a1e"></div><div class="swatch__name">secondary-main</div><div class="swatch__hex">#8a5a1e</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#a8752f"></div><div class="swatch__name">secondary-light</div><div class="swatch__hex">#a8752f</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#6b4413"></div><div class="swatch__name">secondary-dark</div><div class="swatch__hex">#6b4413</div></div>
+        </div>
+
+        <p class="group-label">Status</p>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch__chip" style="background:#8b5f1c"></div><div class="swatch__name">success-main</div><div class="swatch__hex">#8b5f1c</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#62471f"></div><div class="swatch__name">warning-main</div><div class="swatch__hex">#62471f</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#3a301f"></div><div class="swatch__name">error-main</div><div class="swatch__hex">#3a301f</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#8a5a1e"></div><div class="swatch__name">info-main</div><div class="swatch__hex">#8a5a1e</div></div>
+        </div>
+
+        <p class="group-label">Ground &amp; ink</p>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch__chip" style="background:#efe9dd"></div><div class="swatch__name">bg-default</div><div class="swatch__hex">#efe9dd</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#f8f4ec"></div><div class="swatch__name">bg-paper</div><div class="swatch__hex">#f8f4ec</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#1c1810"></div><div class="swatch__name">text-primary</div><div class="swatch__hex">#1c1810</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#5a5142"></div><div class="swatch__name">text-secondary</div><div class="swatch__hex">#5a5142</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#6d6353"></div><div class="swatch__name">text-disabled</div><div class="swatch__hex">#6d6353</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#f1ece1"></div><div class="swatch__name">cell-well</div><div class="swatch__hex">#f1ece1</div></div>
+        </div>
+
+        <p class="group-label">Lines &amp; states</p>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch__chip" style="background:rgba(28,24,16,0.12)"></div><div class="swatch__name">divider</div><div class="swatch__hex">28 24 16 / .12</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:rgba(28,24,16,0.04)"></div><div class="swatch__name">action-hover</div><div class="swatch__hex">28 24 16 / .04</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:rgba(138,90,30,0.10)"></div><div class="swatch__name">action-selected</div><div class="swatch__hex">138 90 30 / .10</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#83591b"></div><div class="swatch__name">chip-accent</div><div class="swatch__hex">#83591b</div></div>
+        </div>
+      </div>
+
+      <div class="panel t-dark">
+        <p class="panel__label">Dark</p>
+
+        <p class="group-label">Brand</p>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch__chip" style="background:#f5f1e8"></div><div class="swatch__name">primary-main</div><div class="swatch__hex">#f5f1e8</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#fffdf7"></div><div class="swatch__name">primary-light</div><div class="swatch__hex">#fffdf7</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#cdc6b6"></div><div class="swatch__name">primary-dark</div><div class="swatch__hex">#cdc6b6</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#d9a85f"></div><div class="swatch__name">secondary-main</div><div class="swatch__hex">#d9a85f</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#e8c48c"></div><div class="swatch__name">secondary-light</div><div class="swatch__hex">#e8c48c</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#ab7b32"></div><div class="swatch__name">secondary-dark</div><div class="swatch__hex">#ab7b32</div></div>
+        </div>
+
+        <p class="group-label">Status</p>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch__chip" style="background:#ab7b32"></div><div class="swatch__name">success-main</div><div class="swatch__hex">#ab7b32</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#d4a155"></div><div class="swatch__name">warning-main</div><div class="swatch__hex">#d4a155</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#ead5b6"></div><div class="swatch__name">error-main</div><div class="swatch__hex">#ead5b6</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#d9a85f"></div><div class="swatch__name">info-main</div><div class="swatch__hex">#d9a85f</div></div>
+        </div>
+
+        <p class="group-label">Ground &amp; ink</p>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch__chip" style="background:#14120d"></div><div class="swatch__name">bg-default</div><div class="swatch__hex">#14120d</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#1e1a14"></div><div class="swatch__name">bg-paper</div><div class="swatch__hex">#1e1a14</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#f5f1e8"></div><div class="swatch__name">text-primary</div><div class="swatch__hex">#f5f1e8</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#b0a894"></div><div class="swatch__name">text-secondary</div><div class="swatch__hex">#b0a894</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#968d79"></div><div class="swatch__name">text-disabled</div><div class="swatch__hex">#968d79</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#191510"></div><div class="swatch__name">cell-well</div><div class="swatch__hex">#191510</div></div>
+        </div>
+
+        <p class="group-label">Lines &amp; states</p>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch__chip" style="background:rgba(245,241,232,0.12)"></div><div class="swatch__name">divider</div><div class="swatch__hex">245 241 232 / .12</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:rgba(245,241,232,0.05)"></div><div class="swatch__name">action-hover</div><div class="swatch__hex">245 241 232 / .05</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:rgba(217,168,95,0.15)"></div><div class="swatch__name">action-selected</div><div class="swatch__hex">217 168 95 / .15</div></div>
+          <div class="swatch"><div class="swatch__chip" style="background:#d9a85f"></div><div class="swatch__name">chip-accent</div><div class="swatch__hex">#d9a85f</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="section" id="type">
+    <div class="section__head">
+      <div>
+        <h2 class="reep-h2 section__title">Typography</h2>
+        <p class="reep-caption section__subtitle">
+          One typeface, nine steps. Weights stop at 600 — there is no bold in this system.
+        </p>
+      </div>
+    </div>
+
+    <p class="note">
+      <strong>Inter is the real face</strong>, loaded at 400/500/600. This page cannot link it — a
+      published artifact blocks external font hosts — so the specimens below render in the same
+      fallback chain <code>--reep-font-stack</code> declares:
+      <code>system-ui, -apple-system, 'Segoe UI', sans-serif</code>. Metrics and hierarchy are exact;
+      the letterforms are your OS's. In the app itself, Inter loads.
+    </p>
+
+    <div class="demo">
+      <div class="specimen">
+        <div class="reep-h1">Placement readiness at a glance</div>
+        <div class="specimen__spec"><b>h1</b>1.625rem · 600 · −0.021em · 1.25</div>
+      </div>
+      <div class="specimen">
+        <div class="reep-h2">Semester results</div>
+        <div class="specimen__spec"><b>h2</b>1.3125rem · 600 · −0.017em · 1.3</div>
+      </div>
+      <div class="specimen">
+        <div class="reep-h3">Certifications in progress</div>
+        <div class="specimen__spec"><b>h3</b>1.0625rem · 600 · −0.011em · 1.4</div>
+      </div>
+      <div class="specimen">
+        <div class="reep-h4">Attendance this month</div>
+        <div class="specimen__spec"><b>h4</b>0.9375rem · 600 · −0.006em</div>
+      </div>
+      <div class="specimen">
+        <div class="reep-subtitle1">No vacancies match your level yet</div>
+        <div class="specimen__spec"><b>subtitle1</b>0.9375rem · 500</div>
+      </div>
+      <div class="specimen">
+        <div class="reep-subtitle2">Verified by your mentor on 4 August</div>
+        <div class="specimen__spec"><b>subtitle2</b>0.8125rem · 500</div>
+      </div>
+      <div class="specimen">
+        <div class="reep-body1">A resume brief is composed from your own record — marks, attendance, verified skills and the certifications a mentor has signed off.</div>
+        <div class="specimen__spec"><b>body1</b>0.9375rem · 400 · 1.6</div>
+      </div>
+      <div class="specimen">
+        <div class="reep-body2">Ticking “applied” records your own claim. Nothing is sent to the employer from here.</div>
+        <div class="specimen__spec"><b>body2</b>0.8125rem · 400 · 1.6</div>
+      </div>
+      <div class="specimen">
+        <div class="reep-caption">1 verified skill matches; 5 are missing.</div>
+        <div class="specimen__spec"><b>caption</b>0.75rem · 400 · 1.5</div>
+      </div>
+      <div class="specimen">
+        <div class="stat__value tabular" style="color:var(--reep-text-primary)">18,240</div>
+        <div class="specimen__spec"><b>stat value</b>2rem · 600 · −0.028em · tabular</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="section" id="shape">
+    <div class="section__head">
+      <div>
+        <h2 class="reep-h2 section__title">Shape</h2>
+        <p class="reep-caption section__subtitle">Three radii, each with a job. Nothing else rounds.</p>
+      </div>
+    </div>
+
+    <div class="demo">
+      <div class="radii">
+        <div class="radius-demo">
+          <div style="border-radius:8px"></div>
+          <span>--reep-radius · 8px<br>cards, banners, panels</span>
+        </div>
+        <div class="radius-demo">
+          <div style="border-radius:7px"></div>
+          <span>--reep-radius-control · 7px<br>buttons, inputs</span>
+        </div>
+        <div class="radius-demo">
+          <div style="border-radius:6px"></div>
+          <span>--reep-radius-chip · 6px<br>chips, swatches</span>
+        </div>
+        <div class="radius-demo">
+          <div style="border-radius:999px"></div>
+          <span>999px<br>filter pills only</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="section" id="surfaces">
+    <div class="section__head">
+      <div>
+        <h2 class="reep-h2 section__title">Surfaces</h2>
+        <p class="reep-caption section__subtitle">
+          Where the identity actually lives — glass, soft-relief and inset wells, each a measured
+          shadow recipe rather than an elevation number.
+        </p>
+      </div>
+    </div>
+
+    <div class="pair">
+      <div class="panel t-light">
+        <p class="panel__label">Light</p>
+        <div class="surfaces">
+          <div class="surface s-glass"><span class="surface__caption">glass</span></div>
+          <div class="surface s-neu"><span class="surface__caption">neu</span></div>
+          <div class="surface s-neu-lift"><span class="surface__caption">neu lift</span></div>
+          <div class="surface s-neu-inset"><span class="surface__caption">neu inset</span></div>
+          <div class="surface s-well"><span class="surface__caption">cell well</span></div>
+          <div class="bloom-stage">
+            <span class="bloom-a"></span><span class="bloom-b"></span><span class="bloom-c"></span>
+            <em>bloom a·b·c</em>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel t-dark">
+        <p class="panel__label">Dark</p>
+        <div class="surfaces">
+          <div class="surface s-glass"><span class="surface__caption">glass</span></div>
+          <div class="surface s-neu"><span class="surface__caption">neu</span></div>
+          <div class="surface s-neu-lift"><span class="surface__caption">neu lift</span></div>
+          <div class="surface s-neu-inset"><span class="surface__caption">neu inset</span></div>
+          <div class="surface s-well"><span class="surface__caption">cell well</span></div>
+          <div class="bloom-stage">
+            <span class="bloom-a"></span><span class="bloom-b"></span><span class="bloom-c"></span>
+            <em>bloom a·b·c</em>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="recipe">
+      <pre><span class="tok">--reep-glass-bg</span>        rgba(252, 249, 242, 0.58)   → dark: rgba(36, 31, 24, 0.60)
+<span class="tok">--reep-glass-border</span>    rgba(255, 252, 245, 0.75)   → dark: rgba(245, 241, 232, 0.09)
+<span class="tok">--reep-glass-shadow</span>    0 10px 34px rgba(58, 48, 31, 0.10)
+<span class="tok">--reep-glass-highlight</span> inset 0 1px 0 rgba(255, 253, 247, 0.9)
+
+<span class="tok">--reep-neu-bg</span>          linear-gradient(145deg, #faf7f0, #eae3d4)
+<span class="tok">--reep-neu-shadow</span>      7px 7px 16px rgba(58, 48, 31, 0.13), -7px -7px 16px rgba(255, 252, 244, 0.92)
+<span class="tok">--reep-neu-shadow-lift</span> 10px 10px 22px rgba(58, 48, 31, 0.16), -10px -10px 22px rgba(255, 253, 247, 1)
+<span class="tok">--reep-neu-inset</span>       inset 2px 2px 5px rgba(58, 48, 31, 0.16), inset -2px -2px 5px rgba(255, 252, 244, 0.9)
+
+<span class="tok">--reep-cell-well</span>       #f1ece1                     hover: #ece5d7</pre>
+    </div>
+
+    <p class="note" style="margin-top:18px">
+      <strong>Translucency is a preference, not a requirement.</strong> Under
+      <code>prefers-reduced-transparency</code>, or in a browser without <code>backdrop-filter</code>,
+      <code>.reep-glass</code> falls back to the opaque <code>--reep-glass-solid</code> and
+      <code>.reep-ambient</code> is removed entirely — an opaque surface beats unreadable text.
+      In print, glass and neu both flatten to white with a hairline border.
+    </p>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="section" id="kit">
+    <div class="section__head">
+      <div>
+        <h2 class="reep-h2 section__title">The shared kit</h2>
+        <p class="reep-caption section__subtitle">
+          Boxless compositions — a section is a heading with room around it, a statistic is a number
+          with a word under it. Every screen is built from these five.
+        </p>
+      </div>
+    </div>
+
+    <div class="demo">
+      <code class="demo__tag">&lt;kit-page-intro title subtitle&gt; · projected [action]</code>
+      <div class="intro">
+        <div>
+          <h1 class="reep-h1 intro__title">Jobs board</h1>
+          <p class="reep-body2 intro__subtitle">
+            Vacancies open to your programme, ranked worst-first so the gap is the first thing you see.
+          </p>
+        </div>
+        <div><button type="button" class="btn btn--outlined btn--small">Export CSV</button></div>
+      </div>
+    </div>
+
+    <div class="demo">
+      <code class="demo__tag">&lt;kit-stat label value hint tone&gt; · all six tones</code>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat__value tabular" style="color:var(--reep-text-primary)">21</div>
+          <div class="reep-body2 stat__label">Open vacancies</div>
+          <div class="reep-caption stat__hint">tone · neutral</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value tabular" style="color:var(--reep-success-main)">4</div>
+          <div class="reep-body2 stat__label">Skills held</div>
+          <div class="reep-caption stat__hint">tone · good</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value tabular" style="color:var(--reep-warning-main)">68%</div>
+          <div class="reep-body2 stat__label">Attendance</div>
+          <div class="reep-caption stat__hint">tone · warning</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value tabular" style="color:var(--reep-error-main)">2</div>
+          <div class="reep-body2 stat__label">Live backlogs</div>
+          <div class="reep-caption stat__hint">tone · critical</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value tabular" style="color:var(--reep-secondary-main)">12</div>
+          <div class="reep-body2 stat__label">PG vacancies</div>
+          <div class="reep-caption stat__hint">tone · info</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value tabular" style="color:var(--reep-secondary-main)">2</div>
+          <div class="reep-body2 stat__label">Verified skills</div>
+          <div class="reep-caption stat__hint">tone · accent</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo">
+      <code class="demo__tag">&lt;kit-banner tone title&gt; · info · good · warning · critical</code>
+      <div class="banner" data-tone="info">
+        <div>
+          <div class="banner__title">Your level is PG</div>
+          <div class="reep-body2 banner__text">The board opens on PG vacancies. Switch tabs to see UG postings.</div>
+        </div>
+        <div><button type="button" class="btn btn--small">Switch</button></div>
+      </div>
+      <div class="banner" data-tone="good">
+        <div>
+          <div class="banner__title">Resume brief ready</div>
+          <div class="reep-body2 banner__text">Composed from your verified record. Nothing left this machine.</div>
+        </div>
+        <div><button type="button" class="btn btn--small">Open</button></div>
+      </div>
+      <div class="banner" data-tone="warning">
+        <div>
+          <div class="banner__title">Attendance below 75%</div>
+          <div class="reep-body2 banner__text">Three companies in your shortlist set a 75% floor.</div>
+        </div>
+      </div>
+      <div class="banner" data-tone="critical">
+        <div>
+          <div class="banner__title">Two live backlogs</div>
+          <div class="reep-body2 banner__text">A “no live backlogs” rule disqualifies you from 9 of 21 vacancies.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo">
+      <code class="demo__tag">&lt;kit-empty title hint&gt; · projected [action]</code>
+      <div class="empty">
+        <div class="reep-subtitle1 empty__title">No vacancies for UG yet</div>
+        <div class="reep-body2 empty__hint">
+          The weekly import runs on Monday. Postings for your level will appear here once it lands.
+        </div>
+        <div><button type="button" class="btn btn--outlined btn--small">Notify me</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="section" id="controls">
+    <div class="section__head">
+      <div>
+        <h2 class="reep-h2 section__title">Controls</h2>
+        <p class="reep-caption section__subtitle">
+          Global, because they appear on every screen. Radius 7, min-height 38 (32 small).
+        </p>
+      </div>
+    </div>
+
+    <div class="demo">
+      <code class="demo__tag">.btn · .btn--primary · .btn--outlined · .btn--small</code>
+      <div class="btn-row">
+        <button type="button" class="btn btn--primary">Save profile</button>
+        <button type="button" class="btn btn--outlined">Cancel</button>
+        <button type="button" class="btn">Text action</button>
+        <button type="button" class="btn btn--primary btn--small">Apply</button>
+        <button type="button" class="btn btn--outlined btn--small">Build CV</button>
+        <button type="button" class="btn btn--primary" disabled>Submitted</button>
+      </div>
+    </div>
+
+    <div class="demo">
+      <code class="demo__tag">.chip · .chip--active · .chip--good.chip--active</code>
+      <div class="chip-row">
+        <button type="button" class="chip">All</button>
+        <button type="button" class="chip chip--active">Closing soon</button>
+        <button type="button" class="chip chip--good chip--active">Strong match</button>
+        <button type="button" class="chip">Not applied</button>
+        <button type="button" class="chip">Bengaluru</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="section" id="patterns">
+    <div class="section__head">
+      <div>
+        <h2 class="reep-h2 section__title">Patterns</h2>
+        <p class="reep-caption section__subtitle">
+          The jobs table, with real rows from the seeded board — including a closed drive at 60% opacity.
+        </p>
+      </div>
+    </div>
+
+    <div class="demo">
+      <code class="demo__tag">table.jobs · th 0.75rem/500 · td 12px 8px · hairline between every column</code>
+      <div class="table-wrap">
+        <table class="jobs">
+          <thead>
+            <tr>
+              <th scope="col">Role</th>
+              <th scope="col">Match</th>
+              <th scope="col">Closes</th>
+              <th scope="col">Applied</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="jobs__title">Product Analyst</div>
+                <div class="jobs__meta">Razorpay · Bengaluru · PG</div>
+              </td>
+              <td>
+                <div class="jobs__match-value tabular" style="color:var(--reep-success-main)">42%</div>
+                <div class="jobs__hint">3 verified skills match; 4 are missing.</div>
+              </td>
+              <td class="tabular">9 days left</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="jobs__title">Operations Executive</div>
+                <div class="jobs__meta">Amazon India · Bengaluru · UG</div>
+              </td>
+              <td>
+                <div class="jobs__match-value tabular" style="color:var(--reep-text-primary)">22%</div>
+                <div class="jobs__hint">1 verified skill matches; 4 are missing.</div>
+              </td>
+              <td class="tabular">13 days left</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="jobs__title">Consulting Analyst</div>
+                <div class="jobs__meta">Deloitte India · Bengaluru · PG</div>
+              </td>
+              <td>
+                <div class="jobs__match-value tabular" style="color:var(--reep-text-primary)">18%</div>
+                <div class="jobs__hint">1 verified skill matches; 5 are missing.</div>
+              </td>
+              <td class="tabular">17 days left</td>
+              <td>—</td>
+            </tr>
+            <tr class="jobs__row--closed">
+              <td>
+                <div class="jobs__title">Digital Marketing Intern</div>
+                <div class="jobs__meta">Dunzo · Bengaluru · UG</div>
+              </td>
+              <td>
+                <div class="jobs__match-value tabular" style="color:var(--reep-text-primary)">0%</div>
+                <div class="jobs__hint">0 verified skills match; 6 are missing.</div>
+              </td>
+              <td style="color:var(--reep-text-disabled)">Closed</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:18px">
+      <strong>A closed row shows no Apply link.</strong> The original hid it deliberately — “the link is
+      left out so nobody applies into a dead drive.” Opacity alone is not the signal; the missing
+      control is.
+    </p>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="section" id="a11y">
+    <div class="section__head">
+      <div>
+        <h2 class="reep-h2 section__title">Focus &amp; fallbacks</h2>
+        <p class="reep-caption section__subtitle">
+          One ring everywhere, and three graceful degradations that are part of the system, not afterthoughts.
+        </p>
+      </div>
+    </div>
+
+    <div class="demo">
+      <code class="demo__tag">*:focus-visible — 2px solid accent, 2px offset, z-index 1</code>
+      <div class="btn-row" style="gap:20px">
+        <span class="ring-demo">Focused control</span>
+        <button type="button" class="btn btn--outlined">Tab to me to see the real ring</button>
+      </div>
+      <p class="reep-caption" style="margin:16px 0 0;color:var(--reep-text-disabled);max-width:70ch">
+        The <code class="inline-code">z-index: 1</code> matters — without it the ring is clipped by the
+        next table cell or sibling card wherever controls sit edge to edge.
+      </p>
+    </div>
+
+    <div class="demo">
+      <code class="demo__tag">degradations</code>
+      <table class="tokens">
+        <thead>
+          <tr><th scope="col">Condition</th><th scope="col">What changes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>prefers-reduced-transparency</td>
+            <td>Glass becomes opaque <code class="inline-code">--reep-glass-solid</code>; blur removed; ambient bloom hidden.</td>
+          </tr>
+          <tr>
+            <td>@supports not backdrop-filter</td>
+            <td>Same opaque fallback, so text never sits on an unblurred translucent ground.</td>
+          </tr>
+          <tr>
+            <td>@media print</td>
+            <td><code class="inline-code">.no-print</code> hidden; body white; glass and neu flattened to white with a 1px border and no shadow.</td>
+          </tr>
+          <tr>
+            <td>Skip link</td>
+            <td>Off-screen at <code class="inline-code">left: -9999px</code> until focused, then pinned 8px from the top-left.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="section" id="tokens">
+    <div class="section__head">
+      <div>
+        <h2 class="reep-h2 section__title">Token index</h2>
+        <p class="reep-caption section__subtitle">What to reach for, and when.</p>
+      </div>
+    </div>
+
+    <div class="demo">
+      <div class="table-wrap">
+        <table class="tokens">
+          <thead>
+            <tr><th scope="col">Token</th><th scope="col">Use it for</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>--reep-bg-default</td><td>The page ground. Never a card.</td></tr>
+            <tr><td>--reep-bg-paper</td><td>Anything raised off the ground — cards, table wells, the app bar.</td></tr>
+            <tr><td>--reep-text-primary</td><td>Body copy and headings.</td></tr>
+            <tr><td>--reep-text-secondary</td><td>Labels, subtitles, column heads.</td></tr>
+            <tr><td>--reep-text-disabled</td><td>Hints and metadata — the third rank, not a disabled state.</td></tr>
+            <tr><td>--reep-secondary-main</td><td>The one accent. Primary buttons, focus rings, links, active chips.</td></tr>
+            <tr><td>--reep-divider</td><td>Every hairline. Sections separate with a rule, not a card edge.</td></tr>
+            <tr><td>--reep-action-hover</td><td>Hover ground on text buttons and rows; also the banner fill.</td></tr>
+            <tr><td>--reep-action-selected</td><td>Active chip fill and selected nav item.</td></tr>
+            <tr><td>--reep-success / warning / error-main</td><td>Status <em>ink</em>, via the <code class="inline-code">Tone</code> map — never a fill.</td></tr>
+            <tr><td>--reep-cell-well</td><td>Inset data cells inside a table or grid.</td></tr>
+            <tr><td>--reep-bloom-a / b / c</td><td>Ambient background blooms only. Decorative, and hidden under reduced transparency.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:20px">
+      <strong>The tone vocabulary is the contract.</strong>
+      <code>Tone = 'good' | 'warning' | 'critical' | 'info' | 'neutral' | 'accent'</code>, mapped to ink
+      in <code>shared/kit/tone.ts</code>. A screen picks a tone, never a colour — which is what lets the
+      whole palette change in one file. In this theme the status <code>.dark</code> step equals
+      <code>.main</code>, so one token serves both.
+    </p>
+  </section>
+
+  <footer class="foot">
+    <p style="margin:0 0 8px">
+      Transcribed from <code>apps/web/src/styles/reep-theme.scss</code> and
+      <code>apps/web/src/app/shared/kit/</code>. The stylesheet is the source of truth — if a value here
+      disagrees with it, the stylesheet wins and this page needs regenerating.
+    </p>
+    <p style="margin:0">
+      Specimen panels force their theme with <code>.t-light</code> / <code>.t-dark</code>; the page
+      chrome follows your system or app theme. Inter renders in the declared fallback chain here, and
+      loads properly in the app itself.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

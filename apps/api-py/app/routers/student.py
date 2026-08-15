@@ -354,6 +354,25 @@ def my_skills(
     return sorted(out, key=lambda s: (s.category, -s.level))
 
 
+class SkillCatalogueOut(BaseModel):
+    id: str
+    slug: str
+    name: str
+    category: str
+
+
+@router.get("/skills/catalogue", response_model=list[SkillCatalogueOut])
+def skills_catalogue(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[SkillCatalogueOut]:
+    """The full skill catalogue — what a student picks from when filing a claim."""
+    _require_student(session)
+    rows = db.scalars(select(Skill).order_by(Skill.category, Skill.name)).all()
+    return [
+        SkillCatalogueOut(id=s.id, slug=s.slug, name=s.name, category=s.category) for s in rows
+    ]
+
+
 class StreakOut(BaseModel):
     current: int
     longest: int

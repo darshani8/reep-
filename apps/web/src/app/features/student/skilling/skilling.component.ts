@@ -89,6 +89,14 @@ export class SkillingComponent {
   readonly skillCount = computed(() => this.skills()?.length ?? 0);
   readonly verifiedCount = computed(() => (this.skills() ?? []).filter((s) => s.verified).length);
 
+  /// Claim-a-skill form state.
+  readonly catalogue = signal<{ id: string; name: string; category: string }[]>([]);
+  readonly claimSkillId = signal<string>('');
+  readonly claimLevel = signal<number>(3);
+  readonly claiming = signal(false);
+  readonly claimError = signal<string | null>(null);
+  readonly claimOk = signal(false);
+
   /// Grouped by category; the server already sorts by (category, -level), so the
   /// first-seen order is category-sorted and strongest-first within each.
   readonly groups = computed<SkillGroup[] | null>(() => {
@@ -118,6 +126,66 @@ export class SkillingComponent {
   constructor() {
     void this.loadSkills();
     void this.loadClaims();
+    void this.loadCatalogue();
+  }
+
+  private async loadCatalogue(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/student/skills/catalogue`, {
+        credentials: 'include',
+      });
+      if (res.ok) this.catalogue.set(await res.json());
+    } catch {
+      /* the claim form just stays empty */
+    }
+  }
+
+  /// Upload the certificate as proof, then file the claim against it.
+  async onClaimFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const skillId = this.claimSkillId();
+    if (!file || !skillId) return;
+    this.claiming.set(true);
+    this.claimError.set(null);
+    this.claimOk.set(false);
+    try {
+      // 1. Store the certificate (magic-byte validated server-side).
+      const form = new FormData();
+      form.append('file', file);
+      form.append('kind', 'CERTIFICATE_PROOF');
+      form.append('title', file.name);
+      const up = await fetch(`${environment.apiBase}/student/uploads`, {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!up.ok) {
+        const d = await up.json().catch(() => null);
+        this.claimError.set(d?.detail ?? 'Certificate upload failed (PDF/PNG/JPEG, up to 10 MB).');
+        return;
+      }
+      const uploadId = (await up.json()).id as string;
+      // 2. File the claim against that upload.
+      const claim = await fetch(`${environment.apiBase}/student/skill-claims`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill_id: skillId, upload_id: uploadId, claimed_level: this.claimLevel() }),
+      });
+      if (!claim.ok) {
+        this.claimError.set('Could not file the claim. Please try again.');
+        return;
+      }
+      this.claimOk.set(true);
+      this.claimSkillId.set('');
+      await this.loadClaims(); // show the new PENDING_REVIEW claim
+    } catch {
+      this.claimError.set('Could not reach the server.');
+    } finally {
+      this.claiming.set(false);
+      input.value = '';
+    }
   }
 
   private async loadSkills(): Promise<void> {

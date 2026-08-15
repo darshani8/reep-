@@ -49,6 +49,28 @@ class Settings(BaseSettings):
     livekit_url: str = ""
     livekit_api_key: str = ""
     livekit_api_secret: str = ""
+    # Optional shared secret the voice worker presents on POST /api/voice/heartbeat.
+    # Blank -> the heartbeat is open (dev). Set it in prod to authenticate the worker.
+    voice_worker_secret: str = ""
+    # Maintenance banner surfaced by GET /api/voice/status when non-empty (voice is
+    # forced unavailable while set — e.g. during an incident).
+    voice_maintenance_message: str = ""
+
+    @property
+    def gemini_key_present(self) -> bool:
+        """A Gemini/Google key from either the config field or the raw env.
+        The voice model (Gemini Live) reuses this key."""
+        import os
+
+        return bool(
+            self.gemini_api_key.strip()
+            or os.getenv("GEMINI_API_KEY", "").strip()
+            or os.getenv("GOOGLE_API_KEY", "").strip()
+        )
+
+    @property
+    def livekit_ready(self) -> bool:
+        return bool(self.livekit_url and self.livekit_api_key and self.livekit_api_secret)
 
     # Where uploaded files are stored on disk (only metadata lives in the DB).
     # Empty -> apps/api-py/var/uploads (gitignored). Object storage in production.

@@ -3,8 +3,9 @@
  * (all three nav trees point their `/assistant` route here).
  *
  * Text goes through ChatVoiceService.sendMessage (POST /api/agent/chat); the
- * same service opens a LiveKit voice session sharing the session_id, so the
- * backend keeps one conversation memory across text and voice. Voice needs
+ * same service opens a LiveKit voice session. The conversation is server-owned
+ * (resolved from the session cookie), so the backend keeps one conversation
+ * memory across text and voice without the client holding a session id. Voice needs
  * LiveKit + Gemini creds to actually connect — the button is present and wired,
  * and fails gracefully with a note until those are set.
  *
@@ -16,7 +17,6 @@
 import { Component, computed, inject, signal, effect, ElementRef, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { AuthService } from '../../core/auth.service';
 import { ChatVoiceService } from '../../core/chat-voice.service';
 import { PageIntroComponent } from '../../shared/kit/kit.components';
 
@@ -29,7 +29,6 @@ import { PageIntroComponent } from '../../shared/kit/kit.components';
 })
 export class AssistantComponent {
   private readonly chat = inject(ChatVoiceService);
-  private readonly auth = inject(AuthService);
 
   readonly history = this.chat.chatHistory;
   readonly connection = this.chat.connectionStatus;
@@ -46,9 +45,6 @@ export class AssistantComponent {
     'Show jobs I qualify for',
     'How do I verify a skill?',
   ];
-
-  /// Per-user stable id, so the thread (text + voice) persists across reloads.
-  readonly sessionId = computed(() => `assistant-${this.auth.session()?.userId ?? 'anon'}`);
 
   readonly voiceLabel = computed(() => {
     switch (this.connection()) {
@@ -75,7 +71,7 @@ export class AssistantComponent {
 
   private async init(): Promise<void> {
     try {
-      await this.chat.loadHistory(this.sessionId());
+      await this.chat.loadHistory();
     } catch {
       /* fresh session — nothing to restore */
     }
@@ -107,7 +103,7 @@ export class AssistantComponent {
     this.sending.set(true);
     this.error.set(null);
     try {
-      await this.chat.sendMessage(this.sessionId(), message);
+      await this.chat.sendMessage(message);
     } catch {
       this.error.set(
         'The assistant is unavailable right now. It needs an LLM provider key set in the backend (apps/api-py/.env).',
@@ -125,9 +121,24 @@ export class AssistantComponent {
     }
     this.error.set(null);
     try {
-      await this.chat.startVoiceSession(this.sessionId());
+      await this.chat.startVoiceSession();
+    } catch (err) {
+      this.error.set(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Voice is not available yet — it needs LiveKit + Gemini credentials in the backend.',
+      );
+    }
+  }
+
+  /// Discard the server-owned conversation and empty the transcript.
+  async clearConversation(): Promise<void> {
+    if (this.sending()) return;
+    this.error.set(null);
+    try {
+      await this.chat.clearConversation();
     } catch {
-      this.error.set('Voice is not available yet — it needs LiveKit + Gemini credentials in the backend.');
+      this.error.set('Could not clear the conversation. Please try again.');
     }
   }
 }

@@ -17,6 +17,7 @@ from .models.academics import SemesterResult, SubjectMark
 from .models.alert import Alert, AlertRuleKey, AlertSeverity
 from .models.attendance import AttendanceRecord
 from .models.certification import Certification, CertificationProgress
+from .models.cohort import Cohort
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
 from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
@@ -382,6 +383,26 @@ def main() -> None:
             )
             db.commit()
             print("added lab sessions (2)")
+
+        # Idempotently create a cohort and assign the student to it.
+        if db.scalar(select(Cohort)) is None:
+            db.add(
+                Cohort(
+                    code="MBA-2026-B",
+                    name="MBA Batch 2024-26 - Section B",
+                    batch_label="2024-26",
+                    degree_level=DegreeLevel.PG,
+                    start_date=datetime(2024, 8, 1, tzinfo=timezone.utc),
+                    end_date=datetime(2026, 7, 31, tzinfo=timezone.utc),
+                )
+            )
+            db.commit()
+            print("added cohort (1)")
+        cohort = db.scalar(select(Cohort).where(Cohort.code == "MBA-2026-B"))
+        if stu and cohort and stu.cohort_id != cohort.id:
+            stu.cohort_id = cohort.id
+            db.commit()
+            print("assigned student to cohort")
     finally:
         db.close()
 

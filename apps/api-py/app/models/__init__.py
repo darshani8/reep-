@@ -5,6 +5,7 @@ from . import academics  # noqa: F401
 from . import alert  # noqa: F401
 from . import attendance  # noqa: F401
 from . import certification  # noqa: F401
+from . import cohort  # noqa: F401
 from . import course  # noqa: F401
 from . import job  # noqa: F401
 from . import lab  # noqa: F401

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..deps import get_current_session
 from ..models.alert import Alert
+from ..models.cohort import Cohort
 from ..models.offer import OfferStatus, PlacementOffer
 from ..models.user import Student
 from .mentor import require_director
@@ -77,3 +78,34 @@ def overview(
         placement_percent=round(100 * placed / total, 1) if total else 0.0,
         open_alerts=open_alerts,
     )
+
+
+class CohortOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    batch_label: str
+    degree_level: str
+    student_count: int
+
+
+@router.get("/cohorts", response_model=list[CohortOut])
+def cohorts(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[CohortOut]:
+    require_director(session)
+    counts = dict(
+        db.execute(select(Student.cohort_id, func.count()).group_by(Student.cohort_id)).all()
+    )
+    rows = db.scalars(select(Cohort).order_by(Cohort.code)).all()
+    return [
+        CohortOut(
+            id=c.id,
+            code=c.code,
+            name=c.name,
+            batch_label=c.batch_label,
+            degree_level=c.degree_level.value,
+            student_count=counts.get(c.id, 0),
+        )
+        for c in rows
+    ]

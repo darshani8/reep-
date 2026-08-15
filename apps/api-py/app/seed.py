@@ -19,6 +19,7 @@ from .models.attendance import AttendanceRecord
 from .models.certification import Certification, CertificationProgress
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
+from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
 from .models.profile import StudentProfile
@@ -369,6 +370,18 @@ def main() -> None:
             )
             db.commit()
             print("added certification progress (1)")
+
+        # Idempotently add two completed focus/lab sessions.
+        if stu and db.scalar(select(LabSession).where(LabSession.student_id == stu.id)) is None:
+            base = datetime.now(timezone.utc)
+            db.add_all(
+                [
+                    LabSession(student_id=stu.id, course_code="22MBA12", module="Demand analysis", activity=ActivityType.ONLINE_COURSE, mode=LearningMode.SUPERVISED_LAB, source=CheckInSource.LAB_PC, check_in_at=base - timedelta(days=1, hours=2), check_out_at=base - timedelta(days=1), duration_min=120, mentor_confirmed=True),
+                    LabSession(student_id=stu.id, course_code="22MBA11", module="OB case study", activity=ActivityType.GROUP_STUDY, mode=LearningMode.INDEPENDENT, source=CheckInSource.SELF_REPORTED, check_in_at=base - timedelta(hours=3), check_out_at=base - timedelta(hours=1, minutes=30), duration_min=90),
+                ]
+            )
+            db.commit()
+            print("added lab sessions (2)")
     finally:
         db.close()
 

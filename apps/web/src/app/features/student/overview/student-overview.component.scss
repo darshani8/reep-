@@ -1,6 +1,7 @@
-/* Screen-specific tweaks only — every visual class (.card, .donut, .bar-chart,
- * .swoc-*, .badge, .streak-*, .chip, .grid-*, .dt-*) lives in the global
- * reep-v2.scss and is reused as-is. Nothing here redefines those. */
+/* Screen-specific tweaks only — the visual language (.card, .donut, .bar-chart,
+ * .swoc-*, .badge, .streak-*, .chip, .grid-*, .dt-*, .reco-row) lives in the
+ * global reep-v2.scss / reep-v2-resume.scss and is reused as-is. The rules here
+ * only lay out the new action-led sections; none redefine a global class. */
 
 :host {
   display: block;
@@ -10,4 +11,144 @@
  * routed screen this component owns no frame, so keep the last card flush. */
 .card:last-child {
   margin-bottom: 0;
+}
+
+/* Compact button variant (global reep-v2 has no .sm; jobs.component defines its
+ * own scoped copy — mirror it here so action/reco CTAs match). */
+.dt-btn.sm {
+  padding: 5px 10px;
+  font-size: 11.5px;
+}
+/* Anchor CTAs styled as buttons — strip the link chrome. */
+a.dt-btn {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* --- 1) Next actions --- */
+.action-list {
+  display: flex;
+  flex-direction: column;
+}
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.action-row:last-child {
+  border-bottom: none;
+}
+.action-main {
+  flex: 1;
+  min-width: 0;
+}
+.action-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.action-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* --- 2) Placement readiness --- */
+.readiness-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 14px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.readiness-score {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.readiness-num {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--amber-600);
+}
+.readiness-band {
+  min-width: 0;
+}
+.factor-list {
+  display: flex;
+  flex-direction: column;
+}
+.factor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.factor-row:last-child {
+  border-bottom: none;
+}
+.factor-row .chip {
+  flex-shrink: 0;
+  min-width: 74px;
+  justify-content: center;
+}
+.factor-text {
+  min-width: 0;
+}
+.factor-label {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* --- 3) Recommendations --- */
+.reco-ico {
+  color: var(--amber-600);
+  flex-shrink: 0;
+}
+.reco-body {
+  flex: 1;
+  min-width: 0;
+}
+.reco-title {
+  font-weight: 700;
+}
+
+/* --- 4) SWOC actionable cards --- */
+.swoc-text {
+  line-height: 1.45;
+}
+.swoc-frame {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+.swoc-frame .icon {
+  font-size: 15px;
+}
+
+/* --- 5) Locked skill badges --- */
+.badge-locked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--ink-400);
+}
+.badge-locked .icon {
+  font-size: 12px;
 }

@@ -1,19 +1,21 @@
 /**
- * Student landing (overview) — the v2 desktop landing panel (data-p="landing").
+ * Student landing (overview) — the ACTION-LED v2 desktop landing panel.
  *
- * Faithful port of the mockup in docs/design-v2/student-app.html: the welcome
- * header + login-streak chip, a Stage donut, Attendance and VTU-marks bar
- * charts, the four SWOC boxes, a Mocks-taken chart, skill badges (verified vs
- * locked) and the login-streak row.
+ * The screen now opens with what the student should DO, then explains where
+ * they stand, before the historical analytics:
+ *   1. "Your next actions"   — GET /student/next-actions (rule-based to-do list)
+ *   2. "Placement readiness" — GET /student/placement-readiness (score + factors)
+ *   3. "Recommended for you" — GET /student/recommendations (next-skill nudges)
+ *   4. SWOC as four actionable cards
+ *   5. Skill badges (locked badges spell out their unlock condition)
+ *   6. Analytics below: stage donut, attendance, VTU marks, mocks, streak.
  *
- * It composes several read endpoints. /student/dashboard supplies the header
- * facts and the stage; the richer per-series data for the charts comes from the
- * matching sub-endpoints (attendance, results, streak, swoc, mocks, skills).
- * Every card is independent — when its endpoint is missing or empty the card
- * shows a small empty state instead of crashing the screen.
+ * Every card is independent — when its endpoint is missing, empty or errors, the
+ * card shows its own state and the rest of the screen is unaffected.
  */
 
 import { Component, computed, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 
@@ -81,6 +83,40 @@ interface StudentSkill {
   verified: boolean;
 }
 
+/** GET /student/next-actions row (snake_case, verbatim from NextActionOut). */
+interface NextAction {
+  id: string;
+  title: string;
+  reason: string;
+  cta_label: string;
+  cta_route: string;
+  status: string;
+  deadline: string | null;
+  priority: number;
+}
+
+/** GET /student/placement-readiness (verbatim from PlacementReadinessOut). */
+interface ReadinessFactor {
+  label: string;
+  met: boolean;
+  detail: string;
+  weight: number;
+}
+interface PlacementReadiness {
+  score: number;
+  band: string;
+  summary: string;
+  factors: ReadinessFactor[];
+}
+
+/** GET /student/recommendations row (verbatim from RecommendationOut). */
+interface Recommendation {
+  title: string;
+  why: string;
+  cta_label: string;
+  cta_route: string;
+}
+
 interface Bar {
   label: string;
   caption: string;
@@ -90,6 +126,13 @@ interface Badge {
   name: string;
   icon: string;
   locked: boolean;
+  title: string;
+}
+
+type ChipTone = 'good' | 'warn' | 'risk' | 'neutral';
+interface StatusChip {
+  cls: ChipTone;
+  icon: string;
 }
 
 const STAGES: { key: string; label: string }[] = [
@@ -107,9 +150,21 @@ const MOCK_TYPES: { key: MockKind; label: string }[] = [
   { key: 'APTITUDE', label: 'Aptitude' },
 ];
 
+/** Status-label → chip tone + icon. TEXT is always the label itself, so colour
+ *  is never the only signal. Unknown labels fall back to a neutral chip. */
+const STATUS_CHIPS: Record<string, StatusChip> = {
+  Overdue: { cls: 'risk', icon: 'warning' },
+  'In progress': { cls: 'warn', icon: 'schedule' },
+  Missing: { cls: 'risk', icon: 'error' },
+  Incomplete: { cls: 'warn', icon: 'pending' },
+  'Pending review': { cls: 'neutral', icon: 'hourglass_top' },
+  Unverified: { cls: 'warn', icon: 'help' },
+};
+
 @Component({
   selector: 'app-student-overview',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './student-overview.component.html',
   styleUrl: './student-overview.component.scss',
 })
@@ -127,6 +182,11 @@ export class StudentOverviewComponent {
   readonly mocks = signal<MockAttempt[] | null>(null);
   readonly skills = signal<StudentSkill[] | null>(null);
 
+  // Action-led sections (null = section failed to load → per-card error state).
+  readonly nextActions = signal<NextAction[] | null>(null);
+  readonly readiness = signal<PlacementReadiness | null>(null);
+  readonly recommendations = signal<Recommendation[] | null>(null);
+
   constructor() {
     void this.load();
   }
@@ -142,6 +202,29 @@ export class StudentOverviewComponent {
     const key = this.dashboard()?.current_stage;
     return STAGES.find((s) => s.key === key)?.label ?? key ?? '';
   });
+
+  // ---- next actions --------------------------------------------------------
+
+  /** Show the most urgent few; the endpoint already sorts by priority asc. */
+  readonly topActions = computed(() => this.nextActions()?.slice(0, 4) ?? []);
+
+  statusChip(status: string): StatusChip {
+    return STATUS_CHIPS[status] ?? { cls: 'neutral', icon: 'info' };
+  }
+
+  formatDeadline(iso: string): string {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // ---- placement readiness -------------------------------------------------
+
+  bandChip(band: string): ChipTone {
+    if (band === 'Ready' || band === 'On track') return 'good';
+    if (band === 'Developing') return 'warn';
+    return 'risk';
+  }
 
   // ---- stage donut ---------------------------------------------------------
 
@@ -216,10 +299,30 @@ export class StudentOverviewComponent {
     const s = this.swoc();
     if (!s) return null;
     return [
-      { cls: 'swoc-box swoc-s', title: 'Strengths', text: this.joinSwoc(s.strengths) },
-      { cls: 'swoc-box swoc-w', title: 'Weaknesses', text: this.joinSwoc(s.weaknesses) },
-      { cls: 'swoc-box swoc-o', title: 'Opportunities', text: this.joinSwoc(s.opportunities) },
-      { cls: 'swoc-box swoc-c', title: 'Challenges', text: this.joinSwoc(s.challenges) },
+      {
+        cls: 'swoc-box swoc-s',
+        title: 'Strength',
+        text: this.joinSwoc(s.strengths),
+        frame: 'Leverage this in your applications and interviews.',
+      },
+      {
+        cls: 'swoc-box swoc-w',
+        title: 'Weakness',
+        text: this.joinSwoc(s.weaknesses),
+        frame: 'Recommended activity — turn this into a skilling goal.',
+      },
+      {
+        cls: 'swoc-box swoc-o',
+        title: 'Opportunity',
+        text: this.joinSwoc(s.opportunities),
+        frame: 'Act before the window closes — check the jobs board and deadlines.',
+      },
+      {
+        cls: 'swoc-box swoc-c',
+        title: 'Challenge',
+        text: this.joinSwoc(s.challenges),
+        frame: 'Plan a prep task now to get ahead of this.',
+      },
     ];
   });
 
@@ -277,6 +380,9 @@ export class StudentOverviewComponent {
       name: s.name,
       icon: s.verified ? this.skillIcon(s) : 'lock',
       locked: !s.verified,
+      title: s.verified
+        ? `${s.name} — verified`
+        : `Verify a ${s.category} skill to unlock this badge`,
     }));
   });
 
@@ -314,15 +420,19 @@ export class StudentOverviewComponent {
   }
 
   private async load(): Promise<void> {
-    const [dash, att, res, streak, swoc, mocks, skills] = await Promise.all([
-      this.getJson<Dashboard>('/student/dashboard'),
-      this.getJson<AttendanceSummary>('/student/attendance'),
-      this.getJson<SemesterResult[]>('/student/results'),
-      this.getJson<Streak>('/student/streak'),
-      this.getJson<SwocBoard>('/student/swoc'),
-      this.getJson<MockAttempt[]>('/student/mocks'),
-      this.getJson<StudentSkill[]>('/student/skills'),
-    ]);
+    const [dash, att, res, streak, swoc, mocks, skills, actions, readiness, recos] =
+      await Promise.all([
+        this.getJson<Dashboard>('/student/dashboard'),
+        this.getJson<AttendanceSummary>('/student/attendance'),
+        this.getJson<SemesterResult[]>('/student/results'),
+        this.getJson<Streak>('/student/streak'),
+        this.getJson<SwocBoard>('/student/swoc'),
+        this.getJson<MockAttempt[]>('/student/mocks'),
+        this.getJson<StudentSkill[]>('/student/skills'),
+        this.getJson<{ actions: NextAction[] }>('/student/next-actions'),
+        this.getJson<PlacementReadiness>('/student/placement-readiness'),
+        this.getJson<{ items: Recommendation[] }>('/student/recommendations'),
+      ]);
 
     if (dash == null) {
       this.error.set('Could not load your overview.');
@@ -337,6 +447,9 @@ export class StudentOverviewComponent {
     this.swoc.set(swoc);
     this.mocks.set(mocks);
     this.skills.set(skills);
+    this.nextActions.set(actions ? actions.actions : null);
+    this.readiness.set(readiness);
+    this.recommendations.set(recos ? recos.items : null);
     this.loading.set(false);
   }
 

@@ -1068,6 +1068,24 @@ class CourseOut(BaseModel):
     lectures_attended: int
     lectures_total: int
     lecture_percent: float
+    # --- Progress-plan fields (rule-based; no LLM) ---
+    progress_pct: float
+    next_task: str
+    unlocks: str
+
+
+def _prettify_stage(stage_value: str) -> str:
+    """EXCEL_ADVANCED -> 'Excel Advanced'."""
+    return " ".join(word.capitalize() for word in stage_value.split("_"))
+
+
+def _course_next_task(status: str, lectures_attended: int, lectures_total: int) -> str:
+    """The single next action for a course, derived from lecture progress."""
+    if status == "COMPLETED":
+        return "Completed"
+    if lectures_attended < lectures_total:
+        return f"Attend lecture {lectures_attended + 1} of {lectures_total}"
+    return "Finish the coursework / assessment"
 
 
 @router.get("/courses", response_model=list[CourseOut])
@@ -1081,26 +1099,34 @@ def my_courses(
         .where(Enrollment.student_id == student_id)
         .order_by(Course.semester, Course.code)
     ).all()
-    return [
-        CourseOut(
-            code=course.code,
-            name=course.name,
-            stage=course.stage.value,
-            dimension=course.dimension.value,
-            semester=course.semester,
-            status=enr.status.value,
-            teaching_hours_attended=enr.teaching_hours_attended,
-            self_learning_hours_logged=enr.self_learning_hours_logged,
-            lectures_attended=enr.lectures_attended,
-            lectures_total=enr.lectures_total,
-            lecture_percent=(
-                round(100 * enr.lectures_attended / enr.lectures_total, 1)
-                if enr.lectures_total
-                else 0.0
-            ),
+    out: list[CourseOut] = []
+    for enr, course in rows:
+        lecture_percent = (
+            round(100 * enr.lectures_attended / enr.lectures_total, 1)
+            if enr.lectures_total
+            else 0.0
         )
-        for enr, course in rows
-    ]
+        out.append(
+            CourseOut(
+                code=course.code,
+                name=course.name,
+                stage=course.stage.value,
+                dimension=course.dimension.value,
+                semester=course.semester,
+                status=enr.status.value,
+                teaching_hours_attended=enr.teaching_hours_attended,
+                self_learning_hours_logged=enr.self_learning_hours_logged,
+                lectures_attended=enr.lectures_attended,
+                lectures_total=enr.lectures_total,
+                lecture_percent=lecture_percent,
+                progress_pct=lecture_percent,
+                next_task=_course_next_task(
+                    enr.status.value, enr.lectures_attended, enr.lectures_total
+                ),
+                unlocks=f"Progresses your {_prettify_stage(course.stage.value)} stage",
+            )
+        )
+    return out
 
 
 class CertProgressOut(BaseModel):
@@ -1113,6 +1139,26 @@ class CertProgressOut(BaseModel):
     required_hours: float
     due_date: datetime
     self_reported: bool
+    # --- Progress-plan fields (rule-based; no LLM) ---
+    est_hours_remaining: float
+    days_until_due: int | None
+    next_task: str
+    unlocks: str
+
+
+def _cert_next_task(status: str, self_reported: bool, est_hours_remaining: float) -> str:
+    """The single next action for a certification, derived from its status."""
+    if status == "NOT_STARTED":
+        return "Start the course"
+    if status == "IN_PROGRESS":
+        return f"Log about {est_hours_remaining:.0f} more hours, then take the assessment"
+    if status == "COMPLETED":
+        if self_reported:
+            return "Upload your certificate for verification"
+        return "Done — verified"
+    if status == "OVERDUE":
+        return "Catch up — you're behind the pace to finish in time"
+    return "Start the course"
 
 
 @router.get("/certifications", response_model=list[CertProgressOut])
@@ -1126,20 +1172,38 @@ def my_certifications(
         .where(CertificationProgress.student_id == student_id)
         .order_by(CertificationProgress.due_date)
     ).all()
-    return [
-        CertProgressOut(
-            code=cert.code,
-            name=cert.name,
-            provider=cert.provider,
-            status=prog.status.value,
-            progress_pct=prog.progress_pct,
-            hours_logged=prog.hours_logged,
-            required_hours=cert.required_hours,
-            due_date=prog.due_date,
-            self_reported=prog.self_reported,
+    now = datetime.now(timezone.utc)
+    out: list[CertProgressOut] = []
+    for prog, cert in rows:
+        est_hours_remaining = max(0.0, cert.required_hours - prog.hours_logged)
+        due = prog.due_date
+        if due is None:
+            days_until_due = None
+        else:
+            # Tolerate a naive due_date (some backends drop tzinfo) by assuming UTC.
+            if due.tzinfo is None:
+                due = due.replace(tzinfo=timezone.utc)
+            days_until_due = (due - now).days
+        out.append(
+            CertProgressOut(
+                code=cert.code,
+                name=cert.name,
+                provider=cert.provider,
+                status=prog.status.value,
+                progress_pct=prog.progress_pct,
+                hours_logged=prog.hours_logged,
+                required_hours=cert.required_hours,
+                due_date=prog.due_date,
+                self_reported=prog.self_reported,
+                est_hours_remaining=round(est_hours_remaining, 1),
+                days_until_due=days_until_due,
+                next_task=_cert_next_task(
+                    prog.status.value, prog.self_reported, est_hours_remaining
+                ),
+                unlocks="Raises your placement readiness (certification completion)",
+            )
         )
-        for prog, cert in rows
-    ]
+    return out
 
 
 class CheckInIn(BaseModel):

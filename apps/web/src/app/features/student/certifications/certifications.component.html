@@ -15,29 +15,71 @@
         are enrolled on the courses that carry them.
       </div>
     } @else {
-      <table class="dt-table">
-        <tr>
-          <th>Certification</th>
-          <th>Provider</th>
-          <th>Progress</th>
-          <th>Pace</th>
-        </tr>
+      <div class="cert-grid">
         @for (row of list; track row.code) {
-          <tr>
-            <td>{{ row.name }}</td>
-            <td>{{ row.provider }}</td>
-            <td>{{ row.progress_pct | number: '1.0-0' }}%</td>
-            <td>
+          <div class="card cert-card">
+            <!-- header: name + provider + status chip -->
+            <div class="cert-top">
+              <div class="cert-id">
+                <div class="cert-name">{{ row.name }}</div>
+                <div class="dt-sub">{{ row.provider }}</div>
+              </div>
               <span class="chip {{ row.chip.cls }}">
                 <span class="icon">{{ row.chip.icon }}</span>{{ row.chip.label }}
               </span>
-            </td>
-          </tr>
+            </div>
+
+            <!-- progress bar with % -->
+            <div class="pbar-row">
+              <div
+                class="pbar"
+                role="progressbar"
+                [attr.aria-valuenow]="row.progress_pct | number: '1.0-0'"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-label]="row.name + ' progress'"
+              >
+                <span class="pbar__fill {{ row.barCls }}" [style.width.%]="row.progress_pct"></span>
+              </div>
+              <span class="pbar-pct">{{ row.progress_pct | number: '1.0-0' }}%</span>
+            </div>
+
+            <!-- next task -->
+            <div class="cert-next">
+              <span class="icon">arrow_forward</span>
+              <span><strong>Next:</strong> {{ row.next_task }}</span>
+            </div>
+
+            <!-- meta: due + hours remaining -->
+            <div class="cert-meta">
+              <span class="meta-item {{ row.dueCls }}">
+                <span class="icon">event</span>{{ row.dueText }}
+                @if (row.due_date && row.status !== 'COMPLETED') {
+                  <span class="meta-date">({{ row.due_date | date: 'd MMM y' }})</span>
+                }
+              </span>
+              @if (row.est_hours_remaining > 0 && row.status !== 'COMPLETED') {
+                <span class="meta-item">
+                  <span class="icon">hourglass_top</span>{{ row.est_hours_remaining | number: '1.0-1' }}h left
+                </span>
+              }
+            </div>
+
+            <!-- footer: continue CTA, then full-width unlocks -->
+            <div class="cert-foot">
+              <a class="dt-btn primary sm" routerLink="/student/uploads">
+                <span class="icon">play_arrow</span>Continue
+              </a>
+              <span class="chip warn unlocks" [attr.title]="row.unlocks">
+                <span class="icon">lock_open</span>Unlocks: {{ row.unlocks }}
+              </span>
+            </div>
+          </div>
         }
-      </table>
+      </div>
     }
   } @else if (error()) {
-    <div class="card">{{ error() }}</div>
+    <div class="card err">{{ error() }}</div>
   } @else {
     <div class="card">Loading…</div>
   }

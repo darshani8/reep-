@@ -36,7 +36,7 @@ from ..models.skill import Skill, SkillClaim, StudentSkill
 from ..models.swoc import SwocEntry
 from ..models.resume_profile import ResumeProfile
 from ..models.timesheet import DayActivity, TimeSheetEntry
-from ..models.upload import Upload, UploadKind
+from ..models.upload import Upload, UploadKind, UploadStatus
 from ..models.user import LoginDay, Student, User
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -1652,3 +1652,439 @@ def leaderboards(
         for i, (sid, _uid, _name) in enumerate(ranked)
     ]
     return LeaderboardOut(board=board, opted_out=False, rows=rows)
+
+
+# --- Rule-based guidance (no LLM): next actions, readiness, recommendations ----
+#
+# Every value below is computed from the caller's own rows. These endpoints are
+# STUDENT-only and never touch a model, so they carry no student-data egress.
+
+
+def _attendance_pct(db: Session, student_id: str) -> float:
+    """Overall attendance %, same computation the dashboard/attendance uses."""
+    rows = db.execute(
+        select(AttendanceRecord.present).where(AttendanceRecord.student_id == student_id)
+    ).all()
+    total = len(rows)
+    present = sum(1 for (p,) in rows if p)
+    return round(100 * present / total, 1) if total else 0.0
+
+
+def _latest_cgpa(db: Session, student_id: str) -> float | None:
+    latest = db.scalar(
+        select(SemesterResult)
+        .where(SemesterResult.student_id == student_id)
+        .order_by(SemesterResult.semester.desc())
+        .limit(1)
+    )
+    return latest.cgpa if latest else None
+
+
+def _live_backlogs(db: Session, student_id: str) -> int:
+    return int(
+        db.scalar(
+            select(func.coalesce(func.sum(SemesterResult.live_backlogs), 0)).where(
+                SemesterResult.student_id == student_id
+            )
+        )
+        or 0
+    )
+
+
+def _cert_completion_pct(db: Session, student_id: str) -> float:
+    """Share of the student's certifications that are COMPLETED."""
+    rows = db.execute(
+        select(CertificationProgress.status).where(
+            CertificationProgress.student_id == student_id
+        )
+    ).all()
+    total = len(rows)
+    if not total:
+        return 0.0
+    done = sum(1 for (s,) in rows if s == ProgressStatus.COMPLETED)
+    return round(100 * done / total, 1)
+
+
+def _resume_pct(db: Session, student_id: str) -> int:
+    row = db.scalar(select(ResumeProfile).where(ResumeProfile.student_id == student_id))
+    return _resume_completeness(row.data if row else {})
+
+
+class NextActionOut(BaseModel):
+    id: str
+    title: str
+    reason: str
+    cta_label: str
+    cta_route: str
+    status: str
+    deadline: datetime | None
+    priority: int
+
+
+class NextActionsOut(BaseModel):
+    actions: list[NextActionOut]
+
+
+@router.get("/next-actions", response_model=NextActionsOut)
+def next_actions(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> NextActionsOut:
+    """The student's 'what to do next' list — the top 5 candidate actions drawn
+    from their real certification, course, profile, resume and skilling state,
+    sorted by urgency (lower priority = more urgent). Rule-based; no model."""
+    student_id = _require_student(session)
+    actions: list[NextActionOut] = []
+
+    # Certifications (join for the display name), split by status.
+    cert_rows = db.execute(
+        select(CertificationProgress, Certification)
+        .join(Certification, CertificationProgress.cert_code == Certification.code)
+        .where(CertificationProgress.student_id == student_id)
+        .order_by(CertificationProgress.due_date)
+    ).all()
+    for prog, cert in cert_rows:
+        if prog.status == ProgressStatus.OVERDUE:
+            actions.append(
+                NextActionOut(
+                    id=f"cert-overdue-{cert.code}",
+                    title=f"Finish {cert.name}",
+                    reason="Overdue — behind the pace to complete in time",
+                    cta_label="Continue",
+                    cta_route="/student/certifications",
+                    status="Overdue",
+                    deadline=prog.due_date,
+                    priority=1,
+                )
+            )
+        elif prog.status == ProgressStatus.IN_PROGRESS:
+            actions.append(
+                NextActionOut(
+                    id=f"cert-progress-{cert.code}",
+                    title=f"Finish {cert.name}",
+                    reason=f"In progress ({round(prog.progress_pct)}%)",
+                    cta_label="Continue",
+                    cta_route="/student/certifications",
+                    status="In progress",
+                    deadline=prog.due_date,
+                    priority=3,
+                )
+            )
+
+    # In-progress courses.
+    course_rows = db.execute(
+        select(Enrollment, Course)
+        .join(Course, Enrollment.course_code == Course.code)
+        .where(
+            Enrollment.student_id == student_id,
+            Enrollment.status == ProgressStatus.IN_PROGRESS,
+        )
+        .order_by(Course.semester, Course.code)
+    ).all()
+    for enr, course in course_rows:
+        if enr.lectures_total:
+            reason = f"{enr.lectures_attended}/{enr.lectures_total} lectures attended"
+        else:
+            reason = "In progress — keep logging your self-learning hours"
+        actions.append(
+            NextActionOut(
+                id=f"course-{course.code}",
+                title=f"Finish {course.name}",
+                reason=reason,
+                cta_label="Continue",
+                cta_route="/student/courses",
+                status="In progress",
+                deadline=None,
+                priority=3,
+            )
+        )
+
+    # Missing placement-profile fields.
+    prof = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
+    if not (prof and prof.phone):
+        actions.append(
+            NextActionOut(
+                id="profile-phone",
+                title="Add your phone number to your placement profile",
+                reason="Recruiters need a way to reach you",
+                cta_label="Add",
+                cta_route="/student/profile",
+                status="Missing",
+                deadline=None,
+                priority=2,
+            )
+        )
+    if not (prof and prof.linkedin_url):
+        actions.append(
+            NextActionOut(
+                id="profile-linkedin",
+                title="Add your LinkedIn URL to your placement profile",
+                reason="A LinkedIn profile strengthens your placement record",
+                cta_label="Add",
+                cta_route="/student/profile",
+                status="Missing",
+                deadline=None,
+                priority=2,
+            )
+        )
+
+    # Low resume completeness.
+    resume_pct = _resume_pct(db, student_id)
+    if resume_pct < 70:
+        actions.append(
+            NextActionOut(
+                id="resume-completeness",
+                title=f"Complete your resume profile ({resume_pct}%)",
+                reason="A fuller resume profile means a stronger auto-generated CV",
+                cta_label="Complete",
+                cta_route="/student/resume",
+                status="Incomplete",
+                deadline=None,
+                priority=4,
+            )
+        )
+
+    # A pending skill claim under review, or a held-but-unverified skill.
+    pending_claim = db.execute(
+        select(SkillClaim, Skill.name)
+        .join(Skill, SkillClaim.skill_id == Skill.id)
+        .where(
+            SkillClaim.student_id == student_id,
+            SkillClaim.status == UploadStatus.PENDING_REVIEW,
+        )
+        .order_by(SkillClaim.created_at.desc())
+        .limit(1)
+    ).first()
+    if pending_claim is not None:
+        _claim, skill_name = pending_claim
+        actions.append(
+            NextActionOut(
+                id="skill-claim-pending",
+                title=f"Your {skill_name} skill claim is under review",
+                reason="A mentor is reviewing your evidence",
+                cta_label="View",
+                cta_route="/student/skilling",
+                status="Pending review",
+                deadline=None,
+                priority=4,
+            )
+        )
+    else:
+        unverified = db.execute(
+            select(StudentSkill, Skill.name)
+            .join(Skill, StudentSkill.skill_id == Skill.id)
+            .where(
+                StudentSkill.student_id == student_id,
+                StudentSkill.verified.is_(False),
+            )
+            .order_by(StudentSkill.updated_at.desc())
+            .limit(1)
+        ).first()
+        if unverified is not None:
+            _ss, skill_name = unverified
+            actions.append(
+                NextActionOut(
+                    id="skill-unverified",
+                    title=f"Get your {skill_name} skill verified",
+                    reason="Upload evidence so a mentor can verify it",
+                    cta_label="Verify",
+                    cta_route="/student/skilling",
+                    status="Unverified",
+                    deadline=None,
+                    priority=4,
+                )
+            )
+
+    actions.sort(key=lambda a: a.priority)
+    return NextActionsOut(actions=actions[:5])
+
+
+class ReadinessFactorOut(BaseModel):
+    label: str
+    met: bool
+    detail: str
+    weight: int
+
+
+class PlacementReadinessOut(BaseModel):
+    score: int
+    band: str
+    summary: str
+    factors: list[ReadinessFactorOut]
+
+
+def _readiness_band(score: int) -> str:
+    if score < 40:
+        return "Not ready"
+    if score < 60:
+        return "Developing"
+    if score < 80:
+        return "On track"
+    return "Ready"
+
+
+@router.get("/placement-readiness", response_model=PlacementReadinessOut)
+def placement_readiness(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> PlacementReadinessOut:
+    """A weighted placement-readiness score against the active PlacementCriteria
+    (or sensible defaults when none is set). Rule-based; no model."""
+    student_id = _require_student(session)
+
+    crit = db.scalar(
+        select(PlacementCriteria)
+        .where(PlacementCriteria.active.is_(True))
+        .order_by(PlacementCriteria.updated_at.desc())
+        .limit(1)
+    )
+    # Defaults when the director has set no active criteria.
+    min_cgpa = crit.min_cgpa if crit else 6.0
+    max_backlogs = crit.max_live_backlogs if crit else 0
+    min_att = crit.min_attendance_pct if crit else 75.0
+    min_cert = crit.min_cert_completion_pct if crit else 50.0
+
+    cgpa = _latest_cgpa(db, student_id)
+    backlogs = _live_backlogs(db, student_id)
+    att = _attendance_pct(db, student_id)
+    cert_pct = _cert_completion_pct(db, student_id)
+    prof = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
+    has_contacts = bool(prof and prof.phone and prof.linkedin_url)
+    resume_pct = _resume_pct(db, student_id)
+
+    factors = [
+        ReadinessFactorOut(
+            label="CGPA",
+            met=(cgpa is not None and cgpa >= min_cgpa),
+            detail=(
+                f"CGPA {cgpa} meets the {min_cgpa} cut-off"
+                if (cgpa is not None and cgpa >= min_cgpa)
+                else (
+                    f"CGPA {cgpa} is below the {min_cgpa} cut-off"
+                    if cgpa is not None
+                    else "CGPA not yet assessed"
+                )
+            ),
+            weight=3,
+        ),
+        ReadinessFactorOut(
+            label="Live backlogs",
+            met=(backlogs <= max_backlogs),
+            detail=f"{backlogs} live backlog(s); limit is {max_backlogs}",
+            weight=3,
+        ),
+        ReadinessFactorOut(
+            label="Attendance",
+            met=(att >= min_att),
+            detail=f"Attendance {att}% vs required {min_att}%",
+            weight=2,
+        ),
+        ReadinessFactorOut(
+            label="Certification completion",
+            met=(cert_pct >= min_cert),
+            detail=f"{cert_pct}% of certifications completed vs required {min_cert}%",
+            weight=2,
+        ),
+        ReadinessFactorOut(
+            label="Placement profile",
+            met=has_contacts,
+            detail=(
+                "Phone and LinkedIn are on file"
+                if has_contacts
+                else "Add your phone number and LinkedIn URL"
+            ),
+            weight=1,
+        ),
+        ReadinessFactorOut(
+            label="Resume profile",
+            met=(resume_pct >= 70),
+            detail=f"Resume profile {resume_pct}% complete (target 70%)",
+            weight=1,
+        ),
+    ]
+
+    total_weight = sum(f.weight for f in factors)
+    met_weight = sum(f.weight for f in factors if f.met)
+    score = round(100 * met_weight / total_weight) if total_weight else 0
+    band = _readiness_band(score)
+    met_count = sum(1 for f in factors if f.met)
+    summary = f"{score}/100 — {band}. {met_count} of {len(factors)} placement checks met."
+
+    return PlacementReadinessOut(score=score, band=band, summary=summary, factors=factors)
+
+
+class RecommendationOut(BaseModel):
+    title: str
+    why: str
+    cta_label: str
+    cta_route: str
+
+
+class RecommendationsOut(BaseModel):
+    items: list[RecommendationOut]
+
+
+@router.get("/recommendations", response_model=RecommendationsOut)
+def recommendations(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> RecommendationsOut:
+    """Up to three rule-based next-skill (or fallback) recommendations, drawn from
+    the catalogue skills the student does not yet hold. Never empty when any
+    sensible recommendation exists. No model."""
+    student_id = _require_student(session)
+
+    held_ids = set(
+        db.scalars(
+            select(StudentSkill.skill_id).where(StudentSkill.student_id == student_id)
+        ).all()
+    )
+    catalogue = db.scalars(select(Skill).order_by(Skill.category, Skill.name)).all()
+    missing = [s for s in catalogue if s.id not in held_ids]
+
+    items: list[RecommendationOut] = []
+    for s in missing[:3]:
+        items.append(
+            RecommendationOut(
+                title=f"Learn {s.name}",
+                why=f"Unlocks your {s.category} badge",
+                cta_label="Start",
+                cta_route="/student/skilling",
+            )
+        )
+
+    # Holds every catalogue skill (or the catalogue is empty): fall back to
+    # finishing an in-progress certification, then completing the resume profile.
+    if not items:
+        in_prog = db.execute(
+            select(Certification.name)
+            .join(
+                CertificationProgress,
+                CertificationProgress.cert_code == Certification.code,
+            )
+            .where(
+                CertificationProgress.student_id == student_id,
+                CertificationProgress.status.in_(
+                    (ProgressStatus.IN_PROGRESS, ProgressStatus.OVERDUE)
+                ),
+            )
+            .order_by(CertificationProgress.due_date)
+            .limit(3)
+        ).all()
+        for (cert_name,) in in_prog:
+            items.append(
+                RecommendationOut(
+                    title=f"Finish {cert_name}",
+                    why="You have every catalogue skill — completing this certification is your next win",
+                    cta_label="Continue",
+                    cta_route="/student/certifications",
+                )
+            )
+        if len(items) < 3 and _resume_pct(db, student_id) < 100:
+            items.append(
+                RecommendationOut(
+                    title="Complete your resume profile",
+                    why="A fuller resume profile means a stronger auto-generated CV",
+                    cta_label="Complete",
+                    cta_route="/student/resume",
+                )
+            )
+
+    return RecommendationsOut(items=items[:3])

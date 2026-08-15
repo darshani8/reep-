@@ -17,6 +17,114 @@
     }
   </div>
 
+  <!-- 1) YOUR NEXT ACTIONS — the action-led opener, above all analytics -->
+  <div class="card">
+    <h4>Your next actions <span class="dt-sub" style="font-weight:400">what to do next, most urgent first</span></h4>
+    @if (nextActions() === null) {
+      <div class="dt-sub">Your next actions are unavailable right now.</div>
+    } @else if (topActions().length) {
+      <div class="action-list">
+        @for (a of topActions(); track a.id) {
+          <div class="action-row">
+            <div class="action-main">
+              <div class="action-title">{{ a.title }}</div>
+              <div class="dt-sub">{{ a.reason }}</div>
+            </div>
+            <div class="action-meta">
+              @let s = statusChip(a.status);
+              <span class="chip {{ s.cls }}"><span class="icon">{{ s.icon }}</span>{{ a.status }}</span>
+              @if (a.deadline) {
+                <span class="chip neutral"><span class="icon">event</span>Due {{ formatDeadline(a.deadline) }}</span>
+              }
+              <a class="dt-btn primary sm" [routerLink]="a.cta_route">{{ a.cta_label }}</a>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="chip good"><span class="icon">check_circle</span>You're all caught up</div>
+      <div class="dt-sub" style="margin-top:8px">Nothing needs your attention right now — great work. New actions appear as deadlines and tasks come up.</div>
+    }
+  </div>
+
+  <!-- 2) & 3) Placement readiness + Recommendations -->
+  <div class="grid-2">
+    <!-- Placement readiness -->
+    <div class="card">
+      <h4>Placement readiness</h4>
+      @if (readiness(); as r) {
+        <div class="readiness-head">
+          <div class="readiness-score">
+            <div class="readiness-num">{{ r.score }}</div>
+            <div class="dt-sub">/ 100</div>
+          </div>
+          <div class="readiness-band">
+            <span class="chip {{ bandChip(r.band) }}"><span class="icon">military_tech</span>{{ r.band }}</span>
+            <div class="dt-sub" style="margin-top:6px">{{ r.summary }}</div>
+          </div>
+        </div>
+        <div class="factor-list">
+          @for (f of r.factors; track f.label) {
+            <div class="factor-row">
+              <span class="chip {{ f.met ? 'good' : 'risk' }}">
+                <span class="icon">{{ f.met ? 'check' : 'close' }}</span>{{ f.met ? 'Met' : 'Not met' }}
+              </span>
+              <div class="factor-text">
+                <div class="factor-label">{{ f.label }}</div>
+                <div class="dt-sub">{{ f.detail }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="dt-sub">Your placement readiness is unavailable right now.</div>
+      }
+    </div>
+
+    <!-- Recommendations -->
+    <div class="card">
+      <h4>Recommended for you</h4>
+      @if (recommendations() === null) {
+        <div class="dt-sub">Recommendations are unavailable right now.</div>
+      } @else if (recommendations()?.length) {
+        @for (rec of recommendations(); track rec.title) {
+          <div class="reco-row">
+            <span class="icon reco-ico">arrow_forward</span>
+            <div class="reco-body">
+              <div class="reco-title">{{ rec.title }}</div>
+              <div class="dt-sub">{{ rec.why }}</div>
+            </div>
+            <a class="dt-btn sm" [routerLink]="rec.cta_route">{{ rec.cta_label }}</a>
+          </div>
+        }
+      } @else {
+        <div class="dt-sub">Recommendations appear once you start a certification or claim a skill — take your first action above and check back.</div>
+      }
+    </div>
+  </div>
+
+  <!-- 4) SWOC as four actionable cards -->
+  <div class="card">
+    <h4>SWOC — Strengths, Weaknesses, Opportunities, Challenges
+      <span class="dt-sub" style="font-weight:400">from placement, mentor &amp; PM inputs</span>
+    </h4>
+    @if (swocBoxes(); as boxes) {
+      <div class="swoc-grid">
+        @for (box of boxes; track box.title) {
+          <div [class]="box.cls">
+            <b>{{ box.title }}</b>
+            <div class="swoc-text">{{ box.text }}</div>
+            <div class="swoc-frame"><span class="icon">arrow_right_alt</span>{{ box.frame }}</div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="dt-sub">No SWOC inputs yet — your mentor and the placement cell add these.</div>
+    }
+  </div>
+
+  <!-- ================= Analytics (historical) below the action sections ============= -->
+
   <div class="grid-3">
     <!-- Stage donut -->
     <div class="card">
@@ -65,19 +173,27 @@
   </div>
 
   <div class="grid-2">
-    <!-- SWOC -->
+    <!-- Skill badges -->
     <div class="card">
-      <h4>SWOC — Strengths, Weaknesses, Opportunities, Challenges
-        <span class="dt-sub" style="font-weight:400">from placement, mentor &amp; PM inputs</span>
-      </h4>
-      @if (swocBoxes(); as boxes) {
-        <div class="swoc-grid">
-          @for (box of boxes; track box.title) {
-            <div [class]="box.cls"><b>{{ box.title }}</b>{{ box.text }}</div>
-          }
-        </div>
+      <h4>Skill badges</h4>
+      @if (badges(); as bs) {
+        @if (bs.length) {
+          <div class="badge-row">
+            @for (badge of bs; track badge.name) {
+              <div class="badge" [class.locked]="badge.locked" [attr.title]="badge.title">
+                <div class="ico"><span class="icon">{{ badge.icon }}</span></div>
+                {{ badge.name }}
+                @if (badge.locked) {
+                  <div class="badge-locked"><span class="icon">lock</span>Locked</div>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="dt-sub">No skills recorded yet — upload a certificate to claim one.</div>
+        }
       } @else {
-        <div class="dt-sub">No SWOC inputs yet — your mentor and the placement cell add these.</div>
+        <div class="dt-sub">Skill badges are unavailable right now.</div>
       }
     </div>
 
@@ -99,34 +215,6 @@
       } @else {
         <div class="dt-sub">No mock assessments taken yet.</div>
       }
-    </div>
-  </div>
-
-  <div class="grid-2">
-    <!-- Skill badges -->
-    <div class="card">
-      <h4>Skill badges</h4>
-      @if (badges(); as bs) {
-        @if (bs.length) {
-          <div class="badge-row">
-            @for (badge of bs; track badge.name) {
-              <div class="badge" [class.locked]="badge.locked">
-                <div class="ico"><span class="icon">{{ badge.icon }}</span></div>{{ badge.name }}
-              </div>
-            }
-          </div>
-        } @else {
-          <div class="dt-sub">No skills recorded yet — upload a certificate to claim one.</div>
-        }
-      } @else {
-        <div class="dt-sub">Skill badges are unavailable right now.</div>
-      }
-    </div>
-
-    <!-- Recommendations (no data source yet) -->
-    <div class="card">
-      <h4>Top 5 skilling recommendations</h4>
-      <div class="dt-sub">Personalised recommendations aren't available yet.</div>
     </div>
   </div>
 

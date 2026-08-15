@@ -18,7 +18,12 @@
 import { Component, computed, inject, signal, effect, ElementRef, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { ChatVoiceService, ChatTurn, VoiceState } from '../../core/chat-voice.service';
+import {
+  ChatVoiceService,
+  ChatTurn,
+  FeedbackRating,
+  VoiceState,
+} from '../../core/chat-voice.service';
 import { PageIntroComponent } from '../../shared/kit/kit.components';
 
 /** localStorage key remembering that the consent disclosure was accepted. */
@@ -53,6 +58,13 @@ export class AssistantComponent {
   readonly error = signal<string | null>(null);
   /// Index of the assistant turn last copied — drives the transient "Copied" label.
   readonly copiedIndex = signal<number | null>(null);
+
+  /// Per-run feedback the student has cast (helpful / not_helpful / report).
+  readonly feedbackState = this.chat.feedbackState;
+  /// Turn index whose inline "Report" note field is open (only one at a time).
+  readonly reportOpenIndex = signal<number | null>(null);
+  /// Draft text in the open report note field.
+  readonly reportNote = signal('');
 
   /// One-tap starters. Clicking a chip fills the draft and sends it.
   readonly quickPrompts = [
@@ -196,6 +208,52 @@ export class AssistantComponent {
     } catch {
       /* clipboard blocked — no-op */
     }
+  }
+
+  // ------------------------------------------------------------------ //
+  // Feedback controls (Phase D)                                        //
+  // ------------------------------------------------------------------ //
+
+  /// The rating the student cast for a given run, if any.
+  feedbackFor(runId: string): FeedbackRating | undefined {
+    return this.feedbackState()[runId];
+  }
+
+  /// Cast a thumbs-up / thumbs-down rating for a fresh answer.
+  async vote(runId: string, rating: 'helpful' | 'not_helpful'): Promise<void> {
+    try {
+      await this.chat.sendFeedback(runId, rating);
+    } catch {
+      /* transient — silently drop; the student can try again */
+    }
+  }
+
+  /// Toggle the inline report-note field for a turn (closes any other open one).
+  toggleReport(index: number): void {
+    if (this.reportOpenIndex() === index) {
+      this.reportOpenIndex.set(null);
+    } else {
+      this.reportOpenIndex.set(index);
+    }
+    this.reportNote.set('');
+  }
+
+  /// Keep the report-note draft in sync with the textarea.
+  onReportInput(event: Event): void {
+    this.reportNote.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  /// Submit a report for a run, with the optional note, then close the field.
+  async submitReport(runId: string): Promise<void> {
+    const note = this.reportNote().trim();
+    try {
+      await this.chat.sendFeedback(runId, 'report', note || undefined);
+    } catch {
+      /* transient — leave the field open so the student can retry */
+      return;
+    }
+    this.reportOpenIndex.set(null);
+    this.reportNote.set('');
   }
 
   /// Shared send/retry runner: manages the sending flag and error surface.

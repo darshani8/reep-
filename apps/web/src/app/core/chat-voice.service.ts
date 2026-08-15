@@ -37,6 +37,9 @@ export interface AgentSource {
   label: string;
   type: 'student-record' | 'policy' | 'general';
 }
+/** How the student rated a fresh /ask answer (Phase D feedback controls). */
+export type FeedbackRating = 'helpful' | 'not_helpful' | 'report';
+
 /** The structured payload attached to a fresh /ask assistant turn. */
 export interface StructuredAnswer {
   answer: string;
@@ -44,6 +47,8 @@ export interface StructuredAnswer {
   sources: AgentSource[];
   limitations: string[];
   model: string | null;
+  /** Identifies the agent run this answer came from — needed to send feedback. */
+  run_id?: string;
 }
 
 export interface ChatTurn {
@@ -100,6 +105,10 @@ interface AskResponse {
   limitations: string[];
   conversation_id: string;
   model: string | null;
+  run_id: string;
+}
+interface FeedbackResponse {
+  ok: boolean;
 }
 interface VoiceToken {
   token: string;
@@ -122,6 +131,12 @@ export class ChatVoiceService {
 
   /** Reactive text state. */
   readonly chatHistory = signal<ChatTurn[]>([]);
+
+  /**
+   * Per-run feedback the student has cast, keyed by run_id (Phase D). Lets the
+   * UI reflect which answer was rated what, and acknowledge the choice.
+   */
+  readonly feedbackState = signal<Record<string, FeedbackRating>>({});
 
   /** Reactive voice state (Phase C). */
   readonly voiceState = signal<VoiceState>('idle');
@@ -210,6 +225,7 @@ export class ChatVoiceService {
             sources: data.sources ?? [],
             limitations: data.limitations ?? [],
             model: data.model ?? null,
+            run_id: data.run_id,
           },
         },
       ]);
@@ -245,6 +261,27 @@ export class ChatVoiceService {
     );
   }
 
+  /**
+   * Record the student's rating of one grounded answer (Phase D). Posts to
+   * /api/agent/feedback and remembers the choice locally so the UI reflects it.
+   * An optional note accompanies a 'report'.
+   */
+  async sendFeedback(runId: string, rating: FeedbackRating, note?: string): Promise<void> {
+    // The API's FeedbackRating enum is upper-case (HELPFUL / NOT_HELPFUL /
+    // REPORT); the UI carries the lower-case form. Map at the wire boundary so
+    // the local state + template comparisons stay lower-case.
+    const body: { run_id: string; rating: string; note?: string } = {
+      run_id: runId,
+      rating: rating.toUpperCase(),
+    };
+    const trimmed = note?.trim();
+    if (trimmed) body.note = trimmed;
+    await firstValueFrom(
+      this.http.post<FeedbackResponse>('/api/agent/feedback', body, { withCredentials: true }),
+    );
+    this.feedbackState.update((m) => ({ ...m, [runId]: rating }));
+  }
+
   /** Discard the server-owned conversation and clear the local transcript. */
   async clearConversation(): Promise<void> {
     await firstValueFrom(
@@ -252,6 +289,7 @@ export class ChatVoiceService {
     );
     this.chatHistory.set([]);
     this.voiceTranscript.set([]);
+    this.feedbackState.set({});
   }
 
   // ------------------------------------------------------------------ //

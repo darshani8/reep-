@@ -237,7 +237,76 @@
                 <button type="button" class="link-btn" (click)="copy(turn, ti)">
                   {{ copiedIndex() === ti ? 'Copied' : 'Copy' }}
                 </button>
+
+                <!-- Feedback controls — only on fresh /ask turns (run_id present). -->
+                @if (turn.structured?.run_id; as runId) {
+                  <span class="feedback" role="group" aria-label="Rate this answer">
+                    <button
+                      type="button"
+                      class="feedback__btn"
+                      [class.feedback__btn--on]="feedbackFor(runId) === 'helpful'"
+                      [attr.aria-pressed]="feedbackFor(runId) === 'helpful'"
+                      aria-label="Helpful"
+                      title="Helpful"
+                      (click)="vote(runId, 'helpful')"
+                    >
+                      <span aria-hidden="true">👍</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="feedback__btn"
+                      [class.feedback__btn--on]="feedbackFor(runId) === 'not_helpful'"
+                      [attr.aria-pressed]="feedbackFor(runId) === 'not_helpful'"
+                      aria-label="Not helpful"
+                      title="Not helpful"
+                      (click)="vote(runId, 'not_helpful')"
+                    >
+                      <span aria-hidden="true">👎</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="link-btn feedback__report"
+                      [attr.aria-expanded]="reportOpenIndex() === ti"
+                      (click)="toggleReport(ti)"
+                    >
+                      Report
+                    </button>
+                    @if (feedbackFor(runId)) {
+                      <span class="feedback__ack" role="status">Thanks for the feedback</span>
+                    }
+                  </span>
+                }
               </div>
+
+              @if (turn.structured?.run_id; as runId) {
+                @if (reportOpenIndex() === ti) {
+                  <div class="report">
+                    <label class="report__label" [attr.for]="'report-note-' + ti">
+                      Tell us what went wrong (optional)
+                    </label>
+                    <textarea
+                      [id]="'report-note-' + ti"
+                      class="report__input"
+                      rows="2"
+                      placeholder="What was inaccurate or unhelpful?"
+                      [value]="reportNote()"
+                      (input)="onReportInput($event)"
+                    ></textarea>
+                    <div class="report__actions">
+                      <button
+                        type="button"
+                        class="btn btn--small btn--primary"
+                        (click)="submitReport(runId)"
+                      >
+                        Submit report
+                      </button>
+                      <button type="button" class="btn btn--small" (click)="toggleReport(ti)">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                }
+              }
             }
           </div>
         </div>

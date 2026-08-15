@@ -416,7 +416,91 @@
 
 .msg__tools {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+/* --- Feedback controls (Phase D) --------------------------------------- */
+.feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.feedback__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  /* Reserve the pressed border so toggling on causes no layout shift. */
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.feedback__btn:hover {
+  background: var(--reep-action-hover);
+}
+.feedback__btn:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 1px;
+}
+.feedback__btn--on {
+  border-color: var(--reep-primary-main, #1a3c5e);
+  background: var(--reep-action-hover);
+}
+.feedback__report {
+  color: var(--reep-text-secondary);
+}
+.feedback__ack {
+  font-size: 0.75rem;
+  color: var(--reep-success-main, #2e7d32);
+  font-weight: 600;
+}
+
+/* Inline report note field. */
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 420px;
+  margin-top: 2px;
+}
+.report__label {
+  font-size: 0.75rem;
+  color: var(--reep-text-secondary);
+}
+.report__input {
+  resize: vertical;
+  min-height: 44px;
+  max-height: 140px;
+  padding: 8px 10px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--reep-text-primary);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.report__input:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 1px;
+  border-color: var(--reep-primary-main, #1a3c5e);
+}
+.report__actions {
+  display: flex;
   gap: 8px;
+}
+.report__actions .btn:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 2px;
 }
 
 /* Failed / stopped user turn — offers a Retry. */

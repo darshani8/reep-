@@ -93,6 +93,9 @@ def test_readiness_is_deterministic_with_score_and_weakest_factor(monkeypatch):
     assert res["sources"] == [
         {"label": "Placement readiness (your record)", "type": "student-record"}
     ]
+    # Grounding signal: routed to READINESS and grounded in the student tool.
+    assert res["intent"] == orchestrator.READINESS
+    assert res["resolved"] is True
     # An action pointing at the weakest (unmet, highest-weight) factor, when one exists.
     unmet = [f for f in truth["factors"] if not f["met"]]
     if unmet:
@@ -138,6 +141,9 @@ def test_policy_answer_is_grounded_and_cites_a_policy_source(monkeypatch):
     assert "verify" in res["answer"].lower()
     assert res["sources"], "a grounded policy answer must cite its source"
     assert all(s["type"] == "policy" for s in res["sources"])
+    # Grounding signal: POLICY intent, grounded over an approved chunk.
+    assert res["intent"] == orchestrator.POLICY
+    assert res["resolved"] is True
     assert any("skill" in s["label"].lower() for s in res["sources"])
     # No student PII in the limitations / no student-record source.
     assert all(s["type"] != "student-record" for s in res["sources"])
@@ -156,6 +162,8 @@ def test_unanswerable_policy_falls_back_honestly(monkeypatch):
     assert res["answer"] == orchestrator.NO_POLICY_ANSWER
     assert res["sources"] == []
     assert res["limitations"] == ["No approved knowledge source matched."]
+    # No approved answer -> not resolved.
+    assert res["resolved"] is False
 
 
 @requires_db
@@ -165,6 +173,9 @@ def test_student_data_intent_is_refused_for_a_non_student():
     assert res["actions"] == []
     assert res["sources"] == []
     assert res["limitations"] == ["Personalised tools are student-only."]
+    # Refused for a non-student -> not resolved (but intent is still classified).
+    assert res["intent"] == orchestrator.READINESS
+    assert res["resolved"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -180,10 +191,13 @@ def test_ask_endpoint_returns_structured_readiness(client, login, monkeypatch):
     r = client.post("/api/agent/ask", headers=headers, json={"message": "Am I placement-ready?"})
     assert r.status_code == 200, r.text
     body = r.json()
-    assert set(body) >= {"answer", "actions", "sources", "limitations", "conversation_id", "model"}
+    assert set(body) >= {
+        "answer", "actions", "sources", "limitations", "conversation_id", "model", "run_id"
+    }
     assert "/100" in body["answer"]
     assert body["sources"] and body["sources"][0]["type"] == "student-record"
     assert body["conversation_id"]
+    assert body["run_id"]  # the AgentRun id for this turn, for attaching feedback
 
 
 @requires_db

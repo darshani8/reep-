@@ -15,6 +15,13 @@ from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
 from ..models.job import Job, JobApplication
 from ..models.mock import MockAttempt
+from ..models.offer import (
+    OfferChannel,
+    OfferRoleType,
+    OfferStatus,
+    OfferWorkMode,
+    PlacementOffer,
+)
 from ..models.profile import StudentProfile
 from ..models.skill import Skill, StudentSkill
 from ..models.swoc import SwocEntry
@@ -594,3 +601,113 @@ def apply_to_job(
     db.add(JobApplication(student_id=student_id, job_id=job_id, notes=body.notes))
     db.commit()
     return {"applied": True, "already": False}
+
+
+class OfferIn(BaseModel):
+    role_type: str
+    job_title: str
+    organisation: str
+    channel: str = "ON_CAMPUS"
+    work_mode: str = "ONSITE"
+    location: str | None = None
+    ctc_inr: int = 0
+    fixed_gross_inr: int = 0
+    joining_date: datetime | None = None
+    job_id: str | None = None
+
+
+class OfferOut(BaseModel):
+    id: str
+    role_type: str
+    job_title: str
+    organisation: str
+    channel: str
+    work_mode: str
+    location: str | None
+    ctc_inr: int
+    fixed_gross_inr: int
+    status: str
+
+
+def _offer_out(o: PlacementOffer) -> OfferOut:
+    return OfferOut(
+        id=o.id,
+        role_type=o.role_type.value,
+        job_title=o.job_title,
+        organisation=o.organisation,
+        channel=o.channel.value,
+        work_mode=o.work_mode.value,
+        location=o.location,
+        ctc_inr=o.ctc_inr,
+        fixed_gross_inr=o.fixed_gross_inr,
+        status=o.status.value,
+    )
+
+
+@router.post("/offers", response_model=OfferOut, status_code=status.HTTP_201_CREATED)
+def create_offer(
+    body: OfferIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> OfferOut:
+    student_id = _require_student(session)
+    try:
+        role = OfferRoleType(body.role_type)
+        channel = OfferChannel(body.channel)
+        mode = OfferWorkMode(body.work_mode)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid role_type / channel / work_mode.",
+        )
+    offer = PlacementOffer(
+        student_id=student_id,
+        role_type=role,
+        job_title=body.job_title,
+        organisation=body.organisation,
+        channel=channel,
+        work_mode=mode,
+        location=body.location,
+        ctc_inr=body.ctc_inr,
+        fixed_gross_inr=body.fixed_gross_inr,
+        joining_date=body.joining_date,
+        job_id=body.job_id,
+        status=OfferStatus.DRAFT,
+    )
+    db.add(offer)
+    db.commit()
+    db.refresh(offer)
+    return _offer_out(offer)
+
+
+@router.get("/offers", response_model=list[OfferOut])
+def list_offers(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[OfferOut]:
+    student_id = _require_student(session)
+    rows = db.scalars(
+        select(PlacementOffer)
+        .where(PlacementOffer.student_id == student_id)
+        .order_by(PlacementOffer.created_at.desc())
+    ).all()
+    return [_offer_out(o) for o in rows]
+
+
+@router.post("/offers/{offer_id}/submit", response_model=OfferOut)
+def submit_offer(
+    offer_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> OfferOut:
+    student_id = _require_student(session)
+    offer = db.get(PlacementOffer, offer_id)
+    if offer is None or offer.student_id != student_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
+    if offer.status != OfferStatus.DRAFT:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Only a draft offer can be submitted."
+        )
+    offer.status = OfferStatus.PENDING_APPROVAL
+    db.commit()
+    db.refresh(offer)
+    return _offer_out(offer)

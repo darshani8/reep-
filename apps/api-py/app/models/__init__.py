@@ -7,6 +7,7 @@ from . import attendance  # noqa: F401
 from . import job  # noqa: F401
 from . import mentor_note  # noqa: F401
 from . import mock  # noqa: F401
+from . import offer  # noqa: F401
 from . import profile  # noqa: F401
 from . import skill  # noqa: F401
 from . import swoc  # noqa: F401

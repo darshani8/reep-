@@ -14,6 +14,7 @@ import { AcademicsComponent } from './features/student/academics/academics.compo
 import { SkillingComponent } from './features/student/skilling/skilling.component';
 import { CoursesComponent } from './features/student/courses/courses.component';
 import { UploadsComponent } from './features/student/uploads/uploads.component';
+import { ResumeBuilderComponent } from './features/student/resume/resume-builder.component';
 import { AssistantComponent } from './features/assistant/assistant.component';
 import { RegistrationComponent } from './features/register/registration.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
@@ -46,7 +47,7 @@ export const routes: Routes = [
       { path: 'student/courses', component: CoursesComponent },
       { path: 'student/leaderboards', component: LeaderboardsComponent },
       { path: 'student/uploads', component: UploadsComponent },
-      placeholder('student/resume', 'Resume'),
+      { path: 'student/resume', component: ResumeBuilderComponent },
       { path: 'student/jobs', component: JobsComponent },
       { path: 'student/offers', component: OffersComponent },
       { path: 'student/assistant', component: AssistantComponent },

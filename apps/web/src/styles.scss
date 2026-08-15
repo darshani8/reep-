@@ -11,3 +11,7 @@
  * docs/design-v2/student-app.html, global and unscoped. Loaded after
  * reep-theme so the v2 body/typography rules win where the two overlap. */
 @use './styles/reep-v2';
+
+/* Resume Builder component classes (docs/design-v2/resume-builder.html) that
+ * reep-v2 does not already define. Loaded LAST so it wins on equal specificity. */
+@use './styles/reep-v2-resume';

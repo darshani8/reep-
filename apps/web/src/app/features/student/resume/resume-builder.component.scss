@@ -1,0 +1,44 @@
+/* The builder is painted almost entirely by the global reep-v2 + reep-v2-resume
+ * classes. Only the host frame, the top view-tab row, and the two-column shell
+ * (which the mockup's demo chrome owned) are local. */
+:host {
+  display: block;
+}
+
+/* top-level view tabs — a pill row echoing the mockup's .meta-tabs, kept local
+   so the global stylesheet stays free of demo-harness chrome. */
+.rb-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.rb-tabs button {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 12.8px;
+  font-weight: 600;
+  color: var(--ink-500);
+  border: 1px solid var(--line);
+  background: var(--paper-1);
+}
+.rb-tabs button.active {
+  background: var(--ink-900);
+  color: var(--paper-1);
+  border-color: var(--ink-900);
+}
+
+/* the builder's stepper + main sit side by side inside a framed shell (the
+   mockup's .shell), since the app-shell no longer supplies that frame here. */
+.rb-shell {
+  display: flex;
+  min-height: 680px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--paper-0);
+}
+
+.foot-actions {
+  display: flex;
+  gap: 8px;
+}

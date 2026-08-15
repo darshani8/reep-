@@ -15,6 +15,7 @@ from .db import SessionLocal
 from .models.academic_history import AcademicGap, AcademicQualification, QualificationLevel
 from .models.academics import SemesterResult, SubjectMark
 from .models.attendance import AttendanceRecord
+from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
 from .models.profile import StudentProfile
 from .models.skill import Skill, StudentSkill
@@ -99,6 +100,19 @@ def main() -> None:
             stu.mentor_id = mentor.id
             db.commit()
             print("assigned student to mentor group")
+        if stu and mentor and db.scalar(
+            select(MentorNote).where(MentorNote.student_id == stu.id)
+        ) is None:
+            db.add(
+                MentorNote(
+                    mentor_id=mentor.id,
+                    student_id=stu.id,
+                    note_text="Discussed placement readiness; strong on analytics, work on GD delivery.",
+                    linked_action=MentorAction.ONE_ON_ONE_SCHEDULED,
+                )
+            )
+            db.commit()
+            print("added a mentor note")
         if stu and db.scalar(select(SemesterResult).where(SemesterResult.student_id == stu.id)) is None:
             result = SemesterResult(
                 student_id=stu.id,

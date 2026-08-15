@@ -27,6 +27,10 @@ The return shape is an ``AssistantResponse`` dict::
       "actions": [{"label": str, "route": str, "reason": str}],
       "sources": [{"label": str, "type": str}],   # type: student-record | policy
       "limitations": [str],
+      "intent": str,      # the intent classify() routed on (grounding signal)
+      "resolved": bool,   # True iff grounded in a student tool OR an approved
+                          # policy chunk; False on refuse / no-approved-answer /
+                          # generic fallback
     }
 """
 
@@ -185,15 +189,20 @@ def answer_question(
     """Answer `question` for the caller, grounded in tools + approved knowledge.
 
     Returns an ``AssistantResponse`` dict (answer / actions / sources /
-    limitations). Never raises for an LLM/provider failure — it degrades to a
-    deterministic or friendly answer and logs the cause.
+    limitations / intent / resolved). Never raises for an LLM/provider failure —
+    it degrades to a deterministic or friendly answer and logs the cause.
+
+    ``intent`` is the routed intent; ``resolved`` is the grounding signal — True
+    only when the answer came from a student tool or an approved policy chunk,
+    False when we refused, found no approved answer, or fell back to a generic
+    reply. Both are stamped onto every return path here.
     """
     intent = classify(question)
     is_student = (role == "STUDENT") and bool(student_id)
 
     # Personalised tools are student-only. A non-student still gets policy/general.
     if intent in STUDENT_DATA_INTENTS and not is_student:
-        return {
+        result = {
             "answer": (
                 "Personalised insights — placement readiness, your next steps, "
                 "eligible jobs, skills, profile and deadlines — are available on "
@@ -202,32 +211,40 @@ def answer_question(
             "actions": [],
             "sources": [],
             "limitations": ["Personalised tools are student-only."],
+            "resolved": False,  # refused — not grounded in this caller's data
         }
+        result["intent"] = intent
+        return result
 
     try:
         if intent == READINESS:
-            return _readiness(db, student_id)
-        if intent == GAPS:
-            return _gaps(db, student_id)
-        if intent == JOBS:
-            return _jobs(db, student_id)
-        if intent == SKILLS:
-            return _skills(db, student_id)
-        if intent == PROFILE:
-            return _profile(db, student_id)
-        if intent == DEADLINES:
-            return _deadlines(db, student_id)
-        if intent == POLICY:
-            return _policy(db, question)
-        return _general(db, question)
+            result = _readiness(db, student_id)
+        elif intent == GAPS:
+            result = _gaps(db, student_id)
+        elif intent == JOBS:
+            result = _jobs(db, student_id)
+        elif intent == SKILLS:
+            result = _skills(db, student_id)
+        elif intent == PROFILE:
+            result = _profile(db, student_id)
+        elif intent == DEADLINES:
+            result = _deadlines(db, student_id)
+        elif intent == POLICY:
+            result = _policy(db, question)
+        else:
+            result = _general(db, question)
     except Exception:  # a tool/DB fault must never 500 the assistant
         log.exception("orchestrator failed (intent=%s)", intent)
-        return {
+        result = {
             "answer": FRIENDLY_FALLBACK,
             "actions": [],
             "sources": [],
             "limitations": ["The assistant hit an unexpected error answering this."],
+            "resolved": False,
         }
+
+    result["intent"] = intent
+    return result
 
 
 # --- STUDENT-DATA builders (deterministic; never leak PII to a refused model) -
@@ -438,6 +455,7 @@ def _policy(db: Session, question: str) -> dict[str, Any]:
             "actions": [],
             "sources": [],
             "limitations": ["No approved knowledge source matched."],
+            "resolved": False,  # no approved answer — honest fallback, not grounded
         }
 
     context = "\n\n".join(
@@ -471,7 +489,14 @@ def _policy(db: Session, question: str) -> dict[str, Any]:
             seen.add(title)
             sources.append({"label": title, "type": "policy"})
 
-    return {"answer": answer, "actions": [], "sources": sources, "limitations": []}
+    # Grounded over approved public policy chunks -> resolved.
+    return {
+        "answer": answer,
+        "actions": [],
+        "sources": sources,
+        "limitations": [],
+        "resolved": True,
+    }
 
 
 # --- GENERAL builder ---------------------------------------------------------
@@ -502,8 +527,16 @@ def _general(db: Session, question: str) -> dict[str, Any]:
             "actions": [],
             "sources": [],
             "limitations": limitations,
+            "resolved": False,
         }
-    return {"answer": answer, "actions": [], "sources": [], "limitations": limitations}
+    # General guidance is not grounded in a tool or an approved policy chunk.
+    return {
+        "answer": answer,
+        "actions": [],
+        "sources": [],
+        "limitations": limitations,
+        "resolved": False,
+    }
 
 
 # --- Optional polish (LOCAL / egress-allowed model only) ---------------------
@@ -544,4 +577,12 @@ def _finalize(
                     final = polished
             except Exception:
                 log.exception("optional polish failed (%s) — keeping deterministic text", polish_ctx)
-    return {"answer": final, "actions": actions, "sources": sources, "limitations": limitations}
+    # Every _finalize caller is a student-data builder grounded in a read-only
+    # tool result, so the answer is grounded -> resolved is True.
+    return {
+        "answer": final,
+        "actions": actions,
+        "sources": sources,
+        "limitations": limitations,
+        "resolved": True,
+    }

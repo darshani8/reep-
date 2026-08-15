@@ -8,7 +8,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -44,6 +44,11 @@ class AgentRun(Base):
     trace: Mapped[list] = mapped_column(JSONB, default=list)
     citations: Mapped[list] = mapped_column(JSONB, default=list)
     model: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Grounding signal (Assistant V2 Phase D): the routed intent and whether the
+    # answer was grounded in a student tool or an approved policy chunk. Nullable
+    # — chat/stream runs and pre-Phase-D rows leave them null.
+    intent: Mapped[str | None] = mapped_column(String, nullable=True)
+    resolved: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     steps: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     duration_ms: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

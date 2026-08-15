@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .. import conversations as convo
@@ -34,7 +34,10 @@ from ..ai.llm import complete_chat, llm_config, stream_chat
 from ..db import SessionLocal, get_db
 from ..deps import get_current_session
 from ..models.agent_run import AgentRun, AgentRunStatus
+from ..models.conversation import Message
+from ..models.feedback import AssistantFeedback, FeedbackRating
 from ..models.user import Role
+from ..redaction import redact_pii
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +99,7 @@ class AssistantResponse(BaseModel):
 class AskOut(AssistantResponse):
     conversation_id: str
     model: str
+    run_id: str  # the AgentRun id for THIS turn — attach feedback to it
 
 
 def _persist_run(
@@ -108,26 +112,32 @@ def _persist_run(
     started: datetime,
     trace: list | None = None,
     citations: list | None = None,
-) -> None:
+    intent: str | None = None,
+    resolved: bool | None = None,
+) -> str:
     """One audit row per question — scope stamped at run time (mirrors the
     Next.js AgentRun store). The structured assistant path stores its actions in
-    `trace` and its sources in `citations`."""
+    `trace` and its sources in `citations`, and stamps the grounding signal
+    (`intent`, `resolved`). Returns the new run's id so the caller can hand it to
+    the client for feedback."""
     scope = "self" if session.get("role") == "STUDENT" else "programme"
-    db.add(
-        AgentRun(
-            actor_id=session["userId"],
-            role=Role(session["role"]),
-            scope=scope,
-            question=question,
-            answer=answer,
-            status=outcome,
-            trace=trace or [],
-            citations=citations or [],
-            model=model,
-            duration_ms=int((datetime.now(timezone.utc) - started).total_seconds() * 1000),
-        )
+    run = AgentRun(
+        actor_id=session["userId"],
+        role=Role(session["role"]),
+        scope=scope,
+        question=question,
+        answer=answer,
+        status=outcome,
+        trace=trace or [],
+        citations=citations or [],
+        model=model,
+        intent=intent,
+        resolved=resolved,
+        duration_ms=int((datetime.now(timezone.utc) - started).total_seconds() * 1000),
     )
+    db.add(run)
     db.commit()
+    return run.id
 
 
 @router.post("/chat", response_model=ChatOut)
@@ -255,7 +265,7 @@ def ask(
     )
 
     convo.append_message(db, conversation.id, "assistant", result["answer"])
-    _persist_run(
+    run_id = _persist_run(
         db,
         session,
         body.message,
@@ -265,12 +275,20 @@ def ask(
         started,
         trace=result["actions"],
         citations=result["sources"],
+        intent=result.get("intent"),
+        resolved=result.get("resolved"),
     )
 
+    # `result` also carries intent/resolved (grounding signal, persisted above);
+    # only the AssistantResponse fields belong on the wire.
     return AskOut(
+        answer=result["answer"],
+        actions=result["actions"],
+        sources=result["sources"],
+        limitations=result["limitations"],
         conversation_id=conversation.id,
         model=model_label,
-        **result,
+        run_id=run_id,
     )
 
 
@@ -369,3 +387,162 @@ def knowledge_search(
         )
     hits = knowledge.search(db, q, audience="student", limit=5)
     return KnowledgeSearchOut(results=[KnowledgeHit(**h) for h in hits])
+
+
+# --- Feedback ----------------------------------------------------------------
+
+
+class FeedbackIn(BaseModel):
+    run_id: str
+    rating: FeedbackRating
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class FeedbackOut(BaseModel):
+    ok: bool
+
+
+@router.post("/feedback", response_model=FeedbackOut)
+def feedback(
+    body: FeedbackIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> FeedbackOut:
+    """Rate the assistant turn identified by `run_id`.
+
+    The caller MUST own the run (AgentRun.actor_id == the session user) — a run
+    owned by anyone else is reported as 404, identical to a run that doesn't
+    exist, so feedback can't be used to probe whether another user's run id is
+    real. One row per (run, owner): a re-vote UPSERTs, never duplicates. The
+    free-text note is PII-redacted before it is stored.
+    """
+    run = db.get(AgentRun, body.run_id)
+    if run is None or run.actor_id != session["userId"]:
+        # No existence leak: not-found and not-owned look the same.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Run not found."
+        )
+
+    note = redact_pii(body.note)
+    existing = db.scalar(
+        select(AssistantFeedback).where(
+            AssistantFeedback.run_id == body.run_id,
+            AssistantFeedback.owner_user_id == session["userId"],
+        )
+    )
+    if existing is not None:
+        existing.rating = body.rating
+        existing.note = note
+    else:
+        db.add(
+            AssistantFeedback(
+                run_id=body.run_id,
+                owner_user_id=session["userId"],
+                rating=body.rating,
+                note=note,
+            )
+        )
+    db.commit()
+    return FeedbackOut(ok=True)
+
+
+# --- Metrics (DIRECTOR/ADMIN) ------------------------------------------------
+
+
+@router.get("/metrics")
+def metrics(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Assistant health for staff — DIRECTOR/ADMIN only (403 otherwise).
+
+    Aggregates over AgentRun (+ AssistantFeedback + voice Messages):
+    resolution/refusal rates from the `resolved` grounding signal, latency, and
+    breakdowns by intent/model/status, plus voice-turn and feedback tallies.
+
+    NOTE: TTFT (time-to-first-token) is a STREAMING-path metric; /ask is
+    non-streaming, so `avg_duration_ms` here is the compose-latency proxy (full
+    request duration), not TTFT.
+    """
+    role = session.get("role")
+    if role not in (Role.DIRECTOR.value, Role.ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assistant metrics are available to directors and admins.",
+        )
+
+    total_runs = db.scalar(select(func.count()).select_from(AgentRun)) or 0
+    resolved_true = (
+        db.scalar(
+            select(func.count()).select_from(AgentRun).where(AgentRun.resolved.is_(True))
+        )
+        or 0
+    )
+    resolved_known = (
+        db.scalar(
+            select(func.count())
+            .select_from(AgentRun)
+            .where(AgentRun.resolved.isnot(None))
+        )
+        or 0
+    )
+    avg_duration = db.scalar(select(func.avg(AgentRun.duration_ms))) or 0
+
+    resolution_rate = (resolved_true / total_runs) if total_runs else 0.0
+    refusal_rate = (
+        (1 - resolved_true / resolved_known) if resolved_known else 0.0
+    )
+
+    by_intent = {
+        intent: count
+        for intent, count in db.execute(
+            select(AgentRun.intent, func.count())
+            .where(AgentRun.intent.isnot(None))
+            .group_by(AgentRun.intent)
+        ).all()
+    }
+    by_model = {
+        (model or "unknown"): count
+        for model, count in db.execute(
+            select(AgentRun.model, func.count()).group_by(AgentRun.model)
+        ).all()
+    }
+    by_status = {
+        st.value.lower(): count
+        for st, count in db.execute(
+            select(AgentRun.status, func.count()).group_by(AgentRun.status)
+        ).all()
+    }
+
+    voice_turns = (
+        db.scalar(
+            select(func.count()).select_from(Message).where(Message.channel == "voice")
+        )
+        or 0
+    )
+
+    fb_counts = {
+        rating: count
+        for rating, count in db.execute(
+            select(AssistantFeedback.rating, func.count()).group_by(
+                AssistantFeedback.rating
+            )
+        ).all()
+    }
+    feedback_out = {
+        "helpful": fb_counts.get(FeedbackRating.HELPFUL, 0),
+        "not_helpful": fb_counts.get(FeedbackRating.NOT_HELPFUL, 0),
+        "report": fb_counts.get(FeedbackRating.REPORT, 0),
+    }
+
+    return {
+        "total_runs": total_runs,
+        "resolution_rate": round(resolution_rate, 4),
+        "refusal_rate": round(refusal_rate, 4),
+        "avg_duration_ms": round(float(avg_duration), 1),
+        "by_intent": by_intent,
+        "by_model": by_model,
+        "by_status": by_status,
+        "voice_turns": voice_turns,
+        "feedback": feedback_out,
+    }

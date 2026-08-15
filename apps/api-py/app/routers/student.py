@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from collections import defaultdict
@@ -13,9 +13,10 @@ from ..deps import get_current_session
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
+from ..models.job import Job, JobApplication
 from ..models.mock import MockAttempt
 from ..models.profile import StudentProfile
-from ..models.skill import StudentSkill
+from ..models.skill import Skill, StudentSkill
 from ..models.swoc import SwocEntry
 from ..models.timesheet import TimeSheetEntry
 from ..models.user import LoginDay, Student
@@ -486,3 +487,110 @@ def my_academics(
         ],
         gap=gap_out,
     )
+
+
+class JobRowOut(BaseModel):
+    id: str
+    title: str
+    company: str
+    degree_level: str
+    location: str | None
+    apply_url: str | None
+    required_skills: list[str]
+    match_percent: float
+    eligible: bool
+    reasons: list[str]
+    applied: bool
+
+
+@router.get("/jobs", response_model=list[JobRowOut])
+def my_jobs(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[JobRowOut]:
+    """The opportunities feed with a per-row skill match % and the eligibility
+    verdict (per-posting CGPA / live-backlog gates)."""
+    student_id = _require_student(session)
+
+    skill_slugs = set(
+        db.scalars(
+            select(Skill.slug)
+            .join(StudentSkill, StudentSkill.skill_id == Skill.id)
+            .where(StudentSkill.student_id == student_id)
+        ).all()
+    )
+    latest = db.scalar(
+        select(SemesterResult)
+        .where(SemesterResult.student_id == student_id)
+        .order_by(SemesterResult.semester.desc())
+        .limit(1)
+    )
+    latest_cgpa = latest.cgpa if latest else None
+    live_backlogs = (
+        db.scalar(
+            select(func.coalesce(func.sum(SemesterResult.live_backlogs), 0)).where(
+                SemesterResult.student_id == student_id
+            )
+        )
+        or 0
+    )
+    applied_ids = set(
+        db.scalars(
+            select(JobApplication.job_id).where(JobApplication.student_id == student_id)
+        ).all()
+    )
+
+    rows: list[JobRowOut] = []
+    for j in db.scalars(select(Job).order_by(Job.posted_on.desc())).all():
+        required = set(j.required_skills or [])
+        match = round(100 * len(skill_slugs & required) / len(required), 1) if required else 100.0
+        reasons: list[str] = []
+        # A null CGPA is unassessed (not blocking); only an actual below-cutoff blocks.
+        if j.min_cgpa is not None and latest_cgpa is not None and latest_cgpa < j.min_cgpa:
+            reasons.append(f"CGPA {latest_cgpa} is below the required {j.min_cgpa}")
+        if j.max_live_backlogs is not None and live_backlogs > j.max_live_backlogs:
+            reasons.append(
+                f"{live_backlogs} live backlog(s) exceeds the limit of {j.max_live_backlogs}"
+            )
+        rows.append(
+            JobRowOut(
+                id=j.id,
+                title=j.title,
+                company=j.company,
+                degree_level=j.degree_level.value,
+                location=j.location,
+                apply_url=j.apply_url,
+                required_skills=j.required_skills or [],
+                match_percent=match,
+                eligible=not reasons,
+                reasons=reasons,
+                applied=j.id in applied_ids,
+            )
+        )
+    return rows
+
+
+class ApplyIn(BaseModel):
+    notes: str | None = None
+
+
+@router.post("/jobs/{job_id}/apply")
+def apply_to_job(
+    job_id: str,
+    body: ApplyIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    student_id = _require_student(session)
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
+    existing = db.scalar(
+        select(JobApplication).where(
+            JobApplication.student_id == student_id, JobApplication.job_id == job_id
+        )
+    )
+    if existing:
+        return {"applied": True, "already": True}
+    db.add(JobApplication(student_id=student_id, job_id=job_id, notes=body.notes))
+    db.commit()
+    return {"applied": True, "already": False}

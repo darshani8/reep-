@@ -16,6 +16,7 @@ from .models.academic_history import AcademicGap, AcademicQualification, Qualifi
 from .models.academics import SemesterResult, SubjectMark
 from .models.alert import Alert, AlertRuleKey, AlertSeverity
 from .models.attendance import AttendanceRecord
+from .models.job import DegreeLevel, Job
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
 from .models.profile import StudentProfile
@@ -288,6 +289,19 @@ def main() -> None:
             db.add(AcademicGap(student_id=stu.id, twelfth_to_grad_mo=0, grad_to_pg_mo=0))
             db.commit()
             print("added academic gap row")
+
+        # Idempotently seed a few jobs with varied eligibility gates.
+        if db.scalar(select(Job)) is None:
+            base = datetime(2026, 8, 1, tzinfo=timezone.utc)
+            db.add_all(
+                [
+                    Job(title="Financial Analyst", company="Acme Capital", degree_level=DegreeLevel.PG, location="Bengaluru", required_skills=["excel", "financial-modeling"], posted_on=base, min_cgpa=7.0, max_live_backlogs=0, description="Financial analysis and modeling.", apply_url="https://example.com/apply/1"),
+                    Job(title="BI Developer", company="DataWorks", degree_level=DegreeLevel.PG, location="Remote", required_skills=["power-bi", "excel"], posted_on=base, min_cgpa=8.5, description="Build dashboards.", apply_url="https://example.com/apply/2"),
+                    Job(title="Junior Accountant", company="LedgerCo", degree_level=DegreeLevel.UG, location="Mysuru", required_skills=["excel"], posted_on=base, description="Entry-level accounting."),
+                ]
+            )
+            db.commit()
+            print("added jobs (3)")
     finally:
         db.close()
 

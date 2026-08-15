@@ -711,3 +711,62 @@ def submit_offer(
     db.commit()
     db.refresh(offer)
     return _offer_out(offer)
+
+
+def _profile_out(prof: StudentProfile) -> ProfileOut:
+    return ProfileOut(
+        student_id=prof.student_id,
+        phone=prof.phone,
+        email=prof.email,
+        linkedin_url=prof.linkedin_url,
+        github_url=prof.github_url,
+        portfolio_url=prof.portfolio_url,
+        city=prof.city,
+        career_summary=prof.career_summary,
+        placement_eligible=prof.placement_eligible,
+        interested_in_jobs=prof.interested_in_jobs,
+        interested_in_internships=prof.interested_in_internships,
+        education=prof.education or [],
+        experience=prof.experience or [],
+        projects=prof.projects or [],
+        skills=prof.skills or [],
+        achievements=prof.achievements or [],
+        leaderboard_opt_out=prof.leaderboard_opt_out,
+    )
+
+
+class ProfileUpdateIn(BaseModel):
+    phone: str | None = None
+    email: str | None = None
+    linkedin_url: str | None = None
+    github_url: str | None = None
+    portfolio_url: str | None = None
+    city: str | None = None
+    career_summary: str | None = None
+    interested_in_jobs: bool | None = None
+    interested_in_internships: bool | None = None
+    leaderboard_opt_out: bool | None = None
+    education: list | None = None
+    experience: list | None = None
+    projects: list | None = None
+    achievements: list | None = None
+
+
+@router.put("/profile", response_model=ProfileOut)
+def update_profile(
+    body: ProfileUpdateIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> ProfileOut:
+    """Edit your own profile. Only the fields sent are changed; placement_eligible
+    is admin-set and intentionally absent from the editable set."""
+    student_id = _require_student(session)
+    prof = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
+    if prof is None:
+        prof = StudentProfile(student_id=student_id)
+        db.add(prof)
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(prof, field, value)
+    db.commit()
+    db.refresh(prof)
+    return _profile_out(prof)

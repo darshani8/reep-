@@ -20,6 +20,7 @@ from . import placement_criteria  # noqa: F401
 from . import profile  # noqa: F401
 from . import registration  # noqa: F401
 from . import resume  # noqa: F401
+from . import resume_profile  # noqa: F401
 from . import schedule  # noqa: F401
 from . import skill  # noqa: F401
 from . import swoc  # noqa: F401

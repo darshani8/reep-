@@ -2,12 +2,13 @@
  * The REEP Agent — one chat surface shared by student, mentor and director
  * (all three nav trees point their `/assistant` route here).
  *
- * Text goes through ChatVoiceService.sendMessage (POST /api/agent/chat); the
- * same service opens a LiveKit voice session. The conversation is server-owned
+ * Text goes through ChatVoiceService.ask (POST /api/agent/ask); the same
+ * service opens a LiveKit voice session. The conversation is server-owned
  * (resolved from the session cookie), so the backend keeps one conversation
- * memory across text and voice without the client holding a session id. Voice needs
- * LiveKit + Gemini creds to actually connect — the button is present and wired,
- * and fails gracefully with a note until those are set.
+ * memory across text and voice without the client holding a session id. Voice
+ * needs LiveKit + Gemini creds to actually connect — the button is present and
+ * wired, gated by a one-time consent disclosure, and fails gracefully with a
+ * note until those are set.
  *
  * The assistant is the general helper: it does NOT read a student's private
  * records (that path is gated by the backend egress rule). It says so when asked
@@ -17,8 +18,11 @@
 import { Component, computed, inject, signal, effect, ElementRef, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { ChatVoiceService, ChatTurn } from '../../core/chat-voice.service';
+import { ChatVoiceService, ChatTurn, VoiceState } from '../../core/chat-voice.service';
 import { PageIntroComponent } from '../../shared/kit/kit.components';
+
+/** localStorage key remembering that the consent disclosure was accepted. */
+const CONSENT_KEY = 'reep-voice-consent';
 
 @Component({
   selector: 'app-assistant',
@@ -31,8 +35,18 @@ export class AssistantComponent {
   private readonly chat = inject(ChatVoiceService);
 
   readonly history = this.chat.chatHistory;
-  readonly connection = this.chat.connectionStatus;
+
+  // Voice state (Phase C).
+  readonly voice = this.chat.voiceState;
   readonly audioPlaying = this.chat.isAudioPlaying;
+  readonly micDenied = this.chat.micDenied;
+  readonly micMuted = this.chat.micMuted;
+  readonly callSeconds = this.chat.callSeconds;
+  readonly voiceError = this.chat.voiceError;
+  readonly voiceTranscript = this.chat.voiceTranscript;
+
+  /** The one-time consent disclosure panel is showing. */
+  readonly showConsent = signal(false);
 
   readonly draft = signal('');
   readonly sending = signal(false);
@@ -48,18 +62,49 @@ export class AssistantComponent {
     'How do I verify a skill?',
   ];
 
+  /// True while a voice session is active or coming up (not idle/ended/error).
+  readonly voiceActive = computed(() => {
+    const s = this.voice();
+    return s !== 'idle' && s !== 'ended' && s !== 'error';
+  });
+
+  /// True while the voice panel should be shown (active, or a terminal state
+  /// the user hasn't dismissed by restarting).
+  readonly voicePanelOpen = computed(() => this.voiceActive() || this.voice() === 'error');
+
+  /// Label for the primary voice button.
   readonly voiceLabel = computed(() => {
-    switch (this.connection()) {
+    switch (this.voice()) {
+      case 'permission-check':
+        return 'Allow mic…';
       case 'connecting':
         return 'Connecting…';
-      case 'connected':
+      case 'reconnecting':
+        return 'Reconnecting…';
+      case 'listening':
+      case 'thinking':
+      case 'speaking':
         return 'Stop voice';
       default:
         return 'Start voice';
     }
   });
 
+  /// Short human phrase for the live indicator + aria-live announcements.
+  readonly voiceStatusLabel = computed(() => this.describe(this.voice()));
+
+  /// mm:ss call duration.
+  readonly durationLabel = computed(() => {
+    const total = this.callSeconds();
+    const m = Math.floor(total / 60)
+      .toString()
+      .padStart(2, '0');
+    const s = (total % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  });
+
   private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
+  private readonly composer = viewChild<ElementRef<HTMLTextAreaElement>>('composer');
 
   constructor() {
     void this.init();
@@ -76,6 +121,29 @@ export class AssistantComponent {
       await this.chat.loadHistory();
     } catch {
       /* fresh session — nothing to restore */
+    }
+  }
+
+  private describe(s: VoiceState): string {
+    switch (s) {
+      case 'permission-check':
+        return 'Waiting for microphone permission';
+      case 'connecting':
+        return 'Connecting to voice';
+      case 'listening':
+        return 'Listening';
+      case 'thinking':
+        return 'Thinking';
+      case 'speaking':
+        return 'Assistant speaking';
+      case 'reconnecting':
+        return 'Reconnecting';
+      case 'ended':
+        return 'Voice ended';
+      case 'error':
+        return this.voiceError() ?? 'Voice error';
+      default:
+        return 'Idle';
     }
   }
 
@@ -152,22 +220,86 @@ export class AssistantComponent {
     return err instanceof DOMException && err.name === 'AbortError';
   }
 
+  // ------------------------------------------------------------------ //
+  // Voice controls (Phase C)                                           //
+  // ------------------------------------------------------------------ //
+
+  /// The primary voice button: stop if active, else start (through consent).
   async toggleVoice(): Promise<void> {
-    const state = this.connection();
-    if (state === 'connected' || state === 'connecting') {
+    if (this.voiceActive()) {
       await this.chat.stopVoiceSession();
       return;
     }
     this.error.set(null);
+    if (this.hasConsent()) {
+      await this.beginVoice();
+    } else {
+      // First use — show the disclosure before touching the mic.
+      this.showConsent.set(true);
+    }
+  }
+
+  private hasConsent(): boolean {
+    try {
+      return localStorage.getItem(CONSENT_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  }
+
+  /// Consent panel — "I understand — start voice".
+  async acceptConsent(): Promise<void> {
+    this.showConsent.set(false);
+    try {
+      await this.chat.recordConsent(true);
+      try {
+        localStorage.setItem(CONSENT_KEY, 'true');
+      } catch {
+        /* storage blocked — consent still recorded server-side for this session */
+      }
+    } catch {
+      /* backend consent write failed — proceed; general voice needs no consent */
+    }
+    await this.beginVoice();
+  }
+
+  /// Consent panel — "Cancel".
+  cancelConsent(): void {
+    this.showConsent.set(false);
+  }
+
+  /// Actually open the LiveKit session, surfacing any start failure.
+  private async beginVoice(): Promise<void> {
     try {
       await this.chat.startVoiceSession();
     } catch (err) {
-      this.error.set(
-        err instanceof Error && err.message
-          ? err.message
-          : 'Voice is not available yet — it needs LiveKit + Gemini credentials in the backend.',
-      );
+      // The service already set state=error + voiceError; only fill a generic
+      // top-of-page note if nothing more specific is available.
+      if (!this.voiceError()) {
+        this.error.set(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Voice is not available yet — it needs LiveKit + Gemini credentials in the backend.',
+        );
+      }
     }
+  }
+
+  /// Retry after a failed/dropped session (reconnect).
+  async retryVoice(): Promise<void> {
+    await this.chat.stopVoiceSession().catch(() => undefined);
+    await this.beginVoice();
+  }
+
+  /// Mute / unmute the local microphone.
+  async toggleMute(): Promise<void> {
+    await this.chat.setMicMuted(!this.micMuted());
+  }
+
+  /// "Continue in text": end voice and move focus to the composer.
+  async continueInText(): Promise<void> {
+    await this.chat.stopVoiceSession().catch(() => undefined);
+    queueMicrotask(() => this.composer()?.nativeElement.focus());
   }
 
   /// Discard the server-owned conversation and empty the transcript.

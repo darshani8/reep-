@@ -90,6 +90,153 @@
   animation: pulse 1.2s ease-in-out infinite;
 }
 
+/* --- One-time voice consent disclosure --------------------------------- */
+.consent {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.consent__card {
+  width: 100%;
+  max-width: 520px;
+  padding: 22px 24px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--reep-divider);
+  background: var(--reep-surface, #fff);
+  color: var(--reep-text-primary);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+.consent__title {
+  margin: 0 0 12px;
+}
+.consent__body {
+  color: var(--reep-text-secondary);
+}
+.consent__body p {
+  margin: 0 0 10px;
+}
+.consent__warn {
+  padding: 10px 12px;
+  border-left: 3px solid var(--reep-warning-main, #b26a00);
+  background: var(--reep-warning-bg, rgba(178, 106, 0, 0.1));
+  color: var(--reep-text-primary);
+  border-radius: 0 8px 8px 0;
+  font-weight: 600;
+}
+.consent__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+.consent__actions .btn:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 2px;
+}
+
+/* --- Live voice panel --------------------------------------------------- */
+.vpanel {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 12px;
+  background: var(--reep-surface, var(--reep-action-hover));
+}
+.vpanel__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.vpanel__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--reep-text-primary);
+}
+.vpanel__pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--reep-text-disabled);
+}
+/* Colour + text together — never colour alone. */
+.vpanel__status[data-state='listening'] .vpanel__pulse {
+  background: var(--reep-success-main, #2e7d32);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.vpanel__status[data-state='thinking'] .vpanel__pulse {
+  background: var(--reep-warning-main, #b26a00);
+  animation: pulse 1s ease-in-out infinite;
+}
+.vpanel__status[data-state='speaking'] .vpanel__pulse {
+  background: var(--reep-primary-main, #1a3c5e);
+}
+.vpanel__status[data-state='reconnecting'] .vpanel__pulse {
+  background: var(--reep-warning-main, #b26a00);
+  animation: pulse 0.7s ease-in-out infinite;
+}
+.vpanel__status[data-state='error'] .vpanel__pulse {
+  background: var(--reep-error-main);
+}
+.vpanel__pulse--live {
+  animation: pulse 0.9s ease-in-out infinite;
+}
+.vpanel__timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--reep-text-secondary);
+}
+.vpanel__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+.vpanel__controls .btn:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 2px;
+}
+.vpanel__reason {
+  margin: 10px 0 0;
+  color: var(--reep-text-secondary);
+}
+.vpanel__transcript {
+  margin-top: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border-top: 1px solid var(--reep-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vturn {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--reep-text-primary);
+}
+.vturn__who {
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-right: 8px;
+  color: var(--reep-text-secondary);
+}
+.vturn--user .vturn__who {
+  color: var(--reep-primary-main, #1a3c5e);
+}
+
 .chat {
   display: flex;
   flex-direction: column;

@@ -17,6 +17,7 @@ from ..models.attendance import AttendanceRecord
 from ..models.certification import Certification, CertificationProgress
 from ..models.course import Course, Enrollment
 from ..models.job import Job, JobApplication
+from ..models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from ..models.mock import MockAttempt
 from ..models.offer import (
     OfferChannel,
@@ -1071,4 +1072,98 @@ def my_certifications(
             self_reported=prog.self_reported,
         )
         for prog, cert in rows
+    ]
+
+
+class CheckInIn(BaseModel):
+    course_code: str
+    module: str
+    activity: str = "ONLINE_COURSE"
+    mode: str = "SUPERVISED_LAB"
+
+
+@router.post("/checkin")
+def check_in(
+    body: CheckInIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Open a focus session (self-reported). Close it with /student/checkout/{id}."""
+    student_id = _require_student(session)
+    try:
+        activity = ActivityType(body.activity)
+        mode = LearningMode(body.mode)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid activity or mode."
+        )
+    ls = LabSession(
+        student_id=student_id,
+        course_code=body.course_code,
+        module=body.module,
+        activity=activity,
+        mode=mode,
+        source=CheckInSource.SELF_REPORTED,
+        check_in_at=datetime.now(timezone.utc),
+    )
+    db.add(ls)
+    db.commit()
+    db.refresh(ls)
+    return {"id": ls.id, "check_in_at": ls.check_in_at.isoformat(), "open": True}
+
+
+@router.post("/checkout/{session_id}")
+def check_out(
+    session_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    student_id = _require_student(session)
+    ls = db.get(LabSession, session_id)
+    if ls is None or ls.student_id != student_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+    if ls.check_out_at is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session already closed.")
+    now = datetime.now(timezone.utc)
+    ls.check_out_at = now
+    ls.duration_min = max(0, int((now - ls.check_in_at).total_seconds() // 60))
+    db.commit()
+    return {"id": ls.id, "duration_min": ls.duration_min, "open": False}
+
+
+class FocusSessionOut(BaseModel):
+    id: str
+    course_code: str
+    module: str
+    activity: str
+    mode: str
+    check_in_at: datetime
+    check_out_at: datetime | None
+    duration_min: int | None
+    mentor_confirmed: bool
+
+
+@router.get("/focus", response_model=list[FocusSessionOut])
+def my_focus(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[FocusSessionOut]:
+    student_id = _require_student(session)
+    rows = db.scalars(
+        select(LabSession)
+        .where(LabSession.student_id == student_id)
+        .order_by(LabSession.check_in_at.desc())
+    ).all()
+    return [
+        FocusSessionOut(
+            id=ls.id,
+            course_code=ls.course_code,
+            module=ls.module,
+            activity=ls.activity.value,
+            mode=ls.mode.value,
+            check_in_at=ls.check_in_at,
+            check_out_at=ls.check_out_at,
+            duration_min=ls.duration_min,
+            mentor_confirmed=ls.mentor_confirmed,
+        )
+        for ls in rows
     ]

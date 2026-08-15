@@ -10,3 +10,6 @@ __pycache__/
 *.db
 *.db-wal
 *.db-shm
+
+# uploaded files (bytes on disk; only metadata is in the DB)
+var/

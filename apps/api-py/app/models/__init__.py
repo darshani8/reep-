@@ -5,6 +5,7 @@ from . import academics  # noqa: F401
 from . import alert  # noqa: F401
 from . import attendance  # noqa: F401
 from . import job  # noqa: F401
+from . import leave  # noqa: F401
 from . import mentor_note  # noqa: F401
 from . import mock  # noqa: F401
 from . import offer  # noqa: F401

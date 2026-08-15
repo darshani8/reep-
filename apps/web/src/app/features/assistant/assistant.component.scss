@@ -124,8 +124,17 @@
 .msg--user {
   justify-content: flex-end;
 }
+.msg__col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 82%;
+  align-items: flex-start;
+}
+.msg--user .msg__col {
+  align-items: flex-end;
+}
 .msg__bubble {
-  max-width: 72%;
   padding: 10px 14px;
   border-radius: 14px;
   line-height: 1.5;
@@ -140,6 +149,146 @@
   background: var(--reep-primary-main, #1a3c5e);
   color: #fff;
   border-color: transparent;
+}
+.msg--user .msg__bubble--failed {
+  background: var(--reep-error-main);
+}
+
+/* --- Structured grounded answer: action cards, source chips, limitations. --- */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--reep-divider);
+  background: var(--reep-surface, var(--reep-action-hover));
+  text-decoration: none;
+  color: var(--reep-text-primary);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.card:hover {
+  border-color: var(--reep-primary-main, #1a3c5e);
+  background: var(--reep-action-hover);
+}
+.card:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 2px;
+}
+.card__arrow {
+  color: var(--reep-primary-main, #1a3c5e);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.card__label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.card__reason {
+  font-size: 0.8rem;
+  color: var(--reep-text-secondary);
+}
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.source {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--reep-divider);
+  color: var(--reep-text-secondary);
+  background: var(--reep-action-hover);
+}
+.source--student-record {
+  border-color: var(--reep-success-main, #2e7d32);
+  color: var(--reep-success-main, #2e7d32);
+  background: var(--reep-success-bg, rgba(46, 125, 50, 0.1));
+}
+.source--policy {
+  border-color: var(--reep-warning-main, #b26a00);
+  color: var(--reep-warning-main, #b26a00);
+  background: var(--reep-warning-bg, rgba(178, 106, 0, 0.1));
+}
+.source--general {
+  border-color: var(--reep-divider);
+  color: var(--reep-text-secondary);
+}
+
+.limits {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--reep-divider);
+  color: var(--reep-text-disabled);
+}
+.limits__item {
+  margin: 0;
+}
+.limits__item + .limits__item {
+  margin-top: 4px;
+}
+
+/* Inline text-button used for Copy / Retry. */
+.link-btn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--reep-primary-main, #1a3c5e);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.link-btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.link-btn:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 1px;
+}
+.link-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.msg__tools {
+  display: flex;
+  gap: 8px;
+}
+
+/* Failed / stopped user turn — offers a Retry. */
+.retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--reep-text-secondary);
+}
+.retry--failed .retry__label {
+  color: var(--reep-error-main);
+  font-weight: 600;
+}
+.retry--failed .link-btn {
+  color: var(--reep-error-main);
+}
+.retry--failed .link-btn:focus-visible {
+  outline-color: var(--reep-error-main);
 }
 
 .msg__bubble--typing {
@@ -199,6 +348,17 @@
 .chat__send:disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+.chat__stop {
+  flex-shrink: 0;
+  min-width: 84px;
+  border-color: var(--reep-error-main);
+  color: var(--reep-error-main);
+}
+.chat__stop:focus-visible {
+  outline: 2px solid var(--reep-error-main);
+  outline-offset: 2px;
 }
 
 .chat__hint {

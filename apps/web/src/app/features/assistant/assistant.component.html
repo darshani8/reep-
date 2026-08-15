@@ -53,9 +53,80 @@
         </div>
       </div>
     } @else {
-      @for (turn of history(); track $index) {
+      @for (turn of history(); track $index; let ti = $index) {
         <div class="msg" [class.msg--user]="turn.role === 'user'">
-          <div class="msg__bubble">{{ turn.content }}</div>
+          <div class="msg__col">
+            <div
+              class="msg__bubble"
+              [class.msg__bubble--failed]="turn.status === 'failed'"
+            >
+              {{ turn.role === 'assistant' && turn.structured ? turn.structured.answer : turn.content }}
+            </div>
+
+            @if (turn.role === 'user' && turn.status) {
+              <div
+                class="retry"
+                [class.retry--failed]="turn.status === 'failed'"
+                role="alert"
+              >
+                <span class="retry__label">{{
+                  turn.status === 'failed' ? "Couldn't answer" : 'Stopped'
+                }}</span>
+                <button
+                  type="button"
+                  class="link-btn"
+                  [disabled]="sending()"
+                  (click)="retry(turn.content)"
+                >
+                  Retry
+                </button>
+              </div>
+            }
+
+            @if (turn.role === 'assistant') {
+              @if (turn.structured) {
+                @if (turn.structured.actions.length) {
+                  <div class="cards" role="list" aria-label="Suggested next steps">
+                    @for (action of turn.structured.actions; track action.route + action.label) {
+                      <a class="card" role="listitem" [routerLink]="action.route">
+                        <span class="card__arrow" aria-hidden="true">→</span>
+                        <span class="card__body">
+                          <span class="card__label">{{ action.label }}</span>
+                          @if (action.reason) {
+                            <span class="card__reason">{{ action.reason }}</span>
+                          }
+                        </span>
+                      </a>
+                    }
+                  </div>
+                }
+
+                @if (turn.structured.sources.length) {
+                  <div class="sources" aria-label="Sources">
+                    @for (source of turn.structured.sources; track $index) {
+                      <span class="source source--{{ source.type }}"
+                        >Source: {{ source.label }}</span
+                      >
+                    }
+                  </div>
+                }
+
+                @if (turn.structured.limitations.length) {
+                  <div class="limits reep-caption" role="note">
+                    @for (limit of turn.structured.limitations; track $index) {
+                      <p class="limits__item">{{ limit }}</p>
+                    }
+                  </div>
+                }
+              }
+
+              <div class="msg__tools">
+                <button type="button" class="link-btn" (click)="copy(turn, ti)">
+                  {{ copiedIndex() === ti ? 'Copied' : 'Copy' }}
+                </button>
+              </div>
+            }
+          </div>
         </div>
       }
     }
@@ -92,14 +163,18 @@
       (input)="onInput($event)"
       (keydown)="onKeydown($event)"
     ></textarea>
-    <button
-      type="button"
-      class="btn btn--primary chat__send"
-      [disabled]="sending() || draft().trim().length === 0"
-      (click)="send()"
-    >
-      Send
-    </button>
+    @if (sending()) {
+      <button type="button" class="btn chat__stop" (click)="stop()">Stop</button>
+    } @else {
+      <button
+        type="button"
+        class="btn btn--primary chat__send"
+        [disabled]="draft().trim().length === 0"
+        (click)="send()"
+      >
+        Send
+      </button>
+    }
   </div>
   <p class="chat__hint reep-caption">Enter to send · Shift+Enter for a new line</p>
 </div>

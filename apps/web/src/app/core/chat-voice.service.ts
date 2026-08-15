@@ -23,9 +23,34 @@ import {
  */
 
 export type ChatRole = 'user' | 'assistant';
+
+/** A routed next-step the agent suggests, rendered as an action card. */
+export interface AgentAction {
+  label: string;
+  route: string;
+  reason: string;
+}
+/** Where an answer came from — tints the source chip in the UI. */
+export interface AgentSource {
+  label: string;
+  type: 'student-record' | 'policy' | 'general';
+}
+/** The structured payload attached to a fresh /ask assistant turn. */
+export interface StructuredAnswer {
+  answer: string;
+  actions: AgentAction[];
+  sources: AgentSource[];
+  limitations: string[];
+  model: string | null;
+}
+
 export interface ChatTurn {
   role: ChatRole;
   content: string;
+  /** Present only on fresh /ask assistant turns; historical turns are plain text. */
+  structured?: StructuredAnswer;
+  /** Set on a user turn whose /ask request failed ('failed') or was stopped ('stopped'). */
+  status?: 'failed' | 'stopped';
 }
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
@@ -36,6 +61,14 @@ interface HistoryResponse {
 interface ChatResponse {
   reply: string;
   model: string;
+}
+interface AskResponse {
+  answer: string;
+  actions: AgentAction[];
+  sources: AgentSource[];
+  limitations: string[];
+  conversation_id: string;
+  model: string | null;
 }
 interface VoiceToken {
   token: string;
@@ -60,6 +93,9 @@ export class ChatVoiceService {
   private room: Room | null = null;
   private readonly audioElements: HTMLAudioElement[] = [];
 
+  /** Aborts the in-flight /ask request when the user hits Stop. */
+  private askController: AbortController | null = null;
+
   /** Load the server-owned conversation (text + voice) into chatHistory. */
   async loadHistory(): Promise<void> {
     const res = await firstValueFrom(
@@ -75,6 +111,76 @@ export class ChatVoiceService {
       this.http.post<ChatResponse>('/api/agent/chat', { message }, { withCredentials: true }),
     );
     this.chatHistory.update((h) => [...h, { role: 'assistant', content: res.reply }]);
+  }
+
+  /**
+   * PRIMARY send path: POST /api/agent/ask (grounded — real data + approved
+   * policy, honest refusals) and append a STRUCTURED assistant turn. The user
+   * turn shows optimistically; on failure/stop it is marked so the UI can offer
+   * a Retry affordance instead of leaving an orphan. Cancellable via stop().
+   *
+   * Uses fetch (not HttpClient) so an AbortController can cancel the request.
+   */
+  async ask(message: string): Promise<void> {
+    this.chatHistory.update((h) => [...h, { role: 'user', content: message }]);
+    const userIndex = this.chatHistory().length - 1;
+
+    const controller = new AbortController();
+    this.askController = controller;
+    try {
+      const res = await fetch('/api/agent/ask', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`ask failed: ${res.status}`);
+      const data = (await res.json()) as AskResponse;
+      this.chatHistory.update((h) => [
+        ...h,
+        {
+          role: 'assistant',
+          content: data.answer,
+          structured: {
+            answer: data.answer,
+            actions: data.actions ?? [],
+            sources: data.sources ?? [],
+            limitations: data.limitations ?? [],
+            model: data.model ?? null,
+          },
+        },
+      ]);
+    } catch (err) {
+      // A deliberate Stop aborts the signal; anything else is a real failure.
+      this.setStatus(userIndex, controller.signal.aborted ? 'stopped' : 'failed');
+      throw err;
+    } finally {
+      if (this.askController === controller) this.askController = null;
+    }
+  }
+
+  /** Abort the in-flight /ask request, if any. */
+  stop(): void {
+    this.askController?.abort();
+    this.askController = null;
+  }
+
+  /** Re-ask a question: drop a trailing failed/stopped user turn, then ask again. */
+  async retry(message: string): Promise<void> {
+    this.chatHistory.update((h) => {
+      const copy = [...h];
+      while (copy.length && copy[copy.length - 1].status) copy.pop();
+      return copy;
+    });
+    await this.ask(message);
+  }
+
+  /** Flag a user turn so the UI can render a Retry affordance. */
+  private setStatus(index: number, status: 'failed' | 'stopped'): void {
+    this.chatHistory.update((h) =>
+      h.map((t, i) => (i === index ? { ...t, status } : t)),
+    );
   }
 
   /** Discard the server-owned conversation and clear the local transcript. */

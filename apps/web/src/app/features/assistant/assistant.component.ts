@@ -17,7 +17,7 @@
 import { Component, computed, inject, signal, effect, ElementRef, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { ChatVoiceService } from '../../core/chat-voice.service';
+import { ChatVoiceService, ChatTurn } from '../../core/chat-voice.service';
 import { PageIntroComponent } from '../../shared/kit/kit.components';
 
 @Component({
@@ -37,6 +37,8 @@ export class AssistantComponent {
   readonly draft = signal('');
   readonly sending = signal(false);
   readonly error = signal<string | null>(null);
+  /// Index of the assistant turn last copied — drives the transient "Copied" label.
+  readonly copiedIndex = signal<number | null>(null);
 
   /// One-tap starters. Clicking a chip fills the draft and sends it.
   readonly quickPrompts = [
@@ -100,17 +102,54 @@ export class AssistantComponent {
     const message = this.draft().trim();
     if (!message || this.sending()) return;
     this.draft.set('');
+    await this.run(() => this.chat.ask(message));
+  }
+
+  /// Abort the in-flight grounded request. The user turn is kept for Retry.
+  stop(): void {
+    this.chat.stop();
+  }
+
+  /// Re-ask a question whose request failed or was stopped.
+  async retry(message: string): Promise<void> {
+    if (this.sending()) return;
+    await this.run(() => this.chat.retry(message));
+  }
+
+  /// Copy an assistant answer to the clipboard, with brief "Copied" feedback.
+  async copy(turn: ChatTurn, index: number): Promise<void> {
+    const text = turn.structured?.answer ?? turn.content;
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copiedIndex.set(index);
+      setTimeout(() => {
+        if (this.copiedIndex() === index) this.copiedIndex.set(null);
+      }, 1500);
+    } catch {
+      /* clipboard blocked — no-op */
+    }
+  }
+
+  /// Shared send/retry runner: manages the sending flag and error surface.
+  private async run(action: () => Promise<void>): Promise<void> {
     this.sending.set(true);
     this.error.set(null);
     try {
-      await this.chat.sendMessage(message);
-    } catch {
-      this.error.set(
-        'The assistant is unavailable right now. It needs an LLM provider key set in the backend (apps/api-py/.env).',
-      );
+      await action();
+    } catch (err) {
+      // A deliberate Stop is not an error; the failed-turn affordance covers it.
+      if (!this.isAbort(err)) {
+        this.error.set(
+          "The assistant couldn't answer right now. It needs an LLM provider key set in the backend (apps/api-py/.env).",
+        );
+      }
     } finally {
       this.sending.set(false);
     }
+  }
+
+  private isAbort(err: unknown): boolean {
+    return err instanceof DOMException && err.name === 'AbortError';
   }
 
   async toggleVoice(): Promise<void> {

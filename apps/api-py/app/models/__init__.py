@@ -11,6 +11,7 @@ from . import course  # noqa: F401
 from . import job  # noqa: F401
 from . import lab  # noqa: F401
 from . import leave  # noqa: F401
+from . import mail  # noqa: F401
 from . import mentor_note  # noqa: F401
 from . import mock  # noqa: F401
 from . import offer  # noqa: F401

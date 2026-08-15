@@ -9,8 +9,11 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import get_current_session
+from datetime import datetime
+
 from ..models.alert import Alert
 from ..models.cohort import Cohort
+from ..models.mail import MailLog
 from ..models.offer import OfferStatus, PlacementOffer
 from ..models.placement_criteria import PlacementCriteria
 from ..models.user import Student
@@ -150,3 +153,40 @@ def criteria(
         min_cert_completion_pct=c.min_cert_completion_pct,
         require_core_certs=c.require_core_certs,
     )
+
+
+class MailLogOut(BaseModel):
+    id: str
+    kind: str
+    recipient: str
+    subject: str | None
+    status: str
+    error: str | None
+    sent_at: datetime
+
+
+@router.get("/mail", response_model=list[MailLogOut])
+def mail_log(
+    kind: str | None = None,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[MailLogOut]:
+    """Ops audit view: what the mailer was asked to send, most recent first.
+    Optionally filter by `kind` (e.g. 'job-alert')."""
+    require_director(session)
+    query = select(MailLog)
+    if kind:
+        query = query.where(MailLog.kind == kind)
+    rows = db.scalars(query.order_by(MailLog.sent_at.desc()).limit(100)).all()
+    return [
+        MailLogOut(
+            id=m.id,
+            kind=m.kind,
+            recipient=m.recipient,
+            subject=m.subject,
+            status=m.status.value,
+            error=m.error,
+            sent_at=m.sent_at,
+        )
+        for m in rows
+    ]

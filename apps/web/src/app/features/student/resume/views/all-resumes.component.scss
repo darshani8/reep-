@@ -1,0 +1,33 @@
+/* The All Resumes view is painted almost entirely by the global reep-v2 +
+ * reep-v2-resume classes (.main, .res-grid, .res-card, .chip, .btn, .notice,
+ * .empty, .footbar). Only the host framing and the local-only footnote are
+ * specific to this component. */
+:host {
+  display: block;
+}
+
+/* frame the standalone view the way the builder's .rb-shell frames its columns,
+   since the app-shell no longer wraps these views in the mockup's .frame/.shell */
+.rb-view {
+  display: flex;
+  min-height: 680px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--paper-0);
+}
+
+/* footnote explaining the local-only "default" / unavailable "delete" behaviour */
+.local-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 16px;
+  font-size: 11.8px;
+  line-height: 1.5;
+  color: var(--ink-500);
+}
+.local-note .icon {
+  font-size: 15px;
+  flex: 0 0 auto;
+}

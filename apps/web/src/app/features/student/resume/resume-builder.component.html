@@ -1,0 +1,114 @@
+<!-- Three top-level view tabs. Styled locally (.rb-tabs) — the mockup's demo
+     .meta-tabs chrome is intentionally not part of the global stylesheet. -->
+<div class="rb-tabs">
+  <button type="button" [class.active]="view() === 'builder'" (click)="view.set('builder')">
+    Profile &amp; Builder
+  </button>
+  <button type="button" [class.active]="view() === 'resumes'" (click)="view.set('resumes')">
+    All Resumes
+  </button>
+  <button type="button" [class.active]="view() === 'preview'" (click)="view.set('preview')">
+    Generated Resume
+  </button>
+</div>
+
+@switch (view()) {
+  @case ('resumes') {
+    <rb-all-resumes />
+  }
+  @case ('preview') {
+    <rb-preview />
+  }
+  @default {
+    <!-- BUILDER: left stepper + main column -->
+    <div class="rb-shell">
+      <aside class="stepper">
+        <div class="completeness">
+          <div class="top">
+            <span class="lbl">Profile complete</span>
+            <span class="pct">{{ svc.completeness() }}%</span>
+          </div>
+          <div class="meter"><i [style.width.%]="svc.completeness()"></i></div>
+          <small>
+            A resume can be generated at any time, but <b>70%+</b> produces a materially stronger
+            document.
+          </small>
+        </div>
+
+        @for (group of groups; track group.name) {
+          <div class="step-group">{{ group.name }}</div>
+          @for (s of group.steps; track s.key) {
+            <div
+              class="step-item"
+              [class.active]="step() === s.key"
+              (click)="step.set(s.key)"
+            >
+              <span class="step-dot"></span> {{ s.label }}
+            </div>
+          }
+        }
+      </aside>
+
+      <section class="main">
+        <div class="main-head">
+          <div>
+            <h2>{{ current().title }}</h2>
+            <div class="sub">{{ current().sub }}</div>
+          </div>
+          <div class="head-actions">
+            <button type="button" class="btn" (click)="view.set('resumes')">
+              <span class="icon">folder_open</span> All Resumes
+            </button>
+            <button type="button" class="btn accent" (click)="view.set('preview')">
+              <span class="icon">auto_awesome</span> Generate Resume
+            </button>
+          </div>
+        </div>
+
+        <div class="body">
+          @switch (step()) {
+            @case ('basic') { <rb-basic /> }
+            @case ('contact') { <rb-contact /> }
+            @case ('family') { <rb-family /> }
+            @case ('education') { <rb-education /> }
+            @case ('attachments') { <rb-attachments /> }
+            @case ('experience') { <rb-experience /> }
+            @case ('internship') { <rb-internship /> }
+            @case ('projects') { <rb-projects /> }
+            @case ('publications') { <rb-publications /> }
+            @case ('seminars') { <rb-seminars /> }
+            @case ('certifications') { <rb-certifications /> }
+            @case ('por') { <rb-por /> }
+            @case ('other') { <rb-other /> }
+            @case ('references') { <rb-references /> }
+            @case ('policy') { <rb-policy /> }
+          }
+        </div>
+
+        <div class="footbar">
+          <div class="hint">
+            <span class="icon" style="font-size:16px">history</span>
+            @if (svc.savedAt()) {
+              Last saved {{ svc.savedAt() | date: 'd MMM y, HH:mm' }} · changes are versioned
+            } @else {
+              Not saved yet · changes are versioned
+            }
+          </div>
+          <div class="foot-actions">
+            @if (step() === 'education') {
+              <button type="button" class="btn accent" [disabled]="svc.saving()" (click)="save()">
+                <span class="icon">send</span>
+                {{ svc.saving() ? 'Sending…' : 'Update & request approval' }}
+              </button>
+            } @else {
+              <button type="button" class="btn primary" [disabled]="svc.saving()" (click)="save()">
+                <span class="icon">save</span>
+                {{ svc.saving() ? 'Saving…' : 'Save section' }}
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+    </div>
+  }
+}

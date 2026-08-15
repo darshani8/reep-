@@ -1,0 +1,123 @@
+<!-- All Resumes view. Reuses the global reep-v2 .main / .res-grid / .res-card /
+     .chip / .btn classes; only the empty-state block and the local-only notes are
+     specific to this component. -->
+<div class="rb-view">
+  <section class="main">
+    <div class="main-head">
+      <div>
+        <h2>All Resumes</h2>
+        <div class="sub">
+          One resume can be marked default — that is the copy the placement office downloads.
+        </div>
+      </div>
+      <div class="head-actions">
+        <button type="button" class="btn" (click)="navigate.emit('builder')">
+          <span class="icon">edit</span> Edit profile
+        </button>
+        <button type="button" class="btn accent" (click)="navigate.emit('preview')">
+          <span class="icon">auto_awesome</span> Generate new
+        </button>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="notice info">
+        <span class="icon">workspace_premium</span>
+        <div>
+          <b>Default resume.</b> You are the author of your default resume, and the department can
+          download it for any placement event. You can still submit a different resume when applying
+          to a specific job.
+        </div>
+      </div>
+
+      @if (rows(); as list) {
+        @if (list.length === 0) {
+          <div class="empty">
+            <span class="icon">description</span>
+            <p>No resumes generated yet.</p>
+            <button type="button" class="btn primary" style="margin-top:12px;" (click)="navigate.emit('preview')">
+              <span class="icon">auto_awesome</span> Generate your first resume
+            </button>
+          </div>
+        } @else {
+          <div class="res-grid">
+            @for (r of list; track r.id) {
+              <div class="res-card" [class.default]="isDefault(r)">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                  <div>
+                    <h4>{{ r.title }}</h4>
+                    <div class="meta">Generated · v{{ r.version }}</div>
+                  </div>
+                  @if (isDefault(r)) {
+                    <span class="chip warn"><span class="icon">star</span>Default</span>
+                  }
+                </div>
+
+                <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+                  <span class="chip {{ statusChip(r).cls }}">
+                    <span class="icon">{{ statusChip(r).icon }}</span>{{ statusChip(r).label }}
+                  </span>
+                  <span class="chip {{ sourceChip(r).cls }}">
+                    <span class="icon">{{ sourceChip(r).icon }}</span>{{ sourceChip(r).label }}
+                  </span>
+                </div>
+
+                <div class="res-actions">
+                  <button type="button" class="btn" (click)="navigate.emit('preview')">
+                    <span class="icon">visibility</span> View
+                  </button>
+                  <button type="button" class="btn" (click)="download(r)">
+                    <span class="icon">download</span> Download
+                  </button>
+                  @if (isDefault(r)) {
+                    <button type="button" class="btn" disabled title="This is already your default resume.">
+                      <span class="icon">star</span> Default
+                    </button>
+                  } @else {
+                    <button type="button" class="btn" (click)="makeDefault(r)">
+                      <span class="icon">star</span> Make default
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="btn"
+                    disabled
+                    title="Deleting a resume isn't available yet — there is no backend endpoint for it."
+                  >
+                    <span class="icon">delete</span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <p class="local-note">
+            <span class="icon">info</span>
+            &ldquo;Default&rdquo; is shown locally on your latest resume — there is no backend
+            default column yet, so
+            @if (defaultMoved()) {
+              your change here is not saved.
+            } @else {
+              marking a different one is a visual preference only.
+            }
+            Deleting a resume is not available yet.
+          </p>
+        }
+      } @else if (error()) {
+        <div class="card">{{ error() }}</div>
+      } @else {
+        <div class="card">Loading…</div>
+      }
+    </div>
+
+    <div class="footbar">
+      <div class="hint">
+        <span class="icon" style="font-size:16px">info</span>
+        Only one resume can be default at a time.
+        @if (count() > 0) {
+          · {{ count() }} resume{{ count() === 1 ? '' : 's' }} on file.
+        }
+      </div>
+    </div>
+  </section>
+</div>

@@ -92,3 +92,21 @@ Python — FastAPI
   run). Angular `apps/web/src/app/core/chat-voice.service.ts` (signals) drives
   both text and voice; `livekit-client` installed. The spec's deprecated
   `VoicePipelineAgent` API was replaced with the current `AgentSession`.
+- **Phase 2/3 domain port — in progress, 22 verified slices on main.** Each
+  slice = SQLAlchemy model(s) + Alembic migration + authorized FastAPI
+  endpoint(s), verified against Postgres and committed.
+  - STUDENT: profile (+ PUT edit), semester results/marks, attendance %,
+    combined dashboard, SWOC board, mock assessments, skills (catalogue + join),
+    login streak, timesheet (GET + upsert), academic history, jobs board
+    (skill-match % + eligibility funnel + apply), placement offers
+    (create/list/submit), schedule, resume (AI behind the egress gate — refuses
+    remote free models for PII, composes deterministically).
+  - MENTOR: scoped mentee list, notes (GET/POST), alert feed + resolve — the
+    `mentorScope()` rule enforced (no group => nobody).
+  - DIRECTOR: overview aggregates, offer approve/reject (`require_director`).
+  - Cross-cutting: the two-approver leave workflow.
+  - Enum-column-on-existing-table migrations are hand-fixed to `CREATE TYPE`
+    first (Alembic gotcha); shared enums reuse one `Enum` instance.
+  - Remaining before Phase 3 cutover: uploads, activity/check-in, registration,
+    curriculum (courses/certs/enrollment/lab sessions), cohort, agent-run store,
+    then repoint Angular at these endpoints screen by screen.

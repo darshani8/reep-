@@ -48,9 +48,9 @@ Python — FastAPI
   (config, SQLAlchemy, session, security). `GET /health`,
   `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`. Auth byte-compatible
   with Next.js.
-- [ ] **Phase 2 — Migrations + domain schema.** Wire Alembic. Port the 39
+- [x] **Phase 2 — Migrations + domain schema.** Wire Alembic. Port the 39
   models in slices (users/roster → academics → activity → jobs/offers →
-  uploads → AI runs).
+  uploads → AI runs). **Complete — all 39 Prisma models live on FastAPI.**
 - [ ] **Phase 3 — REST surface.** Port the 24 route handlers + 12 server actions
   to FastAPI routers, preserving `mentorScope()`/`menteeWhere()` authorization.
   Repoint Angular at FastAPI, slice by slice.
@@ -92,21 +92,34 @@ Python — FastAPI
   run). Angular `apps/web/src/app/core/chat-voice.service.ts` (signals) drives
   both text and voice; `livekit-client` installed. The spec's deprecated
   `VoicePipelineAgent` API was replaced with the current `AgentSession`.
-- **Phase 2/3 domain port — in progress, 22 verified slices on main.** Each
-  slice = SQLAlchemy model(s) + Alembic migration + authorized FastAPI
-  endpoint(s), verified against Postgres and committed.
+- **Phase 2 domain port — COMPLETE. All 39 Prisma models ported** across ~35
+  verified slices on main. Each slice = SQLAlchemy model(s) + Alembic migration +
+  authorized FastAPI endpoint(s), verified against Postgres and committed.
   - STUDENT: profile (+ PUT edit), semester results/marks, attendance %,
     combined dashboard, SWOC board, mock assessments, skills (catalogue + join),
     login streak, timesheet (GET + upsert), academic history, jobs board
     (skill-match % + eligibility funnel + apply), placement offers
     (create/list/submit), schedule, resume (AI behind the egress gate — refuses
-    remote free models for PII, composes deterministically).
-  - MENTOR: scoped mentee list, notes (GET/POST), alert feed + resolve — the
-    `mentorScope()` rule enforced (no group => nobody).
-  - DIRECTOR: overview aggregates, offer approve/reject (`require_director`).
-  - Cross-cutting: the two-approver leave workflow.
-  - Enum-column-on-existing-table migrations are hand-fixed to `CREATE TYPE`
-    first (Alembic gotcha); shared enums reuse one `Enum` instance.
-  - Remaining before Phase 3 cutover: uploads, activity/check-in, registration,
-    curriculum (courses/certs/enrollment/lab sessions), cohort, agent-run store,
-    then repoint Angular at these endpoints screen by screen.
+    remote free models for PII, composes deterministically), courses +
+    certifications, focus/lab check-in + checkout, uploads (own + review state),
+    skill claims (file + track).
+  - MENTOR: scoped mentee list, notes (GET/POST), alert feed + resolve, offer
+    pending + decision, focus confirmation, upload review (verify/reject), skill-
+    claim review (grant-at-reduced-level upserts the verified StudentSkill) — the
+    `mentorScope()` rule enforced throughout (no group => nobody).
+  - DIRECTOR: overview aggregates, cohorts, placement criteria, offer approve/
+    reject, registration review queue + decision + rules, mail-log audit, alert-
+    rule config (data-driven thresholds, upsert), job-import audit
+    (`require_director`).
+  - PUBLIC: registration sign-up with the data-driven rule engine (auto-approve
+    vs route-to-review vs manual).
+  - Cross-cutting: two-approver leave workflow; AgentRun audit trail on every
+    `/api/agent/chat`; send-exactly-once mailer (`deliver_once`) over the MailLog
+    dedupe store.
+  - Enum gotchas handled per-migration: a new column on an existing table needs
+    `CREATE TYPE` first; a new table reusing an existing enum needs
+    `postgresql.ENUM(..., create_type=False)` (hand-fixed each time); two columns
+    sharing one enum reuse a single `Enum` instance.
+- **Next: Phase 3/6 — repoint Angular at these endpoints screen by screen.**
+  Gated on the user (UI work); voice worker still needs LiveKit + Gemini creds;
+  Phase 7 cutover (delete Next.js + NestJS) only on explicit go-ahead.

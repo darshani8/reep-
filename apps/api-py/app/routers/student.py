@@ -1684,6 +1684,7 @@ class LeaderRow(BaseModel):
 class LeaderboardOut(BaseModel):
     board: str
     opted_out: bool
+    cohort_size: int  # number of ranked students on the board (for "Rank 8 of N")
     rows: list[LeaderRow]
 
 
@@ -1706,7 +1707,7 @@ def leaderboards(
         select(StudentProfile).where(StudentProfile.student_id == student_id)
     )
     if my_profile is not None and my_profile.leaderboard_opt_out:
-        return LeaderboardOut(board=board, opted_out=True, rows=[])
+        return LeaderboardOut(board=board, opted_out=True, cohort_size=0, rows=[])
 
     # Cohort roster, minus anyone who opted out.
     opted_out = set(
@@ -1737,7 +1738,29 @@ def leaderboards(
         )
         for i, (sid, _uid, _name) in enumerate(ranked)
     ]
-    return LeaderboardOut(board=board, opted_out=False, rows=rows)
+    return LeaderboardOut(board=board, opted_out=False, cohort_size=len(rows), rows=rows)
+
+
+class LeaderboardVisibilityIn(BaseModel):
+    hidden: bool
+
+
+@router.put("/leaderboard-visibility")
+def set_leaderboard_visibility(
+    body: LeaderboardVisibilityIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Hide or show yourself on the Leaderboards screen — sets the caller's
+    StudentProfile.leaderboard_opt_out (creating the profile row if missing)."""
+    student_id = _require_student(session)
+    prof = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
+    if prof is None:
+        prof = StudentProfile(student_id=student_id)
+        db.add(prof)
+    prof.leaderboard_opt_out = body.hidden
+    db.commit()
+    return {"hidden": body.hidden}
 
 
 # --- Rule-based guidance (no LLM): next actions, readiness, recommendations ----

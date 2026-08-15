@@ -14,6 +14,7 @@ from ..deps import get_current_session
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
+from ..models.certification import Certification, CertificationProgress
 from ..models.course import Course, Enrollment
 from ..models.job import Job, JobApplication
 from ..models.mock import MockAttempt
@@ -1031,4 +1032,43 @@ def my_courses(
             ),
         )
         for enr, course in rows
+    ]
+
+
+class CertProgressOut(BaseModel):
+    code: str
+    name: str
+    provider: str
+    status: str
+    progress_pct: float
+    hours_logged: float
+    required_hours: float
+    due_date: datetime
+    self_reported: bool
+
+
+@router.get("/certifications", response_model=list[CertProgressOut])
+def my_certifications(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[CertProgressOut]:
+    student_id = _require_student(session)
+    rows = db.execute(
+        select(CertificationProgress, Certification)
+        .join(Certification, CertificationProgress.cert_code == Certification.code)
+        .where(CertificationProgress.student_id == student_id)
+        .order_by(CertificationProgress.due_date)
+    ).all()
+    return [
+        CertProgressOut(
+            code=cert.code,
+            name=cert.name,
+            provider=cert.provider,
+            status=prog.status.value,
+            progress_pct=prog.progress_pct,
+            hours_logged=prog.hours_logged,
+            required_hours=cert.required_hours,
+            due_date=prog.due_date,
+            self_reported=prog.self_reported,
+        )
+        for prog, cert in rows
     ]

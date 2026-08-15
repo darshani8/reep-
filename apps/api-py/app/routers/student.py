@@ -33,6 +33,7 @@ from ..models.resume import Resume, ResumeStatus
 from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, SkillClaim, StudentSkill
 from ..models.swoc import SwocEntry
+from ..models.resume_profile import ResumeProfile
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload
 from ..models.user import LoginDay, Student
@@ -1340,4 +1341,79 @@ def create_skill_claim(
         review_note=claim.review_note,
         reviewed_at=claim.reviewed_at,
         created_at=claim.created_at,
+    )
+
+
+# The resume-builder sections that ResumeProfile owns (the ones with no other
+# home). Education / certifications / attachments are shown by the builder too
+# but come from their own endpoints, so they don't count here.
+_RESUME_SECTIONS = [
+    "basic", "contact", "family", "experience", "internship", "projects",
+    "publications", "seminars", "por", "other", "references", "policy",
+]
+
+
+def _section_filled(value) -> bool:
+    """A section counts as filled if it holds any real content."""
+    if value in (None, "", [], {}):
+        return False
+    if isinstance(value, dict):
+        return any(_section_filled(v) for v in value.values())
+    if isinstance(value, list):
+        return len(value) > 0
+    return True
+
+
+def _resume_completeness(data: dict) -> int:
+    if not data:
+        return 0
+    filled = sum(1 for k in _RESUME_SECTIONS if _section_filled(data.get(k)))
+    return round(100 * filled / len(_RESUME_SECTIONS))
+
+
+class ResumeProfileIn(BaseModel):
+    data: dict = Field(default_factory=dict)
+
+
+class ResumeProfileOut(BaseModel):
+    data: dict
+    completeness: int
+    updated_at: datetime | None
+
+
+@router.get("/resume-profile", response_model=ResumeProfileOut)
+def get_resume_profile(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> ResumeProfileOut:
+    """The student's saved resume-builder state (the free-form sections)."""
+    student_id = _require_student(session)
+    row = db.scalar(select(ResumeProfile).where(ResumeProfile.student_id == student_id))
+    data = row.data if row else {}
+    return ResumeProfileOut(
+        data=data,
+        completeness=_resume_completeness(data),
+        updated_at=row.updated_at if row else None,
+    )
+
+
+@router.put("/resume-profile", response_model=ResumeProfileOut)
+def put_resume_profile(
+    body: ResumeProfileIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> ResumeProfileOut:
+    """Upsert the whole builder state for the caller (one row per student)."""
+    student_id = _require_student(session)
+    row = db.scalar(select(ResumeProfile).where(ResumeProfile.student_id == student_id))
+    if row is None:
+        row = ResumeProfile(student_id=student_id, data=body.data)
+        db.add(row)
+    else:
+        row.data = body.data
+    db.commit()
+    db.refresh(row)
+    return ResumeProfileOut(
+        data=row.data,
+        completeness=_resume_completeness(row.data),
+        updated_at=row.updated_at,
     )

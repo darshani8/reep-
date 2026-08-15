@@ -19,3 +19,6 @@ litellm>=1.96
 # LiveKit access-token minting for /api/voice/token (voice worker deps are in
 # requirements-voice.txt — a separate, heavier environment)
 livekit-api>=1.2
+
+# --- dev/test only ---
+pytest>=8.0

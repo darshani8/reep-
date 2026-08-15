@@ -278,7 +278,8 @@ textarea {
   padding: 10px 12px;
   border-radius: 9px;
   border: 1px solid var(--line);
-  background: var(--paper-2);
+  /* paper-1 well: reep-v2.scss applies var(--press) inset to .ctrl for the carved look */
+  background: var(--paper-1);
   font-size: 13.3px;
   color: var(--ink-900);
 }

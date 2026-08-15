@@ -21,8 +21,10 @@ from .models.cohort import Cohort
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
 from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
+from .models.mail import MailLog
 from .models.registration import Registration, RegistrationRule, RegistrationStatus
 from .models.upload import Upload, UploadKind, UploadStatus
+from .mailer import deliver_once
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
 from .models.placement_criteria import PlacementCriteria
@@ -456,6 +458,14 @@ def main() -> None:
             )
             db.commit()
             print("added registrations (2: 1 auto-approved, 1 pending review)")
+
+        # Idempotently seed a few mail-log rows via the dedupe-safe mailer, so
+        # the ops audit view has sample data. Re-running is a no-op: the unique
+        # dedupe_key collapses the second attempt.
+        if db.scalar(select(MailLog)) is None:
+            deliver_once(db, kind="job-alert", recipient=student_email, dedupe_key=f"job-alert:{student_email}:2026-W33", subject="3 new jobs match your profile")
+            deliver_once(db, kind="weekly-digest", recipient=student_email, dedupe_key=f"weekly-digest:{student_email}:2026-W33", subject="Your week in REEP")
+            print("added mail logs (2)")
     finally:
         db.close()
 

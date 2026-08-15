@@ -538,6 +538,8 @@ class JobRowOut(BaseModel):
     eligible: bool
     reasons: list[str]
     applied: bool
+    closes_on: str | None
+    posted_on: str | None
 
 
 @router.get("/jobs", response_model=list[JobRowOut])
@@ -622,6 +624,8 @@ def my_jobs(
                 eligible=not reasons,
                 reasons=reasons,
                 applied=j.id in applied_ids,
+                closes_on=j.closes_on.isoformat() if j.closes_on else None,
+                posted_on=j.posted_on.isoformat() if j.posted_on else None,
             )
         )
     return rows

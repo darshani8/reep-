@@ -13,15 +13,17 @@ assistant, so `carries_student_data` stays False; wire it True on any path that
 injects a student's private records, and remote free models are refused.
 """
 
+import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..ai.llm import complete_chat, llm_config
-from ..db import get_db
+from ..ai.llm import complete_chat, llm_config, stream_chat
+from ..db import SessionLocal, get_db
 from ..deps import get_current_session
 from ..memory import get_history, save_message
 from ..models.agent_run import AgentRun, AgentRunStatus
@@ -123,6 +125,56 @@ def chat(
     save_message(body.session_id, "assistant", reply)
     _persist_run(db, session, body.message, reply, AgentRunStatus.ANSWERED, model_label, started)
     return ChatOut(reply=reply, session_id=body.session_id, model=model_label)
+
+
+@router.post("/chat/stream")
+def chat_stream(
+    body: ChatIn,
+    session: dict = Depends(get_current_session),
+) -> StreamingResponse:
+    """Server-Sent Events variant of /chat: streams the reply token-by-token as
+    `data: {"delta": "..."}` frames, then `data: [DONE]`. The full turn is saved
+    to the shared memory and an AgentRun row is written once the stream ends —
+    from a fresh Session, since the request's own session is torn down when this
+    handler returns and the generator keeps running."""
+    cfg = llm_config()
+    if cfg is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No LLM provider configured — set a provider key in apps/api-py/.env.",
+        )
+
+    started = datetime.now(timezone.utc)
+    model_label = f"{cfg.provider}:{cfg.model}"
+    save_message(body.session_id, "user", body.message)
+    history = get_history(body.session_id, limit=HISTORY_LIMIT)
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}, *history]
+
+    def event_stream():
+        chunks: list[str] = []
+        outcome = AgentRunStatus.ANSWERED
+        yield f"data: {json.dumps({'model': model_label})}\n\n"
+        try:
+            for delta in stream_chat(messages, max_tokens=1024):
+                chunks.append(delta)
+                yield f"data: {json.dumps({'delta': delta})}\n\n"
+        except Exception as exc:  # provider/network/quota — reported in-band, no 500
+            outcome = AgentRunStatus.FAILED
+            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+
+        reply = "".join(chunks)
+        if reply:
+            save_message(body.session_id, "assistant", reply)
+        # Fresh session: the injected request scope is already gone by now.
+        with SessionLocal() as db:
+            _persist_run(db, session, body.message, reply, outcome, model_label, started)
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 class RunOut(BaseModel):

@@ -42,11 +42,11 @@ export class AuthService {
   }
 
   /// Reads the current session from the cookie, or null. Used by the guard on
-  /// first load and after a hard refresh.
+  /// first load and after a hard refresh. FastAPI exposes this as /auth/me.
   async refresh(): Promise<SessionPayload | null> {
     try {
       const session = await firstValueFrom(
-        this.http.get<SessionPayload>(`${environment.apiBase}/auth/session`, {
+        this.http.get<SessionPayload>(`${environment.apiBase}/auth/me`, {
           withCredentials: true,
         }),
       );

@@ -42,7 +42,7 @@ def login(client):
     """Return a helper that logs in and yields the auth-cookie header dict."""
 
     def _login(email: str, password: str) -> dict:
-        r = client.post("/auth/login", json={"email": email, "password": password})
+        r = client.post("/api/auth/login", json={"email": email, "password": password})
         assert r.status_code == 200, r.text
         return {"Cookie": r.headers.get("set-cookie", "")}
 

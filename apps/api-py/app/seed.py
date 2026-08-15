@@ -14,7 +14,7 @@ from sqlalchemy import select
 from .db import SessionLocal
 from .models.academic_history import AcademicGap, AcademicQualification, QualificationLevel
 from .models.academics import SemesterResult, SubjectMark
-from .models.alert import Alert, AlertRuleKey, AlertSeverity
+from .models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
 from .models.attendance import AttendanceRecord
 from .models.certification import Certification, CertificationProgress
 from .models.cohort import Cohort
@@ -458,6 +458,20 @@ def main() -> None:
             )
             db.commit()
             print("added registrations (2: 1 auto-approved, 1 pending review)")
+
+        # Idempotently seed the per-cohort alert thresholds (config in data,
+        # never hard-coded). One row per (cohort, rule_key).
+        cohort = db.scalar(select(Cohort).where(Cohort.code == "MBA-2026-B"))
+        if cohort and db.scalar(select(AlertRuleConfig).where(AlertRuleConfig.cohort_id == cohort.id)) is None:
+            db.add_all(
+                [
+                    AlertRuleConfig(cohort_id=cohort.id, rule_key=AlertRuleKey.NO_CHECKIN_N_DAYS, params={"days": 5}, severity=AlertSeverity.WARNING),
+                    AlertRuleConfig(cohort_id=cohort.id, rule_key=AlertRuleKey.ATTENDANCE_BELOW_THRESHOLD, params={"minAttendancePct": 75}, severity=AlertSeverity.CRITICAL),
+                    AlertRuleConfig(cohort_id=cohort.id, rule_key=AlertRuleKey.CERT_OVERDUE, params={"graceDays": 3}, severity=AlertSeverity.WARNING),
+                ]
+            )
+            db.commit()
+            print("added alert rule configs (3)")
 
         # Idempotently seed a few mail-log rows via the dedupe-safe mailer, so
         # the ops audit view has sample data. Re-running is a no-op: the unique

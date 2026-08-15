@@ -1,0 +1,80 @@
+<div class="panel" data-p="skilling">
+  <div class="dt-header">
+    <div>
+      <div class="dt-title">Skilling</div>
+      <div class="dt-sub">Upload a certificate to claim a skill, then track your verified skills</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Claim a skill — dropzone placeholder (file upload not built server-side) -->
+    <div class="card">
+      <h4>Claim a skill</h4>
+      <div class="dropzone dropzone--soon" aria-disabled="true">
+        <span class="icon">workspace_premium</span>
+        Upload certificate to claim skill
+      </div>
+      <div class="soon-note">
+        <span class="icon">hourglass_empty</span>
+        File upload coming soon
+      </div>
+    </div>
+
+    <!-- My skills — grouped by category, verified vs not -->
+    <div class="card">
+      <h4>
+        My skills
+        @if (skillCount()) {
+          <span class="skill-count">{{ verifiedCount() }}/{{ skillCount() }} verified</span>
+        }
+      </h4>
+
+      @if (skillsError()) {
+        <div class="state-note"><span class="icon">error</span>{{ skillsError() }}</div>
+      } @else if (groups() === null) {
+        <div class="state-note"><span class="icon">hourglass_empty</span>Loading your skills…</div>
+      } @else if (groups()!.length === 0) {
+        <div class="state-note"><span class="icon">info</span>No skills recorded yet — claim one with a certificate.</div>
+      } @else {
+        @for (group of groups()!; track group.category) {
+          <div class="cat-label">{{ group.category }}</div>
+          @for (s of group.skills; track s.slug) {
+            <div class="reco-row">
+              {{ s.name }}
+              <span class="lvl">{{ s.levelLabel }}</span>
+              @if (s.verified) {
+                <span class="chip good"><span class="icon">check_circle</span>Verified</span>
+              } @else {
+                <span class="chip warn"><span class="icon">schedule</span>Unverified</span>
+              }
+            </div>
+          }
+        }
+      }
+    </div>
+  </div>
+
+  <!-- Skill claims — each with its review-status chip -->
+  <div class="card">
+    <h4>Skill claims</h4>
+
+    @if (claimsError()) {
+      <div class="state-note"><span class="icon">error</span>{{ claimsError() }}</div>
+    } @else if (claimRows() === null) {
+      <div class="state-note"><span class="icon">hourglass_empty</span>Loading your claims…</div>
+    } @else if (claimRows()!.length === 0) {
+      <div class="state-note"><span class="icon">info</span>You have not claimed any skills yet.</div>
+    } @else {
+      @for (c of claimRows()!; track c.id) {
+        <div class="reco-row">
+          {{ c.skillName }}
+          <span class="lvl">Claimed: {{ c.levelLabel }}</span>
+          <span class="chip {{ c.chip.cls }}"><span class="icon">{{ c.chip.icon }}</span>{{ c.chip.label }}</span>
+        </div>
+        @if (c.reviewNote) {
+          <div class="review-note"><span class="icon">chat_bubble</span>{{ c.reviewNote }}</div>
+        }
+      }
+    }
+  </div>
+</div>

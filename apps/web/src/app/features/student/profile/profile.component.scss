@@ -1,107 +1,56 @@
+/* Screen-specific tweaks only. Everything visual reuses the global reep-v2
+   classes (.card, .field, .reg-grid, .chip, .dt-btn, .dropzone, .badge-row …). */
+
 :host {
   display: block;
 }
-.err {
-  color: var(--reep-error-main);
-}
-.saved {
-  color: var(--reep-success-main);
-  font-weight: 500;
+
+/* Read-only mirror of a .field input, so locked identity lines up with the
+   editable grid but reads as non-editable. */
+.locked-value {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper-0);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-700);
 }
 
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  max-width: 720px;
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
-.grid2 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-}
-.fld {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.fld__label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--reep-text-secondary);
-}
-.fld__input {
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 40px;
-  padding: 8px 12px;
-  font-family: var(--reep-font-stack);
-  font-size: 0.9375rem;
-  color: var(--reep-text-primary);
-  background: var(--reep-bg-paper);
-  border: 1px solid var(--reep-divider);
-  border-radius: 7px;
-  outline: none;
-}
-.fld__input:focus {
-  border-color: var(--reep-primary-main);
-}
-.fld__area {
-  min-height: 76px;
+
+/* Let the summary box grow. */
+.field textarea {
+  min-height: 78px;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.5;
 }
-.fld__num {
-  width: 100px;
-  min-height: 40px;
-}
-
-.skills__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 6px 0 4px;
-}
-.chip {
-  padding: 3px 10px;
-  border-radius: 6px;
-  background: var(--reep-action-selected);
-  color: var(--reep-text-primary);
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-.skills__note {
-  color: var(--reep-text-disabled);
+.field--last {
+  margin-bottom: 0;
 }
 
-.actions {
+/* Checkbox preference rows inside the placement card. */
+.pref-row {
   display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.row__unit {
-  color: var(--reep-text-secondary);
-}
-
-.toggle {
-  display: inline-flex;
   align-items: center;
   gap: 10px;
+  padding: 9px 0;
+  font-size: 13px;
+  color: var(--ink-800);
+  border-bottom: 1px solid var(--line);
   cursor: pointer;
 }
-.toggle input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--reep-secondary-main);
+.pref-row:last-of-type {
+  border-bottom: none;
 }
-.toggle__note {
-  margin-top: 8px;
-  color: var(--reep-text-disabled);
-  max-width: 60ch;
+.pref-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--amber-600);
+}
+
+.skills-wrap {
+  gap: 6px;
 }

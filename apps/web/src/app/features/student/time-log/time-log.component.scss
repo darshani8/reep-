@@ -1,119 +1,46 @@
+// Screen-specific tweaks only — the layout classes (.panel, .dt-header, .dt-btn,
+// .ts-grid, .ts-cell, .icon) all live globally in src/styles/reep-v2.scss.
 :host {
   display: block;
 }
-.err {
-  color: var(--reep-error-main);
-}
-.saved {
-  color: var(--reep-success-main);
-  font-weight: 500;
-}
-.note {
-  margin-top: 20px;
-  color: var(--reep-text-disabled);
-  max-width: 60ch;
-}
 
-.daybar {
+// A short, non-blocking note for the load / save states (info + error).
+.ts-note {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-.daybar__label {
-  font-weight: 600;
-  color: var(--reep-text-primary);
-}
-.daybar__today {
-  margin-left: 6px;
-  color: var(--reep-secondary-main);
-  font-weight: 500;
+  gap: 8px;
+  background: rgba(139, 58, 46, 0.1);
+  color: var(--risk);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  margin-bottom: 16px;
 }
 
-.remaining {
-  font-size: 1.0625rem;
-  font-weight: 600;
-  color: var(--reep-text-primary);
-  margin-bottom: 8px;
-}
-.remaining--over {
-  color: var(--reep-error-main);
-}
-.bar {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--reep-cell-well);
-  overflow: hidden;
-  margin-bottom: 28px;
-}
-.bar__fill {
-  height: 100%;
-  background: var(--reep-secondary-main);
-  transition: width 120ms ease;
-}
-.bar__fill--over {
-  background: var(--reep-error-main);
+.ts-saved {
+  color: var(--good);
+  font-weight: 700;
 }
 
-.buckets {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-width: 640px;
+// The hours cell holds a whole/half number — drop the native spinners so the
+// box reads as the plain input the mockup draws.
+.ts-cell input {
+  appearance: textfield;
 }
-.bucket {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 0;
-  border-top: 1px solid var(--reep-divider);
-}
-.bucket:first-child {
-  border-top: 0;
-}
-.bucket__label {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--reep-text-primary);
-}
-.bucket__hint {
-  margin-top: 2px;
-  color: var(--reep-text-disabled);
-  max-width: 44ch;
-}
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.stepper__btn {
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--reep-divider);
-  border-radius: 8px;
-  background: var(--reep-bg-paper);
-  color: var(--reep-text-primary);
-  font-size: 1.25rem;
-  line-height: 1;
-  cursor: pointer;
-}
-.stepper__btn:hover {
-  background: var(--reep-action-hover);
-}
-.stepper__value {
-  width: 68px;
-  text-align: center;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  color: var(--reep-text-primary);
+.ts-cell input::-webkit-outer-spin-button,
+.ts-cell input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 24px;
+.dt-btn[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+// The mockup fixes five columns; wrap on narrow screens so nothing overflows.
+@media (max-width: 620px) {
+  .ts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

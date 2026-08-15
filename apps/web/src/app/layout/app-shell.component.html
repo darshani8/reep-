@@ -1,98 +1,62 @@
-<div class="shell">
-  <a href="#main" class="skip-link no-print">Skip to content</a>
-
-  <!-- top bar -->
-  <header class="appbar no-print">
-    <button
-      type="button"
-      class="appbar__menu-btn"
-      aria-label="Open navigation"
-      (click)="mobileOpen.set(true)"
-    >
-      <app-icon name="menu" [size]="22" />
-    </button>
-
-    <div class="appbar__who">
-      <div class="appbar__name reep-subtitle2">{{ userName() }}</div>
-      @if (meta()) {
-        <div class="appbar__meta reep-caption">{{ meta() }}</div>
-      }
-    </div>
-
-    <button
-      type="button"
-      class="appbar__icon-btn"
-      [attr.aria-label]="theme.mode() === 'dark' ? 'Light mode' : 'Dark mode'"
-      (click)="theme.toggle()"
-    >
-      <app-icon [name]="theme.mode() === 'dark' ? 'light_mode' : 'dark_mode'" [size]="19" />
-    </button>
-
-    <div class="account">
-      <button
-        type="button"
-        class="account__btn"
-        [attr.aria-label]="initials() + ', account menu'"
-        (click)="menuOpen.set(!menuOpen())"
-      >
-        <span class="account__avatar">{{ initials() }}</span>
+<div class="v2-stage">
+  <div class="desktop-frame">
+    <div class="desktop-titlebar">
+      <span class="icon" style="font-size:14px">school</span>
+      REEP — {{ roleLabel() }}
+      <button type="button" class="titlebar-logout" (click)="signOut()">
+        <span class="icon" style="font-size:14px">logout</span>
+        Sign out
       </button>
-
-      @if (menuOpen()) {
-        <div class="account__backdrop" (click)="menuOpen.set(false)"></div>
-        <div class="account__menu" role="menu">
-          <div class="account__header">
-            <div class="reep-subtitle2">{{ userName() }}</div>
-            <div class="reep-caption account__role">{{ roleLabel() }}</div>
-          </div>
-          <div class="account__divider"></div>
-          <button type="button" class="account__item" role="menuitem" (click)="signOut()">
-            <app-icon name="logout" [size]="18" />
-            <span>Sign out</span>
-          </button>
-        </div>
-      }
-    </div>
-  </header>
-
-  <!-- drawer (permanent lg+, off-canvas below) -->
-  @if (mobileOpen()) {
-    <div class="drawer-backdrop no-print" (click)="closeMobile()"></div>
-  }
-  <nav
-    class="drawer no-print"
-    [class.drawer--open]="mobileOpen()"
-    [attr.aria-label]="roleLabel() + ' sections'"
-  >
-    <div class="drawer__brand">
-      <div class="drawer__reep">REEP</div>
-      <div class="drawer__role reep-caption">{{ roleLabel() }}</div>
     </div>
 
-    <ul class="drawer__list">
-      @for (item of items(); track item.href) {
-        <li>
-          <a
-            class="nav__item"
-            [routerLink]="item.href"
-            routerLinkActive="nav__item--active"
-            [routerLinkActiveOptions]="{ exact: item.exact }"
-            (click)="closeMobile()"
-          >
-            <app-icon class="nav__icon" [name]="item.icon" [size]="19" />
-            <span class="nav__label">{{ item.label }}</span>
-          </a>
-        </li>
-      }
-    </ul>
+    <div class="desktop-shell">
+      <nav class="desktop-nav">
+        <div class="brand">REEP</div>
 
-    <div class="drawer__foot reep-caption">BGSCET MBA</div>
-  </nav>
+        <a routerLink="/student" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          <span class="icon">home</span> Landing
+        </a>
+        <a routerLink="/student/jobs" routerLinkActive="active">
+          <span class="icon">work</span> Jobs
+        </a>
+        <a routerLink="/student/skilling" routerLinkActive="active">
+          <span class="icon">verified</span> Skilling
+        </a>
+        <a routerLink="/student/leaderboards" routerLinkActive="active">
+          <span class="icon">leaderboard</span> Leaderboards
+        </a>
+        <a routerLink="/student/time-log" routerLinkActive="active">
+          <span class="icon">schedule</span> Time Sheet
+        </a>
 
-  <!-- content -->
-  <main id="main" tabindex="-1" class="content">
-    <div class="content__column">
-      <router-outlet />
+        <div class="sec-label">Programme</div>
+        <a routerLink="/student/certifications" routerLinkActive="active">
+          <span class="icon">workspace_premium</span> Certifications
+        </a>
+        <a routerLink="/student/courses" routerLinkActive="active">
+          <span class="icon">menu_book</span> Courses
+        </a>
+
+        <div class="sec-label">Documents</div>
+        <a routerLink="/student/uploads" routerLinkActive="active">
+          <span class="icon">upload_file</span> Uploads
+        </a>
+        <a routerLink="/student/resume" routerLinkActive="active">
+          <span class="icon">description</span> Resume Builder
+        </a>
+
+        <div class="sec-label">More</div>
+        <a routerLink="/student/assistant" routerLinkActive="active">
+          <span class="icon">smart_toy</span> REEP Agent
+        </a>
+        <a routerLink="/student/profile" routerLinkActive="active">
+          <span class="icon">person</span> Profile
+        </a>
+      </nav>
+
+      <main class="desktop-main">
+        <router-outlet></router-outlet>
+      </main>
     </div>
-  </main>
+  </div>
 </div>

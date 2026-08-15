@@ -1,0 +1,65 @@
+<div class="dt-header">
+  <div>
+    <div class="dt-title">Uploads</div>
+    <div class="dt-sub">Certificates, your CV and photo — and where each one sits in review.</div>
+  </div>
+</div>
+
+<div class="dropzone"><span class="icon">cloud_upload</span>Certificate proof, CV, photo, documents</div>
+<p class="dz-note">
+  Uploading from the browser is not wired up yet — files are attached to your record by the programme
+  office. This page lists what is already on file and how each one was reviewed.
+</p>
+
+@if (error()) {
+  <p class="err">{{ error() }}</p>
+} @else if (rows(); as list) {
+  @if (list.length === 0) {
+    <div class="card empty">
+      <span class="icon">folder_open</span>
+      <div>
+        <div class="empty__title">Nothing on your record yet</div>
+        <div class="empty__hint">
+          When a certificate, CV or photo is added to your account it will appear here with its review status.
+        </div>
+      </div>
+    </div>
+  } @else {
+    <table class="dt-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Kind</th>
+          <th>Size</th>
+          <th>Status</th>
+          <th>Uploaded</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (u of list; track u.id) {
+          <tr>
+            <td>
+              <div class="up-title">{{ u.title }}</div>
+              <div class="up-file">{{ u.original_name }}</div>
+              @if (u.review_note) {
+                <div class="up-note {{ statusTone(u.status) }}">
+                  <span class="icon">sticky_note_2</span>{{ u.review_note }}
+                </div>
+              }
+            </td>
+            <td>{{ kindLabel(u.kind) }}</td>
+            <td class="up-size">{{ formatSize(u.size_bytes) }}</td>
+            <td>
+              <span class="chip {{ statusTone(u.status) }}"
+                ><span class="icon">{{ statusIcon(u.status) }}</span>{{ statusLabel(u.status) }}</span
+              >
+            </td>
+            <td class="up-size">{{ u.uploaded_at | date: 'd MMM y' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+} @else {
+  <p class="err">Loading…</p>
+}

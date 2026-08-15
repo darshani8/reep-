@@ -1,0 +1,19 @@
+// Layout + typography live in the global reep-v2 classes (.dt-header, .dt-table,
+// .chip, .card, .dt-sub). Only the two per-cell text tweaks are screen-specific.
+:host {
+  display: block;
+}
+
+.c-name {
+  font-weight: 700;
+}
+
+.c-code {
+  margin-top: 2px;
+  color: var(--ink-500);
+  font-size: 11px;
+}
+
+.c-note {
+  color: var(--ink-500);
+}

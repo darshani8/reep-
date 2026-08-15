@@ -6,3 +6,8 @@
  * tokens; nothing hard-codes a colour. */
 
 @use './styles/reep-theme';
+
+/* REEP v2 design system — the exact tokens and component classes from
+ * docs/design-v2/student-app.html, global and unscoped. Loaded after
+ * reep-theme so the v2 body/typography rules win where the two overlap. */
+@use './styles/reep-v2';

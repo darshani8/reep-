@@ -1,172 +1,354 @@
 /**
- * Student overview — the first screen through the shell.
+ * Student landing (overview) — the v2 desktop landing panel (data-p="landing").
  *
- * A faithful start on src/app/student/page.tsx: the REEP journey rail with the
- * student's current stage lit, and the header facts (stage, semester, USN) from
- * the live /api/student/meta endpoint. The eight analytic tiles (attendance,
- * VTU marks, SWOC, mocks, skills, streak) are their own migration slices — each
- * needs its NestJS data endpoint and a charted component — and land next.
+ * Faithful port of the mockup in docs/design-v2/student-app.html: the welcome
+ * header + login-streak chip, a Stage donut, Attendance and VTU-marks bar
+ * charts, the four SWOC boxes, a Mocks-taken chart, skill badges (verified vs
+ * locked) and the login-streak row.
+ *
+ * It composes several read endpoints. /student/dashboard supplies the header
+ * facts and the stage; the richer per-series data for the charts comes from the
+ * matching sub-endpoints (attendance, results, streak, swoc, mocks, skills).
+ * Every card is independent — when its endpoint is missing or empty the card
+ * shows a small empty state instead of crashing the screen.
  */
 
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 
-interface StudentMeta {
-  usn: string;
-  currentStage: string;
-  stageLabel: string;
-  currentSemester: number;
+interface Dashboard {
+  name: string;
+  usn: string | null;
+  current_stage: string;
+  current_semester: number;
+  latest_cgpa: number | null;
+  attendance_percent: number;
+}
+
+interface CourseAttendance {
+  course_code: string;
+  present: number;
+  total: number;
+  percent: number;
+}
+interface AttendanceSummary {
+  overall_percent: number;
+  present: number;
+  total: number;
+  by_course: CourseAttendance[];
+}
+
+interface SemesterResult {
+  semester: number;
+  sgpa: number | null;
+  cgpa: number | null;
+}
+
+interface Streak {
+  current: number;
+  longest: number;
+  days_active: number;
+  last_active: string | null;
+}
+
+interface SwocItem {
+  source: string;
+  text: string;
+  weight: number;
+}
+interface SwocBoard {
+  strengths: SwocItem[];
+  weaknesses: SwocItem[];
+  opportunities: SwocItem[];
+  challenges: SwocItem[];
+}
+
+interface MockAttempt {
+  type: string;
+  taken_on: string;
+  score: number | null;
+  max_score: number | null;
+  percent: number | null;
+  notes: string | null;
+}
+
+interface StudentSkill {
+  slug: string;
+  name: string;
+  category: string;
+  level: number;
+  verified: boolean;
+}
+
+interface Bar {
+  label: string;
+  caption: string;
+  heightPct: number;
+}
+interface Badge {
+  name: string;
+  icon: string;
+  locked: boolean;
 }
 
 const STAGES: { key: string; label: string }[] = [
   { key: 'REBOOT', label: 'Reboot' },
   { key: 'EXCEL', label: 'Excel' },
-  { key: 'EXCEL_ADVANCED', label: 'Excel-Advanced' },
+  { key: 'EXCEL_ADVANCED', label: 'Excel-Adv' },
   { key: 'ELEVATE', label: 'Elevate' },
+];
+
+type MockKind = 'GD' | 'INTERVIEW' | 'APTITUDE';
+
+const MOCK_TYPES: { key: MockKind; label: string }[] = [
+  { key: 'GD', label: 'GD' },
+  { key: 'INTERVIEW', label: 'Interview' },
+  { key: 'APTITUDE', label: 'Aptitude' },
 ];
 
 @Component({
   selector: 'app-student-overview',
   standalone: true,
-  template: `
-    <h1 class="reep-h1 page-title">Overview</h1>
-
-    @if (meta(); as m) {
-      <div class="rail" role="list" aria-label="REEP journey">
-        @for (stage of stages; track stage.key; let i = $index) {
-          <div
-            class="rail__stage"
-            role="listitem"
-            [class.rail__stage--done]="i < currentIndex(m.currentStage)"
-            [class.rail__stage--current]="stage.key === m.currentStage"
-          >
-            <span class="rail__dot"></span>
-            <span class="rail__label">{{ stage.label }}</span>
-          </div>
-        }
-      </div>
-
-      <div class="facts">
-        <div class="fact">
-          <div class="fact__label reep-caption">Current stage</div>
-          <div class="fact__value reep-h3">{{ m.stageLabel }}</div>
-        </div>
-        <div class="fact">
-          <div class="fact__label reep-caption">Semester</div>
-          <div class="fact__value reep-h3">{{ m.currentSemester }}</div>
-        </div>
-        <div class="fact">
-          <div class="fact__label reep-caption">USN</div>
-          <div class="fact__value reep-h3 tabular">{{ m.usn }}</div>
-        </div>
-      </div>
-
-      <p class="note reep-body2">
-        Attendance, VTU marks, SWOC, mocks, skills and streak tiles are being
-        migrated to Angular — each with its own data endpoint and chart.
-      </p>
-    } @else if (error()) {
-      <p class="note reep-body2">{{ error() }}</p>
-    } @else {
-      <p class="note reep-body2">Loading…</p>
-    }
-  `,
-  styles: [
-    `
-      :host {
-        display: block;
-      }
-      .page-title {
-        margin: 0 0 24px;
-        color: var(--reep-text-primary);
-      }
-      .rail {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px 28px;
-        padding: 20px 24px;
-        margin-bottom: 24px;
-        background: var(--reep-neu-bg);
-        border-radius: 12px;
-        box-shadow: var(--reep-neu-shadow);
-      }
-      .rail__stage {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--reep-text-disabled);
-      }
-      .rail__dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: var(--reep-divider);
-      }
-      .rail__stage--done {
-        color: var(--reep-text-secondary);
-      }
-      .rail__stage--done .rail__dot {
-        background: var(--reep-secondary-main);
-      }
-      .rail__stage--current {
-        color: var(--reep-text-primary);
-        font-weight: 600;
-      }
-      .rail__stage--current .rail__dot {
-        background: var(--reep-secondary-main);
-        box-shadow: 0 0 0 4px var(--reep-action-selected);
-      }
-      .rail__label {
-        font-size: 0.875rem;
-      }
-      .facts {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
-      }
-      .fact {
-        padding: 18px 20px;
-        background: var(--reep-bg-paper);
-        border-radius: 10px;
-      }
-      .fact__label {
-        color: var(--reep-text-disabled);
-      }
-      .fact__value {
-        margin-top: 4px;
-        color: var(--reep-text-primary);
-      }
-      .note {
-        color: var(--reep-text-secondary);
-      }
-    `,
-  ],
+  templateUrl: './student-overview.component.html',
+  styleUrl: './student-overview.component.scss',
 })
 export class StudentOverviewComponent {
   readonly stages = STAGES;
-  readonly meta = signal<StudentMeta | null>(null);
+
+  readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+
+  readonly dashboard = signal<Dashboard | null>(null);
+  readonly attendance = signal<AttendanceSummary | null>(null);
+  readonly results = signal<SemesterResult[] | null>(null);
+  readonly streak = signal<Streak | null>(null);
+  readonly swoc = signal<SwocBoard | null>(null);
+  readonly mocks = signal<MockAttempt[] | null>(null);
+  readonly skills = signal<StudentSkill[] | null>(null);
 
   constructor() {
     void this.load();
   }
 
-  currentIndex(stage: string): number {
-    return STAGES.findIndex((s) => s.key === stage);
+  // ---- header --------------------------------------------------------------
+
+  readonly firstName = computed(() => {
+    const n = this.dashboard()?.name?.trim() ?? '';
+    return n ? n.split(/\s+/)[0] : '';
+  });
+
+  readonly stageLabel = computed(() => {
+    const key = this.dashboard()?.current_stage;
+    return STAGES.find((s) => s.key === key)?.label ?? key ?? '';
+  });
+
+  // ---- stage donut ---------------------------------------------------------
+
+  readonly stagePct = computed(() => {
+    const key = this.dashboard()?.current_stage;
+    const idx = STAGES.findIndex((s) => s.key === key);
+    if (idx < 0) return 0;
+    return Math.round(((idx + 1) / STAGES.length) * 100);
+  });
+
+  readonly donutStyle = computed(() => {
+    const p = this.stagePct();
+    return `conic-gradient(var(--amber-600) 0% ${p}%, var(--line) ${p}% 100%)`;
+  });
+
+  // ---- attendance bars -----------------------------------------------------
+
+  readonly attendanceBars = computed<Bar[]>(() => {
+    const att = this.attendance();
+    if (att && att.by_course.length) {
+      return att.by_course.slice(0, 6).map((c) => ({
+        label: c.course_code,
+        caption: `${Math.round(c.percent)}%`,
+        heightPct: this.clampH(c.percent),
+      }));
+    }
+    // Fall back to the single overall % the dashboard always carries.
+    const d = this.dashboard();
+    if (d != null) {
+      return [
+        {
+          label: 'Overall',
+          caption: `${Math.round(d.attendance_percent)}%`,
+          heightPct: this.clampH(d.attendance_percent),
+        },
+      ];
+    }
+    return [];
+  });
+
+  // ---- VTU marks bars (per semester, from CGPA/SGPA on a 10-scale) ---------
+
+  readonly marksBars = computed<Bar[]>(() => {
+    const rows = this.results();
+    if (rows && rows.length) {
+      const bars = rows
+        .map((r) => ({ sem: r.semester, val: r.cgpa ?? r.sgpa }))
+        .filter((r): r is { sem: number; val: number } => r.val != null)
+        .map((r) => ({
+          label: `Sem ${r.sem}`,
+          caption: r.val.toFixed(1),
+          heightPct: this.clampH(r.val * 10),
+        }));
+      if (bars.length) return bars;
+    }
+    const d = this.dashboard();
+    if (d?.latest_cgpa != null) {
+      return [
+        {
+          label: `Sem ${d.current_semester}`,
+          caption: d.latest_cgpa.toFixed(1),
+          heightPct: this.clampH(d.latest_cgpa * 10),
+        },
+      ];
+    }
+    return [];
+  });
+
+  // ---- SWOC ----------------------------------------------------------------
+
+  readonly swocBoxes = computed(() => {
+    const s = this.swoc();
+    if (!s) return null;
+    return [
+      { cls: 'swoc-box swoc-s', title: 'Strengths', text: this.joinSwoc(s.strengths) },
+      { cls: 'swoc-box swoc-w', title: 'Weaknesses', text: this.joinSwoc(s.weaknesses) },
+      { cls: 'swoc-box swoc-o', title: 'Opportunities', text: this.joinSwoc(s.opportunities) },
+      { cls: 'swoc-box swoc-c', title: 'Challenges', text: this.joinSwoc(s.challenges) },
+    ];
+  });
+
+  private joinSwoc(items: SwocItem[]): string {
+    return items.length ? items.map((i) => i.text).join(' · ') : 'No entries yet';
+  }
+
+  // ---- mocks ---------------------------------------------------------------
+
+  readonly mockCounts = computed(() => {
+    const rows = this.mocks();
+    if (!rows) return null;
+    const counts = { GD: 0, INTERVIEW: 0, APTITUDE: 0 };
+    for (const m of rows) {
+      if (m.type === 'GD' || m.type === 'INTERVIEW' || m.type === 'APTITUDE') {
+        counts[m.type] += 1;
+      }
+    }
+    return counts;
+  });
+
+  readonly mockSummary = computed(() => {
+    const c = this.mockCounts();
+    if (!c) return '';
+    return `GD: ${c.GD} · Interview: ${c.INTERVIEW} · Aptitude: ${c.APTITUDE}`;
+  });
+
+  readonly mockBars = computed<Bar[]>(() => {
+    const c = this.mockCounts();
+    if (!c) return [];
+    const max = Math.max(c.GD, c.INTERVIEW, c.APTITUDE, 1);
+    return MOCK_TYPES.map((t) => {
+      const n = c[t.key] ?? 0;
+      return {
+        label: t.label,
+        caption: `${n}`,
+        heightPct: n > 0 ? Math.max(Math.round((n / max) * 100), 10) : 3,
+      };
+    });
+  });
+
+  readonly hasMocks = computed(() => {
+    const c = this.mockCounts();
+    return !!c && c.GD + c.INTERVIEW + c.APTITUDE > 0;
+  });
+
+  // ---- skill badges --------------------------------------------------------
+
+  readonly badges = computed<Badge[] | null>(() => {
+    const rows = this.skills();
+    if (!rows) return null;
+    // Verified (unlocked) first, then the locked ones, capped for the row.
+    const ordered = [...rows].sort((a, b) => Number(b.verified) - Number(a.verified));
+    return ordered.slice(0, 8).map((s) => ({
+      name: s.name,
+      icon: s.verified ? this.skillIcon(s) : 'lock',
+      locked: !s.verified,
+    }));
+  });
+
+  private skillIcon(s: StudentSkill): string {
+    const hay = `${s.slug} ${s.name} ${s.category}`.toLowerCase();
+    if (/excel|spreadsheet/.test(hay)) return 'calculate';
+    if (/comm|present|english|speak|writing/.test(hay)) return 'groups';
+    if (/analy|data|insight|statist|power ?bi|tableau/.test(hay)) return 'insights';
+    if (/sql|database|python|java|code|program|develop/.test(hay)) return 'terminal';
+    if (/finance|account|invest|market/.test(hay)) return 'payments';
+    if (/lead|manage|strateg/.test(hay)) return 'workspace_premium';
+    return 'verified';
+  }
+
+  // ---- streak --------------------------------------------------------------
+
+  readonly streakChip = computed(() => {
+    const s = this.streak();
+    if (!s) return null;
+    if (s.current <= 0) return { text: 'No active streak', tone: 'warn' as const };
+    return { text: `${s.current}-day login streak`, tone: 'good' as const };
+  });
+
+  readonly streakCells = computed<boolean[]>(() => {
+    const on = Math.min(this.streak()?.current ?? 0, 7);
+    return Array.from({ length: 7 }, (_, i) => i < on);
+  });
+
+  // ---- helpers -------------------------------------------------------------
+
+  /// Keep a non-zero value visible (min 6%) while clamping to the chart height.
+  private clampH(v: number): number {
+    if (v <= 0) return 3;
+    return Math.max(6, Math.min(100, Math.round(v)));
   }
 
   private async load(): Promise<void> {
+    const [dash, att, res, streak, swoc, mocks, skills] = await Promise.all([
+      this.getJson<Dashboard>('/student/dashboard'),
+      this.getJson<AttendanceSummary>('/student/attendance'),
+      this.getJson<SemesterResult[]>('/student/results'),
+      this.getJson<Streak>('/student/streak'),
+      this.getJson<SwocBoard>('/student/swoc'),
+      this.getJson<MockAttempt[]>('/student/mocks'),
+      this.getJson<StudentSkill[]>('/student/skills'),
+    ]);
+
+    if (dash == null) {
+      this.error.set('Could not load your overview.');
+      this.loading.set(false);
+      return;
+    }
+
+    this.dashboard.set(dash);
+    this.attendance.set(att);
+    this.results.set(res);
+    this.streak.set(streak);
+    this.swoc.set(swoc);
+    this.mocks.set(mocks);
+    this.skills.set(skills);
+    this.loading.set(false);
+  }
+
+  /// One shape for every read: null on any non-OK response or network error, so
+  /// a missing sub-endpoint becomes a per-card empty state, never a crash.
+  private async getJson<T>(path: string): Promise<T | null> {
     try {
-      const res = await fetch(`${environment.apiBase}/student/meta`, { credentials: 'include' });
-      if (!res.ok) {
-        this.error.set('Could not load your record.');
-        return;
-      }
-      this.meta.set((await res.json()) as StudentMeta);
+      const res = await fetch(`${environment.apiBase}${path}`, { credentials: 'include' });
+      if (!res.ok) return null;
+      return (await res.json()) as T;
     } catch {
-      this.error.set('Could not reach the server.');
+      return null;
     }
   }
 }

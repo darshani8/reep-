@@ -1,0 +1,148 @@
+@if (loading()) {
+  <div class="dt-header"><div><div class="dt-title">Landing</div><div class="dt-sub">Loading your overview…</div></div></div>
+} @else if (error()) {
+  <div class="dt-header"><div><div class="dt-title">Landing</div><div class="dt-sub">{{ error() }}</div></div></div>
+  <div class="card"><span class="icon">error</span> We couldn't reach your record. Please try again shortly.</div>
+} @else if (dashboard(); as d) {
+
+  <div class="dt-header">
+    <div>
+      <div class="dt-title">Welcome back{{ firstName() ? ', ' + firstName() : '' }}</div>
+      <div class="dt-sub">{{ stageLabel() }} stage · Semester {{ d.current_semester }}{{ d.usn ? ' · ' + d.usn : '' }}</div>
+    </div>
+    @if (streakChip(); as chip) {
+      <div class="chip" [class.good]="chip.tone === 'good'" [class.warn]="chip.tone === 'warn'">
+        <span class="icon">local_fire_department</span>{{ chip.text }}
+      </div>
+    }
+  </div>
+
+  <div class="grid-3">
+    <!-- Stage donut -->
+    <div class="card">
+      <h4>Stage</h4>
+      <div class="donut" [style.background]="donutStyle()"><span>{{ stagePct() }}%</span></div>
+      <div class="dt-sub" style="text-align:center; margin-top:8px">Reboot → Excel → Excel-Adv → Elevate</div>
+    </div>
+
+    <!-- Attendance -->
+    <div class="card">
+      <h4>Attendance</h4>
+      @if (attendanceBars().length) {
+        <div class="bar-chart">
+          @for (b of attendanceBars(); track b.label) {
+            <div class="bar" [style.height.%]="b.heightPct"><span>{{ b.caption }}</span></div>
+          }
+        </div>
+        <div class="bar-labels">
+          @for (b of attendanceBars(); track b.label) {
+            <div>{{ b.label }}</div>
+          }
+        </div>
+      } @else {
+        <div class="dt-sub">No attendance recorded yet.</div>
+      }
+    </div>
+
+    <!-- VTU marks -->
+    <div class="card">
+      <h4>VTU marks</h4>
+      @if (marksBars().length) {
+        <div class="bar-chart">
+          @for (b of marksBars(); track b.label) {
+            <div class="bar" [style.height.%]="b.heightPct"><span>{{ b.caption }}</span></div>
+          }
+        </div>
+        <div class="bar-labels">
+          @for (b of marksBars(); track b.label) {
+            <div>{{ b.label }}</div>
+          }
+        </div>
+      } @else {
+        <div class="dt-sub">No semester results published yet.</div>
+      }
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- SWOC -->
+    <div class="card">
+      <h4>SWOC — Strengths, Weaknesses, Opportunities, Challenges
+        <span class="dt-sub" style="font-weight:400">from placement, mentor &amp; PM inputs</span>
+      </h4>
+      @if (swocBoxes(); as boxes) {
+        <div class="swoc-grid">
+          @for (box of boxes; track box.title) {
+            <div [class]="box.cls"><b>{{ box.title }}</b>{{ box.text }}</div>
+          }
+        </div>
+      } @else {
+        <div class="dt-sub">No SWOC inputs yet — your mentor and the placement cell add these.</div>
+      }
+    </div>
+
+    <!-- Mocks -->
+    <div class="card">
+      <h4>Mocks taken</h4>
+      @if (hasMocks()) {
+        <div class="dt-sub" style="margin-bottom:8px">{{ mockSummary() }}</div>
+        <div class="bar-chart" style="height:80px">
+          @for (b of mockBars(); track b.label) {
+            <div class="bar" [style.height.%]="b.heightPct"><span>{{ b.caption }}</span></div>
+          }
+        </div>
+        <div class="bar-labels">
+          @for (b of mockBars(); track b.label) {
+            <div>{{ b.label }}</div>
+          }
+        </div>
+      } @else {
+        <div class="dt-sub">No mock assessments taken yet.</div>
+      }
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Skill badges -->
+    <div class="card">
+      <h4>Skill badges</h4>
+      @if (badges(); as bs) {
+        @if (bs.length) {
+          <div class="badge-row">
+            @for (badge of bs; track badge.name) {
+              <div class="badge" [class.locked]="badge.locked">
+                <div class="ico"><span class="icon">{{ badge.icon }}</span></div>{{ badge.name }}
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="dt-sub">No skills recorded yet — upload a certificate to claim one.</div>
+        }
+      } @else {
+        <div class="dt-sub">Skill badges are unavailable right now.</div>
+      }
+    </div>
+
+    <!-- Recommendations (no data source yet) -->
+    <div class="card">
+      <h4>Top 5 skilling recommendations</h4>
+      <div class="dt-sub">Personalised recommendations aren't available yet.</div>
+    </div>
+  </div>
+
+  <!-- Login streak -->
+  <div class="card">
+    <h4>Login streak</h4>
+    @if (streak(); as s) {
+      <div class="streak-row">
+        @for (on of streakCells(); track $index) {
+          <div class="streak-day" [class.on]="on"></div>
+        }
+      </div>
+      <div class="dt-sub" style="margin-top:10px">Current {{ s.current }} day{{ s.current === 1 ? '' : 's' }} · Longest {{ s.longest }} · {{ s.days_active }} active days</div>
+    } @else {
+      <div class="dt-sub">No login history yet.</div>
+    }
+  </div>
+
+}

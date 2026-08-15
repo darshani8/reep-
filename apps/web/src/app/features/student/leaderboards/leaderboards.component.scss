@@ -1,108 +1,25 @@
 :host {
   display: block;
 }
-.note {
-  margin-top: 12px;
-  color: var(--reep-text-disabled);
-}
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 20px;
+
+/* The mockup's inline `margin-left:auto; font-weight:700` on the row total. */
+.lb-val {
+  margin-left: auto;
+  font-weight: 700;
 }
 
-.tabs {
+/* "Coming soon" empty state, laid out inside the global .card. */
+.lb-empty {
   display: flex;
-  gap: 24px;
-  border-bottom: 1px solid var(--reep-divider);
-  margin-bottom: 32px;
-  overflow-x: auto;
+  gap: 14px;
+  align-items: center;
 }
-.tab {
-  position: relative;
-  padding: 8px 2px;
-  border: none;
-  background: transparent;
-  font-family: var(--reep-font-stack);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--reep-text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
+.lb-empty .icon {
+  font-size: 30px;
+  color: var(--ink-400);
+  flex-shrink: 0;
 }
-.tab--active {
-  color: var(--reep-text-primary);
-  font-weight: 600;
-}
-.tab--active::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  background: var(--reep-text-primary);
-}
-
-.rules {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 20px;
-  padding: 16px 18px;
-  margin: 16px 0 20px;
-  background: var(--reep-bg-paper);
-  border: 1px solid var(--reep-divider);
-  border-radius: 8px;
-}
-@media (max-width: 640px) {
-  .rules {
-    grid-template-columns: 1fr;
-  }
-}
-.rules__label {
-  color: var(--reep-text-secondary);
-}
-.rules__text {
-  margin: 3px 0 0;
-  color: var(--reep-text-primary);
-}
-
-.table-wrap {
-  overflow-x: auto;
-}
-.board {
-  width: 100%;
-  min-width: 480px;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-.board th {
-  text-align: left;
-  padding: 8px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--reep-text-secondary);
-  border-bottom: 1px solid var(--reep-divider);
-}
-.board td {
-  padding: 11px 8px;
-  border-bottom: 1px solid var(--reep-divider);
-}
-.board__rank {
-  width: 72px;
-}
-.board__band {
-  text-align: right;
-  color: var(--reep-text-secondary);
-}
-.board__row--you {
-  background: var(--reep-action-hover);
-}
-.board__row--you td {
-  font-weight: 600;
-}
-.board__you {
-  margin-left: 8px;
-  color: var(--reep-secondary-main);
-  font-weight: 500;
+.lb-empty__title {
+  font-weight: 700;
+  margin-bottom: 2px;
 }

@@ -1,91 +1,43 @@
-@if (view(); as v) {
-  @if (!v.available) {
-    <kit-page-intro title="Leaderboards" />
-    <kit-empty
-      title="Leaderboards are not available for this account."
-      hint="They are ranked within a cohort, so they need an enrolled student record. If you are enrolled, ask the programme office to check your record." />
-  } @else {
-    <kit-page-intro
-      title="Leaderboards"
-      [subtitle]="'Five boards across ' + v.cohortLabel + '. You are ranked against the ' + v.cohortSize + ' students in your own cohort — and everybody sees the same three things about you that you see about them: your name, your position and a band.'" />
-
-    @if (v.viewerOptedOut) {
-      <kit-banner title="You have opted out of the leaderboards">
-        Your name does not appear on any board your classmates open. You still see your own position on every one — the rank below is where you would sit.
-        <a action class="btn btn--small" href="/student/profile">Profile settings</a>
-      </kit-banner>
-    }
-
-    <!-- where you stand -->
-    <kit-section title="Where you stand" subtitle="Your own position on each board. These five figures are yours; nobody else sees them.">
-      <div class="stats">
-        @for (b of boards(); track b.key) {
-          <kit-stat
-            [label]="b.label"
-            [value]="b.you && !b.you.empty ? b.you.ordinal : '—'"
-            [tone]="b.you && !b.you.empty && b.you.rank <= 3 ? 'good' : 'neutral'"
-            [hint]="!b.you ? 'No standing yet' : b.you.empty ? b.emptyHint : b.you.valueLabel + ' · of ' + b.you.outOf" />
-        }
-      </div>
-    </kit-section>
-
-    @if (standings().length > 0) {
-      <kit-section title="Your standing across the five" subtitle="How far up each board you sit, as a percentage of the students ranked on it">
-        <app-bar-chart [data]="standings()" unit="%" scale="percentage" [height]="260" />
-        <p class="reep-caption note">100% is the top of a board. Built from your own five positions — a chart of the boards themselves would be a chart of other people's figures.</p>
-      </kit-section>
-    }
-
-    <!-- board picker -->
-    <div class="tabs no-print" role="tablist" aria-label="Choose a leaderboard">
-      @for (b of boards(); track b.key) {
-        <button type="button" role="tab" class="tab" [class.tab--active]="activeKey() === b.key" [attr.aria-selected]="activeKey() === b.key" (click)="setBoard(b.key)">{{ b.label }}</button>
-      }
+<div class="panel" data-p="leaderboards">
+  <div class="dt-header">
+    <div>
+      <div class="dt-title">Leaderboards</div>
+      <div class="dt-sub">Ranked within your cohort — everyone sees the same name, position and total.</div>
     </div>
+  </div>
 
-    @if (active(); as b) {
-      <kit-section [title]="b.label" [subtitle]="b.blurb">
-        <a action class="btn btn--small btn--outlined" [href]="b.actionHref">{{ b.actionLabel }}</a>
+  <div class="tabs-row" role="tablist" aria-label="Choose a leaderboard">
+    @for (t of tabs; track t.key) {
+      <button
+        type="button"
+        role="tab"
+        [class.active]="active() === t.key"
+        [attr.aria-selected]="active() === t.key"
+        (click)="setTab(t.key)"
+      >
+        {{ t.label }}
+      </button>
+    }
+  </div>
 
-        <div class="rules">
-          <div><span class="rules__label reep-caption">What is ranked</span><p class="reep-body2 rules__text">{{ b.rankingKey }}</p></div>
-          <div><span class="rules__label reep-caption">How ties are broken</span><p class="reep-body2 rules__text">{{ b.tieBreak }}</p></div>
+  @if (rows().length === 0) {
+    <div class="card lb-empty">
+      <span class="icon">leaderboard</span>
+      <div>
+        <div class="lb-empty__title">Leaderboards are coming soon</div>
+        <div class="dt-sub">
+          The {{ activeLabel() }} board will rank your cohort here once results are published.
+          You will see each classmate's position and total, with your own row highlighted.
         </div>
-
-        @if (nothingRanked(b)) {
-          <kit-empty title="Nobody in your cohort is on this board yet." [hint]="b.emptyHint + ' You would be the first.'">
-            <a action class="btn btn--small btn--outlined" [href]="b.actionHref">{{ b.actionLabel }}</a>
-          </kit-empty>
-        } @else {
-          <div class="table-wrap">
-            <table class="board">
-              <thead><tr><th class="board__rank">Rank</th><th>Student</th><th class="board__band">Standing</th></tr></thead>
-              <tbody>
-                @for (row of b.rows; track row.rank) {
-                  <tr [class.board__row--you]="row.isViewer">
-                    <td class="board__rank tabular">{{ row.ordinal }}</td>
-                    <td>
-                      <span>{{ row.displayName }}</span>
-                      @if (row.isViewer) { <span class="board__you reep-caption">you · {{ row.yourValueLabel }}</span> }
-                    </td>
-                    <td class="board__band reep-body2">{{ row.band }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <p class="reep-caption note">
-            {{ b.ranked === 1 ? 'One student is ranked on this board.' : b.ranked + ' students are ranked on this board.' }}
-            @if (b.optedOutPeers > 0) { {{ b.optedOutPeers === 1 ? 'One more has opted out.' : b.optedOutPeers + ' more have opted out.' }} }
-          </p>
-        }
-      </kit-section>
+      </div>
+    </div>
+  } @else {
+    @for (row of rows(); track row.rank) {
+      <div class="lb-row" [class.me]="row.is_me">
+        <span class="lb-rank">{{ row.rank }}</span>
+        <span class="lb-avatar">{{ row.initials }}</span>{{ row.name }}
+        <span class="lb-val">{{ row.value_label }}</span>
+      </div>
     }
   }
-} @else if (error()) {
-  <kit-page-intro title="Leaderboards" />
-  <p class="note reep-body2">{{ error() }}</p>
-} @else {
-  <kit-page-intro title="Leaderboards" />
-  <p class="note reep-body2">Loading…</p>
-}
+</div>

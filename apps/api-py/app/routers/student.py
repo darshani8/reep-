@@ -17,7 +17,7 @@ from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
 from ..models.certification import Certification, CertificationProgress
-from ..models.course import Course, Enrollment
+from ..models.course import Course, Enrollment, ProgressStatus
 from ..models.job import Job, JobApplication
 from ..models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from ..models.mock import MockAttempt
@@ -37,7 +37,7 @@ from ..models.swoc import SwocEntry
 from ..models.resume_profile import ResumeProfile
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload, UploadKind
-from ..models.user import LoginDay, Student
+from ..models.user import LoginDay, Student, User
 
 router = APIRouter(prefix="/student", tags=["student"])
 
@@ -1483,3 +1483,153 @@ def put_resume_profile(
         completeness=_resume_completeness(row.data),
         updated_at=row.updated_at,
     )
+
+
+# --- Leaderboards --------------------------------------------------------------
+
+_BOARDS = ("certificates", "skills", "vtu", "streak", "mocks")
+
+
+def _initials(name: str) -> str:
+    parts = [p for p in name.split() if p]
+    if not parts:
+        return "?"
+    if len(parts) == 1:
+        return parts[0][:2].upper()
+    return (parts[0][0] + parts[-1][0]).upper()
+
+
+def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dict[str, tuple[float, str]]:
+    """student_id -> (value, label) for the chosen board, over the cohort roster
+    (list of (student_id, user_id)). Students with no activity score 0."""
+    sids = [sid for sid, _ in roster]
+    uid_by_sid = {sid: uid for sid, uid in roster}
+    out: dict[str, tuple[float, str]] = {sid: (0.0, "") for sid in sids}
+
+    if board == "certificates":
+        rows = db.execute(
+            select(CertificationProgress.student_id, func.count())
+            .where(
+                CertificationProgress.student_id.in_(sids),
+                CertificationProgress.status == ProgressStatus.COMPLETED,
+            )
+            .group_by(CertificationProgress.student_id)
+        ).all()
+        counts = {sid: n for sid, n in rows}
+        return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} certs") for sid in sids}
+
+    if board == "skills":
+        rows = db.execute(
+            select(StudentSkill.student_id, func.count())
+            .where(StudentSkill.student_id.in_(sids))
+            .group_by(StudentSkill.student_id)
+        ).all()
+        counts = {sid: n for sid, n in rows}
+        return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} skills") for sid in sids}
+
+    if board == "mocks":
+        rows = db.execute(
+            select(MockAttempt.student_id, func.count())
+            .where(MockAttempt.student_id.in_(sids))
+            .group_by(MockAttempt.student_id)
+        ).all()
+        counts = {sid: n for sid, n in rows}
+        return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} mocks") for sid in sids}
+
+    if board == "vtu":
+        # Latest semester's CGPA per student.
+        rows = db.execute(
+            select(SemesterResult.student_id, SemesterResult.semester, SemesterResult.cgpa)
+            .where(SemesterResult.student_id.in_(sids))
+            .order_by(SemesterResult.student_id, SemesterResult.semester.desc())
+        ).all()
+        latest: dict[str, float] = {}
+        for sid, _sem, cgpa in rows:
+            if sid not in latest:  # first row per student is the highest semester
+                latest[sid] = float(cgpa)
+        return {sid: (latest.get(sid, 0.0), f"CGPA {latest.get(sid, 0.0):.2f}") for sid in sids}
+
+    if board == "streak":
+        # Active-day count (LoginDay is keyed by user_id).
+        uids = list(uid_by_sid.values())
+        rows = db.execute(
+            select(LoginDay.user_id, func.count())
+            .where(LoginDay.user_id.in_(uids))
+            .group_by(LoginDay.user_id)
+        ).all()
+        by_uid = {uid: n for uid, n in rows}
+        return {
+            sid: (float(by_uid.get(uid_by_sid[sid], 0)), f"{by_uid.get(uid_by_sid[sid], 0)} active days")
+            for sid in sids
+        }
+
+    return out
+
+
+class LeaderRow(BaseModel):
+    rank: int
+    student_id: str
+    name: str
+    initials: str
+    value: float
+    value_label: str
+    is_me: bool
+
+
+class LeaderboardOut(BaseModel):
+    board: str
+    opted_out: bool
+    rows: list[LeaderRow]
+
+
+@router.get("/leaderboards", response_model=LeaderboardOut)
+def leaderboards(
+    board: str = "certificates",
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> LeaderboardOut:
+    """Rank the caller's cohort on one board. A student who opted out is excluded
+    from every board and — in both directions — sees no ranks themselves."""
+    student_id = _require_student(session)
+    if board not in _BOARDS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unknown board. One of: {', '.join(_BOARDS)}.",
+        )
+    me = db.get(Student, student_id)
+    my_profile = db.scalar(
+        select(StudentProfile).where(StudentProfile.student_id == student_id)
+    )
+    if my_profile is not None and my_profile.leaderboard_opt_out:
+        return LeaderboardOut(board=board, opted_out=True, rows=[])
+
+    # Cohort roster, minus anyone who opted out.
+    opted_out = set(
+        db.scalars(
+            select(StudentProfile.student_id).where(StudentProfile.leaderboard_opt_out.is_(True))
+        ).all()
+    )
+    roster_rows = db.execute(
+        select(Student.id, Student.user_id, User.name)
+        .join(User, Student.user_id == User.id)
+        .where(Student.cohort_id == me.cohort_id)
+    ).all()
+    roster = [(sid, uid, name) for sid, uid, name in roster_rows if sid not in opted_out]
+
+    values = _board_values(db, board, [(sid, uid) for sid, uid, _ in roster])
+    name_by_sid = {sid: name for sid, _uid, name in roster}
+
+    ranked = sorted(roster, key=lambda r: values[r[0]][0], reverse=True)
+    rows = [
+        LeaderRow(
+            rank=i + 1,
+            student_id=sid,
+            name=name_by_sid[sid],
+            initials=_initials(name_by_sid[sid]),
+            value=values[sid][0],
+            value_label=values[sid][1],
+            is_me=(sid == student_id),
+        )
+        for i, (sid, _uid, _name) in enumerate(ranked)
+    ]
+    return LeaderboardOut(board=board, opted_out=False, rows=rows)

@@ -31,6 +31,7 @@ interface BasicData {
   languages: string[];
   dream_company: string;
   medical_history: string;
+  photo_upload_id: string;
 }
 
 @Component({
@@ -38,6 +39,34 @@ interface BasicData {
   standalone: true,
   imports: [FormsModule],
   templateUrl: './basic.component.html',
+  styles: [
+    `
+      .dropzone--action {
+        display: block;
+        width: 100%;
+        cursor: pointer;
+        font-family: var(--font);
+      }
+      .dropzone--action:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .photo-preview {
+        display: block;
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        margin-bottom: 8px;
+      }
+      .photo-err {
+        display: block;
+        color: var(--risk);
+        margin-top: 6px;
+      }
+    `,
+  ],
 })
 export class RbBasicComponent {
   private readonly svc = inject(ResumeBuilderService);
@@ -62,8 +91,10 @@ export class RbBasicComponent {
       if (this.svc.loaded() && !this.hydrated) {
         this.hydrated = true;
         this.m = untracked(() => this.normalize(this.svc.section('basic', {})));
+        this.photoId.set(this.m.photo_upload_id);
       }
     });
+    this.photoId.set(this.m.photo_upload_id);
     void this.loadIdentity();
   }
 
@@ -78,7 +109,54 @@ export class RbBasicComponent {
       languages: Array.isArray(raw.languages) ? [...raw.languages] : [],
       dream_company: raw.dream_company ?? '',
       medical_history: raw.medical_history ?? '',
+      photo_upload_id: raw.photo_upload_id ?? '',
     };
+  }
+
+  // --- profile photo upload ---
+  readonly uploadingPhoto = signal(false);
+  readonly photoError = signal<string | null>(null);
+
+  /** URL to preview the stored photo, or null when none is set. */
+  readonly photoUrl = computed(() =>
+    this.photoId()
+      ? `${environment.apiBase}/student/uploads/${this.photoId()}/file`
+      : null,
+  );
+  /** Signal mirror of m.photo_upload_id so photoUrl recomputes after upload. */
+  private readonly photoId = signal<string>('');
+
+  async onPhotoFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.uploadingPhoto.set(true);
+    this.photoError.set(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('kind', 'PROFILE_PHOTO');
+      form.append('title', 'Profile photo');
+      const res = await fetch(`${environment.apiBase}/student/uploads`, {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        this.photoError.set(d?.detail ?? 'Photo upload failed — use a PNG or JPEG under 10 MB.');
+        return;
+      }
+      const id = (await res.json()).id as string;
+      this.m.photo_upload_id = id;
+      this.photoId.set(id);
+      this.push(); // persist the pointer in the resume profile
+    } catch {
+      this.photoError.set('Could not reach the server.');
+    } finally {
+      this.uploadingPhoto.set(false);
+      input.value = '';
+    }
   }
 
   /** Flush the whole slice back to the shared map (deep-cloned, plain data). */

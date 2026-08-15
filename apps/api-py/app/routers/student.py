@@ -1,7 +1,7 @@
 """Student self-service endpoints. First slice: read your own profile."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -26,7 +26,7 @@ from ..models.profile import StudentProfile
 from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, StudentSkill
 from ..models.swoc import SwocEntry
-from ..models.timesheet import TimeSheetEntry
+from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.user import LoginDay, Student
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -804,3 +804,41 @@ def my_schedule(
         )
         for i in rows
     ]
+
+
+class TimeSheetLogIn(BaseModel):
+    day: date
+    activity: str  # DayActivity
+    minutes: int = Field(ge=0, le=1440)
+
+
+@router.post("/timesheet")
+def log_timesheet(
+    body: TimeSheetLogIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Upsert the minutes for one (day, activity) — one row per bucket per day."""
+    student_id = _require_student(session)
+    try:
+        activity = DayActivity(body.activity)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid activity."
+        )
+    entry = db.scalar(
+        select(TimeSheetEntry).where(
+            TimeSheetEntry.student_id == student_id,
+            TimeSheetEntry.day == body.day,
+            TimeSheetEntry.activity == activity,
+        )
+    )
+    if entry is None:
+        entry = TimeSheetEntry(
+            student_id=student_id, day=body.day, activity=activity, minutes=body.minutes
+        )
+        db.add(entry)
+    else:
+        entry.minutes = body.minutes
+    db.commit()
+    return {"day": str(body.day), "activity": activity.value, "minutes": body.minutes}

@@ -15,8 +15,9 @@
     action
     type="button"
     class="btn btn--small voice"
-    [class.voice--on]="connection() === 'connected'"
-    [disabled]="connection() === 'connecting'"
+    [class.voice--on]="voiceActive()"
+    [disabled]="voice() === 'connecting' || voice() === 'permission-check'"
+    [attr.aria-pressed]="voiceActive()"
     (click)="toggleVoice()"
   >
     <span class="voice__dot" [class.voice__dot--live]="audioPlaying()"></span>
@@ -32,6 +33,118 @@
 
 @if (error()) {
   <p class="err reep-body2" role="alert">{{ error() }}</p>
+}
+
+<!-- One-time voice consent disclosure — shown before the FIRST voice session. -->
+@if (showConsent()) {
+  <div
+    class="consent"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="consent-title"
+    aria-describedby="consent-body"
+  >
+    <div class="consent__card">
+      <h2 id="consent-title" class="consent__title reep-h6">Before you start voice</h2>
+      <div id="consent-body" class="consent__body reep-body2">
+        <p>
+          Voice is processed in real time through <strong>LiveKit</strong> and
+          <strong>Google Gemini</strong>.
+        </p>
+        <p class="consent__warn">
+          Please don't share marks, attendance, medical information, passwords or other sensitive
+          personal details by voice.
+        </p>
+        <p>
+          Transcripts of the conversation are saved to your conversation and can be cleared any
+          time with <strong>Clear conversation</strong>. For your own figures, open
+          <a class="assist-note__link" routerLink="/student/records">your records</a>.
+        </p>
+      </div>
+      <div class="consent__actions">
+        <button type="button" class="btn" (click)="cancelConsent()">Cancel</button>
+        <button type="button" class="btn btn--primary" (click)="acceptConsent()">
+          I understand — start voice
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Live voice panel — controls, indicator, duration and transcript. -->
+@if (voicePanelOpen()) {
+  <section class="vpanel" aria-label="Voice session">
+    <div class="vpanel__bar">
+      <div
+        class="vpanel__status"
+        [attr.data-state]="voice()"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="vpanel__pulse" [class.vpanel__pulse--live]="audioPlaying()"></span>
+        <span class="vpanel__state">{{ voiceStatusLabel() }}</span>
+      </div>
+
+      @if (voiceActive()) {
+        <span class="vpanel__timer" aria-label="Call duration">{{ durationLabel() }}</span>
+      }
+
+      <div class="vpanel__controls">
+        @if (voiceActive()) {
+          <button
+            type="button"
+            class="btn btn--small"
+            [class.voice--on]="micMuted()"
+            [attr.aria-pressed]="micMuted()"
+            (click)="toggleMute()"
+          >
+            {{ micMuted() ? 'Unmute' : 'Mute' }}
+          </button>
+          <button type="button" class="btn btn--small" (click)="continueInText()">
+            Continue in text
+          </button>
+          <button type="button" class="btn btn--small voice--on" (click)="toggleVoice()">
+            End voice
+          </button>
+        }
+        @if (voice() === 'error') {
+          <button type="button" class="btn btn--small btn--primary" (click)="retryVoice()">
+            Retry
+          </button>
+          <button type="button" class="btn btn--small" (click)="continueInText()">
+            Continue in text
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (voice() === 'error' && !micDenied()) {
+      <p class="vpanel__reason reep-body2" role="alert">
+        {{ voiceError() ?? 'Voice is not available right now.' }}
+      </p>
+    }
+
+    @if (micDenied()) {
+      <p class="vpanel__reason reep-body2" role="alert">
+        Microphone access is blocked. Allow the mic for this site in your browser's address-bar
+        permissions, then press Retry. You can always
+        <button type="button" class="link-btn" (click)="continueInText()">continue in text</button>.
+      </p>
+    }
+
+    @if (voiceTranscript().length) {
+      <div class="vpanel__transcript" role="log" aria-label="Voice transcript" aria-live="polite">
+        @for (turn of voiceTranscript(); track $index) {
+          <p class="vturn" [class.vturn--user]="turn.role === 'user'">
+            <span class="vturn__who">{{ turn.role === 'user' ? 'You' : 'Agent' }}</span>
+            <span class="vturn__text">{{
+              turn.structured ? turn.structured.answer : turn.content
+            }}</span>
+          </p>
+        }
+      </div>
+    }
+  </section>
 }
 
 <div class="chat">
@@ -156,6 +269,7 @@
 
   <div class="chat__compose">
     <textarea
+      #composer
       class="chat__input"
       rows="1"
       placeholder="Message the REEP Agent…"

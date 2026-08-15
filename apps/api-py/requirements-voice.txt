@@ -5,4 +5,12 @@
 #
 # Gemini Live (native speech-to-speech) via the Google plugin — no OpenAI TTS
 # and no Google Cloud STT needed; just a Gemini API key + a LiveKit project.
+#
+# Pinned to livekit-agents ~1.5 (matches the API contract voice_agent.py codes
+# against — see the "VERIFY" adapters _extract_turn / _resolve_conversation_id).
+# On a minor bump, re-check those two adapters before the first live run.
+#
+# No HTTP client is listed here: the worker talks to the FastAPI server with
+# stdlib urllib only (POST /api/voice/transcript + /api/voice/heartbeat), so it
+# carries no DB deps and no extra HTTP dependency.
 livekit-agents[google]~=1.5

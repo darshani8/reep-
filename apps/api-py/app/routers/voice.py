@@ -18,6 +18,7 @@ would drop the student into a silent room, so we refuse instead.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from livekit import api
@@ -29,6 +30,7 @@ from .. import conversations as convo
 from ..config import settings
 from ..db import get_db
 from ..deps import get_current_session
+from ..models.conversation import Message
 from ..models.user import Role
 from ..models.voice_worker import VoiceWorkerHeartbeat
 
@@ -46,6 +48,20 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def require_voice_worker(
+    x_voice_worker_secret: str | None = Header(default=None),
+) -> None:
+    """Authenticate a backend voice-worker caller (no user session). When
+    VOICE_WORKER_SECRET is set the worker MUST present it in the
+    X-Voice-Worker-Secret header; a blank secret means open (dev)."""
+    if settings.voice_worker_secret:
+        if x_voice_worker_secret != settings.voice_worker_secret:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid voice worker secret.",
+            )
+
+
 # --------------------------------------------------------------------------- #
 # 1) Worker heartbeat                                                         #
 # --------------------------------------------------------------------------- #
@@ -59,18 +75,11 @@ class HeartbeatIn(BaseModel):
 def voice_heartbeat(
     body: HeartbeatIn,
     db: Session = Depends(get_db),
-    x_voice_worker_secret: str | None = Header(default=None),
+    _worker: None = Depends(require_voice_worker),
 ) -> dict:
     """The voice worker pings this to say it is alive. No user session — the
     caller is a backend process. If VOICE_WORKER_SECRET is set, the worker must
     present it in the X-Voice-Worker-Secret header; blank means open (dev)."""
-    if settings.voice_worker_secret:
-        if x_voice_worker_secret != settings.voice_worker_secret:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid voice worker secret.",
-            )
-
     now = _now()
     row = db.scalar(
         select(VoiceWorkerHeartbeat).where(
@@ -222,3 +231,115 @@ def voice_token(
         identity=conversation.id,
         conversation_id=conversation.id,
     )
+
+
+# --------------------------------------------------------------------------- #
+# 4) Consent (STUDENT)                                                        #
+# --------------------------------------------------------------------------- #
+
+
+class ConsentIn(BaseModel):
+    consent: bool
+
+
+class ConsentOut(BaseModel):
+    consent_state: str
+
+
+@router.post("/consent", response_model=ConsentOut)
+def voice_consent(
+    body: ConsentIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> ConsentOut:
+    """Record the student's consent for a PERSONAL (record-aware) voice session
+    on their OWN server-owned conversation. STUDENT-only.
+
+    consent=True  -> consent_state = 'voice'  (the worker may speak to the
+                     student's records; the token/room is already theirs).
+    consent=False -> consent_state = 'none'   (general voice guidance only).
+
+    General voice guidance needs no consent; this gate is only for the
+    record-aware personal session.
+    """
+    if session.get("role") != Role.STUDENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Voice is a student feature.",
+        )
+
+    conversation = convo.get_or_create(db, session["userId"], Role(session["role"]))
+    conversation.consent_state = "voice" if body.consent else "none"
+    db.commit()
+    return ConsentOut(consent_state=conversation.consent_state)
+
+
+# --------------------------------------------------------------------------- #
+# 5) Transcript ingest (WORKER)                                               #
+# --------------------------------------------------------------------------- #
+
+
+class TranscriptIn(BaseModel):
+    conversation_id: str = Field(min_length=1)
+    speaker: Literal["user", "assistant"]
+    text: str
+    is_final: bool
+    provider_turn_id: str | None = None
+
+
+class TranscriptOut(BaseModel):
+    stored: bool
+
+
+@router.post("/transcript", response_model=TranscriptOut)
+def voice_transcript(
+    body: TranscriptIn,
+    db: Session = Depends(get_db),
+    _worker: None = Depends(require_voice_worker),
+) -> TranscriptOut:
+    """Persist a voice turn from the background worker. WORKER endpoint,
+    authenticated by X-Voice-Worker-Secret when VOICE_WORKER_SECRET is set
+    (open in dev). No user session — the worker is a trusted backend process
+    and names the conversation directly (resolved from the LiveKit room /
+    participant identity, both server-issued).
+
+    Policy lives here, not in the worker:
+      * ONLY final turns are persisted — interim (is_final=False) is a no-op.
+      * Turns dedup on (conversation_id, provider_turn_id): a repeated
+        provider_turn_id (the provider re-emitting the same turn) is a no-op.
+
+    Returns {stored} — True only when a NEW final turn was appended; False for
+    interim turns and for dedup repeats.
+    """
+    if not body.is_final:
+        # Interim transcript — never persisted (the policy the worker relies on).
+        return TranscriptOut(stored=False)
+
+    # Dedup: a repeat provider_turn_id for this conversation is a no-op.
+    if body.provider_turn_id is not None:
+        existing = db.scalar(
+            select(Message).where(
+                Message.conversation_id == body.conversation_id,
+                Message.provider_turn_id == body.provider_turn_id,
+            )
+        )
+        if existing is not None:
+            return TranscriptOut(stored=False)
+
+    # The conversation is server-owned; a stray/unknown id is refused rather
+    # than left to fail as an FK error at commit.
+    if db.get(convo.Conversation, body.conversation_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found."
+        )
+
+    convo.append_message(
+        db,
+        body.conversation_id,
+        body.speaker,
+        body.text,
+        channel="voice",
+        is_final=True,
+        provider_turn_id=body.provider_turn_id,
+    )
+    return TranscriptOut(stored=True)

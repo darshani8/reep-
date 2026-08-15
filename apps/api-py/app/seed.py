@@ -23,6 +23,7 @@ from .models.job import DegreeLevel, Job
 from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
+from .models.placement_criteria import PlacementCriteria
 from .models.profile import StudentProfile
 from .models.schedule import ScheduleItem, ScheduleType
 from .models.skill import Skill, StudentSkill
@@ -403,6 +404,12 @@ def main() -> None:
             stu.cohort_id = cohort.id
             db.commit()
             print("assigned student to cohort")
+
+        # Idempotently create the default active placement criteria.
+        if db.scalar(select(PlacementCriteria)) is None:
+            db.add(PlacementCriteria(name="Default", active=True))
+            db.commit()
+            print("added placement criteria (default)")
     finally:
         db.close()
 

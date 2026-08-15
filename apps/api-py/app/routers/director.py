@@ -11,7 +11,7 @@ from ..db import get_db
 from ..deps import get_current_session
 from datetime import datetime
 
-from ..models.alert import Alert
+from ..models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
 from ..models.cohort import Cohort
 from ..models.mail import MailLog
 from ..models.offer import OfferStatus, PlacementOffer
@@ -190,3 +190,87 @@ def mail_log(
         )
         for m in rows
     ]
+
+
+class AlertRuleOut(BaseModel):
+    id: str
+    cohort_id: str
+    rule_key: str
+    enabled: bool
+    params: dict
+    severity: str
+
+
+def _alert_rule_out(r: AlertRuleConfig) -> AlertRuleOut:
+    return AlertRuleOut(
+        id=r.id,
+        cohort_id=r.cohort_id,
+        rule_key=r.rule_key.value,
+        enabled=r.enabled,
+        params=r.params,
+        severity=r.severity.value,
+    )
+
+
+@router.get("/alert-rules", response_model=list[AlertRuleOut])
+def alert_rules(
+    cohort_id: str | None = None,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[AlertRuleOut]:
+    """The admin-configurable alert thresholds, optionally scoped to a cohort."""
+    require_director(session)
+    query = select(AlertRuleConfig)
+    if cohort_id:
+        query = query.where(AlertRuleConfig.cohort_id == cohort_id)
+    rows = db.scalars(query.order_by(AlertRuleConfig.cohort_id, AlertRuleConfig.rule_key)).all()
+    return [_alert_rule_out(r) for r in rows]
+
+
+class AlertRuleIn(BaseModel):
+    cohort_id: str
+    rule_key: str
+    params: dict
+    enabled: bool = True
+    severity: str = "WARNING"
+
+
+@router.put("/alert-rules", response_model=AlertRuleOut)
+def upsert_alert_rule(
+    body: AlertRuleIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> AlertRuleOut:
+    """Create or update the threshold for one (cohort, rule) — the config lives
+    in data, so tuning it never needs a deploy."""
+    require_director(session)
+    if db.get(Cohort, body.cohort_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cohort not found.")
+    try:
+        rule_key = AlertRuleKey(body.rule_key)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown rule_key."
+        )
+    try:
+        severity = AlertSeverity(body.severity)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown severity."
+        )
+
+    row = db.scalar(
+        select(AlertRuleConfig).where(
+            AlertRuleConfig.cohort_id == body.cohort_id,
+            AlertRuleConfig.rule_key == rule_key,
+        )
+    )
+    if row is None:
+        row = AlertRuleConfig(cohort_id=body.cohort_id, rule_key=rule_key)
+        db.add(row)
+    row.params = body.params
+    row.enabled = body.enabled
+    row.severity = severity
+    db.commit()
+    db.refresh(row)
+    return _alert_rule_out(row)

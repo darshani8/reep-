@@ -16,6 +16,7 @@ from .models.academic_history import AcademicGap, AcademicQualification, Qualifi
 from .models.academics import SemesterResult, SubjectMark
 from .models.alert import Alert, AlertRuleKey, AlertSeverity
 from .models.attendance import AttendanceRecord
+from .models.certification import Certification, CertificationProgress
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
 from .models.mentor_note import MentorAction, MentorNote
@@ -337,6 +338,37 @@ def main() -> None:
             )
             db.commit()
             print("added enrollments (2)")
+
+        # Idempotently seed a certification (on 22MBA11) + the student's progress.
+        if db.scalar(select(Certification)) is None:
+            db.add(
+                Certification(
+                    code="CERT-22MBA11-LEAD",
+                    course_code="22MBA11",
+                    name="Leadership Foundations",
+                    provider="Coursera",
+                    required_hours=15,
+                    link="https://coursera.org/learn/leadership-foundations",
+                    due_week=12,
+                )
+            )
+            db.commit()
+            print("added certification (1)")
+        if stu and db.scalar(
+            select(CertificationProgress).where(CertificationProgress.student_id == stu.id)
+        ) is None:
+            db.add(
+                CertificationProgress(
+                    student_id=stu.id,
+                    cert_code="CERT-22MBA11-LEAD",
+                    status=ProgressStatus.IN_PROGRESS,
+                    progress_pct=60,
+                    hours_logged=9,
+                    due_date=datetime(2026, 10, 1, tzinfo=timezone.utc),
+                )
+            )
+            db.commit()
+            print("added certification progress (1)")
     finally:
         db.close()
 

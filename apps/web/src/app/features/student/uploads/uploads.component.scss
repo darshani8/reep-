@@ -1,20 +1,140 @@
-/* Screen-specific tweaks only. Layout classes (.dt-header, .dt-title, .dropzone,
-   .dt-table, .chip, .card) come from the global reep-v2.scss and are not redefined. */
+/* Screen-specific tweaks only. Layout primitives (.card, .dropzone, .chip,
+   .dt-btn, .dt-header) come from the global reep-v2.scss and are not redefined
+   — these rules only add the uploads flow (stepper, checklist, dropzone states,
+   preview, document cards) and a local `neutral` chip tone. */
 
 :host {
   display: block;
 }
 
-.err {
+/* --- 1. stepper ---------------------------------------------------------- */
+.stepper {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 0;
+  flex-wrap: wrap;
+}
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-400);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.step:not(:last-child)::after {
+  content: '';
+  width: clamp(18px, 4vw, 48px);
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line);
+  margin-left: 4px;
+}
+.step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--paper-0);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  font-weight: 800;
   color: var(--ink-500);
-  font-size: 13.5px;
+}
+.step__num .icon {
+  font-size: 15px;
+}
+.step.active {
+  color: var(--ink-900);
+}
+.step.active .step__num {
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+  color: var(--paper-1);
+}
+.step.done {
+  color: var(--good);
+}
+.step.done .step__num {
+  background: rgba(92, 122, 58, 0.14);
+  border-color: rgba(92, 122, 58, 0.4);
+  color: var(--good);
 }
 
-/* upload controls: kind picker + the clickable dropzone */
-.dz-controls {
+/* --- 5. checklist -------------------------------------------------------- */
+.checklist__head {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.checklist__head h4 {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin: 0;
+}
+.checklist__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+.ck {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper-2);
+}
+.ck--done {
+  background: rgba(92, 122, 58, 0.07);
+  border-color: rgba(92, 122, 58, 0.28);
+}
+.ck__mark .icon {
+  font-size: 20px;
+  color: var(--ink-400);
+}
+.ck__mark.good .icon {
+  color: var(--good);
+}
+.ck__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ck__label {
+  font-weight: 700;
+  font-size: 12.5px;
+}
+.ck__hint {
+  font-size: 11.5px;
+  color: var(--ink-500);
+}
+.checklist__prompt {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--warn);
+  font-weight: 600;
+}
+
+/* --- 1–3. upload panel --------------------------------------------------- */
+.up-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
 .dz-kind {
   font-size: 11.5px;
@@ -33,21 +153,185 @@
   background: var(--paper-2);
   color: var(--ink-900);
 }
-.dropzone--action {
-  display: block;
+.up-accepts {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-500);
+}
+.up-accepts .icon {
+  font-size: 16px;
+  color: var(--amber-600);
+}
+.up-accepts strong {
+  color: var(--ink-900);
+}
+
+/* dropzone: click + drag-and-drop, with dragover + busy states */
+.dz {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   width: 100%;
   cursor: pointer;
   font-family: var(--font);
-  margin-bottom: 18px;
+  margin-bottom: 0;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
-.dropzone--action:disabled {
-  opacity: 0.6;
+.dz__title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink-900);
+}
+.dz__hint {
+  font-size: 11.5px;
+  color: var(--ink-500);
+}
+.dz--over {
+  border-color: var(--amber-500);
+  background: rgba(168, 117, 47, 0.08);
+}
+.dz--busy {
+  cursor: default;
+  opacity: 0.75;
+}
+.dz--busy .icon {
+  animation: dz-spin 0.9s linear infinite;
+}
+.dz:disabled {
   cursor: default;
 }
+@keyframes dz-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-/* first table column: title + source filename + optional reviewer note */
+/* feedback banners (error / success) */
+.feedback {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 14px;
+  font-size: 12.5px;
+}
+.feedback--err {
+  background: rgba(139, 58, 46, 0.1);
+  color: var(--risk);
+}
+.feedback--ok {
+  background: rgba(92, 122, 58, 0.1);
+  color: var(--good);
+}
+.feedback .icon {
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+.feedback__main {
+  min-width: 0;
+}
+.feedback__title {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.feedback__body {
+  color: var(--ink-700);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.feedback--err .feedback__body {
+  color: var(--risk);
+}
+
+/* success preview thumbnail */
+.preview {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.preview__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.preview__icon {
+  font-size: 24px;
+  color: var(--risk);
+}
+
+/* --- 4. document cards --------------------------------------------------- */
+.section-head {
+  font-weight: 700;
+  color: var(--ink-900);
+  margin: 4px 0 12px;
+}
+.up-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.up-card {
+  display: flex;
+  gap: 14px;
+  background: linear-gradient(180deg, var(--paper-2), var(--paper-1));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+.up-card--busy {
+  opacity: 0.6;
+}
+.up-thumb {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper-0);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.up-thumb__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.up-thumb__icon {
+  font-size: 28px;
+  color: var(--risk);
+}
+.up-body {
+  flex: 1;
+  min-width: 0;
+}
+.up-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
 .up-title {
   font-weight: 700;
+  font-size: 13.5px;
+  word-break: break-word;
 }
 .up-file {
   color: var(--ink-500);
@@ -55,32 +339,71 @@
   margin-top: 2px;
   word-break: break-all;
 }
-.up-note {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 5px;
-  margin-top: 6px;
+.up-meta {
+  color: var(--ink-400);
   font-size: 11.5px;
-  line-height: 1.35;
-  color: var(--ink-500);
+  margin-top: 4px;
+}
+.up-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.4;
+  background: var(--paper-0);
+  color: var(--ink-700);
 }
 .up-note .icon {
-  font-size: 14px;
+  font-size: 15px;
   flex: 0 0 auto;
+  margin-top: 1px;
 }
 .up-note.risk {
+  background: rgba(139, 58, 46, 0.09);
   color: var(--risk);
 }
 .up-note.good {
+  background: rgba(92, 122, 58, 0.09);
   color: var(--good);
 }
-
-.up-size {
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+.up-note.warn {
+  background: rgba(168, 117, 47, 0.1);
+  color: var(--warn);
+}
+.up-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dt-btn {
+  cursor: pointer;
+  font-family: var(--font);
+}
+.dt-btn .icon {
+  font-size: 15px;
+}
+.dt-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.dt-btn.danger {
+  color: var(--risk);
+  border-color: rgba(139, 58, 46, 0.35);
+}
+.dt-btn.danger:hover:not(:disabled) {
+  background: rgba(139, 58, 46, 0.08);
 }
 
-/* empty-state card */
+/* local neutral chip tone (globals define good/warn/risk only) */
+.chip.neutral {
+  background: var(--paper-0);
+  color: var(--ink-500);
+}
+
+/* --- states -------------------------------------------------------------- */
 .empty {
   display: flex;
   align-items: center;
@@ -99,4 +422,32 @@
   color: var(--ink-500);
   font-size: 12.5px;
   margin-top: 3px;
+}
+
+/* loading skeletons */
+.up-card--skeleton {
+  align-items: center;
+}
+.sk {
+  background: linear-gradient(90deg, var(--paper-0), var(--paper-2), var(--paper-0));
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.2s ease-in-out infinite;
+  border-radius: 8px;
+}
+.sk--thumb {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+}
+.sk--lines {
+  flex: 1;
+  height: 40px;
+}
+@keyframes sk-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }

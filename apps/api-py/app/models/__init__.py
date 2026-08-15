@@ -3,6 +3,7 @@
 from . import academic_history  # noqa: F401
 from . import academics  # noqa: F401
 from . import attendance  # noqa: F401
+from . import mentor_note  # noqa: F401
 from . import mock  # noqa: F401
 from . import profile  # noqa: F401
 from . import skill  # noqa: F401

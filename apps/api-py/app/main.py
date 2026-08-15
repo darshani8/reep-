@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import agent, auth, health, student, voice
+from .routers import agent, auth, health, mentor, student, voice
 
 app = FastAPI(title="REEP API (Python / FastAPI)", version="0.1.0")
 
@@ -26,3 +26,4 @@ app.include_router(auth.router)
 app.include_router(agent.router)
 app.include_router(voice.router)
 app.include_router(student.router)
+app.include_router(mentor.router)

@@ -20,7 +20,7 @@ from .models.profile import StudentProfile
 from .models.skill import Skill, StudentSkill
 from .models.swoc import SwocEntry, SwocKind, SwocSource
 from .models.timesheet import DayActivity, TimeSheetEntry
-from .models.user import LoginDay, Role, Stage, Student, User
+from .models.user import LoginDay, Mentor, Role, Stage, Student, User
 from .security import hash_password
 
 
@@ -67,6 +67,20 @@ def main() -> None:
         else:
             print(f"{student_email} already exists")
 
+        mentor_email = "mentor@bgscet.ac.in"
+        if db.scalar(select(User).where(User.email == mentor_email)) is None:
+            mentor_user = User(
+                email=mentor_email,
+                name="Test Mentor",
+                role=Role.MENTOR,
+                password_hash=hash_password("mentor123"),
+            )
+            db.add(mentor_user)
+            db.flush()
+            db.add(Mentor(user_id=mentor_user.id))
+            db.commit()
+            print(f"created {mentor_email} / mentor123")
+
         # Idempotently give the test student one semester result with subjects.
         stu_user = db.scalar(select(User).where(User.email == student_email))
         stu = (
@@ -78,6 +92,13 @@ def main() -> None:
             stu.current_semester = 2
             db.commit()
             print("backfilled student USN + stage")
+        mentor = db.scalar(
+            select(Mentor).join(User, Mentor.user_id == User.id).where(User.email == "mentor@bgscet.ac.in")
+        )
+        if stu and mentor and stu.mentor_id != mentor.id:
+            stu.mentor_id = mentor.id
+            db.commit()
+            print("assigned student to mentor group")
         if stu and db.scalar(select(SemesterResult).where(SemesterResult.student_id == stu.id)) is None:
             result = SemesterResult(
                 student_id=stu.id,

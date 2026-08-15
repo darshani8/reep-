@@ -1,5 +1,9 @@
 :host {
-  display: block;
+  /* Fill the scroll area of .desktop-main so the chat sizes to the space that's
+     actually available, instead of a brittle 100vh magic number. */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .err {
@@ -30,7 +34,7 @@
 .chat {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 260px);
+  flex: 1;
   min-height: 420px;
   border: 1px solid var(--reep-divider);
   border-radius: 12px;

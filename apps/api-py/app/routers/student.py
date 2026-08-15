@@ -14,6 +14,7 @@ from ..deps import get_current_session
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
+from ..models.course import Course, Enrollment
 from ..models.job import Job, JobApplication
 from ..models.mock import MockAttempt
 from ..models.offer import (
@@ -983,4 +984,51 @@ def list_resumes(
             model=r.model,
         )
         for r in rows
+    ]
+
+
+class CourseOut(BaseModel):
+    code: str
+    name: str
+    stage: str
+    dimension: str
+    semester: int
+    status: str
+    teaching_hours_attended: float
+    self_learning_hours_logged: float
+    lectures_attended: int
+    lectures_total: int
+    lecture_percent: float
+
+
+@router.get("/courses", response_model=list[CourseOut])
+def my_courses(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[CourseOut]:
+    student_id = _require_student(session)
+    rows = db.execute(
+        select(Enrollment, Course)
+        .join(Course, Enrollment.course_code == Course.code)
+        .where(Enrollment.student_id == student_id)
+        .order_by(Course.semester, Course.code)
+    ).all()
+    return [
+        CourseOut(
+            code=course.code,
+            name=course.name,
+            stage=course.stage.value,
+            dimension=course.dimension.value,
+            semester=course.semester,
+            status=enr.status.value,
+            teaching_hours_attended=enr.teaching_hours_attended,
+            self_learning_hours_logged=enr.self_learning_hours_logged,
+            lectures_attended=enr.lectures_attended,
+            lectures_total=enr.lectures_total,
+            lecture_percent=(
+                round(100 * enr.lectures_attended / enr.lectures_total, 1)
+                if enr.lectures_total
+                else 0.0
+            ),
+        )
+        for enr, course in rows
     ]

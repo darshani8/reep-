@@ -19,6 +19,8 @@ sharing the same env vars via LiteLLM.
 
 from __future__ import annotations
 
+import json
+from collections.abc import Iterator
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
@@ -150,3 +152,65 @@ def complete_chat(
     )
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
+
+
+def stream_chat(
+    messages: list[dict],
+    *,
+    carries_student_data: bool = False,
+    temperature: float = 0.2,
+    max_tokens: int | None = None,
+) -> Iterator[str]:
+    """Stream a chat completion token-by-token over the OpenAI-compatible SSE
+    protocol (`stream: true`), yielding each content delta as it arrives.
+
+    Same egress gate as complete_chat: refused before the request leaves the
+    process when it carries student PII to an off-machine model.
+    """
+    cfg = llm_config()
+    if cfg is None:
+        raise LLMNotConfigured("Set LLM_BASE_URL and LLM_MODEL.")
+    if carries_student_data and not student_data_egress_allowed(cfg.base_url):
+        raise StudentDataEgressRefused(
+            f"The model at {cfg.base_url} runs off this machine; student data will "
+            "not be sent unless LLM_ALLOW_REMOTE_STUDENT_DATA=true. Use a local "
+            "model or a paid key."
+        )
+
+    payload: dict = {
+        "model": cfg.model,
+        "messages": messages,
+        "temperature": temperature,
+        "stream": True,
+    }
+    if max_tokens is not None:
+        payload["max_tokens"] = max_tokens
+
+    headers = {"content-type": "application/json"}
+    if cfg.api_key:
+        headers["authorization"] = f"Bearer {cfg.api_key}"
+
+    with httpx.stream(
+        "POST",
+        f"{cfg.base_url}/chat/completions",
+        json=payload,
+        headers=headers,
+        timeout=cfg.timeout_s,
+    ) as resp:
+        if resp.status_code >= 400:
+            resp.read()  # a stream body must be consumed before .text is available
+            raise httpx.HTTPStatusError(
+                f"{resp.status_code}: {resp.text}", request=resp.request, response=resp
+            )
+        for line in resp.iter_lines():
+            if not line or not line.startswith("data:"):
+                continue
+            data = line[len("data:"):].strip()
+            if data == "[DONE]":
+                break
+            try:
+                delta = json.loads(data)["choices"][0]["delta"].get("content")
+            except (json.JSONDecodeError, KeyError, IndexError):
+                continue
+            if delta:
+                yield delta

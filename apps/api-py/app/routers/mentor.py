@@ -17,6 +17,7 @@ from ..db import get_db
 from ..deps import get_current_session
 from ..models.alert import Alert
 from ..models.mentor_note import MentorAction, MentorNote
+from ..models.offer import OfferStatus, PlacementOffer
 from ..models.user import Student, User
 
 router = APIRouter(prefix="/mentor", tags=["mentor"])
@@ -221,3 +222,94 @@ def resolve_alert(
         select(User.name).join(Student, Student.user_id == User.id).where(Student.id == alert.student_id)
     )
     return _alert_out(alert, name or "")
+
+
+_DIRECTORS = {"DIRECTOR", "ADMIN"}
+
+
+def require_director(session: dict) -> dict:
+    if session.get("role") not in _DIRECTORS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Director access required."
+        )
+    return session
+
+
+class PendingOfferOut(BaseModel):
+    id: str
+    student_id: str
+    student_name: str
+    job_title: str
+    organisation: str
+    role_type: str
+    ctc_inr: int
+    status: str
+
+
+def _offer_row(offer: PlacementOffer, student_name: str) -> PendingOfferOut:
+    return PendingOfferOut(
+        id=offer.id,
+        student_id=offer.student_id,
+        student_name=student_name,
+        job_title=offer.job_title,
+        organisation=offer.organisation,
+        role_type=offer.role_type.value,
+        ctc_inr=offer.ctc_inr,
+        status=offer.status.value,
+    )
+
+
+@router.get("/offers/pending", response_model=list[PendingOfferOut])
+def pending_offers(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[PendingOfferOut]:
+    require_director(session)
+    rows = db.execute(
+        select(PlacementOffer, User.name)
+        .join(Student, PlacementOffer.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+        .where(PlacementOffer.status == OfferStatus.PENDING_APPROVAL)
+        .order_by(PlacementOffer.created_at)
+    ).all()
+    return [_offer_row(o, name) for o, name in rows]
+
+
+class DecisionIn(BaseModel):
+    decision: str  # "APPROVE" | "REJECT"
+    note: str | None = None
+
+
+@router.post("/offers/{offer_id}/decision", response_model=PendingOfferOut)
+def decide_offer(
+    offer_id: str,
+    body: DecisionIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> PendingOfferOut:
+    require_director(session)
+    offer = db.get(PlacementOffer, offer_id)
+    if offer is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
+    if offer.status != OfferStatus.PENDING_APPROVAL:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Only a pending offer can be decided."
+        )
+    decision = body.decision.upper()
+    if decision == "APPROVE":
+        offer.status = OfferStatus.APPROVED
+    elif decision == "REJECT":
+        offer.status = OfferStatus.REJECTED
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="decision must be APPROVE or REJECT.",
+        )
+    offer.approved_by_id = session["userId"]
+    offer.decided_at = datetime.now(timezone.utc)
+    offer.decision_note = body.note
+    db.commit()
+    db.refresh(offer)
+    name = db.scalar(
+        select(User.name).join(Student, Student.user_id == User.id).where(Student.id == offer.student_id)
+    )
+    return _offer_row(offer, name or "")

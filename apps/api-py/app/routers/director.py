@@ -13,6 +13,7 @@ from datetime import datetime
 
 from ..models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
 from ..models.cohort import Cohort
+from ..models.job_import_run import JobImportRun
 from ..models.mail import MailLog
 from ..models.offer import OfferStatus, PlacementOffer
 from ..models.placement_criteria import PlacementCriteria
@@ -274,3 +275,39 @@ def upsert_alert_rule(
     db.commit()
     db.refresh(row)
     return _alert_rule_out(row)
+
+
+class JobImportRunOut(BaseModel):
+    id: str
+    file_name: str | None
+    uploaded_by_id: str | None
+    started_at: datetime
+    finished_at: datetime | None
+    rows_seen: int
+    rows_created: int
+    rows_updated: int
+    error_count: int
+
+
+@router.get("/job-imports", response_model=list[JobImportRunOut])
+def job_imports(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[JobImportRunOut]:
+    """Audit view of bulk job-vacancy imports — counts and per-run error totals,
+    most recent first."""
+    require_director(session)
+    rows = db.scalars(select(JobImportRun).order_by(JobImportRun.started_at.desc()).limit(50)).all()
+    return [
+        JobImportRunOut(
+            id=r.id,
+            file_name=r.file_name,
+            uploaded_by_id=r.uploaded_by_id,
+            started_at=r.started_at,
+            finished_at=r.finished_at,
+            rows_seen=r.rows_seen,
+            rows_created=r.rows_created,
+            rows_updated=r.rows_updated,
+            error_count=len(r.errors or []),
+        )
+        for r in rows
+    ]

@@ -52,7 +52,9 @@ class Job(Base):
     # Per-posting eligibility overrides; null => use the default criteria.
     min_cgpa: Mapped[float | None] = mapped_column(Float, nullable=True)
     max_live_backlogs: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    import_run_id: Mapped[str | None] = mapped_column(String, nullable=True)  # FK to JobImportRun later
+    import_run_id: Mapped[str | None] = mapped_column(
+        ForeignKey("job_import_runs.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

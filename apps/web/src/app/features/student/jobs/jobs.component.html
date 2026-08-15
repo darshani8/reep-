@@ -6,20 +6,56 @@
     </div>
   </div>
 
-  <div class="tabs-row">
-    <button [class.active]="subtab() === 'opportunities'" (click)="setSubtab('opportunities')">Opportunities</button>
-    <button [class.active]="subtab() === 'applications'" (click)="setSubtab('applications')">Applications</button>
-    <button [class.active]="subtab() === 'offers'" (click)="setSubtab('offers')">Offers</button>
+  <div class="tabs-row" role="tablist" aria-label="Jobs sections">
+    <button
+      role="tab"
+      [attr.aria-selected]="subtab() === 'opportunities'"
+      [class.active]="subtab() === 'opportunities'"
+      (click)="setSubtab('opportunities')"
+    >Opportunities</button>
+    <button
+      role="tab"
+      [attr.aria-selected]="subtab() === 'applications'"
+      [class.active]="subtab() === 'applications'"
+      (click)="setSubtab('applications')"
+    >Applications</button>
+    <button
+      role="tab"
+      [attr.aria-selected]="subtab() === 'offers'"
+      [class.active]="subtab() === 'offers'"
+      (click)="setSubtab('offers')"
+    >Offers</button>
   </div>
 
   <div class="grid-2" style="margin-bottom:16px;">
     <!-- LEFT: the active subtab -->
     <div>
       @if (subtab() === 'opportunities') {
-        <div class="tabs-row level-toggle">
-          <button [class.active]="level() === 'UG'" (click)="setLevel('UG')">Undergraduate</button>
-          <button [class.active]="level() === 'PG'" (click)="setLevel('PG')">Postgraduate</button>
+        <!-- degree toggle -->
+        <div class="tabs-row level-toggle" role="tablist" aria-label="Degree level">
+          <button
+            role="tab"
+            [attr.aria-selected]="level() === 'UG'"
+            [class.active]="level() === 'UG'"
+            (click)="setLevel('UG')"
+          >Undergraduate</button>
+          <button
+            role="tab"
+            [attr.aria-selected]="level() === 'PG'"
+            [class.active]="level() === 'PG'"
+            (click)="setLevel('PG')"
+          >Postgraduate</button>
         </div>
+
+        <!-- Build-CV callout -->
+        <a class="card cv-callout" routerLink="/student/resume">
+          <span class="icon">description</span>
+          <span class="cv-copy">
+            <b>Build your CV in the Resume Builder</b>
+            <span class="dt-sub">Tip: a 70%+ complete profile makes a noticeably stronger CV. Opens your resume workspace.</span>
+          </span>
+          <span class="icon go">chevron_right</span>
+        </a>
 
         @if (loading()) {
           <div class="card"><div class="dt-sub">Loading opportunities…</div></div>
@@ -29,54 +65,129 @@
             <div class="dt-sub">{{ error() }}</div>
           </div>
         } @else {
-          <table class="dt-table">
-            <tr>
-              <th>Role</th><th>Company</th><th>Match</th><th>Apply</th><th>Applied</th><th>CV builder</th>
-            </tr>
-            @for (row of opportunityRows(); track row.id) {
-              <tr>
-                <td>{{ row.title }}</td>
-                <td>{{ row.company }}</td>
-                <td>
-                  <span class="match-bar"><span class="match-fill" [style.width.%]="row.match_percent"></span></span>{{ row.match_percent }}%
-                </td>
-                <td>
-                  <button
-                    class="dt-btn primary sm"
-                    [disabled]="row.applied || !row.eligible"
-                    [attr.title]="!row.eligible ? row.reasons.join('; ') : null"
-                    (click)="apply(row)"
-                  >Apply</button>
-                </td>
-                <td>
-                  @if (row.applied) {
-                    <span class="chip good"><span class="icon">check</span>Applied</span>
-                  } @else if (!row.eligible) {
-                    <span class="chip risk" [attr.title]="row.reasons.join('; ')"><span class="icon">block</span>Not eligible</span>
-                  } @else {
-                    <span class="chip warn"><span class="icon">schedule</span>Not yet</span>
-                  }
-                </td>
-                <td><button class="dt-btn sm">Build CV</button></td>
-              </tr>
-            } @empty {
-              <tr><td colspan="6" style="text-align:center; color:var(--ink-500);">No {{ level() === 'UG' ? 'undergraduate' : 'postgraduate' }} roles on the board yet</td></tr>
+          <!-- filter row -->
+          <div class="filter-row">
+            <label class="filt">
+              <span>Eligibility</span>
+              <select class="ctrl" [ngModel]="filterElig()" (ngModelChange)="filterElig.set($event)">
+                <option value="all">All</option>
+                <option value="eligible">Eligible</option>
+                <option value="ineligible">Not eligible</option>
+              </select>
+            </label>
+            <label class="filt">
+              <span>Location</span>
+              <select class="ctrl" [ngModel]="filterLocation()" (ngModelChange)="filterLocation.set($event)">
+                <option value="all">All locations</option>
+                @for (loc of locations(); track loc) {
+                  <option [value]="loc">{{ loc }}</option>
+                }
+              </select>
+            </label>
+            <label class="filt">
+              <span>Deadline</span>
+              <select class="ctrl" [ngModel]="filterDeadline()" (ngModelChange)="filterDeadline.set($event)">
+                <option value="all">All</option>
+                <option value="soon">Closing soon (≤7 days)</option>
+                <option value="open">Open</option>
+              </select>
+            </label>
+            @if (anyFilter()) {
+              <button class="dt-btn sm clear" (click)="clearFilters()">
+                <span class="icon">close</span>Clear
+              </button>
             }
-          </table>
+          </div>
+
+          <!-- opportunity cards -->
+          @for (row of opportunityRows(); track row.id) {
+            @let dl = deadline(row);
+            <div class="card opp" [class.ineligible]="!row.eligible">
+              <div class="opp-head">
+                <div class="opp-id">
+                  <div class="opp-title">{{ row.title }}</div>
+                  <div class="dt-sub">{{ row.company }}</div>
+                </div>
+                @if (row.applied) {
+                  <span class="chip good"><span class="icon">check_circle</span>Applied</span>
+                } @else {
+                  <span class="chip neutral"><span class="icon">radio_button_unchecked</span>Not applied</span>
+                }
+              </div>
+
+              <div class="opp-meta">
+                @if (row.location) {
+                  <span class="meta"><span class="icon">place</span>{{ row.location }}</span>
+                }
+                <span class="chip {{ dl.tone }}"><span class="icon">{{ dl.icon }}</span>{{ dl.label }}</span>
+                @if (row.eligible) {
+                  <span class="chip good"><span class="icon">verified</span>Eligible</span>
+                } @else {
+                  <span class="chip risk"><span class="icon">block</span>Not eligible</span>
+                }
+              </div>
+
+              <div class="opp-match">
+                <span class="match-bar">
+                  <span class="match-fill {{ matchTone(row.match_percent) }}" [style.width.%]="row.match_percent"></span>
+                </span>
+                <span class="match-val">{{ row.match_percent }}% skill match</span>
+              </div>
+
+              @if (!row.eligible && row.reasons.length) {
+                <ul class="why">
+                  @for (r of row.reasons; track r) {
+                    <li><span class="icon">info</span>Why: {{ r }}</li>
+                  }
+                </ul>
+              }
+
+              <div class="opp-cta">
+                @if (row.applied) {
+                  <button class="dt-btn sm" disabled><span class="icon">check</span>Applied ✓</button>
+                } @else if (dl.closed) {
+                  <button class="dt-btn sm" disabled><span class="icon">event_busy</span>Closed</button>
+                } @else if (!row.eligible) {
+                  <button class="dt-btn sm" disabled [attr.title]="row.reasons.join('; ')">
+                    <span class="icon">block</span>Not eligible
+                  </button>
+                } @else {
+                  <button class="dt-btn primary sm" (click)="apply(row)">
+                    <span class="icon">open_in_new</span>Apply
+                  </button>
+                }
+              </div>
+            </div>
+          } @empty {
+            <div class="card">
+              <div class="dt-sub" style="text-align:center;">
+                @if (anyFilter()) {
+                  No {{ level() === 'UG' ? 'undergraduate' : 'postgraduate' }} roles match these filters.
+                } @else {
+                  No {{ level() === 'UG' ? 'undergraduate' : 'postgraduate' }} roles on the board yet.
+                }
+              </div>
+            </div>
+          }
         }
       }
 
       @if (subtab() === 'applications') {
         @if (loading()) {
           <div class="card"><div class="dt-sub">Loading applications…</div></div>
+        } @else if (error()) {
+          <div class="card">
+            <h4>Applications unavailable</h4>
+            <div class="dt-sub">{{ error() }}</div>
+          </div>
         } @else {
           <table class="dt-table">
-            <tr><th>Role</th><th>Company</th><th>Applied on</th><th>Status</th></tr>
+            <tr><th>Role</th><th>Company</th><th>Location</th><th>Status</th></tr>
             @for (row of appliedRows(); track row.id) {
               <tr>
                 <td>{{ row.title }}</td>
                 <td>{{ row.company }}</td>
-                <td>—</td>
+                <td>{{ row.location || '—' }}</td>
                 <td><span class="chip warn"><span class="icon">hourglass_top</span>Under review</span></td>
               </tr>
             } @empty {

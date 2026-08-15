@@ -1,26 +1,36 @@
 /**
- * Student Jobs — v2 port of the `data-p="jobs"` panel in docs/design-v2/student-app.html.
+ * Student Jobs — eligibility + application-guidance rework.
  *
- * Three subtabs over one flat feed:
- *   - Opportunities — the weekly sheet with a UG/PG toggle (filter by
- *     degree_level), a match bar + %, an Apply button and an Applied chip.
- *   - Applications  — the rows the student has applied to.
- *   - Offers        — GET /student/offers, plus a "+ Create Offer" form that
+ * Three subtabs over the enriched GET /student/jobs feed:
+ *   - Opportunities — rich cards (not table rows): title + company, location,
+ *     deadline (from closes_on, coloured as it nears / closed), a match-% bar,
+ *     the eligibility verdict WITH its reasons, an application-status chip and a
+ *     single primary CTA (Apply -> opens apply_url + POST /jobs/{id}/apply, or
+ *     "Applied ✓"). A compact client-side filter row (eligibility / location /
+ *     deadline) narrows the fetched list. A "Build your CV" callout links to the
+ *     Resume Builder. A UG/PG degree toggle sits above the cards.
+ *   - Applications — the rows the student has applied to.
+ *   - Offers       — GET /student/offers, plus a "+ Create Offer" form that
  *     POSTs a self-reported off-platform offer (OfferIn shape from student.py).
  *
  * The right column's three count cards are computed client-side from the two
- * feeds. All markup reuses the global reep-v2 classes; nothing here redefines
- * .card / .dt-table / .chip / .tabs-row / .match-bar.
+ * feeds. Markup reuses the global reep-v2 classes (.card / .chip / .tabs-row /
+ * .match-bar / .dt-btn); the scss only adds card layout + deadline/match tints.
  */
 
 import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 
 type Level = 'UG' | 'PG';
 type Subtab = 'opportunities' | 'applications' | 'offers';
 type RoleType = 'FULL_TIME' | 'FULL_TIME_PLUS_INTERNSHIP' | 'INTERNSHIP';
+type Tone = 'good' | 'warn' | 'risk' | 'neutral';
+
+type EligFilter = 'all' | 'eligible' | 'ineligible';
+type DeadlineFilter = 'all' | 'soon' | 'open';
 
 /** Row shape of GET /student/jobs (snake_case, verbatim from JobRowOut). */
 interface JobRow {
@@ -35,6 +45,8 @@ interface JobRow {
   eligible: boolean;
   reasons: string[];
   applied: boolean;
+  closes_on: string | null;
+  posted_on: string | null;
 }
 
 /** Row shape of GET /student/offers (snake_case, verbatim from OfferOut). */
@@ -52,9 +64,17 @@ interface Offer {
 }
 
 interface StatusChip {
-  cls: 'good' | 'warn' | 'risk';
+  cls: Tone;
   icon: string;
   label: string;
+}
+
+/** Resolved deadline view for a card. */
+interface DeadlineInfo {
+  tone: Tone;
+  icon: string;
+  label: string;
+  closed: boolean;
 }
 
 const ROLE_LABEL: Record<RoleType, string> = {
@@ -70,10 +90,12 @@ const OFFER_STATUS: Record<string, StatusChip> = {
   REJECTED: { cls: 'risk', icon: 'error', label: 'Rejected' },
 };
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 @Component({
   selector: 'app-student-jobs',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './jobs.component.html',
   styleUrl: './jobs.component.scss',
 })
@@ -90,15 +112,49 @@ export class JobsComponent {
   readonly subtab = signal<Subtab>('opportunities');
   readonly level = signal<Level>('UG');
 
+  // --- opportunity filters (client-side over the fetched list) ---
+  readonly filterElig = signal<EligFilter>('all');
+  readonly filterLocation = signal<string>('all');
+  readonly filterDeadline = signal<DeadlineFilter>('all');
+
   // Create-offer form state.
   readonly formOpen = signal(false);
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
   form = this.blankForm();
 
-  // --- opportunities (toggle-filtered) ---
-  readonly opportunityRows = computed(() =>
+  // --- opportunities for the active degree level (pre-filter) ---
+  readonly levelRows = computed(() =>
     this.jobs().filter((j) => j.degree_level === this.level()),
+  );
+
+  /** Distinct, sorted locations within the current degree level. */
+  readonly locations = computed(() => {
+    const set = new Set<string>();
+    for (const j of this.levelRows()) if (j.location) set.add(j.location);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  });
+
+  /** The visible cards after the three filters are applied. */
+  readonly opportunityRows = computed(() => {
+    const elig = this.filterElig();
+    const loc = this.filterLocation();
+    const dl = this.filterDeadline();
+    return this.levelRows().filter((j) => {
+      if (elig === 'eligible' && !j.eligible) return false;
+      if (elig === 'ineligible' && j.eligible) return false;
+      if (loc !== 'all' && j.location !== loc) return false;
+      if (dl === 'soon') {
+        const days = this.daysLeft(j.closes_on);
+        if (days === null || days < 0 || days > 7) return false;
+      }
+      if (dl === 'open' && this.deadline(j).closed) return false;
+      return true;
+    });
+  });
+
+  readonly anyFilter = computed(
+    () => this.filterElig() !== 'all' || this.filterLocation() !== 'all' || this.filterDeadline() !== 'all',
   );
 
   // --- applications (all applied rows) ---
@@ -165,31 +221,82 @@ export class JobsComponent {
 
   setLevel(l: Level): void {
     this.level.set(l);
+    // A location valid for UG may not exist for PG — reset to keep the filter honest.
+    if (this.filterLocation() !== 'all' && !this.locations().includes(this.filterLocation()))
+      this.filterLocation.set('all');
+  }
+
+  clearFilters(): void {
+    this.filterElig.set('all');
+    this.filterLocation.set('all');
+    this.filterDeadline.set('all');
   }
 
   offerStatus(status: string): StatusChip {
     return OFFER_STATUS[status] ?? { cls: 'warn', icon: 'help', label: status };
   }
 
-  /** Record the application; optimistically flip the row's Applied chip. */
+  // --- deadline helpers -----------------------------------------------------
+
+  /** Whole days from now until the deadline; null when there is no deadline. */
+  daysLeft(closesOn: string | null): number | null {
+    if (!closesOn) return null;
+    const t = new Date(closesOn).getTime();
+    if (Number.isNaN(t)) return null;
+    return Math.ceil((t - Date.now()) / MS_PER_DAY);
+  }
+
+  private fmtDate(iso: string): string {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  /** The deadline chip's tone, icon and label for a row. */
+  deadline(row: JobRow): DeadlineInfo {
+    const days = this.daysLeft(row.closes_on);
+    if (days === null)
+      return { tone: 'neutral', icon: 'event_available', label: 'No deadline', closed: false };
+    if (days < 0)
+      return { tone: 'risk', icon: 'event_busy', label: 'Closed', closed: true };
+    if (days === 0)
+      return { tone: 'risk', icon: 'schedule', label: 'Closes today', closed: false };
+    if (days <= 3)
+      return { tone: 'risk', icon: 'schedule', label: `Closes in ${days} day${days === 1 ? '' : 's'}`, closed: false };
+    if (days <= 7)
+      return { tone: 'warn', icon: 'schedule', label: `Closes in ${days} days`, closed: false };
+    return { tone: 'neutral', icon: 'event', label: `Closes ${this.fmtDate(row.closes_on!)}`, closed: false };
+  }
+
+  /** Tint the match bar so a weak match reads at a glance. */
+  matchTone(pct: number): Tone {
+    if (pct >= 70) return 'good';
+    if (pct >= 40) return 'warn';
+    return 'risk';
+  }
+
+  // --- apply ----------------------------------------------------------------
+
+  /** Open the external posting (if any) and record the application; the chip
+   *  flips optimistically and reverts on failure. */
   async apply(row: JobRow): Promise<void> {
-    if (row.applied) return;
+    if (row.applied || !row.eligible) return;
+    if (row.apply_url) window.open(row.apply_url, '_blank', 'noopener');
     this.jobs.update((rows) => rows.map((r) => (r.id === row.id ? { ...r, applied: true } : r)));
     try {
       const res = await fetch(`${environment.apiBase}/student/jobs/${row.id}/apply`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applied: true }),
+        body: JSON.stringify({ notes: null }),
       });
       if (!res.ok) throw new Error();
     } catch {
-      // revert on failure
       this.jobs.update((rows) => rows.map((r) => (r.id === row.id ? { ...r, applied: false } : r)));
     }
   }
 
-  // --- create offer ---
+  // --- create offer ---------------------------------------------------------
   private blankForm() {
     return {
       role_type: 'FULL_TIME' as RoleType,

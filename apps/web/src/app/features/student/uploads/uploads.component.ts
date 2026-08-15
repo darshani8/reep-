@@ -60,6 +60,11 @@ export class UploadsComponent {
   readonly rows = signal<UploadRow[] | null>(null);
   readonly error = signal<string | null>(null);
 
+  /** The kind the next picked file is uploaded as, and the upload's state. */
+  readonly kind = signal<string>('DOCUMENT');
+  readonly uploading = signal(false);
+  readonly uploadError = signal<string | null>(null);
+
   readonly verifiedCount = computed(
     () => this.rows()?.filter((u) => u.status === 'VERIFIED').length ?? 0,
   );
@@ -78,6 +83,41 @@ export class UploadsComponent {
       this.rows.set((await res.json()) as UploadRow[]);
     } catch {
       this.error.set('Could not reach the server.');
+    }
+  }
+
+  setKind(kind: string): void {
+    this.kind.set(kind);
+  }
+
+  /// POST the picked file as multipart; the server sniffs the type and stores it.
+  async onFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.uploading.set(true);
+    this.uploadError.set(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('kind', this.kind());
+      form.append('title', file.name);
+      const res = await fetch(`${environment.apiBase}/student/uploads`, {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        this.uploadError.set(detail?.detail ?? 'Upload failed. Only PDF, PNG or JPEG up to 10 MB.');
+        return;
+      }
+      await this.load(); // reflect the new PENDING_REVIEW row
+    } catch {
+      this.uploadError.set('Could not reach the server.');
+    } finally {
+      this.uploading.set(false);
+      input.value = ''; // allow re-picking the same file
     }
   }
 

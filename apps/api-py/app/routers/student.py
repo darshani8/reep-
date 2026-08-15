@@ -1,6 +1,6 @@
 """Student self-service endpoints. First slice: read your own profile."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
 from ..deps import get_current_session
+from ..resume_pdf import render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
@@ -1010,6 +1011,28 @@ def list_resumes(
         )
         for r in rows
     ]
+
+
+@router.get("/resume/{resume_id}/pdf")
+def resume_pdf(
+    resume_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Render one of the student's own resumes to a PDF. Local render (no model,
+    no network), so the egress gate does not apply — but ownership does: a
+    student can only export their own resume."""
+    student_id = _require_student(session)
+    resume = db.get(Resume, resume_id)
+    if resume is None or resume.student_id != student_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
+    pdf = render_resume_pdf(resume.markdown or "", fallback_title=resume.title or "REEP Resume")
+    filename = f"resume-v{resume.version}.pdf"
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 class CourseOut(BaseModel):

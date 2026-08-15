@@ -8,6 +8,9 @@ psycopg[binary]>=3.2
 pyjwt>=2.9
 python-multipart>=0.0.9
 httpx>=0.27
+# Server-side PDF rendering for /student/resume/{id}/pdf (local, no network — so
+# the student-data egress gate does not apply: nothing leaves the machine)
+reportlab>=4.0
 
 # AI agent framework (Google Agent Development Kit) — pairs natively with Gemini
 google-adk>=2.7

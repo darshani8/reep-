@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 
+from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
 from ..deps import get_current_session
 from ..models.academic_history import AcademicGap, AcademicQualification
@@ -23,6 +24,7 @@ from ..models.offer import (
     PlacementOffer,
 )
 from ..models.profile import StudentProfile
+from ..models.resume import Resume, ResumeStatus
 from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, StudentSkill
 from ..models.swoc import SwocEntry
@@ -842,3 +844,143 @@ def log_timesheet(
         entry.minutes = body.minutes
     db.commit()
     return {"day": str(body.day), "activity": activity.value, "minutes": body.minutes}
+
+
+def _compose_resume_markdown(name, profile, skill_names, cgpa, quals) -> str:
+    lines = [f"# {name or 'REEP Student'}", ""]
+    if profile and profile.career_summary:
+        lines += [profile.career_summary, ""]
+    contact = []
+    if profile:
+        contact = [x for x in (profile.email, profile.phone, profile.linkedin_url, profile.city) if x]
+    if contact:
+        lines += ["**Contact:** " + " · ".join(contact), ""]
+    lines += ["## Skills", ", ".join(skill_names) if skill_names else "—", ""]
+    lines += ["## Academics", f"- Latest CGPA: {cgpa}" if cgpa is not None else "- CGPA: not yet assessed"]
+    for q in quals:
+        pct = round(100 * q.marks / q.max_marks) if q.max_marks else 0
+        lines.append(f"- {q.level.value.title()}: {q.institution} ({q.year}) — {pct}%")
+    return "\n".join(lines)
+
+
+class ResumeGenerateIn(BaseModel):
+    title: str | None = None
+    target_role: str | None = None
+
+
+@router.post("/resume/generate")
+def generate_resume(
+    body: ResumeGenerateIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Compose a resume from the student's REEP data. The prompt carries student
+    PII, so a model is used ONLY when it is local or explicitly allowed; otherwise
+    it composes deterministically and says so (the AGENTS.md egress rule)."""
+    student_id = _require_student(session)
+    name = session.get("name", "")
+    profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
+    skill_names = list(
+        db.scalars(
+            select(Skill.name)
+            .join(StudentSkill, StudentSkill.skill_id == Skill.id)
+            .where(StudentSkill.student_id == student_id)
+        ).all()
+    )
+    latest = db.scalar(
+        select(SemesterResult)
+        .where(SemesterResult.student_id == student_id)
+        .order_by(SemesterResult.semester.desc())
+        .limit(1)
+    )
+    cgpa = latest.cgpa if latest else None
+    quals = db.scalars(
+        select(AcademicQualification)
+        .where(AcademicQualification.student_id == student_id)
+        .order_by(AcademicQualification.year)
+    ).all()
+
+    markdown = _compose_resume_markdown(name, profile, skill_names, cgpa, quals)
+    generated_by, model, used_ai, note = "fallback", None, False, None
+
+    cfg = llm_config()
+    if cfg is not None and student_data_egress_allowed(cfg.base_url):
+        prompt = (
+            "Rewrite this into a crisp one-page markdown resume for an MBA student. "
+            "Keep every fact; invent nothing.\n\n" + markdown
+        )
+        try:
+            markdown = complete_chat(
+                [
+                    {"role": "system", "content": "You are a concise resume writer."},
+                    {"role": "user", "content": prompt},
+                ],
+                carries_student_data=True,
+                max_tokens=1500,
+            )
+            generated_by, model, used_ai = cfg.provider, cfg.model, True
+        except Exception as exc:  # keep the deterministic draft on any failure
+            note = f"AI polish failed ({exc}); kept the deterministic draft."
+    else:
+        note = (
+            "AI generation skipped: the resume carries student data and the configured "
+            "model runs off this machine. Composed deterministically. Set "
+            "LLM_ALLOW_REMOTE_STUDENT_DATA=true or use a local model to enable AI."
+        )
+
+    version = (
+        db.scalar(select(func.max(Resume.version)).where(Resume.student_id == student_id)) or 0
+    ) + 1
+    resume = Resume(
+        student_id=student_id,
+        version=version,
+        title=body.title or "REEP Resume",
+        target_role=body.target_role,
+        status=ResumeStatus.GENERATED,
+        content={},
+        markdown=markdown,
+        generated_by=generated_by,
+        model=model,
+    )
+    db.add(resume)
+    db.commit()
+    db.refresh(resume)
+    return {
+        "id": resume.id,
+        "version": version,
+        "generated_by": generated_by,
+        "model": model,
+        "used_ai": used_ai,
+        "note": note,
+        "markdown": markdown,
+    }
+
+
+class ResumeOut(BaseModel):
+    id: str
+    version: int
+    title: str
+    status: str
+    generated_by: str
+    model: str | None
+
+
+@router.get("/resume", response_model=list[ResumeOut])
+def list_resumes(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[ResumeOut]:
+    student_id = _require_student(session)
+    rows = db.scalars(
+        select(Resume).where(Resume.student_id == student_id).order_by(Resume.created_at.desc())
+    ).all()
+    return [
+        ResumeOut(
+            id=r.id,
+            version=r.version,
+            title=r.title,
+            status=r.status.value,
+            generated_by=r.generated_by,
+            model=r.model,
+        )
+        for r in rows
+    ]

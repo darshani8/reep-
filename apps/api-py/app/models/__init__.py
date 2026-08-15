@@ -7,6 +7,7 @@ from . import alert  # noqa: F401
 from . import attendance  # noqa: F401
 from . import certification  # noqa: F401
 from . import cohort  # noqa: F401
+from . import conversation  # noqa: F401
 from . import course  # noqa: F401
 from . import job  # noqa: F401
 from . import job_import_run  # noqa: F401
@@ -27,3 +28,4 @@ from . import swoc  # noqa: F401
 from . import timesheet  # noqa: F401
 from . import upload  # noqa: F401
 from . import user  # noqa: F401
+from . import voice_worker  # noqa: F401

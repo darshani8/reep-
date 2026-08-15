@@ -11,12 +11,15 @@ import {
 } from 'livekit-client';
 
 /**
- * Unified text + voice assistant client.
+ * Unified text + voice assistant client (Assistant V2 — server-owned
+ * conversations).
  *
  * One service drives both the text chat (POST /api/agent/chat) and the
- * real-time voice session (LiveKit + Gemini Live). They share a session_id, so
- * the backend keeps a single conversation memory across both. State is exposed
- * as native Angular signals for reactive templates.
+ * real-time voice session (LiveKit + Gemini Live). The backend now owns the
+ * conversation: it resolves the caller from the session cookie and keeps a
+ * single conversation memory across both text and voice. The client never
+ * mints or sends a session_id. State is exposed as native Angular signals for
+ * reactive templates.
  */
 
 export type ChatRole = 'user' | 'assistant';
@@ -26,9 +29,12 @@ export interface ChatTurn {
 }
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
+interface HistoryResponse {
+  conversation_id: string;
+  turns: ChatTurn[];
+}
 interface ChatResponse {
   reply: string;
-  session_id: string;
   model: string;
 }
 interface VoiceToken {
@@ -36,6 +42,10 @@ interface VoiceToken {
   url: string;
   room: string;
   identity: string;
+}
+interface VoiceStatus {
+  available: boolean;
+  reason?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -50,32 +60,48 @@ export class ChatVoiceService {
   private room: Room | null = null;
   private readonly audioElements: HTMLAudioElement[] = [];
 
-  /** Load the shared conversation (text + voice) for a session into chatHistory. */
-  async loadHistory(sessionId: string): Promise<void> {
+  /** Load the server-owned conversation (text + voice) into chatHistory. */
+  async loadHistory(): Promise<void> {
     const res = await firstValueFrom(
-      this.http.get<{ turns: ChatTurn[] }>(
-        `/api/agent/history?session_id=${encodeURIComponent(sessionId)}`,
-      ),
+      this.http.get<HistoryResponse>('/api/agent/history', { withCredentials: true }),
     );
     this.chatHistory.set(res.turns);
   }
 
   /** Send one text turn and append the reply. Optimistically shows the user turn. */
-  async sendMessage(sessionId: string, message: string): Promise<void> {
+  async sendMessage(message: string): Promise<void> {
     this.chatHistory.update((h) => [...h, { role: 'user', content: message }]);
     const res = await firstValueFrom(
-      this.http.post<ChatResponse>('/api/agent/chat', { session_id: sessionId, message }),
+      this.http.post<ChatResponse>('/api/agent/chat', { message }, { withCredentials: true }),
     );
     this.chatHistory.update((h) => [...h, { role: 'assistant', content: res.reply }]);
   }
 
+  /** Discard the server-owned conversation and clear the local transcript. */
+  async clearConversation(): Promise<void> {
+    await firstValueFrom(
+      this.http.delete('/api/agent/conversation', { withCredentials: true }),
+    );
+    this.chatHistory.set([]);
+  }
+
   /** Open a WebRTC voice session over LiveKit and publish the microphone. */
-  async startVoiceSession(sessionId: string): Promise<void> {
+  async startVoiceSession(): Promise<void> {
     if (this.connectionStatus() === 'connected' || this.connectionStatus() === 'connecting') return;
     this.connectionStatus.set('connecting');
     try {
+      // Voice needs LiveKit + Gemini creds on the backend; ask first so we can
+      // surface why it's unavailable instead of failing mid-connect.
+      const status = await firstValueFrom(
+        this.http.get<VoiceStatus>('/api/voice/status', { withCredentials: true }),
+      );
+      if (!status.available) {
+        this.connectionStatus.set('error');
+        throw new Error(status.reason ?? 'Voice is not available right now.');
+      }
+
       const auth = await firstValueFrom(
-        this.http.post<VoiceToken>('/api/voice/token', { session_id: sessionId }),
+        this.http.post<VoiceToken>('/api/voice/token', {}, { withCredentials: true }),
       );
 
       const room = new Room({ adaptiveStream: true, dynacast: true });

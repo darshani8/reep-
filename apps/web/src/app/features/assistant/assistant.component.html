@@ -5,6 +5,15 @@
   <button
     action
     type="button"
+    class="btn btn--small"
+    [disabled]="sending() || history().length === 0"
+    (click)="clearConversation()"
+  >
+    Clear conversation
+  </button>
+  <button
+    action
+    type="button"
     class="btn btn--small voice"
     [class.voice--on]="connection() === 'connected'"
     [disabled]="connection() === 'connecting'"

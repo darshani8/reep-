@@ -14,6 +14,7 @@ from sqlalchemy import select
 from .db import SessionLocal
 from .models.academic_history import AcademicGap, AcademicQualification, QualificationLevel
 from .models.academics import SemesterResult, SubjectMark
+from .models.alert import Alert, AlertRuleKey, AlertSeverity
 from .models.attendance import AttendanceRecord
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
@@ -113,6 +114,18 @@ def main() -> None:
             )
             db.commit()
             print("added a mentor note")
+        if stu and db.scalar(select(Alert).where(Alert.student_id == stu.id)) is None:
+            db.add(
+                Alert(
+                    student_id=stu.id,
+                    rule_triggered=AlertRuleKey.ATTENDANCE_BELOW_THRESHOLD,
+                    severity=AlertSeverity.WARNING,
+                    message="Attendance in Managerial Economics dropped below 80%.",
+                    context={"course": "22MBA12", "percent": 80},
+                )
+            )
+            db.commit()
+            print("added an alert")
         if stu and db.scalar(select(SemesterResult).where(SemesterResult.student_id == stu.id)) is None:
             result = SemesterResult(
                 student_id=stu.id,

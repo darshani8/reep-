@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import get_current_session
+from ..models.alert import Alert
 from ..models.mentor_note import MentorAction, MentorNote
 from ..models.user import Student, User
 
@@ -151,3 +152,72 @@ def add_note(
     db.commit()
     db.refresh(note)
     return _note_out(note)
+
+
+class AlertOut(BaseModel):
+    id: str
+    student_id: str
+    student_name: str
+    rule_triggered: str
+    severity: str
+    message: str
+    triggered_at: datetime
+    resolved: bool
+
+
+def _alert_out(alert: Alert, student_name: str) -> AlertOut:
+    return AlertOut(
+        id=alert.id,
+        student_id=alert.student_id,
+        student_name=student_name,
+        rule_triggered=alert.rule_triggered.value,
+        severity=alert.severity.value,
+        message=alert.message,
+        triggered_at=alert.triggered_at,
+        resolved=alert.resolved_at is not None,
+    )
+
+
+@router.get("/alerts", response_model=list[AlertOut])
+def alerts(
+    open_only: bool = True,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[AlertOut]:
+    require_mentor(session)
+    query = (
+        select(Alert, User.name)
+        .join(Student, Alert.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+    )
+    if open_only:
+        query = query.where(Alert.resolved_at.is_(None))
+    if session["role"] == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            return []
+        query = query.where(Student.mentor_id == mentor_id)
+    rows = db.execute(query.order_by(Alert.triggered_at.desc())).all()
+    return [_alert_out(a, name) for a, name in rows]
+
+
+@router.post("/alerts/{alert_id}/resolve", response_model=AlertOut)
+def resolve_alert(
+    alert_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> AlertOut:
+    require_mentor(session)
+    alert = db.get(Alert, alert_id)
+    if alert is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found.")
+    _assert_can_access_student(session, alert.student_id, db)
+    if alert.resolved_at is None:
+        alert.resolved_at = datetime.now(timezone.utc)
+        alert.resolved_by = session["userId"]
+        db.commit()
+        db.refresh(alert)
+    name = db.scalar(
+        select(User.name).join(Student, Student.user_id == User.id).where(Student.id == alert.student_id)
+    )
+    return _alert_out(alert, name or "")

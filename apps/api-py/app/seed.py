@@ -21,6 +21,7 @@ from .models.cohort import Cohort
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
 from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
+from .models.registration import Registration, RegistrationRule, RegistrationStatus
 from .models.upload import Upload, UploadKind, UploadStatus
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock import MockAttempt, MockType
@@ -426,6 +427,35 @@ def main() -> None:
             )
             db.commit()
             print("added uploads (3: 2 pending, 1 verified)")
+
+        # Idempotently seed two registration rules: a narrow MBA-USN auto-approve
+        # rule (priority 10) that assigns the seeded cohort, and a broad
+        # college-domain route-to-review rule (priority 100).
+        if db.scalar(select(RegistrationRule)) is None:
+            cohort = db.scalar(select(Cohort).where(Cohort.code == "MBA-2026-B"))
+            db.add_all(
+                [
+                    RegistrationRule(name="MBA 2024-26 auto-admit", enabled=True, email_domain="bgscet.ac.in", usn_pattern=r"^1BG2[0-9]MBA[0-9]{3}$", degree_level=DegreeLevel.PG, cohort_id=cohort.id if cohort else None, auto_approve=True, priority=10),
+                    RegistrationRule(name="College domain — route to review", enabled=True, email_domain="bgscet.ac.in", auto_approve=False, priority=100),
+                ]
+            )
+            db.commit()
+            print("added registration rules (2)")
+
+        # Idempotently seed two sample applications: one that the narrow rule
+        # auto-approves, one that only the broad rule routes to manual review.
+        if db.scalar(select(Registration)) is None:
+            rules = {r.name: r for r in db.scalars(select(RegistrationRule)).all()}
+            auto = rules.get("MBA 2024-26 auto-admit")
+            broad = rules.get("College domain — route to review")
+            db.add_all(
+                [
+                    Registration(name="Asha Rao", email="1bg24mba045@bgscet.ac.in", usn="1BG24MBA045", degree_level=DegreeLevel.PG, status=RegistrationStatus.AUTO_APPROVED, cohort_id=auto.cohort_id if auto else None, matched_rule_id=auto.id if auto else None, decision_reason="Auto-approved by rule 'MBA 2024-26 auto-admit'."),
+                    Registration(name="Ravi Kumar", email="ravi.kumar@bgscet.ac.in", degree_level=DegreeLevel.PG, status=RegistrationStatus.PENDING_REVIEW, matched_rule_id=broad.id if broad else None, decision_reason="Routed by rule 'College domain — route to review' — awaiting review."),
+                ]
+            )
+            db.commit()
+            print("added registrations (2: 1 auto-approved, 1 pending review)")
     finally:
         db.close()
 

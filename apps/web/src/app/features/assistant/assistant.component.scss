@@ -11,6 +11,65 @@
   margin: 0 0 16px;
 }
 
+/* Mentor-escalation + records-view guidance under the intro. */
+.assist-note {
+  margin: -24px 0 20px;
+  max-width: 68ch;
+  color: var(--reep-text-secondary);
+}
+.assist-note__link {
+  color: var(--reep-primary-main, #1a3c5e);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.assist-note__link:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* One-tap starters — in the empty state and as a bar above the composer. */
+.quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.quick-prompts--empty {
+  justify-content: center;
+  margin-top: 14px;
+}
+.quick-prompts--bar {
+  padding: 10px 12px 0;
+}
+.quick-prompt {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--reep-divider);
+  background: var(--reep-action-hover);
+  color: var(--reep-text-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.quick-prompt:hover:not(:disabled) {
+  border-color: var(--reep-primary-main, #1a3c5e);
+  color: var(--reep-primary-main, #1a3c5e);
+}
+.quick-prompt:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 2px;
+}
+.quick-prompt:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chat__empty-lead {
+  margin: 0;
+}
+
 .voice {
   display: inline-flex;
   align-items: center;
@@ -125,8 +184,26 @@
   outline: none;
   border-color: var(--reep-primary-main, #1a3c5e);
 }
+.chat__input:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 1px;
+}
 .chat__send {
   flex-shrink: 0;
+  min-width: 84px;
+}
+.chat__send:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 2px;
+}
+.chat__send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.chat__hint {
+  margin: 8px 12px 12px;
+  color: var(--reep-text-disabled);
 }
 
 @keyframes blink {

@@ -11,6 +11,7 @@ import { LeaderboardsComponent } from './features/student/leaderboards/leaderboa
 import { TimeLogComponent } from './features/student/time-log/time-log.component';
 import { OffersComponent } from './features/student/offers/offers.component';
 import { AcademicsComponent } from './features/student/academics/academics.component';
+import { AssistantComponent } from './features/assistant/assistant.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 
 /**
@@ -43,7 +44,7 @@ export const routes: Routes = [
       placeholder('student/resume', 'Resume'),
       { path: 'student/jobs', component: JobsComponent },
       { path: 'student/offers', component: OffersComponent },
-      placeholder('student/assistant', 'REEP Agent'),
+      { path: 'student/assistant', component: AssistantComponent },
       { path: 'student/profile', component: ProfileComponent },
 
       // --- mentor ---
@@ -53,7 +54,7 @@ export const routes: Routes = [
       placeholder('mentor/uploads', 'Verifications'),
       placeholder('mentor/reports', 'Reports'),
       placeholder('mentor/leave', 'Leave'),
-      placeholder('mentor/assistant', 'REEP Agent'),
+      { path: 'mentor/assistant', component: AssistantComponent },
       placeholder('mentor/settings', 'Thresholds'),
 
       // --- director ---
@@ -64,7 +65,7 @@ export const routes: Routes = [
       placeholder('director/certifications', 'Certifications'),
       placeholder('director/placement', 'Placement'),
       placeholder('director/jobs', 'Jobs sheet'),
-      placeholder('director/assistant', 'REEP Agent'),
+      { path: 'director/assistant', component: AssistantComponent },
       placeholder('director/exports', 'Exports'),
 
       { path: '', pathMatch: 'full', redirectTo: 'student' },

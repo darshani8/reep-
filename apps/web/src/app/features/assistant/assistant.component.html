@@ -1,0 +1,62 @@
+<kit-page-intro
+  title="REEP Agent"
+  subtitle="Ask about deadlines, the placement process, how to read your dashboard — anything about REEP. For your own marks or attendance, open the records view; the assistant keeps those private."
+>
+  <button
+    action
+    type="button"
+    class="btn btn--small voice"
+    [class.voice--on]="connection() === 'connected'"
+    [disabled]="connection() === 'connecting'"
+    (click)="toggleVoice()"
+  >
+    <span class="voice__dot" [class.voice__dot--live]="audioPlaying()"></span>
+    {{ voiceLabel() }}
+  </button>
+</kit-page-intro>
+
+@if (error()) {
+  <p class="err reep-body2" role="alert">{{ error() }}</p>
+}
+
+<div class="chat">
+  <div #scroller class="chat__log" role="log" aria-live="polite">
+    @if (history().length === 0) {
+      <div class="chat__empty reep-body2">
+        Start the conversation — try “What do I need to do before placements open?”
+      </div>
+    } @else {
+      @for (turn of history(); track $index) {
+        <div class="msg" [class.msg--user]="turn.role === 'user'">
+          <div class="msg__bubble">{{ turn.content }}</div>
+        </div>
+      }
+    }
+    @if (sending()) {
+      <div class="msg">
+        <div class="msg__bubble msg__bubble--typing">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="chat__compose">
+    <textarea
+      class="chat__input"
+      rows="1"
+      placeholder="Message the REEP Agent…"
+      [value]="draft()"
+      (input)="onInput($event)"
+      (keydown)="onKeydown($event)"
+    ></textarea>
+    <button
+      type="button"
+      class="btn chat__send"
+      [disabled]="sending() || draft().trim().length === 0"
+      (click)="send()"
+    >
+      Send
+    </button>
+  </div>
+</div>

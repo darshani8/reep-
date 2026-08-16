@@ -4,9 +4,14 @@ Runs as a SEPARATE process from the FastAPI server, in its own environment (the
 audio/ML deps are heavy and usually want Python 3.12):
 
     pip install -r requirements-voice.txt
-    # env: GEMINI_API_KEY, LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
-    #      REEP_API_URL (default http://localhost:8000), VOICE_WORKER_SECRET
     python voice_agent.py dev            # `start` in production
+
+Configuration is read from apps/api-py/.env — the SAME file the FastAPI server
+uses, so the LiveKit and Gemini credentials are entered once and both processes
+see them (GEMINI_API_KEY, LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET,
+VOICE_WORKER_SECRET). A real environment variable always wins over the file, so
+REEP_API_URL (default http://localhost:3300, the port the API serves on) and
+VOICE_WORKER_ID can still be overridden per-process.
 
 Flow: it joins the LiveKit room the browser connected to, resolves the
 conversation_id (the room is named reep-conversation-<id> and the participant
@@ -39,6 +44,7 @@ import os
 import urllib.error
 import urllib.request
 import uuid
+from pathlib import Path
 from typing import Any, NamedTuple
 
 from livekit import agents
@@ -48,6 +54,36 @@ from livekit.plugins import google
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("reep-voice")
 
+
+def _load_env_file() -> None:
+    """Read apps/api-py/.env into the environment (stdlib only, no dotenv dep).
+
+    The worker runs in its OWN venv but must agree with the FastAPI server on the
+    LiveKit/Gemini credentials, so it reads the server's env file rather than
+    asking the operator to export the same four values twice. A real environment
+    variable always wins — `setdefault`, never overwrite — so per-process
+    overrides (REEP_API_URL, VOICE_WORKER_ID) still work.
+
+    Pinned to THIS file's directory for the same reason app/config.py pins its
+    own: a bare ".env" resolves against the process CWD and would pick up the
+    wrong file when the worker is started from the repo root.
+    """
+    env_path = Path(__file__).resolve().parent / ".env"
+    try:
+        text = env_path.read_text(encoding="utf-8")
+    except OSError:
+        return  # no .env — rely entirely on the real environment
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        # Values may be bare or quoted (the file is shared with pydantic-settings).
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_env_file()
+
 # Gemini Live reads the Google/Gemini key from the environment.
 os.environ.setdefault("GOOGLE_API_KEY", os.getenv("GEMINI_API_KEY", ""))
 
@@ -55,7 +91,7 @@ GEMINI_LIVE_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025"
 
 # Where the FastAPI server lives. The worker talks to it over HTTP only — it
 # holds no DB connection and no DB deps.
-API_BASE = os.getenv("REEP_API_URL", "http://localhost:8000").rstrip("/")
+API_BASE = os.getenv("REEP_API_URL", "http://localhost:3300").rstrip("/")
 # Presented as X-Voice-Worker-Secret on the worker endpoints. Blank -> the
 # server treats the endpoints as open (dev).
 WORKER_SECRET = os.getenv("VOICE_WORKER_SECRET", "")

@@ -780,6 +780,17 @@ def _seed_knowledge(db) -> None:
         db.commit()
         print(f"added knowledge documents ({added}, APPROVED, student audience)")
 
+    # Backfill pgvector embeddings when a provider is configured (idempotent —
+    # overwrites with fresh vectors). No-op without a provider: retrieval then
+    # runs on Postgres full-text alone. Import here so seeding never hard-depends
+    # on the embeddings module.
+    from .ai.embeddings import embedder_configured, reembed_all
+
+    if embedder_configured():
+        n = reembed_all(db)
+        if n:
+            print(f"embedded knowledge chunks ({n})")
+
 
 if __name__ == "__main__":
     main()

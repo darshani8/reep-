@@ -8,14 +8,21 @@ DELIBERATELY simple and has NO hard dependency on any embedding provider:
     embed(texts) -> list[list[float]] | None
 
 Returns None when no embedder is configured; every caller then falls back to
-Postgres full-text retrieval, so the KB works with zero embedding setup. When
-`embedding_base_url` + `embedding_model` are configured, it POSTs to the
-OpenAI-compatible `{base}/embeddings` endpoint.
+Postgres full-text retrieval, so the KB works with zero embedding setup.
+
+Provider selection mirrors the universal LLM adapter (`app/ai/llm.py`): "one set
+of keys, any provider, no code change". In priority order —
+  1. an explicit `embedding_base_url` + `embedding_model` (any OpenAI-compatible
+     `/embeddings` endpoint), else
+  2. `MISTRAL_API_KEY` -> Mistral `mistral-embed` (OpenAI-compatible, 1024-dim).
+Both POST to `{base}/embeddings`. (The KB is public policy text, so this is
+outside the student-data egress gate — nothing private is embedded.)
 """
 
 from __future__ import annotations
 
 import logging
+from typing import NamedTuple
 
 import httpx
 
@@ -23,10 +30,38 @@ from ..config import settings
 
 log = logging.getLogger(__name__)
 
+# Mistral's OpenAI-compatible embeddings endpoint + model (used when no explicit
+# embedding_* is configured but a Mistral key is present).
+_MISTRAL_BASE = "https://api.mistral.ai/v1"
+_MISTRAL_MODEL = "mistral-embed"
+
+
+class _Embedder(NamedTuple):
+    base: str
+    model: str
+    key: str
+
+
+def _resolve_embedder() -> _Embedder | None:
+    """Pick an embeddings provider from config, or None to fall back to full-text.
+
+    Explicit LLM-style `embedding_*` wins; otherwise auto-select Mistral from
+    `MISTRAL_API_KEY` (the KB is public text, so a remote embedder is fine)."""
+    base = settings.embedding_base_url.strip()
+    model = settings.embedding_model.strip()
+    if base and model:
+        return _Embedder(base.rstrip("/"), model, settings.embedding_api_key.strip())
+
+    mistral = settings.mistral_api_key.strip()
+    if mistral:
+        return _Embedder(_MISTRAL_BASE, _MISTRAL_MODEL, mistral)
+
+    return None
+
 
 def embedder_configured() -> bool:
-    """True when an embedding provider is set (base URL + model)."""
-    return bool(settings.embedding_base_url.strip() and settings.embedding_model.strip())
+    """True when an embedding provider is available (explicit or auto-selected)."""
+    return _resolve_embedder() is not None
 
 
 def embed(texts: list[str]) -> list[list[float]] | None:
@@ -37,12 +72,11 @@ def embed(texts: list[str]) -> list[list[float]] | None:
     provider/network error is logged and swallowed as None — the KB must never
     hard-fail just because an optional embedder is down.
     """
-    if not texts or not embedder_configured():
+    provider = _resolve_embedder()
+    if not texts or provider is None:
         return None
 
-    base = settings.embedding_base_url.strip().rstrip("/")
-    model = settings.embedding_model.strip()
-    key = settings.embedding_api_key.strip()
+    base, model, key = provider
 
     headers = {"content-type": "application/json"}
     if key:

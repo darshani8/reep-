@@ -9,19 +9,18 @@ lets the KB text be embedded and even sent to a remote embedder (it is public
 policy) while student PII stays behind the egress gate.
 
 KnowledgeChunk is the retrieval unit: a document is split into chunks, each with
-an optional float `embedding` (nullable, so full-text retrieval works before any
-embeddings exist) and a Postgres full-text GIN index over `chunk_text`.
+an optional pgvector `embedding` (nullable, so full-text retrieval works before
+any embeddings exist) and a Postgres full-text GIN index over `chunk_text`.
 """
 
 import enum
 import uuid
 from datetime import datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    ARRAY,
     DateTime,
     Enum,
-    Float,
     ForeignKey,
     Index,
     String,
@@ -80,11 +79,18 @@ class KnowledgeDocument(Base):
 
 
 class KnowledgeChunk(Base):
-    """A retrievable slice of a document. `embedding` is a nullable float vector
-    (populated only when an embedding provider is configured); retrieval falls
-    back to Postgres full-text when it is absent. A GIN index on
+    """A retrievable slice of a document. `embedding` is a nullable pgvector
+    `vector` (populated only when an embedding provider is configured); retrieval
+    falls back to Postgres full-text when it is absent, and blends DB-side cosine
+    distance (`embedding <=> :q`) when it is present. A GIN index on
     to_tsvector('english', chunk_text) backs the full-text path (created in the
-    migration via op.execute)."""
+    migration via op.execute).
+
+    The column is a DIMENSIONLESS `vector` (no typmod): the KB is small and
+    curated, so an exact cosine scan over a few chunks is instant and no ivfflat/
+    hnsw index is needed — and any embedding model's dimension fits without a
+    schema change (all rows + the query share one provider, so `<=>` dims line
+    up). `reembed_all` rewrites every row when the provider changes."""
 
     __tablename__ = "knowledge_chunks"
     __table_args__ = (
@@ -106,9 +112,9 @@ class KnowledgeChunk(Base):
     chunk_text: Mapped[str] = mapped_column(Text)
     section_title: Mapped[str | None] = mapped_column(String, nullable=True)
     anchor: Mapped[str | None] = mapped_column(String, nullable=True)
-    # A plain float vector — nullable so the KB works before any embeddings exist.
-    # NOTE: production scale path is a pgvector `vector` column (see app/knowledge.py).
-    embedding: Mapped[list[float] | None] = mapped_column(ARRAY(Float), nullable=True)
+    # pgvector `vector` (dimensionless) — nullable so the KB works before any
+    # embeddings exist. Retrieval orders by `embedding <=> :query_vec` in-DB.
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(), nullable=True)
     metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

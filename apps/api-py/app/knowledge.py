@@ -6,24 +6,27 @@ the ONLY read path the assistant should use to ground an answer, and it can only
 ever surface APPROVED documents whose audience admits the caller — never a live
 student fact, which lives in a wholly separate table.
 
-Retrieval strategy (works today, no embeddings required):
-  PRIMARY  Postgres full-text: rank by ts_rank over to_tsvector('english',
-           chunk_text) vs plainto_tsquery('english', query). Backed by the GIN
-           index created in the migration. Falls back to ILIKE when the query
-           produces no ts matches (e.g. a single rare token).
-  BLEND    When chunk embeddings exist AND an embedder is configured, cosine
-           similarity is computed in Python over the small full-text candidate
-           set and blended into the score to re-rank. The KB is small and
-           curated, so in-Python cosine is perfectly adequate.
+Retrieval strategy — HYBRID full-text + pgvector (works with or without an
+embedder configured):
+  FULL-TEXT  Postgres full-text: rank by ts_rank over to_tsvector('english',
+             chunk_text) vs plainto_tsquery('english', query). Backed by the GIN
+             index. Falls back to ILIKE when the query produces no ts matches
+             (e.g. a single rare token).
+  VECTOR     When an embedder is configured, the query is embedded and pgvector
+             finds the nearest chunks DB-side with `embedding <=> :query_vec`
+             (cosine distance, `.cosine_distance(...)`). This surfaces
+             semantically-related chunks that share no literal tokens.
+  BLEND      The two candidate sets are merged by chunk id and re-ranked on a
+             blend of normalised full-text rank and cosine similarity, so a chunk
+             strong on either signal ranks well.
 
-Returns [] when nothing approved matches — the caller then shows
-"no approved answer" rather than inventing one.
+Without an embedder it degrades cleanly to full-text alone — the KB still works
+with zero embedding setup. Returns [] when nothing approved matches — the caller
+then shows "no approved answer" rather than inventing one.
 
-NOTE (production scale path): for a large KB, switch retrieval to pgvector —
-use the `pgvector/pgvector:pg17` docker image, `CREATE EXTENSION vector`, convert
-`KnowledgeChunk.embedding` to a `vector` column, and `ORDER BY embedding <=>
-:query_vec LIMIT k`. Not done here to avoid recreating the live DB container; the
-in-Python cosine blend below gives the same ranking for a small curated set.
+pgvector runs in the `pgvector/pgvector:pg17` docker image (`CREATE EXTENSION
+vector`); `KnowledgeChunk.embedding` is a dimensionless `vector`. The KB is small
+and curated, so an exact cosine scan needs no ivfflat/hnsw index.
 """
 
 from __future__ import annotations
@@ -36,10 +39,21 @@ from sqlalchemy.orm import Session
 from .ai.embeddings import embed, embedder_configured
 from .models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeStatus
 
-# How many full-text candidates to pull before an optional cosine re-rank.
+# How many candidates to pull per branch before the blended re-rank.
 _CANDIDATE_POOL = 24
 # Weight given to the embedding-cosine signal when blending (rest is full-text).
 _COSINE_WEIGHT = 0.5
+# Relevance FLOOR for the vector branch: a chunk is admitted as a semantic match
+# only when its cosine DISTANCE is at or below this. Vector KNN otherwise always
+# returns *something* (the nearest chunks, however far), which would manufacture
+# an answer for an off-topic or gibberish query and defeat the "no approved
+# answer" honest fallback. Calibrated to the embedding model's floor: genuine
+# matches sit at distance <= ~0.30 while unrelated text floors around ~0.35+, so
+# this sits in the gap. Biased conservative on purpose — a borderline chunk with
+# no full-text overlap is better dropped (fall back to "check with your mentor")
+# than surfaced as if approved. Full-text remains the primary answer-existence
+# signal, so this only gates the *extra* semantic-only candidates.
+_MAX_VEC_DISTANCE = 0.32
 
 
 def _audience_filter(audience: str):
@@ -73,17 +87,32 @@ def search(
     if not q:
         return []
 
-    ts_vector = func.to_tsvector("english", KnowledgeChunk.chunk_text)
-    ts_query = func.plainto_tsquery("english", bindparam("q", value=q, type_=String))
-    rank = func.ts_rank(ts_vector, ts_query).label("rank")
-
     base_where = (
         KnowledgeDocument.status == KnowledgeStatus.APPROVED,
         _audience_filter(audience),
     )
 
-    # PRIMARY: full-text. ts_query.op("@@") is the text-search match operator.
-    stmt = (
+    def _row_fields(row) -> dict:
+        return {
+            "chunk_text": row.chunk_text,
+            "anchor": row.anchor,
+            "embedding": row.embedding,
+            "title": row.title,
+            "source_type": row.source_type,
+            "source_url": row.source_url,
+        }
+
+    # Candidates keyed by chunk id, carrying both signals: a full-text `rank`
+    # (0 when only the vector branch found it) and a cosine `distance` (None when
+    # only full-text found it). Merging by id lets a chunk strong on EITHER signal
+    # survive to the blended re-rank below.
+    cand: dict[str, dict] = {}
+
+    # --- FULL-TEXT branch --------------------------------------------------- #
+    ts_vector = func.to_tsvector("english", KnowledgeChunk.chunk_text)
+    ts_query = func.plainto_tsquery("english", bindparam("q", value=q, type_=String))
+    rank = func.ts_rank(ts_vector, ts_query).label("rank")
+    ft_stmt = (
         select(
             KnowledgeChunk.id,
             KnowledgeChunk.chunk_text,
@@ -96,33 +125,20 @@ def search(
         )
         .join(KnowledgeDocument, KnowledgeChunk.document_id == KnowledgeDocument.id)
         .where(*base_where)
-        .where(ts_vector.op("@@")(ts_query))
+        .where(ts_vector.op("@@")(ts_query))  # "@@" is the text-search match op
         .order_by(rank.desc())
         .limit(_CANDIDATE_POOL)
     )
-    # Normalise every candidate to a dict so the primary (Row) and fallback
-    # (Row without a rank column) paths score identically.
-    def _to_candidate(row, ft_rank: float) -> dict:
-        return {
-            "chunk_text": row.chunk_text,
-            "anchor": row.anchor,
-            "embedding": row.embedding,
-            "title": row.title,
-            "source_type": row.source_type,
-            "source_url": row.source_url,
-            "rank": ft_rank,
-        }
+    for r in db.execute(ft_stmt).all():
+        cand[r.id] = {**_row_fields(r), "rank": float(r.rank), "distance": None}
 
-    candidates: list[dict] = [_to_candidate(r, float(r.rank)) for r in db.execute(stmt).all()]
-
-    used_fulltext = True
-    if not candidates:
+    if not cand:
         # FALLBACK: ILIKE over the raw tokens when ts produced nothing.
-        used_fulltext = False
         tokens = [t for t in q.split() if len(t) > 1] or [q]
         ilike_clauses = [KnowledgeChunk.chunk_text.ilike(f"%{tok}%") for tok in tokens]
         fallback = (
             select(
+                KnowledgeChunk.id,
                 KnowledgeChunk.chunk_text,
                 KnowledgeChunk.anchor,
                 KnowledgeChunk.embedding,
@@ -135,27 +151,64 @@ def search(
             .where(or_(*ilike_clauses))
             .limit(_CANDIDATE_POOL)
         )
-        candidates = [_to_candidate(r, 0.0) for r in db.execute(fallback).all()]
+        for r in db.execute(fallback).all():
+            cand[r.id] = {**_row_fields(r), "rank": 0.0, "distance": None}
 
-    if not candidates:
-        return []
-
-    # Optional cosine blend when embeddings exist and an embedder is available.
+    # --- VECTOR branch (pgvector nearest-neighbour, DB-side) ---------------- #
     query_vec: list[float] | None = None
-    if embedder_configured() and any(c["embedding"] for c in candidates):
+    if embedder_configured():
         vecs = embed([q])
         if vecs:
             query_vec = vecs[0]
+    if query_vec is not None:
+        # cosine_distance renders `embedding <=> :query_vec`; ORDER BY it to pull
+        # the nearest chunks even when they share no literal token with the query.
+        # Gate on _MAX_VEC_DISTANCE so only CONFIDENT semantic matches are added —
+        # unbounded KNN would otherwise always return the nearest few and bypass
+        # the honest "no approved answer" fallback for off-topic queries.
+        dist_expr = KnowledgeChunk.embedding.cosine_distance(query_vec)
+        distance = dist_expr.label("distance")
+        vec_stmt = (
+            select(
+                KnowledgeChunk.id,
+                KnowledgeChunk.chunk_text,
+                KnowledgeChunk.anchor,
+                KnowledgeChunk.embedding,
+                KnowledgeDocument.title,
+                KnowledgeDocument.source_type,
+                KnowledgeDocument.source_url,
+                distance,
+            )
+            .join(KnowledgeDocument, KnowledgeChunk.document_id == KnowledgeDocument.id)
+            .where(*base_where)
+            .where(KnowledgeChunk.embedding.isnot(None))
+            .where(dist_expr <= _MAX_VEC_DISTANCE)
+            .order_by(distance)
+            .limit(_CANDIDATE_POOL)
+        )
+        for r in db.execute(vec_stmt).all():
+            if r.id in cand:
+                cand[r.id]["distance"] = float(r.distance)
+            else:
+                cand[r.id] = {**_row_fields(r), "rank": 0.0, "distance": float(r.distance)}
 
+    if not cand:
+        return []
+
+    # --- Blend + re-rank ---------------------------------------------------- #
+    max_rank = max((c["rank"] for c in cand.values()), default=0.0) or 1.0
     scored: list[dict] = []
-    max_rank = max((c["rank"] for c in candidates), default=0.0) or 1.0
-    for c in candidates:
-        # Normalise full-text rank into 0..1 for a stable blend.
-        ft = (c["rank"] / max_rank) if used_fulltext else 0.0
-        score = ft
-        if query_vec is not None and c["embedding"]:
-            cos = _cosine(query_vec, list(c["embedding"]))
-            score = (1 - _COSINE_WEIGHT) * ft + _COSINE_WEIGHT * cos
+    for c in cand.values():
+        ft = c["rank"] / max_rank  # 0..1 (0 for vector-only or ILIKE candidates)
+        # Cosine similarity: prefer the DB distance; else compute from the vector.
+        sim: float | None = None
+        if c["distance"] is not None:
+            sim = 1.0 - c["distance"]
+        elif query_vec is not None and c["embedding"] is not None:
+            sim = _cosine(query_vec, list(c["embedding"]))
+        score = (
+            (1 - _COSINE_WEIGHT) * ft + _COSINE_WEIGHT * sim if sim is not None else ft
+        )
         scored.append(
             {
                 "chunk_text": c["chunk_text"],

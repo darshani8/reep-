@@ -20,16 +20,28 @@ from sqlalchemy import delete, select
 from conftest import requires_db
 
 from app import knowledge
+from app.ai import embeddings
 from app.db import SessionLocal
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeStatus
 from app.seed import _seed_knowledge
 
+# pgvector semantic tests only mean anything when an embedder is configured and
+# the chunks are embedded; without a provider the KB runs on full-text alone.
+requires_embedder = pytest.mark.skipif(
+    not embeddings.embedder_configured(),
+    reason="no embedding provider configured (KB runs full-text only)",
+)
+
 
 @pytest.fixture(scope="module", autouse=True)
 def _ensure_kb():
-    """Idempotently make sure the seeded KB is present for this module."""
+    """Idempotently make sure the seeded KB is present for this module, and — when
+    an embedder is configured — that its chunks carry embeddings (so the pgvector
+    branch is actually exercised)."""
     with SessionLocal() as db:
         _seed_knowledge(db)
+        if embeddings.embedder_configured():
+            embeddings.reembed_all(db)
 
 
 @requires_db
@@ -106,6 +118,33 @@ def test_only_approved_documents_are_returned():
 def test_empty_query_returns_empty():
     with SessionLocal() as db:
         assert knowledge.search(db, "   ") == []
+
+
+# ---------------------------------------------------------------------------
+# pgvector semantic retrieval (only when an embedder is configured)
+# ---------------------------------------------------------------------------
+@requires_db
+@requires_embedder
+def test_semantic_query_with_no_shared_tokens_lands_on_the_right_doc():
+    """A paraphrase that shares NO literal token with the KB wording still
+    retrieves the skill-verification doc — the payoff of the vector branch that
+    pure full-text cannot deliver."""
+    with SessionLocal() as db:
+        hits = knowledge.search(db, "prove my competency to a recruiter")
+    assert hits, "vector search should surface a semantically-related chunk"
+    titles = [h["document_title"] for h in hits]
+    assert "Verifying a skill (e.g. Power BI)" in titles
+
+
+@requires_db
+@requires_embedder
+def test_vector_threshold_preserves_the_honest_fallback():
+    """Vector KNN always has a nearest neighbour; the distance floor must stop it
+    from manufacturing a match for a gibberish query, so retrieval returns
+    nothing and the caller can fall back to 'no approved answer'."""
+    with SessionLocal() as db:
+        hits = knowledge.search(db, "zqwxplorbnix vfgtrkzylophonic quzzmatic bxqptlwr")
+    assert hits == [], "an out-of-vocabulary query must not be forced to a match"
 
 
 # ---------------------------------------------------------------------------

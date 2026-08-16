@@ -1,6 +1,10 @@
 services:
   db:
-    image: postgres:17-alpine
+    # pgvector's PG17 image = stock Postgres 17 + the `vector` extension available
+    # to CREATE. Same PG major as the previous postgres:17-alpine, so the existing
+    # reep_pgdata volume mounts unchanged (alpine→debian is a libc/collation change
+    # only — remediated with REINDEX + REFRESH COLLATION VERSION, data preserved).
+    image: pgvector/pgvector:pg17
     container_name: reep-postgres
     restart: unless-stopped
     environment:

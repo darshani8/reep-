@@ -676,3 +676,31 @@ button {
   color: var(--ink-500);
   margin-top: 6px;
 }
+
+/* ---------------------------------------------------------------------------
+   Reduced motion — global, so every component inherits it.
+
+   The assistant's voice panel runs several INFINITE pulse animations (live dot,
+   status pulse, typing indicator). An indefinitely looping animation is a
+   vestibular-disorder trigger and, for some users, a migraine one; the whole
+   point of prefers-reduced-motion is that it must not be re-litigated per
+   component. Scoped globally rather than in assistant.component.scss so the
+   next component with a pulse is covered before anyone remembers to think
+   about it.
+
+   This costs no information: REEP always states status as text AND colour
+   together (never colour alone, and never motion alone), so removing the
+   animation removes decoration only.
+
+   Not `animation: none !important` on `*`: that would also kill finite
+   transitions like a card fade-in, which reduced-motion users generally still
+   want. Long/looping animations are the actual problem.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .voice__dot--live,
+  .vpanel__pulse,
+  .vpanel__status[data-state] .vpanel__pulse,
+  .msg__bubble--typing span {
+    animation: none;
+  }
+}

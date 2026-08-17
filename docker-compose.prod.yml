@@ -1,0 +1,141 @@
+# REEP — production-shaped composition.
+#
+# Deliberately NOT `docker-compose.yml` (that stays a dev Postgres only). Run:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Secrets come from the ENVIRONMENT, never from a committed file and never baked
+# into an image. Every value below without a default is required — compose fails
+# loudly on a missing one rather than starting a half-configured stack.
+
+name: reep
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: reep_py
+    volumes:
+      - reep_pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d reep_py"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 2G }
+    # No published port: only the API needs the database, and it reaches it over
+    # the compose network. Publishing 5432 would expose student records to the host.
+
+  # Migrations run ONCE, as their own unit — never from the API entrypoint.
+  # Every API replica running `alembic upgrade head` on boot races on the version
+  # table, and the loser can fail in ways that leave the schema half-applied.
+  migrate:
+    build:
+      context: ./apps/api-py
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+      ENV: prod
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+
+  api:
+    build:
+      context: ./apps/api-py
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      # No default. config.py ships a dev fallback secret; inheriting it in
+      # production would let anyone who has read the repo forge a session cookie.
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+      WEB_ORIGIN: ${WEB_ORIGIN:?set WEB_ORIGIN}
+      # prod marks the session cookie Secure — which REQUIRES TLS in front of
+      # this. Without HTTPS the browser silently drops the cookie and every
+      # login appears to succeed and then behaves as logged-out.
+      ENV: prod
+      LIVEKIT_URL: ${LIVEKIT_URL:-}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # Blank here is a hard error at request time in prod (require_voice_worker),
+      # not a silent open door.
+      VOICE_WORKER_SECRET: ${VOICE_WORKER_SECRET:?set VOICE_WORKER_SECRET}
+      # libpq reads these directly, so TLS verification works regardless of what
+      # the DATABASE_URL query string carries.
+      PGSSLMODE: ${PGSSLMODE:-prefer}
+      PGSSLROOTCERT: ${PGSSLROOTCERT:-}
+    volumes:
+      # Uploads MUST outlive the container. Without this they land in the image
+      # layer and every redeploy destroys them.
+      - reep_uploads:/var/reep/uploads
+    healthcheck:
+      # LIVENESS only — /health touches no dependencies. Pointing this at /ready
+      # would restart every API container during a brief Postgres wobble and
+      # turn a recoverable blip into an outage.
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:3300/health',timeout=3)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    # Above uvicorn's --timeout-graceful-shutdown 110 so it drains first.
+    stop_grace_period: 120s
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 1G }
+        reservations: { memory: 512M }
+
+  voice-worker:
+    build:
+      context: ./apps/api-py
+      dockerfile: Dockerfile.voice
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_started }
+    environment:
+      LIVEKIT_URL: ${LIVEKIT_URL:?set LIVEKIT_URL}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET}
+      GROQ_API_KEY: ${GROQ_API_KEY:?set GROQ_API_KEY}
+      # Must MATCH the API's value. If they disagree the worker's heartbeat and
+      # transcript POSTs 401: voice reports "worker offline" forever and turns
+      # stop persisting, with the worker itself looking perfectly healthy.
+      VOICE_WORKER_SECRET: ${VOICE_WORKER_SECRET:?set VOICE_WORKER_SECRET}
+      # Service name on the compose network, not localhost — the worker is a
+      # different container now.
+      REEP_API_URL: http://api:3300
+      # edge-tts is an unofficial no-SLA endpoint. Production should be groq or
+      # another SLA-backed provider; this default makes that an explicit choice.
+      VOICE_TTS: ${VOICE_TTS:-groq}
+    # No healthcheck: the worker has NO inbound HTTP surface. Its liveness is
+    # observed through the heartbeat row that GET /api/voice/status reads, which
+    # is the same signal that gates token minting.
+    #
+    # Derived, not guessed: AgentServer(drain_timeout=900) + two rounds of
+    # shutdown_process_timeout (20s each) + slack = 960s. On SIGTERM the SDK
+    # stops accepting new jobs and waits out in-flight ones, while our heartbeat
+    # posts a final `draining: true` so readiness withdraws in ~1s. Anything
+    # shorter than the drain budget SIGKILLs a student mid-sentence.
+    stop_grace_period: 960s
+    deploy:
+      resources:
+        # Heavier than the API: Silero plus the livekit-agents stack are resident
+        # per process, and each concurrent call adds audio buffers.
+        limits: { cpus: "2", memory: 3G }
+        reservations: { memory: 1G }
+
+volumes:
+  reep_pgdata:
+  reep_uploads:

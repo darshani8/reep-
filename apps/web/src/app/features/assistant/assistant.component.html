@@ -44,12 +44,20 @@
     aria-labelledby="consent-title"
     aria-describedby="consent-body"
   >
-    <div class="consent__card">
+    <div
+      #consentCard
+      class="consent__card"
+      tabindex="-1"
+      (keydown.escape)="cancelConsent()"
+      (keydown.tab)="trapConsentTab($event)"
+      (keydown.shift.tab)="trapConsentTab($event)"
+    >
       <h2 id="consent-title" class="consent__title reep-h6">Before you start voice</h2>
       <div id="consent-body" class="consent__body reep-body2">
         <p>
-          Voice is processed in real time through <strong>LiveKit</strong> and
-          <strong>Google Gemini</strong>.
+          Your speech is carried by <strong>LiveKit</strong> and transcribed and
+          answered by <strong>Groq</strong>. Nothing from your student record —
+          marks, attendance, USN — is sent to them.
         </p>
         <p class="consent__warn">
           Please don't share marks, attendance, medical information, passwords or other sensitive

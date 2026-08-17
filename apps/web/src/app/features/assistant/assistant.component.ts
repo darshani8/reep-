@@ -6,7 +6,7 @@
  * service opens a LiveKit voice session. The conversation is server-owned
  * (resolved from the session cookie), so the backend keeps one conversation
  * memory across text and voice without the client holding a session id. Voice
- * needs LiveKit + Gemini creds to actually connect — the button is present and
+ * needs LiveKit + Groq creds to actually connect — the button is present and
  * wired, gated by a one-time consent disclosure, and fails gracefully with a
  * note until those are set.
  *
@@ -15,7 +15,16 @@
  * for specific marks/attendance.
  */
 
-import { Component, computed, inject, signal, effect, ElementRef, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  effect,
+  ElementRef,
+  viewChild,
+  OnDestroy,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import {
@@ -25,9 +34,21 @@ import {
   VoiceState,
 } from '../../core/chat-voice.service';
 import { PageIntroComponent } from '../../shared/kit/kit.components';
+import { AuthService } from '../../core/auth.service';
 
-/** localStorage key remembering that the consent disclosure was accepted. */
-const CONSENT_KEY = 'reep-voice-consent';
+/**
+ * localStorage key prefix remembering that the consent disclosure was accepted.
+ *
+ * PER USER, not global. This was a single shared key, and REEP runs on shared
+ * lab PCs: once any one student accepted, every student who signed in on that
+ * machine afterwards had the disclosure silently suppressed and went straight
+ * into a live microphone session having never been shown what voice does with
+ * their audio. Keying by user id means the disclosure follows the person.
+ *
+ * Still only a CACHE — the server records consent per conversation. A cleared
+ * browser just shows the notice again, which is the safe direction to fail.
+ */
+const CONSENT_KEY_PREFIX = 'reep-voice-consent:';
 
 @Component({
   selector: 'app-assistant',
@@ -36,8 +57,10 @@ const CONSENT_KEY = 'reep-voice-consent';
   templateUrl: './assistant.component.html',
   styleUrl: './assistant.component.scss',
 })
-export class AssistantComponent {
+export class AssistantComponent implements OnDestroy {
   private readonly chat = inject(ChatVoiceService);
+  /** Only used to scope the consent cache to the signed-in student. */
+  private readonly auth = inject(AuthService);
 
   readonly history = this.chat.chatHistory;
 
@@ -117,6 +140,9 @@ export class AssistantComponent {
 
   private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
   private readonly composer = viewChild<ElementRef<HTMLTextAreaElement>>('composer');
+  private readonly consentCard = viewChild<ElementRef<HTMLElement>>('consentCard');
+  /** What had focus before the consent dialog opened, so it can be restored. */
+  private consentReturnFocus: HTMLElement | null = null;
 
   constructor() {
     void this.init();
@@ -126,6 +152,49 @@ export class AssistantComponent {
       const el = this.scroller()?.nativeElement;
       if (el) queueMicrotask(() => (el.scrollTop = el.scrollHeight));
     });
+
+    // Move focus INTO the consent dialog when it opens. It is marked
+    // aria-modal="true", which tells a screen reader the rest of the page is
+    // inert — but that is only a promise about focus, not a mechanism. Without
+    // this, focus stayed on the voice button behind the dialog and a keyboard or
+    // screen-reader user was tabbing through a page the markup claimed was
+    // unavailable, with no way to reach the two buttons that dismiss it.
+    // @angular/cdk is not a dependency here, so this is hand-rolled.
+    effect(() => {
+      const card = this.consentCard()?.nativeElement;
+      if (this.showConsent() && card) queueMicrotask(() => card.focus());
+    });
+  }
+
+  /**
+   * Keep Tab inside the dialog. Wrapping at each end is what makes the modality
+   * real rather than advisory.
+   *
+   * Bound to BOTH `(keydown.tab)` and `(keydown.shift.tab)` in the template.
+   * Angular matches modifiers exactly, so `keydown.tab` does not fire when Shift
+   * is held — with only that binding, Shift+Tab from the first control walked
+   * straight out of the "modal" dialog and back into the page behind it.
+   */
+  trapConsentTab(event: Event): void {
+    const ev = event as KeyboardEvent;
+    const card = this.consentCard()?.nativeElement;
+    if (!card) return;
+    const focusable = [...card.querySelectorAll<HTMLElement>('button, a[href]')].filter(
+      (el) => !el.hasAttribute('disabled'),
+    );
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+
+    if (ev.shiftKey && (active === first || active === card)) {
+      ev.preventDefault();
+      last.focus();
+    } else if (!ev.shiftKey && active === last) {
+      ev.preventDefault();
+      first.focus();
+    }
   }
 
   private async init(): Promise<void> {
@@ -293,13 +362,24 @@ export class AssistantComponent {
       await this.beginVoice();
     } else {
       // First use — show the disclosure before touching the mic.
+      this.consentReturnFocus = document.activeElement as HTMLElement | null;
       this.showConsent.set(true);
     }
   }
 
+  /** The per-user consent cache key, or null when nobody is signed in. */
+  private consentKey(): string | null {
+    const userId = this.auth.session()?.userId;
+    return userId ? `${CONSENT_KEY_PREFIX}${userId}` : null;
+  }
+
   private hasConsent(): boolean {
+    const key = this.consentKey();
+    // No key means no identified user — show the disclosure rather than
+    // assuming a previous student's acceptance covers this one.
+    if (!key) return false;
     try {
-      return localStorage.getItem(CONSENT_KEY) === 'true';
+      return localStorage.getItem(key) === 'true';
     } catch {
       return false;
     }
@@ -311,7 +391,8 @@ export class AssistantComponent {
     try {
       await this.chat.recordConsent(true);
       try {
-        localStorage.setItem(CONSENT_KEY, 'true');
+        const key = this.consentKey();
+        if (key) localStorage.setItem(key, 'true');
       } catch {
         /* storage blocked — consent still recorded server-side for this session */
       }
@@ -324,6 +405,10 @@ export class AssistantComponent {
   /// Consent panel — "Cancel".
   cancelConsent(): void {
     this.showConsent.set(false);
+    // Send focus back where it came from. Dropping it on <body> would strand a
+    // keyboard user at the top of the document.
+    this.consentReturnFocus?.focus();
+    this.consentReturnFocus = null;
   }
 
   /// Actually open the LiveKit session, surfacing any start failure.
@@ -347,6 +432,24 @@ export class AssistantComponent {
   async retryVoice(): Promise<void> {
     await this.chat.stopVoiceSession().catch(() => undefined);
     await this.beginVoice();
+  }
+
+  /**
+   * End any live call when this screen goes away.
+   *
+   * ChatVoiceService is root-provided, so it OUTLIVES this component. Navigating
+   * from the assistant to any other route left the microphone published to a
+   * live LiveKit room with the panel gone: the student had no visible indication
+   * they were still being recorded and no control to stop it, and the room went
+   * on being billed. That is a privacy failure, not a leak of resources
+   * (AGENTS.md rule 1 is about student data not leaving unbidden — a hot mic is
+   * the most literal form of it).
+   *
+   * Tab close is handled separately, in the service's pagehide listener: this
+   * hook does not run then.
+   */
+  ngOnDestroy(): void {
+    void this.chat.stopVoiceSession().catch(() => undefined);
   }
 
   /// Mute / unmute the local microphone.

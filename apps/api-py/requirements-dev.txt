@@ -1,0 +1,11 @@
+# Test/development dependencies. NOT installed into any image.
+#
+# Split out of requirements.txt so `Dockerfile` ships a runtime-only environment:
+# a production API container has no reason to carry a test runner.
+#
+# Local setup:
+#   .venv/Scripts/pip install -r requirements.txt -r requirements-dev.txt
+
+-r requirements.txt
+
+pytest==9.1.1

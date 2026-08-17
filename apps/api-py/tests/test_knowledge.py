@@ -23,7 +23,7 @@ from app import knowledge
 from app.ai import embeddings
 from app.db import SessionLocal
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeStatus
-from app.seed import _seed_knowledge
+from app.seed_kb import seed_knowledge
 
 # pgvector semantic tests only mean anything when an embedder is configured and
 # the chunks are embedded; without a provider the KB runs on full-text alone.
@@ -39,7 +39,7 @@ def _ensure_kb():
     an embedder is configured — that its chunks carry embeddings (so the pgvector
     branch is actually exercised)."""
     with SessionLocal() as db:
-        _seed_knowledge(db)
+        seed_knowledge(db)
         if embeddings.embedder_configured():
             embeddings.reembed_all(db)
 

@@ -158,6 +158,10 @@ def chat(
 
     # Server-owned: the conversation is derived from the session, never the body.
     conversation = convo.get_or_create(db, session["userId"], Role(session["role"]))
+    # Captured BEFORE the user turn is appended is not required (the predicate
+    # counts assistant turns), but read it before the reply exists so the
+    # greeting decision is made from the same state the answer was built on.
+    first_reply = convo.awaiting_first_reply(db, conversation.id)
     convo.append_message(db, conversation.id, "user", body.message)
     turns = convo.history(db, conversation.id, limit=HISTORY_LIMIT)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, *turns]
@@ -171,7 +175,12 @@ def chat(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=FRIENDLY_ERROR
         )
 
+    if first_reply:
+        reply = convo.open_with_greeting(reply)
+
     convo.append_message(db, conversation.id, "assistant", reply)
+    if first_reply:
+        convo.mark_greeted(db, conversation.id)
     _persist_run(db, session, body.message, reply, AgentRunStatus.ANSWERED, model_label, started)
     return ChatOut(reply=reply, conversation_id=conversation.id, model=model_label)
 
@@ -201,6 +210,7 @@ def chat_stream(
     # conversation id is settled before the generator (with a fresh session) runs.
     conversation = convo.get_or_create(db, session["userId"], Role(session["role"]))
     conversation_id = conversation.id
+    first_reply = convo.awaiting_first_reply(db, conversation_id)
     convo.append_message(db, conversation_id, "user", body.message)
     turns = convo.history(db, conversation_id, limit=HISTORY_LIMIT)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, *turns]
@@ -209,6 +219,14 @@ def chat_stream(
         chunks: list[str] = []
         outcome = AgentRunStatus.ANSWERED
         yield f"data: {json.dumps({'conversation_id': conversation_id, 'model': model_label})}\n\n"
+        # The greeting must reach a STREAMING client too. Emitted as the first
+        # delta so the student sees it immediately, and kept in `chunks` so the
+        # persisted turn matches exactly what was displayed — otherwise the
+        # transcript and the screen disagree about what the assistant said.
+        if first_reply:
+            opening = f"{convo.GREETING}! "
+            chunks.append(opening)
+            yield f"data: {json.dumps({'delta': opening})}\n\n"
         try:
             for delta in stream_chat(messages, max_tokens=1024):
                 chunks.append(delta)
@@ -219,10 +237,21 @@ def chat_stream(
             yield f"data: {json.dumps({'error': FRIENDLY_ERROR})}\n\n"
 
         reply = "".join(chunks)
+        # A failed turn must not be stored as an assistant message OR consume
+        # the greeting. Without this, a provider outage on the very first turn
+        # leaves `chunks` holding nothing but "Jai Shri Gurudev! " — a bare
+        # greeting persisted as the answer, replayed to the model as context on
+        # the next turn, and the student never greeted again.
+        model_said_something = outcome == AgentRunStatus.ANSWERED and any(
+            c for c in chunks[1:] if c.strip()
+        ) if first_reply else bool(reply.strip())
+
         # Fresh session: the injected request scope is already gone by now.
         with SessionLocal() as fresh:
-            if reply:
+            if model_said_something:
                 convo.append_message(fresh, conversation_id, "assistant", reply)
+                if first_reply:
+                    convo.mark_greeted(fresh, conversation_id)
             _persist_run(fresh, session, body.message, reply, outcome, model_label, started)
         yield "data: [DONE]\n\n"
 
@@ -258,13 +287,25 @@ def ask(
 
     # Server-owned: the conversation is derived from the session, never the body.
     conversation = convo.get_or_create(db, session["userId"], Role(session["role"]))
+    first_reply = convo.awaiting_first_reply(db, conversation.id)
     convo.append_message(db, conversation.id, "user", body.message)
 
     result = orchestrator.answer_question(
         db, session.get("studentId"), session.get("role"), body.message
     )
 
+    # ONE choke point for the compulsory greeting on this surface. Every
+    # orchestrator branch — the six deterministic student-data builders, policy,
+    # general, the non-student refusal and the exception fallback — returns
+    # through this single `result["answer"]`, so greeting here cannot be missed
+    # by a path, and a future branch inherits it for free.
+    if first_reply:
+        result["answer"] = convo.open_with_greeting(result["answer"])
+
     convo.append_message(db, conversation.id, "assistant", result["answer"])
+    if first_reply:
+        # Stamp only AFTER the greeted answer is persisted.
+        convo.mark_greeted(db, conversation.id)
     run_id = _persist_run(
         db,
         session,

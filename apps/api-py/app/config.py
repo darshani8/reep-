@@ -67,8 +67,7 @@ class Settings(BaseSettings):
 
     @property
     def gemini_key_present(self) -> bool:
-        """A Gemini/Google key from either the config field or the raw env.
-        The voice model (Gemini Live) reuses this key."""
+        """A Gemini/Google key from either the config field or the raw env."""
         import os
 
         return bool(
@@ -76,6 +75,19 @@ class Settings(BaseSettings):
             or os.getenv("GEMINI_API_KEY", "").strip()
             or os.getenv("GOOGLE_API_KEY", "").strip()
         )
+
+    @property
+    def voice_model_key_present(self) -> bool:
+        """Whether the key the VOICE WORKER actually needs is configured.
+
+        Voice runs as a cascade (silero VAD -> Groq Whisper -> Groq Llama ->
+        TTS), so GROQ_API_KEY is what makes it work. This deliberately does NOT
+        check the Gemini key: that was the old native speech-to-speech path, and
+        gating on it would report voice "not configured" on a machine where it
+        runs perfectly — or, worse, report it ready on one where it cannot."""
+        import os
+
+        return bool(self.groq_api_key.strip() or os.getenv("GROQ_API_KEY", "").strip())
 
     @property
     def livekit_ready(self) -> bool:
@@ -100,15 +112,41 @@ class Settings(BaseSettings):
     def allow_remote_student_data(self) -> bool:
         return self.llm_allow_remote_student_data.strip().lower() == "true"
 
+    # Query params that belong to Prisma and mean nothing to libpq. Only these
+    # are stripped — see sqlalchemy_url.
+    _PRISMA_ONLY_PARAMS = frozenset({"schema", "connection_limit", "pgbouncer"})
+
     @property
     def sqlalchemy_url(self) -> str:
-        """Normalise the DB URL for SQLAlchemy + psycopg 3: force the `+psycopg`
-        driver (so a plain `postgresql://` doesn't fall back to psycopg2) and
-        drop Prisma-only query params like `?schema=public`."""
+        """Normalise the DB URL for SQLAlchemy + psycopg 3.
+
+        Forces the `+psycopg` driver (so a plain `postgresql://` does not fall
+        back to psycopg2) and drops the Prisma-only query params left over from
+        the old stack.
+
+        It drops ONLY those. This used to end `return url.split("?", 1)[0]`,
+        discarding the entire query string — which silently threw away
+        `sslmode`. Every managed Postgres (Neon, RDS, Supabase, Cloud SQL) hands
+        you `...?sslmode=require`, so the connection fell back to libpq's default
+        `prefer`: TLS opportunistic, server certificate never verified, nothing
+        logged and nothing failed. An operator who set sslmode=require in the
+        secret had every reason to believe it applied while student records
+        crossed the network on an unauthenticated channel.
+        """
         url = self.database_url
         if url.startswith("postgresql://"):
             url = "postgresql+psycopg://" + url[len("postgresql://") :]
-        return url.split("?", 1)[0]
+
+        base, sep, query = url.partition("?")
+        if not sep:
+            return base
+
+        kept = [
+            pair
+            for pair in query.split("&")
+            if pair and pair.split("=", 1)[0] not in self._PRISMA_ONLY_PARAMS
+        ]
+        return f"{base}?{'&'.join(kept)}" if kept else base
 
 
 settings = Settings()

@@ -23,6 +23,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -44,6 +45,20 @@ class Conversation(Base):
     __tablename__ = "conversations"
     __table_args__ = (
         Index("ix_conversation_owner_activity", "owner_user_id", "last_activity_at"),
+        # ONE active conversation per user, enforced by the database.
+        # get_or_create does read-then-insert, so two concurrent first requests
+        # (the classic case: the page loads and fires /history and /ask together)
+        # can both miss and both insert. The user then owns two live threads and
+        # their turns split across them — including the greeting flag, which
+        # would re-arm on whichever thread lost. A partial unique index makes
+        # that outcome impossible rather than unlikely; the loser gets an
+        # IntegrityError that get_or_create resolves by re-reading.
+        Index(
+            "uq_conversation_one_active_per_owner",
+            "owner_user_id",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
@@ -69,6 +84,15 @@ class Conversation(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )  # soft-clear
+    # When the compulsory opening greeting was delivered on the TEXT surface.
+    # An explicit stamp, not a count of assistant rows: the voice worker's
+    # greeting reaches the DB through a best-effort cross-process POST whose
+    # failures are swallowed, so row-counting makes the text greeting
+    # nondeterministic — lose that write and the student is greeted twice, land
+    # it and their first typed message is silently ungreeted.
+    greeted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     messages: Mapped[list["Message"]] = relationship(
         back_populates="conversation", cascade="all, delete-orphan"

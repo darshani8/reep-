@@ -1,27 +1,38 @@
-fastapi>=0.115
-uvicorn[standard]>=0.30
-sqlalchemy>=2.0
-alembic>=1.13
-pydantic>=2.9
-pydantic-settings>=2.5
-psycopg[binary]>=3.2
+# REEP API — RUNTIME dependencies only.
+#
+# Pinned exactly (==), matching requirements-voice.txt. `>=` bounds meant a
+# rebuild three months from now resolved a different dependency set than the one
+# these tests passed against: the image would drift from the venv silently, and
+# the first sign of it would be a production-only failure nobody could reproduce
+# locally. These are the versions the suite is green on.
+#
+# Test-only packages live in requirements-dev.txt. They must NOT be here — this
+# file is what `Dockerfile` installs, and pytest in a production image is extra
+# attack surface plus a bigger download for nothing.
+#
+# Bumping: change the pin, run the suite, commit both together.
+
+fastapi==0.141.1
+uvicorn[standard]==0.52.3
+sqlalchemy==2.0.52
+alembic==1.19.1
+pydantic==2.13.4
+pydantic-settings==2.15.0
+psycopg[binary]==3.3.4
 # pgvector `vector` column type + SQLAlchemy adapter for the Knowledge-Base
 # semantic search (docker image pgvector/pgvector:pg17 + CREATE EXTENSION vector).
-pgvector>=0.3
-pyjwt>=2.9
-python-multipart>=0.0.9
-httpx>=0.27
+pgvector==0.5.0
+pyjwt==2.13.0
+python-multipart==0.0.32
+httpx==0.28.1
 # Server-side PDF rendering for /student/resume/{id}/pdf (local, no network — so
 # the student-data egress gate does not apply: nothing leaves the machine)
-reportlab>=4.0
+reportlab==5.0.0
 
 # AI agent framework (Google Agent Development Kit) — pairs natively with Gemini
-google-adk>=2.7
+google-adk==2.7.0
 # Lets ADK reach non-Gemini providers (Groq, Mistral, OpenRouter, …)
-litellm>=1.96
+litellm==1.96.2
 # LiveKit access-token minting for /api/voice/token (voice worker deps are in
 # requirements-voice.txt — a separate, heavier environment)
-livekit-api>=1.2
-
-# --- dev/test only ---
-pytest>=8.0
+livekit-api==1.2.0

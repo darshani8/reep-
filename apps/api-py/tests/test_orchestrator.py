@@ -23,7 +23,7 @@ from conftest import requires_db
 
 from app.ai import orchestrator
 from app.db import SessionLocal
-from app.seed import _seed_knowledge
+from app.seed_kb import seed_knowledge
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +61,7 @@ def _ensure_kb():
     if not _db_up():
         return
     with SessionLocal() as db:
-        _seed_knowledge(db)
+        seed_knowledge(db)
 
 
 def _db_up() -> bool:

@@ -1,4 +1,8 @@
-.venv/
+# .venv* (not .venv) — the voice worker installs into .venv-voice/, a SEPARATE
+# Python 3.12 environment carrying livekit-agents and onnxruntime. It matched
+# neither this pattern nor the root's, so a single `git add -A` would have
+# committed roughly half a gigabyte of wheels.
+.venv*/
 __pycache__/
 *.pyc
 .env

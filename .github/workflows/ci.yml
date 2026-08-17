@@ -1,0 +1,153 @@
+name: CI
+
+# Provisions a DISPOSABLE Postgres so the DB-backed tests actually run.
+# Without it the suite still goes green while skipping conversations, voice,
+# retention and RBAC — REEP_REQUIRE_DB below turns that silent skip into a
+# hard failure, so "passed" means the product was genuinely exercised.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A newer push supersedes an in-flight run on the same ref.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (FastAPI + Postgres)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: reep
+          POSTGRES_PASSWORD: reep_dev_password
+          POSTGRES_DB: reep_py
+        ports:
+          - 5433:5432
+        # Without the healthcheck the job races the container and fails on a
+        # connection error that looks like a test bug.
+        options: >-
+          --health-cmd "pg_isready -U reep -d reep_py"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py
+      AUTH_SECRET: ci-secret-not-used-outside-ci-0123456789abcdef
+      ENV: dev
+      # The point of this workflow: skipping DB tests is a FAILURE here.
+      REEP_REQUIRE_DB: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            apps/api-py/requirements.txt
+            apps/api-py/requirements-dev.txt
+
+      # requirements-dev.txt `-r requirements.txt`, so this installs runtime +
+      # pytest. The image installs requirements.txt ALONE — that split is the
+      # point: production carries no test runner.
+      - name: Install dependencies
+        working-directory: apps/api-py
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Apply migrations
+        working-directory: apps/api-py
+        run: python -m alembic upgrade head
+
+      - name: Seed the dev dataset
+        working-directory: apps/api-py
+        run: python -m app.seed
+
+      - name: Run tests
+        working-directory: apps/api-py
+        run: python -m pytest -q
+
+  worker-imports:
+    name: Voice worker (dependency completeness)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # The worker's audio/ML stack wants 3.12, unlike the API.
+          python-version: "3.12"
+
+      # Catches the exact failure that shipped once: requirements-voice.txt
+      # declared only livekit-agents while voice_agent.py imported groq, silero,
+      # noise_cancellation and edge_tts, so a clean install raised ImportError at
+      # startup. It only worked locally because those had been pip-installed by
+      # hand. Importing the module from a FRESH environment proves the manifest
+      # is complete — no LiveKit or Groq credentials required to do it.
+      - name: Install declared worker dependencies only
+        working-directory: apps/api-py
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-voice.txt
+
+      - name: Import the worker from a clean environment
+        working-directory: apps/api-py
+        env:
+          REEP_API_URL: http://localhost:3300
+        run: |
+          python -c "
+          import importlib.util, sys
+          spec = importlib.util.spec_from_file_location('voice_agent', 'voice_agent.py')
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          print('voice_agent imported OK; TTS =', module.VOICE_TTS)
+          "
+
+  web:
+    name: Web (Angular)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: apps/web
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      # Enforceable only since the `ng new` scaffold spec was replaced: it
+      # asserted an <h1> reading "Hello, web" against a template that is just
+      # <router-outlet />, so `ng test` failed on a fresh checkout and could not
+      # be a gate. A permanently-red suite is worse than none — a real regression
+      # arrives as one more failure in a run nobody reads.
+      - name: Unit tests
+        working-directory: apps/web
+        run: npx ng test --watch=false
+
+      # The real production build, not just a typecheck. It used to fail the
+      # bundle budget (1.23 MB against a 1 MB cap) because every route was
+      # statically imported, so this step could not be enforced. Routes are lazy
+      # now — initial is ~142 kB — and the budget is set close enough to that
+      # that a single `component:` slipped back into app.routes.ts fails here
+      # rather than shipping the whole app to the login screen again.
+      - name: Build (enforces the bundle budget)
+        working-directory: apps/web
+        run: npx ng build

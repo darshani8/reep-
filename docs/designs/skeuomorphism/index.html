@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>REEP — Design: Skeuomorphism</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500&family=Source+Sans+3:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,-50..200&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   REEP — SKEUOMORPHISM pass
+   2007-iOS / desk-planner feel: paper cards, leather sidebar, stitched
+   seams, glossy beveled keys, recessed inputs, realistic drop shadows.
+   Serif display (Playfair Display) + humanist sans (Source Sans 3).
+   ========================================================================== */
+:root{
+  --desk-1:     #6b4a2e;   /* desk wood mid */
+  --desk-2:     #54371f;   /* desk wood dark */
+  --paper:      #f6f1e3;   /* card paper */
+  --paper-2:    #efe8d5;   /* paper shade */
+  --paper-edge: #ddd2b8;   /* paper border */
+  --ink:        #2e2620;   /* primary text */
+  --ink-2:      #5c5142;   /* secondary text */
+  --ink-3:      #8b7d66;   /* labels, captions */
+  --line:       #d9cfb6;   /* paper hairline */
+  --line-soft:  #e6ddc8;
+  --leather-1:  #4a3220;   /* sidebar leather light */
+  --leather-2:  #33210f;   /* sidebar leather dark */
+  --leather-stitch:#c8a96f;
+  --brass:      #b08d3f;   /* metallic accent */
+  --brass-2:    #8f7228;
+  --good:       #3d7a3d;   --good-soft:#e3eedd;
+  --warn:       #a86f14;   --warn-soft:#f3e7c8;
+  --risk:       #a53a2c;   --risk-soft:#f2dcd6;
+  --radius:     10px;
+  --radius-sm:  7px;
+  --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font:  'Source Sans 3', 'Segoe UI', Tahoma, sans-serif;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:var(--font); color:var(--ink); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  /* wooden desk surface: plank stripes + vertical sheen + vignette */
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,235,190,.10), transparent 55%),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.055) 0 2px, transparent 2px 148px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, var(--desk-1), var(--desk-2) 70%);
+  background-attachment:fixed;
+}
+h1,h2,h3,h4,p{margin:0;}
+button{font-family:var(--font); cursor:pointer; border:none; background:none; color:inherit;}
+input,select,textarea{font-family:var(--font);}
+.icon{font-family:'Material Symbols Rounded'; font-variation-settings:'opsz' 22,'wght' 400,'FILL' 0,'GRAD' 0; font-size:20px; line-height:1; vertical-align:middle; font-weight:normal;}
+
+/* ---------- meta bar (design viewer only — not part of the product) ----------
+   A brushed-metal nameplate screwed onto the desk. */
+.meta-bar{
+  position:sticky; top:0; z-index:60; display:flex; align-items:center; gap:14px;
+  padding:9px 20px; font-size:12.5px; color:#f2e8d5;
+  background:linear-gradient(180deg, #6a5638, #4c3b22 45%, #3d2e18);
+  border-bottom:2px solid #241a0c;
+  box-shadow:inset 0 1px 0 rgba(255,240,210,.28), inset 0 -1px 0 rgba(0,0,0,.5), 0 4px 12px rgba(0,0,0,.45);
+  text-shadow:0 1px 1px rgba(0,0,0,.6);
+}
+.meta-bar b{font-family:var(--serif); font-weight:700; letter-spacing:.04em; font-size:14px; color:#f6ecd7;}
+.meta-tabs{display:flex; gap:4px; padding:3px; border-radius:999px;
+  background:linear-gradient(180deg, #2c1f0e, #3a2a14);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.65), inset 0 -1px 0 rgba(255,240,210,.12);
+}
+.meta-tabs button{
+  padding:6px 14px; border-radius:999px; color:#d8c49a; font-size:12px; font-weight:600;
+  text-shadow:0 1px 1px rgba(0,0,0,.6);
+}
+.meta-tabs button.active{
+  color:#3a2a10; text-shadow:0 1px 0 rgba(255,255,255,.55);
+  background:linear-gradient(180deg, #f7edd4, #dcc691 55%, #c8ad6c);
+  box-shadow:0 1px 2px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.8), inset 0 -1px 0 rgba(120,90,30,.55);
+}
+.meta-note{margin-left:auto; opacity:.75; font-size:11.5px; font-style:italic; font-family:var(--serif);}
+
+.stage{display:none;} .stage.active{display:block;}
+
+/* ---------- paper card (the core material) ----------
+   cream paper, faint ruled lines, fibre noise, deckle edge, real shadow. */
+.card{
+  position:relative; border-radius:var(--radius); padding:20px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 26px, rgba(140,120,80,.10) 26px 27px),
+    repeating-linear-gradient(90deg, rgba(120,100,60,.03) 0 1px, transparent 1px 4px),
+    linear-gradient(165deg, #faf5e8, var(--paper) 40%, var(--paper-2));
+  border:1px solid var(--paper-edge);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.65),
+    0 1px 1px rgba(40,25,10,.25),
+    0 6px 14px rgba(40,25,10,.35),
+    0 16px 34px rgba(30,18,8,.28);
+}
+.card h3{
+  font-family:var(--serif); font-size:16.5px; font-weight:700; color:#3a2c1a;
+  margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding-bottom:8px; border-bottom:2px dashed rgba(140,110,60,.4); /* stitched header seam */
+}
+.card h3 .sub{font-family:var(--font); font-size:11.5px; font-weight:500; color:var(--ink-3); font-style:normal;}
+.lbl{font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3);}
+
+/* ---------- glossy beveled buttons (real keys) ---------- */
+.btn{
+  display:inline-flex; align-items:center; gap:7px; padding:9px 16px;
+  border-radius:var(--radius-sm); font-size:13px; font-weight:700; color:#4a3a20;
+  background:linear-gradient(180deg, #fffdf4 0%, #f2e9d0 45%, #e2d3ac 50%, #d8c69a 100%);
+  border:1px solid #b7a377; border-bottom:2px solid #94804f;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    inset 0 -3px 6px rgba(150,120,60,.25),
+    0 2px 3px rgba(40,25,10,.35);
+  text-shadow:0 1px 0 rgba(255,255,255,.7);
+}
+.btn:hover{background:linear-gradient(180deg, #fffef9 0%, #f7eeda 45%, #eadbb8 50%, #e0cfa4 100%);}
+.btn:active{
+  transform:translateY(1px); border-bottom-width:1px;
+  box-shadow:inset 0 2px 5px rgba(120,90,40,.4), 0 1px 1px rgba(40,25,10,.3);
+}
+.btn.primary{
+  color:#fdf6e3; text-shadow:0 1px 1px rgba(0,0,0,.55);
+  background:linear-gradient(180deg, #7d5c2e 0%, #5f4423 45%, #4c3418 50%, #3f2a11 100%);
+  border:1px solid #2e1e0b; border-bottom:2px solid #1c1104;
+  box-shadow:
+    inset 0 1px 0 rgba(255,230,180,.45),
+    inset 0 -3px 6px rgba(0,0,0,.35),
+    0 2px 4px rgba(40,25,10,.45);
+}
+.btn.primary:hover{background:linear-gradient(180deg, #8b6836 0%, #6b4c28 45%, #573d1c 50%, #493015 100%);}
+.btn.sm{padding:5px 11px; font-size:12px;}
+.btn.sm .icon{font-size:15px;}
+
+/* ---------- status chips: stamped ink labels, always text + colour ---------- */
+.chip{
+  display:inline-flex; align-items:center; gap:6px; padding:3px 11px;
+  border-radius:4px; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  border:1.5px dashed currentColor;  /* rubber-stamp perforation */
+}
+.chip.good{background:var(--good-soft); color:var(--good);}
+.chip.warn{background:var(--warn-soft); color:var(--warn);}
+.chip.risk{background:var(--risk-soft); color:var(--risk);}
+.chip.neutral{background:var(--line-soft); color:var(--ink-2);}
+
+/* ---------- recessed inset inputs ---------- */
+.field label{display:block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;}
+.field input, .field select, .field textarea{
+  width:100%; padding:10px 12px; border-radius:var(--radius-sm);
+  border:1px solid #c8b992; border-top-color:#a9976b;
+  background:linear-gradient(180deg, #e9e0c8, #f4eedd 18%);
+  box-shadow:inset 0 2px 5px rgba(90,70,35,.28), inset 0 -1px 0 rgba(255,255,255,.7);
+  font-size:13.5px; color:var(--ink);
+}
+.field input:focus, .field select:focus, .field textarea:focus{
+  outline:none; border-color:var(--brass-2);
+  box-shadow:inset 0 2px 5px rgba(90,70,35,.28), 0 0 0 3px rgba(176,141,63,.25);
+}
+.field input:disabled{opacity:.65;}
+
+/* ---------- paper table ---------- */
+.tbl{
+  width:100%; border-collapse:separate; border-spacing:0; font-size:13px;
+  background:linear-gradient(165deg, #faf5e8, var(--paper) 45%, var(--paper-2));
+  border:1px solid var(--paper-edge); border-radius:var(--radius); overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 4px 10px rgba(40,25,10,.3), 0 12px 26px rgba(30,18,8,.22);
+}
+.tbl th{
+  text-align:left; padding:10px 16px; font-size:10.5px; text-transform:uppercase; letter-spacing:.07em;
+  color:#efe3c4; background:linear-gradient(180deg, #6a4c2a, #553a1d);
+  text-shadow:0 1px 1px rgba(0,0,0,.5);
+  box-shadow:inset 0 1px 0 rgba(255,235,190,.25), inset 0 -2px 3px rgba(0,0,0,.3);
+}
+.tbl td{padding:11px 16px; border-top:1px dashed var(--line); vertical-align:middle;}
+.tbl tr:nth-child(odd) td{background:rgba(140,115,70,.05);}
+
+/* ---------- progress: inset groove with glossy fill ---------- */
+.progress{
+  width:100%; height:9px; border-radius:6px;
+  background:linear-gradient(180deg, #d3c6a4, #e7dec5);
+  box-shadow:inset 0 1px 3px rgba(90,70,35,.5), inset 0 -1px 0 rgba(255,255,255,.6);
+  overflow:hidden;
+}
+.progress > span{
+  display:block; height:100%; border-radius:6px;
+  background:linear-gradient(180deg, #d8bc72 0%, var(--brass) 45%, #96762e 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 2px rgba(60,40,10,.5);
+}
+.progress.good > span{background:linear-gradient(180deg, #7fae6d 0%, #4c8a44 45%, #3a6e33 100%);}
+
+/* ---------- avatar: brass seal ---------- */
+.avatar{
+  width:32px; height:32px; border-radius:50%; flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11.5px; font-weight:700; color:#3a2a10; font-family:var(--serif);
+  background:radial-gradient(circle at 32% 28%, #ecd391, var(--brass) 55%, #7d621f);
+  border:1px solid #6b551c;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.7), inset 0 -2px 3px rgba(80,60,15,.6), 0 2px 3px rgba(30,18,8,.4);
+  text-shadow:0 1px 0 rgba(255,240,200,.6);
+}
+
+/* ---------- login: a journal laid on the desk ---------- */
+.login-wrap{min-height:calc(100vh - 46px); display:flex; align-items:center; justify-content:center; padding:40px 20px;}
+.login-card{width:400px; max-width:100%; padding:32px 30px;}
+.login-brand{display:flex; align-items:center; gap:10px; margin-bottom:26px;}
+.login-brand .mark{
+  width:36px; height:36px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--serif); font-weight:800; font-size:16px; color:#3a2a10;
+  background:radial-gradient(circle at 32% 28%, #ecd391, var(--brass) 55%, #7d621f);
+  border:1px solid #6b551c;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.7), inset 0 -2px 3px rgba(80,60,15,.6), 0 2px 3px rgba(30,18,8,.4);
+}
+.login-brand b{font-family:var(--serif); font-size:20px; font-weight:800; letter-spacing:.08em; color:#3a2c1a;}
+.login-card h1{font-family:var(--serif); font-size:27px; font-weight:700; color:#3a2c1a; margin-bottom:4px;}
+.login-card .lede{color:var(--ink-2); font-size:13.5px; margin-bottom:24px;}
+.login-card .field{margin-bottom:14px;}
+.login-foot{margin-top:18px; font-size:12.5px; color:var(--ink-3); text-align:center;}
+.login-foot a{color:var(--brass-2); font-weight:700; text-decoration:none; border-bottom:1px dashed var(--brass-2);}
+
+/* ---------- app shell: leather planner ---------- */
+.shell{display:flex; min-height:calc(100vh - 46px);}
+.sidebar{
+  width:244px; flex:0 0 auto; padding:20px 14px; display:flex; flex-direction:column;
+  position:sticky; top:46px; height:calc(100vh - 46px);
+  background:
+    repeating-linear-gradient(115deg, rgba(255,255,255,.022) 0 2px, transparent 2px 7px),
+    linear-gradient(155deg, var(--leather-1), var(--leather-2) 60%);
+  border-right:2px solid #1e1206;
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,170,.15),
+    inset -14px 0 24px -14px rgba(0,0,0,.7),
+    8px 0 22px rgba(25,14,5,.45);
+}
+.brand{display:flex; align-items:center; gap:10px; padding:4px 10px 16px; border-bottom:1.5px dashed var(--leather-stitch); margin-bottom:6px;}
+.brand .mark{
+  width:30px; height:30px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--serif); font-weight:800; font-size:13px; color:#3a2a10;
+  background:radial-gradient(circle at 32% 28%, #ecd391, var(--brass) 55%, #7d621f);
+  border:1px solid #6b551c;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.7), inset 0 -2px 3px rgba(80,60,15,.6), 0 2px 3px rgba(0,0,0,.5);
+}
+.brand b{font-family:var(--serif); font-size:16px; font-weight:800; letter-spacing:.1em; color:#f0dfb8; text-shadow:0 1px 2px rgba(0,0,0,.7);}
+.nav-label{
+  font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:#b39762; padding:14px 12px 6px; text-shadow:0 1px 1px rgba(0,0,0,.7);
+}
+.nav a{
+  display:flex; align-items:center; gap:11px; padding:8px 12px; margin-bottom:3px;
+  border-radius:var(--radius-sm); font-size:13px; font-weight:600; color:#dcc79c; cursor:pointer;
+  text-shadow:0 1px 1px rgba(0,0,0,.6);
+  border:1px solid transparent;
+}
+.nav a .icon{font-size:19px; color:#a88a52;}
+.nav a:hover{background:rgba(255,220,160,.07);}
+.nav a.active{
+  color:#f6ead0; font-weight:700;
+  background:linear-gradient(180deg, #6a4a26, #503416);
+  border:1px solid #2b1b09;
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,170,.3),
+    inset 0 -2px 4px rgba(0,0,0,.45),
+    0 1px 2px rgba(0,0,0,.4);
+}
+.nav a.active .icon{color:#e8c87e;}
+.side-user{
+  margin-top:auto; display:flex; align-items:center; gap:10px; padding:12px 10px 6px;
+  border-top:1.5px dashed var(--leather-stitch);
+}
+.side-user .nm{font-size:12.5px; font-weight:700; color:#f0dfb8; text-shadow:0 1px 1px rgba(0,0,0,.6);}
+.side-user .rl{font-size:11px; color:#b39762;}
+
+.main{flex:1; min-width:0;}
+.topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:24px 36px 0;}
+.topbar h2{
+  font-family:var(--serif); font-size:26px; font-weight:800; color:#f4e9cf;
+  text-shadow:0 1px 0 rgba(255,235,190,.15), 0 2px 4px rgba(0,0,0,.6);
+}
+.topbar .crumb{font-size:12.5px; color:#cbb281; margin-top:3px; font-style:italic; text-shadow:0 1px 1px rgba(0,0,0,.6);}
+.topbar .right{display:flex; align-items:center; gap:10px;}
+.content{padding:22px 36px 56px; max-width:1120px;}
+.panel{display:none;} .panel.active{display:block;}
+
+/* ---------- overview ---------- */
+.stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:16px;}
+.stat{padding:18px 20px;}
+.stat .val{font-family:var(--serif); font-size:30px; font-weight:800; color:#3a2c1a; margin:6px 0 2px;}
+.stat .hint{font-size:11.5px; color:var(--ink-3);}
+.stat .bar-wrap{margin-top:12px;}
+.cols-2{display:grid; grid-template-columns:1.5fr 1fr; gap:16px; margin-bottom:16px;}
+.cols-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:16px;}
+.row-item{display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+.row-item:last-child{border-bottom:none; padding-bottom:0;}
+.row-item .grow{flex:1; min-width:0;}
+.row-item .t1{font-weight:700;}
+.row-item .t2{font-size:11.5px; color:var(--ink-3);}
+.rank-no{
+  width:22px; height:22px; border-radius:50%; flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:11px; color:#f4e9cf; font-family:var(--serif);
+  background:radial-gradient(circle at 32% 28%, #6a4a26, #3f2a11 70%);
+  box-shadow:inset 0 1px 1px rgba(255,225,170,.35), 0 1px 2px rgba(40,25,10,.4);
+}
+.swoc{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.swoc div{
+  border-radius:var(--radius-sm); padding:12px 14px; font-size:12.5px; line-height:1.45;
+  border:1px solid var(--paper-edge);
+  box-shadow:inset 0 1px 2px rgba(90,70,35,.15), inset 0 -1px 0 rgba(255,255,255,.55);
+}
+.swoc b{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; margin-bottom:5px;}
+.swoc .s{background:linear-gradient(165deg, #eef3e2, var(--good-soft)); color:var(--good);}
+.swoc .w{background:linear-gradient(165deg, #f6e6df, var(--risk-soft)); color:var(--risk);}
+.swoc .o{background:linear-gradient(165deg, #f7edd2, var(--warn-soft)); color:var(--warn);}
+.swoc .c{background:linear-gradient(165deg, #efe9d6, var(--line-soft)); color:var(--ink-2);}
+
+/* badges: wax-seal medallions */
+.badges{display:flex; gap:16px; flex-wrap:wrap;}
+.badge{width:62px; text-align:center; font-size:10.5px; color:var(--ink-2); font-weight:600;}
+.badge .bx{
+  width:48px; height:48px; border-radius:50%; margin:0 auto 6px;
+  display:flex; align-items:center; justify-content:center; color:#5f4423;
+  background:radial-gradient(circle at 34% 28%, #ecd391, var(--brass) 58%, #7d621f);
+  border:1px solid #6b551c;
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.65), inset 0 -3px 5px rgba(80,60,15,.55), 0 2px 4px rgba(40,25,10,.4);
+  text-shadow:0 1px 0 rgba(255,240,200,.5);
+}
+.badge.locked .bx{
+  color:#8b7d66;
+  background:radial-gradient(circle at 34% 28%, #d9d0ba, #b3a888 58%, #8d8163);
+  border-color:#7d7154;
+}
+
+/* streak: inlaid brass studs */
+.streak{display:flex; gap:5px;}
+.streak i{
+  width:24px; height:24px; border-radius:7px;
+  background:linear-gradient(180deg, #ddd2b6, #e9e0c8);
+  box-shadow:inset 0 2px 3px rgba(90,70,35,.45), inset 0 -1px 0 rgba(255,255,255,.6);
+}
+.streak i.on{
+  background:linear-gradient(180deg, #e2c67e, var(--brass) 55%, #96762e);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.7), inset 0 -2px 3px rgba(80,60,15,.5), 0 1px 2px rgba(40,25,10,.35);
+}
+
+/* mini bars: turned-wood dowels standing in a groove */
+.mini-bars{display:flex; align-items:flex-end; gap:10px; height:96px; padding-top:8px;}
+.mini-bars .b{
+  flex:1; position:relative; border-radius:4px 4px 0 0;
+  background:linear-gradient(90deg, #8a6840, #b08d5a 30%, #c9a76f 50%, #a07a48 75%, #7a5a34);
+  box-shadow:inset 0 1px 0 rgba(255,240,210,.35), 2px 0 3px rgba(60,40,15,.3);
+}
+.mini-bars .b.hot{
+  background:linear-gradient(90deg, #8f7228, #c8a54a 30%, #e2c67e 50%, #b08d3f 75%, #7d621f);
+}
+.mini-bars .b span{position:absolute; top:-17px; left:0; right:0; text-align:center; font-size:10px; font-weight:700; color:var(--ink-2);}
+.mini-bar-labels{display:flex; gap:10px; margin-top:6px;}
+.mini-bar-labels div{flex:1; text-align:center; font-size:10px; color:var(--ink-3);}
+
+/* ---------- tabs: index tabs on a folder ---------- */
+.tabs{
+  display:flex; gap:4px; margin-bottom:18px; padding:0 6px;
+  border-bottom:2px solid rgba(30,18,8,.55);
+}
+.tabs button{
+  padding:8px 16px; font-size:13px; font-weight:700; color:#cbb281;
+  border-radius:8px 8px 0 0; margin-bottom:-2px; position:relative;
+  border:1px solid transparent; border-bottom:none;
+  text-shadow:0 1px 1px rgba(0,0,0,.6);
+}
+.tabs button:hover{color:#ecdcba;}
+.tabs button.active{
+  color:#3a2c1a; text-shadow:0 1px 0 rgba(255,255,255,.6);
+  background:linear-gradient(180deg, #faf5e8, var(--paper));
+  border:1px solid var(--paper-edge); border-bottom:2px solid var(--paper);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7), 0 -2px 5px rgba(30,18,8,.3);
+}
+
+/* ---------- time log cells ---------- */
+.ts-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:14px;}
+.ts-cell{
+  background:
+    repeating-linear-gradient(0deg, transparent 0 26px, rgba(140,120,80,.10) 26px 27px),
+    linear-gradient(165deg, #faf5e8, var(--paper) 45%, var(--paper-2));
+  border:1px solid var(--paper-edge); border-radius:var(--radius); padding:18px 12px; text-align:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65), 0 4px 10px rgba(40,25,10,.3), 0 10px 22px rgba(30,18,8,.24);
+}
+.ts-cell .icon{font-size:22px; color:var(--brass-2); display:block; margin-bottom:10px;}
+.ts-cell input{
+  width:64px; text-align:center; padding:7px; font-size:14px; font-weight:700; color:var(--ink);
+  border:1px solid #c8b992; border-top-color:#a9976b; border-radius:7px;
+  background:linear-gradient(180deg, #e9e0c8, #f4eedd 18%);
+  box-shadow:inset 0 2px 5px rgba(90,70,35,.3), inset 0 -1px 0 rgba(255,255,255,.7);
+}
+.ts-cell small{display:block; font-size:11px; color:var(--ink-3); margin-top:8px;}
+
+/* ---------- leaderboard ---------- */
+.lb{display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:var(--radius-sm); margin-bottom:6px; font-size:13px;}
+.lb:not(.me){
+  background:linear-gradient(165deg, #faf5e8, var(--paper) 45%, var(--paper-2));
+  border:1px solid var(--paper-edge);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 2px 5px rgba(40,25,10,.28);
+}
+.lb.me{
+  color:#f4e9cf; font-weight:600;
+  background:linear-gradient(180deg, #6a4a26, #4c3418 55%, #3f2a11);
+  border:1px solid #2b1b09;
+  box-shadow:inset 0 1px 0 rgba(255,225,170,.3), inset 0 -2px 4px rgba(0,0,0,.4), 0 3px 6px rgba(30,18,8,.4);
+  text-shadow:0 1px 1px rgba(0,0,0,.5);
+}
+.lb .pos{width:22px; font-weight:800; text-align:center; color:var(--ink-3); font-family:var(--serif);}
+.lb.me .pos{color:#e8c87e;}
+.lb .sc{margin-left:auto; font-weight:700;}
+
+/* ---------- misc ---------- */
+.dropzone{
+  border:2px dashed #a9976b; border-radius:var(--radius); padding:30px; text-align:center;
+  color:var(--ink-3); font-size:13px;
+  background:
+    repeating-linear-gradient(45deg, rgba(140,115,70,.05) 0 8px, transparent 8px 16px),
+    linear-gradient(165deg, #f4eedd, var(--paper-2));
+  box-shadow:inset 0 2px 6px rgba(90,70,35,.2);
+}
+.dropzone .icon{font-size:26px; color:var(--brass-2); display:block; margin-bottom:8px;}
+.note{display:flex; gap:10px; align-items:flex-start; border-radius:var(--radius-sm); padding:13px 15px; font-size:12.5px; line-height:1.5; border:1px solid var(--paper-edge); box-shadow:inset 0 1px 2px rgba(90,70,35,.12);}
+.note.good{background:linear-gradient(165deg, #eef3e2, var(--good-soft)); color:var(--good);}
+.note.warn{background:linear-gradient(165deg, #f7edd2, var(--warn-soft)); color:var(--warn);}
+.note .icon{font-size:18px; flex:0 0 auto;}
+.chat-box{display:flex; flex-direction:column; gap:12px;}
+.chat-msg{max-width:78%; padding:11px 15px; font-size:13px; line-height:1.5; border-radius:12px;}
+.chat-msg.ai{
+  align-self:flex-start; border-bottom-left-radius:3px; color:var(--ink);
+  background:linear-gradient(165deg, #faf5e8, var(--paper-2));
+  border:1px solid var(--paper-edge);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65), 0 2px 4px rgba(40,25,10,.3);
+}
+.chat-msg.me{
+  align-self:flex-end; border-bottom-right-radius:3px; color:#f4e9cf;
+  background:linear-gradient(180deg, #6a4a26, #4c3418 55%, #3f2a11);
+  border:1px solid #2b1b09;
+  box-shadow:inset 0 1px 0 rgba(255,225,170,.3), 0 2px 4px rgba(30,18,8,.45);
+  text-shadow:0 1px 1px rgba(0,0,0,.5);
+}
+.chat-input{display:flex; gap:8px; margin-top:16px;}
+.chat-input input{
+  flex:1; padding:11px 14px; font-size:13.5px; border-radius:var(--radius-sm);
+  border:1px solid #c8b992; border-top-color:#a9976b;
+  background:linear-gradient(180deg, #e9e0c8, #f4eedd 18%);
+  box-shadow:inset 0 2px 5px rgba(90,70,35,.3), inset 0 -1px 0 rgba(255,255,255,.7);
+  color:var(--ink);
+}
+.chat-input input:focus{outline:none; border-color:var(--brass-2); box-shadow:inset 0 2px 5px rgba(90,70,35,.3), 0 0 0 3px rgba(176,141,63,.25);}
+
+/* ---------- spiral-bound resume preview ---------- */
+.spiral-wrap{display:flex; gap:0;}
+.spiral{
+  flex:0 0 26px; border-radius:var(--radius-sm) 0 0 var(--radius-sm);
+  background:
+    radial-gradient(circle at 13px 12px, #8f7228 3px, #3a2a10 4.5px, transparent 5px) 0 0 / 26px 24px repeat-y,
+    linear-gradient(90deg, #5a4122, #7a5a34 60%, #4a3220);
+  border:1px solid #2b1b09; border-right:none;
+  box-shadow:inset 1px 0 2px rgba(255,225,170,.2), 0 3px 6px rgba(30,18,8,.35);
+}
+.spiral-page{
+  flex:1; min-height:300px; padding:24px 24px 24px 30px; border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 25px, rgba(120,145,175,.28) 25px 26px),
+    linear-gradient(165deg, #fdfaf0, #f6f1e3 60%, #efe8d5);
+  border:1px solid var(--paper-edge); border-left:1px dashed rgba(140,110,60,.5);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7), 3px 3px 8px rgba(40,25,10,.3);
+}
+.spiral-page .name{font-family:var(--serif); font-size:20px; font-weight:800; color:#3a2c1a;}
+.spiral-page .contact{font-size:12px; color:var(--ink-2); margin:2px 0 14px;}
+.spiral-page p{font-size:12.5px; color:var(--ink-2); margin-bottom:14px;}
+
+@media (max-width:1100px){ .stat-grid{grid-template-columns:1fr 1fr;} .cols-2,.cols-3{grid-template-columns:1fr;} .ts-grid{grid-template-columns:repeat(3,1fr);} }
+</style>
+</head>
+<body>
+
+<div class="meta-bar">
+  <b>REEP · design: skeuomorphism</b>
+  <div class="meta-tabs" id="views">
+    <button data-view="login">Login</button>
+    <button data-view="app" class="active">Student app</button>
+  </div>
+  <span class="meta-note">Style exploration — awaiting approval, not yet implemented</span>
+</div>
+
+<!-- ================================ LOGIN ================================ -->
+<div class="stage" data-stage id="stage-login">
+  <div class="login-wrap">
+    <div class="card login-card">
+      <div class="login-brand"><span class="mark">R</span><b>REEP</b></div>
+      <h1>Sign in</h1>
+      <p class="lede">Placement-readiness dashboard for BGSCET students and staff.</p>
+      <div class="field"><label>College email</label><input value="aditi.k@bgscet.ac.in"></div>
+      <div class="field"><label>Password</label><input type="password" value="••••••••"></div>
+      <button class="btn primary" style="width:100%; justify-content:center; margin-top:6px;" data-goto="app">Sign in</button>
+      <div class="login-foot">New student? <a href="#" data-goto="app">Register with your college email</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================ APP ================================ -->
+<div class="stage active" data-stage id="stage-app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="mark">R</span><b>REEP</b></div>
+      <nav class="nav" id="nav">
+        <a class="active" data-panel="overview"><span class="icon">home</span>Overview</a>
+
+        <div class="nav-label">Careers</div>
+        <a data-panel="jobs"><span class="icon">work</span>Jobs &amp; Offers</a>
+        <a data-panel="resume"><span class="icon">description</span>Resume Builder</a>
+
+        <div class="nav-label">Learning</div>
+        <a data-panel="skilling"><span class="icon">verified</span>Skilling</a>
+        <a data-panel="courses"><span class="icon">menu_book</span>Courses</a>
+        <a data-panel="certs"><span class="icon">workspace_premium</span>Certifications</a>
+        <a data-panel="academics"><span class="icon">school</span>Academics</a>
+
+        <div class="nav-label">Activity</div>
+        <a data-panel="timelog"><span class="icon">schedule</span>Time Log</a>
+        <a data-panel="records"><span class="icon">folder_open</span>Records</a>
+        <a data-panel="leaderboards"><span class="icon">leaderboard</span>Leaderboards</a>
+
+        <div class="nav-label">Account</div>
+        <a data-panel="uploads"><span class="icon">cloud_upload</span>Uploads</a>
+        <a data-panel="assistant"><span class="icon">smart_toy</span>REEP Assistant</a>
+        <a data-panel="profile"><span class="icon">person</span>Profile</a>
+      </nav>
+      <div class="side-user">
+        <span class="avatar">AK</span>
+        <div><div class="nm">Aditi Kulkarni</div><div class="rl">Student · MBA-2026-B</div></div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <h2 id="page-title">Overview</h2>
+          <div class="crumb" id="page-crumb">Welcome back, Aditi — here's where you stand.</div>
+        </div>
+        <div class="right">
+          <span class="chip warn">4-day streak</span>
+          <span class="avatar">AK</span>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- OVERVIEW -->
+        <section class="panel active" data-p="overview" data-title="Overview" data-crumb="Welcome back, Aditi — here's where you stand.">
+          <div class="stat-grid">
+            <div class="card stat">
+              <span class="lbl">Programme stage</span>
+              <div class="val">62%</div>
+              <div class="hint">Reboot → Excel → Excel-Adv → Elevate</div>
+              <div class="bar-wrap"><div class="progress"><span style="width:62%"></span></div></div>
+            </div>
+            <div class="card stat">
+              <span class="lbl">Attendance</span>
+              <div class="val">88%</div>
+              <div class="hint">Last 4 weeks · above cohort avg</div>
+              <div class="bar-wrap"><div class="progress good"><span style="width:88%"></span></div></div>
+            </div>
+            <div class="card stat">
+              <span class="lbl">VTU average</span>
+              <div class="val">77</div>
+              <div class="hint">Sem 3: 91 · best so far</div>
+              <div class="bar-wrap"><div class="progress good"><span style="width:77%"></span></div></div>
+            </div>
+            <div class="card stat">
+              <span class="lbl">Mocks taken</span>
+              <div class="val">10</div>
+              <div class="hint">GD 3 · Interview 2 · Aptitude 5</div>
+              <div class="bar-wrap"><div class="progress"><span style="width:50%"></span></div></div>
+            </div>
+          </div>
+
+          <div class="cols-2">
+            <div class="card">
+              <h3>SWOC <span class="sub">from placement, mentor &amp; PM inputs</span></h3>
+              <div class="swoc">
+                <div class="s"><b>Strengths</b>Strong analytical scores, consistent attendance</div>
+                <div class="w"><b>Weaknesses</b>Communication mock scores below cohort average</div>
+                <div class="o"><b>Opportunities</b>2 open roles match your current skill profile</div>
+                <div class="c"><b>Challenges</b>Quant Methods certification behind pace</div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Top 5 skilling picks <span class="sub">for you</span></h3>
+              <div class="row-item"><span class="rank-no">1</span><div class="grow"><div class="t1">Advanced Excel for Finance</div></div><button class="btn sm">Start</button></div>
+              <div class="row-item"><span class="rank-no">2</span><div class="grow"><div class="t1">SQL Fundamentals</div></div><button class="btn sm">Start</button></div>
+              <div class="row-item"><span class="rank-no">3</span><div class="grow"><div class="t1">Business Communication II</div></div><button class="btn sm">Start</button></div>
+              <div class="row-item"><span class="rank-no">4</span><div class="grow"><div class="t1">Leadership Essentials</div></div><button class="btn sm">Start</button></div>
+              <div class="row-item"><span class="rank-no">5</span><div class="grow"><div class="t1">Case Interview Prep</div></div><button class="btn sm">Start</button></div>
+            </div>
+          </div>
+
+          <div class="cols-3">
+            <div class="card">
+              <h3>Skill badges</h3>
+              <div class="badges">
+                <div class="badge"><div class="bx"><span class="icon">calculate</span></div>Excel</div>
+                <div class="badge"><div class="bx"><span class="icon">groups</span></div>Comms</div>
+                <div class="badge"><div class="bx"><span class="icon">insights</span></div>Analytics</div>
+                <div class="badge locked"><div class="bx"><span class="icon">lock</span></div>Leadership</div>
+                <div class="badge locked"><div class="bx"><span class="icon">lock</span></div>SQL</div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Weekly attendance</h3>
+              <div class="mini-bars">
+                <div class="b" style="height:70%"><span>88</span></div>
+                <div class="b" style="height:60%"><span>76</span></div>
+                <div class="b hot" style="height:80%"><span>92</span></div>
+                <div class="b" style="height:50%"><span>64</span></div>
+              </div>
+              <div class="mini-bar-labels"><div>Wk 1</div><div>Wk 2</div><div>Wk 3</div><div>Wk 4</div></div>
+            </div>
+            <div class="card">
+              <h3>Login streak</h3>
+              <div class="streak"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+              <div class="hint" style="font-size:11.5px; color:var(--ink-3); margin-top:12px;">4 of 7 days this week. Log in tomorrow to keep it going.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- JOBS -->
+        <section class="panel" data-p="jobs" data-title="Jobs &amp; Offers" data-crumb="Updated weekly · matching students are alerted by email.">
+          <div class="tabs" id="jobs-tabs">
+            <button class="active" data-jobs="opportunities">Opportunities</button>
+            <button data-jobs="applications">Applications</button>
+            <button data-jobs="offers">Offers</button>
+          </div>
+          <div class="cols-2">
+            <div>
+              <div data-jobs-panel="opportunities">
+                <table class="tbl">
+                  <tr><th>Role</th><th>Company</th><th>Match</th><th>Status</th><th></th></tr>
+                  <tr>
+                    <td><b>Business Analyst (Grad)</b></td><td>Nova Fintech</td>
+                    <td><div style="display:flex; align-items:center; gap:8px;"><div class="progress good" style="width:56px;"><span style="width:82%"></span></div><span style="font-size:12px; font-weight:700;">82%</span></div></td>
+                    <td><span class="chip good">Applied</span></td>
+                    <td style="text-align:right;"><button class="btn sm">Build CV</button></td>
+                  </tr>
+                  <tr>
+                    <td><b>Finance Associate</b></td><td>Meridian Capital</td>
+                    <td><div style="display:flex; align-items:center; gap:8px;"><div class="progress" style="width:56px;"><span style="width:64%"></span></div><span style="font-size:12px; font-weight:700;">64%</span></div></td>
+                    <td><span class="chip neutral">Not applied</span></td>
+                    <td style="text-align:right;"><button class="btn sm primary">Apply</button></td>
+                  </tr>
+                </table>
+              </div>
+              <div data-jobs-panel="applications" style="display:none;">
+                <table class="tbl">
+                  <tr><th>Role</th><th>Company</th><th>Applied on</th><th>Status</th></tr>
+                  <tr><td><b>Business Analyst (Grad)</b></td><td>Nova Fintech</td><td>10 Aug</td><td><span class="chip warn">Under review</span></td></tr>
+                </table>
+              </div>
+              <div data-jobs-panel="offers" style="display:none;">
+                <div class="card" style="margin-bottom:16px;">
+                  <h3>Received an offer directly? <button class="btn sm primary">+ Report offer</button></h3>
+                  <p style="font-size:12.5px; color:var(--ink-2);">Self-report an off-platform offer for TPO/mentor records and approval.</p>
+                </div>
+                <table class="tbl"><tr><th>Role</th><th>Company</th><th>Status</th></tr>
+                  <tr><td colspan="3" style="text-align:center; color:var(--ink-3); padding:22px;">No offers yet</td></tr>
+                </table>
+              </div>
+            </div>
+            <div>
+              <div class="card" style="margin-bottom:16px;"><h3>Opportunities <span>2</span></h3><p style="font-size:12.5px; color:var(--ink-2);">Eligible for 1 job · 1 job + internship</p></div>
+              <div class="card" style="margin-bottom:16px;"><h3>Applications <span>1</span></h3><p style="font-size:12.5px; color:var(--ink-2);">1 active application</p></div>
+              <div class="card"><h3>Offers <span>0</span></h3><p style="font-size:12.5px; color:var(--ink-2);">None received yet</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- RESUME -->
+        <section class="panel" data-p="resume" data-title="Resume Builder" data-crumb="Grounded in your REEP record — nothing invented.">
+          <div class="cols-2">
+            <div class="card">
+              <h3>Your details</h3>
+              <div class="field" style="margin-bottom:12px;"><label>Full name</label><input value="Aditi Kulkarni"></div>
+              <div class="field" style="margin-bottom:12px;"><label>Headline</label><input value="MBA candidate · analytics &amp; finance"></div>
+              <div class="field" style="margin-bottom:12px;"><label>Summary</label><textarea rows="4">Final-semester MBA student with strong analytical scores and consistent attendance. Certified in Excel for Business.</textarea></div>
+              <div class="note good" style="margin-bottom:16px;"><span class="icon">verified</span><div>Marks, certifications and skills are pulled from your verified REEP record.</div></div>
+              <button class="btn primary"><span class="icon" style="font-size:16px">auto_awesome</span> Generate with AI</button>
+              <button class="btn"><span class="icon" style="font-size:16px">download</span> Download PDF</button>
+            </div>
+            <div class="card">
+              <h3>Preview <span class="sub">updates live</span></h3>
+              <div class="spiral-wrap">
+                <div class="spiral"></div>
+                <div class="spiral-page">
+                  <div class="name">Aditi Kulkarni</div>
+                  <div class="contact">MBA candidate · analytics &amp; finance · aditi.k@bgscet.ac.in</div>
+                  <div class="lbl" style="margin-bottom:6px;">Summary</div>
+                  <p>Final-semester MBA student with strong analytical scores and consistent attendance.</p>
+                  <div class="lbl" style="margin-bottom:6px;">Education</div>
+                  <p>MBA, BGSCET — VTU avg 77 (Sem 3: 91)</p>
+                  <div class="lbl" style="margin-bottom:6px;">Certifications</div>
+                  <p style="margin-bottom:0;">Excel for Business · Data Analysis with Python (in progress)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SKILLING -->
+        <section class="panel" data-p="skilling" data-title="Skilling" data-crumb="Claim a skill with a certificate, or start a suggested skill.">
+          <div class="cols-2">
+            <div class="card">
+              <h3>Claim a skill</h3>
+              <div class="dropzone"><span class="icon">workspace_premium</span>Drop a certificate here to claim a skill<br><button class="btn sm" style="margin-top:12px;">Choose file</button></div>
+            </div>
+            <div class="card">
+              <h3>Suggested for you</h3>
+              <div class="row-item"><div class="grow"><div class="t1">Data Visualization with Power BI</div><div class="t2">Matches your analytics strength</div></div><button class="btn sm">Start</button></div>
+              <div class="row-item"><div class="grow"><div class="t1">Negotiation Skills</div><div class="t2">Addresses comms mock scores</div></div><button class="btn sm">Start</button></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- COURSES -->
+        <section class="panel" data-p="courses" data-title="Courses" data-crumb="Programme courses and module progress.">
+          <table class="tbl">
+            <tr><th>Course</th><th>Stage</th><th style="width:220px;">Progress</th><th>Modules</th></tr>
+            <tr><td><b>Quantitative Methods</b></td><td>Excel</td><td><div class="progress"><span style="width:40%"></span></div></td><td>4 / 10</td></tr>
+            <tr><td><b>Financial Accounting</b></td><td>Reboot</td><td><div class="progress good"><span style="width:56%"></span></div></td><td>5 / 9</td></tr>
+          </table>
+        </section>
+
+        <!-- CERTIFICATIONS -->
+        <section class="panel" data-p="certs" data-title="Certifications" data-crumb="Tracker across programme stages.">
+          <table class="tbl">
+            <tr><th>Certification</th><th>Stage</th><th style="width:220px;">Progress</th><th>Pace</th></tr>
+            <tr><td><b>Data Analysis with Python</b></td><td>Excel</td><td><div class="progress"><span style="width:40%"></span></div></td><td><span class="chip risk">Overdue</span></td></tr>
+            <tr><td><b>Excel for Business</b></td><td>Reboot</td><td><div class="progress good"><span style="width:100%"></span></div></td><td><span class="chip good">Complete</span></td></tr>
+          </table>
+        </section>
+
+        <!-- ACADEMICS -->
+        <section class="panel" data-p="academics" data-title="Academics" data-crumb="VTU marks and attendance by semester.">
+          <div class="cols-2">
+            <div class="card">
+              <h3>VTU marks</h3>
+              <div class="mini-bars" style="height:140px;">
+                <div class="b" style="height:72%"><span>78</span></div>
+                <div class="b" style="height:56%"><span>62</span></div>
+                <div class="b hot" style="height:92%"><span>91</span></div>
+              </div>
+              <div class="mini-bar-labels"><div>Sem 1</div><div>Sem 2</div><div>Sem 3</div></div>
+            </div>
+            <div class="card">
+              <h3>Attendance</h3>
+              <div class="mini-bars" style="height:140px;">
+                <div class="b" style="height:70%"><span>88</span></div>
+                <div class="b" style="height:60%"><span>76</span></div>
+                <div class="b hot" style="height:80%"><span>92</span></div>
+                <div class="b" style="height:50%"><span>64</span></div>
+              </div>
+              <div class="mini-bar-labels"><div>Wk 1</div><div>Wk 2</div><div>Wk 3</div><div>Wk 4</div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TIME LOG -->
+        <section class="panel" data-p="timelog" data-title="Time Log" data-crumb="Five activities — a quick daily fill.">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:14px;">
+            <button class="btn primary"><span class="icon" style="font-size:16px">save</span> Save today</button>
+          </div>
+          <div class="ts-grid">
+            <div class="ts-cell"><span class="icon">bedtime</span><input value="7"><small>Sleep (hrs)</small></div>
+            <div class="ts-cell"><span class="icon">sports_esports</span><input value="1.5"><small>Leisure</small></div>
+            <div class="ts-cell"><span class="icon">record_voice_over</span><input value="3"><small>Lectures</small></div>
+            <div class="ts-cell"><span class="icon">edit_note</span><input value="2"><small>Coursework</small></div>
+            <div class="ts-cell"><span class="icon">school</span><input value="2.5"><small>Skilling</small></div>
+          </div>
+          <p style="font-size:12.5px; color:var(--ink-3);">Total logged today: 16 hrs</p>
+        </section>
+
+        <!-- RECORDS -->
+        <section class="panel" data-p="records" data-title="Records" data-crumb="Everything mentors and placement see about you.">
+          <table class="tbl">
+            <tr><th>Record</th><th>Source</th><th>Updated</th><th>Status</th></tr>
+            <tr><td><b>Sem 3 VTU marksheet</b></td><td>Mentor upload</td><td>2 Aug</td><td><span class="chip good">Verified</span></td></tr>
+            <tr><td><b>Excel for Business certificate</b></td><td>Self-upload</td><td>18 Jul</td><td><span class="chip good">Verified</span></td></tr>
+            <tr><td><b>Mock interview — communication</b></td><td>Placement cell</td><td>9 Aug</td><td><span class="chip warn">Below avg</span></td></tr>
+          </table>
+        </section>
+
+        <!-- LEADERBOARDS -->
+        <section class="panel" data-p="leaderboards" data-title="Leaderboards" data-crumb="Cohort standings — opt-in.">
+          <div class="tabs">
+            <button class="active">Certificates</button><button>Skills</button><button>VTU results</button><button>Streak</button><button>Mocks</button>
+          </div>
+          <div style="max-width:640px;">
+            <div class="lb"><span class="pos">1</span><span class="avatar">RS</span>Rohan Sharma<span class="sc">11 certs</span></div>
+            <div class="lb me"><span class="pos">2</span><span class="avatar">AK</span>Aditi Kulkarni (you)<span class="sc">9 certs</span></div>
+            <div class="lb"><span class="pos">3</span><span class="avatar">PN</span>Priya Nair<span class="sc">8 certs</span></div>
+          </div>
+        </section>
+
+        <!-- UPLOADS -->
+        <section class="panel" data-p="uploads" data-title="Uploads" data-crumb="Certificates, CVs, photos and documents.">
+          <div class="dropzone" style="margin-bottom:16px;"><span class="icon">cloud_upload</span>Drag files here, or <button class="btn sm" style="margin-top:12px;">Browse</button></div>
+          <table class="tbl">
+            <tr><th>File</th><th>Type</th><th>Uploaded</th><th>Status</th></tr>
+            <tr><td><b>excel-cert.pdf</b></td><td>Certificate</td><td>18 Jul</td><td><span class="chip good">Verified</span></td></tr>
+            <tr><td><b>headshot.jpg</b></td><td>Photo</td><td>2 Jul</td><td><span class="chip neutral">On file</span></td></tr>
+          </table>
+        </section>
+
+        <!-- ASSISTANT -->
+        <section class="panel" data-p="assistant" data-title="REEP Assistant" data-crumb="Answers from your own record only.">
+          <div class="card" style="max-width:720px;">
+            <div class="chat-box">
+              <div class="chat-msg me">Which skills should I focus on before the Nova Fintech interview?</div>
+              <div class="chat-msg ai">Based on your record: your analytics scores are strong, but communication mocks are below cohort average. I'd suggest Business Communication II and one more mock interview this week.</div>
+            </div>
+            <div class="chat-input"><input placeholder="Ask about your progress, jobs, skills…"><button class="btn primary"><span class="icon" style="font-size:16px">send</span></button></div>
+          </div>
+        </section>
+
+        <!-- PROFILE -->
+        <section class="panel" data-p="profile" data-title="Profile" data-crumb="Your registration and contact details.">
+          <div class="card" style="max-width:720px;">
+            <h3>Details <span class="chip good">Approved · domain match</span></h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+              <div class="field"><label>Full name</label><input value="Aditi Kulkarni"></div>
+              <div class="field"><label>USN</label><input value="1BG24MBA014" disabled></div>
+              <div class="field"><label>College email</label><input value="aditi.k@bgscet.ac.in" disabled></div>
+              <div class="field"><label>Phone</label><input value="+91 98450 xxxxx"></div>
+              <div class="field"><label>LinkedIn</label><input value="linkedin.com/in/aditikulkarni"></div>
+              <div class="field"><label>Programme</label><input value="MBA-2026-B" disabled></div>
+            </div>
+            <div style="margin-top:18px;"><button class="btn primary">Save changes</button></div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* stage switching (login / app) */
+function showView(v){
+  document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  document.querySelectorAll('[data-stage]').forEach(s=>s.classList.toggle('active', s.id==='stage-'+v));
+}
+document.querySelectorAll('#views button').forEach(b=>b.addEventListener('click', ()=>showView(b.dataset.view)));
+document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click', e=>{e.preventDefault(); showView(b.dataset.goto);}));
+
+/* sidebar panels */
+const navLinks = document.querySelectorAll('#nav a');
+navLinks.forEach(a => a.addEventListener('click', () => {
+  navLinks.forEach(x=>x.classList.remove('active')); a.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => {
+    const on = p.dataset.p === a.dataset.panel;
+    p.classList.toggle('active', on);
+    if(on){
+      document.getElementById('page-title').innerHTML = p.dataset.title;
+      document.getElementById('page-crumb').textContent = p.dataset.crumb;
+    }
+  });
+}));
+
+/* generic tab rows */
+document.querySelectorAll('.tabs').forEach(row=>{
+  row.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+    row.querySelectorAll('button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  }));
+});
+/* jobs sub-panels */
+document.querySelectorAll('#jobs-tabs button').forEach(b=>b.addEventListener('click', ()=>{
+  document.querySelectorAll('[data-jobs-panel]').forEach(p=>{
+    p.style.display = (p.dataset.jobsPanel===b.dataset.jobs) ? 'block' : 'none';
+  });
+}));
+</script>
+</body>
+</html>

@@ -14,20 +14,53 @@ ollama/       optional local model (loopback LLM — see the egress gate below)
 1. **Database** — `docker compose up -d` starts Postgres on `localhost:5433`. The API uses a database named `reep_py` on that server.
 2. **Back end** — from `apps/api-py` (venv at `.venv`, Python 3.14):
    ```
+   .venv/Scripts/pip install -r requirements-dev.txt  # runtime + pytest
    .venv/Scripts/python -m alembic upgrade head      # apply migrations
    .venv/Scripts/python -m app.seed                  # idempotent dev seed
    .venv/Scripts/python -m uvicorn app.main:app --port 3300
    ```
    Docs at http://127.0.0.1:3300/docs. **Windows note:** `uvicorn --reload` has wedged a stale worker here — after editing backend files, kill port 3300 and restart rather than relying on `--reload`.
 3. **Front end** — from `apps/web`: `npx ng serve` (port 4200). `proxy.conf.json` forwards `/api` → `http://localhost:3300`, so the app is same-origin and the httpOnly session cookie is carried. The whole API surface the client calls lives under `/api`.
+4. **Voice worker (optional)** — a **FOURTH process**, from `apps/api-py`, in its **own** venv:
+   ```
+   py -3.12 -m venv .venv-voice                              # once
+   .venv-voice/Scripts/pip install -r requirements-voice.txt # once
+   .venv-voice/Scripts/python voice_agent.py dev             # `start` in production
+   ```
+   Python 3.12, not 3.14: `livekit-agents` declares `Requires-Python: <3.15`. It reads the **same** `apps/api-py/.env` and POSTs to `REEP_API_URL` (default `http://localhost:3300`), so credentials are entered once.
+
+   Without it, `GET /api/voice/status` reports `worker_healthy: false` and `POST /api/voice/token` returns **409** — voice, and only voice, is unavailable. (A missing `LIVEKIT_*`/`GROQ_API_KEY`, or a non-blank `VOICE_MAINTENANCE_MESSAGE`, is a **503** instead.) Everything else works normally, which is why this step is optional — but a student pressing "Start voice" with no worker running is the single most common "why is it broken" report, and nothing in the UI says a fourth process exists.
 
 Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `mentor123`, `director@bgscet.ac.in` / `director123`.
 
+### Two requirements files, two seeds — the split is deliberate
+
+- `requirements.txt` is **runtime only** and pinned `==`; it is what the Dockerfile installs. `requirements-dev.txt` pulls it in and adds pytest. A test runner has no business in a production image, and `>=` bounds meant a rebuild months later resolved a dependency set nobody had run the suite against.
+- `python -m app.seed` **refuses to run when `ENV=prod`.** It creates the three logins above — including a DIRECTOR, who by rule 2 below reads every student's marks, attendance and USN — behind passwords published in this file. That account must never exist on a production host, so there is no override flag.
+- `python -m app.seed_kb` is the production-safe seed: the grounded assistant's Knowledge Base, no accounts. Production needs it (without it the assistant has nothing to ground against) and never needs the demo users, which is why they no longer travel together.
+
 **Tests:** `cd apps/api-py && .venv/Scripts/python -m pytest` (the backend suite). Front end: `cd apps/web && npx ng build`.
+
+**Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and director screens, the resume builder, the LiveKit-backed assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. It is ~142 kB initial now, and the production bundle budget is set close enough to that number that one re-eager-ed route fails `ng build` in CI.
 
 ## Auth (byte-compatible design, retained from the migration)
 
 Passwords are `scrypt:salt:digest` (Node `scryptSync`-compatible: N=16384, r=8, p=1, dklen=64, salt as a hex string). Sessions are HS256 JWTs signed with a shared `AUTH_SECRET`, carried in the httpOnly `reep_session` cookie. `require_*` dependencies in `apps/api-py/app/deps.py` / the routers read the session.
+
+### Voice runbook: the call sounded fine but saved nothing
+
+The worst failure mode in this stack is silent — the conversation is perfect in the room and empty in the database, because transcript POSTs are deliberately fire-and-forget so a bad write can never kill a live call. After a test call:
+
+```sql
+select channel, count(*), max(created_at) from messages group by channel;
+```
+
+No `voice` rows, or a stale `max(created_at)`, means turns are being dropped. Two causes, in order of likelihood:
+
+1. **`VOICE_WORKER_SECRET` differs between the API and the worker** → every POST 401s. The worker still connects to LiveKit and answers normally, so nothing looks wrong from the outside.
+2. **`REEP_API_URL` is wrong** (usually `localhost` from inside a container) → the POSTs never arrive.
+
+Both now appear as `ERROR POST /api/voice/transcript -> HTTP 401: …` in the worker's log, with the status code. They used to be a WARNING that folded every cause into one line.
 
 ## The two rules that must not be broken
 

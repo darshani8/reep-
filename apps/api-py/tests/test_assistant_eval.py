@@ -20,7 +20,7 @@ from conftest import DB_UP, requires_db
 from app.ai import orchestrator
 from app.db import SessionLocal
 from app.eval.golden import GOLDEN
-from app.seed import _seed_knowledge
+from app.seed_kb import seed_knowledge
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -28,7 +28,7 @@ def _ensure_kb():
     if not DB_UP:
         return
     with SessionLocal() as db:
-        _seed_knowledge(db)
+        seed_knowledge(db)
 
 
 def _student_id() -> str:

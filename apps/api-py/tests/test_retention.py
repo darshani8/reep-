@@ -13,6 +13,7 @@ The contract these tests pin, against the seeded dev DB:
 Skipped when Postgres is unreachable.
 """
 
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -27,9 +28,29 @@ from app.models.user import Role, User
 
 
 def _a_user_id(db) -> str:
-    u = db.query(User).first()
-    assert u is not None, "seeded DB has no users"
-    return u.id
+    """A THROWAWAY user that owns nothing else.
+
+    These tests used to borrow `db.query(User).first()` — whichever seeded user
+    happened to sort first — and hand the same id to every test. That was always
+    fragile (the fixture depended on unrelated seed data) and became a hard
+    failure once the DB started enforcing one active conversation per owner: a
+    borrowed user with a real conversation open made these inserts a unique
+    violation. Owning the user makes each test independent of both the seed and
+    of anything a developer did in the app."""
+    user = User(
+        email=f"retention-{uuid.uuid4().hex[:10]}@bgscet.ac.in",
+        name="Retention Fixture",
+        role=Role.STUDENT,
+        password_hash="x",
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    _FIXTURE_USER_IDS.append(user.id)
+    return user.id
+
+
+_FIXTURE_USER_IDS: list[str] = []
 
 
 @pytest.fixture
@@ -38,6 +59,7 @@ def cleanup():
     metrics/counts are not polluted by retention fixtures."""
     conv_ids: list[str] = []
     run_ids: list[str] = []
+    _FIXTURE_USER_IDS.clear()
     yield {"conversations": conv_ids, "runs": run_ids}
     with SessionLocal() as db:
         if conv_ids:
@@ -51,6 +73,19 @@ def cleanup():
             db.query(AgentRun).filter(AgentRun.id.in_(run_ids)).delete(
                 synchronize_session=False
             )
+        if _FIXTURE_USER_IDS:
+            # Any conversation/run rows a test forgot to register would block
+            # the user delete, so clear them by owner first.
+            db.query(Conversation).filter(
+                Conversation.owner_user_id.in_(_FIXTURE_USER_IDS)
+            ).delete(synchronize_session=False)
+            db.query(AgentRun).filter(
+                AgentRun.actor_id.in_(_FIXTURE_USER_IDS)
+            ).delete(synchronize_session=False)
+            db.query(User).filter(User.id.in_(_FIXTURE_USER_IDS)).delete(
+                synchronize_session=False
+            )
+            _FIXTURE_USER_IDS.clear()
         db.commit()
 
 

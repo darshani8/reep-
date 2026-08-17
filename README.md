@@ -38,7 +38,7 @@ The dev server proxies `/api` → `http://localhost:3300`, so the app is same-or
 
 ## AI features (optional)
 
-Text chat + AI resume polish run through the universal LLM adapter — paste any one provider key into `apps/api-py/.env` (`GROQ_API_KEY`, `MISTRAL_API_KEY`, a local Ollama URL, …) and it works with no code change. **Student PII never goes to a remote free model** unless `LLM_ALLOW_REMOTE_STUDENT_DATA=true`; otherwise the resume composes deterministically. Voice needs LiveKit + Gemini credentials.
+Text chat + AI resume polish run through the universal LLM adapter — paste any one provider key into `apps/api-py/.env` (`GROQ_API_KEY`, `MISTRAL_API_KEY`, a local Ollama URL, …) and it works with no code change. **Student PII never goes to a remote free model** unless `LLM_ALLOW_REMOTE_STUDENT_DATA=true`; otherwise the resume composes deterministically. Voice needs a LiveKit project plus `GROQ_API_KEY` — it runs as a cascade (Silero VAD → Groq Whisper → Groq Llama → TTS) in a separate worker process, not as a native speech-to-speech model.
 
 ## Tests
 

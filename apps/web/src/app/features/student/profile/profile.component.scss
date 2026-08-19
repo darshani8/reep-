@@ -5,8 +5,10 @@
   display: block;
 }
 
-/* Read-only mirror of a .field input, so locked identity lines up with the
-   editable grid but reads as non-editable. */
+/* Locked identity: name, USN and the signed-in Google address. These are real
+   <input readonly> elements, not text — the value is already filled in, and
+   stays selectable and copyable (a student pastes their USN into other forms)
+   while being impossible to type into. */
 .locked-value {
   padding: 10px 12px;
   border-radius: 8px;
@@ -15,6 +17,22 @@
   font-size: 13.5px;
   font-weight: 600;
   color: var(--ink-700);
+}
+
+/* The global `.field input` carries an inset "press" shadow — that shadow is
+   the cue that a box takes typing, so a locked field must not have it. Same
+   for the amber focus ring: keep a visible focus outline for keyboard users,
+   but not the one that says "start typing here". */
+input.locked-value {
+  cursor: default;
+  box-shadow: none;
+}
+input.locked-value:focus,
+input.locked-value:focus-visible {
+  box-shadow: none;
+  border-color: var(--line);
+  outline: 2px solid var(--ink-500);
+  outline-offset: 2px;
 }
 
 .tabular {

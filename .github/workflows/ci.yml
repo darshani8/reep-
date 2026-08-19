@@ -23,7 +23,12 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        # pgvector, NOT stock postgres:17. Migration b7e2f4a19c33 runs
+        # `CREATE EXTENSION IF NOT EXISTS vector`, and IF NOT EXISTS only suppresses
+        # "already exists" -- it does not help when the extension is not installed on
+        # the server at all. On stock postgres:17 that statement raises, `alembic
+        # upgrade head` fails, and every DB-backed test behind it never runs.
+        image: pgvector/pgvector:pg17
         env:
           POSTGRES_USER: reep
           POSTGRES_PASSWORD: reep_dev_password

@@ -44,12 +44,14 @@ from .. import conversations as convo
 from ..config import settings
 from ..db import SessionLocal
 from ..deps import get_current_session, get_ws_session
+from ..interview_matrix import get_specialization
 from ..interview_relay import (
     _CLOSE_FORBIDDEN_ORIGIN,
     _CLOSE_GOING_AWAY,
     _CLOSE_INTERNAL,
     _CLOSE_NOT_CONFIGURED,
     _CLOSE_OVERLOADED,
+    _CLOSE_UNKNOWN_SPECIALIZATION,
     _ConnectionLimiter,
     _RelaySession,
     _close_downstream,
@@ -277,6 +279,30 @@ async def interview(websocket: WebSocket) -> None:
         )
         return
 
+    # The Specialization Matrix row, chosen by the student in the UI and carried
+    # as a query param because a browser WebSocket cannot set headers. ABSENT is
+    # the generic interview that predates the matrix; PRESENT-but-unknown is a
+    # client bug or a hand-rolled socket, and is refused outright rather than
+    # silently downgraded -- a student who asked for an HR interview and got a
+    # generic one was assessed against the wrong bar with no sign of it.
+    # Checked AFTER the limiter so a bad param never holds a slot.
+    spec_key = websocket.query_params.get("specialization")
+    specialization = get_specialization(spec_key)
+    if spec_key and specialization is None:
+        log.warning(
+            "[conn=%s] WS /api/interview -> %d: unknown specialization %r",
+            conn_id,
+            _CLOSE_UNKNOWN_SPECIALIZATION,
+            spec_key,
+        )
+        _LIMITER.release()
+        await _close_downstream(
+            websocket,
+            _CLOSE_UNKNOWN_SPECIALIZATION,
+            f"Unknown specialization: {spec_key}",
+        )
+        return
+
     # From here on the slot is HELD, so every exit path must release it.
     try:
         # The conversation is derived from the SESSION, never from the client —
@@ -297,7 +323,10 @@ async def interview(websocket: WebSocket) -> None:
         return
 
     relay = _RelaySession(
-        websocket, conn_id, on_turn=_make_turn_writer(conversation_id)
+        websocket,
+        conn_id,
+        on_turn=_make_turn_writer(conversation_id),
+        specialization=specialization,
     )
     _LIVE_SESSIONS.add(relay)
     code, reason = _CLOSE_INTERNAL, "Internal error"

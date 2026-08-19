@@ -59,21 +59,74 @@
       </div>
     </div>
 
-    <!-- Identity — synced from the student record, read-only -->
+    <!-- Identity — who you are, not what you prefer.
+
+         Filled in from the programme's roster, which exists before you ever
+         sign in, and from the Google account that sign-in verified. Rendered
+         as readonly inputs: already filled, selectable and copyable, and
+         impossible to type into. Nothing here is sent on save — PUT
+         /student/profile has no usn or name field, and no API route lets a
+         student set their own USN. -->
     <div class="card">
-      <h4>Identity <span class="chip warn"><span class="icon">lock</span>Synced · read-only</span></h4>
+      <h4>Identity <span class="chip warn"><span class="icon">lock</span>From your record · read-only</span></h4>
       <div class="reg-grid">
         <div class="field">
-          <label>Full name</label>
-          <div class="locked-value">{{ name() || '—' }}</div>
+          <label for="identity-name">Full name</label>
+          <input
+            id="identity-name"
+            class="locked-value"
+            type="text"
+            readonly
+            [value]="nameValue()"
+            aria-describedby="identity-note"
+          />
         </div>
         <div class="field">
-          <label>USN</label>
-          <div class="locked-value tabular">{{ usn() || '—' }}</div>
+          <label for="identity-usn">USN</label>
+          <input
+            id="identity-usn"
+            class="locked-value tabular"
+            type="text"
+            readonly
+            [value]="usnValue()"
+            aria-describedby="identity-note"
+          />
+        </div>
+        <div class="field">
+          <label for="identity-account">Signed in with Google as</label>
+          <input
+            id="identity-account"
+            class="locked-value"
+            type="text"
+            readonly
+            [value]="signedInEmail()"
+            aria-describedby="identity-note"
+          />
         </div>
       </div>
-      <div class="dt-sub">
-        Your name and USN come from the programme's student record. Ask the office if either is wrong.
+
+      @if (identityUnreadable()) {
+        <div class="reg-approval flag">
+          <span class="icon">error</span>
+          <div>
+            Your student record could not be read just now, so your name and USN
+            are not shown. They are still on file — reload the page to try again.
+          </div>
+        </div>
+      } @else if (usnMissing()) {
+        <div class="reg-approval flag">
+          <span class="icon">warning</span>
+          <div>
+            No USN is on your student record yet. Ask the placement office to add
+            it — it cannot be entered here.
+          </div>
+        </div>
+      }
+
+      <div class="dt-sub" id="identity-note">
+        These identify you, so you cannot change them: your name and USN come
+        from the programme's roster, and the email is the Google account you
+        signed in with. Ask the office if any of them is wrong.
       </div>
     </div>
 

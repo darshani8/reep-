@@ -101,6 +101,58 @@ const STATE_CAPTIONS: Record<InterviewState, string> = {
 };
 
 /**
+ * The Specialization Matrix, as offered on the picker. `key: null` is the
+ * generic interview that predates the matrix; the four keyed rows mirror
+ * SPECIALIZATIONS in apps/api-py/app/interview_matrix.py, which is the source
+ * of truth — the server refuses a key it does not know (close 4010), so a row
+ * added here without the backend row fails loudly rather than silently.
+ */
+interface SpecializationOption {
+  key: string | null;
+  label: string;
+  blurb: string;
+}
+
+const SPECIALIZATION_OPTIONS: readonly SpecializationOption[] = [
+  {
+    key: null,
+    label: 'General interview',
+    blurb: 'Placement readiness across the board — no single track.',
+  },
+  {
+    key: 'hr',
+    label: 'Human Resources (HR)',
+    blurb: 'STAR method, labor laws, conflict resolution, talent acquisition.',
+  },
+  {
+    key: 'dm',
+    label: 'Digital Marketing (DM)',
+    blurb: 'CAC/LTV, ROAS, SEO/SEM, A/B testing, funnels, brand positioning.',
+  },
+  {
+    key: 'ba',
+    label: 'Business Analytics (BA)',
+    blurb: 'SQL/Python, data modeling, predictive analytics, visualization.',
+  },
+  {
+    key: 'fa',
+    label: 'Financial Analytics (FA)',
+    blurb: 'DCF modeling, financial ratios, risk, valuation, M&A.',
+  },
+];
+
+/** The state machine's phases, in words for the pill next to the clock. Every
+ *  InterviewPhase member in apps/api-py/app/interview_matrix.py is here —
+ *  `ended` included, or a wrap-up close renders the raw key in the pill. */
+const PHASE_LABELS: Record<string, string> = {
+  opening: 'Opening question',
+  probing: 'Framework probing',
+  deep_dive: 'Deep dive',
+  wrap_up: 'Wrap-up',
+  ended: 'Finished',
+};
+
+/**
  * InterviewState -> the orb's four visual states.
  *
  * `thinking` maps to Connecting rather than Listening on purpose: Connecting is
@@ -144,6 +196,13 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
   readonly clockWarning = this.interview.clockWarning;
   readonly active = this.interview.active;
   readonly secureContext = this.interview.secureContext;
+  /** The matrix row and phase of the LIVE interview, as the relay reports them. */
+  readonly liveSpecialization = this.interview.specialization;
+  readonly livePhase = this.interview.phase;
+
+  /** The picker's selection, applied to the next Start. null = General. */
+  readonly selectedSpecialization = signal<string | null>(null);
+  readonly specializationOptions = SPECIALIZATION_OPTIONS;
 
   // -- the persisted conversation (text + every past interview turn) ------ //
   readonly history = this.chat.chatHistory;
@@ -164,6 +223,12 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
     () => this.interview.detail() ?? STATE_LABELS[this.state()],
   );
   readonly statusCaption = computed(() => STATE_CAPTIONS[this.state()]);
+
+  /** The live phase, in words — null when the relay has not named one. */
+  readonly phaseLabel = computed(() => {
+    const phase = this.livePhase();
+    return phase ? (PHASE_LABELS[phase] ?? phase) : null;
+  });
 
   /** Start is offered from every terminal state, and only from a terminal one. */
   readonly canStart = computed(
@@ -287,12 +352,18 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
     }
     if (!this.canStart()) return;
     if (this.hasConsent()) {
-      void this.interview.start();
+      void this.interview.start(this.selectedSpecialization());
       return;
     }
     // First use — show the disclosure before touching the microphone.
     this.consentReturnFocus = document.activeElement as HTMLElement | null;
     this.showConsent.set(true);
+  }
+
+  /** The specialization picker. Selecting never starts anything on its own. */
+  pick(key: string | null): void {
+    if (this.active()) return;
+    this.selectedSpecialization.set(key);
   }
 
   dismissNotice(): void {
@@ -310,7 +381,7 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
         /* storage blocked — the disclosure simply shows again next time */
       }
     }
-    void this.interview.start();
+    void this.interview.start(this.selectedSpecialization());
   }
 
   /** Consent panel — "Cancel". */

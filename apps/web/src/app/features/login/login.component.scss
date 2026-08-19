@@ -1,5 +1,9 @@
 /* Sign in — measurements are the MUI original: 8px spacing unit, lg 1200px,
-   sm 600px. Colours are ported tokens only; nothing is hard-coded. */
+   sm 600px. Colours are ported tokens only; nothing is hard-coded.
+
+   The email/password field styles that used to live here are gone with the
+   form. Sign-in is Google only, so this file now dresses exactly three things:
+   the brand panel, one button, and the two ways sign-in can refuse. */
 
 :host {
   display: block;
@@ -116,101 +120,40 @@
   color: var(--reep-text-secondary);
 }
 
-/* --- form ---------------------------------------------------------------- */
-.form {
-  margin-top: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Outlined text field with a floating, notched label — the MUI OutlinedInput
-   look, rebuilt on tokens. The label's background is the page cream so it cuts
-   the top border exactly as MUI's notch does. */
-.field {
-  position: relative;
-}
-.field__input {
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 40px;
-  padding: 8.5px 14px;
-  font-family: var(--reep-font-stack);
-  font-size: 0.9375rem;
-  color: var(--reep-text-primary);
-  background: transparent;
-  border: 1px solid var(--reep-divider);
-  border-radius: 7px;
-  outline: none;
-  transition: border-color 120ms ease;
-}
-.field__input--adorned {
-  padding-right: 44px;
-}
-.field__input:hover {
-  border-color: var(--reep-text-primary);
-}
-.field__input:focus {
-  border-color: var(--reep-primary-main);
-  border-width: 2px;
-  /* keep the box the same size when the border thickens */
-  padding: 7.5px 13px;
-}
-.field__input--adorned:focus {
-  padding-right: 43px;
-}
-.field__label {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0 4px;
-  font-size: 0.9375rem;
-  color: var(--reep-text-secondary);
-  background: var(--reep-bg-default);
-  pointer-events: none;
-  transition: top 120ms ease, font-size 120ms ease, color 120ms ease;
-}
-.field:focus-within .field__label,
-.field--filled .field__label {
-  top: 0;
-  font-size: 0.75rem;
-}
-.field:focus-within .field__label {
-  color: var(--reep-primary-main);
-}
-.field__adornment {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--reep-text-secondary);
-  cursor: pointer;
-}
-.field__adornment:hover {
-  background: var(--reep-action-hover);
-}
-
-/* --- alert --------------------------------------------------------------- */
+/* --- alerts ---------------------------------------------------------------
+   A refusal is never colour alone: icon + heading + explanation together, so
+   it reads the same in greyscale and to a screen reader. */
 .alert {
+  margin-top: 20px;
   border-radius: 8px;
   border: 1px solid var(--reep-divider);
   background-color: var(--reep-action-hover);
-  padding: 10px 14px;
+  padding: 12px 14px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.5;
+}
+.alert__icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.alert__text {
+  margin: 0;
+  font-weight: 500;
+}
+.alert__meta {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: var(--reep-text-secondary);
 }
 .alert--error {
   color: var(--reep-error-main);
+  border-color: var(--reep-error-main);
+}
+.alert--warn {
+  color: var(--reep-warning-main);
+  border-color: var(--reep-warning-main);
 }
 
 /* --- buttons ------------------------------------------------------------- */
@@ -231,21 +174,6 @@
   opacity: 0.6;
   cursor: default;
 }
-.btn--primary {
-  background-color: var(--reep-secondary-main);
-  color: var(--reep-secondary-contrast);
-  width: 100%;
-}
-.btn--primary:hover:not(:disabled) {
-  background-color: var(--reep-secondary-dark);
-}
-.btn--tall {
-  min-height: 46px;
-  margin-top: 4px;
-}
-.btn__icon {
-  margin-right: -2px;
-}
 .spinner {
   width: 16px;
   height: 16px;
@@ -259,91 +187,81 @@
     transform: rotate(360deg);
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
 
-/* --- SSO ----------------------------------------------------------------- */
+/* --- the one sign-in control ---------------------------------------------
+   Declared AFTER .btn on purpose. Both selectors carry the same emulated
+   encapsulation attribute, so equal specificity is broken by source order —
+   which is what lets these borders survive `.btn { border: none }`. The old
+   shared `.btn--outlined` global lost that fight and rendered borderless. */
 .sso {
-  margin-top: 20px;
-}
-.sso__or {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  color: var(--reep-text-disabled);
-  font-size: 0.75rem;
-  margin-bottom: 14px;
-}
-.sso__or::before,
-.sso__or::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--reep-divider);
-}
-.sso__or span {
-  padding: 0 12px;
+  margin-top: 24px;
 }
 .sso__btn {
   width: 100%;
   min-height: 46px;
   text-decoration: none;
+  border: 1px solid var(--reep-divider);
+  background-color: var(--reep-bg-paper);
+  color: var(--reep-text-primary);
+  box-sizing: border-box;
+}
+.sso__btn:hover {
+  background-color: var(--reep-action-hover);
+  border-color: var(--reep-text-secondary);
+}
+.sso__btn:focus-visible {
+  outline: 2px solid var(--reep-secondary-main);
+  outline-offset: 2px;
+}
+/* An <a> cannot be [disabled]; while the browser is on its way to Google the
+   control is inert and says so, and a second click cannot start a second
+   flow (which would mint a second state and invalidate the first). */
+.sso__btn--pending {
+  pointer-events: none;
+  opacity: 0.7;
+}
+.sso__btn[disabled] {
+  color: var(--reep-text-disabled);
+  background-color: transparent;
 }
 
-/* --- demo accounts card -------------------------------------------------- */
-.demo {
-  margin-top: 32px;
+/* --- who can sign in ------------------------------------------------------ */
+.who {
+  margin-top: 28px;
   background-color: var(--reep-bg-paper);
   border-radius: 8px;
   padding: 20px;
 }
-.demo h2 {
+.who h2 {
   margin: 0;
   color: var(--reep-text-primary);
 }
-.demo__hint {
-  margin: 4px 0 0;
+.who__body {
+  margin: 6px 0 0;
   color: var(--reep-text-secondary);
 }
-.demo__code {
+.who__list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--reep-text-secondary);
+}
+.who__list li + li {
+  margin-top: 4px;
+}
+.who__code {
   padding: 2px 6px;
   border-radius: 4px;
   background-color: var(--reep-bg-default);
   font-weight: 600;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85em;
-}
-.demo__list {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.demo__item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--reep-text-primary);
-  cursor: pointer;
-  font-family: var(--reep-font-stack);
-}
-.demo__item:hover {
-  background-color: var(--reep-action-hover);
-}
-.demo__item--chosen,
-.demo__item--chosen:hover {
-  background-color: var(--reep-action-selected);
-}
-.demo__who {
-  color: var(--reep-text-primary);
-}
-.demo__role {
-  margin-top: 1px;
-  color: var(--reep-text-secondary);
-  font-weight: 400;
 }
 
 /* --- tech note ----------------------------------------------------------- */

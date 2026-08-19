@@ -15,15 +15,16 @@ authentication and no database; do not run it.)
 
 | file | role |
 |---|---|
-| `apps/api-py/app/routers/interview.py` | the boundary: auth, STUDENT check, concurrency cap, conversation, turn writer |
+| `apps/api-py/app/routers/interview.py` | the boundary: auth, STUDENT check, concurrency cap, specialization validation, conversation, turn writer |
 | `apps/api-py/app/interview_relay.py` | the engine: one `_RelaySession` per interview, both pumps, the guardrails |
+| `apps/api-py/app/interview_matrix.py` | the Specialization Matrix (HR/DM/BA/FA personas, frameworks, opening questions) and the interview phase state machine |
 | `apps/web/src/app/core/interview.service.ts` | the client: audio graph, uplink, close-code messages |
 
 ## Endpoints
 
 ```
 GET /api/interview/status   -> {available, reason, active_sessions, max_sessions}
-WS  /api/interview          -> one interview
+WS  /api/interview          -> one interview; ?specialization=hr|dm|ba|fa optional
 ```
 
 `GET /status` exists because a **rejected WebSocket handshake reaches the browser
@@ -32,6 +33,30 @@ told *why* — not configured, not signed in, not a student. It answers `200` wi
 `available:false` even for a non-student (where `/api/voice/status` raises 403),
 because the client treats any non-2xx as "probe unavailable" and would throw the
 explanation away.
+
+## The Specialization Matrix
+
+The student picks a track on the assistant screen; the client sends it as
+`?specialization=` on the socket (a query param because a browser WebSocket
+cannot set headers — safe precisely because it is a UI choice, not a student
+record). `app/interview_matrix.py` owns the four rows — AI persona, core
+frameworks, opening question — **verbatim from the product spec**, and
+`InterviewStateMachine`, which advances the interview through explicit phases
+on each *completed student answer*:
+
+```
+opening  --1 answer-->  probing  --3-->  deep_dive  --5-->  wrap_up
+```
+
+(Any phase can also go straight to `ended`; `wrap_up` is sticky.) The relay
+composes instructions as **base persona verbatim + specialization block +
+phase directive**, sends the opening composition in the startup
+`session.update`, and pushes an **instructions-only** `session.update` on every
+phase change (the voice is frozen once the model has spoken, so nothing else
+may ride that update). The browser learns the phase from `reep.ready` and
+`reep.phase` events. **No `?specialization=` runs the generic interview with
+the untouched base persona** — and an unknown key is refused with close 4010
+rather than silently downgraded to it.
 
 ## Authentication
 
@@ -136,6 +161,7 @@ The client maps each of these to a sentence (`CLOSE_MESSAGES` in
 | 4003 | Origin refused (a deployment mistake) |
 | 4008 | idle cap — no inbound audio |
 | 4009 | hard session cap |
+| 4010 | unknown `?specialization=` (a stale client, never the student's fault) |
 
 ## Troubleshooting
 

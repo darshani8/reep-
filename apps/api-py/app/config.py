@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from pydantic import ValidationInfo, field_validator
+from pydantic import AliasChoices, Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Pin the env file to THIS app's directory. A bare ".env" resolves against the
@@ -24,6 +24,42 @@ _DEFAULT_REALTIME_BASE_URL = "wss://api.openai.com/v1/realtime"
 # whitespace: a blank model in the query string is a 404 at handshake time, which
 # reads to a student as "the interview is down" rather than "it is misconfigured".
 _DEFAULT_REALTIME_MODEL = "gpt-realtime"
+# The Whisper-family model that transcribes the STUDENT's half of the interview
+# (the model's own words come back as an assistant transcript and are not sent
+# through this). "whisper-1" was hard-coded at BOTH call sites in
+# app/interview_relay.py, which is what made "Whisper is missing from the stack"
+# look true - it was there, as the LEGACY id, with no way off it short of a
+# redeploy. gpt-4o-mini-transcribe is the same Whisper lineage with lower word
+# error on accented English and a lower price per minute.
+_DEFAULT_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"
+# The legacy id, and the only transcriber the BETA event surface is KNOWN to
+# accept. Kept as the blank-default for beta rather than as a code path nobody
+# exercises: flipping the default under an existing beta-pinned deployment turns
+# a working interview into a close 4002 at handshake, with no .env change to
+# explain it. An explicit INTERVIEW_TRANSCRIPTION_MODEL always wins, so a beta
+# deployment that has verified a newer id still gets it.
+_BETA_TRANSCRIPTION_MODEL = "whisper-1"
+
+# The institution's mail domain. One constant behind two settings
+# (GOOGLE_ALLOWED_DOMAIN and ROSTER_EMAIL_DOMAIN) because they describe the same
+# real-world fact: which addresses belong to this college. It is NOT a security
+# boundary — the roster is (see app/google_auth.py).
+_DEFAULT_COLLEGE_DOMAIN = "bgscet.ac.in"
+
+# Every spelling of "this is production" an operator actually types. `is_prod`
+# used to be `env == "prod"` exactly, which FAILS OPEN in the two places it now
+# matters most: ENV=production — the spelling most deploy templates and PaaS
+# dashboards use — would leave the session cookie without `Secure` AND leave
+# password sign-in reachable on the internet. Recognising the synonyms is the
+# cheap half of the fix; `password_login_allowed` below is the other half.
+_PROD_ENV_NAMES = frozenset({"prod", "production", "prd", "live"})
+
+# The environments POST /api/auth/login is allowed to answer in — an ALLOWLIST,
+# not the complement of _PROD_ENV_NAMES, because the two guards must fail in
+# opposite directions. A typo'd ENV must mean "the cookie is Secure and the
+# password door is shut", never "neither". ENV is "dev" by default and CI sets
+# nothing, so the suite and every laptop keep the door they already have.
+_PASSWORD_LOGIN_ENV_NAMES = frozenset({"dev", "development", "test", "testing", "ci", "local"})
 
 
 class Settings(BaseSettings):
@@ -34,6 +70,64 @@ class Settings(BaseSettings):
     auth_secret: str = "reep-dev-secret-change-me-in-production-0123456789abcdef"
     web_origin: str = "http://localhost:4200"
     env: str = "dev"
+
+    # --- Google sign-in (OIDC authorization-code flow) -------------------------
+    # Sign-in is Google-only for every role. These credentials decide only WHO
+    # GOOGLE SAYS YOU ARE; they decide nothing about access. The roster in the
+    # `users` table is the allowlist — a verified Google account with no user row
+    # is refused — so a leaked client id buys an attacker an identity we then
+    # look up and reject, not an account.
+    #
+    # From console.cloud.google.com -> Credentials -> "OAuth client ID", type
+    # "Web application". The SECRET is a real credential: it is used only on the
+    # server-to-server token exchange (POST oauth2.googleapis.com/token) and must
+    # never be serialised into a page, a redirect or a log line.
+    #
+    # BLANK IS OFF, the same contract OPENAI_API_KEY has for the interview: the
+    # sign-in capability probe reports it unconfigured and the login screen keeps
+    # the Google button disabled, instead of sending a student out of the app to
+    # a Google error page nobody here can explain.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    # OPTIONAL OVERRIDE, blank on nearly every deployment. Blank means
+    # app/google_auth.py:redirect_uri() derives it as WEB_ORIGIN + CALLBACK_PATH,
+    # which is the right answer whenever the browser reaches the API through the
+    # web origin. Set it only when the public URL is not WEB_ORIGIN (a proxy in
+    # front, a separate API host).
+    #
+    # Whatever the value, it must be BYTE-IDENTICAL to an "Authorised redirect
+    # URI" on the OAuth client AND be the origin the BROWSER is on — not the one
+    # FastAPI sees. apps/web/proxy.conf.json sets changeOrigin:true, so this
+    # process is told `Host: localhost:3300` while the student is on :4200; a
+    # redirect_uri built from the inbound request (request.url_for) would come
+    # out :3300 and Google would answer redirect_uri_mismatch on every sign-in.
+    # Composition lives in ONE function in app/google_auth.py, not here, because
+    # the authorize request and the token exchange must send the same string and
+    # Google rejects the exchange when they differ.
+    google_redirect_uri: str = ""
+    # The college's mail domain(s), comma-separated. READ THE NAME AS A LABEL,
+    # NOT A FENCE: nothing in the sign-in path refuses on it, and nothing should
+    # start to. The roster is the allowlist (app/google_auth.py explains why the
+    # `hd` claim is deliberately not used — a domain test on top of the roster
+    # can only add a second way to lock out someone who IS enrolled, and
+    # app/grant_access.py exists precisely to admit staff whose address is not
+    # on the student domain at all). Its two real jobs: it is the default
+    # `roster_domain` derives addresses from, and its first entry is the string
+    # GET /api/auth/sso/status hands the login screen so the copy can say
+    # "the one ending @bgscet.ac.in" instead of "@your college".
+    google_allowed_domain: str = _DEFAULT_COLLEGE_DOMAIN
+    # The USN -> email convention: 1MP25MDM01 -> 1mp25mdm01@bgscet.ac.in (local
+    # part = the USN, lowercased — the shape app/seed.py already seeds as
+    # 1bg24mba045@bgscet.ac.in). This is the ONE piece of the design that is a
+    # guess about the outside world: if the college's real convention differs by
+    # a single character then every student on the roster is locked out on day
+    # one, and that fix must be a .env edit, never a code change plus a rebuild.
+    # COLLEGE_EMAIL_DOMAIN is accepted as an alias because that is the name
+    # app/seed_roster.py documents in its --help. Blank -> the first
+    # GOOGLE_ALLOWED_DOMAIN entry, so a single-domain college sets one variable.
+    roster_email_domain: str = Field(
+        "", validation_alias=AliasChoices("ROSTER_EMAIL_DOMAIN", "COLLEGE_EMAIL_DOMAIN")
+    )
 
     # Universal LLM adapter (see app/ai/llm.py). Same names as the Next.js app,
     # so one set of keys drives both stacks. Any OpenAI-compatible provider.
@@ -133,20 +227,61 @@ class Settings(BaseSettings):
     # Server-VAD tuning. Settings rather than literals because these are the
     # numbers a real deployment retunes against real rooms, and needing a
     # redeploy to change a float is how tuning stops happening.
+    #
+    # READ THE ECHO NOTES BELOW BEFORE TURNING ANY OF THESE. Server VAD sits
+    # downstream of the mixer: it sees one mono stream in which the interviewer's
+    # own voice, arriving back through a laptop speaker into the microphone, IS
+    # speech. It cannot tell whose voice it is, so no value here eliminates the
+    # self-talk loop - that discrimination happens in the browser, which has the
+    # loudspeaker signal and the microphone in one clock domain. These three
+    # change how OFTEN echo clears the bar, not whether it can.
+    #
     #   threshold  0.0-1.0 activation energy. 0.5 suits a nervous candidate in a
     #              hostel room with a ceiling fan; lower lets room noise start a
     #              turn, raise toward 0.6 only if VAD self-triggers on noise.
+    #              ECHO: raising it makes speaker-borne echo (which reaches the
+    #              mic 15-25 dB below the student's own near-field voice) less
+    #              likely to open a turn, so the interviewer answers itself less
+    #              often - at the cost that a quiet or leaned-back student stops
+    #              being heard at all, and barge-in with it. It is a level knob,
+    #              not a duplex fix.
     #   prefix     audio kept BEFORE detected speech onset so the first phoneme
     #              survives. Below ~200 ms candidates lose the leading consonant
     #              of "Actually...".
+    #              ECHO: this padding is pulled out of the append buffer, so on a
+    #              turn that echo triggered, raising it prepends MORE of the
+    #              interviewer's own sentence - which transcribes into coherent
+    #              text the model then answers confidently. It does not change
+    #              how often a false turn fires, only how convincing it is.
     #   silence    how long a pause ends the turn. Deliberately above the API's
     #              500 ms default: the persona promises not to interrupt, and a
     #              real interview answer contains 400-600 ms thinking pauses
     #              mid-sentence. 700 is the smallest value that reliably does not
     #              cut a candidate off.
+    #              ECHO: raising it makes self-talk LESS FREQUENT and LONGER -
+    #              700 ms already exceeds the gaps between the model's own words,
+    #              so an echo-triggered segment swallows a whole clause before it
+    #              commits. Lowering it commits sooner and fires more often.
     interview_vad_threshold: float = 0.5
     interview_vad_prefix_padding_ms: int = 300
     interview_vad_silence_duration_ms: int = 700
+
+    # The ASR for the student's own speech, sent on BOTH API shapes (flat beta
+    # `input_audio_transcription`, nested GA `audio.input.transcription`). A
+    # setting because the transcription model is retired on a different clock
+    # from the realtime model, and moving to a newer one is something a
+    # deployment does against real recordings - not a code change.
+    #
+    # Defaults to "" — meaning UNSET — rather than to a model id, because the
+    # `transcription_model` property below resolves a blank differently per API
+    # surface and cannot tell "the operator chose this id" from "this is the
+    # field default" if the two look identical. Blank never reaches the wire.
+    #
+    # A WRONG id is rejected at session.update with an `error` echoing our
+    # event_id, which _await_upstream_event turns into a close 4002 during the
+    # handshake: loud, at startup, not a silent interview with no "You" lines.
+    # That is the only reason this is safe to expose.
+    interview_transcription_model: str = ""
 
     @field_validator(
         "llm_timeout_ms",
@@ -212,6 +347,42 @@ class Settings(BaseSettings):
         return value
 
     @property
+    def google_ready(self) -> bool:
+        """Whether Google sign-in — the only way a human signs in — is configured.
+
+        Exactly the two credentials, matching app/google_auth.py:sso_ready(),
+        which is the function the router actually gates on: GOOGLE_REDIRECT_URI
+        is an optional override that defaults correctly, so requiring it here
+        would report the feature "off" on a deployment where it works. Without
+        either credential the failure lands on a Google page we do not control
+        and cannot translate, so it is caught here and the login screen keeps its
+        Google button disabled with our own words on it.
+
+        `.strip()` for the same reason `realtime_ready` does it: a value pasted
+        into a shared .env routinely arrives with a trailing space, and
+        whitespace is not a credential — it is a failure the student meets
+        instead of the operator.
+        """
+        return bool(self.google_client_id.strip() and self.google_client_secret.strip())
+
+    @property
+    def roster_domain(self) -> str:
+        """Domain appended when deriving a roster email from a USN.
+
+        ROSTER_EMAIL_DOMAIN (or its COLLEGE_EMAIL_DOMAIN alias) wins; otherwise
+        the FIRST GOOGLE_ALLOWED_DOMAIN entry — the student domain by
+        convention, staff domains listed after it — so a single-domain college
+        configures one variable and not two. NEVER empty: an empty domain would
+        derive "1mp25mdm01@", which is not a failed lookup but an INSERT of a
+        malformed address into a UNIQUE column.
+        """
+        explicit = self.roster_email_domain.strip().lstrip("@").lower()
+        if explicit:
+            return explicit
+        first = self.google_allowed_domain.split(",")[0].strip().lstrip("@").lower()
+        return first or _DEFAULT_COLLEGE_DOMAIN
+
+    @property
     def realtime_ready(self) -> bool:
         """Whether the mock interview can run at all.
 
@@ -234,6 +405,32 @@ class Settings(BaseSettings):
         model = self.openai_realtime_model.strip() or _DEFAULT_REALTIME_MODEL
         base = (self.openai_realtime_base_url.strip() or _DEFAULT_REALTIME_BASE_URL).rstrip("/")
         return f"{base}?model={quote(model, safe='')}"
+
+    @property
+    def transcription_model(self) -> str:
+        """The input-transcription model id, resolved once for both API shapes.
+
+        The BLANK fallback differs BY SURFACE. On GA the current id is right; on
+        the BETA surface (OPENAI_REALTIME_BETA_HEADER non-empty) "whisper-1" is
+        the id known to be accepted, and a rejected session.update there is not a
+        degraded interview but a close 4002 at handshake. A `str` default is not
+        the place to carry an unverified assumption when the code already knows
+        which surface it is on.
+
+        An EXPLICIT INTERVIEW_TRANSCRIPTION_MODEL always wins on both surfaces,
+        so this only changes what an operator who set nothing receives.
+
+        `.strip()` for the reason every other id here is stripped: a value
+        pasted into a shared .env arrives with a trailing space, and " whisper-1"
+        is not a model name - it is a rejected session.update the student meets
+        as "the interview is down".
+        """
+        explicit = self.interview_transcription_model.strip()
+        if explicit:
+            return explicit
+        if self.realtime_beta_header:
+            return _BETA_TRANSCRIPTION_MODEL
+        return _DEFAULT_TRANSCRIPTION_MODEL
 
     @property
     def realtime_beta_header(self) -> str:
@@ -274,7 +471,22 @@ class Settings(BaseSettings):
 
     @property
     def is_prod(self) -> bool:
-        return self.env.lower() == "prod"
+        """Whether this process is serving real people. See _PROD_ENV_NAMES."""
+        return self.env.strip().lower() in _PROD_ENV_NAMES
+
+    @property
+    def password_login_allowed(self) -> bool:
+        """Whether POST /api/auth/login may answer at all.
+
+        Sign-in is Google-only for humans; that endpoint is a dev/CI affordance,
+        kept because tests/conftest.py's `login` fixture and the test modules
+        that use it cannot drive an OAuth round-trip from a TestClient. Keyed on
+        the environments it SERVES rather than on `not is_prod`, so an ENV nobody
+        anticipated ("staging", a typo, an empty string from a broken deploy)
+        refuses rather than admits: the failure mode of a misconfiguration here
+        must be "nobody can use a password", never "anyone can".
+        """
+        return self.env.strip().lower() in _PASSWORD_LOGIN_ENV_NAMES
 
     @property
     def uploads_path(self) -> Path:

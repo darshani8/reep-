@@ -16,6 +16,7 @@ certificates, photos). Max 10 MB, matching the UI copy.
 
 import uuid
 from pathlib import Path
+from urllib.parse import quote
 
 from .config import settings
 
@@ -75,3 +76,40 @@ def delete(stored_name: str) -> None:
     if not stored_name or "/" in stored_name or "\\" in stored_name or ".." in stored_name:
         raise FileNotFoundError(stored_name)
     (_store_dir() / stored_name).unlink(missing_ok=True)
+
+
+def content_disposition(original_name: str, *, inline: bool = True) -> str:
+    """Build a Content-Disposition header that survives a non-ASCII filename.
+
+    Starlette encodes header values as **latin-1**. Interpolating a student's own
+    filename straight into this header therefore raises UnicodeEncodeError inside
+    Response.__init__ -- before any handler code can catch it -- the moment the name
+    contains a character outside that range. At a Bengaluru college that is not a
+    hypothetical: a file named "ಪ್ರಮಾಣಪತ್ರ.pdf" uploads perfectly and then 500s on every
+    download attempt, which reads to the student as "my certificate is corrupted".
+
+    RFC 6266 exists for exactly this. Emit BOTH parameters:
+
+    * ``filename=``  an ASCII-only fallback, for clients that predate RFC 5987.
+    * ``filename*=`` the real name, UTF-8 percent-encoded, which every current
+      browser prefers when present.
+
+    Quotes and control characters are stripped from the ASCII fallback rather than
+    escaped. A CRLF in the fallback would be a response-splitting attempt; today
+    uvicorn's h11 layer rejects such a header itself, but that is a defence borrowed
+    from a dependency, and it would evaporate under a different server.
+    """
+    disposition = "inline" if inline else "attachment"
+
+    # ASCII fallback: transliterate what we can, drop what we cannot, and remove the
+    # characters that would break out of the quoted-string.
+    ascii_name = original_name.encode("ascii", "ignore").decode("ascii")
+    _BAD = (chr(34), chr(92))  # a quote or backslash would break out of the quoted-string
+    ascii_name = "".join(c for c in ascii_name if c.isprintable() and c not in _BAD)
+    ascii_name = ascii_name.strip() or "download"
+
+    # RFC 5987 encoding of the true name. quote() with an empty safe list percent-
+    # encodes everything outside the unreserved set, which is what the grammar wants.
+    encoded = quote(original_name, safe="")
+
+    return f"{disposition}; filename=\"{ascii_name}\"; filename*=UTF-8''{encoded}"

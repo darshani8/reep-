@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
 from ..deps import get_current_session
-from ..filestore import UploadRejected, delete as filestore_delete, read_bytes, save_bytes
+from ..filestore import UploadRejected, content_disposition, delete as filestore_delete, read_bytes, save_bytes
 from ..resume_pdf import render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
@@ -1408,7 +1408,11 @@ def download_upload(
     return Response(
         content=content,
         media_type=upload.mime_type,
-        headers={"Content-Disposition": f'inline; filename="{upload.original_name}"'},
+        # RFC 6266 via filestore.content_disposition -- interpolating the student's own
+        # filename here raises UnicodeEncodeError inside Response.__init__ for any name
+        # outside latin-1 (Kannada, Hindi, an emoji), 500-ing the download of a file that
+        # uploaded perfectly. See filestore.content_disposition for the full reasoning.
+        headers={"Content-Disposition": content_disposition(upload.original_name)},
     )
 
 

@@ -49,7 +49,25 @@ def create_session_token(payload: dict) -> str:
 
 
 def verify_session_token(token: str) -> dict | None:
+    """The claims of a valid session cookie, or None. Signature AND shape.
+
+    A SESSION IS A TOKEN THAT CARRIES AN IDENTITY, and nothing else is. The
+    shape check is not belt-and-braces: AUTH_SECRET signs a second kind of token
+    since Google sign-in landed — the ten-minute OAuth state/nonce cookie in
+    app/google_auth.py, which has no server-side store to live in — and that one
+    deliberately carries no userId and no role. It authorises nothing (every
+    require_* guard reads `role` through .get() and refuses), but it IS
+    structurally a valid HS256 JWT under this secret, and the consumers past the
+    guards index session["userId"] / session["role"] directly: pasted into
+    `reep_session` by the browser's own owner, it turned an unauthenticated
+    request into a 500 instead of a clean 401. google_auth.read_flow_state
+    already refuses the mirror case; this closes the other direction. Every
+    payload _payload_for() mints has both keys, so no real session changes.
+    """
     try:
-        return jwt.decode(token, settings.auth_secret, algorithms=["HS256"])
+        claims = jwt.decode(token, settings.auth_secret, algorithms=["HS256"])
     except jwt.PyJWTError:
         return None
+    if not isinstance(claims, dict) or not claims.get("userId") or not claims.get("role"):
+        return None
+    return claims

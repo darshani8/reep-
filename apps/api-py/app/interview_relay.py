@@ -67,6 +67,11 @@ from websockets.asyncio.client import ClientConnection, connect as ws_connect
 from websockets.exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
 
 from .config import settings
+from .interview_matrix import (
+    InterviewStateMachine,
+    Specialization,
+    build_instructions,
+)
 
 log = logging.getLogger(__name__)
 
@@ -78,10 +83,14 @@ log = logging.getLogger(__name__)
 # VERBATIM -- the wording is the product spec, not a suggestion. Editing it
 # changes what every student is assessed against.
 #
-# It is also, deliberately, the ONLY thing sent upstream that this app authors.
+# It is also, deliberately, the ONLY thing sent upstream that this app authors
+# -- alone for the generic interview, or composed by app/interview_matrix.py
+# (base persona first and unchanged, then a specialization block and a phase
+# directive, all fixed strings) when the student picked a specialization.
 # AGENTS.md rule 1 gates student PII leaving the machine, and api.openai.com is
 # emphatically not loopback. A fixed persona carries no marks, USN or attendance,
-# so the relay sits outside that gate today. The moment anyone personalises these
+# and neither does a specialization key the student chose in the UI, so the
+# relay sits outside that gate today. The moment anyone personalises these
 # instructions (branch, CGPA, target company) or feeds a resume into the session,
 # the path must be routed through student_data_egress_allowed() in
 # apps/api-py/app/ai/llm.py and degrade to this generic persona when it refuses --
@@ -168,6 +177,30 @@ _CLIENT_CLEAR: Final[str] = "input_audio_buffer.clear"
 # level meter that the model never heard, followed by an idle-cap close two
 # minutes later -- the exact silent failure this relay is built to avoid.
 _CLIENT_APPEND: Final[str] = "input_audio_buffer.append"
+
+# The browser's half-duplex echo gate announcing which side of the duplex it is
+# on (InterviewService.setGate). It is COUNTED and nothing else, deliberately:
+#
+#   * it must NOT clear the upstream append buffer, because the buffer at gate
+#     close can already hold a barge-in the student began and server VAD has not
+#     committed -- discarding it would break barge-in, which is the one thing the
+#     gate exists to protect;
+#   * it must NOT advance _last_audio_at, or a client could hold a billing
+#     session open indefinitely with text frames and no audio, which is exactly
+#     what the idle watchdog is a cost guardrail against.
+#
+# Counting it is still worth the branch: the totals land in the end-of-interview
+# line, so "the gate was shut for most of this session" is answerable from a
+# server log instead of from a browser console the student does not have open.
+_CLIENT_GATE: Final[str] = "reep.mic.gate"
+
+# Unsupported CLIENT control types are logged once each, like unknown upstream
+# events -- but the type here is CHOSEN BY THE BROWSER rather than drawn from a
+# fixed vocabulary, so the memo must be bounded or a hostile client turns it into
+# unbounded growth on untrusted input. 32 is far above the real vocabulary and
+# far below anything that costs memory. Keyed "client:" so the two namespaces
+# cannot collide inside the one _logged_unknown set.
+_MAX_LOGGED_CLIENT_TYPES: Final[int] = 32
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +322,7 @@ _CLOSE_UPSTREAM_UNAVAILABLE: Final[int] = 4002  # Upstream 403/429/5xx/handshake
 _CLOSE_FORBIDDEN_ORIGIN: Final[int] = 4003  # Origin not in WEB_ORIGIN
 _CLOSE_IDLE: Final[int] = 4008  # No inbound audio
 _CLOSE_SESSION_CAP: Final[int] = 4009  # Hard wall-clock cap
+_CLOSE_UNKNOWN_SPECIALIZATION: Final[int] = 4010  # ?specialization= not in the matrix
 
 
 _E = TypeVar("_E", bound=BaseException)
@@ -484,9 +518,14 @@ class _RelaySession:
         "_stop_outcome",
         "_client_frames",
         "_client_bytes",
+        "_gate_closes",
+        "_turns_user",
+        "_turns_assistant",
+        "_last_error",
         "_on_turn",
         "_writes",
         "_assistant_text",
+        "_machine",
     )
 
     def __init__(
@@ -494,9 +533,15 @@ class _RelaySession:
         websocket: WebSocket,
         conn_id: str,
         on_turn: Callable[[str, str, str], None] | None = None,
+        specialization: Specialization | None = None,
     ) -> None:
         self._ws = websocket
         self._conn_id = conn_id
+        # The Specialization Matrix row this interview runs under, and the
+        # state machine tracking which phase of it we are in. None means the
+        # generic interview that predates the matrix: the persona below stays
+        # byte-for-byte what it was, and no phase updates are pushed.
+        self._machine = InterviewStateMachine(specialization)
         # Called (sender, text, provider_turn_id) once per FINAL turn, to persist
         # it. SYNCHRONOUS and allowed to block: this class runs it on a worker
         # thread via asyncio.to_thread, because app/conversations.py is
@@ -538,6 +583,25 @@ class _RelaySession:
 
         self._client_frames = 0
         self._client_bytes = 0
+        # Times the browser reported its echo gate SHUT. Roughly one per model
+        # response is normal (one close, one open); a count far above the number
+        # of responses means the gate is thrashing, and a count of zero on a
+        # session that reported self-talk means the gate was never armed at all.
+        self._gate_closes = 0
+
+        # Counted where a turn is EMITTED, i.e. after the blank-text guard in
+        # _emit_turn, so these are turns that were actually handed to the
+        # persistence path -- the number the AGENTS.md voice runbook's "the call
+        # sounded fine and saved nothing" query is checked against. A session
+        # with assistant turns and zero user turns is the transcriber failing;
+        # both at zero is the interview never getting going at all.
+        self._turns_user = 0
+        self._turns_assistant = 0
+        # The last upstream failure seen, already reduced to type/code (never
+        # error.message, which can quote request content back at us). Kept so
+        # the summary line can name a cause instead of a support ticket saying
+        # "it just sounded bad".
+        self._last_error: str | None = None
 
     # -- external control ---------------------------------------------------
 
@@ -583,6 +647,10 @@ class _RelaySession:
             err.get("event_id"),
             err.get("message"),
         )
+        # Last one wins: a session that errored twice ends on the more recent
+        # cause, and the full history is already in the lines above. type/code
+        # only, for the reason the downstream reep.error carries only those.
+        self._last_error = f"{phase}:{err.get('type')}/{err.get('code')}"
 
     # -- downstream sends ---------------------------------------------------
     #
@@ -609,11 +677,26 @@ class _RelaySession:
 
     # -- startup sequence ---------------------------------------------------
 
+    def _instructions(self) -> str:
+        """The instructions for the CURRENT phase of this interview.
+
+        The generic interview (no specialization) keeps _INTERVIEWER_PERSONA
+        byte-for-byte -- it is VERBATIM product spec, and composing it with a
+        matrix row is the only permitted way to extend it. build_instructions
+        puts the base persona first and unchanged for exactly that reason.
+        """
+        spec = self._machine.specialization
+        if spec is None:
+            return _INTERVIEWER_PERSONA
+        return build_instructions(spec, _INTERVIEWER_PERSONA, self._machine.phase)
+
     def _session_update_payload(self) -> dict[str, Any]:
         """The single session.update, in whichever shape this API generation wants.
 
-        Sent once and never repeated: `voice` is frozen the moment the model has
-        emitted any audio, so a later change is simply rejected.
+        Sent once at startup and never repeated: `voice` is frozen the moment
+        the model has emitted any audio, so a later change is simply rejected.
+        Mid-session PHASE changes use _phase_update_payload instead, which
+        carries instructions and nothing else.
         """
         turn_detection: dict[str, Any] = {
             "type": "server_vad",
@@ -642,16 +725,24 @@ class _RelaySession:
             "interrupt_response": False,
         }
 
+        # ONE object, embedded verbatim into whichever shape this generation
+        # wants, so the two surfaces can never drift onto different transcribers.
+        # Whisper has always been on here -- what was missing was a way to move
+        # off "whisper-1" (the legacy id) without a redeploy. A bad value is
+        # rejected at session.update and _await_upstream_event closes 4002; it
+        # does not degrade into an interview with no student transcript.
+        transcription: dict[str, Any] = {"model": settings.transcription_model}
+
         if settings.realtime_beta_header:
             # Beta: flat session object. "text" must accompany "audio" here or
             # the assistant transcript is never emitted.
             return {
                 "modalities": ["text", "audio"],
-                "instructions": _INTERVIEWER_PERSONA,
+                "instructions": self._instructions(),
                 "voice": settings.openai_realtime_voice,
                 "input_audio_format": "pcm16",
                 "output_audio_format": "pcm16",
-                "input_audio_transcription": {"model": "whisper-1"},
+                "input_audio_transcription": transcription,
                 "turn_detection": turn_detection,
             }
 
@@ -660,7 +751,7 @@ class _RelaySession:
         # instructions.
         return {
             "type": "realtime",
-            "instructions": _INTERVIEWER_PERSONA,
+            "instructions": self._instructions(),
             "output_modalities": ["audio"],
             "audio": {
                 "input": {
@@ -668,7 +759,7 @@ class _RelaySession:
                     "turn_detection": turn_detection,
                     # Without this, the student's side is never transcribed and
                     # there is nothing to show or store.
-                    "transcription": {"model": "whisper-1"},
+                    "transcription": transcription,
                 },
                 "output": {
                     "format": {"type": "audio/pcm", "rate": _AUDIO_SAMPLE_RATE_HZ},
@@ -676,6 +767,46 @@ class _RelaySession:
                 },
             },
         }
+
+    def _phase_update_payload(self) -> dict[str, Any]:
+        """An instructions-ONLY session.update, for a mid-interview phase change.
+
+        Deliberately minimal: `voice` is frozen once the model has spoken and
+        re-sending the full session object asks the API to re-validate fields
+        that cannot change. Instructions are the one field a phase transition
+        exists to replace, on both API generations.
+        """
+        if settings.realtime_beta_header:
+            return {"instructions": self._instructions()}
+        return {"type": "realtime", "instructions": self._instructions()}
+
+    async def _push_phase(self, upstream: ClientConnection) -> None:
+        """Tell the model the interview moved phase, and the browser too.
+
+        The session.update reaches the model between turns and steers its NEXT
+        question; the reep.phase event lets the UI name the phase the student
+        is in. Neither blocks the audio path -- both are ordinary sends from
+        the upstream pump, which owns all downstream writes.
+        """
+        phase = self._machine.phase
+        self._log.info("Interview phase advanced to %s", phase)
+        await upstream.send(
+            json.dumps(
+                {
+                    "type": "session.update",
+                    "event_id": self._next_event_id("phase"),
+                    "session": self._phase_update_payload(),
+                }
+            )
+        )
+        spec = self._machine.specialization
+        await self._send_control(
+            {
+                "type": "reep.phase",
+                "phase": phase.value,
+                "specialization": spec.label if spec is not None else None,
+            }
+        )
 
     async def _await_upstream_event(
         self,
@@ -776,6 +907,15 @@ class _RelaySession:
                     "session_max_seconds": settings.interview_max_seconds,
                     "idle_max_seconds": settings.interview_idle_seconds,
                 },
+                # The matrix row this interview runs under (None for the
+                # generic interview) and the state machine's starting phase,
+                # so the UI can name both from the first frame.
+                "specialization": (
+                    self._machine.specialization.label
+                    if self._machine.specialization is not None
+                    else None
+                ),
+                "phase": self._machine.phase.value,
             }
         )
         self._log.info("Interview ready; accepting client audio")
@@ -933,6 +1073,21 @@ class _RelaySession:
             )
             return
 
+        if etype == _CLIENT_GATE:
+            # Counted only. See _CLIENT_GATE: this frame deliberately touches
+            # neither the append buffer nor the idle clock.
+            if event.get("state") == "suppressed":
+                self._gate_closes += 1
+            return
+
+        key = f"client:{etype}"
+        if key in self._logged_unknown:
+            return
+        if len(self._logged_unknown) >= _MAX_LOGGED_CLIENT_TYPES:
+            # Memo full. A client inventing new type strings has stopped being
+            # diagnostic information and started being log volume.
+            return
+        self._logged_unknown.add(key)
         self._log.info("Ignoring unsupported control event from browser: %s", etype)
 
     async def _pump_upstream_to_client(self, upstream: ClientConnection) -> None:
@@ -1017,6 +1172,16 @@ class _RelaySession:
             # from each other, while append_message dedups on
             # (conversation_id, provider_turn_id) -- a single namespace.
             self._emit_turn("user", transcript, f"u:{item_id}")
+            # One completed student answer is the state machine's only tick.
+            # Gated on a specialization being selected: the generic interview
+            # has no phases to advance and its instructions never change.
+            if (
+                self._machine.specialization is not None
+                and transcript.strip()
+                and self._machine.student_answered()
+                and self._upstream is not None
+            ):
+                await self._push_phase(self._upstream)
             await self._send_control(
                 {
                     "type": _USER_TRANSCRIPT_DONE,
@@ -1121,6 +1286,11 @@ class _RelaySession:
                 status,
                 response.get("status_details"),
             )
+            # Recorded here as well as in _log_upstream_error precisely because
+            # this path produces NO top-level `error` event: a summary line that
+            # watched only `error` would report a clean session that made no
+            # sound.
+            self._last_error = f"response:{status}"
         else:
             self._log.info("Response %s ended %s", response_id, status)
 
@@ -1154,6 +1324,16 @@ class _RelaySession:
         """
         if self._on_turn is None or not text.strip():
             return
+        # Counted before the write is scheduled, so this is "turns the interview
+        # produced", not "turns Postgres accepted" -- the write is
+        # fire-and-forget and a failed one is logged on its own line. The two
+        # numbers side by side in the summary are the diagnosis: assistant-only
+        # means the student was never transcribed, both zero means no turn ever
+        # completed.
+        if sender == "user":
+            self._turns_user += 1
+        else:
+            self._turns_assistant += 1
         task = asyncio.create_task(
             self._run_turn_write(sender, text, provider_turn_id),
             name=f"interview-write-{self._conn_id}",
@@ -1413,13 +1593,33 @@ class _RelaySession:
         # attributed to a session already reported as finished.
         await self._drain_writes()
 
+        # ONE line, the last word on the interview, and deliberately the line a
+        # support report is asked to paste. Everything a "the audio was bad"
+        # ticket cannot tell us by description is in it: whether audio arrived
+        # at all (frames/bytes), whether either side produced turns
+        # (turns=user/assistant), which transcriber ran (a wrong model id is the
+        # difference between "the student said nothing" and "the student was
+        # never transcribed"), and whether anything upstream actually failed.
+        # error=None with turns=0/N is a different bug from error=... with the
+        # same counts, and no amount of guessing separates them afterwards.
+        # gateCloses is the browser's half-duplex echo gate, reported by the
+        # client: roughly one per model response is healthy, zero on a session
+        # that reported self-talk means the gate was never armed, and a figure
+        # far above the response count means it is thrashing on a threshold that
+        # is wrong for that room.
         self._log.info(
-            "Interview finished: code=%s reason=%r duration=%.0fs frames=%d bytes=%d",
+            "Interview finished: code=%s reason=%r duration=%.0fs frames=%d bytes=%d "
+            "turns=%d/%d gateCloses=%d transcriber=%s error=%s",
             code,
             reason,
             time.monotonic() - self._started_at,
             self._client_frames,
             self._client_bytes,
+            self._turns_user,
+            self._turns_assistant,
+            self._gate_closes,
+            settings.transcription_model,
+            self._last_error,
         )
         return code, reason
 

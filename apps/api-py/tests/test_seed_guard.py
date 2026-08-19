@@ -86,3 +86,48 @@ def test_seed_kb_is_not_blocked_in_prod():
     # proof it got past import and tried to do its job. What must never appear
     # is the refusal.
     assert "REFUSED" not in proc.stderr, "app.seed_kb is blocked in prod; only app.seed should be"
+
+
+def test_seed_roster_is_not_blocked_in_prod():
+    """The roster seed must stay runnable under ENV=prod — deliberately.
+
+    app.seed's guard exists for one reason: demo accounts whose passwords are
+    published in AGENTS.md, a DIRECTOR among them. app.seed_roster creates real
+    students, no DIRECTOR, and no usable password at all — and under Google-only
+    sign-in those rows ARE the allowlist, so a production host without them has
+    a batch of students who cannot sign in. Copying the refusal onto it (the
+    obvious "make all seeds safe" refactor) breaks production sign-in outright.
+    """
+    proc = _run("app.seed_roster", "prod")
+
+    # Like app.seed_kb it WILL fail on the deliberately dead DB — that is the
+    # proof it got past import and tried to work. The refusal must not appear.
+    assert "REFUSED" not in proc.stderr, (
+        "app.seed_roster is blocked in prod; it is production-intended.\n"
+        f"stderr: {proc.stderr}"
+    )
+    # It must say which database it is about to write to, and never leak the
+    # password from the URL while doing so.
+    assert "127.0.0.1:1/does_not_exist" in proc.stdout, (
+        f"app.seed_roster did not name its target database.\nstdout: {proc.stdout}"
+    )
+    assert "nobody:nobody" not in proc.stdout + proc.stderr
+
+
+def test_seed_roster_dry_run_matches_the_source_roster():
+    """The roster constant is the allowlist; pin its shape.
+
+    Sequence numbers 11, 23 and 30 are absent from the source document. A future
+    reader "fixing" the gap would invent three students, and dropping a row locks
+    a real one out of a Google-only sign-in.
+    """
+    from app.seed_roster import ROSTER, email_for
+
+    usns = [usn for usn, _ in ROSTER]
+    assert len(ROSTER) == 33
+    assert len(set(usns)) == 33, "duplicate USN in the roster constant"
+    assert sorted(usns) == usns, "roster is not in USN order"
+    missing = [n for n in range(1, 37) if f"1MP25MDM{n:02d}" not in set(usns)]
+    assert missing == [11, 23, 30], missing
+    assert all(name.strip() == name and name for _, name in ROSTER)
+    assert email_for("1MP25MDM01", "bgscet.ac.in") == "1mp25mdm01@bgscet.ac.in"

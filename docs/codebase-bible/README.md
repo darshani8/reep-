@@ -1,0 +1,68 @@
+# The REEP Codebase Bible
+
+An exhaustive, teaching-first account of the REEP stack: what every module does, why
+every line reads the way it does, which rule each piece of code exists to protect, and
+the naming conventions that keep 34,000 lines legible.
+
+This is written to be *read in order* by someone who has never opened the repo, and
+*grepped out of order* by someone who has. Every chapter cites real files and real
+symbols — `path/to/file.py:120` — so nothing here is a paraphrase you cannot check.
+
+## How this book was built
+
+Each chapter is produced by a **council**: a fan-out of independent reader agents that
+map the code, a drafter that writes from those maps, a panel of judges that scores the
+draft against a fixed rubric, and a reviser that rewrites against the panel's critique.
+Every agent reasons privately (chain-of-thought) before answering, then self-scores and
+revises — a reward loop applied to prose. A final verifier re-opens every file cited and
+confirms each symbol, line number and claim actually exists. Chapters that fail
+verification are rewritten, not shipped with a caveat.
+
+## Reading order
+
+| # | Chapter | Covers |
+|---|---------|--------|
+| 1 | [The Stack, End to End](01-stack-architecture.md) | The four processes, topology, ports, request lifecycle, trust boundaries, the two inviolable rules |
+| 2 | [Backend Core](02-backend-core.md) | `db.py`, `filestore.py`, `mailer.py`, `resume_pdf.py`, schemas, error/logging conventions, the backend naming rulebook |
+| 3 | [The Data Model](03-data-model.md) | Every model in `app/models/`, enums, relationships, table by table |
+| 4 | [Migrations & Alembic](04-migrations.md) | All 40 revisions, the enum gotchas, ordering and autogenerate discipline |
+| 5 | [Auth & RBAC](05-auth-rbac.md) | scrypt hashing, HS256 sessions, the cookie, `require_*`, `_assert_can_access_student` (Rule 2) |
+| 6 | [The Student API](06-api-student.md) | All 49 student-reachable endpoints: `student.py`, `registration.py`, `leave.py`, and the rule engines behind readiness, next-actions and leaderboards |
+| 7 | [HTTP API — Staff & Machine Surface](07-api-staff.md) | `mentor`, `director`, `agent`, `voice`, `health` routers |
+| 8 | [The AI Layer](08-ai-layer.md) | `ai/llm.py`, the egress gate (Rule 1), `agents.py`, `orchestrator.py`, `adk.py`, `assistant_tools.py` |
+| 9 | [Conversations, Memory & Governance](09-conversations-memory.md) | `conversations.py`, `memory.py`, `eval/`, `retention.py`, `redaction.py`, feedback |
+| 10 | [Vector DB & the Knowledge Base](10-vector-kb.md) | pgvector, `ai/embeddings.py`, hybrid retrieval in `knowledge.py`, `seed_kb.py` |
+| 11 | [The Voice Assistant](11-voice.md) | `routers/voice.py`, `voice_agent.py`, the state machine, consent, transcripts, heartbeats |
+| 12 | [Frontend Architecture](12-frontend-architecture.md) | Bootstrap, lazy routes, `core/` services, guards, the shell, signals |
+| 13 | [Frontend Features](13-frontend-features.md) | Every feature component, the resume builder, the assistant UI |
+| 14 | [The Design System](14-design-system.md) | `reep-v2.scss`, the kit, `tone.ts`, charts, the colour-plus-text rule |
+| 15 | [Naming Conventions & The Rulebook](15-conventions-rulebook.md) | Every convention and every rule, in one place |
+| 16 | [Ops, Testing & Runbooks](16-ops-testing.md) | Docker, env vars, the two requirements files, the two seeds, the suite, failure modes |
+
+Open questions and confirmed defects the council turned up while writing are tracked in
+[FINDINGS.md](FINDINGS.md). Readers flag what they cannot verify rather than inventing it,
+and some of those flags were real.
+
+## Status
+
+| # | Chapter | Status |
+|---|---------|--------|
+| 1 | The Stack, End to End | **done** — 9,980 words, 161 citations, 3 diagrams; 41 defects raised by the panel and fixed, 196 references verified |
+| 2 | Backend Core | **done** — 14,189 words, 10 sections, 4 diagrams; 49 defects raised, 49 fixed, 4 judge claims rejected on evidence, 190 references verified |
+| 3 | The Data Model | **done** — 16,501 words, 35 subsections, 255 table rows, 3 ER diagrams; 52 defects raised, 52 fixed, 3 judge claims rejected on evidence, 287 references verified |
+| 4 | Migrations & Alembic | **done** — 15,314 words; all 40 revisions charted, the three enum gotchas explained against the migrations that prove them; 49 defects raised, 49 fixed, 4 judge claims rejected on evidence, 147 references verified |
+| 5 | Auth & RBAC | **done** — 14,708 words; Rule 2 audited endpoint by endpoint and found clean; 41 defects raised, 39 fixed, 3 rejected after re-verification, 268 references verified |
+| 6 | The Student API | **done** — 20,630 words; 45 defects raised, 45 fixed, **423 references verified** (the largest verification pass in the book) |
+| 7 | The Staff & Machine API | **done** — 21,130 words, the longest chapter yet; 42 defects raised, 41 fixed, 1 rejected after re-verification, 237 references verified |
+| 8 | The AI Layer | **done** — 14,706 words; every Rule 1 call site audited and tabulated; 42 defects raised, 39 fixed, 3 judge claims rejected after the reviser re-checked the source, 163 references verified |
+| 9 | Conversations, Memory & Governance | **done** — 14,727 words; 45 defects raised, 45 fixed, 3 judge sub-claims rejected after the reviser recomputed them, 215 references verified |
+| 10 | Vector DB & the Knowledge Base | **done** — 14,251 words; 40 defects raised, 38 fixed, 2 rejected after the reviser re-ran the query and checked the seed path, 235 references verified |
+| 11 | The Voice Assistant | **done** — 16,790 words, 57 subsections; 44 defects raised, 44 fixed, 2 judge claims rejected on evidence, 158 references verified |
+| 12 | Frontend Architecture | **done** — 19,005 words, 4 diagrams; 39 defects raised, 39 fixed, 5 judge claims rejected after the reviser re-checked the source, 238 references verified |
+| 13–16 | Frontend Features · Design System · Rulebook · Ops | pending |
+
+> Chapters 6 and 7 were interrupted mid-review by a session quota limit and later resumed
+> from cache — the surveys and drafts replayed free, and only the lost judge, revise and
+> verify agents re-ran. Both have now been through the full reward loop, and every chapter
+> in this book meets the same bar.
+

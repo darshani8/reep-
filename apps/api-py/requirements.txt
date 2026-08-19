@@ -33,8 +33,21 @@ psycopg[binary]==3.3.4
 # pgvector `vector` column type + SQLAlchemy adapter for the Knowledge-Base
 # semantic search (docker image pgvector/pgvector:pg17 + CREATE EXTENSION vector).
 pgvector==0.5.0
-pyjwt==2.13.0
+# [crypto] is the Google sign-in change, not a version bump: the pin is
+# unchanged. PyJWT signs our own HS256 session with pure Python, but verifying
+# Google's ID token is RS256, and without the extra `jwt.decode(...,
+# algorithms=["RS256"])` raises "Algorithm 'RS256' could not be found. Do you
+# have cryptography installed?" — at CALLBACK time, in the image, on a path no
+# unit test exercises without a live Google. cryptography is pinned on the next
+# line as well because it reaches this environment today only as a TRANSITIVE
+# dependency of google-adk/livekit-api; the day one of those drops it, ID-token
+# verification would break with nothing in this file having changed.
+pyjwt[crypto]==2.13.0
+cryptography==50.0.0
 python-multipart==0.0.32
+# Also the Google sign-in HTTP client: the server-to-server token exchange
+# (oauth2.googleapis.com/token) and the JWKS fetch. Already pinned for the
+# realtime relay, so OAuth adds no new dependency here.
 httpx==0.28.1
 # Server-side PDF rendering for /student/resume/{id}/pdf (local, no network — so
 # the student-data egress gate does not apply: nothing leaves the machine)

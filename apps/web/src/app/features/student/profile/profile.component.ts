@@ -5,10 +5,23 @@
  * classes (.card, .field, .reg-grid, .chip, .dt-btn, .dropzone …). The scalar
  * fields ProfileUpdateIn allows (phone, email, the three links, city, career
  * summary, the two interest flags and the leaderboard opt-out) are editable and
- * saved in one PUT /student/profile. Name and USN are synced from the student
- * record (GET /student/dashboard) and shown locked; skills are synced from the
- * Skilling page and shown read-only. placement_eligible is admin-set and shown
- * as a chip, never editable.
+ * saved in one PUT /student/profile. Skills are synced from the Skilling page
+ * and shown read-only. placement_eligible is admin-set and shown as a chip,
+ * never editable.
+ *
+ * IDENTITY IS NOT A PREFERENCE. Name, USN and the signed-in Google address are
+ * the student's identity, not fields they choose: the USN comes off the roster
+ * row created before they ever signed in, and the email is the account Google
+ * verified. They arrive ALREADY FILLED IN and are rendered as readonly inputs —
+ * filled, selectable, copyable, impossible to type into. Nothing on this screen
+ * sends them anywhere: PUT /student/profile has no `usn` or `name` field, and
+ * no route in the API lets a student set their own USN (it is written only by
+ * the roster seed and the registration flow), so a client that tried would be
+ * ignored server-side anyway. The lock here is the honest UI for that fact.
+ *
+ * When the student record cannot be read, the card says so. It must never fall
+ * back to a blank USN, which reads as "you have no USN" and sends the student
+ * to the office over a failed fetch.
  *
  * This screen adds, over the raw form:
  *   - field-level validation (phone / email / the three links) shown inline on
@@ -20,9 +33,10 @@
  *   - privacy and placement-preference controls split into separate groups.
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
+import { AuthService } from '../../../core/auth.service';
 import { environment } from '../../../../environments/environment';
 
 /** GET/PUT /student/profile — exact snake_case shape from ProfileOut. */
@@ -132,6 +146,8 @@ function validateHttpUrl(raw: string): string | null {
   styleUrl: './profile.component.scss',
 })
 export class ProfileComponent {
+  private readonly auth = inject(AuthService);
+
   readonly loaded = signal(false);
   readonly error = signal<string | null>(null);
   readonly saving = signal(false);
@@ -143,6 +159,49 @@ export class ProfileComponent {
   readonly usn = signal<string | null>(null);
   readonly placementEligible = signal(false);
   readonly skills = signal<string[]>([]);
+
+  /**
+   * How the identity read went. Three outcomes that must never be conflated:
+   * still in flight, read fine, could not be read. Blank is not one of them —
+   * an em dash for a failed fetch reads as "you have no USN" and sends the
+   * student to the office over a network blip.
+   */
+  readonly identityState = signal<'loading' | 'ready' | 'error'>('loading');
+
+  /** The Google account this session was signed in with. Read from the session
+   *  the guard already resolved, not a fetch — the same source the resume's
+   *  locked contact-email field uses. */
+  readonly signedInEmail = computed(() => this.auth.session()?.email ?? '');
+
+  /** What goes in the USN box, in every state. */
+  readonly usnValue = computed(() => {
+    switch (this.identityState()) {
+      case 'loading':
+        return 'Loading…';
+      case 'error':
+        return 'Could not be read';
+      default:
+        return this.usn() ?? 'Not on your record yet';
+    }
+  });
+
+  readonly nameValue = computed(() => {
+    switch (this.identityState()) {
+      case 'loading':
+        return 'Loading…';
+      case 'error':
+        return 'Could not be read';
+      default:
+        return this.name() || 'Not on your record yet';
+    }
+  });
+
+  /** True only when the record really loaded and genuinely carries no USN —
+   *  the one case worth telling the student to go and ask about. */
+  readonly usnMissing = computed(() => this.identityState() === 'ready' && !this.usn());
+
+  /** True when the identity read itself failed; retryable, not a data problem. */
+  readonly identityUnreadable = computed(() => this.identityState() === 'error');
 
   // Editable form model — signals so validation, dirty-state and the
   // completion meter all recompute the moment a field changes.
@@ -286,11 +345,16 @@ export class ProfileComponent {
         fetch(`${environment.apiBase}/student/dashboard`, { credentials: 'include' }),
       ]);
 
-      // Locked identity — best-effort; a failure just leaves it blank.
+      // Locked identity. Still best-effort — it must never block the editable
+      // form — but a failure is now recorded rather than rendered as an empty
+      // USN, which a student would read as a missing record.
       if (dRes.ok) {
         const d = (await dRes.json()) as DashboardOut;
         this.name.set(d.name ?? '');
         this.usn.set(d.usn ?? null);
+        this.identityState.set('ready');
+      } else {
+        this.identityState.set('error');
       }
 
       // No profile row yet: render the empty form so the first save creates one.
@@ -307,6 +371,7 @@ export class ProfileComponent {
       this.apply((await pRes.json()) as ProfileOut);
       this.loaded.set(true);
     } catch {
+      this.identityState.set('error');
       this.error.set('Could not reach the server.');
     }
   }

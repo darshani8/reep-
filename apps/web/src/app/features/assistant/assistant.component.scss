@@ -434,3 +434,57 @@
     gap: 2px;
   }
 }
+
+/* Specialization picker — radio behaviour on plain buttons. */
+.specs {
+  margin: 0 0 24px;
+}
+.specs__title {
+  margin: 0 0 4px;
+  color: var(--reep-text-primary);
+}
+.specs__hint {
+  margin: 0 0 12px;
+  color: var(--reep-text-secondary);
+}
+.specs__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.specs__option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--reep-divider);
+  border-radius: 8px;
+  background: var(--reep-surface, #fff);
+}
+.specs__option:hover {
+  border-color: var(--reep-primary-main, #1a3c5e);
+}
+.specs__option:focus-visible {
+  outline: 2px solid var(--reep-primary-main, #1a3c5e);
+  outline-offset: 2px;
+}
+/* Selected = text AND colour together (AGENTS.md): the border alone would be
+ * colour-only status, so the name gets a check prefix as well. */
+.specs__option--active {
+  border-color: var(--reep-primary-main, #1a3c5e);
+  background: var(--reep-action-hover);
+}
+.specs__option--active .specs__name::before {
+  content: '\2713  ';
+}
+.specs__name {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--reep-text-primary);
+}
+.specs__blurb {
+  color: var(--reep-text-secondary);
+}

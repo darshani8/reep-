@@ -36,6 +36,32 @@
   </p>
 }
 
+<!-- Specialization picker — only while idle; a live interview's row is fixed. -->
+@if (isStudent() && !active()) {
+  <section class="specs" aria-label="Interview specialization">
+    <h2 class="specs__title reep-h6">Pick your specialization</h2>
+    <p class="specs__hint reep-body2">
+      The interviewer takes on the matching executive persona and tests that track's core
+      frameworks.
+    </p>
+    <div class="specs__grid" role="radiogroup" aria-label="Specialization">
+      @for (spec of specializationOptions; track spec.label) {
+        <button
+          type="button"
+          class="specs__option"
+          role="radio"
+          [attr.aria-checked]="selectedSpecialization() === spec.key"
+          [class.specs__option--active]="selectedSpecialization() === spec.key"
+          (click)="pick(spec.key)"
+        >
+          <span class="specs__name">{{ spec.label }}</span>
+          <span class="specs__blurb reep-body2">{{ spec.blurb }}</span>
+        </button>
+      }
+    </div>
+  </section>
+}
+
 @if (!secureContext) {
   <p class="err reep-body2" role="alert">
     REEP must be open over HTTPS (or from localhost) before the microphone can be used. This is the
@@ -123,6 +149,13 @@
 
   @if (active()) {
     <div class="stage__meta">
+      @if (liveSpecialization(); as specLabel) {
+        <span class="chip neutral">{{ specLabel }}</span>
+      }
+      @if (phaseLabel(); as phase) {
+        <span class="chip neutral">{{ phase }}</span>
+      }
+
       <span
         class="stage__clock"
         [class.stage__clock--warn]="clockWarning()"

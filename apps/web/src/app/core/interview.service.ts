@@ -59,11 +59,31 @@ const SAMPLE_RATE = 24000;
  *  cannot see speech in audio we have not sent yet. */
 const CHUNK_MS = 40;
 
-/** Jitter buffer. The first buffer of a response is scheduled this far in the
- *  future so a chunk arriving 60 ms late still lands ahead of the play cursor.
- *  Below ~50 ms ordinary Wi-Fi underruns; above ~200 ms the interviewer feels
- *  laggy in a conversation that is supposed to be a real interview. */
-const PLAYBACK_LEAD_S = 0.08;
+/** Jitter buffer, ADAPTIVE. The first buffer of a response is scheduled this
+ *  far in the future, so a frame arriving late still lands ahead of the play
+ *  cursor instead of being scheduled into the past.
+ *
+ *  It starts at 140 ms rather than the 80 ms this file shipped with. 80 ms left
+ *  30 ms of margin over the ~50 ms at which ordinary Wi-Fi underruns, and every
+ *  underrun re-arms the cursor — which is audible as the gap-and-click the
+ *  student reports as "breaking, flickering". 140 ms is ~3x the observed jitter
+ *  on a congested campus link and still well inside the ~200 ms at which the
+ *  interviewer starts to feel laggy in conversation. */
+const PLAYBACK_LEAD_MIN_S = 0.14;
+
+/** Ceiling on the adaptive lead. 300 ms is the point at which a turn-taking
+ *  conversation stops feeling like one; a link that still underruns at 300 ms is
+ *  not going to be rescued by buffering, and the honest report is the counter.
+ *  This bounds the worst case: 300 - 140 = 160 ms of extra first-audio delay
+ *  over a whole session, and it is only ever reached by a link that has already
+ *  produced four audible dropouts. */
+const PLAYBACK_LEAD_MAX_S = 0.30;
+
+/** Growth per underrun: one CHUNK_MS. Growing by the size of the unit that
+ *  arrived late is the smallest step that can actually cover the miss, and four
+ *  steps reach the cap — fast enough that a bad link settles inside one answer,
+ *  slow enough that a single hiccup does not cost the whole latency budget. */
+const PLAYBACK_LEAD_STEP_S = 0.04;
 
 /** De-click fade applied to everything still scheduled when the student barges
  *  in. Stopping a buffer mid-waveform is a step discontinuity, i.e. an audible
@@ -115,11 +135,189 @@ const AI_ANALYSER_FFT = 512;
 const DEFAULT_SESSION_MAX_S = 900;
 const SESSION_WARN_LEAD_S = 120;
 
+/** Repaint cap for the gate's counters and the playback stats. They are
+ *  written on the 25 Hz uplink path and polled off the playback clock, but a
+ *  human reading "frames withheld" or "buffer 180 ms" cannot use more than a few
+ *  updates a second, and every signal write costs a change-detection pass. */
+const DIAGNOSTIC_PUBLISH_MS = 250;
+
 /** How long the UI may sit in `connecting` before giving up. Generous, because
  *  it spans the browser's own microphone prompt — which the student may take a
  *  while to answer — and must not cut a slow-but-working connection short.
  *  Matches ChatVoiceService's CONNECT_TIMEOUT_MS for the same reason. */
 const CONNECT_TIMEOUT_MS = 30_000;
+
+/* ============================================================================
+   Echo suppression - half-duplex WITHOUT muting the microphone.
+
+   THE BUG THIS EXISTS FOR. The student is usually on laptop SPEAKERS. Browser
+   AEC is tuned for a locally-rendered loopback and is unreliable against a
+   REMOTELY-rendered voice it never saw as a reference signal; AGC then boosts
+   whatever residue survives. The relay's server VAD runs with
+   `create_response: true`, so the moment it hears the model's own voice it opens
+   a turn and the interviewer answers itself. That is the self-talk loop, and no
+   server-side knob can close it: server VAD sees one mono stream in which the
+   model's own voice IS speech. Only two things discriminate - energy at the
+   microphone, and duplex state - and both live on this side of the wire.
+
+   THE TRADE-OFF, NAMED. Gating the uplink delays the moment server VAD can see
+   the student, because the server cannot detect speech in audio we never sent.
+   That cost is BARGE_IN_CONSECUTIVE_CHUNKS x CHUNK_MS = 120 ms. Against it, the
+   design REMOVES a larger delay: today a barge-in costs uplink -> server VAD
+   integration -> `reep.audio.flush` back down, i.e. a full round trip, typically
+   250-450 ms. The gate detects speech LOCALLY in 120 ms and flushes the player
+   itself. Net: barge-in gets FASTER, and the counters below are the instrument
+   that proves it rather than the claim that asserts it.
+
+   WHAT IS DELIBERATELY NOT DONE. The microphone is never muted, the track is
+   never disabled, the worklet never stops. Gating capture would destroy the very
+   energy signal the gate decides on - a muted microphone cannot detect the
+   speech it is supposed to reopen for. Only sendAudio() is gated.
+   ========================================================================== */
+
+/** Master switch, and the default. ON, because the failure it prevents (an
+ *  interviewer interviewing itself) is total, while its cost on headphones is
+ *  120 ms of barge-in latency. On headphones there is no acoustic path from the
+ *  speaker back to the microphone, so a student wearing them should turn it off:
+ *  see setEchoSuppression(). */
+const ECHO_SUPPRESSION_DEFAULT = true;
+
+/** AGC has a multi-hundred-millisecond release, so across a stretch of
+ *  echo-only input it ramps gain UP and drags echo toward the level of speech,
+ *  destroying the 15-25 dB separation this gate lives on - it would be actively
+ *  fighting the fix. It is therefore off while suppression is armed, and the
+ *  server VAD's own threshold (INTERVIEW_VAD_THRESHOLD) is the level control
+ *  instead. echoCancellation and noiseSuppression STAY on: they help, they are
+ *  simply not sufficient alone, which is the whole reason this gate exists. */
+const ECHO_SUPPRESSION_DISABLES_AGC = true;
+
+/** How far above the MEASURED echo level a chunk must sit before it is believed
+ *  to be the student. A mouth ~30 cm from the microphone beats the speaker->mic
+ *  path by 15-25 dB; 3.0 linear (~9.5 dB) clears echo with margin without
+ *  demanding a raised voice. Lower it if barge-in feels unresponsive; raise it
+ *  if the session summary shows local barge-ins the relay never confirmed. */
+const ECHO_GATE_MARGIN = 3.0;
+
+/** The same idea against the ROOM rather than the speaker. It is consulted ONLY
+ *  inside the echo window (the gate returns before the threshold is computed at
+ *  every other moment) and the floor it multiplies is measured ONLY outside one,
+ *  so this is the term that carries the quiet room's measurement INTO the
+ *  interviewer's answer — it is not, as this comment used to claim, a
+ *  before-the-interviewer-has-spoken fallback. Wider than ECHO_GATE_MARGIN
+ *  because a noise floor is steady while echo is speech-shaped and peaky, so a
+ *  floor needs more headroom before a peak counts as a voice. */
+const NOISE_FLOOR_MARGIN = 4.0;
+
+/** Hard lower bound on the threshold, so a pathologically silent room cannot
+ *  drive it to zero and let a DC offset open the gate. RMS 0.008 is ~-42 dBFS:
+ *  below any speaking voice, above any microphone's self-noise. */
+const GATE_ABSOLUTE_MIN_RMS = 0.008;
+
+/** Consecutive over-threshold chunks required before the gate opens. One chunk
+ *  (40 ms) is a cough, a keystroke or a chair; three (120 ms) is a syllable.
+ *  This IS the latency the gate adds to barge-in detection, and it is still well
+ *  inside the round trip it replaces. */
+const BARGE_IN_CONSECUTIVE_CHUNKS = 3;
+
+/** Withheld chunks held while the gate is still deciding, and replayed the
+ *  instant it opens. These are the chunks ALREADY above threshold while the gate
+ *  was unconvinced, i.e. the first 80 ms of the student's sentence. Dropping them
+ *  is not latency, it is LOST AUDIO: INTERVIEW_VAD_PREFIX_PADDING_MS is pulled
+ *  from the UPSTREAM append buffer and cannot restore bytes that never left this
+ *  process, so the transcriber hears "...ctually" and server VAD gets a weaker
+ *  onset — which is also what delays the confirmation the whole hold depends on.
+ *  Bounded at 2 x 1920 B, and it costs zero added latency. */
+const BARGE_IN_PRIMER_CHUNKS = BARGE_IN_CONSECUTIVE_CHUNKS - 1;
+
+/** The gate's margins RELAX the longer ONE echo window holds the uplink shut.
+ *
+ *  A gate suppressing continuously for this long has either measured a correct
+ *  threshold nobody is trying to cross, or a wrong one that is locking the
+ *  student out - and it CANNOT tell which, because the only party that could
+ *  (server VAD) sits downstream of the audio being withheld. Without this the
+ *  threshold is fixed for the life of a response, and a threshold measured wrong
+ *  once is a student who cannot be heard for the whole eight seconds of an
+ *  answer. 50 chunks = 2 s at CHUNK_MS: longer than any syllable, far shorter
+ *  than an answer. */
+const GATE_MARGIN_RELAX_CHUNKS = 50;
+
+/** The margin both terms relax TO. Not 1.0: at parity a peaky echo transient
+ *  would cross a peak-follower reference. 1.5 (~3.5 dB) still refuses echo, and
+ *  a chunk must still clear it BARGE_IN_CONSECUTIVE_CHUNKS times in a row. The
+ *  named cost: past ~2 s of continuous suppression the false-positive rate
+ *  rises, and that cost is already bounded at LOCAL_BARGE_IN_HOLD_MS of skipped
+ *  interviewer audio and already counted as localBargeIns - confirmedBargeIns. */
+const ECHO_GATE_MARGIN_RELAXED = 1.5;
+
+/** Once genuine speech is detected, send unconditionally for this long. A spoken
+ *  answer contains 150-300 ms inter-syllable gaps; without a hangover the gate
+ *  would re-close inside the student's own sentence and chop it. */
+const ECHO_GATE_HANGOVER_MS = 600;
+
+/** Tail after the interviewer's last scheduled buffer has finished. The player
+ *  reports itself idle as soon as its nodes end, but the sound is still in the
+ *  OS output buffer (~50-100 ms on a laptop) and then in the room's reverb.
+ *  250 ms covers both. This is the "after playback drains" window. */
+const ECHO_GATE_TAIL_MS = 250;
+
+/** The first chunks of every echo window are spent MEASURING the leakage rather
+ *  than judging it: `echoRef` is stale or unset at the top of a response, and a
+ *  fixed threshold would fire on the interviewer's own first syllable - which is
+ *  precisely the bug being fixed. Five chunks (200 ms) is far shorter than the
+ *  time it takes a student to react to a question they have not finished
+ *  hearing, and it is the only window in which barge-in is refused outright. */
+const ECHO_CALIBRATION_CHUNKS = 5;
+
+/** Peak-follower coefficients for the echo reference, per 40 ms chunk. Fast
+ *  attack so a loud response is tracked within ~120 ms; slow release so the
+ *  reference does not collapse between the interviewer's own syllables and
+ *  briefly wave the echo through as if it were the student. */
+const ECHO_REF_ATTACK = 0.6;
+const ECHO_REF_RELEASE = 0.05;
+
+/** Ceiling on the measured echo reference (~-30 dBFS). It bounds the one way
+ *  calibration can go wrong: if the student is ALREADY speaking when a response
+ *  starts, their voice would otherwise be learned as "echo" and jam the gate
+ *  shut at three times their own level. Capped, the threshold can never exceed
+ *  ECHO_REF_CEILING * ECHO_GATE_MARGIN, which sustained speech still clears. */
+const ECHO_REF_CEILING = 0.03;
+
+/** Noise-floor follower: instant downward, glacial upward (~20 s time constant),
+ *  and hard-capped. A minimum-follower must not be dragged up by the student's
+ *  own voice - a floor that has learned speech has stopped being a floor. */
+const NOISE_FLOOR_RISE = 0.002;
+const NOISE_FLOOR_CEILING = 0.02;
+
+/** After a LOCAL barge-in, interviewer audio still arriving is DISCARDED until
+ *  the relay confirms with `reep.audio.flush`. This is load-bearing and easy to
+ *  miss: flushing the player alone is undone within one frame, because the relay
+ *  keeps streaming and onMessage re-enqueues. The stream only stops at source
+ *  when the relay sends response.cancel, which it does only once server VAD sees
+ *  the audio we have just resumed sending. 700 ms = one generous round trip plus
+ *  the server's 300 ms VAD prefix plus integration. Expiring unconfirmed means
+ *  the detection was a false positive: playback simply resumes, so the cost of a
+ *  false positive is bounded at 700 ms of skipped interviewer audio, and it is
+ *  counted rather than silent. */
+const LOCAL_BARGE_IN_HOLD_MS = 700;
+
+/** The relay's idle watchdog advances its last-audio clock ONLY on an inbound
+ *  audio frame, and closes the session (4008) after INTERVIEW_IDLE_SECONDS.
+ *  Gating the uplink therefore stops that clock. A ZEROED chunk every 10 s keeps
+ *  it alive: digital silence provably cannot open a server-VAD turn, and 10 s is
+ *  an order of magnitude inside the smallest sane idle cap. */
+const ECHO_GATE_KEEPALIVE_MS = 10_000;
+
+/** Control frame announcing which side of the duplex we are on. The relay
+ *  COUNTS it and prints the totals in its end-of-interview line, which is how a
+ *  support report says "the gate was shut for most of this session" without a
+ *  browser console. It deliberately does NOT touch the upstream append buffer:
+ *  clearing it at gate close would discard a barge-in the student had already
+ *  begun but server VAD had not yet committed, which is the one thing this whole
+ *  file exists to protect. It equally does not advance the relay's idle clock —
+ *  a text frame that did would let a client hold a billing session open with no
+ *  audio at all. Sent on TRANSITIONS ONLY, roughly twice per response. */
+const GATE_CONTROL_TYPE = 'reep.mic.gate';
+
 
 /* ============================================================================
    Wire vocabulary.
@@ -251,6 +449,18 @@ const CLOSE_MESSAGES: ReadonlyMap<number, CloseMessage> = new Map<number, CloseM
     {
       tone: 'info',
       text: 'You reached the session time limit. Start a new interview to continue practising.',
+      detail: true,
+    },
+  ],
+  // 4010: the relay does not know the ?specialization= this bundle asked for. In
+  // practice a CACHED client against a matrix row that was renamed or retired,
+  // so the fix is a reload — not a retry, and not a support ticket. `detail`
+  // because the relay names the offending key in its reason.
+  [
+    4010,
+    {
+      tone: 'warn',
+      text: 'That interview track is no longer available. Reload the page and pick a track again.',
       detail: true,
     },
   ],
@@ -484,7 +694,15 @@ function rmsOfFloat(buf: Float32Array): number {
    ========================================================================== */
 
 interface MicCaptureOptions {
-  onChunk: (pcm: ArrayBuffer) => void;
+  /**
+   * One captured chunk, ready for the uplink.
+   *
+   * @param rms that chunk's RMS, 0..1. Passed alongside the samples rather than
+   *        recomputed at the send site: it is measured exactly once, here, and
+   *        the echo gate is the only reason the uplink needs it. Handing it over
+   *        is what lets the gate cost zero extra DSP.
+   */
+  onChunk: (pcm: ArrayBuffer, rms: number) => void;
   onLevel: (rms: number) => void;
   onError: (err: Error) => void;
 }
@@ -504,6 +722,14 @@ class MicCapture {
   constructor(
     private readonly ctx: AudioContext,
     private readonly opts: MicCaptureOptions,
+    /**
+     * Whether this session runs with the echo gate armed. Read ONCE, at
+     * getUserMedia time, because it decides the AGC constraint and re-negotiating
+     * a live track to flip one boolean is a bigger risk than leaving the level
+     * control where the session started. It gates NOTHING here: capture is
+     * unconditional, and the uplink is the only thing the gate touches.
+     */
+    private readonly suppressEcho: boolean,
   ) {}
 
   /** Must be reached from a user gesture: getUserMedia and ctx.resume() both
@@ -538,7 +764,14 @@ class MicCapture {
           // otherwise, and the graph resamples either way.
           echoCancellation: true, // mandatory when the student is on speakers
           noiseSuppression: true, // hostel fan, keyboard, corridor noise
-          autoGainControl: true, // server VAD is far more level-sensitive than AGC-artefact-sensitive
+          // AGC is OFF while the echo gate is armed. Its multi-hundred-ms
+          // release ramps gain up across an echo-only stretch and destroys the
+          // 15-25 dB separation the gate discriminates on, so leaving it on
+          // would be fighting the fix. With the gate off (headphones) there is
+          // no echo to separate, so it is restored and a quiet student is
+          // levelled for the server VAD, which is far more level-sensitive than
+          // AGC-artefact-sensitive.
+          autoGainControl: !(this.suppressEcho && ECHO_SUPPRESSION_DISABLES_AGC),
           channelCount: 1,
           sampleRate: SAMPLE_RATE,
         },
@@ -577,8 +810,12 @@ class MicCapture {
 
       node.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
         if (this.stopped) return;
-        this.opts.onLevel(rmsOfPcm16(e.data));
-        this.opts.onChunk(e.data);
+        // Measured ONCE. The meter and the echo gate are both downstream of this
+        // single number; computing it twice would run the same loop over 960
+        // samples 25 times a second for nothing.
+        const rms = rmsOfPcm16(e.data);
+        this.opts.onLevel(rms);
+        this.opts.onChunk(e.data, rms);
       };
       node.onprocessorerror = () => {
         this.opts.onError(new Error('The audio processor stopped unexpectedly.'));
@@ -675,6 +912,15 @@ class PcmPlayer {
    *  only — but counted rather than swallowed, because "the interviewer sounds
    *  choppy" has no other observable cause on this side of the wire. */
   private underruns = 0;
+  /**
+   * The live jitter buffer, in seconds. Grows by PLAYBACK_LEAD_STEP_S on every
+   * underrun and NEVER shrinks for the life of this player (one player = one
+   * interview). A link that underran once will underrun again, and shrinking
+   * back simply re-earns the same audible gap; the total cost of never shrinking
+   * is bounded by PLAYBACK_LEAD_MAX_S. Measuring it beats guessing it, which is
+   * what a single fixed constant was.
+   */
+  private lead = PLAYBACK_LEAD_MIN_S;
 
   /** @param ctx shared with capture; not owned here. */
   constructor(private readonly ctx: AudioContext) {
@@ -696,8 +942,14 @@ class PcmPlayer {
       // past: start(t) with t < currentTime plays immediately AND truncates the
       // head of the buffer, so the student loses the first syllable and hears a
       // click. Re-arm the lead and count it instead.
-      if (this.scheduledSec > 0) this.underruns++;
-      this.cursor = now + PLAYBACK_LEAD_S;
+      if (this.scheduledSec > 0) {
+        this.underruns++;
+        // Widen BEFORE re-arming, so the re-arm that answers this underrun
+        // already carries the bigger margin rather than repeating the same
+        // too-small guess and underrunning again one frame later.
+        this.lead = Math.min(PLAYBACK_LEAD_MAX_S, this.lead + PLAYBACK_LEAD_STEP_S);
+      }
+      this.cursor = now + this.lead;
     }
 
     const src = this.ctx.createBufferSource();
@@ -779,10 +1031,38 @@ class PcmPlayer {
     this.resetCursor();
   }
 
-  /** The model finished an utterance normally: let the tail play out, but drop
-   *  the cursor so the next response re-arms its own jitter buffer. */
+  /**
+   * The model finished an utterance normally: let the tail play out.
+   *
+   * The cursor is deliberately NOT zeroed. `response.audio.done` fires when the
+   * last delta was SENT, and the relay streams faster than realtime, so that is
+   * typically SECONDS before the tail finishes playing. Zeroing made the next
+   * enqueue() take the re-arm branch and schedule audio at `now + lead` ON TOP of
+   * a tail still scheduled against the old cursor — two voices at once — and it
+   * silently suppressed the underrun counter for that re-arm, so the one
+   * instrument for "the interviewer sounds choppy" read zero on the exact path
+   * that caused it. enqueue()'s own `cursor < now` guard re-arms once the tail
+   * has genuinely drained, which is the only moment re-arming is correct.
+   *
+   * Only the underrun accounting resets here, so that legitimate re-arm is not
+   * miscounted as the scheduler falling behind.
+   */
   endResponse(): void {
-    this.resetCursor();
+    this.scheduledSec = 0;
+  }
+
+  /**
+   * A NEW response is about to start streaming: drop any odd-byte carry.
+   *
+   * `remainder` is the low byte of a sample whose high byte is the first byte of
+   * the NEXT frame of the SAME stream. Across a response boundary there is no
+   * next byte — the response was cancelled, or simply ended — so carrying it
+   * would prepend one orphan byte to the new response and byte-misalign every
+   * sample after it, which decodes as white noise. This is the one boundary at
+   * which dropping it is right; resetCursor() is not (see there).
+   */
+  beginResponse(): void {
+    this.remainder = null;
   }
 
   /** True while any scheduled audio has not yet finished playing. */
@@ -793,6 +1073,13 @@ class PcmPlayer {
   /** How many times this player fell behind. See `underruns`. */
   get underrunCount(): number {
     return this.underruns;
+  }
+
+  /** The live jitter buffer in seconds. Exposed so the session summary can say
+   *  the buffer had to grow, which is the difference between "the network was
+   *  bad" and "the audio code is wrong". */
+  get leadSeconds(): number {
+    return this.lead;
   }
 
   close(): void {
@@ -807,7 +1094,13 @@ class PcmPlayer {
   private resetCursor(): void {
     this.cursor = 0;
     this.scheduledSec = 0;
-    this.remainder = null;
+    // `remainder` is deliberately NOT dropped here. It is the low byte of a
+    // sample whose high byte is the first byte of the next frame; dropping it
+    // mid-stream byte-misaligns every sample after it and the rest of the
+    // response decodes as white noise. After an UNCONFIRMED local barge-in the
+    // SAME response keeps streaming straight through flush() -> resetCursor(),
+    // so this path is live rather than theoretical. The cross-response case,
+    // where the carry really must go, is beginResponse().
   }
 
   private toAudioBuffer(pcm: ArrayBuffer | Uint8Array): AudioBuffer | null {
@@ -892,6 +1185,79 @@ export class InterviewService {
   /** VU-ballistic 0..1 for the mic meter bar (throttled; see METER_MIN_INTERVAL_MS). */
   readonly micLevel = this._micLevel.asReadonly();
 
+  private readonly _echoSuppression = signal(ECHO_SUPPRESSION_DEFAULT);
+  /**
+   * Whether the half-duplex echo gate is armed.
+   *
+   * On laptop SPEAKERS it is what stops the interviewer interviewing itself. On
+   * HEADPHONES there is no acoustic path from the speaker back to the
+   * microphone, so it protects against nothing and costs 120 ms of barge-in
+   * latency - which is the entire reason it is a switch and not a constant.
+   */
+  readonly echoSuppression = this._echoSuppression.asReadonly();
+
+  private readonly _echoGateOpen = signal(true);
+  /**
+   * False while the uplink is suppressed because the interviewer is audible.
+   *
+   * This is NEVER a muted microphone: capture, resampling, the RMS measurement
+   * and the meter all keep running at full rate while it is false - that is what
+   * lets the gate hear the student well enough to reopen. A template that
+   * renders this must say "not sending", never "muted", or it describes the
+   * wrong thing to the person in the chair.
+   */
+  readonly echoGateOpen = this._echoGateOpen.asReadonly();
+
+  private readonly _suppressedFrames = signal(0);
+  /**
+   * Chunks captured but deliberately not sent, this session.
+   *
+   * Read beside the barge-in counts in the end-of-session line, this is the
+   * diagnosis: a high count with few UNCONFIRMED local barge-ins is the gate
+   * working as designed; a high count with many is a threshold set too low,
+   * firing on echo. One number cannot distinguish those, which is why the
+   * summary prints both.
+   */
+  readonly suppressedFrames = this._suppressedFrames.asReadonly();
+
+  /**
+   * The microphone is live but the uplink is held. The one derivation a template
+   * actually wants: the "listening" affordance can stay lit, because capture
+   * really is running, while an unobtrusive marker explains why the interviewer
+   * is not reacting yet.
+   */
+  readonly uplinkSuppressed = computed(() => this._echoSuppression() && !this._echoGateOpen());
+
+  private readonly _specialization = signal<string | null>(null);
+  /**
+   * The matrix row the RELAY confirmed for this interview, as its label, or null
+   * for the generic interview. Deliberately server-reported rather than echoed
+   * from the local selection: the relay refuses a key it does not know (close
+   * 4010), so echoing the request back would name a track that never ran.
+   */
+  readonly specialization = this._specialization.asReadonly();
+
+  private readonly _phase = signal<string | null>(null);
+  /** The state machine's current phase KEY, exactly as app/interview_matrix.py
+   *  names it (`opening`, `probing`, `deep_dive`, `wrap_up`, `ended`). The
+   *  component owns the wording, so a phase added server-side degrades to its
+   *  raw key rather than to a blank pill. */
+  readonly phase = this._phase.asReadonly();
+
+  private readonly _playbackLeadMs = signal(Math.round(PLAYBACK_LEAD_MIN_S * 1000));
+  /**
+   * The live jitter buffer, in ms. Starts at PLAYBACK_LEAD_MIN_S and grows with
+   * every underrun. Read beside `underruns` it is the whole answer to "why did
+   * the voice break up": a lead still at its minimum with zero underruns means
+   * the network was never the problem.
+   */
+  readonly playbackLeadMs = this._playbackLeadMs.asReadonly();
+
+  private readonly _underruns = signal(0);
+  /** Times the playback scheduler fell behind, this session. Each one is an
+   *  audible gap and click — the "breaking, flickering" symptom, counted. */
+  readonly underruns = this._underruns.asReadonly();
+
   private readonly _elapsedSeconds = signal(0);
   readonly elapsedSeconds = this._elapsedSeconds.asReadonly();
 
@@ -959,6 +1325,84 @@ export class InterviewService {
   private ending = false;
   private droppedChunks = 0;
 
+  /** The matrix key requested for THIS session. A browser WebSocket cannot set
+   *  headers, so the query string is the only channel to the relay; held on the
+   *  instance because socketUrl() runs after start()'s awaits. */
+  private requestedSpecialization: string | null = null;
+
+  // ---- Echo gate, session-scoped ---------------------------------------- //
+  // All of it is plain fields rather than signals: it is read and written 25
+  // times a second on the uplink path, and only the two figures a human would
+  // look at (gate state, suppressed count) are mirrored into signals.
+
+  /** Measured speaker->microphone leakage, as chunk RMS. A live measurement of
+   *  THIS room at THIS volume on THIS microphone — a fixed threshold cannot
+   *  work, because mic sensitivity varies ~20 dB across laptop hardware. */
+  private echoRef = 0;
+  /** Minimum-follower over chunk RMS while nothing is playing. Covers the window
+   *  before the interviewer has spoken at all and `echoRef` is still unmeasured. */
+  private noiseFloor = 0;
+  /** Consecutive over-threshold chunks. See BARGE_IN_CONSECUTIVE_CHUNKS. */
+  private hotChunks = 0;
+  /** Chunks elapsed in the current echo window; the first few are calibration. */
+  private echoWindowChunks = 0;
+  /** performance.now() of the last chunk during which the player had audio
+   *  scheduled. The tail is measured from here, which is why it survives the
+   *  player reporting itself idle the instant its last node ends. */
+  private lastPlaybackAt = 0;
+  /** Send unconditionally until this instant — the student is mid-sentence. */
+  private gateHangoverUntil = 0;
+  /** Discard arriving interviewer audio until this instant, or until the relay
+   *  confirms the barge-in. See LOCAL_BARGE_IN_HOLD_MS. */
+  private localBargeInHoldUntil = 0;
+  /** performance.now() of the last byte actually put on the wire, real or
+   *  keepalive. Drives ECHO_GATE_KEEPALIVE_MS. */
+  private lastUplinkAt = 0;
+  /** The gate state last announced to the relay, so the control frame is sent on
+   *  transitions only. `null` = nothing announced yet this session. */
+  private gateSignalled: boolean | null = null;
+  /** One reusable zeroed chunk for the keepalive: allocating the same silence 25
+   *  times a second would be pure GC pressure on the audio path. */
+  private silence: ArrayBuffer | null = null;
+  /**
+   * Above-threshold chunks held while the gate is still deciding, replayed in
+   * order the instant it opens. See BARGE_IN_PRIMER_CHUNKS. Cleared whenever the
+   * run of hot chunks breaks, so it can never carry audio from an earlier,
+   * abandoned candidate barge-in into a later one.
+   *
+   * Holding these buffers is safe: WORKLET_SRC allocates a fresh Int16Array per
+   * emit() and TRANSFERS it, so nothing on the audio thread can observe or reuse
+   * one after it arrives here.
+   */
+  private readonly primer: ArrayBuffer[] = [];
+
+  // Counters. Plain numbers — nothing renders them per frame; they are read once
+  // at the end of the session, which is the only moment they mean anything.
+  /** Chunks the gate withheld. Mirrored into `suppressedFrames`. */
+  private suppressedChunks = 0;
+  /** Zeroed chunks sent purely to keep the relay's idle watchdog alive. */
+  private keepaliveChunks = 0;
+  /** Times local energy opened the gate and flushed the player. */
+  private localBargeIns = 0;
+  /** Of those, the ones the relay then agreed with. localBargeIns minus this is
+   *  the false-positive count, and the number that tunes ECHO_GATE_MARGIN. */
+  private confirmedBargeIns = 0;
+  /** Interviewer frames dropped inside a local barge-in hold window. */
+  private heldPlaybackFrames = 0;
+  /** Chunks the gate has seen at all — counted whether or not suppression is
+   *  armed, so `mode=off` in the summary is a reachable, meaningful line rather
+   *  than a field that could only ever print `on`. Zero means no session ran,
+   *  which is how teardown() knows not to log a summary for an interview that
+   *  never started. */
+  private gateChunks = 0;
+  /** Withheld onset chunks actually replayed on gate open. The instrument for
+   *  the primer: zero here alongside a non-zero localBargeIns means the replay
+   *  is not firing and the student's word onsets are being lost again. */
+  private replayedPrimerChunks = 0;
+  /** performance.now() of the last diagnostic signal write. See
+   *  DIAGNOSTIC_PUBLISH_MS. */
+  private lastDiagnosticPublish = 0;
+
   /** Meter ballistics — owned here so a level left over from a previous
    *  interview cannot bleed into the next one's first frame. */
   private meterLevel = 0;
@@ -983,7 +1427,7 @@ export class InterviewService {
    * every failure lands in `state === 'error'` with a `notice` the student can
    * act on, which is the only terminal state Start is offered from again.
    */
-  async start(): Promise<void> {
+  async start(specialization: string | null = null): Promise<void> {
     if (this.active()) return;
 
     if (!this.secureContext) {
@@ -1005,9 +1449,17 @@ export class InterviewService {
     this._detail.set(null);
     this._elapsedSeconds.set(0);
     this._sessionMaxSeconds.set(DEFAULT_SESSION_MAX_S);
+    // Requested here, CONFIRMED by the relay in reep.ready. Both signals stay
+    // null until it answers, so the UI can never name a track the server refused.
+    this.requestedSpecialization = specialization;
+    this._specialization.set(null);
+    this._phase.set(null);
+    this._playbackLeadMs.set(Math.round(PLAYBACK_LEAD_MIN_S * 1000));
+    this._underruns.set(0);
     this.droppedChunks = 0;
     this.ready = false;
     this.ending = false;
+    this.resetEchoGate();
     this.assistantText.clear();
 
     // Release the microphone if the tab closes or the browser navigates away.
@@ -1090,11 +1542,19 @@ export class InterviewService {
     // field, and the cancellation branch below would then dereference null on
     // the one path it exists to clean up. MicCapture.stop() is idempotent, so
     // stopping through the local is safe even when teardown already stopped it.
-    const mic = new MicCapture(ctx, {
-      onChunk: (pcm) => this.sendAudio(pcm),
-      onLevel: (rms) => this.pushLevel(rms),
-      onError: (err) => this.fail(err.message),
-    });
+    const mic = new MicCapture(
+      ctx,
+      {
+        onChunk: (pcm, rms) => this.sendAudio(pcm, rms),
+        onLevel: (rms) => this.pushLevel(rms),
+        onError: (err) => this.fail(err.message),
+      },
+      // Fixed for the life of this session: the AGC constraint is negotiated
+      // once, at getUserMedia time. Toggling suppression mid-interview still
+      // takes effect on the GATE immediately (it is read per chunk); only the
+      // microphone's own level control waits for the next Start.
+      this._echoSuppression(),
+    );
     this.mic = mic;
 
     try {
@@ -1169,10 +1629,19 @@ export class InterviewService {
   // Uplink                                                             //
   // ------------------------------------------------------------------ //
 
-  /** @param pcm one 40 ms chunk, PCM16 LE mono @ 24 kHz */
-  private sendAudio(pcm: ArrayBuffer): void {
+  /**
+   * @param pcm one 40 ms chunk, PCM16 LE mono @ 24 kHz
+   * @param rms that chunk's RMS, 0..1, measured once in MicCapture
+   */
+  private sendAudio(pcm: ArrayBuffer, rms: number): void {
     const ws = this.ws;
     if (!ws || !this.ready || ws.readyState !== WebSocket.OPEN) return;
+
+    // Half-duplex FIRST, backpressure second: a chunk the gate withholds must
+    // not also be counted as a chunk the network dropped, or the two diagnostics
+    // become one indistinguishable number.
+    if (!this.gateAllows(pcm, rms, ws)) return;
+
     if (ws.bufferedAmount > MAX_UPLINK_BUFFERED_BYTES) {
       // The uplink cannot keep up. Buffering more only makes the interview more
       // stale; it never makes this audio arrive on time. Bounded and counted —
@@ -1190,6 +1659,347 @@ export class InterviewService {
     // that mangles binary frames; REEP's proxy does not, and halving the
     // accepted-input surface halves the bounds-checking that has to be right.
     ws.send(pcm);
+    // Real audio is what the relay's idle watchdog is actually waiting for, so
+    // it resets the keepalive interval too - otherwise the first suppressed
+    // chunk after a long answer would fire a pointless silent frame.
+    this.lastUplinkAt = performance.now();
+  }
+
+  // ------------------------------------------------------------------ //
+  // Echo gate                                                          //
+  // ------------------------------------------------------------------ //
+
+  /**
+   * Arm or disarm half-duplex echo suppression.
+   *
+   * Takes effect on the GATE immediately - it is read from the signal on every
+   * chunk - so a student who plugs headphones in mid-interview stops paying the
+   * 120 ms and gets full-duplex sending back at once. The microphone's own AGC
+   * constraint is negotiated at getUserMedia time and therefore waits for the
+   * next Start; re-negotiating a live track to flip one boolean is a bigger risk
+   * than the mismatch it would fix.
+   *
+   * Turning it OFF re-opens the gate and clears any hold, so no state from the
+   * suppressed period can strand the uplink shut.
+   */
+  setEchoSuppression(on: boolean): void {
+    if (this._echoSuppression() === on) return;
+    this._echoSuppression.set(on);
+    if (!on) {
+      this.hotChunks = 0;
+      this.echoWindowChunks = 0;
+      this.localBargeInHoldUntil = 0;
+      // Withheld audio from the suppressed period is stale the moment full
+      // duplex resumes; replaying it later would inject an old syllable into the
+      // middle of a live sentence.
+      this.primer.length = 0;
+      this.setGate(true);
+    }
+  }
+
+  /**
+   * Decide whether ONE captured chunk goes upstream. Capture never stops; this
+   * is the only thing the gate touches.
+   *
+   * While the interviewer is audible, a chunk must beat the MEASURED echo level
+   * by ECHO_GATE_MARGIN for BARGE_IN_CONSECUTIVE_CHUNKS in a row before it is
+   * believed to be the student. The reference is measured rather than guessed,
+   * so the discriminator calibrates itself to this room, this speaker volume and
+   * this microphone's gain - which is the only way a level gate can survive the
+   * ~20 dB spread in laptop microphone sensitivity.
+   */
+  private gateAllows(pcm: ArrayBuffer, rms: number, ws: WebSocket): boolean {
+    // Counted BEFORE the early-out, so a headphone session (suppression off)
+    // still logs a summary and `mode=off` is a line that can actually appear.
+    this.gateChunks++;
+    if (!this._echoSuppression()) return true;
+
+    const now = performance.now();
+    const player = this.player;
+    // Sampled per chunk rather than read as an instant: the player goes idle the
+    // moment its last node ends, and the ear is still hearing the room.
+    if (player?.isPlaying) this.lastPlaybackAt = now;
+    const echoWindow = this.lastPlaybackAt > 0 && now - this.lastPlaybackAt < ECHO_GATE_TAIL_MS;
+
+    if (!echoWindow) {
+      // Nothing is playing and the tail has expired. Full duplex, and the quiet
+      // is the opportunity to learn what quiet sounds like on this machine.
+      this.echoWindowChunks = 0;
+      this.hotChunks = 0;
+      this.primer.length = 0;
+      this.trackNoiseFloor(rms);
+      this.setGate(true);
+      return true;
+    }
+
+    // Inside a hangover opened by a detected barge-in: the student is
+    // mid-sentence, and re-closing on an inter-syllable gap would chop it.
+    if (now < this.gateHangoverUntil) return true;
+
+    this.setGate(false);
+    this.echoWindowChunks++;
+
+    if (this.echoWindowChunks <= ECHO_CALIBRATION_CHUNKS) {
+      // Measuring, not judging - but NEVER measuring the student. `echoRef` is
+      // stale at the top of a response, and judging against a stale reference is
+      // how a gate fires on the interviewer's own first syllable. A chunk above
+      // ECHO_REF_CEILING is, by that constant's own definition, louder than
+      // anything the reference is allowed to represent: letting it drive the 0.6
+      // attack pins echoRef at the ceiling in ONE chunk and jams the gate at
+      // three times it. That is reachable, not hypothetical - an unconfirmed
+      // barge-in expires back into the same response still playing, and
+      // calibration then restarts with the student provably mid-sentence.
+      if (rms <= ECHO_REF_CEILING) this.trackEchoRef(rms);
+      this.suppress();
+      this.keepAlive(ws, now);
+      return false;
+    }
+
+    // The margins RELAX with time-in-window - see GATE_MARGIN_RELAX_CHUNKS.
+    // Without this the threshold is fixed for the life of a response, nothing
+    // bounds how long the gate may refuse, and no other party can correct it:
+    // server VAD cannot see speech in audio that was never sent.
+    const relax = Math.min(1, this.echoWindowChunks / GATE_MARGIN_RELAX_CHUNKS);
+    const echoMargin =
+      ECHO_GATE_MARGIN + (ECHO_GATE_MARGIN_RELAXED - ECHO_GATE_MARGIN) * relax;
+    const floorMargin =
+      NOISE_FLOOR_MARGIN + (ECHO_GATE_MARGIN_RELAXED - NOISE_FLOOR_MARGIN) * relax;
+    const threshold = Math.max(
+      GATE_ABSOLUTE_MIN_RMS,
+      this.echoRef * echoMargin,
+      this.noiseFloor * floorMargin,
+    );
+
+    if (rms > threshold) {
+      if (++this.hotChunks >= BARGE_IN_CONSECUTIVE_CHUNKS) {
+        this.openGateForBargeIn(now);
+        // The head of the sentence goes out BEFORE the chunk that proved it, so
+        // the uplink carries one contiguous waveform.
+        this.flushPrimer(ws);
+        return true;
+      }
+      // Not yet convinced: HOLD the samples rather than destroy them. Still do
+      // NOT fold this chunk into the echo reference, which would teach the gate
+      // that the student's voice is echo, and still no keepalive, because the
+      // next chunk may be real audio.
+      if (this.primer.length >= BARGE_IN_PRIMER_CHUNKS) this.primer.shift();
+      this.primer.push(pcm);
+      this.suppress();
+      return false;
+    }
+
+    this.hotChunks = 0;
+    // The run broke: whatever was held was echo after all, and replaying echo
+    // upstream is the exact loop this gate exists to break.
+    this.primer.length = 0;
+    // This chunk is echo, or silence. Either way it is the measurement.
+    this.trackEchoRef(rms);
+    this.suppress();
+    this.keepAlive(ws, now);
+    return false;
+  }
+
+  /**
+   * Replay the withheld head of a barge-in, oldest first.
+   *
+   * Order is the whole point: PCM appended out of order is a click and a garbled
+   * first word. Skipped entirely under backpressure - stale audio queued behind a
+   * full send buffer helps nobody, and the ordinary drop counter already covers
+   * that case - and cleared either way, so nothing can be replayed twice.
+   */
+  private flushPrimer(ws: WebSocket): void {
+    if (this.primer.length === 0) return;
+    if (ws.bufferedAmount <= MAX_UPLINK_BUFFERED_BYTES) {
+      for (const chunk of this.primer) {
+        ws.send(chunk);
+        this.replayedPrimerChunks++;
+      }
+      this.lastUplinkAt = performance.now();
+    } else {
+      this.droppedChunks += this.primer.length;
+    }
+    this.primer.length = 0;
+  }
+
+  /**
+   * Local barge-in: three consecutive chunks well above the measured echo.
+   *
+   * Flush FIRST - the student is already talking over the interviewer and every
+   * millisecond of unflushed queue is audible - then hold arriving audio until
+   * the relay confirms. The flush alone is not enough: the relay keeps streaming
+   * and onMessage re-enqueues within one frame. Only the relay's own
+   * response.cancel stops it at source, and that cannot happen until the audio
+   * this method unblocks has reached the server's VAD.
+   */
+  private openGateForBargeIn(now: number): void {
+    this.hotChunks = 0;
+    this.echoWindowChunks = 0;
+    this.gateHangoverUntil = now + ECHO_GATE_HANGOVER_MS;
+    this.localBargeInHoldUntil = now + LOCAL_BARGE_IN_HOLD_MS;
+    this.localBargeIns++;
+    this.setGate(true);
+    this.player?.flush();
+    // flush() clears the scheduled set synchronously, so the echo window is over
+    // as of this instant; leaving the timestamp behind would keep the tail
+    // running against audio that has already been stopped.
+    this.lastPlaybackAt = 0;
+    if (this._state() === 'speaking') this.setState('listening');
+  }
+
+  /**
+   * The relay agreed: whatever opened the gate was real speech, and the response
+   * has been cancelled at source. Stop holding and let the (now finite) stream
+   * end naturally. An UNCONFIRMED hold needs no timer - it is a timestamp, so it
+   * simply expires and playback resumes on the next frame.
+   */
+  private confirmBargeIn(): void {
+    if (this.localBargeInHoldUntil === 0) return;
+    this.confirmedBargeIns++;
+    this.localBargeInHoldUntil = 0;
+  }
+
+  /** Gate state, mirrored to the signal and announced to the relay - on
+   *  transitions only, never per frame. */
+  private setGate(open: boolean): void {
+    if (this._echoGateOpen() === open && this.gateSignalled === open) return;
+    this._echoGateOpen.set(open);
+    if (this.gateSignalled === open) return;
+    this.gateSignalled = open;
+    const ws = this.ws;
+    if (!ws || !this.ready || ws.readyState !== WebSocket.OPEN) return;
+    try {
+      ws.send(JSON.stringify({ type: GATE_CONTROL_TYPE, state: open ? 'open' : 'suppressed' }));
+    } catch {
+      // A control frame is advisory: the relay ignores an event it does not
+      // know, and the client-side gate is correct without it. Never let the
+      // announcement break the interview it is describing.
+    }
+  }
+
+  /** One withheld chunk. The signal is published on the DIAGNOSTIC_PUBLISH_MS
+   *  cadence, not per chunk: this runs 25 times a second and every set() is a
+   *  change-detection pass for a number no eye can read at that rate. The
+   *  authoritative total is the plain field, and teardown() reads it directly. */
+  private suppress(): void {
+    this.suppressedChunks++;
+    const now = performance.now();
+    if (now - this.lastDiagnosticPublish < DIAGNOSTIC_PUBLISH_MS) return;
+    this.lastDiagnosticPublish = now;
+    this._suppressedFrames.set(this.suppressedChunks);
+  }
+
+  /**
+   * Keep the relay's idle watchdog alive while the uplink is held. Its last-audio
+   * clock advances only on an inbound audio frame, so an interviewer monologue
+   * longer than INTERVIEW_IDLE_SECONDS would otherwise be closed 4008 mid-answer.
+   * ZEROS, never the captured echo: digital silence provably cannot open a
+   * server-VAD turn, whereas forwarding the echo would re-create the very loop
+   * this gate exists to break.
+   */
+  private keepAlive(ws: WebSocket, now: number): void {
+    if (now - this.lastUplinkAt < ECHO_GATE_KEEPALIVE_MS) return;
+    if (ws.bufferedAmount > MAX_UPLINK_BUFFERED_BYTES) return;
+    this.silence ??= new ArrayBuffer(Math.round((CHUNK_MS * SAMPLE_RATE) / 1000) * 2);
+    try {
+      ws.send(this.silence);
+    } catch {
+      return;
+    }
+    this.keepaliveChunks++;
+    this.lastUplinkAt = now;
+  }
+
+  /** Peak-follower over the leakage: fast up, slow down, hard-capped. */
+  private trackEchoRef(rms: number): void {
+    const k = rms > this.echoRef ? ECHO_REF_ATTACK : ECHO_REF_RELEASE;
+    this.echoRef = Math.min(ECHO_REF_CEILING, this.echoRef + (rms - this.echoRef) * k);
+  }
+
+  /** Minimum-follower over the room: instant down, glacial up, hard-capped. */
+  private trackNoiseFloor(rms: number): void {
+    if (rms < this.noiseFloor) {
+      this.noiseFloor = rms; // a quieter room IS the new floor, at once
+      return;
+    }
+    // Only chunks that are not already loud enough to BE speech may raise it.
+    // This runs on every chunk OUTSIDE the echo window, which is exactly when
+    // the student is talking; without the test the follower learns their voice,
+    // and at NOISE_FLOOR_CEILING the threshold term becomes 0.02 * 4 = 0.08 —
+    // inside the 0.05-0.2 RMS this file documents for a normal speaking voice.
+    // Barge-in would then cost a raised voice for the rest of the session.
+    if (rms >= GATE_ABSOLUTE_MIN_RMS * NOISE_FLOOR_MARGIN) return;
+    this.noiseFloor = Math.min(
+      NOISE_FLOOR_CEILING,
+      this.noiseFloor + (rms - this.noiseFloor) * NOISE_FLOOR_RISE,
+    );
+  }
+
+  /** Every gate field back to first-run values. State from a previous interview
+   *  must not bleed into the next one's first frame - the same reason the meter
+   *  ballistics are reset in teardown(). */
+  private resetEchoGate(): void {
+    this.echoRef = 0;
+    this.noiseFloor = 0;
+    this.hotChunks = 0;
+    this.echoWindowChunks = 0;
+    this.lastPlaybackAt = 0;
+    this.gateHangoverUntil = 0;
+    this.localBargeInHoldUntil = 0;
+    // NOT zero: a fresh session has just sent nothing, and `now - 0` is already
+    // past the keepalive interval on any page open longer than ten seconds,
+    // which would fire a pointless silent chunk before the first real one.
+    this.lastUplinkAt = performance.now();
+    this.gateSignalled = null;
+    this.primer.length = 0;
+    this.suppressedChunks = 0;
+    this.keepaliveChunks = 0;
+    this.localBargeIns = 0;
+    this.confirmedBargeIns = 0;
+    this.heldPlaybackFrames = 0;
+    this.gateChunks = 0;
+    this.replayedPrimerChunks = 0;
+    this.lastDiagnosticPublish = 0;
+    this._suppressedFrames.set(0);
+    this._echoGateOpen.set(true);
+  }
+
+  /**
+   * One line, once, at the end of one session - so a support report can say WHY
+   * the audio was poor instead of guessing.
+   *
+   *   gate on/off        was suppression armed at all
+   *   suppressed/judged  how much uplink was withheld, out of how much was seen
+   *   keepalive          silent chunks sent to hold the relay's idle watchdog
+   *   bargeIn n/m        relay-confirmed / locally detected. n far below m means
+   *                      the threshold is too low and the gate is firing on echo
+   *                      or room noise: raise ECHO_GATE_MARGIN. n at m with a
+   *                      large m is simply a talkative student.
+   *   heldFrames         interviewer frames discarded during a hold. Large with
+   *                      a poor confirm rate is the same diagnosis.
+   *   replay             onset chunks replayed on gate open. Zero with a
+   *                      non-zero bargeIn denominator means the primer is not
+   *                      firing and word onsets are being lost.
+   *   echoRef/floor      the two measurements the threshold was built from. Both
+   *                      near zero means the gate never had anything to measure.
+   *   lead/underruns     the ADAPTIVE jitter buffer, and how often playback fell
+   *                      behind. A lead still at its floor with zero underruns
+   *                      means the network was never the reason the voice broke
+   *                      up; a lead at PLAYBACK_LEAD_MAX_S means it certainly
+   *                      was, and buffering could not save it.
+   */
+  private logEchoGateSummary(): void {
+    const unconfirmed = this.localBargeIns - this.confirmedBargeIns;
+    console.info(
+      '[interview] echo gate: ' +
+        `mode=${this._echoSuppression() ? 'on' : 'off'} ` +
+        `suppressed=${this.suppressedChunks}/${this.gateChunks} ` +
+        `keepalive=${this.keepaliveChunks} ` +
+        `bargeIn=${this.confirmedBargeIns}/${this.localBargeIns} (unconfirmed=${unconfirmed}) ` +
+        `heldFrames=${this.heldPlaybackFrames} replay=${this.replayedPrimerChunks} ` +
+        `dropped=${this.droppedChunks} ` +
+        `echoRef=${this.echoRef.toFixed(4)} floor=${this.noiseFloor.toFixed(4)} ` +
+        `lead=${this._playbackLeadMs()}ms underruns=${this._underruns()}`,
+    );
   }
 
   // ------------------------------------------------------------------ //
@@ -1202,6 +2012,13 @@ export class InterviewService {
     // cookie this handshake authenticates with.
     const url = new URL(`${environment.apiBase}/interview`, location.href);
     url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // A browser WebSocket cannot set headers, so the query string is the only
+    // channel. The relay reads it off query_params and closes 4010 on a key it
+    // does not know, so an OMITTED key is the generic interview and a WRONG key
+    // is loud — never a silent downgrade to a persona the student did not pick.
+    if (this.requestedSpecialization) {
+      url.searchParams.set('specialization', this.requestedSpecialization);
+    }
     return url.href;
   }
 
@@ -1237,6 +2054,20 @@ export class InterviewService {
     // Binary frame = raw PCM from the relay, already decoded server-side so the
     // browser does not base64-decode 48 kB/s.
     if (event.data instanceof ArrayBuffer) {
+      // A local barge-in has flushed the queue and is waiting for the relay to
+      // cancel the response at source. Everything arriving in that window is
+      // audio the student has already talked over, and enqueuing it would undo
+      // the flush within one frame. Bounded by LOCAL_BARGE_IN_HOLD_MS and
+      // counted - never a silent discard.
+      if (this.localBargeInHoldUntil > 0) {
+        if (performance.now() < this.localBargeInHoldUntil) {
+          this.heldPlaybackFrames++;
+          return;
+        }
+        // Expired unconfirmed: the detection was a false positive. Resume, and
+        // let the summary's bargeIn ratio say so.
+        this.localBargeInHoldUntil = 0;
+      }
       this.player?.enqueue(event.data);
       if (this._state() !== 'speaking') this.setState('speaking');
       return;
@@ -1280,6 +2111,12 @@ export class InterviewService {
         // with no two-minute warning.
         const cap = num(obj(msg['limits'])?.['session_max_seconds']);
         if (cap !== null && cap > 0) this._sessionMaxSeconds.set(cap);
+        // Server-reported, alongside `limits`, for the same reason: the relay is
+        // the authority on what this session is ACTUALLY running. It answers
+        // null for the generic interview, which is exactly what the picker's
+        // `key: null` row means.
+        this._specialization.set(str(msg['specialization']));
+        this._phase.set(str(msg['phase']));
         this.setState('ready');
         this.writeLine(
           this.nextSystemKey(),
@@ -1290,17 +2127,40 @@ export class InterviewService {
         break;
       }
 
+      case 'reep.phase': {
+        // Pushed between turns when the server-side state machine advances. The
+        // label is resent with it so a UI that missed reep.ready still names the
+        // track rather than showing a phase with no interview attached to it.
+        this._phase.set(str(msg['phase']));
+        const label = str(msg['specialization']);
+        if (label) this._specialization.set(label);
+        break;
+      }
+
       case 'input_audio_buffer.speech_started':
       case 'reep.audio.flush': {
         // Barge-in. Flush FIRST: the student is already talking over the
         // interviewer and every millisecond of unflushed queue is audible.
         this.player?.flush();
+        // The relay agrees. If this flush is answering a barge-in the gate
+        // detected locally, stop holding: the response is cancelled at source,
+        // so what arrives next is the end of a finite stream, not a voice
+        // talking over the student.
+        this.confirmBargeIn();
+        this.lastPlaybackAt = 0;
         if (type === 'input_audio_buffer.speech_started') this.setState('listening');
         break;
       }
 
       case 'input_audio_buffer.speech_stopped':
+        this.setState('thinking');
+        break;
+
       case 'response.created':
+        // A new PCM stream begins here, so any odd-byte carry left over from the
+        // previous one must go: it has no next byte, and prepending it would
+        // byte-misalign this whole response into white noise.
+        this.player?.beginResponse();
         this.setState('thinking');
         break;
 
@@ -1419,6 +2279,16 @@ export class InterviewService {
     // session after this teardown has run.
     this.sessionGen++;
 
+    // Exactly once per interview that actually ran: teardown() is reached from
+    // end(), onClose(), fail() AND the top of start(), and gateChunks is reset
+    // immediately below, so a session that judged no audio logs nothing. The
+    // final poll happens FIRST because the player is disposed further down and
+    // the lead it grew to is half of what the summary line is for.
+    this.publishPlaybackStats();
+    this._suppressedFrames.set(this.suppressedChunks);
+    if (this.gateChunks > 0) this.logEchoGateSummary();
+    this.resetEchoGate();
+
     if (this.pageHideHandler) {
       window.removeEventListener('pagehide', this.pageHideHandler);
       this.pageHideHandler = null;
@@ -1485,7 +2355,24 @@ export class InterviewService {
       if (!analyser) return;
       analyser.getFloatTimeDomainData(this.aiWindow);
       this._aiRms.set(rmsOfFloat(this.aiWindow));
+      this.publishPlaybackStats();
     }, AI_LEVEL_INTERVAL_MS);
+  }
+
+  /**
+   * Mirror the scheduler's two diagnostics into signals.
+   *
+   * Polled off the timer that already runs rather than pushed from enqueue(),
+   * which is on the audio path — and written ONLY when the value moved, so a
+   * clean session costs zero change-detection passes no matter how long it runs.
+   */
+  private publishPlaybackStats(): void {
+    const player = this.player;
+    if (!player) return;
+    const underruns = player.underrunCount;
+    if (underruns !== this._underruns()) this._underruns.set(underruns);
+    const leadMs = Math.round(player.leadSeconds * 1000);
+    if (leadMs !== this._playbackLeadMs()) this._playbackLeadMs.set(leadMs);
   }
 
   /**

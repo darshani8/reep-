@@ -4,6 +4,9 @@ An exhaustive, teaching-first account of the REEP stack: what every module does,
 every line reads the way it does, which rule each piece of code exists to protect, and
 the naming conventions that keep 34,000 lines legible.
 
+**Fifteen chapters, 270,277 words, complete.** Chapters 15 and 16 were merged into one closing
+volume covering both the rulebook and the runbooks.
+
 This is written to be *read in order* by someone who has never opened the repo, and
 *grepped out of order* by someone who has. Every chapter cites real files and real
 symbols — `path/to/file.py:120` — so nothing here is a paraphrase you cannot check.
@@ -36,8 +39,7 @@ verification are rewritten, not shipped with a caveat.
 | 12 | [Frontend Architecture](12-frontend-architecture.md) | Bootstrap, lazy routes, `core/` services, guards, the shell, signals |
 | 13 | [Frontend Features](13-frontend-features.md) | Every feature component, the resume builder, the assistant UI |
 | 14 | [The Design System](14-design-system.md) | `reep-v2.scss`, the kit, `tone.ts`, charts, the colour-plus-text rule |
-| 15 | [Naming Conventions & The Rulebook](15-conventions-rulebook.md) | Every convention and every rule, in one place |
-| 16 | [Ops, Testing & Runbooks](16-ops-testing.md) | Docker, env vars, the two requirements files, the two seeds, the suite, failure modes |
+| 15 | [Conventions, Rules and Running It](15-conventions-rules-ops.md) | The complete naming compendium and rulebook, plus docker, env vars, the two requirements files, the two seeds, the suite, CI and every runbook |
 
 Open questions and confirmed defects the council turned up while writing are tracked in
 [FINDINGS.md](FINDINGS.md). Readers flag what they cannot verify rather than inventing it,
@@ -59,7 +61,9 @@ and some of those flags were real.
 | 10 | Vector DB & the Knowledge Base | **done** — 14,251 words; 40 defects raised, 38 fixed, 2 rejected after the reviser re-ran the query and checked the seed path, 235 references verified |
 | 11 | The Voice Assistant | **done** — 16,790 words, 57 subsections; 44 defects raised, 44 fixed, 2 judge claims rejected on evidence, 158 references verified |
 | 12 | Frontend Architecture | **done** — 19,005 words, 4 diagrams; 39 defects raised, 39 fixed, 5 judge claims rejected after the reviser re-checked the source, 238 references verified |
-| 13–16 | Frontend Features · Design System · Rulebook · Ops | pending |
+| 13 | Frontend Features | **done** — 23,425 words, 12 sections; 43 defects raised, 40 applied, 3 rejected on evidence, 241 references verified |
+| 14 | The Design System | **done** — 21,539 words, 62 subsections; the colour-plus-text rule audited across every template and **four real violations found** |
+| 15 | Conventions, Rules and Running It | **done** — 31,197 words, 13 sections; the complete rulebook, the env reference, the suite, and every runbook |
 
 > Chapters 6 and 7 were interrupted mid-review by a session quota limit and later resumed
 > from cache — the surveys and drafts replayed free, and only the lost judge, revise and

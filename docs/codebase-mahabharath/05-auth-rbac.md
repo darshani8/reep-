@@ -1483,7 +1483,7 @@ effect is therefore **dead ingestion, not an open door**: the legitimate worker'
 500, no `VoiceWorkerHeartbeat` row is ever written, `_worker_healthy` stays false, and
 `POST /api/voice/token` starts returning 409. The forged-heartbeat abuse the docstring
 describes is reachable only with a blank secret under `ENV=dev`. See
-[docs/codebase-bible/FINDINGS.md](docs/codebase-bible/FINDINGS.md), the "Drift and stale
+[docs/codebase-mahabharath/FINDINGS.md](docs/codebase-mahabharath/FINDINGS.md), the "Drift and stale
 comments" bullet titled *"The lifespan warning overstates the prod case"*. Chapter 11 covers
 the status/token gate.
 
@@ -1608,7 +1608,7 @@ Nothing anywhere in `apps/api-py/tests` exercises:
 - **The unknown-email 401 branch**, and that it is byte-identical to the wrong-password one.
 - **`POST /api/register`** — none of its three status codes (201, 422, 409) is asserted in
   `tests/test_auth_rbac.py`.
-- **The `lifespan` warning branch** — [docs/codebase-bible/FINDINGS.md](docs/codebase-bible/FINDINGS.md),
+- **The `lifespan` warning branch** — [docs/codebase-mahabharath/FINDINGS.md](docs/codebase-mahabharath/FINDINGS.md),
   under "Unresolved questions": *"No test covers the lifespan warning branch"* (no `caplog` in
   `tests/`, nothing sets `ENV=prod` at app construction). Confirmed by grep.
 

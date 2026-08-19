@@ -1,12 +1,12 @@
 <kit-page-intro
-  title="REEP Agent"
-  subtitle="Ask about deadlines, the placement process, how to read your dashboard — anything about REEP."
+  title="Mock interview"
+  subtitle="A realtime AI interviewer. It asks one question at a time, critiques how you answered, and moves on — out loud, like the real thing."
 >
   <button
     action
     type="button"
     class="btn btn--small"
-    [disabled]="sending() || history().length === 0"
+    [disabled]="active() || history().length === 0"
     (click)="clearConversation()"
   >
     Clear conversation
@@ -14,28 +14,40 @@
   <button
     action
     type="button"
-    class="btn btn--small voice"
-    [class.voice--on]="voiceActive()"
-    [disabled]="voice() === 'connecting' || voice() === 'permission-check'"
-    [attr.aria-pressed]="voiceActive()"
-    (click)="toggleVoice()"
+    class="btn btn--primary btn--small stage__cta"
+    [class.stage__cta--end]="active()"
+    [disabled]="!active() && !canStart()"
+    [attr.aria-pressed]="active()"
+    (click)="toggle()"
   >
-    <span class="voice__dot" [class.voice__dot--live]="audioPlaying()"></span>
-    {{ voiceLabel() }}
+    {{ active() ? 'End interview' : 'Start interview' }}
   </button>
 </kit-page-intro>
 
 <p class="assist-note reep-body2">
-  The REEP Agent is a general helper — it does not see your private records, marks or attendance. For
-  your own figures, open <a class="assist-note__link" routerLink="/student/records">your records</a>.
-  For anything it can't resolve, contact your mentor.
+  The interviewer hears your voice and nothing else — it cannot see your marks, attendance or USN.
+  For your own figures, open <a class="assist-note__link" routerLink="/student/records">your records</a>.
+  Every question and answer is saved to your conversation below, and you can clear it at any time.
 </p>
 
-@if (error()) {
-  <p class="err reep-body2" role="alert">{{ error() }}</p>
+@if (!isStudent()) {
+  <p class="err reep-body2" role="status">
+    Mock interviews are a student feature. Your past conversation is still shown below.
+  </p>
 }
 
-<!-- One-time voice consent disclosure — shown before the FIRST voice session. -->
+@if (!secureContext) {
+  <p class="err reep-body2" role="alert">
+    REEP must be open over HTTPS (or from localhost) before the microphone can be used. This is the
+    usual cause when the dev server is opened from a phone by IP address.
+  </p>
+}
+
+@if (historyError()) {
+  <p class="err reep-body2" role="alert">{{ historyError() }}</p>
+}
+
+<!-- One-time disclosure — shown before the FIRST interview, never after. -->
 @if (showConsent()) {
   <div
     class="consent"
@@ -52,320 +64,138 @@
       (keydown.tab)="trapConsentTab($event)"
       (keydown.shift.tab)="trapConsentTab($event)"
     >
-      <h2 id="consent-title" class="consent__title reep-h6">Before you start voice</h2>
+      <h2 id="consent-title" class="consent__title reep-h6">Before your first interview</h2>
       <div id="consent-body" class="consent__body reep-body2">
         <p>
-          Your speech is carried by <strong>LiveKit</strong> and transcribed and
-          answered by <strong>Groq</strong>. Nothing from your student record —
-          marks, attendance, USN — is sent to them.
+          Your microphone audio is sent to the interview model to be heard and transcribed. Nothing
+          from your student record — marks, attendance, USN — is sent with it, and the interviewer
+          cannot look any of it up.
         </p>
         <p class="consent__warn">
-          Please don't share marks, attendance, medical information, passwords or other sensitive
-          personal details by voice.
+          So please don't say marks, attendance, medical information, passwords or other sensitive
+          personal details out loud during the interview.
         </p>
         <p>
-          Transcripts of the conversation are saved to your conversation and can be cleared any
-          time with <strong>Clear conversation</strong>. For your own figures, open
-          <a class="assist-note__link" routerLink="/student/records">your records</a>.
+          The transcript is saved to your conversation on this page and can be deleted at any time
+          with <strong>Clear conversation</strong>.
         </p>
       </div>
       <div class="consent__actions">
         <button type="button" class="btn" (click)="cancelConsent()">Cancel</button>
         <button type="button" class="btn btn--primary" (click)="acceptConsent()">
-          I understand — start voice
+          I understand — start the interview
         </button>
       </div>
     </div>
   </div>
 }
 
-<!-- Live voice panel — controls, indicator, duration and transcript. -->
-@if (voicePanelOpen()) {
-  <section class="vpanel" aria-label="Voice session">
-    <div class="vpanel__bar">
-      <div
-        class="vpanel__status"
-        [attr.data-state]="voice()"
-        role="status"
-        aria-live="polite"
+@if (notice(); as banner) {
+  <div
+    class="banner"
+    [attr.data-tone]="banner.tone"
+    [attr.role]="banner.tone === 'error' ? 'alert' : 'status'"
+  >
+    <span class="banner__text">{{ banner.text }}</span>
+    <button type="button" class="link-btn banner__dismiss" (click)="dismissNotice()">
+      Dismiss
+    </button>
+  </div>
+}
+
+<section class="stage" aria-label="Interview">
+  <!--
+    The orb. Its parent already carries `.rvz-overlay`, so VoiceVisualizer ADOPTS
+    it rather than wrapping the canvas in a full-screen overlay of its own; the
+    stylesheet then lays it out inline at `.orb.rvz-overlay`. Decoration only —
+    every word of status lives in the pill and caption beneath it.
+  -->
+  <div class="orb rvz-overlay" aria-hidden="true">
+    <canvas #orbCanvas class="orb__canvas"></canvas>
+  </div>
+
+  <div class="stage__status" [attr.data-state]="state()" role="status" aria-live="polite">
+    <span class="stage__dot"></span>
+    <span class="stage__label">{{ statusLabel() }}</span>
+  </div>
+
+  <p class="stage__caption reep-body2">{{ statusCaption() }}</p>
+
+  @if (active()) {
+    <div class="stage__meta">
+      <span
+        class="stage__clock"
+        [class.stage__clock--warn]="clockWarning()"
+        aria-label="Session duration"
       >
-        <span class="vpanel__pulse" [class.vpanel__pulse--live]="audioPlaying()"></span>
-        <span class="vpanel__state">{{ voiceStatusLabel() }}</span>
-      </div>
+        <time>{{ clockLabel() }}</time>
+        <span class="stage__cap"> / {{ capLabel() }}</span>
+      </span>
 
-      @if (voiceActive()) {
-        <span class="vpanel__timer" aria-label="Call duration">{{ durationLabel() }}</span>
-      }
-
-      <div class="vpanel__controls">
-        @if (voiceActive()) {
-          <button
-            type="button"
-            class="btn btn--small"
-            [class.voice--on]="micMuted()"
-            [attr.aria-pressed]="micMuted()"
-            (click)="toggleMute()"
-          >
-            {{ micMuted() ? 'Unmute' : 'Mute' }}
-          </button>
-          <button type="button" class="btn btn--small" (click)="continueInText()">
-            Continue in text
-          </button>
-          <button type="button" class="btn btn--small voice--on" (click)="toggleVoice()">
-            End voice
-          </button>
-        }
-        @if (voice() === 'error') {
-          <button type="button" class="btn btn--small btn--primary" (click)="retryVoice()">
-            Retry
-          </button>
-          <button type="button" class="btn btn--small" (click)="continueInText()">
-            Continue in text
-          </button>
-        }
-      </div>
+      <span class="meter" aria-label="Microphone level">
+        <span
+          class="meter__track"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-valuenow]="micPercent()"
+        >
+          <span class="meter__fill" [style.width.%]="micPercent()"></span>
+        </span>
+        <span class="meter__value">{{ micPercent() }}%</span>
+      </span>
     </div>
+  }
+</section>
 
-    @if (voice() === 'error' && !micDenied()) {
-      <p class="vpanel__reason reep-body2" role="alert">
-        {{ voiceError() ?? 'Voice is not available right now.' }}
+<section class="tscript" aria-label="Interview transcript">
+  <h2 class="tscript__title reep-h6">This interview</h2>
+  <div #transcript class="tscript__log" role="log" aria-live="polite">
+    @if (lines().length === 0) {
+      <p class="tscript__empty reep-body2">
+        The live transcript appears here as you and the interviewer speak.
       </p>
+    } @else {
+      @for (line of lines(); track line.key) {
+        <p
+          class="tline"
+          [attr.data-role]="line.role"
+          [class.tline--partial]="line.partial"
+        >
+          <span class="tline__who">{{
+            line.role === 'interviewer' ? 'Interviewer' : line.role === 'you' ? 'You' : 'Session'
+          }}</span>
+          <span class="tline__text">{{ line.text }}</span>
+        </p>
+      }
     }
+  </div>
+</section>
 
-    @if (micDenied()) {
-      <p class="vpanel__reason reep-body2" role="alert">
-        Microphone access is blocked. Allow the mic for this site in your browser's address-bar
-        permissions, then press Retry. You can always
-        <button type="button" class="link-btn" (click)="continueInText()">continue in text</button>.
+<section class="convo" aria-label="Saved conversation">
+  <button
+    type="button"
+    class="convo__toggle link-btn"
+    [attr.aria-expanded]="historyOpen()"
+    (click)="toggleHistory()"
+  >
+    {{ historyOpen() ? 'Hide' : 'Show' }} saved conversation ({{ history().length }})
+  </button>
+
+  @if (historyOpen()) {
+    @if (history().length === 0) {
+      <p class="convo__empty reep-body2">
+        Nothing saved yet. Finish an interview and its questions and answers appear here.
       </p>
-    }
-
-    @if (voiceTranscript().length) {
-      <div class="vpanel__transcript" role="log" aria-label="Voice transcript" aria-live="polite">
-        @for (turn of voiceTranscript(); track $index) {
-          <p class="vturn" [class.vturn--user]="turn.role === 'user'">
-            <span class="vturn__who">{{ turn.role === 'user' ? 'You' : 'Agent' }}</span>
-            <span class="vturn__text">{{
-              turn.structured ? turn.structured.answer : turn.content
-            }}</span>
+    } @else {
+      <div class="convo__log" role="log">
+        @for (turn of history(); track $index) {
+          <p class="cturn" [class.cturn--user]="turn.role === 'user'">
+            <span class="cturn__who">{{ turn.role === 'user' ? 'You' : 'Interviewer' }}</span>
+            <span class="cturn__text">{{ turnText(turn) }}</span>
           </p>
         }
       </div>
     }
-  </section>
-}
-
-<div class="chat">
-  <div #scroller class="chat__log" role="log" aria-live="polite">
-    @if (history().length === 0) {
-      <div class="chat__empty reep-body2">
-        <p class="chat__empty-lead">Start the conversation, or pick a starter below.</p>
-        <div class="quick-prompts quick-prompts--empty">
-          @for (prompt of quickPrompts; track prompt) {
-            <button
-              type="button"
-              class="quick-prompt"
-              [disabled]="sending()"
-              (click)="sendPrompt(prompt)"
-            >
-              {{ prompt }}
-            </button>
-          }
-        </div>
-      </div>
-    } @else {
-      @for (turn of history(); track $index; let ti = $index) {
-        <div class="msg" [class.msg--user]="turn.role === 'user'">
-          <div class="msg__col">
-            <div
-              class="msg__bubble"
-              [class.msg__bubble--failed]="turn.status === 'failed'"
-            >
-              {{ turn.role === 'assistant' && turn.structured ? turn.structured.answer : turn.content }}
-            </div>
-
-            @if (turn.role === 'user' && turn.status) {
-              <div
-                class="retry"
-                [class.retry--failed]="turn.status === 'failed'"
-                role="alert"
-              >
-                <span class="retry__label">{{
-                  turn.status === 'failed' ? "Couldn't answer" : 'Stopped'
-                }}</span>
-                <button
-                  type="button"
-                  class="link-btn"
-                  [disabled]="sending()"
-                  (click)="retry(turn.content)"
-                >
-                  Retry
-                </button>
-              </div>
-            }
-
-            @if (turn.role === 'assistant') {
-              @if (turn.structured) {
-                @if (turn.structured.actions.length) {
-                  <div class="cards" role="list" aria-label="Suggested next steps">
-                    @for (action of turn.structured.actions; track action.route + action.label) {
-                      <a class="card" role="listitem" [routerLink]="action.route">
-                        <span class="card__arrow" aria-hidden="true">→</span>
-                        <span class="card__body">
-                          <span class="card__label">{{ action.label }}</span>
-                          @if (action.reason) {
-                            <span class="card__reason">{{ action.reason }}</span>
-                          }
-                        </span>
-                      </a>
-                    }
-                  </div>
-                }
-
-                @if (turn.structured.sources.length) {
-                  <div class="sources" aria-label="Sources">
-                    @for (source of turn.structured.sources; track $index) {
-                      <span class="source source--{{ source.type }}"
-                        >Source: {{ source.label }}</span
-                      >
-                    }
-                  </div>
-                }
-
-                @if (turn.structured.limitations.length) {
-                  <div class="limits reep-caption" role="note">
-                    @for (limit of turn.structured.limitations; track $index) {
-                      <p class="limits__item">{{ limit }}</p>
-                    }
-                  </div>
-                }
-              }
-
-              <div class="msg__tools">
-                <button type="button" class="link-btn" (click)="copy(turn, ti)">
-                  {{ copiedIndex() === ti ? 'Copied' : 'Copy' }}
-                </button>
-
-                <!-- Feedback controls — only on fresh /ask turns (run_id present). -->
-                @if (turn.structured?.run_id; as runId) {
-                  <span class="feedback" role="group" aria-label="Rate this answer">
-                    <button
-                      type="button"
-                      class="feedback__btn"
-                      [class.feedback__btn--on]="feedbackFor(runId) === 'helpful'"
-                      [attr.aria-pressed]="feedbackFor(runId) === 'helpful'"
-                      aria-label="Helpful"
-                      title="Helpful"
-                      (click)="vote(runId, 'helpful')"
-                    >
-                      <span aria-hidden="true">👍</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="feedback__btn"
-                      [class.feedback__btn--on]="feedbackFor(runId) === 'not_helpful'"
-                      [attr.aria-pressed]="feedbackFor(runId) === 'not_helpful'"
-                      aria-label="Not helpful"
-                      title="Not helpful"
-                      (click)="vote(runId, 'not_helpful')"
-                    >
-                      <span aria-hidden="true">👎</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="link-btn feedback__report"
-                      [attr.aria-expanded]="reportOpenIndex() === ti"
-                      (click)="toggleReport(ti)"
-                    >
-                      Report
-                    </button>
-                    @if (feedbackFor(runId)) {
-                      <span class="feedback__ack" role="status">Thanks for the feedback</span>
-                    }
-                  </span>
-                }
-              </div>
-
-              @if (turn.structured?.run_id; as runId) {
-                @if (reportOpenIndex() === ti) {
-                  <div class="report">
-                    <label class="report__label" [attr.for]="'report-note-' + ti">
-                      Tell us what went wrong (optional)
-                    </label>
-                    <textarea
-                      [id]="'report-note-' + ti"
-                      class="report__input"
-                      rows="2"
-                      placeholder="What was inaccurate or unhelpful?"
-                      [value]="reportNote()"
-                      (input)="onReportInput($event)"
-                    ></textarea>
-                    <div class="report__actions">
-                      <button
-                        type="button"
-                        class="btn btn--small btn--primary"
-                        (click)="submitReport(runId)"
-                      >
-                        Submit report
-                      </button>
-                      <button type="button" class="btn btn--small" (click)="toggleReport(ti)">
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                }
-              }
-            }
-          </div>
-        </div>
-      }
-    }
-    @if (sending()) {
-      <div class="msg">
-        <div class="msg__bubble msg__bubble--typing">
-          <span></span><span></span><span></span>
-        </div>
-      </div>
-    }
-  </div>
-
-  @if (history().length > 0) {
-    <div class="quick-prompts quick-prompts--bar" role="group" aria-label="Quick prompts">
-      @for (prompt of quickPrompts; track prompt) {
-        <button
-          type="button"
-          class="quick-prompt"
-          [disabled]="sending()"
-          (click)="sendPrompt(prompt)"
-        >
-          {{ prompt }}
-        </button>
-      }
-    </div>
   }
-
-  <div class="chat__compose">
-    <textarea
-      #composer
-      class="chat__input"
-      rows="1"
-      placeholder="Message the REEP Agent…"
-      [value]="draft()"
-      (input)="onInput($event)"
-      (keydown)="onKeydown($event)"
-    ></textarea>
-    @if (sending()) {
-      <button type="button" class="btn chat__stop" (click)="stop()">Stop</button>
-    } @else {
-      <button
-        type="button"
-        class="btn btn--primary chat__send"
-        [disabled]="draft().trim().length === 0"
-        (click)="send()"
-      >
-        Send
-      </button>
-    }
-  </div>
-  <p class="chat__hint reep-caption">Enter to send · Shift+Enter for a new line</p>
-</div>
+</section>

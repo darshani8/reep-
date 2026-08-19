@@ -1,63 +1,46 @@
-# =============================================================================
-# SUPERSEDED — 2026-08. DO NOT DEPLOY THIS PROCESS. RETAINED FOR REFERENCE.
-#
-# The mock interviewer now runs INSIDE the REEP API, not as a fifth process:
-#
-#   engine  -> apps/api-py/app/interview_relay.py   (this file, ported)
-#   boundary-> apps/api-py/app/routers/interview.py (auth, DB, concurrency cap)
-#   mounted -> WS /api/interview, GET /api/interview/status
-#
-# NOTHING HAS BEEN DELETED, so a rollback is re-pointing the client rather than
-# restoring code from git. But this app must never be run in front of students,
-# for two reasons that the ported version fixes and this one structurally
-# cannot:
-#
-#   1. NO AUTHENTICATION. `@app.websocket("/ws/interview")` below gates on the
-#      Origin header alone, which any non-browser client sets freely — and
-#      config.py's is_origin_allowed() returns True for a MISSING Origin
-#      whenever ENV != prod. Anyone who can reach the port opens a billed
-#      OpenAI Realtime session; at max_concurrent_sessions that is 100
-#      simultaneous 15-minute sessions of the operator's spend, with no student
-#      attached to any of it. The port authenticates with REEP's own httpOnly
-#      reep_session cookie and refuses any caller who is not a STUDENT.
-#   2. NO PERSISTENCE. This process has no database at all, so every question
-#      and answer is forwarded to the browser and dropped — the AGENTS.md
-#      runbook query would never grow an interview row. The port writes turns
-#      through app/conversations.py into the same conversations/messages tables
-#      the text agent and the LiveKit worker use.
-#
-# Keep this directory until the interviewer has held up in front of real
-# students, then delete it whole. Do not "fix" it into a second live entry
-# point: two relays with two personas and two configs is how the one that is
-# not being read drifts into being the one that is running.
-# =============================================================================
+"""The OpenAI Realtime relay behind the REEP mock interviewer.
 
-"""FastAPI application and the OpenAI Realtime relay for the REEP mock interviewer.
+    browser  <--WS /api/interview-->  THIS PROCESS  <--WS-->  api.openai.com
 
-Shape of the thing:
+The browser never talks to OpenAI. OPENAI_API_KEY is attached to exactly one
+socket -- the outbound `Authorization: Bearer` header opened in
+`_upstream_connector` -- and is never serialised downstream, never echoed inside
+an error the browser can see, and never logged. That containment is the entire
+reason this relay exists; a browser-side ephemeral token would put a spendable
+credential on a student's laptop. app/main.py pins the `websockets` logger to
+INFO so a DEBUG log level cannot print that header into the API log.
 
-    browser  <--WebSocket-->  THIS PROCESS  <--WebSocket-->  api.openai.com
+RULE 1 (AGENTS.md). api.openai.com is a REMOTE provider, so NO student record
+enters this session: no marks, attendance, CGPA, USN or resume text. The ONLY
+thing this module authors upstream is `_INTERVIEWER_PERSONA`, which is a fixed
+string with no student data in it and which tells the model plainly that it
+cannot see the dashboard. Everything else on the uplink is the student's own
+microphone. Nothing here imports app.assistant_tools, app.knowledge or any ORM
+model, and that is the point. If the interview is ever personalised (branch,
+CGPA, target company), that path must go through
+complete_chat(..., carries_student_data=True) in app/ai/llm.py and degrade to
+this generic persona when the gate refuses -- the same shape as
+/student/resume/generate falling back to used_ai=false.
 
-The browser never talks to OpenAI. The API key is attached to exactly one socket
--- the outbound `Authorization: Bearer` header opened in `_upstream_connector` --
-and is never serialised downstream, never echoed inside an error the browser can
-see, and never logged. That containment is the entire reason this relay exists;
-a browser-side ephemeral token would put a spendable credential on a student's
-laptop.
+This module is the ENGINE only: one class per interview, plus the concurrency
+cap and the close helper. Authentication, the STUDENT check, the conversation
+and the database live in app/routers/interview.py, which is the only caller.
 
 Wire format, both directions, deliberately asymmetric between audio and control:
 
     browser -> relay : BINARY frames  = raw PCM16 LE mono 24 kHz
                        TEXT frames    = JSON control ({"type": "reep.end"}, ...)
     relay -> browser : BINARY frames  = raw PCM16 LE mono 24 kHz (decoded)
-                       TEXT frames    = JSON control (see _FORWARD_DOWNSTREAM)
+                       TEXT frames    = JSON control
 
 Audio crosses the browser link as raw bytes rather than base64-in-JSON, which
 removes one encode and one decode per frame per direction. WebSocket preserves
-ordering across binary and text frames on a single connection, so a control event
-("the student started speaking") cannot overtake the audio it refers to.
+ordering across binary and text frames on a single connection, so a control
+event ("the student started speaking") cannot overtake the audio it refers to.
 
-Run it:  uvicorn app.server:app --host 127.0.0.1 --port 8080
+Ported from apps/interview-realtime/app/server.py (2026-08), which was a
+standalone process with no REEP authentication and is now superseded; see the
+header on that file.
 """
 
 from __future__ import annotations
@@ -67,23 +50,18 @@ import base64
 import contextlib
 import json
 import logging
-import signal
 import time
-import uuid
 from binascii import Error as BinasciiError
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import Callable
 from typing import Any, Final, TypeVar
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi import WebSocket, WebSocketDisconnect
 
 # Via fastapi, not `from starlette.websockets import ...` directly: starlette is
 # a TRANSITIVE dependency here and requirements.txt pins fastapi rather than
-# starlette (the same convention as apps/api-py). Importing it directly meant
-# this module depended on a package whose version nothing in this repo fixes,
-# under fastapi's own floor of `starlette>=0.46.0`. This is the identical object.
+# starlette (the same convention as the rest of apps/api-py). Importing it
+# directly meant this module depended on a package whose version nothing in this
+# repo fixes, under fastapi's own floor of `starlette>=0.46.0`. Identical object.
 from fastapi.websockets import WebSocketState
 from websockets.asyncio.client import ClientConnection, connect as ws_connect
 from websockets.exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
@@ -114,7 +92,20 @@ _INTERVIEWER_PERSONA: Final[str] = (
     "question at a time. Do not interrupt the student while they are speaking. "
     "After they finish answering, provide a 1-sentence micro-feedback critique "
     "focusing on their structure (STAR method), pacing, or vocabulary, then "
-    "seamlessly transition to the next logical interview question."
+    "seamlessly transition to the next logical interview question.\n"
+    "\n"
+    # AGENTS.md rule 1, stated to the model as well as enforced by construction.
+    # Nothing in this process puts a student record into this prompt, so there is
+    # nothing personal here to leak -- but a model that is not TOLD it is blind
+    # will cheerfully invent a CGPA and say it out loud, and the student has no
+    # way to know it was fiction. Same disclosure voice_agent.py's
+    # BASE_INSTRUCTIONS makes for the LiveKit worker, and it is the marker the
+    # next editor meets before adding a "personalise the interview" field.
+    "You cannot see this student's marks, attendance, CGPA, USN, resume or any "
+    "other record from their REEP dashboard - none of that is available to you, "
+    "by design. If they ask what their own figures are, say plainly that you "
+    "cannot see them and ask the student to tell you, then carry on with the "
+    "interview. Never guess, estimate or invent a figure about them."
 )
 
 
@@ -202,13 +193,15 @@ _CLIENT_CHUNK_MS_HINT: Final[int] = 40
 _APPEND_PREFIX: Final[str] = '{"type":"input_audio_buffer.append","audio":"'
 _APPEND_SUFFIX: Final[str] = '"}'
 
-# Base64's own alphabet, plus padding. NOT a sanity check: the append frame is
-# assembled by CONCATENATION, and on the pass-through uplink the payload is a
-# string the BROWSER chose. A quote or a backslash in it closes the JSON string
-# early and lets the caller write its own keys into the event -- and a second
-# "type" key is last-key-wins, so a student's audio frame becomes a
+# Base64's own alphabet, plus padding. This is NOT a sanity check. The append
+# frame above is assembled by CONCATENATION, and on the pass-through uplink the
+# payload is a string the BROWSER chose. A quote or a backslash in it closes the
+# JSON string early and lets the caller write its own keys into the event -- and
+# a second "type" key is last-key-wins, so a student's audio frame becomes a
 # `session.update` that replaces the interviewer persona on a remote provider,
-# billed to this deployment's credential.
+# billed to this deployment's credential. Validated rather than json.dumps'd so
+# the hot path stays a concatenation; b64decode(validate=True) would also reject
+# it, but at the cost of the decode this uplink mode exists to avoid.
 _B64_ALPHABET: Final[frozenset[str]] = frozenset(
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
 )
@@ -279,6 +272,12 @@ _MAX_CLOSE_REASON_BYTES: Final[int] = 123
 # being asked to stop. Long enough for two close handshakes (browser and
 # upstream), short enough that a deploy is not held hostage by one wedged socket.
 _SHUTDOWN_DRAIN_S: Final[float] = 10.0
+
+# How long teardown waits for in-flight turn writes to reach Postgres. Two
+# seconds is far above a healthy write (~2 ms) and far below any timeout the
+# student would notice, because by this point the interview is already over
+# and this only delays the close frame.
+_TURN_WRITE_DRAIN_S: Final[float] = 2.0
 
 # Close codes. 4000-4999 is the private-use range reserved for applications.
 _CLOSE_OK: Final[int] = 1000  # Interview complete
@@ -485,11 +484,32 @@ class _RelaySession:
         "_stop_outcome",
         "_client_frames",
         "_client_bytes",
+        "_on_turn",
+        "_writes",
+        "_assistant_text",
     )
 
-    def __init__(self, websocket: WebSocket, conn_id: str) -> None:
+    def __init__(
+        self,
+        websocket: WebSocket,
+        conn_id: str,
+        on_turn: Callable[[str, str, str], None] | None = None,
+    ) -> None:
         self._ws = websocket
         self._conn_id = conn_id
+        # Called (sender, text, provider_turn_id) once per FINAL turn, to persist
+        # it. SYNCHRONOUS and allowed to block: this class runs it on a worker
+        # thread via asyncio.to_thread, because app/conversations.py is
+        # synchronous SQLAlchemy and calling it inline would stall the event loop
+        # -- i.e. every other student's audio on this worker -- for a whole round
+        # trip to Postgres. It is never awaited by the interview and its failures
+        # never reach the pumps; see _emit_turn.
+        self._on_turn = on_turn
+        self._writes: set[asyncio.Task[None]] = set()
+        # Assistant transcript deltas accumulated per response id, so a finished
+        # turn is stored as ONE row at response.done. Popped there, so this
+        # cannot grow with the length of the interview.
+        self._assistant_text: dict[str, str] = {}
         self._log = _ConnLog(log, {"conn_id": conn_id, "session_id": None})
         self._upstream: ClientConnection | None = None
         self._session_id: str | None = None
@@ -598,13 +618,13 @@ class _RelaySession:
         turn_detection: dict[str, Any] = {
             "type": "server_vad",
             # Activation energy, 0.0-1.0.
-            "threshold": settings.vad_threshold,
+            "threshold": settings.interview_vad_threshold,
             # Audio kept from BEFORE speech onset, so the first phoneme survives.
-            "prefix_padding_ms": settings.vad_prefix_padding_ms,
+            "prefix_padding_ms": settings.interview_vad_prefix_padding_ms,
             # Silence that ends a turn. Above the API default on purpose: the
             # persona promises not to interrupt, and real answers contain
             # 400-600 ms thinking pauses mid-sentence.
-            "silence_duration_ms": settings.vad_silence_duration_ms,
+            "silence_duration_ms": settings.interview_vad_silence_duration_ms,
             # The server commits the buffer AND creates the response itself.
             # This is why the relay never sends commit or response.create per
             # turn -- doing so double-commits and produces a stuttering
@@ -622,7 +642,7 @@ class _RelaySession:
             "interrupt_response": False,
         }
 
-        if settings.beta_header:
+        if settings.realtime_beta_header:
             # Beta: flat session object. "text" must accompany "audio" here or
             # the assistant transcript is never emitted.
             return {
@@ -753,8 +773,8 @@ class _RelaySession:
                     "chunk_ms": _CLIENT_CHUNK_MS_HINT,
                 },
                 "limits": {
-                    "session_max_seconds": settings.session_max_seconds,
-                    "idle_max_seconds": settings.idle_max_seconds,
+                    "session_max_seconds": settings.interview_max_seconds,
+                    "idle_max_seconds": settings.interview_idle_seconds,
                 },
             }
         )
@@ -965,11 +985,21 @@ class _RelaySession:
 
         if etype in _TRANSCRIPT_DELTA_TYPES:
             # `delta` is plain text here, not base64 -- captions, not audio.
+            response_id = event.get("response_id")
+            delta = event.get("delta", "")
+            if response_id is not None and delta:
+                # Kept so response.done can persist the whole spoken turn. The
+                # browser still gets every delta for live captions; before this
+                # the relay forwarded them and threw them away, which is why the
+                # interviewer's half of the transcript reached no database.
+                self._assistant_text[response_id] = (
+                    self._assistant_text.get(response_id, "") + delta
+                )
             await self._send_control(
                 {
                     "type": "response.audio_transcript.delta",
-                    "response_id": event.get("response_id"),
-                    "delta": event.get("delta", ""),
+                    "response_id": response_id,
+                    "delta": delta,
                 }
             )
             return
@@ -980,11 +1010,18 @@ class _RelaySession:
             # `.delta` and `.failed` siblings -- so the rename matched no case,
             # fell through to `default:`, and left the "You" half of the
             # transcript permanently empty with nothing logged anywhere.
+            item_id = event.get("item_id")
+            transcript = event.get("transcript", "")
+            # "u:" / "a:" prefixes: item ids and response ids are drawn from
+            # different upstream sequences with no guarantee of being distinct
+            # from each other, while append_message dedups on
+            # (conversation_id, provider_turn_id) -- a single namespace.
+            self._emit_turn("user", transcript, f"u:{item_id}")
             await self._send_control(
                 {
                     "type": _USER_TRANSCRIPT_DONE,
-                    "item_id": event.get("item_id"),
-                    "transcript": event.get("transcript", ""),
+                    "item_id": item_id,
+                    "transcript": transcript,
                 }
             )
             return
@@ -1087,9 +1124,92 @@ class _RelaySession:
         else:
             self._log.info("Response %s ended %s", response_id, status)
 
+        # Popped whatever the status, so a cancelled (barge-in) response cannot
+        # leave partial text behind to be attributed to the NEXT response. The
+        # partial IS stored: it is what the interviewer actually said before the
+        # student cut in, and a transcript that silently omits every interrupted
+        # question is not a record of the interview that happened.
+        spoken = self._assistant_text.pop(response_id, "") if response_id else ""
+        self._emit_turn("assistant", spoken, f"a:{response_id}")
+
         await self._send_control(
             {"type": "response.done", "response_id": response_id, "status": status}
         )
+
+    # -- persistence --------------------------------------------------------
+
+    def _emit_turn(self, sender: str, text: str, provider_turn_id: str) -> None:
+        """Persist one FINAL turn. FIRE-AND-FORGET, by contract.
+
+        A failed write must never end an interview that is otherwise going fine
+        -- the same deliberate choice AGENTS.md documents for the LiveKit voice
+        transcript POSTs, and for the same reason: the student is mid-sentence
+        and cannot be helped by an exception. The price is exactly the failure
+        mode that runbook exists to catch (perfect in the room, empty in the
+        database), so a failed write is logged WITH ITS CAUSE, never swallowed.
+
+        The task is held on `self` so teardown can drain it, rather than being a
+        bare create_task whose only reference is the loop's weak one -- which
+        CPython is free to garbage-collect mid-write.
+        """
+        if self._on_turn is None or not text.strip():
+            return
+        task = asyncio.create_task(
+            self._run_turn_write(sender, text, provider_turn_id),
+            name=f"interview-write-{self._conn_id}",
+        )
+        self._writes.add(task)
+        task.add_done_callback(self._writes.discard)
+
+    async def _run_turn_write(
+        self, sender: str, text: str, provider_turn_id: str
+    ) -> None:
+        on_turn = self._on_turn
+        if on_turn is None:  # pragma: no cover -- guarded by _emit_turn
+            return
+        try:
+            # to_thread, NOT a direct call: see the _on_turn note in __init__.
+            await asyncio.to_thread(on_turn, sender, text, provider_turn_id)
+        except asyncio.CancelledError:
+            # Teardown outran the write. Re-raised so the drain is not lied to,
+            # but said out loud first: this is a turn that is NOT in the database.
+            self._log.warning(
+                "Interview turn not persisted (cancelled at teardown): "
+                "sender=%s turn=%s",
+                sender,
+                provider_turn_id,
+            )
+            raise
+        except Exception as exc:
+            self._log.error(
+                "Dropped interview turn: sender=%s turn=%s: %s",
+                sender,
+                provider_turn_id,
+                exc,
+            )
+
+    async def _drain_writes(self) -> None:
+        """Let in-flight turn writes finish before this session goes away.
+
+        Bounded: a wedged database must not hold the browser socket open, and
+        the turns it is sitting on are lost to the student either way. Anything
+        that has not landed by the deadline is cancelled, and _run_turn_write
+        says so rather than letting the row vanish quietly.
+        """
+        if not self._writes:
+            return
+        pending = tuple(self._writes)
+        try:
+            async with asyncio.timeout(_TURN_WRITE_DRAIN_S):
+                await asyncio.gather(*pending, return_exceptions=True)
+        except TimeoutError:
+            self._log.warning(
+                "%d interview turn write(s) did not finish within %.0fs",
+                sum(1 for task in pending if not task.done()),
+                _TURN_WRITE_DRAIN_S,
+            )
+            for task in pending:
+                task.cancel()
 
     # -- watchdog -----------------------------------------------------------
 
@@ -1099,8 +1219,8 @@ class _RelaySession:
         Raising is the mechanism: the TaskGroup cancels both pumps in response,
         which is what guarantees no task outlives the session.
         """
-        session_cap = float(settings.session_max_seconds)
-        idle_cap = float(settings.idle_max_seconds)
+        session_cap = float(settings.interview_max_seconds)
+        idle_cap = float(settings.interview_idle_seconds)
 
         while True:
             # Waiting on the stop event rather than sleeping means shutdown ends
@@ -1123,7 +1243,7 @@ class _RelaySession:
                 )
                 raise _SessionEnded(
                     _CLOSE_SESSION_CAP,
-                    f"Session limit of {_humanize_seconds(settings.session_max_seconds)} reached",
+                    f"Session limit of {_humanize_seconds(settings.interview_max_seconds)} reached",
                 )
 
             if now - self._last_audio_at >= idle_cap:
@@ -1132,7 +1252,7 @@ class _RelaySession:
                 )
                 raise _SessionEnded(
                     _CLOSE_IDLE,
-                    f"No audio received for {_humanize_seconds(settings.idle_max_seconds)}",
+                    f"No audio received for {_humanize_seconds(settings.interview_idle_seconds)}",
                 )
 
     # -- orchestration ------------------------------------------------------
@@ -1147,7 +1267,7 @@ class _RelaySession:
         code, reason = _CLOSE_INTERNAL, "Internal error"
         try:
             async with _upstream_connector(
-                settings.realtime_url, settings.openai_api_key.strip(), settings.beta_header
+                settings.realtime_url, settings.openai_api_key.strip(), settings.realtime_beta_header
             ) as upstream:
                 self._upstream = upstream
                 try:
@@ -1288,6 +1408,11 @@ class _RelaySession:
                     True,
                 )
 
+        # AFTER the pumps have stopped and BEFORE the summary line, so that
+        # line is the last word on the interview and a late write can never be
+        # attributed to a session already reported as finished.
+        await self._drain_writes()
+
         self._log.info(
             "Interview finished: code=%s reason=%r duration=%.0fs frames=%d bytes=%d",
             code,
@@ -1297,264 +1422,6 @@ class _RelaySession:
             self._client_bytes,
         )
         return code, reason
-
-
-# ---------------------------------------------------------------------------
-# Application
-# ---------------------------------------------------------------------------
-
-
-def _ask_all_sessions_to_stop(application: FastAPI) -> None:
-    """Ask every live interview to close ITSELF, with a real code and reason.
-
-    Never blocks and never awaits: it is reached from a signal handler by way of
-    loop.call_soon_threadsafe, and each session's own watchdog does the work.
-    """
-    live: set[_RelaySession] = getattr(application.state, "sessions", set())
-    if not live:
-        return
-    log.info("Shutdown requested: asking %d live interview(s) to close", len(live))
-    for session in tuple(live):
-        session.request_stop(_CLOSE_GOING_AWAY, "Server shutting down")
-
-
-@asynccontextmanager
-async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-    """Own the process-wide state: log config, the concurrency cap, live sessions.
-
-    The two mutable objects created here are a counter and a set of live session
-    objects. Neither is keyed by student, room or interview id, which is what
-    lets this process be replicated behind a load balancer with no shared
-    registry -- and why max_concurrent_sessions is a PER-WORKER number.
-    """
-    # uvicorn configures its own loggers, not the root one, so without this every
-    # log line in this module would be dropped below WARNING.
-    if not logging.getLogger().handlers:
-        logging.basicConfig(
-            level=settings.log_level.strip().upper() or "INFO",
-            format="%(asctime)s %(levelname)-8s %(name)s %(message)s",
-        )
-
-    # A HARD FLOOR, not a preference. basicConfig above sets the ROOT level, which
-    # `websockets` inherits -- and at DEBUG the library prints the outbound
-    # handshake header by header (websockets/client.py, ClientProtocol.send_request,
-    # guarded by Protocol.debug = logger.isEnabledFor(DEBUG)). One of those headers
-    # is `Authorization: Bearer <OPENAI_API_KEY>`, and the library redacts nothing.
-    # LOG_LEVEL=DEBUG is a documented troubleshooting knob here, so the operator
-    # following the manual would be the one printing the credential into a log
-    # file or aggregator -- defeating the containment that is this relay's whole
-    # purpose. Protocol.debug is evaluated per connection at connect time, i.e.
-    # after this runs, and websockets.client/.server are NOTSET so they inherit
-    # this level.
-    logging.getLogger("websockets").setLevel(logging.INFO)
-
-    application.state.limiter = _ConnectionLimiter(settings.max_concurrent_sessions)
-    application.state.sessions = set()
-
-    # Armed HERE, in STARTUP, and not in the `finally` below. uvicorn's
-    # Server.shutdown() calls connection.shutdown() on every live WebSocket --
-    # which queues websocket.disconnect(1012), sends close 1012 to the browser and
-    # closes the transport -- and only afterwards sends the lifespan shutdown
-    # event. A drain written in `finally` therefore always sees an EMPTY set, and
-    # every student mid-question got an abrupt 1012 instead of the 1001 with a
-    # reason the code below promises. uvicorn installs its own SIGINT/SIGTERM
-    # handlers in capture_signals() BEFORE lifespan startup runs, so replacing
-    # them here and chaining to what we found puts our request_stop ahead of its
-    # teardown -- the only window in which a session can still close itself.
-    loop = asyncio.get_running_loop()
-    previous_handlers: dict[int, Any] = {}
-
-    def _drain_on_signal(signum: int, frame: Any) -> None:
-        # Runs in the signal context, between bytecodes on the main thread:
-        # touch nothing but the loop. RuntimeError is the loop already being
-        # closed, which means there is nothing left to drain anyway -- and an
-        # exception raised from a signal handler surfaces in whatever unrelated
-        # line of code happened to be executing.
-        with contextlib.suppress(RuntimeError):
-            loop.call_soon_threadsafe(_ask_all_sessions_to_stop, application)
-
-        # Chained, never replaced: uvicorn's handler sets should_exit, and a
-        # second Ctrl-C must still force-quit.
-        chained = previous_handlers.get(signum)
-        if callable(chained):
-            chained(signum, frame)
-        elif chained == signal.SIG_DFL:
-            # Nobody else wanted this signal, i.e. this is not running under
-            # uvicorn. Put the default back and let it happen, or a SIGTERM would
-            # be swallowed here and the process would never exit -- a hang is far
-            # worse than the abrupt close this handler exists to avoid.
-            # SIG_IGN deliberately falls through to nothing.
-            signal.signal(signum, signal.SIG_DFL)
-            signal.raise_signal(signum)
-
-    for _sig in (signal.SIGINT, signal.SIGTERM):
-        # signal.signal is main-thread-only, and not every signal exists on every
-        # platform. A relay that cannot arm this still runs; it just hangs up less
-        # politely, which is why the client also maps close code 1012.
-        try:
-            previous_handlers[_sig] = signal.getsignal(_sig)
-            signal.signal(_sig, _drain_on_signal)
-        except (ValueError, OSError, AttributeError) as exc:
-            previous_handlers.pop(_sig, None)
-            log.warning("Cannot install a shutdown handler for signal %s: %s", _sig, exc)
-
-    if not settings.public_dir.is_dir():
-        log.warning(
-            "Static client directory %s is missing: the browser page will 404. "
-            "The /ws/interview relay is unaffected.",
-            settings.public_dir,
-        )
-    if not settings.is_configured:
-        log.warning(
-            "OPENAI_API_KEY is not set: /ws/interview will close every session "
-            "with %d 'Voice service not configured'.",
-            _CLOSE_NOT_CONFIGURED,
-        )
-
-    log.info(
-        "Interview relay ready: model=%s surface=%s max_concurrent=%d "
-        "session_cap=%ds idle_cap=%ds",
-        settings.openai_realtime_model,
-        "beta" if settings.beta_header else "GA",
-        settings.max_concurrent_sessions,
-        settings.session_max_seconds,
-        settings.idle_max_seconds,
-    )
-
-    try:
-        yield
-    finally:
-        # Handlers restored FIRST, so uvicorn's own capture_signals() finally puts
-        # back the pre-uvicorn originals over ours, and a second run of this app in
-        # the same process (tests) cannot chain into a dead closure.
-        for _sig, _prev in previous_handlers.items():
-            with contextlib.suppress(ValueError, OSError, TypeError):
-                signal.signal(_sig, _prev)
-
-        # BACKSTOP ONLY. Under uvicorn the sockets are already gone by the time
-        # this runs (see the signal handler above); this covers an ASGI server
-        # whose shutdown ordering differs, and a shutdown with no signal at all.
-        _ask_all_sessions_to_stop(application)
-        live: set[_RelaySession] = application.state.sessions
-        if live:
-            deadline = time.monotonic() + _SHUTDOWN_DRAIN_S
-            while live and time.monotonic() < deadline:
-                await asyncio.sleep(0.1)
-            if live:
-                # Not fatal: uvicorn cancels the remaining tasks next, and each
-                # session's `finally` still closes its sockets. Worth saying out
-                # loud because it means some student saw an abrupt hang-up.
-                log.warning(
-                    "Shutdown: %d interview(s) did not close within %.0fs",
-                    len(live),
-                    _SHUTDOWN_DRAIN_S,
-                )
-
-
-app = FastAPI(
-    title="REEP Realtime Mock Interviewer",
-    version="1.0.0",
-    lifespan=lifespan,
-)
-
-# CORS covers the HTTP surface (the static page and /health) only. It does NOT
-# protect the WebSocket: browsers never apply the same-origin policy to a socket
-# upgrade, and this middleware never sees one. The Origin check inside
-# /ws/interview is the actual boundary -- see settings.is_origin_allowed.
-_cors_origins = list(settings.allowed_origins)
-if _cors_origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=_cors_origins,
-        # This service has no auth, no cookies and no session header, so there is
-        # nothing for a credentialed cross-origin request to carry. Leaving it
-        # true only widens what a future WEB_ORIGIN mistake would expose.
-        allow_credentials=False,
-        allow_methods=["GET"],
-        allow_headers=[],
-    )
-
-
-@app.get("/health")
-async def health() -> dict[str, Any]:
-    """Liveness plus the two facts an operator asks for first.
-
-    `configured` false is the answer to "why does every interview close
-    immediately"; `active`/`limit` is the answer to "why is it refusing new ones".
-    """
-    limiter: _ConnectionLimiter = app.state.limiter
-    return {
-        "status": "ok",
-        "configured": settings.is_configured,
-        "model": settings.openai_realtime_model,
-        "active_sessions": limiter.active,
-        "max_sessions": limiter.limit,
-    }
-
-
-@app.websocket("/ws/interview")
-async def interview(websocket: WebSocket) -> None:
-    """One interview, relayed.
-
-    The socket is ACCEPTED before any check that can fail. Rejecting the upgrade
-    instead would reach the browser as an opaque 1006 with no code and no reason,
-    and "the key is missing" would be indistinguishable from "the wifi dropped".
-    """
-    conn_id = uuid.uuid4().hex[:12]
-    await websocket.accept()
-
-    origin = websocket.headers.get("origin")
-    # The Host header is what lets the page THIS process served be recognised as
-    # same-origin, whatever host:port the operator reached it on.
-    if not settings.is_origin_allowed(origin, websocket.headers.get("host")):
-        log.warning("[conn=%s] Rejected interview from origin %r", conn_id, origin)
-        await _close_downstream(websocket, _CLOSE_FORBIDDEN_ORIGIN, "Origin not allowed")
-        return
-
-    if not settings.is_configured:
-        log.error(
-            "[conn=%s] Refusing interview: OPENAI_API_KEY is not set", conn_id
-        )
-        await _close_downstream(
-            websocket, _CLOSE_NOT_CONFIGURED, "Voice service not configured"
-        )
-        return
-
-    limiter: _ConnectionLimiter = app.state.limiter
-    if not limiter.try_acquire():
-        log.warning(
-            "[conn=%s] Refusing interview: %d/%d sessions already running on this worker",
-            conn_id,
-            limiter.active,
-            limiter.limit,
-        )
-        await _close_downstream(
-            websocket, _CLOSE_OVERLOADED, "Too many interviews in progress"
-        )
-        return
-
-    sessions: set[_RelaySession] = app.state.sessions
-    session = _RelaySession(websocket, conn_id)
-    sessions.add(session)
-    code, reason = _CLOSE_INTERNAL, "Internal error"
-
-    try:
-        code, reason = await session.run()
-    except asyncio.CancelledError:
-        # App shutdown that outran the graceful drain, or the server killing the
-        # connection. Report it honestly and re-raise: swallowing CancelledError
-        # breaks the shutdown it belongs to.
-        code, reason = _CLOSE_GOING_AWAY, "Server shutting down"
-        raise
-    except Exception:
-        # Nothing above matched, so this is a bug in the relay, not a peer
-        # behaviour. The traceback is the point; the student gets a generic 1011.
-        log.exception("[conn=%s] Unhandled error in interview relay", conn_id)
-        code, reason = _CLOSE_INTERNAL, "Internal error"
-    finally:
-        sessions.discard(session)
-        limiter.release()
-        await _close_downstream(websocket, code, reason)
 
 
 async def _close_downstream(websocket: WebSocket, code: int, reason: str) -> None:
@@ -1577,13 +1444,15 @@ async def _close_downstream(websocket: WebSocket, code: int, reason: str) -> Non
         log.warning("Failed to close browser socket cleanly: %s", exc)
 
 
-# Mounted LAST so /health and /ws/interview are matched first: a mount at "/"
-# is a catch-all, and Starlette tries routes in registration order.
-# check_dir=False because a missing public/ must degrade to 404s on the page (an
-# operator already warned at startup), not to a process that refuses to boot and
-# takes the working relay down with it.
-app.mount(
-    "/",
-    StaticFiles(directory=str(settings.public_dir), html=True, check_dir=False),
-    name="public",
-)
+def ask_all_sessions_to_stop(sessions: set[_RelaySession]) -> None:
+    """Ask every live interview to close ITSELF, with a real code and reason.
+
+    Never blocks and never awaits, so it is safe from a lifespan teardown. Each
+    session's own watchdog does the work, which is what turns an abrupt 1006
+    into a 1001 the client has a sentence for.
+    """
+    if not sessions:
+        return
+    log.info("Shutdown requested: asking %d live interview(s) to close", len(sessions))
+    for session in tuple(sessions):
+        session.request_stop(_CLOSE_GOING_AWAY, "Server shutting down")

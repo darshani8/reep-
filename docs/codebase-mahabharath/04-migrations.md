@@ -22,7 +22,7 @@ show what a given revision established. Process topology, ports and configuratio
 [Chapter 1](01-stack-architecture.md), §2 and §5. Ops, the two seeds and the test suite are
 Chapter 16; this chapter covers only their ordering relationship to `alembic upgrade head`.
 
-> **A correction up front.** [docs/codebase-bible/README.md:28](README.md) bills this chapter
+> **A correction up front.** [docs/codebase-mahabharath/README.md:28](README.md) bills this chapter
 > as covering "All 40 revisions". There are **38**. I counted the directory and, independently,
 > parsed `revision` and `down_revision` out of every file and walked the resulting graph: it
 > visits exactly 38 nodes. Every count in this chapter is against 38, and the book's index

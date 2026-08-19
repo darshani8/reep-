@@ -1,3 +1,9 @@
+# NOTE (2026-08): the student-facing assistant is now the realtime mock
+# interviewer in app/routers/interview.py; this orchestrator no longer backs
+# the assistant screen. It is RETAINED, unchanged and still mounted behind
+# POST /api/agent/ask, so the swap can be rolled back by re-pointing the
+# client. See docs/interview-assistant.md. Delete nothing here.
+
 """The REEP assistant's TOOL-BACKED ORCHESTRATOR.
 
 The model is a *language + orchestration* layer, never the source of truth.

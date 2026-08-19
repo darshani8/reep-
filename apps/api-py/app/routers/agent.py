@@ -1,3 +1,64 @@
+# =============================================================================
+# SUPERSEDED AS THE STUDENT-FACING ASSISTANT — 2026-08. RETAINED FOR ROLLBACK.
+#
+# The student-facing assistant is now the realtime mock interviewer in
+# app/routers/interview.py: a WebSocket relay between the student's browser and
+# the OpenAI Realtime API, documented in docs/interview-assistant.md. The
+# Angular assistant screen no longer opens a text chat against this module.
+#
+# NOTHING HAS BEEN DELETED. This file stays mounted and working, as do
+# app/ai/orchestrator.py, app/assistant_tools.py, app/knowledge.py,
+# app/ai/llm.py and app/eval/. Rolling back is re-pointing the client at
+# /api/agent/ask — no code has to be restored from git. Deleting the old path
+# in the same change that introduces its replacement is how a rollback stops
+# being possible; do not tidy this away until the interviewer has held up in
+# front of real students.
+#
+# SUPERSEDED entry points — still mounted, still functional, no UI caller:
+#   POST   /api/agent/ask              was the primary path; replaced by the
+#                                      interview WebSocket
+#   POST   /api/agent/chat             no UI caller before or after; still the
+#                                      subject of tests/test_conversations.py
+#   POST   /api/agent/chat/stream      no caller before or after (SSE, dead)
+#   GET    /api/agent/runs             no caller before or after
+#   GET    /api/agent/knowledge/search test-only (tests/test_knowledge.py); the
+#                                      orchestrator calls knowledge.search()
+#                                      directly, not this HTTP route
+#
+# STILL LIVE — do NOT retire these along with the ones above:
+#   GET    /api/agent/history          the transcript read for the assistant
+#                                      screen. Interview turns are persisted
+#                                      through app/conversations.py into the
+#                                      SAME conversations/messages tables, and
+#                                      conversations.history() filters on
+#                                      is_final only — never on channel — so
+#                                      this endpoint returns interview turns
+#                                      unchanged, exactly as it already did for
+#                                      LiveKit voice turns. One memory bank.
+#   DELETE /api/agent/conversation     the only way a student clears the thread
+#                                      the interviewer writes into (204).
+#   POST   /api/agent/feedback         live, but CONDITIONAL: it 404s unless an
+#                                      agent_runs row exists whose actor_id is
+#                                      the caller, and the client only ever
+#                                      learns a run_id from AskOut.run_id. If
+#                                      the interview path stops writing
+#                                      AgentRun rows, this endpoint 404s on
+#                                      every request and the thumbs-up/down UI
+#                                      silently stops rendering (it is gated on
+#                                      `turn.structured?.run_id`) — no console
+#                                      error, no failing build.
+#   GET    /api/agent/metrics          live (DIRECTOR/ADMIN, 403 otherwise). It
+#                                      never errors, but every AgentRun-derived
+#                                      counter reads 0 if runs stop being
+#                                      written; voice_turns (off Message.channel)
+#                                      and feedback counts keep working.
+#
+# The module docstring below predates /ask, /knowledge/search, /feedback and
+# /metrics and lists only five of the nine routes. It is kept verbatim rather
+# than rewritten, so what this module was on the day it was superseded is still
+# legible.
+# =============================================================================
+
 """Text chat with a SERVER-OWNED, persistent conversation.
 
 The conversation is ALWAYS derived from the authenticated session — the client

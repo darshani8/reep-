@@ -18,6 +18,7 @@ from .routers import (
     auth,
     director,
     health,
+    interview,
     leave,
     mentor,
     registration,
@@ -45,6 +46,20 @@ async def lifespan(_app: FastAPI):
     fails closed at request time when ENV=prod — this exists so the operator
     learns at deploy rather than from a confused student.
     """
+    # A HARD FLOOR, not a preference. At DEBUG the `websockets` library prints
+    # the outbound handshake header by header (ClientProtocol.send_request,
+    # guarded by Protocol.debug = logger.isEnabledFor(DEBUG)) and redacts
+    # nothing -- and one of those headers is
+    # `Authorization: Bearer <OPENAI_API_KEY>` on the interview relay's upstream
+    # socket (app/interview_relay.py). Running uvicorn with --log-level debug is
+    # a documented troubleshooting step, so without this the operator following
+    # the manual is the one who prints the credential into the API log, beside
+    # student traffic, in whatever aggregator this deployment ships to. That
+    # would defeat the containment the relay exists to provide.
+    # Protocol.debug is evaluated per connection at connect time, i.e. after
+    # this runs, and websockets.client/.server are NOTSET so they inherit it.
+    logging.getLogger("websockets").setLevel(logging.INFO)
+
     if settings.is_prod and not settings.voice_worker_secret.strip():
         log.warning(
             "VOICE_WORKER_SECRET is blank in production: /api/voice/heartbeat and "
@@ -52,7 +67,22 @@ async def lifespan(_app: FastAPI):
             "voice report itself available with no worker behind it. Set the same "
             "value on the API and the voice worker."
         )
-    yield
+    try:
+        yield
+    finally:
+        # Ask live interviews to close with a real code and reason rather than
+        # being torn down as a bare 1006.
+        #
+        # BACKSTOP ONLY, and honestly so: uvicorn's Server.shutdown() closes
+        # every live WebSocket (queueing websocket.disconnect(1012)) BEFORE it
+        # sends the lifespan shutdown event, so under uvicorn this set is
+        # already empty here. The standalone relay hijacked SIGINT/SIGTERM to
+        # get ahead of that; this process serves the whole dashboard and taking
+        # over its signals to improve one feature's close code is a bad trade --
+        # especially as the client already has a sentence for 1012 ("the
+        # interview server is restarting"). This covers an ASGI server whose
+        # shutdown ordering differs, and a shutdown with no signal at all.
+        interview.shutdown_interviews()
 
 
 app = FastAPI(title="REEP API (Python / FastAPI)", version="0.1.0", lifespan=lifespan)
@@ -68,9 +98,11 @@ app.add_middleware(
 
 # Health is infra liveness — unprefixed at /health.
 app.include_router(health.router)
-# agent + voice already carry /api in their own prefix (/api/agent, /api/voice).
+# agent + voice + interview already carry /api in their own prefix
+# (/api/agent, /api/voice, /api/interview).
 app.include_router(agent.router)
 app.include_router(voice.router)
+app.include_router(interview.router)
 # Domain routers mount under a single /api prefix, so the whole surface the
 # Angular client calls lives under /api — matching environment.apiBase and the
 # dev proxy (apps/web/proxy.conf.json), with no path rewriting.

@@ -1175,7 +1175,7 @@ reep-dashboard/
 │     └─ Dockerfile.voice     Worker image, python:3.12-slim-bookworm
 ├─ .github/workflows/ci.yml   Three jobs pinning Python 3.14, Python 3.12 and Node 22
 ├─ docker/initdb/             01-create-reep-py.sh — creates reep_py + CREATE EXTENSION vector
-├─ docs/                      deployment-env.md, design-v2/ mockups, codebase-bible/ (this book)
+├─ docs/                      deployment-env.md, design-v2/ mockups, codebase-mahabharath/ (this book)
 ├─ ollama/                    reep-gemma3.Modelfile — the optional loopback model
 ├─ docker-compose.yml         Dev: Postgres only
 ├─ docker-compose.prod.yml    Prod: db → migrate → api → voice-worker

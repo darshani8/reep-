@@ -14,6 +14,17 @@
 
 fastapi==0.141.1
 uvicorn[standard]==0.52.3
+# Upstream client for wss://api.openai.com/v1/realtime (app/interview_relay.py).
+#
+# uvicorn[standard] already pulls `websockets` in for the SERVER side of the
+# browser socket, so this is not a NEW dependency — it is the missing PIN. The
+# relay imports websockets.asyncio.client directly, and a resolver free to pick
+# the version would eventually break it two ways, both at CONNECT time rather
+# than import time (i.e. surviving CI and failing on a student's first call):
+# websockets >= 14 RENAMED connect()'s `extra_headers=` to
+# `additional_headers=`, which app/interview_relay.py uses, and the modern
+# asyncio API it imports does not exist on the older line.
+websockets==15.0.1
 sqlalchemy==2.0.52
 alembic==1.19.1
 pydantic==2.13.4

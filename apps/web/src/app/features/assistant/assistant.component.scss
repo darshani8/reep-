@@ -1,9 +1,35 @@
+/**
+ * The mock-interview screen.
+ *
+ * ONE THING HERE IS NOT ORDINARY CSS, and it is the reason this file has a
+ * comment at all: `.orb.rvz-overlay`.
+ *
+ * VoiceVisualizer injects a global stylesheet (id `rvz-overlay-style`) whose
+ * `.rvz-overlay` rule makes its host a FULL-SCREEN FIXED MODAL with a
+ * backdrop-filter, because that is what the standalone interview page wanted.
+ * REEP wants an inline orb on a normal page, so:
+ *
+ *   - the template wraps the canvas in a div that ALREADY carries
+ *     `.rvz-overlay`, which makes the constructor ADOPT that parent instead of
+ *     wrapping the canvas in a full-screen div of its own, and
+ *   - the rules below re-lay it out.
+ *
+ * The specificity is deliberate and load-bearing. Angular's emulated
+ * encapsulation rewrites `.orb.rvz-overlay` to `.orb.rvz-overlay[_ngcontent-x]`
+ * = (0,3,0), which beats both the injected `.rvz-overlay` (0,1,0) and the
+ * `.rvz-overlay.is-open` (0,2,0) that show() adds. Writing the override as
+ * `.rvz-overlay` alone would tie with `.is-open` and lose to source order.
+ *
+ * The orb's palette (STATE_STYLE in shared/voice-visualizer.ts) is a cool
+ * blue/green/white designed to glow ADDITIVELY over a dark backdrop, and REEP v2
+ * is warm amber on paper. Retheming it means re-deriving the alphas of nine
+ * gradient stops, so the plate below is a deliberate dark warm-tinted stage
+ * instead. The consequence is stated in the template: the orb is decoration, and
+ * every word of status lives in the pill and caption beneath it.
+ */
+
 :host {
-  /* Fill the scroll area of .desktop-main so the chat sizes to the space that's
-     actually available, instead of a brittle 100vh magic number. */
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  display: block;
 }
 
 .err {
@@ -11,10 +37,10 @@
   margin: 0 0 16px;
 }
 
-/* Mentor-escalation + records-view guidance under the intro. */
+/* Scope + records guidance under the intro. */
 .assist-note {
   margin: -24px 0 20px;
-  max-width: 68ch;
+  max-width: 72ch;
   color: var(--reep-text-secondary);
 }
 .assist-note__link {
@@ -29,68 +55,37 @@
   border-radius: 3px;
 }
 
-/* One-tap starters — in the empty state and as a bar above the composer. */
-.quick-prompts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.quick-prompts--empty {
-  justify-content: center;
-  margin-top: 14px;
-}
-.quick-prompts--bar {
-  padding: 10px 12px 0;
-}
-.quick-prompt {
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--reep-divider);
-  background: var(--reep-action-hover);
-  color: var(--reep-text-primary);
+/* Inline text-button (Dismiss, Show/Hide). */
+.link-btn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  cursor: pointer;
-}
-.quick-prompt:hover:not(:disabled) {
-  border-color: var(--reep-primary-main, #1a3c5e);
   color: var(--reep-primary-main, #1a3c5e);
+  cursor: pointer;
+  border-radius: 4px;
 }
-.quick-prompt:focus-visible {
+.link-btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.link-btn:focus-visible {
   outline: 2px solid var(--reep-primary-main, #1a3c5e);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
-.quick-prompt:disabled {
+.link-btn:disabled {
   opacity: 0.5;
   cursor: default;
 }
 
-.chat__empty-lead {
-  margin: 0;
-}
-
-.voice {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.voice--on {
-  border-color: var(--reep-error-main);
-  color: var(--reep-error-main);
-}
-.voice__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--reep-text-disabled);
-}
-.voice__dot--live {
+/* The End button borrows the primary shape but reads as a stop. */
+.stage__cta--end {
   background: var(--reep-error-main);
-  animation: pulse 1.2s ease-in-out infinite;
+  border-color: var(--reep-error-main);
 }
 
-/* --- One-time voice consent disclosure --------------------------------- */
+/* --- One-time disclosure ------------------------------------------------ */
 .consent {
   position: fixed;
   inset: 0;
@@ -139,480 +134,303 @@
   outline-offset: 2px;
 }
 
-/* --- Live voice panel --------------------------------------------------- */
-.vpanel {
-  margin: 0 0 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--reep-divider);
-  border-radius: 12px;
-  background: var(--reep-surface, var(--reep-action-hover));
-}
-.vpanel__bar {
+/* --- Banner (why the session ended, or what is degrading it) ------------ */
+.banner {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border-left: 3px solid var(--reep-text-disabled);
+  background: var(--reep-action-hover);
+  color: var(--reep-text-primary);
+  font-size: 0.875rem;
 }
-.vpanel__status {
+/* Tone is carried by the border AND by the words in .banner__text — the text is
+   always written to stand on its own, so colour is never the only signal. */
+.banner[data-tone='info'] {
+  border-left-color: var(--reep-primary-main, #1a3c5e);
+}
+.banner[data-tone='warn'] {
+  border-left-color: var(--reep-warning-main, #b26a00);
+}
+.banner[data-tone='error'] {
+  border-left-color: var(--reep-error-main);
+}
+.banner__text {
+  flex: 1 1 auto;
+}
+.banner__dismiss {
+  flex: 0 0 auto;
+}
+
+/* --- The stage ---------------------------------------------------------- */
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 28px;
+}
+
+/* See the file header before touching either of these two rules. */
+.orb.rvz-overlay {
+  position: relative;
+  inset: auto;
+  z-index: 0;
+  width: 100%;
+  max-width: 640px;
+  height: clamp(240px, 42vh, 400px);
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(28, 24, 16, 0.24);
+  /* Warm-dark stage. The orb's own passes composite with 'lighter', so it needs
+     something dark beneath it or the glow has nothing to glow against. */
+  background: radial-gradient(120% 90% at 50% 42%, #1d2226 0%, #12100d 72%);
+  box-shadow: inset 0 1px 0 rgba(255, 253, 248, 0.06), var(--shadow-soft);
+  /* Undo the injected modal. */
+  opacity: 1;
+  transform: none;
+  pointer-events: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: none;
+  /* The injected rule sets will-change: opacity, transform and drops it again on
+     `transitionend`. With no transition that event never fires, so the promoted
+     compositor layer would be pinned for the life of the screen. Drop it here. */
+  will-change: auto;
+}
+.orb__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Status: dot AND word, always together. */
+.stage__status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: 0.875rem;
+  font-weight: 700;
+  font-size: 0.9375rem;
   color: var(--reep-text-primary);
 }
-.vpanel__pulse {
+.stage__dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: var(--reep-text-disabled);
 }
-/* Colour + text together — never colour alone. */
-.vpanel__status[data-state='listening'] .vpanel__pulse {
+.stage__status[data-state='connecting'] .stage__dot {
+  background: var(--reep-warning-main, #b26a00);
+  animation: stage-pulse 1.2s ease-in-out infinite;
+}
+.stage__status[data-state='ready'] .stage__dot,
+.stage__status[data-state='listening'] .stage__dot {
   background: var(--reep-success-main, #2e7d32);
-  animation: pulse 1.4s ease-in-out infinite;
+  animation: stage-pulse 1.6s ease-in-out infinite;
 }
-.vpanel__status[data-state='thinking'] .vpanel__pulse {
+.stage__status[data-state='thinking'] .stage__dot {
   background: var(--reep-warning-main, #b26a00);
-  animation: pulse 1s ease-in-out infinite;
+  animation: stage-pulse 1s ease-in-out infinite;
 }
-.vpanel__status[data-state='speaking'] .vpanel__pulse {
+.stage__status[data-state='speaking'] .stage__dot {
   background: var(--reep-primary-main, #1a3c5e);
 }
-.vpanel__status[data-state='reconnecting'] .vpanel__pulse {
-  background: var(--reep-warning-main, #b26a00);
-  animation: pulse 0.7s ease-in-out infinite;
-}
-.vpanel__status[data-state='error'] .vpanel__pulse {
-  background: var(--reep-error-main);
-}
-.vpanel__pulse--live {
-  animation: pulse 0.9s ease-in-out infinite;
-}
-.vpanel__timer {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: var(--reep-text-secondary);
-}
-.vpanel__controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-left: auto;
-}
-.vpanel__controls .btn:focus-visible {
-  outline: 2px solid var(--reep-primary-main, #1a3c5e);
-  outline-offset: 2px;
-}
-.vpanel__reason {
-  margin: 10px 0 0;
-  color: var(--reep-text-secondary);
-}
-.vpanel__transcript {
-  margin-top: 12px;
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 10px 12px;
-  border-top: 1px solid var(--reep-divider);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.vturn {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--reep-text-primary);
-}
-.vturn__who {
-  font-weight: 700;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-right: 8px;
-  color: var(--reep-text-secondary);
-}
-.vturn--user .vturn__who {
-  color: var(--reep-primary-main, #1a3c5e);
-}
-
-.chat {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 420px;
-  border: 1px solid var(--reep-divider);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--reep-surface, transparent);
-}
-
-.chat__log {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.chat__empty {
-  margin: auto;
-  max-width: 44ch;
-  text-align: center;
-  color: var(--reep-text-disabled);
-}
-
-.msg {
-  display: flex;
-  justify-content: flex-start;
-}
-.msg--user {
-  justify-content: flex-end;
-}
-.msg__col {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: 82%;
-  align-items: flex-start;
-}
-.msg--user .msg__col {
-  align-items: flex-end;
-}
-.msg__bubble {
-  padding: 10px 14px;
-  border-radius: 14px;
-  line-height: 1.5;
-  font-size: 0.925rem;
-  white-space: pre-wrap;
-  word-break: break-word;
-  background: var(--reep-action-hover);
-  color: var(--reep-text-primary);
-  border: 1px solid var(--reep-divider);
-}
-.msg--user .msg__bubble {
-  background: var(--reep-primary-main, #1a3c5e);
-  color: #fff;
-  border-color: transparent;
-}
-.msg--user .msg__bubble--failed {
+.stage__status[data-state='error'] .stage__dot {
   background: var(--reep-error-main);
 }
 
-/* --- Structured grounded answer: action cards, source chips, limitations. --- */
-.cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-}
-.card {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--reep-divider);
-  background: var(--reep-surface, var(--reep-action-hover));
-  text-decoration: none;
-  color: var(--reep-text-primary);
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-.card:hover {
-  border-color: var(--reep-primary-main, #1a3c5e);
-  background: var(--reep-action-hover);
-}
-.card:focus-visible {
-  outline: 2px solid var(--reep-primary-main, #1a3c5e);
-  outline-offset: 2px;
-}
-.card__arrow {
-  color: var(--reep-primary-main, #1a3c5e);
-  font-weight: 700;
-  line-height: 1.4;
-}
-.card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.card__label {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-.card__reason {
-  font-size: 0.8rem;
-  color: var(--reep-text-secondary);
-}
-
-.sources {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.source {
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border: 1px solid var(--reep-divider);
-  color: var(--reep-text-secondary);
-  background: var(--reep-action-hover);
-}
-.source--student-record {
-  border-color: var(--reep-success-main, #2e7d32);
-  color: var(--reep-success-main, #2e7d32);
-  background: var(--reep-success-bg, rgba(46, 125, 50, 0.1));
-}
-.source--policy {
-  border-color: var(--reep-warning-main, #b26a00);
-  color: var(--reep-warning-main, #b26a00);
-  background: var(--reep-warning-bg, rgba(178, 106, 0, 0.1));
-}
-.source--general {
-  border-color: var(--reep-divider);
-  color: var(--reep-text-secondary);
-}
-
-.limits {
-  margin: 0;
-  padding: 8px 12px;
-  border-left: 3px solid var(--reep-divider);
-  color: var(--reep-text-disabled);
-}
-.limits__item {
-  margin: 0;
-}
-.limits__item + .limits__item {
-  margin-top: 4px;
-}
-
-/* Inline text-button used for Copy / Retry. */
-.link-btn {
-  background: none;
-  border: none;
-  padding: 2px 4px;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--reep-primary-main, #1a3c5e);
-  cursor: pointer;
-  border-radius: 4px;
-}
-.link-btn:hover:not(:disabled) {
-  text-decoration: underline;
-}
-.link-btn:focus-visible {
-  outline: 2px solid var(--reep-primary-main, #1a3c5e);
-  outline-offset: 1px;
-}
-.link-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.msg__tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-}
-
-/* --- Feedback controls (Phase D) --------------------------------------- */
-.feedback {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.feedback__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  font-size: 0.9rem;
-  line-height: 1;
-  cursor: pointer;
-  /* Reserve the pressed border so toggling on causes no layout shift. */
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.feedback__btn:hover {
-  background: var(--reep-action-hover);
-}
-.feedback__btn:focus-visible {
-  outline: 2px solid var(--reep-primary-main, #1a3c5e);
-  outline-offset: 1px;
-}
-.feedback__btn--on {
-  border-color: var(--reep-primary-main, #1a3c5e);
-  background: var(--reep-action-hover);
-}
-.feedback__report {
-  color: var(--reep-text-secondary);
-}
-.feedback__ack {
-  font-size: 0.75rem;
-  color: var(--reep-success-main, #2e7d32);
-  font-weight: 600;
-}
-
-/* Inline report note field. */
-.report {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  max-width: 420px;
-  margin-top: 2px;
-}
-.report__label {
-  font-size: 0.75rem;
-  color: var(--reep-text-secondary);
-}
-.report__input {
-  resize: vertical;
-  min-height: 44px;
-  max-height: 140px;
-  padding: 8px 10px;
-  border: 1px solid var(--reep-divider);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--reep-text-primary);
-  font: inherit;
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-.report__input:focus-visible {
-  outline: 2px solid var(--reep-primary-main, #1a3c5e);
-  outline-offset: 1px;
-  border-color: var(--reep-primary-main, #1a3c5e);
-}
-.report__actions {
-  display: flex;
-  gap: 8px;
-}
-.report__actions .btn:focus-visible {
-  outline: 2px solid var(--reep-primary-main, #1a3c5e);
-  outline-offset: 2px;
-}
-
-/* Failed / stopped user turn — offers a Retry. */
-.retry {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.78rem;
-  color: var(--reep-text-secondary);
-}
-.retry--failed .retry__label {
-  color: var(--reep-error-main);
-  font-weight: 600;
-}
-.retry--failed .link-btn {
-  color: var(--reep-error-main);
-}
-.retry--failed .link-btn:focus-visible {
-  outline-color: var(--reep-error-main);
-}
-
-.msg__bubble--typing {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-}
-.msg__bubble--typing span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--reep-text-disabled);
-  animation: blink 1.2s infinite ease-in-out;
-}
-.msg__bubble--typing span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.msg__bubble--typing span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-.chat__compose {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  padding: 12px;
-  border-top: 1px solid var(--reep-divider);
-}
-.chat__input {
-  flex: 1;
-  resize: none;
-  max-height: 160px;
-  padding: 10px 12px;
-  border: 1px solid var(--reep-divider);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--reep-text-primary);
-  font: inherit;
-  line-height: 1.5;
-}
-.chat__input:focus {
-  outline: none;
-  border-color: var(--reep-primary-main, #1a3c5e);
-}
-.chat__input:focus-visible {
-  outline: 2px solid var(--reep-primary-main, #1a3c5e);
-  outline-offset: 1px;
-}
-.chat__send {
-  flex-shrink: 0;
-  min-width: 84px;
-}
-.chat__send:focus-visible {
-  outline: 2px solid var(--reep-primary-main, #1a3c5e);
-  outline-offset: 2px;
-}
-.chat__send:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.chat__stop {
-  flex-shrink: 0;
-  min-width: 84px;
-  border-color: var(--reep-error-main);
-  color: var(--reep-error-main);
-}
-.chat__stop:focus-visible {
-  outline: 2px solid var(--reep-error-main);
-  outline-offset: 2px;
-}
-
-.chat__hint {
-  margin: 8px 12px 12px;
-  color: var(--reep-text-disabled);
-}
-
-@keyframes blink {
-  0%,
-  80%,
-  100% {
-    opacity: 0.3;
-  }
-  40% {
-    opacity: 1;
-  }
-}
-@keyframes pulse {
+@keyframes stage-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage__dot {
+    animation: none !important;
+  }
+}
+
+.stage__caption {
+  margin: 0;
+  text-align: center;
+  max-width: 56ch;
+  color: var(--reep-text-secondary);
+}
+
+.stage__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 20px;
+}
+.stage__clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--reep-text-primary);
+}
+.stage__cap {
+  font-weight: 500;
+  color: var(--reep-text-secondary);
+}
+/* Two minutes left. The colour is a nudge; the "/ mm:ss" cap beside it is what
+   actually tells the student how long is left. */
+.stage__clock--warn {
+  color: var(--reep-warning-main, #b26a00);
+}
+
+/* --- Mic meter ---------------------------------------------------------- */
+.meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.meter__track {
+  display: block;
+  width: 140px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--reep-action-hover);
+  border: 1px solid var(--reep-divider);
+  overflow: hidden;
+}
+.meter__fill {
+  display: block;
+  height: 100%;
+  background: var(--reep-success-main, #2e7d32);
+  transition: width 80ms linear;
+}
+.meter__value {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--reep-text-secondary);
+  min-width: 3.2em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .meter__fill {
+    transition: none;
+  }
+}
+
+/* --- Live transcript ---------------------------------------------------- */
+.tscript {
+  margin: 0 0 24px;
+}
+.tscript__title {
+  margin: 0 0 10px;
+  color: var(--reep-text-primary);
+}
+.tscript__log {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 12px;
+  background: var(--reep-surface, var(--reep-action-hover));
+}
+.tscript__empty {
+  margin: 0;
+  color: var(--reep-text-secondary);
+}
+.tline {
+  margin: 0 0 10px;
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 10px;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+.tline:last-child {
+  margin-bottom: 0;
+}
+.tline__who {
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--reep-text-secondary);
+  padding-top: 2px;
+}
+.tline[data-role='interviewer'] .tline__who {
+  color: var(--reep-primary-main, #1a3c5e);
+}
+.tline[data-role='you'] .tline__who {
+  color: var(--reep-success-main, #2e7d32);
+}
+.tline__text {
+  color: var(--reep-text-primary);
+  white-space: pre-wrap;
+}
+/* Still streaming. A caret, not a colour, so it reads on any theme. */
+.tline--partial .tline__text::after {
+  content: '▌';
+  margin-left: 2px;
+  color: var(--reep-text-disabled);
+}
+@media (max-width: 560px) {
+  .tline {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+/* --- Saved conversation ------------------------------------------------- */
+.convo {
+  margin: 0 0 32px;
+}
+.convo__toggle {
+  font-size: 0.8125rem;
+}
+.convo__empty {
+  margin: 10px 0 0;
+  color: var(--reep-text-secondary);
+}
+.convo__log {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 12px;
+  background: var(--reep-action-hover);
+}
+.cturn {
+  margin: 0 0 10px;
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 10px;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+.cturn:last-child {
+  margin-bottom: 0;
+}
+.cturn__who {
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--reep-primary-main, #1a3c5e);
+  padding-top: 2px;
+}
+.cturn--user .cturn__who {
+  color: var(--reep-success-main, #2e7d32);
+}
+.cturn__text {
+  color: var(--reep-text-primary);
+  white-space: pre-wrap;
+}
+@media (max-width: 560px) {
+  .cturn {
+    grid-template-columns: 1fr;
+    gap: 2px;
   }
 }

@@ -62,6 +62,16 @@ No `voice` rows, or a stale `max(created_at)`, means turns are being dropped. Tw
 
 Both now appear as `ERROR POST /api/voice/transcript -> HTTP 401: …` in the worker's log, with the status code. They used to be a WARNING that folded every cause into one line.
 
+### The assistant screen is the mock interviewer (2026-08)
+
+`/student/assistant` is the realtime mock interviewer: a WebSocket to `/api/interview` relaying 24 kHz PCM to the OpenAI Realtime API and back. It runs **inside the API process** — it is not a fifth process, and it needs no extra venv. Set `OPENAI_API_KEY` in `apps/api-py/.env`; blank means `GET /api/interview/status` reports unavailable and the socket closes 4001, and nothing else in the dashboard is affected. Full notes: `docs/interview-assistant.md`.
+
+Turns are persisted through `app/conversations.py` with `channel='interview'`, so the runbook query above still answers "did it save anything" — group by `channel` and look for `interview`. The writes are fire-and-forget for the same reason the voice ones are, so the same silent failure applies; the cause is logged as `Dropped interview turn`.
+
+The LiveKit voice stack (step 4 above, `voice_agent.py`, `/api/voice/*`) and the text orchestrator (`POST /api/agent/ask`) are **retained and mounted but have no UI caller.** They are the rollback path, not dead code — do not run the voice worker expecting a button, and do not delete them until the interviewer has held up in front of real students. Two knock-on effects, both silent: `POST /api/agent/feedback` 404s on every request because no `AgentRun` rows are written any more, and the `AgentRun`-derived counters in `GET /api/agent/metrics` read 0. `voice_turns` (off `Message.channel`) keeps working.
+
+`apps/interview-realtime/` is the superseded standalone prototype of this relay. It has no authentication and no database — **do not deploy it**; see the banner at the top of its `app/server.py`.
+
 ## The two rules that must not be broken
 
 ### 1. Student data must not leave the machine unbidden

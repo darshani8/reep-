@@ -629,7 +629,7 @@ I grepped the entire repository for `purge_expired`, `redact_expired_runs`, `fro
 
 The consequence, stated plainly: on any deployment of this repo as committed, `retention_until` is written on every new thread and **never read**; `deleted_at` is written by "Clear conversation" and never acted on beyond hiding the row; message content is never scrubbed; and `agent_runs.question`/`answer` retain every student question and answer verbatim, forever, with an `ix_agentrun_actor_created` index ([models/agent_run.py:33](apps/api-py/app/models/agent_run.py#L33)) making them trivially queryable per student. The 90-day retention window and the 30-day grace window are documentation.
 
-This is the same class of finding [FINDINGS.md](docs/codebase-bible/FINDINGS.md) already records for alerting — a complete, tested surface with nothing driving it — with one mitigating difference: **this module declares its own gap.**
+This is the same class of finding [FINDINGS.md](docs/codebase-mahabharath/FINDINGS.md) already records for alerting — a complete, tested surface with nothing driving it — with one mitigating difference: **this module declares its own gap.**
 
 > "Both are IDEMPOTENT (a second pass is a no-op) and pure functions of ``now`` so a test can pin the clock. They are intended to be driven from a scheduled job or a management call — NOT wired to a cron here; wiring them is a deployment concern."
 

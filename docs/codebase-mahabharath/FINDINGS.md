@@ -80,6 +80,40 @@ documented, not less. Not a hole — the gate still defaults closed and still re
 affirmative value — but the comment is wrong about the mechanism, and a reader hardening
 this would trust the comment.
 
+### Four places convey status by colour alone, breaking the rule AGENTS.md states
+
+`AGENTS.md` says status is *"always shown as **text + colour together**, never colour alone"*.
+Chapter 14's council audited every template rather than restating the claim, and found four
+places where colour is the only carrier of meaning. None is exotic — all four are ordinary
+screens a student uses every week.
+
+| # | Where | What only colour says |
+|---|-------|----------------------|
+| 1 | [resume-builder.component.html:41-59](apps/web/src/app/features/student/resume/resume-builder.component.html#L41-L59) + [reep-v2-resume.scss:134-149](apps/web/src/styles/reep-v2-resume.scss#L134-L149) | Which resume-builder steps are complete — the step dots differ only by fill |
+| 2 | [student-overview.component.html:225-230](apps/web/src/app/features/student/overview/student-overview.component.html#L225-L230) | Which days the student logged in — the streak cells carry no text or label |
+| 3 | [time-log.component.html:54-73](apps/web/src/app/features/student/time-log/time-log.component.html#L54-L73) + [.scss:44](apps/web/src/app/features/student/time-log/time-log.component.scss#L44) | Which activity each segment of the stacked bar represents |
+| 4 | [app-shell.component.html:16-57](apps/web/src/app/layout/app-shell.component.html#L16-L57) | Which navigation item is the current page |
+
+**Why it matters here specifically.** Roughly 1 in 12 men has a colour-vision deficiency, so in a
+cohort of 1,000 students this is dozens of people. Placement reports get printed in monochrome
+and screenshotted. And a nav bar whose current item is colour-only is a wayfinding failure, not
+a cosmetic one.
+
+The rule itself is sound and mechanised well elsewhere — `.chip` always carries a label, and
+progress meters pair the fill with a number plus `role="progressbar"`. These four are gaps in
+application, not in the design system.
+
+The sharpest detail: **the rule is quoted in comments inside the very files that break it**,
+twice over. Someone wrote the rule down and then, in the same file, shipped a violation.
+
+**Fix:** each needs a text or ARIA carrier — a step label or `aria-current` on the dots, a
+`title`/visually-hidden date on the streak cells, a legend or `aria-label` per bar segment, and
+`aria-current="page"` on the active nav item.
+
+**Not a violation, though an earlier draft claimed it was:** the assistant's live-audio stage
+dot. The council re-checked and found it already pairs its colour with text, then corrected its
+own chapter rather than leaving the false positive standing.
+
 ## Project state: features whose halves do not meet
 
 These are not bugs. They are places where reading the code alone would badly mislead you

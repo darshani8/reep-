@@ -1,3 +1,13 @@
+# NOTE (2026-08): the student-facing assistant is now the realtime mock
+# interviewer in app/routers/interview.py, and it calls NO tool in this
+# module — by design. The Realtime session is a REMOTE provider, so no
+# student record (marks, attendance, CGPA, USN, resume text) may enter its
+# prompt, which is exactly what these tools return. They stay in place for
+# the orchestrator behind POST /api/agent/ask (retained for rollback). Any
+# future path that does feed a tool result to a model must go through
+# complete_chat(..., carries_student_data=True) in app/ai/llm.py.
+# See docs/interview-assistant.md.
+
 """Read-only STUDENT TOOLS for the grounded assistant.
 
 These are the assistant orchestrator's *source of truth* for LIVE student facts.

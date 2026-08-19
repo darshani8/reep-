@@ -285,7 +285,7 @@ def test_assert_owner_404_after_soft_delete(make_student):
 # The compulsory opening greeting
 # ---------------------------------------------------------------------------
 @requires_db
-def test_greeting_survives_a_failed_first_turn(client, stub_llm, make_student, monkeypatch):
+def test_greeting_survives_a_failed_first_turn(client, stub_llm, make_student):
     """A turn that fails must NOT consume the greeting.
 
     The greeting is stamped only after the greeted answer is persisted, so a
@@ -297,12 +297,15 @@ def test_greeting_survives_a_failed_first_turn(client, stub_llm, make_student, m
     def boom(*a, **k):
         raise RuntimeError("provider down")
 
-    monkeypatch.setattr("app.routers.agent.complete_chat", boom)
-    r = client.post("/api/agent/chat", headers=s.headers, json={"message": "hi"})
-    assert r.status_code == 502
+    # An isolated context, NOT the shared `monkeypatch` fixture: stub_llm patched
+    # through that same instance, so undo() would strip the stub too and the
+    # "recovered" request would hit the real provider (503 on a keyless CI host).
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.routers.agent.complete_chat", boom)
+        r = client.post("/api/agent/chat", headers=s.headers, json={"message": "hi"})
+        assert r.status_code == 502
 
-    # Provider recovers; the greeting is still owed.
-    monkeypatch.undo()
+    # Provider recovers (the stub is back); the greeting is still owed.
     ok = client.post("/api/agent/chat", headers=s.headers, json={"message": "hi again"})
     assert ok.status_code == 200, ok.text
     assert ok.json()["reply"].startswith(GREETING)

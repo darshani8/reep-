@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<!--
+  ============================================================================
+  VOICE VISUALIZER — PREVIEW HARNESS
+  ============================================================================
+
+  NOT SERVED BY THE RELAY, ON PURPOSE. This file used to sit in public/, which
+  app/server.py mounts with StaticFiles - so anyone who found it got the red
+  "could not load ./VoiceVisualizer.js" banner every single time, because that
+  compiled file has never existed. It lives beside its source instead.
+
+  BUILD FIRST. This page loads ./VoiceVisualizer.js, the *compiled* output of
+  the VoiceVisualizer.ts sitting next to it. No TypeScript is transpiled in the
+  browser, and this repo deliberately carries NO package.json and NO
+  tsconfig.json - the backend of this app is FastAPI only. So compile the one
+  file explicitly, which emits the .js next to it, exactly where this page
+  looks:
+
+      npx -y typescript@5 tsc apps/interview-realtime/src/VoiceVisualizer.ts \
+          --target ES2022 --module ES2022 --lib ES2022,DOM --strict
+
+  DO NOT run a bare `npx tsc`. With no package.json here, npm resolves that name to
+  a deprecated squatter package called "tsc" (not the compiler), installs it, and
+  emits nothing. The invocation above names typescript@5 explicitly for exactly
+  that reason. `--strict` is not optional either: the module is written to compile
+  clean under it, and that is part of the spec.
+
+  SERVE, DO NOT DOUBLE-CLICK. The harness is an ES module (`import`), which the
+  browser refuses to load over `file://`. Serve this folder over http:
+
+      npx -y http-server apps/interview-realtime/src -p 4321
+      #  then open  http://localhost:4321/visualizer.html
+
+  If ./VoiceVisualizer.js is missing, fails to parse, or does not match the
+  expected export contract, the harness shows a red banner naming the problem
+  and listing what the module actually exported — it never fails silently.
+
+  WHAT THIS PAGE IS
+  - A busy mock "page beneath", so the overlay's backdrop-filter is visibly
+    smearing real content (blur over flat black proves nothing).
+  - The circular reveal that sweeps in on load. The GLASS itself belongs to
+    VoiceVisualizer's own .rvz-overlay; this page must not declare a second
+    backdrop-filter or the module's filter samples an already-blurred backdrop.
+  - The orb canvas. VoiceVisualizer reparents it into its own fullscreen host
+    and owns BOTH its CSS box and its devicePixelRatio-aware backing store, so
+    this page deliberately declares no size and no transform on it.
+  - Controls: four state toggles, two amplitude sliders, a show/hide overlay
+    toggle, one scripted conversation. Keyboard: 1-4 select a state, S
+    runs/stops the simulation.
+
+  The expected module contract is documented at the top of visualizer-demo.js.
+-->
+<head>
+<meta charset="utf-8" />
+<title>Voice Orb Harness</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+
+<style>
+  /* ---------------------------------------------------------------- tokens */
+  :root {
+    --bg-deep: #04090c;
+    --glass: rgba(6, 14, 18, 0.62);
+    --stroke: rgba(180, 240, 225, 0.14);
+    --stroke-strong: rgba(190, 250, 235, 0.34);
+    --text: #e7f6f2;
+    --text-dim: #8fa8a6;
+    --mint: #7cf0c4;
+    --sky: #7fc7ff;
+    --violet: #b9a8ff;
+    --white: #ffffff;
+    --danger: #ff8f7a;
+    --ctl-h: 3rem;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg-deep);
+    color: var(--text);
+    font: 400 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ------------------------------------------------- the page underneath --
+     Deliberately colourful. The overlay's backdrop-filter has to be seen
+     smearing real content, not a void. */
+  .beneath {
+    position: fixed;
+    inset: 0;
+    padding: 4vmin 5vmin;
+    overflow: hidden;
+    background:
+      radial-gradient(58vmax 44vmax at 12% 8%,  rgba(46, 214, 160, 0.30), transparent 62%),
+      radial-gradient(52vmax 40vmax at 88% 22%, rgba(72, 150, 255, 0.28), transparent 60%),
+      radial-gradient(64vmax 52vmax at 50% 108%, rgba(126, 96, 255, 0.22), transparent 64%),
+      linear-gradient(168deg, #0b1a1f 0%, #071114 55%, #050b0e 100%);
+  }
+
+  .beneath h1 {
+    margin: 0 0 0.35rem;
+    font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+    font-weight: 620;
+    letter-spacing: -0.02em;
+  }
+
+  .beneath p.lede {
+    margin: 0 0 2.4rem;
+    max-width: 46ch;
+    color: rgba(231, 246, 242, 0.62);
+  }
+
+  .beneath .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1rem;
+    max-width: 1180px;
+  }
+
+  .beneath .card {
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.055);
+  }
+
+  .beneath .card b { display: block; font-size: 1.5rem; font-weight: 640; }
+  .beneath .card span { color: rgba(231, 246, 242, 0.55); font-size: 0.8rem; }
+  .beneath .bar {
+    height: 6px;
+    margin-top: 0.8rem;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+  }
+  .beneath .bar i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--mint), var(--sky));
+  }
+
+  /* --------------------------------------------------------- the overlay --
+     The CIRCULAR REVEAL ONLY. The glass itself — background, backdrop-filter, and
+     the opacity/transform sweep — belongs to the module's own .rvz-overlay, which it
+     creates inside this element and reparents #orb into. This layer used to carry a
+     second `backdrop-filter: blur(28px) saturate(150%) brightness(0.72)` of its own,
+     so the module's filter sampled a backdrop that had ALREADY been blurred and
+     darkened: double blur, double saturate, compounded brightness, and two
+     full-viewport backdrop filters — the most expensive thing on the page, against a
+     60 fps requirement. One layer of glass, not two. */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    z-index: 10;
+    animation: sweep-in 900ms var(--ease-out) both;
+  }
+
+  @keyframes sweep-in {
+    from { clip-path: circle(0% at 50% 58%); opacity: 0; }
+    60%  { opacity: 1; }
+    to   { clip-path: circle(142% at 50% 58%); opacity: 1; }
+  }
+
+  /* Re-triggerable: JS removes .go, forces reflow, re-adds it. */
+  .overlay.sweeping { animation: none; }
+  .overlay.sweeping.go { animation: sweep-in 900ms var(--ease-out) both; }
+
+  /* VoiceVisualizer TAKES OWNERSHIP of this canvas: it reparents it into its own
+     fullscreen .rvz-overlay host and writes inline width/height on every resize, so
+     any box declared here is silently discarded. A transform, however, is NOT — and
+     is not compensated for, because the module centres the orb on
+     host.clientWidth/2, host.clientHeight/2 and authors its halo and the overlay's
+     radial backdrop around that same point. `translateY(-3vmin)` therefore left the
+     orb sitting 26 px above the centre of its own glow. Do not size or transform it
+     here; let the module own both. */
+  #orb {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ------------------------------------------------------------ head-up -- */
+  .hud {
+    position: fixed;
+    top: max(1.4rem, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.95rem;
+    border: 1px solid var(--stroke);
+    border-radius: 99px;
+    background: rgba(4, 12, 14, 0.5);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    font-size: 0.78rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .hud .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    box-shadow: 0 0 12px currentColor;
+    color: var(--text-dim);
+    transition: background 400ms linear, color 400ms linear;
+  }
+
+  .hud strong { color: var(--text); font-weight: 600; }
+  .hud .sep { opacity: 0.35; }
+  .hud #hudFps { min-width: 5.2ch; display: inline-block; }
+
+  /* Status colour is carried by text *and* colour, never colour alone. */
+  .hud[data-state="Connecting"] .dot { background: var(--violet); color: var(--violet); }
+  .hud[data-state="Listening"]  .dot { background: var(--mint);   color: var(--mint); }
+  .hud[data-state="Speaking"]   .dot { background: var(--sky);    color: var(--sky); }
+  .hud[data-state="Idle"]       .dot { background: var(--white);  color: rgba(255,255,255,0.6); }
+
+  /* -------------------------------------------------------- control dock -- */
+  .controls {
+    position: fixed;
+    left: 50%;
+    bottom: max(1.2rem, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 20;
+    width: min(940px, calc(100vw - 2rem));
+    display: grid;
+    gap: 0.85rem;
+    padding: 0.95rem 1.05rem;
+    border: 1px solid var(--stroke);
+    border-radius: 18px;
+    background: rgba(4, 12, 15, 0.56);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .row.states { gap: 0.4rem; }
+
+  /* Segmented state toggles */
+  .seg {
+    flex: 1 1 8rem;
+    min-height: var(--ctl-h);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0 0.9rem;
+    border: 1px solid var(--stroke);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-dim);
+    font: inherit;
+    font-weight: 550;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition:
+      background 220ms var(--ease-out),
+      border-color 220ms var(--ease-out),
+      color 220ms var(--ease-out),
+      box-shadow 220ms var(--ease-out);
+  }
+
+  .seg:hover { background: rgba(255, 255, 255, 0.075); color: var(--text); }
+
+  .seg[aria-pressed="true"] {
+    border-color: var(--stroke-strong);
+    color: #04120f;
+    background: linear-gradient(135deg, var(--mint), var(--sky));
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset, 0 10px 28px -14px var(--mint);
+  }
+
+  .seg kbd, .btn kbd {
+    font: inherit;
+    font-size: 0.7rem;
+    opacity: 0.65;
+    padding: 0.05rem 0.34rem;
+    border: 1px solid currentColor;
+    border-radius: 5px;
+  }
+
+  /* Sliders */
+  .slider {
+    flex: 1 1 20rem;
+    display: grid;
+    grid-template-columns: 7.5rem 1fr 3.2rem;
+    align-items: center;
+    gap: 0.7rem;
+    min-height: var(--ctl-h);
+    padding: 0 0.85rem;
+    border: 1px solid var(--stroke);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  .slider .name { color: var(--text); font-weight: 550; }
+  .slider output { text-align: right; color: var(--mint); font-weight: 600; }
+  .slider.ai output { color: var(--sky); }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 22px;
+    margin: 0;
+    background: transparent;
+    cursor: ew-resize;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.16);
+  }
+  input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.16);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 14px -2px var(--mint);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 14px -2px var(--mint);
+  }
+  .slider.ai input[type="range"]::-webkit-slider-thumb {
+    background: var(--sky);
+    box-shadow: 0 0 14px -2px var(--sky);
+  }
+  .slider.ai input[type="range"]::-moz-range-thumb {
+    background: var(--sky);
+    box-shadow: 0 0 14px -2px var(--sky);
+  }
+
+  /* Actions */
+  .btn {
+    min-height: var(--ctl-h);
+    padding: 0 1.15rem;
+    border: 1px solid var(--stroke-strong);
+    border-radius: 12px;
+    background: rgba(124, 240, 196, 0.12);
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out);
+  }
+  .btn:hover { background: rgba(124, 240, 196, 0.2); }
+  .btn[data-running="true"] {
+    background: rgba(255, 143, 122, 0.16);
+    border-color: rgba(255, 143, 122, 0.5);
+  }
+
+  .btn.ghost {
+    border-color: var(--stroke);
+    background: transparent;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .btn.ghost:hover { background: rgba(255, 255, 255, 0.06); color: var(--text); }
+
+  .status {
+    flex: 1 1 14rem;
+    min-width: 0;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :where(button, input, a):focus-visible {
+    outline: 2px solid var(--mint);
+    outline-offset: 2px;
+  }
+
+  /* -------------------------------------------------------- load failure -- */
+  .load-error {
+    position: fixed;
+    top: 10vh;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    width: min(680px, calc(100vw - 2rem));
+    max-height: 74vh;
+    overflow: auto;
+    padding: 1.25rem 1.4rem;
+    border: 1px solid rgba(255, 143, 122, 0.45);
+    border-radius: 16px;
+    background: rgba(28, 10, 8, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: #ffdfd6;
+    box-shadow: 0 30px 80px -30px #000;
+  }
+  .load-error[hidden] { display: none; }
+  .load-error h2 { margin: 0 0 0.5rem; font-size: 1.05rem; color: var(--danger); }
+  .load-error p { margin: 0 0 0.7rem; }
+  .load-error pre {
+    margin: 0 0 0.7rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.45);
+    font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #ffd9cd;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .load-error .detail {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    word-break: break-word;
+    white-space: pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (max-width: 620px) {
+    .slider { grid-template-columns: 5.6rem 1fr 2.8rem; flex-basis: 100%; }
+    .seg { flex-basis: 6.5rem; font-size: 0.85rem; }
+    .seg kbd { display: none; }
+    /* No #orb override here either — see the note on #orb above. */
+    .hud .fps-group { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .overlay, .overlay.sweeping.go { animation: none; clip-path: none; }
+    .seg, .btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- =============================== the page the overlay is layered over -->
+<div class="beneath" aria-hidden="true" inert>
+  <h1>Placement readiness</h1>
+  <p class="lede">Background content only. It exists so the overlay's backdrop blur has something real to smear.</p>
+  <div class="grid">
+    <div class="card"><b>78%</b><span>Readiness score</span><div class="bar"><i style="width:78%"></i></div></div>
+    <div class="card"><b>12</b><span>Mock interviews</span><div class="bar"><i style="width:60%"></i></div></div>
+    <div class="card"><b>4</b><span>Offers in hand</span><div class="bar"><i style="width:34%"></i></div></div>
+    <div class="card"><b>91%</b><span>Attendance</span><div class="bar"><i style="width:91%"></i></div></div>
+    <div class="card"><b>3.2s</b><span>Median answer latency</span><div class="bar"><i style="width:44%"></i></div></div>
+    <div class="card"><b>27</b><span>Applications sent</span><div class="bar"><i style="width:72%"></i></div></div>
+    <div class="card"><b>8.4</b><span>CGPA</span><div class="bar"><i style="width:84%"></i></div></div>
+    <div class="card"><b>16</b><span>Skills verified</span><div class="bar"><i style="width:52%"></i></div></div>
+  </div>
+</div>
+
+<!-- =============================================== overlay + orb canvas -->
+<div class="overlay" id="overlay">
+  <canvas id="orb" aria-label="Voice activity visualizer" role="img"></canvas>
+</div>
+
+<div class="hud" id="hud" data-state="">
+  <span class="dot" aria-hidden="true"></span>
+  <span>State</span>
+  <strong id="hudState">&mdash;</strong>
+  <span class="fps-group"><span class="sep">&middot;</span> <span id="hudFps">&mdash;</span> fps</span>
+</div>
+
+<!-- ============================================================ controls -->
+<div class="controls" role="group" aria-label="Visualizer controls">
+  <div class="row states" role="group" aria-label="Visualizer state">
+    <button type="button" class="seg" data-state="Connecting" aria-pressed="false">Connecting <kbd>1</kbd></button>
+    <button type="button" class="seg" data-state="Listening"  aria-pressed="false">Listening <kbd>2</kbd></button>
+    <button type="button" class="seg" data-state="Speaking"   aria-pressed="false">Speaking <kbd>3</kbd></button>
+    <button type="button" class="seg" data-state="Idle"       aria-pressed="false">Idle <kbd>4</kbd></button>
+  </div>
+
+  <div class="row">
+    <label class="slider user">
+      <span class="name">User audio</span>
+      <input type="range" id="userAmp" min="0" max="1" step="0.005" value="0"
+             aria-label="User audio amplitude, 0 to 1" />
+      <output id="userAmpOut" for="userAmp">0.00</output>
+    </label>
+    <label class="slider ai">
+      <span class="name">AI audio</span>
+      <input type="range" id="aiAmp" min="0" max="1" step="0.005" value="0"
+             aria-label="AI audio amplitude, 0 to 1" />
+      <output id="aiAmpOut" for="aiAmp">0.00</output>
+    </label>
+  </div>
+
+  <div class="row">
+    <button type="button" class="btn" id="simulate" data-running="false"><span id="simLabel">Simulate conversation</span> <kbd>S</kbd></button>
+    <button type="button" class="btn ghost" id="replay">Replay sweep</button>
+    <button type="button" class="btn ghost" id="toggleOverlay" aria-pressed="true">Hide overlay</button>
+    <span class="status" id="status" role="status">Loading ./VoiceVisualizer.js&hellip;</span>
+  </div>
+</div>
+
+<!-- ======================================================= load failure -->
+<div class="load-error" id="loadError" hidden>
+  <h2 id="loadErrorTitle">Could not load ./VoiceVisualizer.js</h2>
+  <p>This harness loads the <em>compiled</em> module. Build it, then serve this folder over http (ES modules do not load from <code>file://</code>):</p>
+  <pre>npx -y typescript@5 tsc apps/interview-realtime/src/VoiceVisualizer.ts \
+    --target ES2022 --module ES2022 --lib ES2022,DOM --strict
+
+npx -y http-server apps/interview-realtime/src -p 4321
+# open http://localhost:4321/visualizer.html</pre>
+  <p class="detail">A bare <code>npx tsc</code> installs a deprecated squatter package named &ldquo;tsc&rdquo;, not the compiler, and emits nothing. Name <code>typescript@5</code> explicitly.</p>
+  <p class="detail" id="loadErrorDetail"></p>
+</div>
+
+<script type="module" src="./visualizer-demo.js"></script>
+</body>
+</html>

@@ -424,3 +424,239 @@ def test_heartbeat_rejects_a_wrong_worker_secret(client, monkeypatch):
 def test_heartbeat_rejects_a_blank_worker_id(client, voice_env):
     res = client.post("/api/voice/heartbeat", json={"worker_id": ""})
     assert res.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# require_voice_worker: WHERE the open door is allowed to be open (audit M1)
+# ---------------------------------------------------------------------------
+#
+# Both worker endpoints are unauthenticated when VOICE_WORKER_SECRET is blank.
+# That is a deliberate affordance — the worker is a FOURTH process in its own
+# venv, and making someone copy a secret to try it once is how "voice is broken"
+# reports start — but it was gated on `settings.is_prod`, which is a match
+# against four literal names. A `staging` or `uat` box, or one whose ENV arrived
+# empty from a half-written deploy template, therefore answered "this is not
+# production" while holding real roster rows, and left both endpoints open: a
+# forged heartbeat makes voice report itself available with no worker behind it,
+# and a forged transcript writes assistant-labelled turns into any conversation
+# whose id the caller has observed — where they render in the UI and replay into
+# later LLM prompts.
+#
+# The gate is now `worker_auth_optional`, an ALLOWLIST of the environments where
+# an open door is intended. These tests are what stop it drifting back onto a
+# name test: the substitution is invisible on a dev laptop, because dev is the
+# one environment where both spellings agree.
+
+# Every one of these must be refused. "" is the one that reads like an oversight
+# and is not — an ENV that arrives empty is precisely the case the old is_prod
+# check waved through.
+NON_DEV_ENVS = ["staging", "uat", "demo", "", "prod", "Production", "dvelopment"]
+
+
+@pytest.mark.parametrize("env", NON_DEV_ENVS)
+def test_a_blank_worker_secret_is_refused_outside_development(client, monkeypatch, env):
+    """No secret configured + not a development box = no door, on BOTH endpoints.
+
+    500, not 401, and that is the right code: nobody presented a bad credential,
+    the server is misconfigured. It is also why this refuses at request time
+    rather than at boot — the API serves the whole dashboard, and a voice secret
+    nobody set must disable voice ingestion, not take the site down.
+    """
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "voice_worker_secret", "", raising=False)
+    monkeypatch.setattr(settings, "env", env, raising=False)
+
+    beat = client.post("/api/voice/heartbeat", json={"worker_id": "forged-worker"})
+    assert beat.status_code == 500, (
+        f"ENV={env!r} with a blank VOICE_WORKER_SECRET accepted a heartbeat "
+        f"({beat.status_code}). Anyone who can reach this port can now make voice "
+        f"report itself available with no worker behind it."
+    )
+    assert "not configured" in beat.json()["detail"]
+
+    turn = client.post(
+        "/api/voice/transcript",
+        json={
+            "conversation_id": "0" * 32,
+            "speaker": "assistant",
+            "text": "forged",
+            "is_final": True,
+        },
+    )
+    assert turn.status_code == 500, (
+        f"ENV={env!r} with a blank VOICE_WORKER_SECRET accepted a transcript "
+        f"({turn.status_code}). Both endpoints share require_voice_worker; a gate "
+        f"that covers only one of them is not a gate."
+    )
+
+
+@requires_db
+@pytest.mark.parametrize("env", ["dev", "test", "ci", "  DEV  "])
+def test_a_blank_worker_secret_stays_open_on_a_development_box(client, monkeypatch, env):
+    """The other direction, and it matters just as much.
+
+    Tightening this to "always require a secret" would be the obvious reading of
+    the audit finding and the wrong one: it turns trying voice on a laptop into a
+    two-file configuration exercise, and that affordance is why anyone runs the
+    fourth process at all. The allowlist exists to KEEP this case, not to remove
+    it.
+    """
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "voice_worker_secret", "", raising=False)
+    monkeypatch.setattr(settings, "env", env, raising=False)
+
+    res = client.post("/api/voice/heartbeat", json={"worker_id": "dev-worker"})
+    assert res.status_code == 200, res.text
+
+
+# ---------------------------------------------------------------------------
+# ...and HOW the presented secret is compared
+# ---------------------------------------------------------------------------
+def test_the_secret_comparison_is_constant_time():
+    """The one property here that no request can observe from the outside.
+
+    `!=` on a str short-circuits at the first differing character, so an attacker
+    willing to time enough requests recovers the shared prefix one character at a
+    time — and nothing rate-limits this endpoint. Reverting to `!=` would keep
+    every behavioural test in this file green, which is exactly why this one
+    reads the source instead.
+    """
+    import inspect
+
+    from app.routers.voice import require_voice_worker
+
+    source = inspect.getsource(require_voice_worker)
+    assert "compare_digest" in source, (
+        "require_voice_worker no longer uses hmac.compare_digest. A plain `!=` "
+        "leaks the length of the matching prefix to anyone timing the endpoint."
+    )
+
+
+def test_a_non_ascii_secret_header_is_a_401_not_a_500(client, monkeypatch):
+    """A hostile byte must not become a server error.
+
+    compare_digest RAISES TypeError on a non-ASCII `str` operand — the trap
+    app/google_auth.py documents at its own nonce compare. Starlette hands this
+    header over latin-1-decoded, so one byte above 0x7F from a hostile caller
+    would turn a 401 into a 500 traceback if the comparison were done on strings.
+    Comparing the ENCODED BYTES is what keeps it a refusal.
+
+    The header is passed as bytes on purpose: httpx refuses to encode a non-ASCII
+    str header at all, so a plain string here would never leave the client and
+    this test would pass without exercising anything.
+    """
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "voice_worker_secret", "the-real-secret", raising=False)
+    monkeypatch.setattr(settings, "env", "dev", raising=False)
+
+    res = client.post(
+        "/api/voice/heartbeat",
+        json={"worker_id": "w"},
+        headers={"X-Voice-Worker-Secret": "nöt-the-real-secret".encode("utf-8")},
+    )
+    assert res.status_code == 401, res.text
+
+
+def test_a_non_ascii_configured_secret_can_never_authenticate(client, monkeypatch):
+    """CURRENT BEHAVIOUR, PINNED BECAUSE IT IS A TRAP — not because it is right.
+
+    An operator is free to put a non-ASCII character in VOICE_WORKER_SECRET, and
+    both processes read the same .env, so both sides agree — and every beat still
+    401s. The header leaves as UTF-8 bytes and Starlette decodes it as latin-1,
+    so re-encoding that str as UTF-8 does not reproduce what was sent. It fails
+    CLOSED, which is the half that matters, but it presents as exactly the silent
+    failure AGENTS.md's voice runbook sends an operator hunting for: the call
+    sounds fine and the database stays empty.
+
+    If that is ever fixed — `.encode("latin-1")` on the header recovers the wire
+    bytes — this assertion is the one to change, deliberately, to 200.
+    """
+    from app.config import settings
+
+    secret = "sécret-ünicode-0123456789"
+    monkeypatch.setattr(settings, "voice_worker_secret", secret, raising=False)
+    monkeypatch.setattr(settings, "env", "dev", raising=False)
+
+    res = client.post(
+        "/api/voice/heartbeat",
+        json={"worker_id": "w"},
+        headers={"X-Voice-Worker-Secret": secret.encode("utf-8")},
+    )
+    assert res.status_code == 401, res.text
+
+
+# ---------------------------------------------------------------------------
+# POST /token: the per-student cap (audit H2)
+# ---------------------------------------------------------------------------
+#
+# TOKEN_TTL bounds how long a minted JWT may be used to JOIN a room, and nothing
+# else: LiveKit checks the token once, at join, so a participant admitted at
+# 9m59s holds the room — and the Groq-billed cascade behind it — for as long as
+# they stay connected. Before the cap, one enrolled account looping POST /token
+# cost unbounded worker memory and unbounded provider spend, and every process
+# involved reported itself healthy the whole time.
+@requires_db
+def test_a_student_may_not_hold_more_grants_than_the_cap(
+    client, make_user, voice_env, monkeypatch
+):
+    """The cap is read per request, so the CONFIGURED number is the one enforced."""
+    monkeypatch.setattr(voice_env, "voice_max_sessions_per_user", 1, raising=False)
+    student = make_user("token-cap")
+    _beat()
+
+    first = client.post("/api/voice/token", headers=student.headers)
+    assert first.status_code == 200, first.text
+
+    second = client.post("/api/voice/token", headers=student.headers)
+    assert second.status_code == 429, second.text
+    detail = second.json()["detail"]
+    # A student reads this, so it names the number and what to do about it.
+    assert "1 voice session" in detail, detail
+    assert "wait" in detail, detail
+
+
+@requires_db
+def test_the_cap_is_counted_per_student(client, make_user, voice_env, monkeypatch):
+    """One student's loop must not be everyone else's outage.
+
+    A cap keyed on anything coarser — a global counter, a source address — would
+    let one scripted account close voice for the whole cohort, which hands the
+    caller a denial of service instead of taking one away.
+    """
+    monkeypatch.setattr(voice_env, "voice_max_sessions_per_user", 1, raising=False)
+    greedy = make_user("token-cap-greedy")
+    bystander = make_user("token-cap-bystander")
+    _beat()
+
+    assert client.post("/api/voice/token", headers=greedy.headers).status_code == 200
+    assert client.post("/api/voice/token", headers=greedy.headers).status_code == 429
+    assert client.post("/api/voice/token", headers=bystander.headers).status_code == 200
+
+
+@requires_db
+def test_a_capped_student_is_still_told_voice_is_available(
+    client, make_user, voice_env, monkeypatch
+):
+    """THE ONE DELIBERATE EXCEPTION to the paired-gate invariant above.
+
+    test_status_available_iff_token_succeeds says /status.available is true
+    exactly when /token returns 200. The cap breaks that on purpose, and the
+    distinction is the whole reason it can: /status describes the SERVICE (is
+    voice up at all), the cap describes the CALLER (are you already holding your
+    share). Folding it into _compute_status — the obvious way to "restore" the
+    invariant — would report an outage to a student whose own second tab is the
+    only thing wrong, and would be untrue for everyone else on the box.
+    """
+    monkeypatch.setattr(voice_env, "voice_max_sessions_per_user", 1, raising=False)
+    student = make_user("token-cap-status")
+    _beat()
+
+    assert client.post("/api/voice/token", headers=student.headers).status_code == 200
+    assert client.post("/api/voice/token", headers=student.headers).status_code == 429
+
+    body = client.get("/api/voice/status", headers=student.headers).json()
+    assert body["available"] is True
+    assert body["worker_healthy"] is True

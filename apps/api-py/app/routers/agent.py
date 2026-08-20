@@ -40,18 +40,28 @@
 #   POST   /api/agent/feedback         live, but CONDITIONAL: it 404s unless an
 #                                      agent_runs row exists whose actor_id is
 #                                      the caller, and the client only ever
-#                                      learns a run_id from AskOut.run_id. If
-#                                      the interview path stops writing
-#                                      AgentRun rows, this endpoint 404s on
-#                                      every request and the thumbs-up/down UI
-#                                      silently stops rendering (it is gated on
+#                                      learns a run_id from AskOut.run_id. The
+#                                      interview path writes no AgentRun rows,
+#                                      so on a student account it 404s on every
+#                                      request and the thumbs-up/down UI simply
+#                                      stops rendering (it is gated on
 #                                      `turn.structured?.run_id`) — no console
-#                                      error, no failing build.
+#                                      error, no failing build. That 404 is now
+#                                      a TOMBSTONE: when the caller owns no runs
+#                                      at all it says why, so a log full of them
+#                                      reads as a retirement, not a fault. Still
+#                                      404, still indistinguishable from
+#                                      "not yours" — see the handler.
 #   GET    /api/agent/metrics          live (DIRECTOR/ADMIN, 403 otherwise). It
 #                                      never errors, but every AgentRun-derived
-#                                      counter reads 0 if runs stop being
-#                                      written; voice_turns (off Message.channel)
-#                                      and feedback counts keep working.
+#                                      counter froze when runs stopped being
+#                                      written. The payload now SAYS so
+#                                      (`agent_runs.collected` + the
+#                                      `last_run_at` that dates the freeze)
+#                                      instead of reporting a bare 0, and
+#                                      `turns_by_channel` off Message.channel —
+#                                      voice AND interview — is the live source
+#                                      beside the feedback counts.
 #
 # The module docstring below predates /ask, /knowledge/search, /feedback and
 # /metrics and lists only five of the nine routes. It is kept verbatim rather
@@ -82,6 +92,7 @@ import json
 import logging
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -115,9 +126,49 @@ SYSTEM_PROMPT = (
 # Keep the replayed context bounded so a long session can't blow the token window.
 HISTORY_LIMIT = 40
 
-# Shown to the client on any provider/network/quota failure. The real cause is
-# logged server-side — never leaked to the caller.
+# Shown to the client when the provider ANSWERED with a failure — a bad key, an
+# exhausted quota, a 5xx, a malformed body — or when the adapter itself threw.
+# Those are faults an operator has to see as faults, so they stay a 502. The real
+# cause is logged server-side; never leaked to the caller.
 FRIENDLY_ERROR = "The assistant is temporarily unavailable, please try again."
+
+# ...and the other half. A TRANSPORT fault means the provider was never reached
+# at all: no route, DNS gone, TLS reset, connect/read timeout. From the student's
+# side that is indistinguishable from "no model is configured on this box", and
+# /student/resume/generate already answers that case with a deterministic draft
+# and an honest used_ai=false rather than a 5xx. This surface now does the same,
+# because a 502 on a laptop that simply has no internet is a dead end the student
+# can neither read nor act on.
+#
+# The split is the point: unreachable degrades, answered-with-an-error escalates.
+# Collapsing both into a cheerful 200 would bury a wrong API key behind a polite
+# sentence for as long as nobody reads the log.
+UNREACHABLE_REPLY = (
+    "I could not reach the assistant model just now, so there is no AI answer to "
+    "this one. Your message has been saved — send it again in a moment. If it "
+    "keeps happening, the model provider is unreachable from this server."
+)
+UNREACHABLE_NOTE = (
+    "No model was reachable, so nothing here was composed by one. The cause is in "
+    "the server log."
+)
+
+# The AgentRun table is no longer fed by anything a student can reach: the
+# realtime mock interviewer replaced the /api/agent/ask assistant screen in
+# 2026-08, and the interview relay persists turns through app/conversations.py
+# without writing runs. Stated as a CONSTANT rather than derived from the row
+# count on purpose — derive it and one developer exercising /ask in Swagger flips
+# the dashboard to "collecting" while every student-facing surface still writes
+# nothing. Flip this back to True in the same change that re-points the client at
+# /api/agent/ask (the rollback path this module exists for).
+AGENT_RUNS_COLLECTED = False
+
+SUPERSEDED_RUNS_NOTE = (
+    "AgentRun rows stopped being written when the realtime mock interviewer "
+    "replaced the /api/agent/ask assistant screen (2026-08). These counters are a "
+    "frozen history, not a live zero — read turns_by_channel for what is still "
+    "being collected."
+)
 
 
 class ChatIn(BaseModel):
@@ -128,6 +179,13 @@ class ChatOut(BaseModel):
     reply: str
     conversation_id: str
     model: str
+    # The same honest-degrade pair /student/resume/generate returns: an answer the
+    # student can act on, plus a flag saying no model wrote it. Defaulted so every
+    # existing caller and test keeps the shape it already reads. `note` explains
+    # WHY in plain language and never carries provider or exception detail — that
+    # is logged server-side (see the module docstring).
+    used_ai: bool = True
+    note: str | None = None
 
 
 class HistoryOut(BaseModel):
@@ -161,6 +219,25 @@ class AskOut(AssistantResponse):
     conversation_id: str
     model: str
     run_id: str  # the AgentRun id for THIS turn — attach feedback to it
+
+
+def _append(db: Session, conversation_id: str, sender: str, content: str) -> None:
+    """conversations.append_message with the cleared-mid-request race mapped to 404.
+
+    get_or_create resolved a LIVE conversation a moment before each of these
+    calls, and "a moment" is enough: DELETE /api/agent/conversation from a second
+    tab lands between the two, and append_message then refuses rather than
+    writing a turn nobody will ever see again. 404 is the answer assert_owner
+    already gives for a cleared thread, so the client hears one story about a
+    conversation that is gone no matter which layer noticed it first.
+    """
+    try:
+        convo.append_message(db, conversation_id, sender, content)
+    except convo.ConversationGone:
+        # conversations.append_message already logged the drop with its cause.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found."
+        ) from None
 
 
 def _persist_run(
@@ -223,13 +300,36 @@ def chat(
     # counts assistant turns), but read it before the reply exists so the
     # greeting decision is made from the same state the answer was built on.
     first_reply = convo.awaiting_first_reply(db, conversation.id)
-    convo.append_message(db, conversation.id, "user", body.message)
+    _append(db, conversation.id, "user", body.message)
     turns = convo.history(db, conversation.id, limit=HISTORY_LIMIT)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, *turns]
 
     try:
         reply = complete_chat(messages, max_tokens=1024)
-    except Exception:  # network / provider / quota — never 500 the UI, never leak
+    except httpx.TransportError as exc:
+        # The provider was never reached — see UNREACHABLE_REPLY. Degraded, not
+        # failed: 200 with an honest answer and used_ai=false, mirroring the
+        # resume path. warning, not exception: a connect reset on a box with no
+        # internet is an operational condition, and a full traceback per attempt
+        # buries the provider-answered-with-an-error case that IS a bug.
+        log.warning(
+            "agent chat degraded — provider unreachable (conversation=%s): %r",
+            conversation.id,
+            exc,
+        )
+        _persist_run(db, session, body.message, "", AgentRunStatus.FAILED, model_label, started)
+        # Neither the assistant turn nor the greeting stamp is written. A turn no
+        # model composed must not be replayed to one as context on the next turn,
+        # and it must not consume the student's single compulsory greeting — the
+        # same two rules the streaming path spells out for its failed turns.
+        return ChatOut(
+            reply=UNREACHABLE_REPLY,
+            conversation_id=conversation.id,
+            model=model_label,
+            used_ai=False,
+            note=UNREACHABLE_NOTE,
+        )
+    except Exception:  # provider answered with a failure / adapter bug — loud, 502
         log.exception("agent chat LLM call failed (conversation=%s)", conversation.id)
         _persist_run(db, session, body.message, "", AgentRunStatus.FAILED, model_label, started)
         raise HTTPException(
@@ -239,7 +339,7 @@ def chat(
     if first_reply:
         reply = convo.open_with_greeting(reply)
 
-    convo.append_message(db, conversation.id, "assistant", reply)
+    _append(db, conversation.id, "assistant", reply)
     if first_reply:
         convo.mark_greeted(db, conversation.id)
     _persist_run(db, session, body.message, reply, AgentRunStatus.ANSWERED, model_label, started)
@@ -272,7 +372,7 @@ def chat_stream(
     conversation = convo.get_or_create(db, session["userId"], Role(session["role"]))
     conversation_id = conversation.id
     first_reply = convo.awaiting_first_reply(db, conversation_id)
-    convo.append_message(db, conversation_id, "user", body.message)
+    _append(db, conversation_id, "user", body.message)
     turns = convo.history(db, conversation_id, limit=HISTORY_LIMIT)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, *turns]
 
@@ -310,9 +410,20 @@ def chat_stream(
         # Fresh session: the injected request scope is already gone by now.
         with SessionLocal() as fresh:
             if model_said_something:
-                convo.append_message(fresh, conversation_id, "assistant", reply)
-                if first_reply:
-                    convo.mark_greeted(fresh, conversation_id)
+                try:
+                    convo.append_message(fresh, conversation_id, "assistant", reply)
+                    if first_reply:
+                        convo.mark_greeted(fresh, conversation_id)
+                except convo.ConversationGone:
+                    # The widest window in this module: the response headers went
+                    # out before the first token, and the student can clear the
+                    # thread at any point while it streams. No status code is left
+                    # to send, so the drop is recorded and the run is still
+                    # written — append_message already logged it with its cause.
+                    # The greeting is deliberately NOT stamped: the thread that
+                    # was owed it no longer exists, and the fresh one is owed it
+                    # in its own right.
+                    outcome = AgentRunStatus.FAILED
             _persist_run(fresh, session, body.message, reply, outcome, model_label, started)
         yield "data: [DONE]\n\n"
 
@@ -349,7 +460,7 @@ def ask(
     # Server-owned: the conversation is derived from the session, never the body.
     conversation = convo.get_or_create(db, session["userId"], Role(session["role"]))
     first_reply = convo.awaiting_first_reply(db, conversation.id)
-    convo.append_message(db, conversation.id, "user", body.message)
+    _append(db, conversation.id, "user", body.message)
 
     result = orchestrator.answer_question(
         db, session.get("studentId"), session.get("role"), body.message
@@ -363,7 +474,7 @@ def ask(
     if first_reply:
         result["answer"] = convo.open_with_greeting(result["answer"])
 
-    convo.append_message(db, conversation.id, "assistant", result["answer"])
+    _append(db, conversation.id, "assistant", result["answer"])
     if first_reply:
         # Stamp only AFTER the greeted answer is persisted.
         convo.mark_greeted(db, conversation.id)
@@ -517,13 +628,45 @@ def feedback(
     exist, so feedback can't be used to probe whether another user's run id is
     real. One row per (run, owner): a re-vote UPSERTs, never duplicates. The
     free-text note is PII-redacted before it is stored.
+
+    TOMBSTONE: since the interviewer replaced the agent UI nothing a student can
+    reach writes an AgentRun, so on those accounts this 404s on EVERY request and
+    the thumbs-up/down control (gated on `turn.structured?.run_id`) simply stops
+    rendering — no console error, no failing build, and anyone reading the logs
+    sees breakage. The 404 for a caller who owns no runs at all now says so in
+    words. Still 404, and still byte-identical between "not yours" and "does not
+    exist": the discriminator is a count of the CALLER'S OWN rows, so it discloses
+    nothing about the run id they asked about and the no-existence-leak contract
+    is untouched.
     """
     run = db.get(AgentRun, body.run_id)
     if run is None or run.actor_id != session["userId"]:
         # No existence leak: not-found and not-owned look the same.
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Run not found."
-        )
+        detail = "Run not found."
+        # Gated on the constant as well as the count, so the tombstone retires
+        # itself: flip AGENT_RUNS_COLLECTED back to True on rollback and this
+        # goes back to a bare "Run not found." without a second edit. A caller
+        # who DOES own runs and merely mistyped an id keeps the plain answer —
+        # telling them they have none would be a lie.
+        if not AGENT_RUNS_COLLECTED:
+            owned_runs = (
+                db.scalar(
+                    select(func.count())
+                    .select_from(AgentRun)
+                    .where(AgentRun.actor_id == session["userId"])
+                )
+                or 0
+            )
+            if owned_runs == 0:
+                detail = (
+                    "Run not found — this account has no assistant runs to rate. "
+                    "Ratings attach to POST /api/agent/ask, which the realtime "
+                    "mock interviewer superseded in 2026-08; interview turns are "
+                    "persisted as conversation messages and create no run. This "
+                    "endpoint stays mounted for the rollback path, not because it "
+                    "is broken."
+                )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
 
     note = redact_pii(body.note)
     existing = db.scalar(
@@ -558,9 +701,20 @@ def metrics(
 ) -> dict:
     """Assistant health for staff — DIRECTOR/ADMIN only (403 otherwise).
 
-    Aggregates over AgentRun (+ AssistantFeedback + voice Messages):
-    resolution/refusal rates from the `resolved` grounding signal, latency, and
-    breakdowns by intent/model/status, plus voice-turn and feedback tallies.
+    Aggregates over AgentRun (+ AssistantFeedback + Messages): resolution/refusal
+    rates from the `resolved` grounding signal, latency, and breakdowns by
+    intent/model/status, plus per-channel turn and feedback tallies.
+
+    TWO SOURCES, AND THE PAYLOAD SAYS WHICH IS WHICH. Every AgentRun-derived
+    number froze when the realtime interviewer replaced the /api/agent/ask
+    assistant screen — the relay persists turns through app/conversations.py and
+    writes no runs — so a flat 0 here reads as an outage when it is a retired
+    collector. `agent_runs` carries that verdict explicitly (`collected`, plus the
+    `last_run_at` that dates the freeze), and `turns_by_channel` off Message.channel
+    is the source that is still live: it is the same grouping AGENTS.md's voice
+    runbook query uses, so "did the interview save anything" is answerable from
+    this endpoint too. `total_runs` and the two rates keep their exact meaning —
+    nothing that was already pinned has been redefined.
 
     NOTE: TTFT (time-to-first-token) is a STREAMING-path metric; /ask is
     non-streaming, so `avg_duration_ms` here is the compose-latency proxy (full
@@ -616,12 +770,21 @@ def metrics(
         ).all()
     }
 
-    voice_turns = (
-        db.scalar(
-            select(func.count()).select_from(Message).where(Message.channel == "voice")
-        )
-        or 0
-    )
+    # One grouped scan instead of a count per channel, and the interview channel
+    # arrives for free — the surface students actually use now had no number on
+    # this dashboard at all. Same shape as the runbook's `group by channel`.
+    turns_by_channel = {
+        (channel or "unknown"): count
+        for channel, count in db.execute(
+            select(Message.channel, func.count()).group_by(Message.channel)
+        ).all()
+    }
+    voice_turns = turns_by_channel.get("voice", 0)
+
+    # Dates the freeze. "0 runs" and "0 runs, last one 2026-08-11" are the same
+    # number and completely different findings; without the timestamp an operator
+    # cannot tell a retired collector from one that died this morning.
+    last_run_at = db.scalar(select(func.max(AgentRun.created_at)))
 
     fb_counts = {
         rating: count
@@ -646,5 +809,12 @@ def metrics(
         "by_model": by_model,
         "by_status": by_status,
         "voice_turns": voice_turns,
+        "turns_by_channel": turns_by_channel,
+        "agent_runs": {
+            "collected": AGENT_RUNS_COLLECTED,
+            "rows": total_runs,
+            "last_run_at": last_run_at.isoformat() if last_run_at else None,
+            "note": None if AGENT_RUNS_COLLECTED else SUPERSEDED_RUNS_NOTE,
+        },
         "feedback": feedback_out,
     }

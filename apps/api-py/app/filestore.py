@@ -12,6 +12,9 @@ and that matter for trusting a student-supplied file:
 
 Only PDF / PNG / JPEG are accepted — the formats a mentor reviews (marksheets,
 certificates, photos). Max 10 MB, matching the UI copy.
+
+Per-file is not per-student: see MAX_UPLOADS_PER_STUDENT / MAX_UPLOAD_BYTES_PER_STUDENT
+below for the quota that stops one account filling the disk 10 MB at a time.
 """
 
 import uuid
@@ -29,6 +32,24 @@ _MAGIC: list[tuple[bytes, str, str]] = [
 ]
 
 MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+
+# Per-STUDENT quota. MAX_BYTES bounds one file; on its own it bounds nothing at
+# all, because an authenticated student can post 10 MB as many times as they
+# like and the store has no notion of who owns what — the disk fills, and every
+# other student's upload starts failing on a machine that looks healthy.
+#
+# The numbers are deliberately far above real use (a marksheet per semester, a
+# handful of certificates, a photo, a CV) and far below "one account can hurt
+# the box". They live here, next to MAX_BYTES, because they are properties of the
+# store; the counting needs the `uploads` table, so ENFORCEMENT is in
+# routers/student.py create_upload — the single caller of save_bytes. Any second
+# writer must apply the same check, or the quota is decoration.
+#
+# Module constants rather than settings: adding a numeric setting means adding it
+# to BOTH validator name-lists in app/config.py, and a limit nobody has ever
+# needed to tune per deployment does not earn that.
+MAX_UPLOADS_PER_STUDENT = 40
+MAX_UPLOAD_BYTES_PER_STUDENT = 200 * 1024 * 1024  # 200 MB
 
 
 class UploadRejected(ValueError):

@@ -49,6 +49,11 @@ from .models.skill import Skill, SkillClaim, StudentSkill
 from .models.swoc import SwocEntry, SwocKind, SwocSource
 from .models.timesheet import DayActivity, TimeSheetEntry
 from .models.user import LoginDay, Mentor, Role, Stage, Student, User
+# The rule-WRITE half of the usn_pattern defence; the router holds the match-time
+# half. Imported from there rather than copied because the two checks have to be
+# the SAME check: a pattern this module is willing to write and the public
+# endpoint is not willing to run is a rule that silently matches nobody.
+from .routers.registration import validate_usn_pattern
 from .security import hash_password
 # Single copy of the KB, shared with the production-safe `python -m app.seed_kb`.
 from .seed_kb import seed_knowledge
@@ -479,12 +484,32 @@ def main() -> None:
         # college-domain route-to-review rule (priority 100).
         if db.scalar(select(RegistrationRule)) is None:
             cohort = db.scalar(select(Cohort).where(Cohort.code == "MBA-2026-B"))
-            db.add_all(
-                [
-                    RegistrationRule(name="MBA 2024-26 auto-admit", enabled=True, email_domain="bgscet.ac.in", usn_pattern=r"^1BG2[0-9]MBA[0-9]{3}$", degree_level=DegreeLevel.PG, cohort_id=cohort.id if cohort else None, auto_approve=True, priority=10),
-                    RegistrationRule(name="College domain — route to review", enabled=True, email_domain="bgscet.ac.in", auto_approve=False, priority=100),
-                ]
-            )
+            registration_rules = [
+                RegistrationRule(name="MBA 2024-26 auto-admit", enabled=True, email_domain="bgscet.ac.in", usn_pattern=r"^1BG2[0-9]MBA[0-9]{3}$", degree_level=DegreeLevel.PG, cohort_id=cohort.id if cohort else None, auto_approve=True, priority=10),
+                RegistrationRule(name="College domain — route to review", enabled=True, email_domain="bgscet.ac.in", auto_approve=False, priority=100),
+            ]
+            # CHECK THE PATTERN BEFORE IT REACHES THE TABLE. `usn_pattern` is a
+            # regular expression that POST /register runs — the one endpoint in
+            # this app with no cookie, no roster check and no rate limit worth
+            # the name in front of it. app/routers/registration.py names this
+            # module as rule-write defence #1 and _usn_matcher() as #2, but #1
+            # did not exist: the seed could plant exactly the pattern the router
+            # then refuses to run, and the only symptom would be one WARNING in
+            # the API log plus a rule that quietly matches nobody — applications
+            # falling through to manual review with no rule to blame.
+            #
+            # Raising here is loud, immediate, and lands on whoever typed the
+            # pattern, which is the only person who can fix it. Nothing is
+            # committed, so a rejected pattern leaves the table empty and the
+            # next run seeds again rather than leaving a half-written rule set.
+            #
+            # ANY future writer (a director-facing rule editor) must call this
+            # too, for the same reason: a rule row can also be edited straight in
+            # psql, which is why defence #2 exists at all.
+            for rule in registration_rules:
+                if rule.usn_pattern:
+                    validate_usn_pattern(rule.usn_pattern)
+            db.add_all(registration_rules)
             db.commit()
             print("added registration rules (2)")
 

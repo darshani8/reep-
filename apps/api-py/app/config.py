@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from pydantic import AliasChoices, Field, ValidationInfo, field_validator
+from pydantic import AliasChoices, Field, ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Pin the env file to THIS app's directory. A bare ".env" resolves against the
@@ -54,22 +54,97 @@ _DEFAULT_COLLEGE_DOMAIN = "bgscet.ac.in"
 # cheap half of the fix; `password_login_allowed` below is the other half.
 _PROD_ENV_NAMES = frozenset({"prod", "production", "prd", "live"})
 
-# The environments POST /api/auth/login is allowed to answer in — an ALLOWLIST,
-# not the complement of _PROD_ENV_NAMES, because the two guards must fail in
-# opposite directions. A typo'd ENV must mean "the cookie is Secure and the
-# password door is shut", never "neither". ENV is "dev" by default and CI sets
-# nothing, so the suite and every laptop keep the door they already have.
-_PASSWORD_LOGIN_ENV_NAMES = frozenset({"dev", "development", "test", "testing", "ci", "local"})
+# The environments allowed to keep their DEVELOPMENT AFFORDANCES — an
+# ALLOWLIST, not the complement of _PROD_ENV_NAMES, because the two guards must
+# fail in opposite directions. A typo'd ENV must mean "the cookie is Secure and
+# the password door is shut", never "neither". ENV is "dev" by default and CI
+# sets nothing, so the suite and every laptop keep the doors they already have.
+#
+# Three guards read it, all through _is_dev_env below: password sign-in
+# (password_login_allowed), a session cookie without `Secure`
+# (insecure_cookies_allowed) and an unauthenticated voice worker
+# (worker_auth_optional). The 2026-08 audit found the last two keyed on
+# `is_prod` instead, which is a NAME TEST: a `staging`/`uat`/`demo` box — real
+# roster rows, real HTTPS, real students — is not one of the four prod
+# spellings, so it was handed a sniffable session cookie and an open
+# /api/voice/heartbeat because nobody had typed the magic word.
+_DEV_ENV_NAMES = frozenset({"dev", "development", "test", "testing", "ci", "local"})
+
+# The committed development credentials. They are FIELD DEFAULTS AND GUARD
+# INPUTS in one place on purpose: the boot check in
+# Settings.production_boot_failures compares against these constants, so a
+# future edit to a default cannot leave the guard testing a string nobody uses
+# any more. Both are also printed in .env.example, i.e. in the repository, i.e.
+# known to everyone who has ever cloned it.
+_DEV_DATABASE_URL = "postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py"
+_DEV_DB_PASSWORD = "reep_dev_password"
+_DEV_AUTH_SECRET = "reep-dev-secret-change-me-in-production-0123456789abcdef"
+
+# Substrings that mean "nobody has replaced this yet". A secret edited from the
+# committed default by a couple of characters is not a new secret, and the
+# equality test above would pass it. Kept deliberately short and specific:
+# a real random secret can contain "secret", so that word is NOT on the list.
+_PLACEHOLDER_SECRET_MARKERS = ("change-me", "changeme", "change_me", "your-secret")
+
+# Minimum AUTH_SECRET length in production. HS256 signs with the raw bytes of
+# this string and its digest is 32 bytes; a key shorter than the digest adds no
+# strength beyond its own length, and a short one is guessable offline from a
+# single captured cookie. 32 is also the floor .env.example has always claimed
+# (">= 32 chars") — this only makes the file's own promise enforceable.
+AUTH_SECRET_MIN_CHARS = 32
+
+# How to replace it, quoted verbatim in every refusal below. An operator meeting
+# a boot failure at 2am needs the command, not a policy.
+_NEW_SECRET_HINT = (
+    'Generate one and set AUTH_SECRET in apps/api-py/.env: '
+    'python -c "import secrets; print(secrets.token_hex(32))". '
+    "Changing it signs out every live session, which is the correct trade."
+)
+
+
+def _is_dev_env(env: str) -> bool:
+    """Whether `env` names an environment that may keep its dev affordances.
+
+    One allowlist behind three fail-closed guards (see _DEV_ENV_NAMES). Anything
+    unrecognised — "staging", "uat", a typo, an empty string from a half-written
+    deploy template — is treated as production-like: it loses the password door,
+    it gets `Secure` cookies, and it must authenticate its voice worker.
+    """
+    return env.strip().lower() in _DEV_ENV_NAMES
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
-    database_url: str = "postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py"
-    # Shared with the Next.js app so sessions verify on both sides during cutover.
-    auth_secret: str = "reep-dev-secret-change-me-in-production-0123456789abcdef"
+    # BOTH of the next two defaults are development credentials published in this
+    # repository, and BOTH are refused at boot when ENV is production — see
+    # production_boot_failures() at the bottom of this class for what each one
+    # costs if it reaches a real deployment.
+    database_url: str = _DEV_DATABASE_URL
+    # Signs the HS256 `reep_session` cookie (app/security.py) AND derives the
+    # OAuth flow-cookie key (app/google_auth.py). Whoever knows it IS every user:
+    # a forged {"role":"DIRECTOR"} claim reads every student's marks, attendance
+    # and USN, and no login, no Google round-trip and no DB row is involved.
+    auth_secret: str = _DEV_AUTH_SECRET
     web_origin: str = "http://localhost:4200"
     env: str = "dev"
+    # Whether /docs, /redoc and /openapi.json are mounted. True here, and OFF in
+    # production unless the operator sets DOCS_ENABLED on purpose — `docs_exposed`
+    # below is what app/main.py actually reads, and it explains why the default
+    # cannot be the whole answer. The endpoints stay authenticated either way;
+    # what an open schema hands out is the MAP — every route, every field name,
+    # every enum value, staff-only ones included — which is what turns "find an
+    # endpoint" into "read the list".
+    docs_enabled: bool = True
+    # Sessions are stateless 12-hour HS256 JWTs, so `POST /api/auth/logout`
+    # deleting the cookie does nothing to a token that was already copied (audit
+    # M8). A revocation deny-list closes that; this is how long one decision may
+    # be cached in-process before the DB is asked again — i.e. the window in
+    # which a logged-out token still works. 60 s keeps "log out on the shared lab
+    # machine" honest within a minute at a cost of one small query per user per
+    # minute. 0 is legal and means "ask the database every request", which is the
+    # value to use the day a per-worker cache looks like the wrong trade.
+    auth_revocation_cache_seconds: int = 60
 
     # --- Google sign-in (OIDC authorization-code flow) -------------------------
     # Sign-in is Google-only for every role. These credentials decide only WHO
@@ -170,6 +245,19 @@ class Settings(BaseSettings):
     # Maintenance banner surfaced by GET /api/voice/status when non-empty (voice is
     # forced unavailable while set — e.g. during an incident).
     voice_maintenance_message: str = ""
+    # The voice twin of interview_max_sessions_per_user below (audit H2). Tokens
+    # were minted without limit, one fresh room each, and the token TTL bounds
+    # only how long a student has to JOIN — never how long the call runs. One
+    # scripted mint-and-join loop therefore costs unbounded worker memory and
+    # unbounded Groq spend from a single enrolled account. 2 (not 1) so a student
+    # whose browser died mid-call can start again without waiting out the old
+    # room; raising it multiplies what one account can spend.
+    voice_max_sessions_per_user: int = 2
+    # ...and the call itself gets a clock, which it has never had. Matched to
+    # interview_max_seconds on purpose: a student must not get a longer free
+    # session by taking the rollback path. Too low cuts a real conversation off
+    # mid-sentence, and there is deliberately no value meaning "unlimited".
+    voice_max_call_seconds: int = 900
 
     # Realtime mock interview (app/routers/interview.py) - the student-facing
     # assistant. The API relays the browser's microphone to OpenAI's Realtime API
@@ -223,6 +311,14 @@ class Settings(BaseSettings):
     # immediately rather than queueing a student behind a clock that has not
     # started ticking.
     interview_max_sessions: int = 100
+    # The other half of that cap, and the one the audit (H1) found missing: the
+    # limiter above counts sessions and never asks WHOSE they are. One student
+    # looping `new WebSocket('/api/interview')` from devtools takes every slot —
+    # each socket authenticates, opens an upstream session, and BILLS from the
+    # handshake's response.create with no microphone input at all — and everyone
+    # else is answered 1013. 2 (not 1) so a student whose laptop slept mid-answer
+    # can start again without waiting for the dead socket's watchdog to notice.
+    interview_max_sessions_per_user: int = 2
 
     # Server-VAD tuning. Settings rather than literals because these are the
     # numbers a real deployment retunes against real rooms, and needing a
@@ -283,14 +379,113 @@ class Settings(BaseSettings):
     # That is the only reason this is safe to expose.
     interview_transcription_model: str = ""
 
+    # --- Interview Engine v3: the relay owns the turn, not the upstream VAD ----
+    # v3 runs `turn_detection.create_response: false`, so end-of-speech no longer
+    # creates the next question by itself: the relay waits for the transcript,
+    # validates the answer, ticks the phase machine and only then asks. One
+    # question is open at a time BY CONSTRUCTION rather than by asking the model
+    # nicely. Everything in this block is a consequence of that trade — with the
+    # upstream no longer driving, every wait needs a deadline and every loop
+    # needs a stop, or a stalled dependency becomes an interview that never
+    # continues and reports no fault to anyone.
+    #
+    # How long to wait for the STUDENT's transcript after the audio buffer
+    # commits before giving up on it. On expiry the turn is recorded with an
+    # unknown transcript and the next question is asked anyway: the interview
+    # must never stall on a transcriber. Too low and real answers land unscored;
+    # too high and the student sits in dead air they read as a hang.
+    interview_transcription_timeout_ms: int = 8000
+    # How long to wait for OUR OWN response.create to be acknowledged with a
+    # response.created before assuming upstream dropped it. Under v3 the relay
+    # is the only party that creates a response, so a create that vanishes is
+    # an interview that never continues: the student sits in silence, the idle
+    # watchdog does not fire (the browser's echo-gate keepalive keeps sending
+    # frames), and only the 15-minute cap ends it -- with no verdict. On expiry
+    # the create is retried once with a fresh event id; a second expiry closes
+    # the socket 4011 so the student is told to start again instead of waiting.
+    # Wider than a healthy acknowledgement (~200 ms) because a busy upstream is
+    # slow, not gone.
+    interview_response_create_timeout_ms: int = 10000
+    # The deterministic answer gate — a word count, not a model call, because
+    # this runs on the hot path between the student finishing and the
+    # interviewer replying, and a round-trip here is latency every single turn.
+    # Below this many words the transcript is not treated as an answer: it earns
+    # a clarification and does NOT advance the phase machine. 4 clears "yes",
+    # "I don't know" and a cough transcribed as "uh", while leaving a real short
+    # answer ("I led the campus fintech club") intact. 0 disables the gate — the
+    # pre-v3 behaviour, where anything at all counted as an answer.
+    interview_min_answer_words: int = 4
+    # How many times ONE question may be re-asked before the interviewer accepts
+    # whatever it got and moves on. The cap is the entire point: without it a
+    # student who answers "yes" three times, or a transcriber returning noise,
+    # pins the interview on question 2 until the hard cap ends it with no
+    # verdict at all. 0 means never clarify.
+    interview_max_clarifications_per_question: int = 1
+    # Budget for the final scorecard: one extra, text-only response.create issued
+    # after the spoken wrap-up verdict, in the same session that already holds
+    # the transcript. It is the LAST thing in a session, so the student is
+    # sitting on a finished interview waiting for it. On expiry the evaluation is
+    # persisted as unavailable and the socket still closes 1000 — a missing
+    # report must never cost the transcript.
+    interview_report_timeout_ms: int = 20000
+    # Audio capture, OFF and deliberately awkward to turn on. Recording a
+    # student's voice requires their recorded consent (interview_consent_version
+    # below) AND this flag AND a retention deadline, and the audio is retrievable
+    # by DIRECTOR/ADMIN only. Flipping this true without the consent row in place
+    # is the failure that matters here: it is the one that cannot be undone after
+    # the fact.
+    interview_recording_enabled: bool = False
+    # Hard per-session ceiling on stored audio — a disk-exhaustion stop, not a
+    # quality knob. 64 MB is roughly 45 minutes of the 24 kHz mono PCM this relay
+    # carries, comfortably past interview_max_seconds. At the cap the recording
+    # stops and the interview continues: a call is never dropped to protect a
+    # file.
+    interview_recording_max_bytes: int = 64000000
+    # How long an interview record — transcript, evaluation, any audio — is kept
+    # before the reaper deletes it. 180 days covers a placement season and the
+    # review that follows it. There is no "keep forever" value and 0 is refused,
+    # because the two honest readings of 0 ("delete immediately" and "never
+    # delete") differ by the entire record.
+    interview_retention_days: int = 180
+    # How long an interview_sessions row may sit in `running` with no heartbeat
+    # before the sweeper marks it `abandoned`. A killed worker cannot finalize
+    # its own sessions, so without this every crash leaves rows that claim to be
+    # live forever. interview_max_seconds (900) + 300 s of slack: comfortably
+    # past the longest legal interview, so a HEALTHY session is never swept, and
+    # short enough that a deploy's restart sweep tidies the previous process's
+    # wreckage rather than yesterday's. The relay's heartbeat write is what
+    # feeds it; if that write fails all session long the row is swept while
+    # alive, which is the right direction to fail -- visible and arguable,
+    # rather than invisible and stuck at `running`.
+    interview_orphan_grace_seconds: int = 1200
+    # Stamped on every consent row so a change of terms is visible in the data
+    # instead of assumed. Consent is NOT retroactive: bump this when what the
+    # student agrees to changes, and rows carrying the old string stop counting
+    # as consent for the new terms — which is exactly what should happen. A date
+    # is enough; nothing parses it, and it sorts.
+    interview_consent_version: str = "2026-08"
+
     @field_validator(
         "llm_timeout_ms",
         "interview_max_seconds",
         "interview_idle_seconds",
         "interview_max_sessions",
+        "interview_max_sessions_per_user",
+        "interview_transcription_timeout_ms",
+        "interview_response_create_timeout_ms",
+        "interview_min_answer_words",
+        "interview_max_clarifications_per_question",
+        "interview_report_timeout_ms",
+        "interview_recording_enabled",
+        "interview_recording_max_bytes",
+        "interview_retention_days",
+        "interview_orphan_grace_seconds",
         "interview_vad_threshold",
         "interview_vad_prefix_padding_ms",
         "interview_vad_silence_duration_ms",
+        "voice_max_sessions_per_user",
+        "voice_max_call_seconds",
+        "auth_revocation_cache_seconds",
         mode="before",
     )
     @classmethod
@@ -312,6 +507,14 @@ class Settings(BaseSettings):
         PydanticUndefined - returning PydanticUndefined does NOT re-trigger
         default substitution in pydantic 2.13; it is validated as a value and
         fails with "Input should be a valid integer".
+
+        EVERY NEW NUMERIC OR BOOLEAN FIELD BELONGS ON THE LIST ABOVE. bool is not
+        exempt: `INTERVIEW_RECORDING_ENABLED=` raises "Input should be a valid
+        boolean" at import in exactly the same way, and str fields need it only
+        because "" already means "off" for them. `docs_enabled` is the single
+        deliberate absence - its PRESENCE in the environment, not just its value,
+        decides something (see docs_exposed), so a blank line for it is dropped
+        earlier by _blank_docs_flag_is_not_an_opt_in rather than defaulted here.
         """
         if isinstance(value, str) and not value.strip():
             return cls.model_fields[info.field_name].default
@@ -321,8 +524,17 @@ class Settings(BaseSettings):
         "interview_max_seconds",
         "interview_idle_seconds",
         "interview_max_sessions",
+        "interview_max_sessions_per_user",
+        "interview_transcription_timeout_ms",
+        "interview_response_create_timeout_ms",
+        "interview_report_timeout_ms",
+        "interview_recording_max_bytes",
+        "interview_retention_days",
+        "interview_orphan_grace_seconds",
         "interview_vad_prefix_padding_ms",
         "interview_vad_silence_duration_ms",
+        "voice_max_sessions_per_user",
+        "voice_max_call_seconds",
     )
     @classmethod
     def _must_be_positive(cls, value: int, info: ValidationInfo) -> int:
@@ -330,11 +542,66 @@ class Settings(BaseSettings):
 
         An `INTERVIEW_MAX_SECONDS=0` typo otherwise means "close every session the
         instant it opens", which presents as a relay that connects and hangs up -
-        indistinguishable from an upstream outage.
+        indistinguishable from an upstream outage. The same shape repeats across
+        this list: 0 sessions per user is "nobody may interview", a 0 ms
+        transcription deadline is "every answer is unknown", 0 retention days is
+        a record that may already be gone. None of them is a thing an operator
+        meant to type, and all of them look like an outage rather than a config
+        error from the outside.
         """
         if value <= 0:
             raise ValueError(f"{info.field_name} must be a positive integer, got {value}")
         return value
+
+    @field_validator(
+        "interview_min_answer_words",
+        "interview_max_clarifications_per_question",
+        "auth_revocation_cache_seconds",
+    )
+    @classmethod
+    def _must_not_be_negative(cls, value: int, info: ValidationInfo) -> int:
+        """The three settings where 0 is a MEANING, not a typo.
+
+        Deliberately not on the positive-only list above, and do not "fix" the
+        omission by moving them: for these three, zero is the switch that turns a
+        v3 behaviour off and returns the older one. 0 answer words accepts every
+        transcript (the pre-v3 gate); 0 clarifications never re-asks a question;
+        0 cache seconds asks the database about revocation on every request,
+        which is the SAFEST value here rather than the broken one. Negative is
+        still nonsense, and a negative deadline would read as "already expired"
+        at every call site that compares against it.
+        """
+        if value < 0:
+            raise ValueError(f"{info.field_name} must be zero or a positive integer, got {value}")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _blank_docs_flag_is_not_an_opt_in(cls, values: Any) -> Any:
+        """A blank `DOCS_ENABLED=` line means UNSET, not "the operator chose".
+
+        `docs_exposed` asks pydantic which fields a source actually supplied
+        (`model_fields_set`), because in production the field default True is not
+        consent — somebody has to say so. But a source that supplies the key with
+        an EMPTY value lands in model_fields_set exactly like a real "true"
+        would, so one stray blank line in a shared .env would republish the whole
+        API surface on a production host. Dropping the key restores "blank means
+        unset" for the one field whose presence, not just value, changes
+        behaviour — and it is why docs_enabled is absent from _blank_is_default:
+        by the time that validator would run, this has already made the field
+        look untouched.
+        """
+        if isinstance(values, dict):
+            return {
+                key: raw
+                for key, raw in values.items()
+                if not (
+                    key.lower() == "docs_enabled"
+                    and isinstance(raw, str)
+                    and not raw.strip()
+                )
+            }
+        return values
 
     @field_validator("interview_vad_threshold")
     @classmethod
@@ -486,7 +753,142 @@ class Settings(BaseSettings):
         refuses rather than admits: the failure mode of a misconfiguration here
         must be "nobody can use a password", never "anyone can".
         """
-        return self.env.strip().lower() in _PASSWORD_LOGIN_ENV_NAMES
+        return _is_dev_env(self.env)
+
+    @property
+    def insecure_cookies_allowed(self) -> bool:
+        """Whether the session and OAuth-state cookies may be issued WITHOUT
+        `Secure` — i.e. whether this box is allowed to be plain HTTP.
+
+        Read it as `secure=not settings.insecure_cookies_allowed` at the
+        set_cookie sites in app/routers/auth.py. It replaces `secure=is_prod`,
+        which was a NAME TEST and the audit's M2: a `staging`, `uat` or `demo`
+        box is not one of the four spellings is_prod knows, so it served REAL
+        roster rows over HTTPS while marking the session cookie non-Secure —
+        meaning one downgraded or plain-HTTP request (a bookmarked http:// link,
+        a mixed-content asset, an attacker who can force one) puts a
+        12-hour-valid session token on the wire in the clear.
+
+        Keyed on the dev allowlist instead, so only the environments that
+        genuinely run on http://localhost keep the affordance and everything
+        unrecognised gets the safe behaviour. The dev cost of getting this
+        backwards is visible immediately (no cookie is stored on http://), which
+        is the right direction for a mistake to fail in.
+        """
+        return _is_dev_env(self.env)
+
+    @property
+    def worker_auth_optional(self) -> bool:
+        """Whether a blank VOICE_WORKER_SECRET may leave the worker endpoints
+        open (POST /api/voice/heartbeat and /api/voice/transcript).
+
+        The same move as insecure_cookies_allowed, for the audit's M1. Those two
+        endpoints were open whenever the secret was blank AND ENV was not exactly
+        prod, so a `staging` box — or a deploy whose ENV arrived empty — let
+        anyone who could reach the port forge a heartbeat (voice then reports
+        itself available and students are handed tokens into rooms no agent ever
+        joins) and write assistant-labelled turns into any conversation whose
+        32-hex id they observed, where they render in the UI and replay into
+        later prompts.
+
+        Blank-is-open is a real dev convenience — the worker is a fourth process
+        in its own venv and making people copy a secret to try it once is how
+        "voice is broken" reports start — so it survives, narrowed to the
+        environments that are actually somebody's laptop.
+        """
+        return _is_dev_env(self.env)
+
+    @property
+    def docs_exposed(self) -> bool:
+        """Whether app/main.py mounts /docs, /redoc and /openapi.json.
+
+        Dev keeps them: they are how this API is explored, and AGENTS.md sends a
+        newcomer to http://127.0.0.1:3300/docs on their first run.
+
+        Production drops them unless DOCS_ENABLED says otherwise IN THE
+        ENVIRONMENT. That is why this is not simply `self.docs_enabled`: the
+        field default is True and a default is not a decision, so a deploy that
+        sets nothing must not publish the full surface. `model_fields_set` is
+        pydantic's record of which fields a source actually supplied, which makes
+        "DOCS_ENABLED appears in the environment" the opt-in signal;
+        _blank_docs_flag_is_not_an_opt_in above keeps a blank line from counting
+        as one. `DOCS_ENABLED=false` still turns them off everywhere, dev
+        included, because an explicit no is an answer in both directions.
+        """
+        if not self.docs_enabled:
+            return False
+        return not self.is_prod or "docs_enabled" in self.model_fields_set
+
+    def production_boot_failures(self) -> list[str]:
+        """Configuration this process must not serve real people with.
+
+        Returns one sentence per problem, each naming the variable and the fix;
+        empty means "nothing here is fatal". app/main.py's lifespan calls this
+        and refuses to start when it comes back non-empty — the check lives here
+        because these constants live here, and the REFUSAL lives there because
+        boot is where an operator meets it.
+
+        EMPTY ON EVERY NON-PRODUCTION ENV, and that is load-bearing: the test
+        suite boots the real app through TestClient with ENV=dev and would
+        otherwise need to know a secret. It is also the reason this is a hard
+        failure rather than a warning — it can only fire on a host that has
+        declared itself production, where "the log said something" is not a
+        control. app/seed.py's ENV=prod refusal has the same shape and the same
+        deliberate absence of an override flag: an escape hatch here would be
+        found, used, and end with the committed secret live on the internet.
+
+        Nothing in the returned text ever contains the secret or the URL itself.
+        These messages land in deploy logs and aggregators, which is precisely
+        where a credential must not be copied to.
+        """
+        if not self.is_prod:
+            return []
+
+        problems: list[str] = []
+
+        secret = self.auth_secret.strip()
+        placeholder = any(marker in secret.lower() for marker in _PLACEHOLDER_SECRET_MARKERS)
+        if not secret:
+            problems.append(f"AUTH_SECRET is blank or whitespace. {_NEW_SECRET_HINT}")
+        elif secret == _DEV_AUTH_SECRET or placeholder:
+            problems.append(
+                "AUTH_SECRET is still the development value published in this "
+                "repository (.env.example). It signs the reep_session cookie and "
+                "derives the OAuth flow-cookie key, so anyone who has read the repo "
+                'can sign {"role":"DIRECTOR"} for themselves and read every '
+                "student's marks, attendance and USN — no login, no Google, no DB "
+                f"row involved. {_NEW_SECRET_HINT}"
+            )
+        elif len(secret) < AUTH_SECRET_MIN_CHARS:
+            problems.append(
+                f"AUTH_SECRET is {len(secret)} characters; the floor is "
+                f"{AUTH_SECRET_MIN_CHARS}, because HS256 signs with these bytes and a "
+                "key shorter than its 32-byte digest is brute-forceable offline from "
+                f"one captured cookie. {_NEW_SECRET_HINT}"
+            )
+
+        # A REFUSAL, not a warning, and the call was close enough to write down.
+        # The password is published in this repo and in .env.example, so a
+        # production database reachable with it is a production database that
+        # anyone who cloned us can read every student's records from. The two
+        # cases it catches are both bad and neither is subtle: the whole default
+        # URL untouched means production is about to serve a developer's laptop
+        # database (empty dashboards that read as a working deploy, or a
+        # connection refused on every request), and a real host carrying this
+        # password means the credential needs one ALTER ROLE. The argument for a
+        # warning is that an operator on a private network may have chosen it —
+        # but that operator can change one env var, while nobody can un-leak a
+        # student roster, and a warning in a deploy log is a thing nobody reads.
+        if _DEV_DB_PASSWORD in self.database_url:
+            problems.append(
+                "DATABASE_URL still carries the development password published in "
+                "this repository (.env.example). Point it at the production database "
+                "with a credential that is not in the repo; if that database really "
+                "does use this password, change the password first (ALTER ROLE reep "
+                "WITH PASSWORD ...) — anyone who has cloned REEP knows it."
+            )
+
+        return problems
 
     @property
     def uploads_path(self) -> Path:

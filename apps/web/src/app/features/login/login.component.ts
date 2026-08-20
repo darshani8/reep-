@@ -120,6 +120,21 @@ function messageFor(code: string, domain: string): string {
         'was refused rather than trusted. Try once more; if it keeps ' +
         'happening, tell whoever runs the dashboard.'
       );
+    // Deliberately does NOT say "a different Google account is already linked
+    // to this address". That is true, and it is a fact about whoever held the
+    // address before — a college re-issues an institutional address to the next
+    // intake, so the person reading this may simply be its new holder. A login
+    // screen must not hand a stranger the shape of someone else's account. The
+    // server logs both Google principals for the operator who has to decide;
+    // this says only what the student needs, which is that retrying will not
+    // help and one specific office can fix it.
+    case 'sso_identity_mismatch':
+      return (
+        'This Google account does not match the one on file for this email ' +
+        'address, so it was refused. Trying again will give the same result. ' +
+        'Contact the placement office — they can check who the address belongs ' +
+        'to and put it right.'
+      );
     case 'sso_failed':
       return (
         'Google could not complete the sign-in and did not say why. Try once ' +

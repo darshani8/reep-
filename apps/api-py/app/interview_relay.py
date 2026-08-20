@@ -53,6 +53,7 @@ import logging
 import time
 from binascii import Error as BinasciiError
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, Final, TypeVar
 
 from fastapi import WebSocket, WebSocketDisconnect
@@ -64,13 +65,22 @@ from fastapi import WebSocket, WebSocketDisconnect
 # repo fixes, under fastapi's own floor of `starlette>=0.46.0`. Identical object.
 from fastapi.websockets import WebSocketState
 from websockets.asyncio.client import ClientConnection, connect as ws_connect
-from websockets.exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
+from websockets.exceptions import (
+    ConnectionClosed,
+    ConnectionClosedOK,
+    InvalidHandshake,
+    InvalidStatus,
+)
 
 from .config import settings
 from .interview_matrix import (
+    REPORT_DIRECTIVE,
+    InterviewPhase,
     InterviewStateMachine,
     Specialization,
     build_instructions,
+    build_turn_instructions,
+    classify_answer,
 )
 
 log = logging.getLogger(__name__)
@@ -143,6 +153,34 @@ _USER_TRANSCRIPT_DONE: Final[str] = (
     "conversation.item.input_audio_transcription.completed"
 )
 
+# The sibling nobody handled until v3, and the cost of that was invisible: a
+# transcription that FAILS produced no .completed, so the phase machine never
+# ticked and the turn left no row. Under create_response:false it is worse than
+# invisible -- nothing else would ever resolve that turn, and the interview
+# would simply stop. It resolves the pending entry with an empty transcript and
+# the interviewer asks the student to say it again.
+_USER_TRANSCRIPT_FAILED: Final[str] = (
+    "conversation.item.input_audio_transcription.failed"
+)
+
+# Server VAD committing the input buffer, carrying the item_id the transcript
+# will arrive under. NOTHING DEPENDS ON THIS EVENT ARRIVING: whether it is still
+# emitted under create_response:false is unverified on both API surfaces, so the
+# answer deadline is armed from speech_stopped (which is verified and already
+# handled) and this event only REFINES that entry with its item id. If it never
+# comes, the turn is recorded under a synthetic key and everything else runs.
+_INPUT_COMMITTED: Final[str] = "input_audio_buffer.committed"
+
+# The text-only scorecard response streams through these. Two names for two API
+# generations, exactly like the audio deltas above. They are accumulated ONLY as
+# a fallback for a surface that returns an empty `output` array on response.done
+# -- the report is read from response.done, which is one atomic event -- and
+# they are never forwarded downstream, because the scorecard is JSON and the
+# student's chat is not the place for it.
+_TEXT_DELTA_TYPES: Final[frozenset[str]] = frozenset(
+    {"response.text.delta", "response.output_text.delta"}
+)
+
 # Every upstream event this relay acts on. Anything outside this set is logged
 # once per type per connection and dropped -- an allowlist, never a blind
 # forward, so a new upstream event cannot start leaking unreviewed fields (or
@@ -151,15 +189,18 @@ _HANDLED_UPSTREAM: Final[frozenset[str]] = (
     _AUDIO_DELTA_TYPES
     | _AUDIO_DONE_TYPES
     | _TRANSCRIPT_DELTA_TYPES
+    | _TEXT_DELTA_TYPES
     | frozenset(
         {
             "error",
             "input_audio_buffer.speech_started",
             "input_audio_buffer.speech_stopped",
+            _INPUT_COMMITTED,
             "rate_limits.updated",
             "response.created",
             "response.done",
             _USER_TRANSCRIPT_DONE,
+            _USER_TRANSCRIPT_FAILED,
         }
     )
 )
@@ -312,6 +353,80 @@ _SHUTDOWN_DRAIN_S: Final[float] = 10.0
 # and this only delays the close frame.
 _TURN_WRITE_DRAIN_S: Final[float] = 2.0
 
+# The two audio tracks, spelled here so this module needs no import from
+# app/interview_audio.py (see the `recorder` note in __init__). They MUST match
+# that module's TRACKS, and tests/test_interview_audio.py asserts they do --
+# a mismatch would write a file the download endpoint cannot find, silently.
+_AUDIO_TRACK_STUDENT: Final[str] = "student"
+_AUDIO_TRACK_INTERVIEWER: Final[str] = "interviewer"
+
+# How long teardown waits for the recording to flush and close. Longer than the
+# turn drain because this is tens of megabytes reaching a disk rather than one
+# row reaching Postgres, and short enough that a wedged disk cannot hold the
+# browser's close frame. On expiry the relay records what the recorder BELIEVES
+# is on disk (snapshot()) rather than "nothing" -- a real file that no row points
+# at is a recording of a named student that retention will never destroy.
+_AUDIO_CLOSE_TIMEOUT_S: Final[float] = 10.0
+
+# Bound on the two writes that are AWAITED rather than fire-and-forget: the
+# evaluation row and the finalization of the interview_sessions row. Both happen
+# once, after the interview is over, so the reason fire-and-forget exists ("the
+# student is mid-sentence and cannot be helped by an exception") does not apply
+# to either -- but a wedged database still must not hold the browser socket
+# open, so they are bounded rather than unbounded. Deliberately longer than
+# _TURN_WRITE_DRAIN_S: a turn is one of dozens and losing one is survivable,
+# while these two ARE the record.
+_RECORD_WRITE_TIMEOUT_S: Final[float] = 3.0
+
+# How often the watchdog stamps interview_sessions.heartbeat_at. This is the
+# ONLY thing that makes an orphaned session detectable: a worker killed with -9
+# cannot finalize its own rows, so without a heartbeat every crash leaves rows
+# claiming to be `running` forever and the sweeper has nothing to key on
+# (started_at alone cannot tell a long healthy interview from a dead one).
+# 60 s against interview_orphan_grace_seconds (1200) leaves twenty missed
+# heartbeats of slack, and at the 100-session cap it is 1.7 writes/second.
+_HEARTBEAT_WRITE_INTERVAL_S: Final[float] = 60.0
+
+# The most student utterances that may be waiting on a transcript at once.
+# Reached only when the transcriber has stopped answering, in which case every
+# one of these entries is seconds from its own deadline and a ninth would buy
+# nothing. It exists so a broken upstream cannot grow this dict without bound.
+_MAX_PENDING_TURNS: Final[int] = 8
+
+# Memo of item ids already drained, so a duplicate .completed cannot resurrect a
+# turn that has been consumed (DF2). Bounded because it is fed by upstream: an
+# interview produces a few dozen utterances, and a hostile stream must not be
+# able to grow it without limit. It evicts the OLDEST id at the cap -- see
+# _memoise_resolved, which explains why refusing the newest is the one policy
+# that cannot work here.
+_MAX_RESOLVED_ITEMS: Final[int] = 64
+
+# Response.create event ids that may be outstanding at once: one create and the
+# single retry S2 allows it. Realtime does not echo our event_id on
+# response.created, so an id can only leave this list positionally or by being
+# named in an `error` -- and a create that upstream neither acknowledges nor
+# refuses would otherwise sit here for the rest of the session.
+_MAX_OUTSTANDING_CREATES: Final[int] = 2
+
+# Consecutive responses cancelled by barge-in before they made a sound, after
+# which the relay stops cancelling for the rest of the session. A room where VAD
+# fires constantly otherwise produces fifteen minutes of interrupted questions
+# and no answers at all; a talkative interviewer the student can't interrupt is
+# a far better failure than an interviewer who never finishes a sentence.
+_MAX_BARGEIN_THRASH: Final[int] = 3
+
+# Slack added to interview_report_timeout_ms to decide when the session cap is
+# close enough to force the wrap-up. Covers the spoken verdict itself plus the
+# round trips around it: the scorecard cannot start until the verdict finishes.
+# NOT a Final int computed at import, because interview_report_timeout_ms is
+# operator-tunable and a constant folded here would silently stop matching it.
+_REPORT_RESERVE_EXTRA_S: Final[float] = 25.0
+
+# Bound on the scorecard text accumulated from response.text.delta. The create
+# already sends max_output_tokens, so this only catches a surface that ignores
+# it -- a model writing an essay must not be able to grow a string per delta.
+_MAX_REPORT_TEXT_CHARS: Final[int] = 16_000
+
 # Close codes. 4000-4999 is the private-use range reserved for applications.
 _CLOSE_OK: Final[int] = 1000  # Interview complete
 _CLOSE_GOING_AWAY: Final[int] = 1001  # Server shutting down
@@ -323,6 +438,27 @@ _CLOSE_FORBIDDEN_ORIGIN: Final[int] = 4003  # Origin not in WEB_ORIGIN
 _CLOSE_IDLE: Final[int] = 4008  # No inbound audio
 _CLOSE_SESSION_CAP: Final[int] = 4009  # Hard wall-clock cap
 _CLOSE_UNKNOWN_SPECIALIZATION: Final[int] = 4010  # ?specialization= not in the matrix
+# The relay could not advance the interview: our own response.create was never
+# acknowledged, or was refused twice. Deliberately NOT 4002: 4002 says "upstream
+# is unavailable, retry shortly", while this is a working socket on which OUR
+# sequencing came apart. The operator diagnosis is different and so is the
+# sentence the student reads.
+_CLOSE_TURN_STALLED: Final[int] = 4011
+# One student already holds interview_max_sessions_per_user live interviews on
+# this worker. Deliberately NOT 1013: 1013 says "the server is full, everyone is
+# affected, try later", while this says "YOUR other interview is still open" --
+# a different sentence for the student and a different diagnosis for the
+# operator, who otherwise reads a capacity incident where there is none.
+_CLOSE_USER_SESSION_CAP: Final[int] = 4012
+_CLOSE_CONSENT_REQUIRED: Final[int] = 4013  # No live consent row for this student
+_CLOSE_CONSENT_REVOKED: Final[int] = 4014  # Consent withdrawn mid-interview
+
+# NOTE 4013/4014 are defined here, with the rest of the vocabulary, but nothing
+# in this module raises them yet: consent enforcement lands in
+# routers/interview.py only AFTER the client is posting consent rows, or every
+# existing student is locked out of the feature on the deploy that turns it on.
+# They live here so the numbers cannot be reassigned in the meantime, and so
+# that interview.service.ts has one list to mirror.
 
 
 _E = TypeVar("_E", bound=BaseException)
@@ -339,6 +475,28 @@ def _close_reason(text: str) -> str:
     if len(raw) <= _MAX_CLOSE_REASON_BYTES:
         return text
     return raw[:_MAX_CLOSE_REASON_BYTES].decode("utf-8", errors="ignore")
+
+
+def _percentile(samples: list[float], fraction: float) -> float | None:
+    """Nearest-rank percentile over a handful of samples. None when empty.
+
+    Deliberately not statistics.quantiles: one interview produces at most a few
+    dozen ASR measurements, interpolation between two of them says nothing the
+    raw rank does not, and this must never raise on n=1 (quantiles does).
+    On an even count the rank lands on the UPPER of the middle pair, which is
+    the pessimistic read -- the right direction for a number that exists to
+    justify a timeout.
+    """
+    if not samples:
+        return None
+    ordered = sorted(samples)
+    index = min(len(ordered) - 1, int(len(ordered) * fraction))
+    return ordered[index]
+
+
+def _fmt_seconds(value: float | None) -> str:
+    """A latency for the summary line: "1.42s", or "-" when nothing was measured."""
+    return "-" if value is None else f"{value:.2f}s"
 
 
 def _humanize_seconds(seconds: int) -> str:
@@ -383,6 +541,275 @@ def _echoed_turn_detection(session: dict[str, Any]) -> tuple[bool, Any]:
     return False, None
 
 
+# Bounds on what the scorecard may carry into the database and the browser.
+# The model was asked for 2-3 strengths and one short paragraph; these are what
+# happens when it ignores that, and they are applied on the way IN so no later
+# reader has to remember them.
+_MAX_REPORT_LIST_ITEMS: Final[int] = 5
+_MAX_REPORT_ITEM_CHARS: Final[int] = 300
+_MAX_REPORT_PARAGRAPH_CHARS: Final[int] = 1200
+
+
+def _report_score(value: Any) -> int | None:
+    """One 0-100 score, or None when the model did not give a usable one.
+
+    NEVER a fabricated 0. A missing score and a zero mean opposite things to the
+    mentor reading the scorecard, and only one of them is a judgement about the
+    student -- so an unparseable field stays empty rather than becoming the
+    worst possible mark.
+    """
+    if isinstance(value, bool):
+        # bool is an int in Python, and True would clamp to 1/100.
+        return None
+    if isinstance(value, (int, float)):
+        number = int(value)
+    elif isinstance(value, str):
+        try:
+            number = int(float(value.strip()))
+        except ValueError:
+            return None
+    else:
+        return None
+    return max(0, min(100, number))
+
+
+def _report_strings(value: Any, max_items: int) -> list[str]:
+    """A bounded list of bounded strings, salvaging what is salvageable.
+
+    A model that answers with one string instead of a list is corrected rather
+    than rejected: "degrade, never assert" is the whole posture of this parse,
+    and losing the entire report over a container type would be the opposite.
+    """
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for entry in value:
+        if not isinstance(entry, str):
+            continue
+        text = entry.strip()[:_MAX_REPORT_ITEM_CHARS]
+        if text:
+            items.append(text)
+        if len(items) >= max_items:
+            break
+    return items
+
+
+def _report_paragraph(value: Any) -> str:
+    return value.strip()[:_MAX_REPORT_PARAGRAPH_CHARS] if isinstance(value, str) else ""
+
+
+def _extract_report_text(response: dict[str, Any]) -> str:
+    """The model's text, read from response.done rather than from the deltas.
+
+    One event, atomic, present on both API generations -- so the report cannot
+    be half-assembled from a stream that stopped. `type` is "text" on one
+    surface and "output_text" on the other, exactly like the audio events.
+    """
+    parts: list[str] = []
+    for item in response.get("output") or []:
+        if not isinstance(item, dict):
+            continue
+        for part in item.get("content") or []:
+            if not isinstance(part, dict):
+                continue
+            if part.get("type") in ("text", "output_text"):
+                text = part.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+    return "".join(parts)
+
+
+def _parse_report(raw: str) -> dict[str, Any] | None:
+    """The model's text -> a validated scorecard, or None if there is not one.
+
+    Defensive by design, because the alternative was a json_schema parameter
+    that is unverified on one of the two API generations -- and a rejected
+    parameter costs the ENTIRE report. So the JSON is demanded in the
+    instructions and salvaged here.
+
+    First "{" to last "}" also strips a ``` fence for free, which is why there
+    is no separate fence-stripping step to keep in sync with it.
+    """
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        parsed = json.loads(raw[start : end + 1])
+    except ValueError:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    report: dict[str, Any] = {
+        "overall": _report_score(parsed.get("overall")),
+        "communication": _report_score(parsed.get("communication")),
+        "domain": _report_score(parsed.get("domain")),
+        "structure": _report_score(parsed.get("structure")),
+        "strengths": _report_strings(parsed.get("strengths"), _MAX_REPORT_LIST_ITEMS),
+        "improvements": _report_strings(parsed.get("improvements"), _MAX_REPORT_LIST_ITEMS),
+        "drill": _report_paragraph(parsed.get("drill")),
+        "summary": _report_paragraph(parsed.get("summary")),
+    }
+    if (
+        all(report[key] is None for key in ("overall", "communication", "domain", "structure"))
+        and not report["summary"]
+        and not report["strengths"]
+    ):
+        # Well-formed JSON that says nothing about the interview is not a
+        # report. Calling it one would show the student an empty scorecard and
+        # record a success; "unparseable" is the honest answer.
+        return None
+    return report
+
+
+@dataclass(slots=True)
+class _Pending:
+    """One student utterance waiting for its transcript.
+
+    MUTABLE on purpose: the entry is armed at speech_stopped, refined at
+    input_audio_buffer.committed (which supplies the item_id) and resolved by
+    whichever of .completed / .failed / the deadline arrives first. Rebuilding a
+    frozen record at each step would lose the insertion order that makes the
+    drain deterministic.
+
+    `status` is "" while unresolved, then exactly one of "ok" / "failed" /
+    "timeout" -- and that string is the honest record of WHY a turn has no text,
+    which is the whole reason a blank transcript is not simply dropped.
+    """
+
+    key: str
+    armed_at: float
+    deadline_at: float
+    item_id: str | None = None
+    transcript: str = ""
+    status: str = ""
+
+    @property
+    def resolved(self) -> bool:
+        return bool(self.status)
+
+
+@dataclass(frozen=True, slots=True)
+class _AnswerMeta:
+    """What the relay knew about ONE student utterance at the moment it was recorded.
+
+    Set on the session in the statement immediately above the matching
+    `_emit_turn` call and consumed there -- NOT passed as a parameter. That is a
+    deliberate constraint rather than an oversight: `_emit_turn`'s three
+    positional arguments are the seam the relay's own test suite overrides to
+    capture emissions with no database and no socket, and growing a fourth
+    argument would break every one of those tests to move a value four lines.
+    Set it directly above the call, never earlier, and never leave it set: an
+    assistant turn reads it as None and means it.
+    """
+
+    transcription_status: str
+    answer_quality: str | None
+    counted_as_answer: bool
+
+
+@dataclass(frozen=True, slots=True)
+class _TurnRecord:
+    """The interview context of one turn -- everything a `messages` row cannot carry.
+
+    Handed to the turn writer alongside (sender, text, provider_turn_id) so the
+    two inserts happen in one transaction. Frozen because it is composed once,
+    at emit time, and read on a worker thread afterwards: a mutable record could
+    be rewritten by the next turn while the previous one is still being written.
+    """
+
+    seq: int
+    phase: str
+    transcription_status: str
+    answer_quality: str | None
+    counted_as_answer: bool
+    is_partial: bool
+
+
+@dataclass(frozen=True, slots=True)
+class _ReportRecord:
+    """The scorecard, on its way to interview_evaluations. One per interview."""
+
+    status: str
+    report: dict[str, Any] | None
+    raw_response: str
+    model: str
+
+
+@dataclass(frozen=True, slots=True)
+class _SessionOutcome:
+    """How an interview ended, for the one UPDATE that closes its record.
+
+    `report_status` is None when the scorecard was never even attempted (the
+    session ended before WRAP_UP), which is what the writer turns into an
+    evaluation row saying `unavailable` -- a mentor then reads "no report: hit
+    the 15-minute cap" instead of a blank screen, and a MISSING row (which says
+    nothing at all) never happens.
+    """
+
+    status: str
+    close_code: int
+    terminal_reason: str
+    final_phase: str
+    answers_accepted: int
+    turns_emitted: int
+    turns_persisted: int
+    upstream_session_id: str | None
+    report_status: str | None
+
+    # What was kept of the student's voice. DEFAULTED, so that every existing
+    # construction of this record (and its tests) still compiles and still means
+    # exactly what it meant: nothing was recorded. `audio_recorded` is the field
+    # to branch on and `audio_path` is not -- app/models/interview.py sets out
+    # the four different facts a NULL path collapses into one.
+    #
+    # `audio_truncated` can be True while `audio_recorded` is False: a capture
+    # that was stopped before its first flush ended early AND kept nothing, and
+    # the two flags say different things about it.
+    audio_recorded: bool = False
+    audio_path: str | None = None
+    audio_bytes: int | None = None
+    audio_duration_ms: int | None = None
+    audio_truncated: bool = False
+
+
+class _TurnWriteRefused(Exception):
+    """The conversation this interview writes into no longer accepts turns.
+
+    Raised by the turn writer in routers/interview.py when
+    conversations.append_message refuses (the student cleared the thread from
+    another tab, or retention purged it mid-call). That function's CALL-SITE
+    CONTRACT says a fire-and-forget writer must let the refusal reach its own
+    `except Exception` -- where the connection id and the provider turn id are --
+    and then END THE SESSION, because both realtime callers resolve
+    conversation_id once at socket open and reuse it for fifteen minutes, so one
+    dropped-turn line per turn for the rest of the call is noise wrapped around a
+    record that is already lost.
+
+    It is a relay-owned type rather than `conversations.ConversationGone`
+    reaching in here for one reason: this module imports no ORM model and no
+    database code AT ALL (see the header, and rule 1), and that is what lets
+    tests/test_interview_relay.py drive the whole turn protocol with no Postgres.
+    The writer translates at the boundary where it already holds a Session. It is
+    NOT a swallow -- the refusal is neither ignored nor folded into the
+    IntegrityError branch, which is exactly what that contract forbids.
+    """
+
+
+@dataclass(frozen=True, slots=True)
+class _DeferredTurn:
+    """A response.create that had to wait because one was already in flight.
+
+    Carries the KIND, not a bare bool: by the time the in-flight response ends,
+    "ask the next question" and "you did not hear that, ask again" need
+    different instructions, and a boolean would send the wrong one.
+    """
+
+    kind: str
+
+
 class _SessionEnded(Exception):
     """A deliberate end of the interview, carrying the code both sockets close with.
 
@@ -418,35 +845,84 @@ class _ConnLog(logging.LoggerAdapter):
         return f"[conn={extra.get('conn_id')} session={session_id}] {msg}", kwargs
 
 
+# What refused an acquire, or "" for success. Two caps share one call because a
+# two-step acquire is a leak waiting to happen: the first step succeeds, the
+# second refuses, and the slot the first took is released only on the paths
+# somebody remembered.
+_REFUSED_BY_WORKER: Final[str] = "worker"
+_REFUSED_BY_USER: Final[str] = "user"
+
+
 class _ConnectionLimiter:
-    """Per-worker cap on concurrent interviews, acquired without ever blocking.
+    """Per-worker AND per-user caps on concurrent interviews, without ever blocking.
 
-    A student who cannot start must be TOLD so (close 1013) rather than queued:
-    queueing shows a spinner while their slot is not running, and the 15-minute
-    cap they are waiting for has not started either.
+    A student who cannot start must be TOLD so (close 1013 / 4012) rather than
+    queued: queueing shows a spinner while their slot is not running, and the
+    15-minute cap they are waiting for has not started either.
 
-    asyncio.Semaphore has no acquire_nowait(), so the test and the decrement are
+    THE PER-USER DICT IS THE POINT (audit H1). The worker cap counts sessions and
+    never asks whose they are, so one student looping
+    `new WebSocket('/api/interview')` from devtools took every slot on the worker
+    and everyone else was answered 1013. Each of those sockets authenticates,
+    opens an upstream Realtime session and BILLS from the handshake's
+    response.create with no microphone input at all -- so the abuse is cheap to
+    mount, expensive to absorb, and looks exactly like a capacity incident.
+
+    Deliberately NOT routers/voice.py's `_TOKEN_GRANTS.try_acquire(user_id,
+    limit)`, which was written for the same rule one layer up and is not reusable
+    here: that one is a TTL-EXPIRING GRANT for a stateless token nobody holds,
+    while this is a HELD resource with an explicit release. Reusing it would mean
+    a slot that expires while its socket is still open.
+
+    asyncio.Semaphore has no acquire_nowait(), so the test and the increment are
     written out. There is no await between them and asyncio is single-threaded,
     which makes the pair atomic by construction -- no lock is needed or useful.
+    (routers/voice.py's version DOES take a lock because it is called from
+    threadpooled sync endpoints; this one only ever runs on the event loop.)
     """
 
-    __slots__ = ("_limit", "_active")
+    __slots__ = ("_limit", "_per_user_limit", "_active", "_by_user")
 
-    def __init__(self, limit: int) -> None:
+    def __init__(self, limit: int, per_user_limit: int) -> None:
         self._limit = limit
+        self._per_user_limit = per_user_limit
         self._active = 0
+        self._by_user: dict[str, int] = {}
 
-    def try_acquire(self) -> bool:
+    def try_acquire(self, user_id: str) -> str:
+        """Take a slot for `user_id`. Returns "" on success, else which cap refused.
+
+        The worker cap is checked FIRST: when the process is genuinely full, the
+        honest answer is "the server is full", not "you have too many" -- a
+        student holding one legitimate interview would otherwise be told they
+        were the problem.
+        """
         if self._active >= self._limit:
-            return False
+            return _REFUSED_BY_WORKER
+        held = self._by_user.get(user_id, 0)
+        if held >= self._per_user_limit:
+            return _REFUSED_BY_USER
         self._active += 1
-        return True
+        self._by_user[user_id] = held + 1
+        return ""
 
-    def release(self) -> None:
+    def release(self, user_id: str) -> None:
         # Guard against a double release turning the counter negative, which
         # would quietly raise the effective cap above the configured one.
         if self._active > 0:
             self._active -= 1
+        held = self._by_user.get(user_id, 0)
+        if held <= 1:
+            # POPPED, not left at zero. Keyed by user id, this dict would
+            # otherwise gain one permanent entry per student who ever interviewed
+            # on this worker -- a slow leak on a process designed to run for
+            # weeks, and one no test would ever notice.
+            self._by_user.pop(user_id, None)
+        else:
+            self._by_user[user_id] = held - 1
+
+    def active_for(self, user_id: str) -> int:
+        return self._by_user.get(user_id, 0)
 
     @property
     def active(self) -> int:
@@ -455,6 +931,10 @@ class _ConnectionLimiter:
     @property
     def limit(self) -> int:
         return self._limit
+
+    @property
+    def per_user_limit(self) -> int:
+        return self._per_user_limit
 
 
 def _upstream_connector(url: str, api_key: str, beta_header: str) -> Any:
@@ -522,8 +1002,52 @@ class _RelaySession:
         "_turns_user",
         "_turns_assistant",
         "_last_error",
+        "_asr_samples",
+        "_speech_stopped_at",
+        # -- v3 turn ownership. Each of these exists because the relay, not the
+        # upstream VAD, now decides when the interviewer speaks.
+        "_pending",
+        "_pending_seq",
+        "_resolved_items",
+        "_abandoned_turns",
+        "_question_open",
+        "_partial_question",
+        "_deferred",
+        "_clarifications",
+        "_unheard_streak",
+        "_expecting_response",
+        "_create_deadline",
+        "_create_retries",
+        "_failed_recreates",
+        "_pending_create_ids",
+        "_last_create_kind",
+        "_server_created_response",
+        "_bargein_thrash",
+        "_bargein_disabled",
+        "_response_spoke",
+        "_wrap_up_deadline",
+        "_verdict_retried",
+        "_report_requested",
+        "_expecting_report",
+        "_report_create_id",
+        "_report_response_id",
+        "_report_settled",
+        "_report_deadline",
+        "_report_text",
+        "_report_status",
+        "_report_raw",
         "_on_turn",
+        "_on_report",
+        "_on_finalize",
+        "_on_heartbeat",
+        "_turn_seq",
+        "_turns_persisted",
+        "_answers_accepted",
+        "_answer_meta",
+        "_heartbeat_at",
+        "_finalized",
         "_writes",
+        "_recorder",
         "_assistant_text",
         "_machine",
     )
@@ -532,8 +1056,12 @@ class _RelaySession:
         self,
         websocket: WebSocket,
         conn_id: str,
-        on_turn: Callable[[str, str, str], None] | None = None,
+        on_turn: Callable[[str, str, str, _TurnRecord], None] | None = None,
         specialization: Specialization | None = None,
+        on_report: Callable[[_ReportRecord], None] | None = None,
+        on_finalize: Callable[[_SessionOutcome], None] | None = None,
+        on_heartbeat: Callable[[], None] | None = None,
+        recorder: Any | None = None,
     ) -> None:
         self._ws = websocket
         self._conn_id = conn_id
@@ -542,14 +1070,50 @@ class _RelaySession:
         # generic interview that predates the matrix: the persona below stays
         # byte-for-byte what it was, and no phase updates are pushed.
         self._machine = InterviewStateMachine(specialization)
-        # Called (sender, text, provider_turn_id) once per FINAL turn, to persist
-        # it. SYNCHRONOUS and allowed to block: this class runs it on a worker
-        # thread via asyncio.to_thread, because app/conversations.py is
-        # synchronous SQLAlchemy and calling it inline would stall the event loop
-        # -- i.e. every other student's audio on this worker -- for a whole round
-        # trip to Postgres. It is never awaited by the interview and its failures
-        # never reach the pumps; see _emit_turn.
+        # THE FOUR DATABASE HOOKS, and the only ones. This module imports no ORM
+        # model, no Session and no app.conversations -- rule 1's containment is
+        # structural, not a convention -- so everything it writes leaves through
+        # a callable routers/interview.py supplies. All four are SYNCHRONOUS and
+        # allowed to block: this class runs each on a worker thread via
+        # asyncio.to_thread, because app/conversations.py is synchronous
+        # SQLAlchemy and calling it inline would stall the event loop -- i.e.
+        # every other student's audio on this worker -- for a whole round trip to
+        # Postgres. All four are None in the relay's own tests, which is what
+        # lets those tests drive the entire turn protocol with no database.
+        #
+        #   _on_turn      (sender, text, provider_turn_id, _TurnRecord) per FINAL
+        #                 turn. FIRE-AND-FORGET; failures never reach the pumps
+        #                 (see _emit_turn) except the one refusal that must end
+        #                 the session, _TurnWriteRefused.
+        #   _on_report    (_ReportRecord) once, AWAITED -- see _finish_report.
+        #   _on_finalize  (_SessionOutcome) once, AWAITED, after the last turn
+        #                 write has drained -- see _finalize_session.
+        #   _on_heartbeat () roughly once a minute from the watchdog, fire-and-
+        #                 forget, so a killed worker's rows can be swept.
         self._on_turn = on_turn
+        self._on_report = on_report
+        self._on_finalize = on_finalize
+        self._on_heartbeat = on_heartbeat
+        # THE AUDIO RECORDER, and the fifth thing that leaves this class -- but
+        # deliberately NOT a fifth hook. It is an object with three methods
+        # (`feed(track, pcm)`, `snapshot()`, `await aclose()`), supplied by
+        # routers/interview.py from app.interview_audio.recorder_for(), and it is
+        # None in every deployment where recording is off or the student has not
+        # granted scope_store_audio -- which today is all of them.
+        #
+        # Duck-typed, and this module does NOT import app.interview_audio: that
+        # module reads `interview_consents` to decide whether it may exist at
+        # all, and importing it here would put an ORM model behind the relay's
+        # import graph for the first time. The header's "nothing here imports any
+        # ORM model, and that is the point" is a rule 1 containment argument, not
+        # a stylistic one, and a recording feature is not the thing to spend it
+        # on. The cost is a `typing.Any` and a contract written down instead of
+        # checked; the tests supply their own object with the same three methods.
+        #
+        # `feed` is TOTAL by its own contract -- it never raises and never does
+        # I/O -- and _capture() below wraps it anyway, because an interview must
+        # never end over a file.
+        self._recorder = recorder
         self._writes: set[asyncio.Task[None]] = set()
         # Assistant transcript deltas accumulated per response id, so a finished
         # turn is stored as ONE row at response.done. Popped there, so this
@@ -589,19 +1153,164 @@ class _RelaySession:
         # session that reported self-talk means the gate was never armed at all.
         self._gate_closes = 0
 
-        # Counted where a turn is EMITTED, i.e. after the blank-text guard in
-        # _emit_turn, so these are turns that were actually handed to the
+        # Counted where a turn is EMITTED, so these are turns handed to the
         # persistence path -- the number the AGENTS.md voice runbook's "the call
-        # sounded fine and saved nothing" query is checked against. A session
-        # with assistant turns and zero user turns is the transcriber failing;
-        # both at zero is the interview never getting going at all.
+        # sounded fine and saved nothing" query is checked against. Both at zero
+        # is the interview never getting going at all.
+        #
+        # BLANK TURNS ARE COUNTED TOO, since L4: a timed-out transcript still
+        # produces an interview_turns row, and their sum has to stay comparable
+        # with _turns_persisted or `emitted - persisted` stops meaning "dropped"
+        # (persisted could even exceed emitted). The cost is that "assistant
+        # turns and zero user turns" no longer diagnoses a dead transcriber on
+        # its own -- that now shows as user turns with no text, and the summary
+        # line names it directly with asrP50=- and error=transcriber:timeout.
         self._turns_user = 0
         self._turns_assistant = 0
+        # Turn writes that actually reached Postgres. The PAIR
+        # (turns_emitted, turns_persisted) on the interview_sessions row is what
+        # answers "the call sounded fine and saved nothing" with no join and no
+        # query against `messages`: emitted > persisted is exactly how many turns
+        # the fire-and-forget writer dropped, and that number used to be
+        # recoverable only by counting log lines.
+        self._turns_persisted = 0
+        # 1-based, in EMIT order, and incremented for every turn including the
+        # blank ones -- a gap in `seq` would read as a lost turn when it is
+        # actually a turn the transcriber never heard (L4).
+        self._turn_seq = 0
+        # Accepted answers, counted HERE and not read off the state machine,
+        # because the machine's own counter only moves for a specialized
+        # interview (the phase tick is gated on one). The generic interview has
+        # no arc and would otherwise record zero answers however well it went.
+        self._answers_accepted = 0
+        # See _AnswerMeta: set immediately above a student `_emit_turn` and
+        # consumed there. None means "an interviewer turn", and it means it.
+        self._answer_meta: _AnswerMeta | None = None
         # The last upstream failure seen, already reduced to type/code (never
         # error.message, which can quote request content back at us). Kept so
         # the summary line can name a cause instead of a support ticket saying
         # "it just sounded bad".
         self._last_error: str | None = None
+
+        # ASR round-trip telemetry: monotonic seconds from the end of the
+        # student's speech to their transcript landing. Measured BEFORE it
+        # became load-bearing, on purpose. Under v3 the relay waits for this
+        # transcript before asking the next question, so T_asr is added to
+        # every turn's silence in series -- and interview_transcription_timeout_ms
+        # (8000) is a guess until a cohort of real interviews reports these two
+        # numbers on the end-of-interview line. A guessed deadline that is too
+        # low turns good long answers into "unheard"; too high and a dead
+        # transcriber holds the student in silence for eight seconds a turn.
+        # Bounded by the number of student utterances in one capped session.
+        self._asr_samples: list[float] = []
+        # Armed at input_audio_buffer.speech_stopped, consumed by whichever
+        # transcription result resolves the turn. None means "no utterance is
+        # outstanding", which is also why a duplicate result cannot double-count.
+        self._speech_stopped_at: float | None = None
+
+        # -- v3 turn state. The invariant each one protects is in the design
+        # doc's state table; the short version is here.
+        #
+        # Student utterances waiting for a transcript, INSERTION-ORDERED, which
+        # is what makes the drain commit-ordered. Resolution is a pop from the
+        # head, and that pop is the single point of consumption: a .completed
+        # and its own deadline can both fire, and the loser finds nothing.
+        self._pending: dict[str, _Pending] = {}
+        self._pending_seq = 0
+        # Item ids already drained. Without it, a duplicate .completed for a
+        # turn we have finished would arm a NEW entry and ask a second question.
+        # An insertion-ordered dict used as an ordered set, so the cap can evict
+        # the oldest id instead of refusing the newest -- see _memoise_resolved.
+        self._resolved_items: dict[str, None] = {}
+        # Utterances the answer deadline gave up on BEFORE upstream told us
+        # their item_id -- which, under create_response:false, is every timeout
+        # on a surface that does not send input_audio_buffer.committed. There is
+        # no id to memoise for those, so the duplicate guard has nothing to
+        # match on and a late transcript would resurrect the turn. One credit is
+        # spent per late result that matches nothing. See _resolve_pending.
+        self._abandoned_turns = 0
+        # Was a question actually ASKED? Only an answer to a question that was
+        # asked may advance the arc -- an interjection over an unfinished
+        # question is not an answer, and counting it re-introduces the bug this
+        # engine exists to remove, from the other direction.
+        self._question_open = False
+        # The last interviewer turn was cut off by barge-in rather than
+        # finished. Recorded so the transcript can say "asked" or "cut off".
+        self._partial_question = False
+        # A create that would have collided with a live response.
+        self._deferred: _DeferredTurn | None = None
+        # Re-asks spent on the CURRENT question. Reset on every accepted answer.
+        # The cap is what guarantees the arc terminates: a student who genuinely
+        # cannot answer must not be trapped on question two until the hard cap.
+        self._clarifications = 0
+        # Consecutive turns whose transcript never arrived, so the summary line
+        # can name a failing transcriber instead of leaving it to a query.
+        self._unheard_streak = 0
+        # Our own response.create is outstanding. Also the D2 detector: a
+        # response.created arriving while this is False was created by the
+        # server, which means create_response:false did not take.
+        self._expecting_response = False
+        self._create_deadline: float | None = None
+        self._create_retries = 0
+        self._failed_recreates = 0
+        # Every response.create of ours that upstream has neither acknowledged
+        # nor refused, oldest first. A LIST and not one id: _retry_create sends
+        # a second create for the same turn, and a single field meant the retry
+        # disowned the create it was retrying -- so when the original was
+        # acknowledged late (which is exactly what upstream congestion, the
+        # cause of the retry, produces) the relay owned an outstanding create it
+        # could no longer recognise. The retry's rejection then fell through to
+        # the generic reep.error forward and put a warning banner in front of a
+        # student mid-interview, and the retry's own response.created tripped
+        # the D2 detector against itself. Capped at _MAX_OUTSTANDING_CREATES.
+        self._pending_create_ids: list[str] = []
+        self._last_create_kind = "next"
+        self._server_created_response = False
+        self._bargein_thrash = 0
+        self._bargein_disabled = False
+        # Did the CURRENT response make a sound before it ended? A response
+        # cancelled before it spoke is the signature of a room where VAD fires
+        # on the interviewer's own voice.
+        self._response_spoke = False
+        # The final report. _report_response_id is what keeps the scorecard out
+        # of the student's chat and safe from their own voice; _report_settled
+        # is what stops the deadline and the response.done both settling it.
+        self._report_requested = False
+        self._expecting_report = False
+        self._report_create_id: str | None = None
+        self._report_response_id: str | None = None
+        self._report_settled = False
+        self._report_deadline: float | None = None
+        self._report_text = ""
+        self._report_status: str | None = None
+        # The model's exact output, kept for a DIRECTOR to look at when a parse
+        # goes wrong -- a bad scorecard is nearly always a prompt problem rather
+        # than a code one, and without the raw text there is nothing to read.
+        # Truncated and DIRECTOR/ADMIN-scoped downstream: it is the model's
+        # private words about a named student.
+        self._report_raw = ""
+        # Finalization runs exactly once (Layer 1). The router's backstop
+        # (Layer 2) is idempotent against it by predicate -- `WHERE
+        # status='running'` -- rather than by this flag, because the two live in
+        # different objects and the backstop must still work when this one never
+        # ran at all.
+        self._finalized = False
+        # Monotonic stamp of the last heartbeat write, seeded so the first one
+        # is due a full interval in rather than on the watchdog's first tick:
+        # the row was inserted with heartbeat_at = now() moments ago.
+        self._heartbeat_at = now
+
+        # S8: force the wrap-up while there is still time to deliver a verdict
+        # AND generate the scorecard. Without it a five-answer interview can hit
+        # the hard cap mid-verdict and produce nothing at all -- the exact tail
+        # of the bug this engine was built to fix. Disarmed when the cap is too
+        # short for the reserve to mean anything (a test, a deliberate stub),
+        # because forcing a verdict in the first seconds would replace the
+        # interview rather than rescue it.
+        reserve = settings.interview_report_timeout_ms / 1000 + _REPORT_RESERVE_EXTRA_S
+        cap = float(settings.interview_max_seconds)
+        self._wrap_up_deadline = now + cap - reserve if cap > reserve * 2 else None
+        self._verdict_retried = False
 
     # -- external control ---------------------------------------------------
 
@@ -708,11 +1417,33 @@ class _RelaySession:
             # persona promises not to interrupt, and real answers contain
             # 400-600 ms thinking pauses mid-sentence.
             "silence_duration_ms": settings.interview_vad_silence_duration_ms,
-            # The server commits the buffer AND creates the response itself.
-            # This is why the relay never sends commit or response.create per
-            # turn -- doing so double-commits and produces a stuttering
-            # interviewer that nobody can reproduce on a quiet machine.
-            "create_response": True,
+            # THE RELAY creates the response, not the upstream VAD. This one
+            # literal is what the whole v3 turn protocol turns on.
+            #
+            # With `true`, upstream created the next question at the instant it
+            # committed the input buffer -- which is BEFORE the student's
+            # transcript exists. The relay could not check whether the answer
+            # was substantive, could not count it, and its phase directive
+            # therefore always steered the question AFTER next; at the end of
+            # the arc the model asked a sixth question instead of delivering the
+            # verdict, and if the session cap landed first there was no verdict
+            # at all. No prompt wording fixes that: instructions are the CONTENT
+            # of a response, and this flag decides how many responses exist and
+            # when.
+            #
+            # WHAT DOES NOT CHANGE: server VAD still COMMITS the input buffer,
+            # so this relay still never sends input_audio_buffer.commit -- a
+            # manual commit would race the automatic one, which is what the old
+            # comment here was protecting and it is still true. Only response
+            # creation moved, and it moved to exactly one call site,
+            # _advance_turn.
+            #
+            # The failure mode to fear is now the opposite one: creating a
+            # response while another is live earns
+            # `conversation_already_has_active_response` and a warning banner
+            # mid-interview, which is why _advance_turn defers instead of
+            # sending whenever _active_response_id is set.
+            "create_response": False,
             # THE RELAY owns interruption: _on_speech_started flushes the browser
             # queue and sends response.cancel itself. Left at its default of true
             # the SERVER cancels the moment it emits speech_started, our cancel
@@ -878,20 +1609,32 @@ class _RelaySession:
         )
         self._verify_turn_detection(updated.get("session") or {})
 
-        # Exactly once per session, and the reason the student is not met with
-        # silence: the model produces nothing until it has an input. `instructions`
-        # is deliberately omitted -- supplying it here REPLACES the session
-        # persona for this response instead of adding to it, which would drop the
-        # persona on precisely the turn that sets the tone.
+        # THE FIRST of this relay's own response.create calls; every later one
+        # comes from _advance_turn. Under create_response:false there is no VAD
+        # path that could ever produce a first response, so removing this is a
+        # guaranteed dead interview -- it is more necessary now, not less.
+        # `instructions` is deliberately omitted: supplying it here REPLACES the
+        # session persona for this response instead of adding to it, which would
+        # drop the persona on precisely the turn that sets the tone, and the
+        # OPENING directive already reached the model in the session.update above.
+        open_event_id = self._next_event_id("open")
         await upstream.send(
             json.dumps(
                 {
                     "type": "response.create",
-                    "event_id": self._next_event_id("open"),
+                    "event_id": open_event_id,
                     "response": {"conversation": "auto"},
                 }
             )
         )
+        # Armed here rather than in _advance_turn because this send bypasses it.
+        # If upstream drops this one create the student meets silence and every
+        # guardrail we have measures AUDIO, not questions -- the browser keeps
+        # sending frames, so the idle watchdog never fires.
+        self._pending_create_ids.append(open_event_id)
+        self._last_create_kind = "next"
+        self._expecting_response = True
+        self._create_deadline = time.monotonic() + self._create_timeout_s()
 
         await self._send_control(
             {
@@ -939,6 +1682,33 @@ class _RelaySession:
                 "session.update was not applied: turn_detection echoed back as %r. "
                 "Server VAD is off, so no student turn would ever complete.",
                 value,
+            )
+            raise _SessionEnded(
+                _CLOSE_UPSTREAM_UNAVAILABLE, "Voice service unavailable, try again shortly"
+            )
+        if "create_response" not in value:
+            # This surface did not echo the field, so we cannot know whether it
+            # took. Not fatal -- refusing here would break every deployment on a
+            # surface that simply echoes less -- but it hands the whole job to
+            # the runtime guard in _handle_upstream_event, which detects a
+            # server-created response positionally and skips our own create for
+            # that turn. Degraded to today's behaviour, not doubled.
+            self._log.warning(
+                "session.updated did not echo turn_detection.create_response; "
+                "relying on the runtime guard to detect server-created responses"
+            )
+            return
+        if value["create_response"] is not False:
+            # The one upstream behaviour that cannot be verified from here, and
+            # the one whose failure is worst: both parties creating a response
+            # means two questions per turn, which is the exact bug v3 removes,
+            # doubled. Refusing the session beats running a known-double
+            # interview in front of a student.
+            self._log.error(
+                "session.update was not applied: turn_detection.create_response "
+                "echoed back as %r. Upstream would create a second response per "
+                "turn, so the interview would ask two questions at a time.",
+                value["create_response"],
             )
             raise _SessionEnded(
                 _CLOSE_UPSTREAM_UNAVAILABLE, "Voice service unavailable, try again shortly"
@@ -1004,6 +1774,14 @@ class _RelaySession:
         self._client_frames += 1
         self._client_bytes += len(pcm)
 
+        # Captured AFTER the oversize drop and AFTER the odd-byte carry, so the
+        # file holds exactly the samples the model was given -- a recording that
+        # disagrees with what upstream heard is worse than no recording, because
+        # it is a plausible one. Zero cost when nothing is recording (an
+        # attribute load and a branch) and no I/O when something is: see
+        # app/interview_audio.py.
+        self._capture(_AUDIO_TRACK_STUDENT, pcm)
+
         await upstream.send(
             _APPEND_PREFIX + base64.b64encode(pcm).decode("ascii") + _APPEND_SUFFIX
         )
@@ -1055,6 +1833,34 @@ class _RelaySession:
             # Decoded length, so the two uplink modes report the same figure in
             # the end-of-interview line.
             self._client_bytes += (len(audio) * 3) // 4
+            if self._recorder is not None:
+                # CAPTURED HERE TOO. This branch forwards audio byte-identical
+                # to the binary path's and used to skip _capture entirely, so a
+                # `?uplink=base64` client produced an interviewer track, NO
+                # student track, and a snapshot still claiming recorded=True --
+                # a DIRECTOR opens it and hears the interviewer talking to
+                # silence, indistinguishable from a student who never spoke. A
+                # plausible recording that disagrees with what upstream heard is
+                # worse than no recording, which is the rule _forward_client_audio
+                # states and this branch broke.
+                #
+                # Capture, rather than refusing the mode while recording: the
+                # mode works, the shipped Angular client does not use it, and
+                # breaking a working client to protect a file is the wrong trade.
+                # The decode is the one allocation this path did not already
+                # make, and only when something is actually recording -- the
+                # forward upstream stays a passthrough with no round trip.
+                try:
+                    self._capture(
+                        _AUDIO_TRACK_STUDENT, base64.b64decode(audio, validate=True)
+                    )
+                except (BinasciiError, ValueError) as exc:
+                    # The alphabet and length checks above already ran, so this
+                    # is padding in the wrong place. The frame still goes
+                    # upstream: what the model hears matters more than the file.
+                    self._log.warning(
+                        "Could not decode an append frame for the recording: %s", exc
+                    )
             await upstream.send(_APPEND_PREFIX + audio + _APPEND_SUFFIX)
             return
 
@@ -1093,15 +1899,55 @@ class _RelaySession:
     async def _pump_upstream_to_client(self, upstream: ClientConnection) -> None:
         """OpenAI -> browser. The only task that writes downstream.
 
-        `async for` is the single permitted consumer of this socket: concurrent
-        recv() on one ClientConnection raises RuntimeError.
+        ONE recv() at a time is still mandatory -- concurrent recv() on a single
+        ClientConnection raises RuntimeError -- which is exactly why this loop
+        must not become two. It used to be `async for raw in upstream`, and the
+        reason it no longer is: under v3 the relay owns turn state that has to
+        AGE OUT (a transcript that never lands, a response.create upstream never
+        acknowledged), and the handler for those deadlines both mutates turn
+        state and sends downstream. Running it from the watchdog would make the
+        watchdog a second downstream sender -- breaking the invariant documented
+        above _send_control -- and would turn the pop-based double-fire guard in
+        _drain_pending from a proof into a hope, because two tasks could then
+        reach the same entry. So the deadline is enforced by the one task that
+        already owns both: this one, between reads.
+
+        Cost, stated honestly: the wrap-up reserve is armed for the whole
+        session, so in practice there IS a timeout on nearly every iteration --
+        one heap entry armed and cancelled per upstream event. That is an order
+        of magnitude cheaper than the json.loads two lines below it, and it is
+        NOT the per-audio-frame timer the watchdog's comment argues against:
+        upstream events are tens per second, not thousands. When no deadline at
+        all is armed the recv() blocks exactly as it did before v3.
         """
-        async for raw in upstream:
+        while True:
+            deadline = self._earliest_deadline()
+            try:
+                if deadline is None:
+                    raw = await upstream.recv()
+                else:
+                    # A RELATIVE timeout rather than asyncio.timeout_at: these
+                    # deadlines are time.monotonic() stamps, and timeout_at
+                    # wants the event loop's clock. They are the same clock on
+                    # CPython's default loop today, which is precisely the kind
+                    # of coincidence that stops holding on someone else's
+                    # runner. Cancelling a recv() is documented safe by
+                    # websockets and loses no frames.
+                    async with asyncio.timeout(max(0.0, deadline - time.monotonic())):
+                        raw = await upstream.recv()
+            except TimeoutError:
+                await self._on_deadline()
+                continue
+            except ConnectionClosedOK:
+                # What `async for` used to swallow for us. A ConnectionClosedError
+                # still propagates to the except* clause in _interview, which is
+                # where the code and reason are logged.
+                break
             await self._handle_upstream_event(json.loads(raw))
 
-        # The iterator ends on a CLEAN upstream close. Mid-interview that is
-        # still the service hanging up on us, not a normal finish -- the normal
-        # finish is driven by the student or the watchdog and never gets here.
+        # A CLEAN upstream close. Mid-interview that is still the service
+        # hanging up on us, not a normal finish -- the normal finish is driven
+        # by the student, the report or the watchdog and never gets here.
         raise _SessionEnded(
             _CLOSE_UPSTREAM_UNAVAILABLE, "Voice service ended the session"
         )
@@ -1118,17 +1964,106 @@ class _RelaySession:
             return
 
         if etype == "input_audio_buffer.speech_stopped":
-            # Forward only. The server commits the buffer and creates the
-            # response itself; a manual commit here races the automatic one.
+            # The student stopped talking, so the ASR clock starts and, with it,
+            # the deadline that guarantees this turn ends one way or another.
+            # Armed HERE and not at input_audio_buffer.committed on purpose:
+            # whether `committed` still arrives under create_response:false is
+            # unverified, and a turn whose only timer depends on an unverified
+            # event is a turn that can hang forever. Server VAD still commits;
+            # this relay still sends no manual commit.
+            self._arm_answer_deadline()
             await self._send_control({"type": "input_audio_buffer.speech_stopped"})
+            return
+
+        if etype == _INPUT_COMMITTED:
+            # Refinement only -- see _INPUT_COMMITTED. Not forwarded: the
+            # browser has already been told the student stopped speaking, and an
+            # item id means nothing to it.
+            self._refine_pending(event.get("item_id"))
             return
 
         if etype == "response.created":
             response = event.get("response") or {}
-            self._active_response_id = response.get("id")
+            response_id = response.get("id")
+            self._active_response_id = response_id
+            self._response_spoke = False
+
+            if self._expecting_report and self._report_response_id is None:
+                # The scorecard. Learned here because Realtime does not echo our
+                # event_id on response.created, so the id has to be taken
+                # positionally -- which is safe for exactly one response,
+                # because nothing else is created while the report is pending.
+                self._expecting_report = False
+                self._report_response_id = response_id
+                # NOT forwarded. The browser turns response.created into
+                # "the interviewer is speaking", and the scorecard is silent:
+                # the student would watch a speaking indicator for up to twenty
+                # seconds of nothing, which reads as a hang.
+                return
+
+            if self._expecting_response:
+                self._expecting_response = False
+                self._create_deadline = None
+                self._create_retries = 0
+                # ONE response.created answers the OLDEST create still
+                # outstanding, and only that one. Realtime does not echo our
+                # event_id here, so the attribution is positional -- but
+                # forgetting every outstanding id (which is what clearing a
+                # single field did) leaves a retry the relay can no longer
+                # recognise, and an error naming it then reaches the student as
+                # a banner. A retry is the same question again, never a second
+                # one, so re-sending on a rejection cannot ask twice either.
+                if self._pending_create_ids:
+                    self._pending_create_ids.pop(0)
+            elif self._pending_create_ids:
+                # Our own create, acknowledged late -- typically the original
+                # that _retry_create had already given up on, arriving after the
+                # retry. NOT server-created: reading it as one accuses
+                # turn_detection.create_response=false of not being in effect,
+                # which §2.6 names as the one upstream behaviour that cannot be
+                # verified from here, on the strength of our own retry -- and
+                # then _advance_turn consumes the flag and skips the relay's
+                # next create, costing the student a question on top of a false
+                # diagnosis.
+                self._pending_create_ids.pop(0)
+                self._log.warning(
+                    "response.created %s answers a create this relay had "
+                    "already retried; not counting it as server-created",
+                    response_id,
+                )
+            else:
+                # D2, the runtime half. Nothing we sent is outstanding, so
+                # upstream created this response by itself and
+                # create_response:false did not take on this surface. The
+                # correlation is positional and therefore a heuristic -- good
+                # enough to detect and log, which is the point. _advance_turn
+                # reads the flag and skips our own create for that turn, so the
+                # interview degrades to the pre-v3 behaviour instead of asking
+                # two questions at once.
+                self._server_created_response = True
+                self._last_error = "vad:server_created_response"
+                self._log.error(
+                    "Upstream created response %s that this relay did not ask "
+                    "for: turn_detection.create_response=false is not in effect",
+                    response_id,
+                )
+
             await self._send_control(
                 {"type": "response.created", "response_id": self._active_response_id}
             )
+            return
+
+        if etype in _TEXT_DELTA_TYPES:
+            # Accumulated ONLY as the fallback for a surface that hands back an
+            # empty `output` array on response.done, and only for the scorecard.
+            # Nothing depends on these arriving, and none of it is forwarded:
+            # the student's chat is not the place for raw JSON.
+            if (
+                self._report_response_id is not None
+                and event.get("response_id") == self._report_response_id
+                and len(self._report_text) < _MAX_REPORT_TEXT_CHARS
+            ):
+                self._report_text += str(event.get("delta") or "")
             return
 
         if etype in _AUDIO_DONE_TYPES:
@@ -1160,28 +2095,18 @@ class _RelaySession:
             return
 
         if etype == _USER_TRANSCRIPT_DONE:
-            # Forwarded under the UPSTREAM name, not a reep.* alias. public/app.js
-            # switches on the Realtime event names -- it already handles the
-            # `.delta` and `.failed` siblings -- so the rename matched no case,
+            # Forwarded under the UPSTREAM name, not a reep.* alias. The clients
+            # switch on the Realtime event names, so a rename matched no case,
             # fell through to `default:`, and left the "You" half of the
             # transcript permanently empty with nothing logged anywhere.
+            #
+            # It no longer emits the turn or ticks the machine directly: this is
+            # one of three ways a pending entry can resolve, and doing the work
+            # here would mean the other two (.failed, the deadline) had to
+            # duplicate it. The drain is the one place a resolved turn is acted on.
             item_id = event.get("item_id")
             transcript = event.get("transcript", "")
-            # "u:" / "a:" prefixes: item ids and response ids are drawn from
-            # different upstream sequences with no guarantee of being distinct
-            # from each other, while append_message dedups on
-            # (conversation_id, provider_turn_id) -- a single namespace.
-            self._emit_turn("user", transcript, f"u:{item_id}")
-            # One completed student answer is the state machine's only tick.
-            # Gated on a specialization being selected: the generic interview
-            # has no phases to advance and its instructions never change.
-            if (
-                self._machine.specialization is not None
-                and transcript.strip()
-                and self._machine.student_answered()
-                and self._upstream is not None
-            ):
-                await self._push_phase(self._upstream)
+            self._resolve_pending(item_id, transcript, "ok")
             await self._send_control(
                 {
                     "type": _USER_TRANSCRIPT_DONE,
@@ -1189,6 +2114,31 @@ class _RelaySession:
                     "transcript": transcript,
                 }
             )
+            await self._drain_and_advance()
+            return
+
+        if etype == _USER_TRANSCRIPT_FAILED:
+            # The turn is over for us either way: the audio is committed
+            # upstream and no transcript is coming. Resolved with an empty
+            # string and status "failed", which the interviewer answers by
+            # asking the student to say it again -- rather than the pre-v3
+            # behaviour, where this event was not in the allowlist at all and
+            # the answer simply vanished from the record.
+            #
+            # Deliberately NOT forwarded downstream: error.message can quote
+            # request content back at us, the clients handle neither this event
+            # nor a redacted version of it, and the student learns what happened
+            # from the interviewer asking them to repeat.
+            err = event.get("error") or {}
+            self._log.error(
+                "Input transcription failed for item %s: type=%s code=%s",
+                event.get("item_id"),
+                err.get("type"),
+                err.get("code"),
+            )
+            self._last_error = f"transcription:{err.get('type')}/{err.get('code')}"
+            self._resolve_pending(event.get("item_id"), "", "failed")
+            await self._drain_and_advance()
             return
 
         if etype == "response.done":
@@ -1198,6 +2148,24 @@ class _RelaySession:
         if etype == "error":
             self._log_upstream_error(event, phase="session")
             err = event.get("error") or {}
+            event_id = err.get("event_id")
+            if event_id is not None and event_id == self._report_create_id:
+                # Upstream refused the text-only response outright (most likely
+                # a parameter this surface does not accept -- the log line above
+                # names `param`, so the fix is one line and visible on the first
+                # run). The interview still COMPLETED; only the scorecard did
+                # not, and that news travels in the payload rather than in a
+                # close code.
+                await self._finish_report(None, "rejected")
+                return
+            if event_id is not None and event_id in self._pending_create_ids:
+                # An error echoing OUR create is not cosmetic: under v3 nothing
+                # else will ask the next question, so this is a stalled
+                # interview wearing a warning banner. Handled, and deliberately
+                # not forwarded -- the student can do nothing with it and the
+                # relay is already recovering.
+                await self._on_create_rejected(err)
+                return
             # `code` and `param` only. error.message can quote request content
             # back at us, and reflecting it downstream would hand the browser
             # text this relay never inspected.
@@ -1222,8 +2190,525 @@ class _RelaySession:
             self._logged_unknown.add(etype)
             self._log.info("Upstream event not forwarded downstream: %s", etype)
 
+    # -- the turn protocol --------------------------------------------------
+    #
+    # Everything between "the student stopped talking" and "the interviewer
+    # speaks" is decided here, on the upstream pump task and nowhere else.
+
+    def _create_timeout_s(self) -> float:
+        return settings.interview_response_create_timeout_ms / 1000
+
+    def _arm_answer_deadline(self, item_id: str | None = None) -> _Pending | None:
+        """Start the clock on one student utterance. None when the queue is full.
+
+        Each entry gets its OWN deadline at its OWN arm time, never a deadline
+        measured from when it reaches the head of the queue: otherwise one hung
+        transcription blocks the entries behind it and they blow their windows
+        while waiting for it. One line, and easy to get wrong.
+        """
+        if len(self._pending) >= _MAX_PENDING_TURNS:
+            self._log.warning(
+                "Not arming another pending turn: %d already waiting on a "
+                "transcript. The transcriber has stopped answering.",
+                len(self._pending),
+            )
+            return None
+        self._pending_seq += 1
+        now = time.monotonic()
+        entry = _Pending(
+            key=f"p{self._pending_seq}",
+            armed_at=now,
+            deadline_at=now + settings.interview_transcription_timeout_ms / 1000,
+            item_id=item_id,
+        )
+        self._pending[entry.key] = entry
+        return entry
+
+    def _refine_pending(self, item_id: str | None) -> None:
+        """Attach the item id upstream just committed to the newest utterance."""
+        if not item_id:
+            return
+        for entry in reversed(self._pending.values()):
+            if not entry.resolved and entry.item_id is None:
+                entry.item_id = item_id
+                # Re-armed from the commit, which is closer to when the
+                # transcriber actually starts work than speech_stopped was.
+                entry.deadline_at = (
+                    time.monotonic() + settings.interview_transcription_timeout_ms / 1000
+                )
+                return
+        # A commit with no armed entry means speech_stopped never reached us.
+        # Arm one now rather than letting the transcript arrive with nothing to
+        # resolve: an utterance we can still record is worth more than tidiness.
+        if item_id in self._resolved_items:
+            return
+        if self._abandoned_turns > 0:
+            # ...unless it is the LATE commit for a turn the deadline already
+            # gave up on, which is the same resurrection _resolve_pending
+            # guards, one event earlier. Learning the id here is what lets the
+            # memo catch the .completed that follows it.
+            self._abandoned_turns -= 1
+            self._memoise_resolved(item_id)
+            return
+        self._arm_answer_deadline(item_id)
+
+    def _match_pending(self, item_id: str | None) -> _Pending | None:
+        """The entry a transcription result belongs to.
+
+        By item id when we have one -- which needs input_audio_buffer.committed
+        to have arrived -- and otherwise the OLDEST unresolved entry, because
+        transcription results come back in commit order. When the fallback picks
+        wrongly, two utterances that are about to be joined into one answer
+        anyway swap their provider ids; nothing about the interview changes.
+        """
+        if item_id:
+            for entry in self._pending.values():
+                if entry.item_id == item_id:
+                    return entry
+        for entry in self._pending.values():
+            if not entry.resolved:
+                return entry
+        return None
+
+    def _resolve_pending(self, item_id: str | None, transcript: str, status: str) -> None:
+        """Settle one pending utterance. The single point of consumption.
+
+        A .completed and that entry's own deadline can both fire; whichever
+        arrives second finds the entry already resolved (or already popped) and
+        does nothing. That is genuinely atomic rather than hopeful, because both
+        paths run on the pump task and _handle_upstream_event is awaited to
+        completion before the next event is read.
+        """
+        if item_id and item_id in self._resolved_items:
+            # Already drained, so there is nothing here to resolve. Checked
+            # BEFORE the match, not after it: the fallback below picks the
+            # oldest unresolved entry when it has no id to go on, and a
+            # duplicate arriving while a LATER utterance is still pending would
+            # otherwise overwrite that utterance with an old transcript. Arming
+            # a fresh entry instead would ask a second question for one answer.
+            # (The record is protected separately, by the unique index on
+            # (conversation_id, provider_turn_id) -- two layers, deliberately.)
+            self._log.info("Duplicate transcription result for %s, ignored", item_id)
+            return
+        entry = self._match_pending(item_id)
+        if entry is None:
+            if self._abandoned_turns > 0:
+                # A result for a turn the deadline already popped, arriving
+                # after the interview moved on. It cannot be caught by the memo
+                # above because that entry never learned an item_id, so without
+                # this the arm below would RESURRECT it: the student's one
+                # utterance becomes two rows and two questions, and the second
+                # one is classified "resume" so the arc never counts the answer
+                # they actually gave. Spend the credit and record the id, so a
+                # second copy is caught by the memo like any other duplicate.
+                self._abandoned_turns -= 1
+                if item_id:
+                    self._memoise_resolved(item_id)
+                self._log.info(
+                    "Transcription result for %s arrived after its deadline "
+                    "popped the turn; discarded rather than asked again",
+                    item_id or "an unidentified item",
+                )
+                return
+            entry = self._arm_answer_deadline(item_id)
+            if entry is None:
+                self._log.warning("Dropping transcription result for %s: queue full", item_id)
+                return
+        if entry.resolved:
+            return
+        if entry.item_id is None:
+            entry.item_id = item_id
+        entry.transcript = transcript or ""
+        entry.status = status
+        if status == "ok":
+            self._record_asr_latency(entry.armed_at)
+
+    def _drain_pending(self) -> list[_Pending]:
+        """Pop resolved entries from the HEAD, in commit order.
+
+        Stops at the first unresolved entry so a turn can never be recorded
+        before the one that preceded it. Returns a LIST rather than one entry
+        because two utterances that resolve together are ONE answer and get ONE
+        question in reply -- the fix for "the student paused mid-answer, VAD
+        split it in two, and the interviewer asked two questions".
+        """
+        drained: list[_Pending] = []
+        while self._pending:
+            key = next(iter(self._pending))
+            entry = self._pending[key]
+            if not entry.resolved:
+                break
+            self._pending.pop(key, None)
+            if entry.item_id:
+                self._memoise_resolved(entry.item_id)
+            elif entry.status in ("timeout", "failed"):
+                # No item_id, so there is NOTHING for the memo to match a late
+                # result against. That is not an edge case: §2.1 says
+                # input_audio_buffer.committed is unverified under
+                # create_response:false and that "the design therefore never
+                # depends on it", and the answer deadline is the one path that
+                # pops an entry which never learned an id. A transcript landing
+                # a second after an 8 s timeout used to arm a FRESH entry --
+                # two interview_turns rows for one utterance, a second
+                # question, a spurious "you spoke before I had finished
+                # asking", and a 0.0 s sample poisoning the very asrP50 that
+                # exists to validate interview_transcription_timeout_ms.
+                # Counted instead, and spent in _resolve_pending.
+                self._abandoned_turns += 1
+            drained.append(entry)
+        return drained
+
+    def _memoise_resolved(self, item_id: str) -> None:
+        """Remember one drained item id, evicting the OLDEST at the cap.
+
+        A cache that guards correctness must never silently refuse the NEWEST
+        entry, which is what "stop growing past the cap" did: the newest id is
+        precisely the one a duplicate .completed is about to arrive for, so from
+        utterance 65 onwards the duplicate guard was simply off. Dropping the
+        oldest is safe for the opposite reason -- a duplicate arrives seconds
+        after its original, never sixty-four utterances later.
+        """
+        self._resolved_items.pop(item_id, None)
+        self._resolved_items[item_id] = None
+        while len(self._resolved_items) > _MAX_RESOLVED_ITEMS:
+            self._resolved_items.pop(next(iter(self._resolved_items)))
+
+    async def _drain_and_advance(self) -> None:
+        entries = self._drain_pending()
+        if entries:
+            await self._after_answer(entries)
+
+    async def _after_answer(self, entries: list[_Pending]) -> None:
+        """One drained batch: record it, judge it, maybe advance the arc, reply.
+
+        The order of the two checks is not interchangeable. `_question_open` is
+        asked FIRST because it answers a different question from the validator:
+        a three-word answer to a real question needs a clarification, while a
+        three-word interjection over an unfinished question needs THE QUESTION
+        FINISHED. Conflating them advances the interview on utterances that
+        answered nothing.
+        """
+        joined = " ".join(e.transcript.strip() for e in entries if e.transcript.strip())
+        unheard = not joined and any(e.status in ("failed", "timeout") for e in entries)
+        # ONE verdict for the whole batch, not one per entry. A batch is one
+        # answer that server VAD happened to split at a pause (DF3), and judging
+        # the halves separately would record two "too_short" rows for an answer
+        # that was accepted as a whole -- a transcript that contradicts the arc
+        # it produced.
+        quality = None if unheard else classify_answer(joined)
+
+        if not self._question_open:
+            kind = "resume"
+        elif unheard:
+            kind = "unheard"
+        elif quality != "accepted":
+            kind = "clarify"
+        else:
+            kind = "next"
+
+        if kind in ("clarify", "unheard"):
+            cap = settings.interview_max_clarifications_per_question
+            if self._clarifications >= cap:
+                # The budget is spent, so take what arrived and move on. A
+                # student who genuinely cannot answer must not be trapped on one
+                # question until the hard cap ends the interview with no verdict
+                # -- and a degraded transcriber must not either. The arc always
+                # terminates within (cap + 1) turns, and the record says why.
+                self._log.info(
+                    "Clarification budget of %d spent on this question; "
+                    "accepting a %s answer and moving on",
+                    cap,
+                    kind,
+                )
+                kind = "next"
+            else:
+                self._clarifications += 1
+
+        if kind == "unheard":
+            self._unheard_streak += 1
+            if self._unheard_streak >= 2:
+                # Named on the summary line so a failing transcriber is legible
+                # from one log line, without anyone querying the database.
+                self._last_error = "transcriber:timeout"
+        elif kind == "next":
+            self._unheard_streak = 0
+
+        # RECORDED HERE, after the kind is final and BEFORE the phase tick below.
+        # Both halves of that sentence are load-bearing: the kind is what decides
+        # `counted_as_answer`, and the phase stamped on the row must be the phase
+        # the turn HAPPENED in -- push it after _push_phase and every answer that
+        # moved the arc would be filed under the phase it moved the arc INTO.
+        for index, entry in enumerate(entries):
+            # One row per utterance, keyed in the same "u:"/"a:" namespace
+            # append_message dedups on. A timed-out or failed entry has no text:
+            # it is dropped from `messages` (nothing was said that a chat history
+            # can show) and KEPT in interview_turns with its transcription_status
+            # -- see the L4 carve-out in _emit_turn, which is the whole reason
+            # that table has a status column.
+            self._answer_meta = _AnswerMeta(
+                transcription_status=entry.status or "timeout",
+                answer_quality=quality,
+                # ONE row per batch carries the tick, the last one, so that
+                # `sum(counted_as_answer) == answers_accepted` holds even when
+                # VAD split one answer in two. Marking both would double-count an
+                # arc that advanced once.
+                counted_as_answer=kind == "next" and index == len(entries) - 1,
+            )
+            self._emit_turn("user", entry.transcript, f"u:{entry.item_id or entry.key}")
+        self._answer_meta = None
+
+        if kind == "next":
+            self._answers_accepted += 1
+            # Only reachable with _question_open True: the "resume" branch above
+            # takes every utterance that answered nothing, and the budget
+            # promotion only fires for clarify/unheard, both of which require an
+            # open question. That is what keeps the arc measuring answers.
+            self._clarifications = 0
+            if (
+                self._machine.specialization is not None
+                and self._machine.student_answered()
+                and self._upstream is not None
+            ):
+                # AHEAD of the create, which is the whole point: a session.update
+                # steers responses created AFTER upstream processes it, so a
+                # phase directive sent after the create would steer the question
+                # after next. That one-response lag is why the interview used to
+                # ask a sixth question instead of delivering its verdict.
+                await self._push_phase(self._upstream)
+
+        await self._advance_turn(kind)
+
+    async def _advance_turn(self, kind: str) -> None:
+        """THE SINGLE response.create call site after the handshake.
+
+        "One open question at a time" is enforced by the CALL GRAPH, not by a
+        flag someone has to remember to check: every path that could make the
+        interviewer speak -- a drained answer, an expired transcript, a
+        clarification, a forced wrap-up, a deferred create -- arrives here,
+        where the collision guard, the deferral and the deadline live. IF A
+        SECOND response.create CALL SITE EVER APPEARS AFTER THE HANDSHAKE THAT
+        INVARIANT IS GONE AND NO TEST WILL NOTICE. The handshake's opening
+        create is the one deliberate exception, and it says so.
+
+        The create is UNCONDITIONAL on specialization. Only the phase tick is
+        gated on one; gating the create as well would ship a build in which the
+        generic interview -- no ?specialization= at all -- goes permanently
+        silent after the first answer. It is the easiest thing here to get wrong.
+        """
+        upstream = self._upstream
+        if upstream is None:
+            return
+        if self._report_requested:
+            # Nothing is being asked during the scorecard and nothing is being
+            # said aloud, so a student's parting "thanks" must not create a
+            # response that collides with it.
+            return
+        if self._server_created_response:
+            # D2. The echo did not confirm create_response:false and upstream
+            # has just created a response by itself, so ours would be the second
+            # question in one turn. Skip this one and let the server's stand:
+            # degraded to the pre-v3 behaviour, which is bad, rather than
+            # doubled, which is worse.
+            self._server_created_response = False
+            self._log.error(
+                "Skipping our response.create: upstream created one itself, so "
+                "create_response=false is not in effect on this session"
+            )
+            return
+        if self._active_response_id is not None or self._expecting_response:
+            # DF4: a response is live -- or one we asked for is about to be --
+            # so ours would be refused with
+            # `conversation_already_has_active_response`. Queued rather than
+            # dropped, and fired from _on_response_done. Last write wins on
+            # purpose: if the student speaks again, their newer words ARE the
+            # answer.
+            #
+            # _expecting_response is in this test for a case that looks
+            # impossible and is not: between our create and its response.created
+            # there is no _active_response_id, and a second utterance resolving
+            # in that window would sail straight past a guard that only checked
+            # the id.
+            self._deferred = _DeferredTurn(kind)
+            return
+        await self._send_create(kind)
+
+    async def _send_create(self, kind: str) -> None:
+        """Put one response.create on the wire and arm its acknowledgement clock.
+
+        Separate from _advance_turn so a RETRY can re-send the same turn without
+        going back through the deferral guard -- a retry is the same question
+        again, never a second one.
+        """
+        upstream = self._upstream
+        if upstream is None:
+            return
+        body: dict[str, Any] = {"conversation": "auto"}
+        if kind != "next":
+            # A per-response override REPLACES the session persona for this
+            # response, so build_turn_instructions composes a self-contained
+            # string: base persona verbatim, then the specialization and phase,
+            # then what to do this turn. It never contains the student's words.
+            body["instructions"] = build_turn_instructions(
+                self._machine.specialization,
+                _INTERVIEWER_PERSONA,
+                self._machine.phase,
+                kind,
+            )
+        event_id = self._next_event_id(kind)
+        self._pending_create_ids.append(event_id)
+        if len(self._pending_create_ids) > _MAX_OUTSTANDING_CREATES:
+            # A create upstream never acknowledged and never refused has no
+            # other exit, and one per turn would grow this list for the whole
+            # session. The oldest is the one least likely to still be answered.
+            self._pending_create_ids.pop(0)
+        self._last_create_kind = kind
+        self._expecting_response = True
+        self._create_deadline = time.monotonic() + self._create_timeout_s()
+        self._question_open = False
+        await upstream.send(
+            json.dumps(
+                {"type": "response.create", "event_id": event_id, "response": body}
+            )
+        )
+
+    async def _retry_create(self, why: str) -> None:
+        """One retry, then end the session rather than hang on a working socket.
+
+        The create being retried is NOT disowned: it stays in
+        _pending_create_ids, because the congestion that made it look lost is
+        exactly the condition under which upstream answers it a moment later,
+        and an id the relay has forgotten is an id whose rejection reaches the
+        student as a banner.
+        """
+        if self._create_retries >= 1:
+            self._log.error("response.create failed twice (%s); ending the session", why)
+            raise _SessionEnded(
+                _CLOSE_TURN_STALLED, "The interviewer stopped responding"
+            )
+        self._create_retries += 1
+        self._log.warning(
+            "response.create %s (%s); retrying once",
+            ", ".join(self._pending_create_ids) or "(none outstanding)",
+            why,
+        )
+        await self._send_create(self._last_create_kind)
+
+    async def _on_create_rejected(self, err: dict[str, Any]) -> None:
+        """Upstream refused OUR response.create. S3."""
+        code = err.get("code")
+        # Only the id upstream named is disowned. Anything else still
+        # outstanding -- the original this rejection's create was retrying, or
+        # the retry of this one -- has to stay recognisable, or its own error
+        # falls through to the generic reep.error forward and the student, who
+        # can do nothing with it, gets a warning banner mid-interview.
+        rejected = err.get("event_id")
+        if rejected in self._pending_create_ids:
+            self._pending_create_ids.remove(rejected)
+        self._expecting_response = False
+        self._create_deadline = None
+        if code == "conversation_already_has_active_response":
+            # A response we did not know about is in flight. DO NOT retry and DO
+            # NOT cancel: cancelling here kills the question currently being
+            # asked, which is the worst outcome available. Wait for its
+            # response.done, which fires the deferred create.
+            if self._deferred is None:
+                self._deferred = _DeferredTurn(self._last_create_kind)
+            return
+        await self._retry_create(f"rejected: {code}")
+
+    async def _force_wrap_up(self) -> None:
+        """S8: the session cap is near, so deliver a verdict while there is time.
+
+        Turns "the cap landed mid-interview and there is no verdict at all" into
+        "the verdict came a little early". The risk is smaller under v3 than it
+        was -- WRAP_UP is now reached a full turn sooner, because v3 no longer
+        burns a response asking a sixth question -- but a slow student still
+        gets here, and this is the difference between a report and nothing.
+        """
+        if self._report_requested or self._machine.phase in (
+            InterviewPhase.WRAP_UP,
+            InterviewPhase.ENDED,
+        ):
+            return
+        self._log.info(
+            "Session cap is close; forcing the wrap-up from %s", self._machine.phase
+        )
+        changed = self._machine.force_wrap_up()
+        if changed and self._machine.specialization is not None and self._upstream is not None:
+            await self._push_phase(self._upstream)
+        await self._advance_turn("verdict")
+
+    def _earliest_deadline(self) -> float | None:
+        """The next moment this session has something to do without upstream.
+
+        None when nothing is armed, which is the common case and costs nothing:
+        the pump then blocks on recv() exactly as it did before v3.
+        """
+        deadlines = [e.deadline_at for e in self._pending.values() if not e.resolved]
+        for deadline in (self._create_deadline, self._report_deadline, self._wrap_up_deadline):
+            if deadline is not None:
+                deadlines.append(deadline)
+        return min(deadlines) if deadlines else None
+
+    async def _on_deadline(self) -> None:
+        """Something armed has expired. Runs ON THE PUMP TASK -- see the pump.
+
+        Every branch here either resolves state or ends the session; none of
+        them may return leaving the same deadline armed, or the pump spins.
+        """
+        now = time.monotonic()
+
+        if self._report_deadline is not None and now >= self._report_deadline:
+            self._report_deadline = None
+            await self._finish_report(None, "timeout")
+            return
+
+        expired = [
+            entry
+            for entry in self._pending.values()
+            if not entry.resolved and now >= entry.deadline_at
+        ]
+        for entry in expired:
+            self._log.warning(
+                "No transcript for %s after %.1fs; continuing the interview without it",
+                entry.item_id or entry.key,
+                now - entry.armed_at,
+            )
+            entry.transcript = ""
+            entry.status = "timeout"
+        if expired:
+            # The interview must never stall on a transcriber: the turn is
+            # recorded with an unknown transcript and the next question is asked
+            # anyway. Note the idle watchdog cannot cover this -- see its own
+            # comment on what "idle" measures.
+            await self._drain_and_advance()
+
+        if self._wrap_up_deadline is not None and now >= self._wrap_up_deadline:
+            self._wrap_up_deadline = None
+            await self._force_wrap_up()
+
+        if self._create_deadline is not None and now >= self._create_deadline:
+            self._create_deadline = None
+            await self._retry_create("was never acknowledged")
+
+    def _record_asr_latency(self, armed_at: float | None) -> None:
+        """One measurement of speech-stopped -> transcript-in-hand.
+
+        Called only where a transcript actually ARRIVES: a turn that timed out
+        or failed measures the deadline, not the transcriber, and mixing those
+        in would make the p50 drift toward whatever the timeout is set to.
+        """
+        if armed_at is None:
+            return
+        self._asr_samples.append(time.monotonic() - armed_at)
+
     async def _forward_model_audio(self, event: dict[str, Any]) -> None:
         response_id = event.get("response_id")
+        if response_id is not None and response_id == self._report_response_id:
+            # The scorecard asked for text only, and this drop is what happens
+            # when a surface ignores that: the worst case becomes a report the
+            # student cannot hear, rather than a robot reading JSON aloud.
+            return
         if response_id is not None and response_id != self._active_response_id:
             # A stale delta from a response already cancelled by barge-in. The
             # browser has flushed its play queue; letting this through would make
@@ -1235,14 +2720,45 @@ class _RelaySession:
             self._log.error("Undecodable audio delta on response %s: %s", response_id, exc)
             return
         if pcm:
+            self._response_spoke = True
+            # Only audio that actually reaches the browser is recorded: both
+            # drops above (the scorecard's own audio, and a stale delta from a
+            # response barge-in already cancelled) happen first, so the
+            # interviewer track is what was SENT TO THE STUDENT rather than
+            # everything the model produced. The two differ exactly when the student
+            # interrupted, and the transcript's `is_partial` says so too.
+            self._capture(_AUDIO_TRACK_INTERVIEWER, pcm)
             await self._send_audio(pcm)
 
     async def _on_speech_started(self) -> None:
-        """Barge-in: flush the browser's play queue, then stop the model."""
-        # Downstream FIRST. The student is already talking over the agent, and
-        # every millisecond before the play queue is flushed is audible.
-        await self._send_control({"type": "reep.audio.flush"})
+        """Barge-in: flush the browser's play queue, then stop the model.
+
+        Two cases do NOT barge in, and both decide BEFORE the flush -- a flush
+        that fires anyway would drop audio the student is still meant to hear,
+        which is the very thing the second case exists to prevent.
+        """
+        # THE ONE PLACE in this design where the correct action is to ignore the
+        # student's voice. The scorecard is text-only and makes no sound, so
+        # there is nothing to barge in over -- and a student saying "thanks,
+        # bye" while it generates would otherwise destroy the headline output of
+        # the whole feature.
+        settling_report = (
+            self._report_response_id is not None
+            and self._active_response_id == self._report_response_id
+        )
+        # D3: this room's VAD is firing on the interviewer's own voice, so every
+        # question has been dying before it was asked. An interviewer the
+        # student cannot interrupt is a far better failure than one that never
+        # finishes a sentence.
+        if not settling_report and not self._bargein_disabled:
+            # Downstream FIRST. The student is already talking over the agent,
+            # and every millisecond before the play queue is flushed is audible.
+            await self._send_control({"type": "reep.audio.flush"})
+        # Forwarded either way: the browser draws "listening" from this, and
+        # that is true no matter what we do about the response.
         await self._send_control({"type": "input_audio_buffer.speech_started"})
+        if settling_report or self._bargein_disabled:
+            return
 
         # Clearing this before sending the cancel arms the drop-filter in
         # _forward_model_audio, so deltas still in flight for the dying response
@@ -1275,6 +2791,15 @@ class _RelaySession:
         if response_id == self._active_response_id:
             self._active_response_id = None
 
+        if response_id is not None and response_id == self._report_response_id:
+            # DF5. Everything below this line -- the assistant turn, the
+            # downstream response.done, the wrap-up branch -- is wrong for the
+            # scorecard, and the one that MATTERS is _emit_turn: without this
+            # return, raw JSON lands in the student's chat history and in
+            # GET /api/agent/history as something the interviewer said.
+            await self._settle_report(response)
+            return
+
         if status in ("failed", "incomplete"):
             # THIS is where model failures actually surface. A failed response
             # carries its cause here and does NOT produce a top-level `error`
@@ -1299,12 +2824,242 @@ class _RelaySession:
         # partial IS stored: it is what the interviewer actually said before the
         # student cut in, and a transcript that silently omits every interrupted
         # question is not a record of the interview that happened.
+        # Was the question ASKED? Only an answer to a question that was asked
+        # may advance the arc. "incomplete" counts -- the student heard most of
+        # it -- while "cancelled" and "failed" do not.
+        #
+        # SETTLED BEFORE THE EMIT BELOW, not after. `_partial_question` is what
+        # the interview_turns row records as `is_partial`, and a question the
+        # student cut in on is exactly the turn a reader needs to see marked --
+        # "she never answered it" and "she never heard the end of it" are
+        # different findings. Reading the flag one line too late records every
+        # interrupted question as a complete one.
+        asked = status in ("completed", "incomplete")
+        self._question_open = asked
+        self._partial_question = status == "cancelled"
+
         spoken = self._assistant_text.pop(response_id, "") if response_id else ""
         self._emit_turn("assistant", spoken, f"a:{response_id}")
+
+        if status == "cancelled" and not self._response_spoke:
+            # D3: a response cancelled before it made any sound means VAD fired
+            # on something that was not the student answering.
+            self._bargein_thrash += 1
+            if self._bargein_thrash >= _MAX_BARGEIN_THRASH and not self._bargein_disabled:
+                self._bargein_disabled = True
+                self._last_error = "bargein:thrashing"
+                self._log.error(
+                    "%d consecutive questions were cancelled before they made a "
+                    "sound; disabling barge-in for the rest of this session",
+                    self._bargein_thrash,
+                )
+        else:
+            self._bargein_thrash = 0
 
         await self._send_control(
             {"type": "response.done", "response_id": response_id, "status": status}
         )
+
+        if self._deferred is not None and self._deferred.kind == "verdict":
+            # S8's forced wrap-up fired while THIS response was still in flight,
+            # so its create was deferred (DF4) and the response that just ended
+            # is the ordinary question that preceded it -- not the verdict. The
+            # WRAP_UP branch below assumes the opposite and went straight into
+            # _request_report, which is how "a slightly early verdict" became
+            # "an ordinary probing question, then a report panel": the student
+            # never heard a verdict and the last assistant row in
+            # interview_turns was a question stamped phase='wrap_up'. The
+            # reserve is a wall-clock instant with no relationship to turn
+            # boundaries, so a response in flight is the ORDINARY case here.
+            #
+            # Checked ahead of WRAP_UP and not merged into the generic
+            # _deferred fire below, which WRAP_UP returns before ever reaching.
+            # Only _force_wrap_up and the S6 retry create a "verdict" kind, and
+            # the S6 retry never defers (nothing is in flight when it runs), so
+            # this cannot swallow a verdict that was already spoken.
+            self._deferred = None
+            await self._advance_turn("verdict")
+            return
+
+        if self._machine.phase is InterviewPhase.WRAP_UP and not self._report_requested:
+            if asked:
+                # The spoken verdict is finished, and it IS persisted as an
+                # assistant turn above -- the student heard it, so it is part of
+                # the interview. The scorecard is one further response.create.
+                await self._request_report()
+                return
+            if not self._verdict_retried:
+                # S6: the verdict was cancelled by barge-in. One bounded
+                # re-create with a "deliver the verdict now" override, then the
+                # report happens regardless -- a verdict lost to a cough must
+                # not cost the scorecard as well.
+                self._verdict_retried = True
+                await self._advance_turn("verdict")
+                return
+            await self._request_report()
+            return
+
+        if self._deferred is not None:
+            # DF4, fired UNCONDITIONALLY on status: a cancelled response on a
+            # path where _active_response_id was already None would otherwise
+            # lose the turn entirely.
+            kind, self._deferred = self._deferred.kind, None
+            await self._advance_turn(kind)
+            return
+
+        if status == "failed":
+            # Nothing was asked and nothing else will ask it: under v3 the
+            # relay is the only party that creates a response, so a failed one
+            # is a silent interview unless we create another. Bounded, because a
+            # model failing every time would otherwise loop until the hard cap.
+            if self._failed_recreates >= 2:
+                self._log.error("Three consecutive responses failed; ending the session")
+                raise _SessionEnded(
+                    _CLOSE_TURN_STALLED, "The interviewer stopped responding"
+                )
+            self._failed_recreates += 1
+            await self._advance_turn(self._last_create_kind)
+            return
+        if asked:
+            self._failed_recreates = 0
+
+    # -- the final report ---------------------------------------------------
+
+    async def _request_report(self) -> None:
+        """One more response.create: text-only, strict JSON, same session.
+
+        The session that conducted the interview already holds the whole
+        transcript, so the scorecard costs one response rather than a second
+        provider, a second pipeline or a second egress surface to reason about
+        under rule 1. Nothing about the student is sent to fetch it -- the
+        directive is a fixed string that names nobody.
+        """
+        upstream = self._upstream
+        if self._report_requested or upstream is None:
+            return
+        self._report_requested = True
+
+        body: dict[str, Any] = {
+            # "auto", not "none": an out-of-band response is tidier in theory,
+            # but on some surfaces it requires an explicit `input` array, and a
+            # scorecard generated with no knowledge of the interview is the
+            # whole feature failing silently. The cost of "auto" is that the
+            # JSON is appended to the conversation as an assistant turn, which
+            # is suppressed locally -- and that branch is needed either way.
+            "conversation": "auto",
+            "instructions": REPORT_DIRECTIVE,
+            # Bounds a model that decides to write an essay and holds the socket
+            # past the student's patience.
+            "max_output_tokens": 800,
+        }
+        # The generation split lives inside `response`, mirroring what
+        # _session_update_payload does for the session object. `temperature` is
+        # deliberately omitted (beta accepts it here, GA is unverified) and so
+        # is a `type` discriminator: fewer fields, fewer rejections, and a
+        # rejection costs the entire report.
+        if settings.realtime_beta_header:
+            body["modalities"] = ["text"]
+        else:
+            body["output_modalities"] = ["text"]
+
+        event_id = self._next_event_id("report")
+        self._report_create_id = event_id
+        self._expecting_report = True
+        # Armed at SEND rather than at response.created, so a create that
+        # upstream never acknowledges is covered by the same clock.
+        self._report_deadline = time.monotonic() + settings.interview_report_timeout_ms / 1000
+        self._log.info("Requesting the interview scorecard")
+        await upstream.send(
+            json.dumps(
+                {"type": "response.create", "event_id": event_id, "response": body}
+            )
+        )
+
+    async def _settle_report(self, response: dict[str, Any]) -> None:
+        """Read the scorecard off response.done and end the interview."""
+        raw = _extract_report_text(response) or self._report_text
+        # Stashed before any parse attempt, because the case that needs it most
+        # is the one where the parse fails: without the model's exact words there
+        # is nothing for a DIRECTOR to read and no way to tell a prompt problem
+        # from a code one. Truncated and scoped by the writer.
+        self._report_raw = raw
+        status = response.get("status")
+        if not raw:
+            self._log.error(
+                "Scorecard response %s ended %s with no text",
+                response.get("id"),
+                status,
+            )
+            await self._finish_report(None, "rejected" if status == "failed" else "unparseable")
+            return
+        report = _parse_report(raw)
+        if report is None:
+            # The raw text is kept for a DIRECTOR to look at, because a bad
+            # parse is nearly always a prompt problem rather than a code one --
+            # and it is truncated and scoped, because it is the model's private
+            # words about a named student.
+            self._log.error("Could not parse the scorecard from %d chars of model text", len(raw))
+            await self._finish_report(None, "unparseable")
+            return
+        await self._finish_report(report, "ok")
+
+    async def _finish_report(self, report: dict[str, Any] | None, status: str) -> None:
+        """Send reep.report and end the session -- always with close 1000.
+
+        Every failure here is a payload, never a close code: the interview
+        COMPLETED, and only the scorecard did not. A dedicated error code would
+        make a successful interview read as a failure in the client, in the logs
+        and in the record.
+
+        Settled ONCE: the report deadline and a late response.done can both
+        arrive, and the second one finds this already set.
+        """
+        if self._report_settled:
+            return
+        self._report_settled = True
+        self._report_deadline = None
+        self._report_status = status
+        if status == "ok":
+            self._log.info("Scorecard ready (overall=%s)", report.get("overall") if report else None)
+        else:
+            self._log.warning("No scorecard for this interview: %s", status)
+
+        # THE EVALUATION ROW, and the one write in this module that is AWAITED
+        # rather than fire-and-forget (L3). A DELIBERATE, DOCUMENTED DIVERGENCE
+        # from the house rule two functions below: the reason fire-and-forget
+        # exists -- "the student is mid-sentence and cannot be helped by an
+        # exception" -- does not apply to a single row written after the
+        # interview is over. Left to the fire-and-forget path it would be the
+        # LAST write scheduled and therefore the first one _TURN_WRITE_DRAIN_S
+        # cancels, which is to say: the scorecard would be the piece most likely
+        # to be missing.
+        #
+        # Bounded, and a failure is logged and then IGNORED, because the payload
+        # below still goes out: the student must see their scorecard even when
+        # Postgres did not take it. This send is also why the report travels down
+        # the socket rather than being fetched afterwards -- it is the only place
+        # the scorecard exists if that write failed.
+        await self._write_record(
+            self._on_report,
+            _ReportRecord(
+                status=status,
+                report=report,
+                raw_response=self._report_raw,
+                model=settings.openai_realtime_model,
+            ),
+            "the interview evaluation",
+        )
+
+        await self._send_control(
+            {
+                "type": "reep.report",
+                "available": status == "ok",
+                # None on success so a client can branch on truthiness alone.
+                "reason": None if status == "ok" else status,
+                "report": report if status == "ok" else None,
+            }
+        )
+        raise _SessionEnded(_CLOSE_OK, "Interview complete")
 
     # -- persistence --------------------------------------------------------
 
@@ -1321,9 +3076,51 @@ class _RelaySession:
         The task is held on `self` so teardown can drain it, rather than being a
         bare create_task whose only reference is the loop's weak one -- which
         CPython is free to garbage-collect mid-write.
+
+        THE BLANK-TEXT GUARD MOVED (L4). It used to return here and drop the turn
+        entirely; it now belongs to the `messages` insert ALONE, inside the
+        writer. A transcription that timed out or failed produces `text == ""`,
+        and those are precisely the turns `interview_turns.transcription_status`
+        exists to record -- dropping them would leave the new column with nothing
+        to say and the transcript silently missing the answers nobody could hear.
+        `messages` still gets nothing, because a chat history that renders an
+        empty bubble is worse than one that renders no bubble.
         """
-        if self._on_turn is None or not text.strip():
+        if self._on_turn is None:
             return
+        # Incremented for EVERY turn, blank ones included, so `seq` is a dense
+        # 1..N over what happened. A gap would be read as a lost row by the first
+        # person to look, and the whole point of this table is that it does not
+        # lose rows.
+        self._turn_seq += 1
+        record = _TurnRecord(
+            seq=self._turn_seq,
+            # The phase the turn HAPPENED in. Read from the machine at emit time
+            # for exactly this reason -- it is the one thing a shared `messages`
+            # row can never carry, and it is only true before the next tick.
+            phase=self._machine.phase.value,
+            # An interviewer turn was never transcribed at all: its text came
+            # from the model. 'not_applicable' says that, where 'ok' would claim
+            # a transcriber succeeded on a turn it never saw.
+            transcription_status=(
+                self._answer_meta.transcription_status
+                if sender == "user" and self._answer_meta is not None
+                else "not_applicable"
+            ),
+            answer_quality=(
+                self._answer_meta.answer_quality
+                if sender == "user" and self._answer_meta is not None
+                else None
+            ),
+            counted_as_answer=(
+                self._answer_meta.counted_as_answer
+                if sender == "user" and self._answer_meta is not None
+                else False
+            ),
+            # Only an interviewer turn can be cut off; a student utterance
+            # arrives already complete, as one committed segment.
+            is_partial=sender != "user" and self._partial_question,
+        )
         # Counted before the write is scheduled, so this is "turns the interview
         # produced", not "turns Postgres accepted" -- the write is
         # fire-and-forget and a failed one is logged on its own line. The two
@@ -1335,21 +3132,44 @@ class _RelaySession:
         else:
             self._turns_assistant += 1
         task = asyncio.create_task(
-            self._run_turn_write(sender, text, provider_turn_id),
+            self._run_turn_write(sender, text, provider_turn_id, record),
             name=f"interview-write-{self._conn_id}",
         )
         self._writes.add(task)
         task.add_done_callback(self._writes.discard)
 
     async def _run_turn_write(
-        self, sender: str, text: str, provider_turn_id: str
+        self, sender: str, text: str, provider_turn_id: str, record: _TurnRecord
     ) -> None:
         on_turn = self._on_turn
         if on_turn is None:  # pragma: no cover -- guarded by _emit_turn
             return
         try:
             # to_thread, NOT a direct call: see the _on_turn note in __init__.
-            await asyncio.to_thread(on_turn, sender, text, provider_turn_id)
+            await asyncio.to_thread(on_turn, sender, text, provider_turn_id, record)
+        except _TurnWriteRefused as exc:
+            # L5. The chat thread this interview writes into was cleared or
+            # purged mid-call, so every remaining turn would be refused the same
+            # way: one dropped-turn line per turn for the rest of a 15-minute
+            # session, wrapped around a record that is already lost. The
+            # conversation_id was resolved ONCE at socket open, so this is a
+            # state change we could not have checked for -- and the honest
+            # response is to stop, not to keep shouting.
+            #
+            # request_stop, not raise: this runs on the EVENT LOOP (only the
+            # writer itself is on a worker thread), so setting the stop event is
+            # safe here and the watchdog turns it into a real close code. Raising
+            # from a fire-and-forget task would be swallowed by the task, not by
+            # the interview. 1000, not an error code: nothing failed -- the
+            # student deliberately cleared the thread.
+            self._log.error(
+                "Interview turn refused and ENDING the interview: "
+                "sender=%s turn=%s: %s",
+                sender,
+                provider_turn_id,
+                exc,
+            )
+            self.request_stop(_CLOSE_OK, "Conversation cleared")
         except asyncio.CancelledError:
             # Teardown outran the write. Re-raised so the drain is not lied to,
             # but said out loud first: this is a turn that is NOT in the database.
@@ -1367,6 +3187,11 @@ class _RelaySession:
                 provider_turn_id,
                 exc,
             )
+        else:
+            # Only on the path where nothing was raised, which is what makes
+            # `turns_persisted` mean "Postgres took it" rather than "we tried".
+            # The gap against turns_emitted is the drop count, on the row itself.
+            self._turns_persisted += 1
 
     async def _drain_writes(self) -> None:
         """Let in-flight turn writes finish before this session goes away.
@@ -1390,6 +3215,248 @@ class _RelaySession:
             )
             for task in pending:
                 task.cancel()
+
+    # -- the interview record ------------------------------------------------
+
+    async def _write_record(
+        self, hook: Callable[[Any], None] | None, payload: Any, what: str
+    ) -> None:
+        """One AWAITED record write, bounded, whose failure never changes the outcome.
+
+        The opposite discipline from _emit_turn, and deliberately so: these
+        writes happen ONCE, after the interview is over, so waiting for them
+        costs the student nothing and losing them costs the record everything.
+        What they must never do is change how the interview ends -- a database
+        that is slow or down is not a reason to hand the student a different
+        close code -- which is why every failure here is logged and swallowed.
+        _close_downstream documents the same rule for the same reason.
+
+        On timeout the worker thread keeps running and its write may well land a
+        moment later; the timeout bounds how long the SOCKET waits, not the
+        statement. That is the right trade: the row arriving late is fine, the
+        browser hanging on a close frame is not.
+        """
+        if hook is None:
+            return
+        try:
+            async with asyncio.timeout(_RECORD_WRITE_TIMEOUT_S):
+                await asyncio.to_thread(hook, payload)
+        except TimeoutError:
+            # Listed before Exception on purpose: since 3.11 TimeoutError IS an
+            # OSError and would otherwise be caught by the clause below with a
+            # message that named the wrong fault.
+            self._log.error(
+                "Timed out after %.0fs writing %s", _RECORD_WRITE_TIMEOUT_S, what
+            )
+        except Exception as exc:
+            self._log.error("Could not write %s: %s", what, exc)
+
+    # -- the recording -------------------------------------------------------
+
+    def _capture(self, track: str, pcm: bytes) -> None:
+        """Hand one frame to the recorder, if there is one. Cannot fail.
+
+        Called from BOTH audio paths, ~50 frames/s/session in total. The
+        recorder's own `feed` is total and does no I/O, so the cost when
+        recording is off is one attribute load and a branch, and when it is on,
+        a list append.
+
+        The try/except is not distrust of that contract so much as the price of
+        being wrong about it: a live interview must never end because a
+        recording could not be kept, and this is the one place where a bug in
+        the audio store would otherwise reach the student's ears. On failure the
+        recorder is left in place rather than dropped, because it still owns
+        open file handles that teardown has to close -- and whatever it did
+        write is still a recording somebody has to be able to delete.
+        """
+        recorder = self._recorder
+        if recorder is None:
+            return
+        try:
+            recorder.feed(track, pcm)
+        except Exception as exc:  # pragma: no cover -- feed() is documented total
+            self._log.error("Interview audio capture raised and is being ignored: %s", exc)
+
+    async def _close_recorder(self) -> Any:
+        """Flush and close the recording; return what was kept, or None.
+
+        Idempotent, because it is called from two places on purpose: the
+        finalizer (the normal path, where the result reaches the database) and
+        run()'s teardown (the path where the relay raised something nobody
+        foresaw and the finalizer never ran). The second one keeps no result --
+        it exists so file handles are closed and the RIFF headers are final.
+
+        A timeout does NOT mean "nothing was recorded". It means the disk is
+        slow, and the bytes are already there; reporting nothing would leave a
+        student's voice on disk with no row pointing at it, which is the one
+        state retention cannot clean up. `snapshot()` is the recorder's honest
+        account of what it believes it wrote, and it is what gets stored.
+        """
+        recorder = self._recorder
+        if recorder is None:
+            return None
+        try:
+            async with asyncio.timeout(_AUDIO_CLOSE_TIMEOUT_S):
+                result = await recorder.aclose()
+            if result.recorded:
+                # The one line that says a recording exists, on the session that
+                # produced it. Without it, "is capture actually working?" is only
+                # answerable by a query -- and this is the feature where an
+                # operator most needs to be sure of the answer in both
+                # directions.
+                self._log.info(
+                    "Interview audio stored: path=%s bytes=%d duration=%.0fs truncated=%s",
+                    result.path,
+                    result.total_bytes,
+                    result.duration_ms / 1000,
+                    result.truncated,
+                )
+            return result
+        except TimeoutError:
+            # Before Exception, deliberately: since 3.11 TimeoutError IS an
+            # OSError and the clause below would name the wrong fault.
+            self._log.error(
+                "Interview audio did not finish closing within %.0fs; recording "
+                "what is believed to be on disk so it stays deletable",
+                _AUDIO_CLOSE_TIMEOUT_S,
+            )
+        except Exception as exc:
+            self._log.error("Could not close the interview audio: %s", exc)
+        try:
+            return recorder.snapshot()
+        except Exception as exc:  # pragma: no cover -- snapshot() reads counters
+            self._log.error("Interview audio state is unreadable: %s", exc)
+            return None
+
+    async def _finalize_session(self, code: int, reason: str) -> None:
+        """LAYER 1 of three: the relay closing its own record.
+
+        A `running` row that is never closed is worse than no row -- it is a
+        record that lies, and a mentor reading it sees an interview that is still
+        happening. Three layers close it, in order of how much of the process has
+        to survive: this one (every ordinary exit, including guardrails,
+        disconnects and 1011), the router's `finally` backstop (this coroutine
+        never running at all), and retention's sweeper (the process was killed
+        and nothing in it ran).
+
+        Called from _interview AFTER _drain_writes so `turns_persisted` is a
+        final number rather than a snapshot mid-flight, and BEFORE the summary
+        line so that line is genuinely the last word.
+
+        `status` is NOT a lookup on the close code alone. A 1000 means "the
+        socket closed normally", which covers both "the scorecard was delivered"
+        and "the student pressed End at minute three" -- and calling the second
+        one `completed` would put a finished-looking interview with no verdict in
+        front of a mentor. The scorecard having settled is what completed means.
+        """
+        if self._finalized:
+            return
+        self._finalized = True
+
+        # BEFORE the early return on a missing hook, and before the outcome is
+        # composed: the files must be closed even when nothing is listening for
+        # the result (the relay's own tests, a misconfiguration), or a session
+        # ends with two open file handles and an unpatched header. This is also
+        # what makes `audio_bytes` and `audio_duration_ms` final rather than a
+        # mid-flush snapshot -- the same reason _drain_writes runs before this
+        # coroutine is called at all.
+        audio = await self._close_recorder()
+
+        if self._on_finalize is None:
+            return
+
+        if self._report_settled:
+            status = "completed"
+        elif code in (
+            _CLOSE_OK,
+            _CLOSE_GOING_AWAY,
+            _CLOSE_IDLE,
+            _CLOSE_SESSION_CAP,
+        ):
+            # Nobody's fault and nothing broke: the student left, the tab was
+            # backgrounded, the deploy restarted, or the 15-minute cap landed.
+            # The interview simply did not reach its verdict.
+            status = "abandoned"
+        else:
+            # 1011, 4001, 4002, 4011, 4003 -- something went wrong, and the
+            # (close_code, terminal_reason) pair on the row says what.
+            status = "failed"
+
+        await self._write_record(
+            self._on_finalize,
+            _SessionOutcome(
+                status=status,
+                close_code=code,
+                # The exact pair the student's browser saw, in the shape the
+                # schema's own example uses ("4008 No audio received for 2
+                # minutes"), so a support report and the row agree word for word.
+                terminal_reason=f"{code} {reason}",
+                # The phase the interview STOPPED in, and machine.end() is
+                # deliberately not called first: 'ended' on every row would erase
+                # the one fact this column exists for -- how far the arc got.
+                final_phase=self._machine.phase.value,
+                answers_accepted=self._answers_accepted,
+                turns_emitted=self._turns_user + self._turns_assistant,
+                turns_persisted=self._turns_persisted,
+                upstream_session_id=self._session_id,
+                # None ⇒ the scorecard was never even attempted, which the writer
+                # records as an evaluation row saying `unavailable`. A row saying
+                # "no report, the cap hit first" is a record; a MISSING row says
+                # nothing at all and reads as a bug.
+                report_status=self._report_status,
+                # What was kept of the student's voice, if anything. `audio` is
+                # None whenever no recorder existed, which is the default
+                # everywhere: recording requires the setting AND a live
+                # scope_store_audio grant (app/interview_audio.py), and the
+                # defaults below then say "we know nothing was kept" rather than
+                # leaving the row ambiguous.
+                audio_recorded=bool(audio and audio.recorded),
+                audio_path=audio.path if audio and audio.recorded else None,
+                audio_bytes=audio.total_bytes if audio and audio.recorded else None,
+                audio_duration_ms=(
+                    audio.duration_ms if audio and audio.recorded else None
+                ),
+                # True even when nothing was recorded in the end: a capture that
+                # was cut off at zero bytes still ended early, and a flag that
+                # only ever appears next to a file cannot say so.
+                audio_truncated=bool(audio and audio.truncated),
+            ),
+            "the interview record",
+        )
+
+    def _beat(self) -> None:
+        """Stamp heartbeat_at. Fire-and-forget, from the watchdog, on a thread.
+
+        THE WATCHDOG IS ALLOWED TO ISSUE THIS ONE WRITE precisely because it
+        touches no turn state and sends nothing downstream -- the two things
+        :2.5's "exactly one task ever sends downstream" invariant is about. It
+        must stay that way.
+
+        If it fails all session long, `heartbeat_at` never leaves `started_at`
+        and the sweeper eventually marks a HEALTHY session `abandoned`. That is
+        wrong-but-present, and it is the correct direction to fail: a session
+        wrongly marked abandoned is visible and arguable, while one stuck at
+        `running` forever is invisible.
+
+        Tracked in `self._writes` so teardown drains it and CPython cannot
+        garbage-collect the task mid-write -- the same reason _emit_turn holds
+        its tasks.
+        """
+        hook = self._on_heartbeat
+        if hook is None:
+            return
+
+        async def run() -> None:
+            try:
+                await asyncio.to_thread(hook)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                self._log.warning("Interview heartbeat not written: %s", exc)
+
+        task = asyncio.create_task(run(), name=f"interview-heartbeat-{self._conn_id}")
+        self._writes.add(task)
+        task.add_done_callback(self._writes.discard)
 
     # -- watchdog -----------------------------------------------------------
 
@@ -1415,6 +3482,13 @@ class _RelaySession:
 
             now = time.monotonic()
 
+            if now - self._heartbeat_at >= _HEARTBEAT_WRITE_INTERVAL_S:
+                # Stamped BEFORE the write is scheduled, not after it lands: a
+                # database that is answering slowly must not cause a second,
+                # third and fourth heartbeat to pile up behind the first.
+                self._heartbeat_at = now
+                self._beat()
+
             if now - self._started_at >= session_cap:
                 self._log.info(
                     "Hard cap reached after %.0fs (%d client audio frames)",
@@ -1426,6 +3500,26 @@ class _RelaySession:
                     f"Session limit of {_humanize_seconds(settings.interview_max_seconds)} reached",
                 )
 
+            # "IDLE" MEANS NO AUDIO FRAMES, NOT NO SPEECH, and it is not a
+            # backstop for a stalled transcription: the browser's echo-gate
+            # keepalive feeds zeroed frames every 10 s, so _last_audio_at stays
+            # fresh through any amount of silence. A turn that never resolves is
+            # caught by its own answer deadline in _on_deadline, and by nothing
+            # here.
+            #
+            # AND THE FRAMES ARE NOT INSPECTED, WHICH IS A DECISION. A client
+            # sending one 1920-byte all-zero frame every 119 s holds a slot for
+            # the full 15 minutes with no microphone at all, and an energy gate
+            # here would refuse it. It is deliberately not added, for three
+            # reasons in order: the browser's own echo-gate keepalive is zeroed
+            # BY DESIGN, so an energy gate would close healthy sessions while the
+            # interviewer is speaking -- the exact failure this cap exists to
+            # avoid, inverted; the abuse it prevents is already bounded above by
+            # interview_max_seconds and, since audit H1, by the per-user cap in
+            # _ConnectionLimiter, so the ceiling is two dead sockets per student
+            # rather than a whole worker; and voice-activity detection belongs to
+            # server VAD upstream, which already has the audio and the model for
+            # it. This cap is a LIVENESS CHECK ON THE TRANSPORT. Keep it one.
             if now - self._last_audio_at >= idle_cap:
                 self._log.info(
                     "Idle cap reached: no client audio for %.0fs", now - self._last_audio_at
@@ -1533,6 +3627,23 @@ class _RelaySession:
             self._log.info("Browser disconnected during startup")
             code, reason = _CLOSE_OK, "Interview complete"
 
+        finally:
+            # THE ONLY EXIT NOT COVERED BY _finalize_session: something raised
+            # inside _interview that none of its `except*` clauses matched, so
+            # the finalizer never ran and the recording is sitting on two open
+            # file handles with a stale RIFF header. Idempotent, so on every
+            # ordinary path this is a no-op that returns the cached result.
+            #
+            # Its result is DISCARDED here on purpose -- the outcome row is
+            # Layer 1's job and by this point there is nothing left to write it
+            # with. What this buys is a closed, playable file that retention can
+            # still find by session id (app/interview_audio.py names it that way
+            # for exactly this case). Suppressed because a teardown detail must
+            # never replace the close code the student is about to be handed;
+            # CancelledError is a BaseException and still propagates.
+            with contextlib.suppress(Exception):
+                await self._close_recorder()
+
         return code, reason
 
     async def _interview(self, upstream: ClientConnection) -> tuple[int, str]:
@@ -1593,6 +3704,15 @@ class _RelaySession:
         # attributed to a session already reported as finished.
         await self._drain_writes()
 
+        # LAYER 1 of finalization, and here rather than anywhere else for two
+        # reasons: after _drain_writes so `turns_persisted` is final rather than
+        # a mid-flight snapshot, and before the summary line so that line carries
+        # the terminal status the record now holds. Every exit the pumps can take
+        # -- clean end, guardrail, disconnect, upstream close, 1011 -- funnels
+        # through this one point, which is exactly why the finalizer lives here
+        # and not in five `except*` clauses.
+        await self._finalize_session(code, reason)
+
         # ONE line, the last word on the interview, and deliberately the line a
         # support report is asked to paste. Everything a "the audio was bad"
         # ticket cannot tell us by description is in it: whether audio arrived
@@ -1607,9 +3727,16 @@ class _RelaySession:
         # that reported self-talk means the gate was never armed, and a figure
         # far above the response count means it is thrashing on a threshold that
         # is wrong for that room.
+        # asrP50/asrMax are the transcriber round trip measured on THIS
+        # session (speech_stopped -> transcript). Under v3 that time is added
+        # to the silence between every answer and the next question, so it is
+        # the number that says whether interview_transcription_timeout_ms is
+        # right for this deployment -- and "-" means no student utterance was
+        # ever transcribed, which is a different fault from a slow one.
         self._log.info(
             "Interview finished: code=%s reason=%r duration=%.0fs frames=%d bytes=%d "
-            "turns=%d/%d gateCloses=%d transcriber=%s error=%s",
+            "turns=%d/%d saved=%d gateCloses=%d asrP50=%s asrMax=%s pending=%d "
+            "report=%s transcriber=%s error=%s",
             code,
             reason,
             time.monotonic() - self._started_at,
@@ -1617,7 +3744,20 @@ class _RelaySession:
             self._client_bytes,
             self._turns_user,
             self._turns_assistant,
+            # Turns Postgres actually took. `saved` below the sum of `turns` is
+            # the runbook's "sounded fine, saved nothing" measured on the session
+            # itself -- the same number now on interview_sessions.turns_persisted,
+            # here so a log line answers it without a query.
+            self._turns_persisted,
             self._gate_closes,
+            _fmt_seconds(_percentile(self._asr_samples, 0.5)),
+            _fmt_seconds(max(self._asr_samples) if self._asr_samples else None),
+            # Utterances whose transcript never arrived before the socket closed
+            # -- the student pressed End, and _drain_writes drains WRITES, not
+            # pending transcriptions. Those turns are lost, and this is the only
+            # place that says so; the same loss used to be entirely invisible.
+            len(self._pending),
+            self._report_status,
             settings.transcription_model,
             self._last_error,
         )

@@ -141,6 +141,39 @@ const SESSION_WARN_LEAD_S = 120;
  *  updates a second, and every signal write costs a change-detection pass. */
 const DIAGNOSTIC_PUBLISH_MS = 250;
 
+/* ----------------------------------------------------------------------------
+   The `thinking` affordance — the UX half of the v3 protocol change.
+
+   BEFORE v3 the next question was created upstream at VAD commit, i.e. ~700 ms
+   after the student's last phoneme, in parallel with transcription. UNDER v3
+   the relay owns turn-taking, so the question is created only AFTER the
+   transcript lands: the ASR round trip is now in SERIES, and it is roughly
+   linear in answer length — worst on the longest answers, which are exactly the
+   answers a good candidate gives.
+
+   That silence is real and it is not going away. What must not happen is the
+   student reading it as a broken app: three seconds behind a static orb is
+   indistinguishable from a dead socket, and a student who starts talking again
+   to "wake it up" produces a second utterance the relay must then merge.
+
+   So the wait gets a visible clock. Nothing here talks to the server — it is
+   perceptual cover, and it costs the relay nothing.
+   -------------------------------------------------------------------------- */
+
+/** How long `thinking` may last before the UI starts SHOWING that it is
+ *  working. Not zero: a normal short answer resolves well inside this, and an
+ *  affordance that flashes on every single turn is noise that trains the
+ *  student to ignore it. 1.2 s is past the "instant" threshold and short enough
+ *  that the affordance is on screen before doubt sets in. */
+const THINKING_AFFORDANCE_AFTER_MS = 1200;
+
+/** Poll period for the thinking clock. It writes a signal only when a RENDERED
+ *  value changes — the whole-second counter, and the one-way `slow` flip — so
+ *  the true cost is ~1 change-detection pass per second, not 5. 200 ms bounds
+ *  the error on that 1.2 s threshold at a fifth of a second, which no one can
+ *  see. */
+const THINKING_TICK_MS = 200;
+
 /** How long the UI may sit in `connecting` before giving up. Generous, because
  *  it spans the browser's own microphone prompt — which the student may take a
  *  while to answer — and must not cut a slow-but-working connection short.
@@ -357,7 +390,18 @@ interface CloseMessage {
 }
 
 const CLOSE_MESSAGES: ReadonlyMap<number, CloseMessage> = new Map<number, CloseMessage>([
-  [1000, { tone: 'info', text: 'Interview ended.' }],
+  // 1000 CHANGED MEANING under the v3 turn protocol. The relay no longer waits
+  // to be closed: at wrap-up it speaks its verdict, generates the scorecard,
+  // sends `reep.report` and then closes 1000 ITSELF. So a 1000 arriving here is
+  // normally the successful end of a complete interview, not a shrug.
+  //
+  // It is still not the ONLY 1000 — `request_stop(1000, "Conversation cleared")`
+  // uses it too, and that interview has no report — so onClose() picks between
+  // this text and two honest alternatives depending on whether `reep.report`
+  // actually arrived. See reportCloseNotice(). Promising "your report is ready"
+  // on a socket that never sent one would be the same class of lie the copy on
+  // the consent panel was just fixed for.
+  [1000, { tone: 'info', text: 'Interview complete — your report is ready.' }],
   [
     1006,
     {
@@ -370,11 +414,27 @@ const CLOSE_MESSAGES: ReadonlyMap<number, CloseMessage> = new Map<number, CloseM
   // Reachable only when the socket was ACCEPTED and then closed; a rejected
   // handshake reaches the browser as 1006 with no reason at all, which is
   // exactly why GET /api/interview/status is consulted first.
+  //
+  // `detail: true` — one of the very few places it is right for a code whose
+  // reason names no configurable figure. 1008 now covers TWO refusals with
+  // opposite remedies: "Mock interviews are a student feature." and "Your
+  // student profile is incomplete; ask the placement cell." (a STUDENT session
+  // with no `studentId`, refused at the socket so the NOT NULL on
+  // interview_sessions.student_id never reaches the student as an opaque 1011).
+  // The old wording asserted the first, which sent the second student to sign in
+  // again — the one action that cannot fix a missing Student row — instead of to
+  // the placement cell. Both reasons are complete sentences authored in
+  // routers/interview.py, not echoes of anything upstream, so appending the
+  // server's own is safe and is the only way this banner can be true twice.
   [
     1008,
     {
       tone: 'error',
-      text: 'Mock interviews are a student feature, and this session is not signed in as a student. Sign in again and retry.',
+      // The lead sentence carries a remedy of its own, because `detail` is only
+      // appended when a reason actually arrives — a banner that says "no" and
+      // stops is a dead end for the student holding it.
+      text: 'This account cannot start a mock interview. Ask the placement cell if that looks wrong.',
+      detail: true,
     },
   ],
   [
@@ -462,6 +522,52 @@ const CLOSE_MESSAGES: ReadonlyMap<number, CloseMessage> = new Map<number, CloseM
       tone: 'warn',
       text: 'That interview track is no longer available. Reload the page and pick a track again.',
       detail: true,
+    },
+  ],
+  // 4011: under v3 the RELAY creates every question, so a create that upstream
+  // never acknowledges is an interview that can never continue — it stalls
+  // silently rather than erroring. Deliberately not 4002: 4002 means "upstream
+  // is unavailable, retry shortly", this means a working socket on which our
+  // own sequencing came apart. The student needs to know their answers were
+  // still recorded, because the interview stopping mid-question reads as loss.
+  [
+    4011,
+    {
+      tone: 'error',
+      text: 'The interviewer stopped responding. Nothing you said was lost — start a new interview.',
+    },
+  ],
+  // 4012: this student already holds a live interview on this worker — almost
+  // always a second tab, or a first tab closed without the socket noticing yet.
+  // NOT 1013: 1013 is "the server is full, everyone is affected", and telling a
+  // student the service is overloaded when the other end of the problem is
+  // their own tab sends them to support instead of to the tab.
+  [
+    4012,
+    {
+      tone: 'warn',
+      text: 'You already have a mock interview open. Close the other tab and try again.',
+    },
+  ],
+  // 4013/4014 are the consent pair. They cannot fire until the socket enforces
+  // consent (spec step 10) — which is deliberately AFTER this client started
+  // posting consent rows, or every existing student would have been locked out
+  // on the deploy that turned enforcement on. Mapping them now is what makes
+  // that later commit a one-line server change with no client edit: an unmapped
+  // code falls through to "closed unexpectedly", which is the exact degradation
+  // 4003 and 4010 were added to prevent.
+  [
+    4013,
+    {
+      tone: 'warn',
+      text: 'Please accept the interview terms before starting.',
+    },
+  ],
+  [
+    4014,
+    {
+      tone: 'info',
+      text: 'You withdrew consent, so the interview ended.',
     },
   ],
 ]);
@@ -658,6 +764,44 @@ export interface InterviewLine {
 interface InterviewStatus {
   available: boolean;
   reason?: string;
+}
+
+/**
+ * The practice scorecard, exactly as `reep.report` carries it.
+ *
+ * EVERY SCORE IS NULLABLE, AND A NULL IS NOT A ZERO. The relay refuses to
+ * invent a score the model did not give (`_report_score` returns None rather
+ * than defaulting), and `interview_evaluations` keeps the columns nullable for
+ * the same reason: to a student reading this screen, "not scored" and "scored
+ * zero" are opposite sentences. Anything rendering these MUST be able to draw a
+ * blank — coercing with `?? 0` here would erase the distinction at the one
+ * place it is still recoverable.
+ */
+export interface InterviewReport {
+  overall: number | null;
+  communication: number | null;
+  domain: number | null;
+  structure: number | null;
+  strengths: string[];
+  improvements: string[];
+  drill: string;
+  summary: string;
+}
+
+/**
+ * The outcome of the scorecard step, available or not.
+ *
+ * `available: false` IS NOT A FAILED INTERVIEW, and no UI may present it as
+ * one. The interview completed — the relay closes 1000 in every one of these
+ * cases and deliberately defines no error code for a missing report, because a
+ * close code would make a successful interview read as a failure. The bad news
+ * travels here, in the payload, and `reason` names which of the four it was.
+ */
+export interface InterviewReportResult {
+  available: boolean;
+  /** null when available; otherwise 'unparseable' | 'timeout' | 'rejected'. */
+  reason: string | null;
+  report: InterviewReport | null;
 }
 
 /* ============================================================================
@@ -1269,6 +1413,61 @@ export class InterviewService {
    *  persisted conversation, which is where interview turns actually live. */
   readonly completedSessions = this._completedSessions.asReadonly();
 
+  private readonly _report = signal<InterviewReportResult | null>(null);
+  /**
+   * This session's practice scorecard, once `reep.report` has arrived.
+   *
+   * Null means the report step has not happened — a session still running, or
+   * one that ended before wrap-up (the cap, a disconnect). It is NOT cleared by
+   * teardown(): the report arrives immediately BEFORE the relay closes 1000, so
+   * clearing it on close would erase the payload the interview existed to
+   * produce, a few milliseconds after it landed. It is cleared at start(), when
+   * a new interview genuinely supersedes it.
+   *
+   * The durable copy is `interview_evaluations`, readable at
+   * GET /api/interview/sessions/{id}/report. This signal is what the student
+   * sees the moment the interview ends — and, if that one row failed to write,
+   * it is the only place the scorecard exists at all.
+   */
+  readonly report = this._report.asReadonly();
+
+  private readonly _composingReport = signal(false);
+  /**
+   * The interview is over and the scorecard is being written.
+   *
+   * This exists because of a silence v3 creates that nothing else covers. At
+   * WRAP_UP the relay speaks its verdict and then issues ONE more
+   * `response.create` for the scorecard — text-only, so no audio arrives, and
+   * the relay deliberately forwards neither its `response.created` nor its
+   * `response.done` (the browser renders `response.created` as "the interviewer
+   * is speaking", which would be a twenty-second silent "speaking"). The last
+   * thing this client sees is the verdict's `response.done`, which used to send
+   * it straight back to `listening` — telling the student to go ahead and speak
+   * for up to twenty seconds, during which §5.5 has the relay deliberately
+   * IGNORING their voice so a "thanks, bye" cannot destroy the scorecard.
+   *
+   * So the client names the wait instead. Learned from `reep.phase` reaching
+   * `wrap_up`, which is the only signal available and is enough: it is pushed
+   * ahead of the verdict's create.
+   */
+  readonly composingReport = this._composingReport.asReadonly();
+
+  private readonly _thinkingSlow = signal(false);
+  /**
+   * The student has been waiting long enough in `thinking` that the UI must
+   * show it is working. See THINKING_AFFORDANCE_AFTER_MS.
+   *
+   * One-way within a turn: it flips true once and is cleared only when the
+   * state leaves `thinking`. A flag that flickered would be worse than none.
+   */
+  readonly thinkingSlow = this._thinkingSlow.asReadonly();
+
+  private readonly _thinkingSeconds = signal(0);
+  /** Whole seconds elapsed in the current `thinking`. Rendered beside the
+   *  affordance so the wait is a number the student can watch move, rather than
+   *  an animation that could equally be a hung page. */
+  readonly thinkingSeconds = this._thinkingSeconds.asReadonly();
+
   /** True from the moment Start is pressed until the socket is fully closed. */
   readonly active = computed(() => {
     const s = this._state();
@@ -1305,6 +1504,8 @@ export class InterviewService {
   private clockTimer: ReturnType<typeof setInterval> | null = null;
   private aiLevelTimer: ReturnType<typeof setInterval> | null = null;
   private connectTimer: ReturnType<typeof setTimeout> | null = null;
+  private thinkingTimer: ReturnType<typeof setInterval> | null = null;
+  private thinkingStartedAt = 0;
   private pageHideHandler: (() => void) | null = null;
 
   /**
@@ -1447,6 +1648,10 @@ export class InterviewService {
     this._lines.set([]);
     this._state.set('connecting');
     this._detail.set(null);
+    // The ONLY place the previous interview's scorecard is discarded. teardown()
+    // deliberately leaves it alone — see the field's own note.
+    this._report.set(null);
+    this._composingReport.set(false);
     this._elapsedSeconds.set(0);
     this._sessionMaxSeconds.set(DEFAULT_SESSION_MAX_S);
     // Requested here, CONFIRMED by the relay in reep.ready. Both signals stay
@@ -2172,7 +2377,18 @@ export class InterviewService {
           this.writeLine(`a:${key}`, 'interviewer', text, false);
         }
         this.assistantText.clear();
-        if (!this.ending) this.setState('listening');
+        if (this.ending) break;
+        if (this._phase() === 'wrap_up') {
+          // The verdict has finished playing and the relay's very next act is
+          // the silent scorecard. Saying "go ahead, the interviewer is
+          // listening" here would invite the student to talk into a response
+          // that is deliberately deaf to them — see `composingReport`.
+          this._composingReport.set(true);
+          this.setState('thinking');
+          this._detail.set('Writing your report…');
+        } else {
+          this.setState('listening');
+        }
         break;
       }
 
@@ -2182,6 +2398,25 @@ export class InterviewService {
         const key = str(msg['item_id']) ?? 'you';
         const text = str(msg['transcript']);
         if (text) this.writeLine(`u:${key}`, 'you', text, false);
+        break;
+      }
+
+      case 'reep.report': {
+        // The last thing the relay sends before it closes 1000. Everything the
+        // student came for is in this one frame, so it is read defensively: a
+        // field that arrives in an unexpected shape must cost that field, never
+        // the scorecard. Same posture as the relay's own parse of the model.
+        const result = readReport(msg);
+        this._report.set(result);
+        this._composingReport.set(false);
+        this.writeLine(
+          this.nextSystemKey(),
+          'session',
+          result.available
+            ? 'Interview complete. Your practice report is below.'
+            : 'Interview complete. The practice report could not be generated, but your transcript is saved.',
+          false,
+        );
         break;
       }
 
@@ -2225,7 +2460,8 @@ export class InterviewService {
       // audio received for 2 minutes"). Appending it beats hard-coding a number
       // here that every deployment is free to change.
       const detail = known.detail && event.reason.trim() ? ` (${event.reason.trim()})` : '';
-      this._notice.set({ tone: known.tone, text: known.text + detail });
+      const override = event.code === 1000 ? this.reportCloseNotice() : null;
+      this._notice.set(override ?? { tone: known.tone, text: known.text + detail });
       this._state.set(known.tone === 'error' ? 'error' : 'ended');
     } else {
       const reason = event.reason ? ` (${event.reason})` : '';
@@ -2244,8 +2480,83 @@ export class InterviewService {
   // ------------------------------------------------------------------ //
 
   private setState(next: InterviewState): void {
+    // The thinking clock is armed HERE rather than at the one event that starts
+    // the wait, because two events lead into `thinking` (speech_stopped, and
+    // response.created once the transcript has landed) and under v3 they are
+    // seconds apart. Arming on the state is what makes the clock measure the
+    // silence the STUDENT experiences instead of one leg of it.
+    if (next === 'thinking') this.armThinkingClock();
+    else this.disarmThinkingClock();
     this._state.set(next);
     this._detail.set(null);
+  }
+
+  /**
+   * Start timing the current wait — or leave a running clock alone.
+   *
+   * NOT restarted when we are already thinking. `response.created` arrives
+   * mid-wait under v3 (the relay creates the question only after the transcript
+   * resolves), and resetting the counter there would hide exactly the delay this
+   * affordance exists to make honest: the student would watch it climb to two
+   * seconds, snap back to zero and climb again.
+   */
+  private armThinkingClock(): void {
+    if (this.thinkingTimer !== null) return;
+    this.thinkingStartedAt = performance.now();
+    this._thinkingSlow.set(false);
+    this._thinkingSeconds.set(0);
+    this.thinkingTimer = setInterval(() => {
+      const ms = performance.now() - this.thinkingStartedAt;
+      if (ms >= THINKING_AFFORDANCE_AFTER_MS && !this._thinkingSlow()) {
+        this._thinkingSlow.set(true);
+      }
+      // Written only when the RENDERED second changes: at THINKING_TICK_MS this
+      // is four no-ops for every write, and a signal write is a change-detection
+      // pass over a screen that is also painting an orb at 60 fps.
+      const secs = Math.floor(ms / 1000);
+      if (secs !== this._thinkingSeconds()) this._thinkingSeconds.set(secs);
+    }, THINKING_TICK_MS);
+  }
+
+  private disarmThinkingClock(): void {
+    if (this.thinkingTimer !== null) {
+      clearInterval(this.thinkingTimer);
+      this.thinkingTimer = null;
+    }
+    if (this._thinkingSlow()) this._thinkingSlow.set(false);
+    if (this._thinkingSeconds() !== 0) this._thinkingSeconds.set(0);
+  }
+
+  /**
+   * What a close code 1000 should actually say, when the map's wording would be
+   * a claim rather than a fact. Null = use the map.
+   *
+   * CLOSE_MESSAGES[1000] reads "your report is ready" because that is what a
+   * completed v3 interview means, and it is the sentence the student should see
+   * for it. But 1000 covers two other shapes:
+   *
+   *  - `reep.report {available:false}` — the interview completed and only the
+   *    SCORECARD failed. The relay closes 1000 on purpose there, and defines no
+   *    error code for it, precisely so a successful interview does not read as a
+   *    failure. Saying "your report is ready" would then be false in the one
+   *    banner the student reads.
+   *  - No report at all, e.g. `request_stop(1000, "Conversation cleared")`. The
+   *    old, honest wording still fits: it ended, nothing claims a report exists.
+   */
+  private reportCloseNotice(): InterviewNotice | null {
+    const result = this._report();
+    if (result === null) return { tone: 'info', text: 'Interview ended.' };
+    if (result.available) return null;
+    const why =
+      result.reason === 'timeout'
+        ? 'the model took too long'
+        : result.reason === 'rejected'
+          ? 'the model refused the request'
+          : 'the model’s answer could not be read';
+    return {
+      tone: 'warn',
+      text: `Interview complete. The practice report could not be generated (${why}) — your answers and transcript are still saved.`,
+    };
   }
 
   /** An unrecoverable local problem (secure context, mic, worklet, readiness). */
@@ -2294,6 +2605,11 @@ export class InterviewService {
       this.pageHideHandler = null;
     }
     this.clearConnectTimer();
+    // Cleared here as well as in setState, because onClose() and fail() write
+    // `_state` DIRECTLY rather than through setState — a socket that dropped
+    // while the student was waiting would otherwise leave the interval running
+    // for the life of the tab, ticking a counter under a dead session.
+    this.disarmThinkingClock();
     if (this.clockTimer !== null) {
       clearInterval(this.clockTimer);
       this.clockTimer = null;
@@ -2448,6 +2764,49 @@ function obj(v: unknown): Record<string, unknown> | null {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
     ? (v as Record<string, unknown>)
     : null;
+}
+
+/** A wire field read as an array of non-empty strings. Never null: an absent
+ *  list and an empty list mean the same thing to the template, and a `?? []` at
+ *  every read site is three chances to forget one. */
+function strList(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
+}
+
+/**
+ * `reep.report` -> a scorecard the template can render without guarding.
+ *
+ * DEGRADE, NEVER ASSERT — the same rule the relay parses the model's JSON by.
+ * The relay has already validated and bounded these fields; this pass exists
+ * because the alternative is a template that throws on one unexpected type and
+ * takes the whole screen down at the exact moment the student is owed their
+ * report. A field in the wrong shape costs that field.
+ *
+ * `num()` is what protects the scores: it answers null for anything that is not
+ * a finite number, so a missing score stays missing. Do not add `?? 0` — see
+ * InterviewReport.
+ */
+function readReport(msg: Record<string, unknown>): InterviewReportResult {
+  const available = msg['available'] === true;
+  const body = obj(msg['report']);
+  if (!available || body === null) {
+    return { available: false, reason: str(msg['reason']) ?? 'unparseable', report: null };
+  }
+  return {
+    available: true,
+    reason: null,
+    report: {
+      overall: num(body['overall']),
+      communication: num(body['communication']),
+      domain: num(body['domain']),
+      structure: num(body['structure']),
+      strengths: strList(body['strengths']),
+      improvements: strList(body['improvements']),
+      drill: str(body['drill']) ?? '',
+      summary: str(body['summary']) ?? '',
+    },
+  };
 }
 
 /**

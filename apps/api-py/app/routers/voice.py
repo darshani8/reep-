@@ -17,6 +17,11 @@ AND a worker heartbeat is fresh). Handing out a token while no worker is running
 would drop the student into a silent room, so we refuse instead.
 """
 
+import hmac
+import logging
+import math
+import threading
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Literal
@@ -24,7 +29,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from livekit import api
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -35,6 +40,8 @@ from ..deps import get_current_session
 from ..models.conversation import Message
 from ..models.user import Role
 from ..models.voice_worker import VoiceWorkerHeartbeat
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/voice", tags=["voice"])
 
@@ -67,26 +74,53 @@ def require_voice_worker(
 ) -> None:
     """Authenticate a backend voice-worker caller (no user session).
 
-    FAILS CLOSED IN PRODUCTION. A blank VOICE_WORKER_SECRET leaves /heartbeat and
-    /transcript open to anyone who can reach the API — they could forge a
-    heartbeat to make voice look available, or write fabricated turns into any
-    conversation whose id they can guess or observe. That is tolerable on a dev
-    laptop and unacceptable deployed, so with ENV=prod a missing secret is a 500
-    rather than a silent open door.
+    FAILS CLOSED ANYWHERE THE OPEN DOOR IS NOT DELIBERATE. A blank
+    VOICE_WORKER_SECRET leaves /heartbeat and /transcript open to anyone who can
+    reach the API: they can forge a heartbeat so voice reports itself available
+    with no worker behind it (students are then handed tokens into silent rooms),
+    or write fabricated assistant-labelled turns into any conversation whose id
+    they observe, which render in the UI and replay into later LLM prompts. That
+    is tolerable on a dev laptop and unacceptable deployed, so a missing secret
+    is a 500 rather than a silent open door.
+
+    THE GATE IS `worker_auth_optional`, NOT `is_prod`. It used to be `is_prod`,
+    which is a match against four literal names ({prod, production, prd, live}):
+    an ENV nobody anticipated -- `staging`, a typo, an empty string from a broken
+    deploy -- is not one of them, so a host holding real roster rows answered
+    "this is not production" and left both worker endpoints wide open, with the
+    startup warning in app/main.py silent for exactly the same reason.
+    `worker_auth_optional` is an ALLOWLIST of the environments where an open door
+    is the intended affordance -- the shape `password_login_allowed` already uses,
+    for the same reason: the failure mode of a misconfigured ENV here must be
+    "voice ingestion stops", never "anyone may write into a student's
+    conversation".
 
     Rejecting at request time rather than refusing to boot is deliberate: the
     API serves the whole dashboard, and a misconfigured voice secret should
     disable voice ingestion, not take the site down. The startup check in
     app/main.py logs the same condition loudly at boot."""
     if not settings.voice_worker_secret:
-        if settings.is_prod:
+        if not settings.worker_auth_optional:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Voice worker authentication is not configured.",
             )
-        return  # dev: open, as documented in .env.example
+        return  # dev/CI only, as documented in .env.example
 
-    if x_voice_worker_secret != settings.voice_worker_secret:
+    # Constant-time, and over BYTES rather than str. compare_digest is the house
+    # rule for every secret comparison in this codebase (app/security.py:42,
+    # app/google_auth.py:319,563); `!=` short-circuits at the first differing
+    # character, leaking the length of the shared prefix to anyone willing to
+    # time enough requests -- and nothing rate-limits this endpoint.
+    #
+    # Encoding both sides sidesteps the trap google_auth.py documents at its
+    # nonce compare: compare_digest RAISES TypeError on a non-ASCII str. This
+    # header arrives latin-1-decoded by Starlette, so a single byte above 0x7F
+    # from a hostile caller would turn a 401 into a 500 -- and an operator is
+    # equally free to choose a non-ASCII secret, which would break every
+    # legitimate beat the same way. Bytes compare fine either way.
+    presented = (x_voice_worker_secret or "").encode("utf-8")
+    if not hmac.compare_digest(presented, settings.voice_worker_secret.encode("utf-8")):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid voice worker secret.",
@@ -154,7 +188,30 @@ def voice_heartbeat(
             VoiceWorkerHeartbeat.last_seen < now - HEARTBEAT_REAP_AFTER
         )
     )
-    db.commit()
+
+    # The read-then-insert above is a CHECK, not a guarantee -- the same shape
+    # POST /transcript documents at the bottom of this file. Two beats for one
+    # worker_id can both see None before either commits (a retry after a slow
+    # POST, or two uvicorn workers serving one worker's beats), and `worker_id`
+    # is UNIQUE, so the loser raises. Losing that race is not a failure: the row
+    # IS registered, by the other writer, and this beat only wanted `last_seen`
+    # moved forward. Left unhandled it surfaces as a 500 -- precisely the
+    # alarming line the AGENTS.md voice runbook sends an operator hunting for a
+    # real fault, on the one path that was working correctly.
+    #
+    # The retry is an UPDATE, so it cannot lose the race a second time. The
+    # rollback also discards the opportunistic reap above; that is deliberate and
+    # costs nothing, because the next beat is ~10s away and will reap then.
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        db.execute(
+            update(VoiceWorkerHeartbeat)
+            .where(VoiceWorkerHeartbeat.worker_id == body.worker_id)
+            .values(last_seen=now)
+        )
+        db.commit()
     return {"ok": True, "last_seen": now.isoformat()}
 
 
@@ -226,6 +283,112 @@ def voice_status(
 
 
 # --------------------------------------------------------------------------- #
+# Per-student token cap (audit H2)                                            #
+# --------------------------------------------------------------------------- #
+
+# WHY A TOKEN TTL IS NOT A DURATION CAP -- read this before "simplifying" either
+# half away.
+#
+# TOKEN_TTL bounds how long a minted JWT may be used to JOIN a room. LiveKit
+# checks the token once, at join, and never again: a participant admitted at
+# 9m59s holds the room -- and the Groq-billed cascade the worker runs for it --
+# for as long as they stay connected. A forgotten browser tab is exactly that.
+# So the expiry that looks like a session limit bounds nothing about a session.
+#
+# The two real bounds are therefore split across the two processes, because each
+# one can only see half of it:
+#   * HOW LONG one call may run is enforced where the call lives, in
+#     voice_agent.py (VOICE_MAX_CALL_SECONDS, mirroring
+#     settings.voice_max_call_seconds). The API never learns a call ended.
+#   * HOW MANY calls one student may have in flight is enforced here, because
+#     minting is the only moment the API sees the student at all.
+#
+# Neither alone is sufficient: a duration cap with unlimited tokens still lets
+# one scripted account open calls until the worker OOMs (the H2 scenario), and a
+# token cap with unbounded calls just makes the same spend arrive more slowly.
+#
+# What the pair actually guarantees, stated honestly rather than optimistically:
+# a grant is held for TOKEN_TTL (after which the token cannot open anything new),
+# while the call it started may run for voice_max_call_seconds. So live calls per
+# student are bounded by
+#     ceil(voice_max_call_seconds / TOKEN_TTL) * voice_max_sessions_per_user
+# -- with the defaults, ceil(900/600) * 2 = 4. Not 2. Releasing on the real
+# end-of-call would give exactly the cap, but the worker has no channel to report
+# it: tests/test_voice_worker_source.py pins the worker to precisely two API
+# paths (/heartbeat and /transcript), deliberately, so that it can never reach a
+# student-data endpoint. A third path is not worth trading that guarantee for.
+_TOKEN_GRANT_WINDOW_SECONDS = TOKEN_TTL.total_seconds()
+
+# Sweep the whole ledger once it holds more entries than this. Without it, one
+# short-lived list per student who has ever pressed "Start voice" survives for
+# the life of the process. Opportunistic cleanup on the only writer, exactly like
+# the heartbeat reaper above -- a cleanup that has to be deployed separately is a
+# cleanup that eventually is not.
+_TOKEN_LEDGER_SWEEP_AT = 512
+
+
+class _TokenGrantLedger:
+    """How many voice tokens one student currently holds. PER WORKER.
+
+    Per-worker for the same reason config.py gives on interview_max_sessions: N
+    uvicorn workers give N times this cap, and that is accepted. The alternative
+    is a shared registry (a table, or Redis) on the hot path of a feature whose
+    whole purpose is to be cheap; the cap exists to stop an unbounded loop, not
+    to be exact, and N * 2 is still a bound where there was none.
+
+    Module-level rather than app.state so a second FastAPI app in one process
+    (the test client) cannot silently double the cap.
+
+    A LOCK, unlike _ConnectionLimiter in interview_relay.py. That one is safe
+    without one because it is only ever touched from the single-threaded event
+    loop. This is not: POST /token is a synchronous `def`, so Starlette runs it
+    in the anyio worker THREADPOOL and two of a student's requests can be in
+    try_acquire at the same instant on different threads. Without the lock the
+    check-then-append is a textbook TOCTOU and the cap is advisory.
+    """
+
+    __slots__ = ("_lock", "_grants")
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        # user_id -> monotonic timestamps of grants still inside the window.
+        self._grants: dict[str, list[float]] = {}
+
+    def try_acquire(self, user_id: str, limit: int) -> bool:
+        """Record a grant for this student, or refuse. Never blocks.
+
+        monotonic(), not wall clock: an NTP step backwards would otherwise
+        resurrect expired grants and lock a student out, and a step forwards
+        would release them early.
+        """
+        now = time.monotonic()
+        cutoff = now - _TOKEN_GRANT_WINDOW_SECONDS
+        with self._lock:
+            if len(self._grants) > _TOKEN_LEDGER_SWEEP_AT:
+                self._grants = {
+                    uid: live
+                    for uid, stamps in self._grants.items()
+                    if (live := [t for t in stamps if t > cutoff])
+                }
+            held = [t for t in self._grants.get(user_id, ()) if t > cutoff]
+            if len(held) >= limit:
+                self._grants[user_id] = held
+                return False
+            held.append(now)
+            self._grants[user_id] = held
+            return True
+
+    def held(self, user_id: str) -> int:
+        """Grants currently counted against this student (diagnostics/tests)."""
+        cutoff = time.monotonic() - _TOKEN_GRANT_WINDOW_SECONDS
+        with self._lock:
+            return sum(1 for t in self._grants.get(user_id, ()) if t > cutoff)
+
+
+_TOKEN_GRANTS = _TokenGrantLedger()
+
+
+# --------------------------------------------------------------------------- #
 # 3) Server-owned token                                                       #
 # --------------------------------------------------------------------------- #
 
@@ -267,6 +430,45 @@ def voice_token(
         )
         raise HTTPException(status_code=code, detail=st.reason)
 
+    # Per-student cap, checked BEFORE the conversation round-trip so a scripted
+    # mint loop costs one dict lookup rather than a DB write per attempt -- the
+    # loop is the threat this is here to stop.
+    #
+    # This is the one place /token deliberately answers differently from
+    # /status.available, and tests/test_voice_gates.py pins that invariant, so
+    # the distinction has to be explicit: /status describes the SERVICE (is voice
+    # up at all), this describes the CALLER (are you already holding your share).
+    # Folding the cap into _compute_status would make one student's overuse look
+    # like an outage to them and be untrue for everyone else.
+    #
+    # 429, not 409: this is a rate/quota refusal against the caller, and it is
+    # retryable once a grant ages out of the window.
+    max_per_user = settings.voice_max_sessions_per_user
+    if not _TOKEN_GRANTS.try_acquire(session["userId"], max_per_user):
+        # Logged because an anti-abuse control nobody can see is one nobody can
+        # confirm is working -- the same reason the interview router logs its own
+        # 1013 refusals. One line per refused MINT, which is an HTTP request a
+        # human triggers, not a per-audio-frame path: this cannot become the log
+        # flood the audit flags on the relay's hostile-client branches.
+        log.warning(
+            "POST /api/voice/token -> 429: user %s holds %d/%d voice grants",
+            session["userId"],
+            _TOKEN_GRANTS.held(session["userId"]),
+            max_per_user,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                f"You already have {max_per_user} voice session"
+                f"{'' if max_per_user == 1 else 's'} open. End one, or wait "
+                f"{math.ceil(_TOKEN_GRANT_WINDOW_SECONDS / 60)} minutes, before "
+                "starting another."
+            ),
+        )
+
+    # The grant is spent from here on. If the conversation lookup below fails
+    # (the database is down), the student has lost one slot until it ages out --
+    # a self-healing cost, and voice is unusable in that state anyway.
     conversation = convo.get_or_create(db, session["userId"], Role(session["role"]))
 
     # The room name must be UNIQUE PER CALL, not per conversation. LiveKit

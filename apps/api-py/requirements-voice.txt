@@ -41,8 +41,12 @@
 
 livekit-agents==1.6.10
 
-# STT (whisper-large-v3-turbo) and LLM (llama-3.3-70b-versatile), plus the Groq
-# TTS used when VOICE_TTS=groq. One GROQ_API_KEY drives all three.
+# STT (whisper-large-v3-turbo), LLM (llama-3.3-70b-versatile) and the DEFAULT
+# TTS. One GROQ_API_KEY drives all three, so the whole cascade sits behind a
+# single vendor relationship with terms somebody actually accepted. Groq TTS
+# needs a one-off model terms acceptance in the Groq console; until that is
+# done the worker logs the provider error and voice does not speak, which is
+# the loud failure we want in place of a silent fallback to edge.
 livekit-plugins-groq==1.6.10
 
 # Turn detection. Runs locally; no key, no network.
@@ -53,10 +57,18 @@ livekit-plugins-silero==1.6.10
 # barging in and cuts the agent off mid-sentence.
 livekit-plugins-noise-cancellation==0.3.0
 
-# Default TTS. NOTE: edge-tts is an UNOFFICIAL, no-SLA endpoint with no privacy
-# terms or quota guarantees — acceptable for development and demos, NOT for a
-# student cohort. Production must set VOICE_TTS=groq (or an SLA-backed provider)
-# and this dependency should then be dropped.
+# OPT-IN development TTS -- NO LONGER THE DEFAULT (audit M11, 2026-08).
+# edge-tts is an UNOFFICIAL, no-SLA endpoint with no privacy terms and no quota
+# guarantee: nobody has undertaken anything about the audio sent to it. That was
+# already written here, and it was still what every unconfigured deployment used,
+# because a default is what runs. voice_agent.py now defaults to VOICE_TTS=groq
+# and only an explicit VOICE_TTS=edge selects this, with a warning logged at
+# worker startup and again on every session.
+#
+# Still installed, not dropped: the worker imports edge_tts at module scope, so
+# removing the package would break the process for everyone rather than only for
+# the people who chose this voice. Drop it, and the import, when local
+# development no longer needs a keyless voice.
 edge-tts==7.2.8
 
 # No HTTP client is listed: the worker talks to the FastAPI server with stdlib

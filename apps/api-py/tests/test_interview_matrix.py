@@ -10,16 +10,24 @@ Two contracts are pinned here:
    wrap_up -> ended) is what steers the model mid-interview, and an illegal
    jump or a sticky-phase bug changes what every student is assessed against.
 
-No database, no sockets: InterviewStateMachine does no I/O by design.
+3. classify_answer -- the deterministic gate that decides whether an utterance
+   advanced the interview. It runs on every turn between the student finishing
+   and the interviewer replying, so it must stay a word count.
+
+No database, no sockets: this module does no I/O by design.
 """
 
 import pytest
 
+from app.config import settings
 from app.interview_matrix import (
+    REPORT_DIRECTIVE,
     SPECIALIZATIONS,
     InterviewPhase,
     InterviewStateMachine,
     build_instructions,
+    build_turn_instructions,
+    classify_answer,
     get_specialization,
 )
 from app.interview_relay import _INTERVIEWER_PERSONA
@@ -100,11 +108,99 @@ class TestStateMachine:
         with pytest.raises(ValueError, match="Illegal interview transition"):
             machine._transition_to(InterviewPhase.DEEP_DIVE)
 
+    def test_force_wrap_up_does_not_inflate_the_answer_count(self):
+        # The clock, not the arc, ended this interview. A mentor reading
+        # answers_accepted must be reading answers.
+        machine = InterviewStateMachine(SPECIALIZATIONS["hr"])
+        machine.student_answered()
+        assert machine.force_wrap_up() is True
+        assert machine.phase is InterviewPhase.WRAP_UP
+        assert machine.answers == 1
+        # Idempotent: the relay may reach it twice on the same session.
+        assert machine.force_wrap_up() is False
+
     def test_generic_interview_still_runs(self):
         # No specialization: the machine exists but the relay never advances it.
         machine = InterviewStateMachine(None)
         assert machine.specialization is None
         assert machine.phase is InterviewPhase.OPENING
+
+
+class TestAnswerClassification:
+    """The gate that decides whether the phase machine may tick at all.
+
+    Every verdict here has a consequence a student feels: "accepted" moves the
+    interview on, everything else re-asks the same question.
+    """
+
+    def test_nothing_at_all_is_empty(self):
+        # A timed-out or failed transcription arrives as "", and it must not
+        # read as an answer -- it is the absence of one.
+        assert classify_answer("") == "empty"
+        assert classify_answer("   ") == "empty"
+        assert classify_answer("...!") == "empty"
+
+    @pytest.mark.parametrize("text", ["uh", "yes", "yeah ok", "hmm, sorry, what?"])
+    def test_acknowledgements_and_coughs_are_filler(self, text):
+        assert classify_answer(text) == "filler"
+
+    def test_a_short_but_real_answer_is_too_short_not_filler(self):
+        # The two are stored separately because they are different facts about
+        # the interview: one student said nothing, the other said too little.
+        assert classify_answer("I led it") == "too_short"
+
+    def test_a_real_short_answer_still_counts(self):
+        # The floor is 4 words precisely so this passes -- a real answer must
+        # not be re-asked for being brief.
+        assert classify_answer("I led the campus fintech club") == "accepted"
+
+    def test_contractions_are_one_word(self):
+        # "I don't know really" is four words, not five: splitting contractions
+        # would inflate the count and let a non-answer through.
+        assert classify_answer("I don't know") == "too_short"
+
+    def test_zero_disables_the_gate(self, monkeypatch):
+        # 0 is a MEANING (config.py): the pre-v3 behaviour where any transcript
+        # counted as an answer.
+        monkeypatch.setattr(settings, "interview_min_answer_words", 0)
+        assert classify_answer("yes") == "accepted"
+        # Still not an answer when there is no transcript at all.
+        assert classify_answer("") == "empty"
+
+
+class TestTurnInstructions:
+    """The per-response overrides. They REPLACE the session persona, so each
+    one has to be self-contained or the interviewer loses its conduct rules on
+    exactly the turn where it is improvising."""
+
+    @pytest.mark.parametrize("kind", ["clarify", "unheard", "resume", "verdict"])
+    def test_every_kind_keeps_the_persona_and_the_rule_1_disclosure(self, kind):
+        instructions = build_turn_instructions(
+            SPECIALIZATIONS["ba"], _INTERVIEWER_PERSONA, InterviewPhase.PROBING, kind
+        )
+        assert instructions.startswith(_INTERVIEWER_PERSONA)
+        assert "cannot see" in instructions
+        assert "## This turn" in instructions
+
+    def test_the_generic_interview_gets_a_self_contained_override(self):
+        instructions = build_turn_instructions(
+            None, _INTERVIEWER_PERSONA, InterviewPhase.OPENING, "clarify"
+        )
+        assert instructions.startswith(_INTERVIEWER_PERSONA)
+        assert "## Specialization" not in instructions
+
+    def test_an_unknown_kind_raises_rather_than_shipping_no_directive(self):
+        with pytest.raises(ValueError, match="Unknown turn kind"):
+            build_turn_instructions(None, _INTERVIEWER_PERSONA, InterviewPhase.OPENING, "nudge")
+
+    def test_the_report_directive_names_nobody(self):
+        # Rule 1's shape: everything this app authors upstream is a fixed
+        # string. The scorecard is generated in the session that already holds
+        # the transcript, so it needs no student data to be sent for it.
+        assert "JSON" in REPORT_DIRECTIVE
+        assert "{" in REPORT_DIRECTIVE
+        for key in ("overall", "communication", "domain", "structure", "drill", "summary"):
+            assert key in REPORT_DIRECTIVE
 
 
 class TestInstructionComposition:

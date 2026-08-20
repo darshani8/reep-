@@ -125,6 +125,18 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/assistant/assistant.component').then((m) => m.AssistantComponent),
       },
+      // The durable half of the mock interviewer: past interviews, their
+      // transcripts and their practice reports. Its own chunk on purpose — a
+      // student who never opens it never downloads it, and it shares the report
+      // card with the assistant screen, which the bundler resolves into a chunk
+      // the two reuse rather than a copy in each.
+      {
+        path: 'student/interviews',
+        loadComponent: () =>
+          import('./features/student/interviews/interviews.component').then(
+            (m) => m.InterviewsComponent,
+          ),
+      },
       {
         path: 'student/profile',
         loadComponent: () =>

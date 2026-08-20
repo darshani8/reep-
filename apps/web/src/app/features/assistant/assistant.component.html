@@ -24,10 +24,21 @@
   </button>
 </kit-page-intro>
 
+<!--
+  THE SENTENCE THAT USED TO BE HERE WAS FALSE, and its replacement is not
+  optional wording. It said every question and answer was saved to "your
+  conversation below" and could be cleared at any time. Since `interview_turns`
+  exists, the interview record is keyed on the interview — not the conversation —
+  and it deliberately SURVIVES Clear conversation, because being durable is what
+  makes it a record. Promising a delete control that does not delete it is a
+  broken promise to the student, not a documentation lapse.
+-->
 <p class="assist-note reep-body2">
   The interviewer hears your voice and nothing else — it cannot see your marks, attendance or USN.
   For your own figures, open <a class="assist-note__link" routerLink="/student/records">your records</a>.
-  Every question and answer is saved to your conversation below, and you can clear it at any time.
+  Each interview is kept as a record with its transcript and practice report — see
+  <a class="assist-note__link" routerLink="/student/interviews">your past interviews</a>. Clearing
+  the conversation below does not delete those.
 </p>
 
 @if (!isStudent()) {
@@ -73,7 +84,21 @@
   <p class="err reep-body2" role="alert">{{ historyError() }}</p>
 }
 
-<!-- One-time disclosure — shown before the FIRST interview, never after. -->
+<!--
+  The interview terms. Shown before the first interview under the CURRENT terms,
+  and again whenever the server's version string moves — the grant is scoped to a
+  version server-side, so an old yes cannot carry a student past new copy.
+
+  ACCEPTING WRITES A ROW (POST /api/interview/consent) AND THE INTERVIEW DOES NOT
+  START UNTIL IT DOES. This used to set a localStorage key nothing on the server
+  ever read: on a shared lab PC that grant belonged to the machine rather than to
+  the person, and after the fact nobody could say who had agreed to what.
+
+  Three scopes, and the third is a real choice. Live audio and the stored
+  transcript are what the interview IS, and the button grants both; keeping a
+  recording of the student's voice for staff to listen to is materially
+  different, so it is a checkbox, and it is off until they tick it.
+-->
 @if (showConsent()) {
   <div
     class="consent"
@@ -90,30 +115,105 @@
       (keydown.tab)="trapConsentTab($event)"
       (keydown.shift.tab)="trapConsentTab($event)"
     >
-      <h2 id="consent-title" class="consent__title reep-h6">Before your first interview</h2>
+      <h2 id="consent-title" class="consent__title reep-h6">Before you start</h2>
       <div id="consent-body" class="consent__body reep-body2">
+        <h3 class="consent__sub">1. The interviewer hears you live</h3>
         <p>
-          Your microphone audio is sent to the interview model to be heard and transcribed. Nothing
-          from your student record — marks, attendance, USN — is sent with it, and the interviewer
-          cannot look any of it up.
+          While the interview is running, your microphone audio is streamed to OpenAI's realtime
+          model so it can hear you and reply. Nothing from your student record — marks, attendance,
+          USN, resume — is sent with it, and the interviewer cannot look any of it up. Your own
+          words are the only thing that leaves this machine.
         </p>
         <p class="consent__warn">
-          So please don't say marks, attendance, medical information, passwords or other sensitive
-          personal details out loud during the interview.
+          Please don't say marks, medical information, passwords or other sensitive details out
+          loud.
         </p>
+
+        <h3 class="consent__sub">2. The transcript is kept as your interview record</h3>
         <p>
-          The transcript is saved to your conversation on this page and can be deleted at any time
-          with <strong>Clear conversation</strong>.
+          A written transcript of the interview — your answers and the interviewer's questions — is
+          stored on the college's server as part of your interview record, together with an
+          AI-generated practice score. Your mentor and the placement director can read it.
+          <strong>Clearing your conversation on this page does not delete the interview record</strong>;
+          ask the placement cell to remove it. It is deleted automatically after 180 days.
         </p>
+
+        <h3 class="consent__sub">3. A recording of your voice — your choice</h3>
+        <label class="consent__opt">
+          <input
+            type="checkbox"
+            [checked]="consentAudio()"
+            (change)="setConsentAudio($any($event.target).checked)"
+          />
+          <span>
+            Also keep a recording of my voice. The audio of your answers is saved on the college's
+            server next to the transcript, and <strong>staff review it</strong> — your mentor and
+            the placement director can listen to it. It is deleted on the same 180-day clock.
+            <strong>The interview works exactly the same if you leave this unticked</strong>, and
+            nothing about it is scored differently. Ticking this box gives permission; recording
+            also has to be switched on by the college, so your <strong>Mock interviews</strong>
+            screen marks each interview that actually has one — permission granted is not the same
+            fact as audio kept, and only that screen can tell you which happened.
+          </span>
+        </label>
       </div>
+
+      @if (consentError()) {
+        <p class="consent__error" role="alert">{{ consentError() }}</p>
+      }
+
+      <p class="consent__grant reep-body2">
+        Choosing “I agree” records your consent to points 1 and 2 on the college's server. The
+        interview cannot run without them; point 3 is yours to decide.
+      </p>
+
       <div class="consent__actions">
-        <button type="button" class="btn" (click)="cancelConsent()">Cancel</button>
-        <button type="button" class="btn btn--primary" (click)="acceptConsent()">
-          I understand — start the interview
+        <button type="button" class="btn" [disabled]="consentBusy()" (click)="cancelConsent()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn--primary"
+          [disabled]="consentBusy()"
+          (click)="acceptConsent()"
+        >
+          {{ consentBusy() ? 'Recording your consent…' : 'I agree — start the interview' }}
         </button>
       </div>
     </div>
   </div>
+}
+
+<!--
+  The standing record of what was agreed, and the control to change it. Consent
+  that can only be given is not consent; because a grant is a row, withdrawing it
+  is expressible — and the copy says plainly what withdrawing does NOT do.
+-->
+@if (isStudent() && consent(); as grant) {
+  <p class="terms reep-body2">
+    <span class="chip good"><span class="icon">verified_user</span>Terms accepted</span>
+    <span class="terms__text">
+      Accepted {{ consentGrantedLabel() }}. Voice recording is
+      <strong>{{ grant.scope_store_audio ? 'on' : 'off' }}</strong
+      >.
+      <button type="button" class="link-btn" [disabled]="active()" (click)="openConsent()">
+        Change
+      </button>
+      <button
+        type="button"
+        class="link-btn"
+        [disabled]="active() || consentBusy()"
+        (click)="withdrawConsent()"
+      >
+        Withdraw
+      </button>
+      Withdrawing stops new interviews; interviews already recorded are kept — ask the placement
+      cell to remove one.
+    </span>
+  </p>
+}
+@if (!showConsent() && consentError()) {
+  <p class="err reep-body2" role="alert">{{ consentError() }}</p>
 }
 
 @if (notice(); as banner) {
@@ -146,6 +246,30 @@
   </div>
 
   <p class="stage__caption reep-body2">{{ statusCaption() }}</p>
+
+  <!--
+    THE WAIT, MADE VISIBLE. Under the v3 turn protocol the interviewer's next
+    question is created only AFTER your answer has been transcribed, so the
+    silence after you stop speaking is real and grows with the length of the
+    answer — worst on the long, considered answers a good candidate gives. A
+    static orb through three seconds of that is indistinguishable from a dead
+    app, and a student who concludes it broke starts talking again or reloads.
+
+    Held back until the service says the wait has gone past THINKING_AFFORDANCE_
+    AFTER_MS, so it does not flash on every ordinary turn and train the eye to
+    ignore it — except during the scorecard, which is known to take seconds and
+    says so immediately. The seconds counter is aria-hidden: a screen reader
+    needs the sentence, not a number re-announced once a second.
+  -->
+  @if (showWait()) {
+    <div class="wait" role="status">
+      <span class="wait__bar" aria-hidden="true"><span class="wait__fill"></span></span>
+      <span class="wait__text"
+        >{{ thinkingHint() }}
+        <span class="wait__secs" aria-hidden="true">{{ thinkingSeconds() }}s</span></span
+      >
+    </div>
+  }
 
   @if (active()) {
     <div class="stage__meta">
@@ -180,6 +304,26 @@
     </div>
   }
 </section>
+
+<!--
+  The scorecard, the moment the relay sends it — which is immediately BEFORE it
+  closes the socket, so this is the one place it is guaranteed to exist even if
+  the `interview_evaluations` row failed to write. The durable copy is on
+  /student/interviews.
+
+  The card carries its own calibration copy and its own "the interview completed,
+  only the report did not" wording for every failure. Do not add a score, a grade
+  or a congratulation around it here: that sentence has to sit with the number.
+-->
+@if (reportView(); as view) {
+  <section class="report" aria-label="Practice report">
+    <interview-report-card [view]="view" />
+    <p class="report__link reep-body2">
+      Saved to <a class="assist-note__link" routerLink="/student/interviews">your past interviews</a>
+      with the full transcript.
+    </p>
+  </section>
+}
 
 <section class="tscript" aria-label="Interview transcript">
   <h2 class="tscript__title reep-h6">This interview</h2>

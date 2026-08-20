@@ -11,7 +11,7 @@ PIPELINE (this is NOT native speech-to-speech):
       -> Silero VAD                       (local, decides when they stopped)
       -> Groq Whisper  whisper-large-v3-turbo      (speech -> text)
       -> Groq Llama    llama-3.3-70b-versatile     (text -> reply)
-      -> Edge TTS (default) or Groq TTS   (reply -> speech)
+      -> Groq TTS (default) or Edge TTS   (reply -> speech)
     -> student hears it
 
 Gemini Live was the original design and is NO LONGER USED: this Google project
@@ -30,6 +30,14 @@ LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, VOICE_TTS,
 VOICE_WORKER_SECRET). A real environment variable always wins over the file, so
 REEP_API_URL (default http://localhost:3300) and VOICE_WORKER_ID can still be
 overridden per-process.
+
+VOICE_MAX_CALL_SECONDS (default 900) is ENFORCED here and nowhere else, because
+only this process knows a call is still running — the LiveKit token's TTL bounds
+the JOIN, never the call. It is the same .env key the API reads into
+settings.voice_max_call_seconds, so the two agree without anyone syncing them;
+the API's half of the same guard rail is the per-student token cap (audit H2).
+VOICE_LOG_TRANSCRIPTS is a debugging opt-in that writes spoken words to this log;
+leave it off (audit M10).
 
 Flow: it joins the LiveKit room the browser connected to, resolves the
 conversation_id from the room name, and posts both sides' FINAL transcripts to
@@ -113,6 +121,53 @@ def _load_env_file() -> None:
 
 _load_env_file()
 
+
+def _int_env(name: str, default: int, *, minimum: int = 1) -> int:
+    """An int from the environment that cannot kill the process at IMPORT.
+
+    `int(os.getenv(NAME, "10"))` looks safe and is not: os.getenv returns the
+    default only when the key is ABSENT, and a bare `VOICE_HEARTBEAT_INTERVAL_SECONDS=`
+    line sets it to the empty string. int("") raises ValueError at module import,
+    before the worker has registered with LiveKit or logged anything useful --
+    and apps/api-py/.env is shared by four processes, any of which may leave a
+    key with no value while someone is editing it. app/config.py solves exactly
+    this for the API process (`_blank_is_default`); the worker gets no
+    pydantic-settings, so it gets this.
+
+    A value below `minimum` also falls back rather than being honoured. These
+    numbers are caps and intervals: `VOICE_MAX_CALL_SECONDS=0` read literally
+    means "hang up on every student the instant they connect", and a typo must
+    not be able to mean that. Same reasoning as config.py's `_must_be_positive`,
+    except that refusing to boot is the wrong answer out here -- the worker is
+    the only thing standing between a student and a silent room.
+    """
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        log.warning("%s=%r is not a whole number - using %d", name, raw, default)
+        return default
+    if value < minimum:
+        log.warning(
+            "%s=%d is below the minimum of %d - using %d", name, value, minimum, default
+        )
+        return default
+    return value
+
+
+def _flag_env(name: str) -> bool:
+    """An OPT-IN boolean: only an explicit yes is true, everything else is false.
+
+    A string rather than a real bool for the same reason config.py keeps
+    llm_allow_remote_student_data as one: a blank line in the shared .env must be
+    legal. Unrecognised spellings read as OFF, deliberately -- every flag this
+    reads guards something that is safer left off.
+    """
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 # --- Cascade model choices -------------------------------------------------- #
 # Groq serves BOTH stages this worker needs from one free key: Whisper for
 # speech-to-text and Llama for the reply. GROQ_API_KEY is read from the same .env
@@ -120,11 +175,28 @@ _load_env_file()
 GROQ_STT_MODEL = "whisper-large-v3-turbo"
 GROQ_LLM_MODEL = "llama-3.3-70b-versatile"
 
-# Which text-to-speech to speak with. "groq" is preferred — an officially
-# supported plugin on the same key as the other two stages — but the model is
-# gated behind a one-off terms acceptance in the Groq console. "edge" needs no
-# account at all and is the default so a fresh checkout can talk immediately.
-VOICE_TTS = os.getenv("VOICE_TTS", "edge").strip().lower()
+# Which text-to-speech speaks to the student.
+#
+# DEFAULT IS "groq", AND THAT IS A PRIVACY DECISION, NOT A PREFERENCE. It used to
+# default to "edge", which routes every word the assistant says to an
+# UNOFFICIAL Microsoft endpoint: no terms of service, no privacy undertaking, no
+# SLA, no quota. requirements-voice.txt has said in writing that this is unfit
+# for a student cohort since edge-tts was added -- and it was still what a fresh
+# checkout, a demo, and any deployment that never set VOICE_TTS actually used.
+# A default is what runs, so a documented warning next to a dangerous default is
+# just a record of the decision nobody made.
+#
+# Groq TTS is an officially supported plugin on the SAME key as the other two
+# cascade stages, so choosing it adds no new vendor to the trust boundary. Its
+# one cost is a one-off terms acceptance in the Groq console, which is a person
+# reading terms -- the thing edge-tts does not offer at all.
+#
+# "edge" remains available and is now OPT-IN, with a loud warning every time it
+# is selected (see _warn_if_unofficial_tts). Anything ELSE -- a typo, "grok",
+# "elevenlabs" -- falls back to groq rather than to edge: an unrecognised value
+# must not be able to silently route student-facing audio to the endpoint we
+# just stopped defaulting to.
+VOICE_TTS = os.getenv("VOICE_TTS", "groq").strip().lower()
 GROQ_TTS_MODEL = os.getenv("GROQ_TTS_MODEL", "canopylabs/orpheus-v1-english")
 GROQ_TTS_VOICE = os.getenv("GROQ_TTS_VOICE", "autumn")
 # Indian-English voice, chosen for LATENCY as much as accent. Measured
@@ -148,10 +220,33 @@ WORKER_ID = os.getenv("VOICE_WORKER_ID") or f"voice-agent-{uuid.uuid4().hex[:8]}
 # Was 15, which the server asks to be "well inside" its 30s freshness window —
 # and _post_sync blocks for up to 10s, so 15 + a slow POST already exceeded it
 # and one stalled beat read as an outage.
-HEARTBEAT_INTERVAL_SECONDS = int(os.getenv("VOICE_HEARTBEAT_INTERVAL_SECONDS", "10"))
+HEARTBEAT_INTERVAL_SECONDS = _int_env("VOICE_HEARTBEAT_INTERVAL_SECONDS", 10)
 # Poll the SDK's draining flag far more often than we beat, so a SIGTERM is
 # noticed within a second rather than after a full beat interval.
 DRAIN_POLL_SECONDS = 1.0
+
+# Hard ceiling on ONE call, in seconds. Mirrors settings.voice_max_call_seconds
+# on the API side; they are two processes reading the same .env, so they are kept
+# equal by configuration rather than by an import (this worker imports nothing
+# from app/ -- see tests/test_voice_worker_source.py).
+#
+# THE LIVEKIT TOKEN'S TTL IS NOT THIS. app/routers/voice.py mints a token valid
+# for 10 minutes, but LiveKit validates it once, at JOIN, and never again: a
+# student admitted at 9m59s keeps the room, this worker process, and a
+# Groq-billed STT+LLM+TTS cascade for as long as the tab stays open. Before this
+# cap the only thing that ended a forgotten call was the student closing the tab.
+# The API cannot enforce it -- it never learns a call started, let alone ended --
+# so it lives here, where the session actually is.
+VOICE_MAX_CALL_SECONDS = _int_env("VOICE_MAX_CALL_SECONDS", 900)
+
+# OFF by default, and it must stay that way. When on, spoken turns are written to
+# THIS PROCESS'S LOG, which is outside every retention control the product
+# offers: "Clear conversation" soft-deletes rows in Postgres, retention.purge
+# scrubs rows in Postgres, and neither has ever touched a log file. A student who
+# used the one control we give them for erasing their words would still leave
+# them here, indefinitely, wherever this log is shipped. Turn it on to debug a
+# specific transcription fault, and turn it off again.
+VOICE_LOG_TRANSCRIPTS = _flag_env("VOICE_LOG_TRANSCRIPTS")
 
 ROOM_PREFIX = "reep-conversation-"
 
@@ -318,6 +413,49 @@ def _start_heartbeat_thread(server: "AgentServer | None" = None) -> threading.Th
     return thread
 
 
+# Background tasks this module starts and never awaits. asyncio keeps only a
+# WEAK reference to a running task, so a bare create_task() can be collected
+# mid-flight and simply stop existing -- the hazard this file already guards on
+# transcript writes, and the one the disconnect call below used to have.
+#
+# Process-wide rather than per-session, unlike `pending_writes` in entrypoint().
+# The distinction matters and is not an oversight: pending_writes is AWAITED at
+# end of call, so sharing it across sessions coupled one student's hang-up to
+# every other call on the worker. Nothing ever waits on this set -- it exists
+# only to hold references -- so there is no coupling to create.
+_BACKGROUND_TASKS: set[asyncio.Task[Any]] = set()
+
+
+def _spawn(coro: Any, *, what: str) -> "asyncio.Task[Any]":
+    """create_task() with the two things a bare create_task() does not give you.
+
+    1. A STRONG REFERENCE, held until the task completes (see above).
+    2. The exception OBSERVED. An un-awaited task that raises is silent until
+       the garbage collector eventually prints "Task exception was never
+       retrieved", detached from the call it belonged to and often after the job
+       process is gone. Every caller here is doing something whose failure is
+       invisible from the outside -- hanging up a room that is discarding turns,
+       or enforcing the call-duration cap -- so a failure that logs nothing means
+       the guard silently is not there.
+
+    CancelledError is not an error: shutting the session down cancels these on
+    purpose.
+    """
+    task = asyncio.create_task(coro)
+    _BACKGROUND_TASKS.add(task)
+
+    def _done(finished: "asyncio.Task[Any]") -> None:
+        _BACKGROUND_TASKS.discard(finished)
+        if finished.cancelled():
+            return
+        exc = finished.exception()
+        if exc is not None:
+            log.error("%s failed: %r", what, exc)
+
+    task.add_done_callback(_done)
+    return task
+
+
 async def _persist_turn(
     conversation_id: str, role: str, text: str, provider_turn_id: str | None,
     on_conversation_gone: "Callable[[], None] | None" = None,
@@ -473,8 +611,10 @@ class EdgeTTS(lk_tts.TTS):
     a TTS that hands back a ChunkedStream, and a ChunkedStream whose _run pushes
     encoded audio into the supplied AudioEmitter.
 
-    Chosen as the DEFAULT because it needs no API key and no terms acceptance,
-    so voice works on a fresh checkout. It is not a published API, though —
+    OPT-IN ONLY (VOICE_TTS=edge). It needs no API key and no terms acceptance,
+    which is exactly why it was the default and exactly why it must not be:
+    an endpoint with no terms has made no undertaking about the audio it is
+    sent. Kept for local development on a checkout with no Groq TTS access —
     prefer VOICE_TTS=groq for anything students actually use.
     """
 
@@ -531,14 +671,47 @@ class EdgeChunkedStream(lk_tts.ChunkedStream):
         output_emitter.flush()
 
 
+def _warn_if_unofficial_tts() -> None:
+    """Say out loud, every time, that student audio is leaving via edge-tts.
+
+    Called at worker startup AND from _build_tts, because they land in different
+    logs: startup runs in the parent process, _build_tts inside each forked job.
+    An operator tailing either one must see it.
+
+    A WARNING and not a refusal: edge is a legitimate choice on a laptop with no
+    Groq TTS access, and refusing to speak would break local development to
+    protect nobody. What it must not be is quiet.
+    """
+    if VOICE_TTS != "edge":
+        return
+    log.warning(
+        "VOICE_TTS=edge: every reply is being synthesised by an UNOFFICIAL "
+        "Microsoft endpoint with no terms of service, no privacy undertaking and "
+        "no SLA. Acceptable for development; NOT acceptable for a student "
+        "cohort. Set VOICE_TTS=groq (same GROQ_API_KEY as STT and the LLM) "
+        "before students use this."
+    )
+
+
 def _build_tts() -> lk_tts.TTS:
-    """Pick the voice. Groq keeps the whole cascade on one key and one vendor;
-    edge is the zero-setup fallback."""
-    if VOICE_TTS == "groq":
-        log.info("TTS: groq %s (voice=%s)", GROQ_TTS_MODEL, GROQ_TTS_VOICE)
-        return groq.TTS(model=GROQ_TTS_MODEL, voice=GROQ_TTS_VOICE)
-    log.info("TTS: edge-tts (voice=%s)", EDGE_TTS_VOICE)
-    return EdgeTTS()
+    """Pick the voice.
+
+    Groq is the default and keeps the whole cascade on one key and one vendor.
+    Edge is opt-in and warns (see _warn_if_unofficial_tts).
+
+    An UNRECOGNISED value resolves to groq, not to edge. This used to be an
+    `if groq / else edge` pair, so `VOICE_TTS=grok` -- or "Groq " from a
+    copy-paste, before .strip().lower() -- quietly routed student-facing audio to
+    the unofficial endpoint. A typo must fail toward the supported provider.
+    """
+    if VOICE_TTS == "edge":
+        _warn_if_unofficial_tts()
+        log.info("TTS: edge-tts (voice=%s)", EDGE_TTS_VOICE)
+        return EdgeTTS()
+    if VOICE_TTS not in ("", "groq"):
+        log.warning("VOICE_TTS=%r is not a known provider - using groq", VOICE_TTS)
+    log.info("TTS: groq %s (voice=%s)", GROQ_TTS_MODEL, GROQ_TTS_VOICE)
+    return groq.TTS(model=GROQ_TTS_MODEL, voice=GROQ_TTS_VOICE)
 
 
 async def _speak_greeting(session: AgentSession) -> bool:
@@ -674,7 +847,42 @@ async def entrypoint(ctx: JobContext) -> None:
         if conversation_gone:
             return
         conversation_gone = True
-        asyncio.create_task(ctx.room.disconnect())
+        # _spawn, not create_task: a bare task here is held only weakly and
+        # can be collected before the room actually disconnects, and a
+        # disconnect that RAISES would be swallowed entirely -- either way the
+        # room stays up and the student keeps talking into a call whose every
+        # word is discarded, which is the exact outcome this function exists
+        # to prevent.
+        _spawn(ctx.room.disconnect(), what="disconnect after cleared conversation")
+
+    async def _end_call_at_max_duration() -> None:
+        """Hang up once the call has run for VOICE_MAX_CALL_SECONDS.
+
+        The LiveKit token cannot do this. Its 10-minute TTL (TOKEN_TTL in
+        app/routers/voice.py) bounds how long the JWT may be used to JOIN; the
+        room checks it once and never again, so a tab left open holds this
+        process and a billed STT+LLM+TTS cascade indefinitely. The API cannot do
+        it either -- it never hears that a call started, let alone that it is
+        still running. Only this process knows, so this is where the ceiling
+        lives.
+
+        Disconnecting rather than announcing first, to match
+        _end_call_conversation_gone: the browser surfaces a room disconnect as a
+        normal end of call, and a farewell utterance would mean an extra TTS
+        round-trip on the path we are trying to stop paying for -- one that can
+        itself hang, leaving the cap unenforced.
+        """
+        await asyncio.sleep(VOICE_MAX_CALL_SECONDS)
+        log.warning(
+            "call for conversation_id=%s hit the %ds duration cap - disconnecting",
+            conversation_id,
+            VOICE_MAX_CALL_SECONDS,
+        )
+        await ctx.room.disconnect()
+
+    # Armed at room join, not at first audio: the cost being capped is the room
+    # and this process, both of which exist from here.
+    call_deadline = _spawn(_end_call_at_max_duration(), what="call duration cap")
 
     session = AgentSession(
         vad=_get_vad(),
@@ -784,6 +992,10 @@ async def entrypoint(ctx: JobContext) -> None:
         (20.0): the parent waits only that long after sending ShuttingDown before
         SIGKILL, so an unbounded wait here would just be killed mid-write.
         """
+        # The call is already over, so the duration cap has nothing left to
+        # enforce. Left running it would sit on its sleep for the rest of the
+        # window holding a reference to a dead room, then disconnect it again.
+        call_deadline.cancel()
         # A call that ends while the agent is still mid-utterance never emits the
         # state change, so flush whatever is held rather than dropping the last
         # thing the agent said.
@@ -808,11 +1020,28 @@ async def entrypoint(ctx: JobContext) -> None:
     @session.on("conversation_item_added")
     def _on_item(ev: Any) -> None:
         item = getattr(ev, "item", ev)
+        # LENGTH AND ID, NEVER THE WORDS. This line used to log the first 60
+        # characters of every spoken turn, which made the worker log a second,
+        # parallel transcript that no retention control can reach: "Clear
+        # conversation" soft-deletes rows in Postgres, retention.purge scrubs
+        # rows in Postgres, and a log file is neither. A student who used the one
+        # erasure control the product offers still left their words here, in
+        # whatever aggregator this log ships to, indefinitely.
+        #
+        # What is kept is what the log was actually useful for -- did a turn
+        # arrive, was it the role expected, and does its id match the row that
+        # did or did not get persisted. VOICE_LOG_TRANSCRIPTS re-enables the text
+        # for someone debugging a specific transcription fault, as a deliberate
+        # act with the consequence written next to the flag.
+        text = getattr(item, "text_content", None) or ""
         log.info(
-            "conversation_item_added: role=%s text=%r",
+            "conversation_item_added: role=%s chars=%d id=%s",
             getattr(item, "role", None),
-            (getattr(item, "text_content", None) or "")[:60],
+            len(text),
+            getattr(item, "id", None),
         )
+        if VOICE_LOG_TRANSCRIPTS and text:
+            log.info("conversation_item_added TEXT (VOICE_LOG_TRANSCRIPTS): %r", text)
         if getattr(item, "role", None) == "assistant":
             # Hold it; a previous one still pending means that utterance ended
             # without a state change, so flush it first rather than lose it.
@@ -878,6 +1107,7 @@ if __name__ == "__main__":
     # Start beating BEFORE run_app takes the main thread: /api/voice/status must
     # report worker_healthy while the worker is idle, or no token is ever minted
     # and no session can start.
+    _warn_if_unofficial_tts()
     _start_heartbeat_thread(server)
     log.info("heartbeat started (worker_id=%s -> %s)", WORKER_ID, API_BASE)
     agents.cli.run_app(server)

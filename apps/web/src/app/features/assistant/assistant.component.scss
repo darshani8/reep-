@@ -123,6 +123,47 @@
   border-radius: 0 8px 8px 0;
   font-weight: 600;
 }
+.consent__sub {
+  margin: 16px 0 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--reep-text-primary);
+}
+.consent__sub:first-child {
+  margin-top: 0;
+}
+/* The optional scope. A real checkbox with a real <label> around it: the whole
+   sentence is the hit target, and nothing about it is pre-ticked. */
+.consent__opt {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 11px 13px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 10px;
+  background: var(--reep-action-hover);
+  cursor: pointer;
+}
+.consent__opt input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.consent__opt:focus-within {
+  border-color: var(--reep-primary-main, #1a3c5e);
+  box-shadow: 0 0 0 2px rgba(26, 60, 94, 0.18);
+}
+.consent__error {
+  margin: 14px 0 0;
+  font-size: 0.8125rem;
+  color: var(--reep-error-main);
+}
+.consent__grant {
+  margin: 14px 0 0;
+  color: var(--reep-text-secondary);
+}
 .consent__actions {
   display: flex;
   justify-content: flex-end;
@@ -132,6 +173,27 @@
 .consent__actions .btn:focus-visible {
   outline: 2px solid var(--reep-primary-main, #1a3c5e);
   outline-offset: 2px;
+}
+/* A long dialog must scroll INSIDE the card, or the actions land below the fold
+   on a laptop and the student cannot reach the button they are being asked to
+   press. */
+.consent__body {
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+/* --- The standing record of the grant ----------------------------------- */
+.terms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: -8px 0 18px;
+  max-width: 78ch;
+  color: var(--reep-text-secondary);
+}
+.terms__text {
+  flex: 1 1 320px;
 }
 
 /* --- Banner (why the session ended, or what is degrading it) ------------ */
@@ -262,6 +324,72 @@
   margin: 0;
   text-align: center;
   max-width: 56ch;
+  color: var(--reep-text-secondary);
+}
+
+/* --- The wait affordance (v3: the question comes after the transcript) --- */
+.wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  max-width: 340px;
+}
+.wait__bar {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--reep-action-hover);
+  border: 1px solid var(--reep-divider);
+  overflow: hidden;
+}
+/* INDETERMINATE on purpose. There is no progress to report — the relay cannot
+   know how long the transcriber will take — and a bar that pretended to fill
+   towards a finish line would be inventing one. This says "working", which is
+   the true and only claim available. */
+.wait__fill {
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: var(--reep-warning-main, #b26a00);
+  animation: wait-slide 1.4s ease-in-out infinite;
+}
+@keyframes wait-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+.wait__text {
+  font-size: 0.8125rem;
+  color: var(--reep-text-secondary);
+  text-align: center;
+}
+.wait__secs {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--reep-text-primary);
+}
+/* Reduced motion still needs the affordance — it is the whole point — so the
+   bar stops moving and the seconds counter carries "still working" on its own. */
+@media (prefers-reduced-motion: reduce) {
+  .wait__fill {
+    animation: none;
+    width: 100%;
+    opacity: 0.55;
+  }
+}
+
+/* --- The practice report ------------------------------------------------ */
+.report {
+  margin: 0 0 24px;
+}
+.report__link {
+  margin: 10px 0 0;
   color: var(--reep-text-secondary);
 }
 

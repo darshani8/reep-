@@ -46,6 +46,27 @@ class User(Base):
     # Format: "scrypt:<salt_hex>:<digest_hex>" — identical to the Next.js app,
     # so migrated hashes verify without a reset.
     password_hash: Mapped[str] = mapped_column(String)
+    # THE GOOGLE PRINCIPAL THIS ROW IS PINNED TO. `email` is how a sign-in FINDS
+    # a row; `sub` is what proves it is the same person as last time. An
+    # institutional address is a lease, not an identity — the college re-issues
+    # 1mp25mdm01@ to a new intake — and with sign-in keyed on the email string
+    # alone the new holder inherited the previous student's marks, uploads and
+    # mentor notes through a completely valid Google login, silently. Pinned on
+    # the first Google sign-in (NULL until then, so every already-seeded roster
+    # row keeps working) and compared on every one after; a mismatch is refused
+    # in app/routers/auth.py rather than reconciled, because the only safe way
+    # to hand a row to a new person is for a human to clear this column.
+    #
+    # UNIQUE so the same Google account cannot end up pinned to two roster rows.
+    # Nullable + unique is the right pair in Postgres: NULLs are not compared,
+    # so any number of un-pinned rows coexist.
+    google_sub: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
+    # Bumped on logout; carried in the session JWT and compared on the way back
+    # in. See app/security.py — this column is the whole of the revocation
+    # story, including its honest limits.
+    token_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

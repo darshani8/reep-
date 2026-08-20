@@ -76,3 +76,52 @@ def test_resume_generate_respects_egress_gate(client, login):
     r = client.post("/api/student/resume/generate", headers=h, json={"title": "T"})
     assert r.status_code == 200
     assert r.json()["used_ai"] is False
+
+
+@requires_db
+def test_pending_leave_is_scoped_to_the_mentor_group(client, login, make_user):
+    """AGENTS.md rule 2 on the leave queue: a MENTOR with no Mentor group sees
+    NOBODY, and cannot sign for anybody.
+
+    Leave is the surface where getting this wrong hurts most — `reason` is free
+    text and is routinely medical or personal — and it is the one place that
+    gated on require_mentor alone until the 2026-08 audit.
+    """
+    from sqlalchemy import delete
+
+    from app.db import SessionLocal
+    from app.models.leave import LeaveRequest
+    from app.models.user import Role
+
+    student_h = login("student@bgscet.ac.in", "student123")
+    client.cookies.clear()  # explicit Cookie headers only; the jar would override them
+    r = client.post(
+        "/api/leaves",
+        headers=student_h,
+        json={"from_date": "2026-09-01", "to_date": "2026-09-02", "reason": "RBAC probe"},
+    )
+    assert r.status_code == 201, r.text
+    leave_id = r.json()["id"]
+
+    try:
+        # The seeded mentor DOES have the seeded student in their group.
+        grouped_h = login("mentor@bgscet.ac.in", "mentor123")
+        client.cookies.clear()
+        rows = client.get("/api/leaves/pending", headers=grouped_h).json()
+        assert leave_id in [row["id"] for row in rows]
+
+        # A MENTOR with no Mentor group: not "the whole programme", not one row.
+        loner = make_user("nogroup", Role.MENTOR)
+        assert client.get("/api/leaves/pending", headers=loner.headers).json() == []
+        # ...and no signature either, with the same 404 an unknown id gets, so the
+        # decision endpoint cannot be used to probe which leave ids exist.
+        decision = client.post(
+            f"/api/leaves/{leave_id}/decision",
+            headers=loner.headers,
+            json={"decision": "APPROVE"},
+        )
+        assert decision.status_code == 404, decision.text
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(LeaveRequest).where(LeaveRequest.id == leave_id))
+            db.commit()

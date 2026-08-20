@@ -1,36 +1,63 @@
-"""Assistant retention & aged-data redaction (Assistant V2 Phase D, review #9).
+"""Assistant retention & aged-data redaction (Assistant V2 Phase D, review #9;
+interview records added by Interview Engine v3 §6.7 layer 3 and §6.8).
 
-Memory does not live forever. Two jobs keep the assistant's stored data on a
-lifecycle instead of letting it accumulate indefinitely:
+Memory does not live forever. Three jobs keep stored data on a lifecycle instead
+of letting it accumulate indefinitely:
 
-* ``purge_expired`` walks conversations: one whose ``retention_until`` has passed
-  is SOFT-deleted (``deleted_at`` stamped) — recoverable-shaped but hidden — and
-  the free text it still carries through the grace window is PII-scrubbed with
-  ``app.redaction.redact_pii``. A conversation that has been soft-deleted for
-  longer than the grace window is HARD-deleted together with its messages.
+* ``purge_expired`` walks conversations AND interview records: one whose
+  ``retention_until`` has passed is SOFT-deleted (``deleted_at`` stamped) —
+  recoverable-shaped but hidden — and the free text it still carries through the
+  grace window is PII-scrubbed with ``app.redaction.redact_pii``. Anything
+  soft-deleted for longer than the grace window is HARD-deleted. The two subjects
+  share one function on purpose: **one retention story in this codebase, not
+  two.** A second module with its own clock and its own grace window is how a
+  student's transcript ends up outliving the conversation it was quoted from.
 * ``redact_expired_runs`` walks the ``AgentRun`` audit trail: a run older than the
   window keeps its METRICS (status, intent, resolved, duration_ms, model) but has
   its free text (question, answer, trace, citations) replaced with the redaction
   sentinel — so long-run analytics survive without holding a student's words.
+* ``finalize_orphaned_interviews`` is the THIRD and last finalization layer for
+  ``interview_sessions`` (§6.7). Layers 1 and 2 — the relay's own finalizer and
+  the router's ``finally:`` backstop — both need the process to still be alive.
+  This one is the answer to ``kill -9``: a ``running`` row whose heartbeat went
+  stale becomes an honest ``abandoned`` instead of a row that reads as still live
+  forever. A ``running`` row that is never closed is worse than no row, because
+  it is a record that lies.
 
-Both are IDEMPOTENT (a second pass is a no-op) and pure functions of ``now`` so a
-test can pin the clock. They are intended to be driven from a scheduled job or a
-management call — NOT wired to a cron here; wiring them is a deployment concern.
+All three are IDEMPOTENT (a second pass is a no-op) and pure functions of ``now``
+so a test can pin the clock.
+
+**What is wired and what is not.** ``finalize_orphaned_interviews`` IS called
+once at startup from ``app/main.py``'s lifespan — a worker that just restarted is
+exactly the process that knows the previous one died, so a deploy or a
+crash-restart sweeps its own orphans with no cron at all. ``purge_expired`` and
+``redact_expired_runs`` are still NOT wired: they delete student data on a clock,
+which is a deployment decision, and running them from every boot would make the
+amount of data destroyed a function of how often someone restarts the API.
 """
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.orm import Session
 
+from .config import settings
 from .models.agent_run import AgentRun
 from .models.conversation import Conversation, Message
+from .models.interview import InterviewEvaluation, InterviewSession, InterviewTurn
 from .redaction import REDACTED, redact_pii
 
+log = logging.getLogger("reep.retention")
+
 # A soft-deleted conversation is kept this long (so a mistaken clear is
-# recoverable) before it is destroyed for good.
+# recoverable) before it is destroyed for good. Interview records reuse the same
+# window — the grace period answers "someone deleted this by mistake", which is
+# the same question for both subjects, and two different numbers would only mean
+# two different wrong answers to give a student who asks.
 SOFT_DELETE_GRACE_DAYS = 30
 
 
@@ -38,16 +65,148 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# ---------------------------------------------------------------------------
+# The one place interview retention reaches outside Postgres
+# ---------------------------------------------------------------------------
+def _delete_interview_audio(rows: Sequence[InterviewSession]) -> tuple[int, list[str]]:
+    """Sweep the audio store for **every** session in ``rows``, not only the ones
+    whose row admits to having audio.
+
+    Returns ``(sessions_whose_audio_was_destroyed, blocked_session_ids)``. A
+    session id in the second list is one whose bytes are still on disk, and its
+    database row **must not be hard-deleted this pass** — see the reasoning below.
+
+    **DO NOT "OPTIMISE" THIS BACK INTO A FLAG TEST.** It used to select
+    ``[r for r in rows if r.audio_recorded or r.audio_path]``, and that filter is
+    exactly how a named student's voice outlives its retention window. Those two
+    columns record what the RELAY BELIEVED and managed to write down; the whole
+    failure mode is that the relay may have died before it could write anything
+    down. A session whose Layer 1 finalizer never ran — an exception its
+    ``except*`` clauses do not match — still has its files closed by ``run()``'s
+    ``finally``, so the bytes are on disk while the row says ``audio_recorded =
+    false, audio_path = NULL``. Filtering on the row asks the wrong witness. The
+    filesystem is the authority on which files exist.
+
+    The unconditional call costs nothing because ``delete_session_audio`` is a
+    no-op for a session that never recorded — see its contract, which states that
+    property precisely so this call site can rely on it: files are named after
+    the ``interview_sessions.id``, so the session's primary key alone finds them,
+    and a missing file (or a store directory that was never created, which is
+    every deployment with recording disabled) is success rather than an error.
+    That is what makes an unconditional sweep the fix here, rather than the
+    reconciliation pass this module and the store both used to sketch: no store
+    listing, no second delete path, no new state.
+
+    THIS IS THE SINGLE INTEGRATION POINT for the interview-audio store. Every
+    other line of this module speaks only to Postgres, where a delete is
+    transactional and either happens or does not. Audio is a file on a disk: the
+    delete is not in our transaction, it can half-succeed, and it is a named
+    student's recorded voice. Keeping that in one function means the next editor
+    changes it in one place, and means "does retention delete the audio?" has one
+    answer rather than a grep.
+
+    The import stays guarded even though the store now exists: this module's
+    other three jobs — conversations, ``AgentRun`` redaction, the orphan sweeper
+    — speak only to Postgres and must keep working if ``app/interview_audio.py``
+    is ever moved, renamed or stripped from a slim image. An ``ImportError`` here
+    is reported and made safe, never fatal to the whole sweep.
+
+    The contract this expects of the store, stated here because this is its only
+    caller::
+
+        # app/interview_audio.py
+        def delete_session_audio(interview_session_id: str, audio_path: str | None = None) -> int:
+            '''Remove any stored audio for this interview; return files removed.
+
+            IDEMPOTENT: an already-missing file is success, not an error — the
+            reaper retries, and a second pass must not start raising.
+            A NO-OP for a session that never recorded, store directory or not.
+            RAISES only when bytes are believed to still be on disk.
+            '''
+
+    **A session whose audio could not be deleted keeps its database row.** That
+    is the deliberate direction to fail, and it is the same reasoning §6.7 gives
+    for the orphan sweeper: deleting the row would leave a recording of a named
+    student on disk with *nothing left pointing at it* — undiscoverable, so
+    undeletable by anyone who later has to answer for it. A row that outlives its
+    retention window by one sweep is visible and arguable. An orphaned voice file
+    is neither.
+    """
+    if not rows:
+        return 0, []
+
+    try:
+        from .interview_audio import delete_session_audio
+    except ImportError:
+        # No store, so no way to delete anything and no way to look. THE ONE
+        # PLACE the flags are still read, because with the store gone they are
+        # the only evidence left about which sessions had audio — and blocking
+        # every row instead would freeze interview retention entirely over a
+        # broken import, leaving transcripts past their window to answer for
+        # too. ERROR, not a warning: this is student voice data that retention
+        # has been asked to destroy and cannot.
+        claimed = [r.id for r in rows if r.audio_recorded or r.audio_path]
+        if claimed:
+            log.error(
+                "%d interview session(s) past retention carry stored audio, but "
+                "app/interview_audio.py is not importable — their audio cannot be "
+                "deleted and their rows are being HELD BACK from hard-delete so the "
+                "files stay discoverable. Session ids: %s",
+                len(claimed),
+                ", ".join(claimed),
+            )
+        else:
+            log.error(
+                "app/interview_audio.py is not importable, so %d expiring "
+                "interview session(s) are being hard-deleted without their audio "
+                "store being swept. No row claims a recording, but a row is not "
+                "the authority on what is on disk.",
+                len(rows),
+            )
+        return 0, claimed
+
+    deleted = 0
+    blocked: list[str] = []
+    for row in rows:
+        try:
+            # The row's PRIMARY KEY first and its remembered path second: the id
+            # is the file's name and is always present, the path is only a
+            # cross-check for the day the naming rule changes.
+            if delete_session_audio(row.id, row.audio_path):
+                deleted += 1
+        except Exception:
+            # One bad file must not stop the rest of the sweep, and must not be
+            # swallowed either.
+            log.exception(
+                "Failed to delete stored audio for interview session %s "
+                "(path=%r); its row is held back from hard-delete.",
+                row.id,
+                row.audio_path,
+            )
+            blocked.append(row.id)
+    return deleted, blocked
+
+
 def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
-    """Advance every conversation one step along its retention lifecycle.
+    """Advance every conversation AND every interview record one step along its
+    retention lifecycle.
 
     * retention_until in the past and not yet soft-deleted -> soft-delete now and
-      PII-scrub the messages it keeps through the grace window.
-    * soft-deleted more than ``SOFT_DELETE_GRACE_DAYS`` ago -> hard-delete the
-      conversation and its messages.
+      PII-scrub the free text it keeps through the grace window.
+    * soft-deleted more than ``SOFT_DELETE_GRACE_DAYS`` ago -> hard-delete it and
+      everything hanging off it.
 
-    Returns a summary ``{soft_deleted, messages_redacted, hard_deleted,
-    messages_deleted}``. Idempotent: a run with nothing due changes nothing.
+    The two subjects run on **different clocks and the same shape**: a
+    conversation is kept 90 days (it is a chat thread), an interview record 180
+    (``settings.interview_retention_days`` — it is an assessment artefact a
+    mentor reviews across a semester). They are one function because the shape is
+    the thing that must not diverge; the numbers were always allowed to differ.
+
+    Returns a summary. The conversation keys — ``soft_deleted``,
+    ``messages_redacted``, ``hard_deleted``, ``messages_deleted`` — are unchanged
+    and still count conversations only; the interview keys are prefixed
+    ``interview*`` so no caller can read one subject's number as the other's.
+    Idempotent: a run with nothing due changes nothing.
     """
     now = now or _utcnow()
     grace_cutoff = now - timedelta(days=SOFT_DELETE_GRACE_DAYS)
@@ -57,6 +216,20 @@ def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
         "messages_redacted": 0,
         "hard_deleted": 0,
         "messages_deleted": 0,
+        "interviews_soft_deleted": 0,
+        "interview_turns_redacted": 0,
+        "interview_reports_redacted": 0,
+        "interviews_hard_deleted": 0,
+        "interview_turns_deleted": 0,
+        # Sessions whose stored audio was actually found and destroyed. The
+        # sweep runs for every expiring session, so this is normally far smaller
+        # than `interviews_hard_deleted` — and a number LARGER than the count of
+        # rows that claimed audio is not a bug, it is the hole this closes.
+        "interview_audio_deleted": 0,
+        # Sessions that were due for hard-delete and were held back because their
+        # stored audio could not be destroyed. Non-zero here means retention did
+        # NOT complete and someone has to look — see _delete_interview_audio.
+        "interviews_hard_delete_blocked": 0,
     }
 
     # --- 1) Soft-delete conversations whose retention window has closed. -------
@@ -100,8 +273,191 @@ def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
         )
         summary["hard_deleted"] = len(doomed_ids)
 
+    # --- 3) The same two stages for interview records. -------------------------
+    #
+    # Deliberately AFTER the conversation stages, and safe in either order: the
+    # bulk `delete(Message)` above cannot touch an interview_turns row, because
+    # `interview_turns.message_id` carries ON DELETE SET NULL **in the DDL** (a
+    # bulk DELETE bypasses ORM cascades entirely), and `interview_sessions.
+    # conversation_id` is SET NULL for the same reason. A student clearing their
+    # chat, or the 90-day conversation clock closing first, leaves the interview
+    # record standing with two NULLs and every turn intact. That is the whole
+    # point of keying this record on interview_session_id and never on
+    # conversation_id.
+    retention_window = timedelta(days=settings.interview_retention_days)
+
+    # --- 3a) Soft-delete + redact interviews past their window. ----------------
+    #
+    # `retention_until` is STORED at open (started_at + the window) so that
+    # changing the setting cannot retroactively re-date an interview a student
+    # was already promised 180 days for. The NULL branch is the fallback for a
+    # row written before that column was populated, or by a writer that failed to
+    # set it: without it such a row is kept FOREVER, which is the one outcome
+    # nobody would choose on purpose. An OR of two explicit predicates rather
+    # than a COALESCE so the stored branch can still use
+    # ix_interview_session_retention.
+    expired_sessions = db.scalars(
+        select(InterviewSession).where(
+            InterviewSession.deleted_at.is_(None),
+            or_(
+                and_(
+                    InterviewSession.retention_until.is_not(None),
+                    InterviewSession.retention_until < now,
+                ),
+                and_(
+                    InterviewSession.retention_until.is_(None),
+                    InterviewSession.started_at < now - retention_window,
+                ),
+            ),
+        )
+    ).all()
+    for sess in expired_sessions:
+        sess.deleted_at = now
+        summary["interviews_soft_deleted"] += 1
+        # The student's own words, and the model's raw words about them, are the
+        # two free-text fields that survive into the grace window. §6.8 names
+        # exactly these two: `interview_turns.content` and
+        # `interview_evaluations.raw_response`. `summary`/`drill` are the
+        # student-facing coaching prose that the report screen renders, and they
+        # are left readable so a record in its final 30 days still means
+        # something to whoever opens it.
+        for turn in db.scalars(
+            select(InterviewTurn).where(
+                InterviewTurn.interview_session_id == sess.id
+            )
+        ).all():
+            scrubbed = redact_pii(turn.content)
+            if scrubbed != turn.content:
+                turn.content = scrubbed
+                summary["interview_turns_redacted"] += 1
+        for report in db.scalars(
+            select(InterviewEvaluation).where(
+                InterviewEvaluation.interview_session_id == sess.id
+            )
+        ).all():
+            scrubbed = redact_pii(report.raw_response)
+            if scrubbed != report.raw_response:
+                report.raw_response = scrubbed
+                summary["interview_reports_redacted"] += 1
+
+    # --- 3b) Hard-delete interviews soft-deleted past the grace window. --------
+    #
+    # Whole rows, not ids: the audio sweep wants the row's remembered
+    # `audio_path` as a cross-check, and asking for it after the delete is
+    # asking too late. It does NOT need it to decide whether to look — see
+    # _delete_interview_audio.
+    doomed_sessions = db.scalars(
+        select(InterviewSession).where(
+            InterviewSession.deleted_at.is_not(None),
+            InterviewSession.deleted_at < grace_cutoff,
+        )
+    ).all()
+    if doomed_sessions:
+        # Bytes on disk FIRST, rows second. The other order destroys the only
+        # pointer to a student's recording before destroying the recording.
+        audio_deleted, blocked_ids = _delete_interview_audio(doomed_sessions)
+        summary["interview_audio_deleted"] = audio_deleted
+        summary["interviews_hard_delete_blocked"] = len(blocked_ids)
+
+        blocked = set(blocked_ids)
+        doomed_session_ids = [s.id for s in doomed_sessions if s.id not in blocked]
+        if doomed_session_ids:
+            summary["interview_turns_deleted"] = (
+                db.query(InterviewTurn)
+                .filter(
+                    InterviewTurn.interview_session_id.in_(doomed_session_ids)
+                )
+                .count()
+            )
+            # One statement, and the database does the rest: `interview_turns`
+            # and `interview_evaluations` both carry ON DELETE CASCADE in the
+            # DDL. Deleting the children by hand first would work too, and would
+            # be the second implementation of a rule the schema already states —
+            # the shape that goes stale the day a fifth child table is added.
+            db.execute(
+                delete(InterviewSession).where(
+                    InterviewSession.id.in_(doomed_session_ids)
+                )
+            )
+            summary["interviews_hard_deleted"] = len(doomed_session_ids)
+
     db.commit()
     return summary
+
+
+def finalize_orphaned_interviews(
+    db: Session,
+    now: datetime | None = None,
+    grace_seconds: int | None = None,
+) -> int:
+    """Close ``interview_sessions`` rows whose process died mid-call, and return
+    how many were closed. **Layer 3 of three** (§6.7).
+
+    Layers 1 and 2 — the relay's own finalizer and the router's ``finally:``
+    backstop — both require this process to still be alive to run. Neither
+    survives ``kill -9``, an OOM kill, or a container that was cut off
+    mid-interview, and every one of those leaves a row that says ``running``
+    forever: a record that lies, on a student's history screen, next to real
+    interviews. This is the layer that needs nothing of the dead process except
+    the last heartbeat it managed to write.
+
+    The predicate is a **stale heartbeat**, never an elapsed ``started_at``. By
+    ``started_at`` alone a long healthy interview and a dead one are
+    indistinguishable, and the sweeper would end live calls.
+    ``settings.interview_orphan_grace_seconds`` (1200 = ``interview_max_seconds``
+    900 + 300 s of slack) sits comfortably past the longest legal interview, so a
+    healthy session is never a candidate.
+
+    ``ended_at`` is set to ``heartbeat_at``, **not** ``now``. The interview ended
+    when the heartbeat stopped; stamping ``now`` would inflate every orphaned
+    session's duration by however long the sweeper took to be run — which, since
+    the usual trigger is the next deploy, could be days.
+
+    Idempotent by construction: the ``status = 'running'`` predicate is the same
+    guard layers 1 and 2 use, so whichever finalizer gets there first wins and
+    the others update zero rows. It never overwrites a terminal status, so a
+    session that ended honestly is never relabelled ``abandoned``.
+
+    **The failure direction, stated so nobody has to rediscover it.** If the
+    relay's heartbeat write fails all session long, ``heartbeat_at`` stays at
+    ``started_at`` and this function will mark a perfectly healthy, still-running
+    interview ``abandoned``. That is wrong, and it is the correct way to be
+    wrong: a session wrongly marked abandoned is visible on a screen and someone
+    argues about it, while a session stuck at ``running`` forever is invisible
+    and nobody ever does. Do not "fix" this by loosening the predicate.
+    """
+    now = now or _utcnow()
+    grace = (
+        settings.interview_orphan_grace_seconds
+        if grace_seconds is None
+        else grace_seconds
+    )
+    cutoff = now - timedelta(seconds=grace)
+
+    result = db.execute(
+        update(InterviewSession)
+        .where(
+            InterviewSession.status == "running",
+            InterviewSession.heartbeat_at < cutoff,
+        )
+        .values(
+            status="abandoned",
+            terminal_reason="orphaned (no heartbeat)",
+            # A column reference, not a Python value — see the docstring.
+            ended_at=InterviewSession.heartbeat_at,
+        )
+    )
+    swept = result.rowcount or 0
+    if swept:
+        db.commit()
+        log.warning(
+            "Finalized %d orphaned interview session(s): status='running' with "
+            "no heartbeat for over %d s. Each one is a relay process that died "
+            "mid-call; their transcripts up to that point are intact.",
+            swept,
+            grace,
+        )
+    return swept
 
 
 def redact_expired_runs(

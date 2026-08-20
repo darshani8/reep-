@@ -11,7 +11,15 @@ from datetime import date, datetime, timedelta, timezone
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
 from ..deps import get_current_session
-from ..filestore import UploadRejected, content_disposition, delete as filestore_delete, read_bytes, save_bytes
+from ..filestore import (
+    MAX_UPLOAD_BYTES_PER_STUDENT,
+    MAX_UPLOADS_PER_STUDENT,
+    UploadRejected,
+    content_disposition,
+    delete as filestore_delete,
+    read_bytes,
+    save_bytes,
+)
 from ..resume_pdf import render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
@@ -715,6 +723,14 @@ def create_offer(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid role_type / channel / work_mode.",
         )
+    # job_id is an optional FK the client fills in when the offer came from a
+    # posting on the board. Unchecked, a typo reached Postgres and came back as a
+    # foreign-key IntegrityError — a 500 that reads to the student as "the site is
+    # broken" when the honest answer is "that job does not exist". Checked here,
+    # in the same place the enum values are, so every bad field in this body gets
+    # the same treatment. POST /jobs/{job_id}/apply already answers 404 this way.
+    if body.job_id and db.get(Job, body.job_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
     offer = PlacementOffer(
         student_id=student_id,
         role_type=role,
@@ -1366,7 +1382,41 @@ async def create_upload(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown upload kind."
         )
+
+    # Quota before the body is buffered. filestore.MAX_BYTES caps ONE file at
+    # 10 MB and nothing capped how many, so any authenticated student could fill
+    # the uploads volume 10 MB at a time — after which every other student's
+    # upload fails on a machine whose health checks all pass. The count is
+    # checked first precisely so an over-quota student never gets their megabytes
+    # read into this process's memory at all.
+    used_count, used_bytes = db.execute(
+        select(func.count(Upload.id), func.coalesce(func.sum(Upload.size_bytes), 0)).where(
+            Upload.student_id == student_id
+        )
+    ).one()
+    if used_count >= MAX_UPLOADS_PER_STUDENT:
+        # 409, not 413: the file is fine, the shelf is full. Deleting an upload
+        # (DELETE /student/uploads/{id}) removes the bytes and the row, so the
+        # student can act on this themselves — say so, or it reads as a dead end.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"You already have {used_count} files uploaded, which is the limit of "
+                f"{MAX_UPLOADS_PER_STUDENT}. Delete one you no longer need, then try again."
+            ),
+        )
+
     content = await file.read()
+    if used_bytes + len(content) > MAX_UPLOAD_BYTES_PER_STUDENT:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=(
+                f"This file would take you past your "
+                f"{MAX_UPLOAD_BYTES_PER_STUDENT // (1024 * 1024)} MB upload allowance "
+                f"({used_bytes / (1024 * 1024):.1f} MB used). Delete something you no "
+                "longer need, then try again."
+            ),
+        )
     try:
         stored_name, mime, size = save_bytes(content)
     except UploadRejected as exc:
@@ -1707,6 +1757,13 @@ def leaderboards(
             detail=f"Unknown board. One of: {', '.join(_BOARDS)}.",
         )
     me = db.get(Student, student_id)
+    if me is None:
+        # A session outlives the row it describes: a 12h cookie stays valid after
+        # a roster rekey or a deleted account, and this endpoint then read
+        # me.cohort_id straight through and 500ed. Every sibling that
+        # dereferences the caller's own Student answers 404 here (see
+        # /dashboard); match them rather than inventing a third behaviour.
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
     my_profile = db.scalar(
         select(StudentProfile).where(StudentProfile.student_id == student_id)
     )

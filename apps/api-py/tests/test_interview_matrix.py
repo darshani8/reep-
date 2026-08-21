@@ -55,6 +55,43 @@ class TestMatrix:
         assert "customer churn" in SPECIALIZATIONS["ba"].sample_question
         assert "$10 depreciation" in SPECIALIZATIONS["fa"].sample_question
 
+    def test_only_dm_carries_a_mapped_syllabus(self):
+        """The field is optional and must stay optional.
+
+        DM maps to 22MDM23; the other three tracks have no mapped course yet.
+        A default of () rather than None is what lets build_instructions test
+        truthiness without a None check at every call site.
+        """
+        assert SPECIALIZATIONS["dm"].syllabus
+        for key in ("hr", "ba", "fa"):
+            assert SPECIALIZATIONS[key].syllabus == ()
+
+    def test_the_dm_syllabus_covers_every_module_and_the_arithmetic(self):
+        """22MDM23 is five modules plus the metric formulas.
+
+        Pinned by content, not by length: a syllabus that silently lost SEO or
+        the formulas would still be a non-empty tuple, and the interview would
+        simply stop asking about a fifth of the course with nothing failing.
+        """
+        blob = " ".join(SPECIALIZATIONS["dm"].syllabus)
+        for module in ("Module 1", "Module 2", "Module 3", "Module 4", "Module 5"):
+            assert module in blob
+        for concept in ("P-O-E-M", "remarketing", "Ad Rank", "gamification", "crawling"):
+            assert concept in blob
+        for formula in ("CTR =", "CPC =", "CPM =", "ROAS ="):
+            assert formula in blob
+
+    def test_the_syllabus_carries_no_answer_key(self):
+        """Questions, never model answers.
+
+        The source bank ships 100 questions WITH answers. Composing those into
+        the instructions would have the model marking a student against a
+        memorised script instead of listening to them, so the syllabus is a
+        topic map and the giveaway phrasing must never appear in it.
+        """
+        blob = " ".join(SPECIALIZATIONS["dm"].syllabus)
+        assert "Answer:" not in blob
+
     def test_lookup_is_case_insensitive_and_tolerant(self):
         assert get_specialization("HR") is SPECIALIZATIONS["hr"]
         assert get_specialization(" fa ") is SPECIALIZATIONS["fa"]
@@ -63,6 +100,67 @@ class TestMatrix:
         assert get_specialization(None) is None
         assert get_specialization("") is None
         assert get_specialization("marketing") is None
+
+
+class TestSyllabusComposition:
+    """How the syllabus reaches the model, and what it must not disturb."""
+
+    def test_the_block_appears_for_dm_and_is_absent_otherwise(self):
+        dm = build_instructions(SPECIALIZATIONS["dm"], _INTERVIEWER_PERSONA)
+        hr = build_instructions(SPECIALIZATIONS["hr"], _INTERVIEWER_PERSONA)
+        assert "## The course this student has actually studied" in dm
+        # Not merely absent content - an empty heading composed anyway would
+        # tell the model a syllabus exists and then show it nothing.
+        assert "actually studied" not in hr
+
+    def test_the_base_persona_still_comes_first_and_verbatim(self):
+        """The syllabus block may not displace the conduct rules.
+
+        base_persona carries "one question at a time" and the rule-1
+        disclosure. A block inserted above it, or one that pushed it out of the
+        instruction entirely, would be invisible in review and would change
+        every DM interview.
+        """
+        out = build_instructions(SPECIALIZATIONS["dm"], _INTERVIEWER_PERSONA)
+        assert out.startswith(_INTERVIEWER_PERSONA)
+        assert out.index(_INTERVIEWER_PERSONA) < out.index("## The course")
+
+    @pytest.mark.parametrize(
+        "phase",
+        [InterviewPhase.OPENING, InterviewPhase.PROBING,
+         InterviewPhase.DEEP_DIVE, InterviewPhase.WRAP_UP],
+    )
+    def test_every_phase_still_composes_with_a_syllabus(self, phase):
+        out = build_instructions(SPECIALIZATIONS["dm"], _INTERVIEWER_PERSONA, phase)
+        assert f"## Current phase: {phase.value}" in out
+        assert "## The course this student has actually studied" in out
+
+    def test_probing_and_deep_dive_use_the_syllabus_when_there_is_one(self):
+        dm_probe = build_instructions(
+            SPECIALIZATIONS["dm"], _INTERVIEWER_PERSONA, InterviewPhase.PROBING
+        )
+        hr_probe = build_instructions(
+            SPECIALIZATIONS["hr"], _INTERVIEWER_PERSONA, InterviewPhase.PROBING
+        )
+        assert "syllabus modules" in dm_probe
+        assert "syllabus modules" not in hr_probe
+        dm_deep = build_instructions(
+            SPECIALIZATIONS["dm"], _INTERVIEWER_PERSONA, InterviewPhase.DEEP_DIVE
+        )
+        assert "at least two syllabus modules" in dm_deep
+
+    def test_no_student_data_path_is_opened(self):
+        """Rule 1, restated as a test on the new field.
+
+        The syllabus is fixed course text, so it is safe upstream for exactly
+        the reason the persona is: it is authored here and contains no student
+        record. This pins that the composed instruction is a pure function of
+        the matrix - the same arguments give the same string, so nothing
+        request-scoped can have leaked into it.
+        """
+        a = build_instructions(SPECIALIZATIONS["dm"], _INTERVIEWER_PERSONA)
+        b = build_instructions(SPECIALIZATIONS["dm"], _INTERVIEWER_PERSONA)
+        assert a == b
 
 
 class TestStateMachine:

@@ -72,6 +72,13 @@ class Specialization:
     persona: str
     frameworks: tuple[str, ...]
     sample_question: str
+    # The course the student was actually taught, module by module, when the
+    # programme has one. `frameworks` is what a PRACTITIONER is assessed on and
+    # is pitched at the industry bar; `syllabus` is what this cohort has sat in
+    # a classroom for, and the two are not the same interview. Optional, and
+    # empty for any track with no mapped course - build_instructions omits the
+    # block entirely rather than composing an empty heading.
+    syllabus: tuple[str, ...] = ()
 
 
 # VERBATIM from the product spec -- persona wording, framework lists and
@@ -113,6 +120,40 @@ SPECIALIZATIONS: Final[dict[str, Specialization]] = {
             sample_question=(
                 "Our CAC has increased by 40% on Meta ads this quarter. What "
                 "is your step-by-step diagnostic framework?"
+            ),
+            # 22MDM23 Fundamentals of Digital Marketing, the course this cohort
+            # sits. Compressed to what can be ASKED rather than recited: the
+            # interviewer needs the shape of the syllabus and its vocabulary,
+            # not the answer key. The source bank has 100 questions WITH model
+            # answers; sending those upstream would let the model mark a student
+            # against a memorised script, and would put ~15 kB into a string
+            # that is re-sent on every phase change.
+            syllabus=(
+                "Module 1 - Foundations: digital versus traditional marketing, "
+                "its advantages and limitations, the P-O-E-M framework (paid, "
+                "owned and earned media), segmentation, target marketing, "
+                "message customization, personalization, and the structure of a "
+                "digital marketing plan.",
+                "Module 2 - Display advertising: banner, video, rich-media and "
+                "responsive formats; buying models; contextual, placement, "
+                "interest, geographic, language, demographic and mobile "
+                "targeting; remarketing; programmatic; YouTube advertising.",
+                "Module 3 - Search advertising: ad placement and Ad Rank, "
+                "keywords and keyword research, campaign construction, landing "
+                "pages and landing-page relevance, performance reporting.",
+                "Module 4 - Social and mobile: organic versus paid social, "
+                "platform selection by audience and objective, engagement, "
+                "influencer marketing, user-generated content, the mobile "
+                "marketing toolkit, location-based services, QR codes, "
+                "augmented reality, gamification, mobile analytics.",
+                "Module 5 - SEO: crawling, indexing and ranking; on-page versus "
+                "off-page SEO; long-tail keywords; backlinks; SEO maintenance; "
+                "organic traffic; web analytics metrics.",
+                "Metric arithmetic the student is expected to do out loud: "
+                "CTR = clicks / impressions x 100; CPC = cost / clicks; "
+                "CPM = cost / impressions x 1000; cost per conversion = cost / "
+                "conversions; conversion rate = conversions / interactions x "
+                "100; ROAS = attributed revenue / cost.",
             ),
         ),
         Specialization(
@@ -303,12 +344,30 @@ def _phase_directive(spec: Specialization, phase: InterviewPhase) -> str:
             f'recited: "{spec.sample_question}"'
         )
     if phase is InterviewPhase.PROBING:
+        if spec.syllabus:
+            return (
+                "Probe one topic at a time, moving across the syllabus modules "
+                "rather than staying inside one. Mix definition questions with "
+                "at least one where the student must compute a metric out loud "
+                "from figures you give them. Assess against these frameworks: "
+                f"{frameworks}. When an answer stays at the surface, ask a "
+                'follow-up "why" or "how exactly" before moving on.'
+            )
         return (
             "Probe the core frameworks one at a time: "
             f"{frameworks}. When an answer stays at the surface, ask a "
             'follow-up "why" or "how exactly" before moving on.'
         )
     if phase is InterviewPhase.DEEP_DIVE:
+        if spec.syllabus:
+            return (
+                "Raise the difficulty. Present ONE realistic, ambiguous "
+                f"{spec.label} scenario spanning at least two syllabus modules "
+                "and having no textbook answer - a campaign whose numbers are "
+                "healthy at one funnel stage and poor at the next is the shape "
+                "to aim for. Press on trade-offs, risks and what they would "
+                "measure, not on definitions they have already given you."
+            )
         return (
             "Raise the difficulty. Present ONE realistic, ambiguous scenario "
             f"from {spec.label} and press on trade-offs, risks and edge cases "
@@ -476,6 +535,18 @@ def build_instructions(
     on every phase change, so it must be a pure function of its arguments.
     """
     frameworks = ", ".join(spec.frameworks)
+    syllabus_block = ""
+    if spec.syllabus:
+        modules = "\n".join(f"- {line}" for line in spec.syllabus)
+        syllabus_block = (
+            "\n## The course this student has actually studied\n"
+            "Draw your questions from this syllabus and use its vocabulary. "
+            "Where the syllabus and the frameworks above disagree on level, the "
+            "syllabus decides the QUESTION and the frameworks set the bar for "
+            "the ANSWER: ask what they were taught, then press for the "
+            "commercial judgement the framework list implies.\n"
+            f"{modules}\n"
+        )
     return (
         f"{base_persona}\n"
         "\n"
@@ -484,6 +555,7 @@ def build_instructions(
         f"for a {spec.label} role. Assess their command of these core "
         f"frameworks and concepts over the course of the interview: "
         f"{frameworks}.\n"
+        f"{syllabus_block}"
         "\n"
         f"## Current phase: {phase.value}\n"
         f"{_phase_directive(spec, phase)}"

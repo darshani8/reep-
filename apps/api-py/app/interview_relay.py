@@ -353,19 +353,40 @@ _SHUTDOWN_DRAIN_S: Final[float] = 10.0
 # and this only delays the close frame.
 _TURN_WRITE_DRAIN_S: Final[float] = 2.0
 
-# The two audio tracks, spelled here so this module needs no import from
-# app/interview_audio.py (see the `recorder` note in __init__). They MUST match
-# that module's TRACKS, and tests/test_interview_audio.py asserts they do --
-# a mismatch would write a file the download endpoint cannot find, silently.
+# The two audio tracks THIS MODULE FEEDS, spelled here so it needs no import
+# from app/interview_audio.py (see the `recorder` note in __init__). They MUST
+# match that module's SOURCE_TRACKS, and tests/test_interview_audio.py asserts
+# they do -- a mismatch would write a file the download endpoint cannot find,
+# silently. That module's TRACKS is one longer: it also holds the `mixed`
+# listening copy, which is DERIVED at close from these two and is never fed.
 _AUDIO_TRACK_STUDENT: Final[str] = "student"
 _AUDIO_TRACK_INTERVIEWER: Final[str] = "interviewer"
 
-# How long teardown waits for the recording to flush and close. Longer than the
-# turn drain because this is tens of megabytes reaching a disk rather than one
-# row reaching Postgres, and short enough that a wedged disk cannot hold the
-# browser's close frame. On expiry the relay records what the recorder BELIEVES
-# is on disk (snapshot()) rather than "nothing" -- a real file that no row points
-# at is a recording of a named student that retention will never destroy.
+# How long teardown waits for the recording to flush, close AND MIX DOWN.
+# Longer than the turn drain because this is tens of megabytes reaching a disk
+# rather than one row reaching Postgres, and short enough that a wedged disk
+# cannot hold the browser's close frame. On expiry the relay records what the
+# recorder BELIEVES is on disk (snapshot()) rather than "nothing" -- a real file
+# that no row points at is a recording of a named student that retention will
+# never destroy.
+#
+# The mixdown is the only CPU-bound thing under this timeout: measured at ~1.6 s
+# for two FULL-LENGTH tracks that are loud end to end, ~0.1 s for a real
+# interview (most of both tracks is padded silence, which the mixer copies
+# rather than sums). ~1.2 s is the TEN-minute figure and this comment used to
+# quote it against the fifteen-minute case -- the same slip
+# `interview_audio._write_mix` corrects at its own copy of these numbers; if you
+# re-measure, re-measure BOTH. If the headroom ever stops being large, raise
+# this rather than moving the mix out -- a mix that lands after the row is
+# written is a file `audio_bytes` does not account for.
+#
+# BOTH FIGURES ARE FOR ONE SESSION CLOSING ALONE, which is the wrong shape to
+# size a timeout against if interviews ever end together. `_mix_pcm` sums in
+# Python and holds the GIL, so `asyncio.to_thread` buys ordering here, not
+# parallelism: 15 sessions closing at once measured 14-17x the cost of one, at
+# both content extremes. Against interview_max_sessions (100) that is well past
+# this timeout, and the sessions at the back of the queue lose their MIX -- not
+# their recording, which `_close_writers` has already finished by then.
 _AUDIO_CLOSE_TIMEOUT_S: Final[float] = 10.0
 
 # Bound on the two writes that are AWAITED rather than fire-and-forget: the
@@ -452,6 +473,14 @@ _CLOSE_TURN_STALLED: Final[int] = 4011
 _CLOSE_USER_SESSION_CAP: Final[int] = 4012
 _CLOSE_CONSENT_REQUIRED: Final[int] = 4013  # No live consent row for this student
 _CLOSE_CONSENT_REVOKED: Final[int] = 4014  # Consent withdrawn mid-interview
+# The student has already run interview_max_per_student_per_day interviews in
+# the last 24 hours — the VOLUME half of the per-user cap (4012 is the
+# concurrency half). Deliberately its own code: "your other interview is still
+# open" and "you have done eight today" call for different sentences, and every
+# accepted socket bills upstream from the handshake, so the refusal must happen
+# before an upstream connection exists. Raised by routers/interview.py's
+# _open_records, with the rest of the vocabulary defined here.
+_CLOSE_DAILY_CAP: Final[int] = 4015
 
 # NOTE 4013/4014 are defined here, with the rest of the vocabulary, but nothing
 # in this module raises them yet: consent enforcement lands in

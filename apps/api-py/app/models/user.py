@@ -82,8 +82,11 @@ class Student(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True)
     # Nullable / server-defaulted so the column adds cleanly onto existing rows.
     usn: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
-    cohort_id: Mapped[str | None] = mapped_column(String, nullable=True)  # FK to Cohort later
-    mentor_id: Mapped[str | None] = mapped_column(ForeignKey("mentors.id"), nullable=True)
+    # Both indexed (b41c9e2d7f05): cohort_id is what leaderboards rank a cohort
+    # by, mentor_id is what rule 2's staff-scope gate filters by — the two
+    # hottest scope columns in the app, seq-scanned until the 2026-08 audit.
+    cohort_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)  # FK to Cohort later
+    mentor_id: Mapped[str | None] = mapped_column(ForeignKey("mentors.id"), nullable=True, index=True)
     current_stage: Mapped[Stage] = mapped_column(
         Enum(Stage, name="stage"), default=Stage.EXCEL, server_default="EXCEL"
     )

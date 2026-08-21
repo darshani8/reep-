@@ -48,6 +48,13 @@ livekit-agents==1.6.10
 # done the worker logs the provider error and voice does not speak, which is
 # the loud failure we want in place of a silent fallback to edge.
 livekit-plugins-groq==1.6.10
+# Already present as livekit-plugins-groq's own dependency (the Groq plugin is
+# built on it), pinned DIRECTLY because voice_agent.py's _build_llm imports it
+# by name for the VOICE_LLM_BASE_URL path (a local Ollama as the reply brain).
+# Same reasoning as the cryptography pin in requirements.txt: the day the groq
+# plugin drops the dependency, the custom-LLM path would break with nothing in
+# this file having changed.
+livekit-plugins-openai==1.6.10
 
 # Turn detection. Runs locally; no key, no network.
 livekit-plugins-silero==1.6.10

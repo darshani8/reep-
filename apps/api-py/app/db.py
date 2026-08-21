@@ -17,7 +17,20 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_engine(settings.sqlalchemy_url, pool_pre_ping=True, future=True)
+# Pool sized from settings, never SQLAlchemy's silent defaults (5+10, 30 s
+# wait): those made 15 connections the whole app's ceiling — every sync endpoint
+# holds one for its full handler — with nothing but a code edit to raise it.
+# The knobs live in Settings so a deployment can size workers x pool against
+# Postgres max_connections without touching this file (see config.py for the
+# reasoning and docker-compose.prod.yml for the production arithmetic).
+engine = create_engine(
+    settings.sqlalchemy_url,
+    pool_pre_ping=True,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
+    pool_timeout=settings.db_pool_timeout_s,
+    future=True,
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 

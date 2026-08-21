@@ -70,7 +70,7 @@ from ..db import get_db
 from ..deps import get_current_session
 from ..filestore import content_disposition
 from ..interview_audio import (
-    TRACK_STUDENT,
+    TRACK_MIXED,
     TRACKS,
     AudioStoreError,
     download_name,
@@ -832,7 +832,39 @@ def student_interview_report(
 
 
 # ---------------------------------------------------------------------------
-# The audio download — DIRECTOR/ADMIN only, and the narrowest thing in this file
+_DEVELOPERS = {"ADMIN"}
+
+
+def _require_developer(session: dict) -> dict:
+    """ADMIN only — deliberately NARROWER than require_director.
+
+    Every other staff read in this module is placement business: a DIRECTOR runs
+    the programme and needs a student's scores, transcript and history to do it.
+    A voice recording is not placement business. It exists so whoever operates
+    this system can hear what the ENGINE did — a mis-transcribed turn, the
+    interviewer talking over an answer — and that is an operator's artefact that
+    happens to contain a named student speaking.
+
+    So the role that reads it is the operator's role, not the programme's. A
+    DIRECTOR gets 403 here and 200 everywhere else in this file, which is the
+    intended asymmetry and not an oversight: widening this back to
+    require_director would hand the most sensitive bytes REEP stores to every
+    placement account, for no question they cannot already answer from the
+    transcript.
+
+    There is no DEVELOPER role in `Role` and this does not invent one. ADMIN is
+    the account that operates the deployment; if a DEVELOPER role is ever added,
+    add it to _DEVELOPERS here and nowhere else.
+    """
+    if session.get("role") not in _DEVELOPERS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Recordings are available to the system administrator only.",
+        )
+    return session
+
+
+# The audio download — ADMIN only, and the narrowest thing in this file
 #
 # THE STUDENT DOES NOT GET PLAYBACK OF THEIR OWN RECORDING, and that is a
 # different judgement from §5.4's on scores, not a contradiction of it. §5.4
@@ -862,8 +894,10 @@ def student_interview_report(
 # through the placement cell, which is the same sentence §8.2 already makes them
 # read about the transcript.
 #
-# The gate order below is `student_interview_report`'s, with require_director
-# promoted from "which fields" to "whether at all".
+# The gate order below is `student_interview_report`'s, with the role check
+# promoted from "which fields" to "whether at all" -- and tightened from
+# require_director to _require_developer, because "whether at all" is a
+# different question from "how much".
 # ---------------------------------------------------------------------------
 
 
@@ -871,39 +905,53 @@ def student_interview_report(
 def student_interview_audio(
     student_id: str,
     session_id: str,
-    track: str = TRACK_STUDENT,
+    track: str = TRACK_MIXED,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> FileResponse:
-    """Stream one track of a stored interview recording.
+    """Stream one track of a stored interview recording. Defaults to the MIX.
 
     BOTH gates and then some, in this order and for three different questions:
-    `require_director` says WHICH ROLE may hear a recording at all,
-    `_assert_can_access_student` says WHICH STUDENT this caller may read — a
-    DIRECTOR still cannot reach a student who does not exist, and a MENTOR in
-    the right group still gets 403 — and `_session_of_student_or_404` says the
+    `_require_developer` says WHICH ROLE may hear a recording at all — ADMIN,
+    narrower than every other read in this module, see its docstring —
+    `_assert_can_access_student` says WHICH STUDENT this caller may read — an
+    ADMIN still cannot reach a student who does not exist, and a DIRECTOR or a
+    MENTOR in the right group still gets 403 — and `_session_of_student_or_404` says the
     row's own subject really is the student in the path (§7.3: gating on the
     path and then loading a row by an id from somewhere else is a
     horizontal-privilege bug wearing a correct-looking first line).
 
-    TWO MONO FILES, ONE PER SPEAKER, selected by `?track=`. They are not a
-    stereo pair and are not time-aligned: the student's track is what their
-    microphone captured, the interviewer's is what the model emitted, and the
-    offset between them is network latency plus the browser's play queue.
-    app/interview_audio.py refuses to mix them for that reason, and this
-    endpoint refuses to pretend they were.
+    THREE FILES, selected by `?track=`, and the DEFAULT IS `mixed` — one file
+    with both voices on one timeline, the way a phone recording sounds, because
+    that is what somebody reviewing an interview actually plays. It is DERIVED:
+    the recorder sums the two per-speaker tracks at close, having padded each to
+    the session's wall clock so they line up (app/interview_audio.py's header
+    sets out what that alignment can and cannot promise).
 
-    404 — never 403 and never 204 — for a session with no recording, so a
-    director cannot tell "this interview was not recorded" from "that is not a
+    `?track=student` AND `?track=interviewer` KEEP WORKING, unchanged, and they
+    are still the faithful record — the student's is what their microphone
+    captured, the interviewer's is exactly what was forwarded to the browser.
+    Reach for them when the question is "what did the model actually send", and
+    do NOT delete them as duplicates of the mix: the mix is regenerable from
+    them and they are not recoverable from it.
+
+    An earlier revision of this docstring said the two must never be mixed. That
+    was correct about the files it described — before the timeline existed each
+    track was a speech-only concatenation, so laying them side by side put
+    answers under the wrong questions. The mix is honest now because the padding
+    made it so, not because the objection was waved off.
+
+    404 — never 403 and never 204 — for a session with no recording, so an
+    admin cannot tell "this interview was not recorded" from "that is not a
     real id"; the same no-existence-leak rule the rest of this module follows.
     """
-    require_director(session)
+    _require_developer(session)
     _assert_can_access_student(session, student_id, db)
     row = _session_of_student_or_404(db, session_id, student_id)
 
     if track not in TRACKS:
-        # 422 rather than a silent fallback to the student track: a client that
-        # asked for the interviewer and got the student would have a reviewer
+        # 422 rather than a silent fallback to the default track: a client that
+        # asked for the interviewer and got the mix would have a reviewer
         # listening to the wrong voice with nothing on screen saying so.
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

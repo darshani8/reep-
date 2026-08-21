@@ -44,7 +44,7 @@ GET    /api/mentor/students/{sid}/interviews          rule 2, then the row's own
 GET    /api/mentor/students/{sid}/interviews/{id}
 GET    /api/mentor/students/{sid}/interviews/{id}/transcript
 GET    /api/mentor/students/{sid}/interviews/{id}/report     `raw_response` only for DIRECTOR/ADMIN
-GET    /api/mentor/students/{sid}/interviews/{id}/audio      DIRECTOR/ADMIN; ?track=student|interviewer
+GET    /api/mentor/students/{sid}/interviews/{id}/audio      ADMIN only; ?track=mixed(default)|student|interviewer
 ```
 
 `GET /status` exists because a **rejected WebSocket handshake reaches the browser
@@ -375,10 +375,11 @@ model and a recording feature is not what that containment gets spent on.
 | | |
 |---|---|
 | **Format** | PCM16 LE mono 24 kHz wrapped in a RIFF/WAVE header by the stdlib `wave` module — the bytes already crossing the relay, so no encoder, no transcode and no new dependency |
-| **Files** | **two per interview, one per speaker** (`student`, `interviewer`), never one mixed file: the two directions are not time-aligned, and interleaving them would be an invented fact in a record kept for review |
+| **Files** | **three per interview**: one per speaker (`student`, `interviewer`) plus a derived `mixed` listening copy. The two per-speaker files are still **the record** — do not "clean them up" as duplicates; the mix is regenerable from them and they are not recoverable from it. This row used to say the two must never be mixed, because before the timeline each file was a speech-ONLY concatenation with the silences squeezed out, so laying them side by side put answers under the wrong questions. `app/interview_audio.py` now pads each track against one monotonic session clock, so both files are session-length and the mix is a sum rather than a guess — accurate to a beat, not a frame (the interviewer's track is *when the model's audio was forwarded*, which can run ahead of the wall clock during a burst) |
 | **Where** | a sibling of the uploads root, `<uploads>/../interview-audio`, each file named after the `interview_sessions.id` that owns it — so retention can find it from the primary key alone even if `audio_path` is ever lost. Not `app/filestore.py`: that store decides type by magic bytes and accepts only PDF/PNG/JPEG, and admitting audio would loosen the one control that makes it trustworthy |
-| **Cap** | `INTERVIEW_RECORDING_MAX_BYTES` (64 MB ≈ 45 min, past the session cap) is a hard per-session ceiling. At the cap capture **stops**, `interview_sessions.audio_truncated` is set, and the interview continues — a call is never dropped to protect a file, and a truncation is never silent |
-| **Retrieval** | `GET /api/mentor/students/{sid}/interviews/{id}/audio?track=student\|interviewer`, behind `require_director` **and** `_assert_can_access_student` **and** a re-check that the row's subject is the student in the path. 404 — never 403 — when nothing was recorded, so a director cannot tell "not recorded" from "not a real id" |
+| **Cap** | `INTERVIEW_RECORDING_MAX_BYTES` is a hard per-session ceiling on **captured PCM**. At the cap capture **stops**, `interview_sessions.audio_truncated` is set, and the interview continues — a call is never dropped to protect a file, and a truncation is never silent. **Size it against 96,000 B/s, not 48,000**: both tracks are padded to the session's wall clock, so an interview burns two streams whether or not anyone is talking. 128 MB is ~22 min, past the 900 s session cap; budget ~256 MB of *disk* per session, because the derived `mixed` copy is written on top of what survived. This row said "64 MB ≈ 45 min" for a release after the padding landed — arithmetic from the speech-only era, under which the cap bound first and quietly cut the last 3.8 minutes off every full-length interview |
+| **Truncation** | three things stop a capture, and the WARNING names which: the byte cap above, a timeline gap longer than an interview can run (a suspended host, not a silence), and the write buffer bound — *"the disk is not keeping up"*, which now means only that. It used to fire on a healthy disk: pending silence was materialised into that buffer, so a 90-second answer left the interviewer owing one 4.3 MB lump and the next question ended the recording. Silence is an integer segment now, materialised in the writer, so the buffer holds real audio only |
+| **Retrieval** | `GET /api/mentor/students/{sid}/interviews/{id}/audio?track=mixed\|student\|interviewer`, **defaulting to `mixed`**, behind `_require_developer` — **ADMIN only, deliberately narrower than every other read in that router** — **and** `_assert_can_access_student` **and** a re-check that the row's subject is the student in the path. A DIRECTOR gets 403 here and 200 everywhere else in the file; that asymmetry is intended, because a stored voice is an operator's artefact and not placement business. 404 — never 403 — when nothing was recorded, so a caller cannot tell "not recorded" from "not a real id" |
 | **Retention** | the same 180-day clock as the transcript. `purge_expired` deletes the bytes **before** the rows; a session whose audio could not be deleted keeps its row, because an orphaned voice file is undiscoverable and therefore undeletable |
 
 Read **`interview_sessions.audio_recorded`**, never `audio_path IS NOT NULL`. A
@@ -421,7 +422,7 @@ and reports no fault to anyone:
 | `INTERVIEW_RETENTION_DAYS` | 180 | how long the whole record — transcript, evaluation, any audio — is kept |
 | `INTERVIEW_CONSENT_VERSION` | `2026-08` | the terms; bump it when the wording changes |
 | `INTERVIEW_RECORDING_ENABLED` | `false` | audio capture — see *Audio* above |
-| `INTERVIEW_RECORDING_MAX_BYTES` | 64000000 | the per-session ceiling on stored audio |
+| `INTERVIEW_RECORDING_MAX_BYTES` | 128000000 | the per-session ceiling on captured PCM — see the *Cap* row above before changing it |
 
 `OPENAI_API_KEY` is deliberately **not** part of the LLM auto-select chain in
 `app/ai/llm.py`: the Realtime API is not OpenAI-compatible chat, and a key pasted

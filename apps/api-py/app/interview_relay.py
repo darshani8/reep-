@@ -74,6 +74,7 @@ from websockets.exceptions import (
 
 from .config import settings
 from .interview_matrix import (
+    KNOWN_REALTIME_VOICES,
     REPORT_DIRECTIVE,
     InterviewPhase,
     InterviewStateMachine,
@@ -153,6 +154,16 @@ _USER_TRANSCRIPT_DONE: Final[str] = (
     "conversation.item.input_audio_transcription.completed"
 )
 
+# The streaming halves of that transcript, forwarded so the browser can show
+# and revise a PENDING "You" line while the student is still being
+# transcribed. Never persisted -- the .completed event above remains the only
+# persistence point -- and never acted on for the arc, which only ever reads
+# final transcripts. The beta generation may not emit these; the client's
+# fallback is the completed-only behaviour it has always had.
+_USER_TRANSCRIPT_DELTA: Final[str] = (
+    "conversation.item.input_audio_transcription.delta"
+)
+
 # The sibling nobody handled until v3, and the cost of that was invisible: a
 # transcription that FAILS produced no .completed, so the phase machine never
 # ticked and the turn left no row. Under create_response:false it is worse than
@@ -200,6 +211,7 @@ _HANDLED_UPSTREAM: Final[frozenset[str]] = (
             "response.created",
             "response.done",
             _USER_TRANSCRIPT_DONE,
+            _USER_TRANSCRIPT_DELTA,
             _USER_TRANSCRIPT_FAILED,
         }
     )
@@ -1056,6 +1068,8 @@ class _RelaySession:
         "_response_spoke",
         "_wrap_up_deadline",
         "_verdict_retried",
+        "_awaiting_candidate_questions",
+        "_verdict_requested",
         "_report_requested",
         "_expecting_report",
         "_report_create_id",
@@ -1340,6 +1354,16 @@ class _RelaySession:
         cap = float(settings.interview_max_seconds)
         self._wrap_up_deadline = now + cap - reserve if cap > reserve * 2 else None
         self._verdict_retried = False
+        # The two-beat close. WRAP_UP is now reached one turn BEFORE the
+        # verdict: the tick into WRAP_UP creates an "any questions for us?"
+        # turn (invite_questions) and arms the first flag; the student's reply
+        # -- ANY reply, bypassing classify_answer, because "no, I'm good" is
+        # filler words to the word gate and must not earn a clarify loop --
+        # clears it, sets _verdict_requested, and only THAT turn's
+        # response.done may trigger the scorecard. The forced/clock path skips
+        # the beat and sets _verdict_requested directly.
+        self._awaiting_candidate_questions = False
+        self._verdict_requested = False
 
     # -- external control ---------------------------------------------------
 
@@ -1428,6 +1452,29 @@ class _RelaySession:
             return _INTERVIEWER_PERSONA
         return build_instructions(spec, _INTERVIEWER_PERSONA, self._machine.phase)
 
+    def _session_voice(self) -> str:
+        """The voice for the single startup session.update.
+
+        A specialization speaks with its own voice (the matrix row's -- a CHRO
+        does not sound like a CFO); the generic interview keeps the
+        operator-configured OPENAI_REALTIME_VOICE. That one is
+        operator-supplied, so it is validated against the known set here and
+        falls back to "alloy" WITH A LOG LINE: upstream answers an unknown
+        voice with a silent fallback to its own default, and the interview
+        then runs fine while sounding nothing like what was configured.
+        """
+        spec = self._machine.specialization
+        if spec is not None:
+            return spec.voice
+        voice = settings.openai_realtime_voice.strip().lower()
+        if voice in KNOWN_REALTIME_VOICES:
+            return voice
+        self._log.warning(
+            "OPENAI_REALTIME_VOICE=%r is not a known Realtime voice; using 'alloy'",
+            settings.openai_realtime_voice,
+        )
+        return "alloy"
+
     def _session_update_payload(self) -> dict[str, Any]:
         """The single session.update, in whichever shape this API generation wants.
 
@@ -1493,23 +1540,43 @@ class _RelaySession:
         # does not degrade into an interview with no student transcript.
         transcription: dict[str, Any] = {"model": settings.transcription_model}
 
+        voice = self._session_voice()
+        # INTERVIEW_TEMPERATURE, sent on BOTH shapes but ONLY when the operator
+        # set it: this codebase's posture is that unverified parameters stay
+        # off the wire, so the default is the model's own. The validator has
+        # already bounded it to 0.0-2.0.
+        temperature = settings.interview_temperature
+
         if settings.realtime_beta_header:
             # Beta: flat session object. "text" must accompany "audio" here or
-            # the assistant transcript is never emitted.
-            return {
+            # the assistant transcript is never emitted. audio.output.speed is
+            # a GA-only parameter and is NEVER sent on this shape.
+            payload = {
                 "modalities": ["text", "audio"],
                 "instructions": self._instructions(),
-                "voice": settings.openai_realtime_voice,
+                "voice": voice,
                 "input_audio_format": "pcm16",
                 "output_audio_format": "pcm16",
                 "input_audio_transcription": transcription,
                 "turn_detection": turn_detection,
             }
+            if temperature is not None:
+                payload["temperature"] = temperature
+            return payload
 
         # GA: nested session object. session.type is REQUIRED here -- without it
         # the whole object is rejected and the interview silently runs on default
         # instructions.
-        return {
+        output: dict[str, Any] = {
+            "format": {"type": "audio/pcm", "rate": _AUDIO_SAMPLE_RATE_HZ},
+            "voice": voice,
+        }
+        # audio.output.speed is confirmed GA-supported, but still sent only when
+        # the operator moved it off 1.0 -- a stock session's payload stays
+        # minimal, and every field on the wire is a field that can be rejected.
+        if settings.interview_voice_speed != 1.0:
+            output["speed"] = settings.interview_voice_speed
+        payload = {
             "type": "realtime",
             "instructions": self._instructions(),
             "output_modalities": ["audio"],
@@ -1521,12 +1588,12 @@ class _RelaySession:
                     # there is nothing to show or store.
                     "transcription": transcription,
                 },
-                "output": {
-                    "format": {"type": "audio/pcm", "rate": _AUDIO_SAMPLE_RATE_HZ},
-                    "voice": settings.openai_realtime_voice,
-                },
+                "output": output,
             },
         }
+        if temperature is not None:
+            payload["temperature"] = temperature
+        return payload
 
     def _phase_update_payload(self) -> dict[str, Any]:
         """An instructions-ONLY session.update, for a mid-interview phase change.
@@ -2123,6 +2190,26 @@ class _RelaySession:
             )
             return
 
+        if etype == _USER_TRANSCRIPT_DELTA:
+            # Live captions for the student's OWN speech, keyed by item_id so
+            # the browser can revise one pending "You" line in place. NEVER
+            # persisted and never fed to the arc: the .completed event below
+            # remains the single point where a student turn is recorded or
+            # judged. Forwarded under a reep.* alias rather than the upstream
+            # name because the allowlist's whole job is that upstream event
+            # names do not reach the browser unreviewed.
+            item_id = event.get("item_id")
+            delta = event.get("delta", "")
+            if item_id and delta:
+                await self._send_control(
+                    {
+                        "type": "reep.transcript.delta",
+                        "item_id": item_id,
+                        "delta": delta,
+                    }
+                )
+            return
+
         if etype == _USER_TRANSCRIPT_DONE:
             # Forwarded under the UPSTREAM name, not a reep.* alias. The clients
             # switch on the Realtime event names, so a rename matched no case,
@@ -2417,6 +2504,32 @@ class _RelaySession:
         FINISHED. Conflating them advances the interview on utterances that
         answered nothing.
         """
+        if self._awaiting_candidate_questions:
+            # The reply to "any questions for you?" is NOT an answer and is
+            # deliberately not judged: "no, I'm good" is filler words to
+            # classify_answer, and a student closing out politely must not
+            # earn a clarify loop on the final turn of their interview. A
+            # failed or timed-out transcript goes the same way -- a real
+            # interviewer just closes. Recorded like any other turn, then
+            # straight to the verdict: kind "next" sends no per-response
+            # override, so the session instructions -- already carrying the
+            # WRAP_UP (verdict) directive from the phase push below -- are
+            # exactly the right ones.
+            self._awaiting_candidate_questions = False
+            for entry in entries:
+                self._answer_meta = _AnswerMeta(
+                    transcription_status=entry.status or "timeout",
+                    answer_quality=None,
+                    # Not an answer: the arc is already complete, and a mentor
+                    # reading answers_accepted must be reading answers.
+                    counted_as_answer=False,
+                )
+                self._emit_turn("user", entry.transcript, f"u:{entry.item_id or entry.key}")
+            self._answer_meta = None
+            self._verdict_requested = True
+            await self._advance_turn("next")
+            return
+
         joined = " ".join(e.transcript.strip() for e in entries if e.transcript.strip())
         unheard = not joined and any(e.status in ("failed", "timeout") for e in entries)
         # ONE verdict for the whole batch, not one per entry. A batch is one
@@ -2504,6 +2617,16 @@ class _RelaySession:
                 # after next. That one-response lag is why the interview used to
                 # ask a sixth question instead of delivering its verdict.
                 await self._push_phase(self._upstream)
+                if self._machine.phase is InterviewPhase.WRAP_UP:
+                    # The two-beat close: the questioning is done, but a real
+                    # interview ends with "any questions for us?" BEFORE the
+                    # verdict. The create below carries the invite_questions
+                    # override for exactly that one response; the student's
+                    # reply -- any reply, bypassed past classify_answer in the
+                    # branch above -- is what earns the verdict. The
+                    # forced/clock path (_force_wrap_up) skips this beat.
+                    self._awaiting_candidate_questions = True
+                    kind = "invite_questions"
 
         await self._advance_turn(kind)
 
@@ -2654,6 +2777,16 @@ class _RelaySession:
         burns a response asking a sixth question -- but a slow student still
         gets here, and this is the difference between a report and nothing.
         """
+        if self._awaiting_candidate_questions and not self._verdict_requested:
+            # The clock ran out while the student was thinking of a question
+            # to ask US. The rest of the two-beat close is skipped -- a real
+            # interviewer who is out of time just closes -- and the verdict
+            # goes out now, because "a slightly early verdict beats none" is
+            # this function's whole reason.
+            self._awaiting_candidate_questions = False
+            self._verdict_requested = True
+            await self._advance_turn("verdict")
+            return
         if self._report_requested or self._machine.phase in (
             InterviewPhase.WRAP_UP,
             InterviewPhase.ENDED,
@@ -2665,6 +2798,10 @@ class _RelaySession:
         changed = self._machine.force_wrap_up()
         if changed and self._machine.specialization is not None and self._upstream is not None:
             await self._push_phase(self._upstream)
+        # The forced path goes STRAIGHT to the verdict -- no candidate-
+        # questions beat, there is no time left for it -- so the verdict is
+        # requested here and its response.done is what triggers the scorecard.
+        self._verdict_requested = True
         await self._advance_turn("verdict")
 
     def _earliest_deadline(self) -> float | None:
@@ -2910,7 +3047,11 @@ class _RelaySession:
             await self._advance_turn("verdict")
             return
 
-        if self._machine.phase is InterviewPhase.WRAP_UP and not self._report_requested:
+        if (
+            self._machine.phase is InterviewPhase.WRAP_UP
+            and self._verdict_requested
+            and not self._report_requested
+        ):
             if asked:
                 # The spoken verdict is finished, and it IS persisted as an
                 # assistant turn above -- the student heard it, so it is part of

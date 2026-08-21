@@ -570,6 +570,18 @@ const CLOSE_MESSAGES: ReadonlyMap<number, CloseMessage> = new Map<number, CloseM
       text: 'You withdrew consent, so the interview ended.',
     },
   ],
+  // 4015: the daily volume cap — the server counted this student's interviews
+  // over the last 24 h and refused BEFORE anything was billed or written. The
+  // sibling of 4012 (concurrency), with a different sentence: "your other tab
+  // is open" is fixable now, "you have done today's quota" is fixable tomorrow.
+  // `warn`, not `error`: nothing is broken, and support cannot raise it.
+  [
+    4015,
+    {
+      tone: 'warn',
+      text: "You've reached today's mock interview limit. Try again tomorrow.",
+    },
+  ],
 ]);
 
 /* ============================================================================

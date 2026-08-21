@@ -77,7 +77,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketException
 from pydantic import BaseModel
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 
 from .. import conversations as convo
@@ -89,6 +89,7 @@ from ..interview_matrix import Specialization, get_specialization
 from ..interview_relay import (
     _CLOSE_CONSENT_REQUIRED,
     _CLOSE_CONSENT_REVOKED,
+    _CLOSE_DAILY_CAP,
     _CLOSE_FORBIDDEN_ORIGIN,
     _CLOSE_GOING_AWAY,
     _CLOSE_IDLE,
@@ -183,6 +184,47 @@ class _ConsentRequired(Exception):
     no conversation, no `interview_sessions` row for the sweeper to trip over,
     and nothing for a mentor to read as an interview that happened.
     """
+
+
+class _DailyCapReached(Exception):
+    """This student has already run today's quota of interviews, so 4015.
+
+    The VOLUME half of the per-user cap (the _LIMITER's 4012 is the concurrency
+    half): 2 concurrent slots with no volume ceiling was ~96 billable sessions a
+    day from one looping account, invisible until the invoice. A type rather
+    than a sentinel return for the same reason as _ConsentRequired above — an
+    exception cannot be ignored by accident — and raised from `_open_records`
+    BEFORE anything is written or any upstream socket opens, so a refused
+    attempt costs nothing and records nothing.
+    """
+
+
+class _UserSessionCapReached(Exception):
+    """This student already holds their concurrency quota of LIVE interviews
+    somewhere in the fleet, so 4012 — the cross-worker half of the check the
+    per-process _LIMITER can only make for its own worker.
+
+    With one worker the _LIMITER's answer WAS the fleet's answer. WEB_CONCURRENCY
+    workers each carry their own limiter, so without this a student could hold
+    interview_max_sessions_per_user live interviews PER WORKER — the review of
+    the 2026-08 fix wave caught exactly that. The database is the only party
+    that sees every worker, so `_open_records` counts `running` rows there,
+    inside the same advisory-locked transaction as the daily cap.
+
+    Only rows with a FRESH heartbeat count (see _LIVE_ELSEWHERE_GRACE_S): a
+    worker that was kill -9'd leaves rows stamped `running` until the next boot
+    sweep, and a hard count of those would lock its students out of interviews
+    through no act of their own. A stale-heartbeat row is a dead session,
+    whatever its status column still claims.
+    """
+
+
+# A `running` row whose heartbeat is older than this is treated as dead for the
+# cross-worker concurrency count above. 3x the relay's 60 s heartbeat interval:
+# one missed beat is a busy loop, two is suspicious, three is a process that is
+# not coming back — and deliberately far below interview_orphan_grace_seconds
+# (1200), which answers the different question of when to REWRITE the row.
+_LIVE_ELSEWHERE_GRACE_S = 180
 
 
 class StatusOut(BaseModel):
@@ -647,7 +689,12 @@ async def interview(websocket: WebSocket) -> None:
         return
 
     try:
-        session = get_ws_session(websocket)
+        # to_thread because verify_session_token's revocation check runs a
+        # SELECT on a cache miss (security.py says so itself), and this
+        # coroutine is on the loop shared with every live interview's audio —
+        # the audit found a pool-starved handshake could park the loop for the
+        # whole pool timeout, silencing every interview at once.
+        session = await asyncio.to_thread(get_ws_session, websocket)
     except WebSocketException as exc:
         log.warning(
             "[conn=%s] WS /api/interview -> %d: no valid reep_session cookie",
@@ -813,6 +860,49 @@ async def interview(websocket: WebSocket) -> None:
             "Interview consent required",
         )
         return
+    except _UserSessionCapReached as exc:
+        # 4012 from the DATABASE's view of the fleet: the student's other live
+        # interview is on a different worker, where this process's _LIMITER
+        # cannot see it. Same close code and same sentence as the in-process
+        # refusal above — which worker spotted the duplicate is an
+        # implementation detail the student must never need to care about.
+        _LIMITER.release(user_id)
+        log.warning(
+            "[conn=%s] WS /api/interview -> %d: student %s already holds %s "
+            "live interview(s) fleet-wide (per-user cap %d)",
+            conn_id,
+            _CLOSE_USER_SESSION_CAP,
+            student_id,
+            exc,
+            settings.interview_max_sessions_per_user,
+        )
+        await _close_downstream(
+            websocket,
+            _CLOSE_USER_SESSION_CAP,
+            "You already have a mock interview open. Close it and try again.",
+        )
+        return
+    except _DailyCapReached as exc:
+        # 4015: a refusal with a schedule, not a fault. WARNING because a
+        # student meeting this cap honestly is rare — the expected causes are a
+        # retry loop, a shared cookie, or a script, and the operator should see
+        # which student id it is.
+        _LIMITER.release(user_id)
+        log.warning(
+            "[conn=%s] WS /api/interview -> %d: student %s has run %s "
+            "interviews in 24 h (cap %d)",
+            conn_id,
+            _CLOSE_DAILY_CAP,
+            student_id,
+            exc,
+            settings.interview_max_per_student_per_day,
+        )
+        await _close_downstream(
+            websocket,
+            _CLOSE_DAILY_CAP,
+            "You've reached today's mock interview limit. Try again tomorrow.",
+        )
+        return
     except Exception:
         _LIMITER.release(user_id)
         log.exception(
@@ -874,7 +964,17 @@ async def interview(websocket: WebSocket) -> None:
                 conn_id,
             )
 
-    relay = _RelaySession(
+    # WHICH ENGINE. Chosen here and nowhere else: both classes take this
+    # constructor and both return (code, reason) from run(), so every writer,
+    # the limiter, the recorder and all three finalization layers below are
+    # identical either way and never learn which one spoke.
+    engine_cls = _RelaySession
+    if settings.interview_engine.strip().lower() == "local":
+        from ..interview_local import LocalSession
+
+        engine_cls = LocalSession
+
+    relay = engine_cls(
         websocket,
         conn_id,
         on_turn=_make_turn_writer(conversation_id, interview_session_id),
@@ -973,6 +1073,16 @@ def _open_records(
     """
     db = SessionLocal()
     try:
+        # Serialize concurrent opens FOR THIS STUDENT across every worker for
+        # the few milliseconds this transaction lives. The two caps below are
+        # count-then-insert, and without a lock a burst of simultaneous
+        # handshakes (2 per worker x WEB_CONCURRENCY workers) all read the
+        # pre-insert count and all pass — the review of the 2026-08 fix wave
+        # demonstrated the overshoot. pg_advisory_xact_lock releases itself at
+        # COMMIT/ROLLBACK, so there is no unlock path to forget, and keying on
+        # hashtext(student_id) scopes the queueing to one student — two
+        # different students never wait on each other.
+        db.execute(select(func.pg_advisory_xact_lock(func.hashtext(student_id))))
         consent = db.scalar(
             select(InterviewConsent)
             .where(
@@ -992,8 +1102,44 @@ def _open_records(
             # for the stale bundle, the hand-rolled socket and the tab that sat
             # open across a revocation.
             raise _ConsentRequired(settings.interview_consent_version)
-        conversation_id = convo.get_or_create(db, user_id, role).id
         now = datetime.now(timezone.utc)
+        # The daily VOLUME cap (audit H: unbounded Realtime spend), checked
+        # AFTER consent — a student who has not agreed should meet the consent
+        # panel, not a quota sentence — and BEFORE any write, so a refused
+        # attempt leaves no row. One COUNT on the exact composite index
+        # ix_interview_session_student_started; a rolling 24 h window rather
+        # than a calendar day, so midnight is not a reset button. EVERY row
+        # counts — abandoned and failed included — because each one billed an
+        # upstream handshake, and a cap that only counts clean finishes is a
+        # cap a crash loop never hits.
+        ran_today = db.scalar(
+            select(func.count())
+            .select_from(InterviewSession)
+            .where(
+                InterviewSession.student_id == student_id,
+                InterviewSession.started_at >= now - timedelta(days=1),
+            )
+        )
+        if (ran_today or 0) >= settings.interview_max_per_student_per_day:
+            raise _DailyCapReached(ran_today)
+        # The CROSS-WORKER concurrency check (see _UserSessionCapReached): the
+        # per-process _LIMITER already refused same-worker duplicates before we
+        # got here, so this catches the tab that landed on ANOTHER worker.
+        # Checked after the daily cap on purpose — a student at both walls
+        # should hear the daily one, because it is the one no closed tab fixes.
+        live_now = db.scalar(
+            select(func.count())
+            .select_from(InterviewSession)
+            .where(
+                InterviewSession.student_id == student_id,
+                InterviewSession.status == "running",
+                InterviewSession.heartbeat_at
+                >= now - timedelta(seconds=_LIVE_ELSEWHERE_GRACE_S),
+            )
+        )
+        if (live_now or 0) >= settings.interview_max_sessions_per_user:
+            raise _UserSessionCapReached(live_now)
+        conversation_id = convo.get_or_create(db, user_id, role).id
         row = InterviewSession(
             student_id=student_id,
             conversation_id=conversation_id,

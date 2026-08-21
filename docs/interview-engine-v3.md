@@ -1064,6 +1064,30 @@ Do not merge those two into one commit.
 > promise about `audio_recorded`, and "no `audio_path`, `audio_bytes` or
 > `audio_duration_ms` columns" — those columns arrived with the migration that
 > added capture, exactly as the closing paragraph said they should.
+>
+> **SECOND AMENDMENT, 2026-08-20 — the two tracks are now also mixed into one
+> file, and the product owner chose that over a stereo L/R variant.** The
+> refusal to mix was NOT waved off; it was *answered*. Its premise was that the
+> uplink and the downlink are not time-aligned, and under the first
+> implementation that was arithmetic rather than risk: `feed()` appended only
+> the bytes it was handed, so each file was a speech-only concatenation with
+> every silence squeezed out. A real interview produced a 141.3 s session
+> holding a 51.7 s student track and a 116.7 s interviewer track — 168.4 s of
+> audio inside 141.3 s of wall clock — and any merge of those two puts the
+> student's answers under the wrong questions, exactly as this section warned.
+>
+> `app/interview_audio.py` now stamps the recorder with one monotonic clock and
+> pads each track's gaps with zeroed samples, so both files carry the SESSION's
+> timeline; only then are they summed, with saturating arithmetic, into a third
+> `mixed` file that `GET .../audio` serves by default. The per-speaker files
+> stay and `?track=student|interviewer` is unchanged — they are the faithful
+> record and the mix is a derived listening copy. The alignment is to *when the
+> bytes reached the relay*, which is a beat and not a frame, and the module
+> header says so rather than implying more. Padding is charged to
+> `interview_recording_max_bytes` like any other byte, so `audio_bytes` (disk
+> occupied, now three files) and the cap (captured PCM only) are deliberately
+> different numbers; the note at `interview_sessions.audio_bytes` is where that
+> decision is written down.
 
 **Do not implement byte capture in this pass.** Three reasons:
 

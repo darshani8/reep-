@@ -16,8 +16,11 @@ import os
 import types
 import uuid
 
+import socket
+
 import pytest
 from sqlalchemy import delete, text
+from sqlalchemy.engine.url import make_url
 
 from app.db import SessionLocal
 from app.models.conversation import Conversation
@@ -25,7 +28,38 @@ from app.models.user import LoginDay, Role, Student, User
 from app.security import hash_password
 
 
+# How long the probe below may spend deciding Postgres is not there. Small on
+# purpose: this runs at import, before pytest has printed a single character, so
+# every second of it is a second the developer stares at a blank terminal.
+_DB_PROBE_TIMEOUT_S = 2
+
+
 def _db_reachable() -> bool:
+    """Is Postgres there? Answered in bounded time, or not at all.
+
+    THE TCP PRE-CHECK IS THE POINT. `SessionLocal()` inherits psycopg's default
+    connect_timeout of 0, which means "wait forever" -- and a host that is
+    unreachable rather than actively refusing (Docker Desktop stopped, a paused
+    VM, a laptop that changed networks) never sends the RST that would make the
+    connect fail. The probe then blocks in `psycopg.waiting.wait_conn` inside a
+    conftest import, so pytest hangs BEFORE its header: no test names, no
+    progress, no traceback, no clue. Observed here as a suite that ran in 35 s
+    on Monday and had to be killed at 600 s on Tuesday, with Docker being the
+    only thing that changed.
+
+    A socket with an explicit timeout cannot hang, so the failure mode becomes a
+    two-second pause and the honest "DB not reachable, DB-backed tests skipped"
+    that the rest of this module already knows how to report.
+    """
+    url = make_url(str(SessionLocal.kw["bind"].url))
+    host, port = url.host or "127.0.0.1", url.port or 5432
+    try:
+        with socket.create_connection((host, port), timeout=_DB_PROBE_TIMEOUT_S):
+            pass
+    except OSError:
+        return False
+    # The port answered; now confirm it is really our database and not, say, a
+    # tunnel or another service that happens to hold the port.
     try:
         with SessionLocal() as db:
             db.execute(text("select 1"))

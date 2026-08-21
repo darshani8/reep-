@@ -826,6 +826,144 @@ class TestThePumpLoop:
         assert relay._pending == {}
 
 
+class TestTheTwoBeatClose:
+    """WRAP_UP is now two turns: "any questions for us?", THEN the verdict."""
+
+    def test_entering_wrap_up_invites_candidate_questions_not_the_verdict(self):
+        """The fifth accepted answer used to produce the verdict immediately.
+        A real interview hands the floor to the candidate first."""
+        relay, upstream, browser = make_relay()
+
+        async def scenario():
+            for index in range(5):
+                await ask_question(relay, f"resp_{index}")
+                await student_says(relay, f"item_{index}", _GOOD_ANSWER)
+
+        run(scenario())
+
+        assert relay._machine.phase is InterviewPhase.WRAP_UP
+        assert relay._awaiting_candidate_questions is True
+        assert relay._verdict_requested is False
+        invite = upstream.creates[-1]
+        instructions = invite["response"]["instructions"]
+        assert "any questions for you" in instructions
+        assert "Do not deliver the verdict yet" in instructions
+        # The base persona leads even on this turn -- the override REPLACES the
+        # session persona, so it must be self-contained.
+        assert instructions.startswith("You are a strict yet constructive AI Mock Interviewer")
+
+    def test_the_invite_response_done_does_not_trigger_the_scorecard(self):
+        """Only the VERDICT's response.done may request the report. Gating on
+        the phase alone fired the scorecard one turn early -- before the
+        student had answered, and before any verdict was spoken."""
+        relay, upstream, browser = make_relay()
+
+        async def scenario():
+            for index in range(5):
+                await ask_question(relay, f"resp_{index}")
+                await student_says(relay, f"item_{index}", _GOOD_ANSWER)
+            await ask_question(relay, "resp_invite")
+
+        run(scenario())
+
+        assert relay._report_requested is False
+        report_creates = [c for c in upstream.creates if "report" in c["event_id"]]
+        assert report_creates == []
+
+    def test_no_im_good_proceeds_to_the_verdict_with_no_clarify(self):
+        """"No, I'm good" / "no, thanks" is filler to the word gate, and the
+        reply to "any questions?" is NEVER judged: a student closing politely
+        must not be re-asked on the last turn of their interview."""
+        for closing in ("no, thanks", "no I'm good"):
+            relay, upstream, browser = make_relay()
+
+            async def scenario():
+                for index in range(5):
+                    await ask_question(relay, f"resp_{index}")
+                    await student_says(relay, f"item_{index}", _GOOD_ANSWER)
+                await ask_question(relay, "resp_invite")
+                await student_says(relay, "item_questions", closing)
+
+            run(scenario())
+
+            assert relay._verdict_requested is True
+            assert relay._awaiting_candidate_questions is False
+            verdict_create = upstream.creates[-1]
+            # The verdict goes out with NO per-response override: the session
+            # instructions already carry the WRAP_UP directive from the phase
+            # push, and they are exactly the right ones.
+            assert "instructions" not in verdict_create["response"]
+            # Exactly ONE create for that reply -- never a clarify first.
+            assert "too brief" not in json.dumps(upstream.creates)
+            # And the verdict's response.done is what finally asks for the
+            # scorecard -- exactly once.
+            async def verdict():
+                await ask_question(relay, "resp_verdict")
+
+            run(verdict())
+            report_creates = [c for c in upstream.creates if "report" in c["event_id"]]
+            assert len(report_creates) == 1
+
+    def test_a_student_question_gets_an_answer_then_the_verdict(self):
+        """The other half of the beat: the student HAS a question. Same wire
+        shape -- the model answers in character, then the verdict."""
+        relay, upstream, browser = make_relay()
+
+        async def scenario():
+            await reach_wrap_up(relay)
+            await ask_question(relay, "resp_verdict")
+
+        run(scenario())
+
+        assert relay._report_requested is True
+        report_creates = [c for c in upstream.creates if "report" in c["event_id"]]
+        assert len(report_creates) == 1
+
+    def test_the_forced_wrap_up_skips_the_candidate_questions_beat(self):
+        """The clock path has no time for "any questions?": straight to the
+        verdict, and the verdict's response.done requests the report."""
+        relay, upstream, browser = make_relay()
+
+        async def scenario():
+            await ask_question(relay, "resp_1")
+            await student_says(relay, "item_1", _GOOD_ANSWER)
+            await ask_question(relay, "resp_2")
+            relay._wrap_up_deadline = 0.0
+            await relay._on_deadline()
+
+        run(scenario())
+
+        assert relay._awaiting_candidate_questions is False
+        assert relay._verdict_requested is True
+        assert "deliver the closing verdict" in upstream.creates[-1]["response"]["instructions"]
+
+    def test_the_clock_ending_the_beat_goes_straight_to_the_verdict(self):
+        """The reserve deadline can land while the student is THINKING of a
+        question to ask. The interview must still close out: an early verdict
+        beats the hard cap arriving with no verdict at all."""
+        relay, upstream, browser = make_relay()
+
+        async def scenario():
+            for index in range(5):
+                await ask_question(relay, f"resp_{index}")
+                await student_says(relay, f"item_{index}", _GOOD_ANSWER)
+            await ask_question(relay, "resp_invite")
+            assert relay._awaiting_candidate_questions is True
+            relay._wrap_up_deadline = 0.0
+            await relay._on_deadline()
+            await ask_question(relay, "resp_verdict")
+
+        run(scenario())
+
+        assert relay._awaiting_candidate_questions is False
+        verdict_creates = [
+            c for c in upstream.creates
+            if "deliver the closing verdict" in c["response"].get("instructions", "")
+        ]
+        assert len(verdict_creates) == 1
+        assert relay._report_requested is True
+
+
 # ---------------------------------------------------------------------------
 # The report
 # ---------------------------------------------------------------------------
@@ -846,11 +984,23 @@ _REPORT_JSON = json.dumps(
 
 
 async def reach_wrap_up(relay: _Relay):
-    """Five accepted answers, i.e. the arc as a student actually walks it."""
+    """Five accepted answers PLUS the candidate-questions beat -- the arc as a
+    student actually walks it since the two-beat close: the tick into WRAP_UP
+    asks "any questions for us?" first, and the student's reply (any reply --
+    it is deliberately never classify_answer'd) is what earns the verdict."""
     for index in range(5):
         await ask_question(relay, f"resp_{index}")
         await student_says(relay, f"item_{index}", _GOOD_ANSWER)
     assert relay._machine.phase is InterviewPhase.WRAP_UP
+    assert relay._awaiting_candidate_questions is True
+    # The invite is asked and finished, and its response.done must NOT trigger
+    # the scorecard -- only the verdict's may.
+    await ask_question(relay, "resp_invite")
+    assert relay._report_requested is False
+    await student_says(
+        relay, "item_questions", "Yes, what does growth look like in this role?"
+    )
+    assert relay._verdict_requested is True
 
 
 def report_done_event(text: str, response_id: str = "resp_report", status: str = "completed"):

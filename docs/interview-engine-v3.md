@@ -185,6 +185,32 @@ say exactly that in the comment above it.
 
 ### 2.4 Wrap-up and the report
 
+> **AMENDMENT, 2026-08-21 — wrap_up is now a TWO-BEAT close.** The sequence
+> below jumps from the tick into WRAP_UP straight to the spoken verdict. The
+> shipped engine inserts one turn between them: the create at (xiii) carries
+> the `invite_questions` turn directive — *"any questions for you about the
+> role or the company?"* — and the student's reply (ANY reply: it bypasses
+> `classify_answer` entirely, because "no, I'm good" is filler words to the
+> word gate and must not earn a clarify loop on the final turn) is what
+> produces the verdict R_v. `_request_report` is gated on `_verdict_requested`,
+> not on the phase, so the invite's `response.done` does NOT fire (xvii); only
+> the verdict's does. `_force_wrap_up` skips the beat — the clock path has no
+> time for it — and, if the reserve deadline lands while the student is
+> thinking of a question to ask, ends the beat and goes straight to the
+> verdict. The local engine (`interview_local.py`) mirrors the same two beats
+> in its own turn loop.
+>
+> The same amendment adds two smaller things, overriding §2.1/§2.2 where they
+> say the opposite by omission. **Voices are per-specialization**: each matrix
+> row carries a `voice` (HR `coral`, DM `marin`, BA `cedar`, FA `ash`) sent in
+> the single startup `session.update`; the generic track keeps
+> `OPENAI_REALTIME_VOICE`, now validated against the known set with a logged
+> fallback to `alloy`, because upstream answers an unknown voice with a silent
+> default. And **`input_audio_transcription.delta` is now allowlisted** and
+> forwarded to the browser as `reep.transcript.delta`, so the "You" line
+> revises live; deltas are never persisted and never touch the arc —
+> `.completed` remains the only point a student turn is recorded or judged.
+
 ```
  (xv)   machine.phase is WRAP_UP -> the create at (xiii) is the spoken verdict R_v
  (xvi)  U→R  response.done(R_v)  -> _emit_turn assistant  (the verdict IS the transcript)

@@ -322,6 +322,17 @@ class Settings(BaseSettings):
     # name is answered with an `error` event and a silent fall back to the
     # default - i.e. it fails without failing.
     openai_realtime_voice: str = "alloy"
+    # Playback speed of the interviewer's voice, GA session shape only
+    # (audio.output.speed, 0.25-1.5). Sent ONLY when not 1.0: the parameter is
+    # confirmed on GA, but the default stays off the wire so a stock session's
+    # payload stays minimal, and the beta shape never carries it at all.
+    interview_voice_speed: float = 1.0
+    # Sampling temperature for the interviewer's responses, 0.0-2.0. UNSET by
+    # default and sent only when explicitly configured, in BOTH session shapes:
+    # this codebase deliberately omits unverified parameters (a rejected
+    # session.update can kill the interview in the handshake), so the model's
+    # own default is the behaviour unless an operator has a reason to tune.
+    interview_temperature: float | None = None
     # Non-empty pins the BETA event surface (the value is "realtime=v1"), which
     # emits response.audio.delta and expects a FLAT session object; blank selects
     # GA (response.output_audio.delta, nested session.audio.*). A string, not a
@@ -393,18 +404,23 @@ class Settings(BaseSettings):
     #              interviewer's own sentence - which transcribes into coherent
     #              text the model then answers confidently. It does not change
     #              how often a false turn fires, only how convincing it is.
-    #   silence    how long a pause ends the turn. Deliberately above the API's
-    #              500 ms default: the persona promises not to interrupt, and a
-    #              real interview answer contains 400-600 ms thinking pauses
-    #              mid-sentence. 700 is the smallest value that reliably does not
-    #              cut a candidate off.
+    #   silence    how long a pause ends the turn. Above the API's 500 ms
+    #              default, but only just: real interview answers contain
+    #              400-600 ms thinking pauses mid-sentence, so 600 sits at the
+    #              upper edge of that band. It was 700 under the assumption
+    #              that a VAD split at a thinking pause cut the candidate off -
+    #              under Interview Engine v3 that is no longer true, because a
+    #              split answer is merged by _drain_pending into ONE verdict
+    #              and ONE response.create, so the cost of a split is a slightly
+    #              longer wait, not an interruption. The browser's "thinking"
+    #              affordance covers the extra ASR wait that remains.
     #              ECHO: raising it makes self-talk LESS FREQUENT and LONGER -
-    #              700 ms already exceeds the gaps between the model's own words,
+    #              600 ms already exceeds the gaps between the model's own words,
     #              so an echo-triggered segment swallows a whole clause before it
     #              commits. Lowering it commits sooner and fires more often.
     interview_vad_threshold: float = 0.5
     interview_vad_prefix_padding_ms: int = 300
-    interview_vad_silence_duration_ms: int = 700
+    interview_vad_silence_duration_ms: int = 600
 
     # The ASR for the student's own speech, sent on BOTH API shapes (flat beta
     # `input_audio_transcription`, nested GA `audio.input.transcription`). A
@@ -667,6 +683,8 @@ class Settings(BaseSettings):
         "interview_vad_threshold",
         "interview_vad_prefix_padding_ms",
         "interview_vad_silence_duration_ms",
+        "interview_voice_speed",
+        "interview_temperature",
         "voice_max_sessions_per_user",
         "voice_max_call_seconds",
         "auth_revocation_cache_seconds",
@@ -766,6 +784,31 @@ class Settings(BaseSettings):
         """
         if value < 0:
             raise ValueError(f"{info.field_name} must be zero or a positive integer, got {value}")
+        return value
+
+    @field_validator("interview_voice_speed")
+    @classmethod
+    def _voice_speed_in_range(cls, value: float) -> float:
+        """0.25-1.5 is upstream's own documented range for audio.output.speed.
+
+        Validated at startup because a rejected session.update is the
+        handshake's close-4002 path: loud there, an interview-killer at
+        mid-session. Catching a typo here keeps the failure where it belongs.
+        """
+        if not 0.25 <= value <= 1.5:
+            raise ValueError(
+                f"interview_voice_speed must be between 0.25 and 1.5, got {value}"
+            )
+        return value
+
+    @field_validator("interview_temperature")
+    @classmethod
+    def _temperature_in_range(cls, value: float | None) -> float | None:
+        """0.0-2.0 when set; None means "never sent" and is always legal."""
+        if value is not None and not 0.0 <= value <= 2.0:
+            raise ValueError(
+                f"interview_temperature must be between 0.0 and 2.0, got {value}"
+            )
         return value
 
     @model_validator(mode="before")

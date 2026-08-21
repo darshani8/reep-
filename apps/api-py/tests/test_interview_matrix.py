@@ -21,6 +21,7 @@ import pytest
 
 from app.config import settings
 from app.interview_matrix import (
+    KNOWN_REALTIME_VOICES,
     REPORT_DIRECTIVE,
     SPECIALIZATIONS,
     InterviewPhase,
@@ -47,6 +48,19 @@ class TestMatrix:
         # Phrased as a prompt, not necessarily with a "?": two of the four are
         # "Walk me through..." statements in the spec.
         assert len(spec.sample_question) > 30
+        # Every role speaks with a voice the GA session shape actually has.
+        assert spec.voice in KNOWN_REALTIME_VOICES
+
+    def test_the_per_specialization_voices(self):
+        """A CHRO does not sound like a CFO. Pinned so a casual re-voice of
+        every track to the same name is a deliberate act."""
+        assert SPECIALIZATIONS["hr"].voice == "coral"
+        assert SPECIALIZATIONS["dm"].voice == "marin"
+        assert SPECIALIZATIONS["ba"].voice == "cedar"
+        assert SPECIALIZATIONS["fa"].voice == "ash"
+        # Four roles, four voices -- the field is per-specialization, not a
+        # second global default wearing a matrix costume.
+        assert len({spec.voice for spec in SPECIALIZATIONS.values()}) == 4
 
     def test_the_spec_sample_questions(self):
         # The spec's own wording, pinned so a casual edit is a deliberate act.
@@ -271,7 +285,7 @@ class TestTurnInstructions:
     one has to be self-contained or the interviewer loses its conduct rules on
     exactly the turn where it is improvising."""
 
-    @pytest.mark.parametrize("kind", ["clarify", "unheard", "resume", "verdict"])
+    @pytest.mark.parametrize("kind", ["clarify", "unheard", "resume", "verdict", "invite_questions"])
     def test_every_kind_keeps_the_persona_and_the_rule_1_disclosure(self, kind):
         instructions = build_turn_instructions(
             SPECIALIZATIONS["ba"], _INTERVIEWER_PERSONA, InterviewPhase.PROBING, kind
@@ -306,15 +320,59 @@ class TestInstructionComposition:
         instructions = build_instructions(SPECIALIZATIONS["hr"], _INTERVIEWER_PERSONA)
         assert instructions.startswith(_INTERVIEWER_PERSONA)
 
-    def test_opening_carries_persona_frameworks_and_sample_question(self):
+    def test_opening_is_a_real_opening_not_a_domain_question(self):
+        """The interview begins the way a real one does: a greeting, a one-
+        sentence self-introduction, expectations, and "tell me about yourself".
+        The hard scenario question moved to PROBING -- asking it cold, seconds
+        after the handshake, is what made the old opening feel like a quiz."""
         spec = SPECIALIZATIONS["fa"]
         instructions = build_instructions(spec, _INTERVIEWER_PERSONA)
         assert spec.persona in instructions
         assert spec.label in instructions
         for framework in spec.frameworks:
             assert framework in instructions
-        assert spec.sample_question in instructions
+        assert "introduce themselves" in instructions
+        assert "no domain questions in this phase" in instructions
         assert "## Current phase: opening" in instructions
+        # The sample question is NOT here any more -- it is worked in during
+        # probing, once the student has actually started talking.
+        assert spec.sample_question not in instructions
+
+    @pytest.mark.parametrize("key", ["hr", "dm", "ba", "fa"])
+    def test_probing_works_in_the_sample_question(self, key):
+        """Both PROBING variants -- with a syllabus (DM) and without -- carry
+        the matrix's sample question, rephrased rather than recited."""
+        spec = SPECIALIZATIONS[key]
+        instructions = build_instructions(
+            spec, _INTERVIEWER_PERSONA, InterviewPhase.PROBING
+        )
+        assert spec.sample_question in instructions
+        assert "rephrased naturally rather than recited" in instructions
+
+    def test_the_delivery_style_follows_the_persona_and_precedes_the_track(self):
+        """How the interviewer SOUNDS is one shared block, positioned after the
+        conduct rules it must not dilute and before the specialization it
+        applies to."""
+        instructions = build_instructions(SPECIALIZATIONS["dm"], _INTERVIEWER_PERSONA)
+        assert instructions.startswith(_INTERVIEWER_PERSONA)
+        assert (
+            instructions.index(_INTERVIEWER_PERSONA)
+            < instructions.index("speaking aloud, not writing")
+            < instructions.index("## Specialization:")
+        )
+        # The substance: spoken register, one acknowledgement, no scaffolding.
+        assert "no bullet points" in instructions
+
+    def test_the_candidate_questions_turn_kind(self):
+        """A real interview ends with "any questions for us?" BEFORE the
+        verdict. This is the directive for that beat."""
+        instructions = build_turn_instructions(
+            SPECIALIZATIONS["hr"], _INTERVIEWER_PERSONA, InterviewPhase.WRAP_UP,
+            "invite_questions",
+        )
+        assert instructions.startswith(_INTERVIEWER_PERSONA)
+        assert "any questions for you" in instructions
+        assert "Do not deliver the verdict yet" in instructions
 
     def test_wrap_up_forbids_new_questions(self):
         instructions = build_instructions(

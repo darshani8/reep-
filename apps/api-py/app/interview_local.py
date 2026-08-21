@@ -370,6 +370,11 @@ class LocalSession:
         # distinction is what stops the next editor putting a resume in the
         # persona.
         self._history: list[dict[str, str]] = []
+        # The two-beat close, mirroring the relay: the tick into WRAP_UP speaks
+        # an "any questions for us?" turn instead of the verdict, and the
+        # student's reply -- any reply, never classify_answer'd, because "no,
+        # I'm good" is filler words to the gate -- is what earns the verdict.
+        self._awaiting_candidate_questions = False
         self._started_at = time.monotonic()
         self._last_audio_at = time.monotonic()
         self._speaking = False
@@ -510,6 +515,19 @@ class LocalSession:
             }
         )
 
+        if self._awaiting_candidate_questions:
+            # The reply to "any questions for you?" -- bypassed past
+            # classify_answer entirely, exactly as the relay does: "no, I'm
+            # good" is filler words to the gate and must not earn a clarify
+            # loop on the final turn. A failed transcription goes the same
+            # way; a real interviewer just closes.
+            self._awaiting_candidate_questions = False
+            self._emit_turn(_SENDER_STUDENT, transcript, status, None, counted=False)
+            await self._speak_turn(kind="verdict")
+            await self._produce_report()
+            self.request_stop(_CLOSE_OK, "Interview complete")
+            return
+
         quality = classify_answer(transcript)
         counted = quality == "accepted"
         self._emit_turn(_SENDER_STUDENT, transcript, status, quality, counted=counted)
@@ -523,9 +541,11 @@ class LocalSession:
             await self._announce_phase()
 
         if self._machine.phase is InterviewPhase.WRAP_UP:
-            await self._speak_turn(kind="verdict")
-            await self._produce_report()
-            self.request_stop(_CLOSE_OK, "Interview complete")
+            # The questioning is done, but a real interview ends with "any
+            # questions for us?" BEFORE the verdict. The reply is handled by
+            # the bypass above; the verdict and the report follow it.
+            self._awaiting_candidate_questions = True
+            await self._speak_turn(kind="invite_questions")
             return
         await self._speak_turn(kind=None)
 
@@ -666,7 +686,17 @@ class LocalSession:
     # -- wrap up and the scorecard ----------------------------------------
 
     async def _force_wrap_up(self) -> None:
+        if self._awaiting_candidate_questions:
+            # The clock ran out while the student was thinking of a question to
+            # ask us. Skip the rest of the beat -- a real interviewer who is
+            # out of time just closes.
+            self._awaiting_candidate_questions = False
+            await self._speak_turn(kind="verdict")
+            await self._produce_report()
+            return
         if self._machine.force_wrap_up():
+            # The forced path goes straight to the verdict, never through the
+            # candidate-questions beat.
             await self._announce_phase()
             await self._speak_turn(kind="verdict")
             await self._produce_report()

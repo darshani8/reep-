@@ -7,7 +7,7 @@
  * computed from `GET /api/student/ledger`; this component types figures into
  * cells, PUTs them, and renders what comes back. Deriving any of it a second
  * time in TypeScript is how a band ends up disagreeing with the number printed
- * above it — see the note at the top of app/routers/student_screens.py.
+ * above it — see the note at the top of app/routers/student_programme.py.
  *
  * EDITS ARE LOCAL UNTIL SAVED. `draft` holds what the student has typed; the
  * server's view is only replaced on a successful write. Re-rendering the whole

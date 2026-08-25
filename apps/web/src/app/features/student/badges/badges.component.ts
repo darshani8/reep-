@@ -42,7 +42,7 @@ interface EvidenceRow {
   upload_id: string | null;
 }
 
-interface ApprovedCert {
+interface ApprovedCertification {
   id: string;
   name: string;
   provider: string;
@@ -70,7 +70,7 @@ interface Badge {
   points_earned: number;
   earned_at: string | null;
   evidence: EvidenceRow[];
-  approved_certifications: ApprovedCert[];
+  approved_certifications: ApprovedCertification[];
 }
 
 interface Category {

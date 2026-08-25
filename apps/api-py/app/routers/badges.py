@@ -72,7 +72,7 @@ class EvidenceOut(BaseModel):
     upload_id: str | None
 
 
-class ApprovedCertOut(BaseModel):
+class ApprovedCertificationOut(BaseModel):
     id: str
     name: str
     provider: str
@@ -102,7 +102,7 @@ class BadgeOut(BaseModel):
     points_earned: int
     earned_at: datetime | None
     evidence: list[EvidenceOut]
-    approved_certifications: list[ApprovedCertOut]
+    approved_certifications: list[ApprovedCertificationOut]
 
 
 class CategoryOut(BaseModel):
@@ -223,7 +223,7 @@ def compose_badges(student: Student, db: Session) -> BadgeDashboardOut:
                     for e in evs
                 ],
                 approved_certifications=[
-                    ApprovedCertOut(
+                    ApprovedCertificationOut(
                         id=c.id,
                         name=c.name,
                         provider=c.provider,

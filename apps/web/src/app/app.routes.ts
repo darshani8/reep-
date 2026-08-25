@@ -187,10 +187,10 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'mentor/badge-approvals',
+        path: 'mentor/badge-centre',
         loadComponent: () =>
-          import('./features/mentor/badge-approvals/badge-approvals.component').then(
-            (m) => m.BadgeApprovalsComponent,
+          import('./features/mentor/badge-centre/badge-centre.component').then(
+            (m) => m.BadgeCentreComponent,
           ),
       },
       {

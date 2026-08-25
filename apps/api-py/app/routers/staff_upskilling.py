@@ -25,18 +25,18 @@ from ..db import get_db
 from ..deps import get_current_session
 from ..filestore import UploadRejected, content_disposition, delete as filestore_delete
 from ..filestore import read_bytes, save_bytes
-from ..models.staff_upskilling import StaffUpskillingCert
+from ..models.staff_upskilling import StaffUpskillingCertificate
 from .mentor import require_mentor
 
 router = APIRouter(prefix="/staff/upskilling", tags=["staff-upskilling"])
 
 # Per-STAFF-user quota (same reasoning as filestore's per-student one): far above
 # real use, far below "one account fills the disk".
-MAX_CERTS_PER_USER = 20
-MAX_CERT_BYTES_PER_USER = 100 * 1024 * 1024  # 100 MB
+MAX_CERTIFICATES_PER_USER = 20
+MAX_CERTIFICATE_BYTES_PER_USER = 100 * 1024 * 1024  # 100 MB
 
 
-class CertOut(BaseModel):
+class CertificateOut(BaseModel):
     id: str
     title: str
     provider: str | None
@@ -47,8 +47,8 @@ class CertOut(BaseModel):
     uploaded_at: datetime
 
 
-def _cert_out(c: StaffUpskillingCert) -> CertOut:
-    return CertOut(
+def _certificate_row(c: StaffUpskillingCertificate) -> CertificateOut:
+    return CertificateOut(
         id=c.id,
         title=c.title,
         provider=c.provider,
@@ -60,28 +60,28 @@ def _cert_out(c: StaffUpskillingCert) -> CertOut:
     )
 
 
-@router.get("", response_model=list[CertOut])
-def my_certs(
+@router.get("", response_model=list[CertificateOut])
+def my_certificates(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> list[CertOut]:
+) -> list[CertificateOut]:
     require_mentor(session)
     rows = db.scalars(
-        select(StaffUpskillingCert)
-        .where(StaffUpskillingCert.user_id == session["userId"])
-        .order_by(StaffUpskillingCert.uploaded_at.desc())
+        select(StaffUpskillingCertificate)
+        .where(StaffUpskillingCertificate.user_id == session["userId"])
+        .order_by(StaffUpskillingCertificate.uploaded_at.desc())
     ).all()
-    return [_cert_out(c) for c in rows]
+    return [_certificate_row(c) for c in rows]
 
 
-@router.post("", response_model=CertOut, status_code=status.HTTP_201_CREATED)
-def upload_cert(
+@router.post("", response_model=CertificateOut, status_code=status.HTTP_201_CREATED)
+def upload_certificate(
     file: UploadFile = File(...),
     title: str = Form(""),
     provider: str = Form(""),
     completed_on: date | None = Form(None),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> CertOut:
+) -> CertificateOut:
     """Sync `def` on purpose, like student create_upload: a 10 MB write belongs
     in the threadpool, not on the event loop the live interviews share."""
     require_mentor(session)
@@ -90,27 +90,27 @@ def upload_cert(
     # Quota before the body is buffered (see module docstring).
     used_count, used_bytes = db.execute(
         select(
-            func.count(StaffUpskillingCert.id),
-            func.coalesce(func.sum(StaffUpskillingCert.size_bytes), 0),
-        ).where(StaffUpskillingCert.user_id == user_id)
+            func.count(StaffUpskillingCertificate.id),
+            func.coalesce(func.sum(StaffUpskillingCertificate.size_bytes), 0),
+        ).where(StaffUpskillingCertificate.user_id == user_id)
     ).one()
-    if used_count >= MAX_CERTS_PER_USER:
+    if used_count >= MAX_CERTIFICATES_PER_USER:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
                 f"You already have {used_count} certificates uploaded, which is the "
-                f"limit of {MAX_CERTS_PER_USER}. Delete one you no longer need, then "
+                f"limit of {MAX_CERTIFICATES_PER_USER}. Delete one you no longer need, then "
                 "try again."
             ),
         )
 
     content = file.file.read()
-    if used_bytes + len(content) > MAX_CERT_BYTES_PER_USER:
+    if used_bytes + len(content) > MAX_CERTIFICATE_BYTES_PER_USER:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=(
                 f"This file would take you past your "
-                f"{MAX_CERT_BYTES_PER_USER // (1024 * 1024)} MB upload allowance. "
+                f"{MAX_CERTIFICATE_BYTES_PER_USER // (1024 * 1024)} MB upload allowance. "
                 "Delete a certificate you no longer need, then try again."
             ),
         )
@@ -119,7 +119,7 @@ def upload_cert(
     except UploadRejected as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
 
-    cert = StaffUpskillingCert(
+    cert = StaffUpskillingCertificate(
         user_id=user_id,
         title=title.strip() or (file.filename or "Certificate"),
         provider=provider.strip() or None,
@@ -132,17 +132,17 @@ def upload_cert(
     db.add(cert)
     db.commit()
     db.refresh(cert)
-    return _cert_out(cert)
+    return _certificate_row(cert)
 
 
 @router.get("/{cert_id}/file")
-def download_cert(
+def download_certificate(
     cert_id: str,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> Response:
     require_mentor(session)
-    cert = db.get(StaffUpskillingCert, cert_id)
+    cert = db.get(StaffUpskillingCertificate, cert_id)
     if cert is None or cert.user_id != session["userId"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")
     try:
@@ -157,13 +157,13 @@ def download_cert(
 
 
 @router.delete("/{cert_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_cert(
+def delete_certificate(
     cert_id: str,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> Response:
     require_mentor(session)
-    cert = db.get(StaffUpskillingCert, cert_id)
+    cert = db.get(StaffUpskillingCertificate, cert_id)
     if cert is None or cert.user_id != session["userId"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")
     filestore_delete(cert.stored_name)

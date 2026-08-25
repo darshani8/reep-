@@ -612,7 +612,7 @@ def compose_english_baseline(db: Session, student_id: str) -> EnglishBaselineOut
     layout from nothing.
 
     A FUNCTION RATHER THAN A ROUTE BODY, because a mentor reads the same view
-    through `routers/staff_screens.py`. Two hand-written copies of "is this
+    through `routers/mentee_records.py`. Two hand-written copies of "is this
     section pending or scored" is how a mentor ends up seeing a 0 where the
     student sees a dash.
     """

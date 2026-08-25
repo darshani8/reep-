@@ -96,12 +96,12 @@ const EVIDENCE_TYPE_LABEL: Record<string, string> = {
 const CHECKPOINTS = ['T0', 'T1', 'T2', 'T3', 'T4'];
 
 @Component({
-  selector: 'app-badge-approvals',
+  selector: 'app-badge-centre',
   standalone: true,
   imports: [DatePipe, FormsModule],
-  templateUrl: './badge-approvals.component.html',
+  templateUrl: './badge-centre.component.html',
 })
-export class BadgeApprovalsComponent {
+export class BadgeCentreComponent {
   readonly apiBase = environment.apiBase;
   private readonly auth = inject(AuthService);
 

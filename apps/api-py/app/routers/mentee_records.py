@@ -4,7 +4,7 @@
     GET /api/mentor/students/{student_id}/ledger/summary   the last N days
     GET /api/mentor/students/{student_id}/english-baseline the CEFR attempt
 
-RULE 2 IS THE WHOLE POINT OF THIS MODULE. `app/routers/student_screens.py` is
+RULE 2 IS THE WHOLE POINT OF THIS MODULE. `app/routers/student_programme.py` is
 first-person by construction — it reads `studentId` off the session and has no
 path parameter naming a student anywhere, so there is nothing for a crafted id
 to reach. These endpoints DO name a student in the path, which makes them the
@@ -16,7 +16,7 @@ reimplemented — a second copy of a scope check is a second place for it to be
 subtly wrong.
 
 THE VIEWS ARE THE STUDENT'S OWN, not a staff rendering of the same rows. Both
-endpoints call the builders in `student_screens.py`, so the metrics strip a
+endpoints call the builders in `student_programme.py`, so the metrics strip a
 mentor reads is the one the student is looking at, computed by the same
 expression. The alternative — a staff-shaped copy of "is this section pending or
 scored", "how many hours short is this day" — is how a mentor ends up seeing a
@@ -38,7 +38,7 @@ from ..db import get_db
 from ..deps import get_current_session
 from ..models.time_ledger import DAY_CAPACITY_HALVES, LedgerDayStatus, TimeLedgerDay
 from .mentor import _assert_can_access_student
-from .student_screens import (
+from .student_programme import (
     EnglishBaselineOut,
     LedgerOut,
     compose_english_baseline,

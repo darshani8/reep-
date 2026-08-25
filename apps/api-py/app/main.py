@@ -20,18 +20,18 @@ from .routers import (
     agent,
     alumni,
     auth,
-    badge_admin,
+    badge_verification,
     badges,
     director,
     health,
     interview,
     leave,
+    mentee_records,
     mentor,
     registration,
-    staff_screens,
     staff_upskilling,
     student,
-    student_screens,
+    student_programme,
     voice,
 )
 
@@ -235,12 +235,12 @@ app.include_router(student.router, prefix="/api")
 # and the landing programme cards. Its own module so routers/student.py — the
 # file every other student change touches — did not grow another 600 lines; it
 # shares the /student prefix, so the client sees one flat surface.
-app.include_router(student_screens.router, prefix="/api")
+app.include_router(student_programme.router, prefix="/api")
 app.include_router(mentor.router, prefix="/api")
 # The staff side of the v2 screens — a mentor or director reading a student's
 # ledger and English baseline. Separate from mentor.py so that file is untouched,
 # and every endpoint in it goes through _assert_can_access_student (rule 2).
-app.include_router(staff_screens.router, prefix="/api")
+app.include_router(mentee_records.router, prefix="/api")
 app.include_router(director.router, prefix="/api")
 app.include_router(leave.router, prefix="/api")
 # Faculty upskilling (own certificate uploads) and the alumni area (first-login
@@ -249,11 +249,11 @@ app.include_router(leave.router, prefix="/api")
 app.include_router(staff_upskilling.router, prefix="/api")
 app.include_router(alumni.router, prefix="/api")
 # The Skills & Badge dashboard: the student half shares the /student prefix
-# (badges, growth, leaderboards); badge_admin carries the staff review queue,
+# (badges, growth, leaderboards); badge_verification carries the staff review queue,
 # manual awards, assessment entry, cohort views and the certification
 # catalogue, under /mentor and /director as rule 2 dictates.
 app.include_router(badges.router, prefix="/api")
-app.include_router(badge_admin.router, prefix="/api")
+app.include_router(badge_verification.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")
 
 

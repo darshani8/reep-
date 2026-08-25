@@ -53,6 +53,20 @@ httpx==0.28.1
 # the student-data egress gate does not apply: nothing leaves the machine)
 reportlab==5.0.0
 
+# Audio maths for the LOCAL interview engine (app/interview_local.py): RMS for
+# the voice-activity gate, and linear resampling between the browser's 24 kHz
+# PCM and whatever rate the local models want.
+#
+# A RUNTIME dependency, not a dev one, and it was missing entirely. The module
+# reached main importing numpy with no requirements entry, which is the exact
+# failure requirements-voice.txt already carries a warning about and CI has a
+# whole `worker-imports` job to prevent for the other process: the import is
+# lazy inside a request handler, so the API still BOOTS, and the break only
+# surfaces as a ModuleNotFoundError on the first student to use the local
+# engine — and as a pytest COLLECTION error, because tests/test_interview_local.py
+# imports it at module scope. That takes the whole suite down, not one test.
+numpy==2.3.5
+
 # AI agent framework (Google Agent Development Kit) — pairs natively with Gemini
 google-adk==2.7.0
 # Lets ADK reach non-Gemini providers (Groq, Mistral, OpenRouter, …)

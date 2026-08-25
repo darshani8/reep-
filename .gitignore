@@ -25,3 +25,6 @@ dist/
 
 # uploaded files (bytes on disk; only metadata is in Postgres)
 apps/api-py/var/
+
+# orc worker transcripts (raw model replies, not source)
+tools/coder/.orc/

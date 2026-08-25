@@ -1,13 +1,19 @@
 # Environment contract, per image
 
-REEP deploys as **two different images with two different environments**. They
-are not interchangeable, and most production incidents in this stack come from
-giving a variable to one and not the other.
+REEP deploys as **three different images with three different environments**.
+They are not interchangeable, and most production incidents in this stack come
+from giving a variable to one and not the other.
 
 | Image | Built from | Runs | Reaches |
 |---|---|---|---|
 | API | `apps/api-py/Dockerfile` (Python 3.14) | `uvicorn app.main:app` on :3300 | Postgres, LLM providers |
 | Voice worker | `apps/api-py/Dockerfile.voice` (Python 3.12) | `voice_agent.py start` | LiveKit, Groq, the API over HTTP |
+| Web | `apps/web/Dockerfile` (node build → nginx) | nginx on :80 — the **only published port** in the stack | the API over the compose network |
+
+The API image also runs as two sidecars in `docker-compose.prod.yml`: `migrate`
+(one-shot `alembic upgrade head`) and `retention` (`python -m app.reap`, daily —
+see "Backups and retention" below). Both read the same variables the `api`
+service does.
 
 The worker has **no database access and no inbound HTTP port**. It talks to the
 API with stdlib `urllib`. Anything it needs from the database, it asks the API
@@ -40,7 +46,12 @@ that looks like a backend bug.
 
 | Variable | Default behaviour when unset |
 |---|---|
+| `WEB_CONCURRENCY` | One uvicorn worker. The Dockerfile CMD deliberately omits `--workers`, and uvicorn (0.52.3, pinned) reads `$WEB_CONCURRENCY` as that flag's default — so the same image is single-worker on a laptop and a fleet in production with no rebuild. **Every per-worker limit in `config.py` multiplies by this number.** The prod compose sets 4. |
+| `INTERVIEW_MAX_SESSIONS` | 100 — and it is **per worker**, so fleet interview capacity = `WEB_CONCURRENCY × INTERVIEW_MAX_SESSIONS`. The prod compose pairs 4 workers with `50` for the 200-interview target; leaving the default there would quietly advertise 400, twice the upstream audio-token budget. |
+| `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` / `DB_POOL_TIMEOUT_S` | Per-worker SQLAlchemy pool. The budget that matters: `workers × (pool + overflow)` must stay under Postgres `max_connections` with headroom for the sidecars, migrations and a human's psql — prod is 4 × (10 + 10) = 80 against `max_connections=200`. |
+| `OPENAI_API_KEY` | `GET /api/interview/status` reports unavailable and the interview socket closes 4001. The mock interviewer, and only it, is off. |
 | `UPLOAD_DIR` | The image sets `/var/reep/uploads`. **Mount a volume there.** Unmounted, uploads land in the container layer and every redeploy destroys student files. |
+| `INTERVIEW_AUDIO_DIR` | The audio store resolves to a **sibling of `UPLOAD_DIR`** (`/var/reep/interview-audio` in the image) — a path no volume covers by default, so recordings would die with the container. The prod compose sets it explicitly and mounts `reep_interview_audio` there, plus a one-shot `interview-audio-init` chown (a named volume's mountpoint is created root-owned; the API runs as uid 10001). Capture itself still requires `INTERVIEW_RECORDING_ENABLED=true` **and** the student's `scope_store_audio` grant. |
 | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | `/api/voice/*` returns 503. The rest of the app is unaffected. |
 | `GROQ_API_KEY` | `voice_model_key_present` is false, so voice reports not-configured. Also serves as an LLM provider for the assistant. |
 | `LLM_BASE_URL` / `LLM_MODEL` / `LLM_API_KEY` | Explicit provider. Unset ⇒ auto-select the first per-provider key present (Sakana → Groq → Mistral → OpenRouter → Gemini → Cohere). |
@@ -51,7 +62,36 @@ that looks like a backend bug.
 
 ---
 
+## Web image
+
+nginx serving the compiled Angular SPA, and the stack's **single front door**:
+it proxies everything under `/api` (including the `/api/interview` WebSocket
+upgrade) to the api service. This is not a convenience — the session is an
+httpOnly `SameSite=Lax` cookie, so the SPA and the API **must be one origin**,
+and in production this image is that origin. It takes no environment variables;
+its behaviour lives in `apps/web/nginx.conf`.
+
+**TLS terminates here.** `ENV=prod` marks the cookie `Secure`, and a `Secure`
+cookie is silently dropped over plain HTTP. The 443 server block in
+`nginx.conf` and the 443 port + certificate mount on the `web` service are
+committed as comments; enable the three together.
+
+---
+
 ## Voice worker image
+
+**Behind the `voice` compose profile.** The worker is the LiveKit rollback
+path with no UI caller (AGENTS.md), so `docker compose -f
+docker-compose.prod.yml up -d` no longer starts it — that reclaims its 1–3 GB.
+On rollback, start it explicitly:
+
+    docker compose -f docker-compose.prod.yml --profile voice up -d
+
+One consequence of the profile: compose interpolates variables **before**
+applying profiles, so the worker's secrets can no longer be `${VAR:?}`
+hard-fails without breaking the default stack. A missing value now surfaces as
+`worker_healthy: false` in `GET /api/voice/status` instead of a compose
+refusal — which is why the list below still says *required*.
 
 ### Required — all of them
 
@@ -93,12 +133,51 @@ publishes, and no agent ever joins.
 
 ---
 
+## Backups and retention
+
+Two sidecars in `docker-compose.prod.yml` keep the data honest. Before them
+there were **no backups of any kind**, and the 180-day retention promise
+stamped on every interview row executed never.
+
+- **`db-backup`** — nightly `pg_dump -Fc` of `reep_py` into the `reep_backups`
+  volume, 14-day rotation, and the **first dump runs at container start** so a
+  fresh deploy proves the path before anyone trusts it. One `db-backup OK:` /
+  `db-backup FAILED:` line per attempt, shaped to survive a log aggregator.
+  The volume lives on the **same host as the database**, so it answers "we
+  dropped a table", not "the machine died": replicate it off-box
+  (rsync/rclone/object storage) as the immediate next step, and **rehearse a
+  restore** before one is needed —
+
+      pg_restore -d reep_py <file>
+
+  A backup that has never been restored is a hope, not a backup.
+
+- **`retention`** — the API image running `python -m app.reap` once a day
+  (first run at start): `retention.purge_expired` walks conversations and
+  interview records through soft-delete, PII-scrub and hard-delete on their
+  90/180-day clocks, and `retention.redact_expired_runs` strips aged `AgentRun`
+  free text while keeping the metrics. The trigger lives in the compose file on
+  purpose — `app/retention.py` refuses to run these from API boot, because that
+  would make the amount of data destroyed a function of how often someone
+  restarts the API. The sidecar mounts the interview-audio volume because
+  expiring recordings are deleted **through the filesystem**: unmounted, every
+  missing file reads as "already deleted" while the bytes survive on the api's
+  volume.
+
+---
+
 ## Startup order
 
 1. `db` — healthy (`pg_isready` against **`reep_py`**, not `reep_dev`).
 2. `migrate` — one-shot `alembic upgrade head`, must exit 0.
-3. `api` — after migrations complete.
-4. `voice-worker` — after the API is up.
+3. `interview-audio-init` — one-shot `chown` of the interview-audio volume
+   (docker creates a fresh named volume's mountpoint root-owned; the API runs
+   as uid 10001 and could otherwise never write a recording).
+4. `api` — after migrations and the chown complete.
+5. `web` — nginx, after the API starts. The only published port.
+6. `db-backup`, `retention` — after `db` (and `migrate`, for retention); each
+   runs immediately, then daily.
+7. `voice-worker` — only with `--profile voice`, after the API is up.
 
 **Migrations run once, as their own service.** Running them from the API
 entrypoint means every replica races on the Alembic version table on boot, and
@@ -117,7 +196,7 @@ records, behind a password published in `AGENTS.md`.
 | Service | `stop_grace_period` | Why that number |
 |---|---|---|
 | api | 120s | Above uvicorn's `--timeout-graceful-shutdown 110`, so it drains first. `/api/agent/chat/stream` persists the assistant turn only after the last delta — a hard kill mid-stream loses it. |
-| voice-worker | 300s | On SIGTERM the SDK stops accepting new jobs and waits for in-flight ones; the drain must outlast the longest live call or a student is cut off mid-sentence. |
+| voice-worker | 960s | On SIGTERM the SDK stops accepting new jobs and waits for in-flight ones; the drain must outlast the longest live call or a student is cut off mid-sentence. Derived in the compose file: `drain_timeout=900` + two rounds of `shutdown_process_timeout` (20s each) + slack. |
 
 The worker's Dockerfile runs `voice_agent.py start`, **not `dev`**. The SDK only
 drains when not in devmode (`cli.py`: `if not devmode:

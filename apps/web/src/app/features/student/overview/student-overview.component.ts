@@ -420,36 +420,41 @@ export class StudentOverviewComponent {
   }
 
   private async load(): Promise<void> {
-    const [dash, att, res, streak, swoc, mocks, skills, actions, readiness, recos] =
-      await Promise.all([
-        this.getJson<Dashboard>('/student/dashboard'),
-        this.getJson<AttendanceSummary>('/student/attendance'),
-        this.getJson<SemesterResult[]>('/student/results'),
-        this.getJson<Streak>('/student/streak'),
-        this.getJson<SwocBoard>('/student/swoc'),
-        this.getJson<MockAttempt[]>('/student/mocks'),
-        this.getJson<StudentSkill[]>('/student/skills'),
-        this.getJson<{ actions: NextAction[] }>('/student/next-actions'),
-        this.getJson<PlacementReadiness>('/student/placement-readiness'),
-        this.getJson<{ items: Recommendation[] }>('/student/recommendations'),
-      ]);
+    // ONE aggregate request, not ten. This screen is the default landing
+    // route, and its old ten-way Promise.all meant every login was an
+    // 11-request volley (plus /auth/me) — each request holding its own server
+    // thread and DB connection, so two students landing at once already
+    // saturated the old connection pool. GET /student/overview composes the
+    // same ten reads server-side in one DB session; the shapes are unchanged.
+    const all = await this.getJson<{
+      dashboard: Dashboard;
+      attendance: AttendanceSummary | null;
+      results: SemesterResult[] | null;
+      streak: Streak | null;
+      swoc: SwocBoard | null;
+      mocks: MockAttempt[] | null;
+      skills: StudentSkill[] | null;
+      next_actions: { actions: NextAction[] } | null;
+      placement_readiness: PlacementReadiness | null;
+      recommendations: { items: Recommendation[] } | null;
+    }>('/student/overview');
 
-    if (dash == null) {
+    if (all == null || all.dashboard == null) {
       this.error.set('Could not load your overview.');
       this.loading.set(false);
       return;
     }
 
-    this.dashboard.set(dash);
-    this.attendance.set(att);
-    this.results.set(res);
-    this.streak.set(streak);
-    this.swoc.set(swoc);
-    this.mocks.set(mocks);
-    this.skills.set(skills);
-    this.nextActions.set(actions ? actions.actions : null);
-    this.readiness.set(readiness);
-    this.recommendations.set(recos ? recos.items : null);
+    this.dashboard.set(all.dashboard);
+    this.attendance.set(all.attendance);
+    this.results.set(all.results);
+    this.streak.set(all.streak);
+    this.swoc.set(all.swoc);
+    this.mocks.set(all.mocks);
+    this.skills.set(all.skills);
+    this.nextActions.set(all.next_actions ? all.next_actions.actions : null);
+    this.readiness.set(all.placement_readiness);
+    this.recommendations.set(all.recommendations ? all.recommendations.items : null);
     this.loading.set(false);
   }
 

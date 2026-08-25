@@ -1,5 +1,8 @@
 """Student self-service endpoints. First slice: read your own profile."""
 
+import threading
+import time
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -46,6 +49,7 @@ from ..models.resume_profile import ResumeProfile
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload, UploadKind, UploadStatus
 from ..models.user import LoginDay, Student, User
+from ..ratelimit import llm_rate_limited
 
 router = APIRouter(prefix="/student", tags=["student"])
 
@@ -270,6 +274,41 @@ def dashboard(
         latest_cgpa=latest.cgpa if latest else None,
         attendance_percent=round(100 * present / total, 1) if total else 0.0,
     )
+
+
+@router.get("/overview")
+def overview(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> dict:
+    """Everything the landing page shows, in ONE request and ONE DB session.
+
+    The Angular overview screen used to fire its ten GETs in a Promise.all —
+    an 11-request volley (plus /auth/me) per view, each request taking its own
+    threadpool slot and pooled connection, so TWO students landing at once
+    already wanted more connections than the old pool had (2026-08 audit). The
+    ten handlers are unchanged and still individually routed — sibling screens
+    and older clients keep working — this endpoint simply composes them
+    sequentially on this request's session: one connection, ten queries'
+    worth of work, one JSON document.
+
+    Keys mirror the client's destructuring, not the route paths, so the
+    component's `load()` is a one-line change. Any handler's HTTPException
+    (e.g. the 404 for a session that outlived its Student row) propagates for
+    the whole document: a landing page for a student who no longer exists has
+    no partial answer worth assembling.
+    """
+    return {
+        "dashboard": dashboard(session, db),
+        "attendance": my_attendance(session, db),
+        "results": my_results(session, db),
+        "streak": my_streak(session, db),
+        "swoc": my_swoc(session, db),
+        "mocks": my_mocks(session, db),
+        "skills": my_skills(session, db),
+        "next_actions": next_actions(session, db),
+        "placement_readiness": placement_readiness(session, db),
+        "recommendations": recommendations(session, db),
+    }
 
 
 class SwocItemOut(BaseModel):
@@ -953,7 +992,7 @@ class ResumeGenerateIn(BaseModel):
     target_role: str | None = None
 
 
-@router.post("/resume/generate")
+@router.post("/resume/generate", dependencies=[Depends(llm_rate_limited)])
 def generate_resume(
     body: ResumeGenerateIn,
     session: dict = Depends(get_current_session),
@@ -987,6 +1026,16 @@ def generate_resume(
 
     markdown = _compose_resume_markdown(name, profile, skill_names, cgpa, quals)
     generated_by, model, used_ai, note = "fallback", None, False, None
+
+    # Release the pooled connection BEFORE the model call. The SELECTs above
+    # opened a transaction that pins one of the pool's connections, and
+    # complete_chat below can legally take LLM_TIMEOUT_MS — the 2026-08 audit's
+    # arithmetic: ~15 concurrent generations against a slow provider held the
+    # ENTIRE pool and 500'd every other request in the app. Every ORM attribute
+    # this handler needs has been read into plain values by this line, so
+    # expire_on_commit costs nothing; the version query below simply re-acquires
+    # a connection when the model is done.
+    db.commit()
 
     cfg = llm_config()
     if cfg is not None and student_data_egress_allowed(cfg.base_url):
@@ -1382,7 +1431,7 @@ def _upload_row(u: Upload) -> "UploadRowOut":
 
 
 @router.post("/uploads", response_model=UploadRowOut, status_code=status.HTTP_201_CREATED)
-async def create_upload(
+def create_upload(
     file: UploadFile = File(...),
     kind: str = Form("DOCUMENT"),
     title: str = Form(""),
@@ -1391,7 +1440,18 @@ async def create_upload(
     db: Session = Depends(get_db),
 ) -> "UploadRowOut":
     """Upload a document (multipart). The type is decided by magic bytes, not the
-    client — PDF/PNG/JPEG only, 10 MB max — and the row starts PENDING_REVIEW."""
+    client — PDF/PNG/JPEG only, 10 MB max — and the row starts PENDING_REVIEW.
+
+    Sync `def` ON PURPOSE (2026-08 audit): this used to be the one async
+    endpoint in the file, which put its sync DB queries and a 10 MB
+    `write_bytes` directly on the event loop — the loop every live interview's
+    audio shares. A deadline-week upload burst produced 100-300 ms loop stalls
+    (audible glitches in every running interview), and under pool contention
+    the sync checkout parked the loop for the full pool timeout. In the
+    threadpool, the only thing this endpoint can stall is itself. The one
+    await it needed, `file.read()`, is `file.file.read()` here — same bytes,
+    same SpooledTemporaryFile, no coroutine.
+    """
     student_id = _require_student(session)
     try:
         upload_kind = UploadKind(kind)
@@ -1423,7 +1483,7 @@ async def create_upload(
             ),
         )
 
-    content = await file.read()
+    content = file.file.read()
     if used_bytes + len(content) > MAX_UPLOAD_BYTES_PER_STUDENT:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
@@ -1713,16 +1773,19 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
         return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} mocks") for sid in sids}
 
     if board == "vtu":
-        # Latest semester's CGPA per student.
+        # Latest semester's CGPA per student, decided by Postgres. This used to
+        # fetch EVERY SemesterResult row for the cohort and keep the first per
+        # student in Python — ~30,000 hydrated rows per call at a 5,000-student
+        # cohort (2026-08 audit). DISTINCT ON with the matching ORDER BY is the
+        # same "first row per student is the highest semester" idea, executed
+        # where the rows live, returning one row per student.
         rows = db.execute(
-            select(SemesterResult.student_id, SemesterResult.semester, SemesterResult.cgpa)
+            select(SemesterResult.student_id, SemesterResult.cgpa)
             .where(SemesterResult.student_id.in_(sids))
+            .distinct(SemesterResult.student_id)
             .order_by(SemesterResult.student_id, SemesterResult.semester.desc())
         ).all()
-        latest: dict[str, float] = {}
-        for sid, _sem, cgpa in rows:
-            if sid not in latest:  # first row per student is the highest semester
-                latest[sid] = float(cgpa)
+        latest = {sid: float(cgpa) for sid, cgpa in rows}
         return {sid: (latest.get(sid, 0.0), f"CGPA {latest.get(sid, 0.0):.2f}") for sid in sids}
 
     if board == "streak":
@@ -1759,6 +1822,70 @@ class LeaderboardOut(BaseModel):
     rows: list[LeaderRow]
 
 
+# How much of a board one response carries: the top of the table plus the
+# caller's own row (appended with its true rank when it falls outside). At a
+# 5,000-student cohort the full board was a ~600 KB JSON document per request,
+# and nobody scrolls to rank 4,000 — they look at the top and at themselves.
+_LEADERBOARD_TOP_N = 50
+# One ranked board per (cohort, board) is recomputed at most this often, per
+# worker. Leaderboards tolerate staleness by definition — a rank that is 60 s
+# old is still today's rank — and this turns a deadline-week thundering herd
+# into at most one aggregate pass a minute per cohort per board.
+_LEADERBOARD_CACHE_TTL_S = 60.0
+_leaderboard_cache: dict[tuple[str | None, str], tuple[float, list[tuple]]] = {}
+_leaderboard_cache_lock = threading.Lock()
+
+
+def _ranked_board(
+    db: Session, cohort_id: str | None, board: str
+) -> list[tuple[int, str, str, float, str]]:
+    """The whole ranked board — (rank, student_id, name, value, label) — for one
+    cohort, cached per worker for _LEADERBOARD_CACHE_TTL_S.
+
+    Cached WITHOUT the caller folded in: `is_me` is per-request decoration, so
+    one cached list serves every student in the cohort. The opt-out set is part
+    of the cached computation and therefore up to 60 s stale FOR OTHERS — the
+    student who opts out vanishes from their own screen immediately, because
+    `leaderboards` checks their own profile fresh on every request. A stampede
+    on an expired entry recomputes it a couple of times concurrently rather
+    than serialising every reader behind one computation; the work is idempotent
+    and the last writer wins.
+    """
+    key = (cohort_id, board)
+    now = time.monotonic()
+    with _leaderboard_cache_lock:
+        hit = _leaderboard_cache.get(key)
+        if hit is not None and now - hit[0] < _LEADERBOARD_CACHE_TTL_S:
+            return hit[1]
+
+    opted_out = set(
+        db.scalars(
+            select(StudentProfile.student_id).where(
+                StudentProfile.leaderboard_opt_out.is_(True)
+            )
+        ).all()
+    )
+    cohort_filter = (
+        Student.cohort_id.is_(None) if cohort_id is None else Student.cohort_id == cohort_id
+    )
+    roster_rows = db.execute(
+        select(Student.id, Student.user_id, User.name)
+        .join(User, Student.user_id == User.id)
+        .where(cohort_filter)
+    ).all()
+    roster = [(sid, uid, name) for sid, uid, name in roster_rows if sid not in opted_out]
+
+    values = _board_values(db, board, [(sid, uid) for sid, uid, _ in roster])
+    ranked = sorted(roster, key=lambda r: values[r[0]][0], reverse=True)
+    entries = [
+        (i + 1, sid, name, values[sid][0], values[sid][1])
+        for i, (sid, _uid, name) in enumerate(ranked)
+    ]
+    with _leaderboard_cache_lock:
+        _leaderboard_cache[key] = (now, entries)
+    return entries
+
+
 @router.get("/leaderboards", response_model=LeaderboardOut)
 def leaderboards(
     board: str = "certificates",
@@ -1787,36 +1914,33 @@ def leaderboards(
     if my_profile is not None and my_profile.leaderboard_opt_out:
         return LeaderboardOut(board=board, opted_out=True, cohort_size=0, rows=[])
 
-    # Cohort roster, minus anyone who opted out.
-    opted_out = set(
-        db.scalars(
-            select(StudentProfile.student_id).where(StudentProfile.leaderboard_opt_out.is_(True))
-        ).all()
-    )
-    roster_rows = db.execute(
-        select(Student.id, Student.user_id, User.name)
-        .join(User, Student.user_id == User.id)
-        .where(Student.cohort_id == me.cohort_id)
-    ).all()
-    roster = [(sid, uid, name) for sid, uid, name in roster_rows if sid not in opted_out]
+    # The whole board, ranked, from the per-worker 60 s cache — see
+    # _ranked_board for what is cached and what stays per-request.
+    entries = _ranked_board(db, me.cohort_id, board)
 
-    values = _board_values(db, board, [(sid, uid) for sid, uid, _ in roster])
-    name_by_sid = {sid: name for sid, _uid, name in roster}
-
-    ranked = sorted(roster, key=lambda r: values[r[0]][0], reverse=True)
-    rows = [
-        LeaderRow(
-            rank=i + 1,
+    def _row(entry: tuple[int, str, str, float, str]) -> LeaderRow:
+        rank, sid, name, value, label = entry
+        return LeaderRow(
+            rank=rank,
             student_id=sid,
-            name=name_by_sid[sid],
-            initials=_initials(name_by_sid[sid]),
-            value=values[sid][0],
-            value_label=values[sid][1],
+            name=name,
+            initials=_initials(name),
+            value=value,
+            value_label=label,
             is_me=(sid == student_id),
         )
-        for i, (sid, _uid, _name) in enumerate(ranked)
-    ]
-    return LeaderboardOut(board=board, opted_out=False, cohort_size=len(rows), rows=rows)
+
+    # Top of the table, plus the caller's own row with its TRUE rank when they
+    # fall outside it — "Rank 1,247 of 4,890" is the sentence a student wants,
+    # and shipping ranks 51-4,889 to render it was the 600 KB the audit flagged.
+    rows = [_row(e) for e in entries[: _LEADERBOARD_TOP_N]]
+    if not any(r.is_me for r in rows):
+        mine = next((e for e in entries if e[1] == student_id), None)
+        if mine is not None:
+            rows.append(_row(mine))
+    return LeaderboardOut(
+        board=board, opted_out=False, cohort_size=len(entries), rows=rows
+    )
 
 
 class LeaderboardVisibilityIn(BaseModel):
@@ -1838,6 +1962,21 @@ def set_leaderboard_visibility(
         db.add(prof)
     prof.leaderboard_opt_out = body.hidden
     db.commit()
+    # Drop this cohort's cached boards so the toggle is visible on the very
+    # next read. Without this, opting BACK IN inside a still-fresh cache window
+    # answered "You're now visible on the leaderboards" and then rendered a
+    # board without them — the review of the 2026-08 fix wave caught the
+    # contradiction. (Opting OUT never had the problem only because the
+    # caller's own opt-out is checked fresh, before the cache, in
+    # `leaderboards` above.) Per worker, like the cache itself: classmates on
+    # another worker may see the old board for the remaining TTL, which is the
+    # staleness the cache already declares acceptable — lying to the student
+    # about their own setting was not.
+    me = db.get(Student, student_id)
+    if me is not None:
+        with _leaderboard_cache_lock:
+            for b in _BOARDS:
+                _leaderboard_cache.pop((me.cohort_id, b), None)
     return {"hidden": body.hidden}
 
 

@@ -185,6 +185,32 @@ say exactly that in the comment above it.
 
 ### 2.4 Wrap-up and the report
 
+> **AMENDMENT, 2026-08-21 — wrap_up is now a TWO-BEAT close.** The sequence
+> below jumps from the tick into WRAP_UP straight to the spoken verdict. The
+> shipped engine inserts one turn between them: the create at (xiii) carries
+> the `invite_questions` turn directive — *"any questions for you about the
+> role or the company?"* — and the student's reply (ANY reply: it bypasses
+> `classify_answer` entirely, because "no, I'm good" is filler words to the
+> word gate and must not earn a clarify loop on the final turn) is what
+> produces the verdict R_v. `_request_report` is gated on `_verdict_requested`,
+> not on the phase, so the invite's `response.done` does NOT fire (xvii); only
+> the verdict's does. `_force_wrap_up` skips the beat — the clock path has no
+> time for it — and, if the reserve deadline lands while the student is
+> thinking of a question to ask, ends the beat and goes straight to the
+> verdict. The local engine (`interview_local.py`) mirrors the same two beats
+> in its own turn loop.
+>
+> The same amendment adds two smaller things, overriding §2.1/§2.2 where they
+> say the opposite by omission. **Voices are per-specialization**: each matrix
+> row carries a `voice` (HR `coral`, DM `marin`, BA `cedar`, FA `ash`) sent in
+> the single startup `session.update`; the generic track keeps
+> `OPENAI_REALTIME_VOICE`, now validated against the known set with a logged
+> fallback to `alloy`, because upstream answers an unknown voice with a silent
+> default. And **`input_audio_transcription.delta` is now allowlisted** and
+> forwarded to the browser as `reep.transcript.delta`, so the "You" line
+> revises live; deltas are never persisted and never touch the arc —
+> `.completed` remains the only point a student turn is recorded or judged.
+
 ```
  (xv)   machine.phase is WRAP_UP -> the create at (xiii) is the spoken verdict R_v
  (xvi)  U→R  response.done(R_v)  -> _emit_turn assistant  (the verdict IS the transcript)
@@ -1064,6 +1090,30 @@ Do not merge those two into one commit.
 > promise about `audio_recorded`, and "no `audio_path`, `audio_bytes` or
 > `audio_duration_ms` columns" — those columns arrived with the migration that
 > added capture, exactly as the closing paragraph said they should.
+>
+> **SECOND AMENDMENT, 2026-08-20 — the two tracks are now also mixed into one
+> file, and the product owner chose that over a stereo L/R variant.** The
+> refusal to mix was NOT waved off; it was *answered*. Its premise was that the
+> uplink and the downlink are not time-aligned, and under the first
+> implementation that was arithmetic rather than risk: `feed()` appended only
+> the bytes it was handed, so each file was a speech-only concatenation with
+> every silence squeezed out. A real interview produced a 141.3 s session
+> holding a 51.7 s student track and a 116.7 s interviewer track — 168.4 s of
+> audio inside 141.3 s of wall clock — and any merge of those two puts the
+> student's answers under the wrong questions, exactly as this section warned.
+>
+> `app/interview_audio.py` now stamps the recorder with one monotonic clock and
+> pads each track's gaps with zeroed samples, so both files carry the SESSION's
+> timeline; only then are they summed, with saturating arithmetic, into a third
+> `mixed` file that `GET .../audio` serves by default. The per-speaker files
+> stay and `?track=student|interviewer` is unchanged — they are the faithful
+> record and the mix is a derived listening copy. The alignment is to *when the
+> bytes reached the relay*, which is a beat and not a frame, and the module
+> header says so rather than implying more. Padding is charged to
+> `interview_recording_max_bytes` like any other byte, so `audio_bytes` (disk
+> occupied, now three files) and the cap (captured PCM only) are deliberately
+> different numbers; the note at `interview_sessions.audio_bytes` is where that
+> decision is written down.
 
 **Do not implement byte capture in this pass.** Three reasons:
 

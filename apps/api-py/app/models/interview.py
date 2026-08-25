@@ -208,9 +208,27 @@ class InterviewSession(Base):
     # and never a URL. The root moves between deploys and between machines; a
     # stored absolute path is a dangling pointer the first time it does.
     audio_path: Mapped[str | None] = mapped_column(String, nullable=True)
-    # Bytes actually written, so a truncated or zero-length capture is visible
-    # without stat()-ing the file — and so the reaper can account for the disk it
-    # is about to free.
+    # DISK OCCUPIED by this interview's recording: every file the store holds for
+    # it, RIFF headers included. Since the mixdown landed that is THREE files —
+    # the student's track, the interviewer's, and the derived `mixed` copy the
+    # download endpoint serves by default — so this number roughly DOUBLED for
+    # the same interview. The meaning did not change ("the disk the reaper is
+    # about to free"), which is why the third file was folded in rather than
+    # given a column of its own; but a chart of this over the deploy has a step
+    # in it, and that step is the mix, not a change in how much anyone talked.
+    #
+    # IT IS NOT WHAT `interview_recording_max_bytes` MEASURES, and the two are
+    # deliberately different numbers. The cap bounds CAPTURED PCM — what
+    # `feed()` accepted, both directions, padding included — because that is the
+    # thing capture can stop doing. The mix is written afterwards from what
+    # survived the cap and is about as long as the longer source, so the 128 MB
+    # cap occupies up to ~256 MB on disk. (Both halves of that pairing moved
+    # when the cap did: it was 64 MB / ~128 MB, sized before both tracks were
+    # padded to wall clock. The arithmetic is the same; the premise changed.)
+    # An operator sizing a volume needs the second number; anyone reasoning
+    # about truncation needs the first. Neither is wrong and neither is
+    # derivable from the other without knowing which track was longer, so both
+    # are written down here.
     audio_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Wall-clock duration of the captured audio, which is NOT the duration of the
     # interview: a late start, a paused capture and a truncation each make it

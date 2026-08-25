@@ -21,7 +21,7 @@ the top with create_type=False on every column reference is what keeps the
 downgrade honest too: each is dropped exactly once at the end.
 
 Revision ID: e4c1b7a9d203
-Revises: c7e91a4d0f36
+Revises: b41c9e2d7f05
 Create Date: 2026-08-25
 """
 
@@ -32,7 +32,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "e4c1b7a9d203"
-down_revision: Union[str, Sequence[str], None] = "c7e91a4d0f36"
+down_revision: Union[str, Sequence[str], None] = "b41c9e2d7f05"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

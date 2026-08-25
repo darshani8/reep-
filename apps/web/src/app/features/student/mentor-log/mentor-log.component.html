@@ -7,12 +7,62 @@
     </p>
   </div>
   <div class="dt-toolbar">
-    <button type="button" class="btn">
+    <button type="button" class="btn" [disabled]="requesting()" (click)="openRequest()">
       <span class="icon" aria-hidden="true">add_comment</span>
       Request a meeting
     </button>
   </div>
 </div>
+
+@if (notice(); as n) {
+  <div class="notice" [class.info]="n.tone === 'good'" role="status">
+    <span class="icon" aria-hidden="true">{{ n.tone === 'good' ? 'check_circle' : 'info' }}</span>
+    {{ n.text }}
+  </div>
+}
+
+@if (requesting()) {
+  <div class="card" style="margin-bottom:16px">
+    <h4>Request a meeting</h4>
+    <p class="dt-sub" style="margin:0 0 12px">
+      This goes to your mentor and appears in the log below, so you both have the
+      same record of what was asked.
+    </p>
+    <div class="grid-2">
+      <div class="field">
+        <label for="mtg-reason">What would you like to discuss?</label>
+        <textarea
+          id="mtg-reason"
+          rows="3"
+          [value]="reason()"
+          (input)="reason.set($any($event.target).value)"
+          placeholder="e.g. GD delivery before the mock next month"
+        ></textarea>
+      </div>
+      <div class="field">
+        <label for="mtg-when">Preferred time (optional)</label>
+        <input
+          id="mtg-when"
+          [value]="preferred()"
+          (input)="preferred.set($any($event.target).value)"
+          placeholder="e.g. Thursday afternoon"
+        />
+      </div>
+    </div>
+    <div class="footbar">
+      <button type="button" class="btn ghost" (click)="cancelRequest()">Cancel</button>
+      <button
+        type="button"
+        class="btn primary"
+        [disabled]="sending() || !reason().trim()"
+        (click)="sendRequest()"
+      >
+        <span class="icon" aria-hidden="true">send</span>
+        {{ sending() ? 'Sending…' : 'Send request' }}
+      </button>
+    </div>
+  </div>
+}
 
 @switch (state()) {
   @case ('loading') {

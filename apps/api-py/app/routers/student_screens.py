@@ -30,9 +30,10 @@ The client renders what it is given.
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from ..db import get_db
@@ -71,6 +72,7 @@ from ..models.time_ledger import (
     TimeLedgerCell,
     TimeLedgerDay,
 )
+from ..english_report import render_english_report_pdf
 from ..models.timesheet import DayActivity
 from ..models.user import Mentor, Student, User
 
@@ -177,7 +179,7 @@ class LedgerOut(BaseModel):
     legend: list[LedgerLegendOut]
 
 
-def _load_day(db: Session, student_id: str, day: date) -> TimeLedgerDay | None:
+def load_day(db: Session, student_id: str, day: date) -> TimeLedgerDay | None:
     return db.scalar(
         select(TimeLedgerDay)
         .options(selectinload(TimeLedgerDay.cells))
@@ -191,7 +193,7 @@ def _cell_map(ledger: TimeLedgerDay | None) -> dict[tuple[LedgerSlot, DayActivit
     return {(c.slot, c.activity): c.half_hours for c in ledger.cells}
 
 
-def _compose(day: date, ledger: TimeLedgerDay | None) -> LedgerOut:
+def compose_ledger(day: date, ledger: TimeLedgerDay | None) -> LedgerOut:
     """Everything the ledger screen draws, derived once from the cell figures."""
     cells = _cell_map(ledger)
 
@@ -371,7 +373,7 @@ def read_ledger(
     an empty day is a real answer, not a 404."""
     student_id = _require_student(session)
     target = day or date.today()
-    return _compose(target, _load_day(db, student_id, target))
+    return compose_ledger(target, load_day(db, student_id, target))
 
 
 def _validate_cells(cells: list[LedgerCellIn]) -> dict[tuple[LedgerSlot, DayActivity], int]:
@@ -473,7 +475,7 @@ def save_ledger(
         raise HTTPException(422, detail="You cannot log a day that has not happened yet.")
 
     parsed = _validate_cells(body.cells)
-    ledger = _load_day(db, student_id, body.day)
+    ledger = load_day(db, student_id, body.day)
     _editable(ledger)
     if ledger is None:
         ledger = TimeLedgerDay(student_id=student_id, day=body.day)
@@ -481,7 +483,7 @@ def save_ledger(
     _write_cells(db, ledger, parsed)
     db.commit()
     db.refresh(ledger)
-    return _compose(body.day, _load_day(db, student_id, body.day))
+    return compose_ledger(body.day, load_day(db, student_id, body.day))
 
 
 class LedgerDayIn(BaseModel):
@@ -503,21 +505,21 @@ def copy_yesterday(
     """
     student_id = _require_student(session)
     source_day = body.day - timedelta(days=1)
-    source = _load_day(db, student_id, source_day)
+    source = load_day(db, student_id, source_day)
     if source is None or source.status != LedgerDayStatus.SUBMITTED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No submitted ledger for {source_day:%d %b %Y} to copy from.",
         )
 
-    target = _load_day(db, student_id, body.day)
+    target = load_day(db, student_id, body.day)
     _editable(target)
     if target is None:
         target = TimeLedgerDay(student_id=student_id, day=body.day)
         db.add(target)
     _write_cells(db, target, {(c.slot, c.activity): c.half_hours for c in source.cells})
     db.commit()
-    return _compose(body.day, _load_day(db, student_id, body.day))
+    return compose_ledger(body.day, load_day(db, student_id, body.day))
 
 
 @router.post("/ledger/submit", response_model=LedgerOut)
@@ -534,8 +536,8 @@ def submit_ledger(
     sentence under the disabled button are produced by one expression.
     """
     student_id = _require_student(session)
-    ledger = _load_day(db, student_id, body.day)
-    view = _compose(body.day, ledger)
+    ledger = load_day(db, student_id, body.day)
+    view = compose_ledger(body.day, ledger)
     if not view.can_submit:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -546,7 +548,7 @@ def submit_ledger(
     ledger.status = LedgerDayStatus.SUBMITTED
     ledger.submitted_at = datetime.now(timezone.utc)
     db.commit()
-    return _compose(body.day, _load_day(db, student_id, body.day))
+    return compose_ledger(body.day, load_day(db, student_id, body.day))
 
 
 # ---------------------------------------------------------------------------
@@ -569,6 +571,11 @@ class EnglishSectionOut(BaseModel):
     minutes: int
     subscores: list[EnglishSubscoreOut]
     has_report: bool
+    #: The scorer's prose for this section. Sent whole rather than as a
+    #: "fetch it separately" id: it is a paragraph, the client already has the
+    #: section, and a second round-trip to read two sentences is a spinner for
+    #: nothing.
+    ai_report: str | None
 
 
 class EnglishNextStepOut(BaseModel):
@@ -596,19 +603,19 @@ class EnglishBaselineOut(BaseModel):
     sections: list[EnglishSectionOut]
 
 
-@router.get("/english-baseline", response_model=EnglishBaselineOut)
-def read_english_baseline(
-    session: dict = Depends(get_current_session),
-    db: Session = Depends(get_db),
-) -> EnglishBaselineOut:
+def compose_english_baseline(db: Session, student_id: str) -> EnglishBaselineOut:
     """The latest attempt, or an honest empty shell.
 
     `exists: false` with the four sections still listed as PENDING, rather than
     a 404: the screen's job when nothing has been taken is to show the four
     skills and a "start" affordance, and a 404 would make the client invent that
     layout from nothing.
+
+    A FUNCTION RATHER THAN A ROUTE BODY, because a mentor reads the same view
+    through `routers/staff_screens.py`. Two hand-written copies of "is this
+    section pending or scored" is how a mentor ends up seeing a 0 where the
+    student sees a dash.
     """
-    student_id = _require_student(session)
     baseline = db.scalar(
         select(EnglishBaseline)
         .options(selectinload(EnglishBaseline.sections))
@@ -647,6 +654,7 @@ def read_english_baseline(
                 if row
                 else [],
                 has_report=bool(row and row.ai_report),
+                ai_report=(row.ai_report if row and is_scored else None),
             )
         )
 
@@ -690,6 +698,116 @@ def read_english_baseline(
         if baseline
         else [],
         sections=sections,
+    )
+
+
+@router.get("/english-baseline", response_model=EnglishBaselineOut)
+def read_english_baseline(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> EnglishBaselineOut:
+    return compose_english_baseline(db, _require_student(session))
+
+
+
+class EnglishStartOut(BaseModel):
+    created: bool
+    baseline: EnglishBaselineOut
+
+
+@router.post("/english-baseline/start", response_model=EnglishStartOut)
+def start_english_baseline(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> EnglishStartOut:
+    """Open this semester's attempt, or hand back the one already open.
+
+    IDEMPOTENT, and that is the whole design. The button says "Start assessment"
+    on a fresh account and "Resume assessment" once an attempt exists, but a
+    student who double-taps, or comes back on another device, must not create a
+    second attempt — the programme rule is one per semester, and
+    `uq_english_baseline_semester` enforces it at the database. Returning the
+    existing row instead of a 409 means the client needs no special case for the
+    common thing that actually happens.
+
+    It creates the four PENDING sections and nothing else. SCORING IS NOT DONE
+    HERE: the scores are written by the assessment pipeline
+    (app/models/english_baseline.py), and inventing them here would put a number
+    in front of a student that no assessment produced.
+    """
+    student_id = _require_student(session)
+    student = db.get(Student, student_id)
+    semester = student.current_semester if student else 1
+
+    existing = db.scalar(
+        select(EnglishBaseline)
+        .options(selectinload(EnglishBaseline.sections))
+        .where(
+            EnglishBaseline.student_id == student_id,
+            EnglishBaseline.semester == semester,
+        )
+    )
+    if existing is not None:
+        return EnglishStartOut(created=False, baseline=compose_english_baseline(db, student_id))
+
+    baseline = EnglishBaseline(
+        student_id=student_id, semester=semester, status=BaselineStatus.IN_PROGRESS
+    )
+    baseline.sections = [
+        EnglishBaselineSection(skill=skill, status=SectionStatus.PENDING)
+        for skill in SKILL_ORDER
+    ]
+    db.add(baseline)
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two tabs, two taps. The unique constraint is the arbiter; the loser
+        # reads the winner's row rather than reporting a failure for something
+        # that in fact succeeded.
+        db.rollback()
+    return EnglishStartOut(created=True, baseline=compose_english_baseline(db, student_id))
+
+
+@router.get("/english-baseline/report")
+def download_english_report(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """The attempt as a PDF.
+
+    RENDERED LOCALLY with ReportLab, like the resume PDF — nothing leaves the
+    process, so rule 1's egress gate does not apply and must not be worked
+    around by anyone adding a "nicer" remote renderer here. The content is the
+    student's own CEFR record: their name, their scores, and the scorer's prose.
+
+    A PENDING section prints "not yet taken", never 0 — the same distinction the
+    screen makes, for the same reason. This document is the one a student may
+    hand to somebody.
+    """
+    student_id = _require_student(session)
+    view = compose_english_baseline(db, student_id)
+    if not view.exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="You have not taken the English baseline yet.",
+        )
+
+    student = db.get(Student, student_id)
+    owner = db.get(User, student.user_id) if student else None
+    pdf = render_english_report_pdf(
+        student_name=(owner.name if owner else "REEP student"),
+        usn=(student.usn if student else None),
+        view=view,
+    )
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="english-baseline.pdf"',
+            # The scores change as sections land, so a cached copy is a stale
+            # copy of somebody's assessment.
+            "Cache-Control": "no-store",
+        },
     )
 
 
@@ -822,6 +940,85 @@ def read_mentor_meetings(
             )
             for r in rows
         ],
+    )
+
+
+
+class MeetingRequestIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=1000)
+    preferred: str | None = Field(default=None, max_length=200)
+
+
+class MeetingRequestOut(BaseModel):
+    sent: bool
+    mentor_name: str | None
+    detail: str
+
+
+@router.post("/mentor-meetings/request", response_model=MeetingRequestOut)
+def request_mentor_meeting(
+    body: MeetingRequestIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> MeetingRequestOut:
+    """Ask for a 1:1.
+
+    WRITES A MENTOR NOTE, rather than inventing a requests table. The mentor's
+    existing instrument for this student is `mentor_notes`, their screen already
+    lists it, and a request is exactly a dated line addressed to them. A parallel
+    `meeting_requests` table would need its own inbox, its own read/unread state
+    and its own place in the mentor UI before it did anything a note does not —
+    and until all three existed the request would land nowhere anyone looks.
+
+    Attributed honestly: the note is authored under the MENTOR's id (the column
+    is NOT NULL and points at `mentors`), so the text says plainly that the
+    student asked. `logged_by` on the student's own log would otherwise read as
+    the mentor having written it themselves.
+
+    A student with no mentor assigned gets a truthful refusal rather than a
+    silent success — a request nobody can receive is worse than a "not yet".
+    """
+    student_id = _require_student(session)
+    student = db.get(Student, student_id)
+    if student is None or not student.mentor_id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "You do not have a mentor assigned yet, so there is nobody to send "
+                "this to. The placement office assigns mentors."
+            ),
+        )
+
+    mentor = db.get(Mentor, student.mentor_id)
+    owner = db.get(User, mentor.user_id) if mentor else None
+    mentor_name = owner.name if owner else None
+
+    reason = body.reason.strip()
+    preferred = (body.preferred or "").strip()
+    text = f"Meeting requested by the student. {reason}"
+    if preferred:
+        text += f" Preferred time: {preferred}."
+
+    db.add(
+        MentorNote(
+            mentor_id=student.mentor_id,
+            student_id=student_id,
+            note_text=text,
+            title="Meeting requested",
+            linked_action=MentorAction.NONE,
+            meeting_at=datetime.now(timezone.utc),
+        )
+    )
+    db.commit()
+
+    return MeetingRequestOut(
+        sent=True,
+        mentor_name=mentor_name,
+        detail=(
+            f"Sent to {mentor_name}. It appears in your meeting log below."
+            if mentor_name
+            else "Sent to your mentor. It appears in your meeting log below."
+        ),
     )
 
 

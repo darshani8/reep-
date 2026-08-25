@@ -54,8 +54,63 @@ export class MentorLogComponent {
   readonly state = signal<'loading' | 'data' | 'error'>('loading');
   readonly data = signal<MentorLog | null>(null);
 
+  /** The request form is a DISCLOSURE, not a route. Asking for a 1:1 is three
+   *  words and a send; a page transition for it loses the log the student is
+   *  looking at while they decide what to say. */
+  readonly requesting = signal(false);
+  readonly sending = signal(false);
+  readonly notice = signal<{ tone: 'good' | 'risk'; text: string } | null>(null);
+  readonly reason = signal('');
+  readonly preferred = signal('');
+
   constructor() {
     void this.load();
+  }
+
+  openRequest(): void {
+    this.notice.set(null);
+    this.requesting.set(true);
+  }
+
+  cancelRequest(): void {
+    this.requesting.set(false);
+    this.reason.set('');
+    this.preferred.set('');
+  }
+
+  async sendRequest(): Promise<void> {
+    const reason = this.reason().trim();
+    if (!reason) return;
+    this.sending.set(true);
+    this.notice.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/student/mentor-meetings/request`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason, preferred: this.preferred().trim() || null }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        detail?: string;
+        detail_message?: string;
+      };
+      if (!res.ok) {
+        // A student with no mentor gets a real explanation from the server —
+        // showing it verbatim is more useful than "something went wrong".
+        this.notice.set({ tone: 'risk', text: body.detail ?? 'Could not send that request.' });
+        return;
+      }
+      this.cancelRequest();
+      this.notice.set({
+        tone: 'good',
+        text: (body as { detail?: string }).detail ?? 'Request sent.',
+      });
+      await this.load();
+    } catch {
+      this.notice.set({ tone: 'risk', text: 'Could not reach the server. Please try again.' });
+    } finally {
+      this.sending.set(false);
+    }
   }
 
   async load(): Promise<void> {

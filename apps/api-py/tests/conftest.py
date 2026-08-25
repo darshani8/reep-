@@ -79,6 +79,12 @@ if REQUIRE_DB and not DB_UP:
         "Start Postgres (docker compose up -d) or unset REEP_REQUIRE_DB."
     )
 
+#: The password every `make_user` account is created with. Exported because a
+#: test that changes a user's ROWS after the fixture logged them in (adding a
+#: Mentor row, say) must re-authenticate to pick up the new session claims —
+#: the cookie is a signed snapshot, not a live read.
+TEST_PASSWORD = "voicepass123"
+
 # Decorator for tests that require the seeded Postgres dev DB.
 requires_db = pytest.mark.skipif(not DB_UP, reason="Postgres reep_py not reachable")
 
@@ -134,7 +140,7 @@ def make_user(client):
 
     def _make(label: str, role: Role = Role.STUDENT):
         email = f"voicetest-{label}-{uuid.uuid4().hex[:8]}@bgscet.ac.in"
-        password = "voicepass123"
+        password = TEST_PASSWORD
         with SessionLocal() as db:
             user = User(
                 email=email,

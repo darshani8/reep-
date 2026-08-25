@@ -25,6 +25,7 @@ from .routers import (
     leave,
     mentor,
     registration,
+    staff_screens,
     student,
     student_screens,
     voice,
@@ -232,6 +233,10 @@ app.include_router(student.router, prefix="/api")
 # shares the /student prefix, so the client sees one flat surface.
 app.include_router(student_screens.router, prefix="/api")
 app.include_router(mentor.router, prefix="/api")
+# The staff side of the v2 screens — a mentor or director reading a student's
+# ledger and English baseline. Separate from mentor.py so that file is untouched,
+# and every endpoint in it goes through _assert_can_access_student (rule 2).
+app.include_router(staff_screens.router, prefix="/api")
 app.include_router(director.router, prefix="/api")
 app.include_router(leave.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")

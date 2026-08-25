@@ -1,7 +1,7 @@
 """Rule 2 on the staff side of the v2 screens, and the new student write paths.
 
-`student_screens.py` needs no scope test: it has no path parameter naming a
-student, so there is nothing for a crafted id to reach. `staff_screens.py` does
+`student_programme.py` needs no scope test: it has no path parameter naming a
+student, so there is nothing for a crafted id to reach. `mentee_records.py` does
 name one, which makes it exactly the shape rule 2 governs — and the axis that
 matters is HORIZONTAL. Being a MENTOR gets you through the door; it does not get
 you a particular student. The tests below check both halves, and specifically

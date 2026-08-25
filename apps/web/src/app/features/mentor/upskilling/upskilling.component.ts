@@ -14,7 +14,7 @@ import { FormsModule } from '@angular/forms';
 
 import { environment } from '../../../../environments/environment';
 
-interface CertRow {
+interface CertificateRow {
   id: string;
   title: string;
   provider: string | null;
@@ -36,7 +36,7 @@ const MAX_BYTES = 10 * 1024 * 1024; // matches the server cap
 export class UpskillingComponent {
   readonly apiBase = environment.apiBase;
 
-  readonly rows = signal<CertRow[] | null>(null);
+  readonly rows = signal<CertificateRow[] | null>(null);
   readonly error = signal<string | null>(null);
 
   // Form fields describing the next uploaded certificate.
@@ -46,7 +46,7 @@ export class UpskillingComponent {
 
   readonly uploading = signal(false);
   readonly uploadError = signal<string | null>(null);
-  readonly justUploaded = signal<CertRow | null>(null);
+  readonly justUploaded = signal<CertificateRow | null>(null);
 
   readonly removingId = signal<string | null>(null);
   readonly actionError = signal<string | null>(null);
@@ -62,7 +62,7 @@ export class UpskillingComponent {
         this.error.set('Could not load your certificates.');
         return;
       }
-      this.rows.set((await res.json()) as CertRow[]);
+      this.rows.set((await res.json()) as CertificateRow[]);
       this.error.set(null);
     } catch {
       this.error.set('Could not reach the server.');
@@ -105,7 +105,7 @@ export class UpskillingComponent {
         );
         return;
       }
-      this.justUploaded.set((await res.json()) as CertRow);
+      this.justUploaded.set((await res.json()) as CertificateRow);
       this.title = '';
       this.provider = '';
       this.completedOn = '';
@@ -117,7 +117,7 @@ export class UpskillingComponent {
     }
   }
 
-  async remove(row: CertRow): Promise<void> {
+  async remove(row: CertificateRow): Promise<void> {
     const ok = window.confirm(`Remove "${row.title}"? This permanently deletes the certificate.`);
     if (!ok) return;
     this.actionError.set(null);

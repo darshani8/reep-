@@ -143,7 +143,7 @@ CAPABILITY_LABEL: Final[dict[CapabilityKind, str]] = {
 # --- the catalogue (§4–§8) ---------------------------------------------------
 
 
-class BadgeDef(NamedTuple):
+class BadgeDefinition(NamedTuple):
     code: str
     name: str
     category: BadgeCategory
@@ -157,15 +157,15 @@ class BadgeDef(NamedTuple):
     staff_awarded: bool = False
 
 
-def _b(code, name, category, stage, points, description, requirement, **kw) -> BadgeDef:
-    return BadgeDef(code, name, category, stage, points, description, requirement, **kw)
+def _b(code, name, category, stage, points, description, requirement, **kw) -> BadgeDefinition:
+    return BadgeDefinition(code, name, category, stage, points, description, requirement, **kw)
 
 
 _CERT_REQ = "Approved evidence — an external certification, a BGSCET workshop/assessment, or applied work — verified by staff."
 _APPLIED_REQ = "Applied evidence (project, internship, case competition, simulation or live industry problem) verified by staff — a certificate alone is not sufficient."
 _ASSESS_REQ = "Awarded by BGSCET MBA when your assessment scores cross the programme threshold — no certificate upload."
 
-BADGES: Final[tuple[BadgeDef, ...]] = (
+BADGES: Final[tuple[BadgeDefinition, ...]] = (
     # §4 Managerial (12)
     _b("MGR-BUSINESS-COMMUNICATION", "Business Communication", BadgeCategory.MANAGERIAL, Stage.EXCEL, 10,
        "Clear, professional written and spoken business communication.", _CERT_REQ),
@@ -273,7 +273,7 @@ BADGES: Final[tuple[BadgeDef, ...]] = (
        "Resume, introduction, GD and interview performance at placement standard.", _ASSESS_REQ, staff_awarded=True),
 )
 
-BADGE_BY_CODE: Final[dict[str, BadgeDef]] = {b.code: b for b in BADGES}
+BADGE_BY_CODE: Final[dict[str, BadgeDefinition]] = {b.code: b for b in BADGES}
 
 CATEGORY_LABEL: Final[dict[BadgeCategory, str]] = {
     BadgeCategory.MANAGERIAL: "Managerial Skills",

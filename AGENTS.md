@@ -111,7 +111,7 @@ The LiveKit voice stack (step 4 above, `voice_agent.py`, `/api/voice/*`) and the
 ## The v2 student screens (2026-08)
 
 Three screens the handoff adds, with their own tables and endpoints in
-`app/routers/student_screens.py` — its own module so `routers/student.py`
+`app/routers/student_programme.py` — its own module so `routers/student.py`
 (2 200 lines, and the file every other student change touches) did not grow
 another 600. It mounts under the same `/student` prefix, so the client sees one
 flat surface.
@@ -157,7 +157,7 @@ report.
 `python -m app.seed` seeds all four, including a ledger deliberately 0.5 h short
 so the "0.5 h to reconcile" state is the one you see on a fresh database.
 
-**Staff read these through rule 2's gate**, in `app/routers/staff_screens.py`:
+**Staff read these through rule 2's gate**, in `app/routers/mentee_records.py`:
 `GET /api/mentor/students/{id}/ledger`, `.../ledger/summary` and
 `.../english-baseline`. Every one names a student in the PATH, so every one goes
 through `_assert_can_access_student` — imported from `routers/mentor.py`, never
@@ -207,7 +207,7 @@ when nobody has looked. The §16 **Most Improved** leaderboard ranks that growth
 not points; every leaderboard honours the existing `leaderboard_opt_out`.
 
 Screens: `/student/badges` (journey strip, tiles, §14 detail + claim form,
-growth table, leaderboards) and `/mentor/badge-approvals` (verification queue
+growth table, leaderboards) and `/mentor/badge-centre` (verification queue
 with the scoped certificate stream, assessment entry, §17 skill profile,
 director cohort CSV at `/api/director/badges/export.csv`). Staff reads reuse
 `compose_badges`/`compose_growth` — the mentor sees exactly the student's own

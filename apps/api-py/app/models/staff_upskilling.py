@@ -21,7 +21,7 @@ def _uuid() -> str:
     return uuid.uuid4().hex
 
 
-class StaffUpskillingCert(Base):
+class StaffUpskillingCertificate(Base):
     __tablename__ = "staff_upskilling_certs"
     __table_args__ = (Index("ix_staffcert_user", "user_id"),)
 

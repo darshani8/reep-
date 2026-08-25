@@ -528,7 +528,7 @@ def export_cohort_csv(
 # --- the Approved Certification Catalogue (§12, admin-maintained) ------------
 
 
-class CertIn(BaseModel):
+class ApprovedCertificationIn(BaseModel):
     name: str = Field(min_length=1, max_length=300)
     provider: str = Field(min_length=1, max_length=200)
     badge_code: str
@@ -540,7 +540,7 @@ class CertIn(BaseModel):
     active: bool = True
 
 
-class CertRowOut(BaseModel):
+class ApprovedCertificationOut(BaseModel):
     id: str
     name: str
     provider: str
@@ -554,9 +554,9 @@ class CertRowOut(BaseModel):
     active: bool
 
 
-def _cert_row(c: ApprovedCertification) -> CertRowOut:
+def _approved_certification_row(c: ApprovedCertification) -> ApprovedCertificationOut:
     badge = BADGE_BY_CODE.get(c.badge_code)
-    return CertRowOut(
+    return ApprovedCertificationOut(
         id=c.id,
         name=c.name,
         provider=c.provider,
@@ -571,7 +571,7 @@ def _cert_row(c: ApprovedCertification) -> CertRowOut:
     )
 
 
-def _validated_cert_fields(body: CertIn) -> tuple[EvidenceType, Stage]:
+def _validated_certification_fields(body: ApprovedCertificationIn) -> tuple[EvidenceType, Stage]:
     if body.badge_code not in BADGE_BY_CODE:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No such badge.")
     try:
@@ -585,27 +585,27 @@ def _validated_cert_fields(body: CertIn) -> tuple[EvidenceType, Stage]:
     return ev_type, stage
 
 
-@router.get("/director/approved-certifications", response_model=list[CertRowOut])
-def list_certs(
+@router.get("/director/approved-certifications", response_model=list[ApprovedCertificationOut])
+def list_approved_certifications(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> list[CertRowOut]:
+) -> list[ApprovedCertificationOut]:
     require_director(session)
     return [
-        _cert_row(c)
+        _approved_certification_row(c)
         for c in db.scalars(select(ApprovedCertification).order_by(ApprovedCertification.name)).all()
     ]
 
 
 @router.post(
     "/director/approved-certifications",
-    response_model=CertRowOut,
+    response_model=ApprovedCertificationOut,
     status_code=status.HTTP_201_CREATED,
 )
-def add_cert(
-    body: CertIn, session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> CertRowOut:
+def add_approved_certification(
+    body: ApprovedCertificationIn, session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> ApprovedCertificationOut:
     require_director(session)
-    ev_type, stage = _validated_cert_fields(body)
+    ev_type, stage = _validated_certification_fields(body)
     cert = ApprovedCertification(
         name=body.name.strip(),
         provider=body.provider.strip(),
@@ -620,21 +620,21 @@ def add_cert(
     db.add(cert)
     db.commit()
     db.refresh(cert)
-    return _cert_row(cert)
+    return _approved_certification_row(cert)
 
 
-@router.patch("/director/approved-certifications/{cert_id}", response_model=CertRowOut)
-def edit_cert(
+@router.patch("/director/approved-certifications/{cert_id}", response_model=ApprovedCertificationOut)
+def edit_approved_certification(
     cert_id: str,
-    body: CertIn,
+    body: ApprovedCertificationIn,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> CertRowOut:
+) -> ApprovedCertificationOut:
     require_director(session)
     cert = db.get(ApprovedCertification, cert_id)
     if cert is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certification not found.")
-    ev_type, stage = _validated_cert_fields(body)
+    ev_type, stage = _validated_certification_fields(body)
     cert.name = body.name.strip()
     cert.provider = body.provider.strip()
     cert.badge_code = body.badge_code
@@ -646,4 +646,4 @@ def edit_cert(
     cert.active = body.active
     db.commit()
     db.refresh(cert)
-    return _cert_row(cert)
+    return _approved_certification_row(cert)

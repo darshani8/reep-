@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Nova AI Interview Architecture</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: #fef9f3;
+            margin: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .diagram {
+            display: flex;
+            justify-content: center;
+            margin: 40px 0;
+            page-break-inside: avoid;
+        }
+        svg {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-top: 40px;
+            color: #555;
+            font-weight: normal;
+            font-size: 18px;
+        }
+        .description {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 15px;
+            background: #fffef5;
+            border-left: 4px solid #f0ad4e;
+            font-size: 14px;
+        }
+        .note {
+            background: #e8f4f8;
+            border-left: 4px solid #5bc0de;
+            padding: 10px 15px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="text-align: center; margin-bottom: 10px;">AWS Nova AI Interview Architecture</h1>
+<p style="text-align: center; color: #999; font-size: 14px;">Pencil sketch: minimal persistent storage strategy</p>
+
+<!-- Figure 1: Full Stack -->
+<h2>Figure 1: AWS Nova Interview Flow (High Level)</h2>
+<div class="diagram">
+    <svg width="900" height="700" viewBox="0 0 900 700">
+        <!-- Sketchy background -->
+        <defs>
+            <filter id="sketch" primitiveUnits="objectBoundingBox">
+                <feTurbulence baseFrequency="0.02" numOctaves="4" result="noise" seed="2"/>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="2"/>
+            </filter>
+        </defs>
+
+        <!-- Title -->
+        <text x="450" y="30" font-size="20" font-weight="bold" text-anchor="middle" fill="#333">
+            AWS Nova Interview Stack
+        </text>
+
+        <!-- Student -->
+        <g filter="url(#sketch)">
+            <circle cx="100" cy="100" r="30" stroke="#333" stroke-width="2" fill="none"/>
+            <text x="100" y="105" font-size="12" text-anchor="middle" fill="#333">Student</text>
+            <text x="100" y="145" font-size="11" text-anchor="middle" fill="#666">(Browser)</text>
+        </g>
+
+        <!-- WebSocket arrow -->
+        <path d="M 130 100 L 250 100" stroke="#f0ad4e" stroke-width="3" fill="none" marker-end="url(#arrowYellow)"/>
+        <text x="190" y="90" font-size="11" fill="#f0ad4e" font-weight="bold">WebSocket</text>
+        <text x="190" y="105" font-size="10" fill="#f0ad4e">(Audio 24kHz PCM)</text>
+
+        <!-- Relay/API Box -->
+        <g filter="url(#sketch)">
+            <rect x="250" y="60" width="140" height="80" stroke="#333" stroke-width="2" fill="#fff8dc"/>
+            <text x="320" y="85" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">FastAPI Relay</text>
+            <text x="320" y="105" font-size="11" text-anchor="middle" fill="#666">Turn orchestration</text>
+            <text x="320" y="125" font-size="11" text-anchor="middle" fill="#666">(in-memory state)</text>
+        </g>
+
+        <!-- AWS Transcribe (STT) -->
+        <g filter="url(#sketch)">
+            <rect x="450" y="30" width="120" height="60" stroke="#FF9900" stroke-width="2" fill="#fff8f0"/>
+            <text x="510" y="55" font-size="12" font-weight="bold" text-anchor="middle" fill="#FF9900">Transcribe</text>
+            <text x="510" y="72" font-size="10" text-anchor="middle" fill="#333">(STT)</text>
+        </g>
+
+        <!-- Arrow: Relay → Transcribe -->
+        <path d="M 390 95 L 450 65" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+        <!-- AWS Nova (LLM) -->
+        <g filter="url(#sketch)">
+            <rect x="450" y="110" width="120" height="60" stroke="#FF9900" stroke-width="2" fill="#fff8f0"/>
+            <text x="510" y="135" font-size="12" font-weight="bold" text-anchor="middle" fill="#FF9900">Nova (Bedrock)</text>
+            <text x="510" y="152" font-size="10" text-anchor="middle" fill="#333">(LLM Reasoning)</text>
+        </g>
+
+        <!-- Arrow: Transcribe → Nova -->
+        <path d="M 510 90 L 510 110" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+        <!-- AWS Polly (TTS) -->
+        <g filter="url(#sketch)">
+            <rect x="450" y="190" width="120" height="60" stroke="#FF9900" stroke-width="2" fill="#fff8f0"/>
+            <text x="510" y="215" font-size="12" font-weight="bold" text-anchor="middle" fill="#FF9900">Polly</text>
+            <text x="510" y="232" font-size="10" text-anchor="middle" fill="#333">(TTS)</text>
+        </g>
+
+        <!-- Arrow: Nova → Polly -->
+        <path d="M 510 170 L 510 190" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+        <!-- Arrow: Polly → Relay -->
+        <path d="M 450 220 L 390 120" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+        <!-- Arrow: Relay → Student (Audio) -->
+        <path d="M 250 140 L 130 140" stroke="#5cb85c" stroke-width="2" fill="none" marker-end="url(#arrowGreen)"/>
+        <text x="190" y="160" font-size="10" fill="#5cb85c" font-weight="bold">Audio out</text>
+
+        <!-- PostgreSQL (Persistent Storage) -->
+        <g filter="url(#sketch)">
+            <rect x="250" y="300" width="150" height="100" stroke="#336699" stroke-width="2" fill="#e8f4f8"/>
+            <text x="325" y="330" font-size="12" font-weight="bold" text-anchor="middle" fill="#336699">PostgreSQL</text>
+            <text x="325" y="350" font-size="10" text-anchor="middle" fill="#333">Session metadata</text>
+            <text x="325" y="368" font-size="10" text-anchor="middle" fill="#333">Transcript (Q&amp;A)</text>
+            <text x="325" y="386" font-size="10" text-anchor="middle" fill="#333">Evaluation scores</text>
+        </g>
+
+        <!-- Arrow: Relay → DB (on interview end) -->
+        <path d="M 320 140 L 320 300" stroke="#336699" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+        <text x="280" y="220" font-size="10" fill="#336699" font-weight="bold">Save at end</text>
+
+        <!-- Vector DB (pgvector) -->
+        <g filter="url(#sketch)">
+            <rect x="450" y="300" width="150" height="100" stroke="#8e44ad" stroke-width="2" fill="#f4e8f8"/>
+            <text x="525" y="330" font-size="12" font-weight="bold" text-anchor="middle" fill="#8e44ad">Vector DB</text>
+            <text x="525" y="350" font-size="10" text-anchor="middle" fill="#333">(pgvector)</text>
+            <text x="525" y="368" font-size="10" text-anchor="middle" fill="#333">Knowledge Base</text>
+            <text x="525" y="386" font-size="10" text-anchor="middle" fill="#333">(Grounding only)</text>
+        </g>
+
+        <!-- Arrow: Relay → Vector DB (if grounded assistant) -->
+        <path d="M 390 160 L 450 330" stroke="#8e44ad" stroke-width="2" stroke-dasharray="5,5" fill="none" marker-end="url(#arrowPurple)"/>
+        <text x="410" y="240" font-size="9" fill="#8e44ad" font-style="italic">optional query</text>
+
+        <!-- In-Memory (transient) -->
+        <g filter="url(#sketch)">
+            <rect x="650" y="60" width="150" height="150" stroke="#d9534f" stroke-width="2" fill="#fff0f0" stroke-dasharray="5,5"/>
+            <text x="725" y="85" font-size="12" font-weight="bold" text-anchor="middle" fill="#d9534f">In-Memory</text>
+            <text x="725" y="105" font-size="10" text-anchor="middle" fill="#333">(Ephemeral)</text>
+            <text x="725" y="125" font-size="10" text-anchor="middle" fill="#333">Audio buffers</text>
+            <text x="725" y="145" font-size="10" text-anchor="middle" fill="#333">Turn state</text>
+            <text x="725" y="165" font-size="10" text-anchor="middle" fill="#333">Phase machine</text>
+            <text x="725" y="185" font-size="10" text-anchor="middle" fill="#333">Conversation ctx</text>
+        </g>
+
+        <!-- Arrow: Relay ↔ Memory -->
+        <path d="M 390 100 L 650 100" stroke="#d9534f" stroke-width="2" fill="none" marker-end="url(#arrowRed)"/>
+        <text x="520" y="85" font-size="10" fill="#d9534f" font-weight="bold">Transient</text>
+
+        <!-- Legend -->
+        <text x="50" y="630" font-size="11" fill="#666" font-weight="bold">Legend:</text>
+        <line x1="50" y1="645" x2="100" y2="645" stroke="#f0ad4e" stroke-width="3"/>
+        <text x="110" y="650" font-size="10" fill="#666">Audio streams (WebSocket)</text>
+
+        <line x1="50" y1="670" x2="100" y2="670" stroke="#336699" stroke-width="2"/>
+        <text x="110" y="675" font-size="10" fill="#666">Persisted to PostgreSQL</text>
+
+        <!-- SVG Marker definitions -->
+        <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#666"/>
+            </marker>
+            <marker id="arrowYellow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#f0ad4e"/>
+            </marker>
+            <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#5cb85c"/>
+            </marker>
+            <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#336699"/>
+            </marker>
+            <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#8e44ad"/>
+            </marker>
+            <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#d9534f"/>
+            </marker>
+        </defs>
+    </svg>
+</div>
+
+<div class="description">
+    <strong>Flow:</strong> Student audio → Transcribe (STT) → Nova (LLM decides next question) → Polly (TTS) → back to student.
+    Only at interview end: transcript + scores written to PostgreSQL. Optional knowledge base queries from pgvector during reasoning.
+</div>
+
+<!-- Figure 2: Data Storage Strategy -->
+<h2>Figure 2: Storage Strategy (What Persists, What Doesn't)</h2>
+<div class="diagram">
+    <svg width="900" height="550" viewBox="0 0 900 550">
+        <text x="450" y="30" font-size="20" font-weight="bold" text-anchor="middle" fill="#333">
+            Data Storage: Persistent vs. Ephemeral
+        </text>
+
+        <!-- EPHEMERAL Section -->
+        <g filter="url(#sketch)">
+            <rect x="50" y="60" width="350" height="450" stroke="#d9534f" stroke-width="2" fill="#fff0f0" stroke-dasharray="5,5"/>
+            <text x="225" y="90" font-size="14" font-weight="bold" text-anchor="middle" fill="#d9534f">EPHEMERAL (In-Memory)</text>
+            <text x="225" y="110" font-size="11" text-anchor="middle" fill="#666">(Discarded after interview)</text>
+        </g>
+
+        <!-- Ephemeral items -->
+        <g filter="url(#sketch)">
+            <rect x="70" y="130" width="310" height="40" stroke="#d9534f" stroke-width="1" fill="none"/>
+            <text x="85" y="155" font-size="11" fill="#333">• Audio PCM buffers (24kHz)</text>
+            <text x="85" y="170" font-size="11" fill="#333">• Turn state machine (OPENING → PROBING → WRAP_UP)</text>
+        </g>
+
+        <g filter="url(#sketch)">
+            <rect x="70" y="180" width="310" height="55" stroke="#d9534f" stroke-width="1" fill="none"/>
+            <text x="85" y="205" font-size="11" fill="#333">• Conversation context (live message history)</text>
+            <text x="85" y="225" font-size="11" fill="#333">• Intermediate API responses (Transcribe JSON,</text>
+            <text x="85" y="240" font-size="11" fill="#333">  Nova LLM output before speaking)</text>
+        </g>
+
+        <g filter="url(#sketch)">
+            <rect x="70" y="245" width="310" height="40" stroke="#d9534f" stroke-width="1" fill="none"/>
+            <text x="85" y="270" font-size="11" fill="#333">• Real-time latency metrics (for monitoring)</text>
+        </g>
+
+        <g filter="url(#sketch)">
+            <rect x="70" y="295" width="310" height="65" stroke="#d9534f" stroke-width="1" fill="none"/>
+            <text x="85" y="320" font-size="11" fill="#333">• Interview state if connection drops mid-call</text>
+            <text x="85" y="340" font-size="11" fill="#333">  (session closes gracefully, no partial data</text>
+            <text x="85" y="355" font-size="11" fill="#333">  written to DB)</text>
+        </g>
+
+        <text x="225" y="440" font-size="11" text-align="center" text-anchor="middle" fill="#d9534f" font-weight="bold">
+            Why ephemeral? Keeps DB lean, fast.
+        </text>
+        <text x="225" y="460" font-size="11" text-anchor="middle" fill="#d9534f">
+            Once interview ends, state is useless.
+        </text>
+
+        <!-- PERSISTENT Section -->
+        <g filter="url(#sketch)">
+            <rect x="500" y="60" width="350" height="450" stroke="#336699" stroke-width="2" fill="#e8f4f8"/>
+            <text x="675" y="90" font-size="14" font-weight="bold" text-anchor="middle" fill="#336699">PERSISTENT (Database)</text>
+            <text x="675" y="110" font-size="11" text-anchor="middle" fill="#666">(PostgreSQL)</text>
+        </g>
+
+        <!-- Persistent items -->
+        <g filter="url(#sketch)">
+            <rect x="520" y="130" width="310" height="50" stroke="#336699" stroke-width="1" fill="none"/>
+            <text x="535" y="155" font-size="11" fill="#333">• interview_sessions (1 row per interview)</text>
+            <text x="560" y="172" font-size="10" fill="#666">status, phase reached, turns_emitted,</text>
+            <text x="560" y="187" font-size="10" fill="#666">consent_id, created_at, ended_at</text>
+        </g>
+
+        <g filter="url(#sketch)">
+            <rect x="520" y="190" width="310" height="55" stroke="#336699" stroke-width="1" fill="none"/>
+            <text x="535" y="210" font-size="11" fill="#333">• interview_turns (one per turn)</text>
+            <text x="560" y="227" font-size="10" fill="#666">phase, content (student transcript),</text>
+            <text x="560" y="242" font-size="10" fill="#666">turn_advanced, response (assistant text)</text>
+        </g>
+
+        <g filter="url(#sketch)">
+            <rect x="520" y="255" width="310" height="40" stroke="#336699" stroke-width="1" fill="none"/>
+            <text x="535" y="280" font-size="11" fill="#333">• interview_evaluations (scorecard at end)</text>
+            <text x="560" y="297" font-size="10" fill="#666">json_scores (nullable), reasoning, verdict</text>
+        </g>
+
+        <g filter="url(#sketch)">
+            <rect x="520" y="305" width="310" height="35" stroke="#336699" stroke-width="1" fill="none"/>
+            <text x="535" y="330" font-size="11" fill="#333">• interview_consents (student grant)</text>
+        </g>
+
+        <g filter="url(#sketch)">
+            <rect x="520" y="350" width="310" height="50" stroke="#8e44ad" stroke-width="1" fill="none"/>
+            <text x="535" y="370" font-size="11" fill="#333">• knowledge_chunks (Vector DB, pgvector)</text>
+            <text x="560" y="387" font-size="10" fill="#666">embedding, content, approved source</text>
+            <text x="560" y="402" font-size="10" fill="#666">(for grounding assistant only)</text>
+        </g>
+
+        <text x="675" y="460" font-size="11" text-anchor="middle" fill="#336699" font-weight="bold">
+            Why persistent? Mentor review,
+        </text>
+        <text x="675" y="480" font-size="11" text-anchor="middle" fill="#336699">
+            student record, compliance (180-day retention).
+        </text>
+    </svg>
+</div>
+
+<div class="description">
+    <strong>Key insight:</strong> Live interview state (audio, turn logic, message history) never touches the database.
+    Only the final record (transcript + scores) is persisted. This keeps interviews fast and DB queries lean.
+</div>
+
+<!-- Figure 3: Minimal Storage Contract -->
+<h2>Figure 3: The "Minimal Storage" Contract</h2>
+<div class="diagram">
+    <svg width="900" height="400" viewBox="0 0 900 400">
+        <text x="450" y="30" font-size="18" font-weight="bold" text-anchor="middle" fill="#333">
+            What Goes Where During an Interview
+        </text>
+
+        <!-- Timeline -->
+        <line x1="100" y1="80" x2="800" y2="80" stroke="#333" stroke-width="2"/>
+
+        <!-- DURING INTERVIEW -->
+        <circle cx="100" cy="80" r="6" fill="#333"/>
+        <text x="100" y="110" font-size="11" font-weight="bold" text-anchor="middle" fill="#333">Interview Start</text>
+
+        <circle cx="450" cy="80" r="6" fill="#333"/>
+        <text x="450" y="110" font-size="11" font-weight="bold" text-anchor="middle" fill="#333">Mid-Interview (turns)</text>
+
+        <circle cx="800" cy="80" r="6" fill="#333"/>
+        <text x="800" y="110" font-size="11" font-weight="bold" text-anchor="middle" fill="#333">Interview End</text>
+
+        <!-- Start phase -->
+        <g filter="url(#sketch)">
+            <rect x="30" y="140" width="140" height="120" stroke="#5cb85c" stroke-width="2" fill="#f0f8f0"/>
+            <text x="100" y="165" font-size="11" font-weight="bold" text-anchor="middle" fill="#333">✓ Create Session</text>
+            <text x="100" y="185" font-size="10" text-anchor="middle" fill="#333">interview_sessions</text>
+            <text x="100" y="200" font-size="10" text-anchor="middle" fill="#333">status='running'</text>
+            <text x="100" y="220" font-size="10" text-anchor="middle" fill="#666" font-style="italic">(1 DB write)</text>
+        </g>
+
+        <!-- Mid phase -->
+        <g filter="url(#sketch)">
+            <rect x="380" y="140" width="140" height="120" stroke="#f0ad4e" stroke-width="2" fill="#fffaf0"/>
+            <text x="450" y="165" font-size="11" font-weight="bold" text-anchor="middle" fill="#333">✓ Log Turns</text>
+            <text x="450" y="185" font-size="10" text-anchor="middle" fill="#333">interview_turns</text>
+            <text x="450" y="200" font-size="10" text-anchor="middle" fill="#333">(async/fire-forget)</text>
+            <text x="450" y="220" font-size="10" text-anchor="middle" fill="#666" font-style="italic">(N DB writes)</text>
+        </g>
+
+        <!-- End phase -->
+        <g filter="url(#sketch)">
+            <rect x="730" y="140" width="140" height="120" stroke="#d9534f" stroke-width="2" fill="#fff0f0"/>
+            <text x="800" y="165" font-size="11" font-weight="bold" text-anchor="middle" fill="#333">✓ Save Score</text>
+            <text x="800" y="185" font-size="10" text-anchor="middle" fill="#333">interview_evaluations</text>
+            <text x="800" y="200" font-size="10" text-anchor="middle" fill="#333">Close session</text>
+            <text x="800" y="220" font-size="10" text-anchor="middle" fill="#666" font-style="italic">(1 DB write)</text>
+        </g>
+
+        <!-- Memory vs DB annotation -->
+        <g filter="url(#sketch)">
+            <rect x="30" y="290" width="400" height="80" stroke="#d9534f" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+            <text x="230" y="315" font-size="11" font-weight="bold" text-anchor="middle" fill="#d9534f">MEMORY ONLY</text>
+            <text x="230" y="335" font-size="10" text-anchor="middle" fill="#333">All audio, turn logic, phase machine,</text>
+            <text x="230" y="353" font-size="10" text-anchor="middle" fill="#333">conversation history, transcripts in flight</text>
+        </g>
+
+        <g filter="url(#sketch)">
+            <rect x="470" y="290" width="400" height="80" stroke="#336699" stroke-width="1" fill="none"/>
+            <text x="670" y="315" font-size="11" font-weight="bold" text-anchor="middle" fill="#336699">DATABASE ONLY</text>
+            <text x="670" y="335" font-size="10" text-anchor="middle" fill="#333">Session start/end, final transcript,</text>
+            <text x="670" y="353" font-size="10" text-anchor="middle" fill="#333">evaluation scores, consent grant</text>
+        </g>
+    </svg>
+</div>
+
+<div class="description">
+    <strong>Contract:</strong> During interview, nothing is persisted except session metadata (once).
+    Turns are logged async (fire-and-forget; loss doesn't break the live interview).
+    Only at end is the scorecard written synchronously. This maximizes latency and reliability.
+</div>
+
+<!-- Notes -->
+<div class="note">
+    <strong>Why minimal storage?</strong><br>
+    • Faster database (less I/O during live call)<br>
+    • Lower latency (no blocking writes mid-turn)<br>
+    • Simpler recovery (session close is idempotent)<br>
+    • Smaller attack surface (less PII in transit)
+</div>
+
+<div class="note">
+    <strong>AWS Cost Breakdown (per 20-min interview):</strong><br>
+    • Transcribe: ~$0.08 (pay per second of audio)<br>
+    • Nova (Bedrock): ~$0.15 (pay per token)<br>
+    • Polly: ~$0.15 (pay per character of generated speech)<br>
+    • Total: ~$0.38/interview (vs. OpenAI Realtime ~$14)
+</div>
+
+</body>
+</html>

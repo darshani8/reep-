@@ -82,6 +82,38 @@ jobs:
         working-directory: apps/api-py
         run: python -m pytest -q
 
+  api-imports:
+    name: API (dependency completeness)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: apps/api-py/requirements.txt
+
+      # requirements.txt ALONE — deliberately not -dev. This is the environment
+      # the Dockerfile builds, so a module in app/ that imports pytest is just as
+      # broken in production as one importing an undeclared third-party package;
+      # installing the dev extras here would hide exactly that.
+      - name: Install RUNTIME dependencies only
+        working-directory: apps/api-py
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Catches the failure app/interview_local.py shipped: it imported numpy
+      # with no requirements entry, and because the import is lazy — inside a
+      # request handler — the API still booted and every test still passed. The
+      # break was invisible until pytest could not COLLECT on a clean machine.
+      # The voice worker has had this guard since its own manifest shipped
+      # incomplete; the API did not.
+      - name: Import every module under app/
+        working-directory: apps/api-py
+        run: python ../../tools/ci/check_api_imports.py
+
   worker-imports:
     name: Voice worker (dependency completeness)
     runs-on: ubuntu-latest

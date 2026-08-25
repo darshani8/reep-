@@ -1106,7 +1106,11 @@ html.fonts-ready .icon {
   background: var(--primary-gradient);
 }
 
-.completeness {
+/* A label + meter + value on one line. NOT `.completeness`: the resume builder
+   owns that name for a bordered CARD in reep-v2-resume.scss, and a `display:
+   flex` here silently reflowed it — the section list's group headings ended up
+   inline with the items they head. Two components, two names. */
+.meter-row {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1209,9 +1213,14 @@ html.fonts-ready .icon {
  * Lists: recommendations, leaderboard, streak
  * ======================================================================= */
 
+/* `.entry` is deliberately NOT in this group. The resume builder owns that name
+   for a bordered CARD (reep-v2-resume.scss) — every repeatable education /
+   experience / project block — and flexing it here turned each of those cards
+   into a single squashed row. Same lesson as `.completeness` above: a global
+   stylesheet may not claim a name another one is already using for a different
+   thing. */
 .reco-row,
-.rowline,
-.entry {
+.rowline {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1221,8 +1230,7 @@ html.fonts-ready .icon {
   color: var(--ink-soft);
 }
 .reco-row:last-child,
-.rowline:last-child,
-.entry:last-child {
+.rowline:last-child {
   border-bottom: 0;
 }
 .reco-rank,
@@ -1273,55 +1281,6 @@ html.fonts-ready .icon {
 }
 .streak-day.on {
   background: var(--primary-gradient);
-  box-shadow: none;
-}
-
-/* ==========================================================================
- * Stepper (registration / multi-step forms)
- * ======================================================================= */
-
-.stepper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.step-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.step-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  padding: 6px 12px;
-  border-radius: var(--r-pill);
-  border: 1px solid transparent;
-}
-.step-item.active {
-  color: var(--ink);
-  border-color: var(--hairline);
-  background: var(--surface);
-  box-shadow: var(--sh-ctrl);
-}
-.step-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: var(--r-pill);
-  background: var(--tint-1);
-  box-shadow: var(--sh-well);
-  flex: none;
-}
-.step-dot.done {
-  background: var(--good);
-  box-shadow: none;
-}
-.step-dot.partial {
-  background: var(--warn-dot);
   box-shadow: none;
 }
 

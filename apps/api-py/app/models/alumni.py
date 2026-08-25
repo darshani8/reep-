@@ -2,7 +2,7 @@
 
 One row per ALUMNI user (unique user_id). The row existing at all is what the
 client's first-login flow branches on: no row => show the create-profile form,
-row => show the profile. The resume travels through the same hardened filestore
+row => show the profile. The resume travels through the same hardened document_store
 as student uploads (magic-byte sniffing, random stored name); only its metadata
 lives here, and the four resume_* columns are nullable together — a profile
 without a resume is a real profile, and replacing the resume swaps all four in
@@ -35,7 +35,7 @@ class AlumniProfile(Base):
     designation: Mapped[str | None] = mapped_column(String, nullable=True)
     graduation_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    # Current resume: metadata only, bytes in the filestore under resume_stored_name.
+    # Current resume: metadata only, bytes in the document_store under resume_stored_name.
     resume_original_name: Mapped[str | None] = mapped_column(String, nullable=True)
     resume_stored_name: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
     resume_mime_type: Mapped[str | None] = mapped_column(String, nullable=True)

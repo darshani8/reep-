@@ -1082,7 +1082,7 @@ Do not merge those two into one commit.
 > off by default (`INTERVIEW_RECORDING_ENABLED=false`), why it additionally
 > requires a live `scope_store_audio` grant with its own unticked checkbox and
 > its own sentence, why the byte cap sets a truncation flag instead of
-> truncating silently, why `filestore.py` was not reused, and why the download
+> truncating silently, why `document_store.py` was not reused, and why the download
 > needs both `require_director` and `_assert_can_access_student`. This section is
 > the record of *why the default is off and every guard exists*, and that
 > reasoning is still what protects the student. Two paragraphs below are now
@@ -1121,7 +1121,7 @@ Do not merge those two into one commit.
    24 kHz mono is 48 kB/s — about 43 MB per 15-minute interview, 4.3 GB/hour at
    100 concurrent sessions, onto a box whose file store has no per-student quota.
    There is no encoder, no cap-truncation semantics, no retrieval path, no
-   deletion path. And `app/filestore.py` **cannot** be reused: it decides type by
+   deletion path. And `app/document_store.py` **cannot** be reused: it decides type by
    magic bytes and accepts only PDF/PNG/JPEG, so admitting audio means loosening
    the one control that makes that store trustworthy.
 2. **Voice is biometric-adjacent.** A stored voice recording of a named student,
@@ -1173,7 +1173,7 @@ Do not merge those two into one commit.
   would be the same trap pointing the other way.)*
 
 **If a later pass builds it** (a sketch, not a commitment): a sibling of
-`filestore.py` with its own root, files named `{interview_session_id}.opus`, a
+`document_store.py` with its own root, files named `{interview_session_id}.opus`, a
 hard per-session cap after which capture stops and a truncation flag is set
 (never a silent truncation), retention through the same `retention_until` column,
 and retrieval only at

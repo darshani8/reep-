@@ -17,7 +17,7 @@ from conftest import requires_db
 
 from app.models.user import Role
 
-# Smallest thing filestore's magic-byte sniff accepts as a PDF.
+# Smallest thing document_store's magic-byte sniff accepts as a PDF.
 _PDF = b"%PDF-1.4\n%%EOF\n"
 
 

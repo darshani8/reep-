@@ -67,8 +67,8 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import get_db
-from ..deps import get_current_session
-from ..filestore import content_disposition
+from ..identity import get_current_session
+from ..document_store import content_disposition
 from ..interview_audio import (
     TRACK_MIXED,
     TRACKS,
@@ -1000,7 +1000,7 @@ def student_interview_audio(
         path,
         media_type="audio/wav",
         headers={
-            # RFC 6266 through filestore's helper — the header formatter ONLY.
+            # RFC 6266 through document_store's helper — the header formatter ONLY.
             # Nothing about the upload store is reused here (§8.4's third
             # objection: admitting audio to that store would loosen the magic-byte
             # rule that makes it trustworthy), and this module writes nothing into

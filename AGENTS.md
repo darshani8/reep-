@@ -59,7 +59,7 @@ it only moves the crash from boot to the first student who reaches that path.
 
 **Sign-in is Google, for every role, and the roster is the access control.** `app/google_auth.py` verifies the Google ID token properly — RS256 signature against Google's JWKS, `aud` = our client id, `iss` = accounts.google.com, unexpired, `email_verified` true, plus a single-use `state` cookie and a `nonce` — and then looks the verified email up in `users`. **A Google account with no matching row is refused** (`302 /login?error=sso_not_enrolled`); nothing self-provisions, and no role is ever guessed. Students come from `python -m app.seed_roster` — production-safe and idempotent like `app.seed_kb`, no passwords — which derives the email from the USN (`1MP25MDM01` → `1mp25mdm01@bgscet.ac.in`, domain from `ROSTER_EMAIL_DOMAIN`, alias `COLLEGE_EMAIL_DOMAIN`; `--rekey-domain` moves an already-seeded batch if that guess was wrong), so a student's USN is already filled in on their profile and they never type it.
 
-What Google issues is **the same session as before, byte for byte**: passwords are `scrypt:salt:digest` (Node `scryptSync`-compatible: N=16384, r=8, p=1, dklen=64, salt as a hex string), sessions are HS256 JWTs signed with a shared `AUTH_SECRET` carrying the same claims (`userId, email, name, role, studentId?, mentorId?`), in the httpOnly `reep_session` cookie. `require_*` dependencies in `apps/api-py/app/deps.py` / the routers read the session and were **not changed** — they cannot tell the two paths apart.
+What Google issues is **the same session as before, byte for byte**: passwords are `scrypt:salt:digest` (Node `scryptSync`-compatible: N=16384, r=8, p=1, dklen=64, salt as a hex string), sessions are HS256 JWTs signed with a shared `AUTH_SECRET` carrying the same claims (`userId, email, name, role, studentId?, mentorId?`), in the httpOnly `reep_session` cookie. `require_*` dependencies in `apps/api-py/app/identity.py` / the routers read the session and were **not changed** — they cannot tell the two paths apart.
 
 `POST /api/auth/login` (password) is **kept and refused when `ENV=prod`**, the same guard shape `app/seed.py` uses: the `login` fixture in `tests/conftest.py` and the six test modules that use it authenticate through it, so deleting it would take the DB-backed suite and CI with it. The guard is `settings.password_login_allowed` — an allowlist of dev/CI environment names, not `not is_prod`, so an unrecognised `ENV` shuts the password door rather than opening it. Production answers 403 and names Google instead. Set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `apps/api-py/.env`; blank means `GET /api/auth/sso/status` reports unavailable and the login screen's Google button renders disabled with the reason — nothing else is affected. Full notes, including the exact authorised redirect URI and a troubleshooting section: `docs/google-sign-in.md`.
 
@@ -223,8 +223,8 @@ screen. Rule 1 untouched (nothing here calls a model); rule 2 via
 `/api/leaves/*`), and **Upskilling** (`/mentor/upskilling` — the staff member's
 OWN completed-course certificates, `app/routers/staff_upskilling.py`). The
 upskilling shelf is keyed on `users.id`, not a Student row, goes through the
-same hardened filestore as student uploads, applies its own per-user quota
-(filestore's contract for any second `save_bytes` writer), and has **no review
+same hardened document_store as student uploads, applies its own per-user quota
+(document_store's contract for any second `save_bytes` writer), and has **no review
 workflow** — a staff certificate is a record, not evidence awaiting a verdict.
 
 **Alumni** are a real role: `Role.ALUMNI`, no Student/Mentor row, no staff

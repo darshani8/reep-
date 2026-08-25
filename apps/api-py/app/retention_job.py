@@ -1,4 +1,4 @@
-"""The retention reaper's entrypoint: ``python -m app.reap``, run from
+"""The retention reaper's entrypoint: ``python -m app.retention_job``, run from
 deployment on a daily clock (the ``retention`` sidecar in
 docker-compose.prod.yml).
 

@@ -547,7 +547,7 @@
 
               <rect class="bx" x="44" y="536" width="902" height="62" />
               <text class="t-lab" x="56" y="555" style="font-weight:700">services</text>
-              <text class="t-mini" x="56" y="572">conversations (the one writer) · knowledge (hybrid pgvector + full-text) · filestore (magic-byte typing) · retention · mailer (dedupe_key)</text>
+              <text class="t-mini" x="56" y="572">conversations (the one writer) · knowledge (hybrid pgvector + full-text) · document_store (magic-byte typing) · retention · mailer (dedupe_key)</text>
               <text class="t-mini" x="56" y="588">redaction · resume_pdf (local ReportLab) · security (scrypt + HS256 + token_version) · google_auth (FastAPI-free) · interview_matrix · interview_audio</text>
 
               <rect class="bx" x="44" y="610" width="560" height="76" />
@@ -1010,7 +1010,7 @@
               <path class="ed" d="M170,160 H236" />
 
               <rect class="bx" x="238" y="122" width="176" height="76" />
-              <text class="t-lab t-c" x="326" y="146" style="font-weight:700">deps.py</text>
+              <text class="t-lab t-c" x="326" y="146" style="font-weight:700">identity.py</text>
               <text class="t-mini t-c" x="326" y="165">get_current_session (HTTP)</text>
               <text class="t-mini t-c" x="326" y="183">get_ws_session (WebSocket)</text>
 
@@ -1648,7 +1648,7 @@ cd ../web &amp;&amp; npx ng build                              <span class="cm">
               <tr><td class="n">4</td><td class="k">no student transcript is ever composed into model instructions</td><td class="d">persona + specialization block + phase directive, all fixed strings</td></tr>
               <tr><td class="n">5</td><td class="k">a <code>running</code> interview row is always closed</td><td class="d">three layers, one <code>AND status='running'</code> predicate</td></tr>
               <tr><td class="n">6</td><td class="k">conversations have exactly one writer</td><td class="d"><code>app/conversations.py</code>; <code>app/memory.py</code> is a tombstone — do not use it</td></tr>
-              <tr><td class="n">7</td><td class="k">uploads are typed by magic bytes, stored under random names</td><td class="d"><code>app/filestore.py</code> — a “.pdf” that is an executable is rejected</td></tr>
+              <tr><td class="n">7</td><td class="k">uploads are typed by magic bytes, stored under random names</td><td class="d"><code>app/document_store.py</code> — a “.pdf” that is an executable is rejected</td></tr>
               <tr><td class="n">8</td><td class="k">a mail with a given <code>dedupe_key</code> is sent at most once</td><td class="d">unique index; the losing racer catches <code>IntegrityError</code> and reports the existing row</td></tr>
               <tr><td class="n">9</td><td class="k">routes stay lazy</td><td class="d"><code>loadComponent</code> everywhere; the <code>angular.json</code> budget fails CI otherwise</td></tr>
               <tr><td class="n">10</td><td class="k">production refuses repo credentials at boot</td><td class="d"><code>production_boot_failures()</code> raised from the lifespan — uvicorn never binds</td></tr>

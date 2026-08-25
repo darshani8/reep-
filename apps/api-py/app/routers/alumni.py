@@ -7,7 +7,7 @@ already refuses them). The two surfaces here are deliberately small:
 
   * GET/POST /alumni/profile — `created: false` from the GET is what sends the
     client to the first-login create form; the POST upserts (company required,
-    resume through the same hardened filestore as student uploads).
+    resume through the same hardened document_store as student uploads).
   * GET /alumni/jobs — the postings sheet, WITHOUT the student feed's match %
     and eligibility verdict: those are computed from a Student's skills and
     marks, which an alumnus does not have. Public posting fields only, so
@@ -22,9 +22,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_current_session
-from ..filestore import UploadRejected, content_disposition, delete as filestore_delete
-from ..filestore import read_bytes, save_bytes
+from ..identity import get_current_session
+from ..document_store import UploadRejected, content_disposition, delete as document_store_delete
+from ..document_store import read_bytes, save_bytes
 from ..models.alumni import AlumniProfile
 from ..models.job import Job
 
@@ -147,7 +147,7 @@ def save_profile(
         # new ones, so a crash between the two leaves a dangling file, never a
         # row naming bytes that are gone.
         if prof.resume_stored_name:
-            filestore_delete(prof.resume_stored_name)
+            document_store_delete(prof.resume_stored_name)
         stored_name, mime, size = stored
         prof.resume_original_name = resume.filename
         prof.resume_stored_name = stored_name

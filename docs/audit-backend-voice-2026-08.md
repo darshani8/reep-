@@ -133,7 +133,7 @@ mark `abandoned` and a mentor to read as someone who walked out.
 
 Four independent reviewers, one per surface, plus the backend test suite run against a live Postgres (`REEP_REQUIRE_DB=1`, so the RBAC/voice/conversation tests could not silently skip):
 
-1. **Auth / SSO** — `google_auth.py`, `routers/auth.py`, `security.py`, `deps.py`, `config.py`, the seeds.
+1. **Auth / SSO** — `google_auth.py`, `routers/auth.py`, `security.py`, `identity.py`, `config.py`, the seeds.
 2. **Voice stack** — `voice_agent.py` (LiveKit worker), `routers/voice.py`, worker-secret auth, LiveKit token scoping.
 3. **Interview relay** — `interview_relay.py`, `routers/interview.py`, `interview_matrix.py`, the WebSocket to the OpenAI Realtime API.
 4. **Core API + data layer** — role scoping / IDOR across every router, the egress gate and all its callers, KB retrieval, migrations, file store.
@@ -205,7 +205,7 @@ The first 60 chars of every turn are logged. `conversations.clear` soft-delete, 
 - **Public registration: no rate limit + email-existence oracle** — `registration.py:118-122` (DB flood; 409 confirms an application email exists).
 - **Unchecked `None` on the caller's own Student row** — `student.py:1709` → a session outliving a deleted Student 500s `GET /student/leaderboards` (sibling endpoints guard this).
 - **`create_offer` accepts an unvalidated `job_id`** — `student.py:702-735` → IntegrityError 500 instead of 404/422.
-- **No per-student upload quota** — `filestore.py:31` caps one file at 10 MB, but `student.py:1351` has no count/total cap → an authenticated student can exhaust disk.
+- **No per-student upload quota** — `document_store.py:31` caps one file at 10 MB, but `student.py:1351` has no count/total cap → an authenticated student can exhaust disk.
 - **404-detail existence leak to out-of-group mentors** — `mentor.py:215-218,365-368,448-451,548-551` ("X not found" vs "not in your group"); uuid4 ids make it minimal.
 - **Client ignores the advertised audio format** — `interview.service.ts:54` hard-codes `SAMPLE_RATE=24000`, ignoring `reep.ready` → a server rate change would silently pitch-shift audio.
 - **Dead terminal state** — `InterviewStateMachine.end()`/`InterviewPhase.ENDED` are unreachable in production (only a unit test calls them).

@@ -44,7 +44,7 @@ flowchart TB
         MW["CORS middleware (allow_origins=[WEB_ORIGIN], credentials)<br/>lifespan: boot guard → voice-secret warning → orphan sweep"]
         R1["<b>Routers</b> /api/auth · /api/student · /api/mentor<br/>/api/director · /api/leaves · /api/register<br/>/api/agent · /api/voice · /api/interview · /health /ready"]
         REL["<b>app/interview_relay.py</b><br/>in-process WS relay (NOT a 5th process)"]
-        SVC["<b>Services</b> conversations · knowledge · filestore<br/>retention · mailer · redaction · resume_pdf<br/>security · google_auth · interview_audio · interview_matrix"]
+        SVC["<b>Services</b> conversations · knowledge · document_store<br/>retention · mailer · redaction · resume_pdf<br/>security · google_auth · interview_audio · interview_matrix"]
         AI["<b>app/ai/</b> llm.py (egress gate) · embeddings.py<br/>orchestrator.py · adk.py · agents.py"]
         ORM["SQLAlchemy 2.0.52 ORM · Alembic 1.19.1 · Pydantic 2.13.4"]
         MW --> R1 --> SVC --> ORM
@@ -191,12 +191,12 @@ flowchart TB
     subgraph domain["Services"]
         C["conversations.py — the ONE writer<br/>append_message · assert_owner · ConversationGone"]
         K["knowledge.py — HYBRID retrieval<br/>0.5·cosine + 0.5·ts_rank, gate _MAX_VEC_DISTANCE=0.32"]
-        F["filestore.py — magic-byte typing, random names"]
+        F["document_store.py — magic-byte typing, random names"]
         RT["retention.py — purge_expired · orphan sweep"]
         SEC["security.py — scrypt + HS256 + token_version"]
         GA["google_auth.py — FastAPI-free OIDC verifier"]
         IM["interview_matrix.py — 4 specializations + phase FSM"]
-        IA["interview_audio.py — two-WAV sibling of filestore"]
+        IA["interview_audio.py — two-WAV sibling of document_store"]
         RED["redaction.py · mailer.py · resume_pdf.py · grant_access.py"]
     end
 
@@ -736,7 +736,7 @@ and turn a recoverable blip into an outage.
 | 4 | No student transcript is ever composed into model instructions | relay builds persona + specialization block + phase directive **only** |
 | 5 | A `running` interview row is always closed | three idempotent layers, one `AND status='running'` predicate |
 | 6 | Conversations have exactly one writer | `app/conversations.py`; `app/memory.py` is a tombstone, do not use |
-| 7 | Uploads are typed by **magic bytes**, stored under random names | `app/filestore.py` |
+| 7 | Uploads are typed by **magic bytes**, stored under random names | `app/document_store.py` |
 | 8 | A mail with a given `dedupe_key` is sent at most once | unique index; the losing racer catches `IntegrityError` |
 | 9 | Routes are lazy | `loadComponent` everywhere; the budget in `angular.json` fails CI otherwise |
 | 10 | Production refuses repo credentials at boot | `production_boot_failures()` raised from the lifespan |

@@ -10,7 +10,7 @@ data breach; say which of those decisions a test actually pins and which are one
 edit from silently regressing; and add a new endpoint with the right guard on the first
 line of its body, because that first line *is* the security control in this codebase.
 
-**In scope.** `app/security.py`, `app/schemas/auth.py`, `app/routers/auth.py`, `app/deps.py`,
+**In scope.** `app/security.py`, `app/schemas/auth.py`, `app/routers/auth.py`, `app/identity.py`,
 the guard family in `app/routers/mentor.py`, `app/routers/student.py` and
 `app/routers/voice.py`, the auth-relevant slice of `app/config.py` and `app/seed.py`,
 `tests/test_auth_rbac.py`, and the client-side session model — three files,
@@ -575,7 +575,7 @@ sequenceDiagram
 
     Note over B,A: …later, any authenticated request…
     B->>A: GET /api/mentor/mentees (cookie attached by the browser)
-    A->>A: get_current_session(request)  [deps.py:8]
+    A->>A: get_current_session(request)  [identity.py:8]
     A->>S: verify_session_token(cookie)
     alt signature valid and not expired
         S-->>A: claims dict
@@ -857,13 +857,13 @@ limiting in a reverse proxy; nothing in this repo supplies it.
 
 ## 5. The dependency family
 
-### 5.1 `deps.py` contains one function, and no `require_*` at all
+### 5.1 `identity.py` contains one function, and no `require_*` at all
 
-AGENTS.md says "`require_*` dependencies in `apps/api-py/app/deps.py` / the routers read the
+AGENTS.md says "`require_*` dependencies in `apps/api-py/app/identity.py` / the routers read the
 session". **The code disagrees with the first half of that sentence, and the disagreement
-matters for anyone grepping.** `apps/api-py/app/deps.py` is thirteen lines end to end and
+matters for anyone grepping.** `apps/api-py/app/identity.py` is thirteen lines end to end and
 defines exactly one function
-([apps/api-py/app/deps.py:1-13](apps/api-py/app/deps.py#L1-L13)):
+([apps/api-py/app/identity.py:1-13](apps/api-py/app/identity.py#L1-L13)):
 
 ```python
 """Request dependencies: read the session from the reep_session cookie."""
@@ -923,7 +923,7 @@ Two properties follow from the fact that this lives in the **signature**:
 
 Being a real dependency does **not**, by itself, put anything in the OpenAPI schema — only a
 dependency's *declared request parameters* are documented, and `get_current_session` declares
-only `request: Request` ([deps.py:8](apps/api-py/app/deps.py#L8)), which FastAPI excludes. I
+only `request: Request` ([identity.py:8](apps/api-py/app/identity.py#L8)), which FastAPI excludes. I
 generated the schema in the project venv:
 `app.openapi()['paths']['/api/auth/me']['get']` has keys `['tags', 'summary', 'operationId',
 'responses']` — no `parameters`, no `security` — and `components.securitySchemes` is absent
@@ -943,7 +943,7 @@ neither of the two properties above. §5.6 is entirely about what follows from t
 
 | Guard | File | Real `Depends`? | Reads | Returns | Admits | Rejects | Raises |
 |---|---|---|---|---|---|---|---|
-| `get_current_session` | [deps.py:8](apps/api-py/app/deps.py#L8) | yes | `reep_session` cookie | decoded claims dict | any valid unexpired signature | missing / malformed / expired / wrong-signature | **401** `"Sign in required."` |
+| `get_current_session` | [identity.py:8](apps/api-py/app/identity.py#L8) | yes | `reep_session` cookie | decoded claims dict | any valid unexpired signature | missing / malformed / expired / wrong-signature | **401** `"Sign in required."` |
 | `require_mentor` | [mentor.py:31](apps/api-py/app/routers/mentor.py#L31) | **no** | `session.get("role")` | the same dict | MENTOR, DIRECTOR, ADMIN | STUDENT, absent or unknown role | **403** `"Staff access required."` |
 | `require_director` | [mentor.py:233](apps/api-py/app/routers/mentor.py#L233) | **no** | `session.get("role")` | the same dict | DIRECTOR, ADMIN | STUDENT **and MENTOR** | **403** `"Director access required."` |
 | `_assert_can_access_student` | [mentor.py:72](apps/api-py/app/routers/mentor.py#L72) | **no** | `role`, `mentorId`, a `Student` row | `None` | DIRECTOR/ADMIN for any existing student; MENTOR for `Student.mentor_id == mentorId` | everyone else | **403** via `require_mentor`; **404** `"Student not found."`; **404** `"Student not in your mentor group."` |
@@ -1562,7 +1562,7 @@ The loose assertion `in (401, 403)` makes it green either way.
 
 Three consequences: the unauthenticated-rejection path — the single most important negative
 in the auth surface — is not actually pinned by anything; the test's comment ("this app's
-convention is 403") contradicts `deps.py:12`, which raises 401, and the loose assertion is
+convention is 403") contradicts `identity.py:12`, which raises 401, and the loose assertion is
 what lets the wrong comment survive; and the test accidentally covers the staff-hits-student-area
 403 branch while claiming to cover something else. The fix is `client.cookies.clear()` before
 the request — the pattern `make_user` already uses at
@@ -2000,7 +2000,7 @@ apply to a diff.
   unconditionally; whether a reverse proxy blocks them cannot be determined from this repo,
   which describes no production ingress.
 - **Two documentation disagreements, recorded rather than resolved.** AGENTS.md places the
-  `require_*` dependencies in `app/deps.py`; they are in the routers. And
+  `require_*` dependencies in `app/identity.py`; they are in the routers. And
   [tests/test_auth_rbac.py:68](apps/api-py/tests/test_auth_rbac.py#L68) says the
-  unauthenticated convention is 403 while [deps.py:12](apps/api-py/app/deps.py#L12) raises
+  unauthenticated convention is 403 while [identity.py:12](apps/api-py/app/identity.py#L12) raises
   401 — Chapter 2 owns the status-code rulebook and should adjudicate the second.

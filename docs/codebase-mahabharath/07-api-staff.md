@@ -138,10 +138,10 @@ The return exists for a chaining style nobody adopted.
 This is the single most important thing to understand before adding an endpoint here.
 
 FastAPI's `Depends(...)` machinery resolves declared dependencies *before* the handler body
-runs, and a dependency that raises aborts the request. `app/deps.py` contains exactly one
+runs, and a dependency that raises aborts the request. `app/identity.py` contains exactly one
 function — `get_current_session` — and it **authenticates**: it reads the `reep_session`
 cookie, verifies it, and 401s when it is missing or invalid
-([deps.py:8-13](apps/api-py/app/deps.py#L8-L13)). It says nothing whatsoever about role.
+([identity.py:8-13](apps/api-py/app/identity.py#L8-L13)). It says nothing whatsoever about role.
 
 `require_mentor` and `require_director` are **plain functions**. They take an
 already-resolved session dict, so they cannot be used as dependencies without a wrapper, and
@@ -163,7 +163,7 @@ that appears to protect it is still there.
 
 ```mermaid
 flowchart TD
-    R["HTTP request<br/>Cookie: reep_session"] --> D["Depends(get_current_session)<br/>deps.py:8"]
+    R["HTTP request<br/>Cookie: reep_session"] --> D["Depends(get_current_session)<br/>identity.py:8"]
     D -->|"no / bad cookie"| E401["401 Sign in required."]
     D -->|"valid payload dict"| B["handler body begins"]
     B --> G{"first statement<br/>calls a guard?"}
@@ -217,7 +217,7 @@ available in the repo.
 
 **One important exception, and a correction.** `require_voice_worker`
 ([voice.py:65](apps/api-py/app/routers/voice.py#L65)) is often lumped in with the other two
-because it also lives in a router rather than in `deps.py`. It is **not** the same shape: it
+because it also lives in a router rather than in `identity.py`. It is **not** the same shape: it
 takes a `Header(default=None)` parameter and is wired through `Depends`, at
 [voice.py:114](apps/api-py/app/routers/voice.py#L114) and
 [voice.py:406](apps/api-py/app/routers/voice.py#L406):
@@ -2991,8 +2991,8 @@ not settle by reading alone, stated so they are not mistaken for verified facts.
     cannot rule out an out-of-band job.
 
 14. **Two documentation defects, stated as findings rather than silently corrected.** AGENTS.md
-    describes "`require_*` dependencies in `apps/api-py/app/deps.py`"; both halves are wrong —
-    `deps.py` holds only `get_current_session`, and `require_mentor`/`require_director` are not
+    describes "`require_*` dependencies in `apps/api-py/app/identity.py`"; both halves are wrong —
+    `identity.py` holds only `get_current_session`, and `require_mentor`/`require_director` are not
     dependencies (§1.3). Separately, `config.py:56-57` claims the `/api/voice` endpoints "return
     503 until all three are set", which is false for `/status` (§6.5) and only conditionally
     true for `/token` (§6.6). AGENTS.md's own voice runbook — 409 for a missing worker, 503 for

@@ -37,7 +37,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from ..db import get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from ..models.english_baseline import (
     CEFR_LABEL,
     SKILL_ICON,

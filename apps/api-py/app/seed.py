@@ -52,9 +52,9 @@ from .models.registration import Registration, RegistrationRule, RegistrationSta
 from .models.upload import Upload, UploadKind, UploadStatus
 from .mailer import deliver_once
 from .models.mentor_note import MentorAction, MentorNote
-from .models.mock import MockAttempt, MockType
+from .models.mock_test import MockAttempt, MockType
 from .models.placement_criteria import PlacementCriteria
-from .models.profile import StudentProfile
+from .models.student_profile import StudentProfile
 from .models.schedule import ScheduleItem, ScheduleType
 from .models.skill import Skill, SkillClaim, StudentSkill
 from .models.swoc import SwocEntry, SwocKind, SwocSource

@@ -26,7 +26,7 @@ verification are rewritten, not shipped with a caveat.
 | # | Chapter | Covers |
 |---|---------|--------|
 | 1 | [The Stack, End to End](01-stack-architecture.md) | The four processes, topology, ports, request lifecycle, trust boundaries, the two inviolable rules |
-| 2 | [Backend Core](02-backend-core.md) | `db.py`, `filestore.py`, `mailer.py`, `resume_pdf.py`, schemas, error/logging conventions, the backend naming rulebook |
+| 2 | [Backend Core](02-backend-core.md) | `db.py`, `document_store.py`, `mailer.py`, `resume_pdf.py`, schemas, error/logging conventions, the backend naming rulebook |
 | 3 | [The Data Model](03-data-model.md) | Every model in `app/models/`, enums, relationships, table by table |
 | 4 | [Migrations & Alembic](04-migrations.md) | All 40 revisions, the enum gotchas, ordering and autogenerate discipline |
 | 5 | [Auth & RBAC](05-auth-rbac.md) | scrypt hashing, HS256 sessions, the cookie, `require_*`, `_assert_can_access_student` (Rule 2) |

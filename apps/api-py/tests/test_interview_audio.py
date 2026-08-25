@@ -7,7 +7,7 @@ turned into something that fails if the answer stops holding:
 
   1. "No encoder."            -> test_the_file_is_a_playable_wav_and_its_duration_matches_the_bytes
   2. "48 kB/s, no quota."     -> TestTheCap, and test_retention_can_delete_by_session_id_alone
-  3. "filestore can't be it." -> TestNames (its hardening, carried over, in a store of our own)
+  3. "document_store can't be it." -> TestNames (its hardening, carried over, in a store of our own)
   4. "Voice is biometric."    -> TestTheTwoGates — no flag, no bytes; no consent, no bytes
 
 Its FIFTH objection — that the two tracks are not time-aligned, so mixing them
@@ -914,12 +914,12 @@ class TestTheCap:
 
 
 # ---------------------------------------------------------------------------
-# Objection 3 — "filestore.py cannot be reused"
+# Objection 3 — "document_store.py cannot be reused"
 # ---------------------------------------------------------------------------
 class TestNames:
-    """filestore's hardening, carried over into a store with its own rules.
+    """document_store's hardening, carried over into a store with its own rules.
 
-    filestore.py is NOT touched, NOT imported by the writer and NOT taught about
+    document_store.py is NOT touched, NOT imported by the writer and NOT taught about
     audio — admitting it there would loosen the magic-byte rule that makes that
     store trustworthy. What travels is the lesson: no client string ever becomes
     a path component, and reads AND deletes both refuse a separator.
@@ -961,9 +961,9 @@ class TestNames:
             track_path(uuid.uuid4().hex, "../x")
 
     def test_files_are_named_for_the_session_that_owns_them(self, store):
-        """The one deliberate divergence from filestore's random names.
+        """The one deliberate divergence from document_store's random names.
 
-        filestore randomises because its names come from a student. Ours is a
+        document_store randomises because its names come from a student. Ours is a
         server-generated session id, and naming the file after it is what makes
         the recording findable when the row's `audio_path` is lost — the only
         state in which a recording of a named student becomes undeletable.

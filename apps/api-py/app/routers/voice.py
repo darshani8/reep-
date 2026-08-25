@@ -36,7 +36,7 @@ from sqlalchemy.orm import Session
 from .. import conversations as convo
 from ..config import settings
 from ..db import get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from ..models.conversation import Message
 from ..models.user import Role
 from ..models.voice_worker import VoiceWorkerHeartbeat

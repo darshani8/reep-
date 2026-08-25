@@ -22,10 +22,10 @@ from . import leave  # noqa: F401
 from . import mail  # noqa: F401
 from . import mentor_note  # noqa: F401
 from . import milestone  # noqa: F401
-from . import mock  # noqa: F401
+from . import mock_test  # noqa: F401
 from . import offer  # noqa: F401
 from . import placement_criteria  # noqa: F401
-from . import profile  # noqa: F401
+from . import student_profile  # noqa: F401
 from . import registration  # noqa: F401
 from . import resume  # noqa: F401
 from . import resume_profile  # noqa: F401

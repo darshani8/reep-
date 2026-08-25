@@ -1,0 +1,137 @@
+<div class="dt-header">
+  <div>
+    <div class="dt-title">Mentee Log</div>
+    <div class="dt-sub">Your mentees and the 1:1 meeting notes they can read.</div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">wifi_off</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else {
+  <div class="mentee-split">
+    <!-- LEFT: mentee list -->
+    <div class="card mentee-list">
+      <input
+        class="mentee-search"
+        type="search"
+        placeholder="Search name or USN"
+        [ngModel]="filter()"
+        (ngModelChange)="filter.set($event)"
+      />
+      @if (mentees(); as list) {
+        @if (list.length === 0) {
+          <div class="empty-note">
+            No mentees are assigned to you yet. Mentee groups are assigned by the director.
+          </div>
+        } @else {
+          @for (m of filtered(); track m.student_id) {
+            <button
+              type="button"
+              class="mentee-row"
+              [class.active]="m.student_id === selectedId()"
+              (click)="select(m.student_id)"
+            >
+              <span class="mentee-name">{{ m.name }}</span>
+              <span class="mentee-meta">
+                {{ m.usn || 'No USN' }} · Sem {{ m.current_semester }} · {{ m.current_stage }}
+              </span>
+            </button>
+          } @empty {
+            <div class="empty-note">No mentee matches that search.</div>
+          }
+        }
+      } @else {
+        <div class="empty-note">Loading mentees…</div>
+      }
+    </div>
+
+    <!-- RIGHT: selected mentee's log + add-note -->
+    <div>
+      @if (selected(); as s) {
+        <div class="card" style="margin-bottom: 14px">
+          <h4 style="margin: 0 0 10px">
+            Log a meeting with {{ s.name }}
+          </h4>
+          <div class="note-form">
+            <div class="note-form__row">
+              <label>
+                Heading <span class="dt-sub">(optional)</span>
+                <input type="text" placeholder="1:1 review" [(ngModel)]="noteTitle" />
+              </label>
+              <label>
+                Location <span class="dt-sub">(optional)</span>
+                <input type="text" placeholder="Cabin 3" [(ngModel)]="noteLocation" />
+              </label>
+              <label>
+                Linked action
+                <select [(ngModel)]="noteAction">
+                  @for (opt of actionOptions; track opt.value) {
+                    <option [value]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+            <label>
+              Meeting note
+              <textarea
+                rows="4"
+                placeholder="What was discussed, agreed and planned. The student reads this on their Mentor Meeting Log."
+                [(ngModel)]="noteText"
+              ></textarea>
+            </label>
+            @if (saveError()) {
+              <div class="feedback feedback--err" role="alert">
+                <span class="icon">error</span>
+                <div class="feedback__body">{{ saveError() }}</div>
+              </div>
+            }
+            <div style="display: flex; gap: 10px; align-items: center">
+              <button type="button" class="dt-btn primary" [disabled]="saving()" (click)="addNote()">
+                <span class="icon">send</span>{{ saving() ? 'Saving…' : 'Save note' }}
+              </button>
+              @if (savedFlash()) {
+                <span class="chip good"><span class="icon">check_circle</span>Saved</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (notesError()) {
+          <div class="feedback feedback--err" role="alert">
+            <span class="icon">error</span>
+            <div class="feedback__body">{{ notesError() }}</div>
+          </div>
+        } @else if (notes(); as ns) {
+          @if (ns.length === 0) {
+            <div class="card empty-note">
+              No meeting notes for {{ s.name }} yet — the first one you save appears here and on
+              their Mentor Meeting Log.
+            </div>
+          } @else {
+            @for (n of ns; track n.id) {
+              <div class="card note-card">
+                <div class="note-card__head">
+                  <strong>{{ heading(n) }}</strong>
+                  <span class="dt-sub">{{ n.meeting_at | date: 'd MMM y, h:mm a' }}</span>
+                </div>
+                <p class="note-card__text">{{ n.note_text }}</p>
+                @if (n.linked_action !== 'NONE') {
+                  <span class="chip warn"
+                    ><span class="icon">flag</span>{{ actionLabel(n.linked_action) }}</span
+                  >
+                }
+              </div>
+            }
+          }
+        } @else {
+          <div class="card empty-note">Loading the meeting log…</div>
+        }
+      } @else if (mentees()?.length === 0) {
+        <div class="card empty-note">Nothing to show without mentees.</div>
+      }
+    </div>
+  </div>
+}

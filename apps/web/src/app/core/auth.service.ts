@@ -1,9 +1,8 @@
 /**
  * The client half of authentication.
  *
- * The React app signed in through a Server Action that set an http-only cookie;
- * the Angular client cannot run server code, so it POSTs credentials to the
- * NestJS backend, which sets the same http-only session cookie and returns the
+ * The client POSTs credentials to the FastAPI backend (apps/api-py), which sets
+ * the http-only `reep_session` cookie and returns the
  * session payload. `withCredentials` is what carries that cookie back on every
  * later request — the cookie is never read by JavaScript, exactly as before.
  *

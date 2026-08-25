@@ -104,14 +104,14 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Where a signed-in user lands when the flow carries no `?next=`. Mirrors
-# HOME_FOR_ROLE in apps/web/src/app/features/login/login.component.ts, because
-# the SPA's own `''` route redirects to /student unconditionally — sending a
-# DIRECTOR there would bounce them off a student-only screen on every sign-in.
+# HOME_FOR_ROLE in apps/web/src/app/core/session.ts (the SPA's `''` route now
+# routes by role too, via homeRedirectGuard) — keep the two maps in step.
 _HOME_FOR_ROLE = {
     "STUDENT": "/student",
     "MENTOR": "/mentor",
     "DIRECTOR": "/director",
     "ADMIN": "/director",
+    "ALUMNI": "/alumni",
 }
 _DEFAULT_HOME = "/student"
 

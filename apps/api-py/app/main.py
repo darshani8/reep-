@@ -18,6 +18,7 @@ from .config import settings
 from .db import SessionLocal
 from .routers import (
     agent,
+    alumni,
     auth,
     director,
     health,
@@ -26,6 +27,7 @@ from .routers import (
     mentor,
     registration,
     staff_screens,
+    staff_upskilling,
     student,
     student_screens,
     voice,
@@ -239,6 +241,11 @@ app.include_router(mentor.router, prefix="/api")
 app.include_router(staff_screens.router, prefix="/api")
 app.include_router(director.router, prefix="/api")
 app.include_router(leave.router, prefix="/api")
+# Faculty upskilling (own certificate uploads) and the alumni area (first-login
+# profile + jobs sheet). Both scope every row to the signed-in user; the staff
+# one gates on mentor.require_mentor, the alumni one on the ALUMNI role.
+app.include_router(staff_upskilling.router, prefix="/api")
+app.include_router(alumni.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")
 
 

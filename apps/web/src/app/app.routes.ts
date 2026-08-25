@@ -1,7 +1,7 @@
 import { Routes, Route } from '@angular/router';
 
 import { AppShellComponent } from './layout/app-shell.component';
-import { authGuard } from './core/auth.guard';
+import { authGuard, homeRedirectGuard } from './core/auth.guard';
 
 /**
  * Every nav destination in the shell needs a route, or clicking it goes nowhere
@@ -171,13 +171,31 @@ export const routes: Routes = [
           import('./features/student/profile/profile.component').then((m) => m.ProfileComponent),
       },
 
-      // --- mentor ---
+      // --- mentor / faculty ---
       placeholder('mentor', 'Cohort'),
       placeholder('mentor/student', 'Students'),
+      {
+        path: 'mentor/mentees',
+        loadComponent: () =>
+          import('./features/mentor/mentee-log/mentee-log.component').then(
+            (m) => m.MenteeLogComponent,
+          ),
+      },
+      {
+        path: 'mentor/upskilling',
+        loadComponent: () =>
+          import('./features/mentor/upskilling/upskilling.component').then(
+            (m) => m.UpskillingComponent,
+          ),
+      },
       placeholder('mentor/alerts', 'Alerts'),
       placeholder('mentor/uploads', 'Verifications'),
       placeholder('mentor/reports', 'Reports'),
-      placeholder('mentor/leave', 'Leave'),
+      {
+        path: 'mentor/leave',
+        loadComponent: () =>
+          import('./features/mentor/leave/leave.component').then((m) => m.LeaveComponent),
+      },
       {
         path: 'mentor/assistant',
         loadComponent: () =>
@@ -200,7 +218,26 @@ export const routes: Routes = [
       },
       placeholder('director/exports', 'Exports'),
 
-      { path: '', pathMatch: 'full', redirectTo: 'student' },
+      // --- alumni ---
+      {
+        path: 'alumni',
+        loadComponent: () =>
+          import('./features/alumni/profile/alumni-profile.component').then(
+            (m) => m.AlumniProfileComponent,
+          ),
+      },
+      {
+        path: 'alumni/jobs',
+        loadComponent: () =>
+          import('./features/alumni/jobs/alumni-jobs.component').then(
+            (m) => m.AlumniJobsComponent,
+          ),
+      },
+
+      // Role-aware landing: `redirectTo: 'student'` sent every role to the
+      // student home; the guard reads the resolved session and returns the
+      // UrlTree for that role's own home instead, so it never activates.
+      { path: '', pathMatch: 'full', canActivate: [homeRedirectGuard], children: [] },
     ],
   },
   { path: '**', redirectTo: '' },

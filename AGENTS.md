@@ -33,7 +33,7 @@ ollama/       optional local model (loopback LLM — see the egress gate below)
 
    Without it, `GET /api/voice/status` reports `worker_healthy: false` and `POST /api/voice/token` returns **409** — voice, and only voice, is unavailable. (A missing `LIVEKIT_*`/`GROQ_API_KEY`, or a non-blank `VOICE_MAINTENANCE_MESSAGE`, is a **503** instead.) Everything else works normally, which is why this step is optional — but a student pressing "Start voice" with no worker running is the single most common "why is it broken" report, and nothing in the UI says a fourth process exists.
 
-Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `mentor123`, `director@bgscet.ac.in` / `director123`.
+Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `mentor123`, `director@bgscet.ac.in` / `director123`, `alumni@bgscet.ac.in` / `alumni123` (no profile row — so the alumni first-login create-profile flow is what you see on a fresh database).
 
 ### Two requirements files, two seeds — the split is deliberate
 
@@ -173,6 +173,32 @@ double-tap reads the existing row rather than 409-ing), `GET
 do not add a remote renderer), and `POST /mentor-meetings/request`, which writes
 a **mentor note** rather than inventing a requests table: that is already the
 mentor's instrument for this student and already on their screen.
+
+## The faculty & alumni pages (2026-08)
+
+**Faculty** (any staff role, in the shell's staff nav): **Mentee Log**
+(`/mentor/mentees` — mentees + meeting notes, on the existing
+`/api/mentor/mentees` and `/notes` endpoints, all behind rule 2's gate),
+**Leave Requests** (`/mentor/leave` — submit own + the two-approver queue on
+`/api/leaves/*`), and **Upskilling** (`/mentor/upskilling` — the staff member's
+OWN completed-course certificates, `app/routers/staff_upskilling.py`). The
+upskilling shelf is keyed on `users.id`, not a Student row, goes through the
+same hardened filestore as student uploads, applies its own per-user quota
+(filestore's contract for any second `save_bytes` writer), and has **no review
+workflow** — a staff certificate is a record, not evidence awaiting a verdict.
+
+**Alumni** are a real role: `Role.ALUMNI`, no Student/Mentor row, no staff
+scope, session claims carry neither `studentId` nor `mentorId`. Their surface
+is `app/routers/alumni.py`: `GET /api/alumni/profile` answers `created: false`
+until they save one — that flag (never a falsy company string) is what makes
+the client show the FIRST-LOGIN create form (current company + current resume,
+resume required on create, kept-if-omitted on update) — plus their resume
+download and `GET /api/alumni/jobs`, the postings sheet **without** the student
+feed's match % / eligibility verdict (those are computed from a Student's
+skills and marks, which an alumnus does not have). The shell's sidebar switches
+on role (`navKind` in `layout/app-shell.component.ts`), and the SPA's `''`
+route now routes by role through `homeRedirectGuard` instead of sending every
+role to `/student`.
 
 ## Backend conventions
 

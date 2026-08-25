@@ -1,11 +1,10 @@
 /**
- * The session shape, shared between the Angular client and (by contract) the
- * NestJS backend. This is the same `SessionPayload` the React app's
- * `src/lib/auth.ts` defines — ported verbatim so a token minted by the backend
- * carries exactly the fields the UI already expects.
+ * The session shape, shared by contract with the FastAPI backend
+ * (apps/api-py/app/routers/auth.py `_payload_for`): the claims the
+ * `reep_session` cookie carries, exactly as the UI expects them.
  */
 
-export type Role = 'STUDENT' | 'MENTOR' | 'DIRECTOR' | 'ADMIN';
+export type Role = 'STUDENT' | 'MENTOR' | 'DIRECTOR' | 'ADMIN' | 'ALUMNI';
 
 export interface SessionPayload {
   userId: string;
@@ -23,4 +22,5 @@ export const HOME_FOR_ROLE: Record<Role, string> = {
   MENTOR: '/mentor',
   DIRECTOR: '/director',
   ADMIN: '/director',
+  ALUMNI: '/alumni',
 };

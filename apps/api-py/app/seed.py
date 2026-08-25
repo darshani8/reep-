@@ -143,6 +143,21 @@ def main() -> None:
             db.commit()
             print(f"created {mentor_email} / mentor123")
 
+        alumni_email = "alumni@bgscet.ac.in"
+        if db.scalar(select(User).where(User.email == alumni_email)) is None:
+            db.add(
+                User(
+                    email=alumni_email,
+                    name="Test Alumnus",
+                    role=Role.ALUMNI,
+                    password_hash=hash_password("alumni123"),
+                )
+            )
+            db.commit()
+            # No AlumniProfile row on purpose: the first-login create-profile
+            # flow is the thing to see on a fresh database.
+            print(f"created {alumni_email} / alumni123 (no profile — first-login flow)")
+
         # Idempotently give the test student one semester result with subjects.
         stu_user = db.scalar(select(User).where(User.email == student_email))
         stu = (

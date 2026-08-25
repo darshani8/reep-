@@ -10,19 +10,26 @@
 
   @if (data(); as d) {
     <div class="dt-toolbar">
-      @if (d.report_available) {
-        <button type="button" class="btn">
+      @if (d.exists) {
+        <button type="button" class="btn" [disabled]="busy()" (click)="downloadReport()">
           <span class="icon" aria-hidden="true">download</span>
           Download report
         </button>
       }
-      <button type="button" class="btn primary">
+      <button type="button" class="btn primary" [disabled]="busy()" (click)="startOrResume()">
         <span class="icon" aria-hidden="true">mic</span>
-        {{ d.exists ? 'Resume assessment' : 'Start assessment' }}
+        {{ busy() ? 'Working…' : d.exists ? 'Resume assessment' : 'Start assessment' }}
       </button>
     </div>
   }
 </div>
+
+@if (notice(); as message) {
+  <div class="notice info" role="status">
+    <span class="icon" aria-hidden="true">info</span>
+    {{ message }}
+  </div>
+}
 
 @switch (state()) {
   @case ('loading') {
@@ -48,6 +55,15 @@
               It takes about 70 minutes across four sections and places you on the CEFR
               scale. Your mentor sees the band, not your answers.
             </p>
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="busy()"
+              (click)="startOrResume()"
+            >
+              <span class="icon" aria-hidden="true">mic</span>
+              Start assessment
+            </button>
           </div>
         </div>
       } @else {
@@ -146,9 +162,26 @@
               }
 
               @if (s.status === 'SCORED' && s.has_report) {
-                <button type="button" class="addlink">View AI report</button>
+                <button
+                  type="button"
+                  class="addlink"
+                  [attr.aria-expanded]="openReport() === s.skill"
+                  (click)="toggleReport(s.skill)"
+                >
+                  {{ openReport() === s.skill ? 'Hide AI report' : 'View AI report' }}
+                </button>
+                @if (openReport() === s.skill && s.ai_report) {
+                  <p class="dt-sub" style="margin:6px 0 0">{{ s.ai_report }}</p>
+                }
               } @else if (s.status === 'PENDING') {
-                <button type="button" class="addlink">Start {{ s.label | lowercase }} test</button>
+                <button
+                  type="button"
+                  class="addlink"
+                  [disabled]="busy()"
+                  (click)="startOrResume()"
+                >
+                  Start {{ s.label | lowercase }} test
+                </button>
               }
             </div>
           }

@@ -34,6 +34,7 @@ interface Section {
   minutes: number;
   subscores: Subscore[];
   has_report: boolean;
+  ai_report: string | null;
 }
 
 interface NextStep {
@@ -70,9 +71,73 @@ interface Baseline {
 export class EnglishBaselineComponent {
   readonly state = signal<'loading' | 'data' | 'error'>('loading');
   readonly data = signal<Baseline | null>(null);
+  readonly busy = signal(false);
+  readonly notice = signal<string | null>(null);
+
+  /** Which section's assessor note is expanded. One at a time — these are
+   *  paragraphs, and four open at once turns a scannable row of cards into a
+   *  wall the student has to hunt through. */
+  readonly openReport = signal<string | null>(null);
 
   constructor() {
     void this.load();
+  }
+
+  toggleReport(skill: string): void {
+    this.openReport.update((cur) => (cur === skill ? null : skill));
+  }
+
+  /** Open this semester's attempt, or resume the one already open. The endpoint
+   *  is idempotent, so a double-tap is harmless and needs no guard beyond the
+   *  busy flag that stops the second spinner. */
+  async startOrResume(): Promise<void> {
+    this.busy.set(true);
+    this.notice.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/student/english-baseline/start`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const body = (await res.json()) as { created: boolean; baseline: Baseline };
+      this.data.set(body.baseline);
+      this.notice.set(
+        body.created
+          ? 'Assessment opened. Your sections are listed below — take them in any order.'
+          : 'Resuming the attempt already open for this semester.',
+      );
+    } catch {
+      this.notice.set('Could not open the assessment. Please try again.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  /** The PDF is rendered server-side and streamed back. Fetched as a blob rather
+   *  than linked directly so the session cookie rides along and a failure can be
+   *  reported in the page instead of replacing it with a browser error. */
+  async downloadReport(): Promise<void> {
+    this.busy.set(true);
+    this.notice.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/student/english-baseline/report`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'english-baseline.pdf';
+      a.click();
+      // Revoked on the next tick: revoking synchronously can beat the click in
+      // some browsers and hand the user an empty file.
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      this.notice.set('Could not produce the report just now. Please try again.');
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   async load(): Promise<void> {

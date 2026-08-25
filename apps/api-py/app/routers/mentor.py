@@ -88,6 +88,12 @@ class NoteOut(BaseModel):
     id: str
     note_text: str
     linked_action: str
+    # Both optional, both student-visible. The Mentor Meeting Log renders
+    # "1:1 review · Cabin 3" as the heading above each note; without them the
+    # student's screen falls back to the linked action, which is a worse
+    # heading but never a wrong one.
+    title: str | None
+    location: str | None
     meeting_at: datetime
     created_at: datetime
 
@@ -95,6 +101,11 @@ class NoteOut(BaseModel):
 class NoteIn(BaseModel):
     note_text: str = Field(min_length=1, max_length=4000)
     linked_action: str = "NONE"
+    # NOT backfilled onto existing notes and NOT required on new ones. A mentor
+    # who types only a note has written a real note; inventing a heading for it
+    # would put words in their mouth on a screen the student reads.
+    title: str | None = Field(default=None, max_length=200)
+    location: str | None = Field(default=None, max_length=200)
     meeting_at: datetime | None = None
 
 
@@ -103,6 +114,8 @@ def _note_out(note: MentorNote) -> NoteOut:
         id=note.id,
         note_text=note.note_text,
         linked_action=note.linked_action.value,
+        title=note.title,
+        location=note.location,
         meeting_at=note.meeting_at,
         created_at=note.created_at,
     )
@@ -150,6 +163,8 @@ def add_note(
         student_id=student_id,
         note_text=body.note_text,
         linked_action=action,
+        title=(body.title or "").strip() or None,
+        location=(body.location or "").strip() or None,
         meeting_at=body.meeting_at or datetime.now(timezone.utc),
     )
     db.add(note)

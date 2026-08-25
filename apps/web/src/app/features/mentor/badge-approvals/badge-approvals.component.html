@@ -1,0 +1,274 @@
+<div class="dt-header">
+  <div>
+    <div class="dt-title">Badge Centre</div>
+    <div class="dt-sub">
+      Verify evidence, enter assessment scores, and read a mentee's consolidated skill profile.
+    </div>
+  </div>
+</div>
+
+<div class="tabs-row" role="tablist" aria-label="Badge centre sections">
+  <button role="tab" [attr.aria-selected]="tab() === 'approvals'" [class.active]="tab() === 'approvals'" (click)="setTab('approvals')">Approvals</button>
+  <button role="tab" [attr.aria-selected]="tab() === 'assessments'" [class.active]="tab() === 'assessments'" (click)="setTab('assessments')">Assessments</button>
+  <button role="tab" [attr.aria-selected]="tab() === 'profile'" [class.active]="tab() === 'profile'" (click)="setTab('profile')">Skill Profile</button>
+</div>
+
+@if (tab() === 'approvals') {
+  @if (decideError()) {
+    <div class="feedback feedback--err" role="alert">
+      <span class="icon">error</span>
+      <div class="feedback__body">{{ decideError() }}</div>
+    </div>
+  }
+  @if (pendingError()) {
+    <div class="feedback feedback--err" role="alert">
+      <span class="icon">wifi_off</span>
+      <div class="feedback__body">{{ pendingError() }}</div>
+    </div>
+  } @else if (pending(); as rows) {
+    @if (rows.length === 0) {
+      <div class="card" style="padding: 16px">
+        <strong>Nothing waiting for verification.</strong>
+        <div class="dt-sub" style="margin-top: 4px">
+          You see claims from students in your own mentee group; directors see the whole programme.
+        </div>
+      </div>
+    } @else {
+      @for (r of rows; track r.id) {
+        <div class="card" style="margin-bottom: 10px; padding: 14px">
+          <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap">
+            <div>
+              <strong>{{ r.badge_name }}</strong>
+              <span class="dt-sub"> · {{ r.category_label }}</span>
+              <div class="dt-sub">
+                {{ r.student_name }}@if (r.usn) { · {{ r.usn }}} · claimed
+                {{ r.created_at | date: 'd MMM y' }}
+              </div>
+            </div>
+            <span class="chip warn"><span class="icon">hourglass_top</span>Pending verification</span>
+          </div>
+          <p style="margin: 8px 0 4px">
+            <strong>{{ r.title }}</strong>
+            <span class="dt-sub">
+              · {{ evidenceTypeLabel(r.evidence_type) }}
+              @if (r.provider) { · {{ r.provider }}}
+              @if (r.completed_on) { · completed {{ r.completed_on | date: 'd MMM y' }}}
+              @if (r.from_catalogue) { · approved-catalogue pick}
+            </span>
+          </p>
+          @if (r.student_note) {
+            <p class="dt-sub" style="margin: 0 0 8px">Student: {{ r.student_note }}</p>
+          }
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+            @if (r.upload_id) {
+              <a class="dt-btn" [href]="evidenceFileUrl(r.id)" target="_blank" rel="noopener">
+                <span class="icon">open_in_new</span>View certificate
+              </a>
+            } @else {
+              <span class="chip neutral">No file attached</span>
+            }
+            <input
+              type="text"
+              placeholder="Verification note (optional)"
+              style="flex: 1; min-width: 180px"
+              [(ngModel)]="notes[r.id]"
+            />
+            <button type="button" class="dt-btn primary" [disabled]="decidingId() === r.id" (click)="decide(r, 'APPROVE')">
+              <span class="icon">check_circle</span>Approve &amp; award
+            </button>
+            <button type="button" class="dt-btn" [disabled]="decidingId() === r.id" (click)="decide(r, 'MORE_INFO')">
+              <span class="icon">help</span>More info
+            </button>
+            <button type="button" class="dt-btn danger" [disabled]="decidingId() === r.id" (click)="decide(r, 'REJECT')">
+              <span class="icon">cancel</span>Reject
+            </button>
+          </div>
+        </div>
+      }
+    }
+  } @else {
+    <div class="card" style="padding: 16px">Loading the verification queue…</div>
+  }
+} @else {
+  <!-- both remaining tabs need a mentee -->
+  <div class="card" style="padding: 12px 14px; margin-bottom: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+    <label style="display: flex; gap: 8px; align-items: center; font-size: 13px">
+      Mentee
+      <select [ngModel]="selectedStudent()" (ngModelChange)="onStudentChange($event)">
+        @for (m of mentees(); track m.student_id) {
+          <option [value]="m.student_id">{{ m.name }}{{ m.usn ? ' · ' + m.usn : '' }}</option>
+        }
+      </select>
+    </label>
+    @if (tab() === 'assessments') {
+      <label style="display: flex; gap: 8px; align-items: center; font-size: 13px">
+        Checkpoint
+        <select [ngModel]="checkpoint()" (ngModelChange)="onCheckpointChange($event)">
+          @for (cp of checkpoints; track cp) {
+            <option [value]="cp">{{ cp }}</option>
+          }
+        </select>
+      </label>
+    }
+    @if (isDirector()) {
+      <a class="dt-btn" [href]="exportUrl()" target="_blank" rel="noopener">
+        <span class="icon">download</span>Cohort CSV report
+      </a>
+    }
+  </div>
+
+  @if (mentees().length === 0) {
+    <div class="card" style="padding: 16px">
+      No mentees are assigned to you yet — mentee groups are assigned by the director.
+    </div>
+  } @else if (tab() === 'assessments') {
+    @if (scoresError()) {
+      <div class="feedback feedback--err" role="alert">
+        <span class="icon">error</span>
+        <div class="feedback__body">{{ scoresError() }}</div>
+      </div>
+    }
+    @if (growthRows(); as rows) {
+      <div class="card" style="padding: 14px">
+        <p class="dt-sub" style="margin: 0 0 10px">
+          Scores are on a 1–10 scale. Leave a capability blank to skip it — partial entry is fine
+          (speaking is often assessed later), and re-entering a score corrects it in place.
+        </p>
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th>Current record at {{ checkpoint() }}</th>
+              <th>Score (1–10)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows; track row.capability) {
+              <tr>
+                <td>{{ row.label }}</td>
+                <td>{{ formatScore(row.scores[checkpoint()]) }}</td>
+                <td>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="0.1"
+                    style="width: 90px"
+                    [(ngModel)]="scores[row.capability]"
+                  />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px">
+          <button type="button" class="dt-btn primary" [disabled]="savingScores()" (click)="saveScores()">
+            <span class="icon">save</span>{{ savingScores() ? 'Saving…' : 'Save scores' }}
+          </button>
+          @if (scoresFlash()) {
+            <span class="chip good"><span class="icon">check_circle</span>Saved</span>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="card" style="padding: 16px">Loading this student’s assessments…</div>
+    }
+  } @else {
+    @if (profileError()) {
+      <div class="feedback feedback--err" role="alert">
+        <span class="icon">error</span>
+        <div class="feedback__body">{{ profileError() }}</div>
+      </div>
+    } @else if (profile(); as p) {
+      <div class="card" style="padding: 14px; margin-bottom: 12px">
+        <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap">
+          <div>
+            <h4 style="margin: 0">{{ p.name }}</h4>
+            <div class="dt-sub">{{ p.usn || 'No USN' }} · REEP stage {{ p.stage }}</div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <span class="chip good"><span class="icon">military_tech</span>{{ p.badges.earned_total }} / {{ p.badges.badge_total }} badges</span>
+            <span class="chip neutral"><span class="icon">star</span>{{ p.points_total }} points</span>
+          </div>
+        </div>
+        <div class="dt-sub" style="margin-top: 8px">
+          Approved evidence — External: {{ p.evidence_counts['EXTERNAL_VERIFIED'] || 0 }} · BGSCET
+          assessed: {{ p.evidence_counts['BGSCET_ASSESSED'] || 0 }} · Applied:
+          {{ p.evidence_counts['APPLIED'] || 0 }}
+        </div>
+      </div>
+
+      @for (cat of p.badges.categories; track cat.key) {
+        <div class="card" style="padding: 12px 14px; margin-bottom: 10px">
+          <div style="display: flex; justify-content: space-between; gap: 8px; align-items: center">
+            <strong>{{ cat.label }}</strong>
+            <span class="dt-sub">{{ cat.earned }} of {{ cat.total }} earned</span>
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px">
+            @for (b of cat.badges; track b.code) {
+              <span
+                class="chip {{ b.status === 'EARNED' ? 'good' : b.status === 'VERIFICATION_PENDING' ? 'warn' : 'neutral' }}"
+                >{{ b.name }}
+                @if (isDirector()) {
+                  @if (b.status === 'EARNED') {
+                    <button
+                      type="button"
+                      class="dt-btn danger"
+                      style="margin-left: 4px"
+                      [disabled]="awardBusy() === b.code"
+                      (click)="revoke(b)"
+                    >Revoke</button>
+                  } @else {
+                    <button
+                      type="button"
+                      class="dt-btn"
+                      style="margin-left: 4px"
+                      [disabled]="awardBusy() === b.code"
+                      (click)="award(b)"
+                    >Award</button>
+                  }
+                } @else if (b.staff_awarded && b.status !== 'EARNED') {
+                  <button
+                    type="button"
+                    class="dt-btn"
+                    style="margin-left: 4px"
+                    [disabled]="awardBusy() === b.code"
+                    (click)="award(b)"
+                  >Award</button>
+                }
+              </span>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="card" style="padding: 12px 14px">
+        <strong>Growth from baseline</strong>
+        <table class="dt-table" style="margin-top: 8px">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              @for (cp of p.growth.checkpoints; track cp) {
+                <th>{{ cp }}</th>
+              }
+              <th>Growth</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of p.growth.rows; track row.capability) {
+              <tr>
+                <td>{{ row.label }}</td>
+                @for (cp of p.growth.checkpoints; track cp) {
+                  <td>{{ formatScore(row.scores[cp]) }}</td>
+                }
+                <td>{{ formatGrowth(row.growth) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="card" style="padding: 16px">Loading the skill profile…</div>
+    }
+  }
+}

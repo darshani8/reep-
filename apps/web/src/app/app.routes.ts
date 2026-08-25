@@ -103,6 +103,11 @@ export const routes: Routes = [
           import('./features/student/records/records.component').then((m) => m.RecordsComponent),
       },
       {
+        path: 'student/badges',
+        loadComponent: () =>
+          import('./features/student/badges/badges.component').then((m) => m.BadgesComponent),
+      },
+      {
         path: 'student/leaderboards',
         loadComponent: () =>
           import('./features/student/leaderboards/leaderboards.component').then(
@@ -179,6 +184,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/mentor/mentee-log/mentee-log.component').then(
             (m) => m.MenteeLogComponent,
+          ),
+      },
+      {
+        path: 'mentor/badge-approvals',
+        loadComponent: () =>
+          import('./features/mentor/badge-approvals/badge-approvals.component').then(
+            (m) => m.BadgeApprovalsComponent,
           ),
       },
       {

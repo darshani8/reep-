@@ -30,6 +30,17 @@ from .models.academic_history import AcademicGap, AcademicQualification, Qualifi
 from .models.academics import SemesterResult, SubjectMark
 from .models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
 from .models.attendance import AttendanceRecord
+from .models.badge import (
+    ApprovedCertification,
+    AssessmentCheckpoint,
+    BadgeEvidence,
+    CapabilityAssessment,
+    CapabilityKind,
+    EvidenceStatus,
+    EvidenceType,
+    StudentBadge,
+)
+from .models.badge import StudentBadgeStatus as BadgeStatus
 from .models.certification import Certification, CertificationProgress
 from .models.cohort import Cohort
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
@@ -780,6 +791,157 @@ def seed_v2_screens(db, stu, mentor) -> None:
         if titled:
             db.commit()
             print(f"titled mentor meeting notes ({titled})")
+
+    # --- Skills & Badge dashboard (models/badge.py) --------------------------
+    # A slice of every state the screen can show: earned (with approved
+    # evidence), verification pending, more-info-required, in progress, plus
+    # T0→T2 assessment scores so the growth table and Most Improved board have
+    # something honest to draw. The catalogue rows give the "approved
+    # certification" picker its simpler path.
+    if db.scalar(select(ApprovedCertification).limit(1)) is None:
+        db.add_all(
+            [
+                ApprovedCertification(
+                    name="Excel Skills for Business: Essentials",
+                    provider="Macquarie University / Coursera",
+                    badge_code="TECH-EXCEL-FOUNDATION",
+                    duration_text="≈ 25 hours",
+                    is_free=True,
+                    url="https://www.coursera.org/learn/excel-essentials",
+                ),
+                ApprovedCertification(
+                    name="Google Data Analytics: Share Data Through Visualization",
+                    provider="Google / Coursera",
+                    badge_code="SEC-BA-DATA-VISUALISATION",
+                    duration_text="≈ 20 hours",
+                    is_free=True,
+                    url="https://www.coursera.org/learn/visualize-data",
+                ),
+                ApprovedCertification(
+                    name="Successful Negotiation: Essential Strategies and Skills",
+                    provider="University of Michigan / Coursera",
+                    badge_code="MGR-NEGOTIATION",
+                    duration_text="≈ 17 hours",
+                    is_free=True,
+                    url="https://www.coursera.org/learn/negotiation-skills",
+                ),
+            ]
+        )
+        db.commit()
+        print("added approved certification catalogue (3)")
+
+    if db.scalar(select(StudentBadge).where(StudentBadge.student_id == stu.id)) is None:
+        director_user = db.scalar(select(User).where(User.email == "director@bgscet.ac.in"))
+        reviewer_id = director_user.id if director_user else None
+        now = datetime.now(timezone.utc)
+        db.add_all(
+            [
+                # Earned, on approved external evidence.
+                StudentBadge(
+                    student_id=stu.id,
+                    badge_code="MGR-BUSINESS-COMMUNICATION",
+                    status=BadgeStatus.EARNED,
+                    points_awarded=10,
+                    earned_at=now - timedelta(days=30),
+                    awarded_by_id=reviewer_id,
+                    award_note="Approved evidence",
+                ),
+                StudentBadge(
+                    student_id=stu.id,
+                    badge_code="TECH-EXCEL-FOUNDATION",
+                    status=BadgeStatus.EARNED,
+                    points_awarded=10,
+                    earned_at=now - timedelta(days=12),
+                    awarded_by_id=reviewer_id,
+                    award_note="Approved evidence",
+                ),
+                # In progress and pending — rows exist, nothing earned.
+                StudentBadge(student_id=stu.id, badge_code="THK-CRITICAL-THINKING"),
+                StudentBadge(student_id=stu.id, badge_code="SEC-BA-FUNDAMENTALS"),
+            ]
+        )
+        db.add_all(
+            [
+                BadgeEvidence(
+                    student_id=stu.id,
+                    badge_code="MGR-BUSINESS-COMMUNICATION",
+                    evidence_type=EvidenceType.EXTERNAL_VERIFIED,
+                    status=EvidenceStatus.APPROVED,
+                    title="Business Communication Certificate",
+                    provider="Coursera",
+                    reviewed_by_id=reviewer_id,
+                    reviewed_at=now - timedelta(days=30),
+                ),
+                BadgeEvidence(
+                    student_id=stu.id,
+                    badge_code="TECH-EXCEL-FOUNDATION",
+                    evidence_type=EvidenceType.BGSCET_ASSESSED,
+                    status=EvidenceStatus.APPROVED,
+                    title="REEP Excel workshop assessment",
+                    provider="BGSCET MBA",
+                    reviewed_by_id=reviewer_id,
+                    reviewed_at=now - timedelta(days=12),
+                ),
+                # The review queue's fresh item.
+                BadgeEvidence(
+                    student_id=stu.id,
+                    badge_code="SEC-BA-FUNDAMENTALS",
+                    evidence_type=EvidenceType.EXTERNAL_VERIFIED,
+                    status=EvidenceStatus.PENDING_VERIFICATION,
+                    title="Business Analytics Fundamentals",
+                    provider="Coursera",
+                    student_note="Completed last week — certificate attached on my uploads.",
+                ),
+                # And one sent back for more information.
+                BadgeEvidence(
+                    student_id=stu.id,
+                    badge_code="THK-CRITICAL-THINKING",
+                    evidence_type=EvidenceType.APPLIED,
+                    status=EvidenceStatus.MORE_INFO_REQUIRED,
+                    title="Case competition — campus round",
+                    review_note="Add the certificate or the organiser's result sheet.",
+                    reviewed_by_id=reviewer_id,
+                    reviewed_at=now - timedelta(days=3),
+                ),
+            ]
+        )
+        db.commit()
+        print("added badge dashboard slice (2 earned, 1 pending, 1 more-info)")
+
+    if db.scalar(
+        select(CapabilityAssessment).where(CapabilityAssessment.student_id == stu.id)
+    ) is None:
+        director_user = db.scalar(select(User).where(User.email == "director@bgscet.ac.in"))
+        recorder = director_user.id if director_user else None
+        scores = {
+            # capability: (T0, T1, T2) — visible growth, one flat line, and
+            # speaking assessed only twice so a dash renders somewhere.
+            CapabilityKind.READING: (5.0, 5.8, 6.4),
+            CapabilityKind.WRITING: (4.2, 4.9, 5.6),
+            CapabilityKind.LISTENING: (5.5, 5.6, 5.5),
+            CapabilityKind.SPEAKING: (3.4, 4.8, None),
+            CapabilityKind.QUANTITATIVE: (4.8, 5.5, 6.2),
+            CapabilityKind.DATA_INTERPRETATION: (4.0, 5.0, 6.1),
+            CapabilityKind.LOGICAL_REASONING: (5.2, 5.9, 6.5),
+        }
+        rows = []
+        for cap, values in scores.items():
+            for checkpoint, score in zip(
+                (AssessmentCheckpoint.T0, AssessmentCheckpoint.T1, AssessmentCheckpoint.T2), values
+            ):
+                if score is not None:
+                    rows.append(
+                        CapabilityAssessment(
+                            student_id=stu.id,
+                            capability=cap,
+                            checkpoint=checkpoint,
+                            score=score,
+                            recorded_by_id=recorder,
+                        )
+                    )
+        db.add_all(rows)
+        db.commit()
+        print(f"added capability assessments ({len(rows)} scores, T0–T2)")
 
 
 if __name__ == "__main__":

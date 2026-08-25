@@ -174,6 +174,46 @@ do not add a remote renderer), and `POST /mentor-meetings/request`, which writes
 a **mentor note** rather than inventing a requests table: that is already the
 mentor's instrument for this student and already on their screen.
 
+## The Skills & Badge dashboard (2026-08)
+
+Implements the "REEP Student Skills & Badge Dashboard Developer Framework"
+document end to end for CURRENT students, structured exactly as its §19 asks:
+REEP stage → skill category → skill → evidence → badge → growth.
+
+**The 48-badge catalogue is code** (`BADGES` in `app/models/badge.py` — 12
+managerial, 16 sectoral across four tracks, 10 platform/technical, 6 thinking,
+4 readiness), the milestone rule again: only student state is rows. The
+framework's §18 "admins add/edit badges" is therefore a code change HERE, on
+purpose; what admins maintain in the database is the **Approved Certification
+Catalogue** (§12, CRUD under `/api/director/approved-certifications`), evidence
+verdicts, manual awards/revocations and assessment scores. `test_badges.py`
+pins the catalogue's shape against the document.
+
+**Certificate ≠ badge, enforced by the write path**: a student attaches
+evidence (`badge_evidence` — several per badge, one per §11 type; the document's
+own Negotiation example) and only a staff APPROVE on
+`/api/mentor/badge-evidence/{id}/review` mints the `student_badges` EARNED row,
+points stamped from the catalogue at that moment. §13 display status is DERIVED
+(`compose_badges`), never stored. Readiness badges (§8) refuse evidence — they
+arrive only through the manual-award endpoint when assessment thresholds are
+met. Revoke is DIRECTOR/ADMIN and deletes the award row, never the evidence
+history.
+
+**Growth (§9/§15)** is `capability_assessments` — seven capabilities, 1–10, at
+T0–T4, staff-entered and upserted. Every derived score is nullable and a
+missing score renders as a dash: growth is claimed only when T0 AND a later
+checkpoint both exist, because 0.0 with only a baseline says "has not improved"
+when nobody has looked. The §16 **Most Improved** leaderboard ranks that growth,
+not points; every leaderboard honours the existing `leaderboard_opt_out`.
+
+Screens: `/student/badges` (journey strip, tiles, §14 detail + claim form,
+growth table, leaderboards) and `/mentor/badge-approvals` (verification queue
+with the scoped certificate stream, assessment entry, §17 skill profile,
+director cohort CSV at `/api/director/badges/export.csv`). Staff reads reuse
+`compose_badges`/`compose_growth` — the mentor sees exactly the student's own
+screen. Rule 1 untouched (nothing here calls a model); rule 2 via
+`_assert_can_access_student`, with the pending queue narrowed in SQL.
+
 ## The faculty & alumni pages (2026-08)
 
 **Faculty** (any staff role, in the shell's staff nav): **Mentee Log**

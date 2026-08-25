@@ -440,11 +440,11 @@
     </p>
     <dl class="facts">
       <div class="fact"><dt>Processes</dt><dd>3 + 1<span>API · DB · web (+ optional voice)</span></dd></div>
-      <div class="fact"><dt>Tables</dt><dd>49<span>44 Alembic migrations</span></dd></div>
+      <div class="fact"><dt>Tables</dt><dd>55<span>42 Alembic migrations</span></dd></div>
       <div class="fact"><dt>Initial bundle</dt><dd>~142 kB<span>was 1.23 MB, all eager</span></dd></div>
       <div class="fact"><dt>API port</dt><dd>3300<span>Postgres on host 5433</span></dd></div>
       <div class="fact"><dt>Close codes</dt><dd>4001–4014<span>one shared vocabulary</span></dd></div>
-      <div class="fact"><dt>Test modules</dt><dd>28<span>DB-backed, enforced in CI</span></dd></div>
+      <div class="fact"><dt>Test modules</dt><dd>33<span>DB-backed, enforced in CI</span></dd></div>
     </dl>
   </header>
 
@@ -575,7 +575,7 @@
               <text class="t-h" x="44" y="772" style="fill:var(--store)">POSTGRESQL 17</text>
               <text class="t-mini" x="44" y="791">image pgvector/pgvector:pg17</text>
               <text class="t-mini" x="44" y="807">container reep-postgres · host 5433 → 5432</text>
-              <text class="t-mini" x="44" y="823">database reep_py · 49 tables</text>
+              <text class="t-mini" x="44" y="823">database reep_py · 55 tables</text>
               <text class="t-mini" x="44" y="839">CREATE EXTENSION vector (superuser, initdb)</text>
               <text class="t-mini" x="44" y="855">volume reep_pgdata</text>
 
@@ -799,7 +799,7 @@
               <tr><td class="k">uvicorn[standard]</td><td class="n">0.52.3</td><td class="d">ASGI server; image runs <code>--timeout-graceful-shutdown 110</code></td></tr>
               <tr class="hot"><td class="k">websockets</td><td class="n">15.0.1</td><td class="d">the relay uses <code>additional_headers=</code> (renamed in ≥14) and the modern asyncio client. A free resolver breaks it at <b>connect</b> time — surviving CI, failing on a student's first call.</td></tr>
               <tr><td class="k">sqlalchemy</td><td class="n">2.0.52</td><td class="d">ORM, <code>Mapped[…]</code> style</td></tr>
-              <tr><td class="k">alembic</td><td class="n">1.19.1</td><td class="d">44 migrations</td></tr>
+              <tr><td class="k">alembic</td><td class="n">1.19.1</td><td class="d">42 migrations</td></tr>
               <tr><td class="k">pydantic / -settings</td><td class="n">2.13.4 / 2.15.0</td><td class="d">schemas and <code>Settings</code></td></tr>
               <tr><td class="k">psycopg[binary]</td><td class="n">3.3.4</td><td class="d"><code>postgresql+psycopg://</code></td></tr>
               <tr><td class="k">pgvector</td><td class="n">0.5.0</td><td class="d"><code>vector</code> column type + SQLAlchemy adapter</td></tr>
@@ -851,28 +851,66 @@
       <section id="data">
         <h2><span class="num">04</span> Data layer</h2>
         <p class="deck">
-          49 tables, all declared in <code>apps/api-py/app/models/</code> — the schema's source of truth —
+          55 tables, all declared in <code>apps/api-py/app/models/</code> — the schema's source of truth —
           and each new module imported in <code>models/__init__.py</code> so Alembic autogenerate can see it.
         </p>
 
         <div class="chips">
-          <span class="chip">academic_gaps</span><span class="chip">academic_qualifications</span><span class="chip">agent_runs</span>
-          <span class="chip">alert_rule_configs</span><span class="chip">alerts</span><span class="chip">assistant_feedback</span>
-          <span class="chip">attendance_records</span><span class="chip">certification_progress</span><span class="chip">certifications</span>
-          <span class="chip">cohorts</span><span class="chip hi">conversations</span><span class="chip">courses</span>
-          <span class="chip">email_verifications</span><span class="chip">enrollments</span><span class="chip gd">interview_consents</span>
-          <span class="chip gd">interview_evaluations</span><span class="chip gd">interview_sessions</span><span class="chip gd">interview_turns</span>
-          <span class="chip">job_applications</span><span class="chip">job_import_runs</span><span class="chip">jobs</span>
-          <span class="chip hi">knowledge_chunks</span><span class="chip hi">knowledge_documents</span><span class="chip">lab_sessions</span>
-          <span class="chip">leave_requests</span><span class="chip">login_days</span><span class="chip">mail_logs</span>
-          <span class="chip">mentor_notes</span><span class="chip">mentors</span><span class="chip hi">messages</span>
-          <span class="chip">mock_attempts</span><span class="chip">placement_criteria</span><span class="chip">placement_offers</span>
-          <span class="chip">registration_rules</span><span class="chip">registrations</span><span class="chip">resume_profiles</span>
-          <span class="chip">resumes</span><span class="chip">schedule_items</span><span class="chip">semester_results</span>
-          <span class="chip">skill_claims</span><span class="chip">skills</span><span class="chip">student_profiles</span>
-          <span class="chip">student_skills</span><span class="chip">students</span><span class="chip">subject_marks</span>
-          <span class="chip">swoc_entries</span><span class="chip">time_sheet_entries</span><span class="chip">uploads</span>
-          <span class="chip">users</span><span class="chip">voice_worker_heartbeats</span>
+          <span class="chip">academic_gaps</span>
+          <span class="chip">academic_qualifications</span>
+          <span class="chip">agent_runs</span>
+          <span class="chip">alert_rule_configs</span>
+          <span class="chip">alerts</span>
+          <span class="chip">assistant_feedback</span>
+          <span class="chip">attendance_records</span>
+          <span class="chip">certification_progress</span>
+          <span class="chip">certifications</span>
+          <span class="chip">cohorts</span>
+          <span class="chip hi">conversations</span>
+          <span class="chip">courses</span>
+          <span class="chip">email_verifications</span>
+          <span class="chip gd">english_baseline_sections</span>
+          <span class="chip gd">english_baselines</span>
+          <span class="chip">enrollments</span>
+          <span class="chip gd">interview_consents</span>
+          <span class="chip gd">interview_evaluations</span>
+          <span class="chip gd">interview_sessions</span>
+          <span class="chip gd">interview_turns</span>
+          <span class="chip">job_applications</span>
+          <span class="chip">job_import_runs</span>
+          <span class="chip">jobs</span>
+          <span class="chip hi">knowledge_chunks</span>
+          <span class="chip hi">knowledge_documents</span>
+          <span class="chip">lab_sessions</span>
+          <span class="chip">leave_requests</span>
+          <span class="chip">login_days</span>
+          <span class="chip">mail_logs</span>
+          <span class="chip">mentor_notes</span>
+          <span class="chip">mentors</span>
+          <span class="chip hi">messages</span>
+          <span class="chip">mock_attempts</span>
+          <span class="chip">placement_criteria</span>
+          <span class="chip">placement_offers</span>
+          <span class="chip">registration_rules</span>
+          <span class="chip">registrations</span>
+          <span class="chip">resume_profiles</span>
+          <span class="chip">resumes</span>
+          <span class="chip">schedule_items</span>
+          <span class="chip">semester_results</span>
+          <span class="chip">skill_claims</span>
+          <span class="chip">skills</span>
+          <span class="chip gd">student_milestones</span>
+          <span class="chip">student_profiles</span>
+          <span class="chip">student_skills</span>
+          <span class="chip">students</span>
+          <span class="chip">subject_marks</span>
+          <span class="chip">swoc_entries</span>
+          <span class="chip gd">time_ledger_cells</span>
+          <span class="chip gd">time_ledger_days</span>
+          <span class="chip">time_sheet_entries</span>
+          <span class="chip">uploads</span>
+          <span class="chip">users</span>
+          <span class="chip">voice_worker_heartbeats</span>
         </div>
 
         <h3>Knowledge base — hybrid retrieval, and it degrades honestly</h3>

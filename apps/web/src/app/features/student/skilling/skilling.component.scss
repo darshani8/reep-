@@ -16,7 +16,7 @@
   flex: 1;
   font-size: 11.5px;
   font-weight: 700;
-  color: var(--ink-500);
+  color: var(--muted);
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -26,9 +26,9 @@
   font-size: 12.5px;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--paper-2);
-  color: var(--ink-900);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--ink);
 }
 .dropzone--action {
   display: block;
@@ -50,20 +50,20 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--ink-500);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 600;
 }
 .soon-note .icon {
   font-size: 15px;
-  color: var(--amber-600);
+  color: var(--purple-mid);
 }
 
 /* Small "x/y verified" tag riding the flex .card h4. */
 .skill-count {
   font-size: 11px;
   font-weight: 600;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 /* Category subheading between reco-row groups. */
@@ -72,7 +72,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--ink-400);
+  color: var(--faint);
   margin: 12px 0 2px;
 }
 .cat-label:first-of-type {
@@ -84,7 +84,7 @@
   margin-left: auto;
   font-size: 11px;
   font-weight: 600;
-  color: var(--ink-500);
+  color: var(--muted);
   white-space: nowrap;
 }
 
@@ -94,12 +94,12 @@
   align-items: center;
   gap: 8px;
   padding: 8px 0;
-  color: var(--ink-500);
+  color: var(--muted);
   font-size: 12.5px;
 }
 .state-note .icon {
   font-size: 16px;
-  color: var(--amber-600);
+  color: var(--purple-mid);
 }
 
 /* A reviewer's note under a claim. */
@@ -108,10 +108,10 @@
   align-items: center;
   gap: 6px;
   padding: 4px 0 9px;
-  color: var(--ink-500);
+  color: var(--muted);
   font-size: 11.5px;
 }
 .review-note .icon {
   font-size: 14px;
-  color: var(--ink-400);
+  color: var(--faint);
 }

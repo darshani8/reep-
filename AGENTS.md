@@ -43,6 +43,16 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 
 **Tests:** `cd apps/api-py && .venv/Scripts/python -m pytest` (the backend suite). Front end: `cd apps/web && npx ng build`.
 
+**CI has four jobs**, and two of them exist because a manifest shipped
+incomplete. `worker-imports` proves `requirements-voice.txt` covers everything
+`voice_agent.py` imports; `api-imports` does the same for `app/` against
+`requirements.txt` ALONE (`tools/ci/check_api_imports.py`). The API one was added
+after `app/interview_local.py` reached main importing numpy undeclared — the
+import is lazy, inside a request handler, so the API still booted and every test
+still passed, and the break surfaced only as a pytest COLLECTION failure on a
+clean machine. A lazy import does not make an undeclared dependency acceptable;
+it only moves the crash from boot to the first student who reaches that path.
+
 **Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and director screens, the resume builder, the LiveKit-backed assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. It is ~142 kB initial now, and the production bundle budget is set close enough to that number that one re-eager-ed route fails `ng build` in CI.
 
 ## Auth — Google-only sign-in over the session retained from the migration
@@ -147,6 +157,23 @@ report.
 `python -m app.seed` seeds all four, including a ledger deliberately 0.5 h short
 so the "0.5 h to reconcile" state is the one you see on a fresh database.
 
+**Staff read these through rule 2's gate**, in `app/routers/staff_screens.py`:
+`GET /api/mentor/students/{id}/ledger`, `.../ledger/summary` and
+`.../english-baseline`. Every one names a student in the PATH, so every one goes
+through `_assert_can_access_student` — imported from `routers/mentor.py`, never
+reimplemented. The views are the **student's own**: `compose_ledger` and
+`compose_english_baseline` are shared builders, so a mentor cannot see a
+confident `0` where the student sees a dash. Read-only by design — a mentor's
+instrument is the meeting note, which already has a write path.
+
+The write paths behind the screens' buttons: `POST /english-baseline/start`
+(idempotent — one attempt per semester is enforced by a unique index, so a
+double-tap reads the existing row rather than 409-ing), `GET
+/english-baseline/report` (ReportLab, local, so rule 1's gate does not apply —
+do not add a remote renderer), and `POST /mentor-meetings/request`, which writes
+a **mentor note** rather than inventing a requests table: that is already the
+mentor's instrument for this student and already on their screen.
+
 ## Backend conventions
 
 - **Models** live in `apps/api-py/app/models/` and are the schema's source of truth; each new module is imported in `models/__init__.py` so Alembic autogenerate sees it.
@@ -170,13 +197,24 @@ theme**, not a light/dark pair — every colour is painted explicitly and there 
 no `prefers-color-scheme` block.
 
 `reep-v2.scss` defines the handoff's tokens under honest names
-(`--brand-purple`, `--ink`, `--surface`, `--hairline`, ...) and then **re-points
-two older vocabularies at them**: the warm-paper names (`--paper-0`,
-`--amber-500`, `--ink-900`, ...) and the MUI-era `--reep-*` palette from
-`reep-theme.scss`. That aliasing is what re-skins ~900 lines of existing CSS —
-including the login and register screens, which sit outside the shell and never
-adopted the component classes — from one file. **New code should use the honest
-names**; the alias blocks exist to be deleted once nothing reads them.
+(`--brand-purple`, `--ink`, `--surface`, `--hairline`, ...) and **every consumer
+reads those**. The warm-paper aliases that stood there while the two designs
+coexisted are gone — 286 references across 26 files were renamed — so a colour is
+defined once and called one thing. The MUI-era `--reep-*` names survive for the
+login, register and resume-builder surfaces, which sit outside the shell and
+never adopted the component classes, but they are **defined in `reep-theme.scss`
+with the v2 values** rather than overridden from elsewhere. One token, one place.
+`reep-theme.scss`'s dark block is deleted: this is a single committed theme,
+nothing calls `ThemeService.toggle()`, and a palette nobody can reach is a second
+set of colours to keep correct for no one.
+
+**Two global stylesheets, and they must not claim each other's names.**
+`reep-v2-resume.scss` loads after `reep-v2.scss`, so it wins on every property it
+sets and *leaks every property it does not*. Adding `display: flex` to
+`.step-group`, `.completeness` or `.entry` in `reep-v2.scss` silently reflowed
+the resume builder, because that file owns those names for a heading, a card and
+a card. Before adding a class to `reep-v2.scss`, check it is not already defined
+in `reep-v2-resume.scss`.
 
 **`.icon` is clamped to a 1em box and hidden until the font reports itself
 loaded, and both halves matter.** Material Symbols renders from LIGATURES, so
@@ -185,8 +223,12 @@ arrives. Without the clamp a sidebar item reserves ~90px for its icon and the
 label is pushed out of the 220px nav; without the `fonts-ready` gate (set in
 `main.ts` from the resolved `FontFace.status`, **not** from
 `document.fonts.check()`, which answers yes for a fallback) the stray words show.
-The fonts are still Google-hosted — the handoff asks for them to be self-hosted
-in production, and that is a build-pipeline change nobody has made yet.
+**The fonts are self-hosted**, in `apps/web/public/fonts/`, generated by
+`tools/fonts/fetch-fonts.sh`. The icon face is SUBSET to the glyphs the app can
+actually render (`tools/fonts/icon-names.txt`, regenerated by
+`collect-icon-names.py`) — the full Material Symbols face is 5.2 MB against
+144 kB subset — which makes adding an icon a two-command step rather than an
+optimisation: a glyph missing from the subset renders as nothing at all.
 
 The floating **agent orb** and its voice overlay live in the SHELL
 (`layout/agent-orb.component.ts`), not in a route, because they are on every

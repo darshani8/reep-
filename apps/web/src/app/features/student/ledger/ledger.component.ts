@@ -83,6 +83,18 @@ interface Ledger {
   legend: Legend[];
 }
 
+/** `GET /api/student/timesheet` — the OTHER time table.
+ *
+ *  `time_sheet_entries` answers "how many SKILLING hours this week, against the
+ *  target", which is a different question from the ledger's "what did the 24
+ *  hours of Thursday look like" and is stored in a different table. It used to
+ *  have its own screen; carrying a whole route for one number was worse than
+ *  showing the number here, beside the day it is accumulated from. */
+interface WeeklySkilling {
+  skilling_hours: number;
+  weekly_hour_target: number;
+}
+
 type State = 'loading' | 'data' | 'error';
 
 @Component({
@@ -105,11 +117,33 @@ export class LedgerComponent {
 
   readonly submitted = computed(() => this.ledger()?.status === 'SUBMITTED');
 
+  readonly weekly = signal<WeeklySkilling | null>(null);
+  readonly weeklyPercent = computed(() => {
+    const w = this.weekly();
+    if (!w || w.weekly_hour_target <= 0) return 0;
+    return Math.min(100, Math.round((w.skilling_hours / w.weekly_hour_target) * 100));
+  });
+
   constructor() {
     void this.load();
+    void this.loadWeekly();
   }
 
   // --- reads ---------------------------------------------------------------
+
+  /** Independent of the ledger's own state: a failure here hides one strip,
+   *  it does not put the ledger into an error state over a summary. */
+  private async loadWeekly(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/student/timesheet?days=7`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      this.weekly.set((await res.json()) as WeeklySkilling);
+    } catch {
+      /* no strip */
+    }
+  }
 
   async load(): Promise<void> {
     this.state.set('loading');

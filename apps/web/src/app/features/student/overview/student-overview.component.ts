@@ -237,7 +237,7 @@ export class StudentOverviewComponent {
 
   readonly donutStyle = computed(() => {
     const p = this.stagePct();
-    return `conic-gradient(var(--amber-600) 0% ${p}%, var(--line) ${p}% 100%)`;
+    return `conic-gradient(var(--purple-mid) 0% ${p}%, var(--hairline) ${p}% 100%)`;
   });
 
   // ---- attendance bars -----------------------------------------------------

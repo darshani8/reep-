@@ -229,6 +229,28 @@
           </tbody>
         </table>
 
+        @if (weekly(); as w) {
+          <div class="rowline" style="margin-top:16px;border-top:1px solid var(--hairline-26);border-bottom:0;padding-top:14px">
+            <span class="icon" aria-hidden="true" style="color:var(--brand-magenta)">bolt</span>
+            <div style="flex:1;min-width:0">
+              <b>Skilling this week</b>
+              <span class="dt-sub">
+                · {{ w.skilling_hours }} h of a {{ w.weekly_hour_target }} h target
+              </span>
+              <div class="meter" style="margin-top:6px">
+                <span [style.width.%]="weeklyPercent()"></span>
+              </div>
+            </div>
+            <span
+              class="chip"
+              [class.good]="weeklyPercent() >= 100"
+              [class.warn]="weeklyPercent() < 100"
+            >
+              {{ weeklyPercent() }}%
+            </span>
+          </div>
+        }
+
         <div class="footbar">
           @if (submitted()) {
             <span class="chip good">

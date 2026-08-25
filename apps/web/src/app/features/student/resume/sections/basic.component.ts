@@ -57,7 +57,7 @@ interface BasicData {
         height: 120px;
         object-fit: cover;
         border-radius: 10px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--hairline);
         margin-bottom: 8px;
       }
       .photo-err {
@@ -72,7 +72,7 @@ interface BasicData {
         gap: 5px;
         font-size: 11.5px;
         line-height: 1.4;
-        color: var(--ink-500);
+        color: var(--muted);
         margin-bottom: 6px;
       }
       .sensitive-note .icon {
@@ -86,7 +86,7 @@ interface BasicData {
         font-weight: 700;
         letter-spacing: 0;
         text-transform: none;
-        color: var(--amber-700);
+        color: var(--brand-purple);
         background: rgba(138, 90, 30, 0.1);
         padding: 2px 6px;
         border-radius: 5px;

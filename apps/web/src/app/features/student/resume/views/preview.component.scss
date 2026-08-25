@@ -10,10 +10,10 @@
 .rb-view {
   display: flex;
   min-height: 680px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--hairline);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--paper-0);
+  background: var(--ground);
 }
 
 /* the mockup's two-column preview grid (resume ~1.55fr, side cards 1fr) */
@@ -51,7 +51,7 @@
   margin: 4px 0;
 }
 .preview .pline .dot {
-  color: var(--amber-600);
+  color: var(--purple-mid);
   flex: 0 0 auto;
 }
 
@@ -59,7 +59,7 @@
 .trace {
   font-size: 12.4px;
   line-height: 1.8;
-  color: var(--ink-700);
+  color: var(--ink-nav);
 }
 .trace-note {
   margin-top: 10px;
@@ -68,7 +68,7 @@
 .strengthen {
   font-size: 12.4px;
   line-height: 1.75;
-  color: var(--ink-700);
+  color: var(--ink-nav);
 }
 .evi {
   font-size: 12.4px;

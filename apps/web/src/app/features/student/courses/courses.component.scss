@@ -6,7 +6,7 @@
 }
 
 .c-note {
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 .plan-list {
@@ -36,7 +36,7 @@
 
 .c-code {
   margin-top: 2px;
-  color: var(--ink-500);
+  color: var(--muted);
   font-size: 11px;
 }
 
@@ -50,27 +50,27 @@
 .meter {
   height: 8px;
   border-radius: 5px;
-  background: var(--line);
+  background: var(--hairline);
   overflow: hidden;
-  box-shadow: var(--press);
+  box-shadow: var(--sh-well);
 }
 
 .meter__fill {
   height: 100%;
   border-radius: 5px;
-  background: linear-gradient(90deg, var(--amber-400), var(--amber-600));
+  background: linear-gradient(90deg, var(--magenta-mid), var(--purple-mid));
   transition: width 0.3s ease;
 }
 
 .plan-pct {
   font-size: 11px;
   font-weight: 700;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 .plan-next {
   font-size: 12.5px;
-  color: var(--ink-800);
+  color: var(--ink-soft);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -78,7 +78,7 @@
 
 .plan-next .icon {
   font-size: 16px;
-  color: var(--amber-600);
+  color: var(--purple-mid);
 }
 
 .plan-next-label {
@@ -96,7 +96,7 @@
   align-items: center;
   gap: 5px;
   font-size: 11.5px;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 .fact .icon {
@@ -122,7 +122,7 @@
 // Neutral chip tone (the global sheet ships good/warn/risk only).
 .chip.neutral {
   background: rgba(28, 24, 16, 0.06);
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 .chip.unlocks {
@@ -132,5 +132,5 @@
 // Visible keyboard focus on the interactive Continue control.
 .dt-btn:focus-visible {
   outline: none;
-  box-shadow: var(--shadow-soft), var(--edge-hi), var(--ring);
+  box-shadow: var(--sh-ctrl), var(--edge-hi), var(--focus-ring);
 }

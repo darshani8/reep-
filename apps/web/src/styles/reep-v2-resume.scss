@@ -32,7 +32,7 @@ textarea {
        kept global for parity with the mockup) --- */
 .rail {
   width: 56px;
-  background: var(--ink-900);
+  background: var(--ink);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -41,7 +41,7 @@ textarea {
   flex: 0 0 auto;
 }
 .rail .brand {
-  color: var(--paper-1);
+  color: var(--tint-3);
   font-weight: 800;
   font-size: 14px;
   margin-bottom: 16px;
@@ -57,21 +57,21 @@ textarea {
 }
 .rail a.active {
   background: rgba(248, 244, 236, 0.14);
-  color: var(--paper-1);
+  color: var(--tint-3);
 }
 
 /* --- section stepper --- */
 .stepper {
   width: 250px;
-  background: var(--paper-1);
-  border-right: 1px solid var(--line);
+  background: var(--tint-3);
+  border-right: 1px solid var(--hairline);
   padding: 18px 12px;
   flex: 0 0 auto;
   overflow: auto;
 }
 .completeness {
-  background: var(--paper-2);
-  border: 1px solid var(--line);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
   border-radius: 12px;
   padding: 14px;
   margin-bottom: 16px;
@@ -90,25 +90,25 @@ textarea {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--ink-500);
+  color: var(--muted);
   font-weight: 700;
 }
 .meter {
   height: 7px;
   border-radius: 4px;
-  background: var(--line);
+  background: var(--hairline);
   overflow: hidden;
 }
 .meter i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--amber-500), var(--amber-700));
+  background: linear-gradient(90deg, var(--brand-magenta), var(--brand-purple));
   border-radius: 4px;
 }
 .completeness small {
   display: block;
   font-size: 11.5px;
-  color: var(--ink-500);
+  color: var(--muted);
   margin-top: 8px;
   line-height: 1.45;
 }
@@ -120,29 +120,29 @@ textarea {
   border-radius: 9px;
   font-size: 12.8px;
   font-weight: 600;
-  color: var(--ink-500);
+  color: var(--muted);
   cursor: pointer;
   margin-bottom: 1px;
 }
 .step-item:hover {
-  background: var(--paper-2);
+  background: var(--surface);
 }
 .step-item.active {
-  background: var(--ink-900);
-  color: var(--paper-1);
+  background: var(--ink);
+  color: var(--tint-3);
 }
 .step-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--line);
+  background: var(--hairline);
   flex: 0 0 auto;
 }
 .step-dot.done {
   background: var(--good);
 }
 .step-dot.partial {
-  background: var(--amber-500);
+  background: var(--brand-magenta);
 }
 .step-item.active .step-dot {
   outline: 2px solid rgba(248, 244, 236, 0.25);
@@ -151,7 +151,7 @@ textarea {
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--ink-400);
+  color: var(--faint);
   padding: 14px 10px 6px;
   font-weight: 700;
 }
@@ -165,11 +165,11 @@ textarea {
 }
 .main-head {
   padding: 20px 28px 16px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--hairline);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: var(--paper-1);
+  background: var(--tint-3);
 }
 .main-head h2 {
   font-size: 20px;
@@ -177,7 +177,7 @@ textarea {
   letter-spacing: -0.01em;
 }
 .main-head .sub {
-  color: var(--ink-500);
+  color: var(--muted);
   font-size: 12.8px;
   margin-top: 4px;
 }
@@ -192,8 +192,8 @@ textarea {
   overflow: auto;
 }
 .footbar {
-  border-top: 1px solid var(--line);
-  background: var(--paper-1);
+  border-top: 1px solid var(--hairline);
+  background: var(--tint-3);
   padding: 12px 28px;
   display: flex;
   justify-content: space-between;
@@ -201,7 +201,7 @@ textarea {
 }
 .footbar .hint {
   font-size: 12px;
-  color: var(--ink-500);
+  color: var(--muted);
   display: flex;
   align-items: center;
   gap: 7px;
@@ -211,32 +211,32 @@ textarea {
 .btn {
   padding: 9px 15px;
   border-radius: 9px;
-  border: 1px solid var(--line);
-  background: var(--paper-2);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
   font-size: 12.8px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--ink-900);
+  color: var(--ink);
 }
 .btn .icon {
   font-size: 16px;
 }
 .btn.primary {
-  background: var(--ink-900);
-  color: var(--paper-1);
-  border-color: var(--ink-900);
+  background: var(--ink);
+  color: var(--tint-3);
+  border-color: var(--ink);
 }
 .btn.accent {
-  background: var(--amber-600);
+  background: var(--purple-mid);
   color: #fff;
-  border-color: var(--amber-600);
+  border-color: var(--purple-mid);
 }
 .btn.ghost {
   background: transparent;
   border-color: transparent;
-  color: var(--amber-600);
+  color: var(--purple-mid);
 }
 .btn:disabled {
   opacity: 0.45;
@@ -265,8 +265,8 @@ textarea {
 }
 .field .lock {
   font-size: 10px;
-  background: var(--paper-0);
-  color: var(--ink-500);
+  background: var(--ground);
+  color: var(--muted);
   padding: 2px 6px;
   border-radius: 5px;
   margin-left: 6px;
@@ -277,15 +277,15 @@ textarea {
   width: 100%;
   padding: 10px 12px;
   border-radius: 9px;
-  border: 1px solid var(--line);
-  /* paper-1 well: reep-v2.scss applies var(--press) inset to .ctrl for the carved look */
-  background: var(--paper-1);
+  border: 1px solid var(--hairline);
+  /* paper-1 well: reep-v2.scss applies var(--sh-well) inset to .ctrl for the carved look */
+  background: var(--tint-3);
   font-size: 13.3px;
-  color: var(--ink-900);
+  color: var(--ink);
 }
 .ctrl:disabled {
-  background: var(--paper-0);
-  color: var(--ink-500);
+  background: var(--ground);
+  color: var(--muted);
   cursor: not-allowed;
 }
 textarea.ctrl {
@@ -313,12 +313,12 @@ textarea.ctrl {
 }
 .card > .desc {
   font-size: 12.3px;
-  color: var(--ink-500);
+  color: var(--muted);
   margin-bottom: 16px;
   line-height: 1.5;
 }
 .addlink {
-  color: var(--amber-600);
+  color: var(--purple-mid);
   font-size: 12.3px;
   font-weight: 700;
   display: inline-flex;
@@ -338,12 +338,12 @@ textarea.ctrl {
   width: 38px;
   height: 38px;
   border-radius: 9px;
-  border: 1px solid var(--line);
-  background: var(--paper-2);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink-500);
+  color: var(--muted);
   flex: 0 0 auto;
 }
 .iconbtn:hover {
@@ -362,8 +362,8 @@ textarea.ctrl {
 
 /* --- entry cards (repeatable records) --- */
 .entry {
-  background: var(--paper-2);
-  border: 1px solid var(--line);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 10px;
@@ -383,11 +383,11 @@ textarea.ctrl {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink-400);
+  color: var(--faint);
 }
 .entry .tools button:hover {
-  background: var(--paper-0);
-  color: var(--ink-900);
+  background: var(--ground);
+  color: var(--ink);
 }
 .entry h4 {
   font-size: 14px;
@@ -396,17 +396,17 @@ textarea.ctrl {
 }
 .entry .org {
   font-size: 13px;
-  color: var(--ink-700);
+  color: var(--ink-nav);
   font-weight: 600;
 }
 .entry .meta {
   font-size: 12px;
-  color: var(--ink-500);
+  color: var(--muted);
   margin-top: 2px;
 }
 .entry .desc {
   font-size: 12.5px;
-  color: var(--ink-700);
+  color: var(--ink-nav);
   line-height: 1.55;
   margin-top: 8px;
 }
@@ -414,8 +414,8 @@ textarea.ctrl {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: var(--paper-0);
-  color: var(--ink-500);
+  background: var(--ground);
+  color: var(--muted);
   font-size: 10.5px;
   font-weight: 700;
   padding: 3px 8px;
@@ -433,11 +433,11 @@ textarea.ctrl {
 .empty {
   text-align: center;
   padding: 44px 20px;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 .empty .icon {
   font-size: 34px;
-  color: var(--amber-400);
+  color: var(--magenta-mid);
   display: block;
   margin-bottom: 10px;
 }
@@ -447,8 +447,8 @@ textarea.ctrl {
 
 /* --- tag input --- */
 .taginput {
-  border: 1px solid var(--line);
-  background: var(--paper-2);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
   border-radius: 9px;
   padding: 8px;
   display: flex;
@@ -457,8 +457,8 @@ textarea.ctrl {
   align-items: center;
 }
 .taginput .chipx {
-  background: var(--ink-900);
-  color: var(--paper-1);
+  background: var(--ink);
+  color: var(--tint-3);
   font-size: 12px;
   font-weight: 600;
   padding: 5px 9px;
@@ -487,16 +487,16 @@ textarea.ctrl {
   width: 100%;
   border-collapse: collapse;
   font-size: 12.6px;
-  background: var(--paper-2);
-  border: 1px solid var(--line);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
   border-radius: 10px;
   overflow: hidden;
 }
 .tbl th {
   text-align: left;
   padding: 10px 12px;
-  background: var(--paper-0);
-  color: var(--ink-500);
+  background: var(--ground);
+  color: var(--muted);
   font-weight: 700;
   font-size: 10.6px;
   text-transform: uppercase;
@@ -504,7 +504,7 @@ textarea.ctrl {
 }
 .tbl td {
   padding: 8px 12px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--hairline);
   vertical-align: middle;
 }
 .tbl td .ctrl {
@@ -517,8 +517,8 @@ textarea.ctrl {
 
 /* --- chip: neutral tone (reep-v2 has good/warn/risk only) --- */
 .chip.neutral {
-  background: var(--paper-0);
-  color: var(--ink-500);
+  background: var(--ground);
+  color: var(--muted);
 }
 
 /* --- notices --- */
@@ -538,7 +538,7 @@ textarea.ctrl {
 }
 .notice.info {
   background: rgba(138, 90, 30, 0.09);
-  color: var(--amber-700);
+  color: var(--brand-purple);
 }
 .notice.evi {
   background: rgba(92, 122, 58, 0.1);
@@ -564,7 +564,7 @@ textarea.ctrl {
   gap: 8px;
   font-size: 12.8px;
   font-weight: 600;
-  color: var(--ink-700);
+  color: var(--ink-nav);
 }
 
 /* --- resume list --- */
@@ -574,14 +574,14 @@ textarea.ctrl {
   gap: 16px;
 }
 .res-card {
-  background: var(--paper-1);
-  border: 1px solid var(--line);
+  background: var(--tint-3);
+  border: 1px solid var(--hairline);
   border-radius: 12px;
   padding: 18px;
 }
 .res-card.default {
-  border-color: var(--amber-600);
-  box-shadow: 0 0 0 1px var(--amber-600) inset;
+  border-color: var(--purple-mid);
+  box-shadow: 0 0 0 1px var(--purple-mid) inset;
 }
 .res-card h4 {
   font-size: 14px;
@@ -590,7 +590,7 @@ textarea.ctrl {
 }
 .res-card .meta {
   font-size: 11.8px;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 .res-actions {
   display: flex;
@@ -601,8 +601,8 @@ textarea.ctrl {
 
 /* --- generated resume preview --- */
 .preview {
-  background: var(--paper-2);
-  border: 1px solid var(--line);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
   border-radius: 12px;
   padding: 28px;
   font-size: 12.4px;
@@ -613,7 +613,7 @@ textarea.ctrl {
   margin-bottom: 2px;
 }
 .preview .psub {
-  color: var(--ink-500);
+  color: var(--muted);
   font-size: 11.8px;
   margin-bottom: 16px;
 }
@@ -622,8 +622,8 @@ textarea.ctrl {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--amber-600);
-  border-bottom: 1px solid var(--line);
+  color: var(--purple-mid);
+  border-bottom: 1px solid var(--hairline);
   padding-bottom: 4px;
   margin: 16px 0 8px;
 }

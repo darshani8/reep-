@@ -251,7 +251,7 @@
   /* Warm-dark stage. The orb's own passes composite with 'lighter', so it needs
      something dark beneath it or the glow has nothing to glow against. */
   background: radial-gradient(120% 90% at 50% 42%, #1d2226 0%, #12100d 72%);
-  box-shadow: inset 0 1px 0 rgba(255, 253, 248, 0.06), var(--shadow-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 253, 248, 0.06), var(--sh-ctrl);
   /* Undo the injected modal. */
   opacity: 1;
   transform: none;

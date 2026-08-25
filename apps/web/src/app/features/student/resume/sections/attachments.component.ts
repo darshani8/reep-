@@ -86,7 +86,7 @@ const KIND_LABEL: Record<string, string> = {
             <tr>
               <td>
                 <div>{{ u.title }}</div>
-                <div style="color:var(--ink-400); font-size:11px;">{{ u.original_name }}</div>
+                <div style="color:var(--faint); font-size:11px;">{{ u.original_name }}</div>
               </td>
               <td>{{ kindLabel(u.kind) }}</td>
               <td>

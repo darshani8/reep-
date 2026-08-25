@@ -11,6 +11,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 
 import { AuthService } from './auth.service';
+import { HOME_FOR_ROLE } from './session';
 
 export const authGuard: CanActivateFn = async (_route, state) => {
   const auth = inject(AuthService);
@@ -22,4 +23,19 @@ export const authGuard: CanActivateFn = async (_route, state) => {
   if (session) return true;
 
   return router.createUrlTree(['/login'], { queryParams: { next: state.url } });
+};
+
+/**
+ * The landing route (`''`) used to be a blanket `redirectTo: 'student'`, which
+ * bounced every non-student role off student-only screens (403s dressed up as
+ * error states) on every visit to `/`. This guard picks the role's own home
+ * instead. It runs inside the shell, i.e. after authGuard, so the session is
+ * already resolved; the fallback covers a race, not a real path.
+ */
+export const homeRedirectGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  const session = auth.session() ?? (await auth.refresh());
+  return router.createUrlTree([session ? HOME_FOR_ROLE[session.role] : '/login']);
 };

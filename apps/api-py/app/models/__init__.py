@@ -4,6 +4,7 @@ from . import academic_history  # noqa: F401
 from . import academics  # noqa: F401
 from . import agent_run  # noqa: F401
 from . import alert  # noqa: F401
+from . import alumni  # noqa: F401
 from . import attendance  # noqa: F401
 from . import certification  # noqa: F401
 from . import cohort  # noqa: F401
@@ -29,6 +30,7 @@ from . import resume  # noqa: F401
 from . import resume_profile  # noqa: F401
 from . import schedule  # noqa: F401
 from . import skill  # noqa: F401
+from . import staff_upskilling  # noqa: F401
 from . import swoc  # noqa: F401
 from . import time_ledger  # noqa: F401
 from . import timesheet  # noqa: F401

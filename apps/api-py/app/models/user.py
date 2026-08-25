@@ -25,6 +25,9 @@ class Role(str, enum.Enum):
     MENTOR = "MENTOR"
     DIRECTOR = "DIRECTOR"
     ADMIN = "ADMIN"
+    # A graduate. No Student/Mentor row, no staff scope: they see their own
+    # profile and the jobs sheet, nothing of the live cohort's records.
+    ALUMNI = "ALUMNI"
 
 
 class Stage(str, enum.Enum):

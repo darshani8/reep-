@@ -2,9 +2,9 @@
  * The authenticated frame every role screen sits in — the REEP v2 desktop shell.
  *
  * A title bar, a 220px sidebar (profile card + grouped nav) and a scrolling main
- * area the child route renders into. The nav is the STUDENT navigation and it
- * renders for every role for now, so a non-STUDENT session still gets a working
- * frame rather than a crash.
+ * area the child route renders into. The nav switches on the session's role:
+ * students get the full student navigation, staff (MENTOR/DIRECTOR/ADMIN) get
+ * the faculty pages (mentee log, leave, upskilling), alumni get profile + jobs.
  *
  * Every visual token for .desktop-frame, .desktop-nav, .nav-profile and the rest
  * lives globally in src/styles/reep-v2.scss — AGENTS.md's rule is that the design
@@ -26,6 +26,7 @@ const ROLE_LABEL: Record<Role, string> = {
   MENTOR: 'Mentor',
   DIRECTOR: 'Director',
   ADMIN: 'Admin',
+  ALUMNI: 'Alumni',
 };
 
 @Component({
@@ -41,6 +42,16 @@ export class AppShellComponent {
 
   readonly session = this.auth.session;
   readonly roleLabel = computed(() => ROLE_LABEL[this.session()?.role ?? 'STUDENT'] ?? 'Student');
+
+  /** Which of the three navigation sets to render. STUDENT is the fallback
+   *  while /auth/me is in flight — the guard has already verified a session
+   *  exists, so this only decides which links paint first. */
+  readonly navKind = computed<'student' | 'staff' | 'alumni'>(() => {
+    const role = this.session()?.role;
+    if (role === 'MENTOR' || role === 'DIRECTOR' || role === 'ADMIN') return 'staff';
+    if (role === 'ALUMNI') return 'alumni';
+    return 'student';
+  });
 
   /** The signed-in person's name, or a neutral placeholder while /auth/me is in
    *  flight. Never a hardcoded demo name — the prototype's "Asha Rao" is sample

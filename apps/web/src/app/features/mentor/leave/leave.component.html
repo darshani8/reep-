@@ -1,0 +1,160 @@
+<div class="dt-header">
+  <div>
+    <div class="dt-title">Leave Requests</div>
+    <div class="dt-sub">
+      Approve requests from your mentees, and submit your own. Two different approvers must sign
+      before a request is approved.
+    </div>
+  </div>
+</div>
+
+<div class="tabs-row" role="tablist" aria-label="Leave sections">
+  <button
+    role="tab"
+    [attr.aria-selected]="subtab() === 'approvals'"
+    [class.active]="subtab() === 'approvals'"
+    (click)="setSubtab('approvals')"
+  >Approvals</button>
+  <button
+    role="tab"
+    [attr.aria-selected]="subtab() === 'mine'"
+    [class.active]="subtab() === 'mine'"
+    (click)="setSubtab('mine')"
+  >My requests</button>
+</div>
+
+@if (subtab() === 'approvals') {
+  @if (decideError()) {
+    <div class="feedback feedback--err" role="alert">
+      <span class="icon">error</span>
+      <div class="feedback__body">{{ decideError() }}</div>
+    </div>
+  }
+  @if (pendingError()) {
+    <div class="feedback feedback--err" role="alert">
+      <span class="icon">wifi_off</span>
+      <div class="feedback__body">{{ pendingError() }}</div>
+    </div>
+  } @else if (pending(); as rows) {
+    @if (rows.length === 0) {
+      <div class="card" style="padding: 16px">
+        <strong>No requests waiting on you.</strong>
+        <div class="dt-sub" style="margin-top: 4px">
+          You see requests from students in your own mentee group (directors see all). A request you
+          already first-approved waits for a different second approver.
+        </div>
+      </div>
+    } @else {
+      @for (r of rows; track r.id) {
+        <div class="card" style="margin-bottom: 10px; padding: 14px">
+          <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap">
+            <strong>
+              {{ r.from_date | date: 'd MMM y' }} → {{ r.to_date | date: 'd MMM y' }}
+            </strong>
+            <span class="chip {{ statusTone(r.status) }}"
+              ><span class="icon">{{ statusIcon(r.status) }}</span>{{ statusLabel(r.status) }}</span
+            >
+          </div>
+          <p style="margin: 8px 0; white-space: pre-wrap">{{ r.reason }}</p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+            <input
+              type="text"
+              placeholder="Decision note (optional)"
+              style="flex: 1; min-width: 180px"
+              [(ngModel)]="notes[r.id]"
+            />
+            <button
+              type="button"
+              class="dt-btn primary"
+              [disabled]="decidingId() === r.id"
+              (click)="decide(r, 'APPROVE')"
+            >
+              <span class="icon">check_circle</span>Approve
+            </button>
+            <button
+              type="button"
+              class="dt-btn danger"
+              [disabled]="decidingId() === r.id"
+              (click)="decide(r, 'REJECT')"
+            >
+              <span class="icon">cancel</span>Reject
+            </button>
+          </div>
+        </div>
+      }
+    }
+  } @else {
+    <div class="card" style="padding: 16px">Loading the approval queue…</div>
+  }
+} @else {
+  <div class="card" style="margin-bottom: 14px; padding: 14px">
+    <h4 style="margin: 0 0 10px">Request leave</h4>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap">
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px">
+        From
+        <input type="date" [(ngModel)]="fromDate" />
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px">
+        To
+        <input type="date" [(ngModel)]="toDate" />
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; flex: 1; min-width: 220px">
+        Reason
+        <input type="text" placeholder="Why you need this leave" [(ngModel)]="reason" />
+      </label>
+    </div>
+    @if (submitError()) {
+      <div class="feedback feedback--err" role="alert" style="margin-top: 8px">
+        <span class="icon">error</span>
+        <div class="feedback__body">{{ submitError() }}</div>
+      </div>
+    }
+    <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px">
+      <button type="button" class="dt-btn primary" [disabled]="submitting()" (click)="submit()">
+        <span class="icon">send</span>{{ submitting() ? 'Submitting…' : 'Submit request' }}
+      </button>
+      @if (submittedFlash()) {
+        <span class="chip good"><span class="icon">check_circle</span>Submitted</span>
+      }
+    </div>
+  </div>
+
+  @if (mineError()) {
+    <div class="feedback feedback--err" role="alert">
+      <span class="icon">wifi_off</span>
+      <div class="feedback__body">{{ mineError() }}</div>
+    </div>
+  } @else if (mine(); as rows) {
+    @if (rows.length === 0) {
+      <div class="card" style="padding: 16px">You have not requested any leave yet.</div>
+    } @else {
+      <table class="dt-table">
+        <thead>
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th>Reason</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows; track r.id) {
+            <tr>
+              <td>{{ r.from_date | date: 'd MMM y' }}</td>
+              <td>{{ r.to_date | date: 'd MMM y' }}</td>
+              <td>{{ r.reason }}</td>
+              <td>
+                <span class="chip {{ statusTone(r.status) }}"
+                  ><span class="icon">{{ statusIcon(r.status) }}</span
+                  >{{ statusLabel(r.status) }}</span
+                >
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  } @else {
+    <div class="card" style="padding: 16px">Loading your requests…</div>
+  }
+}

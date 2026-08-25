@@ -1,0 +1,172 @@
+"""Staff upskilling — a faculty member's own certificate uploads.
+
+Any staff role (MENTOR / DIRECTOR / ADMIN, via mentor.require_mentor — imported,
+never reimplemented) may upload certificates for courses THEY have completed,
+list them, download them and delete them. Everything here is scoped to
+session["userId"]; there is no cross-staff read, and rule 2 is untouched because
+no student is ever named.
+
+Files go through the same hardened filestore as student uploads (magic-byte
+sniffing, 10 MB cap, random stored name). filestore's contract says any second
+writer of save_bytes must apply its own volume quota or the quota is decoration,
+so this router enforces a per-user count/bytes ceiling before reading the body —
+smaller than the student one, because a staff member's certificate shelf is a
+handful of PDFs, not four years of marksheets.
+"""
+
+from datetime import date, datetime
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
+from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from ..db import get_db
+from ..deps import get_current_session
+from ..filestore import UploadRejected, content_disposition, delete as filestore_delete
+from ..filestore import read_bytes, save_bytes
+from ..models.staff_upskilling import StaffUpskillingCert
+from .mentor import require_mentor
+
+router = APIRouter(prefix="/staff/upskilling", tags=["staff-upskilling"])
+
+# Per-STAFF-user quota (same reasoning as filestore's per-student one): far above
+# real use, far below "one account fills the disk".
+MAX_CERTS_PER_USER = 20
+MAX_CERT_BYTES_PER_USER = 100 * 1024 * 1024  # 100 MB
+
+
+class CertOut(BaseModel):
+    id: str
+    title: str
+    provider: str | None
+    completed_on: date | None
+    original_name: str
+    mime_type: str
+    size_bytes: int
+    uploaded_at: datetime
+
+
+def _cert_out(c: StaffUpskillingCert) -> CertOut:
+    return CertOut(
+        id=c.id,
+        title=c.title,
+        provider=c.provider,
+        completed_on=c.completed_on,
+        original_name=c.original_name,
+        mime_type=c.mime_type,
+        size_bytes=c.size_bytes,
+        uploaded_at=c.uploaded_at,
+    )
+
+
+@router.get("", response_model=list[CertOut])
+def my_certs(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[CertOut]:
+    require_mentor(session)
+    rows = db.scalars(
+        select(StaffUpskillingCert)
+        .where(StaffUpskillingCert.user_id == session["userId"])
+        .order_by(StaffUpskillingCert.uploaded_at.desc())
+    ).all()
+    return [_cert_out(c) for c in rows]
+
+
+@router.post("", response_model=CertOut, status_code=status.HTTP_201_CREATED)
+def upload_cert(
+    file: UploadFile = File(...),
+    title: str = Form(""),
+    provider: str = Form(""),
+    completed_on: date | None = Form(None),
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> CertOut:
+    """Sync `def` on purpose, like student create_upload: a 10 MB write belongs
+    in the threadpool, not on the event loop the live interviews share."""
+    require_mentor(session)
+    user_id = session["userId"]
+
+    # Quota before the body is buffered (see module docstring).
+    used_count, used_bytes = db.execute(
+        select(
+            func.count(StaffUpskillingCert.id),
+            func.coalesce(func.sum(StaffUpskillingCert.size_bytes), 0),
+        ).where(StaffUpskillingCert.user_id == user_id)
+    ).one()
+    if used_count >= MAX_CERTS_PER_USER:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"You already have {used_count} certificates uploaded, which is the "
+                f"limit of {MAX_CERTS_PER_USER}. Delete one you no longer need, then "
+                "try again."
+            ),
+        )
+
+    content = file.file.read()
+    if used_bytes + len(content) > MAX_CERT_BYTES_PER_USER:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=(
+                f"This file would take you past your "
+                f"{MAX_CERT_BYTES_PER_USER // (1024 * 1024)} MB upload allowance. "
+                "Delete a certificate you no longer need, then try again."
+            ),
+        )
+    try:
+        stored_name, mime, size = save_bytes(content)
+    except UploadRejected as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+
+    cert = StaffUpskillingCert(
+        user_id=user_id,
+        title=title.strip() or (file.filename or "Certificate"),
+        provider=provider.strip() or None,
+        completed_on=completed_on,
+        original_name=file.filename or stored_name,
+        stored_name=stored_name,
+        mime_type=mime,
+        size_bytes=size,
+    )
+    db.add(cert)
+    db.commit()
+    db.refresh(cert)
+    return _cert_out(cert)
+
+
+@router.get("/{cert_id}/file")
+def download_cert(
+    cert_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    require_mentor(session)
+    cert = db.get(StaffUpskillingCert, cert_id)
+    if cert is None or cert.user_id != session["userId"]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")
+    try:
+        content = read_bytes(cert.stored_name)
+    except FileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored file is missing.")
+    return Response(
+        content=content,
+        media_type=cert.mime_type,
+        headers={"Content-Disposition": content_disposition(cert.original_name)},
+    )
+
+
+@router.delete("/{cert_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cert(
+    cert_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    require_mentor(session)
+    cert = db.get(StaffUpskillingCert, cert_id)
+    if cert is None or cert.user_id != session["userId"]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")
+    filestore_delete(cert.stored_name)
+    db.delete(cert)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

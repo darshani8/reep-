@@ -59,7 +59,7 @@ flowchart TB
     end
 
     subgraph data["🗄️ DATA"]
-        PG[("<b>PostgreSQL 17</b><br/>image pgvector/pgvector:pg17<br/>container reep-postgres<br/>host :5433 → 5432 · DB <code>reep_py</code><br/>49 tables · CREATE EXTENSION vector<br/>volume reep_pgdata")]
+        PG[("<b>PostgreSQL 17</b><br/>image pgvector/pgvector:pg17<br/>container reep-postgres<br/>host :5433 → 5432 · DB <code>reep_py</code><br/>55 tables · CREATE EXTENSION vector<br/>volume reep_pgdata")]
         FS[("<b>Upload store</b> UPLOAD_DIR<br/>/var/reep/uploads (volume reep_uploads)<br/>magic-byte typed · random stored_name<br/>PDF/PNG/JPEG · ≤10 MB")]
         AUD[("<b>Interview audio</b> (OFF by default)<br/>2 WAV per interview, never mixed<br/>PCM16 24 kHz · ≤64 MB · 180-day clock")]
     end
@@ -213,7 +213,7 @@ flowchart TB
         SK["app.seed_kb — production-safe KB seed"]
         SR["app.seed_roster — USN→email, --rekey-domain"]
         GR["app.grant_access — one row = one login"]
-        AL["alembic upgrade head — 44 migrations"]
+        AL["alembic upgrade head — 42 migrations"]
     end
 
     entry --> routers --> domain --> aidir
@@ -303,20 +303,23 @@ erDiagram
     mail_logs ||--|| mail_logs : "unique dedupe_key = send-exactly-once"
 ```
 
-**49 tables**, all defined in `apps/api-py/app/models/` (source of truth) and
+**55 tables**, all defined in `apps/api-py/app/models/` (source of truth) and
 registered in `models/__init__.py` so Alembic autogenerate sees them:
 
 ```
-academic_gaps · academic_qualifications · agent_runs · alert_rule_configs · alerts ·
-assistant_feedback · attendance_records · certification_progress · certifications ·
-cohorts · conversations · courses · email_verifications · enrollments ·
-interview_consents · interview_evaluations · interview_sessions · interview_turns ·
-job_applications · job_import_runs · jobs · knowledge_chunks · knowledge_documents ·
-lab_sessions · leave_requests · login_days · mail_logs · mentor_notes · mentors ·
-messages · mock_attempts · placement_criteria · placement_offers · registration_rules ·
-registrations · resume_profiles · resumes · schedule_items · semester_results ·
-skill_claims · skills · student_profiles · student_skills · students · subject_marks ·
-swoc_entries · time_sheet_entries · uploads · users · voice_worker_heartbeats
+academic_gaps · academic_qualifications · agent_runs · alert_rule_configs ·
+alerts · assistant_feedback · attendance_records · certification_progress ·
+certifications · cohorts · conversations · courses · email_verifications ·
+english_baseline_sections · english_baselines · enrollments ·
+interview_consents · interview_evaluations · interview_sessions ·
+interview_turns · job_applications · job_import_runs · jobs · knowledge_chunks ·
+knowledge_documents · lab_sessions · leave_requests · login_days · mail_logs ·
+mentor_notes · mentors · messages · mock_attempts · placement_criteria ·
+placement_offers · registration_rules · registrations · resume_profiles ·
+resumes · schedule_items · semester_results · skill_claims · skills ·
+student_milestones · student_profiles · student_skills · students ·
+subject_marks · swoc_entries · time_ledger_cells · time_ledger_days ·
+time_sheet_entries · uploads · users · voice_worker_heartbeats
 ```
 
 **Alembic enum gotchas** (hit repeatedly, so they are written down):
@@ -675,7 +678,7 @@ cd apps/api-py
 .venv/Scripts/python -m alembic upgrade head
 .venv/Scripts/python -m app.seed                       # refuses when ENV=prod
 .venv/Scripts/python -m uvicorn app.main:app --port 3300
-.venv/Scripts/python -m pytest                         # 28 test modules
+.venv/Scripts/python -m pytest                         # 33 test modules
 
 cd ../web && npx ng serve                              # :4200, proxies /api
 cd ../web && npx ng build                              # budget gate

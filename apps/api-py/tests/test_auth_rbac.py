@@ -70,9 +70,22 @@ def test_unauthenticated_is_rejected(client):
 
 
 @requires_db
-def test_resume_generate_respects_egress_gate(client, login):
-    # With no remote key allowed for PII, resume composition must not use AI.
+def test_resume_generate_respects_egress_gate(client, login, monkeypatch):
+    """A REMOTE provider with the flag off must compose deterministically.
+
+    This pins the provider instead of reading whatever LLM_BASE_URL the machine
+    happens to carry. It used to assert `used_ai is False` against the ambient
+    .env, which quietly meant "this developer is pointed at a remote model" --
+    so it passed on Gemini and FAILED the day the deployment moved to a local
+    model on loopback, which is the one case the gate exists to ALLOW. The
+    assertion was true for the wrong reason, and the failure named the gate
+    rather than the config that had actually changed.
+    """
+    from app.config import settings
+
     h = login("student@bgscet.ac.in", "student123")
+    monkeypatch.setattr(settings, "llm_base_url", "https://api.groq.com/openai/v1")
+    monkeypatch.setattr(settings, "llm_allow_remote_student_data", "")
     r = client.post("/api/student/resume/generate", headers=h, json={"title": "T"})
     assert r.status_code == 200
     assert r.json()["used_ai"] is False

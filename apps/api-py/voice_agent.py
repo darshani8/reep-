@@ -88,6 +88,14 @@ from livekit.agents import (
 from livekit.agents.voice.room_io import AudioInputOptions, RoomOptions
 from livekit.plugins import groq, noise_cancellation, silero
 
+# Aliased so nothing in this file ever shadows the OpenAI SDK package name.
+# Present in .venv-voice as a dependency of livekit-plugins-groq (the Groq
+# plugin is built on it), and now ALSO pinned directly in requirements-voice.txt
+# because _build_llm imports it by name — see the cryptography pin in
+# requirements.txt for what happens when a load-bearing transitive dep is left
+# implicit.
+from livekit.plugins import openai as lk_openai
+
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("reep-voice")
 
@@ -174,6 +182,26 @@ def _flag_env(name: str) -> bool:
 # the FastAPI server uses.
 GROQ_STT_MODEL = "whisper-large-v3-turbo"
 GROQ_LLM_MODEL = "llama-3.3-70b-versatile"
+
+# The REPLY stage only, swappable to any OpenAI-compatible endpoint — in
+# practice a local Ollama (http://127.0.0.1:11434/v1), which moves the one
+# stage of this cascade that Ollama CAN serve onto this machine. STT and TTS
+# stay on Groq whatever these say: a voice call's other two stages are audio
+# models, and Ollama serves none. Blank base URL = Groq, exactly as before —
+# an unset pair must leave the rollback path behaving as it always has.
+#
+# Rule 1 note (AGENTS.md): no student record enters this session either way —
+# the persona needs none — so a loopback brain REDUCES egress (the student's
+# spoken words no longer reach Groq's LLM), it does not license adding any.
+# Their AUDIO still reaches Groq twice, as speech-to-text and text-to-speech;
+# that is the honest boundary of this switch.
+#
+# The API key default is the string "ollama": Ollama ignores credentials but
+# the OpenAI client refuses to construct without one, and a placeholder that
+# NAMES the expected server beats an empty-looking "x" in a stack trace.
+VOICE_LLM_BASE_URL = os.getenv("VOICE_LLM_BASE_URL", "").strip().rstrip("/")
+VOICE_LLM_MODEL = os.getenv("VOICE_LLM_MODEL", "").strip()
+VOICE_LLM_API_KEY = os.getenv("VOICE_LLM_API_KEY", "").strip() or "ollama"
 
 # Which text-to-speech speaks to the student.
 #
@@ -714,6 +742,55 @@ def _build_tts() -> lk_tts.TTS:
     return groq.TTS(model=GROQ_TTS_MODEL, voice=GROQ_TTS_VOICE)
 
 
+def _build_llm():
+    """Pick the reply brain: a configured OpenAI-compatible endpoint, else Groq.
+
+    The same shape as _build_tts above, and the same failure direction: a
+    HALF-set pair (base URL without a model) falls back to Groq with a loud
+    warning rather than constructing a client that 404s on its first turn —
+    mid-call is the worst possible place to discover a .env typo, because it
+    presents to the student as an assistant that hears them and says nothing.
+
+    max_completion_tokens=220 is kept for both providers — the reply-length cap
+    matters MORE on a local model, which synthesises tokens slower than Groq's
+    hardware and would otherwise keep the student waiting through a paragraph.
+    Know the latency trade going in: a local 12B model's time-to-first-token on
+    consumer hardware is measured in seconds where Groq's is measured in
+    fractions of one, and in a spoken conversation that gap is audible.
+    """
+    if VOICE_LLM_BASE_URL and VOICE_LLM_MODEL:
+        log.info("LLM: %s at %s (OpenAI-compatible)", VOICE_LLM_MODEL, VOICE_LLM_BASE_URL)
+        return lk_openai.LLM(
+            model=VOICE_LLM_MODEL,
+            base_url=VOICE_LLM_BASE_URL,
+            api_key=VOICE_LLM_API_KEY,
+            temperature=0.6,
+            # The LEGACY parameter name, on purpose, and NOT the plugin's
+            # max_completion_tokens kwarg: Ollama's /v1 layer IGNORES the new
+            # name — measured on this machine, a max_completion_tokens=10
+            # request came back 293 tokens with finish_reason "stop", i.e. the
+            # cap silently did not exist — while max_tokens=10 returned exactly
+            # 10 with finish_reason "length". Every local server this path is
+            # for (Ollama, vLLM, LM Studio, llama.cpp) honours max_tokens, so
+            # the cap that keeps a slow local model from making the student sit
+            # through a paragraph of synthesis rides the name that works.
+            extra_body={"max_tokens": 220},
+        )
+    # The fully-set pair returned above, so reaching here with EITHER set means
+    # exactly one of them is — the half-configured case the docstring warns of.
+    if VOICE_LLM_BASE_URL or VOICE_LLM_MODEL:
+        log.warning(
+            "VOICE_LLM_BASE_URL and VOICE_LLM_MODEL must BOTH be set to use a "
+            "custom LLM endpoint (got base_url=%r, model=%r) - using Groq %s",
+            VOICE_LLM_BASE_URL,
+            VOICE_LLM_MODEL,
+            GROQ_LLM_MODEL,
+        )
+    else:
+        log.info("LLM: groq %s", GROQ_LLM_MODEL)
+    return groq.LLM(model=GROQ_LLM_MODEL, temperature=0.6, max_completion_tokens=220)
+
+
 async def _speak_greeting(session: AgentSession) -> bool:
     """Speak the compulsory opening greeting and CONFIRM it was actually heard.
 
@@ -890,8 +967,9 @@ async def entrypoint(ctx: JobContext) -> None:
         # Cap the reply length. A long answer is bad twice over in voice: the
         # student waits through synthesis they did not ask for, and the emitter
         # is more likely to starve part-way and stutter. The prompt asks for
-        # brevity; this enforces it even when the model gets carried away.
-        llm=groq.LLM(model=GROQ_LLM_MODEL, temperature=0.6, max_completion_tokens=220),
+        # brevity; _build_llm enforces it (max_completion_tokens=220) whichever
+        # brain — Groq or a local OpenAI-compatible endpoint — is configured.
+        llm=_build_llm(),
         tts=_build_tts(),
         # Endpointing must outwait the STT round-trip. Whisper here is a NETWORK
         # call to Groq, not a local model, so the default min_delay of 0.5s

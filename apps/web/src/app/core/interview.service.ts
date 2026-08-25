@@ -570,6 +570,18 @@ const CLOSE_MESSAGES: ReadonlyMap<number, CloseMessage> = new Map<number, CloseM
       text: 'You withdrew consent, so the interview ended.',
     },
   ],
+  // 4015: the daily volume cap — the server counted this student's interviews
+  // over the last 24 h and refused BEFORE anything was billed or written. The
+  // sibling of 4012 (concurrency), with a different sentence: "your other tab
+  // is open" is fixable now, "you have done today's quota" is fixable tomorrow.
+  // `warn`, not `error`: nothing is broken, and support cannot raise it.
+  [
+    4015,
+    {
+      tone: 'warn',
+      text: "You've reached today's mock interview limit. Try again tomorrow.",
+    },
+  ],
 ]);
 
 /* ============================================================================
@@ -1613,6 +1625,12 @@ export class InterviewService {
   /** Streaming interviewer transcript, keyed by response id, plus a counter for
    *  system lines (which carry no upstream id but still need a stable key). */
   private readonly assistantText = new Map<string, string>();
+  /** Streaming STUDENT transcript, keyed by upstream item id. Same revise-in-
+   *  place pattern as assistantText: `reep.transcript.delta` events grow one
+   *  pending "You" line, and the final `.completed` replaces it. Empty on a
+   *  surface that emits no deltas (beta), where the completed-only behaviour
+   *  below is the whole story, exactly as before deltas were forwarded. */
+  private readonly studentText = new Map<string, string>();
   private systemLineSeq = 0;
 
   // ------------------------------------------------------------------ //
@@ -1666,6 +1684,7 @@ export class InterviewService {
     this.ending = false;
     this.resetEchoGate();
     this.assistantText.clear();
+    this.studentText.clear();
 
     // Release the microphone if the tab closes or the browser navigates away.
     // Nothing else covers that path — ngOnDestroy does not run on tab close —
@@ -2392,12 +2411,30 @@ export class InterviewService {
         break;
       }
 
+      case 'reep.transcript.delta': {
+        // The student's own speech, transcribing live. The relay aliases the
+        // upstream delta to this reep.* name; it is NEVER persisted server-side
+        // — the `.completed` event below remains the only point a student turn
+        // is recorded — so this line is a preview and stays marked partial.
+        const key = str(msg['item_id']);
+        const delta = str(msg['delta']);
+        if (!key || !delta) break;
+        const next = (this.studentText.get(key) ?? '') + delta;
+        this.studentText.set(key, next);
+        this.writeLine(`u:${key}`, 'you', next, true);
+        break;
+      }
+
       case 'conversation.item.input_audio_transcription.completed': {
-        // Final only — the relay's allowlist forwards neither the delta nor the
-        // failed variant, so there is no partial student line to reconcile.
+        // The FINAL transcript. Where deltas arrived it replaces the pending
+        // line keyed by the same item id; where they did not (the beta surface
+        // may not emit them) this is the first time the student line appears,
+        // which is exactly the pre-delta behaviour.
         const key = str(msg['item_id']) ?? 'you';
         const text = str(msg['transcript']);
+        const hadPending = this.studentText.delete(key);
         if (text) this.writeLine(`u:${key}`, 'you', text, false);
+        else if (hadPending) this.removeLine(`u:${key}`);
         break;
       }
 
@@ -2640,6 +2677,7 @@ export class InterviewService {
       void ctx.close().catch(() => undefined);
     }
     this.assistantText.clear();
+    this.studentText.clear();
     this.meterLevel = 0;
     this.meterLastUpdate = 0;
     this.meterLastPaint = 0;
@@ -2735,6 +2773,13 @@ export class InterviewService {
       copy[idx] = { key, role, text, partial };
       return copy;
     });
+  }
+
+  /** Remove one transcript line — used when a delta preview's final transcript
+   *  arrives EMPTY (the transcriber heard nothing), so the screen does not keep
+   *  a partial "You" line for words that were never said. */
+  private removeLine(key: string): void {
+    this._lines.update((lines) => lines.filter((l) => l.key !== key));
   }
 }
 

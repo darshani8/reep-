@@ -146,6 +146,22 @@ class Settings(BaseSettings):
     # value to use the day a per-worker cache looks like the wrong trade.
     auth_revocation_cache_seconds: int = 60
 
+    # --- SQLAlchemy connection pool (app/db.py) --------------------------------
+    # These used to be SQLAlchemy's silent defaults (pool_size=5, max_overflow=10,
+    # pool_timeout=30), which made 15 connections the whole app's ceiling with no
+    # env var to raise it — the 2026-08 scalability audit's first critical. Every
+    # sync endpoint holds one connection for its whole handler, so two students
+    # loading the 10-fetch dashboard at once already wanted 20. The new defaults
+    # fit a single dev process; a production deployment sizes them per worker so
+    # that workers x (pool_size + max_overflow) stays under Postgres
+    # max_connections (docker-compose.prod.yml does this arithmetic in comments).
+    # pool_timeout drops from 30 to 5: a request that cannot get a connection in
+    # 5 s is already part of an incident, and making it queue for 30 more only
+    # converts one slow endpoint into a wall of hung requests.
+    db_pool_size: int = 20
+    db_max_overflow: int = 20
+    db_pool_timeout_s: int = 5
+
     # --- Google sign-in (OIDC authorization-code flow) -------------------------
     # Sign-in is Google-only for every role. These credentials decide only WHO
     # GOOGLE SAYS YOU ARE; they decide nothing about access. The roster in the
@@ -209,7 +225,24 @@ class Settings(BaseSettings):
     llm_base_url: str = ""
     llm_model: str = ""
     llm_api_key: str = ""
-    llm_timeout_ms: int = 300000
+    # Was 300000 (5 minutes). Every LLM call runs synchronously in the shared
+    # 40-thread pool, and generate_resume used to hold a pooled DB connection
+    # across it too — so one hung provider could pin threads for 5 minutes each
+    # and turn a slow model into a dashboard outage (audit critical #2). 60 s is
+    # generous for a resume brief; a provider that has not answered in a minute
+    # is not going to, and the deterministic fallback path exists precisely for
+    # that day. Raise it only for a deliberately slow local model, and know that
+    # the price is how long one request can occupy a worker thread.
+    llm_timeout_ms: int = 60000
+    # Per-user ceiling on LLM-backed HTTP requests (app/ratelimit.py): resume
+    # generation and the retained /api/agent chat routes. The audit found these
+    # had no cap at all, so one student's retry loop — or a 60-person class told
+    # to "regenerate until it looks good" — was a self-inflicted DDoS on the
+    # thread pool and an unbudgeted token bill. 5/minute is invisible to a human
+    # clicking a button and a wall to a loop. The bucket is per worker process,
+    # so N workers relax it to at most N x this — still a ceiling, and an
+    # in-process dict costs nothing; a shared store is the day-two upgrade.
+    llm_requests_per_minute: int = 5
     # A string (not bool) so a blank value is valid and safely means "off",
     # matching the Next.js gate where only the exact string "true" enables it.
     llm_allow_remote_student_data: str = ""
@@ -289,6 +322,17 @@ class Settings(BaseSettings):
     # name is answered with an `error` event and a silent fall back to the
     # default - i.e. it fails without failing.
     openai_realtime_voice: str = "alloy"
+    # Playback speed of the interviewer's voice, GA session shape only
+    # (audio.output.speed, 0.25-1.5). Sent ONLY when not 1.0: the parameter is
+    # confirmed on GA, but the default stays off the wire so a stock session's
+    # payload stays minimal, and the beta shape never carries it at all.
+    interview_voice_speed: float = 1.0
+    # Sampling temperature for the interviewer's responses, 0.0-2.0. UNSET by
+    # default and sent only when explicitly configured, in BOTH session shapes:
+    # this codebase deliberately omits unverified parameters (a rejected
+    # session.update can kill the interview in the handshake), so the model's
+    # own default is the behaviour unless an operator has a reason to tune.
+    interview_temperature: float | None = None
     # Non-empty pins the BETA event surface (the value is "realtime=v1"), which
     # emits response.audio.delta and expects a FLAT session object; blank selects
     # GA (response.output_audio.delta, nested session.audio.*). A string, not a
@@ -319,6 +363,17 @@ class Settings(BaseSettings):
     # else is answered 1013. 2 (not 1) so a student whose laptop slept mid-answer
     # can start again without waiting for the dead socket's watchdog to notice.
     interview_max_sessions_per_user: int = 2
+    # The VOLUME half of the per-student cap, which concurrency alone never was:
+    # 2 concurrent slots x back-to-back 15-minute sessions is ~96 interviews a
+    # day from one account — each one billing OpenAI Realtime audio from the
+    # handshake — and nothing counted them (audit H: unbounded spend). Enforced
+    # in _open_records with one indexed COUNT over the student's sessions in the
+    # last 24 h, refused with close 4015 BEFORE any upstream socket opens or row
+    # is written. 8 is a full afternoon of honest practice; a student who hits
+    # it is looping, sharing a cookie, or being scripted. Abandoned and failed
+    # sessions COUNT toward it on purpose — a cap that only counts clean
+    # finishes is a cap a crash loop never hits.
+    interview_max_per_student_per_day: int = 8
 
     # Server-VAD tuning. Settings rather than literals because these are the
     # numbers a real deployment retunes against real rooms, and needing a
@@ -349,18 +404,23 @@ class Settings(BaseSettings):
     #              interviewer's own sentence - which transcribes into coherent
     #              text the model then answers confidently. It does not change
     #              how often a false turn fires, only how convincing it is.
-    #   silence    how long a pause ends the turn. Deliberately above the API's
-    #              500 ms default: the persona promises not to interrupt, and a
-    #              real interview answer contains 400-600 ms thinking pauses
-    #              mid-sentence. 700 is the smallest value that reliably does not
-    #              cut a candidate off.
+    #   silence    how long a pause ends the turn. Above the API's 500 ms
+    #              default, but only just: real interview answers contain
+    #              400-600 ms thinking pauses mid-sentence, so 600 sits at the
+    #              upper edge of that band. It was 700 under the assumption
+    #              that a VAD split at a thinking pause cut the candidate off -
+    #              under Interview Engine v3 that is no longer true, because a
+    #              split answer is merged by _drain_pending into ONE verdict
+    #              and ONE response.create, so the cost of a split is a slightly
+    #              longer wait, not an interruption. The browser's "thinking"
+    #              affordance covers the extra ASR wait that remains.
     #              ECHO: raising it makes self-talk LESS FREQUENT and LONGER -
-    #              700 ms already exceeds the gaps between the model's own words,
+    #              600 ms already exceeds the gaps between the model's own words,
     #              so an echo-triggered segment swallows a whole clause before it
     #              commits. Lowering it commits sooner and fires more often.
     interview_vad_threshold: float = 0.5
     interview_vad_prefix_padding_ms: int = 300
-    interview_vad_silence_duration_ms: int = 700
+    interview_vad_silence_duration_ms: int = 600
 
     # The ASR for the student's own speech, sent on BOTH API shapes (flat beta
     # `input_audio_transcription`, nested GA `audio.input.transcription`). A
@@ -427,6 +487,104 @@ class Settings(BaseSettings):
     # sitting on a finished interview waiting for it. On expiry the evaluation is
     # persisted as unavailable and the socket still closes 1000 — a missing
     # report must never cost the transcript.
+    # ---- Which engine runs the interview -------------------------------
+    #
+    # "openai"  app/interview_relay.py -> api.openai.com. One speech-to-speech
+    #           model hears, reasons and speaks. Needs OPENAI_API_KEY and costs
+    #           money per minute.
+    # "local"   app/interview_local.py -> nothing leaves the machine.
+    #           faster-whisper hears, the Ollama model in LLM_MODEL reasons,
+    #           Piper speaks. No key, no cost, and rule 1 holds by construction
+    #           rather than by a gate.
+    #
+    # DEFAULT IS "openai" deliberately, even though the local engine is free: a
+    # deployment that has been running the hosted interview must not silently
+    # change what its students are assessed by because a new setting appeared.
+    # Opting in is one line; opting out by surprise is not recoverable, because
+    # the interviews have already happened.
+    interview_engine: str = "openai"
+
+    @field_validator("interview_engine", mode="before")
+    @classmethod
+    def _known_engine(cls, value: object) -> str:
+        """An unrecognised engine name falls back to the hosted relay.
+
+        Deliberately an ALLOWLIST rather than `!= "local"`: a typo like
+        INTERVIEW_ENGINE=loca must not quietly run the hosted engine while the
+        operator believes nothing is leaving the machine. It falls back to the
+        documented default and says so, which is the same shape as
+        `password_login_allowed` -- an unknown value closes the door rather than
+        guessing which one was meant.
+        """
+        text = str(value or "").strip().lower()
+        if text in {"openai", "local"}:
+            return text
+        if text:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "INTERVIEW_ENGINE=%r is not 'openai' or 'local'; using 'openai'", value
+            )
+        return "openai"
+
+    # The interviewer's model, SEPARATE from llm_model on purpose.
+    #
+    # llm_model serves the resume builder and the grounded assistant, where a
+    # bigger model is simply better and a few seconds is nobody's problem. The
+    # interviewer has two constraints that one does not: it must leave room on
+    # the card for faster-whisper, and it must answer inside a conversation.
+    #
+    # Measured on this hardware, the cost of ignoring that: reep-gemma3 (7.8 GB)
+    # resident alongside Whisper left 1 GB free on a 12 GB card and the first
+    # clause took 9528 ms. llama3.2:3b (2 GB) leaves ~9 GB and returns in tens
+    # of milliseconds. A smaller interviewer that speaks is worth more than a
+    # better one that pauses for ten seconds between questions.
+    #
+    # Blank falls back to llm_model, so a deployment with plenty of VRAM can
+    # deliberately run one model for everything.
+    interview_local_llm_model: str = "llama3.2:3b"
+
+    # faster-whisper size. base.en is the measured balance on this hardware:
+    # ~28 ms for a 0.6 s tail on CUDA. tiny.en is faster and noticeably worse at
+    # Indian-accented English; small.en is better and roughly 2.5x the latency.
+    interview_local_stt_model: str = "base.en"
+    # Decode width. beam_size=1 is greedy and was the obvious default; measured
+    # on this cohort's own recordings it is both LESS accurate and SLOWER than 5
+    # (157 ms vs 116 ms on a 6 s clip), because a wrong greedy token costs more
+    # decoding downstream than the extra beams cost up front.
+    interview_local_stt_beam: int = 5
+    # Strip silence before decoding. The single biggest accuracy win measured
+    # here, and it takes the average DOWN to 87 ms: less audio to decode, and no
+    # silence for the model to hallucinate words into. It recovered a whole
+    # clause the greedy config dropped.
+    interview_local_stt_vad_filter: bool = True
+    # Domain vocabulary. Whisper leans on an initial prompt for terms it has not
+    # heard in context, and this cohort's interview is full of them -- a real
+    # session transcribed "CAC" as "DCAC", which then cleared the answer-word
+    # floor as a substantive answer and advanced the interview on nothing.
+    interview_local_stt_prompt: str = (
+        "This is a digital marketing interview. Terms used: CAC, LTV, ROAS, "
+        "CTR, CPC, CPM, SEO, SEM, P-O-E-M, impressions, clicks, conversions, "
+        "funnel, remarketing, programmatic, backlinks, crawling, indexing."
+    )
+
+    # "cuda" or "cpu". A CUDA failure is caught at load and falls back to CPU
+    # rather than refusing to start the interview -- slow beats unavailable.
+    interview_local_stt_device: str = "cuda"
+    # Piper voice, absolute or relative to apps/api-py.
+    interview_local_tts_voice: str = "var/piper-voices/en_US-lessac-medium.onnx"
+    # How long Ollama keeps the interviewer model resident. An interview that
+    # pays a cold load mid-conversation has a multi-second silence in it.
+    interview_local_keep_alive: str = "30m"
+    # The interviewer's instructions are ~2.6 kB composed; 4096 leaves room for
+    # the phase directive and the syllabus block without a per-turn reload.
+    interview_local_num_ctx: int = 4096
+    # One question is tens of tokens. A ceiling against a model that decides to
+    # monologue, not a target -- and deliberately not the primary control for
+    # length, because a token cap truncates mid-sentence. The instruction does
+    # that job; this catches the case where it is ignored entirely.
+    interview_local_max_tokens: int = 120
+
     interview_report_timeout_ms: int = 20000
     # Audio capture, OFF and deliberately awkward to turn on. Recording a
     # student's voice requires their recorded consent (interview_consent_version
@@ -436,11 +594,44 @@ class Settings(BaseSettings):
     # the fact.
     interview_recording_enabled: bool = False
     # Hard per-session ceiling on stored audio — a disk-exhaustion stop, not a
-    # quality knob. 64 MB is roughly 45 minutes of the 24 kHz mono PCM this relay
-    # carries, comfortably past interview_max_seconds. At the cap the recording
-    # stops and the interview continues: a call is never dropped to protect a
-    # file.
-    interview_recording_max_bytes: int = 64000000
+    # quality knob. At the cap the recording stops and the interview continues:
+    # a call is never dropped to protect a file.
+    #
+    # SIZE IT AGAINST 96,000 BYTES A SECOND, NOT 48,000. This comment used to
+    # read "64 MB is roughly 45 minutes ... comfortably past
+    # interview_max_seconds", which was true of the speech-only capture it was
+    # written for. app/interview_audio.py now pads BOTH tracks to the session's
+    # wall clock, so an interview burns 2 x 24 kHz x 16-bit whether anyone is
+    # talking or not: 64,000,000 B was 666 s = 11.1 min against an
+    # interview_max_seconds of 900, and every maximum-length interview lost its
+    # last 3.8 minutes to a cap nobody had recomputed. A truncation is at least
+    # never silent (audio_truncated), which is the only reason that was a defect
+    # and not a scandal.
+    #
+    # The floor is therefore 2 x interview_max_seconds x 48,000 = 86.4 MB, and
+    # 128 MB is that plus ~48% — headroom for a model that emits an answer
+    # faster than real time (the interviewer's track legitimately runs ahead of
+    # the clock) and for the seconds a session spends closing. Disk, which is a
+    # different number: the mix is written from what survived, so a full session
+    # occupies up to ~256 MB. If you move interview_max_seconds, move this.
+    interview_recording_max_bytes: int = 128000000
+    # Where the WAVs live. Blank keeps the historical fallback — a SIBLING of
+    # uploads_path named interview-audio (app/interview_audio.py:_store_root,
+    # which already reads this field by name and documents why a sibling). Set
+    # it explicitly in production to a MOUNTED path: the audit found the
+    # fallback landed in the container's writable layer under the image's
+    # UPLOAD_DIR, i.e. consented recordings were destroyed on every redeploy.
+    # docker-compose.prod.yml now mounts a dedicated volume and sets this.
+    interview_audio_dir: str = ""
+    # Free-disk floor below which recorder_for hands out NO new recorders: the
+    # interview proceeds, existing recordings keep flushing, only NEW capture is
+    # declined (and says so in the log). Recording is wall-clock-padded at
+    # 96,000 B/s, so a deadline-week of interviews can genuinely fill a volume —
+    # and a full disk stops upload writes and (co-located) Postgres too, which
+    # is a far worse trade than one interview going unrecorded. 2 GB clears the
+    # worst case of every in-flight session flushing its cap at once. This is a
+    # guard on NEW recordings only, never a reason to end a call.
+    interview_audio_min_free_bytes: int = 2000000000
     # How long an interview record — transcript, evaluation, any audio — is kept
     # before the reaper deletes it. 180 days covers a placement season and the
     # review that follows it. There is no "keep forever" value and 0 is refused,
@@ -467,10 +658,18 @@ class Settings(BaseSettings):
 
     @field_validator(
         "llm_timeout_ms",
+        "llm_requests_per_minute",
+        "db_pool_size",
+        "db_max_overflow",
+        "db_pool_timeout_s",
         "interview_max_seconds",
         "interview_idle_seconds",
+        "interview_local_num_ctx",
+        "interview_local_stt_beam",
+        "interview_local_max_tokens",
         "interview_max_sessions",
         "interview_max_sessions_per_user",
+        "interview_max_per_student_per_day",
         "interview_transcription_timeout_ms",
         "interview_response_create_timeout_ms",
         "interview_min_answer_words",
@@ -480,9 +679,12 @@ class Settings(BaseSettings):
         "interview_recording_max_bytes",
         "interview_retention_days",
         "interview_orphan_grace_seconds",
+        "interview_audio_min_free_bytes",
         "interview_vad_threshold",
         "interview_vad_prefix_padding_ms",
         "interview_vad_silence_duration_ms",
+        "interview_voice_speed",
+        "interview_temperature",
         "voice_max_sessions_per_user",
         "voice_max_call_seconds",
         "auth_revocation_cache_seconds",
@@ -521,16 +723,25 @@ class Settings(BaseSettings):
         return value
 
     @field_validator(
+        "llm_requests_per_minute",
+        "db_pool_size",
+        "db_max_overflow",
+        "db_pool_timeout_s",
         "interview_max_seconds",
         "interview_idle_seconds",
+        "interview_local_num_ctx",
+        "interview_local_stt_beam",
+        "interview_local_max_tokens",
         "interview_max_sessions",
         "interview_max_sessions_per_user",
+        "interview_max_per_student_per_day",
         "interview_transcription_timeout_ms",
         "interview_response_create_timeout_ms",
         "interview_report_timeout_ms",
         "interview_recording_max_bytes",
         "interview_retention_days",
         "interview_orphan_grace_seconds",
+        "interview_audio_min_free_bytes",
         "interview_vad_prefix_padding_ms",
         "interview_vad_silence_duration_ms",
         "voice_max_sessions_per_user",
@@ -573,6 +784,31 @@ class Settings(BaseSettings):
         """
         if value < 0:
             raise ValueError(f"{info.field_name} must be zero or a positive integer, got {value}")
+        return value
+
+    @field_validator("interview_voice_speed")
+    @classmethod
+    def _voice_speed_in_range(cls, value: float) -> float:
+        """0.25-1.5 is upstream's own documented range for audio.output.speed.
+
+        Validated at startup because a rejected session.update is the
+        handshake's close-4002 path: loud there, an interview-killer at
+        mid-session. Catching a typo here keeps the failure where it belongs.
+        """
+        if not 0.25 <= value <= 1.5:
+            raise ValueError(
+                f"interview_voice_speed must be between 0.25 and 1.5, got {value}"
+            )
+        return value
+
+    @field_validator("interview_temperature")
+    @classmethod
+    def _temperature_in_range(cls, value: float | None) -> float | None:
+        """0.0-2.0 when set; None means "never sent" and is always legal."""
+        if value is not None and not 0.0 <= value <= 2.0:
+            raise ValueError(
+                f"interview_temperature must be between 0.0 and 2.0, got {value}"
+            )
         return value
 
     @model_validator(mode="before")

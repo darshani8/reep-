@@ -6,7 +6,8 @@ specialization on the assistant screen, the client sends it as
 answers the two questions the relay then has:
 
     1. WHO is interviewing?  -- the Specialization row: the AI persona, the
-       core frameworks under assessment, and the opening question.
+       core frameworks under assessment, the voice the role speaks with, and
+       the sample question worked in during probing.
     2. WHERE in the interview are we?  -- InterviewStateMachine, advanced by
        the relay on each COMPLETED student answer, whose phase directive is
        what steers the model from the opening question through to the verdict.
@@ -57,14 +58,29 @@ from .config import settings
 # ---------------------------------------------------------------------------
 
 
+# The voices the relay may put on the wire. GA-only names (marin, cedar) are
+# included because the GA session shape is the default; the beta surface
+# ignores an unknown name by falling back to its default, which is why the
+# relay validates the operator-supplied OPENAI_REALTIME_VOICE against this set
+# and says so in the log rather than discovering the fallback mid-interview.
+KNOWN_REALTIME_VOICES: Final[frozenset[str]] = frozenset(
+    {"alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse",
+     "marin", "cedar"}
+)
+
+
 @dataclass(frozen=True, slots=True)
 class Specialization:
     """One row of the Specialization Matrix.
 
     `persona` is a noun phrase, not a sentence ("an empathetic yet compliant
     Chief Human Resources Officer (CHRO)"), so build_instructions can embed it
-    without rewording. `sample_question` is the question the OPENING phase
-    must ask; the model is told to rephrase it naturally, not recite it.
+    without rewording. `sample_question` is the question the PROBING phase
+    must work in early; the model is told to rephrase it naturally, not recite
+    it. `voice` is the OpenAI Realtime voice the role speaks with -- a CHRO
+    should not sound like a CFO -- frozen onto the session in the single
+    startup session.update, because upstream cannot change it after the first
+    audio.
     """
 
     key: str
@@ -72,6 +88,14 @@ class Specialization:
     persona: str
     frameworks: tuple[str, ...]
     sample_question: str
+    voice: str
+    # The course the student was actually taught, module by module, when the
+    # programme has one. `frameworks` is what a PRACTITIONER is assessed on and
+    # is pitched at the industry bar; `syllabus` is what this cohort has sat in
+    # a classroom for, and the two are not the same interview. Optional, and
+    # empty for any track with no mapped course - build_instructions omits the
+    # block entirely rather than composing an empty heading.
+    syllabus: tuple[str, ...] = ()
 
 
 # VERBATIM from the product spec -- persona wording, framework lists and
@@ -97,6 +121,7 @@ SPECIALIZATIONS: Final[dict[str, Specialization]] = {
                 "Walk me through how you would handle a sexual harassment "
                 "claim involving a top-performing executive."
             ),
+            voice="coral",
         ),
         Specialization(
             key="dm",
@@ -114,6 +139,41 @@ SPECIALIZATIONS: Final[dict[str, Specialization]] = {
                 "Our CAC has increased by 40% on Meta ads this quarter. What "
                 "is your step-by-step diagnostic framework?"
             ),
+            # 22MDM23 Fundamentals of Digital Marketing, the course this cohort
+            # sits. Compressed to what can be ASKED rather than recited: the
+            # interviewer needs the shape of the syllabus and its vocabulary,
+            # not the answer key. The source bank has 100 questions WITH model
+            # answers; sending those upstream would let the model mark a student
+            # against a memorised script, and would put ~15 kB into a string
+            # that is re-sent on every phase change.
+            syllabus=(
+                "Module 1 - Foundations: digital versus traditional marketing, "
+                "its advantages and limitations, the P-O-E-M framework (paid, "
+                "owned and earned media), segmentation, target marketing, "
+                "message customization, personalization, and the structure of a "
+                "digital marketing plan.",
+                "Module 2 - Display advertising: banner, video, rich-media and "
+                "responsive formats; buying models; contextual, placement, "
+                "interest, geographic, language, demographic and mobile "
+                "targeting; remarketing; programmatic; YouTube advertising.",
+                "Module 3 - Search advertising: ad placement and Ad Rank, "
+                "keywords and keyword research, campaign construction, landing "
+                "pages and landing-page relevance, performance reporting.",
+                "Module 4 - Social and mobile: organic versus paid social, "
+                "platform selection by audience and objective, engagement, "
+                "influencer marketing, user-generated content, the mobile "
+                "marketing toolkit, location-based services, QR codes, "
+                "augmented reality, gamification, mobile analytics.",
+                "Module 5 - SEO: crawling, indexing and ranking; on-page versus "
+                "off-page SEO; long-tail keywords; backlinks; SEO maintenance; "
+                "organic traffic; web analytics metrics.",
+                "Metric arithmetic the student is expected to do out loud: "
+                "CTR = clicks / impressions x 100; CPC = cost / clicks; "
+                "CPM = cost / impressions x 1000; cost per conversion = cost / "
+                "conversions; conversion rate = conversions / interactions x "
+                "100; ROAS = attributed revenue / cost.",
+            ),
+            voice="marin",
         ),
         Specialization(
             key="ba",
@@ -130,6 +190,7 @@ SPECIALIZATIONS: Final[dict[str, Specialization]] = {
                 "How would you design a machine learning pipeline to predict "
                 "customer churn using messy e-commerce logs?"
             ),
+            voice="cedar",
         ),
         Specialization(
             key="fa",
@@ -146,6 +207,7 @@ SPECIALIZATIONS: Final[dict[str, Specialization]] = {
                 "Walk me through how a $10 depreciation expense flows through "
                 "the three financial statements."
             ),
+            voice="ash",
         ),
     )
 }
@@ -177,8 +239,8 @@ class InterviewPhase(StrEnum):
     same arc.
     """
 
-    OPENING = "opening"  # intro + the specialization's sample question
-    PROBING = "probing"  # framework-by-framework follow-ups
+    OPENING = "opening"  # greet, set expectations, ask the student to self-introduce
+    PROBING = "probing"  # framework-by-framework follow-ups incl. the sample question
     DEEP_DIVE = "deep_dive"  # one hard, ambiguous scenario, pressed on trade-offs
     WRAP_UP = "wrap_up"  # no new questions; spoken verdict and close
     ENDED = "ended"  # socket closed; terminal
@@ -298,17 +360,43 @@ def _phase_directive(spec: Specialization, phase: InterviewPhase) -> str:
     frameworks = ", ".join(spec.frameworks)
     if phase is InterviewPhase.OPENING:
         return (
-            f"Introduce yourself in one sentence as {spec.persona}, then open "
-            "the interview with this question, rephrased naturally rather than "
-            f'recited: "{spec.sample_question}"'
+            f"Open the interview the way a real one begins: greet the student "
+            f"briefly, introduce yourself in one sentence as {spec.persona}, "
+            "set expectations in one short sentence (a focused conversation of "
+            "about 15 minutes with a few questions and honest feedback at the "
+            "end), then ask the student to introduce themselves and say what "
+            f"drew them to {spec.label}. Ask nothing else yet -- no domain "
+            "questions in this phase."
         )
     if phase is InterviewPhase.PROBING:
+        if spec.syllabus:
+            return (
+                "Probe one topic at a time, moving across the syllabus modules "
+                "rather than staying inside one. Mix definition questions with "
+                "at least one where the student must compute a metric out loud "
+                "from figures you give them. Assess against these frameworks: "
+                f"{frameworks}. When an answer stays at the surface, ask a "
+                'follow-up "why" or "how exactly" before moving on. Early in '
+                "this phase, work in this question, rephrased naturally rather "
+                f'than recited: "{spec.sample_question}".'
+            )
         return (
             "Probe the core frameworks one at a time: "
             f"{frameworks}. When an answer stays at the surface, ask a "
-            'follow-up "why" or "how exactly" before moving on.'
+            'follow-up "why" or "how exactly" before moving on. Early in this '
+            "phase, work in this question, rephrased naturally rather than "
+            f'recited: "{spec.sample_question}".'
         )
     if phase is InterviewPhase.DEEP_DIVE:
+        if spec.syllabus:
+            return (
+                "Raise the difficulty. Present ONE realistic, ambiguous "
+                f"{spec.label} scenario spanning at least two syllabus modules "
+                "and having no textbook answer - a campaign whose numbers are "
+                "healthy at one funnel stage and poor at the next is the shape "
+                "to aim for. Press on trade-offs, risks and what they would "
+                "measure, not on definitions they have already given you."
+            )
         return (
             "Raise the difficulty. Present ONE realistic, ambiguous scenario "
             f"from {spec.label} and press on trade-offs, risks and edge cases "
@@ -406,6 +494,13 @@ _TURN_DIRECTIVES: Final[dict[str, str]] = {
         "one priority improvement, and one concrete drill to practise. Then "
         "thank the student and close. Ask no further questions."
     ),
+    "invite_questions": (
+        "The questioning part of the interview is done. Before you give your "
+        "verdict, hand the floor to the student the way a real interview ends: "
+        "ask whether they have any questions for you about the role or the "
+        "company. If they do, answer briefly and honestly in character, then "
+        "wait. Do not deliver the verdict yet."
+    ),
 }
 
 # The scorecard directive, issued once as a text-only response after the spoken
@@ -430,6 +525,24 @@ REPORT_DIRECTIVE: Final[str] = (
     "Score against the bar for a graduate hire. If the student barely spoke, "
     "say that in the summary and score it honestly rather than inventing "
     "detail they did not give you."
+)
+
+
+# How the interviewer SOUNDS, composed into every (specialization, phase)
+# instruction right after the base persona and before the specialization
+# block. The persona says what the interviewer DOES (one question at a time,
+# micro-feedback); this says how it comes across out loud -- a realtime voice
+# model reciting written-English scaffolding ("Firstly... Secondly...",
+# bullet points) is the single biggest tell that the interview is a chatbot.
+_DELIVERY_STYLE: Final[str] = (
+    "You are speaking aloud, not writing, so sound like a real interviewer "
+    "across the table. Begin each turn with one short, genuine acknowledgement "
+    "of what the student just said -- vary the phrase, never the same one "
+    "twice in a row -- then at most one or two sentences of feedback or "
+    "follow-up, then your single question. Plain spoken sentences only: no "
+    "numbered lists, no bullet points, no headings, no 'Firstly, Secondly' "
+    "recitations. Warm but professional; this is a practice interview, not an "
+    "interrogation."
 )
 
 
@@ -472,18 +585,35 @@ def build_instructions(
     `base_persona` comes first and VERBATIM -- it carries the conduct rules
     (one question at a time, micro-feedback, no interruptions) and the rule-1
     disclosure, and neither the specialization block nor the phase directive
-    may dilute them. The relay calls this once at session.update time and again
-    on every phase change, so it must be a pure function of its arguments.
+    may dilute them. The delivery-style block follows it: how the interviewer
+    SOUNDS, which is the same for every specialization and every phase. The
+    relay calls this once at session.update time and again on every phase
+    change, so it must be a pure function of its arguments.
     """
     frameworks = ", ".join(spec.frameworks)
+    syllabus_block = ""
+    if spec.syllabus:
+        modules = "\n".join(f"- {line}" for line in spec.syllabus)
+        syllabus_block = (
+            "\n## The course this student has actually studied\n"
+            "Draw your questions from this syllabus and use its vocabulary. "
+            "Where the syllabus and the frameworks above disagree on level, the "
+            "syllabus decides the QUESTION and the frameworks set the bar for "
+            "the ANSWER: ask what they were taught, then press for the "
+            "commercial judgement the framework list implies.\n"
+            f"{modules}\n"
+        )
     return (
         f"{base_persona}\n"
+        "\n"
+        f"{_DELIVERY_STYLE}\n"
         "\n"
         f"## Specialization: {spec.label}\n"
         f"For this session you are {spec.persona}, interviewing this student "
         f"for a {spec.label} role. Assess their command of these core "
         f"frameworks and concepts over the course of the interview: "
         f"{frameworks}.\n"
+        f"{syllabus_block}"
         "\n"
         f"## Current phase: {phase.value}\n"
         f"{_phase_directive(spec, phase)}"

@@ -17,7 +17,7 @@ authentication and no database; do not run it.)
 |---|---|
 | `apps/api-py/app/routers/interview.py` | the boundary: auth, STUDENT check, both concurrency caps, **the consent gate**, specialization validation, the conversation and `interview_sessions` row, the turn/report/finalize/heartbeat writers |
 | `apps/api-py/app/interview_relay.py` | the engine: one `_RelaySession` per interview, both pumps, the v3 turn protocol, the guardrails |
-| `apps/api-py/app/interview_matrix.py` | the Specialization Matrix (HR/DM/BA/FA personas, frameworks, opening questions), the phase state machine, `classify_answer` and the per-turn instruction overrides |
+| `apps/api-py/app/interview_matrix.py` | the Specialization Matrix (HR/DM/BA/FA personas, frameworks, sample questions, per-role voices), the phase state machine, `classify_answer` and the per-turn instruction overrides |
 | `apps/api-py/app/routers/interview_records.py` | the READ side and consent: the student's own history, the staff views behind rule 2, `GET/POST/DELETE /api/interview/consent` |
 | `apps/api-py/app/models/interview.py` | the four tables |
 | `apps/api-py/app/interview_audio.py` | the optional on-disk recording store (off by default — see *Audio*) |
@@ -44,7 +44,7 @@ GET    /api/mentor/students/{sid}/interviews          rule 2, then the row's own
 GET    /api/mentor/students/{sid}/interviews/{id}
 GET    /api/mentor/students/{sid}/interviews/{id}/transcript
 GET    /api/mentor/students/{sid}/interviews/{id}/report     `raw_response` only for DIRECTOR/ADMIN
-GET    /api/mentor/students/{sid}/interviews/{id}/audio      DIRECTOR/ADMIN; ?track=student|interviewer
+GET    /api/mentor/students/{sid}/interviews/{id}/audio      ADMIN only; ?track=mixed(default)|student|interviewer
 ```
 
 `GET /status` exists because a **rejected WebSocket handshake reaches the browser
@@ -69,7 +69,8 @@ The student picks a track on the assistant screen; the client sends it as
 `?specialization=` on the socket (a query param because a browser WebSocket
 cannot set headers — safe precisely because it is a UI choice, not a student
 record). `app/interview_matrix.py` owns the four rows — AI persona, core
-frameworks, opening question — **verbatim from the product spec**, and
+frameworks, the sample question worked in during probing, and **the voice the
+role speaks with** — **verbatim from the product spec**, and
 `InterviewStateMachine`, which advances the interview through explicit phases
 on each *completed student answer*:
 
@@ -80,14 +81,44 @@ opening  --1 answer-->  probing  --3-->  deep_dive  --5-->  wrap_up
 (Any phase can also go straight to `ended`; `wrap_up` is sticky.) *Completed* is
 load-bearing and is decided below, not by the model: a barge-in over an
 unfinished question, a cough and a two-word answer all fail it. The relay
-composes instructions as **base persona verbatim + specialization block +
-phase directive**, sends the opening composition in the startup
-`session.update`, and pushes an **instructions-only** `session.update` on every
-phase change (the voice is frozen once the model has spoken, so nothing else
-may ride that update). The browser learns the phase from `reep.ready` and
-`reep.phase` events. **No `?specialization=` runs the generic interview with
-the untouched base persona** — and an unknown key is refused with close 4010
-rather than silently downgraded to it.
+composes instructions as **base persona verbatim + delivery-style block +
+specialization block + phase directive**, sends the opening composition in the
+startup `session.update`, and pushes an **instructions-only** `session.update`
+on every phase change (the voice is frozen once the model has spoken, so
+nothing else may ride that update). The browser learns the phase from
+`reep.ready` and `reep.phase` events. **No `?specialization=` runs the generic
+interview with the untouched base persona** — and an unknown key is refused
+with close 4010 rather than silently downgraded to it.
+
+The arc is shaped like a real interview, not a quiz. **Opening** greets the
+student, introduces the interviewer in one sentence, sets expectations (a
+focused ~15-minute conversation with honest feedback at the end) and asks the
+student to introduce themselves and say what drew them to the track — no domain
+questions yet. The matrix's hard scenario question moved to **probing**, worked
+in early and rephrased naturally rather than recited cold. And `wrap_up` is a
+**two-beat close**: the tick into it first asks *"any questions for us about
+the role or the company?"* (the `invite_questions` turn directive), the
+student's reply — any reply, never `classify_answer`'d, because "no, I'm good"
+is filler words to the word gate — earns the spoken verdict, and only the
+verdict's `response.done` requests the scorecard. The forced/clock path skips
+the beat and goes straight to the verdict.
+
+Each track also speaks with its own Realtime voice, frozen onto the session in
+the single startup `session.update`:
+
+| track | voice | role it voices |
+|---|---|---|
+| HR | `coral` | the warm CHRO |
+| DM | `marin` | the energetic CMO |
+| BA | `cedar` | the measured Director of Analytics |
+| FA | `ash` | the authoritative MD/CFO |
+| *(generic)* | `OPENAI_REALTIME_VOICE` (default `alloy`) | the base interviewer |
+
+An `OPENAI_REALTIME_VOICE` value outside the known set (`alloy, ash, ballad,
+coral, echo, sage, shimmer, verse, marin, cedar`) is logged and falls back to
+`alloy` — upstream answers an unknown voice with a *silent* fallback to its own
+default, which is an interview that runs fine while sounding nothing like what
+was configured.
 
 One asymmetry to know about: the phase tick is gated on a specialization being
 present, so **the generic interview never reaches `wrap_up`** and therefore never
@@ -124,6 +155,15 @@ exactly one of:
 drain the queue head  -> ONE response.create for the whole batch, never one per item
 ```
 
+While the student's answer is transcribing, the relay also forwards
+`conversation.item.input_audio_transcription.delta` events to the browser as
+`reep.transcript.delta` (`item_id` + `delta`), so the "You" line appears and
+revises live instead of popping in whole seconds later. They are **never
+persisted and never fed to the arc** — `.completed` remains the single point
+where a student turn is recorded or judged — and the beta generation may not
+emit them at all, in which case the client simply keeps its completed-only
+behaviour.
+
 Between the drain and the create, the relay decides what kind of response to ask
 for. The order of the two checks is not interchangeable:
 
@@ -148,7 +188,8 @@ that never continues, and the idle watchdog does **not** cover it (the browser's
 echo-gate keepalive keeps sending frames, so 4008 never fires). A create that is
 never acknowledged is retried once and then closes **4011**.
 
-At `wrap_up` the model speaks its verdict, and that verdict is persisted as an
+At `wrap_up` the model first invites the student's questions (the beat above),
+then speaks its verdict on the reply, and that verdict is persisted as an
 interviewer turn — it is part of the interview the student heard. Then the relay
 issues **one further, text-only `response.create`** in the same session, which
 already holds the whole transcript: a strict-JSON scorecard, parsed defensively,
@@ -375,10 +416,11 @@ model and a recording feature is not what that containment gets spent on.
 | | |
 |---|---|
 | **Format** | PCM16 LE mono 24 kHz wrapped in a RIFF/WAVE header by the stdlib `wave` module — the bytes already crossing the relay, so no encoder, no transcode and no new dependency |
-| **Files** | **two per interview, one per speaker** (`student`, `interviewer`), never one mixed file: the two directions are not time-aligned, and interleaving them would be an invented fact in a record kept for review |
+| **Files** | **three per interview**: one per speaker (`student`, `interviewer`) plus a derived `mixed` listening copy. The two per-speaker files are still **the record** — do not "clean them up" as duplicates; the mix is regenerable from them and they are not recoverable from it. This row used to say the two must never be mixed, because before the timeline each file was a speech-ONLY concatenation with the silences squeezed out, so laying them side by side put answers under the wrong questions. `app/interview_audio.py` now pads each track against one monotonic session clock, so both files are session-length and the mix is a sum rather than a guess — accurate to a beat, not a frame (the interviewer's track is *when the model's audio was forwarded*, which can run ahead of the wall clock during a burst) |
 | **Where** | a sibling of the uploads root, `<uploads>/../interview-audio`, each file named after the `interview_sessions.id` that owns it — so retention can find it from the primary key alone even if `audio_path` is ever lost. Not `app/filestore.py`: that store decides type by magic bytes and accepts only PDF/PNG/JPEG, and admitting audio would loosen the one control that makes it trustworthy |
-| **Cap** | `INTERVIEW_RECORDING_MAX_BYTES` (64 MB ≈ 45 min, past the session cap) is a hard per-session ceiling. At the cap capture **stops**, `interview_sessions.audio_truncated` is set, and the interview continues — a call is never dropped to protect a file, and a truncation is never silent |
-| **Retrieval** | `GET /api/mentor/students/{sid}/interviews/{id}/audio?track=student\|interviewer`, behind `require_director` **and** `_assert_can_access_student` **and** a re-check that the row's subject is the student in the path. 404 — never 403 — when nothing was recorded, so a director cannot tell "not recorded" from "not a real id" |
+| **Cap** | `INTERVIEW_RECORDING_MAX_BYTES` is a hard per-session ceiling on **captured PCM**. At the cap capture **stops**, `interview_sessions.audio_truncated` is set, and the interview continues — a call is never dropped to protect a file, and a truncation is never silent. **Size it against 96,000 B/s, not 48,000**: both tracks are padded to the session's wall clock, so an interview burns two streams whether or not anyone is talking. 128 MB is ~22 min, past the 900 s session cap; budget ~256 MB of *disk* per session, because the derived `mixed` copy is written on top of what survived. This row said "64 MB ≈ 45 min" for a release after the padding landed — arithmetic from the speech-only era, under which the cap bound first and quietly cut the last 3.8 minutes off every full-length interview |
+| **Truncation** | three things stop a capture, and the WARNING names which: the byte cap above, a timeline gap longer than an interview can run (a suspended host, not a silence), and the write buffer bound — *"the disk is not keeping up"*, which now means only that. It used to fire on a healthy disk: pending silence was materialised into that buffer, so a 90-second answer left the interviewer owing one 4.3 MB lump and the next question ended the recording. Silence is an integer segment now, materialised in the writer, so the buffer holds real audio only |
+| **Retrieval** | `GET /api/mentor/students/{sid}/interviews/{id}/audio?track=mixed\|student\|interviewer`, **defaulting to `mixed`**, behind `_require_developer` — **ADMIN only, deliberately narrower than every other read in that router** — **and** `_assert_can_access_student` **and** a re-check that the row's subject is the student in the path. A DIRECTOR gets 403 here and 200 everywhere else in the file; that asymmetry is intended, because a stored voice is an operator's artefact and not placement business. 404 — never 403 — when nothing was recorded, so a caller cannot tell "not recorded" from "not a real id" |
 | **Retention** | the same 180-day clock as the transcript. `purge_expired` deletes the bytes **before** the rows; a session whose audio could not be deleted keeps its row, because an orphaned voice file is undiscoverable and therefore undeletable |
 
 Read **`interview_sessions.audio_recorded`**, never `audio_path IS NOT NULL`. A
@@ -421,7 +463,10 @@ and reports no fault to anyone:
 | `INTERVIEW_RETENTION_DAYS` | 180 | how long the whole record — transcript, evaluation, any audio — is kept |
 | `INTERVIEW_CONSENT_VERSION` | `2026-08` | the terms; bump it when the wording changes |
 | `INTERVIEW_RECORDING_ENABLED` | `false` | audio capture — see *Audio* above |
-| `INTERVIEW_RECORDING_MAX_BYTES` | 64000000 | the per-session ceiling on stored audio |
+| `INTERVIEW_RECORDING_MAX_BYTES` | 128000000 | the per-session ceiling on captured PCM — see the *Cap* row above before changing it |
+| `INTERVIEW_VAD_SILENCE_DURATION_MS` | 600 | the pause that ends a student turn. At the upper edge of the 400–600 ms natural thinking-pause band; under v3 a split at a pause is merged into one answer, so it no longer risks cutting the candidate off |
+| `INTERVIEW_VOICE_SPEED` | 1.0 | the interviewer's speaking rate (GA only, `audio.output.speed`, 0.25–1.5). Sent only when not 1.0; never sent on the beta shape |
+| `INTERVIEW_TEMPERATURE` | *(unset)* | sampling temperature (0.0–2.0), both session shapes. Sent **only when set** — the default keeps the model's own, because an unverified parameter on `session.update` can kill the handshake |
 
 `OPENAI_API_KEY` is deliberately **not** part of the LLM auto-select chain in
 `app/ai/llm.py`: the Realtime API is not OpenAI-compatible chat, and a key pasted

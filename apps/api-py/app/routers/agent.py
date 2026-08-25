@@ -109,6 +109,7 @@ from ..models.agent_run import AgentRun, AgentRunStatus
 from ..models.conversation import Message
 from ..models.feedback import AssistantFeedback, FeedbackRating
 from ..models.user import Role
+from ..ratelimit import llm_rate_limited
 from ..redaction import redact_pii
 
 log = logging.getLogger(__name__)
@@ -278,7 +279,9 @@ def _persist_run(
     return run.id
 
 
-@router.post("/chat", response_model=ChatOut)
+@router.post(
+    "/chat", response_model=ChatOut, dependencies=[Depends(llm_rate_limited)]
+)
 def chat(
     body: ChatIn,
     session: dict = Depends(get_current_session),
@@ -296,13 +299,21 @@ def chat(
 
     # Server-owned: the conversation is derived from the session, never the body.
     conversation = convo.get_or_create(db, session["userId"], Role(session["role"]))
+    conversation_id = conversation.id
     # Captured BEFORE the user turn is appended is not required (the predicate
     # counts assistant turns), but read it before the reply exists so the
     # greeting decision is made from the same state the answer was built on.
-    first_reply = convo.awaiting_first_reply(db, conversation.id)
-    _append(db, conversation.id, "user", body.message)
-    turns = convo.history(db, conversation.id, limit=HISTORY_LIMIT)
+    first_reply = convo.awaiting_first_reply(db, conversation_id)
+    _append(db, conversation_id, "user", body.message)
+    turns = convo.history(db, conversation_id, limit=HISTORY_LIMIT)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, *turns]
+
+    # Release the pooled connection BEFORE the model call: complete_chat may
+    # legally take LLM_TIMEOUT_MS, and holding a transaction open across it is
+    # how a slow provider became a pool-exhaustion outage in the 2026-08 audit.
+    # Everything below re-acquires a connection through the same session;
+    # conversation_id is captured above so nothing touches the expired ORM row.
+    db.commit()
 
     try:
         reply = complete_chat(messages, max_tokens=1024)
@@ -314,7 +325,7 @@ def chat(
         # buries the provider-answered-with-an-error case that IS a bug.
         log.warning(
             "agent chat degraded — provider unreachable (conversation=%s): %r",
-            conversation.id,
+            conversation_id,
             exc,
         )
         _persist_run(db, session, body.message, "", AgentRunStatus.FAILED, model_label, started)
@@ -324,13 +335,13 @@ def chat(
         # same two rules the streaming path spells out for its failed turns.
         return ChatOut(
             reply=UNREACHABLE_REPLY,
-            conversation_id=conversation.id,
+            conversation_id=conversation_id,
             model=model_label,
             used_ai=False,
             note=UNREACHABLE_NOTE,
         )
     except Exception:  # provider answered with a failure / adapter bug — loud, 502
-        log.exception("agent chat LLM call failed (conversation=%s)", conversation.id)
+        log.exception("agent chat LLM call failed (conversation=%s)", conversation_id)
         _persist_run(db, session, body.message, "", AgentRunStatus.FAILED, model_label, started)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=FRIENDLY_ERROR
@@ -339,14 +350,14 @@ def chat(
     if first_reply:
         reply = convo.open_with_greeting(reply)
 
-    _append(db, conversation.id, "assistant", reply)
+    _append(db, conversation_id, "assistant", reply)
     if first_reply:
-        convo.mark_greeted(db, conversation.id)
+        convo.mark_greeted(db, conversation_id)
     _persist_run(db, session, body.message, reply, AgentRunStatus.ANSWERED, model_label, started)
-    return ChatOut(reply=reply, conversation_id=conversation.id, model=model_label)
+    return ChatOut(reply=reply, conversation_id=conversation_id, model=model_label)
 
 
-@router.post("/chat/stream")
+@router.post("/chat/stream", dependencies=[Depends(llm_rate_limited)])
 def chat_stream(
     body: ChatIn,
     session: dict = Depends(get_current_session),
@@ -375,6 +386,13 @@ def chat_stream(
     _append(db, conversation_id, "user", body.message)
     turns = convo.history(db, conversation_id, limit=HISTORY_LIMIT)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, *turns]
+
+    # Release the request session's connection NOW. Dependency teardown for a
+    # StreamingResponse runs only after the last byte is sent, so the history
+    # SELECT above would otherwise pin a pooled connection for the entire
+    # stream — minutes, on a slow provider — while the generator does all its
+    # real work on its own fresh SessionLocal anyway (the docstring's contract).
+    db.commit()
 
     def event_stream():
         chunks: list[str] = []
@@ -434,7 +452,9 @@ def chat_stream(
     )
 
 
-@router.post("/ask", response_model=AskOut)
+@router.post(
+    "/ask", response_model=AskOut, dependencies=[Depends(llm_rate_limited)]
+)
 def ask(
     body: AskIn,
     session: dict = Depends(get_current_session),

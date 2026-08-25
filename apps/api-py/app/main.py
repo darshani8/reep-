@@ -20,6 +20,8 @@ from .routers import (
     agent,
     alumni,
     auth,
+    badge_admin,
+    badges,
     director,
     health,
     interview,
@@ -246,6 +248,12 @@ app.include_router(leave.router, prefix="/api")
 # one gates on mentor.require_mentor, the alumni one on the ALUMNI role.
 app.include_router(staff_upskilling.router, prefix="/api")
 app.include_router(alumni.router, prefix="/api")
+# The Skills & Badge dashboard: the student half shares the /student prefix
+# (badges, growth, leaderboards); badge_admin carries the staff review queue,
+# manual awards, assessment entry, cohort views and the certification
+# catalogue, under /mentor and /director as rule 2 dictates.
+app.include_router(badges.router, prefix="/api")
+app.include_router(badge_admin.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")
 
 

@@ -1,0 +1,124 @@
+<div class="dt-header">
+  <div>
+    <p class="eyebrow">Programme · Mentoring</p>
+    <h1 class="dt-title">Mentor Meeting Log</h1>
+    <p class="dt-sub">
+      Your 1:1s with your mentor — what was discussed and the action agreed each time.
+    </p>
+  </div>
+  <div class="dt-toolbar">
+    <button type="button" class="btn">
+      <span class="icon" aria-hidden="true">add_comment</span>
+      Request a meeting
+    </button>
+  </div>
+</div>
+
+@switch (state()) {
+  @case ('loading') {
+    <p class="loading-line">Loading your meeting log…</p>
+  }
+
+  @case ('error') {
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">info</span>
+      We could not load your meeting log just now. Please refresh in a moment.
+      <button type="button" class="btn ghost" (click)="load()">Retry</button>
+    </div>
+  }
+
+  @case ('data') {
+    @if (data(); as d) {
+      <div class="dense-grid">
+        <div class="dense-stat">
+          <span class="lbl">Mentor</span>
+          <span class="val" style="font-size:17px">{{ d.mentor_name ?? 'Not assigned' }}</span>
+        </div>
+        <div class="dense-stat">
+          <span class="lbl">Meetings logged</span>
+          <span class="val">{{ d.meetings_logged }}</span>
+        </div>
+        <div class="dense-stat">
+          <span class="lbl">Last meeting</span>
+          <span class="val" style="font-size:17px">
+            {{ d.last_meeting ? (d.last_meeting | date: 'd MMM y') : '—' }}
+          </span>
+        </div>
+        <div class="dense-stat">
+          <span class="lbl">Open actions</span>
+          <span class="val">{{ d.open_actions }}</span>
+          @if (d.open_actions > 0) {
+            <span class="sub">Agreed and not yet closed</span>
+          }
+        </div>
+      </div>
+
+      @if (d.next_meeting; as next) {
+        <div class="card" style="margin-bottom:16px">
+          <h4>Next meeting <span class="dt-sub">· from your schedule</span></h4>
+          <div class="rowline">
+            <span class="icon" aria-hidden="true" style="color:var(--purple-mid)">event</span>
+            <div style="flex:1">
+              <b>{{ next.title }}</b>
+              @if (next.location) {
+                <span class="dt-sub"> · {{ next.location }}</span>
+              }
+              <div class="dt-sub">{{ next.starts_at | date: "d MMM y · HH:mm" }}</div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="card">
+        <h4>
+          Meeting history
+          <span class="dt-sub" style="font-weight:400">
+            · mentor notes are visible to you and the placement office
+          </span>
+        </h4>
+
+        @for (m of d.meetings; track m.id) {
+          <div class="meeting">
+            <div class="date">
+              <div class="d">{{ m.day }}</div>
+              <div class="m">{{ m.month }}</div>
+            </div>
+            <div class="body">
+              <div class="title">
+                {{ m.title }}
+                @if (m.location) {
+                  <span class="dt-sub" style="font-weight:400"> · {{ m.location }}</span>
+                }
+              </div>
+              <span
+                class="chip"
+                [class.warn]="m.action === 'FLAGGED' || m.action === 'ONE_ON_ONE_SCHEDULED'"
+                [class.neutral]="m.action === 'NONE'"
+              >
+                @if (m.action === 'ONE_ON_ONE_SCHEDULED') {
+                  <span class="icon" aria-hidden="true">event_repeat</span>
+                } @else if (m.action === 'FLAGGED') {
+                  <span class="icon" aria-hidden="true">flag</span>
+                } @else {
+                  <span class="icon" aria-hidden="true">chat_bubble</span>
+                }
+                {{ m.action_label }}
+              </span>
+              <p class="note">{{ m.note }}</p>
+              <div class="by">Logged by {{ m.logged_by }}</div>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty">
+            <span class="icon" aria-hidden="true">event_note</span>
+            <p><b>No meetings logged yet</b></p>
+            <p>
+              Once you meet your mentor, each 1:1 appears here with their note and the
+              action agreed.
+            </p>
+          </div>
+        }
+      </div>
+    }
+  }
+}

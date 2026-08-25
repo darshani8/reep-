@@ -50,6 +50,15 @@ export const routes: Routes = [
       {
         path: 'student',
         loadComponent: () =>
+          import('./features/student/home/home.component').then((m) => m.StudentHomeComponent),
+      },
+      // The previous, much larger overview screen. Still routed rather than
+      // deleted: the v2 landing is a programme map, and everything the old
+      // screen showed (SWOC, attendance, VTU marks, readiness, recommendations)
+      // is real and still reachable while those blocks find their own homes.
+      {
+        path: 'student/overview',
+        loadComponent: () =>
           import('./features/student/overview/student-overview.component').then(
             (m) => m.StudentOverviewComponent,
           ),
@@ -73,8 +82,18 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/student/skilling/skilling.component').then((m) => m.SkillingComponent),
       },
+      // The Time Allocation Ledger replaces the old free-form time log at the
+      // same path, because "Time Sheet" in the nav must lead to the screen the
+      // programme actually runs on. The old component stays routed at
+      // /student/time-log-legacy until its weekly-target chart has a home on the
+      // ledger — deleting it would take the SKILLING-hours-vs-target view with it.
       {
         path: 'student/time-log',
+        loadComponent: () =>
+          import('./features/student/ledger/ledger.component').then((m) => m.LedgerComponent),
+      },
+      {
+        path: 'student/time-log-legacy',
         loadComponent: () =>
           import('./features/student/time-log/time-log.component').then((m) => m.TimeLogComponent),
       },
@@ -135,6 +154,20 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/student/interviews/interviews.component').then(
             (m) => m.InterviewsComponent,
+          ),
+      },
+      {
+        path: 'student/english',
+        loadComponent: () =>
+          import('./features/student/english/english.component').then(
+            (m) => m.EnglishBaselineComponent,
+          ),
+      },
+      {
+        path: 'student/mentor-log',
+        loadComponent: () =>
+          import('./features/student/mentor-log/mentor-log.component').then(
+            (m) => m.MentorLogComponent,
           ),
       },
       {

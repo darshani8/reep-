@@ -2,20 +2,28 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
-  <title>REEP Dashboard</title>
+  <title>REEP · Student</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ece4f5">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <!-- Inter, the one typeface — matching what next/font self-hosted in the React
-       app. The weight range stops at 600, exactly as theme.ts specifies. -->
+
+  <!-- REEP v2 design system typefaces (docs handoff §Typography):
+         Orbitron      display / labels / metric numerals — 500, 700, 900
+         Chakra Petch  body, controls, captions            — 400, 500, 600, 700
+         Material Symbols Rounded — every glyph in the UI
+
+       Google-hosted, as the prototype loads them. The handoff asks for these to
+       be SELF-HOSTED in production: a third-party font host is a request every
+       student's browser makes to Google on every cold load, and a blocked or
+       slow one leaves the whole UI in a fallback face. That is a build-pipeline
+       change (fetch + subset + @font-face into the bundle), so it is deliberately
+       not done here — it is tracked, not forgotten. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- Material Symbols Outlined — the same glyphs MUI's *Outlined icons draw. -->
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
-  <!-- REEP v2 design system: Inter (400–800) + Material Symbols Rounded, exactly
-       as docs/design-v2/student-app.html loads them. -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-50..200&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Chakra+Petch:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-50..200&display=swap"
+    rel="stylesheet">
 </head>
 <body>
   <app-root></app-root>

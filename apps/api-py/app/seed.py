@@ -47,6 +47,20 @@ from .models.profile import StudentProfile
 from .models.schedule import ScheduleItem, ScheduleType
 from .models.skill import Skill, SkillClaim, StudentSkill
 from .models.swoc import SwocEntry, SwocKind, SwocSource
+from .models.english_baseline import (
+    BaselineStatus,
+    EnglishBaseline,
+    EnglishBaselineSection,
+    EnglishSkill,
+    SectionStatus,
+)
+from .models.milestone import MilestoneStatus, StudentMilestone
+from .models.time_ledger import (
+    LedgerDayStatus,
+    LedgerSlot,
+    TimeLedgerCell,
+    TimeLedgerDay,
+)
 from .models.timesheet import DayActivity, TimeSheetEntry
 from .models.user import LoginDay, Mentor, Role, Stage, Student, User
 # The rule-WRITE half of the usn_pattern defence; the router holds the match-time
@@ -580,8 +594,177 @@ def main() -> None:
         # student's own numbers still come from the authenticated records view.
         # Keyed on title so re-running is a no-op.
         seed_knowledge(db)
+
+        # --- v2 UI screens -------------------------------------------------
+        #
+        # The three screens the v2 student UI adds have nothing to draw on a
+        # fresh database, and "the design is broken" is the report you get when
+        # a brand-new checkout shows three empty states. Each block is keyed on
+        # its own first row, so re-running the seed is a no-op like every other
+        # block here.
+        seed_v2_screens(db, stu, mentor)
     finally:
         db.close()
+
+
+def seed_v2_screens(db, stu, mentor) -> None:
+    """Sample data for the Time Allocation Ledger, the English Baseline and the
+    Mentor Meeting Log.
+
+    Called from `main()`, which already refuses to run when ENV=prod — these
+    rows describe a demo student and must never reach a real deployment for the
+    same reason the three demo logins must not.
+    """
+    if stu is None:
+        return
+
+    # A submitted ledger for YESTERDAY and a part-filled draft for TODAY. Two
+    # days rather than one so "Copy yesterday" has a legal source on a fresh
+    # database — its 404 is correct behaviour but reads as a broken button.
+    if db.scalar(select(TimeLedgerDay).where(TimeLedgerDay.student_id == stu.id)) is None:
+        today = date.today()
+        full = {
+            LedgerSlot.DAWN: {DayActivity.LEISURE: 2, DayActivity.COURSEWORK: 6},
+            LedgerSlot.MORNING: {DayActivity.LECTURES: 6},
+            LedgerSlot.MIDDAY: {DayActivity.LECTURES: 2, DayActivity.COURSEWORK: 4},
+            LedgerSlot.AFTERNOON: {DayActivity.SKILLING: 6},
+            LedgerSlot.EVENING: {DayActivity.SKILLING: 2, DayActivity.LEISURE: 6},
+            LedgerSlot.NIGHT: {DayActivity.SLEEPING: 14},
+        }
+        submitted = TimeLedgerDay(
+            student_id=stu.id,
+            day=today - timedelta(days=1),
+            status=LedgerDayStatus.SUBMITTED,
+            submitted_at=datetime.now(timezone.utc),
+        )
+        for slot, per in full.items():
+            for activity, halves in per.items():
+                submitted.cells.append(
+                    TimeLedgerCell(slot=slot, activity=activity, half_hours=halves)
+                )
+        db.add(submitted)
+
+        # Today, deliberately 0.5 h short — that is the state the design shows
+        # ("23.5 / 24 h · 0.5 h to reconcile"), and it is the one worth seeing.
+        draft = TimeLedgerDay(student_id=stu.id, day=today)
+        for slot, per in full.items():
+            for activity, halves in per.items():
+                if slot is LedgerSlot.AFTERNOON and activity is DayActivity.SKILLING:
+                    halves -= 1
+                if halves:
+                    draft.cells.append(
+                        TimeLedgerCell(slot=slot, activity=activity, half_hours=halves)
+                    )
+        db.add(draft)
+        db.commit()
+        print("added time allocation ledger (yesterday submitted, today 23.5/24 h)")
+
+    # The English Baseline: three sections scored, speaking pending — the state
+    # the screen is designed around, not a tidy finished one.
+    if db.scalar(select(EnglishBaseline).where(EnglishBaseline.student_id == stu.id)) is None:
+        baseline = EnglishBaseline(
+            student_id=stu.id,
+            semester=2,
+            status=BaselineStatus.IN_PROGRESS,
+            overall_score=62,
+            band="B1+",
+            taken_on=date.today() - timedelta(days=11),
+            report_available=True,
+            strengths=[
+                "Reads academic text at pace — B2 on skimming and detail",
+                "Task responses stay on brief and are well structured",
+            ],
+            focus_areas=[
+                "Grammar range in writing: tense shifts under time pressure",
+                "Listening to unfamiliar accents drops accuracy by ~8 points",
+            ],
+            next_steps=[
+                {"title": "Business Writing Clinic", "sub": "4 sessions · Skilling track", "target": "/student/skilling"},
+                {"title": "Accent & Listening Lab", "sub": "Weekly · Reboot support", "target": "/student/skilling"},
+                {"title": "GD practice pod", "sub": "Peer group · Thursdays", "target": "/student/skilling"},
+            ],
+        )
+        baseline.sections = [
+            EnglishBaselineSection(
+                skill=EnglishSkill.READING, status=SectionStatus.SCORED, score=68, band="B2",
+                minutes=18,
+                subscores=[
+                    {"label": "Skimming & scanning", "value": 72},
+                    {"label": "Inference", "value": 66},
+                    {"label": "Academic vocabulary", "value": 63},
+                ],
+                ai_report="Reads at pace and handles detail well; inference under time pressure is the next lift.",
+            ),
+            EnglishBaselineSection(
+                skill=EnglishSkill.WRITING, status=SectionStatus.SCORED, score=57, band="B1",
+                minutes=25,
+                subscores=[
+                    {"label": "Task response", "value": 61},
+                    {"label": "Grammar range", "value": 54},
+                    {"label": "Cohesion", "value": 57},
+                ],
+                ai_report="On brief and well organised; tense control slips when writing quickly.",
+            ),
+            EnglishBaselineSection(
+                skill=EnglishSkill.LISTENING, status=SectionStatus.SCORED, score=61, band="B1",
+                minutes=15,
+                subscores=[
+                    {"label": "Gist & detail", "value": 66},
+                    {"label": "Accent handling", "value": 58},
+                    {"label": "Note-taking", "value": 59},
+                ],
+            ),
+            EnglishBaselineSection(
+                skill=EnglishSkill.SPEAKING, status=SectionStatus.PENDING, minutes=12,
+                subscores=[
+                    {"label": "Fluency", "value": None},
+                    {"label": "Pronunciation", "value": None},
+                    {"label": "Interaction", "value": None},
+                ],
+            ),
+        ]
+        db.add(baseline)
+        db.commit()
+        print("added english baseline (3 of 4 sections scored, speaking pending)")
+
+    # Programme milestones — enough of Reboot done to make the landing cards
+    # show all three states. english_baseline is NOT seeded: its status is
+    # derived from the attempt above (see models/milestone.py).
+    if db.scalar(select(StudentMilestone).where(StudentMilestone.student_id == stu.id)) is None:
+        db.add_all(
+            [
+                StudentMilestone(student_id=stu.id, key="ree_101", status=MilestoneStatus.COMPLETED),
+                StudentMilestone(student_id=stu.id, key="ree_102", status=MilestoneStatus.COMPLETED),
+                StudentMilestone(student_id=stu.id, key="peep_1", status=MilestoneStatus.COMPLETED),
+                StudentMilestone(student_id=stu.id, key="peep_2", status=MilestoneStatus.IN_PROGRESS),
+                StudentMilestone(student_id=stu.id, key="vtu_1", status=MilestoneStatus.COMPLETED),
+                StudentMilestone(student_id=stu.id, key="vtu_2", status=MilestoneStatus.IN_PROGRESS),
+                StudentMilestone(student_id=stu.id, key="hippo", status=MilestoneStatus.IN_PROGRESS),
+            ]
+        )
+        db.commit()
+        print("added programme milestones (7)")
+
+    # Titles and locations on the existing mentor notes, so the Mentor Meeting
+    # Log has headings rather than falling back to the linked action for every
+    # row. Only fills blanks — a mentor's own title is never overwritten.
+    if mentor is not None:
+        titled = 0
+        notes = db.scalars(
+            select(MentorNote).where(MentorNote.student_id == stu.id).order_by(MentorNote.meeting_at.desc())
+        ).all()
+        headings = [
+            ("1:1 review", "Cabin 3"),
+            ("Mock GD debrief", "Room 201"),
+            ("Skilling plan for the semester", "Cabin 3"),
+        ]
+        for note, (title, location) in zip(notes, headings):
+            if note.title is None:
+                note.title, note.location = title, location
+                titled += 1
+        if titled:
+            db.commit()
+            print(f"titled mentor meeting notes ({titled})")
 
 
 if __name__ == "__main__":

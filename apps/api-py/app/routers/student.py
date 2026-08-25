@@ -52,6 +52,17 @@ router = APIRouter(prefix="/student", tags=["student"])
 
 class ProfileOut(BaseModel):
     student_id: str
+    # Identity, synced from the programme's student record and read-only on the
+    # profile screen. Additive fields on an existing response: the v2 UI's
+    # sidebar profile card and the profile screen's locked "Identity" block both
+    # need them, and the SESSION cannot carry them — its claims are fixed by
+    # contract (AGENTS.md: the require_* dependencies read the same payload the
+    # Node app minted and were not changed), so widening the cookie to please a
+    # sidebar is exactly the change that must not happen.
+    usn: str | None
+    full_name: str | None
+    current_semester: int
+    current_stage: str
     phone: str | None
     email: str | None
     linkedin_url: str | None
@@ -82,8 +93,14 @@ def my_profile(
     prof = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
     if prof is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile yet.")
+    stu = db.get(Student, student_id)
+    owner = db.get(User, stu.user_id) if stu else None
     return ProfileOut(
         student_id=prof.student_id,
+        usn=stu.usn if stu else None,
+        full_name=owner.name if owner else None,
+        current_semester=stu.current_semester if stu else 1,
+        current_stage=stu.current_stage.value if stu else "EXCEL",
         phone=prof.phone,
         email=prof.email,
         linkedin_url=prof.linkedin_url,

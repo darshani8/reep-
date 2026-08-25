@@ -98,6 +98,55 @@ The LiveKit voice stack (step 4 above, `voice_agent.py`, `/api/voice/*`) and the
 
 `require_mentor(session)` admits **MENTOR, DIRECTOR and ADMIN**; `require_director` admits DIRECTOR/ADMIN. To narrow to students, use `_assert_can_access_student(...)` in **`apps/api-py/app/routers/mentor.py`**: a MENTOR sees only students in their own `Mentor` group; DIRECTOR/ADMIN see all. **A MENTOR with no `Mentor` group sees NOBODY** — never the whole programme. Never read "no mentor group" as "whole programme".
 
+## The v2 student screens (2026-08)
+
+Three screens the handoff adds, with their own tables and endpoints in
+`app/routers/student_screens.py` — its own module so `routers/student.py`
+(2 200 lines, and the file every other student change touches) did not grow
+another 600. It mounts under the same `/student` prefix, so the client sees one
+flat surface.
+
+**Time Allocation Ledger** (`/student/time-log`) — six slots covering a 24-hour
+day x five activity heads. **The unit is the half hour, stored as an integer.**
+The day must reconcile to exactly 24 h before it may be submitted, and a float
+column makes that a game of epsilons: drift across thirty cells leaves a
+perfectly filled day sitting at 23.999999 and refusing to submit, with nothing
+on screen to explain it. Integers make "does this add to 24" an exact comparison
+against 48, and the API converts at the edge so the client still speaks hours.
+Every cell is bounded twice, both from `SLOT_CAPACITY_HALVES`: no cell over its
+slot's capacity, and no slot's five cells summing past it. `copy-yesterday`
+copies only a **SUBMITTED** day — copying a half-finished draft spreads a mistake
+forward with nothing saying where the numbers came from. Submitting latches the
+day; it is then read-only. It does **not** replace `time_sheet_entries`, which
+still answers the weekly SKILLING-hours-vs-target question the dashboard draws.
+
+**English Baseline** (`/student/english`) — CEFR-aligned, AI-scored, one attempt
+per semester. **Every score is nullable and that is load-bearing**: speaking is
+scored after the other three, so "3 of 4 sections scored - Speaking pending" is
+the healthy state, and a pending section rendering as a confident `0` in a 27px
+numeral tells a student they failed something they have not sat. The client
+branches on `status`, never on a falsy score. `provisional` is derived from how
+many sections are scored, so the word cannot outlive the section that resolves
+it.
+
+**Mentor Meeting Log** (`/student/mentor-log`) — the student's own 1:1 history,
+read from `mentor_notes` (extended with nullable `title` / `location`; existing
+notes are **not** backfilled, because inventing a heading puts words in a
+mentor's mouth on a screen the student reads). The mentor's internal vocabulary
+is translated server-side — `FLAGGED` reads as "Flagged for follow-up".
+
+**The landing stage cards** (`GET /api/student/programme`) — Reboot / Excel /
+Elevate. **The catalogue is code and only the status is a row**
+(`app/models/milestone.py`): seeding fourteen rows per student to say "not
+started" would put the programme's shape in the database in thousands of places,
+where a rename becomes a migration. One item is derived rather than stored —
+`english_baseline` reads its status from the attempt, because two sources of
+truth for one row is how that row ends up saying "not started" under a finished
+report.
+
+`python -m app.seed` seeds all four, including a ledger deliberately 0.5 h short
+so the "0.5 h to reconcile" state is the one you see on a fresh database.
+
 ## Backend conventions
 
 - **Models** live in `apps/api-py/app/models/` and are the schema's source of truth; each new module is imported in `models/__init__.py` so Alembic autogenerate sees it.
@@ -108,5 +157,39 @@ The LiveKit voice stack (step 4 above, `voice_agent.py`, `/api/voice/*`) and the
 ## Frontend conventions
 
 - Standalone components + Angular **signals**; `fetch(\`${environment.apiBase}/...\`, { credentials: 'include' })` for API calls (see `apps/web/src/app/features/student/jobs/jobs.component.ts` for the house pattern).
-- The warm "REEP v2" design system is **global CSS classes** in `apps/web/src/styles/reep-v2.scss` (`.card`, `.dt-table`, `.chip good/warn/risk/neutral`, `.dense-*`, …) — reuse them; don't redefine globals in a component. Status is always shown as **text + colour together**, never colour alone.
+- The "REEP v2" design system is **global CSS classes** in `apps/web/src/styles/reep-v2.scss` (`.card`, `.dt-table`, `.chip good/warn/risk/neutral`, `.dense-*`, `.ledger-*`, …) — reuse them; don't redefine globals in a component. Status is always shown as **text + colour together**, never colour alone.
 - The design references are `docs/design-v2/*.html`.
+
+### The v2 look, and the token shim under it (2026-08)
+
+The visual language is the **Y2K-chrome / glass** handoff: a lilac-to-pink page
+wash, white translucent cards on 1px lavender hairlines, **Orbitron** for
+headings/labels and **Chakra Petch** for body, with a purple->magenta gradient
+reserved for primary actions and the active nav pill. It is **one committed
+theme**, not a light/dark pair — every colour is painted explicitly and there is
+no `prefers-color-scheme` block.
+
+`reep-v2.scss` defines the handoff's tokens under honest names
+(`--brand-purple`, `--ink`, `--surface`, `--hairline`, ...) and then **re-points
+two older vocabularies at them**: the warm-paper names (`--paper-0`,
+`--amber-500`, `--ink-900`, ...) and the MUI-era `--reep-*` palette from
+`reep-theme.scss`. That aliasing is what re-skins ~900 lines of existing CSS —
+including the login and register screens, which sit outside the shell and never
+adopted the component classes — from one file. **New code should use the honest
+names**; the alias blocks exist to be deleted once nothing reads them.
+
+**`.icon` is clamped to a 1em box and hidden until the font reports itself
+loaded, and both halves matter.** Material Symbols renders from LIGATURES, so
+`<span class="icon">leaderboard</span>` is the literal word until the font
+arrives. Without the clamp a sidebar item reserves ~90px for its icon and the
+label is pushed out of the 220px nav; without the `fonts-ready` gate (set in
+`main.ts` from the resolved `FontFace.status`, **not** from
+`document.fonts.check()`, which answers yes for a fallback) the stray words show.
+The fonts are still Google-hosted — the handoff asks for them to be self-hosted
+in production, and that is a build-pipeline change nobody has made yet.
+
+The floating **agent orb** and its voice overlay live in the SHELL
+(`layout/agent-orb.component.ts`), not in a route, because they are on every
+screen. Drag and tap are one gesture separated by a 4px threshold; the pointer
+listeners go on `document` (a pointer leaving the 58px box mid-drag stops
+delivering events to it) and are removed on pointerup **and** in `ngOnDestroy`.

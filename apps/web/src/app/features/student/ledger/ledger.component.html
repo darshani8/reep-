@@ -1,0 +1,259 @@
+<div class="dt-header">
+  <div>
+    <p class="eyebrow">Daily log · Semester {{ 2 }}</p>
+    <h1 class="dt-title">Time Allocation Ledger</h1>
+    <p class="dt-sub">
+      Six slots covering a 24-hour day · five activity heads · hours to the nearest half
+    </p>
+  </div>
+
+  <div class="dt-toolbar">
+    <div class="stepper-ctrl">
+      <button
+        type="button"
+        class="iconbtn"
+        aria-label="Previous day"
+        (click)="step(-1)"
+      >
+        <span class="icon" aria-hidden="true">chevron_left</span>
+      </button>
+      <span class="lbl">{{ day() | date: 'EEE · d MMM y' }}</span>
+      <button
+        type="button"
+        class="iconbtn"
+        aria-label="Next day"
+        [disabled]="atToday"
+        (click)="step(1)"
+      >
+        <span class="icon" aria-hidden="true">chevron_right</span>
+      </button>
+    </div>
+
+    <button
+      type="button"
+      class="btn"
+      [disabled]="saving() || submitted()"
+      (click)="copyYesterday()"
+    >
+      <span class="icon" aria-hidden="true">content_copy</span>
+      Copy yesterday
+    </button>
+
+    <button
+      type="button"
+      class="btn primary"
+      [disabled]="saving() || submitted() || dayTotal() !== 24"
+      [attr.title]="ledger()?.submit_blocked_reason"
+      (click)="submitDay()"
+    >
+      <span class="icon" aria-hidden="true">task_alt</span>
+      {{ submitted() ? 'Submitted' : 'Submit day' }}
+    </button>
+  </div>
+</div>
+
+@if (error(); as message) {
+  <div class="notice" role="alert">
+    <span class="icon" aria-hidden="true">info</span>
+    {{ message }}
+  </div>
+}
+
+@switch (state()) {
+  @case ('loading') {
+    <p class="loading-line">Loading today’s time sheet…</p>
+  }
+
+  @case ('error') {
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">info</span>
+      Could not load today’s time sheet.
+      <button type="button" class="btn ghost" (click)="load()">Retry</button>
+    </div>
+  }
+
+  @case ('data') {
+    @if (ledger(); as l) {
+      <div class="ledger-card">
+        <!-- Metrics strip -->
+        <div class="ledger-metrics">
+          @for (m of l.metrics; track m.key) {
+            <div>
+              <div class="lbl">
+                @if (m.key === 'accounted' && l.unaccounted_hours > 0) {
+                  <span class="dot" aria-hidden="true"></span>
+                }
+                {{ m.label }}
+              </div>
+              <div class="val">
+                {{ m.value }}<span class="unit">{{ m.unit }}</span>
+              </div>
+              <div class="sub" [class.warn]="m.tone === 'warn'">{{ m.sub }}</div>
+            </div>
+          }
+        </div>
+
+        <!-- Day band. Flex weights are the slot durations, straight from the
+             server, so the band cannot be drawn out of scale. -->
+        <div class="band-head">
+          <h4 style="margin:0;padding:0;border:0">Day at a glance</h4>
+          <span class="cap">Chronological · 5 am to 5 am</span>
+        </div>
+        <div class="day-band">
+          @for (s of l.slots; track s.key) {
+            <div class="track" [style.flex]="s.weight" [attr.aria-label]="s.label">
+              @for (seg of s.mix; track $index) {
+                <span
+                  class="seg"
+                  [class.hatch]="seg.activity === null"
+                  [style]="segStyle(seg)"
+                  [attr.title]="seg.label + ' · ' + seg.hours + ' h'"
+                ></span>
+              }
+            </div>
+          }
+        </div>
+        <div class="band-ticks" aria-hidden="true">
+          @for (s of l.slots; track s.key) {
+            <div [style.flex]="s.weight">{{ s.tick }}</div>
+          }
+        </div>
+
+        <!-- Legend. Text and colour together — never colour alone. -->
+        <div class="legend">
+          @for (item of l.legend; track item.label) {
+            <span [class.unaccounted]="item.activity === null">
+              @if (item.colour) {
+                <i [style.background]="item.colour" aria-hidden="true"></i>
+              } @else {
+                <i class="hatch-swatch" aria-hidden="true"></i>
+              }
+              {{ item.label }} · {{ item.hours }} h
+            </span>
+          }
+        </div>
+
+        <!-- The table: six slot rows × five activity columns. -->
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th class="slot-col">
+                <span class="lbl">Slot</span>
+              </th>
+              @for (a of l.activities; track a.key) {
+                <th>
+                  <span class="rule" [style.background]="a.colour" aria-hidden="true"></span>
+                  <span class="lbl">{{ a.label }}</span>
+                </th>
+              }
+              <th><span class="lbl">Logged</span></th>
+              <th class="mix-col"><span class="lbl">Mix</span></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (s of l.slots; track s.key) {
+              <tr>
+                <td class="slot-col">
+                  <div class="slot-name">
+                    @if (s.icon) {
+                      <span class="icon" aria-hidden="true">{{ s.icon }}</span>
+                    }
+                    {{ s.label }}
+                  </div>
+                  <div class="slot-cap">{{ s.capacity_hours }} h capacity</div>
+                  <span
+                    class="slot-chip"
+                    [class.good]="slotTotal(s) === s.capacity_hours"
+                    [class.warn]="slotTotal(s) < s.capacity_hours && slotTotal(s) > 0"
+                    [class.risk]="slotTotal(s) > s.capacity_hours"
+                    [class.neutral]="slotTotal(s) === 0"
+                  >
+                    @if (slotTotal(s) === 0) {
+                      Empty
+                    } @else if (slotTotal(s) > s.capacity_hours) {
+                      {{ slotTotal(s) - s.capacity_hours }} h over
+                    } @else if (slotTotal(s) < s.capacity_hours) {
+                      {{ s.capacity_hours - slotTotal(s) }} h open
+                    } @else {
+                      Balanced
+                    }
+                  </span>
+                </td>
+
+                @for (a of l.activities; track a.key) {
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      [max]="s.capacity_hours"
+                      [disabled]="submitted()"
+                      [value]="cellValue(s, a.key) || ''"
+                      [attr.aria-label]="s.label + ' · ' + a.label + ' hours'"
+                      (input)="onCellInput(s, a.key, $any($event.target).value)"
+                    />
+                  </td>
+                }
+
+                <td class="logged">
+                  {{ slotTotal(s) }}<span class="of">/{{ s.capacity_hours }}</span>
+                </td>
+
+                <td class="mix-col">
+                  <div class="mix">
+                    @for (seg of s.mix; track $index) {
+                      <span
+                        class="seg"
+                        [class.hatch]="seg.activity === null"
+                        [style]="segStyle(seg)"
+                      ></span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+
+            <tr class="total-row">
+              <td class="slot-col">Day total</td>
+              @for (a of l.activities; track a.key) {
+                <td class="logged">
+                  {{ columnTotal(a.key) }}
+                </td>
+              }
+              <td class="logged">
+                {{ dayTotal() }}<span class="of">/24</span>
+              </td>
+              <td class="mix-col"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="footbar">
+          @if (submitted()) {
+            <span class="chip good">
+              <span class="icon" aria-hidden="true">check_circle</span>
+              Submitted — this day is closed
+            </span>
+          } @else {
+            @if (ledger()?.submit_blocked_reason; as reason) {
+              <span class="chip warn">
+                <span class="icon" aria-hidden="true">pending</span>
+                {{ reason }}
+              </span>
+            }
+            <button
+              type="button"
+              class="btn"
+              [disabled]="!dirty() || saving()"
+              (click)="save()"
+            >
+              <span class="icon" aria-hidden="true">save</span>
+              {{ saving() ? 'Saving…' : 'Save draft' }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+  }
+}

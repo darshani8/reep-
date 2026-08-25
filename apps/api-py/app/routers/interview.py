@@ -83,7 +83,7 @@ from sqlalchemy.exc import IntegrityError
 from .. import conversations as convo
 from ..config import settings
 from ..db import SessionLocal, engine
-from ..deps import get_current_session, get_ws_session
+from ..identity import get_current_session, get_ws_session
 from ..interview_audio import recorder_for
 from ..interview_matrix import Specialization, get_specialization
 from ..interview_relay import (

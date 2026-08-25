@@ -11,7 +11,7 @@ What they pin, in order of what would hurt most if it broke:
   1. THE SESSION IS THE SAME SESSION. Constraint 2 of the brief: Google
      authenticates, it does not get a session mechanism of its own. The cookie
      name, attributes and claim KEYS must be indistinguishable from the ones
-     POST /api/auth/login sets, because app/deps.py, require_mentor,
+     POST /api/auth/login sets, because app/identity.py, require_mentor,
      _assert_can_access_student and the interview WebSocket all read them and
      none of them was changed.
   2. THE ROSTER IS THE ACCESS CONTROL. A perfectly valid, Google-verified

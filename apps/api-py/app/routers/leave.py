@@ -31,7 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from ..models.leave import LeaveDecision, LeaveRequest, LeaveStatus
 from ..models.user import Student
 # _assert_can_access_student is private to mentor.py on purpose, and importing it

@@ -23,7 +23,7 @@ ONE SESSION, TWO DOORS. Both sign-in paths end in the same three lines:
 `_record_login`, `_payload_for`, `_issue_session`. The cookie is the same
 httpOnly `reep_session`, signed the same way, carrying the same camelCase claims
 (userId/email/name/role/studentId?/mentorId?) that the Next.js app minted and
-that every consumer still reads — app/deps.py, require_mentor,
+that every consumer still reads — app/identity.py, require_mentor,
 _assert_can_access_student, the WebSocket auth in app/routers/interview.py, and
 the Angular `SessionPayload`. Google authenticates; it does not authorise, and it
 does not get a session mechanism of its own. Nothing downstream can tell which
@@ -86,7 +86,7 @@ from sqlalchemy.orm import Session
 from .. import google_auth
 from ..config import settings
 from ..db import get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from ..models.user import LoginDay, User
 from ..schemas.auth import LoginRequest, SessionUser
 from ..security import (
@@ -156,7 +156,7 @@ def _payload_for(user: User) -> dict:
     # logged out. app/security.py reads an absent claim as version 0 — it has to,
     # or the deploy that added the column would sign everyone out — so writing
     # `tokenVersion: 0` would say exactly nothing at the cost of putting a new
-    # key in the claim set that app/deps.py, the interview WebSocket, the Angular
+    # key in the claim set that app/identity.py, the interview WebSocket, the Angular
     # `SessionPayload` and tests/test_google_callback.py all describe as the
     # contract. The claim appears the moment it means something.
     if user.token_version:

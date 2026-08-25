@@ -242,7 +242,7 @@ services:
   # purge_expired and redact_expired_runs were deliberately wired to nothing —
   # "they delete student data on a clock, which is a deployment decision" — and
   # this service is that decision being made: once a day, first run at start,
-  # via the `python -m app.reap` seam. Same image as the api, so retention and
+  # via the `python -m app.retention_job` seam. Same image as the api, so retention and
   # the code whose promises it keeps can never skew versions.
   retention:
     build:
@@ -268,9 +268,9 @@ services:
       # contract), and hard-delete rows while the recordings live on in the
       # api's volume — undiscoverable, and therefore undeletable.
       - reep_interview_audio:/var/reep/interview-audio
-    # A failed run logs, exits non-zero, and is retried tomorrow — app/reap.py
+    # A failed run logs, exits non-zero, and is retried tomorrow — app/retention_job.py
     # owns making the failure loud; this loop only owns the clock.
-    command: ["sh", "-c", "while true; do python -m app.reap; sleep 86400; done"]
+    command: ["sh", "-c", "while true; do python -m app.retention_job; sleep 86400; done"]
     deploy:
       resources:
         limits: { cpus: "1", memory: 512M }

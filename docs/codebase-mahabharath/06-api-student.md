@@ -75,7 +75,7 @@ The `tags=["student"]` value is what groups all 40 operations under one heading 
 There is no router-level dependency and there is no `require_student` anywhere in the
 codebase. Authorisation is assembled per handler out of two pieces.
 
-**Layer 1 — authentication** is the one function in `deps.py`:
+**Layer 1 — authentication** is the one function in `identity.py`:
 
 ```python
 def get_current_session(request: Request) -> dict:
@@ -86,7 +86,7 @@ def get_current_session(request: Request) -> dict:
     return payload
 ```
 
-— [app/deps.py:8-13](../../apps/api-py/app/deps.py#L8-L13). Every handler in `student.py` takes
+— [app/identity.py:8-13](../../apps/api-py/app/identity.py#L8-L13). Every handler in `student.py` takes
 `session: dict = Depends(get_current_session)` — as does every handler in `leave.py`, and
 every `registration.py` handler except the public `submit` (§7) — so a missing or invalid
 `reep_session` cookie is a **401** before any handler body runs. (Mechanism: Chapter 5, §5.)
@@ -100,8 +100,8 @@ function — which `assistant_tools.py` does, §6.7 — bypasses the dependency 
 must be handed a session by keyword.
 
 > **Where the `require_*` family actually lives.** AGENTS.md points at
-> "`require_*` dependencies in `apps/api-py/app/deps.py` / the routers", which reads as if
-> `deps.py` held them. It does not: `deps.py` is 13 lines and contains only
+> "`require_*` dependencies in `apps/api-py/app/identity.py` / the routers", which reads as if
+> `identity.py` held them. It does not: `identity.py` is 13 lines and contains only
 > `get_current_session`. `require_mentor` lives at
 > [app/routers/mentor.py:31](../../apps/api-py/app/routers/mentor.py#L31) and `require_director`
 > at [app/routers/mentor.py:233](../../apps/api-py/app/routers/mentor.py#L233), which makes
@@ -263,7 +263,7 @@ these before reading §2.
 - **`db.get(Model, pk)`** is a **primary-key-only** lookup. It consults the session's
   identity map before touching the database and it cannot filter on any other column. That
   is why `/profile` must use a filtered `select` on `StudentProfile.student_id` — that
-  column is a unique FK, not the primary key ([app/models/profile.py:25-28](../../apps/api-py/app/models/profile.py#L25-L28)) —
+  column is a unique FK, not the primary key ([app/models/student_profile.py:25-28](../../apps/api-py/app/models/student_profile.py#L25-L28)) —
   while `/academics` can write `db.get(AcademicGap, student_id)`, because on that table
   `student_id` *is* the primary key, as its own comment says: `# One row per student —
   student_id IS the primary key.`
@@ -396,11 +396,11 @@ because the columns are JSONB blobs of free shape). Every JSONB field is defensi
 coalesced — `education=prof.education or []` — so a legacy NULL renders as `[]`.
 
 `StudentProfile` has twenty columns, so **three are withheld**: the row's own primary key
-`id` ([app/models/profile.py:25](../../apps/api-py/app/models/profile.py#L25)) — the profile
+`id` ([app/models/student_profile.py:25](../../apps/api-py/app/models/student_profile.py#L25)) — the profile
 carries a uuid PK distinct from `student_id`, which is exactly why the lookup here is a
 filtered `select` on the unique FK rather than `db.get` (§1.5) — plus `photo_upload_id`
-([profile.py:51](../../apps/api-py/app/models/profile.py#L51)) and `updated_at`
-([profile.py:54](../../apps/api-py/app/models/profile.py#L54)).
+([profile.py:51](../../apps/api-py/app/models/student_profile.py#L51)) and `updated_at`
+([profile.py:54](../../apps/api-py/app/models/student_profile.py#L54)).
 
 **`GET /results`** orders by `SemesterResult.semester` **ascending** — chronological, and
 semester number is the only sort key; `published_on` is never read. Each row carries
@@ -1262,7 +1262,7 @@ that encode "still open"; `mentor_confirmed` is read-only here — its only writ
 
 ### 5.5 The upload chain, and the confirmed defect
 
-The store is `app/filestore.py` (77 lines), and its docstring is the rationale:
+The store is `app/document_store.py` (77 lines), and its docstring is the rationale:
 
 ```
 - The type is decided by MAGIC BYTES, not the client-sent name or Content-Type.
@@ -1272,11 +1272,11 @@ The store is `app/filestore.py` (77 lines), and its docstring is the rationale:
   the store or overwrite another file. Reads reject any separator in the name.
 ```
 
-— [app/filestore.py:7-11](../../apps/api-py/app/filestore.py#L7-L11). Only PDF, PNG and JPEG are
+— [app/document_store.py:7-11](../../apps/api-py/app/document_store.py#L7-L11). Only PDF, PNG and JPEG are
 accepted — "the formats a mentor reviews (marksheets, certificates, photos). Max 10 MB,
-matching the UI copy" ([filestore.py:13-14](../../apps/api-py/app/filestore.py#L13-L14)). That
+matching the UI copy" ([document_store.py:13-14](../../apps/api-py/app/document_store.py#L13-L14)). That
 last clause is a real cross-stack coupling: `MAX_BYTES = 10 * 1024 * 1024`
-([filestore.py:30](../../apps/api-py/app/filestore.py#L30)) is duplicated by hand in the Angular
+([document_store.py:30](../../apps/api-py/app/document_store.py#L30)) is duplicated by hand in the Angular
 component — `const MAX_BYTES = 10 * 1024 * 1024; // 10 MB — matches the server cap.`
 ([uploads.component.ts:69](../../apps/web/src/app/features/student/uploads/uploads.component.ts#L69))
 — with a comment instead of a shared constant.
@@ -1291,10 +1291,10 @@ validation chain, in order:
 |---|---|---|
 | `UploadKind(kind)` | [1363-1368](../../apps/api-py/app/routers/student.py#L1363-L1368) | 422 `"Unknown upload kind."` |
 | `content = await file.read()` | [1369](../../apps/api-py/app/routers/student.py#L1369) | — (whole body in memory) |
-| empty check | [filestore.py:52-53](../../apps/api-py/app/filestore.py#L52-L53) | 422 `"The file is empty."` |
-| size check | [filestore.py:54-55](../../apps/api-py/app/filestore.py#L54-L55) | 422 `"File too large — the limit is 10 MB."` |
-| magic-byte sniff | [filestore.py:37-41](../../apps/api-py/app/filestore.py#L37-L41) | 422 `"Unsupported file type — only PDF, PNG and JPEG are accepted."` |
-| write to disk under a random name | [filestore.py:57-58](../../apps/api-py/app/filestore.py#L57-L58) | — |
+| empty check | [document_store.py:52-53](../../apps/api-py/app/document_store.py#L52-L53) | 422 `"The file is empty."` |
+| size check | [document_store.py:54-55](../../apps/api-py/app/document_store.py#L54-L55) | 422 `"File too large — the limit is 10 MB."` |
+| magic-byte sniff | [document_store.py:37-41](../../apps/api-py/app/document_store.py#L37-L41) | 422 `"Unsupported file type — only PDF, PNG and JPEG are accepted."` |
+| write to disk under a random name | [document_store.py:57-58](../../apps/api-py/app/document_store.py#L57-L58) | — |
 
 Every `UploadRejected` message is passed through verbatim as the API `detail` via
 `str(exc)` ([1373](../../apps/api-py/app/routers/student.py#L1373)), and the client renders it as
@@ -1345,10 +1345,10 @@ is indistinguishable from a deleted file.
 
 **`DELETE /uploads/{upload_id}`** is `204` and its docstring states the ordering as a
 deliberate choice: "Delete one of the student's own uploads — the stored bytes then the
-row." `filestore_delete(upload.stored_name)` runs first, then `db.delete` and `db.commit`
+row." `document_store_delete(upload.stored_name)` runs first, then `db.delete` and `db.commit`
 ([1427-1429](../../apps/api-py/app/routers/student.py#L1427-L1429)). If the commit fails, the
 bytes are gone and the surviving row's `/file` returns "Stored file is missing." — a visible
-dead row rather than an invisible orphan file. `filestore.delete` uses
+dead row rather than an invisible orphan file. `document_store.delete` uses
 `unlink(missing_ok=True)`, so a double DELETE is idempotent on disk.
 
 Three checks the handler deliberately does **not** make: it ignores `upload.status`, so a
@@ -1610,7 +1610,7 @@ out explicitly), sets the flag, commits, and returns a bare `{"hidden": body.hid
 **echoing the request value, not the re-read row**, and with no `response_model`
 ([1748-1763](../../apps/api-py/app/routers/student.py#L1748-L1763)). Two concurrent first-time PUTs
 would race into an `IntegrityError` against the unique `student_profiles.student_id`
-([app/models/profile.py:26-28](../../apps/api-py/app/models/profile.py#L26-L28)).
+([app/models/student_profile.py:26-28](../../apps/api-py/app/models/student_profile.py#L26-L28)).
 
 ### 6.3 `GET /next-actions` — the complete rule set
 
@@ -1890,7 +1890,7 @@ router-level dependency would not protect that path.
 
 Both are request-then-decision flows, both are mounted with `prefix="/api"`
 ([main.py:81-82](../../apps/api-py/app/main.py#L81-L82)), and both import their role guards from
-`mentor.py` rather than `deps.py`. Note the prefixes are inconsistent in number — singular
+`mentor.py` rather than `identity.py`. Note the prefixes are inconsistent in number — singular
 `/register` ([registration.py:29](../../apps/api-py/app/routers/registration.py#L29)), plural
 `/leaves` ([leave.py:21](../../apps/api-py/app/routers/leave.py#L21)) — and the module names invert
 that. Both collection routes are declared `@router.post("")`, an empty path, so the route is
@@ -2227,7 +2227,7 @@ Collapsing "does not exist" into "not yours" means a uuid-guessing probe learns 
 Contrast the meanings that *are* distinguished: **401 = not signed in; 403 = signed in but
 not a student; 404 = not yours or not there; 409 = the resource is in the wrong state.**
 (The one test that touches this asserts `in (401, 403)` with a comment claiming 403 is the
-convention — `deps.py:12` raises 401, so the comment is wrong and the loose assertion hides
+convention — `identity.py:12` raises 401, so the comment is wrong and the loose assertion hides
 it: [tests/test_auth_rbac.py:67-69](../../apps/api-py/tests/test_auth_rbac.py#L67-L69).)
 
 **There is no pagination anywhere.** Not one endpoint in these three routers accepts an

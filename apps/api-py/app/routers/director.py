@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from datetime import datetime
 
 from ..models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity

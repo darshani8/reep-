@@ -6,8 +6,8 @@ list them, download them and delete them. Everything here is scoped to
 session["userId"]; there is no cross-staff read, and rule 2 is untouched because
 no student is ever named.
 
-Files go through the same hardened filestore as student uploads (magic-byte
-sniffing, 10 MB cap, random stored name). filestore's contract says any second
+Files go through the same hardened document_store as student uploads (magic-byte
+sniffing, 10 MB cap, random stored name). document_store's contract says any second
 writer of save_bytes must apply its own volume quota or the quota is decoration,
 so this router enforces a per-user count/bytes ceiling before reading the body —
 smaller than the student one, because a staff member's certificate shelf is a
@@ -22,15 +22,15 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_current_session
-from ..filestore import UploadRejected, content_disposition, delete as filestore_delete
-from ..filestore import read_bytes, save_bytes
+from ..identity import get_current_session
+from ..document_store import UploadRejected, content_disposition, delete as document_store_delete
+from ..document_store import read_bytes, save_bytes
 from ..models.staff_upskilling import StaffUpskillingCertificate
 from .mentor import require_mentor
 
 router = APIRouter(prefix="/staff/upskilling", tags=["staff-upskilling"])
 
-# Per-STAFF-user quota (same reasoning as filestore's per-student one): far above
+# Per-STAFF-user quota (same reasoning as document_store's per-student one): far above
 # real use, far below "one account fills the disk".
 MAX_CERTIFICATES_PER_USER = 20
 MAX_CERTIFICATE_BYTES_PER_USER = 100 * 1024 * 1024  # 100 MB
@@ -166,7 +166,7 @@ def delete_certificate(
     cert = db.get(StaffUpskillingCertificate, cert_id)
     if cert is None or cert.user_id != session["userId"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")
-    filestore_delete(cert.stored_name)
+    document_store_delete(cert.stored_name)
     db.delete(cert)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

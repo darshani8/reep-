@@ -40,7 +40,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import knowledge
-from .models.profile import StudentProfile
+from .models.student_profile import StudentProfile
 from .routers import student as student_ep
 
 

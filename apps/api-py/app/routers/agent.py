@@ -104,7 +104,7 @@ from .. import knowledge
 from ..ai import orchestrator
 from ..ai.llm import complete_chat, llm_config, stream_chat
 from ..db import SessionLocal, get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from ..models.agent_run import AgentRun, AgentRunStatus
 from ..models.conversation import Message
 from ..models.feedback import AssistantFeedback, FeedbackRating

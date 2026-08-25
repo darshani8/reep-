@@ -346,7 +346,7 @@ appears nowhere. The rule is stated in a docstring:
 > No ORM relationship back to Student is declared on purpose: callers resolve a
 > profile by student_id directly, which keeps the cross-module mapper simple.
 
-— [profile.py:4-5](../../apps/api-py/app/models/profile.py#L4-L5). That is why 26 of the 31
+— [profile.py:4-5](../../apps/api-py/app/models/student_profile.py#L4-L5). That is why 26 of the 31
 modules declare no relationships at all despite having foreign keys: every caller writes
 an explicit `select(X).where(X.student_id == student_id)`. In particular **`Mentor` has no
 `students` collection** — the mentee set is only ever reached through the raw column
@@ -469,7 +469,7 @@ Login materialises the link into the session JWT: `_payload_for(user)` always se
 `userId/email/name/role`, and adds `studentId` only when `user.student is not None` and
 `mentorId` only when `user.mentor is not None`
 ([routers/auth.py:29-40](../../apps/api-py/app/routers/auth.py#L29-L40)). `get_current_session`
-merely decodes that cookie ([app/deps.py:8-13](../../apps/api-py/app/deps.py#L8-L13)), so the
+merely decodes that cookie ([app/identity.py:8-13](../../apps/api-py/app/identity.py#L8-L13)), so the
 whole scope decision runs off a payload **frozen at login**: creating a `mentors` row for
 an already-signed-in MENTOR grants no scope until they sign in again.
 
@@ -548,7 +548,7 @@ A Mentor row carries **no data of its own**; it exists purely as an identity anc
 > `datetime.now(timezone.utc)` for `last_login_at` at
 > [auth.py:54-55](../../apps/api-py/app/routers/auth.py#L54-L55).
 
-**`student_profiles`** — [profile.py:22-56](../../apps/api-py/app/models/profile.py#L22-L56).
+**`student_profiles`** — [profile.py:22-56](../../apps/api-py/app/models/student_profile.py#L22-L56).
 One row per student, enforced by `student_id` (VARCHAR NOT NULL, FK CASCADE, `unique=True`).
 Then:
 
@@ -558,12 +558,12 @@ Then:
 - **Four NOT NULL Booleans**, three of them under the comment "Placement policy:
   placement_eligible is ADMIN-set (read-only to the student); the interest flags are the
   student's own": `placement_eligible`, `interested_in_jobs`, `interested_in_internships`
-  all default `True` ([profile.py:40-42](../../apps/api-py/app/models/profile.py#L40-L42)), and
+  all default `True` ([profile.py:40-42](../../apps/api-py/app/models/student_profile.py#L40-L42)), and
   `leaderboard_opt_out` defaults `False`
-  ([profile.py:52](../../apps/api-py/app/models/profile.py#L52)). None has a `server_default`.
+  ([profile.py:52](../../apps/api-py/app/models/student_profile.py#L52)). None has a `server_default`.
 - **Five NOT NULL JSONB list columns**, each `default=list`: `education`, `experience`,
   `projects`, `skills`, `achievements`
-  ([profile.py:45-49](../../apps/api-py/app/models/profile.py#L45-L49)).
+  ([profile.py:45-49](../../apps/api-py/app/models/student_profile.py#L45-L49)).
 - `photo_upload_id` (VARCHAR, nullable — a plain String id, **not** an FK).
 - `updated_at` (TIMESTAMPTZ NOT NULL, `server_default=func.now()`, `onupdate=func.now()`).
 
@@ -1004,10 +1004,10 @@ Three tables interlock. `uploads` holds file **metadata only**:
 
 `mime_type` and `size_bytes` are **server-determined** — sniffed from magic bytes by
 `_sniff()` and measured with `len(content)` in
-[app/filestore.py:37-59](../../apps/api-py/app/filestore.py#L37-L59) — so they are trustworthy
+[app/document_store.py:37-59](../../apps/api-py/app/document_store.py#L37-L59) — so they are trustworthy
 columns, unlike a client-supplied Content-Type. `stored_name` is a random `uuid4().hex +
 ext` and UNIQUE: "Filename on disk. Random, so an uploaded name can never traverse a path"
-([upload.py:57](../../apps/api-py/app/models/upload.py#L57)). See Chapter 2 for the filestore
+([upload.py:57](../../apps/api-py/app/models/upload.py#L57)). See Chapter 2 for the document_store
 itself.
 
 `skill_claims` is the review workflow that turns evidence into a verified skill. It
@@ -1577,7 +1577,7 @@ with CASCADE. The other five are plain Strings:
 | `student_skills.evidence_upload_id` | [skill.py:61](../../apps/api-py/app/models/skill.py#L61) |
 | `placement_offers.offer_letter_upload_id` | [offer.py:73](../../apps/api-py/app/models/offer.py#L73) |
 | `placement_offers.loi_upload_id` | [offer.py:74](../../apps/api-py/app/models/offer.py#L74) |
-| `student_profiles.photo_upload_id` | [profile.py:51](../../apps/api-py/app/models/profile.py#L51) |
+| `student_profiles.photo_upload_id` | [profile.py:51](../../apps/api-py/app/models/student_profile.py#L51) |
 | `semester_results.marksheet_upload_id` | [academics.py:43](../../apps/api-py/app/models/academics.py#L43) |
 
 Deleting an upload therefore cascades away its claims and leaves those five columns
@@ -1676,8 +1676,8 @@ each of those with an index of its own).
 | `ix_maillog_recipient_sent` | `mail_logs` | `recipient, sent_at` | [mail.py:41](../../apps/api-py/app/models/mail.py#L41) |
 | `ix_mentornote_student_created` | `mentor_notes` | `student_id, created_at` | [mentor_note.py:30](../../apps/api-py/app/models/mentor_note.py#L30) |
 | `ix_mentornote_student_meeting` | `mentor_notes` | `student_id, meeting_at` | [mentor_note.py:31](../../apps/api-py/app/models/mentor_note.py#L31) |
-| `ix_mock_student_taken` | `mock_attempts` | `student_id, taken_on` | [mock.py:28](../../apps/api-py/app/models/mock.py#L28) |
-| `ix_mock_type_taken` | `mock_attempts` | `type, taken_on` | [mock.py:29](../../apps/api-py/app/models/mock.py#L29) |
+| `ix_mock_student_taken` | `mock_attempts` | `student_id, taken_on` | [mock.py:28](../../apps/api-py/app/models/mock_test.py#L28) |
+| `ix_mock_type_taken` | `mock_attempts` | `type, taken_on` | [mock.py:29](../../apps/api-py/app/models/mock_test.py#L29) |
 | `ix_offer_student_status` | `placement_offers` | `student_id, status` | [offer.py:49](../../apps/api-py/app/models/offer.py#L49) |
 | `ix_regrule_enabled_priority` | `registration_rules` | `enabled, priority` | [registration.py:52](../../apps/api-py/app/models/registration.py#L52) |
 | `ix_registration_status_created` | `registrations` | `status, created_at` | [registration.py:77](../../apps/api-py/app/models/registration.py#L77) |

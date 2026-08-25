@@ -2,7 +2,7 @@
 uploads, mirroring the student certificate-proof flow but keyed on the USER, not
 a Student row (staff have none).
 
-Bytes live in the same hardened filestore as student uploads (magic-byte
+Bytes live in the same hardened document_store as student uploads (magic-byte
 sniffing, random stored_name); only metadata is here. No review workflow: a
 staff member's certificate is their own record, not evidence awaiting a mentor's
 verdict, so there is no status column to invent states for.

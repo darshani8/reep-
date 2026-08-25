@@ -1968,7 +1968,7 @@ that the list above does not cover):
   cross-process grep work: the worker's JSON keys are literally the `In` model's field
   names, so `conversation_id` or `provider_turn_id` finds both ends of the wire in one
   search across two languages.
-- **Auth dependencies carry the `require_*` prefix**, the same convention `app/deps.py` uses
+- **Auth dependencies carry the `require_*` prefix**, the same convention `app/identity.py` uses
   for user sessions: `require_voice_worker`
   ([voice.py:65](apps/api-py/app/routers/voice.py#L65)) is the process-to-process twin of
   `require_mentor` / `require_director`.

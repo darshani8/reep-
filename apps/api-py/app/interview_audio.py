@@ -1,4 +1,4 @@
-"""On-disk store for interview audio — a SIBLING of app/filestore.py, never a reuse of it.
+"""On-disk store for interview audio — a SIBLING of app/document_store.py, never a reuse of it.
 
 Interview Engine v3 §8.4 argued, at length and correctly, that audio should not
 be captured in that pass. The product owner has since required a stored
@@ -40,9 +40,9 @@ answers are the reason each design decision below looks paranoid:
     what the relay managed to write down before it died, and the filesystem is
     the authority on which files exist.
 
-3.  **"filestore.py cannot be reused — it decides type by magic bytes and
+3.  **"document_store.py cannot be reused — it decides type by magic bytes and
     accepts only PDF/PNG/JPEG, and admitting audio loosens the one control that
-    makes it trustworthy."** Also correct, which is why filestore.py is not
+    makes it trustworthy."** Also correct, which is why document_store.py is not
     touched, not imported here, and not taught about audio. This store has its
     own root directory, its own naming rule and its own validation. What IS
     carried over is its hardening, because those lessons were paid for once:
@@ -50,7 +50,7 @@ answers are the reason each design decision below looks paranoid:
     string ever becomes a path component, and the store is the only code that
     knows where the bytes live.
 
-    ONE DELIBERATE DIVERGENCE. filestore names files randomly because their
+    ONE DELIBERATE DIVERGENCE. document_store names files randomly because their
     names come from a student; ours are named for the `interview_sessions.id`
     that owns them — a server-generated uuid4 hex that no client ever supplies,
     and still validated on the way in. The reason is deletion: if the row's
@@ -368,7 +368,7 @@ def _store_has_headroom() -> bool:
 def _safe_stem(stem: str) -> str:
     """Validate a stored name, or refuse.
 
-    filestore.read_bytes' guard, tightened from a blocklist of separators to an
+    document_store.read_bytes' guard, tightened from a blocklist of separators to an
     ALLOWLIST of characters. A blocklist has to anticipate every separator the
     platform honours; this has to anticipate nothing, and there is no legitimate
     stored name here that is not an id we generated.
@@ -452,7 +452,7 @@ def delete_session_audio(
     Both the recorded path AND the session id are tried, and they are usually the
     same string. `audio_path` defaults to None because the session id alone IS
     enough — it is the file's name, which is the whole reason §8.4's naming rule
-    diverges from filestore's. Pass the row's path anyway when you have one: the
+    diverges from document_store's. Pass the row's path anyway when you have one: the
     two differ exactly when the finalizing UPDATE failed and the row never
     learned its path, and a caller that thinks about that case is a caller who
     will keep passing it if the naming rule ever changes.

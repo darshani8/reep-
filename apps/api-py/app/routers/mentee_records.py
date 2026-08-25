@@ -35,7 +35,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from ..db import get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from ..models.time_ledger import DAY_CAPACITY_HALVES, LedgerDayStatus, TimeLedgerDay
 from .mentor import _assert_can_access_student
 from .student_programme import (

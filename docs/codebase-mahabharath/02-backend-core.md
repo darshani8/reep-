@@ -11,7 +11,7 @@ sixty-eight — because the conventions here are conventions, not lint rules, an
 in the toolchain will tell you when you have broken one.
 
 **In scope.** `app/db.py` end to end; `app/models/__init__.py` as Alembic's input;
-`app/filestore.py`; `app/mailer.py` and `app/models/mail.py`; `app/resume_pdf.py`;
+`app/document_store.py`; `app/mailer.py` and `app/models/mail.py`; `app/resume_pdf.py`;
 the shape of `app/schemas/` and the inline-schema convention across the nine routers;
 `HTTPException` and status-code semantics; logging; `tests/conftest.py`; and the backend
 naming rulebook.
@@ -543,7 +543,7 @@ would fail, not merely be redundant. Treat the sentence as historical.
 
 ---
 
-## 3. File storage: `app/filestore.py`
+## 3. File storage: `app/document_store.py`
 
 77 lines, one exception class, and **five functions** — three public (`save_bytes`,
 `read_bytes`, `delete`) and two private (`_sniff`, `_store_dir`) — with no database import
@@ -592,7 +592,7 @@ The docstring states them, and attributes them to the retired Next.js store:
   the store or overwrite another file. Reads reject any separator in the name.
 ```
 
-— [apps/api-py/app/filestore.py:7-11](../../apps/api-py/app/filestore.py#L7-L11)
+— [apps/api-py/app/document_store.py:7-11](../../apps/api-py/app/document_store.py#L7-L11)
 
 ### 3.2 Type detection
 
@@ -604,11 +604,11 @@ _MAGIC: list[tuple[bytes, str, str]] = [
 ]
 ```
 
-— [apps/api-py/app/filestore.py:24-28](../../apps/api-py/app/filestore.py#L24-L28)
+— [apps/api-py/app/document_store.py:24-28](../../apps/api-py/app/document_store.py#L24-L28)
 
 `_sniff` iterates this list and returns on the first `content.startswith(magic)`, raising
 `UploadRejected("Unsupported file type — only PDF, PNG and JPEG are accepted.")` when none
-matches ([apps/api-py/app/filestore.py:37-41](../../apps/api-py/app/filestore.py#L37-L41)).
+matches ([apps/api-py/app/document_store.py:37-41](../../apps/api-py/app/document_store.py#L37-L41)).
 The comment above the table — "Order matters only in that each signature is unambiguous" —
 is accurate: no signature is a prefix of another, so first-match iteration is
 order-independent.
@@ -636,12 +636,12 @@ def save_bytes(content: bytes) -> tuple[str, str, int]:
     return stored_name, mime, len(content)
 ```
 
-— [apps/api-py/app/filestore.py:30](../../apps/api-py/app/filestore.py#L30) and
-[:50-59](../../apps/api-py/app/filestore.py#L50-L59)
+— [apps/api-py/app/document_store.py:30](../../apps/api-py/app/document_store.py#L30) and
+[:50-59](../../apps/api-py/app/document_store.py#L50-L59)
 
 All three rejections raise the single exception type
 `class UploadRejected(ValueError)`
-([apps/api-py/app/filestore.py:33-34](../../apps/api-py/app/filestore.py#L33-L34)). The
+([apps/api-py/app/document_store.py:33-34](../../apps/api-py/app/document_store.py#L33-L34)). The
 order is deliberate: because size precedes sniff, a 200 MB file gets the size message
 rather than a type message. The comparison is `>`, so exactly 10,485,760 bytes is accepted.
 
@@ -652,7 +652,7 @@ full-stopped — because they are surfaced verbatim to the student. The router d
 and the Angular uploads screen renders the server's detail directly. **Rewording an
 `UploadRejected` message changes user-visible UI copy with no frontend commit.** The
 docstring's "Max 10 MB, matching the UI copy"
-([apps/api-py/app/filestore.py:14](../../apps/api-py/app/filestore.py#L14)) is a real
+([apps/api-py/app/document_store.py:14](../../apps/api-py/app/document_store.py#L14)) is a real
 cross-stack contract held together by nothing but two constants agreeing.
 
 ### 3.4 Where files land
@@ -664,7 +664,7 @@ def _store_dir() -> Path:
     return d
 ```
 
-— [apps/api-py/app/filestore.py:44-47](../../apps/api-py/app/filestore.py#L44-L47)
+— [apps/api-py/app/document_store.py:44-47](../../apps/api-py/app/document_store.py#L44-L47)
 
 This is the only place in the module that forms a path, and it is called fresh on every
 save, read and delete — so the directory is created lazily on first use and silently
@@ -729,12 +729,12 @@ states four separate times, most sharply in the Dockerfile:
 3. **Reads and deletes refuse any separator.** Both `read_bytes` and `delete` carry a
    byte-identical guard, `if not stored_name or "/" in stored_name or "\\" in stored_name
    or ".." in stored_name: raise FileNotFoundError(stored_name)`
-   ([apps/api-py/app/filestore.py:64-65](../../apps/api-py/app/filestore.py#L64-L65),
-   [:75-76](../../apps/api-py/app/filestore.py#L75-L76)). It is duplicated, not factored,
+   ([apps/api-py/app/document_store.py:64-65](../../apps/api-py/app/document_store.py#L64-L65),
+   [:75-76](../../apps/api-py/app/document_store.py#L75-L76)). It is duplicated, not factored,
    so a fix to one must be hand-applied to the other. `read_bytes` additionally requires
    `path.is_file()` before reading; `delete` calls `.unlink(missing_ok=True)` and so
    "silently ignores a file that is already gone"
-   ([apps/api-py/app/filestore.py:73-74](../../apps/api-py/app/filestore.py#L73-L74)).
+   ([apps/api-py/app/document_store.py:73-74](../../apps/api-py/app/document_store.py#L73-L74)).
 4. **Only non-empty PDF/PNG/JPEG at most 10,485,760 bytes is ever stored.**
 5. **A student reads or deletes only their own upload**, enforced one layer up as a `404`
    rather than a `403` — see §7.
@@ -753,11 +753,11 @@ strictly stronger than a substring blacklist.
 | Condition | Raised by | HTTP result | Detail string |
 |---|---|---|---|
 | `kind` not a member of `UploadKind` | `student.create_upload` | `422` | `Unknown upload kind.` |
-| Empty body | `filestore.save_bytes` | `422` | `The file is empty.` |
-| Over 10 MB | `filestore.save_bytes` | `422` | `File too large — the limit is 10 MB.` |
-| Unrecognised magic bytes | `filestore._sniff` | `422` | `Unsupported file type — only PDF, PNG and JPEG are accepted.` |
+| Empty body | `document_store.save_bytes` | `422` | `The file is empty.` |
+| Over 10 MB | `document_store.save_bytes` | `422` | `File too large — the limit is 10 MB.` |
+| Unrecognised magic bytes | `document_store._sniff` | `422` | `Unsupported file type — only PDF, PNG and JPEG are accepted.` |
 | Upload id absent **or** owned by another student | `student.download_upload` / `delete_upload` | `404` | `Upload not found.` |
-| Row exists, bytes absent | `filestore.read_bytes` → `FileNotFoundError` | `404` | `Stored file is missing.` |
+| Row exists, bytes absent | `document_store.read_bytes` → `FileNotFoundError` | `404` | `Stored file is missing.` |
 | Caller has no `studentId` in session | `student._require_student` | `403` | `Not a student account.` |
 
 Sources: [apps/api-py/app/routers/student.py:1362-1373](../../apps/api-py/app/routers/student.py#L1362-L1373),
@@ -772,7 +772,7 @@ If the commit then fails, the row survives pointing at absent bytes and the down
 degrades to a clean `404`; the reverse order would leave orphan bytes with nothing left in
 the database to identify them.
 
-**A gap worth naming.** `filestore.py` has no tests. `apps/api-py/tests/` contains **18**
+**A gap worth naming.** `document_store.py` has no tests. `apps/api-py/tests/` contains **18**
 test modules (plus `conftest.py`, which is not one) and none of them imports it. Nothing
 asserts that an executable named `.pdf` is rejected, that 10 MB + 1 byte is refused, or that
 `read_bytes("../../etc/passwd")` raises. This is the inverse of the risk profile: the
@@ -1791,7 +1791,7 @@ book's conventions; this is the backend's contribution, in context.
 
 | Rule | Example |
 |---|---|
-| Service modules at `app/` top level are flat, `lower_snake`, and name the **artefact**, not the layer. There is no `services/` or `utils/` package | `app/filestore.py`, `app/mailer.py`, `app/resume_pdf.py`, `app/retention.py`, `app/redaction.py`, `app/conversations.py` |
+| Service modules at `app/` top level are flat, `lower_snake`, and name the **artefact**, not the layer. There is no `services/` or `utils/` package | `app/document_store.py`, `app/mailer.py`, `app/resume_pdf.py`, `app/retention.py`, `app/redaction.py`, `app/conversations.py` |
 | Router modules are singular and named for the **audience or domain noun** — never `*_router` or `*_api` | `app/routers/student.py`, `mentor.py`, `director.py`, `leave.py`, `voice.py`, `health.py` |
 | Model modules are `snake_case` nouns, **singular with two exceptions**, one concept per file, matching the registry import line exactly | `app/models/user.py`, `academic_history.py`, `job_import_run.py`, `voice_worker.py`; the exceptions are `academics.py` and `placement_criteria.py` (`criteria` is the plural of *criterion*, and the mapped class is `PlacementCriteria`) — the full list is quoted in §2 |
 | A package `__init__.py` is either a side-effect registry or empty — never a re-export façade | `app/models/__init__.py` (31 imports) vs `app/routers/__init__.py` and `app/schemas/__init__.py` (both **0 bytes**) |
@@ -1815,7 +1815,7 @@ produces no warning.
 | Testability idiom: injectable clock as a defaulted parameter | `def purge_expired(db: Session, now: datetime \| None = None)` then `now = now or _utcnow()` |
 | The FastAPI session parameter is always named `db`, typed `Session`, injected last | `db: Session = Depends(get_db)` |
 | Non-router helper functions take `db: Session` as their **first positional parameter** | `deliver_once(db, *, kind, …)`, `get_or_create(db, user_id, role)`, `purge_expired(db, now=None)` |
-| Import aliasing is used only to dodge a collision, and the alias names the source module | `from ..filestore import UploadRejected, delete as filestore_delete, read_bytes, save_bytes` ([student.py:14](../../apps/api-py/app/routers/student.py#L14)) — avoids clashing with SQLAlchemy's `delete()` |
+| Import aliasing is used only to dodge a collision, and the alias names the source module | `from ..document_store import UploadRejected, delete as document_store_delete, read_bytes, save_bytes` ([student.py:14](../../apps/api-py/app/routers/student.py#L14)) — avoids clashing with SQLAlchemy's `delete()` |
 
 Persistence-layer symbols specifically: the engine is lowercase (`engine`), the session
 factory is PascalCase because it is used as a class (`SessionLocal`), and the declarative
@@ -1862,7 +1862,7 @@ Noun plus past participle, subclassing a stdlib exception, carrying an **end-use
 message: `class UploadRejected(ValueError)` with `"Unsupported file type — only PDF, PNG and
 JPEG are accepted."` The docstring states the *conditions*, not the name:
 `"""The bytes are not an accepted file (bad type, empty, or too large)."""`
-([apps/api-py/app/filestore.py:33-34](../../apps/api-py/app/filestore.py#L33-L34)).
+([apps/api-py/app/document_store.py:33-34](../../apps/api-py/app/document_store.py#L33-L34)).
 
 ### 10.7 Loggers
 
@@ -1883,7 +1883,7 @@ Uniform across `app/`, and it is **not** "all models, then all routes":
 
 1. **Module docstring** — a design brief, not a summary. It states the rule the module
    enforces, the failure it defends against, and often an indented endpoint block.
-   `filestore.py`'s two bullet rules, `mailer.py`'s at-most-once guarantee and
+   `document_store.py`'s two bullet rules, `mailer.py`'s at-most-once guarantee and
    `health.py`'s liveness-versus-readiness table are all this shape.
 2. **Imports** — stdlib, blank, third-party (`fastapi` → `pydantic` → `sqlalchemy`), blank,
    relative `..` app imports, then relative `.` sibling imports. (`student.py` and
@@ -1949,7 +1949,7 @@ deleting one is a real change.
   linter and `apps/api-py` holds no ruff or flake8 configuration, so I describe them as
   documentary. I did not check for a repository-root linter configuration or a pre-commit
   hook; if one exists, they are live.
-- **`filestore.py`'s traversal guard and Windows drive prefixes.** A council reader verified
+- **`document_store.py`'s traversal guard and Windows drive prefixes.** A council reader verified
   on this Windows host that `Path("var/uploads") / "C:evil.txt"` evaluates to `"C:evil.txt"`
   — a name containing none of `/`, `\` or `..` — so the guard would not catch it. It is
   Windows-specific (the container deploys on Linux, where a colon is an ordinary filename

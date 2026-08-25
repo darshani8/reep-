@@ -246,12 +246,12 @@ instruction plus the absence of a feature — not the mechanism that protects ev
 Anyone adding grounding to voice must route it through `complete_chat(..., carries_student_data=True)`
 or replicate the gate deliberately.
 
-### The role guards are not dependencies, and not in `deps.py`
+### The role guards are not dependencies, and not in `identity.py`
 
-`AGENTS.md` describes "`require_*` dependencies in `apps/api-py/app/deps.py`". Both halves
+`AGENTS.md` describes "`require_*` dependencies in `apps/api-py/app/identity.py`". Both halves
 of that are wrong, and the difference matters.
 
-`app/deps.py` contains exactly one function, `get_current_session`. The role guards live in
+`app/identity.py` contains exactly one function, `get_current_session`. The role guards live in
 the routers that own their area — `require_mentor`
 ([mentor.py:31](apps/api-py/app/routers/mentor.py#L31)), `require_director`
 ([mentor.py:233](apps/api-py/app/routers/mentor.py#L233)), `require_voice_worker`

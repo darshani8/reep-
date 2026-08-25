@@ -49,7 +49,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .db import SessionLocal
 from .models.cohort import Cohort
-from .models.profile import StudentProfile
+from .models.student_profile import StudentProfile
 from .models.user import Role, Student, User
 
 # Last-resort fallback for the email domain. The configured value is

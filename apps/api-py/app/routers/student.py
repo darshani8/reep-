@@ -13,13 +13,13 @@ from datetime import date, datetime, timedelta, timezone
 
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
-from ..deps import get_current_session
-from ..filestore import (
+from ..identity import get_current_session
+from ..document_store import (
     MAX_UPLOAD_BYTES_PER_STUDENT,
     MAX_UPLOADS_PER_STUDENT,
     UploadRejected,
     content_disposition,
-    delete as filestore_delete,
+    delete as document_store_delete,
     read_bytes,
     save_bytes,
 )
@@ -31,7 +31,7 @@ from ..models.certification import Certification, CertificationProgress
 from ..models.course import Course, Enrollment, ProgressStatus
 from ..models.job import Job, JobApplication
 from ..models.lab import ActivityType, CheckInSource, LabSession, LearningMode
-from ..models.mock import MockAttempt
+from ..models.mock_test import MockAttempt
 from ..models.offer import (
     OfferChannel,
     OfferRoleType,
@@ -40,7 +40,7 @@ from ..models.offer import (
     PlacementOffer,
 )
 from ..models.placement_criteria import PlacementCriteria
-from ..models.profile import StudentProfile
+from ..models.student_profile import StudentProfile
 from ..models.resume import Resume, ResumeStatus
 from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, SkillClaim, StudentSkill
@@ -1460,7 +1460,7 @@ def create_upload(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown upload kind."
         )
 
-    # Quota before the body is buffered. filestore.MAX_BYTES caps ONE file at
+    # Quota before the body is buffered. document_store.MAX_BYTES caps ONE file at
     # 10 MB and nothing capped how many, so any authenticated student could fill
     # the uploads volume 10 MB at a time — after which every other student's
     # upload fails on a machine whose health checks all pass. The count is
@@ -1535,10 +1535,10 @@ def download_upload(
     return Response(
         content=content,
         media_type=upload.mime_type,
-        # RFC 6266 via filestore.content_disposition -- interpolating the student's own
+        # RFC 6266 via document_store.content_disposition -- interpolating the student's own
         # filename here raises UnicodeEncodeError inside Response.__init__ for any name
         # outside latin-1 (Kannada, Hindi, an emoji), 500-ing the download of a file that
-        # uploaded perfectly. See filestore.content_disposition for the full reasoning.
+        # uploaded perfectly. See document_store.content_disposition for the full reasoning.
         headers={"Content-Disposition": content_disposition(upload.original_name)},
     )
 
@@ -1555,7 +1555,7 @@ def delete_upload(
     upload = db.get(Upload, upload_id)
     if upload is None or upload.student_id != student_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
-    filestore_delete(upload.stored_name)
+    document_store_delete(upload.stored_name)
     db.delete(upload)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

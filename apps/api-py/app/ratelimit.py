@@ -37,7 +37,7 @@ from collections import deque
 from fastapi import Depends, HTTPException, status
 
 from .config import settings
-from .deps import get_current_session
+from .identity import get_current_session
 
 _WINDOW_S = 60.0
 

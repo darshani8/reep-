@@ -11,7 +11,7 @@ from giving a variable to one and not the other.
 | Web | `apps/web/Dockerfile` (node build → nginx) | nginx on :80 — the **only published port** in the stack | the API over the compose network |
 
 The API image also runs as two sidecars in `docker-compose.prod.yml`: `migrate`
-(one-shot `alembic upgrade head`) and `retention` (`python -m app.reap`, daily —
+(one-shot `alembic upgrade head`) and `retention` (`python -m app.retention_job`, daily —
 see "Backups and retention" below). Both read the same variables the `api`
 service does.
 
@@ -152,7 +152,7 @@ stamped on every interview row executed never.
 
   A backup that has never been restored is a hope, not a backup.
 
-- **`retention`** — the API image running `python -m app.reap` once a day
+- **`retention`** — the API image running `python -m app.retention_job` once a day
   (first run at start): `retention.purge_expired` walks conversations and
   interview records through soft-delete, PII-scrub and hard-delete on their
   90/180-day clocks, and `retention.redact_expired_runs` strips aged `AgentRun`

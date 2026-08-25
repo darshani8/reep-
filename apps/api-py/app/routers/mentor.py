@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from ..models.alert import Alert
 from ..models.lab import LabSession
 from ..models.mentor_note import MentorAction, MentorNote

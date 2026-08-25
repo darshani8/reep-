@@ -24,7 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from ..models.job import DegreeLevel
 from ..models.registration import Registration, RegistrationRule, RegistrationStatus
 from .mentor import require_director

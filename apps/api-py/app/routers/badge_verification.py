@@ -30,7 +30,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_current_session
+from ..identity import get_current_session
 from ..models.badge import (
     BADGE_BY_CODE,
     BADGES,
@@ -48,7 +48,7 @@ from ..models.badge import (
     StudentBadge,
     StudentBadgeStatus,
 )
-from ..filestore import content_disposition, read_bytes
+from ..document_store import content_disposition, read_bytes
 from ..models.upload import Upload
 from ..models.user import Student, User
 from .badges import BadgeDashboardOut, GrowthOut, compose_badges, compose_growth

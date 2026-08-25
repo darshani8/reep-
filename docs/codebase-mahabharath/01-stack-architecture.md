@@ -592,7 +592,7 @@ once the response is finished. That is the entire mechanism behind "one Session 
 always closed": nothing in the handler closes the session, and nothing has to.
 
 **Step 4 — the session cookie.** `Depends(get_current_session)` is six lines
-([app/deps.py:8-13](apps/api-py/app/deps.py#L8-L13)):
+([app/identity.py:8-13](apps/api-py/app/identity.py#L8-L13)):
 
 ```python
 def get_current_session(request: Request) -> dict:
@@ -788,7 +788,7 @@ All seven `@property` members on the same class, with their real consumers.
 | `voice_model_key_present` ([config.py:79-90](apps/api-py/app/config.py#L79-L90)) | `groq_api_key` **or** raw `os.getenv("GROQ_API_KEY")` | `_compute_status` ([voice.py:187](apps/api-py/app/routers/voice.py#L187)), `/ready` ([health.py:56](apps/api-py/app/routers/health.py#L56)) |
 | `livekit_ready` ([config.py:92-94](apps/api-py/app/config.py#L92-L94)) | all three `LIVEKIT_*` truthy | `_compute_status`, `/ready` |
 | `is_prod` ([config.py:100-102](apps/api-py/app/config.py#L100-L102)) | `env.lower() == "prod"` | cookie `Secure` ([auth.py:73](apps/api-py/app/routers/auth.py#L73)), `require_voice_worker` ([voice.py:82](apps/api-py/app/routers/voice.py#L82)), the `lifespan` warning ([main.py:48](apps/api-py/app/main.py#L48)), the seed refusal |
-| `uploads_path` ([config.py:104-109](apps/api-py/app/config.py#L104-L109)) | `Path(upload_dir)` or `apps/api-py/var/uploads` | `app/filestore.py` |
+| `uploads_path` ([config.py:104-109](apps/api-py/app/config.py#L104-L109)) | `Path(upload_dir)` or `apps/api-py/var/uploads` | `app/document_store.py` |
 | `allow_remote_student_data` ([config.py:111-113](apps/api-py/app/config.py#L111-L113)) | `llm_allow_remote_student_data.strip().lower() == "true"` | the egress gate ([llm.py:110](apps/api-py/app/ai/llm.py#L110)) |
 | `sqlalchemy_url` ([config.py:119-149](apps/api-py/app/config.py#L119-L149)) | normalised DSN (below) | `db.py:20`, `migrations/env.py:17` |
 
@@ -1048,7 +1048,7 @@ can reach, and nothing in the routing layer catches it. When you add a staff rou
 line of the body is the security control.
 
 > **Note for the reader.** AGENTS.md says the `require_*` dependencies live in
-> `apps/api-py/app/deps.py`. The code disagrees: `deps.py` contains exactly one function,
+> `apps/api-py/app/identity.py`. The code disagrees: `identity.py` contains exactly one function,
 > `get_current_session`. All three `require_*` guards live in routers —
 > `require_mentor` and `require_director` in `mentor.py`, `require_voice_worker` in `voice.py` —
 > and `director.py`, `leave.py` and `registration.py` import them across router modules. That
@@ -1094,7 +1094,7 @@ row is fresh, and `HeartbeatIn` accepts any non-empty `worker_id`
 | **201** | — (returns the created `NoteOut`) | [mentor.py:126-128](apps/api-py/app/routers/mentor.py#L126-L128) | A mentor note was written. The only non-200 success in the mentor router. |
 | **204** | — (empty body) | [agent.py:352-359](apps/api-py/app/routers/agent.py#L352-L359) | `DELETE /api/agent/conversation` soft-cleared the caller's thread. Soft, not hard — the rows are tombstoned, not dropped. |
 | **400** | `Only a mentor (with a Mentor profile) can author notes.` | [mentor.py:138-141](apps/api-py/app/routers/mentor.py#L138-L141) | Staff, and allowed to *see* the student, but no `mentorId` claim — a DIRECTOR/ADMIN cannot author a note, because a note needs an owning `Mentor` row. |
-| **401** | `Sign in required.` | [deps.py:12](apps/api-py/app/deps.py#L12) | No cookie, or a cookie that does not verify. Both cases, one message. |
+| **401** | `Sign in required.` | [identity.py:12](apps/api-py/app/identity.py#L12) | No cookie, or a cookie that does not verify. Both cases, one message. |
 | **401** | `Invalid email or password.` | [auth.py:49-52](apps/api-py/app/routers/auth.py#L49-L52) | Login failed. Deliberately does not say which half was wrong. |
 | **401** | `Invalid voice worker secret.` | [voice.py:89-93](apps/api-py/app/routers/voice.py#L89-L93) | The worker's `X-Voice-Worker-Secret` does not match the API's. The classic cause of "the call sounded fine but saved nothing" (§8). |
 | **403** | `Not a student account.` | [student.py:121](apps/api-py/app/routers/student.py#L121) | Authenticated, but no `studentId` claim — e.g. a director on a student route. |
@@ -1140,7 +1140,7 @@ reep-dashboard/
 │     │                       and the router mount table (§4 step 2)
 │     ├─ app/config.py        The Settings class + the process-wide `settings` singleton (§5)
 │     ├─ app/db.py            engine · SessionLocal · Base · get_db (§4 step 5)
-│     ├─ app/deps.py          get_current_session — the ONLY session dependency, 6 lines
+│     ├─ app/identity.py          get_current_session — the ONLY session dependency, 6 lines
 │     ├─ app/security.py      scrypt password hashing + HS256 session tokens (§4 step 4)
 │     ├─ app/routers/         auth · student · mentor · director · leave · registration ·
 │     │                       agent · voice · health. Each exposes a module-level `router`,
@@ -1158,7 +1158,7 @@ reep-dashboard/
 │     ├─ app/assistant_tools.py  The tool surface the grounded assistant may call
 │     ├─ app/redaction.py     Best-effort PII scrub on stored free text. NOT a boundary.
 │     ├─ app/retention.py     Retention / purge policy for conversation data
-│     ├─ app/filestore.py     On-disk uploads, rooted at settings.uploads_path
+│     ├─ app/document_store.py     On-disk uploads, rooted at settings.uploads_path
 │     ├─ app/mailer.py        Outbound email
 │     ├─ app/resume_pdf.py    Markdown → PDF for the resume builder
 │     ├─ app/seed.py          DEV seed — three demo logins; REFUSES to run when ENV=prod

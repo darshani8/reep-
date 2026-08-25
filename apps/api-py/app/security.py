@@ -215,7 +215,7 @@ def verify_session_token(token: str) -> dict | None:
     already refuses the mirror case; this closes the other direction. Every
     payload _payload_for() mints has both keys, so no real session changes.
 
-    REVOCATION LIVES HERE, not in app/deps.py, because this is the ONE function
+    REVOCATION LIVES HERE, not in app/identity.py, because this is the ONE function
     that turns a cookie into an identity — the HTTP dependency, the WebSocket
     dependency and every test read the session through it. A revocation check
     bolted onto one caller is a revocation check the next caller forgets.

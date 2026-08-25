@@ -22,7 +22,7 @@ but never defined — but *component-local* class names are this chapter's terri
 §1 states their convention. Chapter 6 owns the student endpoints and their rule engines;
 where a screen's number and the server's number disagree, this chapter states the
 disagreement and points at Chapter 6 for the authoritative rule. Chapter 2 owns
-`filestore.py`'s real upload limits, which §5 compares the client's against.
+`document_store.py`'s real upload limits, which §5 compares the client's against.
 
 **Which tree this describes.** Every line number here is read from the committed tree.
 That matters in exactly one place: the three files of
@@ -1246,7 +1246,7 @@ sequenceDiagram
   actor S as Student
   participant C as UploadsComponent
   participant API as create_upload()
-  participant FS as filestore.save_bytes()
+  participant FS as document_store.save_bytes()
   participant DB as uploads table
 
   S->>C: click the dropzone → #picker, or drop a file
@@ -1328,14 +1328,14 @@ which is what makes the client's looser validation (below) safe rather than conf
 
 ### Client validation versus the server's real limits
 
-Chapter 2 documents `filestore.py`'s real limits. Here is the client's validation set
+Chapter 2 documents `document_store.py`'s real limits. Here is the client's validation set
 against them, check by check.
 
 | Check | Client | Server | Verdict |
 |---|---|---|---|
-| Max size | `MAX_BYTES = 10 * 1024 * 1024`, tested `file.size > MAX_BYTES` ([:69](apps/web/src/app/features/student/uploads/uploads.component.ts#L69), [:183](apps/web/src/app/features/student/uploads/uploads.component.ts#L183)) | `MAX_BYTES = 10 * 1024 * 1024`, tested `len(content) > MAX_BYTES` ([filestore.py:30](apps/api-py/app/filestore.py#L30), [:54](apps/api-py/app/filestore.py#L54)) | **Exactly equal.** Same expression, same strict `>`. 10 485 760 bytes passes both; one byte more is refused by both, and the client refuses it without a round trip. |
-| Empty file | none — `0 > MAX_BYTES` is false and an empty `File` is truthy | `if not content: raise UploadRejected("The file is empty.")` ([filestore.py:52](apps/api-py/app/filestore.py#L52)) | Client more permissive; the 422 is surfaced verbatim, so it degrades honestly. |
-| File type | **none in code.** Only the HTML `accept="application/pdf,image/png,image/jpeg"` ([uploads.component.html:108](apps/web/src/app/features/student/uploads/uploads.component.html#L108)) and the copy "Accepted: PDF, PNG, JPEG · up to 10 MB" ([:82](apps/web/src/app/features/student/uploads/uploads.component.html#L82)) | `_sniff()` against three magic-byte signatures — `%PDF`, the 8-byte PNG header, `FF D8 FF` ([filestore.py:24-41](apps/api-py/app/filestore.py#L24)) | Client strictly more permissive, three ways over. |
+| Max size | `MAX_BYTES = 10 * 1024 * 1024`, tested `file.size > MAX_BYTES` ([:69](apps/web/src/app/features/student/uploads/uploads.component.ts#L69), [:183](apps/web/src/app/features/student/uploads/uploads.component.ts#L183)) | `MAX_BYTES = 10 * 1024 * 1024`, tested `len(content) > MAX_BYTES` ([document_store.py:30](apps/api-py/app/document_store.py#L30), [:54](apps/api-py/app/document_store.py#L54)) | **Exactly equal.** Same expression, same strict `>`. 10 485 760 bytes passes both; one byte more is refused by both, and the client refuses it without a round trip. |
+| Empty file | none — `0 > MAX_BYTES` is false and an empty `File` is truthy | `if not content: raise UploadRejected("The file is empty.")` ([document_store.py:52](apps/api-py/app/document_store.py#L52)) | Client more permissive; the 422 is surfaced verbatim, so it degrades honestly. |
+| File type | **none in code.** Only the HTML `accept="application/pdf,image/png,image/jpeg"` ([uploads.component.html:108](apps/web/src/app/features/student/uploads/uploads.component.html#L108)) and the copy "Accepted: PDF, PNG, JPEG · up to 10 MB" ([:82](apps/web/src/app/features/student/uploads/uploads.component.html#L82)) | `_sniff()` against three magic-byte signatures — `%PDF`, the 8-byte PNG header, `FF D8 FF` ([document_store.py:24-41](apps/api-py/app/document_store.py#L24)) | Client strictly more permissive, three ways over. |
 
 The size limit is the reassuring row; the type row is the one to understand. `accept`
 governs only the file-picker dialog's default filter, and **drag-and-drop bypasses it
@@ -1344,7 +1344,7 @@ round trip and returns a 422 the student can read. The more confusing case is th
 a file *named* `x.pdf` whose bytes are HTML passes `accept` and the size check and is
 refused on magic bytes, so the student sees a type error on a file whose extension is in
 the accepted list. That is precisely the case the store was built for
-([filestore.py:1-15](apps/api-py/app/filestore.py#L1)):
+([document_store.py:1-15](apps/api-py/app/document_store.py#L1)):
 
 > **Why it is like this.** "The type is decided by MAGIC BYTES, not the client-sent name or
 > Content-Type. A '.pdf' that is actually an executable is rejected; the recorded mime is

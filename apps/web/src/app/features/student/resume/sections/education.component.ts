@@ -115,7 +115,7 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
                 <td class="num">{{ s.cgpa != null ? s.cgpa : '—' }}</td>
                 <td class="num">{{ s.closed_backlogs }}</td>
                 <td class="num">{{ s.live_backlogs }}</td>
-                <td style="color:var(--ink-400); font-size:11.5px;">In Attachments</td>
+                <td style="color:var(--faint); font-size:11.5px;">In Attachments</td>
               </tr>
             }
             @if (aggregate(); as agg) {

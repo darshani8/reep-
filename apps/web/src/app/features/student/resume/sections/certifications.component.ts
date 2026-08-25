@@ -145,7 +145,7 @@ const STATUS_LABEL: Record<string, string> = {
             @if (c.provider) { <div class="org">{{ c.provider }}</div> }
             <div class="meta">
               {{ c.year ? c.year : 'Year not set' }}
-              @if (c.link) { · <a [href]="c.link" target="_blank" rel="noopener" style="color:var(--amber-600);">credential</a> }
+              @if (c.link) { · <a [href]="c.link" target="_blank" rel="noopener" style="color:var(--purple-mid);">credential</a> }
             </div>
           </div>
         }

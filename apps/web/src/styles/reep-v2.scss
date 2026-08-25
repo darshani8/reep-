@@ -12,16 +12,15 @@
  * resolve globally; AGENTS.md's frontend convention is to reuse them rather than
  * redefine a global inside a component.
  *
- * TWO TOKEN VOCABULARIES, AND THE SECOND ONE IS A SHIM. The block below defines
- * the handoff's own tokens under honest names (--brand-purple, --ink, --surface,
- * …) and then re-points the OLD warm-paper names (--paper-0, --amber-500,
- * --ink-900, …) at them. Those legacy names are read by ~900 lines of CSS in
- * reep-theme.scss and reep-v2-resume.scss and by a long tail of component
- * styles; aliasing them re-skins every one of those surfaces with this file as
- * the single edit, where renaming them would have been a mechanical sweep
- * through dozens of files with a high chance of leaving one screen warm-brown in
- * a lilac app. New code should use the honest names — the aliases exist to be
- * deleted once nothing reads them.
+ * ONE TOKEN VOCABULARY. This file defines the handoff's tokens under honest
+ * names (--brand-purple, --ink, --surface, --hairline, …) and every consumer
+ * reads those. The warm-paper aliases (--paper-0, --amber-500, --ink-900, …)
+ * that stood here while the two designs coexisted are gone: 286 references
+ * across 26 files were renamed to the honest names, so a colour is now defined
+ * once and called one thing. The MUI-era `--reep-*` names still exist for the
+ * login, register and resume-builder surfaces, but they are DEFINED in
+ * reep-theme.scss with the v2 values rather than re-pointed from here — one
+ * token, one place.
  *
  * SINGLE THEME, DELIBERATELY. The handoff is one committed visual world (a lilac
  * wash with a magenta accent) rather than a light/dark pair, so every colour
@@ -128,105 +127,12 @@
   /* --- nav -------------------------------------------------------------- */
   --nav-width: 220px;
 
-  /* ======================================================================
-   * LEGACY ALIASES — see the file header. Read by reep-theme.scss,
-   * reep-v2-resume.scss and a long tail of component styles. Do not add new
-   * uses; delete the block once nothing reads them.
-   * ==================================================================== */
-  --ink-900: var(--ink);
-  --ink-800: var(--ink-soft);
-  --ink-700: var(--ink-nav);
-  --ink-500: var(--muted);
-  --ink-400: var(--faint);
-  --paper-0: #ece4f5;
-  --paper-1: var(--tint-3);
-  --paper-2: var(--surface);
-  --amber-700: var(--brand-purple);
-  --amber-600: var(--purple-mid);
-  --amber-500: var(--brand-magenta);
-  --amber-400: var(--magenta-mid);
-  --amber-300: var(--series-personal);
-  --line: var(--hairline);
-  --radius-lg: var(--r-card);
-  --radius-md: var(--r-alert);
-  --radius-sm: var(--r-btn);
-  --shadow-lift: var(--sh-card);
-  --shadow-soft: var(--sh-ctrl);
+  /* --- ground + focus, the two tokens that are not colours or shadows ---- */
+  /* The page's flat ground, under the wash. Named for what it is rather than
+     inherited from the old warm-paper vocabulary. */
+  --ground: #ece4f5;
   --edge-hi: inset 0 1px 0 #fff;
-  --press: var(--sh-well);
-  --ring: 0 0 0 3px rgba(186, 33, 133, 0.18);
-}
-
-/* ==========================================================================
- * The `--reep-*` layer, re-pointed.
- *
- * reep-theme.scss is the MUI-era palette (warm paper, amber accent) and it is
- * what the LOGIN and REGISTER screens are built from — they live outside the
- * shell and never adopted the .card/.chip component classes, so re-skinning
- * those two screens means re-pointing these tokens rather than rewriting 300
- * lines of component SCSS. Everything else reading --reep-* follows for free.
- *
- * Both selectors are listed so a `data-theme="dark"` root cannot fall back to
- * the old warm-brown dark palette underneath: this design is one committed
- * visual world, and a half-switched theme is worse than either.
- * ======================================================================= */
-
-:root,
-:root[data-theme='dark'] {
-  --reep-primary-main: var(--brand-purple);
-  --reep-primary-light: var(--purple-mid);
-  --reep-primary-dark: #401f60;
-  --reep-primary-contrast: #ffffff;
-
-  --reep-secondary-main: var(--brand-magenta);
-  --reep-secondary-light: var(--magenta-mid);
-  --reep-secondary-dark: #8d1866;
-  --reep-secondary-contrast: #ffffff;
-
-  --reep-success-main: var(--good);
-  --reep-warning-main: var(--warn);
-  --reep-error-main: var(--risk);
-  --reep-info-main: var(--purple-mid);
-
-  --reep-bg-default: #ece4f5;
-  --reep-bg-paper: var(--surface);
-
-  --reep-text-primary: var(--ink);
-  --reep-text-secondary: var(--muted);
-  --reep-text-disabled: var(--faint);
-
-  --reep-divider: var(--hairline);
-  --reep-action-hover: rgba(122, 47, 158, 0.06);
-  --reep-action-selected: rgba(186, 33, 133, 0.1);
-
-  --reep-radius: var(--r-btn);
-  --reep-radius-control: var(--r-btn);
-  --reep-radius-chip: var(--r-pill);
-
-  --reep-glass-bg: rgba(255, 255, 255, 0.72);
-  --reep-glass-solid: var(--tint-3);
-  --reep-glass-border: var(--hairline);
-  --reep-glass-shadow: var(--sh-card);
-  --reep-glass-highlight: inset 0 1px 0 #fff;
-
-  --reep-neu-bg: var(--card-gradient);
-  --reep-neu-flat: var(--tint-2);
-  --reep-neu-shadow: var(--sh-card);
-  --reep-neu-shadow-lift: var(--sh-primary-hover);
-  --reep-neu-inset: var(--sh-well);
-
-  --reep-bloom-a: rgba(186, 33, 133, 0.18);
-  --reep-bloom-b: rgba(85, 44, 126, 0.16);
-  --reep-bloom-c: rgba(160, 36, 143, 0.12);
-
-  --reep-chip-good: var(--good);
-  --reep-chip-accent: var(--brand-magenta);
-
-  --reep-cell-well: var(--tint-2);
-  --reep-cell-well-hover: var(--tint-1);
-  --reep-cell-well-inset: var(--sh-well);
-
-  --font-inter: 'Chakra Petch';
+  --focus-ring: 0 0 0 3px rgba(186, 33, 133, 0.18);
 }
 
 * {
@@ -1018,7 +924,7 @@ html.fonts-ready .icon {
 .ts-cell input:focus {
   outline: none;
   border-color: var(--purple-mid);
-  box-shadow: var(--ring);
+  box-shadow: var(--focus-ring);
 }
 .field input::placeholder,
 .field textarea::placeholder {

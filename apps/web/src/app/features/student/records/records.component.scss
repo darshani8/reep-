@@ -7,7 +7,7 @@
 }
 
 .c-note {
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 // --- section framing -------------------------------------------------------
@@ -23,18 +23,18 @@
   font-weight: 800;
   margin-bottom: 14px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .rec-h .icon {
   font-size: 20px;
-  color: var(--amber-600);
+  color: var(--purple-mid);
 }
 
 .rec-h-sub {
   font-size: 11px;
   font-weight: 600;
-  color: var(--ink-400);
+  color: var(--faint);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -63,7 +63,7 @@
 
 .sem-meta {
   margin-top: 3px;
-  color: var(--ink-500);
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -78,7 +78,7 @@
 }
 
 .rec-empty-row {
-  color: var(--ink-400);
+  color: var(--faint);
   text-align: center;
 }
 
@@ -86,9 +86,9 @@
 .meter {
   height: 10px;
   border-radius: 6px;
-  background: var(--line);
+  background: var(--hairline);
   overflow: hidden;
-  box-shadow: var(--press);
+  box-shadow: var(--sh-well);
 }
 
 .meter.sm {
@@ -98,7 +98,7 @@
 .meter__fill {
   height: 100%;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--amber-400), var(--amber-600));
+  background: linear-gradient(90deg, var(--magenta-mid), var(--purple-mid));
   transition: width 0.3s ease;
 }
 
@@ -122,7 +122,7 @@
 
 .att-lbl {
   font-size: 11px;
-  color: var(--ink-500);
+  color: var(--muted);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -137,14 +137,14 @@
 
 .att-fine {
   font-size: 12px;
-  color: var(--ink-500);
+  color: var(--muted);
   margin-top: 2px;
 }
 
 .att-courses {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--hairline);
 }
 
 .att-courses-h {
@@ -152,7 +152,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--ink-500);
+  color: var(--muted);
   margin-bottom: 12px;
 }
 
@@ -171,7 +171,7 @@
 
 .att-course-fig {
   font-size: 12px;
-  color: var(--ink-500);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -214,7 +214,7 @@
 
 .qual-line {
   font-size: 12px;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 .qual-sub {
@@ -237,7 +237,7 @@
 
 .qual-raw {
   font-size: 12px;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 .gap-card {
@@ -265,19 +265,19 @@
 .gap-unit {
   font-size: 13px;
   font-weight: 600;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 .gap-none {
   margin-top: 8px;
   font-size: 12.5px;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 // Neutral chip tone, in case the global sheet load order changes.
 .chip.neutral {
   background: rgba(28, 24, 16, 0.06);
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 @media (max-width: 640px) {

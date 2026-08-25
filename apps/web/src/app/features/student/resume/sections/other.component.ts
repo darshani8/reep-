@@ -53,7 +53,7 @@ type ListKey = 'achievements' | 'awards' | 'co_curricular' | 'extra_curricular';
         [ngModel]="model.career_objective"
         (ngModelChange)="model.career_objective = $event; push()"
       ></textarea>
-      <div style="text-align:right; font-size:11.5px; color:var(--ink-500); margin-top:5px;">
+      <div style="text-align:right; font-size:11.5px; color:var(--muted); margin-top:5px;">
         {{ model.career_objective.length }} / 6000
       </div>
     </div>

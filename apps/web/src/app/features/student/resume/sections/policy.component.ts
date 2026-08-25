@@ -33,7 +33,7 @@ interface PolicyModel {
         font-weight: 700;
         letter-spacing: 0;
         text-transform: none;
-        color: var(--amber-700);
+        color: var(--brand-purple);
         background: rgba(138, 90, 30, 0.1);
         padding: 2px 6px;
         border-radius: 5px;

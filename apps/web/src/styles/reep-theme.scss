@@ -12,9 +12,10 @@
  * unchanged; the comments explaining *why* each value is what it is live in
  * `theme.ts` and are not repeated.
  *
- * Light is the default (bare `:root`); dark is `:root[data-theme="dark"]`, the
- * same attribute MUI's own variables switch on, so a theme toggle flips both the
- * palette and the effect tokens together exactly as it does today.
+ * WHAT CHANGED IN 2026-08: the values are now the REEP v2 lilac palette, and the
+ * dark block is gone. See the note above the :root below — this file is the one
+ * definition of every `--reep-*` token, and the design is a single committed
+ * theme rather than a light/dark pair.
  */
 
 /* --- fonts ---------------------------------------------------------------- */
@@ -22,118 +23,87 @@
    already references. Wired to the actual @font-face in the Angular app's
    global styles so the stack below resolves identically. */
 
+/* --- palette ---------------------------------------------------------------
+ *
+ * These are the REEP v2 values (the lilac / purple-magenta design handoff), not
+ * the warm-paper MUI ones this file was originally transcribed from. They live
+ * HERE, as the single definition, rather than being overridden from
+ * reep-v2.scss: one token, one place. The override block that used to sit in
+ * reep-v2.scss was a shim while the two designs coexisted, and a value defined
+ * twice is a value that will eventually disagree with itself.
+ *
+ * ~190 references across the login and register screens, the resume builder and
+ * a long tail of components read these names. The names are MUI-shaped
+ * (primary/secondary/text/bg) rather than brand-shaped, which is why they are
+ * kept: renaming 190 call sites to say the same thing buys nothing and risks
+ * leaving one screen unstyled. New code should use the honest names in
+ * reep-v2.scss (--brand-purple, --ink, --surface, …).
+ *
+ * SINGLE THEME. The `:root[data-theme='dark']` block that used to follow is
+ * deleted: the v2 design is one committed visual world, nothing in the UI calls
+ * ThemeService.toggle(), and a dark palette nobody can reach is a second set of
+ * colours to keep correct for no one. ThemeService still stamps the attribute,
+ * and bar-chart.component.ts still reads it — both now resolve to this one
+ * palette, which is the intent.
+ */
+
 :root {
-  --font-inter: 'Inter';
+  --font-inter: 'Chakra Petch';
 
-  /* --- palette · light ---------------------------------------------------- */
-  --reep-primary-main: #1c1810;
-  --reep-primary-light: #443c2d;
-  --reep-primary-dark: #100d08;
-  --reep-primary-contrast: #f8f4ec;
+  --reep-primary-main: #552c7e;
+  --reep-primary-light: #7a2f9e;
+  --reep-primary-dark: #401f60;
+  --reep-primary-contrast: #ffffff;
 
-  --reep-secondary-main: #8a5a1e;
-  --reep-secondary-light: #a8752f;
-  --reep-secondary-dark: #6b4413;
-  --reep-secondary-contrast: #f8f4ec;
+  --reep-secondary-main: #ba2185;
+  --reep-secondary-light: #a0248f;
+  --reep-secondary-dark: #8d1866;
+  --reep-secondary-contrast: #ffffff;
 
-  --reep-success-main: #8b5f1c;
-  --reep-warning-main: #62471f;
-  --reep-error-main: #3a301f;
-  --reep-info-main: #8a5a1e;
+  --reep-success-main: #137a4a;
+  --reep-warning-main: #8f6100;
+  --reep-error-main: #ad2452;
+  --reep-info-main: #7a2f9e;
 
-  --reep-bg-default: #efe9dd;
-  --reep-bg-paper: #f8f4ec;
+  --reep-bg-default: #ece4f5;
+  --reep-bg-paper: #ffffff;
 
-  --reep-text-primary: #1c1810;
-  --reep-text-secondary: #5a5142;
-  --reep-text-disabled: #6d6353;
+  --reep-text-primary: #3a1f52;
+  --reep-text-secondary: #7a6392;
+  --reep-text-disabled: #a08cb2;
 
-  --reep-divider: rgba(28, 24, 16, 0.12);
-  --reep-action-hover: rgba(28, 24, 16, 0.04);
-  --reep-action-selected: rgba(138, 90, 30, 0.10);
+  --reep-divider: rgba(160, 138, 178, 0.38);
+  --reep-action-hover: rgba(122, 47, 158, 0.06);
+  --reep-action-selected: rgba(186, 33, 133, 0.1);
 
-  /* --- shape & radii ------------------------------------------------------ */
-  --reep-radius: 8px;
-  --reep-radius-control: 7px;
-  --reep-radius-chip: 6px;
+  --reep-radius: 12px;
+  --reep-radius-control: 12px;
+  --reep-radius-chip: 999px;
 
-  /* --- surface tokens · light (verbatim from theme.ts) -------------------- */
-  --reep-glass-bg: rgba(252, 249, 242, 0.58);
-  --reep-glass-solid: #faf7f0;
-  --reep-glass-border: rgba(255, 252, 245, 0.75);
-  --reep-glass-shadow: 0 10px 34px rgba(58, 48, 31, 0.10);
-  --reep-glass-highlight: inset 0 1px 0 rgba(255, 253, 247, 0.9);
+  --reep-glass-bg: rgba(255, 255, 255, 0.72);
+  --reep-glass-solid: #faf6fd;
+  --reep-glass-border: rgba(160, 138, 178, 0.38);
+  --reep-glass-shadow: 0 10px 26px rgba(58, 31, 82, 0.1), inset 0 1px 0 #fff;
+  --reep-glass-highlight: inset 0 1px 0 #fff;
 
-  --reep-neu-bg: linear-gradient(145deg, #faf7f0, #eae3d4);
-  --reep-neu-flat: #efe9dd;
-  --reep-neu-shadow: 7px 7px 16px rgba(58, 48, 31, 0.13), -7px -7px 16px rgba(255, 252, 244, 0.92);
-  --reep-neu-shadow-lift: 10px 10px 22px rgba(58, 48, 31, 0.16), -10px -10px 22px rgba(255, 253, 247, 1);
-  --reep-neu-inset: inset 2px 2px 5px rgba(58, 48, 31, 0.16), inset -2px -2px 5px rgba(255, 252, 244, 0.9);
+  --reep-neu-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(245, 237, 250, 0.7));
+  --reep-neu-flat: #f5edfa;
+  --reep-neu-shadow: 0 10px 26px rgba(58, 31, 82, 0.1), inset 0 1px 0 #fff;
+  --reep-neu-shadow-lift: 0 10px 22px rgba(85, 44, 126, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --reep-neu-inset: inset 0 1px 2px rgba(58, 31, 82, 0.12);
 
-  --reep-bloom-a: rgba(176, 124, 44, 0.20);
-  --reep-bloom-b: rgba(138, 90, 30, 0.14);
-  --reep-bloom-c: rgba(212, 161, 85, 0.11);
+  --reep-bloom-a: rgba(186, 33, 133, 0.18);
+  --reep-bloom-b: rgba(85, 44, 126, 0.16);
+  --reep-bloom-c: rgba(160, 36, 143, 0.12);
 
-  --reep-chip-good: #83591b;
-  --reep-chip-accent: #83591b;
+  --reep-chip-good: #137a4a;
+  --reep-chip-accent: #ba2185;
 
-  --reep-cell-well: #f1ece1;
-  --reep-cell-well-hover: #ece5d7;
-  --reep-cell-well-inset: inset 1px 1px 2px rgba(58, 48, 31, 0.07), inset -1px -1px 2px rgba(255, 252, 244, 0.7);
+  --reep-cell-well: #f5edfa;
+  --reep-cell-well-hover: #efe4f6;
+  --reep-cell-well-inset: inset 0 1px 2px rgba(58, 31, 82, 0.12);
 }
 
-:root[data-theme='dark'] {
-  /* --- palette · dark ----------------------------------------------------- */
-  --reep-primary-main: #f5f1e8;
-  --reep-primary-light: #fffdf7;
-  --reep-primary-dark: #cdc6b6;
-  --reep-primary-contrast: #14120d;
-
-  --reep-secondary-main: #d9a85f;
-  --reep-secondary-light: #e8c48c;
-  --reep-secondary-dark: #ab7b32;
-  --reep-secondary-contrast: #14120d;
-
-  --reep-success-main: #ab7b32;
-  --reep-warning-main: #d4a155;
-  --reep-error-main: #ead5b6;
-  --reep-info-main: #d9a85f;
-
-  --reep-bg-default: #14120d;
-  --reep-bg-paper: #1e1a14;
-
-  --reep-text-primary: #f5f1e8;
-  --reep-text-secondary: #b0a894;
-  --reep-text-disabled: #968d79;
-
-  --reep-divider: rgba(245, 241, 232, 0.12);
-  --reep-action-hover: rgba(245, 241, 232, 0.05);
-  --reep-action-selected: rgba(217, 168, 95, 0.15);
-
-  /* --- surface tokens · dark (verbatim from theme.ts) --------------------- */
-  --reep-glass-bg: rgba(36, 31, 24, 0.60);
-  --reep-glass-solid: #221e17;
-  --reep-glass-border: rgba(245, 241, 232, 0.09);
-  --reep-glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.48);
-  --reep-glass-highlight: inset 0 1px 0 rgba(245, 241, 232, 0.07);
-
-  --reep-neu-bg: linear-gradient(145deg, #241f18, #100e09);
-  --reep-neu-flat: #1e1a14;
-  --reep-neu-shadow: 7px 7px 16px rgba(0, 0, 0, 0.55), -7px -7px 16px rgba(245, 241, 232, 0.03);
-  --reep-neu-shadow-lift: 10px 10px 22px rgba(0, 0, 0, 0.65), -10px -10px 22px rgba(245, 241, 232, 0.042);
-  --reep-neu-inset: inset 2px 2px 5px rgba(0, 0, 0, 0.6), inset -2px -2px 5px rgba(245, 241, 232, 0.038);
-
-  --reep-bloom-a: rgba(171, 123, 50, 0.26);
-  --reep-bloom-b: rgba(124, 93, 46, 0.20);
-  --reep-bloom-c: rgba(212, 161, 85, 0.10);
-
-  --reep-chip-good: #b7802e;
-  --reep-chip-accent: #d9a85f;
-
-  --reep-cell-well: #191510;
-  --reep-cell-well-hover: #221d15;
-  --reep-cell-well-inset: inset 1px 1px 2px rgba(0, 0, 0, 0.5), inset -1px -1px 2px rgba(245, 241, 232, 0.03);
-}
 
 /* --- typography scale (from theme.ts `typography`) ------------------------ */
 /* Kept as classes rather than element selectors: MUI's Typography maps variant

@@ -25,7 +25,7 @@
 .lb-of {
   font-size: 11px;
   font-weight: 600;
-  color: var(--ink-400);
+  color: var(--faint);
   white-space: nowrap;
 }
 .lb-row.me .lb-of {
@@ -44,15 +44,15 @@
   gap: 16px;
   padding: 16px 18px;
   margin-bottom: 14px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(180deg, var(--ink-900), #2a2418);
-  color: var(--paper-1);
-  box-shadow: var(--shadow-soft), var(--edge-hi);
+  border-radius: var(--r-alert);
+  background: linear-gradient(180deg, var(--ink), #2a2418);
+  color: var(--tint-3);
+  box-shadow: var(--sh-ctrl), var(--edge-hi);
 }
 .lb-me-card--unranked {
-  background: linear-gradient(180deg, var(--paper-2), var(--paper-1));
-  color: var(--ink-900);
-  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--surface), var(--tint-3));
+  color: var(--ink);
+  border: 1px solid var(--hairline);
 }
 .lb-me-card__rank {
   flex: 0 0 auto;
@@ -67,7 +67,7 @@
 }
 .lb-me-card--unranked .lb-me-card__rank {
   background: rgba(168, 117, 47, 0.12);
-  color: var(--amber-500);
+  color: var(--brand-magenta);
 }
 .lb-me-card__num {
   font-size: 28px;
@@ -115,14 +115,14 @@
   margin-bottom: 14px;
   padding: 9px 12px;
   border-radius: 10px;
-  background: var(--paper-1);
-  border: 1px solid var(--line);
-  color: var(--ink-500);
+  background: var(--tint-3);
+  border: 1px solid var(--hairline);
+  color: var(--muted);
   font-size: 12.5px;
 }
 .lb-note .icon {
   font-size: 17px;
-  color: var(--ink-400);
+  color: var(--faint);
   flex-shrink: 0;
 }
 .lb-note--feedback {
@@ -141,24 +141,24 @@
   gap: 8px;
   padding: 8px 12px;
   border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--paper-2);
-  color: var(--ink-500);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--muted);
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-soft), var(--edge-hi);
+  box-shadow: var(--sh-ctrl), var(--edge-hi);
 }
 .lb-hide.on {
-  background: var(--ink-900);
-  border-color: var(--ink-900);
-  color: var(--paper-1);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--tint-3);
 }
 .lb-hide .icon {
   font-size: 17px;
 }
 .lb-hide input {
-  accent-color: var(--amber-500);
+  accent-color: var(--brand-magenta);
   cursor: pointer;
 }
 .lb-hide input:disabled {
@@ -191,7 +191,7 @@
 }
 .lb-empty .icon {
   font-size: 30px;
-  color: var(--ink-400);
+  color: var(--faint);
   flex-shrink: 0;
 }
 .lb-empty__title {

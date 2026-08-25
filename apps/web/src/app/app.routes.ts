@@ -82,20 +82,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/student/skilling/skilling.component').then((m) => m.SkillingComponent),
       },
-      // The Time Allocation Ledger replaces the old free-form time log at the
-      // same path, because "Time Sheet" in the nav must lead to the screen the
-      // programme actually runs on. The old component stays routed at
-      // /student/time-log-legacy until its weekly-target chart has a home on the
-      // ledger — deleting it would take the SKILLING-hours-vs-target view with it.
+      // The Time Allocation Ledger. It replaced the old free-form time log at
+      // this path, and the legacy screen is now DELETED rather than parked at a
+      // second route: the only thing it still showed that the ledger did not was
+      // SKILLING-hours-against-the-weekly-target, and that now renders on the
+      // ledger itself, beside the days it is accumulated from.
       {
         path: 'student/time-log',
         loadComponent: () =>
           import('./features/student/ledger/ledger.component').then((m) => m.LedgerComponent),
-      },
-      {
-        path: 'student/time-log-legacy',
-        loadComponent: () =>
-          import('./features/student/time-log/time-log.component').then((m) => m.TimeLogComponent),
       },
       {
         path: 'student/courses',

@@ -80,14 +80,14 @@
    shade alone would be colour-only state. */
 .iv-row--open td {
   background: var(--reep-action-hover);
-  box-shadow: inset 2px 0 0 var(--ink-900, #1c1810);
+  box-shadow: inset 2px 0 0 var(--ink, #1c1810);
 }
 
 /* --- one interview, expanded ------------------------------------------- */
 .iv-detail {
   margin-top: 4px;
   padding-top: 18px;
-  border-top: 1px solid var(--line, var(--reep-divider));
+  border-top: 1px solid var(--hairline, var(--reep-divider));
 }
 .iv-detail__head {
   display: flex;
@@ -131,9 +131,9 @@
 
 .iv-log {
   padding: 14px 16px;
-  border: 1px solid var(--line, var(--reep-divider));
+  border: 1px solid var(--hairline, var(--reep-divider));
   border-radius: 10px;
-  background: var(--paper-1, var(--reep-surface));
+  background: var(--tint-3, var(--reep-surface));
 }
 
 /* A phase divider once per stage, instead of a chip on every line. */
@@ -144,7 +144,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--reep-text-secondary);
-  border-bottom: 1px solid var(--line, var(--reep-divider));
+  border-bottom: 1px solid var(--hairline, var(--reep-divider));
   padding-bottom: 4px;
 }
 .iv-phase:first-child {

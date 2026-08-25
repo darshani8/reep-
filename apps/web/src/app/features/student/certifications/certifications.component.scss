@@ -7,7 +7,7 @@
 }
 
 .card {
-  color: var(--ink-500);
+  color: var(--muted);
   font-size: 13px;
 }
 .card.err {
@@ -36,7 +36,7 @@
 .cert-name {
   font-size: 14.5px;
   font-weight: 700;
-  color: var(--ink-900);
+  color: var(--ink);
   line-height: 1.3;
 }
 
@@ -50,7 +50,7 @@
   flex: 1;
   height: 8px;
   border-radius: 5px;
-  background: var(--line);
+  background: var(--hairline);
   overflow: hidden;
 }
 .pbar__fill {
@@ -63,7 +63,7 @@
   background: var(--good);
 }
 .pbar__fill.warn {
-  background: var(--amber-500);
+  background: var(--brand-magenta);
 }
 .pbar__fill.risk {
   background: var(--risk);
@@ -73,7 +73,7 @@
   text-align: right;
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--ink-900);
+  color: var(--ink);
 }
 
 .cert-next {
@@ -81,7 +81,7 @@
   align-items: flex-start;
   gap: 6px;
   font-size: 13px;
-  color: var(--ink-900);
+  color: var(--ink);
 }
 .cert-next strong {
   font-weight: 700;
@@ -97,7 +97,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--ink-500);
+  color: var(--muted);
 }
 .meta-item.good {
   color: var(--good);
@@ -109,7 +109,7 @@
   color: var(--risk);
 }
 .meta-date {
-  color: var(--ink-500);
+  color: var(--muted);
 }
 
 .cert-foot {
@@ -139,6 +139,6 @@
 /* visible keyboard focus on the interactive CTA */
 .dt-btn:focus-visible {
   outline: none;
-  border-color: var(--amber-500);
-  box-shadow: var(--press), var(--ring);
+  border-color: var(--brand-magenta);
+  box-shadow: var(--sh-well), var(--focus-ring);
 }

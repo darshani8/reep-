@@ -35,6 +35,12 @@ class MentorNote(Base):
     mentor_id: Mapped[str] = mapped_column(ForeignKey("mentors.id", ondelete="CASCADE"))
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))
     note_text: Mapped[str] = mapped_column(String)
+    # The student-facing Mentor Meeting Log renders "1:1 review · Cabin 3" above
+    # each note. Both are nullable and both stay optional for the mentor: a note
+    # typed without them is a real note, and the log falls back to the linked
+    # action for its heading rather than showing an empty line.
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    location: Mapped[str | None] = mapped_column(String, nullable=True)
     linked_action: Mapped[MentorAction] = mapped_column(
         Enum(MentorAction, name="mentor_action"), default=MentorAction.NONE, server_default="NONE"
     )

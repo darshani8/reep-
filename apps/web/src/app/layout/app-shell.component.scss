@@ -1,33 +1,29 @@
 /* The v2 desktop shell. Every visual token for .desktop-frame, .desktop-nav,
-   .desktop-main etc. lives globally in src/styles/reep-v2.scss; this file only
-   centres the frame on the page (the prototype's .wrap, which reep-v2 omits) and
-   styles the title-bar sign-out affordance. */
+   .nav-profile, .desktop-main etc. lives globally in src/styles/reep-v2.scss;
+   this file styles only the title-bar sign-out affordance, which has no global
+   class because nothing else in the app is a control on a gradient title bar. */
 
 :host {
   display: block;
 }
 
-.v2-stage {
-  display: block;
-  padding: 0;
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* Sign-out sits at the right edge of the dark title bar. */
 .titlebar-logout {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 7px;
-  color: var(--paper-1);
+  padding: 4px 12px;
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-nav);
+  font-family: inherit;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   opacity: 0.75;
 }
 .titlebar-logout:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(122, 47, 158, 0.45);
+  background: var(--tint-3);
 }

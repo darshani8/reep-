@@ -26,6 +26,7 @@ from .routers import (
     mentor,
     registration,
     student,
+    student_screens,
     voice,
 )
 
@@ -225,6 +226,11 @@ app.include_router(interview.router)
 # dev proxy (apps/web/proxy.conf.json), with no path rewriting.
 app.include_router(auth.router, prefix="/api")
 app.include_router(student.router, prefix="/api")
+# The v2 UI's three new screens (ledger, English baseline, mentor meeting log)
+# and the landing programme cards. Its own module so routers/student.py — the
+# file every other student change touches — did not grow another 600 lines; it
+# shares the /student prefix, so the client sees one flat surface.
+app.include_router(student_screens.router, prefix="/api")
 app.include_router(mentor.router, prefix="/api")
 app.include_router(director.router, prefix="/api")
 app.include_router(leave.router, prefix="/api")

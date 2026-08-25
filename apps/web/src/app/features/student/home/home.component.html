@@ -1,0 +1,100 @@
+<div class="dt-header">
+  <div>
+    <h1 class="dt-title" style="font-size:19px">
+      @if (firstName(); as name) {
+        Welcome back, {{ name }}
+      } @else {
+        Welcome back
+      }
+    </h1>
+    @if (subline(); as sub) {
+      <p class="dt-sub">{{ sub }}</p>
+    }
+  </div>
+
+  @if (streak(); as s) {
+    @if (s.current > 0) {
+      <span class="chip good">
+        <span class="icon" aria-hidden="true">local_fire_department</span>
+        {{ s.current }}-day login streak
+      </span>
+    }
+  }
+</div>
+
+@switch (state()) {
+  @case ('loading') {
+    <p class="loading-line">Loading your overview…</p>
+  }
+
+  @case ('error') {
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">info</span>
+      We couldn’t reach your record. Please try again shortly.
+      <button type="button" class="btn ghost" (click)="load()">Retry</button>
+    </div>
+  }
+
+  @case ('data') {
+    @if (programme(); as p) {
+      <div class="grid-3">
+        @for (stage of p.stages; track stage.key) {
+          <div class="card">
+            <h4>
+              {{ stage.label }}
+              <span class="dt-sub" style="font-weight:400">
+                · {{ stage.completed }}/{{ stage.total }}
+              </span>
+            </h4>
+
+            @for (item of stage.items; track item.key) {
+              @if (item.route) {
+                <a class="link-row" [routerLink]="item.route">
+                  <span class="icon lead" aria-hidden="true">chevron_right</span>
+                  <span class="lbl">{{ item.label }}</span>
+                  <span
+                    class="icon state"
+                    [class.good]="item.tone === 'good'"
+                    [class.warn]="item.tone === 'warn'"
+                    [class.neutral]="item.tone === 'neutral'"
+                    [attr.title]="item.title"
+                    [attr.aria-label]="item.title"
+                    >{{ item.glyph }}</span
+                  >
+                </a>
+              } @else {
+                <div class="link-row static">
+                  <span class="icon lead" aria-hidden="true">chevron_right</span>
+                  <span class="lbl">{{ item.label }}</span>
+                  <span
+                    class="icon state"
+                    [class.good]="item.tone === 'good'"
+                    [class.warn]="item.tone === 'warn'"
+                    [class.neutral]="item.tone === 'neutral'"
+                    [attr.title]="item.title"
+                    [attr.aria-label]="item.title"
+                    >{{ item.glyph }}</span
+                  >
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h4>Programme progress</h4>
+        <div class="completeness">
+          <div class="meter" style="flex:1">
+            <span [style.width.%]="p.percent"></span>
+          </div>
+          <b>{{ p.completed }} of {{ p.total }} complete</b>
+        </div>
+        <p class="dt-sub" style="margin-top:10px">
+          Reboot → Excel → Elevate. Each item is marked by the placement office as you
+          clear it.
+        </p>
+      </div>
+    }
+  }
+}

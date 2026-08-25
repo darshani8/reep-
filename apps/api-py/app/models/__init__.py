@@ -9,6 +9,7 @@ from . import certification  # noqa: F401
 from . import cohort  # noqa: F401
 from . import conversation  # noqa: F401
 from . import course  # noqa: F401
+from . import english_baseline  # noqa: F401
 from . import feedback  # noqa: F401
 from . import interview  # noqa: F401
 from . import job  # noqa: F401
@@ -18,6 +19,7 @@ from . import lab  # noqa: F401
 from . import leave  # noqa: F401
 from . import mail  # noqa: F401
 from . import mentor_note  # noqa: F401
+from . import milestone  # noqa: F401
 from . import mock  # noqa: F401
 from . import offer  # noqa: F401
 from . import placement_criteria  # noqa: F401
@@ -28,6 +30,7 @@ from . import resume_profile  # noqa: F401
 from . import schedule  # noqa: F401
 from . import skill  # noqa: F401
 from . import swoc  # noqa: F401
+from . import time_ledger  # noqa: F401
 from . import timesheet  # noqa: F401
 from . import upload  # noqa: F401
 from . import user  # noqa: F401

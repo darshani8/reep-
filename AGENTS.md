@@ -3,7 +3,7 @@
 REEP is a college placement-readiness dashboard. It is an **Angular front end** talking to a **Python/FastAPI back end** over HTTP, on **PostgreSQL**. (It used to be a Next.js/React app with a NestJS API and Prisma — that stack has been fully migrated away and deleted. Ignore any lingering references to Next.js, React, Prisma, `server-only`, or `apps/api`; they are gone.)
 
 ```
-apps/web      Angular 20 SPA (standalone components, signals, ReactiveForms)
+apps/web      Angular 22 SPA (standalone components, signals, ReactiveForms)
 apps/api-py   FastAPI + SQLAlchemy 2.0 + Alembic + Pydantic v2 (psycopg 3, PyJWT)
 docker-compose.yml   Postgres 17 (container reep-postgres, host port 5433)
 ollama/       optional local model (loopback LLM — see the egress gate below)

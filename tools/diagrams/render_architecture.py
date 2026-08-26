@@ -9,16 +9,11 @@ wall from about a metre.
 Regenerate whenever the architecture changes:  python tools/diagrams/render_architecture.py
 """
 
-import html
+import sys
 from pathlib import Path
 
-W, H = 1680, 1188
-
-INK = "#111827"
-MUTED = "#475569"
-FAINT = "#64748b"
-PAPER = "#ffffff"
-WASH = "#f8fafc"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from poster_kit import FAINT, INK, MUTED, PAPER, Poster  # noqa: E402
 
 C_USER = "#1d4ed8"
 C_EDGE = "#0f766e"
@@ -29,95 +24,16 @@ C_OBS = "#0369a1"
 C_REC = "#7c2d12"
 C_SEC = "#334155"
 
-FONT = "Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-PALETTE = [C_USER, C_EDGE, C_COMPUTE, C_DATA, C_AI, C_OBS, C_REC, C_SEC, FAINT]
-
-out = []
-def add(s): out.append(s)
-def esc(s): return html.escape(str(s), quote=False)
-
-
-def text(x, y, s, size=11, fill=INK, weight=400, anchor="start", ls=0, style=None):
-    extra = f' letter-spacing="{ls}"' if ls else ""
-    extra += f' font-style="{style}"' if style else ""
-    add(f'<text x="{x}" y="{y}" font-family="{FONT}" font-size="{size}" '
-        f'font-weight="{weight}" fill="{fill}" text-anchor="{anchor}"{extra}>{esc(s)}</text>')
-
-
-WARN = []
-
-
-def box(x, y, w, h, title, lines, color, body=10.5, lh=13, pad=11, head=26, title_size=12.5):
-    """A card: white body, coloured header bar, then one line of body text per entry.
-
-    Guards its own geometry: a card whose text would clip is reported rather
-    than silently printed short — the failure mode a wall poster cannot afford.
-    """
-    need = head + 16 + max(0, len(lines) - 1) * lh + 6
-    if need > h:
-        WARN.append(f"OVERFLOW {title!r}: needs {need:.0f}, has {h} (y={y})")
-    if y + h > H - 4:
-        WARN.append(f"OFF-CANVAS {title!r}: bottom {y + h} > {H}")
-    add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="9" fill="{PAPER}" '
-        f'stroke="{color}" stroke-width="1.7"/>')
-    add(f'<path d="M{x+9} {y} H{x+w-9} A9 9 0 0 1 {x+w} {y+9} V{y+head} H{x} V{y+9} '
-        f'A9 9 0 0 1 {x+9} {y} Z" fill="{color}"/>')
-    text(x + pad, y + head - 8, title, title_size, "#ffffff", 700, ls=0.5)
-    ty = y + head + 16
-    for ln in lines:
-        weight, fill, t = 400, INK, ln
-        if ln.startswith("!"):          # emphasised line
-            weight, fill, t = 700, color, ln[1:]
-        elif ln.startswith("~"):        # muted / secondary line
-            fill, t = MUTED, ln[1:]
-        elif ln.startswith("#"):        # small section rule inside a card
-            weight, fill, t = 700, FAINT, ln[1:]
-        if t:
-            text(x + pad, ty, t, body, fill, weight)
-        ty += lh
-
-
-def container(x, y, w, h, label, color):
-    add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="12" fill="{WASH}" '
-        f'stroke="{color}" stroke-width="1.6" stroke-dasharray="7 4"/>')
-    chip(x + 14, y - 13, label, color)
-
-
-def chip(x, y, label, color, size=12):
-    w = 20 + len(label) * size * 0.63
-    add(f'<rect x="{x}" y="{y}" width="{w:.0f}" height="26" rx="13" fill="{color}"/>')
-    text(x + 10, y + 18, label, size, "#ffffff", 700, ls=0.9)
-
-
-def arrow(pts, color=C_SEC, width=2.4, dash=None):
-    d = " ".join(f"{px},{py}" for px, py in pts)
-    da = f' stroke-dasharray="{dash}"' if dash else ""
-    add(f'<polyline points="{d}" fill="none" stroke="{color}" stroke-width="{width}"'
-        f'{da} marker-end="url(#a-{color.lstrip("#")})" stroke-linejoin="round"/>')
-
-
-def line(pts, color=C_SEC, width=2.4):
-    d = " ".join(f"{px},{py}" for px, py in pts)
-    add(f'<polyline points="{d}" fill="none" stroke="{color}" stroke-width="{width}" '
-        f'stroke-linejoin="round"/>')
-
-
-# ---------------------------------------------------------------- canvas ----
-add(f'<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" '
-    f'viewBox="0 0 {W} {H}">')
-add('<defs>')
-for c in PALETTE:
-    add(f'<marker id="a-{c.lstrip("#")}" viewBox="0 0 10 10" refX="9" refY="5" '
-        f'markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">'
-        f'<path d="M0 0 L10 5 L0 10 z" fill="{c}"/></marker>')
-add('</defs>')
-add(f'<rect width="{W}" height="{H}" fill="{PAPER}"/>')
+poster = Poster(palette=[C_USER, C_EDGE, C_COMPUTE, C_DATA, C_AI, C_OBS, C_REC, C_SEC])
+W, H = poster.w, poster.h
+add, text, box = poster.add, poster.text, poster.box
+container, chip, arrow, line = poster.container, poster.chip, poster.arrow, poster.line
 
 # ----------------------------------------------------------------- title ----
 text(22, 50, "REEP — Placement-Readiness Platform", 31, INK, 800)
 text(22, 72, "Complete system architecture, as deployed on AWS", 14, MUTED, 500)
 text(1658, 38, "BGSCET MBA · github.com/darshani8/reep-", 11.5, MUTED, 600, anchor="end")
-text(1658, 56, "Angular 20 SPA · FastAPI (Python 3.14) · PostgreSQL 17 + pgvector · AWS ap-south-1",
+text(1658, 56, "Angular 22 SPA · FastAPI (Python 3.14) · PostgreSQL 17 + pgvector · AWS ap-south-1",
      11.5, MUTED, 400, anchor="end")
 text(1658, 74, "Print A3 landscape (420 × 297 mm) at 100 % scale, no margins",
      11.5, FAINT, 400, anchor="end")
@@ -379,12 +295,9 @@ text(22, 1186, "Solid arrow = request / data path.  Dashed border = an AWS bound
 text(1658, 1186, "Generated by tools/diagrams/render_architecture.py — regenerate when the architecture changes",
      9.5, FAINT, anchor="end")
 
-add('</svg>')
-
 dest = Path(__file__).resolve().parents[2] / "docs/diagrams/reep-architecture-a3.svg"
-dest.parent.mkdir(parents=True, exist_ok=True)
-dest.write_text("\n".join(out), encoding="utf-8")
+warnings = poster.save(dest)
 print(f"wrote {dest} ({dest.stat().st_size // 1024} kB)")
-for w_ in WARN:
-    print("  !", w_)
-print("  clean" if not WARN else f"  {len(WARN)} geometry problem(s)")
+for problem in warnings:
+    print("  !", problem)
+print("  clean" if not warnings else f"  {len(warnings)} geometry problem(s)")

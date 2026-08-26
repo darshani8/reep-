@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import retention
 from .config import settings
 from .db import SessionLocal
+from .traceability import RequestTraceMiddleware
 from .routers import (
     agent,
     alumni,
@@ -36,6 +37,27 @@ from .routers import (
 )
 
 log = logging.getLogger("reep.startup")
+
+# Sentry is the ONE observability + traceability tool (user decision, 2026-08):
+# errors and performance traces from api and web land in one place, joined to
+# raw CloudWatch log lines by the X-Request-ID tag app/traceability.py sets.
+# Initialised at import time — before the app object — so even lifespan/boot
+# failures are captured. Blank SENTRY_DSN = not initialised = every downstream
+# sentry_sdk call is a no-op; a laptop and CI pay nothing.
+#
+# send_default_pii=False is load-bearing: with it off the SDK does not attach
+# cookies (the reep_session token!) or user context. Telemetry gets stack
+# traces, timings and tags — never a student's text or a signed credential.
+if settings.sentry_dsn.strip():
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn.strip(),
+        environment=settings.env.strip() or "development",
+        traces_sample_rate=settings.sentry_traces_rate,
+        send_default_pii=False,
+    )
+    log.info("Sentry initialised (traces_sample_rate=%s)", settings.sentry_traces_rate)
 
 
 def _sweep_orphaned_interviews() -> int:
@@ -218,6 +240,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Traceability: every request carries an X-Request-ID edge to log line — see
+# app/traceability.py. Added AFTER CORSMiddleware so it runs INSIDE it and the
+# echoed header rides on responses CORS has already stamped.
+app.add_middleware(RequestTraceMiddleware)
 
 # Health is infra liveness — unprefixed at /health.
 app.include_router(health.router)

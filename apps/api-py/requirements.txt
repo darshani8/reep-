@@ -49,6 +49,15 @@ python-multipart==0.0.32
 # (oauth2.googleapis.com/token) and the JWKS fetch. Already pinned for the
 # realtime relay, so OAuth adds no new dependency here.
 httpx==0.28.1
+# Amazon Bedrock (Nova) transport in app/ai/llm.py. The import is lazy — only a
+# deployment that sets BEDROCK_MODEL pays it — but it is DECLARED here per the
+# api-imports rule: a lazy import of an undeclared package only moves the crash
+# from boot to the first request that reaches the path.
+boto3==1.43.80
+# Sentry — the single observability + traceability tool: errors + performance
+# traces, initialised in app/main.py only when SENTRY_DSN is set (blank = every
+# sentry_sdk call is a no-op). [fastapi] pulls the ASGI/Starlette integration.
+sentry-sdk[fastapi]==2.68.1
 # Server-side PDF rendering for /student/resume/{id}/pdf (local, no network — so
 # the student-data egress gate does not apply: nothing leaves the machine)
 reportlab==5.0.0

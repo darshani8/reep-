@@ -9,4 +9,9 @@ export const environment = {
   /// forwards /api -> http://localhost:3300 so this stays same-origin in the
   /// browser and the http-only session cookie is carried without CORS friction.
   apiBase: '/api',
+  /// Sentry — the single observability + traceability tool, mirroring the
+  /// API's SENTRY_DSN. Blank = the SDK is never even DOWNLOADED (main.ts
+  /// dynamic-imports it only when this is set), so dev builds and the initial
+  /// bundle pay nothing. Set per deployment at build time.
+  sentryDsn: '',
 };

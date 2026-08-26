@@ -258,6 +258,41 @@ class Settings(BaseSettings):
     # Sakana Fugu — OpenAI-compatible meta-router (https://api.sakana.ai/v1).
     sakana_api_key: str = ""
 
+    # Amazon Bedrock (Nova) — a transport of its own in app/ai/llm.py, driven by
+    # IAM credentials (task role / instance profile / env), never an API key.
+    # Setting BEDROCK_MODEL is the whole opt-in; use the inference-profile id
+    # for your region (e.g. "apac.amazon.nova-pro-v1:0"). The explicit LLM_*
+    # trio still wins; the free-tier key auto-select is checked AFTER this, so
+    # an AWS deployment cannot be silently routed to a free provider by a stray
+    # key in the environment. Rule 1 applies unchanged: Bedrock is off-machine,
+    # so student-data paths still require LLM_ALLOW_REMOTE_STUDENT_DATA=true —
+    # a deliberate operator decision, made reasonable here because Bedrock does
+    # not train on your account's traffic.
+    bedrock_model: str = ""
+    # Blank = boto3's own default chain (AWS_REGION / profile / IMDS).
+    bedrock_region: str = ""
+
+    # Sentry — THE observability + traceability tool for this deployment (errors
+    # AND performance traces, api and web in one project each). Blank DSN =
+    # fully off: the SDK is not initialised and every sentry_sdk call downstream
+    # is a documented no-op, so a laptop pays nothing. send_default_pii stays
+    # FALSE in app/main.py — Sentry receives stack traces, timings and the
+    # request-id tag, never cookies, bodies or student text (rule 1's spirit,
+    # applied to telemetry).
+    sentry_dsn: str = ""
+    # A string like llm_allow_remote_student_data, so a blank line in .env is
+    # "use the default" rather than a pydantic float error — parsed and clamped
+    # by the property below.
+    sentry_traces_sample_rate: str = "0.2"
+
+    @property
+    def sentry_traces_rate(self) -> float:
+        try:
+            rate = float(self.sentry_traces_sample_rate.strip() or "0.2")
+        except ValueError:
+            return 0.2
+        return min(1.0, max(0.0, rate))
+
     # Knowledge-Base embedder (app/ai/embeddings.py). OPTIONAL: leave the base URL
     # blank and retrieval falls back to Postgres full-text — no embeddings needed.
     # The KB is public policy text (no student PII), so it may be sent to any

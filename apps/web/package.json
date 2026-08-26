@@ -17,6 +17,7 @@
     "@angular/forms": "^22.1.0",
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
+    "@sentry/angular": "^10.71.0",
     "apexcharts": "^6.8.0",
     "livekit-client": "^2.21.0",
     "ng-apexcharts": "^3.0.0",

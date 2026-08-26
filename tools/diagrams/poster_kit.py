@@ -43,8 +43,11 @@ class Poster:
         self.out.append(s)
 
     def _open(self):
-        self.add(f'<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" '
-                 f'viewBox="0 0 {self.w} {self.h}">')
+        # One unit is 0.25 mm, so the physical size follows from the viewBox and
+        # a portrait sheet needs no special case: 1680x1188 is A3 landscape,
+        # 1188x1680 is A3 portrait, and both print at true size.
+        self.add(f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.w * 0.25:g}mm" '
+                 f'height="{self.h * 0.25:g}mm" viewBox="0 0 {self.w} {self.h}">')
         self.add("<defs>")
         for c in self.palette:
             self.add(f'<marker id="a-{c.lstrip("#")}" viewBox="0 0 10 10" refX="9" refY="5" '

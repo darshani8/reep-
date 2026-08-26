@@ -7,6 +7,11 @@ Two A3 sheets, each as `.svg` (source of truth), `.pdf` (print) and `.png`
 edge, compute, state, the AI plane, observability and traceability, the
 interview call recorder, and the invariants that must not be broken.
 
+**`reep-flow-a3`** (A3 **portrait**) — the read-from-across-the-room sheet:
+big flat icons, two-line captions and numbered steps following ONE request
+from a person to the data behind it, in the style of a vendor architecture
+diagram. Hand this one to someone who has never seen the system.
+
 **`reep-tech-stack-a3`** — the stack and its wiring: the browser tab, one
 request descending through the API process, and the stores and services it
 talks to — with every wire labelled by protocol, payload and the guard that
@@ -29,10 +34,17 @@ changes:
 ```bash
 python tools/diagrams/render_architecture.py        # the deployment poster
 python tools/diagrams/render_stack_interaction.py   # the stack interaction map
+python tools/diagrams/render_flow_poster.py         # the icon flow poster (portrait)
 ```
 
-Both draw on `tools/diagrams/poster_kit.py`, so a card looks the same on both
-sheets and a fix to the geometry guard fixes both.
+All three draw on `tools/diagrams/poster_kit.py` (cards, containers, arrows,
+the geometry guard), and the flow poster adds `icon_kit.py` — original
+simplified glyphs in each vendor's familiar colour, captioned with the product
+name rather than redrawing anyone's trademarked logo.
+
+Print the portrait sheet as **A3 portrait**; the other two are **A3
+landscape**. The physical size follows from each poster's viewBox, so both
+orientations come out at true size with no scaling.
 
 The generator validates its own geometry and refuses to pass silently: any card
 whose text would clip, or that would fall off the canvas, is reported on stdout

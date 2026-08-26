@@ -7,7 +7,7 @@ the canonical description of the stack and its two non-negotiable rules.
 ## Architecture
 
 ```
-Angular 20 (standalone components · signals · ReactiveForms)
+Angular 22 (standalone components · signals · ReactiveForms)
         │  HTTP REST + SSE, same-origin via proxy.conf.json
         ▼
 FastAPI

@@ -1,10 +1,16 @@
-# Architecture poster
+# Printed posters
 
-`reep-architecture-a3.svg` (source of truth), `.pdf` (print) and `.png`
-(150 dpi preview) are the complete system architecture on one A3 sheet —
-people and roles, the AWS edge, compute, state, the AI plane, observability
-and traceability, the interview call recorder, and the invariants that must
-not be broken.
+Two A3 sheets, each as `.svg` (source of truth), `.pdf` (print) and `.png`
+(150 dpi preview):
+
+**`reep-architecture-a3`** — the deployed system: people and roles, the AWS
+edge, compute, state, the AI plane, observability and traceability, the
+interview call recorder, and the invariants that must not be broken.
+
+**`reep-tech-stack-a3`** — the stack and its wiring: the browser tab, one
+request descending through the API process, and the stores and services it
+talks to — with every wire labelled by protocol, payload and the guard that
+sits on it. Read this one when the question is *how do the pieces talk*.
 
 ## Printing
 
@@ -21,8 +27,12 @@ The poster is generated, not drawn — so it can be kept honest as the system
 changes:
 
 ```bash
-python tools/diagrams/render_architecture.py     # → docs/diagrams/*.svg
+python tools/diagrams/render_architecture.py        # the deployment poster
+python tools/diagrams/render_stack_interaction.py   # the stack interaction map
 ```
+
+Both draw on `tools/diagrams/poster_kit.py`, so a card looks the same on both
+sheets and a fix to the geometry guard fixes both.
 
 The generator validates its own geometry and refuses to pass silently: any card
 whose text would clip, or that would fall off the canvas, is reported on stdout

@@ -2,7 +2,7 @@
 
 A college **placement-readiness** platform for students, mentors and the placement office.
 
-- **Front end** — Angular 20 SPA (`apps/web`): warm "REEP v2" desktop UI, standalone components + signals.
+- **Front end** — Angular 22 SPA (`apps/web`): warm "REEP v2" desktop UI, standalone components + signals.
 - **Back end** — Python / FastAPI (`apps/api-py`): SQLAlchemy 2.0 + Alembic + Pydantic v2 on PostgreSQL, with a universal OpenAI-compatible LLM adapter behind a student-data egress gate.
 - **Database** — PostgreSQL 17 via `docker-compose.yml`.
 

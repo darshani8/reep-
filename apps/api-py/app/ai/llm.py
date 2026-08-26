@@ -88,6 +88,18 @@ def llm_config() -> LLMConfig | None:
     if base and model and (key or is_loopback(base)):
         return LLMConfig(base, model, key, _timeout_s(), provider="custom")
 
+    # Amazon Bedrock (Nova) — a different TRANSPORT, not another base_url: it is
+    # driven by boto3's converse API and IAM credentials, so it cannot ride the
+    # OpenAI-compatible path above. BEDROCK_MODEL set is the whole opt-in
+    # (e.g. "apac.amazon.nova-pro-v1:0" — use the inference-profile id for your
+    # region). Checked after the explicit trio so LLM_BASE_URL still wins, and
+    # before the key auto-select so an AWS deployment with a stray free-tier key
+    # in the environment does not silently route around Bedrock.
+    if settings.bedrock_model.strip():
+        return LLMConfig(
+            "bedrock", settings.bedrock_model.strip(), "", _timeout_s(), provider="bedrock"
+        )
+
     for p in _PROVIDERS:
         pkey = getattr(settings, p.key_attr, "").strip()
         if pkey:
@@ -108,6 +120,85 @@ def student_data_egress_allowed(base_url: str) -> bool:
     if is_loopback(base_url):
         return True
     return settings.allow_remote_student_data
+
+
+# --- Amazon Bedrock (Nova) transport -----------------------------------------
+#
+# boto3 is imported lazily so deployments that never set BEDROCK_MODEL do not
+# pay its import cost — but it IS declared in requirements.txt, per the
+# api-imports lesson: a lazy import only moves an undeclared-dependency crash
+# from boot to the first student who reaches the path.
+
+
+def _bedrock_client(cfg: LLMConfig):
+    import boto3
+
+    region = settings.bedrock_region.strip() or None
+    return boto3.client("bedrock-runtime", region_name=region)
+
+
+def _bedrock_payload(
+    messages: list[dict], *, json_mode: bool, max_tokens: int | None, temperature: float
+) -> dict:
+    """Map OpenAI-shaped messages onto the converse API's shape.
+
+    System turns become the top-level `system` list; the rest keep their roles
+    with text content blocks. Nova has no response_format switch, so json_mode
+    becomes an explicit system instruction — the callers already parse
+    defensively (they had to for the free-tier providers too).
+    """
+    system = [
+        {"text": m.get("content") or ""} for m in messages if m.get("role") == "system"
+    ]
+    if json_mode:
+        system.append({"text": "Respond with a single valid JSON object and nothing else."})
+    turns = [
+        {"role": m["role"], "content": [{"text": m.get("content") or ""}]}
+        for m in messages
+        if m.get("role") in ("user", "assistant")
+    ]
+    inference: dict = {"temperature": temperature}
+    if max_tokens is not None:
+        inference["maxTokens"] = max_tokens
+    payload: dict = {"messages": turns, "inferenceConfig": inference}
+    if system:
+        payload["system"] = system
+    return payload
+
+
+def _bedrock_complete(
+    cfg: LLMConfig,
+    messages: list[dict],
+    *,
+    temperature: float,
+    json_mode: bool,
+    max_tokens: int | None,
+) -> str:
+    client = _bedrock_client(cfg)
+    payload = _bedrock_payload(
+        messages, json_mode=json_mode, max_tokens=max_tokens, temperature=temperature
+    )
+    resp = client.converse(modelId=cfg.model, **payload)
+    parts = resp.get("output", {}).get("message", {}).get("content", [])
+    return "".join(p.get("text", "") for p in parts)
+
+
+def _bedrock_stream(
+    cfg: LLMConfig,
+    messages: list[dict],
+    *,
+    temperature: float,
+    max_tokens: int | None,
+) -> Iterator[str]:
+    client = _bedrock_client(cfg)
+    payload = _bedrock_payload(
+        messages, json_mode=False, max_tokens=max_tokens, temperature=temperature
+    )
+    resp = client.converse_stream(modelId=cfg.model, **payload)
+    for event in resp.get("stream", []):
+        delta = event.get("contentBlockDelta", {}).get("delta", {}).get("text")
+        if delta:
+            yield delta
 
 
 def complete_chat(
@@ -132,6 +223,11 @@ def complete_chat(
             f"The model at {cfg.base_url} runs off this machine; student data will "
             "not be sent unless LLM_ALLOW_REMOTE_STUDENT_DATA=true. Use a local "
             "model or a paid key."
+        )
+
+    if cfg.provider == "bedrock":
+        return _bedrock_complete(
+            cfg, messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens
         )
 
     payload: dict = {"model": cfg.model, "messages": messages, "temperature": temperature}
@@ -176,6 +272,10 @@ def stream_chat(
             "not be sent unless LLM_ALLOW_REMOTE_STUDENT_DATA=true. Use a local "
             "model or a paid key."
         )
+
+    if cfg.provider == "bedrock":
+        yield from _bedrock_stream(cfg, messages, temperature=temperature, max_tokens=max_tokens)
+        return
 
     payload: dict = {
         "model": cfg.model,

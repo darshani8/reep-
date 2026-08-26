@@ -1,6 +1,26 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
+import { environment } from './environments/environment';
+
+/**
+ * Sentry (one tool for observability + traceability, same as the API). A
+ * DYNAMIC import on purpose: with no DSN configured the SDK is never fetched,
+ * so the initial bundle and every non-telemetry deployment stay exactly as
+ * they were. Errors and page/route traces land in the same Sentry org as the
+ * API's, where the API tags every request with the X-Request-ID the SPA can
+ * read off any response — one id from a click to a backend log line.
+ */
+if (environment.sentryDsn) {
+  void import('@sentry/angular').then((Sentry) => {
+    Sentry.init({
+      dsn: environment.sentryDsn,
+      environment: environment.production ? 'production' : 'development',
+      tracesSampleRate: 0.2,
+      sendDefaultPii: false,
+    });
+  });
+}
 
 /**
  * Reveal the icon font only once it has actually loaded.

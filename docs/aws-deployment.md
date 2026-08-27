@@ -64,9 +64,17 @@ validation never completes.
 
 ## 3. First deployment
 
+State lives in S3, not in the shell that happened to run the first apply — a
+CloudShell session gets reclaimed, and a local `terraform.tfstate` reclaimed
+with it leaves Terraform unable to manage the stack it just built. The bucket
+and the DynamoDB lock table cannot be resources in this stack (a state store
+cannot be described by the state it stores), so one script creates them first.
+It is idempotent, so re-running it on an existing setup changes nothing.
+
 ```bash
 cd infra/aws
-terraform init
+./bootstrap-state.sh                      # writes backend.hcl
+terraform init -backend-config=backend.hcl
 terraform apply \
   -var alb_acm_certificate_arn=arn:aws:acm:ap-south-1:...:certificate/... \
   -var alert_email=you@bgscet.ac.in

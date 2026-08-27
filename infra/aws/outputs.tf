@@ -76,3 +76,16 @@ output "origin_encryption" {
     "${var.region} for a domain you control and re-apply with -var alb_acm_certificate_arn=...",
   ])
 }
+
+output "alb_dns_name" {
+  description = "Point your alb_origin_domain CNAME at this (DNS only — do not proxy it)."
+  value       = aws_lb.main.dns_name
+}
+
+output "dns_records_to_create" {
+  description = "The DNS records to add at your registrar once the apply finishes."
+  value = join("\n", compact([
+    var.alb_origin_domain != "" ? "CNAME  ${var.alb_origin_domain}  ->  ${aws_lb.main.dns_name}   (DNS only / grey cloud)" : "",
+    var.domain_name != "" ? "CNAME  ${var.domain_name}  ->  ${aws_cloudfront_distribution.main.domain_name}   (DNS only / grey cloud)" : "No custom domain set — reach the app at ${aws_cloudfront_distribution.main.domain_name}",
+  ]))
+}

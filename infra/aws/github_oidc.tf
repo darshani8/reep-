@@ -19,6 +19,12 @@ variable "github_repository" {
   default     = "darshani8/reep-"
 }
 
+variable "github_repository_ids" {
+  description = "owner@OWNER_ID/repo@REPO_ID, the id-carrying spelling of github_repository that current GitHub OIDC tokens put in their sub claim. Read the exact value from a CloudTrail AssumeRoleWithWebIdentity event. Empty = only the plain spelling is trusted."
+  type        = string
+  default     = "darshani8@285224354/reep-@1339637272"
+}
+
 variable "github_deploy_ref" {
   description = "Git ref allowed to deploy. Keep it to main; widen only deliberately."
   type        = string
@@ -55,7 +61,19 @@ resource "aws_iam_role" "github_deploy" {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           # The whole security of this door: only this repo, only this ref.
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:ref:${var.github_deploy_ref}"
+          #
+          # TWO subject spellings, because GitHub changed the claim under us:
+          # tokens now carry owner and repository IDS in the sub
+          # (repo:owner@OWNER_ID/name@REPO_ID:ref:...), and the first real
+          # deploy died on AccessDenied that only CloudTrail could explain --
+          # the workflow log just says "Not authorized". The ID-carrying form
+          # is the stronger pin (a deleted-and-recreated repository gets new
+          # ids and stops matching), so it leads; the plain form stays so a
+          # rollback of GitHub's format cannot brick deploys.
+          "token.actions.githubusercontent.com:sub" = compact([
+            var.github_repository_ids != "" ? "repo:${var.github_repository_ids}:ref:${var.github_deploy_ref}" : "",
+            "repo:${var.github_repository}:ref:${var.github_deploy_ref}",
+          ])
         }
       }
     }]

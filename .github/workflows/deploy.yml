@@ -131,11 +131,19 @@ jobs:
       # The client Sentry DSN is baked in at build time (main.ts only imports
       # the SDK when it is set). Optional: with no secret configured the SPA
       # simply ships without client telemetry.
+      # `secrets` is not a named value the workflow parser admits inside an
+      # `if:` -- the whole file fails to parse and every dispatch is rejected
+      # before any job starts. Route it through env and test that instead.
       - name: Point the SPA at Sentry
-        if: ${{ secrets.WEB_SENTRY_DSN != '' }}
+        env:
+          WEB_SENTRY_DSN: ${{ secrets.WEB_SENTRY_DSN }}
         working-directory: apps/web
         run: |
-          sed -i "s|sentryDsn: ''|sentryDsn: '${{ secrets.WEB_SENTRY_DSN }}'|" \
+          if [ -z "$WEB_SENTRY_DSN" ]; then
+            echo "no WEB_SENTRY_DSN secret; shipping without client telemetry"
+            exit 0
+          fi
+          sed -i "s|sentryDsn: ''|sentryDsn: '$WEB_SENTRY_DSN'|" \
             src/environments/environment.ts
           grep -q "sentryDsn: 'https" src/environments/environment.ts
 

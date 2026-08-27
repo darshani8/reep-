@@ -62,8 +62,8 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN || 'arn:aws:iam::445363794125:role/reep-github-deploy' }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
           role-session-name: reep-deploy-${{ github.run_id }}
 
       - uses: aws-actions/amazon-ecr-login@v2
@@ -73,7 +73,7 @@ jobs:
       # sha tag is what makes "which commit is live" answerable afterwards.
       - name: Build and push the image
         run: |
-          IMAGE="${{ vars.ECR_REPOSITORY }}"
+          IMAGE="${{ vars.ECR_REPOSITORY || '445363794125.dkr.ecr.ap-south-1.amazonaws.com/reep/api' }}"
           docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" apps/api-py
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
@@ -85,17 +85,17 @@ jobs:
         if: inputs.run_migrations
         run: |
           TASK_ARN=$(aws ecs run-task \
-            --cluster "${{ vars.ECS_CLUSTER }}" \
-            --task-definition "${{ vars.ECS_TASK_FAMILY }}" \
+            --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" \
+            --task-definition "${{ vars.ECS_TASK_FAMILY || 'reep-api' }}" \
             --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[${{ vars.ECS_SUBNETS }}],securityGroups=[${{ vars.ECS_SECURITY_GROUP }}],assignPublicIp=DISABLED}" \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ vars.ECS_SUBNETS || 'subnet-0792c0ddcdd02f34f,subnet-0a41b8c5a98485d1a' }}],securityGroups=[${{ vars.ECS_SECURITY_GROUP || 'sg-0dfa5c76167d79093' }}],assignPublicIp=DISABLED}" \
             --overrides '{"containerOverrides":[{"name":"api","command":["python","-m","alembic","upgrade","head"]}]}' \
             --query 'tasks[0].taskArn' --output text)
           echo "Migration task: $TASK_ARN"
-          aws ecs wait tasks-stopped --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$TASK_ARN"
-          EXIT=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$TASK_ARN" \
+          aws ecs wait tasks-stopped --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --tasks "$TASK_ARN"
+          EXIT=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --tasks "$TASK_ARN" \
             --query 'tasks[0].containers[0].exitCode' --output text)
-          REASON=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$TASK_ARN" \
+          REASON=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --tasks "$TASK_ARN" \
             --query 'tasks[0].stoppedReason' --output text)
           echo "Exit code: $EXIT ($REASON)"
           # A non-zero exit means the schema did NOT move. Stop before rolling
@@ -104,10 +104,10 @@ jobs:
 
       - name: Roll the service
         run: |
-          aws ecs update-service --cluster "${{ vars.ECS_CLUSTER }}" \
-            --service "${{ vars.ECS_SERVICE }}" --force-new-deployment >/dev/null
+          aws ecs update-service --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" \
+            --service "${{ vars.ECS_SERVICE || 'api' }}" --force-new-deployment >/dev/null
           echo "Waiting for the new tasks to become healthy…"
-          aws ecs wait services-stable --cluster "${{ vars.ECS_CLUSTER }}" --services "${{ vars.ECS_SERVICE }}"
+          aws ecs wait services-stable --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --services "${{ vars.ECS_SERVICE || 'api' }}"
           echo "API deployed: ${{ github.sha }}"
 
   web:
@@ -145,8 +145,8 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN || 'arn:aws:iam::445363794125:role/reep-github-deploy' }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
           role-session-name: reep-deploy-web-${{ github.run_id }}
 
       # Two passes on purpose. Hashed assets are immutable, so they get a year;
@@ -155,14 +155,14 @@ jobs:
       - name: Publish
         working-directory: apps/web/dist/web/browser
         run: |
-          aws s3 sync . "s3://${{ vars.WEB_BUCKET }}" --delete \
+          aws s3 sync . "s3://${{ vars.WEB_BUCKET || 'reep-web-20260827213147410900000003' }}" --delete \
             --exclude "index.html" --cache-control "public,max-age=31536000,immutable"
-          aws s3 cp index.html "s3://${{ vars.WEB_BUCKET }}/index.html" \
+          aws s3 cp index.html "s3://${{ vars.WEB_BUCKET || 'reep-web-20260827213147410900000003' }}/index.html" \
             --cache-control "no-cache,no-store,must-revalidate"
 
       - name: Invalidate the entry point
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id "${{ vars.CLOUDFRONT_ID }}" \
+            --distribution-id "${{ vars.CLOUDFRONT_ID || 'EW482RJIK9CVE' }}" \
             --paths "/" "/index.html" >/dev/null
           echo "SPA deployed: ${{ github.sha }}"

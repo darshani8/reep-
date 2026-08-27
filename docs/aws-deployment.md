@@ -44,8 +44,23 @@ Internet ── WAF ── CloudFront ──┬── S3 (Angular SPA, private, 
   not publicly reachable. Browsers still get TLS. **That mode is for a
   throwaway environment — never point real student records at it**; every
   apply prints the `origin_encryption` warning while it is in force.
+- **`alb_origin_domain`** — a hostname you own that CNAMEs to the load
+  balancer (e.g. `origin.reep.example.com`), set whenever the ALB certificate
+  is set. CloudFront verifies the origin's certificate against the *origin
+  domain name*, and no public CA issues for `*.elb.amazonaws.com`, so the
+  origin needs a name your certificate can actually cover.
 - A Sentry org with two projects (api → Python/FastAPI, web → Angular); note
   both DSNs.
+
+### If your DNS is at Cloudflare
+
+Three records, and **every one of them must be "DNS only" (grey cloud)**:
+the ACM validation CNAMEs, the `alb_origin_domain` record, and the app record
+pointing at CloudFront. An orange-cloud record breaks ACM validation and puts a
+second CDN in front of a CDN. Cloudflare appends the zone to whatever you type
+in *Name*, so paste `_abc123.reep` — not the full `_abc123.reep.example.com` —
+or you will create `_abc123.reep.example.com.example.com` and wonder why
+validation never completes.
 
 ## 3. First deployment
 

@@ -39,6 +39,26 @@ variable "alb_acm_certificate_arn" {
   default     = ""
 }
 
+variable "alb_origin_domain" {
+  description = <<-EOT
+    A hostname in YOUR domain that resolves to the load balancer, e.g.
+    origin.reep.example.com. Set this whenever alb_acm_certificate_arn is set.
+
+    WHY IT IS NOT OPTIONAL IN PRACTICE: when CloudFront talks to a custom origin
+    over HTTPS it verifies the origin's certificate against the ORIGIN DOMAIN
+    NAME. Point the origin at the raw *.elb.amazonaws.com hostname and no
+    certificate you can obtain will ever match it — a public CA will not issue
+    for Amazon's domain. So the origin gets a name you own, the certificate is
+    issued for that name, and the two agree.
+
+    After `terraform apply`, create a CNAME for this name pointing at the
+    `alb_dns_name` output (in Cloudflare: DNS only, grey cloud — proxying it
+    puts a second CDN in front of your origin).
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "restrict_alb_to_cloudfront" {
   description = <<-EOT
     Admit only CloudFront's published origin-facing IP ranges to the ALB, via

@@ -33,8 +33,11 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   origin {
-    origin_id   = "api-alb"
-    domain_name = aws_lb.main.dns_name
+    origin_id = "api-alb"
+    # A name we own when we have one, so the origin certificate can match it;
+    # the raw ELB hostname only when the origin is plain HTTP and nothing is
+    # verified anyway.
+    domain_name = var.alb_origin_domain != "" ? var.alb_origin_domain : aws_lb.main.dns_name
     custom_origin_config {
       http_port  = 80
       https_port = 443
@@ -89,5 +92,18 @@ resource "aws_cloudfront_distribution" "main" {
     acm_certificate_arn            = var.domain_name != "" ? var.cloudfront_acm_certificate_arn : null
     ssl_support_method             = var.domain_name != "" ? "sni-only" : null
     minimum_protocol_version       = var.domain_name != "" ? "TLSv1.2_2021" : "TLSv1"
+  }
+}
+
+
+check "origin_certificate_can_match" {
+  assert {
+    condition = !local.alb_tls || var.alb_origin_domain != ""
+    error_message = join(" ", [
+      "The ALB has a certificate but the CloudFront origin is still the raw",
+      "*.elb.amazonaws.com hostname, which that certificate cannot cover.",
+      "Set -var alb_origin_domain=origin.<your-domain> and point a CNAME at the",
+      "alb_dns_name output, or expect CloudFront to fail origin TLS validation.",
+    ])
   }
 }

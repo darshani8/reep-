@@ -93,6 +93,13 @@ Finally: register `https://<domain>/api/auth/sso/google/callback` as the
 authorised redirect URI on the Google OAuth client (docs/google-sign-in.md),
 and confirm the SNS subscription email that lands in `alert_email`'s inbox.
 
+## 3a. Doing all of this from a browser
+
+`docs/deploy-from-chrome.md` is the same sequence written as a playbook for the
+Claude Chrome extension, using AWS CloudShell as the terminal — including the
+human checkpoints (read the plan before apply) and the list of things a browser
+agent must never do to this account.
+
 ## 3b. Deploying from the browser (no terminal)
 
 Once §3 has run once, every later deploy is a button in GitHub — useful when

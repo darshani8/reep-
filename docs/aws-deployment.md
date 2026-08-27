@@ -93,6 +93,39 @@ Finally: register `https://<domain>/api/auth/sso/google/callback` as the
 authorised redirect URI on the Google OAuth client (docs/google-sign-in.md),
 and confirm the SNS subscription email that lands in `alert_email`'s inbox.
 
+## 3b. Deploying from the browser (no terminal)
+
+Once §3 has run once, every later deploy is a button in GitHub — useful when
+you are not at a dev machine, and safer than pasting keys anywhere:
+
+1. **Grant the door, once.** `infra/aws/github_oidc.tf` creates an IAM role
+   GitHub Actions assumes over **OIDC** — no access key is ever stored in
+   GitHub. Its trust policy is pinned to `darshani8/reep-` on `main`, so a
+   fork or a stranger's pull request cannot deploy the account, and its
+   permissions stop at: push this ECR repository, roll this ECS service, run a
+   task in this family, write this web bucket, invalidate this distribution.
+   It can read no secret and no database row.
+2. **Wire the workflow, once.** Terraform prints the exact commands:
+   ```bash
+   terraform -chdir=infra/aws output -raw github_actions_setup   # then paste them
+   ```
+   (Optionally add a `WEB_SENTRY_DSN` repository *secret* to build the SPA with
+   client telemetry.)
+3. **Deploy.** In Chrome: **Actions → Deploy → Run workflow**, choose what to
+   ship (`api-and-web` / `api-only` / `web-only`), leave migrations ticked, and
+   type `deploy` in the confirm box.
+
+What the run does, in order: build and push the image tagged with the commit
+*and* `latest` → run `alembic upgrade head` as a one-off Fargate task on that
+new image, **failing the deploy before rolling anything if the migration
+fails** → force a new service deployment and wait for the tasks to be healthy →
+build the SPA, sync it to S3 (hashed assets immutable, `index.html`
+never cached) and invalidate the CloudFront entry point.
+
+**It deploys code, never infrastructure.** `terraform apply` stays a human
+action at a terminal where the plan can be read first — a button that can
+silently recreate a database is not a button worth having.
+
 ## 4. Deploying updates
 
 API: build + push the image, then `aws ecs update-service … --force-new-deployment`

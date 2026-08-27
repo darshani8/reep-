@@ -1,0 +1,168 @@
+name: Deploy
+
+# DEPLOY FROM THE BROWSER. Actions → Deploy → "Run workflow" in GitHub, and
+# this ships the API and the SPA to AWS. No terminal, no credentials on a
+# laptop: the job assumes infra/aws's `reep-github-deploy` role through OIDC,
+# which is pinned to this repository and to main, so a fork or a pull request
+# from a stranger cannot reach the account.
+#
+# It deploys CODE, never infrastructure. `terraform apply` stays a human action
+# at a terminal where the plan can be read first — a button that can silently
+# recreate a database is not a button anyone should have.
+#
+# One-time setup (Terraform prints the exact commands):
+#     terraform -chdir=infra/aws output -raw github_actions_setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "What to ship"
+        type: choice
+        default: api-and-web
+        options: [api-and-web, api-only, web-only]
+      run_migrations:
+        description: "Run `alembic upgrade head` before rolling the API"
+        type: boolean
+        default: true
+      confirm:
+        description: 'Type "deploy" to confirm this goes to production'
+        required: true
+
+concurrency:
+  # Two deploys racing would interleave an image push with a service roll and
+  # leave nobody able to say which build is live.
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # the OIDC token this trades for AWS credentials
+  contents: read
+
+jobs:
+  guard:
+    name: Confirm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the confirmation word
+        run: |
+          if [ "${{ inputs.confirm }}" != "deploy" ]; then
+            echo "::error::Type 'deploy' in the confirm box to run this. Nothing was changed."
+            exit 1
+          fi
+          echo "Confirmed. Target: ${{ inputs.target }} · migrations: ${{ inputs.run_migrations }}"
+
+  api:
+    name: API → ECR + ECS
+    needs: guard
+    if: inputs.target != 'web-only'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: reep-deploy-${{ github.run_id }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      # Tagged with the commit AND latest: `latest` is what the task definition
+      # references (so the migration task below picks up this build), and the
+      # sha tag is what makes "which commit is live" answerable afterwards.
+      - name: Build and push the image
+        run: |
+          IMAGE="${{ vars.ECR_REPOSITORY }}"
+          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" apps/api-py
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+
+      # Migrations run on the image just pushed, BEFORE the service rolls, so
+      # the new code never meets an old schema. A failed migration fails the
+      # job here and the running service is left untouched.
+      - name: Run database migrations
+        if: inputs.run_migrations
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "${{ vars.ECS_CLUSTER }}" \
+            --task-definition "${{ vars.ECS_TASK_FAMILY }}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ vars.ECS_SUBNETS }}],securityGroups=[${{ vars.ECS_SECURITY_GROUP }}],assignPublicIp=DISABLED}" \
+            --overrides '{"containerOverrides":[{"name":"api","command":["python","-m","alembic","upgrade","head"]}]}' \
+            --query 'tasks[0].taskArn' --output text)
+          echo "Migration task: $TASK_ARN"
+          aws ecs wait tasks-stopped --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$TASK_ARN"
+          EXIT=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          REASON=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$TASK_ARN" \
+            --query 'tasks[0].stoppedReason' --output text)
+          echo "Exit code: $EXIT ($REASON)"
+          # A non-zero exit means the schema did NOT move. Stop before rolling
+          # the service rather than deploying code its database cannot serve.
+          [ "$EXIT" = "0" ] || { echo "::error::Migration failed — the service was not rolled."; exit 1; }
+
+      - name: Roll the service
+        run: |
+          aws ecs update-service --cluster "${{ vars.ECS_CLUSTER }}" \
+            --service "${{ vars.ECS_SERVICE }}" --force-new-deployment >/dev/null
+          echo "Waiting for the new tasks to become healthy…"
+          aws ecs wait services-stable --cluster "${{ vars.ECS_CLUSTER }}" --services "${{ vars.ECS_SERVICE }}"
+          echo "API deployed: ${{ github.sha }}"
+
+  web:
+    name: SPA → S3 + CloudFront
+    needs: guard
+    if: inputs.target != 'api-only'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install
+        working-directory: apps/web
+        run: npm ci
+
+      # The client Sentry DSN is baked in at build time (main.ts only imports
+      # the SDK when it is set). Optional: with no secret configured the SPA
+      # simply ships without client telemetry.
+      - name: Point the SPA at Sentry
+        if: ${{ secrets.WEB_SENTRY_DSN != '' }}
+        working-directory: apps/web
+        run: |
+          sed -i "s|sentryDsn: ''|sentryDsn: '${{ secrets.WEB_SENTRY_DSN }}'|" \
+            src/environments/environment.ts
+          grep -q "sentryDsn: 'https" src/environments/environment.ts
+
+      - name: Build (the bundle budget is enforced here too)
+        working-directory: apps/web
+        run: npx ng build
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: reep-deploy-web-${{ github.run_id }}
+
+      # Two passes on purpose. Hashed assets are immutable, so they get a year;
+      # index.html must NOT be cached, or a browser keeps loading the old app
+      # shell that points at chunks the new deploy has already deleted.
+      - name: Publish
+        working-directory: apps/web/dist/web/browser
+        run: |
+          aws s3 sync . "s3://${{ vars.WEB_BUCKET }}" --delete \
+            --exclude "index.html" --cache-control "public,max-age=31536000,immutable"
+          aws s3 cp index.html "s3://${{ vars.WEB_BUCKET }}/index.html" \
+            --cache-control "no-cache,no-store,must-revalidate"
+
+      - name: Invalidate the entry point
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_ID }}" \
+            --paths "/" "/index.html" >/dev/null
+          echo "SPA deployed: ${{ github.sha }}"

@@ -34,9 +34,16 @@ Internet ── WAF ── CloudFront ──┬── S3 (Angular SPA, private, 
 - **Bedrock model access**: in the console (Bedrock → Model access) enable the
   Amazon Nova family in your region, or pick the inference profile for it
   (`apac.…` in ap-south-1).
-- Two ACM certificates when using your own domain: one in `var.region` for the
-  ALB, one in **us-east-1** for CloudFront. (Skip both to start on the
-  CloudFront default domain.)
+- **One ACM certificate, in `var.region`, for the ALB** (`alb_acm_certificate_arn`)
+  — this is what keeps the CloudFront→ALB hop encrypted, and it needs a domain
+  you control, because no public CA issues for `*.elb.amazonaws.com`. Add a
+  second certificate in **us-east-1** if you also want your domain on
+  CloudFront itself.
+  *Have no domain yet?* Omit `alb_acm_certificate_arn` and the stack builds an
+  HTTP origin instead, with the ALB locked to CloudFront's IP ranges so it is
+  not publicly reachable. Browsers still get TLS. **That mode is for a
+  throwaway environment — never point real student records at it**; every
+  apply prints the `origin_encryption` warning while it is in force.
 - A Sentry org with two projects (api → Python/FastAPI, web → Angular); note
   both DSNs.
 

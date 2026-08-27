@@ -24,8 +24,33 @@ variable "cloudfront_acm_certificate_arn" {
 }
 
 variable "alb_acm_certificate_arn" {
-  description = "ACM certificate ARN in var.region for the ALB's HTTPS listener (the CloudFront->ALB hop stays encrypted)."
+  description = <<-EOT
+    ACM certificate ARN IN var.region for the ALB's HTTPS listener, so the
+    CloudFront->ALB hop is encrypted. RECOMMENDED — and it needs a domain you
+    control, because a public CA will not issue for *.elb.amazonaws.com.
+
+    LEAVE EMPTY only for a throwaway environment with no real student data: the
+    ALB then listens on plain HTTP and CloudFront talks to it over HTTP. The
+    browser->CloudFront leg is still TLS, but the origin leg is not, so the
+    ALB is simultaneously locked down to CloudFront's own IP ranges (see
+    restrict_alb_to_cloudfront) rather than being reachable from anywhere.
+  EOT
   type        = string
+  default     = ""
+}
+
+variable "restrict_alb_to_cloudfront" {
+  description = <<-EOT
+    Admit only CloudFront's published origin-facing IP ranges to the ALB, via
+    the AWS-managed prefix list. Defence in depth in both modes: without it,
+    anyone who learns the ALB's DNS name reaches the API DIRECTLY, skipping the
+    WAF rules and the rate limit that CloudFront enforces.
+
+    Set false only if the managed prefix list is unavailable in your region and
+    the apply fails on the data source.
+  EOT
+  type        = bool
+  default     = true
 }
 
 # --- api service sizing / autoscaling ---------------------------------------

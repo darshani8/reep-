@@ -32,7 +32,16 @@ resource "aws_lb_target_group" "api" {
   deregistration_delay = 30
 }
 
+locals {
+  # The certificate decides the shape of the front door. With one, port 80 only
+  # redirects and all traffic arrives on 443; without one, port 80 IS the door
+  # and CloudFront is told to speak HTTP to it.
+  alb_tls = trimspace(var.alb_acm_certificate_arn) != ""
+}
+
+# WITH a certificate: 80 exists only to bounce callers to 443.
 resource "aws_lb_listener" "http_redirect" {
+  count             = local.alb_tls ? 1 : 0
   load_balancer_arn = aws_lb.main.arn
   port              = 80
   protocol          = "HTTP"
@@ -47,11 +56,25 @@ resource "aws_lb_listener" "http_redirect" {
 }
 
 resource "aws_lb_listener" "https" {
+  count             = local.alb_tls ? 1 : 0
   load_balancer_arn = aws_lb.main.arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
   certificate_arn   = var.alb_acm_certificate_arn
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+}
+
+# WITHOUT a certificate: 80 forwards to the API. Throwaway environments only —
+# see the variable's description for what this costs you.
+resource "aws_lb_listener" "http_origin" {
+  count             = local.alb_tls ? 0 : 1
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.api.arn

@@ -116,13 +116,13 @@ resource "aws_ecs_task_definition" "api" {
   }
 
   container_definitions = jsonencode([{
-    name        = "api"
-    image       = local.api_image
-    essential   = true
+    name         = "api"
+    image        = local.api_image
+    essential    = true
     portMappings = [{ containerPort = 3300, protocol = "tcp" }]
-    environment = local.api_environment
-    secrets     = local.api_secrets
-    mountPoints = [{ sourceVolume = "data", containerPath = "/data" }]
+    environment  = local.api_environment
+    secrets      = local.api_secrets
+    mountPoints  = [{ sourceVolume = "data", containerPath = "/data" }]
     logConfiguration = {
       logDriver = "awslogs"
       options = {
@@ -165,7 +165,7 @@ resource "aws_ecs_service" "api" {
     ignore_changes = [desired_count] # autoscaling owns it after creation
   }
 
-  depends_on = [aws_lb_listener.https]
+  depends_on = [aws_lb_listener.https, aws_lb_listener.http_origin]
 }
 
 # --- autoscaling --------------------------------------------------------------
@@ -239,9 +239,9 @@ resource "aws_iam_role_policy" "scheduler_run_task" {
         Resource = ["${aws_ecs_task_definition.api.arn_without_revision}:*"]
       },
       {
-        Effect    = "Allow"
-        Action    = ["iam:PassRole"]
-        Resource  = [aws_iam_role.task_execution.arn, aws_iam_role.api_task.arn]
+        Effect   = "Allow"
+        Action   = ["iam:PassRole"]
+        Resource = [aws_iam_role.task_execution.arn, aws_iam_role.api_task.arn]
       }
     ]
   })

@@ -1,0 +1,6 @@
+# Written for real by bootstrap-state.sh — this copy is documentation.
+bucket         = "reep-tfstate-<ACCOUNT_ID>"
+key            = "reep/aws/terraform.tfstate"
+region         = "ap-south-1"
+dynamodb_table = "reep-tfstate-lock"
+encrypt        = true

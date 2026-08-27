@@ -26,13 +26,25 @@ resource "aws_security_group" "alb" {
     cidr_blocks     = var.restrict_alb_to_cloudfront ? [] : ["0.0.0.0/0"]
     prefix_list_ids = var.restrict_alb_to_cloudfront ? [data.aws_ec2_managed_prefix_list.cloudfront[0].id] : []
   }
-  ingress {
-    description     = "HTTP - a redirect to 443, or the origin itself when no certificate is set"
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    cidr_blocks     = var.restrict_alb_to_cloudfront ? [] : ["0.0.0.0/0"]
-    prefix_list_ids = var.restrict_alb_to_cloudfront ? [data.aws_ec2_managed_prefix_list.cloudfront[0].id] : []
+  # Port 80 is admitted ONLY when the ALB has no certificate and CloudFront
+  # must speak HTTP to it. With TLS on, CloudFront dials 443 exclusively
+  # (origin_protocol_policy = https-only), so an :80 ingress would never see a
+  # packet -- and it is far from free: every rule that references the
+  # CloudFront prefix list is charged ITS ENTRY COUNT (46 today) against the
+  # security group's 60-rule quota. Two references = 92 = the apply dies with
+  # RulesPerSecurityGroupLimitExceeded, which is exactly how this was found.
+  # The :80 redirect listener still exists behind this in TLS mode; it is
+  # simply unreachable, which costs nothing.
+  dynamic "ingress" {
+    for_each = local.alb_tls ? [] : [1]
+    content {
+      description     = "HTTP - the origin itself when no certificate is set"
+      from_port       = 80
+      to_port         = 80
+      protocol        = "tcp"
+      cidr_blocks     = var.restrict_alb_to_cloudfront ? [] : ["0.0.0.0/0"]
+      prefix_list_ids = var.restrict_alb_to_cloudfront ? [data.aws_ec2_managed_prefix_list.cloudfront[0].id] : []
+    }
   }
   egress {
     from_port   = 0

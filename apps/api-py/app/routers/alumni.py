@@ -23,7 +23,8 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..identity import get_current_session
-from ..document_store import UploadRejected, content_disposition, delete as document_store_delete
+from ..document_store import MAX_BYTES, UploadRejected, content_disposition
+from ..document_store import delete as document_store_delete
 from ..document_store import read_bytes, save_bytes
 from ..models.alumni import AlumniProfile
 from ..models.job import Job
@@ -127,7 +128,11 @@ def save_profile(
 
     stored = None
     if resume is not None and resume.filename:
-        content = resume.file.read()
+        # read(MAX+1), never read(): save_bytes refuses anything past the
+        # per-file cap, so one extra byte trips it without buffering an
+        # unbounded body in RAM (routers/student.py create_upload, same
+        # reasoning).
+        content = resume.file.read(MAX_BYTES + 1)
         try:
             stored = save_bytes(content)  # (stored_name, mime, size)
         except UploadRejected as exc:

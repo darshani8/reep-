@@ -2,23 +2,37 @@
 # Internet -> CloudFront (WAF) -> ALB (443) -> api tasks (3300) -> RDS (5432) /
 # EFS (2049). Nothing in a private subnet is reachable from the internet at all.
 
+# CloudFront's published origin-facing ranges. Referencing the AWS-managed
+# prefix list means the allow-list tracks CloudFront's own changes instead of
+# rotting in this file.
+data "aws_ec2_managed_prefix_list" "cloudfront" {
+  count = var.restrict_alb_to_cloudfront ? 1 : 0
+  name  = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
 resource "aws_security_group" "alb" {
   name_prefix = "${var.project}-alb-"
   vpc_id      = aws_vpc.main.id
 
+  # THE WAF IS ONLY WORTH ANYTHING IF IT CANNOT BE STEPPED AROUND. Open to
+  # 0.0.0.0/0, this listener answers anyone who learns the ALB's DNS name —
+  # skipping the managed rules and the per-IP rate limit that CloudFront
+  # applies. Restricted to CloudFront's ranges, the edge is the only way in.
   ingress {
-    description = "HTTPS from the world (CloudFront in front; ALB stays the origin)"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "HTTPS from CloudFront"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    cidr_blocks     = var.restrict_alb_to_cloudfront ? [] : ["0.0.0.0/0"]
+    prefix_list_ids = var.restrict_alb_to_cloudfront ? [data.aws_ec2_managed_prefix_list.cloudfront[0].id] : []
   }
   ingress {
-    description = "HTTP only to redirect to HTTPS"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "HTTP — a redirect to 443, or the origin itself when no certificate is set"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    cidr_blocks     = var.restrict_alb_to_cloudfront ? [] : ["0.0.0.0/0"]
+    prefix_list_ids = var.restrict_alb_to_cloudfront ? [data.aws_ec2_managed_prefix_list.cloudfront[0].id] : []
   }
   egress {
     from_port   = 0

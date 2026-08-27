@@ -66,3 +66,13 @@ output "github_actions_setup" {
     "gh variable set CLOUDFRONT_ID         -b '${aws_cloudfront_distribution.main.id}'",
   ])
 }
+
+output "origin_encryption" {
+  description = "Whether the CloudFront->ALB hop is encrypted."
+  value = local.alb_tls ? "OK — CloudFront reaches the ALB over HTTPS." : join(" ", [
+    "WARNING: no alb_acm_certificate_arn, so CloudFront reaches the ALB over PLAIN HTTP.",
+    "Browsers still get TLS, and the ALB admits only CloudFront's IP ranges, but this",
+    "environment must not hold real student data. Request an ACM certificate in",
+    "${var.region} for a domain you control and re-apply with -var alb_acm_certificate_arn=...",
+  ])
+}

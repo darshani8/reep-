@@ -13,9 +13,9 @@ resource "aws_cloudfront_origin_access_control" "web" {
 
 locals {
   # AWS managed policy ids (stable, documented constants).
-  cache_optimized_id  = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
-  cache_disabled_id   = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
-  origin_all_viewer   = "216adef6-5c7f-47e4-b989-5492eafa07d3" # AllViewer
+  cache_optimized_id = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+  cache_disabled_id  = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
+  origin_all_viewer  = "216adef6-5c7f-47e4-b989-5492eafa07d3" # AllViewer
 }
 
 resource "aws_cloudfront_distribution" "main" {
@@ -36,9 +36,10 @@ resource "aws_cloudfront_distribution" "main" {
     origin_id   = "api-alb"
     domain_name = aws_lb.main.dns_name
     custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
+      http_port  = 80
+      https_port = 443
+      # https-only when the ALB holds a certificate; http-only when it cannot.
+      origin_protocol_policy = local.alb_tls ? "https-only" : "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
       origin_read_timeout    = 60
     }

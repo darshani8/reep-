@@ -449,6 +449,9 @@ def submit_evidence(
 class LeaderboardRowOut(BaseModel):
     rank: int
     name: str
+    # Filled only on the caller's own row. Every other student's USN is the
+    # data rule 2 exists to protect — the main board in routers/student.py
+    # ships name + initials and nothing else, and this board matches it.
     usn: str | None
     value: float
     is_me: bool
@@ -458,6 +461,10 @@ class LeaderboardOut(BaseModel):
     view: str
     label: str
     unit: str  # "points" | "growth"
+    # True when the CALLER opted out: rows is then empty, matching
+    # routers/student.py's boards — opt-out is bidirectional, you leave the
+    # board and the board leaves you.
+    opted_out: bool = False
     rows: list[LeaderboardRowOut]
 
 
@@ -500,6 +507,11 @@ def badge_leaderboards(
             select(StudentProfile.student_id).where(StudentProfile.leaderboard_opt_out.is_(True))
         ).all()
     )
+    if student_id in opted_out:
+        # Same symmetry as routers/student.py's boards: a student who opted out
+        # is excluded from every board AND sees none — otherwise opting out
+        # buys privacy from classmates who kept the visibility you still use.
+        return LeaderboardOut(view=view, label=_LB_LABEL[view], unit="points", opted_out=True, rows=[])
     names = {
         s_id: (name, usn)
         for s_id, name, usn in db.execute(
@@ -557,7 +569,7 @@ def badge_leaderboards(
             LeaderboardRowOut(
                 rank=i + 1,
                 name=names[s_id][0],
-                usn=names[s_id][1],
+                usn=names[s_id][1] if s_id == student_id else None,
                 value=v,
                 is_me=s_id == student_id,
             )

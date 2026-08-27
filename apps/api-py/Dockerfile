@@ -56,6 +56,23 @@ EXPOSE 3300
 #                             every probe while looking perfectly healthy.
 #   --proxy-headers           behind a TLS-terminating ingress, so the app sees
 #                             the real scheme/client rather than the proxy's.
+#                             WHICH peers to believe comes from the
+#                             FORWARDED_ALLOW_IPS env var below — uvicorn reads
+#                             it natively when the CLI flag is absent. It was
+#                             "*", and "*" is not a default, it is a decision:
+#                             trusting X-Forwarded-For from ANY peer lets a
+#                             client prepend fake entries and pick its own
+#                             request.client.host — which is the key the
+#                             registration rate limiter buckets by, so one
+#                             machine rotating a header gets an unlimited
+#                             budget on the app's only unauthenticated write.
+#                             The default is this deployment's VPC
+#                             (infra/aws/network.tf cidr_block): every real
+#                             proxy hop — ALB, the nginx `web` container — is
+#                             inside it, every client is not, so uvicorn
+#                             resolves the rightmost address a proxy actually
+#                             appended and ignores whatever the client typed.
+#                             Override per environment; never set it back to *.
 #   --timeout-graceful-shutdown 110
 #                             strictly BELOW the 120s stop_grace_period, so
 #                             uvicorn finishes draining before SIGKILL. This
@@ -63,7 +80,8 @@ EXPOSE 3300
 #                             the assistant turn only after the last delta — a
 #                             hard kill mid-stream loses the turn.
 # NEVER --reload (AGENTS.md: it wedges a stale worker on this platform).
+ENV FORWARDED_ALLOW_IPS="10.42.0.0/16"
 CMD ["python", "-m", "uvicorn", "app.main:app", \
      "--host", "0.0.0.0", "--port", "3300", \
-     "--proxy-headers", "--forwarded-allow-ips", "*", \
+     "--proxy-headers", \
      "--timeout-graceful-shutdown", "110"]

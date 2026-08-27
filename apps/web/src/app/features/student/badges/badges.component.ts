@@ -111,6 +111,7 @@ interface LeaderboardRow {
 }
 
 interface Leaderboard {
+  opted_out: boolean;
   view: string;
   label: string;
   unit: string;

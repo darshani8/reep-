@@ -2,12 +2,34 @@
 # tasks, the database and EFS live in private subnets and reach out through NAT
 # (Bedrock, Sentry, OpenAI, Google token exchange).
 
+# Standard availability zones ONLY, and always the same two.
+#
+# `state = "available"` alone also returns LOCAL ZONES. This account has the
+# Kolkata local zone (ap-south-1-ccu-1a) opted in, an apply drew it as one of
+# the first two names, and the whole run died on
+#
+#   CreateNatGateway: NotAvailableInZone: Nat Gateway is not available in
+#   this availability zone
+#
+# because NAT gateways, RDS and Fargate do not exist in local zones. The
+# opt-in-status filter is the canonical fix: a standard AZ is always
+# "opt-in-not-required", while local zones, Wavelength zones and opt-in
+# regions are not.
+#
+# `sort` is the other half. The API does not promise an order, so an unsorted
+# slice can hand back a DIFFERENT pair on a later apply -- which reads as
+# "replace both subnets", and replacing a subnet takes the NAT gateway, the
+# database and every running task with it.
 data "aws_availability_zones" "available" {
   state = "available"
+  filter {
+    name   = "opt-in-status"
+    values = ["opt-in-not-required"]
+  }
 }
 
 locals {
-  azs = slice(data.aws_availability_zones.available.names, 0, 2)
+  azs = slice(sort(data.aws_availability_zones.available.names), 0, 2)
 }
 
 resource "aws_vpc" "main" {

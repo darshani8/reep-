@@ -40,7 +40,7 @@ resource "aws_cloudwatch_log_metric_filter" "dropped_turns" {
 
 resource "aws_cloudwatch_metric_alarm" "dropped_turns" {
   alarm_name          = "${var.project}-interview-dropped-turns"
-  alarm_description   = "Interview turns are being dropped — conversations sound fine and save nothing. See the voice runbook in AGENTS.md."
+  alarm_description   = "Interview turns are being dropped - conversations sound fine and save nothing. See the voice runbook in AGENTS.md."
   namespace           = "REEP/AI"
   metric_name         = "DroppedInterviewTurns"
   statistic           = "Sum"
@@ -70,7 +70,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
 
 resource "aws_cloudwatch_metric_alarm" "alb_unhealthy" {
   alarm_name          = "${var.project}-no-healthy-api"
-  alarm_description   = "Fewer than one healthy api task behind the ALB — the dashboard is down."
+  alarm_description   = "Fewer than one healthy api task behind the ALB - the dashboard is down."
   namespace           = "AWS/ApplicationELB"
   metric_name         = "HealthyHostCount"
   statistic           = "Minimum"
@@ -115,7 +115,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
 
 resource "aws_cloudwatch_metric_alarm" "api_cpu_pegged" {
   alarm_name          = "${var.project}-api-cpu-at-max"
-  alarm_description   = "CPU high while autoscaling should have absorbed it — likely at api_max_tasks. Raise the ceiling or find the hot path in Sentry."
+  alarm_description   = "CPU high while autoscaling should have absorbed it - likely at api_max_tasks. Raise the ceiling or find the hot path in Sentry."
   namespace           = "AWS/ECS"
   metric_name         = "CPUUtilization"
   statistic           = "Average"

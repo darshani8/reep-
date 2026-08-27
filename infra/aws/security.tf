@@ -27,7 +27,7 @@ resource "aws_security_group" "alb" {
     prefix_list_ids = var.restrict_alb_to_cloudfront ? [data.aws_ec2_managed_prefix_list.cloudfront[0].id] : []
   }
   ingress {
-    description     = "HTTP — a redirect to 443, or the origin itself when no certificate is set"
+    description     = "HTTP - a redirect to 443, or the origin itself when no certificate is set"
     from_port       = 80
     to_port         = 80
     protocol        = "tcp"

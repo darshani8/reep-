@@ -20,7 +20,7 @@ locals {
 
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
-  comment             = "${var.project} — SPA + /api"
+  comment             = "${var.project} - SPA + /api"
   default_root_object = "index.html"
   price_class         = "PriceClass_200" # includes India POPs
   web_acl_id          = aws_wafv2_web_acl.edge.arn

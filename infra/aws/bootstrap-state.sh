@@ -12,7 +12,7 @@ TABLE="reep-tfstate-lock"
 echo "account ${ACCOUNT} / region ${REGION}"
 echo "state bucket: ${BUCKET}"
 
-if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+if aws s3api head-bucket --bucket "$BUCKET" >/dev/null 2>&1; then
   echo "  bucket exists — leaving it alone"
 else
   aws s3api create-bucket --bucket "$BUCKET" --region "$REGION" \

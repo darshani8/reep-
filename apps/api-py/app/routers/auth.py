@@ -1,4 +1,4 @@
-"""Auth endpoints — password sign-in (dev/CI) and Google sign-in (everywhere).
+"""Auth endpoints â password sign-in (dev/CI) and Google sign-in (everywhere).
 
   POST /api/auth/login                 -> email + password. REFUSED when ENV=prod.
   GET  /api/auth/sso/status            -> which sign-in doors this server offers
@@ -15,7 +15,7 @@ authorize request and the token exchange, so renaming this route without
 changing all four places fails every sign-in with `redirect_uri_mismatch` and
 nothing in this repo to point at. `/api/auth/sso/google` is also the href the
 login screen carries (apps/web .../login/login.component.ts:signInUrl), and
-`/api/auth/sso/status` is the capability probe it reads before rendering — both
+`/api/auth/sso/status` is the capability probe it reads before rendering â both
 canonical, neither an alias, because a login screen pointed at a hidden
 back-compat path becomes collateral damage the day the alias is tidied away.
 
@@ -23,7 +23,7 @@ ONE SESSION, TWO DOORS. Both sign-in paths end in the same three lines:
 `_record_login`, `_payload_for`, `_issue_session`. The cookie is the same
 httpOnly `reep_session`, signed the same way, carrying the same camelCase claims
 (userId/email/name/role/studentId?/mentorId?) that the Next.js app minted and
-that every consumer still reads — app/identity.py, require_mentor,
+that every consumer still reads â app/identity.py, require_mentor,
 _assert_can_access_student, the WebSocket auth in app/routers/interview.py, and
 the Angular `SessionPayload`. Google authenticates; it does not authorise, and it
 does not get a session mechanism of its own. Nothing downstream can tell which
@@ -34,12 +34,12 @@ THE ROSTER IS THE ALLOWLIST. A verified Google identity whose email matches no
 account would need a role invented for it, and AGENTS.md rule 2 makes guessing a
 role a data-exposure bug rather than a UX one (a wrong MENTOR/DIRECTOR reads
 every student's marks, attendance and USN). Accounts are created from the roster
-by `python -m app.seed_roster`, which is also where the USN comes from — so a
+by `python -m app.seed_roster`, which is also where the USN comes from â so a
 student's profile shows it already filled in and they never type it.
 
 THE EMAIL FINDS THE ROW; THE GOOGLE `sub` PINS IT. An institutional address is a
 lease the college re-issues to the next intake, so matching on the address alone
-meant a new holder of 1mp25mdm01@ signed in — verified, error-free — into the
+meant a new holder of 1mp25mdm01@ signed in â verified, error-free â into the
 previous student's marks, uploads and mentor notes. `users.google_sub` is set on
 the first Google sign-in and compared on every one after; a mismatch is refused
 (`sso_identity_mismatch`) and logged rather than reconciled, because only a
@@ -69,7 +69,7 @@ THIS LIST IS A CONTRACT with `messageFor` in
 apps/web/src/app/features/login/login.component.ts and with the table in
 docs/google-sign-in.md. Adding a code in one place and not the others is
 invisible to pytest, tsc and ng build alike, and it lands the student on the
-"reason unknown to this page" fallback — which is exactly what happened the
+"reason unknown to this page" fallback â which is exactly what happened the
 first time these three lists were written independently.
 """
 
@@ -107,14 +107,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 # A real scrypt hash of a value nobody can log in with, verified against on the
 # unknown-email/no-hash path of /login so a refusal costs the same scrypt work
-# as a wrong password — see the comment at the call site. Computed once at
+# as a wrong password â see the comment at the call site. Computed once at
 # import (one scrypt, tens of ms, at boot) rather than pasted as a literal that
 # silently rots if the hash format ever changes.
 _TIMING_EQUALIZER_HASH = hash_password(secrets.token_urlsafe(32))
 
 # Where a signed-in user lands when the flow carries no `?next=`. Mirrors
 # HOME_FOR_ROLE in apps/web/src/app/core/session.ts (the SPA's `''` route now
-# routes by role too, via homeRedirectGuard) — keep the two maps in step.
+# routes by role too, via homeRedirectGuard) â keep the two maps in step.
 _HOME_FOR_ROLE = {
     "STUDENT": "/student",
     "MENTOR": "/mentor",
@@ -130,8 +130,8 @@ def _cookie_secure() -> bool:
 
     This used to be `secure=settings.is_prod` written out at each of them, and
     `is_prod` is true only for the four spellings in _PROD_ENV_NAMES. A
-    staging/uat/demo box — on HTTPS, holding real roster rows, because that is
-    what a staging box is for — therefore issued the session cookie WITHOUT
+    staging/uat/demo box â on HTTPS, holding real roster rows, because that is
+    what a staging box is for â therefore issued the session cookie WITHOUT
     `Secure`, so any downgraded or plain-HTTP request leaked it. The test was
     asking the wrong question: `Secure` is not a property of production, it is
     the default for everything, and the only environments that may go without it
@@ -139,7 +139,7 @@ def _cookie_secure() -> bool:
 
     So it is inverted and fails CLOSED, the same shape `password_login_allowed`
     already uses: an ENV nobody anticipated gets `Secure`, and losing the cookie
-    on a http:// dev box is a loud, five-second diagnosis — whereas the failure
+    on a http:// dev box is a loud, five-second diagnosis â whereas the failure
     this replaces was silent and shipped.
 
     Behind one function rather than four literals because the four MUST agree:
@@ -162,8 +162,8 @@ def _payload_for(user: User) -> dict:
     if user.mentor is not None:
         payload["mentorId"] = user.mentor.id
     # OMITTED WHILE IT IS ZERO, which is the state of every user who has never
-    # logged out. app/security.py reads an absent claim as version 0 — it has to,
-    # or the deploy that added the column would sign everyone out — so writing
+    # logged out. app/security.py reads an absent claim as version 0 â it has to,
+    # or the deploy that added the column would sign everyone out â so writing
     # `tokenVersion: 0` would say exactly nothing at the cost of putting a new
     # key in the claim set that app/identity.py, the interview WebSocket, the Angular
     # `SessionPayload` and tests/test_google_callback.py all describe as the
@@ -178,7 +178,7 @@ def _record_login(db: Session, user: User) -> None:
 
     GET /api/student/dashboard counts LoginDay rows for the streak, so a door
     that authenticates without writing here produces a perfectly good session
-    and a streak that silently stops counting — visible to the student, and
+    and a streak that silently stops counting â visible to the student, and
     attributable to nothing.
     """
     user.last_login_at = datetime.now(timezone.utc)
@@ -207,7 +207,7 @@ def _issue_session(response: Response, payload: dict) -> None:
 
 
 def _safe_next(raw: str | None) -> str:
-    """An in-app destination, or "" — the server-side half of the open-redirect check.
+    """An in-app destination, or "" â the server-side half of the open-redirect check.
 
     apps/web login.component.ts applies the same rule to `?next=`, but that check
     is bypassed entirely in the Google flow: the value survives the hop inside the
@@ -216,7 +216,7 @@ def _safe_next(raw: str | None) -> str:
     be introduced, so the rule is re-applied rather than trusted.
 
     Rejected: anything not starting "/", protocol-relative "//evil.test", and
-    "/\\evil.test" — browsers normalise a backslash to a forward slash, so the
+    "/\\evil.test" â browsers normalise a backslash to a forward slash, so the
     latter is protocol-relative in every engine despite passing a naive check.
     """
     value = (raw or "").strip()
@@ -245,7 +245,7 @@ def _clear_flow_cookie(response: Response) -> None:
 
     This is what makes the state single-use: once the cookie is gone, replaying
     the same callback URL arrives with nothing to match against and is refused.
-    The attributes mirror the ones it was set with — browsers match a deletion on
+    The attributes mirror the ones it was set with â browsers match a deletion on
     name/domain/path alone, but keeping them in step avoids the asymmetry that
     would bite the day a Domain or SameSite=None is added.
     """
@@ -263,7 +263,7 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
     """Email + password. A DEV AND CI AFFORDANCE THAT PRODUCTION REFUSES.
 
     Sign-in is Google-only for real users, for every role. This endpoint is kept
-    — not deleted — because tests/conftest.py's `login` fixture and the six test
+    â not deleted â because tests/conftest.py's `login` fixture and the six test
     modules that use it (test_auth_rbac, test_conversations, test_feedback,
     test_knowledge, test_metrics, test_orchestrator) authenticate through it, and
     an OAuth round-trip cannot be driven from a TestClient without either
@@ -292,7 +292,7 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
 
     email = body.email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))
-    # One message for both cases — never reveal which of email/password was wrong.
+    # One message for both cases â never reveal which of email/password was wrong.
     # `not user.password_hash` covers a roster account that has no usable local
     # password: without it, verify_password would raise AttributeError on None and
     # turn a 401 into a 500, which is both a crash and an account-existence oracle.
@@ -327,7 +327,7 @@ class SsoStatus(BaseModel):
     `undefined === false` is false and the button then stays live forever on a
     server that cannot sign anybody in.
 
-    `domain` is the institution's mail domain — the same value app.seed_roster
+    `domain` is the institution's mail domain â the same value app.seed_roster
     derives addresses from. Served rather than baked into the Angular bundle
     because the convention is the one guess this design makes about the outside
     world, and a wrong guess must be fixable with a .env edit and no rebuild.
@@ -358,7 +358,7 @@ def sso_status() -> SsoStatus:
     "Continue with Google" button on a server with no GOOGLE_CLIENT_ID
     reproduces exactly the failure AGENTS.md already documents for voice: the
     button looks fine, the click fails, and nothing anywhere says the feature was
-    never configured. Discloses no account data — only which doors exist.
+    never configured. Discloses no account data â only which doors exist.
     """
     if google_auth.sso_ready():
         return SsoStatus(
@@ -404,7 +404,7 @@ def google_start(next_: str = Query("", alias="next")) -> RedirectResponse:
         # LAX, NEVER STRICT. The callback is a top-level GET whose referrer is
         # accounts.google.com; a Strict cookie is not sent on that navigation, so
         # the state check would fail 100% of the time and look like "Google is
-        # broken". Lax is precisely the case that permits it — and it is the same
+        # broken". Lax is precisely the case that permits it â and it is the same
         # policy the session cookie already runs under.
         samesite="lax",
         secure=_cookie_secure(),
@@ -416,7 +416,7 @@ def google_start(next_: str = Query("", alias="next")) -> RedirectResponse:
 
 @router.get("/sso/google/callback")
 # Alias, for the same reason as /google/start. Google itself only ever calls the
-# canonical path — it is the one registered on the OAuth client.
+# canonical path â it is the one registered on the OAuth client.
 @router.get("/google/callback", include_in_schema=False)
 def google_callback(
     code: str | None = Query(None),
@@ -430,7 +430,7 @@ def google_callback(
     Order matters. The state is checked FIRST, before the code is spent, so a
     forged callback costs nothing and teaches nothing. The roster lookup is
     LAST, on an identity that has already proved it is a Google-verified address
-    — matching on an unverified email would let anyone claim a student's row.
+    â matching on an unverified email would let anyone claim a student's row.
     """
     if not google_auth.sso_ready():
         log.error(
@@ -472,7 +472,7 @@ def google_callback(
         # Compared case-INSENSITIVELY. `users.email` is a case-preserving column
         # and nothing in the schema forces lowercase, while Google always hands
         # us a lowercased address. app.seed_roster and app.grant_access both
-        # lowercase, so this holds today — but with password sign-in refused in
+        # lowercase, so this holds today â but with password sign-in refused in
         # production, one capital letter in a row inserted by any other route is
         # a permanent lockout with no second door to diagnose it through. At 33
         # students the lost index scan is not measurable.
@@ -485,8 +485,8 @@ def google_callback(
         # is a top-level browser navigation, so an uncaught exception is a raw
         # traceback page outside the SPA rather than a sentence a student can act
         # on. Enumerating exception types is precisely how that rule gets quietly
-        # broken — a TypeError out of compare_digest, a PyJWKSetError, a dead
-        # database — so the last resort is a type, not a list. log.exception
+        # broken â a TypeError out of compare_digest, a PyJWKSetError, a dead
+        # database â so the last resort is a type, not a list. log.exception
         # keeps the traceback for the operator; the browser gets the redirect.
         log.exception(
             "GET /api/auth/sso/google/callback -> 302 /login?error=sso_failed: "
@@ -511,8 +511,8 @@ def google_callback(
     #
     # An institutional address is a lease. The college re-issues
     # 1mp25mdm01@bgscet.ac.in to the next intake, and with the match on email
-    # alone the new holder signed in — legitimately, verified by Google, no
-    # error anywhere — straight into the previous student's marks, uploads and
+    # alone the new holder signed in â legitimately, verified by Google, no
+    # error anywhere â straight into the previous student's marks, uploads and
     # mentor notes. `sub` is the one identifier Google promises is stable and
     # never reused, so it is what the row is pinned to.
     #
@@ -524,7 +524,7 @@ def google_callback(
     # ITS OWN CODE, `sso_identity_mismatch`, not the `sso_identity` this used to
     # borrow. Those two are the same word and opposite events: `sso_identity` is
     # "the token did not verify", whose honest copy is *try again, tell the
-    # operator if it persists* — advice that is actively wrong here, because
+    # operator if it persists* â advice that is actively wrong here, because
     # retrying will refuse identically forever and only the placement office can
     # end it. A code is only worth having if the sentence behind it changes what
     # the reader does next, and this one does.
@@ -535,18 +535,18 @@ def google_callback(
     # address, because to the honest new holder of a re-issued address that is a
     # fact about the previous student, disclosed to a stranger by a login screen.
     # The evidence lives in the log line below, where a person with a name is
-    # reading it — both principals, because that pair IS the decision.
+    # reading it â both principals, because that pair IS the decision.
     #
     # Plain `!=`, not hmac.compare_digest, and that is not an oversight: a Google
     # `sub` is a public account identifier, not a secret. The only party who can
     # time this comparison is the one who supplied the value being compared, so
-    # there is nothing to learn — and compare_digest RAISES on a non-ASCII
+    # there is nothing to learn â and compare_digest RAISES on a non-ASCII
     # operand, which on this path would be a raw traceback page instead of the
     # redirect this module promises.
     if user.google_sub is not None and user.google_sub != identity.sub:
         log.error(
             "GET /api/auth/sso/google/callback -> 302 /login?error=sso_identity_mismatch: "
-            "%s is pinned to Google sub %s but signed in with %s — REFUSED. This is "
+            "%s is pinned to Google sub %s but signed in with %s â REFUSED. This is "
             "a re-provisioned address or an account takeover; clear users.google_sub "
             "for that row only after confirming who should hold it.",
             identity.email,
@@ -563,9 +563,10 @@ def google_callback(
     # `_record_login` already makes rather than given one of its own: two writes
     # would mean two failure modes to reason about for one logical event. If
     # that commit fails the pin is simply not set and the next sign-in tries
-    # again — self-healing, and never a reason to refuse an identity Google has
+    # again â self-healing, and never a reason to refuse an identity Google has
     # already verified.
-    if user.google_sub is None:
+    pin_pending = user.google_sub is None
+    if pin_pending:
         user.google_sub = identity.sub
     try:
         _record_login(db, user)
@@ -576,17 +577,21 @@ def google_callback(
         # legitimate sign-in over a counter. The under-count is logged so it is
         # attributable, which is the thing _record_login's own docstring says
         # matters about it. The google_sub pin rides in this same commit, so it
-        # is lost here too — named explicitly because an IntegrityError is a
+        # is lost here too â named explicitly because an IntegrityError is a
         # REAL possibility for it (one Google account already pinned to another
         # roster row) and it would otherwise read as a streak problem.
         db.rollback()
         log.exception(
             "GET /api/auth/sso/google/callback: could not record the login for %s "
             "(session still issued; the streak will under-count and users.google_sub "
-            "is unchanged — a UniqueViolation here means this Google account is "
+            "is unchanged â a UniqueViolation here means this Google account is "
             "already pinned to a different roster row)",
             payload["email"],
         )
+        if pin_pending:
+            # A valid Google token is not enough: without a durable first-use
+            # sub pin, issuing a session would bypass address re-issue binding.
+            return _sso_failure("sso_failed")
 
     destination = flow.next_path or _HOME_FOR_ROLE.get(payload["role"], _DEFAULT_HOME)
 
@@ -595,7 +600,7 @@ def google_callback(
     _issue_session(resp, payload)
     # The Google `sub` is logged as well as pinned. The column decides who gets
     # in; the log line is what an operator reads afterwards to answer "which
-    # Google account was this?" without a query — and, on the day a pin has to
+    # Google account was this?" without a query â and, on the day a pin has to
     # be cleared, it is the history of which principal held the row before.
     log.info(
         "GET /api/auth/sso/google/callback -> 302 %s: signed in %s (%s) as Google sub %s",
@@ -622,13 +627,13 @@ def logout(
 
     Deleting the cookie only ever meant "this browser forgets". The token itself
     stayed valid for the rest of its twelve hours, so a session copied off a
-    shared lab machine — the exact scenario "log out when you're done" is meant
-    to cover — survived the logout completely. Bumping `users.token_version`
+    shared lab machine â the exact scenario "log out when you're done" is meant
+    to cover â survived the logout completely. Bumping `users.token_version`
     kills it: app/security.py refuses any token carrying a version behind the
     row. Read that module for what "kills it" honestly means across workers.
 
     NOT `Depends(get_current_session)`. Signing out must work when the session
-    has already expired, been revoked from another tab, or never existed —
+    has already expired, been revoked from another tab, or never existed â
     otherwise the sign-out button 401s at precisely the moment the browser most
     needs to be told to drop the cookie, and the student is left looking signed
     in. So the cookie is read optionally, and the endpoint is idempotent.
@@ -643,19 +648,19 @@ def logout(
                 user.token_version = (user.token_version or 0) + 1
                 db.commit()
                 # Seed this worker's cache immediately, before the response is
-                # written. Without it the very next request — the SPA's redirect
-                # to /login, on the same worker — could still be inside the
+                # written. Without it the very next request â the SPA's redirect
+                # to /login, on the same worker â could still be inside the
                 # previous cache window and answer as signed in.
                 note_revocation(user_id, user.token_version)
         except SQLAlchemyError:
             # The cookie deletion below still happens, and that is the half the
             # person in front of the screen can see. Logged at ERROR because the
-            # half they CANNOT see — the copied token — is still live, and this
+            # half they CANNOT see â the copied token â is still live, and this
             # line is the only trace that the revocation half of the logout did
             # not happen.
             db.rollback()
             log.exception(
-                "POST /api/auth/logout: could not bump token_version for %s — the "
+                "POST /api/auth/logout: could not bump token_version for %s â the "
                 "cookie is cleared but any COPY of that session stays valid until it "
                 "expires (see users.token_version in app/security.py)",
                 user_id,
@@ -664,7 +669,7 @@ def logout(
     # The attributes mirror the ones _issue_session set, for the reason
     # _clear_flow_cookie already spells out: browsers match a deletion on
     # name/domain/path, so this works today either way, but the asymmetry is
-    # what bites the day a Domain or SameSite=None is added — and then the
+    # what bites the day a Domain or SameSite=None is added â and then the
     # cookie the student thinks they deleted is simply still there.
     response.delete_cookie(
         SESSION_COOKIE,

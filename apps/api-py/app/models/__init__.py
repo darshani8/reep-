@@ -8,6 +8,7 @@ from . import alumni  # noqa: F401
 from . import attendance  # noqa: F401
 from . import badge  # noqa: F401
 from . import certification  # noqa: F401
+from . import companion  # noqa: F401
 from . import cohort  # noqa: F401
 from . import conversation  # noqa: F401
 from . import course  # noqa: F401

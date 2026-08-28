@@ -230,6 +230,16 @@ export const routes: Routes = [
       },
       placeholder('mentor/settings', 'Thresholds'),
 
+      // --- admin ---
+      {
+        path: 'admin/companions',
+        canActivate: [roleGuard('ADMIN')],
+        loadComponent: () =>
+          import('./features/admin/companions/companions.component').then(
+            (m) => m.CompanionsComponent,
+          ),
+      },
+
       // --- director ---
       placeholder('director', 'Analytics'),
       placeholder('director/registrations', 'Registrations'),

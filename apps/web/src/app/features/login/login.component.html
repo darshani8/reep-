@@ -1,146 +1,160 @@
 <div class="login">
-  <!-- compact brand strip (below lg) -->
-  <div class="brand-strip">
-    <div class="brand-strip__name">
-      <span class="brand-strip__reep">REEP</span>
-      <span class="brand-strip__sub">Tracking Dashboard</span>
+    <!-- compact brand strip (below lg) -->
+    <div class="brand-strip">
+          <div class="brand-strip__name">
+                  <span class="brand-strip__reep">REEP</span>span>
+                  <span class="brand-strip__sub">Tracking Dashboard</span>span>
+          </div>div>
+          <span class="brand-strip__tag">Reboot. Excel. Elevate.</span>span>
+    </div>div>
+
+    <div class="login__row">
+          <!-- brand panel (lg and up) -->
+          <aside class="panel">
+                  <div>
+                            <div class="panel__reep">REEP</div>
+                            <div class="panel__sub">Tracking Dashboard</div>
+                  </div>
+
+                  <div class="panel__pitch">
+                            <p class="panel__headline">Reboot. Excel. Elevate.</p>p>
+                            <p class="panel__body">
+                                        One place to see how far you have come in the programme, the hours you
+                                        have put into each way of learning, and the certifications that carry
+                                        you to placement readiness.
+                            </p>p>
+                  </div>
+
+                  <div class="panel__foot">BGSCET MBA · Reboot, Excel, Elevate Programme</div>
+          </aside>aside>
+
+          <!-- sign in -->
+          <main class="signin">
+                  <div class="signin__inner">
+                            <h1 class="reep-h1">Sign in</h1>h1>
+                            <p class="signin__subtitle reep-body2">{{ subtitle }}</p>p>
+
+                            <!-- A refusal handed back on the callback redirect. Text + icon +
+                                 colour together, never colour alone. -->
+                            @if (error()) {
+                              <div class="alert alert--error reep-body2" role="alert">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="alert__icon">
+                                                            <path
+                                                                              fill="currentColor"
+                                                                              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+                                                                            />
+                                            </svg>svg>
+                                            <div>
+                                                            <p class="alert__text">{{ error() }}</p>p>
+                                            </div>
+                              </div>
+                            }
+
+                            <!-- The API positively told us Google sign-in is not configured. The
+                                 probe fails open, so this only ever shows when it is really off. -->
+                            @if (!available()) {
+                              <div class="alert alert--warn reep-body2" role="status">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="alert__icon">
+                                                            <path
+                                                                              fill="currentColor"
+                                                                              d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"
+                                                                            />
+                                            </svg>svg>
+                                            <div>
+                                                            <p class="alert__text">Google sign-in is unavailable</p>p>
+                                                            <p class="alert__meta">{{ unavailableReason() }}</p>p>
+                                            </div>
+                              </div>
+                            }
+
+                            <div class="sso">
+                                        @if (available()) {
+                                          <!-- A real full-page navigation, not fetch: OAuth needs a
+                                               top-level redirect out to Google and back. `next` rides in the
+                                               query string because the SPA's own URL does not survive it. -->
+                                          <a
+                                                          class="btn sso__btn"
+                                                          [href]="signInUrl"
+                                                          [class.sso__btn--pending]="pending()"
+                                                          [attr.aria-disabled]="pending() ? 'true' : null"
+                                                          (click)="beginSignIn()"
+                                                        >
+                                                          @if (pending()) {
+                                                            <span class="spinner" aria-hidden="true"></span>span>
+                                                            <span>Taking you to Google…</span>
+                                                        } @else {
+                                                          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                                                                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                                                                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
+                                                                            <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
+                                                                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"/>
+                                                          </svg>svg>
+                                                          <span>Sign in with Google</span>
+                                                        }
+                                          </a>
+                                      } @else {
+                                        <button type="button" class="btn sso__btn" disabled>
+                                                      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                                                                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                                                                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
+                                                                      <path fill="currentColor" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
+                                                                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"/>
+                                                      </svg>svg>
+                                                      <span>Sign in with Google</span>
+                                        </button>button>
+                                      }
+                            </div>
+                  
+                          <!-- Role entry points are descriptive only. The API assigns the role
+                               from the verified roster record after Google authentication. -->
+                          <div class="role-entry" aria-label="Programme login roles">
+                                    <div><strong>Student login</strong><span>Personal progress and published mentor updates</span></div>
+                                    <div><strong>Mentor login</strong><span>Assigned students and private digital notebook</span></div>
+                                    <div><strong>Admin login</strong><span>Platform administration and controlled oversight</span></div>
+                          </div>
+                  
+                          <!-- Who can get in. This replaces the demo-account card: there are no
+                               passwords on this screen any more, and the roster is the whole of
+                               the access control, so saying so is the useful thing to say. -->
+                          <div class="who">
+                                    <h2 class="reep-h4">Who can sign in</h2>h2>
+                                    <p class="who__body reep-body2">
+                                      Only people already on the programme roster — students, mentors and
+                                      staff. There is no sign-up: your account exists before you first
+                                      sign in, or it does not exist at all.
+                                    </p>p>
+                                    <ul class="who__list">
+                                                <li>
+                                                                Use your college Google account, the one ending
+                                                                <code class="who__code">&#64;{{ domain() }}</code>code>.
+                                                </li>
+                                                  <li>
+                                                                  A personal Gmail account will be refused unless that exact address
+                                                                  is itself on the roster.
+                                                  </li>
+                                                  <li>
+                                                                  Not on the roster and think you should be? Ask the placement
+                                                                  office — it cannot be fixed from this screen.
+                                                  </li>
+                                    </ul>ul>
+                          </div>
+
+                            <p class="technote">
+                                        Sign-in is Google only. This page hands you to Google; the API checks
+                                        the identity token Google signs — its signature, who it was issued
+                                        for, and that the email is verified — matches the address against the
+                                        roster, and hands back a signed session token held in an http-only
+                                        cookie for twelve hours. Every page then verifies that token and the
+                                        role for itself. A <code>?next=</code> value is followed only when it
+                            is a path on this site.
+                            </p>p>
+                  </div>
+          </main>main>
     </div>
-    <span class="brand-strip__tag">Reboot. Excel. Elevate.</span>
-  </div>
-
-  <div class="login__row">
-    <!-- brand panel (lg and up) -->
-    <aside class="panel">
-      <div>
-        <div class="panel__reep">REEP</div>
-        <div class="panel__sub">Tracking Dashboard</div>
-      </div>
-
-      <div class="panel__pitch">
-        <p class="panel__headline">Reboot. Excel. Elevate.</p>
-        <p class="panel__body">
-          One place to see how far you have come in the programme, the hours you
-          have put into each way of learning, and the certifications that carry
-          you to placement readiness.
-        </p>
-      </div>
-
-      <div class="panel__foot">BGSCET MBA · Reboot, Excel, Elevate Programme</div>
-    </aside>
-
-    <!-- sign in -->
-    <main class="signin">
-      <div class="signin__inner">
-        <h1 class="reep-h1">Sign in</h1>
-        <p class="signin__subtitle reep-body2">{{ subtitle }}</p>
-
-        <!-- A refusal handed back on the callback redirect. Text + icon +
-             colour together, never colour alone. -->
-        @if (error()) {
-          <div class="alert alert--error reep-body2" role="alert">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="alert__icon">
-              <path
-                fill="currentColor"
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-              />
-            </svg>
-            <div>
-              <p class="alert__text">{{ error() }}</p>
-            </div>
-          </div>
-        }
-
-        <!-- The API positively told us Google sign-in is not configured. The
-             probe fails open, so this only ever shows when it is really off. -->
-        @if (!available()) {
-          <div class="alert alert--warn reep-body2" role="status">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="alert__icon">
-              <path
-                fill="currentColor"
-                d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"
-              />
-            </svg>
-            <div>
-              <p class="alert__text">Google sign-in is unavailable</p>
-              <p class="alert__meta">{{ unavailableReason() }}</p>
-            </div>
-          </div>
-        }
-
-        <div class="sso">
-          @if (available()) {
-            <!-- A real full-page navigation, not fetch: OAuth needs a
-                 top-level redirect out to Google and back. `next` rides in the
-                 query string because the SPA's own URL does not survive it. -->
-            <a
-              class="btn sso__btn"
-              [href]="signInUrl"
-              [class.sso__btn--pending]="pending()"
-              [attr.aria-disabled]="pending() ? 'true' : null"
-              (click)="beginSignIn()"
-            >
-              @if (pending()) {
-                <span class="spinner" aria-hidden="true"></span>
-                <span>Taking you to Google…</span>
-              } @else {
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"/>
-                </svg>
-                <span>Sign in with Google</span>
-              }
-            </a>
-          } @else {
-            <button type="button" class="btn sso__btn" disabled>
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
-                <path fill="currentColor" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
-                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"/>
-              </svg>
-              <span>Sign in with Google</span>
-            </button>
-          }
-        </div>
-
-        <!-- Who can get in. This replaces the demo-account card: there are no
-             passwords on this screen any more, and the roster is the whole of
-             the access control, so saying so is the useful thing to say. -->
-        <div class="who">
-          <h2 class="reep-h4">Who can sign in</h2>
-          <p class="who__body reep-body2">
-            Only people already on the programme roster — students, mentors and
-            staff. There is no sign-up: your account exists before you first
-            sign in, or it does not exist at all.
-          </p>
-          <ul class="who__list">
-            <li>
-              Use your college Google account, the one ending
-              <code class="who__code">&#64;{{ domain() }}</code>.
-            </li>
-            <li>
-              A personal Gmail account will be refused unless that exact address
-              is itself on the roster.
-            </li>
-            <li>
-              Not on the roster and think you should be? Ask the placement
-              office — it cannot be fixed from this screen.
-            </li>
-          </ul>
-        </div>
-
-        <p class="technote">
-          Sign-in is Google only. This page hands you to Google; the API checks
-          the identity token Google signs — its signature, who it was issued
-          for, and that the email is verified — matches the address against the
-          roster, and hands back a signed session token held in an http-only
-          cookie for twelve hours. Every page then verifies that token and the
-          role for itself. A <code>?next=</code> value is followed only when it
-          is a path on this site.
-        </p>
-      </div>
-    </main>
-  </div>
 </div>
+</code>
+                                                  </li>
+                                                </li></strong></strong></span></span>
+                                                        </a>
+                                            </div>
+                  </div>

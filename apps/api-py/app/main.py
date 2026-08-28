@@ -49,55 +49,55 @@ log = logging.getLogger("reep.startup")
 # cookies (the reep_session token!) or user context. Telemetry gets stack
 # traces, timings and tags — never a student's text or a signed credential.
 if settings.sentry_dsn.strip():
-    import sentry_sdk
+        import sentry_sdk
 
     sentry_sdk.init(
-        dsn=settings.sentry_dsn.strip(),
-        environment=settings.env.strip() or "development",
-        traces_sample_rate=settings.sentry_traces_rate,
-        send_default_pii=False,
+                dsn=settings.sentry_dsn.strip(),
+                environment=settings.env.strip() or "development",
+                traces_sample_rate=settings.sentry_traces_rate,
+                send_default_pii=False,
     )
     log.info("Sentry initialised (traces_sample_rate=%s)", settings.sentry_traces_rate)
 
 
 def _sweep_orphaned_interviews() -> int:
-    """Layer 3 of interview finalization, run once per boot. See the call site
-    in `lifespan` below, which is where the reasoning lives.
+        """Layer 3 of interview finalization, run once per boot. See the call site
+            in `lifespan` below, which is where the reasoning lives.
 
-    Its own function so that call stays a single readable line, and so the
-    session is opened AND closed on the worker thread — a `Session` is not safe
-    to hand across threads, and the one thing worse than an unswept orphan is a
-    connection shared by two of them.
-    """
-    with SessionLocal() as db:
-        return retention.finalize_orphaned_interviews(db)
+                Its own function so that call stays a single readable line, and so the
+                    session is opened AND closed on the worker thread — a `Session` is not safe
+                        to hand across threads, and the one thing worse than an unswept orphan is a
+                            connection shared by two of them.
+                                """
+        with SessionLocal() as db:
+                    return retention.finalize_orphaned_interviews(db)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Clamp what may be logged, then two configuration gates before we serve.
+        """Clamp what may be logged, then two configuration gates before we serve.
 
-    Boot is where the gates belong. `Settings` can decide what is wrong, but only
-    startup can REFUSE, and startup is the moment an operator is actually
-    watching; anything checked later is checked at request time, by which point
-    the process is already answering students.
-    """
-    # A HARD FLOOR, not a preference. At DEBUG the `websockets` library prints
-    # the outbound handshake header by header (ClientProtocol.send_request,
-    # guarded by Protocol.debug = logger.isEnabledFor(DEBUG)) and redacts
-    # nothing -- and one of those headers is
-    # `Authorization: Bearer <OPENAI_API_KEY>` on the interview relay's upstream
-    # socket (app/interview_relay.py). Running uvicorn with --log-level debug is
-    # a documented troubleshooting step, so without this the operator following
-    # the manual is the one who prints the credential into the API log, beside
-    # student traffic, in whatever aggregator this deployment ships to. That
-    # would defeat the containment the relay exists to provide.
-    # Protocol.debug is evaluated per connection at connect time, i.e. after
-    # this runs, and websockets.client/.server are NOTSET so they inherit it.
-    logging.getLogger("websockets").setLevel(logging.INFO)
+            Boot is where the gates belong. `Settings` can decide what is wrong, but only
+                startup can REFUSE, and startup is the moment an operator is actually
+                    watching; anything checked later is checked at request time, by which point
+                        the process is already answering students.
+                            """
+        # A HARD FLOOR, not a preference. At DEBUG the `websockets` library prints
+        # the outbound handshake header by header (ClientProtocol.send_request,
+        # guarded by Protocol.debug = logger.isEnabledFor(DEBUG)) and redacts
+        # nothing -- and one of those headers is
+        # `Authorization: Bearer <OPENAI_API_KEY>` on the interview relay's upstream
+        # socket (app/interview_relay.py). Running uvicorn with --log-level debug is
+        # a documented troubleshooting step, so without this the operator following
+        # the manual is the one who prints the credential into the API log, beside
+        # student traffic, in whatever aggregator this deployment ships to. That
+        # would defeat the containment the relay exists to provide.
+        # Protocol.debug is evaluated per connection at connect time, i.e. after
+        # this runs, and websockets.client/.server are NOTSET so they inherit it.
+        logging.getLogger("websockets").setLevel(logging.INFO)
 
     # 1) REFUSE to serve real people with the credentials published in this repo.
-    #
+        #
     # Settings.production_boot_failures() decides (it owns the defaults, so it
     # cannot end up comparing against a string nobody uses); this raises. It is
     # fatal rather than a warning, and there is no override flag, for the reason
@@ -114,13 +114,13 @@ async def lifespan(_app: FastAPI):
     # secret or the URL itself — see production_boot_failures().
     boot_failures = settings.production_boot_failures()
     if boot_failures:
-        detail = "\n".join(f"  * {problem}" for problem in boot_failures)
-        refusal = (
-            f"REFUSED to start: ENV={settings.env.strip() or '(blank)'} is a production "
-            f"environment and this process is holding development credentials.\n{detail}"
-        )
-        log.critical(refusal)
-        raise RuntimeError(refusal)
+                detail = "\n".join(f"  * {problem}" for problem in boot_failures)
+                refusal = (
+                    f"REFUSED to start: ENV={settings.env.strip() or '(blank)'} is a production "
+                    f"environment and this process is holding development credentials.\n{detail}"
+                )
+                log.critical(refusal)
+                raise RuntimeError(refusal)
 
     # 2) Say plainly, once, when voice is running unauthenticated.
     #
@@ -143,14 +143,14 @@ async def lifespan(_app: FastAPI):
     # warning at all, because it was not spelled "prod". The same allowlist now
     # decides both, so the warning fires exactly where the endpoint refuses.
     if not settings.worker_auth_optional and not settings.voice_worker_secret.strip():
-        log.warning(
-            "VOICE_WORKER_SECRET is blank on a non-development environment "
-            "(ENV=%s): /api/voice/heartbeat and /api/voice/transcript are "
-            "unauthenticated. A forged heartbeat makes voice report itself "
-            "available with no worker behind it. Set the same value on the API "
-            "and the voice worker.",
-            settings.env.strip() or "(blank)",
-        )
+                log.warning(
+                                "VOICE_WORKER_SECRET is blank on a non-development environment "
+                                "(ENV=%s): /api/voice/heartbeat and /api/voice/transcript are "
+                                "unauthenticated. A forged heartbeat makes voice report itself "
+                                "available with no worker behind it. Set the same value on the API "
+                                "and the voice worker.",
+                                settings.env.strip() or "(blank)",
+                )
 
     # 3) Close the interview rows the PREVIOUS process died holding.
     #
@@ -179,32 +179,32 @@ async def lifespan(_app: FastAPI):
     # at boot must degrade to "orphans get swept next restart" rather than to "no
     # dashboard". The whole app does not fall over for a bookkeeping sweep.
     try:
-        swept = await asyncio.to_thread(_sweep_orphaned_interviews)
-        if swept:
-            log.info("Startup sweep finalized %d orphaned interview session(s).", swept)
+                swept = await asyncio.to_thread(_sweep_orphaned_interviews)
+                if swept:
+                                log.info("Startup sweep finalized %d orphaned interview session(s).", swept)
     except Exception:
-        log.exception(
-            "Startup sweep of orphaned interview sessions failed; any "
-            "interview_sessions row left 'running' by a previous process stays "
-            "that way until the next successful sweep. Serving anyway."
-        )
+                log.exception(
+                                "Startup sweep of orphaned interview sessions failed; any "
+                                "interview_sessions row left 'running' by a previous process stays "
+                                "that way until the next successful sweep. Serving anyway."
+                )
 
     try:
-        yield
-    finally:
-        # Ask live interviews to close with a real code and reason rather than
-        # being torn down as a bare 1006.
-        #
-        # BACKSTOP ONLY, and honestly so: uvicorn's Server.shutdown() closes
-        # every live WebSocket (queueing websocket.disconnect(1012)) BEFORE it
-        # sends the lifespan shutdown event, so under uvicorn this set is
-        # already empty here. The standalone relay hijacked SIGINT/SIGTERM to
-        # get ahead of that; this process serves the whole dashboard and taking
-        # over its signals to improve one feature's close code is a bad trade --
-        # especially as the client already has a sentence for 1012 ("the
-        # interview server is restarting"). This covers an ASGI server whose
-        # shutdown ordering differs, and a shutdown with no signal at all.
-        interview.shutdown_interviews()
+                yield
+finally:
+            # Ask live interviews to close with a real code and reason rather than
+            # being torn down as a bare 1006.
+            #
+            # BACKSTOP ONLY, and honestly so: uvicorn's Server.shutdown() closes
+            # every live WebSocket (queueing websocket.disconnect(1012)) BEFORE it
+            # sends the lifespan shutdown event, so under uvicorn this set is
+            # already empty here. The standalone relay hijacked SIGINT/SIGTERM to
+            # get ahead of that; this process serves the whole dashboard and taking
+            # over its signals to improve one feature's close code is a bad trade --
+            # especially as the client already has a sentence for 1012 ("the
+            # interview server is restarting"). This covers an ASGI server whose
+            # shutdown ordering differs, and a shutdown with no signal at all.
+            interview.shutdown_interviews()
 
 
 # /docs, /redoc and /openapi.json follow settings.docs_exposed: served in dev —
@@ -224,21 +224,21 @@ _REDOC_URL = "/redoc" if settings.docs_exposed else None
 _OPENAPI_URL = "/openapi.json" if settings.docs_exposed else None
 
 app = FastAPI(
-    title="REEP API (Python / FastAPI)",
-    version="0.1.0",
-    lifespan=lifespan,
-    docs_url=_DOCS_URL,
-    redoc_url=_REDOC_URL,
-    openapi_url=_OPENAPI_URL,
+        title="REEP API (Python / FastAPI)",
+        version="0.1.0",
+        lifespan=lifespan,
+        docs_url=_DOCS_URL,
+        redoc_url=_REDOC_URL,
+        openapi_url=_OPENAPI_URL,
 )
 
 # Credentials are sent (the session cookie), so the origin must be explicit, not "*".
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[settings.web_origin],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+        CORSMiddleware,
+        allow_origins=[settings.web_origin],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
 )
 # Traceability: every request carries an X-Request-ID edge to log line — see
 # app/traceability.py. Added AFTER CORSMiddleware so it runs INSIDE it and the
@@ -263,14 +263,14 @@ app.add_middleware(RequestTraceMiddleware)
 # knows more than this blanket does.
 @app.middleware("http")
 async def _security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
-    response = await call_next(request)
-    response.headers.setdefault("X-Content-Type-Options", "nosniff")
-    response.headers.setdefault("X-Frame-Options", "DENY")
-    if not settings.insecure_cookies_allowed:
-        response.headers.setdefault(
-            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
-        )
-    return response
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        if not settings.insecure_cookies_allowed:
+                    response.headers.setdefault(
+                                    "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+                    )
+                return response
 
 # Health is infra liveness — unprefixed at /health.
 app.include_router(health.router)
@@ -283,6 +283,9 @@ app.include_router(interview.router)
 # Angular client calls lives under /api — matching environment.apiBase and the
 # dev proxy (apps/web/proxy.conf.json), with no path rewriting.
 app.include_router(auth.router, prefix="/api")
+# Canonical v1 surface. The legacy /api surface remains during the expand/contract window.
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(redesign.router, prefix="/api/v1")
 app.include_router(student.router, prefix="/api")
 # The v2 UI's three new screens (ledger, English baseline, mentor meeting log)
 # and the landing programme cards. Its own module so routers/student.py — the
@@ -349,37 +352,37 @@ app.include_router(registration.router, prefix="/api")
 #    (apps/web/proxy.conf.json) forward `/api` and nothing else, so a router
 #    mounted anywhere else is unreachable from the app that needs it.
 try:
-    from .routers import interview_records
+        from .routers import interview_records
 except Exception:
-    log.exception(
-        "app/routers/interview_records.py is not importable: the interview "
-        "record endpoints (GET /api/interview/sessions, the consent endpoints, "
-        "and GET /api/mentor/students/{id}/interviews) are NOT served. "
-        "Interviews themselves still run and still record. Nothing else is "
-        "affected."
-    )
+        log.exception(
+                    "app/routers/interview_records.py is not importable: the interview "
+                    "record endpoints (GET /api/interview/sessions, the consent endpoints, "
+                    "and GET /api/mentor/students/{id}/interviews) are NOT served. "
+                    "Interviews themselves still run and still record. Nothing else is "
+                    "affected."
+        )
 else:
-    _mounted: list[str] = []
-    for _name, _candidate in vars(interview_records).items():
-        if _name.startswith("_") or not isinstance(_candidate, APIRouter):
-            continue
-        if not _candidate.prefix.startswith("/api/"):
-            log.error(
-                "interview_records.%s is an APIRouter with prefix %r, which is "
-                "outside /api — NOT mounting it, because the Angular client and "
-                "the dev proxy only forward /api and it would be unreachable "
-                "there anyway. Give it its own /api prefix.",
-                _name,
-                _candidate.prefix,
-            )
-            continue
-        app.include_router(_candidate)
-        _mounted.append(f"{_name} -> {_candidate.prefix}")
-    if _mounted:
-        log.info("Interview record routers mounted: %s", ", ".join(_mounted))
-    else:
+        _mounted: list[str] = []
+        for _name, _candidate in vars(interview_records).items():
+                    if _name.startswith("_") or not isinstance(_candidate, APIRouter):
+                                    continue
+                                if not _candidate.prefix.startswith("/api/"):
+                                                log.error(
+                                                                    "interview_records.%s is an APIRouter with prefix %r, which is "
+                                                                    "outside /api — NOT mounting it, because the Angular client and "
+                                                                    "the dev proxy only forward /api and it would be unreachable "
+                                                                    "there anyway. Give it its own /api prefix.",
+                                                                    _name,
+                                                                    _candidate.prefix,
+                                                )
+                                                continue
+                                            app.include_router(_candidate)
+                    _mounted.append(f"{_name} -> {_candidate.prefix}")
+                if _mounted:
+                            log.info("Interview record routers mounted: %s", ", ".join(_mounted))
+else:
         log.error(
-            "app/routers/interview_records.py imported but exposes no public "
-            "APIRouter with an /api prefix — the interview record endpoints are "
-            "NOT served."
+                        "app/routers/interview_records.py imported but exposes no public "
+                        "APIRouter with an /api prefix — the interview record endpoints are "
+                        "NOT served."
         )

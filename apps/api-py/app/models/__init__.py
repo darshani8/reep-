@@ -27,6 +27,7 @@ from . import offer  # noqa: F401
 from . import placement_criteria  # noqa: F401
 from . import student_profile  # noqa: F401
 from . import registration  # noqa: F401
+from . import redesign  # noqa: F401
 from . import resume  # noqa: F401
 from . import resume_profile  # noqa: F401
 from . import schedule  # noqa: F401

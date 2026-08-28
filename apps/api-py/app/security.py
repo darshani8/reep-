@@ -124,10 +124,9 @@ def current_token_version(user_id: str) -> int | None:
         if entry is not None and now < entry[0]:
             return entry[1]
         if now < _db_retry_after:
-            # Still inside the backoff from a failed read. Admit, silently: the
-            # ERROR that armed it already said what is wrong, and repeating it
-            # per request buries the outage in its own symptom.
-            return None
+            # Still inside the backoff from a failed read. Revocation is
+            # authorization state, so refuse until the database can answer.
+            return -1
 
     try:
         # Imported HERE, not at module scope. app/seed.py, app/seed_roster.py

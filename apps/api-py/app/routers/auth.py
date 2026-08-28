@@ -74,6 +74,7 @@ first time these three lists were written independently.
 """
 
 import logging
+import secrets
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
@@ -94,6 +95,7 @@ from ..security import (
     SESSION_TTL_SECONDS,
     SESSION_VERSION_CLAIM,
     create_session_token,
+    hash_password,
     note_revocation,
     verify_password,
     verify_session_token,
@@ -102,6 +104,13 @@ from ..security import (
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# A real scrypt hash of a value nobody can log in with, verified against on the
+# unknown-email/no-hash path of /login so a refusal costs the same scrypt work
+# as a wrong password — see the comment at the call site. Computed once at
+# import (one scrypt, tens of ms, at boot) rather than pasted as a literal that
+# silently rots if the hash format ever changes.
+_TIMING_EQUALIZER_HASH = hash_password(secrets.token_urlsafe(32))
 
 # Where a signed-in user lands when the flow carries no `?next=`. Mirrors
 # HOME_FOR_ROLE in apps/web/src/app/core/session.ts (the SPA's `''` route now
@@ -287,11 +296,17 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
     # `not user.password_hash` covers a roster account that has no usable local
     # password: without it, verify_password would raise AttributeError on None and
     # turn a 401 into a 500, which is both a crash and an account-existence oracle.
-    if (
-        user is None
-        or not user.password_hash
-        or not verify_password(body.password, user.password_hash)
-    ):
+    if user is None or not user.password_hash:
+        # The message hides which case this is; the CLOCK must too. scrypt takes
+        # tens of milliseconds, so skipping it for an unknown email makes "does
+        # this account exist" answerable with a stopwatch despite the uniform
+        # 401. Burn the same work against a throwaway hash before refusing.
+        verify_password(body.password, _TIMING_EQUALIZER_HASH)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password.",
+        )
+    if not verify_password(body.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",

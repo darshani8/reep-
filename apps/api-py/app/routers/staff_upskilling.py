@@ -23,7 +23,8 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..identity import get_current_session
-from ..document_store import UploadRejected, content_disposition, delete as document_store_delete
+from ..document_store import MAX_BYTES, UploadRejected, content_disposition
+from ..document_store import delete as document_store_delete
 from ..document_store import read_bytes, save_bytes
 from ..models.staff_upskilling import StaffUpskillingCertificate
 from .mentor import require_mentor
@@ -104,7 +105,10 @@ def upload_certificate(
             ),
         )
 
-    content = file.file.read()
+    # read(MAX+1), never read(): save_bytes refuses anything past the per-file
+    # cap, so one extra byte trips it without buffering an unbounded body in
+    # RAM (routers/student.py create_upload, same reasoning).
+    content = file.file.read(MAX_BYTES + 1)
     if used_bytes + len(content) > MAX_CERTIFICATE_BYTES_PER_USER:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,

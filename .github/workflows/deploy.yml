@@ -25,6 +25,10 @@ on:
         description: "Run `alembic upgrade head` before rolling the API"
         type: boolean
         default: true
+      seed_kb:
+        description: "Seed the assistant Knowledge Base (idempotent, no accounts)"
+        type: boolean
+        default: false
       confirm:
         description: 'Type "deploy" to confirm this goes to production'
         required: true
@@ -101,6 +105,38 @@ jobs:
           # A non-zero exit means the schema did NOT move. Stop before rolling
           # the service rather than deploying code its database cannot serve.
           [ "$EXIT" = "0" ] || { echo "::error::Migration failed — the service was not rolled."; exit 1; }
+
+      # `python -m app.seed_kb` is the PRODUCTION-SAFE seed: approved public
+      # policy text for the grounded assistant, and no accounts. It is
+      # idempotent, so re-running it is a no-op rather than a duplicate.
+      #
+      # `python -m app.seed` is deliberately NOT offered here and never should
+      # be. It creates the demo logins whose passwords are published in
+      # AGENTS.md -- including a DIRECTOR, who by rule 2 reads every student's
+      # marks, attendance and USN. It refuses to run on ENV=prod for that
+      # reason; a button for it would be a way around its own guard.
+      #
+      # `app.seed_roster` is also absent: it needs the cohort's USNs as input,
+      # which is real student data and does not belong in a workflow file.
+      # Run it as a one-off task with the roster to hand.
+      - name: Seed the Knowledge Base
+        if: inputs.seed_kb
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" \
+            --task-definition "${{ vars.ECS_TASK_FAMILY || 'reep-api' }}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ vars.ECS_SUBNETS || 'subnet-0792c0ddcdd02f34f,subnet-0a41b8c5a98485d1a' }}],securityGroups=[${{ vars.ECS_SECURITY_GROUP || 'sg-0dfa5c76167d79093' }}],assignPublicIp=DISABLED}" \
+            --overrides '{"containerOverrides":[{"name":"api","command":["python","-m","app.seed_kb"]}]}' \
+            --query 'tasks[0].taskArn' --output text)
+          echo "Seed task: $TASK_ARN"
+          aws ecs wait tasks-stopped --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --tasks "$TASK_ARN"
+          EXIT=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          REASON=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --tasks "$TASK_ARN" \
+            --query 'tasks[0].stoppedReason' --output text)
+          echo "Exit code: $EXIT ($REASON)"
+          [ "$EXIT" = "0" ] || { echo "::error::Knowledge Base seed failed."; exit 1; }
 
       - name: Roll the service
         run: |

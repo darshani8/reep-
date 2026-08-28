@@ -1,121 +1,120 @@
 <div class="desktop-frame">
-    <div class="desktop-titlebar">
-          <span class="icon" style="font-size:14px" aria-hidden="true">school</span>span>
-          REEP · {{ roleLabel() | uppercase }}
-          <button type="button" class="titlebar-logout" (click)="signOut()">
-                  <span class="icon" style="font-size:14px" aria-hidden="true">logout</span>span>
-                  Sign out
-          </button>button>
-    </div>div>
+  <div class="desktop-titlebar">
+    <span class="icon" style="font-size:14px" aria-hidden="true">school</span>
+    REEP · {{ roleLabel() | uppercase }}
+    <button type="button" class="titlebar-logout" (click)="signOut()">
+      <span class="icon" style="font-size:14px" aria-hidden="true">logout</span>
+      Sign out
+    </button>
+  </div>
 
-    <div class="desktop-shell">
-          <nav class="desktop-nav" aria-label="Main">
-                  <!-- Profile card. The avatar is a glyph placeholder until a photo upload
-             is wired through; name and USN come from the session, so a mentor or
-             director signing in sees their own name rather than a hardcoded one. -->
-                  <div class="nav-profile">
-                            <div class="avatar">
-                                        <span class="icon" aria-hidden="true">person</span>span>
-                            </div>div>
-                            <div class="name">{{ displayName() }}</div>div>
-                            @if (usn(); as u) {
-                              <div class="usn">{{ u }}</div>div>
-                            }
-                  </div>div>
+  <div class="desktop-shell">
+    <nav class="desktop-nav" aria-label="Main">
+      <!-- Profile card. The avatar is a glyph placeholder until a photo upload
+           is wired through; name and USN come from the session, so a mentor or
+           director signing in sees their own name rather than a hardcoded one. -->
+      <div class="nav-profile">
+        <div class="avatar">
+          <span class="icon" aria-hidden="true">person</span>
+        </div>
+        <div class="name">{{ displayName() }}</div>
+        @if (usn(); as u) {
+          <div class="usn">{{ u }}</div>
+        }
+      </div>
 
-                  @switch (navKind()) {
-                    @case ('staff') {
-                      <a routerLink="/mentor/notebook" routerLinkActive="active">
-                                    <span class="icon" aria-hidden="true">menu_book</span>span> Mentor Notebook
-                      </a>a>
-                      <a routerLink="/mentor/mentees" routerLinkActive="active">
-                                    <span class="icon" aria-hidden="true">groups</span>span> Legacy Mentee Log
-                      </a>a>
-                      <a routerLink="/mentor/leave" routerLinkActive="active">
-                                    <span class="icon" aria-hidden="true">event_available</span>span> Leave Requests
-                      </a>a>
-                      <a routerLink="/mentor/badge-centre" routerLinkActive="active">
-                                    <span class="icon" aria-hidden="true">military_tech</span>span> Badge Centre
-                      </a>a>
-                      <a routerLink="/mentor/upskilling" routerLinkActive="active">
-                                    <span class="icon" aria-hidden="true">workspace_premium</span>span> Upskilling
-                      </a>a>
-                      <div class="sec-label">More</div>div>
-                      <a routerLink="/mentor/assistant" routerLinkActive="active">
-                                    <span class="icon" aria-hidden="true">smart_toy</span>span> REEP Agent
-                      </a>a>
-                    }
-                    @case ('alumni') {
-                      <a routerLink="/alumni" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-                                    <span class="icon" aria-hidden="true">person</span>span> My Profile
-                      </a>a>
-                      <a routerLink="/alumni/jobs" routerLinkActive="active">
-                                    <span class="icon" aria-hidden="true">work</span>span> Jobs Sheet
-                      </a>a>
-                    }
-                    @default {
-                  <a routerLink="/student" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-                            <span class="icon" aria-hidden="true">home</span>span> Home
-                  </a>a>
-                  <a routerLink="/student/jobs" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">work</span>span> Jobs
-                  </a>a>
-                  <a routerLink="/student/skilling" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">verified</span>span> Skilling
-                  </a>a>
-                  <a routerLink="/student/badges" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">military_tech</span>span> Badges
-                  </a>a>
-                  <a routerLink="/student/leaderboards" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">leaderboard</span>span> Leaderboards
-                  </a>a>
-                  <a routerLink="/student/time-log" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">schedule</span>span> Time Sheet
-                  </a>a>
+      @switch (navKind()) {
+        @case ('staff') {
+          <a routerLink="/mentor/notebook" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">menu_book</span> Mentor Notebook
+          </a>
+          <a routerLink="/mentor/mentees" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">groups</span> Legacy Mentee Log
+          </a>
+          <a routerLink="/mentor/leave" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">event_available</span> Leave Requests
+          </a>
+          <a routerLink="/mentor/badge-centre" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">military_tech</span> Badge Centre
+          </a>
+          <a routerLink="/mentor/upskilling" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">workspace_premium</span> Upskilling
+          </a>
+          <div class="sec-label">More</div>
+          <a routerLink="/mentor/assistant" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
+          </a>
+        }
+        @case ('alumni') {
+          <a routerLink="/alumni" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <span class="icon" aria-hidden="true">person</span> My Profile
+          </a>
+          <a routerLink="/alumni/jobs" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">work</span> Jobs Sheet
+          </a>
+        }
+        @default {
+      <a routerLink="/student" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <span class="icon" aria-hidden="true">home</span> Home
+      </a>
+      <a routerLink="/student/jobs" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">work</span> Jobs
+      </a>
+      <a routerLink="/student/skilling" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">verified</span> Skilling
+      </a>
+      <a routerLink="/student/badges" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">military_tech</span> Badges
+      </a>
+      <a routerLink="/student/leaderboards" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">leaderboard</span> Leaderboards
+      </a>
+      <a routerLink="/student/time-log" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">schedule</span> Time Sheet
+      </a>
 
-                  <div class="sec-label">Programme</div>div>
-                  <a routerLink="/student/english" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">record_voice_over</span>span> English Baseline
-                  </a>a>
-                  <a routerLink="/student/mentor-log" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">event_note</span>span> Mentor Meeting Log
-                  </a>a>
-                  <a routerLink="/student/certifications" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">workspace_premium</span>span> Certifications
-                  </a>a>
-                  <a routerLink="/student/courses" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">menu_book</span>span> Courses
-                  </a>a>
-                  <a routerLink="/student/records" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">fact_check</span>span> Records
-                  </a>a>
+      <div class="sec-label">Programme</div>
+      <a routerLink="/student/english" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">record_voice_over</span> English Baseline
+      </a>
+      <a routerLink="/student/mentor-log" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">event_note</span> Mentor Meeting Log
+      </a>
+      <a routerLink="/student/certifications" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">workspace_premium</span> Certifications
+      </a>
+      <a routerLink="/student/courses" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">menu_book</span> Courses
+      </a>
+      <a routerLink="/student/records" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">fact_check</span> Records
+      </a>
 
-                  <div class="sec-label">Documents</div>div>
-                  <a routerLink="/student/uploads" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">upload_file</span>span> Uploads
-                  </a>a>
-                  <a routerLink="/student/resume" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">description</span>span> Resume Builder
-                  </a>a>
+      <div class="sec-label">Documents</div>
+      <a routerLink="/student/uploads" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">upload_file</span> Uploads
+      </a>
+      <a routerLink="/student/resume" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">description</span> Resume Builder
+      </a>
 
-                  <div class="sec-label">More</div>div>
-                  <a routerLink="/student/assistant" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">smart_toy</span>span> REEP Agent
-                  </a>a>
-                  <a routerLink="/student/profile" routerLinkActive="active">
-                            <span class="icon" aria-hidden="true">person</span>span> Profile
-                  </a>a>
-                    }
-                  }
-          </nav>nav>
+      <div class="sec-label">More</div>
+      <a routerLink="/student/assistant" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
+      </a>
+      <a routerLink="/student/profile" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">person</span> Profile
+      </a>
+        }
+      }
+    </nav>
 
-          <main class="desktop-main">
-                  <router-outlet></router-outlet>
-          </main>main>
-    </div>div>
-</div>div>
+    <main class="desktop-main">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
 
 <!-- On every authenticated screen, per the handoff. Draggable; a tap opens
      voice mode. -->
 <app-agent-orb />
-</router-outlet>

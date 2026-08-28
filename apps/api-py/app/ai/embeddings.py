@@ -99,6 +99,33 @@ def embed(texts: list[str]) -> list[list[float]] | None:
         return None
 
 
+def embed_one(text: str, *, model_name: str) -> list[float]:
+    """Strict worker-facing call; failures are raised, never silently swallowed."""
+    provider = _resolve_embedder()
+    if provider is None:
+        raise RuntimeError("embedding provider is not configured")
+    base, configured_model, key = provider
+    if configured_model != model_name:
+        raise ValueError(f"configured embedding model {configured_model!r} does not match job model {model_name!r}")
+    headers = {"content-type": "application/json"}
+    if key:
+        headers["authorization"] = f"Bearer {key}"
+    response = httpx.post(
+        f"{base}/embeddings",
+        json={"model": model_name, "input": [text]},
+        headers=headers,
+        timeout=max(1.0, settings.llm_timeout_ms / 1000),
+    )
+    response.raise_for_status()
+    rows = response.json().get("data")
+    if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict):
+        raise ValueError("embedding provider returned an invalid response")
+    vector = rows[0].get("embedding")
+    if not isinstance(vector, list):
+        raise ValueError("embedding provider returned no vector")
+    return vector
+
+
 def reembed_all(db) -> int:
     """Populate KnowledgeChunk.embedding for every chunk when a provider exists.
 

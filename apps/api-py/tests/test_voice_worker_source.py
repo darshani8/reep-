@@ -105,9 +105,9 @@ def test_agent_name_matches_the_server(source: str) -> None:
     room opens, the student's microphone publishes, and nothing arrives — with
     both processes reporting themselves healthy.
     """
-    from app.routers.voice import VOICE_AGENT_NAME
+    from app.api.legacy.voice_assistant import VOICE_AGENT_NAME
 
     assert f'agent_name="{VOICE_AGENT_NAME}"' in source, (
         f"voice_agent.py must register under {VOICE_AGENT_NAME!r} to match "
-        "app/routers/voice.py"
+        "app/api/legacy/voice_assistant.py"
     )

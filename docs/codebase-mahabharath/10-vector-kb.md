@@ -2,7 +2,7 @@
 
 When you finish this chapter you will be able to add a document to REEP's Knowledge Base and know exactly which SQL statements will find it; you will be able to read `search()` line by line and predict the score of any chunk it returns; you will know what an embedding actually is, why the vector column has no dimension, why the embedder swallows every error it meets, and why a machine with no embedding key still has a working Knowledge Base. Most importantly you will be able to answer the question the whole subsystem exists to answer — *how does REEP decide that it has found nothing good enough, and say so, instead of handing a student the least-bad paragraph it could find?* — and you will know precisely where that guarantee holds and where, today, it does not.
 
-**In scope.** `apps/api-py/app/knowledge.py` (retrieval), `apps/api-py/app/ai/embeddings.py` (the embedder), `apps/api-py/app/seed_kb.py` (the corpus and the production-safe seed), the `embedding` column as retrieval uses it, and `apps/api-py/tests/test_knowledge.py`.
+**In scope.** `apps/api-py/app/assistant/knowledge_base.py` (retrieval), `apps/api-py/app/ai/embeddings.py` (the embedder), `apps/api-py/app/seed_kb.py` (the corpus and the production-safe seed), the `embedding` column as retrieval uses it, and `apps/api-py/tests/test_knowledge.py`.
 
 **Deferred.** Chapter 3 documents `knowledge_documents` and `knowledge_chunks` column by column — this chapter explains the *lifecycle* of a document and reads only the columns retrieval touches. Chapter 4 owns migration `b7e2f4a19c33` (the `ARRAY(Float)` → `vector` conversion) as a worked case study; it is cited here, never re-derived. Chapter 8 owns `app/ai/llm.py`, the Rule 1 egress gate and the whole orchestrator pipeline that *consumes* retrieval; this chapter names the seam (`assistant_tools.policy_search` → `knowledge.search`) and hands off. Chapter 1, §6 sets out the two inviolable rules that §1 below leans on.
 
@@ -118,7 +118,7 @@ Everything from here to §6 rests on one idea, so state it before the plumbing. 
 
 "Pointing the same way" is measured as the **cosine of the angle** between the two lists: 1.0 when they point identically, 0 when they are at right angles (unrelated), −1 when they point opposite. Postgres's pgvector extension does not hand you the cosine directly; its `<=>` operator returns **cosine distance = 1 − cosine similarity**, which runs 0 (identical direction) to 2 (opposite). So for `<=>`, **small means related**.
 
-That is the entire reason a question sharing no word with a chunk can still retrieve it; the entire reason a single float (`0.32`) can be a meaningful "close enough" cut-off; and the entire reason the phrase "semantically-related chunks" in `knowledge.py`'s own docstring ([knowledge.py:17-18](apps/api-py/app/knowledge.py#L17-L18)) means something mechanical rather than something aspirational. Keep the three facts together: `embedding` is a list of floats, `<=>` is an angle between two of them, and `_MAX_VEC_DISTANCE` is a cut-off on that angle.
+That is the entire reason a question sharing no word with a chunk can still retrieve it; the entire reason a single float (`0.32`) can be a meaningful "close enough" cut-off; and the entire reason the phrase "semantically-related chunks" in `knowledge.py`'s own docstring ([knowledge.py:17-18](apps/api-py/app/assistant/knowledge_base.py#L17-L18)) means something mechanical rather than something aspirational. Keep the three facts together: `embedding` is a list of floats, `<=>` is an angle between two of them, and `_MAX_VEC_DISTANCE` is a cut-off on that angle.
 
 ### The module
 
@@ -205,7 +205,7 @@ The body is exactly two keys. `input` is a **list**, so one HTTP round-trip embe
 
 **The timeout is borrowed.** There is no `embedding_timeout_ms` anywhere in `config.py`; the expression reuses `llm_timeout_ms`, whose default is `300000` ([config.py:31](apps/api-py/app/config.py#L31)), floored at one second. It is textually identical to `_timeout_s()` in [llm.py:73-74](apps/api-py/app/ai/llm.py#L73-L74) but copied, not imported. The practical consequence: on default configuration an unresponsive embedding endpoint can hold a KB search open for five minutes.
 
-What that actually costs needs the FastAPI mechanism spelled out, because "the event loop is safe" means nothing until you know there *is* one. FastAPI serves every request on a **single event loop** — one thread, cooperatively switching between requests — so a blocking call made directly on it stalls every other request in the process. FastAPI's escape hatch is that an endpoint declared with plain `def` rather than `async def` never runs on the loop at all; it is handed to a bounded pool of worker threads. `GET /api/agent/knowledge/search` is declared `def` ([routers/agent.py:411](apps/api-py/app/routers/agent.py#L411)), so a five-minute hang inside `embed()` occupies **one worker thread** and the event loop keeps serving everyone else. The pool is finite, though (AnyIO's default capacity is 40 threads), so a wedged embedding endpoint under sustained load can exhaust it — at which point every synchronous endpoint in the application starts queueing behind it. The blast radius is bounded, not zero.
+What that actually costs needs the FastAPI mechanism spelled out, because "the event loop is safe" means nothing until you know there *is* one. FastAPI serves every request on a **single event loop** — one thread, cooperatively switching between requests — so a blocking call made directly on it stalls every other request in the process. FastAPI's escape hatch is that an endpoint declared with plain `def` rather than `async def` never runs on the loop at all; it is handed to a bounded pool of worker threads. `GET /api/agent/knowledge/search` is declared `def` ([api/legacy/text_assistant.py:411](apps/api-py/app/api/legacy/text_assistant.py#L411)), so a five-minute hang inside `embed()` occupies **one worker thread** and the event loop keeps serving everyone else. The pool is finite, though (AnyIO's default capacity is 40 threads), so a wedged embedding endpoint under sustained load can exhaust it — at which point every synchronous endpoint in the application starts queueing behind it. The blast radius is bounded, not zero.
 
 ### Response handling, and the one non-obvious correctness guard
 
@@ -249,7 +249,7 @@ Note the consequence for callers: `None` means *both* "no embedder configured" a
 
 The model docstring adds the invariant that makes it safe: "any embedding model's dimension fits without a schema change (all rows + the query share one provider, so `<=>` dims line up). `reembed_all` rewrites every row when the provider changes." ([models/knowledge.py:91-93](apps/api-py/app/models/knowledge.py#L91-L93)).
 
-**What it buys.** Switching from `mistral-embed` to a 1536-dimension OpenAI model or a 384-dimension local one needs no `ALTER TABLE` and no new migration — a config change and a re-embed. **What it costs.** Postgres can no longer enforce dimension consistency, so the one-provider invariant is upheld only by `reembed_all` rewriting every row; and an approximate index (ivfflat, hnsw) cannot be built on a column with no fixed dimension, which is why `KnowledgeChunk.__table_args__` ([models/knowledge.py:96-106](apps/api-py/app/models/knowledge.py#L96-L106)) declares only the document-id index and the full-text GIN index, and no vector index at all. Every vector query is an exact scan with a per-row `<=>` computation — deliberate, and stated in `knowledge.py`'s own docstring: "The KB is small and curated, so an exact cosine scan needs no ivfflat/hnsw index." ([knowledge.py:28-29](apps/api-py/app/knowledge.py#L28-L29)).
+**What it buys.** Switching from `mistral-embed` to a 1536-dimension OpenAI model or a 384-dimension local one needs no `ALTER TABLE` and no new migration — a config change and a re-embed. **What it costs.** Postgres can no longer enforce dimension consistency, so the one-provider invariant is upheld only by `reembed_all` rewriting every row; and an approximate index (ivfflat, hnsw) cannot be built on a column with no fixed dimension, which is why `KnowledgeChunk.__table_args__` ([models/knowledge.py:96-106](apps/api-py/app/models/knowledge.py#L96-L106)) declares only the document-id index and the full-text GIN index, and no vector index at all. Every vector query is an exact scan with a per-row `<=>` computation — deliberate, and stated in `knowledge.py`'s own docstring: "The KB is small and curated, so an exact cosine scan needs no ivfflat/hnsw index." ([knowledge.py:28-29](apps/api-py/app/assistant/knowledge_base.py#L28-L29)).
 
 ---
 
@@ -274,7 +274,7 @@ Now the loss is precise. Full-text can only ever find text that shares *roots* w
 
 ### The degradation, traced
 
-The claim is made in the retrieval docstring — "Without an embedder it degrades cleanly to full-text alone — the KB still works with zero embedding setup" ([knowledge.py:23-24](apps/api-py/app/knowledge.py#L23-L24)) — and the code matches it exactly. Trace it:
+The claim is made in the retrieval docstring — "Without an embedder it degrades cleanly to full-text alone — the KB still works with zero embedding setup" ([knowledge.py:23-24](apps/api-py/app/assistant/knowledge_base.py#L23-L24)) — and the code matches it exactly. Trace it:
 
 1. With `EMBEDDING_BASE_URL`/`EMBEDDING_MODEL` blank **and** `MISTRAL_API_KEY` blank, `_resolve_embedder()` falls through to `return None` ([embeddings.py:59](apps/api-py/app/ai/embeddings.py#L59)).
 2. `embedder_configured()` therefore returns `False`.
@@ -288,7 +288,7 @@ The claim is made in the retrieval docstring — "Without an embedder it degrade
             query_vec = vecs[0]
     if query_vec is not None:
 ```
-— [knowledge.py:158-163](apps/api-py/app/knowledge.py#L158-L163)
+— [knowledge.py:158-163](apps/api-py/app/assistant/knowledge_base.py#L158-L163)
 
 `if vecs:` is truthiness, not `is not None`, so it rejects both `None` and an empty list. `if query_vec is not None:` then gates the *entire* pgvector SELECT — the `cosine_distance` expression, the `WHERE`s, the `db.execute`. With no embedder, none of that SQL is built and no query ever touches the `embedding` column.
 
@@ -300,7 +300,7 @@ The claim is made in the retrieval docstring — "Without an embedder it degrade
             (1 - _COSINE_WEIGHT) * ft + _COSINE_WEIGHT * sim if sim is not None else ft
         )
 ```
-— [knowledge.py:209-211](apps/api-py/app/knowledge.py#L209-L211)
+— [knowledge.py:209-211](apps/api-py/app/assistant/knowledge_base.py#L209-L211)
 
 `score = ft` — the normalised full-text rank, alone. `_COSINE_WEIGHT` never applies.
 
@@ -328,7 +328,7 @@ The marker is a naming convention in itself: **pytest environment gates are modu
 
 ## 5. Hybrid retrieval, read end to end
 
-`app/knowledge.py` is 224 lines and exports exactly one public function. It is a top-level module under `app/` — a sibling of `app/assistant_tools.py` and `app/seed_kb.py`, *not* under `app/ai/`, even though the embedder it depends on lives at `app/ai/embeddings.py`. There is no logging, no caching, no async.
+`app/assistant/knowledge_base.py` is 224 lines and exports exactly one public function. It is a top-level module under `app/` — a sibling of `app/assistant/tools.py` and `app/seed_kb.py`, *not* under `app/ai/`, even though the embedder it depends on lives at `app/ai/embeddings.py`. There is no logging, no caching, no async.
 
 ### The three constants
 
@@ -338,9 +338,9 @@ _CANDIDATE_POOL = 24
 # Weight given to the embedding-cosine signal when blending (rest is full-text).
 _COSINE_WEIGHT = 0.5
 ```
-— [knowledge.py:42-45](apps/api-py/app/knowledge.py#L42-L45)
+— [knowledge.py:42-45](apps/api-py/app/assistant/knowledge_base.py#L42-L45)
 
-Read "per branch" literally: 24 is the `LIMIT` on the full-text select ([knowledge.py:130](apps/api-py/app/knowledge.py#L130)), on the ILIKE select ([knowledge.py:152](apps/api-py/app/knowledge.py#L152)) and on the vector select ([knowledge.py:187](apps/api-py/app/knowledge.py#L187)) *independently*. The ILIKE select, though, runs **only** when the full-text select came back empty (see below), so at most two branches ever contribute — the merged pool can hold at most 24 + 24 = 48 distinct chunk ids, and in practice far fewer, because the vector branch usually re-finds rows a text branch already put there. `_COSINE_WEIGHT = 0.5` makes the blend an exact 50/50. The third constant, `_MAX_VEC_DISTANCE`, gets its own section below.
+Read "per branch" literally: 24 is the `LIMIT` on the full-text select ([knowledge.py:130](apps/api-py/app/assistant/knowledge_base.py#L130)), on the ILIKE select ([knowledge.py:152](apps/api-py/app/assistant/knowledge_base.py#L152)) and on the vector select ([knowledge.py:187](apps/api-py/app/assistant/knowledge_base.py#L187)) *independently*. The ILIKE select, though, runs **only** when the full-text select came back empty (see below), so at most two branches ever contribute — the merged pool can hold at most 24 + 24 = 48 distinct chunk ids, and in practice far fewer, because the vector branch usually re-finds rows a text branch already put there. `_COSINE_WEIGHT = 0.5` makes the blend an exact 50/50. The third constant, `_MAX_VEC_DISTANCE`, gets its own section below.
 
 The convention on display: **private module constants are leading-underscore SCREAMING_SNAKE, one per tunable, each with a rationale comment directly above it.** Private helpers are leading-underscore snake_case — `_audience_filter`, `_cosine`, and the nested closure `_row_fields`. And the module exposes exactly one verb, so callers read `knowledge.search(...)`, never `search_knowledge(...)`: **the module is the namespace.** The same shape holds for `embeddings.embed` / `embeddings.reembed_all` and `seed_kb.seed_knowledge`.
 
@@ -354,9 +354,9 @@ def search(
     limit: int = 5,
 ) -> list[dict]:
 ```
-— [knowledge.py:74-79](apps/api-py/app/knowledge.py#L74-L79)
+— [knowledge.py:74-79](apps/api-py/app/assistant/knowledge_base.py#L74-L79)
 
-There is **no minimum-score parameter**. The only relevance gate anywhere in the function is `_MAX_VEC_DISTANCE`, and it applies to one branch. The first statement is the empty-query guard (`q = (query or "").strip()` / `if not q: return []`, [knowledge.py:86-88](apps/api-py/app/knowledge.py#L86-L88)), pinned by [test_knowledge.py:118-120](apps/api-py/tests/test_knowledge.py#L118-L120).
+There is **no minimum-score parameter**. The only relevance gate anywhere in the function is `_MAX_VEC_DISTANCE`, and it applies to one branch. The first statement is the empty-query guard (`q = (query or "").strip()` / `if not q: return []`, [knowledge.py:86-88](apps/api-py/app/assistant/knowledge_base.py#L86-L88)), pinned by [test_knowledge.py:118-120](apps/api-py/tests/test_knowledge.py#L118-L120).
 
 Then the whole of REEP's approval-and-audience enforcement, in four lines:
 
@@ -366,9 +366,9 @@ Then the whole of REEP's approval-and-audience enforcement, in four lines:
         _audience_filter(audience),
     )
 ```
-— [knowledge.py:90-93](apps/api-py/app/knowledge.py#L90-L93)
+— [knowledge.py:90-93](apps/api-py/app/assistant/knowledge_base.py#L90-L93)
 
-with `_audience_filter` being one line: `return KnowledgeDocument.audience.in_([audience, "all"])` ([knowledge.py:59-60](apps/api-py/app/knowledge.py#L59-L60)). That single tuple is splatted as `.where(*base_where)` into all three selects — [knowledge.py:127](apps/api-py/app/knowledge.py#L127), [knowledge.py:150](apps/api-py/app/knowledge.py#L150), [knowledge.py:183](apps/api-py/app/knowledge.py#L183). There is no post-filter and no second layer. **The risk shape is worth naming: adding a fourth retrieval branch and forgetting the splat is a silent one-line regression that would hand a DRAFT chunk to the assistant as approved institutional policy.**
+with `_audience_filter` being one line: `return KnowledgeDocument.audience.in_([audience, "all"])` ([knowledge.py:59-60](apps/api-py/app/assistant/knowledge_base.py#L59-L60)). That single tuple is splatted as `.where(*base_where)` into all three selects — [knowledge.py:127](apps/api-py/app/assistant/knowledge_base.py#L127), [knowledge.py:150](apps/api-py/app/assistant/knowledge_base.py#L150), [knowledge.py:183](apps/api-py/app/assistant/knowledge_base.py#L183). There is no post-filter and no second layer. **The risk shape is worth naming: adding a fourth retrieval branch and forgetting the splat is a silent one-line regression that would hand a DRAFT chunk to the assistant as approved institutional policy.**
 
 ### The candidate map
 
@@ -379,9 +379,9 @@ with `_audience_filter` being one line: `return KnowledgeDocument.audience.in_([
     # survive to the blended re-rank below.
     cand: dict[str, dict] = {}
 ```
-— [knowledge.py:105-109](apps/api-py/app/knowledge.py#L105-L109)
+— [knowledge.py:105-109](apps/api-py/app/assistant/knowledge_base.py#L105-L109)
 
-A closure, `_row_fields(row)` ([knowledge.py:95-103](apps/api-py/app/knowledge.py#L95-L103)), normalises a SQLAlchemy `Row` into six keys: `chunk_text`, `anchor`, `embedding`, `title`, `source_type`, `source_url`. It deliberately carries `embedding` through so the Python cosine fallback can use it later, and it uses the model-side name `title` — the rename to `document_title` happens exactly once, at output time.
+A closure, `_row_fields(row)` ([knowledge.py:95-103](apps/api-py/app/assistant/knowledge_base.py#L95-L103)), normalises a SQLAlchemy `Row` into six keys: `chunk_text`, `anchor`, `embedding`, `title`, `source_type`, `source_url`. It deliberately carries `embedding` through so the Python cosine fallback can use it later, and it uses the model-side name `title` — the rename to `document_title` happens exactly once, at output time.
 
 **Nothing is ever removed from `cand` after insertion.** Hold that fact; §6 turns on it.
 
@@ -392,7 +392,7 @@ A closure, `_row_fields(row)` ([knowledge.py:95-103](apps/api-py/app/knowledge.p
     ts_query = func.plainto_tsquery("english", bindparam("q", value=q, type_=String))
     rank = func.ts_rank(ts_vector, ts_query).label("rank")
 ```
-— [knowledge.py:112-114](apps/api-py/app/knowledge.py#L112-L114)
+— [knowledge.py:112-114](apps/api-py/app/assistant/knowledge_base.py#L112-L114)
 
 The text-search configuration is the hard-coded string `'english'` in both halves. The rank is plain two-argument `ts_rank` — default weights, **no normalization argument** — so it is not divided by document length and is not comparable across corpora. It is only ever used relatively, divided by the batch maximum.
 
@@ -403,9 +403,9 @@ The statement matches with the `@@` operator, orders by rank descending and caps
         .order_by(rank.desc())
         .limit(_CANDIDATE_POOL)
 ```
-— [knowledge.py:128-130](apps/api-py/app/knowledge.py#L128-L130)
+— [knowledge.py:128-130](apps/api-py/app/assistant/knowledge_base.py#L128-L130)
 
-Rows land as `cand[r.id] = {**_row_fields(r), "rank": float(r.rank), "distance": None}` ([knowledge.py:132-133](apps/api-py/app/knowledge.py#L132-L133)).
+Rows land as `cand[r.id] = {**_row_fields(r), "rank": float(r.rank), "distance": None}` ([knowledge.py:132-133](apps/api-py/app/assistant/knowledge_base.py#L132-L133)).
 
 The decisive property of this branch is the AND-conjunction worked out in §4: on an 18-chunk corpus a naturally-phrased question frequently satisfies *no* chunk, so the PRIMARY branch returns nothing and control drops to the fallback. Measured against the running database, of six representative queries only one natural question produces any `@@` match at all:
 
@@ -422,7 +422,7 @@ The GIN index that backs `@@` is declared twice on purpose — once in the model
 
 ```python
     # Postgres full-text GIN index over the chunk text — backs the PRIMARY
-    # retrieval path in app/knowledge.py (ts_rank over to_tsvector('english', ...)).
+    # retrieval path in app/assistant/knowledge_base.py (ts_rank over to_tsvector('english', ...)).
     # Hand-written because Alembic can't autogenerate a functional/expression index.
     op.execute(
         "CREATE INDEX ix_knowledge_chunk_fts "
@@ -441,11 +441,11 @@ The index expression must remain byte-identical to the query expression or it is
         tokens = [t for t in q.split() if len(t) > 1] or [q]
         ilike_clauses = [KnowledgeChunk.chunk_text.ilike(f"%{tok}%") for tok in tokens]
 ```
-— [knowledge.py:135-138](apps/api-py/app/knowledge.py#L135-L138)
+— [knowledge.py:135-138](apps/api-py/app/assistant/knowledge_base.py#L135-L138)
 
-It runs only when full-text returned zero rows. The select is bound to the local `fallback` ([knowledge.py:139](apps/api-py/app/knowledge.py#L139)); it mirrors `ft_stmt` minus the rank column, applies `base_where` and `or_(*ilike_clauses)`, caps at 24 and — notably — has **no `ORDER BY`**, so both which rows survive truncation and the order they enter `cand` in are planner-dependent. Rows land with `rank = 0.0` ([knowledge.py:154-155](apps/api-py/app/knowledge.py#L154-L155)).
+It runs only when full-text returned zero rows. The select is bound to the local `fallback` ([knowledge.py:139](apps/api-py/app/assistant/knowledge_base.py#L139)); it mirrors `ft_stmt` minus the rank column, applies `base_where` and `or_(*ilike_clauses)`, caps at 24 and — notably — has **no `ORDER BY`**, so both which rows survive truncation and the order they enter `cand` in are planner-dependent. Rows land with `rank = 0.0` ([knowledge.py:154-155](apps/api-py/app/assistant/knowledge_base.py#L154-L155)).
 
-The docstring justifies the fallback as covering "a single rare token" ([knowledge.py:13-14](apps/api-py/app/knowledge.py#L13-L14)). The implementation is far broader: it ORs a *substring* match for every token of length ≥ 2, stopwords included. Replaying the tokenisation against the shipped corpus makes the breadth concrete — the substring `to` occurs in 14 of 18 chunks and `at` in 16:
+The docstring justifies the fallback as covering "a single rare token" ([knowledge.py:13-14](apps/api-py/app/assistant/knowledge_base.py#L13-L14)). The implementation is far broader: it ORs a *substring* match for every token of length ≥ 2, stopwords included. Replaying the tokenisation against the shipped corpus makes the breadth concrete — the substring `to` occurs in 14 of 18 chunks and `at` in 16:
 
 | Query | ILIKE-matched chunks (of 18) |
 |---|---|
@@ -468,7 +468,7 @@ That parenthetical is the honest statement of the limitation. Nothing in `knowle
         dist_expr = KnowledgeChunk.embedding.cosine_distance(query_vec)
         distance = dist_expr.label("distance")
 ```
-— [knowledge.py:169-170](apps/api-py/app/knowledge.py#L169-L170)
+— [knowledge.py:169-170](apps/api-py/app/assistant/knowledge_base.py#L169-L170)
 
 `cosine_distance` is pgvector-python's SQLAlchemy comparator method; in the pinned `pgvector==0.5.0` it renders the operator `<=>`, which is cosine **distance** (`1 − cosine similarity`, range 0..2 — see §3), not similarity. The bind value is a plain Python `list[float]`; the type's bind processor serialises it to the `[a,b,c]` text form, and its result processor returns a plain `list[float]` back, not a numpy array — which is why `c["embedding"] is not None` later is a safe test and `list(c["embedding"])` is a cheap copy.
 
@@ -481,7 +481,7 @@ The statement adds three `WHERE`s and orders ascending — nearest first:
             .order_by(distance)
             .limit(_CANDIDATE_POOL)
 ```
-— [knowledge.py:183-187](apps/api-py/app/knowledge.py#L183-L187)
+— [knowledge.py:183-187](apps/api-py/app/assistant/knowledge_base.py#L183-L187)
 
 The merge is annotate-or-insert:
 
@@ -492,9 +492,9 @@ The merge is annotate-or-insert:
             else:
                 cand[r.id] = {**_row_fields(r), "rank": 0.0, "distance": float(r.distance)}
 ```
-— [knowledge.py:189-193](apps/api-py/app/knowledge.py#L189-L193)
+— [knowledge.py:189-193](apps/api-py/app/assistant/knowledge_base.py#L189-L193)
 
-Then `if not cand: return []` ([knowledge.py:195-196](apps/api-py/app/knowledge.py#L195-L196)) — the only other exit that returns nothing.
+Then `if not cand: return []` ([knowledge.py:195-196](apps/api-py/app/assistant/knowledge_base.py#L195-L196)) — the only other exit that returns nothing.
 
 ### The blend, exactly
 
@@ -513,13 +513,13 @@ Then `if not cand: return []` ([knowledge.py:195-196](apps/api-py/app/knowledge.
             (1 - _COSINE_WEIGHT) * ft + _COSINE_WEIGHT * sim if sim is not None else ft
         )
 ```
-— [knowledge.py:199-211](apps/api-py/app/knowledge.py#L199-L211)
+— [knowledge.py:199-211](apps/api-py/app/assistant/knowledge_base.py#L199-L211)
 
 So: `score = 0.5 · ft + 0.5 · sim`, where `ft` is the ts_rank normalised by the maximum *in this result set* and `sim` is cosine similarity — falling back to `score = ft` when no similarity is available at all. The trailing `or 1.0` on `max_rank` is the divide-by-zero guard for the common case where every candidate has rank 0.0 (a vector-only or ILIKE-only pool); without it, `ZeroDivisionError` would be the *normal* outcome of a naturally-phrased question, not an edge case.
 
 Two things about `ft` are easy to miss, and both matter for the ranking claims below. It is normalised **by the batch maximum**, so exactly one candidate — the highest-ranked full-text hit — gets `ft = 1.0` by construction, and every other full-text hit gets strictly less. And when the pool is entirely ILIKE- or vector-derived, `max_rank` is the guard's `1.0` and every `ft` is `0.0`.
 
-`_cosine` ([knowledge.py:63-71](apps/api-py/app/knowledge.py#L63-L71)) is a plain Python cosine with three guards (empty input, length mismatch, zero norm), each returning `0.0`. Its range is −1..1, so a blended score can legitimately be negative. It exists because the DB-computed distance is available only for rows the *vector* SELECT returned; a chunk found by a text branch still needs a similarity, and this computes it from the embedding column every SELECT carries. **Crucially, `_cosine` applies no distance floor** — that asymmetry is §6's subject.
+`_cosine` ([knowledge.py:63-71](apps/api-py/app/assistant/knowledge_base.py#L63-L71)) is a plain Python cosine with three guards (empty input, length mismatch, zero norm), each returning `0.0`. Its range is −1..1, so a blended score can legitimately be negative. It exists because the DB-computed distance is available only for rows the *vector* SELECT returned; a chunk found by a text branch still needs a similarity, and this computes it from the embedding column every SELECT carries. **Crucially, `_cosine` applies no distance floor** — that asymmetry is §6's subject.
 
 Each candidate is emitted as the six-key output dict, with the one rename and a fixed rounding:
 
@@ -528,11 +528,11 @@ Each candidate is emitted as the six-key output dict, with the one rename and a 
                 …
                 "score": round(float(score), 6),
 ```
-— [knowledge.py:215-219](apps/api-py/app/knowledge.py#L215-L219)
+— [knowledge.py:215-219](apps/api-py/app/assistant/knowledge_base.py#L215-L219)
 
-and finally `scored.sort(key=lambda d: d["score"], reverse=True)` / `return scored[:limit]` ([knowledge.py:223-224](apps/api-py/app/knowledge.py#L223-L224)). Note the `limit` truncation happens **after** the blend, over the merged pool.
+and finally `scored.sort(key=lambda d: d["score"], reverse=True)` / `return scored[:limit]` ([knowledge.py:223-224](apps/api-py/app/assistant/knowledge_base.py#L223-L224)). Note the `limit` truncation happens **after** the blend, over the merged pool.
 
-**How ties resolve: by insertion order, and by nothing else.** There is no secondary sort key. `scored.sort(...)` at [knowledge.py:223](apps/api-py/app/knowledge.py#L223) is Python's `list.sort`, which is stable, and `scored` was built by iterating `cand.values()` — a `dict`, so insertion-ordered. Equal-scoring rows therefore come out in the order they entered `cand`: the text branch first — either full-text rows, already rank-descending from `ORDER BY rank DESC`, *or*, when full-text returned nothing, ILIKE rows in whatever order the planner returned them from an un-`ORDER BY`ed select, never both, since `if not cand:` at [knowledge.py:135](apps/api-py/app/knowledge.py#L135) makes them mutually exclusive — and then vector-only rows in ascending distance. Note also that `round(float(score), 6)` at [knowledge.py:219](apps/api-py/app/knowledge.py#L219) is applied **before** the sort, so it can manufacture ties the unrounded float would have broken. On an 18-chunk corpus with a flat 0.5/0.5 blend that is not theoretical; §9 lists a shipped test that rides on it.
+**How ties resolve: by insertion order, and by nothing else.** There is no secondary sort key. `scored.sort(...)` at [knowledge.py:223](apps/api-py/app/assistant/knowledge_base.py#L223) is Python's `list.sort`, which is stable, and `scored` was built by iterating `cand.values()` — a `dict`, so insertion-ordered. Equal-scoring rows therefore come out in the order they entered `cand`: the text branch first — either full-text rows, already rank-descending from `ORDER BY rank DESC`, *or*, when full-text returned nothing, ILIKE rows in whatever order the planner returned them from an un-`ORDER BY`ed select, never both, since `if not cand:` at [knowledge.py:135](apps/api-py/app/assistant/knowledge_base.py#L135) makes them mutually exclusive — and then vector-only rows in ascending distance. Note also that `round(float(score), 6)` at [knowledge.py:219](apps/api-py/app/assistant/knowledge_base.py#L219) is applied **before** the sort, so it can manufacture ties the unrounded float would have broken. On an 18-chunk corpus with a flat 0.5/0.5 blend that is not theoretical; §9 lists a shipped test that rides on it.
 
 ### How a one-sided row is treated
 
@@ -570,9 +570,9 @@ Every score below came from calling the shipped `knowledge.search(db, q)` agains
 
 ### Two naming traps worth stating for the rulebook
 
-`title` on the model and inside `cand` becomes `document_title` in the output — the rename happens exactly once, at [knowledge.py:215](apps/api-py/app/knowledge.py#L215). And `distance` and `score` move in opposite directions: `distance` is lower-is-better and sorted ascending in `vec_stmt`; `score` is higher-is-better and sorted `reverse=True` at the end. Both are correct and they read as contradictory at a glance. The convention that makes them legible is consistent naming of the scoring locals: `rank` = raw ts_rank, `ft` = rank normalised 0..1, `sim` = similarity (higher better), `distance` = cosine distance (lower better), `score` = the blend. Result-column labels are always the same string as the local that holds them (`.label("rank")` read back as `r.rank`).
+`title` on the model and inside `cand` becomes `document_title` in the output — the rename happens exactly once, at [knowledge.py:215](apps/api-py/app/assistant/knowledge_base.py#L215). And `distance` and `score` move in opposite directions: `distance` is lower-is-better and sorted ascending in `vec_stmt`; `score` is higher-is-better and sorted `reverse=True` at the end. Both are correct and they read as contradictory at a glance. The convention that makes them legible is consistent naming of the scoring locals: `rank` = raw ts_rank, `ft` = rank normalised 0..1, `sim` = similarity (higher better), `distance` = cosine distance (lower better), `score` = the blend. Result-column labels are always the same string as the local that holds them (`.label("rank")` read back as `r.rank`).
 
-SQL-building locals name the artefact they build, and **two of the three branch statements take a `_stmt` suffix — `ft_stmt` ([knowledge.py:115](apps/api-py/app/knowledge.py#L115)) and `vec_stmt` ([knowledge.py:171](apps/api-py/app/knowledge.py#L171)) — while the ILIKE one does not: it is bound to `fallback` ([knowledge.py:139](apps/api-py/app/knowledge.py#L139)).** That is an inconsistency in the file, not a second convention. A fourth branch should follow `ft_stmt`/`vec_stmt`, not `fallback`. Reusable fragments keep bare names (`base_where`, `dist_expr`, `ilike_clauses`, `ts_vector`, `ts_query`).
+SQL-building locals name the artefact they build, and **two of the three branch statements take a `_stmt` suffix — `ft_stmt` ([knowledge.py:115](apps/api-py/app/assistant/knowledge_base.py#L115)) and `vec_stmt` ([knowledge.py:171](apps/api-py/app/assistant/knowledge_base.py#L171)) — while the ILIKE one does not: it is bound to `fallback` ([knowledge.py:139](apps/api-py/app/assistant/knowledge_base.py#L139)).** That is an inconsistency in the file, not a second convention. A fourth branch should follow `ft_stmt`/`vec_stmt`, not `fallback`. Reusable fragments keep bare names (`base_where`, `dist_expr`, `ilike_clauses`, `ts_vector`, `ts_query`).
 
 ### One retrieval, drawn
 
@@ -612,9 +612,9 @@ flowchart TD
 # signal, so this only gates the *extra* semantic-only candidates.
 _MAX_VEC_DISTANCE = 0.32
 ```
-— [knowledge.py:46-56](apps/api-py/app/knowledge.py#L46-L56)
+— [knowledge.py:46-56](apps/api-py/app/assistant/knowledge_base.py#L46-L56)
 
-The value is **0.32**, and it appears as executable code exactly once: `.where(dist_expr <= _MAX_VEC_DISTANCE)` at [knowledge.py:185](apps/api-py/app/knowledge.py#L185).
+The value is **0.32**, and it appears as executable code exactly once: `.where(dist_expr <= _MAX_VEC_DISTANCE)` at [knowledge.py:185](apps/api-py/app/assistant/knowledge_base.py#L185).
 
 **What it protects against.** Nearest-neighbour search has no concept of "no result". Ask it for the five nearest vectors to a question about sourdough and it will return the five nearest chunks in the Knowledge Base, however distant, because five chunks are always nearer than the rest. Without a floor, `search()` would never return `[]`, the orchestrator's `if not hits:` branch would never fire, and every off-topic question would be answered confidently from an irrelevant approved document — with a citation chip vouching for it. The floor is what converts "the nearest thing I have" into "nothing good enough".
 
@@ -635,11 +635,11 @@ Two rows contradict the comment directly. A botany question — about as unrelat
 
 **Yes — and this is the most important structural fact in the module.** Work it from the code rather than the comment.
 
-`cand` is populated by the text branches *first* ([knowledge.py:112-155](apps/api-py/app/knowledge.py#L112-L155)). The vector branch runs afterwards and only ever *annotates* an existing entry or *inserts* a new one ([knowledge.py:189-193](apps/api-py/app/knowledge.py#L189-L193)). Nothing is ever deleted from `cand` anywhere in `search()`. Therefore:
+`cand` is populated by the text branches *first* ([knowledge.py:112-155](apps/api-py/app/assistant/knowledge_base.py#L112-L155)). The vector branch runs afterwards and only ever *annotates* an existing entry or *inserts* a new one ([knowledge.py:189-193](apps/api-py/app/assistant/knowledge_base.py#L189-L193)). Nothing is ever deleted from `cand` anywhere in `search()`. Therefore:
 
 1. A query whose best vector distance exceeds 0.32 loses only its **semantic-only** candidates.
-2. A strong full-text hit **absolutely survives** — it was already in `cand` before the vector SELECT ran. `if not cand: return []` at [knowledge.py:195-196](apps/api-py/app/knowledge.py#L195-L196) is reachable only when *both* text branches came back empty.
-3. Such a surviving text hit is still handed a similarity, through `_cosine` at [knowledge.py:208](apps/api-py/app/knowledge.py#L208) — and `_cosine` applies **no floor at all**. Its distance may be 0.9 and it will be scored on that anyway.
+2. A strong full-text hit **absolutely survives** — it was already in `cand` before the vector SELECT ran. `if not cand: return []` at [knowledge.py:195-196](apps/api-py/app/assistant/knowledge_base.py#L195-L196) is reachable only when *both* text branches came back empty.
+3. Such a surviving text hit is still handed a similarity, through `_cosine` at [knowledge.py:208](apps/api-py/app/assistant/knowledge_base.py#L208) — and `_cosine` applies **no floor at all**. Its distance may be 0.9 and it will be scored on that anyway.
 
 So the floor is a gate on *entry to the candidate pool via the vector door only*. The comment's own final sentence says this correctly: "Full-text remains the primary answer-existence signal, so this only gates the *extra* semantic-only candidates."
 
@@ -655,7 +655,7 @@ This is not a criticism of the floor, which is correct and necessary. It is a st
 
 ### The seam to Chapter 8
 
-`search()` has two callers. `app/assistant_tools.py:174-177` is a one-line pass-through:
+`search()` has two callers. `app/assistant/tools.py:174-177` is a one-line pass-through:
 
 ```python
 def policy_search(db: Session, query: str, audience: str = "student") -> list[dict]:
@@ -663,9 +663,9 @@ def policy_search(db: Session, query: str, audience: str = "student") -> list[di
     'explain the rules' layer. Never returns a live student fact."""
     return knowledge.search(db, query, audience=audience)
 ```
-— [assistant_tools.py:174-177](apps/api-py/app/assistant_tools.py#L174-L177)
+— [assistant/tools.py:174-177](apps/api-py/app/assistant/tools.py#L174-L177)
 
-It is the only tool in that module without a `student_id` parameter — the trust boundary made visible in a signature. It does not forward `limit`, so the orchestrator always gets at most 5. The second caller is the endpoint at [routers/agent.py:429](apps/api-py/app/routers/agent.py#L429), `knowledge.search(db, q, audience="student", limit=5)`, behind a hand-rolled STUDENT-only 403 ([routers/agent.py:424-428](apps/api-py/app/routers/agent.py#L424-L428)) and a `KnowledgeHit` schema whose six fields mirror the result dict exactly ([routers/agent.py:397-403](apps/api-py/app/routers/agent.py#L397-L403)).
+It is the only tool in that module without a `student_id` parameter — the trust boundary made visible in a signature. It does not forward `limit`, so the orchestrator always gets at most 5. The second caller is the endpoint at [api/legacy/text_assistant.py:429](apps/api-py/app/api/legacy/text_assistant.py#L429), `knowledge.search(db, q, audience="student", limit=5)`, behind a hand-rolled STUDENT-only 403 ([api/legacy/text_assistant.py:424-428](apps/api-py/app/api/legacy/text_assistant.py#L424-L428)) and a `KnowledgeHit` schema whose six fields mirror the result dict exactly ([api/legacy/text_assistant.py:397-403](apps/api-py/app/api/legacy/text_assistant.py#L397-L403)).
 
 On the orchestrator side, emptiness is the *entire* signal:
 
@@ -743,7 +743,7 @@ There is no router endpoint, no admin action, no FastAPI startup hook, no cron a
 
 Two operational consequences follow, and they are the ones that bite:
 
-- **A chunk added by any route other than the seed has `embedding = NULL`.** It is invisible to the vector branch (filtered by `.where(KnowledgeChunk.embedding.isnot(None))`, [knowledge.py:184](apps/api-py/app/knowledge.py#L184)) but fully retrievable by full-text — and, per §5, it will score `ft` while its embedded neighbours score `0.5·ft + 0.5·sim`, so it may well outrank them. That is a silent, partial degradation with no symptom other than odd ranking.
+- **A chunk added by any route other than the seed has `embedding = NULL`.** It is invisible to the vector branch (filtered by `.where(KnowledgeChunk.embedding.isnot(None))`, [knowledge.py:184](apps/api-py/app/assistant/knowledge_base.py#L184)) but fully retrievable by full-text — and, per §5, it will score `ft` while its embedded neighbours score `0.5·ft + 0.5·sim`, so it may well outrank them. That is a silent, partial degradation with no symptom other than odd ranking.
 - **Changing the embedding provider without re-running the seed leaves stale vectors at the previous dimension.** Because the column has no typmod, Postgres will not stop you. `embedding <=> :query_vec` requires matching dimensions; nothing in `search()` guards the dimension and nothing wraps `db.execute` in a `try`. The failure would propagate out of `search()` and out of the endpoint — precisely defeating the "the KB must never hard-fail" posture that `embed()` maintains so carefully. Re-running a full `reembed_all` is the only fix, and it is the only thing upholding the invariant.
 
 ---
@@ -864,7 +864,7 @@ It mutates the shared dev database and never cleans up the embeddings it writes.
 |---|---|---|
 | `test_skill_verification_query_lands_on_the_right_doc` ([:48](apps/api-py/tests/test_knowledge.py#L48)) | top hit is "Verifying a skill (e.g. Power BI)", and `"verified"` is in its text | the only *natural-language* question in the file that `@@` matches — the real `ts_rank` path (0.68906283) and `ft = 1.0` dominance, top score 0.92055 |
 | `test_documents_query_lands_on_the_placement_docs_doc` ([:58](apps/api-py/tests/test_knowledge.py#L58)) | top hit is "Documents needed before placements" | full-text matches nothing; the ILIKE fallback supplies 3 candidates, all `rank = 0.0`. **With** an embedder, cosine does the ranking (measured 0.372754 / 0.353218 / 0.319921). **Without** one, all three score exactly 0.0 and the winner is decided by the un-`ORDER BY`ed fallback select's row order — see the gaps below |
-| `test_offtopic_query_returns_nothing_or_a_weaker_match` ([:66](apps/api-py/tests/test_knowledge.py#L66)) | `not off_topic or off_top < on_top` | a deliberate **disjunction**, and each clause covers a different configuration. With an embedder the botany query returns five vector-only hits and it passes through the "strictly weaker" clause (measured top 0.349784 vs 0.92055). With no embedder that query matches no lexeme and no substring, `cand` stays empty, `search()` returns `[]` at [knowledge.py:195-196](apps/api-py/app/knowledge.py#L195-L196), and it passes through the "returns nothing" clause. The disjunction is what lets one test cover both builds |
+| `test_offtopic_query_returns_nothing_or_a_weaker_match` ([:66](apps/api-py/tests/test_knowledge.py#L66)) | `not off_topic or off_top < on_top` | a deliberate **disjunction**, and each clause covers a different configuration. With an embedder the botany query returns five vector-only hits and it passes through the "strictly weaker" clause (measured top 0.349784 vs 0.92055). With no embedder that query matches no lexeme and no substring, `cand` stays empty, `search()` returns `[]` at [knowledge.py:195-196](apps/api-py/app/assistant/knowledge_base.py#L195-L196), and it passes through the "returns nothing" clause. The disjunction is what lets one test cover both builds |
 | `test_only_approved_documents_are_returned` ([:77](apps/api-py/tests/test_knowledge.py#L77)) | a unique `zylophonic<hex>` token is found while APPROVED and gone once flipped to DRAFT | the only test of `base_where`. It is also a genuine `@@` match — verified in psql, `to_tsvector('english', 'This unique zylophonic… clause explains a temporary rule.') @@ plainto_tsquery('english','zylophonic…')` is true at `ts_rank` 0.06079271 — so `ft = 1.0`; and because the throwaway doc has no embedding, it is the only exercise of the `sim is None → score = ft` path |
 | `test_empty_query_returns_empty` ([:118](apps/api-py/tests/test_knowledge.py#L118)) | `search(db, "   ") == []` | the strip guard |
 | `test_semantic_query_with_no_shared_tokens_…` ([:128](apps/api-py/tests/test_knowledge.py#L128)), `@requires_embedder` | "prove my competency to a recruiter" surfaces the skill-verification doc | the premise holds at the *lexeme* level (0 `@@` matches) — but on the shipped corpus the **pgvector SELECT returns zero rows**: the nearest chunk is at distance 0.3406, outside the 0.32 floor. The candidate pool is all 14 ILIKE substring matches and every score comes from the ungated Python `_cosine`. The test is marked `@requires_embedder` and passes, but it never exercises `vec_stmt`'s output |
@@ -898,17 +898,17 @@ Every DB-backed test in both suites is also `@requires_db`, so the collection-er
 Every one of these is a branch that exists in `knowledge.py` or `embeddings.py` and is never asserted:
 
 - **The ILIKE fallback returning rows is never tested as such.** It is silently exercised by three tests, all labelled as full-text or vector tests, so a regression there would present as a mysterious failure somewhere else.
-- **`test_documents_query_lands_on_the_placement_docs_doc` silently requires an embedder.** Full-text matches nothing for that query, so with no provider all three ILIKE candidates carry `rank = 0.0`, `max_rank` becomes the guard's `1.0`, `ft = 0.0`, `sim` is `None`, and every score is exactly `0.0`. The stable sort then leaves the winner entirely to the order the un-`ORDER BY`ed fallback select ([knowledge.py:139-153](apps/api-py/app/knowledge.py#L139-L153)) happened to return. It currently returns `placement-docs` first, so the test passes — but that is planner-dependent, not deterministic, and the test carries only `@requires_db`, not `@requires_embedder`. It is a latent flake on exactly the configuration §4 declares fully supported.
+- **`test_documents_query_lands_on_the_placement_docs_doc` silently requires an embedder.** Full-text matches nothing for that query, so with no provider all three ILIKE candidates carry `rank = 0.0`, `max_rank` becomes the guard's `1.0`, `ft = 0.0`, `sim` is `None`, and every score is exactly `0.0`. The stable sort then leaves the winner entirely to the order the un-`ORDER BY`ed fallback select ([knowledge.py:139-153](apps/api-py/app/assistant/knowledge_base.py#L139-L153)) happened to return. It currently returns `placement-docs` first, so the test passes — but that is planner-dependent, not deterministic, and the test carries only `@requires_db`, not `@requires_embedder`. It is a latent flake on exactly the configuration §4 declares fully supported.
 - **The `@requires_embedder` semantic test does not exercise the pgvector SELECT** on the shipped corpus, as the table above records. Nothing in the file asserts that a chunk was ever admitted through the vector door with a real DB-computed distance — that path is exercised only incidentally, by the two tests that use the Power BI query.
 - **`_CANDIDATE_POOL` truncation is unreachable** — 18 chunks is fewer than 24 — so the fallback select's missing `ORDER BY` has no observable effect on *truncation* today. It still decides tie order, as above.
-- **`limit` is never varied.** `routers/agent.py:429` does pass it explicitly, but the value it passes is `5`, which is the default; `assistant_tools.policy_search` does not forward it at all. So no code path ever exercises a non-default limit, and `scored[:limit]` truncation is never asserted.
+- **`limit` is never varied.** `api/legacy/text_assistant.py:429` does pass it explicitly, but the value it passes is `5`, which is the default; `assistant_tools.policy_search` does not forward it at all. So no code path ever exercises a non-default limit, and `scored[:limit]` truncation is never asserted.
 - **`audience` is never varied.** Every seeded document is `audience='student'` and both callers hard-code `"student"`, so `_audience_filter`'s `in_([audience, "all"])` disjunction is completely uncovered. The first mentor-audience document added will run a path nothing has ever run — and, since the two callers hard-code the audience, will not be reachable from the assistant at all.
 - **`KnowledgeStatus.ARCHIVED` exclusion is untested** — only APPROVED → DRAFT.
 - **`source_url` is NULL on every seeded document**, so the nullable field is never exercised with a value.
 - **`_cosine` has no unit tests at all** — its empty-input, length-mismatch and zero-norm guards are entirely uncovered, and the Python-cosine path in the blend is exercised constantly but never asserted.
-- **`embedder_configured() == True` with `embed()` returning `None`** — the configured-but-down case, the `if vecs:` guard at [knowledge.py:161](apps/api-py/app/knowledge.py#L161) — is untested.
+- **`embedder_configured() == True` with `embed()` returning `None`** — the configured-but-down case, the `if vecs:` guard at [knowledge.py:161](apps/api-py/app/assistant/knowledge_base.py#L161) — is untested.
 - **The mixed embedded/unembedded corpus is never exercised**, because `_ensure_kb` re-embeds everything. The ranking asymmetry from §5 has no test.
-- **The both-branches-hit merge** at [knowledge.py:190-191](apps/api-py/app/knowledge.py#L190-L191) is exercised but never asserted, and nothing checks that a chunk appears exactly once in the output.
+- **The both-branches-hit merge** at [knowledge.py:190-191](apps/api-py/app/assistant/knowledge_base.py#L190-L191) is exercised but never asserted, and nothing checks that a chunk appears exactly once in the output.
 - **The `max_rank … or 1.0` guard is exercised but not asserted**, as is the 6-decimal rounding; a negative score (possible when `sim < 0`) is untested.
 - **Duplicate documents are untested.** Nothing asserts that a title appears at most once in the corpus, which is what would catch the rename hazard from §8.
 - **With no embedder configured, the two semantic tests skip and nothing pins the pure-full-text ranking.** Combined with `requires_db`, a CI without both Postgres and an embedding key verifies nothing here at all — which is precisely the failure `conftest.py` sets out to make loud: "That convenience is a LIE IN CI… Set REEP_REQUIRE_DB=1 (CI does) and an unreachable database becomes a hard collection error instead of a silent skip." ([conftest.py:8-12](apps/api-py/tests/conftest.py#L8-L12)).
@@ -941,11 +941,11 @@ Every one of these is a branch that exists in `knowledge.py` or `embeddings.py` 
 | Private helpers and types: leading underscore, snake_case (PascalCase for types) | `_audience_filter`, `_cosine`, `_row_fields` (a closure), `_resolve_embedder`, `_Embedder`, `_uuid` |
 | The module is the namespace; callers read `knowledge.search(...)`, never `search_knowledge(...)` | `knowledge.search`, `embeddings.embed`, `embeddings.reembed_all`, `seed_kb.seed_knowledge` |
 | Boolean predicates naming a CONDITION read as adjectival phrases; predicates naming a TYPE TEST keep the `is_` prefix | `embedder_configured()`, `student_data_egress_allowed()` — versus `is_loopback()` ([llm.py:101](apps/api-py/app/ai/llm.py#L101)) and `settings.is_prod` ([config.py:101](apps/api-py/app/config.py#L101)) |
-| SQL-building locals name the artefact; branch statements *should* take a `_stmt` suffix | `ts_vector`, `ts_query`, `rank`, `dist_expr`, `base_where`, `ilike_clauses`; `ft_stmt`, `vec_stmt` — **and `fallback` ([knowledge.py:139](apps/api-py/app/knowledge.py#L139)), the one branch statement that breaks the rule; do not copy it** |
+| SQL-building locals name the artefact; branch statements *should* take a `_stmt` suffix | `ts_vector`, `ts_query`, `rank`, `dist_expr`, `base_where`, `ilike_clauses`; `ft_stmt`, `vec_stmt` — **and `fallback` ([knowledge.py:139](apps/api-py/app/assistant/knowledge_base.py#L139)), the one branch statement that breaks the rule; do not copy it** |
 | Result labels equal the local that holds them | `.label("rank")` → `r.rank`; `.label("distance")` → `r.distance` |
 | Scoring locals are terse and directional | `rank` raw, `ft` normalised, `sim` higher-better, `distance` lower-better, `score` the blend |
 | Output keys are the API contract and are document-qualified where the model name is ambiguous | `title` → `document_title`; `chunk_text`, `anchor`, `source_type`, `source_url`, `score` pass through |
-| Section banners **inside** a long function: `# --- NAME ` followed by dashes padded to a common right margin (column 80) and closed with ` #` | `    # --- Blend + re-rank ---------------------------------------------------- #` ([knowledge.py:198](apps/api-py/app/knowledge.py#L198)); likewise [knowledge.py:111](apps/api-py/app/knowledge.py#L111) and [knowledge.py:157](apps/api-py/app/knowledge.py#L157). Module-level banners elsewhere open the same way but **omit** the trailing ` #` — [orchestrator.py:440](apps/api-py/app/ai/orchestrator.py#L440), [routers/agent.py:433](apps/api-py/app/routers/agent.py#L433) |
+| Section banners **inside** a long function: `# --- NAME ` followed by dashes padded to a common right margin (column 80) and closed with ` #` | `    # --- Blend + re-rank ---------------------------------------------------- #` ([knowledge.py:198](apps/api-py/app/assistant/knowledge_base.py#L198)); likewise [knowledge.py:111](apps/api-py/app/assistant/knowledge_base.py#L111) and [knowledge.py:157](apps/api-py/app/assistant/knowledge_base.py#L157). Module-level banners elsewhere open the same way but **omit** the trailing ` #` — [orchestrator.py:440](apps/api-py/app/ai/orchestrator.py#L440), [api/legacy/text_assistant.py:433](apps/api-py/app/api/legacy/text_assistant.py#L433) |
 | Settings fields are snake_case mirrors of SCREAMING_SNAKE env vars, defaulting to `""` | `embedding_base_url` ← `EMBEDDING_BASE_URL`, `mistral_api_key` ← `MISTRAL_API_KEY` |
 | ORM classes PascalCase singular with a `Knowledge` prefix; tables snake_case plural | `KnowledgeDocument` → `knowledge_documents`, `KnowledgeChunk` → `knowledge_chunks` |
 | Index names `ix_<abbrev-table>_<what>`, declared in `__table_args__` *and* mirrored by the migration | `ix_knowledge_chunk_fts`, `ix_knowledge_doc_status_audience` |
@@ -958,11 +958,11 @@ Every one of these is a branch that exists in `knowledge.py` or `embeddings.py` 
 
 ## Where this chapter is uncertain
 
-- **The `_MAX_VEC_DISTANCE` calibration is stated in a comment; the measurements in §6 contradict it, but those measurements are one corpus, one provider, one run.** The "≤ ~0.30 genuine / ~0.35+ unrelated" figures at [knowledge.py:50-53](apps/api-py/app/knowledge.py#L50-L53) are the author's rationale; there is no calibration script, dataset or numeric assertion anywhere in the repository that produces them. The distances tabulated in §6 were measured for this chapter against the running `reep-postgres` container on the seeded 18-chunk corpus with the configured `mistral-embed` provider, and they show the two populations overlapping across roughly 0.30–0.35. That establishes that the stated gap does not hold *here*; it does not establish a better value, and it is not reproducible from anything in version control. Treat 0.32 as a tuned constant, and re-measure whenever provider, model or corpus changes.
+- **The `_MAX_VEC_DISTANCE` calibration is stated in a comment; the measurements in §6 contradict it, but those measurements are one corpus, one provider, one run.** The "≤ ~0.30 genuine / ~0.35+ unrelated" figures at [knowledge.py:50-53](apps/api-py/app/assistant/knowledge_base.py#L50-L53) are the author's rationale; there is no calibration script, dataset or numeric assertion anywhere in the repository that produces them. The distances tabulated in §6 were measured for this chapter against the running `reep-postgres` container on the seeded 18-chunk corpus with the configured `mistral-embed` provider, and they show the two populations overlapping across roughly 0.30–0.35. That establishes that the stated gap does not hold *here*; it does not establish a better value, and it is not reproducible from anything in version control. Treat 0.32 as a tuned constant, and re-measure whenever provider, model or corpus changes.
 - **The ILIKE-defeats-the-floor behaviour is verified; its intent is not.** The tokenisation, the substring counts and the resulting scores were all reproduced against the live database and are exact. Whether the behaviour is a known-and-accepted trade-off or an unnoticed defect is genuinely ambiguous: [tests/test_orchestrator.py:154-156](apps/api-py/tests/test_orchestrator.py#L154-L156) explicitly works around it, which argues "known", while `knowledge.py`'s own comments claim the floor protects the honest fallback for "an off-topic or gibberish query", which is false for any query containing a common two-letter substring and is recorded nowhere in that file. I found no design note either way.
 - **The dimension-mismatch failure is reasoned, not executed.** That `embedding <=> :query_vec` raises a Postgres "different vector dimensions" error rather than returning a sentinel is pgvector semantics, not something I ran. What is verified from the code is that nothing prevents mixed-dimension rows: the column has no typmod, `reembed_all` commits per batch and `break`s on failure, and the vector `WHERE` clause filters only on `IS NOT NULL`. My related claim that `_cosine`'s `len(a) != len(b)` guard is unreachable in practice follows from the same reasoning and is likewise not executed.
 - **That ivfflat/hnsw indexes require a fixed dimension** — my stated cost of the dimensionless column — is pgvector background, not asserted in this repo. What the repo asserts is only that no such index is *wanted*.
-- **The FastAPI threadpool size** quoted in §3 (AnyIO's default capacity of 40 worker threads for `def` endpoints) is framework behaviour that this repo neither configures nor asserts. The repo-verifiable half of that claim is only that the endpoint is declared `def` ([routers/agent.py:411](apps/api-py/app/routers/agent.py#L411)) and that the borrowed timeout defaults to 300000 ms ([config.py:31](apps/api-py/app/config.py#L31)).
+- **The FastAPI threadpool size** quoted in §3 (AnyIO's default capacity of 40 worker threads for `def` endpoints) is framework behaviour that this repo neither configures nor asserts. The repo-verifiable half of that claim is only that the endpoint is declared `def` ([api/legacy/text_assistant.py:411](apps/api-py/app/api/legacy/text_assistant.py#L411)) and that the borrowed timeout defaults to 300000 ms ([config.py:31](apps/api-py/app/config.py#L31)).
 - **The pgvector type details** in §3 and §5 — `get_col_spec` emitting bare `VECTOR` when no dimension is given, `cosine_distance` rendering `<=>`, the result processor returning a plain `list[float]` — were read from the installed `pgvector==0.5.0` wheel under `apps/api-py/.venv/`, which is excluded from version control ([.gitignore:5](.gitignore#L5), [apps/api-py/.gitignore:5](apps/api-py/.gitignore#L5)). They are properties of that pinned release rather than of this codebase, and would need re-checking on an upgrade.
 - **The `mistral-embed … 1024-dim` figure** at [embeddings.py:17](apps/api-py/app/ai/embeddings.py#L17) is the docstring's claim; nothing in the code or tests asserts a dimensionality, and I did not measure a returned vector's length.
 - **I did not run the pytest suite.** `_ensure_kb` mutates the shared dev database, and `test_only_approved_documents_are_returned` creates and deletes a throwaway document. My statements about which branch each test exercises come from calling `knowledge.search()` and the underlying SQL directly against the same seeded database, and from replaying the tokenisation against the shipped corpus — not from instrumenting a pytest run.

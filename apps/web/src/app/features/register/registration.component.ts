@@ -3,8 +3,9 @@
  * block, not a shell `.panel`). Public: the applicant is not a user yet, so this
  * renders on its own route (`/register`) with no auth guard and no app shell.
  *
- * The form POSTs to the FastAPI `POST /register` (apps/api-py/app/routers/
- * registration.py). That endpoint runs the data-driven rule engine and answers
+ * The form POSTs to the FastAPI `POST /register`
+ * (apps/api-py/app/api/account/registration.py). That endpoint runs the
+ * data-driven rule engine and answers
  * with a `status`: AUTO_APPROVED (a rule waved it through) or PENDING_REVIEW
  * (routed to a director, or no rule matched). We surface that verdict through the
  * global `.reg-approval` ok / flag banner and, on success, offer a link to

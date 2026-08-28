@@ -1,6 +1,6 @@
 """The Google sign-in `?error=` vocabulary is one contract in three files.
 
-WHY THIS TEST EXISTS. The callback in app/routers/auth.py redirects a refused
+WHY THIS TEST EXISTS. The callback in app/api/account/sign_in.py redirects a refused
 sign-in to `{WEB_ORIGIN}/login?error=<code>`, and the Angular login screen turns
 that code into a sentence. The two lists were first written independently and
 shared NOT ONE code: the server emitted `sso_not_enrolled`, the screen handled
@@ -35,8 +35,8 @@ _WEB = (
     / "login"
 )
 
-_ROUTER = _API / "routers" / "auth.py"
-_GOOGLE_AUTH = _API / "google_auth.py"
+_ROUTER = _API / "api" / "account" / "sign_in.py"
+_GOOGLE_AUTH = _API / "platform" / "google_sign_in.py"
 _LOGIN_TS = _WEB / "login.component.ts"
 
 
@@ -44,7 +44,7 @@ def _codes_emitted() -> set[str]:
     """Every code that can reach the browser, from BOTH places one is minted.
 
     The router names some literally (`_sso_failure("sso_config")`) and passes the
-    rest straight through (`_sso_failure(exc.code)`), so app/google_auth.py's
+    rest straight through (`_sso_failure(exc.code)`), so app/platform/google_sign_in.py's
     `GoogleAuthError(..., code=...)` values are just as much part of the wire
     contract — they are simply written a file away. Reading only one of the two
     is how `sso_state`, `sso_identity` and `sso_unverified_email` would look
@@ -76,7 +76,7 @@ def test_the_login_screen_handles_every_code_the_router_emits() -> None:
     emitted, handled = _codes_emitted(), _codes_handled()
     missing = emitted - handled
     assert not missing, (
-        f"app/routers/auth.py redirects with {sorted(missing)}, which "
+        f"app/api/account/sign_in.py redirects with {sorted(missing)}, which "
         f"login.component.ts's messageFor does not handle — each one renders as "
         f"'the reason given is not one this page knows'. It handles {sorted(handled)}."
     )
@@ -87,7 +87,7 @@ def test_the_login_screen_promises_no_refusal_the_router_cannot_emit() -> None:
     invented = handled - emitted
     assert not invented, (
         f"login.component.ts has copy for {sorted(invented)}, which nothing in "
-        f"app/routers/auth.py emits. Dead branches are how `wrong_domain` came to "
+        f"app/api/account/sign_in.py emits. Dead branches are how `wrong_domain` came to "
         f"tell students a personal Gmail cannot sign in when the roster is the "
         f"only check there is."
     )
@@ -114,7 +114,7 @@ def test_the_probe_field_names_match_on_both_sides(field: str) -> None:
     not rendering a live button on a server with no credentials — was silently
     unachieved.
     """
-    from app.routers.auth import SsoStatus
+    from app.api.account.sign_in import SsoStatus
 
     assert field in SsoStatus.model_fields, f"the router no longer sends {field}"
     ts = _LOGIN_TS.read_text(encoding="utf-8")
@@ -127,7 +127,7 @@ def test_the_probe_field_names_match_on_both_sides(field: str) -> None:
 
 def test_the_login_screen_calls_paths_the_router_actually_serves() -> None:
     """Both the button and the probe, against the router's real route table."""
-    from app.routers.auth import router
+    from app.api.account.sign_in import router
 
     served = {r.path for r in router.routes}
     ts = _LOGIN_TS.read_text(encoding="utf-8")
@@ -136,7 +136,7 @@ def test_the_login_screen_calls_paths_the_router_actually_serves() -> None:
     assert called, "no /auth/... URL found in login.component.ts — did it move?"
     missing = called - served
     assert not missing, (
-        f"login.component.ts calls {sorted(missing)}, which app/routers/auth.py "
+        f"login.component.ts calls {sorted(missing)}, which app/api/account/sign_in.py "
         f"does not serve. It serves {sorted(served)}. A 404 here fails OPEN: the "
         f"probe gives up and the Google button renders live regardless."
     )

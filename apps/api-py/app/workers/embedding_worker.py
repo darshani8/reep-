@@ -11,7 +11,12 @@ from typing import Any, Protocol
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..models.redesign import EmbeddingModel, EmbeddingStatus, KnowledgeChunkEmbedding, KnowledgeChunkV2
+from ..models.knowledge_versioned import (
+    EmbeddingModel,
+    EmbeddingStatus,
+    KnowledgeChunkEmbedding,
+    KnowledgeChunkV2,
+)
 from .leasing import retry_job
 
 

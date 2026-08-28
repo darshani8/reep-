@@ -1,5 +1,5 @@
 # NOTE (2026-08): the student-facing assistant is now the realtime mock
-# interviewer in app/routers/interview.py; this orchestrator no longer backs
+# interviewer in app/api/student/interview_session.py; this orchestrator no longer backs
 # the assistant screen. It is RETAINED, unchanged and still mounted behind
 # POST /api/agent/ask, so the swap can be rolled back by re-pointing the
 # client. See docs/interview-assistant.md. Delete nothing here.
@@ -8,7 +8,7 @@
 
 The model is a *language + orchestration* layer, never the source of truth.
 Every specific fact about a student comes from a read-only tool in
-``app.assistant_tools`` (which runs the same code path as the student's own
+``app.assistant.tools`` (which runs the same code path as the student's own
 screens); every policy statement comes from an APPROVED knowledge chunk. The
 model only ever *phrases* what the tools return — and student PII is never sent
 to a refused (off-machine) provider.
@@ -47,7 +47,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from .. import assistant_tools as tools
+from app.assistant import tools
 from .llm import (
     complete_chat,
     llm_config,

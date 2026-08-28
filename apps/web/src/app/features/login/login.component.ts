@@ -24,7 +24,7 @@
  *
  * REFUSALS ARRIVE AS `/login?error=<code>`, and nothing else. The codes in
  * `messageFor` are the contract with the callback docstring in
- * `app/routers/auth.py` — keep them byte-identical to it. An unrecognised code
+ * `app/api/account/sign_in.py` — keep them byte-identical to it. An unrecognised code
  * still renders an honest, non-blaming message rather than nothing, but that
  * fallback is a bug report, not a feature: the first version of this screen
  * invented its own vocabulary (`not_on_roster`, `wrong_domain`, …) that shared
@@ -42,7 +42,7 @@ import { environment } from '../../../environments/environment';
  * `GET /api/auth/sso/status` — the capability probe.
  *
  * The field names are the API's, snake_case and verbatim (`SsoStatus` in
- * app/routers/auth.py). Renaming them on the way in is how a probe silently
+ * app/api/account/sign_in.py). Renaming them on the way in is how a probe silently
  * stops working: `undefined === false` is `false`, so the button would stay
  * live forever on a server that cannot sign anybody in. Everything but
  * `google_available` is optional so the API can grow the shape without
@@ -63,12 +63,12 @@ const DEFAULT_DOMAIN_LABEL = 'your college';
  * `?error=` codes the callback redirects with, and what a human should read.
  *
  * THE KEYS ARE THE SERVER'S, `sso_*`-namespaced exactly as the callback
- * docstring in app/routers/auth.py lists them. Each message says what happened
+ * docstring in app/api/account/sign_in.py lists them. Each message says what happened
  * and what to do next; none says "invalid" and stops. The one anyone will
  * actually hit is `sso_not_enrolled` — a real Google account that is not on the
  * roster, which is what signing in with a personal Gmail looks like from here.
  *
- * There is deliberately NO wrong-domain message. app/google_auth.py does not use
+ * There is deliberately NO wrong-domain message. app/platform/google_sign_in.py does not use
  * Google's `hd` claim and the server has no code for it: the roster is the
  * allowlist, and app/grant_access.py exists to admit staff whose address is not
  * on the student domain at all. Copy promising a refusal the server cannot emit
@@ -201,7 +201,7 @@ export class LoginComponent {
   /// does not survive the hop out to Google and back.
   ///
   /// The CANONICAL route, not the `/auth/google/start` compat alias — that one
-  /// is `include_in_schema=False` in app/routers/auth.py and exists for old
+  /// is `include_in_schema=False` in app/api/account/sign_in.py and exists for old
   /// bookmarks. Pointing the only button on this screen at it would make the
   /// login screen collateral damage the day the alias is tidied away.
   get signInUrl(): string {

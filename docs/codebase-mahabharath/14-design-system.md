@@ -446,8 +446,8 @@ lines [47](apps/web/src/app/features/assistant/assistant.component.scss#L47),
 [53](apps/web/src/app/features/assistant/assistant.component.scss#L53), 66, 74, 133, 153, 240,
 365 and 421. Because `--reep-primary-main` *is* defined (`#1c1810`), none of those fallbacks ever
 paints — they are inert. But the same hex is the PDF renderer's section colour and name rule
-([resume_pdf.py:41](apps/api-py/app/resume_pdf.py#L41) and
-[:78](apps/api-py/app/resume_pdf.py#L78)), which §7 flags as *"a navy that appears nowhere in the
+([resume_pdf.py:41](apps/api-py/app/reports/resume_pdf.py#L41) and
+[:78](apps/api-py/app/reports/resume_pdf.py#L78)), which §7 flags as *"a navy that appears nowhere in the
 REEP token set"*. It appears in exactly two places, on opposite sides of the stack, and in neither
 is it a REEP colour. Read it as the fingerprint of a third design system both files were adapted
 from, not as a REEP token that went missing.
@@ -1980,13 +1980,13 @@ persisted on the `Resume` row, returned in the JSON body *and* re-read by the PD
 **section order and content cannot diverge.** Chapter 2 owns the rendering mechanics; here is the
 layout comparison.
 
-| | On screen (`reep-v2-resume.scss` + `preview.component.scss`) | In the PDF ([resume_pdf.py:32-48](apps/api-py/app/resume_pdf.py#L32-L48)) |
+| | On screen (`reep-v2-resume.scss` + `preview.component.scss`) | In the PDF ([resume_pdf.py:32-48](apps/api-py/app/reports/resume_pdf.py#L32-L48)) |
 |---|---|---|
 | Typeface | Inter, via `var(--font)` | ReportLab's built-in Helvetica — **there is no `registerFont` / `TTFont` anywhere in `apps/api-py/app`** (grep returns 0) |
-| Body | 12.4px / 1.6 on `--paper-2` | 10pt / 14 leading (`ResumeBody`, [:46](apps/api-py/app/resume_pdf.py#L46)) |
-| Page | a bordered 12px-radius card, 28px padding, **no page geometry at all** | A4, `leftMargin=rightMargin=18*mm`, `topMargin=bottomMargin=16*mm` ([:97-105](apps/api-py/app/resume_pdf.py#L97-L105)) |
-| `# Name` | `.preview h2`, 19px, inherited `--ink-900`, **no rule beneath** | `ResumeName` (20pt, `TA_LEFT` because ReportLab's `Title` is centred by default, [:34-36](apps/api-py/app/resume_pdf.py#L34-L36)) followed by an `HRFlowable` in `#1a3c5e` ([:78](apps/api-py/app/resume_pdf.py#L78)) |
-| `## Section` | `.psec` — **10.6px, weight 800, UPPERCASE, `.07em` tracking, `--amber-600`, with a bottom hairline** | `ResumeSection` — **12pt, title case, `#1a3c5e` navy ([:41](apps/api-py/app/resume_pdf.py#L41)), no rule** |
+| Body | 12.4px / 1.6 on `--paper-2` | 10pt / 14 leading (`ResumeBody`, [:46](apps/api-py/app/reports/resume_pdf.py#L46)) |
+| Page | a bordered 12px-radius card, 28px padding, **no page geometry at all** | A4, `leftMargin=rightMargin=18*mm`, `topMargin=bottomMargin=16*mm` ([:97-105](apps/api-py/app/reports/resume_pdf.py#L97-L105)) |
+| `# Name` | `.preview h2`, 19px, inherited `--ink-900`, **no rule beneath** | `ResumeName` (20pt, `TA_LEFT` because ReportLab's `Title` is centred by default, [:34-36](apps/api-py/app/reports/resume_pdf.py#L34-L36)) followed by an `HRFlowable` in `#1a3c5e` ([:78](apps/api-py/app/reports/resume_pdf.py#L78)) |
+| `## Section` | `.psec` — **10.6px, weight 800, UPPERCASE, `.07em` tracking, `--amber-600`, with a bottom hairline** | `ResumeSection` — **12pt, title case, `#1a3c5e` navy ([:41](apps/api-py/app/reports/resume_pdf.py#L41)), no rule** |
 | Bullets | `.pline` flex rows with a literal `•` in `--amber-600` | `ListFlowable(bulletType='bullet', start='•', leftIndent=12)` |
 
 Two things stand out. First, **`#1a3c5e` is a navy that appears nowhere in the REEP token set** —
@@ -2000,10 +2000,10 @@ emit arbitrary markdown:
 
 | Input | Angular `parseMarkdown()` | `render_resume_pdf` |
 |---|---|---|
-| `### Heading` | [preview.component.ts:82](apps/web/src/app/features/student/resume/views/preview.component.ts#L82) maps it to `kind: 'section'` — an amber `.psec` | only `# ` and `## ` are tested ([resume_pdf.py:75](apps/api-py/app/resume_pdf.py#L75) and [:80](apps/api-py/app/resume_pdf.py#L80)), so it falls through and prints **`### Heading` literally as 10pt body text** |
-| `* item` | only `- ` is matched ([preview.component.ts:83](apps/web/src/app/features/student/resume/views/preview.component.ts#L83)) — renders as a paragraph starting with `*` | `line.lstrip().startswith(("- ", "* "))` ([:83](apps/api-py/app/resume_pdf.py#L83)) — a proper bullet |
+| `### Heading` | [preview.component.ts:82](apps/web/src/app/features/student/resume/views/preview.component.ts#L82) maps it to `kind: 'section'` — an amber `.psec` | only `# ` and `## ` are tested ([resume_pdf.py:75](apps/api-py/app/reports/resume_pdf.py#L75) and [:80](apps/api-py/app/reports/resume_pdf.py#L80)), so it falls through and prints **`### Heading` literally as 10pt body text** |
+| `* item` | only `- ` is matched ([preview.component.ts:83](apps/web/src/app/features/student/resume/views/preview.component.ts#L83)) — renders as a paragraph starting with `*` | `line.lstrip().startswith(("- ", "* "))` ([:83](apps/api-py/app/reports/resume_pdf.py#L83)) — a proper bullet |
 | unpaired `**` | splits on `**` and bolds odd runs, swallowing the stray delimiter | `re.sub(r"\*\*(.+?)\*\*")` needs a closing pair — shows the literal `**` |
-| empty markdown | `blocks()` is `[]` → a blank `.preview` card | guards at [:90-93](apps/api-py/app/resume_pdf.py#L90-L93) insert the fallback title and `"No resume content."` |
+| empty markdown | `blocks()` is `[]` → a blank `.preview` card | guards at [:90-93](apps/api-py/app/reports/resume_pdf.py#L90-L93) insert the fallback title and `"No resume content."` |
 
 There is no shared fixture and no contract test between the two — `tests/test_resume_pdf.py` has
 three tests, all pure-logic, and none asserts layout, section order or parity. Also worth flagging:

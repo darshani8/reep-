@@ -5,7 +5,7 @@
  * gets only their own group, DIRECTOR/ADMIN the whole programme, and a MENTOR
  * with no group gets an honest empty state, never everybody). Right: the
  * selected mentee's meeting notes (GET /mentor/students/{id}/notes) and a form
- * to add one (POST, NoteIn shape from routers/mentor.py — note_text required,
+ * to add one (POST, NoteIn shape from api/mentor/mentees.py — note_text required,
  * title/location optional so the student's log never shows an invented heading).
  *
  * Markup reuses the global reep-v2 classes; the scss only lays out the

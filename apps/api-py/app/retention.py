@@ -7,7 +7,7 @@ of letting it accumulate indefinitely:
 * ``purge_expired`` walks conversations AND interview records: one whose
   ``retention_until`` has passed is SOFT-deleted (``deleted_at`` stamped) —
   recoverable-shaped but hidden — and the free text it still carries through the
-  grace window is PII-scrubbed with ``app.redaction.redact_pii``. Anything
+  grace window is PII-scrubbed with ``app.platform.redaction.redact_pii``. Anything
   soft-deleted for longer than the grace window is HARD-deleted. The two subjects
   share one function on purpose: **one retention story in this codebase, not
   two.** A second module with its own clock and its own grace window is how a
@@ -49,7 +49,7 @@ from .config import settings
 from .models.agent_run import AgentRun
 from .models.conversation import Conversation, Message
 from .models.interview import InterviewEvaluation, InterviewSession, InterviewTurn
-from .redaction import REDACTED, redact_pii
+from app.platform.redaction import REDACTED, redact_pii
 
 log = logging.getLogger("reep.retention")
 
@@ -107,14 +107,14 @@ def _delete_interview_audio(rows: Sequence[InterviewSession]) -> tuple[int, list
 
     The import stays guarded even though the store now exists: this module's
     other three jobs — conversations, ``AgentRun`` redaction, the orphan sweeper
-    — speak only to Postgres and must keep working if ``app/interview_audio.py``
+    — speak only to Postgres and must keep working if ``app/interview/audio_store.py``
     is ever moved, renamed or stripped from a slim image. An ``ImportError`` here
     is reported and made safe, never fatal to the whole sweep.
 
     The contract this expects of the store, stated here because this is its only
     caller::
 
-        # app/interview_audio.py
+        # app/interview/audio_store.py
         def delete_session_audio(interview_session_id: str, audio_path: str | None = None) -> int:
             '''Remove any stored audio for this interview; return files removed.
 
@@ -136,7 +136,7 @@ def _delete_interview_audio(rows: Sequence[InterviewSession]) -> tuple[int, list
         return 0, []
 
     try:
-        from .interview_audio import delete_session_audio
+        from app.interview.audio_store import delete_session_audio
     except ImportError:
         # No store, so no way to delete anything and no way to look. THE ONE
         # PLACE the flags are still read, because with the store gone they are
@@ -149,7 +149,7 @@ def _delete_interview_audio(rows: Sequence[InterviewSession]) -> tuple[int, list
         if claimed:
             log.error(
                 "%d interview session(s) past retention carry stored audio, but "
-                "app/interview_audio.py is not importable — their audio cannot be "
+                "app/interview/audio_store.py is not importable — their audio cannot be "
                 "deleted and their rows are being HELD BACK from hard-delete so the "
                 "files stay discoverable. Session ids: %s",
                 len(claimed),
@@ -157,7 +157,7 @@ def _delete_interview_audio(rows: Sequence[InterviewSession]) -> tuple[int, list
             )
         else:
             log.error(
-                "app/interview_audio.py is not importable, so %d expiring "
+                "app/interview/audio_store.py is not importable, so %d expiring "
                 "interview session(s) are being hard-deleted without their audio "
                 "store being swept. No row claims a recording, but a row is not "
                 "the authority on what is on disk.",

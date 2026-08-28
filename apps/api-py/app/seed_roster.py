@@ -23,7 +23,7 @@ against the wrong database is the failure this replaces a refusal with.
 
 Creates, per roster row: a User (role STUDENT, no usable password) + its Student
 row carrying the USN + an empty StudentProfile. The Student row is not optional
-garnish: `_payload_for()` in app/routers/auth.py only puts `studentId` in the
+garnish: `_payload_for()` in app/api/account/sign_in.py only puts `studentId` in the
 session JWT when `user.student` exists, and every /api/student/* route 403s
 without it. The USN lands here so it is ALREADY FILLED IN on the profile screen
 (read-only, "Synced" — a student never types it).
@@ -64,7 +64,7 @@ DEFAULT_COLLEGE_DOMAIN = "bgscet.ac.in"
 # Unusable-password sentinel. These are Google-only accounts, but `users
 # .password_hash` is NOT NULL in the schema (models/user.py:48 and the original
 # migration), so a value must be supplied and it must be one that can never
-# authenticate. `verify_password` (app/security.py) splits on ":" and rejects
+# authenticate. `verify_password` (app/platform/credentials.py) splits on ":" and rejects
 # anything that is not exactly scrypt:<salt>:<digest>, so this string returns
 # False for every password ever tried and POST /api/auth/login answers with its
 # ordinary 401 — no crash, no oracle telling an attacker which accounts are

@@ -2,7 +2,7 @@
 can never inject markup. Pure logic, no DB, no network.
 """
 
-from app.resume_pdf import render_resume_pdf
+from app.reports.resume_pdf import render_resume_pdf
 
 SAMPLE = """# Asha Rao
 MBA finance candidate.

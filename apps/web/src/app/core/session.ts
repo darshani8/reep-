@@ -1,6 +1,6 @@
 /**
  * The session shape, shared by contract with the FastAPI backend
- * (apps/api-py/app/routers/auth.py `_payload_for`): the claims the
+ * (apps/api-py/app/api/account/sign_in.py `_payload_for`): the claims the
  * `reep_session` cookie carries, exactly as the UI expects them.
  */
 

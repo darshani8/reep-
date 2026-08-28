@@ -20,11 +20,11 @@ from sqlalchemy import delete, select
 
 from conftest import requires_db
 
-from app import conversations as convo
+from app.assistant import conversations as convo
 from app.db import SessionLocal
 from app.models.conversation import Conversation, Message
 from app.models.user import LoginDay, Role, Student, User
-from app.security import hash_password
+from app.platform.credentials import hash_password
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +162,7 @@ def test_transcript_unknown_conversation_is_404(client):
 def test_transcript_worker_secret_enforced(client, make_user, monkeypatch):
     """When VOICE_WORKER_SECRET is set, a caller without the header is refused."""
     import app.config as config
-    import app.routers.voice as voice
+    import app.api.legacy.voice_assistant as voice
 
     s = make_user("secret")
     cid = _new_conversation(s.user_id)
@@ -220,7 +220,7 @@ def test_transcript_rejects_oversized_text(client, monkeypatch):
     rendered in the UI, so an unbounded field is a storage AND prompt-injection
     surface, not just a size question."""
     from app.config import settings
-    from app.routers.voice import MAX_TRANSCRIPT_CHARS
+    from app.api.legacy.voice_assistant import MAX_TRANSCRIPT_CHARS
 
     monkeypatch.setattr(settings, "voice_worker_secret", "", raising=False)
     monkeypatch.setattr(settings, "env", "dev", raising=False)

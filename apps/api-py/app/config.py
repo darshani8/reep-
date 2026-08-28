@@ -16,7 +16,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # a Prisma-only query param. This app reads its own file or nothing.
 _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
-# Upstream for the realtime mock interview (app/routers/interview.py). Kept apart
+# Upstream for the realtime mock interview (app/api/student/interview_session.py). Kept apart
 # from the model id so the model can be swapped by env without anyone
 # hand-assembling a query string - and forgetting to escape it.
 _DEFAULT_REALTIME_BASE_URL = "wss://api.openai.com/v1/realtime"
@@ -27,7 +27,7 @@ _DEFAULT_REALTIME_MODEL = "gpt-realtime"
 # The Whisper-family model that transcribes the STUDENT's half of the interview
 # (the model's own words come back as an assistant transcript and are not sent
 # through this). "whisper-1" was hard-coded at BOTH call sites in
-# app/interview_relay.py, which is what made "Whisper is missing from the stack"
+# app/interview/realtime_relay.py, which is what made "Whisper is missing from the stack"
 # look true - it was there, as the LEGACY id, with no way off it short of a
 # redeploy. gpt-4o-mini-transcribe is the same Whisper lineage with lower word
 # error on accented English and a lower price per minute.
@@ -43,7 +43,7 @@ _BETA_TRANSCRIPTION_MODEL = "whisper-1"
 # The institution's mail domain. One constant behind two settings
 # (GOOGLE_ALLOWED_DOMAIN and ROSTER_EMAIL_DOMAIN) because they describe the same
 # real-world fact: which addresses belong to this college. It is NOT a security
-# boundary — the roster is (see app/google_auth.py).
+# boundary — the roster is (see app/platform/google_sign_in.py).
 _DEFAULT_COLLEGE_DOMAIN = "bgscet.ac.in"
 
 # Every spelling of "this is production" an operator actually types. `is_prod`
@@ -121,8 +121,8 @@ class Settings(BaseSettings):
     # production_boot_failures() at the bottom of this class for what each one
     # costs if it reaches a real deployment.
     database_url: str = _DEV_DATABASE_URL
-    # Signs the HS256 `reep_session` cookie (app/security.py) AND derives the
-    # OAuth flow-cookie key (app/google_auth.py). Whoever knows it IS every user:
+    # Signs the HS256 `reep_session` cookie (app/platform/credentials.py) AND derives the
+    # OAuth flow-cookie key (app/platform/google_sign_in.py). Whoever knows it IS every user:
     # a forged {"role":"DIRECTOR"} claim reads every student's marks, attendance
     # and USN, and no login, no Google round-trip and no DB row is involved.
     auth_secret: str = _DEV_AUTH_SECRET
@@ -181,7 +181,7 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
     # OPTIONAL OVERRIDE, blank on nearly every deployment. Blank means
-    # app/google_auth.py:redirect_uri() derives it as WEB_ORIGIN + CALLBACK_PATH,
+    # app/platform/google_sign_in.py:redirect_uri() derives it as WEB_ORIGIN + CALLBACK_PATH,
     # which is the right answer whenever the browser reaches the API through the
     # web origin. Set it only when the public URL is not WEB_ORIGIN (a proxy in
     # front, a separate API host).
@@ -192,13 +192,13 @@ class Settings(BaseSettings):
     # process is told `Host: localhost:3300` while the student is on :4200; a
     # redirect_uri built from the inbound request (request.url_for) would come
     # out :3300 and Google would answer redirect_uri_mismatch on every sign-in.
-    # Composition lives in ONE function in app/google_auth.py, not here, because
+    # Composition lives in ONE function in app/platform/google_sign_in.py, not here, because
     # the authorize request and the token exchange must send the same string and
     # Google rejects the exchange when they differ.
     google_redirect_uri: str = ""
     # The college's mail domain(s), comma-separated. READ THE NAME AS A LABEL,
     # NOT A FENCE: nothing in the sign-in path refuses on it, and nothing should
-    # start to. The roster is the allowlist (app/google_auth.py explains why the
+    # start to. The roster is the allowlist (app/platform/google_sign_in.py explains why the
     # `hd` claim is deliberately not used — a domain test on top of the roster
     # can only add a second way to lock out someone who IS enrolled, and
     # app/grant_access.py exists precisely to admit staff whose address is not
@@ -234,7 +234,7 @@ class Settings(BaseSettings):
     # that day. Raise it only for a deliberately slow local model, and know that
     # the price is how long one request can occupy a worker thread.
     llm_timeout_ms: int = 60000
-    # Per-user ceiling on LLM-backed HTTP requests (app/ratelimit.py): resume
+    # Per-user ceiling on LLM-backed HTTP requests (app/platform/rate_limit.py): resume
     # generation and the retained /api/agent chat routes. The audit found these
     # had no cap at all, so one student's retry loop — or a 60-person class told
     # to "regenerate until it looks good" — was a self-inflicted DDoS on the
@@ -327,7 +327,7 @@ class Settings(BaseSettings):
     # mid-sentence, and there is deliberately no value meaning "unlimited".
     voice_max_call_seconds: int = 900
 
-    # Realtime mock interview (app/routers/interview.py) - the student-facing
+    # Realtime mock interview (app/api/student/interview_session.py) - the student-facing
     # assistant. The API relays the browser's microphone to OpenAI's Realtime API
     # over one outbound WebSocket. OPENAI_API_KEY is used on exactly that socket:
     # it is never serialised into a downstream frame and never logged, and that
@@ -524,10 +524,10 @@ class Settings(BaseSettings):
     # report must never cost the transcript.
     # ---- Which engine runs the interview -------------------------------
     #
-    # "openai"  app/interview_relay.py -> api.openai.com. One speech-to-speech
+    # "openai"  app/interview/realtime_relay.py -> api.openai.com. One speech-to-speech
     #           model hears, reasons and speaks. Needs OPENAI_API_KEY and costs
     #           money per minute.
-    # "local"   app/interview_local.py -> nothing leaves the machine.
+    # "local"   app/interview/offline_engine.py -> nothing leaves the machine.
     #           faster-whisper hears, the Ollama model in LLM_MODEL reasons,
     #           Piper speaks. No key, no cost, and rule 1 holds by construction
     #           rather than by a gate.
@@ -635,7 +635,7 @@ class Settings(BaseSettings):
     # SIZE IT AGAINST 96,000 BYTES A SECOND, NOT 48,000. This comment used to
     # read "64 MB is roughly 45 minutes ... comfortably past
     # interview_max_seconds", which was true of the speech-only capture it was
-    # written for. app/interview_audio.py now pads BOTH tracks to the session's
+    # written for. app/interview/audio_store.py now pads BOTH tracks to the session's
     # wall clock, so an interview burns 2 x 24 kHz x 16-bit whether anyone is
     # talking or not: 64,000,000 B was 666 s = 11.1 min against an
     # interview_max_seconds of 900, and every maximum-length interview lost its
@@ -651,7 +651,7 @@ class Settings(BaseSettings):
     # occupies up to ~256 MB. If you move interview_max_seconds, move this.
     interview_recording_max_bytes: int = 128000000
     # Where the WAVs live. Blank keeps the historical fallback — a SIBLING of
-    # uploads_path named interview-audio (app/interview_audio.py:_store_root,
+    # uploads_path named interview-audio (app/interview/audio_store.py:_store_root,
     # which already reads this field by name and documents why a sibling). Set
     # it explicitly in production to a MOUNTED path: the audit found the
     # fallback landed in the container's writable layer under the image's
@@ -888,7 +888,7 @@ class Settings(BaseSettings):
     def google_ready(self) -> bool:
         """Whether Google sign-in — the only way a human signs in — is configured.
 
-        Exactly the two credentials, matching app/google_auth.py:sso_ready(),
+        Exactly the two credentials, matching app/platform/google_sign_in.py:sso_ready(),
         which is the function the router actually gates on: GOOGLE_REDIRECT_URI
         is an optional override that defaults correctly, so requiring it here
         would report the feature "off" on a deployment where it works. Without
@@ -1032,7 +1032,7 @@ class Settings(BaseSettings):
         `Secure` — i.e. whether this box is allowed to be plain HTTP.
 
         Read it as `secure=not settings.insecure_cookies_allowed` at the
-        set_cookie sites in app/routers/auth.py. It replaces `secure=is_prod`,
+        set_cookie sites in app/api/account/sign_in.py. It replaces `secure=is_prod`,
         which was a NAME TEST and the audit's M2: a `staging`, `uat` or `demo`
         box is not one of the four spellings is_prod knows, so it served REAL
         roster rows over HTTPS while marking the session cookie non-Secure —

@@ -62,7 +62,7 @@ export class AppShellComponent {
   /** The USN under the sidebar name.
    *
    *  Fetched rather than read off the session on purpose: the session's claims
-   *  are a fixed contract (see ProfileOut's note in routers/student.py) and a
+   *  are a fixed contract (see ProfileOut's note in api/student/self_service.py) and a
    *  sidebar is not a reason to widen a signed cookie. One request, only for a
    *  STUDENT, and a failure is silent — the card simply shows the name, which
    *  is the correct fallback for staff too. */

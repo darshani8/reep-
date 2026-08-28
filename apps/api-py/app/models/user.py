@@ -57,7 +57,7 @@ class User(Base):
     # mentor notes through a completely valid Google login, silently. Pinned on
     # the first Google sign-in (NULL until then, so every already-seeded roster
     # row keeps working) and compared on every one after; a mismatch is refused
-    # in app/routers/auth.py rather than reconciled, because the only safe way
+    # in app/api/account/sign_in.py rather than reconciled, because the only safe way
     # to hand a row to a new person is for a human to clear this column.
     #
     # UNIQUE so the same Google account cannot end up pinned to two roster rows.
@@ -65,7 +65,7 @@ class User(Base):
     # so any number of un-pinned rows coexist.
     google_sub: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
     # Bumped on logout; carried in the session JWT and compared on the way back
-    # in. See app/security.py — this column is the whole of the revocation
+    # in. See app/platform/credentials.py — this column is the whole of the revocation
     # story, including its honest limits.
     token_version: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"

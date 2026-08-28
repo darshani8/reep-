@@ -740,7 +740,7 @@ def test_no_pg_enum_types_were_created_for_the_interview_vocabularies():
 
     The seven of them — status, specialization, final_phase, speaker,
     transcription_status, answer_quality, report_status — will move (a fifth
-    specialization is a one-line data change in `interview_matrix.py`), and
+    specialization is a one-line data change in `interview/specializations.py`), and
     turning that into an `ALTER TYPE ... ADD VALUE` migration would be a
     regression. This test fails the moment someone "fixes" one into an enum,
     which is exactly when the next editor should be made to read §6.1.

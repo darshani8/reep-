@@ -49,7 +49,7 @@ def upgrade() -> None:
     # ### end Alembic commands ###
 
     # Postgres full-text GIN index over the chunk text — backs the PRIMARY
-    # retrieval path in app/knowledge.py (ts_rank over to_tsvector('english', ...)).
+    # retrieval path in app/assistant/knowledge_base.py (ts_rank over to_tsvector('english', ...)).
     # Hand-written because Alembic can't autogenerate a functional/expression index.
     op.execute(
         "CREATE INDEX ix_knowledge_chunk_fts "

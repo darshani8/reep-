@@ -4,7 +4,7 @@ The security spine of the assistant: a conversation belongs to exactly one user
 and is ALWAYS resolved from the authenticated session. The endpoints accept NO
 conversation/session id, so cross-user access is impossible by construction —
 these tests pin that contract end-to-end (via TestClient) and unit-test the
-`assert_owner` guard in app/conversations.py directly.
+`assert_owner` guard in app/assistant/conversations.py directly.
 
 The chat endpoint would otherwise call a live LLM; `stub_llm` monkeypatches the
 router's `llm_config`/`complete_chat` so the flow is deterministic and offline.
@@ -22,13 +22,13 @@ from sqlalchemy.exc import IntegrityError
 
 from conftest import requires_db
 
-from app import conversations as convo
-from app.conversations import GREETING
+from app.assistant import conversations as convo
+from app.assistant.conversations import GREETING
 from app.db import SessionLocal
 from app.models.agent_run import AgentRun
 from app.models.conversation import Conversation
 from app.models.user import LoginDay, Role, Student, User
-from app.security import hash_password
+from app.platform.credentials import hash_password
 
 STUB_REPLY = "STUB REPLY from the offline assistant."
 
@@ -40,7 +40,7 @@ STUB_REPLY = "STUB REPLY from the offline assistant."
 def stub_llm(monkeypatch):
     """Make /chat deterministic + offline: a fake provider config and a canned
     reply, patched into the agent router's own namespace (where it is called)."""
-    import app.routers.agent as agent
+    import app.api.legacy.text_assistant as agent
 
     monkeypatch.setattr(
         agent, "llm_config",
@@ -106,7 +106,7 @@ def make_student(client):
 def test_chat_body_has_only_message():
     """The write path accepts a message and nothing else — no conversation_id /
     session_id field exists to point at someone else's thread."""
-    from app.routers.agent import ChatIn
+    from app.api.legacy.text_assistant import ChatIn
 
     assert set(ChatIn.model_fields) == {"message"}
 
@@ -301,7 +301,7 @@ def test_greeting_survives_a_failed_first_turn(client, stub_llm, make_student):
     # through that same instance, so undo() would strip the stub too and the
     # "recovered" request would hit the real provider (503 on a keyless CI host).
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr("app.routers.agent.complete_chat", boom)
+        mp.setattr("app.api.legacy.text_assistant.complete_chat", boom)
         r = client.post("/api/agent/chat", headers=s.headers, json={"message": "hi"})
         assert r.status_code == 502
 

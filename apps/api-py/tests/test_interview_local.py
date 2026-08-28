@@ -1,6 +1,6 @@
 """The local interview engine — the parts that must hold with no API key.
 
-app/interview_local.py runs the same interview as the relay with nothing
+app/interview/offline_engine.py runs the same interview as the relay with nothing
 leaving the machine. These tests pin the contracts that make that a drop-in
 rather than a fork, and they do NO model work: loading faster-whisper and Piper
 takes seconds and needs a GPU, and a suite that needs either stops being run.
@@ -20,10 +20,10 @@ import inspect
 
 import pytest
 
-from app import interview_local as local
+from app.interview import offline_engine as local
 from app.config import settings
-from app.interview_matrix import SPECIALIZATIONS, InterviewPhase, build_instructions
-from app.interview_relay import _INTERVIEWER_PERSONA, _RelaySession
+from app.interview.specializations import SPECIALIZATIONS, InterviewPhase, build_instructions
+from app.interview.realtime_relay import _INTERVIEWER_PERSONA, _RelaySession
 
 
 class TestItIsADropIn:
@@ -51,7 +51,7 @@ class TestItIsADropIn:
         it would drift silently: both would still construct, and only one would
         carry the new value into the database.
         """
-        from app import interview_relay
+        from app.interview import realtime_relay as interview_relay
 
         assert local._TurnRecord is interview_relay._TurnRecord
         assert local._ReportRecord is interview_relay._ReportRecord

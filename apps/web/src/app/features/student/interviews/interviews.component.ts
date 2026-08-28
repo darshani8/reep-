@@ -4,7 +4,7 @@
  * The assistant screen is the live interview and forgets everything the moment
  * the tab closes. This screen is the other half: `interview_sessions`,
  * `interview_turns` and `interview_evaluations`, read back through the four
- * student endpoints in app/routers/interview_records.py. The subject is always
+ * student endpoints in app/api/student/interview_records.py. The subject is always
  * the caller — those endpoints take no `student_id` and adding one "for
  * symmetry" would make every one of them an IDOR the moment somebody forgot the
  * filter (docs/interview-engine-v3.md §7.3).
@@ -101,7 +101,7 @@ interface Chip {
 
 /**
  * The Specialization Matrix keys, in words. Mirrors SPECIALIZATIONS in
- * apps/api-py/app/interview_matrix.py, which is the source of truth; an unknown
+ * apps/api-py/app/interview/specializations.py, which is the source of truth; an unknown
  * key degrades to itself rather than to a blank cell, so a track added there and
  * not here is legible instead of invisible.
  */

@@ -6,7 +6,7 @@ a real helpful/not-helpful signal instead of guessing from resolution alone.
 
 Ownership is enforced at write time (the caller must own the ``AgentRun``); the
 ``uq_feedback_run_owner`` constraint makes a re-vote an UPDATE, never a duplicate.
-The free-text note is PII-redacted (``app.redaction.redact_pii``) before it is
+The free-text note is PII-redacted (``app.platform.redaction.redact_pii``) before it is
 stored — the note is a product signal, not a place to accumulate student PII.
 
 ``feedbackrating`` is a NEW PG enum: its migration CREATEs the type before the

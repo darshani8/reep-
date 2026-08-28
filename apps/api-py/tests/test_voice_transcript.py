@@ -14,7 +14,7 @@ from sqlalchemy import select
 
 from conftest import requires_db
 
-from app import conversations as convo
+from app.assistant import conversations as convo
 from app.db import SessionLocal
 from app.models.conversation import Conversation, Message
 from app.models.user import Role

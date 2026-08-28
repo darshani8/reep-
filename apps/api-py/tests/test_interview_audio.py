@@ -37,10 +37,10 @@ from sqlalchemy import delete
 
 from conftest import requires_db
 
-from app import interview_audio
+from app.interview import audio_store as interview_audio
 from app.config import settings
 from app.db import SessionLocal
-from app.interview_audio import (
+from app.interview.audio_store import (
     SOURCE_TRACKS,
     TRACK_INTERVIEWER,
     TRACK_MIXED,
@@ -55,7 +55,7 @@ from app.interview_audio import (
     recorder_for,
     track_path,
 )
-from app.interview_relay import (
+from app.interview.realtime_relay import (
     _AUDIO_TRACK_INTERVIEWER,
     _AUDIO_TRACK_STUDENT,
     _CLOSE_OK,
@@ -1304,7 +1304,7 @@ class _FakeUpstream:
 
 class TestTheRelayFeedsIt:
     def test_the_track_names_match_the_store(self):
-        """app/interview_relay.py spells the two track names itself rather than
+        """app/interview/realtime_relay.py spells the two track names itself rather than
         importing them (it deliberately imports nothing from the audio store, so
         no ORM model can arrive behind it). A mismatch would write files the
         download endpoint cannot find, and nothing would raise."""
@@ -1446,7 +1446,7 @@ def audio_world(store):
 
     from app.models.interview import InterviewSession
     from app.models.user import Mentor, Role, Student, User
-    from app.security import SESSION_COOKIE, create_session_token
+    from app.platform.credentials import SESSION_COOKIE, create_session_token
 
     tag = uuid.uuid4().hex[:8]
     with SessionLocal() as db:
@@ -1562,7 +1562,7 @@ def api():
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from app.routers import interview_records
+    from app.api.student import interview_records
 
     app = FastAPI()
     app.include_router(interview_records.staff_router)
@@ -1669,7 +1669,7 @@ class TestTheDownload:
         assert r.status_code == 403
 
     def test_there_is_no_student_route_to_audio(self):
-        from app.routers import interview_records
+        from app.api.student import interview_records
 
         assert not [
             route

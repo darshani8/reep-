@@ -62,7 +62,7 @@ Two consequences follow immediately and shape every failure mode below:
 Four parties are involved in one voice call, and each hop is authenticated differently:
 browser→API by the httpOnly `reep_session` cookie; browser→LiveKit and worker→LiveKit by
 tokens derived from `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET`
-([voice.py:283](apps/api-py/app/routers/voice.py#L283)); worker→API by the shared
+([voice.py:283](apps/api-py/app/api/legacy/voice_assistant.py#L283)); worker→API by the shared
 `VOICE_WORKER_SECRET`, presented as the `X-Voice-Worker-Secret` header
 ([voice_agent.py:225-226](apps/api-py/voice_agent.py#L225)). Two of those are secrets
 deliberately held on **both** ends — which is why a *mismatch*, not a leak, is the failure
@@ -103,12 +103,12 @@ name, so the API has to request it explicitly when it mints the token:
     )
 )
 ```
-— [voice.py:307-311](apps/api-py/app/routers/voice.py#L307), with `VOICE_AGENT_NAME = "reep-voice"`
-at [voice.py:58](apps/api-py/app/routers/voice.py#L58).
+— [voice.py:307-311](apps/api-py/app/api/legacy/voice_assistant.py#L307), with `VOICE_AGENT_NAME = "reep-voice"`
+at [voice.py:58](apps/api-py/app/api/legacy/voice_assistant.py#L58).
 
 > **Why it is like this.** The comment above that constant records what happens when the
 > two names drift: *"Without this the student joins, the worker sits idle with no job, and
-> the call is silence with no error anywhere"* ([voice.py:53-57](apps/api-py/app/routers/voice.py#L53)).
+> the call is silence with no error anywhere"* ([voice.py:53-57](apps/api-py/app/api/legacy/voice_assistant.py#L53)).
 > The token mints, the room opens, the microphone publishes, and both processes report
 > themselves healthy. That is why the name is compile-time on both sides, why
 > `.env.example` explicitly forbids making it an environment variable
@@ -120,16 +120,16 @@ at [voice.py:58](apps/api-py/app/routers/voice.py#L58).
 ```python
 room = f"reep-conversation-{conversation.id}-{uuid.uuid4().hex[:8]}"
 ```
-— [voice.py:280](apps/api-py/app/routers/voice.py#L280)
+— [voice.py:280](apps/api-py/app/api/legacy/voice_assistant.py#L280)
 
 The nonce is not decoration. LiveKit applies a token's `RoomConfiguration` only when the
 room is first *created*, and a room lingers after the last participant leaves
 (`empty_timeout`, 300s by default). A stable per-conversation name would dispatch the
 agent on the first call and silently drop it on any call that reused the still-live room
 — *"an intermittent silent call that looks like a flaky provider"*
-([voice.py:272-279](apps/api-py/app/routers/voice.py#L272)). The participant identity is
+([voice.py:272-279](apps/api-py/app/api/legacy/voice_assistant.py#L272)). The participant identity is
 the bare conversation id (`.with_identity(conversation.id)`,
-[voice.py:286](apps/api-py/app/routers/voice.py#L286)), so the conversation is still
+[voice.py:286](apps/api-py/app/api/legacy/voice_assistant.py#L286)), so the conversation is still
 resolvable either way.
 
 ### One complete call, button press to transcript row
@@ -138,7 +138,7 @@ resolvable either way.
 sequenceDiagram
     autonumber
     participant B as Browser<br/>ChatVoiceService
-    participant A as FastAPI :3300<br/>routers/voice.py
+    participant A as FastAPI :3300<br/>api/legacy/voice_assistant.py
     participant L as LiveKit Cloud
     participant W as Worker<br/>voice_agent.py
     participant P as Postgres
@@ -274,7 +274,7 @@ work inside a container whose image bakes in a developer's `.env`.
 
 That `worker_id`-versus-`id` distinction is load-bearing later: the upsert in
 `voice_heartbeat` selects on `worker_id`
-([voice.py:134-138](apps/api-py/app/routers/voice.py#L134)), and the table's own primary
+([voice.py:134-138](apps/api-py/app/api/legacy/voice_assistant.py#L134)), and the table's own primary
 key is irrelevant to it.
 
 Note what is *absent from those eight calls*: `GROQ_API_KEY`, `LIVEKIT_URL`,
@@ -626,7 +626,7 @@ prompt, so no record reaches either.
 reach Groq as audio and as a persisted transcript. Nothing gates that. The server's own
 docstring says so: *"What DOES leave the machine is the student's speech and its
 transcript — which this endpoint does not gate either"*
-([voice.py:353-355](apps/api-py/app/routers/voice.py#L353)).
+([voice.py:353-355](apps/api-py/app/api/legacy/voice_assistant.py#L353)).
 
 **Paragraph 3 is the only mention of persistence anywhere in the disclosure**, and it is
 the one that ties this section to the rest of the chapter. It tells the student that what
@@ -677,9 +677,9 @@ Both directions fail safe.
 
 **Server record.** `POST /api/voice/consent` writes `conversation.consent_state` as the
 literal `"voice"` or `"none"` and returns it
-([voice.py:367-370](apps/api-py/app/routers/voice.py#L367)). Status codes: **200** with
+([voice.py:367-370](apps/api-py/app/api/legacy/voice_assistant.py#L367)). Status codes: **200** with
 `{consent_state}`; **403** `"Voice is a student feature."` for any non-STUDENT role
-([voice.py:361-365](apps/api-py/app/routers/voice.py#L361)); **401** unauthenticated, via
+([voice.py:361-365](apps/api-py/app/api/legacy/voice_assistant.py#L361)); **401** unauthenticated, via
 `get_current_session` — pinned by `test_consent_requires_auth`
 ([test_voice.py:86-89](apps/api-py/tests/test_voice.py#L86)).
 
@@ -692,7 +692,7 @@ This is the finding a reader must not miss, and the code says it in capitals:
 > *"This writes consent_state ('voice' | 'none') and nothing else consumes it. The voice
 > worker never fetches it: it runs the SAME general prompt either way, and revoking
 > mid-call changes nothing. It is scaffolding for a record-aware voice mode that does not
-> exist yet."* ([voice.py:344-349](apps/api-py/app/routers/voice.py#L344))
+> exist yet."* ([voice.py:344-349](apps/api-py/app/api/legacy/voice_assistant.py#L344))
 
 The worker agrees, from the other side: *"This worker defaults to GENERAL guidance and does
 NOT pull the student's records into the prompt. (When a record-aware prompt is added later,
@@ -836,7 +836,7 @@ worth naming because half of it runs when there is no call at all.
 | Phase | Trigger | Observable effect |
 |---|---|---|
 | Booting | module import | `_load_env_file()`, constants, `AgentServer(...)` |
-| Beating / idle | `_start_heartbeat_thread(server)` then `agents.cli.run_app(server)` | **one** `voice_worker_heartbeats` row per `WORKER_ID`, created on the first beat and thereafter upserted — `last_seen` refreshed every 10s, never a new row ([voice.py:134-143](apps/api-py/app/routers/voice.py#L134)); `/api/voice/status` reports available |
+| Beating / idle | `_start_heartbeat_thread(server)` then `agents.cli.run_app(server)` | **one** `voice_worker_heartbeats` row per `WORKER_ID`, created on the first beat and thereafter upserted — `last_seen` refreshed every 10s, never a new row ([voice.py:134-143](apps/api-py/app/api/legacy/voice_assistant.py#L134)); `/api/voice/status` reports available |
 | Job accepted | LiveKit dispatch | a job process forks; `entrypoint(ctx)` runs |
 | Connected | `await ctx.connect()` | `ctx.room.name` populated; `_resolve_conversation_id(ctx)` |
 | Running | `session.start(...)` then `_speak_greeting(session)` | `_get_vad()` loads Silero on the first session; events fire; transcript POSTs are created |
@@ -879,7 +879,7 @@ wire that says "the worker is now in state X". The division is:
 
 **Divergence 1 — a stale room.** Handled by the API, before the divergence can exist: the
 per-call nonce guarantees a new room every time, so a lingering room can never absorb a
-call whose agent was never dispatched into it ([voice.py:272-280](apps/api-py/app/routers/voice.py#L272)).
+call whose agent was never dispatched into it ([voice.py:272-280](apps/api-py/app/api/legacy/voice_assistant.py#L272)).
 
 **Divergence 2 — a worker that vanishes mid-call.** If the transport notices, LiveKit
 raises `Disconnected` with a reason outside `CLEAN_DISCONNECTS` and the client lands in
@@ -1055,7 +1055,7 @@ when its secret is non-empty** (`if WORKER_SECRET:`,
 talking to a secret-configured API is rejected on every call, while a secret-carrying
 worker talking to a blank-secret API is simply accepted — `require_voice_worker` returns
 early in dev and never looks at the header
-([voice.py:81-87](apps/api-py/app/routers/voice.py#L81)).
+([voice.py:81-87](apps/api-py/app/api/legacy/voice_assistant.py#L81)).
 
 **2. `REEP_API_URL` is wrong.** Usually `localhost` from inside a container, where the
 worker's own loopback has nothing listening. `.env.example` warns about exactly this: *"The
@@ -1126,14 +1126,14 @@ the text.
 
 The one failure the two processes negotiate rather than log is a cleared conversation. The
 server refuses a missing **or soft-deleted** conversation with 404
-([voice.py:454-458](apps/api-py/app/routers/voice.py#L454)) and explains the pairing:
+([voice.py:454-458](apps/api-py/app/api/legacy/voice_assistant.py#L454)) and explains the pairing:
 
 > **Why it is like this.** *"404 rather than 409, deliberately: from the worker's side 'this
 > thread no longer accepts writes' is one situation with one correct response, and the
 > worker treats both by ENDING the call… That pairing is the whole design — a bare 404 with
 > no worker change would silently discard every remaining turn of a live call, because the
 > room and identity stay pinned to the dead conversation for the token's full TTL and the
-> worker has no way to re-resolve."* ([voice.py:447-453](apps/api-py/app/routers/voice.py#L447))
+> worker has no way to re-resolve."* ([voice.py:447-453](apps/api-py/app/api/legacy/voice_assistant.py#L447))
 
 This is the mechanism behind the consent dialog's third paragraph (§5): the student is
 promised that **Clear conversation** removes what they said, and this handshake is what
@@ -1159,7 +1159,7 @@ principle the disconnect could be collected mid-flight; I have not observed it.
 
 `_persist_turn` sends five fields ([voice_agent.py:340-349](apps/api-py/voice_agent.py#L340))
 whose names are identical to the server's Pydantic model
-([voice.py:388-395](apps/api-py/app/routers/voice.py#L388)) — snake_case on both sides, so
+([voice.py:388-395](apps/api-py/app/api/legacy/voice_assistant.py#L388)) — snake_case on both sides, so
 the wire format is greppable across two languages:
 
 | Field | Type | Bound | Notes |
@@ -1172,7 +1172,7 @@ the wire format is greppable across two languages:
 
 The 4000-char cap is not arbitrary: *"the text is replayed into later LLM prompts and
 rendered in the UI, so unbounded input is both a storage and a prompt-injection surface"*
-([voice.py:378-383](apps/api-py/app/routers/voice.py#L378)).
+([voice.py:378-383](apps/api-py/app/api/legacy/voice_assistant.py#L378)).
 
 `is_final` is hard-coded `True` because `_extract_turn` only ever surfaces final turns to
 that call ([voice_agent.py:325-327](apps/api-py/voice_agent.py#L325)), and `_on_item`
@@ -1182,7 +1182,7 @@ dropped; server never sees them` ([voice_agent.py:824-825](apps/api-py/voice_age
 ### Deduplication, and why the endpoint is forgiving
 
 Policy lives on the server, not the worker
-([voice.py:414-420](apps/api-py/app/routers/voice.py#L414)):
+([voice.py:414-420](apps/api-py/app/api/legacy/voice_assistant.py#L414)):
 
 - **Interim is a no-op.** `if not body.is_final: return TranscriptOut(stored=False)` —
   checked *before* the conversation exists check, and the ordering is deliberate: *"Interim
@@ -1200,7 +1200,7 @@ Policy lives on the server, not the worker
 - **The race is absorbed.** The read-then-insert is *"a CHECK, not a guarantee"*; an
   `IntegrityError` is rolled back and answered `stored=False`, because losing that race
   means the turn *is* stored, just by the other writer
-  ([voice.py:460-478](apps/api-py/app/routers/voice.py#L460)).
+  ([voice.py:460-478](apps/api-py/app/api/legacy/voice_assistant.py#L460)).
 
 Unknown conversation ids get 404 on a final turn and a quiet `stored=False` on an interim
 one. Forgiving where noise is expected; loud exactly once, where the loudness carries the
@@ -1215,7 +1215,7 @@ HEARTBEAT_INTERVAL_SECONDS = int(os.getenv("VOICE_HEARTBEAT_INTERVAL_SECONDS", "
 
 **The real default is 10 seconds.** Two comments in the repo still say 15 and are stale:
 [voice_agent.py:38](apps/api-py/voice_agent.py#L38) (*"every ~15s"*) and
-[voice.py:150](apps/api-py/app/routers/voice.py#L150) (*"already runs every 15s"*). The
+[voice.py:150](apps/api-py/app/api/legacy/voice_assistant.py#L150) (*"already runs every 15s"*). The
 change is itself recorded above the constant:
 
 > **Why it is like this.** *"Was 15, which the server asks to be 'well inside' its 30s
@@ -1225,7 +1225,7 @@ change is itself recorded above the constant:
 
 The arithmetic now closes: 10s of sleep + a 10s `urlopen` timeout
 ([voice_agent.py:229](apps/api-py/voice_agent.py#L229)) = 20s worst case, inside
-`HEARTBEAT_FRESH_SECONDS = 30` ([voice.py:43](apps/api-py/app/routers/voice.py#L43)).
+`HEARTBEAT_FRESH_SECONDS = 30` ([voice.py:43](apps/api-py/app/api/legacy/voice_assistant.py#L43)).
 
 `_worker_healthy` is true when **any** row is fresher than the cutoff:
 
@@ -1239,7 +1239,7 @@ def _worker_healthy(db: Session) -> bool:
     )
     return fresh is not None
 ```
-— [voice.py:174-181](apps/api-py/app/routers/voice.py#L174)
+— [voice.py:174-181](apps/api-py/app/api/legacy/voice_assistant.py#L174)
 
 **Any row, not the calling worker's** — and that single word is what makes the silent-save
 failure of §7 possible in practice. Read §7's two causes carefully and you will notice both
@@ -1252,7 +1252,7 @@ a *second* correctly-configured heartbeat row — a stale dev instance, another 
 against the same database, an old container mid-redeploy — keeps readiness green while the
 misconfigured worker wins the LiveKit dispatch and 401s every turn. A token minted before
 the fault appeared has the same effect for `TOKEN_TTL` = 10 minutes
-([voice.py:51](apps/api-py/app/routers/voice.py#L51)). **This is a place where the code is
+([voice.py:51](apps/api-py/app/api/legacy/voice_assistant.py#L51)). **This is a place where the code is
 more specific than AGENTS.md's runbook**, which does not mention the precondition; a reader
 following the runbook literally may hunt for a 401 in a scenario where the call could not
 have started.
@@ -1289,7 +1289,7 @@ drain the loop exits and posts once more:
 — [voice_agent.py:312](apps/api-py/voice_agent.py#L312)
 
 The server *deletes* the row rather than tombstoning it
-([voice.py:125-132](apps/api-py/app/routers/voice.py#L125)), which is what makes that final
+([voice.py:125-132](apps/api-py/app/api/legacy/voice_assistant.py#L125)), which is what makes that final
 POST safe to send unconditionally: the beat loop has already exited, so nothing can race in
 and recreate the row. Merely going quiet would leave readiness true for the whole 30-second
 window while tokens kept being minted at a draining worker — *"students would join rooms no
@@ -1299,7 +1299,7 @@ untouched ([voice_agent.py:285-286](apps/api-py/voice_agent.py#L285)).
 Because `WORKER_ID` defaults to a fresh random id per process, rows would otherwise
 accumulate one per restart forever; the heartbeat opportunistically reaps anything older
 than `HEARTBEAT_REAP_AFTER = 1 hour` on every beat
-([voice.py:145-156](apps/api-py/app/routers/voice.py#L145)). Note what that reap does *not*
+([voice.py:145-156](apps/api-py/app/api/legacy/voice_assistant.py#L145)). Note what that reap does *not*
 do: it never removes a row for a *live* worker, because `worker_id` keys an upsert rather
 than an insert. One process, one row, refreshed — which is exactly what makes the runbook
 query in §11 legible.
@@ -1308,7 +1308,7 @@ query in §11 legible.
 
 `require_voice_worker` fails **closed** in production: a blank `VOICE_WORKER_SECRET` with
 `ENV=prod` returns 500 to every caller, including the real worker
-([voice.py:81-87](apps/api-py/app/routers/voice.py#L81)). So the real production
+([voice.py:81-87](apps/api-py/app/api/legacy/voice_assistant.py#L81)). So the real production
 consequence of a blank secret is *dead voice ingestion* — heartbeats 500, `worker_healthy`
 goes false, `/token` returns 409 — not an open door. The forged-heartbeat abuse (anyone who
 can reach the API POSTs `{"worker_id": "x"}` and makes voice look available, or writes
@@ -1442,9 +1442,9 @@ the machine stuck in a non-terminal state with no button the student could press
 gets its honest message from the `/status` pre-flight one step earlier and echoes the
 server's `reason` string verbatim. The four strings a student can actually see all come
 from `_compute_status`: `"Voice worker offline."`
-([voice.py:201](apps/api-py/app/routers/voice.py#L201)) — the one that answers the missing
+([voice.py:201](apps/api-py/app/api/legacy/voice_assistant.py#L201)) — the one that answers the missing
 fourth process — plus the two "not configured" strings
-([voice.py:197,199](apps/api-py/app/routers/voice.py#L197)) and the operator's own
+([voice.py:197,199](apps/api-py/app/api/legacy/voice_assistant.py#L197)) and the operator's own
 `VOICE_MAINTENANCE_MESSAGE`. Consequently there is a real gap: readiness is checked *before*
 the microphone prompt and the token minted *after* it, so if the worker goes stale in
 between (up to 30 seconds), the 409/503 detail is discarded and the student is told the
@@ -1672,7 +1672,7 @@ reading; not observed in a browser.
 
 *The merge reorder.* The trailing-append loop iterates **all** local turns, not just trailing
 ones ([chat-voice.service.ts:586-589](apps/web/src/app/core/chat-voice.service.ts#L586)).
-The server caps history at `HISTORY_LIMIT = 40` ([agent.py:55](apps/api-py/app/routers/agent.py#L55)),
+The server caps history at `HISTORY_LIMIT = 40` ([agent.py:55](apps/api-py/app/api/legacy/text_assistant.py#L55)),
 so in a conversation longer than 40 turns the early local turns are absent from the server
 response and get re-pushed onto the end, putting the oldest turns after the newest, and
 growing with each refresh.
@@ -1818,7 +1818,7 @@ runs after this one."*
 9. **a non-string `.id` is stringified**: `_item(id=12345)` yields `turn_id == "12345"`
    ([:157-160](apps/api-py/tests/test_voice_worker_core.py#L157)). That one is easy to skip
    over and should not be — `turn_id` becomes `provider_turn_id` on the wire, the server
-   validates it as `str | None` ([voice.py:393-395](apps/api-py/app/routers/voice.py#L393)),
+   validates it as `str | None` ([voice.py:393-395](apps/api-py/app/api/legacy/voice_assistant.py#L393)),
    and it is the dedup key. An int reaching that field would 422 the POST, and a 422 is
    swallowed by `_post_sync` exactly like a 401.
 
@@ -1870,7 +1870,7 @@ Four things are enforced:
    (whitespace-stripped), and neither `"BASE_INSTRUCTIONS +"` nor `"BASE_INSTRUCTIONS.format"`
    may. *"Assigning the constant straight across is what makes 'no student record reaches the
    model' checkable rather than aspirational."*
-4. **The agent name matches.** It imports `VOICE_AGENT_NAME` from `app.routers.voice` and
+4. **The agent name matches.** It imports `VOICE_AGENT_NAME` from `app.api.legacy.voice_assistant` and
    asserts `f'agent_name="{VOICE_AGENT_NAME}"'` is in the source — the only cross-process
    assertion in the suite, and the only defence against the silent no-agent failure of §1.
 
@@ -1955,36 +1955,36 @@ in §§6 and 9 could not have been caught by the existing suite.
   `test_extract_turn_treats_an_absent_finality_flag_as_final`,
   `test_resolve_conversation_id_survives_a_roomless_context`.
 
-**API-side** (`app/routers/voice.py`, 479 lines — the half of this chapter's backend scope
+**API-side** (`app/api/legacy/voice_assistant.py`, 479 lines — the half of this chapter's backend scope
 that the list above does not cover):
 
 - **Pydantic schemas are `<Subject>In` / `<Subject>Out`**, one pair per endpoint, declared
   immediately above the handler that uses them: `HeartbeatIn`
-  ([voice.py:101](apps/api-py/app/routers/voice.py#L101)), `StatusOut`
-  ([:166](apps/api-py/app/routers/voice.py#L166)), `TokenOut`
-  ([:233](apps/api-py/app/routers/voice.py#L233)), `ConsentIn` / `ConsentOut`
-  ([:328,332](apps/api-py/app/routers/voice.py#L328)), `TranscriptIn` / `TranscriptOut`
-  ([:388,398](apps/api-py/app/routers/voice.py#L388)). This pairing is what makes the
+  ([voice.py:101](apps/api-py/app/api/legacy/voice_assistant.py#L101)), `StatusOut`
+  ([:166](apps/api-py/app/api/legacy/voice_assistant.py#L166)), `TokenOut`
+  ([:233](apps/api-py/app/api/legacy/voice_assistant.py#L233)), `ConsentIn` / `ConsentOut`
+  ([:328,332](apps/api-py/app/api/legacy/voice_assistant.py#L328)), `TranscriptIn` / `TranscriptOut`
+  ([:388,398](apps/api-py/app/api/legacy/voice_assistant.py#L388)). This pairing is what makes the
   cross-process grep work: the worker's JSON keys are literally the `In` model's field
   names, so `conversation_id` or `provider_turn_id` finds both ends of the wire in one
   search across two languages.
-- **Auth dependencies carry the `require_*` prefix**, the same convention `app/identity.py` uses
+- **Auth dependencies carry the `require_*` prefix**, the same convention `app/platform/identity.py` uses
   for user sessions: `require_voice_worker`
-  ([voice.py:65](apps/api-py/app/routers/voice.py#L65)) is the process-to-process twin of
+  ([voice.py:65](apps/api-py/app/api/legacy/voice_assistant.py#L65)) is the process-to-process twin of
   `require_mentor` / `require_director`.
 - **Module-private helpers are `_verb_noun`**, mirroring the worker: `_now`
-  ([:61](apps/api-py/app/routers/voice.py#L61)), `_worker_healthy`
-  ([:174](apps/api-py/app/routers/voice.py#L174)), `_compute_status`
-  ([:184](apps/api-py/app/routers/voice.py#L184)).
+  ([:61](apps/api-py/app/api/legacy/voice_assistant.py#L61)), `_worker_healthy`
+  ([:174](apps/api-py/app/api/legacy/voice_assistant.py#L174)), `_compute_status`
+  ([:184](apps/api-py/app/api/legacy/voice_assistant.py#L184)).
 - **Route handlers are subject-prefixed**, so the function name reads as the resource rather
   than the verb: `voice_heartbeat`, `voice_status`, `voice_token`, `voice_consent`,
   `voice_transcript` — never a bare `post` or `create`.
 - **Validation bounds are `MAX_<THING>_CHARS` module constants**, never inline numbers in the
   `Field(...)`: `MAX_TRANSCRIPT_CHARS`, `MAX_CONVERSATION_ID_CHARS`,
-  `MAX_PROVIDER_TURN_ID_CHARS` ([:383-385](apps/api-py/app/routers/voice.py#L383)).
+  `MAX_PROVIDER_TURN_ID_CHARS` ([:383-385](apps/api-py/app/api/legacy/voice_assistant.py#L383)).
 - **Freshness and lifetime constants name the unit or carry a `timedelta`**:
   `HEARTBEAT_FRESH_SECONDS = 30`, `HEARTBEAT_REAP_AFTER = timedelta(hours=1)`,
-  `TOKEN_TTL = timedelta(minutes=10)` ([:43-51](apps/api-py/app/routers/voice.py#L43)).
+  `TOKEN_TTL = timedelta(minutes=10)` ([:43-51](apps/api-py/app/api/legacy/voice_assistant.py#L43)).
 - **Database constraint names are `uq_<table-singular>_<columns>`**:
   `uq_message_provider_turn` on `(conversation_id, provider_turn_id)`
   ([conversation.py:106-108](apps/api-py/app/models/conversation.py#L106)) — matching the

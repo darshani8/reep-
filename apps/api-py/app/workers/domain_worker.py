@@ -12,7 +12,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..models.redesign import DomainJob, JobStatus
+from ..models.audit import DomainJob, JobStatus
 from .contracts import EventEnvelope, ReceiveTransport
 from .leasing import complete_job, retry_job
 

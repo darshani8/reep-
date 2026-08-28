@@ -50,7 +50,7 @@ from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from .models.mail import MailLog
 from .models.registration import Registration, RegistrationRule, RegistrationStatus
 from .models.upload import Upload, UploadKind, UploadStatus
-from .mailer import deliver_once
+from app.platform.mailer import deliver_once
 from .models.mentor_note import MentorAction, MentorNote
 from .models.mock_test import MockAttempt, MockType
 from .models.placement_criteria import PlacementCriteria
@@ -78,8 +78,8 @@ from .models.user import LoginDay, Mentor, Role, Stage, Student, User
 # half. Imported from there rather than copied because the two checks have to be
 # the SAME check: a pattern this module is willing to write and the public
 # endpoint is not willing to run is a rule that silently matches nobody.
-from .routers.registration import validate_usn_pattern
-from .security import hash_password
+from app.api.account.registration import validate_usn_pattern
+from app.platform.credentials import hash_password
 # Single copy of the KB, shared with the production-safe `python -m app.seed_kb`.
 from .seed_kb import seed_knowledge
 
@@ -531,7 +531,7 @@ def main() -> None:
             # CHECK THE PATTERN BEFORE IT REACHES THE TABLE. `usn_pattern` is a
             # regular expression that POST /register runs — the one endpoint in
             # this app with no cookie, no roster check and no rate limit worth
-            # the name in front of it. app/routers/registration.py names this
+            # the name in front of it. app/api/account/registration.py names this
             # module as rule-write defence #1 and _usn_matcher() as #2, but #1
             # did not exist: the seed could plant exactly the pattern the router
             # then refuses to run, and the only symptom would be one WARNING in

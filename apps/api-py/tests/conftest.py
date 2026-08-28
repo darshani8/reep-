@@ -25,7 +25,7 @@ from sqlalchemy.engine.url import make_url
 from app.db import SessionLocal
 from app.models.conversation import Conversation
 from app.models.user import LoginDay, Role, Student, User
-from app.security import hash_password
+from app.platform.credentials import hash_password
 
 
 # How long the probe below may spend deciding Postgres is not there. Small on
@@ -103,16 +103,16 @@ def client():
 def _fresh_per_process_state():
     """Reset the per-process LLM rate limiter and leaderboard cache per test.
 
-    Both are process-lifetime state by design (see app/ratelimit.py and the
-    leaderboard cache in app/routers/student.py), and the suite drives one
+    Both are process-lifetime state by design (see app/platform/rate_limit.py and the
+    leaderboard cache in app/api/student/self_service.py), and the suite drives one
     seeded student through dozens of /api/agent/chat calls in a single process
     — a limiter that remembered them across tests would fail the suite for
     being thorough, which is how guards get deleted. Reset BEFORE each test so
     every test starts from the documented cold state; nothing is reset after,
     so a test may still assert on the warm state it built itself.
     """
-    from app import ratelimit
-    from app.routers import student as student_router
+    from app.platform import rate_limit as ratelimit
+    from app.api.student import self_service as student_router
 
     ratelimit.reset()
     with student_router._leaderboard_cache_lock:

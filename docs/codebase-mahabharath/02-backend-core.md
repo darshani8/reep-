@@ -11,7 +11,7 @@ sixty-eight — because the conventions here are conventions, not lint rules, an
 in the toolchain will tell you when you have broken one.
 
 **In scope.** `app/db.py` end to end; `app/models/__init__.py` as Alembic's input;
-`app/document_store.py`; `app/mailer.py` and `app/models/mail.py`; `app/resume_pdf.py`;
+`app/platform/document_store.py`; `app/platform/mailer.py` and `app/models/mail.py`; `app/reports/resume_pdf.py`;
 the shape of `app/schemas/` and the inline-schema convention across the nine routers;
 `HTTPException` and status-code semantics; logging; `tests/conftest.py`; and the backend
 naming rulebook.
@@ -189,7 +189,7 @@ the instructive one:
         db.flush()  # hit the unique index now, before doing any real work
 ```
 
-— [apps/api-py/app/mailer.py:57-59](../../apps/api-py/app/mailer.py#L57-L59)
+— [apps/api-py/app/platform/mailer.py:57-59](../../apps/api-py/app/platform/mailer.py#L57-L59)
 
 The flush exists to force a unique-index violation to surface *before* the mail driver is
 invoked. Without it the INSERT would not reach Postgres until commit — that is, after a
@@ -201,10 +201,10 @@ The argument that is *not* passed is `expire_on_commit`, so it keeps its default
 Every attribute of every persistent object is expired at commit, and touching one
 afterwards emits a fresh `SELECT`. That is the whole reason for the recurring
 `db.commit(); db.refresh(obj); return ...` triple — for example
-[apps/api-py/app/mailer.py:75-76](../../apps/api-py/app/mailer.py#L75-L76),
-[apps/api-py/app/routers/leave.py:62-64](../../apps/api-py/app/routers/leave.py#L62-L64)
+[apps/api-py/app/platform/mailer.py:75-76](../../apps/api-py/app/platform/mailer.py#L75-L76),
+[apps/api-py/app/api/mentor/leave.py:62-64](../../apps/api-py/app/api/mentor/leave.py#L62-L64)
 and
-[apps/api-py/app/routers/student.py:1386-1388](../../apps/api-py/app/routers/student.py#L1386-L1388).
+[apps/api-py/app/api/student/self_service.py:1386-1388](../../apps/api-py/app/api/student/self_service.py#L1386-L1388).
 Delete the `refresh` and the response model is built from an object whose attributes are
 either re-loaded by a surprise query at serialisation time or, once `get_db` has closed the
 session, not loadable at all.
@@ -250,18 +250,18 @@ session is in a pending-rollback state and any further use raises `PendingRollba
 So the three places that catch an `IntegrityError` and then keep using the session all call
 `db.rollback()` first, by hand:
 
-- [apps/api-py/app/conversations.py:63-71](../../apps/api-py/app/conversations.py#L63-L71) —
+- [apps/api-py/app/assistant/conversations.py:63-71](../../apps/api-py/app/assistant/conversations.py#L63-L71) —
   the one-live-conversation-per-owner race; rolls back and re-reads the winner's row, and
   re-raises if the re-read finds nothing ("index violated for another reason").
-- [apps/api-py/app/routers/voice.py:460-465](../../apps/api-py/app/routers/voice.py#L460-L465)
+- [apps/api-py/app/api/legacy/voice_assistant.py:460-465](../../apps/api-py/app/api/legacy/voice_assistant.py#L460-L465)
   carries the reasoning — "The read-then-insert above is a CHECK, not a guarantee … Losing
   that race is not an error — the turn IS stored, just by the other writer — so treat it as
   the idempotent no-op the caller expects rather than surfacing a 500 to a worker that did
   nothing wrong" — and
-  [apps/api-py/app/routers/voice.py:466-478](../../apps/api-py/app/routers/voice.py#L466-L478)
+  [apps/api-py/app/api/legacy/voice_assistant.py:466-478](../../apps/api-py/app/api/legacy/voice_assistant.py#L466-L478)
   is the `try: convo.append_message(...) / except IntegrityError: db.rollback(); return
   TranscriptOut(stored=False)` that implements it.
-- [apps/api-py/app/mailer.py:60-64](../../apps/api-py/app/mailer.py#L60-L64) — the
+- [apps/api-py/app/platform/mailer.py:60-64](../../apps/api-py/app/platform/mailer.py#L60-L64) — the
   `dedupe_key` race; rolls back and defers to the other worker's row.
 
 **And it cannot outlive the handler.** The cleanup runs when the handler *returns*, not
@@ -273,20 +273,20 @@ when a streaming response body finishes. `POST /api/agent/chat/stream` returns a
         with SessionLocal() as fresh:
 ```
 
-— [apps/api-py/app/routers/agent.py:249-250](../../apps/api-py/app/routers/agent.py#L249-L250)
+— [apps/api-py/app/api/legacy/text_assistant.py:249-250](../../apps/api-py/app/api/legacy/text_assistant.py#L249-L250)
 
 The handler's docstring states the rule directly: the turn is saved "from a fresh Session,
 since the request's own session is torn down when this handler returns and the generator
 keeps running"
-([apps/api-py/app/routers/agent.py:196-198](../../apps/api-py/app/routers/agent.py#L196-L198)).
+([apps/api-py/app/api/legacy/text_assistant.py:196-198](../../apps/api-py/app/api/legacy/text_assistant.py#L196-L198)).
 The user turn is deliberately persisted *before* returning, on the injected `db`
-([apps/api-py/app/routers/agent.py:211-214](../../apps/api-py/app/routers/agent.py#L211-L214)),
+([apps/api-py/app/api/legacy/text_assistant.py:211-214](../../apps/api-py/app/api/legacy/text_assistant.py#L211-L214)),
 so the conversation id is settled before the generator starts.
 
 `agent.py` is the only router that imports **both** names — `from ..db import SessionLocal,
-get_db` ([apps/api-py/app/routers/agent.py:34](../../apps/api-py/app/routers/agent.py#L34)).
+get_db` ([apps/api-py/app/api/legacy/text_assistant.py:34](../../apps/api-py/app/api/legacy/text_assistant.py#L34)).
 `health.py` is the mirror case: it imports `SessionLocal` and never `get_db`
-([apps/api-py/app/routers/health.py:22](../../apps/api-py/app/routers/health.py#L22)). The
+([apps/api-py/app/api/system/health.py:22](../../apps/api-py/app/api/system/health.py#L22)). The
 remaining seven routers — `auth`, `director`, `leave`, `mentor`, `registration`, `student`,
 `voice` — import `get_db` alone.
 
@@ -304,12 +304,12 @@ entirely inside an ordinary request handler and still opens its own session:
         checks["database"] = "ok"
 ```
 
-— [apps/api-py/app/routers/health.py:44-48](../../apps/api-py/app/routers/health.py#L44-L48)
+— [apps/api-py/app/api/system/health.py:44-48](../../apps/api-py/app/api/system/health.py#L44-L48)
 
 The reason is structural. A readiness probe's job is to *report* which dependency broke —
 the docstring says it reports "each dependency separately so a failing probe says WHICH one
 broke instead of just 'not ready'"
-([apps/api-py/app/routers/health.py:35-36](../../apps/api-py/app/routers/health.py#L35-L36)).
+([apps/api-py/app/api/system/health.py:35-36](../../apps/api-py/app/api/system/health.py#L35-L36)).
 An injected `get_db` session cannot give it that. `SessionLocal()` does not connect
 eagerly, so the failure would surface on the probe's first `execute` — but wrapping it means
 the probe owns the `try`. Owning the connection is what lets the handler turn an
@@ -320,9 +320,9 @@ to take `db: Session = Depends(get_db)` would take the diagnosis away.
 
 The rule's complement is stated in the mailer: "Keep this module free of request/`get_db`
 concerns so a background worker can call it with its own Session"
-([apps/api-py/app/mailer.py:11-12](../../apps/api-py/app/mailer.py#L11-L12)) — non-router
+([apps/api-py/app/platform/mailer.py:11-12](../../apps/api-py/app/platform/mailer.py#L11-L12)) — non-router
 modules take a `Session` as a parameter, they do not reach for `SessionLocal` themselves.
-`app/retention.py`, `app/conversations.py` and `app/mailer.py` all obey this.
+`app/retention.py`, `app/assistant/conversations.py` and `app/platform/mailer.py` all obey this.
 
 > **Why it is like this.** `app/memory.py` survives as a deliberate tombstone whose two
 > public functions raise `NotImplementedError`, and its docstring explains why deleting it
@@ -469,13 +469,13 @@ the naive reading ("nothing at runtime imports `app.models`, so `Base.metadata` 
 incomplete in a live process") is wrong about Python itself.
 
 **Importing a submodule always executes its parent package's `__init__.py` first.** When
-`app/routers/student.py` runs `from ..models.upload import Upload`, Python must first
+`app/api/student/self_service.py` runs `from ..models.upload import Upload`, Python must first
 import the package `app.models` — which executes the 31 lines above — before it can reach
 `app.models.upload`. So every router is an implicit consumer of the registry. Verified by
 execution in `apps/api-py`:
 
 ```
-$ .venv/Scripts/python -c "import sys, app.routers.student; from app.db import Base; \
+$ .venv/Scripts/python -c "import sys, app.api.student.self_service; from app.db import Base; \
     print(len(Base.metadata.tables), len([m for m in sys.modules if m.startswith('app.models.')]))"
 46 31
 ```
@@ -543,7 +543,7 @@ would fail, not merely be redundant. Treat the sentence as historical.
 
 ---
 
-## 3. File storage: `app/document_store.py`
+## 3. File storage: `app/platform/document_store.py`
 
 77 lines, one exception class, and **five functions** — three public (`save_bytes`,
 `read_bytes`, `delete`) and two private (`_sniff`, `_store_dir`) — with no database import
@@ -592,7 +592,7 @@ The docstring states them, and attributes them to the retired Next.js store:
   the store or overwrite another file. Reads reject any separator in the name.
 ```
 
-— [apps/api-py/app/document_store.py:7-11](../../apps/api-py/app/document_store.py#L7-L11)
+— [apps/api-py/app/platform/document_store.py:7-11](../../apps/api-py/app/platform/document_store.py#L7-L11)
 
 ### 3.2 Type detection
 
@@ -604,11 +604,11 @@ _MAGIC: list[tuple[bytes, str, str]] = [
 ]
 ```
 
-— [apps/api-py/app/document_store.py:24-28](../../apps/api-py/app/document_store.py#L24-L28)
+— [apps/api-py/app/platform/document_store.py:24-28](../../apps/api-py/app/platform/document_store.py#L24-L28)
 
 `_sniff` iterates this list and returns on the first `content.startswith(magic)`, raising
 `UploadRejected("Unsupported file type — only PDF, PNG and JPEG are accepted.")` when none
-matches ([apps/api-py/app/document_store.py:37-41](../../apps/api-py/app/document_store.py#L37-L41)).
+matches ([apps/api-py/app/platform/document_store.py:37-41](../../apps/api-py/app/platform/document_store.py#L37-L41)).
 The comment above the table — "Order matters only in that each signature is unambiguous" —
 is accurate: no signature is a prefix of another, so first-match iteration is
 order-independent.
@@ -636,23 +636,23 @@ def save_bytes(content: bytes) -> tuple[str, str, int]:
     return stored_name, mime, len(content)
 ```
 
-— [apps/api-py/app/document_store.py:30](../../apps/api-py/app/document_store.py#L30) and
-[:50-59](../../apps/api-py/app/document_store.py#L50-L59)
+— [apps/api-py/app/platform/document_store.py:30](../../apps/api-py/app/platform/document_store.py#L30) and
+[:50-59](../../apps/api-py/app/platform/document_store.py#L50-L59)
 
 All three rejections raise the single exception type
 `class UploadRejected(ValueError)`
-([apps/api-py/app/document_store.py:33-34](../../apps/api-py/app/document_store.py#L33-L34)). The
+([apps/api-py/app/platform/document_store.py:33-34](../../apps/api-py/app/platform/document_store.py#L33-L34)). The
 order is deliberate: because size precedes sniff, a 200 MB file gets the size message
 rather than a type message. The comparison is `>`, so exactly 10,485,760 bytes is accepted.
 
 Note the register of the messages. They are end-user prose — sentence-cased, em-dashed,
 full-stopped — because they are surfaced verbatim to the student. The router does
 `detail=str(exc)`
-([apps/api-py/app/routers/student.py:1372-1373](../../apps/api-py/app/routers/student.py#L1372-L1373)),
+([apps/api-py/app/api/student/self_service.py:1372-1373](../../apps/api-py/app/api/student/self_service.py#L1372-L1373)),
 and the Angular uploads screen renders the server's detail directly. **Rewording an
 `UploadRejected` message changes user-visible UI copy with no frontend commit.** The
 docstring's "Max 10 MB, matching the UI copy"
-([apps/api-py/app/document_store.py:14](../../apps/api-py/app/document_store.py#L14)) is a real
+([apps/api-py/app/platform/document_store.py:14](../../apps/api-py/app/platform/document_store.py#L14)) is a real
 cross-stack contract held together by nothing but two constants agreeing.
 
 ### 3.4 Where files land
@@ -664,7 +664,7 @@ def _store_dir() -> Path:
     return d
 ```
 
-— [apps/api-py/app/document_store.py:44-47](../../apps/api-py/app/document_store.py#L44-L47)
+— [apps/api-py/app/platform/document_store.py:44-47](../../apps/api-py/app/platform/document_store.py#L44-L47)
 
 This is the only place in the module that forms a path, and it is called fresh on every
 save, read and delete — so the directory is created lazily on first use and silently
@@ -690,7 +690,7 @@ states four separate times, most sharply in the Dockerfile:
 ### 3.5 The security invariants, stated explicitly
 
 1. **The stored type is decided by the bytes, never by the client.** `mime_type` on the row
-   is the sniffed value ([apps/api-py/app/routers/student.py:1382](../../apps/api-py/app/routers/student.py#L1382));
+   is the sniffed value ([apps/api-py/app/api/student/self_service.py:1382](../../apps/api-py/app/api/student/self_service.py#L1382));
    `UploadFile.content_type` is read nowhere. This is the invariant that makes it safe to
    serve files back with `Content-Disposition: inline` and the stored media type, because
    `app/main.py` installs no `X-Content-Type-Options: nosniff` header and only one
@@ -700,14 +700,14 @@ states four separate times, most sharply in the Dockerfile:
    hex characters plus a sniff-derived extension. The client's filename never touches the
    write path; it is kept only as the metadata column `original_name`, set from
    `file.filename or stored_name`
-   ([apps/api-py/app/routers/student.py:1380](../../apps/api-py/app/routers/student.py#L1380)).
+   ([apps/api-py/app/api/student/self_service.py:1380](../../apps/api-py/app/api/student/self_service.py#L1380)).
    Traversal on the *write* path is therefore structurally impossible: there is no user
    input in the path.
 
    **But `original_name` is not inert.** `download_upload` interpolates it, unescaped, into
    a quoted response-header value:
    `headers={"Content-Disposition": f'inline; filename="{upload.original_name}"'}`
-   ([apps/api-py/app/routers/student.py:1411](../../apps/api-py/app/routers/student.py#L1411)).
+   ([apps/api-py/app/api/student/self_service.py:1411](../../apps/api-py/app/api/student/self_service.py#L1411)).
    Nothing sanitises, quotes or ASCII-folds it anywhere between the multipart parse and that
    f-string. Two consequences, both verified by execution against the installed Starlette
    and h11:
@@ -729,12 +729,12 @@ states four separate times, most sharply in the Dockerfile:
 3. **Reads and deletes refuse any separator.** Both `read_bytes` and `delete` carry a
    byte-identical guard, `if not stored_name or "/" in stored_name or "\\" in stored_name
    or ".." in stored_name: raise FileNotFoundError(stored_name)`
-   ([apps/api-py/app/document_store.py:64-65](../../apps/api-py/app/document_store.py#L64-L65),
-   [:75-76](../../apps/api-py/app/document_store.py#L75-L76)). It is duplicated, not factored,
+   ([apps/api-py/app/platform/document_store.py:64-65](../../apps/api-py/app/platform/document_store.py#L64-L65),
+   [:75-76](../../apps/api-py/app/platform/document_store.py#L75-L76)). It is duplicated, not factored,
    so a fix to one must be hand-applied to the other. `read_bytes` additionally requires
    `path.is_file()` before reading; `delete` calls `.unlink(missing_ok=True)` and so
    "silently ignores a file that is already gone"
-   ([apps/api-py/app/document_store.py:73-74](../../apps/api-py/app/document_store.py#L73-L74)).
+   ([apps/api-py/app/platform/document_store.py:73-74](../../apps/api-py/app/platform/document_store.py#L73-L74)).
 4. **Only non-empty PDF/PNG/JPEG at most 10,485,760 bytes is ever stored.**
 5. **A student reads or deletes only their own upload**, enforced one layer up as a `404`
    rather than a `403` — see §7.
@@ -760,14 +760,14 @@ strictly stronger than a substring blacklist.
 | Row exists, bytes absent | `document_store.read_bytes` → `FileNotFoundError` | `404` | `Stored file is missing.` |
 | Caller has no `studentId` in session | `student._require_student` | `403` | `Not a student account.` |
 
-Sources: [apps/api-py/app/routers/student.py:1362-1373](../../apps/api-py/app/routers/student.py#L1362-L1373),
-[:1398-1407](../../apps/api-py/app/routers/student.py#L1398-L1407),
-[:1423-1426](../../apps/api-py/app/routers/student.py#L1423-L1426),
-[apps/api-py/app/routers/student.py:118-122](../../apps/api-py/app/routers/student.py#L118-L122).
+Sources: [apps/api-py/app/api/student/self_service.py:1362-1373](../../apps/api-py/app/api/student/self_service.py#L1362-L1373),
+[:1398-1407](../../apps/api-py/app/api/student/self_service.py#L1398-L1407),
+[:1423-1426](../../apps/api-py/app/api/student/self_service.py#L1423-L1426),
+[apps/api-py/app/api/student/self_service.py:118-122](../../apps/api-py/app/api/student/self_service.py#L118-L122).
 
 One ordering detail in `delete_upload` is stated in its docstring and is the safe one: "the
 stored bytes then the row"
-([apps/api-py/app/routers/student.py:1421-1422](../../apps/api-py/app/routers/student.py#L1421-L1422)).
+([apps/api-py/app/api/student/self_service.py:1421-1422](../../apps/api-py/app/api/student/self_service.py#L1421-L1422)).
 If the commit then fails, the row survives pointing at absent bytes and the download
 degrades to a clean `404`; the reverse order would leave orphan bytes with nothing left in
 the database to identify them.
@@ -782,15 +782,15 @@ temporary directory.
 
 ---
 
-## 4. Mail: `app/mailer.py`
+## 4. Mail: `app/platform/mailer.py`
 
 ### 4.1 There is no transport, and that is the design
 
-`app/mailer.py` is 77 lines and imports nothing that can send an email: no `smtplib`, no
+`app/platform/mailer.py` is 77 lines and imports nothing that can send an email: no `smtplib`, no
 HTTP client, no provider SDK. Its docstring draws the boundary explicitly — "The catalogue
 of messages and the actual SMTP/API driver are out of scope here (no mail transport is
 configured in this environment)"
-([apps/api-py/app/mailer.py:3-5](../../apps/api-py/app/mailer.py#L3-L5)). `config.py`
+([apps/api-py/app/platform/mailer.py:3-5](../../apps/api-py/app/platform/mailer.py#L3-L5)). `config.py`
 declares no `MAIL_*` or `SMTP_*` field of any kind.
 
 The transport is a caller-supplied callable:
@@ -801,12 +801,12 @@ The transport is a caller-supplied callable:
 Driver = Callable[[str, str | None], None]
 ```
 
-— [apps/api-py/app/mailer.py:23-25](../../apps/api-py/app/mailer.py#L23-L25)
+— [apps/api-py/app/platform/mailer.py:23-25](../../apps/api-py/app/platform/mailer.py#L23-L25)
 
 What the module *does* port from the deleted Next.js mailer is the guarantee: "a message
 with a given `dedupe_key` is delivered at most once, no matter how many times the sending
 job is re-run or how many workers race. The unique index on `dedupe_key` is the arbiter"
-([apps/api-py/app/mailer.py:5-9](../../apps/api-py/app/mailer.py#L5-L9)).
+([apps/api-py/app/platform/mailer.py:5-9](../../apps/api-py/app/platform/mailer.py#L5-L9)).
 
 ### 4.2 `deliver_once`, step by step
 
@@ -825,13 +825,13 @@ def deliver_once(
 ) -> MailLog:
 ```
 
-— [apps/api-py/app/mailer.py:28-37](../../apps/api-py/app/mailer.py#L28-L37)
+— [apps/api-py/app/platform/mailer.py:28-37](../../apps/api-py/app/platform/mailer.py#L28-L37)
 
 That bare `*` is a safety feature: `recipient` and `dedupe_key` are both unvalidated `str`,
 and transposing them positionally would key the ledger on the address and address the mail
 to the key — silently defeating the whole guarantee.
 
-The body ([apps/api-py/app/mailer.py:46-77](../../apps/api-py/app/mailer.py#L46-L77)) has
+The body ([apps/api-py/app/platform/mailer.py:46-77](../../apps/api-py/app/platform/mailer.py#L46-L77)) has
 four exits, and the branching is easier to see than to read:
 
 ```mermaid
@@ -886,7 +886,7 @@ hit, not on the race, not on a driver exception. The record *is* the `MailLog` r
 no ellipsis, no marker — and the number is unexplained.
 
 The only reader is `GET /api/director/mail`
-([apps/api-py/app/routers/director.py:169-193](../../apps/api-py/app/routers/director.py#L169-L193)),
+([apps/api-py/app/api/director/programme_dashboard.py:169-193](../../apps/api-py/app/api/director/programme_dashboard.py#L169-L193)),
 which returns the 100 most recent rows newest-first behind `require_director`, with the
 `error` string projected through `MailLogOut`. Its docstring is carefully worded: "Ops audit
 view: what the mailer was asked to send, most recent first." *Asked to send*, not *sent* —
@@ -963,7 +963,7 @@ sessions), and nothing asserts that a *successful* driver was actually invoked �
 
 ---
 
-## 5. Resume PDF rendering: `app/resume_pdf.py`
+## 5. Resume PDF rendering: `app/reports/resume_pdf.py`
 
 107 lines, ReportLab only, and a standing instruction in the docstring:
 
@@ -974,12 +974,12 @@ and streamed straight back to the authenticated owner. Keep it that way; do not
 add any remote call to this module.
 ```
 
-— [apps/api-py/app/resume_pdf.py:3-6](../../apps/api-py/app/resume_pdf.py#L3-L6)
+— [apps/api-py/app/reports/resume_pdf.py:3-6](../../apps/api-py/app/reports/resume_pdf.py#L3-L6)
 
 That is a Rule 1 statement (Chapter 1 §6): the module is *outside* the egress gate precisely
 because it cannot leave the machine, and the endpoint's docstring repeats the claim —
 "Local render (no model, no network), so the egress gate does not apply — but ownership does"
-([apps/api-py/app/routers/student.py:1047-1049](../../apps/api-py/app/routers/student.py#L1047-L1049)).
+([apps/api-py/app/api/student/self_service.py:1047-1049](../../apps/api-py/app/api/student/self_service.py#L1047-L1049)).
 Add one HTTP call here and both claims become false on a path that never calls
 `student_data_egress_allowed`.
 
@@ -987,7 +987,7 @@ Add one HTTP call here and both claims become false on a path that never calls
 
 Imports are drawn entirely from ReportLab's high-level *platypus* flowable layer —
 `HRFlowable, ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer`
-([apps/api-py/app/resume_pdf.py:21](../../apps/api-py/app/resume_pdf.py#L21)) — never
+([apps/api-py/app/reports/resume_pdf.py:21](../../apps/api-py/app/reports/resume_pdf.py#L21)) — never
 `reportlab.pdfgen.canvas`. A *flowable* is a self-contained piece of content that knows how
 to draw and measure itself; you describe a *story*, a flat list of flowables, and the
 document template lays it out and paginates. There is no coordinate arithmetic anywhere.
@@ -995,7 +995,7 @@ document template lays it out and paginates. There is no coordinate arithmetic a
 The input grammar is fixed by the docstring: "`# Name`, `## Section`, `- bullet`, and plain
 paragraphs, with simple `**bold**` inline emphasis. Anything richer degrades gracefully to
 plain text."
-([apps/api-py/app/resume_pdf.py:8-10](../../apps/api-py/app/resume_pdf.py#L8-L10)).
+([apps/api-py/app/reports/resume_pdf.py:8-10](../../apps/api-py/app/reports/resume_pdf.py#L8-L10)).
 
 ### 5.2 Escaping — the whole injection defence, in two lines
 
@@ -1008,7 +1008,7 @@ def _inline(md: str) -> str:
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", escaped)
 ```
 
-— [apps/api-py/app/resume_pdf.py:24-29](../../apps/api-py/app/resume_pdf.py#L24-L29)
+— [apps/api-py/app/reports/resume_pdf.py:24-29](../../apps/api-py/app/reports/resume_pdf.py#L24-L29)
 
 `Paragraph` does not take plain text: it parses a small HTML-like markup language, so `<b>`
 in its input is a tag, not characters. The **order** here is the mechanism. `html.escape`
@@ -1026,7 +1026,7 @@ of the render loop routes its text through it — lines 77, 82, 84, 87 and 91.
 
 `_styles()` derives four `ParagraphStyle`s from `getSampleStyleSheet()` and returns them
 keyed by short role names
-([apps/api-py/app/resume_pdf.py:32-48](../../apps/api-py/app/resume_pdf.py#L32-L48)):
+([apps/api-py/app/reports/resume_pdf.py:32-48](../../apps/api-py/app/reports/resume_pdf.py#L32-L48)):
 
 | Key | Style id | Parent | Notable |
 |---|---|---|---|
@@ -1041,15 +1041,15 @@ classic ReportLab bug where a mutated module-level stylesheet leaks between rend
 ### 5.4 Composition: one pass, one bullet accumulator
 
 `render_resume_pdf(markdown: str, *, fallback_title: str = "Resume") -> bytes`
-([apps/api-py/app/resume_pdf.py:51](../../apps/api-py/app/resume_pdf.py#L51)) builds a
+([apps/api-py/app/reports/resume_pdf.py:51](../../apps/api-py/app/reports/resume_pdf.py#L51)) builds a
 `story` list plus a `pending_bullets` buffer, with an inner closure `flush_bullets()` that
 emits one `ListFlowable` per bullet group and then `.clear()`s the buffer — mutation, so no
 `nonlocal` is needed
-([apps/api-py/app/resume_pdf.py:57-67](../../apps/api-py/app/resume_pdf.py#L57-L67)).
+([apps/api-py/app/reports/resume_pdf.py:57-67](../../apps/api-py/app/reports/resume_pdf.py#L57-L67)).
 
 The loop over `(markdown or "").splitlines()` — the `or ""` is what makes `None` safe —
 dispatches on literal prefixes in this order
-([apps/api-py/app/resume_pdf.py:70-88](../../apps/api-py/app/resume_pdf.py#L70-L88)):
+([apps/api-py/app/reports/resume_pdf.py:70-88](../../apps/api-py/app/reports/resume_pdf.py#L70-L88)):
 
 - blank line → `flush_bullets()`, continue. A blank line *ends* a bullet group, so two
   blank-separated groups become two separate `ListFlowable`s.
@@ -1078,7 +1078,7 @@ is why the AI-polish path is the one most likely to produce an ugly export.
         story.append(Spacer(1, 4 * mm))
 ```
 
-— [apps/api-py/app/resume_pdf.py:90-94](../../apps/api-py/app/resume_pdf.py#L90-L94)
+— [apps/api-py/app/reports/resume_pdf.py:90-94](../../apps/api-py/app/reports/resume_pdf.py#L90-L94)
 
 ReportLab will happily build an empty story — `SimpleDocTemplate(io.BytesIO()).build([])`
 returns normally and produces a valid 931-byte PDF (verified by execution with the pinned
@@ -1113,7 +1113,7 @@ flowables (the `Paragraph` and the `HRFlowable`).
     return buf.getvalue()
 ```
 
-— [apps/api-py/app/resume_pdf.py:96-107](../../apps/api-py/app/resume_pdf.py#L96-L107)
+— [apps/api-py/app/reports/resume_pdf.py:96-107](../../apps/api-py/app/reports/resume_pdf.py#L96-L107)
 
 A4 rather than Letter, correct for the Indian audience; with 18 mm side margins the text
 width is 174 mm. `title=` sets the PDF `/Title` metadata, so an inline browser preview shows
@@ -1138,7 +1138,7 @@ What breaks is its single caller:
     filename = f"resume-v{resume.version}.pdf"
 ```
 
-— [apps/api-py/app/routers/student.py:1054-1055](../../apps/api-py/app/routers/student.py#L1054-L1055)
+— [apps/api-py/app/api/student/self_service.py:1054-1055](../../apps/api-py/app/api/student/self_service.py#L1054-L1055)
 
 Three attributes — `markdown`, `title`, `version` — read as plain attributes. Renaming any
 of them yields an `AttributeError` → `500` at runtime, not at import or build, and no test
@@ -1146,9 +1146,9 @@ would catch it: the three PDF tests never construct a `Resume`.
 
 The download filename here is **server-generated** (`resume-v3.pdf`) and interpolated into
 `Content-Disposition: inline; filename="{filename}"`
-([apps/api-py/app/routers/student.py:1059](../../apps/api-py/app/routers/student.py#L1059)),
+([apps/api-py/app/api/student/self_service.py:1059](../../apps/api-py/app/api/student/self_service.py#L1059)),
 so the header value is always ASCII and always well-formed. The uploads download at
-[apps/api-py/app/routers/student.py:1411](../../apps/api-py/app/routers/student.py#L1411)
+[apps/api-py/app/api/student/self_service.py:1411](../../apps/api-py/app/api/student/self_service.py#L1411)
 uses the identical f-string shape with `upload.original_name` — a client-supplied string —
 and that asymmetry is the one place in the upload path where client-controlled text reaches
 a response header. §3.5 invariant 2 finishes that thought: it is unescaped, a quote in the
@@ -1156,11 +1156,11 @@ filename malforms the header, and a non-Latin-1 filename `500`s the download. Tw
 one line apart in shape, and only one of them is safe by construction.
 
 The deeper coupling is one level further out, in `_compose_resume_markdown`
-([apps/api-py/app/routers/student.py:901-915](../../apps/api-py/app/routers/student.py#L901-L915)),
+([apps/api-py/app/api/student/self_service.py:901-915](../../apps/api-py/app/api/student/self_service.py#L901-L915)),
 which reads `StudentProfile.career_summary/email/phone/linkedin_url/city`, skill names,
 the latest CGPA and each academic qualification. Its output uses only the four constructs
 the renderer understands — and its `**Contact:**` line
-([apps/api-py/app/routers/student.py:909](../../apps/api-py/app/routers/student.py#L909)) is
+([apps/api-py/app/api/student/self_service.py:909](../../apps/api-py/app/api/student/self_service.py#L909)) is
 precisely why `_inline`'s bold substitution exists.
 
 ### 5.8 What `tests/test_resume_pdf.py` pins
@@ -1219,13 +1219,13 @@ snake_case. The camelCase is not drift; it is a frozen wire contract with
 `apps/web/src/app/core/session.ts`'s `SessionPayload`, and it is the same dict the JWT is
 minted from. Renaming `userId` to `user_id` breaks the Angular session type and login for
 the whole app. Both models are imported by exactly one module,
-`app/routers/auth.py`.
+`app/api/account/sign_in.py`.
 
 ### 6.2 The rule: shared only when an outside contract dictates the field names
 
 Counting `class X(BaseModel)` declarations: `student.py` 44, `agent.py` 12 (plus the single
 subclass `class AskOut(AssistantResponse)`
-[apps/api-py/app/routers/agent.py:99](../../apps/api-py/app/routers/agent.py#L99)),
+[apps/api-py/app/api/legacy/text_assistant.py:99](../../apps/api-py/app/api/legacy/text_assistant.py#L99)),
 `mentor.py` 11, `director.py` 7, `voice.py` 7, `registration.py` 4, `leave.py` 3, `auth.py`
 0, `health.py` 0 — **88 inline in routers against 2 in `app/schemas/`.**
 
@@ -1233,14 +1233,14 @@ So the observable rule is: **a model lives in `app/schemas/` only when its field
 dictated by something outside the router.** Everything else is declared inline in the router
 file, immediately above the endpoint that uses it, and is never imported across module
 boundaries. Cross-cutting behaviour is shared as *functions*, not schemas — `require_mentor`
-and `require_director` live in `routers/mentor.py` and are imported by `director.py`,
+and `require_director` live in `api/mentor/mentees.py` and are imported by `director.py`,
 `leave.py` and `registration.py`.
 
 A consequence of declaring inline is that duplicate class names coexist harmlessly at the
 Python level: `class DecisionIn(BaseModel)` exists independently in `mentor.py` and
 `registration.py`, and `leave.py` has its own `LeaveDecisionIn`, each with the same inline
 comment `# "APPROVE" | "REJECT"`
-([apps/api-py/app/routers/leave.py:101-103](../../apps/api-py/app/routers/leave.py#L101-L103)).
+([apps/api-py/app/api/mentor/leave.py:101-103](../../apps/api-py/app/api/mentor/leave.py#L101-L103)).
 
 ### 6.3 The v2 idioms in use — and the much larger set that is absent
 
@@ -1248,18 +1248,18 @@ comment `# "APPROVE" | "REJECT"`
 
 - `Field(...)` constraints, so validation and policy cannot drift:
   `reason: str = Field(min_length=1, max_length=2000)`
-  ([apps/api-py/app/routers/leave.py:27](../../apps/api-py/app/routers/leave.py#L27)).
+  ([apps/api-py/app/api/mentor/leave.py:27](../../apps/api-py/app/api/mentor/leave.py#L27)).
   Where a cap is also a policy number, the constraint references the shared constant rather
   than a literal — `text: str = Field(max_length=MAX_TRANSCRIPT_CHARS)`
-  ([apps/api-py/app/routers/voice.py:391](../../apps/api-py/app/routers/voice.py#L391),
+  ([apps/api-py/app/api/legacy/voice_assistant.py:391](../../apps/api-py/app/api/legacy/voice_assistant.py#L391),
   with `MAX_TRANSCRIPT_CHARS = 4000` at
-  [:383](../../apps/api-py/app/routers/voice.py#L383)).
+  [:383](../../apps/api-py/app/api/legacy/voice_assistant.py#L383)).
 - `Literal` unions for closed string sets — `speaker: Literal["user", "assistant"]`
-  ([apps/api-py/app/routers/voice.py:390](../../apps/api-py/app/routers/voice.py#L390)).
+  ([apps/api-py/app/api/legacy/voice_assistant.py:390](../../apps/api-py/app/api/legacy/voice_assistant.py#L390)).
 - A Python enum used directly as a field type, letting Pydantic do the membership check.
 - Model inheritance, used exactly once: `class AskOut(AssistantResponse)`.
 - Mutable literal defaults (`actions: list[ActionOut] = []`,
-  [apps/api-py/app/routers/agent.py:94](../../apps/api-py/app/routers/agent.py#L94)), safe
+  [apps/api-py/app/api/legacy/text_assistant.py:94](../../apps/api-py/app/api/legacy/text_assistant.py#L94)), safe
   in Pydantic because they are deep-copied per instance.
 
 **Absent**, verified by grep across all of `apps/api-py/app/`: zero `ConfigDict` or
@@ -1288,7 +1288,7 @@ def _leave_out(lr: LeaveRequest) -> LeaveOut:
     )
 ```
 
-— [apps/api-py/app/routers/leave.py:38-45](../../apps/api-py/app/routers/leave.py#L38-L45)
+— [apps/api-py/app/api/mentor/leave.py:38-45](../../apps/api-py/app/api/mentor/leave.py#L38-L45)
 
 Note `lr.status.value`. **Enums are flattened to plain strings at exactly this boundary**,
 which is why response models declare `status: str` rather than the enum type and why **no
@@ -1297,15 +1297,15 @@ side: `app.openapi()` carries exactly two enum schemas in `components.schemas` �
 `DegreeLevel` (`['UG','PG']`) and `FeedbackRating` (`['HELPFUL','NOT_HELPFUL','REPORT']`) —
 both arriving through the `In` models named in §6.3,
 `RegisterIn.degree_level: DegreeLevel = DegreeLevel.PG`
-([apps/api-py/app/routers/registration.py:71](../../apps/api-py/app/routers/registration.py#L71))
+([apps/api-py/app/api/account/registration.py:71](../../apps/api-py/app/api/account/registration.py#L71))
 and `FeedbackIn.rating: FeedbackRating`
-([apps/api-py/app/routers/agent.py:438](../../apps/api-py/app/routers/agent.py#L438)). The
+([apps/api-py/app/api/legacy/text_assistant.py:438](../../apps/api-py/app/api/legacy/text_assistant.py#L438)). The
 asymmetry is the point: an enum on the way *in* buys a free membership check, while an enum
 on the way *out* would publish an internal vocabulary as a contract. The same flattening
 appears in
 `_upload_row` — `kind=u.kind.value`, `status=u.status.value`
-([apps/api-py/app/routers/student.py:1338](../../apps/api-py/app/routers/student.py#L1338),
-[:1344](../../apps/api-py/app/routers/student.py#L1344)).
+([apps/api-py/app/api/student/self_service.py:1338](../../apps/api-py/app/api/student/self_service.py#L1338),
+[:1344](../../apps/api-py/app/api/student/self_service.py#L1344)).
 
 Two invariants fall out, and they cut in opposite directions. **Adding a column to a
 SQLAlchemy model adds nothing to the API** — it appears nowhere until a builder is edited.
@@ -1313,9 +1313,9 @@ And **adding a *required* field to an `Out` model without updating its builder r
 `ValidationError`** — but not, as one might assume, while FastAPI serialises the response.
 Because these responses are hand-built, the error fires at the point the builder
 *constructs* the model, inside `_leave_out` at
-[apps/api-py/app/routers/leave.py:39](../../apps/api-py/app/routers/leave.py#L39), which is
+[apps/api-py/app/api/mentor/leave.py:39](../../apps/api-py/app/api/mentor/leave.py#L39), which is
 in the handler body. In `submit_leave` that call sits after `db.commit()`
-([apps/api-py/app/routers/leave.py:62-64](../../apps/api-py/app/routers/leave.py#L62-L64)),
+([apps/api-py/app/api/mentor/leave.py:62-64](../../apps/api-py/app/api/mentor/leave.py#L62-L64)),
 so the outcome is still a `500` at runtime *after* the request's database work has already
 committed — and never an error at import or type-check time. A field given a default does
 not fire at all; it silently ships the default.
@@ -1374,33 +1374,33 @@ Counts are occurrences of `status.HTTP_*` across `app/`:
 **`404` doubles as the authorisation-denial code** wherever admitting existence would leak
 information. `_assert_can_access_student` returns `404 "Student not in your mentor group."`
 for a student that certainly exists
-([apps/api-py/app/routers/mentor.py:80-84](../../apps/api-py/app/routers/mentor.py#L80-L84));
+([apps/api-py/app/api/mentor/mentees.py:80-84](../../apps/api-py/app/api/mentor/mentees.py#L80-L84));
 the student router uses the compound `if X is None or X.student_id != student_id:` → `404`
 at six separate sites, so absence and non-ownership are indistinguishable; and the agent
 router's feedback path carries the reasoning as a comment — "No existence leak: not-found and
 not-owned look the same."
-([apps/api-py/app/routers/agent.py:462](../../apps/api-py/app/routers/agent.py#L462)). A
+([apps/api-py/app/api/legacy/text_assistant.py:462](../../apps/api-py/app/api/legacy/text_assistant.py#L462)). A
 `403` there would confirm that a given id is real and let a signed-in user enumerate other
 users' objects. `403` is reserved strictly for refusals where the caller's own role is the
 only fact disclosed: `"Staff access required."`, `"Director access required."`
-([apps/api-py/app/routers/mentor.py:31-34](../../apps/api-py/app/routers/mentor.py#L31-L34),
-[:233-238](../../apps/api-py/app/routers/mentor.py#L233-L238)),
+([apps/api-py/app/api/mentor/mentees.py:31-34](../../apps/api-py/app/api/mentor/mentees.py#L31-L34),
+[:233-238](../../apps/api-py/app/api/mentor/mentees.py#L233-L238)),
 `"Not a student account."`
-([apps/api-py/app/routers/student.py:118-122](../../apps/api-py/app/routers/student.py#L118-L122)).
+([apps/api-py/app/api/student/self_service.py:118-122](../../apps/api-py/app/api/student/self_service.py#L118-L122)).
 
 `422` for domain validation comes in two constructs, and it is worth knowing which one you
 are looking at. The first is **parse, catch `ValueError`, raise** — used wherever the value
 has a real enum behind it, at seven of the fifteen
 `status.HTTP_422_UNPROCESSABLE_ENTITY` sites in `app/`
-([apps/api-py/app/routers/director.py:250-261](../../apps/api-py/app/routers/director.py#L250-L261)
+([apps/api-py/app/api/director/programme_dashboard.py:250-261](../../apps/api-py/app/api/director/programme_dashboard.py#L250-L261)
 — two in a row, `AlertRuleKey` then `AlertSeverity` —
-[mentor.py:142-147](../../apps/api-py/app/routers/mentor.py#L142-L147),
-[student.py:709-717](../../apps/api-py/app/routers/student.py#L709-L717),
-[:877-882](../../apps/api-py/app/routers/student.py#L877-L882),
-[:1228-1234](../../apps/api-py/app/routers/student.py#L1228-L1234),
-[:1363-1368](../../apps/api-py/app/routers/student.py#L1363-L1368)), plus one structurally
+[mentor.py:142-147](../../apps/api-py/app/api/mentor/mentees.py#L142-L147),
+[student.py:709-717](../../apps/api-py/app/api/student/self_service.py#L709-L717),
+[:877-882](../../apps/api-py/app/api/student/self_service.py#L877-L882),
+[:1228-1234](../../apps/api-py/app/api/student/self_service.py#L1228-L1234),
+[:1363-1368](../../apps/api-py/app/api/student/self_service.py#L1363-L1368)), plus one structurally
 identical site that catches `UploadRejected` instead
-([student.py:1370-1373](../../apps/api-py/app/routers/student.py#L1370-L1373)):
+([student.py:1370-1373](../../apps/api-py/app/api/student/self_service.py#L1370-L1373)):
 
 ```python
     try:
@@ -1411,29 +1411,29 @@ identical site that catches `UploadRejected` instead
         )
 ```
 
-— [apps/api-py/app/routers/student.py:1363-1368](../../apps/api-py/app/routers/student.py#L1363-L1368)
+— [apps/api-py/app/api/student/self_service.py:1363-1368](../../apps/api-py/app/api/student/self_service.py#L1363-L1368)
 
 The second construct is a **plain membership or format test** that constructs no enum and
 catches nothing, at the remaining seven sites. Two shapes recur: a guard clause
 (`if decision not in ("APPROVE", "REJECT"):` —
-[apps/api-py/app/routers/leave.py:123-127](../../apps/api-py/app/routers/leave.py#L123-L127);
+[apps/api-py/app/api/mentor/leave.py:123-127](../../apps/api-py/app/api/mentor/leave.py#L123-L127);
 `if board not in _BOARDS:` —
-[student.py:1700-1703](../../apps/api-py/app/routers/student.py#L1700-L1703); `if "@" not in
+[student.py:1700-1703](../../apps/api-py/app/api/student/self_service.py#L1700-L1703); `if "@" not in
 email or …` —
-[registration.py:114-116](../../apps/api-py/app/routers/registration.py#L114-L116)); and an
+[registration.py:114-116](../../apps/api-py/app/api/account/registration.py#L114-L116)); and an
 `if`/`elif`/`else` over decision strings where the `422` is the `else` arm and each accepted
 branch *assigns* the enum rather than parsing it
-([mentor.py:301-308](../../apps/api-py/app/routers/mentor.py#L301-L308),
-[:457-464](../../apps/api-py/app/routers/mentor.py#L457-L464),
-[:581-586](../../apps/api-py/app/routers/mentor.py#L581-L586),
-[registration.py:195-202](../../apps/api-py/app/routers/registration.py#L195-L202)). The
+([mentor.py:301-308](../../apps/api-py/app/api/mentor/mentees.py#L301-L308),
+[:457-464](../../apps/api-py/app/api/mentor/mentees.py#L457-L464),
+[:581-586](../../apps/api-py/app/api/mentor/mentees.py#L581-L586),
+[registration.py:195-202](../../apps/api-py/app/api/account/registration.py#L195-L202)). The
 split is not arbitrary: the parse form is available only where the accepted strings *are*
 the enum's members, and `"APPROVE"`/`"REJECT"` are not — `OfferStatus` spells them
 `APPROVED`/`REJECTED`, and `mentor.py:457-464` accepts five spellings
 (`VERIFY`/`VERIFIED`/`APPROVE`, `REJECT`/`REJECTED`) for two outcomes.
 
 `decide_leave` is the single best sample of the whole vocabulary, hitting four codes in one
-handler ([apps/api-py/app/routers/leave.py:106-163](../../apps/api-py/app/routers/leave.py#L106-L163)):
+handler ([apps/api-py/app/api/mentor/leave.py:106-163](../../apps/api-py/app/api/mentor/leave.py#L106-L163)):
 `404` for an unknown id; `400 "You cannot approve your own leave."`; `422 "decision must be
 APPROVE or REJECT."`; `409 "You gave the first signature; a different approver must give the
 second."`; and `409 f"Leave is {lr.status.value}; no decision possible."`.
@@ -1455,7 +1455,7 @@ configured."` The login failure is deliberately one message for both branches �
 which of email or password was wrong.
 
 Two documented exceptions to "never forward an internal string". `detail=str(exc)` at
-[apps/api-py/app/routers/student.py:1373](../../apps/api-py/app/routers/student.py#L1373)
+[apps/api-py/app/api/student/self_service.py:1373](../../apps/api-py/app/api/student/self_service.py#L1373)
 forwards `UploadRejected`'s own message — safe, because those three strings were written as
 user-facing sentences in the first place (§3.3). And the voice `/token` endpoint forwards a
 computed status reason, which is the one place a detail names environment variables to a
@@ -1471,12 +1471,12 @@ swallow:
 
 | Site | Comment |
 |---|---|
-| [app/mailer.py:71](../../apps/api-py/app/mailer.py#L71) | `# driver failure — recorded, never raised to the caller` |
-| [app/routers/agent.py:171](../../apps/api-py/app/routers/agent.py#L171) | `# network / provider / quota — never 500 the UI, never leak` |
-| [app/routers/agent.py:234](../../apps/api-py/app/routers/agent.py#L234) | `# provider/network/quota — reported in-band, never leaked` |
-| [app/routers/health.py:49](../../apps/api-py/app/routers/health.py#L49) | `# noqa: BLE001 — the reason is the useful part` |
+| [app/platform/mailer.py:71](../../apps/api-py/app/platform/mailer.py#L71) | `# driver failure — recorded, never raised to the caller` |
+| [app/api/legacy/text_assistant.py:171](../../apps/api-py/app/api/legacy/text_assistant.py#L171) | `# network / provider / quota — never 500 the UI, never leak` |
+| [app/api/legacy/text_assistant.py:234](../../apps/api-py/app/api/legacy/text_assistant.py#L234) | `# provider/network/quota — reported in-band, never leaked` |
+| [app/api/system/health.py:49](../../apps/api-py/app/api/system/health.py#L49) | `# noqa: BLE001 — the reason is the useful part` |
 | [app/ai/orchestrator.py:236](../../apps/api-py/app/ai/orchestrator.py#L236) | `# a tool/DB fault must never 500 the assistant` |
-| [app/routers/student.py:974](../../apps/api-py/app/routers/student.py#L974) | `# keep the deterministic draft on any failure` |
+| [app/api/student/self_service.py:974](../../apps/api-py/app/api/student/self_service.py#L974) | `# keep the deterministic draft on any failure` |
 
 The other four are all in the AI layer and carry no comment —
 [app/ai/embeddings.py:97](../../apps/api-py/app/ai/embeddings.py#L97),
@@ -1498,7 +1498,7 @@ deterministic fallback value or a recorded row, and none leaks the cause to the 
             yield f"data: {json.dumps({'error': FRIENDLY_ERROR})}\n\n"
 ```
 
-— [apps/api-py/app/routers/agent.py:234-237](../../apps/api-py/app/routers/agent.py#L234-L237)
+— [apps/api-py/app/api/legacy/text_assistant.py:234-237](../../apps/api-py/app/api/legacy/text_assistant.py#L234-L237)
 
 The streaming variant *cannot* raise — the response headers are already sent — so it must
 yield an error frame instead. The readiness probe's is the sharpest: it catches everything
@@ -1509,7 +1509,7 @@ and reports only the exception's **type name**, never its message.
         checks["database"] = f"error: {type(exc).__name__}"
 ```
 
-— [apps/api-py/app/routers/health.py:49-50](../../apps/api-py/app/routers/health.py#L49-L50)
+— [apps/api-py/app/api/system/health.py:49-50](../../apps/api-py/app/api/system/health.py#L49-L50)
 
 A psycopg connection error embeds host, user and database name, and `/ready` is
 unauthenticated. Note that this handler is standing on the self-opened session of §1.4 —
@@ -1523,7 +1523,7 @@ Four loggers exist in the whole backend, and there are only two levels in practi
 
 | Logger | Bound name | Module | Purpose |
 |---|---|---|---|
-| `logging.getLogger(__name__)` | `log` | [apps/api-py/app/routers/agent.py:42](../../apps/api-py/app/routers/agent.py#L42) | provider failures on `/chat` and `/chat/stream` |
+| `logging.getLogger(__name__)` | `log` | [apps/api-py/app/api/legacy/text_assistant.py:42](../../apps/api-py/app/api/legacy/text_assistant.py#L42) | provider failures on `/chat` and `/chat/stream` |
 | `logging.getLogger(__name__)` | `log` | [apps/api-py/app/ai/orchestrator.py:51](../../apps/api-py/app/ai/orchestrator.py#L51) | orchestrator tool/DB faults, plus policy-grounding, general-assistant and optional-polish LLM failures |
 | `logging.getLogger(__name__)` | `log` | [apps/api-py/app/ai/embeddings.py:31](../../apps/api-py/app/ai/embeddings.py#L31) | embedding-call failures and a mid-batch re-embed degradation |
 | `logging.getLogger("reep.startup")` | `log` | [apps/api-py/app/main.py:28](../../apps/api-py/app/main.py#L28) | the single lifespan warning |
@@ -1770,7 +1770,7 @@ dissects at length in §4.5 — puts conftest **last**:
 import uuid
 
 from app.db import SessionLocal
-from app.mailer import deliver_once
+from app.platform.mailer import deliver_once
 from app.models.mail import MailStatus
 
 from conftest import requires_db
@@ -1791,8 +1791,8 @@ book's conventions; this is the backend's contribution, in context.
 
 | Rule | Example |
 |---|---|
-| Service modules at `app/` top level are flat, `lower_snake`, and name the **artefact**, not the layer. There is no `services/` or `utils/` package | `app/document_store.py`, `app/mailer.py`, `app/resume_pdf.py`, `app/retention.py`, `app/redaction.py`, `app/conversations.py` |
-| Router modules are singular and named for the **audience or domain noun** — never `*_router` or `*_api` | `app/routers/student.py`, `mentor.py`, `director.py`, `leave.py`, `voice.py`, `health.py` |
+| Service modules at `app/` top level are flat, `lower_snake`, and name the **artefact**, not the layer. There is no `services/` or `utils/` package | `app/platform/document_store.py`, `app/platform/mailer.py`, `app/reports/resume_pdf.py`, `app/retention.py`, `app/platform/redaction.py`, `app/assistant/conversations.py` |
+| Router modules are singular and named for the **audience or domain noun** — never `*_router` or `*_api` | `app/api/student/self_service.py`, `mentor.py`, `director.py`, `leave.py`, `voice.py`, `health.py` |
 | Model modules are `snake_case` nouns, **singular with two exceptions**, one concept per file, matching the registry import line exactly | `app/models/user.py`, `academic_history.py`, `job_import_run.py`, `voice_worker.py`; the exceptions are `academics.py` and `placement_criteria.py` (`criteria` is the plural of *criterion*, and the mapped class is `PlacementCriteria`) — the full list is quoted in §2 |
 | A package `__init__.py` is either a side-effect registry or empty — never a re-export façade | `app/models/__init__.py` (31 imports) vs `app/routers/__init__.py` and `app/schemas/__init__.py` (both **0 bytes**) |
 
@@ -1808,14 +1808,14 @@ produces no warning.
 | Rule | Example |
 |---|---|
 | Public functions are unprefixed; module-private helpers take a **single leading underscore**, and the convention is honoured with one exception — `app/ai/adk.py:14` imports the underscore-prefixed `_PROVIDERS` from `app/ai/llm.py:61` (used at `adk.py:24`), the only cross-module import in `app/` that targets a private name | public: `save_bytes`, `read_bytes`, `delete`, `deliver_once`, `render_resume_pdf`, `get_db`, `purge_expired`, `redact_pii` · private: `_sniff`, `_store_dir`, `_inline`, `_styles`, `_uuid`, `_utcnow`, `_leave_out` |
-| **Dependency providers — anything that appears inside `Depends(...)` — take a `get_` prefix and are public (unprefixed) names** | `get_db` ([apps/api-py/app/db.py:24](../../apps/api-py/app/db.py#L24)), `get_current_session` (every router signature, e.g. [apps/api-py/app/routers/leave.py:51](../../apps/api-py/app/routers/leave.py#L51)); the same prefix carries to the get-or-create idiom `convo.get_or_create(db, session["userId"], Role(session["role"]))` ([apps/api-py/app/routers/agent.py:211](../../apps/api-py/app/routers/agent.py#L211)) |
+| **Dependency providers — anything that appears inside `Depends(...)` — take a `get_` prefix and are public (unprefixed) names** | `get_db` ([apps/api-py/app/db.py:24](../../apps/api-py/app/db.py#L24)), `get_current_session` (every router signature, e.g. [apps/api-py/app/api/mentor/leave.py:51](../../apps/api-py/app/api/mentor/leave.py#L51)); the same prefix carries to the get-or-create idiom `convo.get_or_create(db, session["userId"], Role(session["role"]))` ([apps/api-py/app/api/legacy/text_assistant.py:211](../../apps/api-py/app/api/legacy/text_assistant.py#L211)) |
 | Three guard prefixes encode three **return contracts** | `require_mentor(session) -> dict` (returns the session) · `_require_student(session) -> str` (returns the resolved `student_id`) · `_assert_can_access_student(session, student_id, db) -> None` (returns nothing) |
-| ORM→schema builders are `_<thing>_out(row, *extras) -> ThingOut` | `_leave_out` ([leave.py:38](../../apps/api-py/app/routers/leave.py#L38)), `_alert_rule_out` ([director.py:205](../../apps/api-py/app/routers/director.py#L205)), `_note_out` / `_alert_out` / `_upload_out` / `_claim_out` (`mentor.py`), `_offer_out` / `_profile_out` (`student.py`); `_upload_row` ([student.py:1335](../../apps/api-py/app/routers/student.py#L1335)) where the shape is a table row; bare `_out` in [registration.py:91](../../apps/api-py/app/routers/registration.py#L91), which has only one output shape |
+| ORM→schema builders are `_<thing>_out(row, *extras) -> ThingOut` | `_leave_out` ([leave.py:38](../../apps/api-py/app/api/mentor/leave.py#L38)), `_alert_rule_out` ([director.py:205](../../apps/api-py/app/api/director/programme_dashboard.py#L205)), `_note_out` / `_alert_out` / `_upload_out` / `_claim_out` (`mentor.py`), `_offer_out` / `_profile_out` (`student.py`); `_upload_row` ([student.py:1335](../../apps/api-py/app/api/student/self_service.py#L1335)) where the shape is a table row; bare `_out` in [registration.py:91](../../apps/api-py/app/api/account/registration.py#L91), which has only one output shape |
 | A "now" helper is a private one-liner so a caller can pin the clock | `_utcnow()` at [retention.py:37](../../apps/api-py/app/retention.py#L37), `_now()` in `conversations.py` and `voice.py` |
 | Testability idiom: injectable clock as a defaulted parameter | `def purge_expired(db: Session, now: datetime \| None = None)` then `now = now or _utcnow()` |
 | The FastAPI session parameter is always named `db`, typed `Session`, injected last | `db: Session = Depends(get_db)` |
 | Non-router helper functions take `db: Session` as their **first positional parameter** | `deliver_once(db, *, kind, …)`, `get_or_create(db, user_id, role)`, `purge_expired(db, now=None)` |
-| Import aliasing is used only to dodge a collision, and the alias names the source module | `from ..document_store import UploadRejected, delete as document_store_delete, read_bytes, save_bytes` ([student.py:14](../../apps/api-py/app/routers/student.py#L14)) — avoids clashing with SQLAlchemy's `delete()` |
+| Import aliasing is used only to dodge a collision, and the alias names the source module | `from ..document_store import UploadRejected, delete as document_store_delete, read_bytes, save_bytes` ([student.py:14](../../apps/api-py/app/api/student/self_service.py#L14)) — avoids clashing with SQLAlchemy's `delete()` |
 
 Persistence-layer symbols specifically: the engine is lowercase (`engine`), the session
 factory is PascalCase because it is used as a class (`SessionLocal`), and the declarative
@@ -1827,7 +1827,7 @@ base is `Base`.
 |---|---|
 | Module constants are `UPPER_SNAKE`, **public** when a test must import them, `_`-prefixed when purely internal | public: `MAX_BYTES`, `REDACTED`, `SOFT_DELETE_GRACE_DAYS`, `MAX_TRANSCRIPT_CHARS`, `HISTORY_LIMIT` · private: `_MAGIC`, `_STAFF`, `_DIRECTORS`, `_PRISMA_ONLY_PARAMS`, `_EMAIL` |
 | Every constant carries a comment giving the **reason for the number**, not a restatement | `MAX_BYTES = 10 * 1024 * 1024  # 10 MB`, and the module docstring's "Max 10 MB, matching the UI copy" |
-| A cap that is also a policy is referenced by name in the schema, never re-typed as a literal | `Field(max_length=MAX_TRANSCRIPT_CHARS)` ([voice.py:391](../../apps/api-py/app/routers/voice.py#L391)) |
+| A cap that is also a policy is referenced by name in the schema, never re-typed as a literal | `Field(max_length=MAX_TRANSCRIPT_CHARS)` ([voice.py:391](../../apps/api-py/app/api/legacy/voice_assistant.py#L391)) |
 
 ### 10.4 Settings fields versus environment variables
 
@@ -1862,7 +1862,7 @@ Noun plus past participle, subclassing a stdlib exception, carrying an **end-use
 message: `class UploadRejected(ValueError)` with `"Unsupported file type — only PDF, PNG and
 JPEG are accepted."` The docstring states the *conditions*, not the name:
 `"""The bytes are not an accepted file (bad type, empty, or too large)."""`
-([apps/api-py/app/document_store.py:33-34](../../apps/api-py/app/document_store.py#L33-L34)).
+([apps/api-py/app/platform/document_store.py:33-34](../../apps/api-py/app/platform/document_store.py#L33-L34)).
 
 ### 10.7 Loggers
 
@@ -1902,8 +1902,8 @@ shapes** in the repository — copy the right one:
 
 | Shape | Where | Example |
 |---|---|---|
-| Titled rule: `# --- Title ` then hyphens to column 79 | most of `app/` | `# --- Metrics (DIRECTOR/ADMIN) ---…` ([agent.py:490](../../apps/api-py/app/routers/agent.py#L490)); `# --- Leaderboards ---…` ([student.py:1593](../../apps/api-py/app/routers/student.py#L1593)) overruns to 81 |
-| Boxed: a `# ---…--- #` rule, a numbered title line padded to a trailing `#`, then the rule again | `app/routers/voice.py` only | [voice.py:96-98](../../apps/api-py/app/routers/voice.py#L96-L98) |
+| Titled rule: `# --- Title ` then hyphens to column 79 | most of `app/` | `# --- Metrics (DIRECTOR/ADMIN) ---…` ([agent.py:490](../../apps/api-py/app/api/legacy/text_assistant.py#L490)); `# --- Leaderboards ---…` ([student.py:1593](../../apps/api-py/app/api/student/self_service.py#L1593)) overruns to 81 |
+| Boxed: a `# ---…--- #` rule, a numbered title line padded to a trailing `#`, then the rule again | `app/api/legacy/voice_assistant.py` only | [voice.py:96-98](../../apps/api-py/app/api/legacy/voice_assistant.py#L96-L98) |
 | Untitled 75-hyphen rule (`# ` + 75 hyphens = 77 columns) sandwiching a plain title line | the test files | [tests/test_voice.py:30-33](../../apps/api-py/tests/test_voice.py#L30-L33), [tests/test_conversations.py:36-38](../../apps/api-py/tests/test_conversations.py#L36-L38) |
 
 The titled form does also appear once in the suite
@@ -1922,7 +1922,7 @@ deleting one is a real change.
 
 ## Where this chapter is uncertain
 
-- **`MailLog.error`'s 1000-character truncation** ([apps/api-py/app/mailer.py:73](../../apps/api-py/app/mailer.py#L73))
+- **`MailLog.error`'s 1000-character truncation** ([apps/api-py/app/platform/mailer.py:73](../../apps/api-py/app/platform/mailer.py#L73))
   has no test and no comment explaining the number. The column is an unbounded `String` in
   both the model and the migration, so the limit does not correspond to a database
   constraint. Whether it was chosen for a reason is not recoverable from the code.
@@ -1931,7 +1931,7 @@ deleting one is a real change.
   deleted Next.js mailer had, or an inaccuracy, I could not determine — the original is gone.
 - **The mailer's `IntegrityError` branch returns `db.scalar(...)`, whose static type is
   `MailLog | None`, through a signature annotated `-> MailLog`**
-  ([apps/api-py/app/mailer.py:64](../../apps/api-py/app/mailer.py#L64)). Under Postgres the
+  ([apps/api-py/app/platform/mailer.py:64](../../apps/api-py/app/platform/mailer.py#L64)). Under Postgres the
   second INSERT blocks until the winner commits, so the re-read should always find a row; I
   reasoned this through rather than reproducing it with two concurrent sessions, and no test
   covers the branch.

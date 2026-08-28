@@ -20,7 +20,7 @@ No database, no sockets: this module does no I/O by design.
 import pytest
 
 from app.config import settings
-from app.interview_matrix import (
+from app.interview.specializations import (
     KNOWN_REALTIME_VOICES,
     REPORT_DIRECTIVE,
     SPECIALIZATIONS,
@@ -31,7 +31,7 @@ from app.interview_matrix import (
     classify_answer,
     get_specialization,
 )
-from app.interview_relay import _INTERVIEWER_PERSONA
+from app.interview.realtime_relay import _INTERVIEWER_PERSONA
 
 
 class TestMatrix:

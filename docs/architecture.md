@@ -43,7 +43,7 @@ flowchart TB
         direction TB
         MW["CORS middleware (allow_origins=[WEB_ORIGIN], credentials)<br/>lifespan: boot guard → voice-secret warning → orphan sweep"]
         R1["<b>Routers</b> /api/auth · /api/student · /api/mentor<br/>/api/director · /api/leaves · /api/register<br/>/api/agent · /api/voice · /api/interview · /health /ready"]
-        REL["<b>app/interview_relay.py</b><br/>in-process WS relay (NOT a 5th process)"]
+        REL["<b>app/interview/realtime_relay.py</b><br/>in-process WS relay (NOT a 5th process)"]
         SVC["<b>Services</b> conversations · knowledge · document_store<br/>retention · mailer · redaction · resume_pdf<br/>security · google_auth · interview_audio · interview_matrix"]
         AI["<b>app/ai/</b> llm.py (egress gate) · embeddings.py<br/>orchestrator.py · adk.py · agents.py"]
         ORM["SQLAlchemy 2.0.52 ORM · Alembic 1.19.1 · Pydantic 2.13.4"]
@@ -193,10 +193,10 @@ flowchart TB
         K["knowledge.py — HYBRID retrieval<br/>0.5·cosine + 0.5·ts_rank, gate _MAX_VEC_DISTANCE=0.32"]
         F["document_store.py — magic-byte typing, random names"]
         RT["retention.py — purge_expired · orphan sweep"]
-        SEC["security.py — scrypt + HS256 + token_version"]
-        GA["google_auth.py — FastAPI-free OIDC verifier"]
-        IM["interview_matrix.py — 4 specializations + phase FSM"]
-        IA["interview_audio.py — two-WAV sibling of document_store"]
+        SEC["platform/credentials.py — scrypt + HS256 + token_version"]
+        GA["platform/google_sign_in.py — FastAPI-free OIDC verifier"]
+        IM["interview/specializations.py — 4 specializations + phase FSM"]
+        IA["interview/audio_store.py — two-WAV sibling of document_store"]
         RED["redaction.py · mailer.py · resume_pdf.py · grant_access.py"]
     end
 
@@ -385,7 +385,7 @@ sequenceDiagram
 flowchart LR
     RQ["request + reep_session"] --> DP["deps.get_current_session<br/>(HTTP) / get_ws_session (WS)"]
     DP --> RM{"require_mentor"}
-    RM -->|"MENTOR ✓ DIRECTOR ✓ ADMIN ✓"| SC["_assert_can_access_student()<br/>in routers/mentor.py"]
+    RM -->|"MENTOR ✓ DIRECTOR ✓ ADMIN ✓"| SC["_assert_can_access_student()<br/>in api/mentor/mentees.py"]
     RM -->|"STUDENT ✗"| F403["403"]
     SC --> M1{"role"}
     M1 -->|MENTOR| G1["only students in their OWN Mentor group<br/><b>no group ⇒ NOBODY</b> (never 'whole programme')"]
@@ -434,8 +434,8 @@ and nothing remote may be added to that module.
 sequenceDiagram
     autonumber
     participant S as Student (Angular)
-    participant WS as routers/interview.py
-    participant R as interview_relay.py
+    participant WS as api/student/interview_session.py
+    participant R as interview/realtime_relay.py
     participant OA as OpenAI Realtime (wss)
     participant DB as Postgres
 
@@ -474,7 +474,7 @@ sequenceDiagram
     R->>DB: UPDATE interview_sessions SET status=<terminal>, audio_* … WHERE status='running'
 ```
 
-### Phase machine (`app/interview_matrix.py`)
+### Phase machine (`app/interview/specializations.py`)
 
 ```mermaid
 stateDiagram-v2
@@ -546,7 +546,7 @@ a database hiccup must never *end* one a real grant authorised.
 ### Audio — off, and "off" is two independent switches
 
 `INTERVIEW_RECORDING_ENABLED=true` **and** a live grant with `scope_store_audio`.
-Neither is true in a default deployment. Then `app/interview_audio.py` writes
+Neither is true in a default deployment. Then `app/interview/audio_store.py` writes
 **two WAV files per interview, one per speaker, never mixed** (the directions are not
 time-aligned) — RIFF/WAVE around the PCM16 LE mono 24 kHz already crossing the relay,
 stdlib `wave`, no encoder, no transcode. Capped at `INTERVIEW_RECORDING_MAX_BYTES`
@@ -613,7 +613,7 @@ The same query answers the interview question — group by `channel` and look fo
 `interview`; its drops log as `Dropped interview turn`.
 
 **Knock-on effects of the supersession, no longer silent:**
-`AGENT_RUNS_COLLECTED = False` in `app/routers/agent.py` gates a **404** on
+`AGENT_RUNS_COLLECTED = False` in `app/api/legacy/text_assistant.py` gates a **404** on
 `POST /api/agent/feedback` naming the supersession, and `collected: false` on
 `GET /api/agent/metrics`, so a frozen history is not read as a live zero.
 Flip that one constant back to `True` on rollback — no second edit. `voice_turns`
@@ -732,11 +732,11 @@ and turn a recoverable blip into an outage.
 |---|---|---|
 | 1 | Student PII never reaches a remote model unbidden | `student_data_egress_allowed()` in `app/ai/llm.py`; `/student/resume/generate` degrades to `used_ai=false` |
 | 2 | Staff scope is role-decided; a MENTOR with no group sees **nobody** | `require_mentor` / `require_director` / `_assert_can_access_student` |
-| 3 | Exactly **one** `response.create` call site after the handshake | `app/interview_relay.py` — a second site kills "one open question at a time" and no test would notice |
+| 3 | Exactly **one** `response.create` call site after the handshake | `app/interview/realtime_relay.py` — a second site kills "one open question at a time" and no test would notice |
 | 4 | No student transcript is ever composed into model instructions | relay builds persona + specialization block + phase directive **only** |
 | 5 | A `running` interview row is always closed | three idempotent layers, one `AND status='running'` predicate |
-| 6 | Conversations have exactly one writer | `app/conversations.py`; `app/memory.py` is a tombstone, do not use |
-| 7 | Uploads are typed by **magic bytes**, stored under random names | `app/document_store.py` |
+| 6 | Conversations have exactly one writer | `app/assistant/conversations.py`; `app/memory.py` is a tombstone, do not use |
+| 7 | Uploads are typed by **magic bytes**, stored under random names | `app/platform/document_store.py` |
 | 8 | A mail with a given `dedupe_key` is sent at most once | unique index; the losing racer catches `IntegrityError` |
 | 9 | Routes are lazy | `loadComponent` everywhere; the budget in `angular.json` fails CI otherwise |
 | 10 | Production refuses repo credentials at boot | `production_boot_failures()` raised from the lifespan |

@@ -125,7 +125,7 @@ graceful-degradation column here.
 ## Agent dispatch
 
 The worker registers under the agent name **`reep-voice`**, matching
-`VOICE_AGENT_NAME` in `app/routers/voice.py`. A *named* agent opts out of
+`VOICE_AGENT_NAME` in `app/api/legacy/voice_assistant.py`. A *named* agent opts out of
 automatic dispatch, so the API attaches an explicit
 `RoomConfiguration(agents=[RoomAgentDispatch(agent_name="reep-voice")])` to every
 token. Rename it in one place only and the room opens, the student's microphone

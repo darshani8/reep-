@@ -15,12 +15,12 @@ authentication and no database; do not run it.)
 
 | file | role |
 |---|---|
-| `apps/api-py/app/routers/interview.py` | the boundary: auth, STUDENT check, both concurrency caps, **the consent gate**, specialization validation, the conversation and `interview_sessions` row, the turn/report/finalize/heartbeat writers |
-| `apps/api-py/app/interview_relay.py` | the engine: one `_RelaySession` per interview, both pumps, the v3 turn protocol, the guardrails |
-| `apps/api-py/app/interview_matrix.py` | the Specialization Matrix (HR/DM/BA/FA personas, frameworks, sample questions, per-role voices), the phase state machine, `classify_answer` and the per-turn instruction overrides |
-| `apps/api-py/app/routers/interview_records.py` | the READ side and consent: the student's own history, the staff views behind rule 2, `GET/POST/DELETE /api/interview/consent` |
+| `apps/api-py/app/api/student/interview_session.py` | the boundary: auth, STUDENT check, both concurrency caps, **the consent gate**, specialization validation, the conversation and `interview_sessions` row, the turn/report/finalize/heartbeat writers |
+| `apps/api-py/app/interview/realtime_relay.py` | the engine: one `_RelaySession` per interview, both pumps, the v3 turn protocol, the guardrails |
+| `apps/api-py/app/interview/specializations.py` | the Specialization Matrix (HR/DM/BA/FA personas, frameworks, sample questions, per-role voices), the phase state machine, `classify_answer` and the per-turn instruction overrides |
+| `apps/api-py/app/api/student/interview_records.py` | the READ side and consent: the student's own history, the staff views behind rule 2, `GET/POST/DELETE /api/interview/consent` |
 | `apps/api-py/app/models/interview.py` | the four tables |
-| `apps/api-py/app/interview_audio.py` | the optional on-disk recording store (off by default — see *Audio*) |
+| `apps/api-py/app/interview/audio_store.py` | the optional on-disk recording store (off by default — see *Audio*) |
 | `apps/api-py/app/retention.py` | the orphan sweeper and the 180-day reaper |
 | `apps/web/src/app/core/interview.service.ts` | the client: audio graph, uplink, close-code messages, `reep.report` |
 | `apps/web/src/app/features/student/interviews/` | the student's own history, transcript and report screens |
@@ -59,7 +59,7 @@ It deliberately does **not** report missing consent. The client treats
 fixes it; the panel is driven by `GET /api/interview/consent` instead.
 
 Every staff endpoint opens with `_assert_can_access_student` imported from
-`app/routers/mentor.py` — never a second copy — and then re-checks that the row's
+`app/api/mentor/mentees.py` — never a second copy — and then re-checks that the row's
 own `student_id` matches the path. A MENTOR with no `Mentor` group sees **nobody**,
 by that function, with nothing added here.
 
@@ -68,7 +68,7 @@ by that function, with nothing added here.
 The student picks a track on the assistant screen; the client sends it as
 `?specialization=` on the socket (a query param because a browser WebSocket
 cannot set headers — safe precisely because it is a UI choice, not a student
-record). `app/interview_matrix.py` owns the four rows — AI persona, core
+record). `app/interview/specializations.py` owns the four rows — AI persona, core
 frameworks, the sample question worked in during probing, and **the voice the
 role speaks with** — **verbatim from the product spec**, and
 `InterviewStateMachine`, which advances the interview through explicit phases
@@ -174,7 +174,7 @@ for. The order of the two checks is not interchangeable:
 | `classify_answer` returns `empty` / `filler` / `too_short` | `clarify` | no |
 | otherwise | `next` | **yes** — `student_answered()` ticks the phase machine |
 
-`classify_answer` (`interview_matrix.py`) is a word count against
+`classify_answer` (`interview/specializations.py`) is a word count against
 `INTERVIEW_MIN_ANSWER_WORDS`, deliberately **not** a model call: it runs between
 the student finishing and the interviewer replying, so a round trip there would
 be latency on every turn of every interview. Clarifications are capped by
@@ -235,7 +235,7 @@ This is structural, not a matter of asking the model nicely:
 - the only thing the server authors upstream is `_INTERVIEWER_PERSONA`, a fixed
   string with no student data in it;
 - the only other thing on the uplink is the student's own microphone;
-- `interview_relay.py` imports no ORM model, no `assistant_tools`, no `knowledge`;
+- `interview/realtime_relay.py` imports no ORM model, no `assistant_tools`, no `knowledge`;
 - the session id, conversation id and user id never leave the process.
 
 The persona **also tells the model it is blind** — the same disclosure
@@ -251,7 +251,7 @@ same shape as `/student/resume/generate` degrading to `used_ai=false`.
 
 ## Persistence — and how to check it
 
-Turns are written through `app/conversations.py` into the **same**
+Turns are written through `app/assistant/conversations.py` into the **same**
 `conversations` / `messages` tables the text agent and the LiveKit worker use, so
 `GET /api/agent/history` returns them unchanged. That contract does not bend —
 the four tables below are **in addition**, never instead.
@@ -396,7 +396,7 @@ Revoking stamps `revoked_at` and never deletes the row.
 ## Audio — off by default, and "off" is two independent switches
 
 This section replaces an earlier flat *"audio is not recorded"*. Capture now
-exists (`app/interview_audio.py`), and a doc that denies a feature that exists is
+exists (`app/interview/audio_store.py`), and a doc that denies a feature that exists is
 as much of a trap as a setting that exists and does nothing.
 
 **Nothing is captured unless BOTH of these are true**, and neither is true in a
@@ -410,14 +410,14 @@ default deployment:
 Both gates live inside `recorder_for()` so that *"when does REEP record a
 student's voice?"* has one answer in one function. It **fails closed** — an
 unreachable database means "do not record", never "record anyway" — and it is
-called from `routers/interview.py`, because `interview_relay.py` imports no ORM
+called from `api/student/interview_session.py`, because `interview/realtime_relay.py` imports no ORM
 model and a recording feature is not what that containment gets spent on.
 
 | | |
 |---|---|
 | **Format** | PCM16 LE mono 24 kHz wrapped in a RIFF/WAVE header by the stdlib `wave` module — the bytes already crossing the relay, so no encoder, no transcode and no new dependency |
-| **Files** | **three per interview**: one per speaker (`student`, `interviewer`) plus a derived `mixed` listening copy. The two per-speaker files are still **the record** — do not "clean them up" as duplicates; the mix is regenerable from them and they are not recoverable from it. This row used to say the two must never be mixed, because before the timeline each file was a speech-ONLY concatenation with the silences squeezed out, so laying them side by side put answers under the wrong questions. `app/interview_audio.py` now pads each track against one monotonic session clock, so both files are session-length and the mix is a sum rather than a guess — accurate to a beat, not a frame (the interviewer's track is *when the model's audio was forwarded*, which can run ahead of the wall clock during a burst) |
-| **Where** | a sibling of the uploads root, `<uploads>/../interview-audio`, each file named after the `interview_sessions.id` that owns it — so retention can find it from the primary key alone even if `audio_path` is ever lost. Not `app/document_store.py`: that store decides type by magic bytes and accepts only PDF/PNG/JPEG, and admitting audio would loosen the one control that makes it trustworthy |
+| **Files** | **three per interview**: one per speaker (`student`, `interviewer`) plus a derived `mixed` listening copy. The two per-speaker files are still **the record** — do not "clean them up" as duplicates; the mix is regenerable from them and they are not recoverable from it. This row used to say the two must never be mixed, because before the timeline each file was a speech-ONLY concatenation with the silences squeezed out, so laying them side by side put answers under the wrong questions. `app/interview/audio_store.py` now pads each track against one monotonic session clock, so both files are session-length and the mix is a sum rather than a guess — accurate to a beat, not a frame (the interviewer's track is *when the model's audio was forwarded*, which can run ahead of the wall clock during a burst) |
+| **Where** | a sibling of the uploads root, `<uploads>/../interview-audio`, each file named after the `interview_sessions.id` that owns it — so retention can find it from the primary key alone even if `audio_path` is ever lost. Not `app/platform/document_store.py`: that store decides type by magic bytes and accepts only PDF/PNG/JPEG, and admitting audio would loosen the one control that makes it trustworthy |
 | **Cap** | `INTERVIEW_RECORDING_MAX_BYTES` is a hard per-session ceiling on **captured PCM**. At the cap capture **stops**, `interview_sessions.audio_truncated` is set, and the interview continues — a call is never dropped to protect a file, and a truncation is never silent. **Size it against 96,000 B/s, not 48,000**: both tracks are padded to the session's wall clock, so an interview burns two streams whether or not anyone is talking. 128 MB is ~22 min, past the 900 s session cap; budget ~256 MB of *disk* per session, because the derived `mixed` copy is written on top of what survived. This row said "64 MB ≈ 45 min" for a release after the padding landed — arithmetic from the speech-only era, under which the cap bound first and quietly cut the last 3.8 minutes off every full-length interview |
 | **Truncation** | three things stop a capture, and the WARNING names which: the byte cap above, a timeline gap longer than an interview can run (a suspended host, not a silence), and the write buffer bound — *"the disk is not keeping up"*, which now means only that. It used to fire on a healthy disk: pending silence was materialised into that buffer, so a 90-second answer left the interviewer owing one 4.3 MB lump and the next question ended the recording. Silence is an integer segment now, materialised in the writer, so the buffer holds real audio only |
 | **Retrieval** | `GET /api/mentor/students/{sid}/interviews/{id}/audio?track=mixed\|student\|interviewer`, **defaulting to `mixed`**, behind `_require_developer` — **ADMIN only, deliberately narrower than every other read in that router** — **and** `_assert_can_access_student` **and** a re-check that the row's subject is the student in the path. A DIRECTOR gets 403 here and 200 everywhere else in the file; that asymmetry is intended, because a stored voice is an operator's artefact and not placement business. 404 — never 403 — when nothing was recorded, so a caller cannot tell "not recorded" from "not a real id" |
@@ -545,4 +545,4 @@ audio that is not there is how a deletion request quietly fails to be honoured.
 
 `POST /api/agent/ask` and the LiveKit voice stack are **retained, mounted and
 working** — they are the rollback path, not dead code. See the header on
-`app/routers/agent.py` for the route-by-route audit of what is still live.
+`app/api/legacy/text_assistant.py` for the route-by-route audit of what is still live.

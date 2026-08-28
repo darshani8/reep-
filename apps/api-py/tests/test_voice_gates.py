@@ -21,7 +21,7 @@ from conftest import requires_db
 
 from app.db import SessionLocal
 from app.models.voice_worker import VoiceWorkerHeartbeat
-from app.routers.voice import HEARTBEAT_FRESH_SECONDS, TOKEN_TTL, VOICE_AGENT_NAME
+from app.api.legacy.voice_assistant import HEARTBEAT_FRESH_SECONDS, TOKEN_TTL, VOICE_AGENT_NAME
 
 # Fakes. `AccessToken` only signs — it never calls LiveKit — so a real project is
 # not needed to assert what the token CLAIMS.
@@ -525,7 +525,7 @@ def test_the_secret_comparison_is_constant_time():
     """
     import inspect
 
-    from app.routers.voice import require_voice_worker
+    from app.api.legacy.voice_assistant import require_voice_worker
 
     source = inspect.getsource(require_voice_worker)
     assert "compare_digest" in source, (
@@ -538,7 +538,7 @@ def test_a_non_ascii_secret_header_is_a_401_not_a_500(client, monkeypatch):
     """A hostile byte must not become a server error.
 
     compare_digest RAISES TypeError on a non-ASCII `str` operand — the trap
-    app/google_auth.py documents at its own nonce compare. Starlette hands this
+    app/platform/google_sign_in.py documents at its own nonce compare. Starlette hands this
     header over latin-1-decoded, so one byte above 0x7F from a hostile caller
     would turn a 401 into a 500 traceback if the comparison were done on strings.
     Comparing the ENCODED BYTES is what keeps it a refusal.

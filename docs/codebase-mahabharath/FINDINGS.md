@@ -35,9 +35,9 @@ relies on. CI is the one place that was not updated when pgvector landed (commit
 
 `POST /api/student/uploads` stores the client's filename verbatim —
 `original_name=file.filename or stored_name`
-([routers/student.py:1380](../../apps/api-py/app/routers/student.py#L1380)) — and the download
+([api/student/self_service.py:1380](../../apps/api-py/app/api/student/self_service.py#L1380)) — and the download
 handler interpolates it straight into a response header
-([routers/student.py:1411](../../apps/api-py/app/routers/student.py#L1411)):
+([api/student/self_service.py:1411](../../apps/api-py/app/api/student/self_service.py#L1411)):
 
 ```python
 return Response(
@@ -62,7 +62,7 @@ under a different server. The encoding crash is the live defect.
 
 **Fix:** RFC 6266 encoding — an ASCII-sanitised `filename=` plus `filename*=UTF-8''<percent-encoded>`.
 
-The sibling site at [routers/student.py:1059](apps/api-py/app/routers/student.py#L1059) builds
+The sibling site at [api/student/self_service.py:1059](apps/api-py/app/api/student/self_service.py#L1059) builds
 its filename server-side, so it is not exposed the same way.
 
 ### The egress gate is case-insensitive; the comments say it is not
@@ -124,7 +124,7 @@ about what the running product does, so they belong in the book.
 The alerts surface looks finished from every angle. There is an `Alert` model and an
 `AlertRuleConfig` model ([models/alert.py:39,59](apps/api-py/app/models/alert.py#L39)), a
 migration for each, director endpoints that list and upsert rule configs
-([director.py:224-270](apps/api-py/app/routers/director.py#L224-L270)), mentor endpoints that
+([director.py:224-270](apps/api-py/app/api/director/programme_dashboard.py#L224-L270)), mentor endpoints that
 list and resolve alerts, and three seeded default rules —
 `NO_CHECKIN_N_DAYS`, `ATTENDANCE_BELOW_THRESHOLD`, `CERT_OVERDUE`
 ([seed.py:536-538](apps/api-py/app/seed.py#L536-L538)).
@@ -193,17 +193,17 @@ promise rather than a feature. Every conversation is stamped with an expiry at c
 retention_until=now + timedelta(days=RETENTION_DAYS),
 ```
 
-([conversations.py:60](apps/api-py/app/conversations.py#L60)) — a deletion date that nothing
+([conversations.py:60](apps/api-py/app/assistant/conversations.py#L60)) — a deletion date that nothing
 enforces. Student chat messages and voice transcripts accumulate indefinitely. The codebase
 even reasons as though the sweep runs: a comment at
-[voice.py:444](apps/api-py/app/routers/voice.py#L444) discusses what `retention.purge_expired`
+[voice.py:444](apps/api-py/app/api/legacy/voice_assistant.py#L444) discusses what `retention.purge_expired`
 "would not re-scrub", planning around a process that never starts.
 
 **Fix:** the mechanism is finished and tested — it needs an entry point and a schedule. A
 `if __name__ == "__main__"` block calling both functions, plus a cron entry or a compose
 sidecar, would close it.
 
-Note that `redact_pii` itself IS wired on the live path: `routers/agent.py:40` imports it and
+Note that `redact_pii` itself IS wired on the live path: `api/legacy/text_assistant.py:40` imports it and
 applies it to feedback notes before they are stored. It is only the *aged-data* redaction,
 which lives inside the unscheduled sweep, that never runs.
 
@@ -217,7 +217,7 @@ Rule 1 is enforced inside the universal adapter: `complete_chat`/`stream_chat` c
 for, and the two that carry student records set the flag —
 `orchestrator._finalize` ([orchestrator.py:572](apps/api-py/app/ai/orchestrator.py#L572),
 commented "local/allowed only — gate re-checks") and `generate_resume`
-([student.py:970](apps/api-py/app/routers/student.py#L970)).
+([student.py:970](apps/api-py/app/api/student/self_service.py#L970)).
 
 The voice worker never enters that code path at all. It builds its model directly from the
 LiveKit plugin:
@@ -248,14 +248,14 @@ or replicate the gate deliberately.
 
 ### The role guards are not dependencies, and not in `identity.py`
 
-`AGENTS.md` describes "`require_*` dependencies in `apps/api-py/app/identity.py`". Both halves
+`AGENTS.md` describes "`require_*` dependencies in `apps/api-py/app/platform/identity.py`". Both halves
 of that are wrong, and the difference matters.
 
-`app/identity.py` contains exactly one function, `get_current_session`. The role guards live in
+`app/platform/identity.py` contains exactly one function, `get_current_session`. The role guards live in
 the routers that own their area — `require_mentor`
-([mentor.py:31](apps/api-py/app/routers/mentor.py#L31)), `require_director`
-([mentor.py:233](apps/api-py/app/routers/mentor.py#L233)), `require_voice_worker`
-([voice.py:65](apps/api-py/app/routers/voice.py#L65)).
+([mentor.py:31](apps/api-py/app/api/mentor/mentees.py#L31)), `require_director`
+([mentor.py:233](apps/api-py/app/api/mentor/mentees.py#L233)), `require_voice_worker`
+([voice.py:65](apps/api-py/app/api/legacy/voice_assistant.py#L65)).
 
 More importantly, `require_mentor` and `require_director` are **not FastAPI dependencies**.
 They are plain functions taking an already-resolved session dict, and they only run if the
@@ -281,7 +281,7 @@ the single highest-value hardening available in the codebase.
 
 ### How Rule 2 is actually kept (worth copying exactly)
 
-`_assert_can_access_student` ([mentor.py:72-84](apps/api-py/app/routers/mentor.py#L72-L84))
+`_assert_can_access_student` ([mentor.py:72-84](apps/api-py/app/api/mentor/mentees.py#L72-L84))
 calls `require_mentor` itself, so it is a complete guard rather than only a scope narrower —
 endpoints that call it need no separate role check. It raises **404, not 403**
 ("Student not in your mentor group."), so a mentor cannot probe which student ids exist
@@ -306,7 +306,7 @@ was never set.
 
 ## Drift and stale comments
 
-- **Heartbeat interval.** `voice_agent.py:38` and `app/routers/voice.py:150` both say the
+- **Heartbeat interval.** `voice_agent.py:38` and `app/api/legacy/voice_assistant.py:150` both say the
   heartbeat runs "every ~15s"; `HEARTBEAT_INTERVAL_SECONDS` defaults to **10**. The 30s
   freshness window holds either way, so this is comment drift, not a bug.
 - **`stop_grace_period`.** `docs/deployment-env.md:120` says 300s; `docker-compose.prod.yml:131`
@@ -339,7 +339,7 @@ was never set.
   image. To be settled in Chapter 8.
 - **`/api/agent/chat` and `/chat/stream`** replay the caller's own typed conversation to the
   provider with `carries_student_data` left at its `False` default
-  (`routers/agent.py:170, 231`). `agent.py:15-16` says to pass `True` "on any path that
+  (`api/legacy/text_assistant.py:170, 231`). `agent.py:15-16` says to pass `True` "on any path that
   injects a student's private records", which reads as deliberate — the student's own typing
   is not an injected record. Flagged as a boundary nuance for Chapter 8 to settle, not a
   defect.

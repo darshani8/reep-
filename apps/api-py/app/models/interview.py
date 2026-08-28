@@ -25,7 +25,7 @@ to orphan the record of what was said.
 `Conversation.consent_state` in `models/conversation.py`. The reason is that all
 three of AGENTS.md's Alembic enum gotchas are `CREATE TYPE` ordering pain, and
 **these vocabularies will move**: a fifth specialization is a one-line data
-change in `interview_matrix.py` today, and turning it into a migration would be a
+change in `interview/specializations.py` today, and turning it into a migration would be a
 regression, not a safeguard. `Upload.status` earned its enum because it is a
 frozen three-state review workflow; none of these are. The vocabulary is written
 next to the column, which is where the next editor will look for it.

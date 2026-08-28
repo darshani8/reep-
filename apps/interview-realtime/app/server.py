@@ -3,8 +3,8 @@
 #
 # The mock interviewer now runs INSIDE the REEP API, not as a fifth process:
 #
-#   engine  -> apps/api-py/app/interview_relay.py   (this file, ported)
-#   boundary-> apps/api-py/app/routers/interview.py (auth, DB, concurrency cap)
+#   engine  -> apps/api-py/app/interview/realtime_relay.py   (this file, ported)
+#   boundary-> apps/api-py/app/api/student/interview_session.py (auth, DB, concurrency cap)
 #   mounted -> WS /api/interview, GET /api/interview/status
 #
 # NOTHING HAS BEEN DELETED, so a rollback is re-pointing the client rather than
@@ -23,7 +23,7 @@
 #   2. NO PERSISTENCE. This process has no database at all, so every question
 #      and answer is forwarded to the browser and dropped — the AGENTS.md
 #      runbook query would never grow an interview row. The port writes turns
-#      through app/conversations.py into the same conversations/messages tables
+#      through app/assistant/conversations.py into the same conversations/messages tables
 #      the text agent and the LiveKit worker use.
 #
 # Keep this directory until the interviewer has held up in front of real

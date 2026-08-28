@@ -71,7 +71,7 @@ byte budget from the model's real window and **refuses** to send an oversized pr
 rather than letting it be truncated:
 
 ```
-orc: context is 65,933 bytes at apps/api-py/app/interview_audio.py,
+orc: context is 65,933 bytes at apps/api-py/app/interview/audio_store.py,
      over the 27,552-byte budget.
 ```
 

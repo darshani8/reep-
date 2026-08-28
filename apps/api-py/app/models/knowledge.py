@@ -96,7 +96,7 @@ class KnowledgeChunk(Base):
     __table_args__ = (
         Index("ix_knowledge_chunk_document", "document_id"),
         # Full-text GIN index over chunk_text — the PRIMARY retrieval path
-        # (app/knowledge.py). Declared here so metadata matches the DB; the
+        # (app/assistant/knowledge_base.py). Declared here so metadata matches the DB; the
         # migration creates the identical expression index via op.execute.
         Index(
             "ix_knowledge_chunk_fts",

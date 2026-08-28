@@ -16,32 +16,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import retention
 from .config import settings
 from .db import SessionLocal
-from .traceability import RequestTraceMiddleware
-from .routers import (
-    agent,
-    alumni,
-    auth,
-    badge_verification,
-    badges,
-    director,
-    health,
-    interview,
+from .platform.request_id import RequestTraceMiddleware
+
+# The HTTP layer is grouped by the stakeholder who CALLS it, so this block
+# doubles as the map of who can reach what: app/api/<stakeholder>/.
+from .api.account import registration, sign_in
+from .api.alumni import profile_and_jobs as alumni_area
+from .api.director import programme_dashboard
+from .api.legacy import text_assistant, voice_assistant
+from .api.mentor import (
+    badge_review,
     leave,
-    mentee_records,
-    mentor,
-    registration,
-    redesign,
-    staff_upskilling,
-    student,
-    student_programme,
-    voice,
+    mentees,
+    notebook,
+    own_certificates,
+    student_records,
 )
+from .api.student import badges, interview_session, programme, self_service
+from .api.system import health
 
 log = logging.getLogger("reep.startup")
 
 # Sentry is the ONE observability + traceability tool (user decision, 2026-08):
 # errors and performance traces from api and web land in one place, joined to
-# raw CloudWatch log lines by the X-Request-ID tag app/traceability.py sets.
+# raw CloudWatch log lines by the X-Request-ID tag app/platform/request_id.py sets.
 # Initialised at import time — before the app object — so even lifespan/boot
 # failures are captured. Blank SENTRY_DSN = not initialised = every downstream
 # sentry_sdk call is a no-op; a laptop and CI pay nothing.
@@ -88,7 +86,7 @@ async def lifespan(_app: FastAPI):
     # guarded by Protocol.debug = logger.isEnabledFor(DEBUG)) and redacts
     # nothing -- and one of those headers is
     # `Authorization: Bearer <OPENAI_API_KEY>` on the interview relay's upstream
-    # socket (app/interview_relay.py). Running uvicorn with --log-level debug is
+    # socket (app/interview/realtime_relay.py). Running uvicorn with --log-level debug is
     # a documented troubleshooting step, so without this the operator following
     # the manual is the one who prints the credential into the API log, beside
     # student traffic, in whatever aggregator this deployment ships to. That
@@ -205,7 +203,7 @@ async def lifespan(_app: FastAPI):
         # especially as the client already has a sentence for 1012 ("the
         # interview server is restarting"). This covers an ASGI server whose
         # shutdown ordering differs, and a shutdown with no signal at all.
-        interview.shutdown_interviews()
+        interview_session.shutdown_interviews()
 
 
 # /docs, /redoc and /openapi.json follow settings.docs_exposed: served in dev —
@@ -242,7 +240,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 # Traceability: every request carries an X-Request-ID edge to log line — see
-# app/traceability.py. Added AFTER CORSMiddleware so it runs INSIDE it and the
+# app/platform/request_id.py. Added AFTER CORSMiddleware so it runs INSIDE it and the
 # echoed header rides on responses CORS has already stamped.
 app.add_middleware(RequestTraceMiddleware)
 
@@ -277,47 +275,47 @@ async def _security_headers(request: Request, call_next):  # type: ignore[no-unt
 app.include_router(health.router)
 # agent + voice + interview already carry /api in their own prefix
 # (/api/agent, /api/voice, /api/interview).
-app.include_router(agent.router)
-app.include_router(voice.router)
-app.include_router(interview.router)
+app.include_router(text_assistant.router)
+app.include_router(voice_assistant.router)
+app.include_router(interview_session.router)
 # Domain routers mount under a single /api prefix, so the whole surface the
 # Angular client calls lives under /api — matching environment.apiBase and the
 # dev proxy (apps/web/proxy.conf.json), with no path rewriting.
-app.include_router(auth.router, prefix="/api")
+app.include_router(sign_in.router, prefix="/api")
 # Canonical v1 surface. The legacy /api surface remains during the expand/contract window.
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(redesign.router, prefix="/api/v1")
-app.include_router(student.router, prefix="/api")
+app.include_router(sign_in.router, prefix="/api/v1")
+app.include_router(notebook.router, prefix="/api/v1")
+app.include_router(self_service.router, prefix="/api")
 # The v2 UI's three new screens (ledger, English baseline, mentor meeting log)
-# and the landing programme cards. Its own module so routers/student.py — the
+# and the landing programme cards. Its own module so api/student/self_service.py — the
 # file every other student change touches — did not grow another 600 lines; it
 # shares the /student prefix, so the client sees one flat surface.
-app.include_router(student_programme.router, prefix="/api")
-app.include_router(mentor.router, prefix="/api")
+app.include_router(programme.router, prefix="/api")
+app.include_router(mentees.router, prefix="/api")
 # The staff side of the v2 screens — a mentor or director reading a student's
-# ledger and English baseline. Separate from mentor.py so that file is untouched,
+# ledger and English baseline. Separate from mentees.py so that file is untouched,
 # and every endpoint in it goes through _assert_can_access_student (rule 2).
-app.include_router(mentee_records.router, prefix="/api")
-app.include_router(director.router, prefix="/api")
+app.include_router(student_records.router, prefix="/api")
+app.include_router(programme_dashboard.router, prefix="/api")
 app.include_router(leave.router, prefix="/api")
 # Faculty upskilling (own certificate uploads) and the alumni area (first-login
 # profile + jobs sheet). Both scope every row to the signed-in user; the staff
-# one gates on mentor.require_mentor, the alumni one on the ALUMNI role.
-app.include_router(staff_upskilling.router, prefix="/api")
-app.include_router(alumni.router, prefix="/api")
+# one gates on mentees.require_mentor, the alumni one on the ALUMNI role.
+app.include_router(own_certificates.router, prefix="/api")
+app.include_router(alumni_area.router, prefix="/api")
 # The Skills & Badge dashboard: the student half shares the /student prefix
 # (badges, growth, leaderboards); badge_verification carries the staff review queue,
 # manual awards, assessment entry, cohort views and the certification
 # catalogue, under /mentor and /director as rule 2 dictates.
 app.include_router(badges.router, prefix="/api")
-app.include_router(badge_verification.router, prefix="/api")
+app.include_router(badge_review.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")
 
 
 # --- The interview record endpoints (Interview Engine v3 §7) -----------------
 #
-# `app/routers/interview_records.py` declares its routers ALREADY PREFIXED — one
-# at /api/interview and one at /api/mentor — so that `app/routers/mentor.py` is
+# `app/api/student/interview_records.py` declares its routers ALREADY PREFIXED — one
+# at /api/interview and one at /api/mentor — so that `app/api/mentor/mentees.py` is
 # not touched at all by this work. That is the whole reason the module exists as
 # a separate file, and it is why these are included bare rather than under the
 # `prefix="/api"` the domain routers use.
@@ -353,10 +351,10 @@ app.include_router(registration.router, prefix="/api")
 #    (apps/web/proxy.conf.json) forward `/api` and nothing else, so a router
 #    mounted anywhere else is unreachable from the app that needs it.
 try:
-    from .routers import interview_records
+    from .api.student import interview_records
 except Exception:
     log.exception(
-        "app/routers/interview_records.py is not importable: the interview "
+        "app/api/student/interview_records.py is not importable: the interview "
         "record endpoints (GET /api/interview/sessions, the consent endpoints, "
         "and GET /api/mentor/students/{id}/interviews) are NOT served. "
         "Interviews themselves still run and still record. Nothing else is "
@@ -383,7 +381,7 @@ else:
         log.info("Interview record routers mounted: %s", ", ".join(_mounted))
     else:
         log.error(
-            "app/routers/interview_records.py imported but exposes no public "
+            "app/api/student/interview_records.py imported but exposes no public "
             "APIRouter with an /api prefix — the interview record endpoints are "
             "NOT served."
         )

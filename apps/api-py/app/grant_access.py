@@ -7,7 +7,7 @@ Sign-in is Google-only, and the allowlist is not a config file â it is the
 case-insensitively and refuses anything it does not find, with no just-in-time
 provisioning. So "allow this person to log in" means exactly one thing: give
 them a row. THE DOMAIN IS NOT CHECKED â GOOGLE_ALLOWED_DOMAIN is a label, not a
-fence (app/google_auth.py says why), so this row is the whole of the access
+fence (app/platform/google_sign_in.py says why), so this row is the whole of the access
 control and a @gmail.com address granted here signs in exactly like any other.
 
 `app/seed_roster.py` does this in bulk for the student roster. This module is the
@@ -15,7 +15,7 @@ single-account counterpart, for the people a roster never contains â the op
 who has to get in before anyone else does, a mentor hired mid-term, a director.
 
 STUDENT REQUIRES --usn, deliberately. A student is not a `User` row alone:
-`_payload_for()` in app/routers/auth.py only puts `studentId` in the session
+`_payload_for()` in app/api/account/sign_in.py only puts `studentId` in the session
 when `user.student` exists, and every /api/student/* route 403s without it â so
 a bare student User row would sign in perfectly and then fail on every screen
 it can reach. With --usn this tool creates the full User + Student +

@@ -156,7 +156,7 @@ def test_the_length_floor_counts_the_stripped_secret():
     """A short key padded with spaces is a short key.
 
     `AUTH_SECRET="short  "` out of a shell script is easy to produce by accident.
-    This guard and app/security.py must agree on what the key IS, and security.py
+    This guard and app/platform/credentials.py must agree on what the key IS, and platform/credentials.py
     signs with the raw string — so the strict reading (count the real characters)
     is the safe one in the only direction that matters.
     """

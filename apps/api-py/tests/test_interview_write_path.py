@@ -36,8 +36,8 @@ from sqlalchemy import delete, select
 from conftest import requires_db
 
 from app.db import SessionLocal
-from app.interview_matrix import SPECIALIZATIONS, InterviewPhase
-from app.interview_relay import (
+from app.interview.specializations import SPECIALIZATIONS, InterviewPhase
+from app.interview.realtime_relay import (
     _CLOSE_IDLE,
     _CLOSE_INTERNAL,
     _CLOSE_OK,
@@ -53,7 +53,7 @@ from app.interview_relay import (
 from app.models.conversation import Conversation, Message
 from app.models.interview import InterviewEvaluation, InterviewSession, InterviewTurn
 from app.models.user import Role, Student, User
-from app.routers.interview import (
+from app.api.student.interview_session import (
     _backstop_status,
     _finalize_if_running,
     _make_finalizer,

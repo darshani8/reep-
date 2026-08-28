@@ -24,7 +24,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # google_sub — the Google principal this row is pinned to; a sign-in whose
-    # `sub` disagrees is refused in app/routers/auth.py. NULLABLE because every
+    # `sub` disagrees is refused in app/api/account/sign_in.py. NULLABLE because every
     # row that already exists (the seeded logins, the whole seeded roster) has
     # never been through a Google sign-in, and they must keep working; the pin
     # is written on the first one. NOT NULL would mean inventing a `sub` for
@@ -37,7 +37,7 @@ def upgrade() -> None:
     # being asked for the opposite of what it is for, not a bug to work around.
     op.create_unique_constraint('uq_users_google_sub', 'users', ['google_sub'])
     # token_version — bumped on logout, carried in the session JWT, compared on
-    # the way back in (app/security.py). server_default is mandatory, not
+    # the way back in (app/platform/credentials.py). server_default is mandatory, not
     # decoration: `users` is populated, and NOT NULL without a default fails the
     # ALTER outright. The default stays on the column rather than being dropped
     # after backfill, because app/seed.py and app/seed_roster.py insert Users

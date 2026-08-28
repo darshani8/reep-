@@ -3,7 +3,7 @@
 Three guards landed together and each is the kind that gets deleted the first
 time it inconveniences someone, so each is pinned the way the boot guard is:
 
-* the per-user LLM rate limit (app/ratelimit.py) — 429 with Retry-After, unit
+* the per-user LLM rate limit (app/platform/rate_limit.py) — 429 with Retry-After, unit
   and end-to-end through POST /api/agent/chat;
 * the per-student DAILY interview cap (_open_records raising _DailyCapReached
   -> close 4015) — the volume half of the per-user cap, refused before any row
@@ -23,7 +23,7 @@ from sqlalchemy import delete, select
 
 from conftest import requires_db
 
-from app import ratelimit
+from app.platform import rate_limit as ratelimit
 from app.config import settings
 from app.db import SessionLocal
 from app.models.agent_run import AgentRun
@@ -36,7 +36,7 @@ STUB_REPLY = "STUB REPLY from the offline assistant."
 @pytest.fixture
 def stub_llm(monkeypatch):
     """Same shape as test_conversations.stub_llm: /chat deterministic + offline."""
-    import app.routers.agent as agent
+    import app.api.legacy.text_assistant as agent
 
     monkeypatch.setattr(
         agent, "llm_config",
@@ -100,7 +100,7 @@ def test_chat_answers_429_with_retry_after_over_the_limit(
 # ---------------------------------------------------------------------------
 @requires_db
 def test_daily_interview_cap_refuses_before_writing(make_user, monkeypatch):
-    from app.routers.interview import _DailyCapReached, _open_records
+    from app.api.student.interview_session import _DailyCapReached, _open_records
 
     monkeypatch.setattr(settings, "interview_max_per_student_per_day", 2)
     s = make_user("dailycap")
@@ -156,7 +156,7 @@ def test_daily_interview_cap_refuses_before_writing(make_user, monkeypatch):
 def test_open_records_refuses_when_live_sessions_exist_fleet_wide(
     make_user, monkeypatch
 ):
-    from app.routers.interview import _UserSessionCapReached, _open_records
+    from app.api.student.interview_session import _UserSessionCapReached, _open_records
 
     monkeypatch.setattr(settings, "interview_max_sessions_per_user", 2)
     s = make_user("fleetcap")

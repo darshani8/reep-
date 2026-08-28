@@ -11,7 +11,7 @@
  * WHAT SURVIVED THE REWRITE, AND WHY
  *
  *  - The conversation history. Interview turns are persisted server-side through
- *    app/conversations.py into the SAME `conversations` / `messages` tables the
+ *    app/assistant/conversations.py into the SAME `conversations` / `messages` tables the
  *    text agent used, so GET /api/agent/history still returns them and the
  *    AGENTS.md runbook query still works. It is re-read after every session, and
  *    "Clear conversation" still deletes it. That is why ChatVoiceService is
@@ -83,7 +83,7 @@ import {
 } from '../../shared/voice-visualizer';
 
 /** One consent grant, verbatim from ConsentOut in
- *  apps/api-py/app/routers/interview_records.py. */
+ *  apps/api-py/app/api/student/interview_records.py. */
 interface ConsentGrant {
   id: string;
   version: string;
@@ -144,7 +144,7 @@ const THINKING_LONG_AFTER_S = 6;
 /**
  * The Specialization Matrix, as offered on the picker. `key: null` is the
  * generic interview that predates the matrix; the four keyed rows mirror
- * SPECIALIZATIONS in apps/api-py/app/interview_matrix.py, which is the source
+ * SPECIALIZATIONS in apps/api-py/app/interview/specializations.py, which is the source
  * of truth — the server refuses a key it does not know (close 4010), so a row
  * added here without the backend row fails loudly rather than silently.
  */
@@ -183,7 +183,7 @@ const SPECIALIZATION_OPTIONS: readonly SpecializationOption[] = [
 ];
 
 /** The state machine's phases, in words for the pill next to the clock. Every
- *  InterviewPhase member in apps/api-py/app/interview_matrix.py is here —
+ *  InterviewPhase member in apps/api-py/app/interview/specializations.py is here —
  *  `ended` included, or a wrap-up close renders the raw key in the pill. */
 const PHASE_LABELS: Record<string, string> = {
   opening: 'Opening question',

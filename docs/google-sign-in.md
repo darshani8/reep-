@@ -22,12 +22,12 @@ login has always minted** — same HS256 JWT, same `AUTH_SECRET`, same claim nam
 (`userId, email, name, role, studentId?, mentorId?`), same cookie flags. That is
 the whole reason this change is small: `get_current_session`, `require_mentor`,
 `require_director`, `_assert_can_access_student` and the WebSocket auth in
-`routers/interview.py` were not touched and cannot tell the two paths apart.
+`api/student/interview_session.py` were not touched and cannot tell the two paths apart.
 
 | file | role |
 |---|---|
-| `apps/api-py/app/google_auth.py` | the OIDC layer: authorisation URL, code exchange, ID-token verification against Google's JWKS, state/nonce sealing |
-| `apps/api-py/app/routers/auth.py` | the endpoints: `/auth/sso/*`, the roster lookup, the cookie, the streak write, and the password endpoint's production refusal |
+| `apps/api-py/app/platform/google_sign_in.py` | the OIDC layer: authorisation URL, code exchange, ID-token verification against Google's JWKS, state/nonce sealing |
+| `apps/api-py/app/api/account/sign_in.py` | the endpoints: `/auth/sso/*`, the roster lookup, the cookie, the streak write, and the password endpoint's production refusal |
 | `apps/api-py/app/config.py` | `google_client_id`, `google_client_secret`, `google_redirect_uri`, `college_email_domain` + derived `@property` helpers |
 | `apps/api-py/app/seed_roster.py` | the roster itself — production-safe, idempotent, no passwords |
 | `apps/web/src/app/features/login/login.component.*` | the Google button, the capability probe, and the refusal messages |
@@ -40,7 +40,7 @@ the whole reason this change is small: `get_current_session`, `require_mentor`,
 sequenceDiagram
     autonumber
     participant B as Browser
-    participant A as FastAPI — routers/auth.py
+    participant A as FastAPI — api/account/sign_in.py
     participant G as accounts.google.com
     participant J as Google JWKS
     participant D as Postgres
@@ -119,7 +119,7 @@ button renders disabled with the reason underneath.
 | `sso_failed` | the backstop — anything not enumerated above | check the API log |
 
 These seven-plus-one strings are a **three-way contract**: the callback in
-`app/routers/auth.py` emits them, `messageFor` in
+`app/api/account/sign_in.py` emits them, `messageFor` in
 `apps/web/src/app/features/login/login.component.ts` turns each into a sentence,
 and this table documents them. They were once three independent vocabularies
 with **no code in common**, so every refusal rendered as "the reason given is not

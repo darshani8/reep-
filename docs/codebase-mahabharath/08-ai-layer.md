@@ -11,7 +11,7 @@ you will be able to review a colleague's new model call against a checklist that
 you, in one pass, whether it breaks Rule 1.
 
 **In scope.** `app/ai/llm.py` (the adapter and the egress gate), `app/ai/orchestrator.py`
-(the answer pipeline), `app/assistant_tools.py` (the tool surface), `app/ai/adk.py` and
+(the answer pipeline), `app/assistant/tools.py` (the tool surface), `app/ai/adk.py` and
 `app/ai/agents.py` (the ADK bridge), `app/eval/golden.py` and the tests that pin all of
 it. This chapter owns **Rule 1** — student data must not leave the machine unbidden — at
 the level of mechanism.
@@ -20,7 +20,7 @@ the level of mechanism.
 Chapters 7 and 6; this chapter documents what happens *inside* those handlers.
 Conversation persistence, memory, retention, redaction and feedback are Chapter 9 —
 `conversations.py` is named here only where the orchestrator's output passes through it.
-Knowledge-Base retrieval and the embedder — `app/knowledge.py` and `app/ai/embeddings.py`
+Knowledge-Base retrieval and the embedder — `app/assistant/knowledge_base.py` and `app/ai/embeddings.py`
 — are Chapter 10; `knowledge.search()` is treated here as a seam with a documented return
 shape, not as an algorithm, and `embeddings.py` is not covered at all (it embeds APPROVED
 public policy text, which the gate in this chapter deliberately does not apply to —
@@ -105,9 +105,9 @@ class LLMConfig:
 `provider` is the only field with a default, and that default — the literal string
 `"custom"` — is what the explicit-override branch produces. That string is not merely
 internal: it is persisted. `f"{cfg.provider}:{cfg.model}"` becomes `AgentRun.model` on
-every chat turn ([routers/agent.py:157](apps/api-py/app/routers/agent.py#L157)) and
+every chat turn ([api/legacy/text_assistant.py:157](apps/api-py/app/api/legacy/text_assistant.py#L157)) and
 `cfg.provider` alone becomes `Resume.generated_by`
-([routers/student.py:973](apps/api-py/app/routers/student.py#L973)).
+([api/student/self_service.py:973](apps/api-py/app/api/student/self_service.py#L973)).
 
 ```python
 @dataclass(frozen=True)
@@ -220,10 +220,10 @@ the model and the key can never come from different providers.
 
 **Nothing configured** returns `None`. That sentinel is not an exception, and every caller
 handles it explicitly: a 503 at
-[agent.py:150-154](apps/api-py/app/routers/agent.py#L150), the literal string
-`"deterministic"` at [agent.py:286](apps/api-py/app/routers/agent.py#L286), a skipped
+[agent.py:150-154](apps/api-py/app/api/legacy/text_assistant.py#L150), the literal string
+`"deterministic"` at [agent.py:286](apps/api-py/app/api/legacy/text_assistant.py#L286), a skipped
 polish at [orchestrator.py:565](apps/api-py/app/ai/orchestrator.py#L565), a deterministic
-resume at [student.py:959](apps/api-py/app/routers/student.py#L959).
+resume at [student.py:959](apps/api-py/app/api/student/self_service.py#L959).
 
 > **The hole in tier 1, stated plainly.** Suppose an operator sets
 > `LLM_BASE_URL="https://api.groq.com/openai/v1"` and
@@ -438,12 +438,12 @@ class StudentDataEgressRefused(RuntimeError):
 
 Both are bare marker classes. A repo-wide search shows **nothing anywhere writes
 `except StudentDataEgressRefused` or `except LLMNotConfigured`**. Every caller catches
-bare `Exception` instead ([agent.py:171](apps/api-py/app/routers/agent.py#L171),
-[agent.py:234](apps/api-py/app/routers/agent.py#L234),
+bare `Exception` instead ([agent.py:171](apps/api-py/app/api/legacy/text_assistant.py#L171),
+[agent.py:234](apps/api-py/app/api/legacy/text_assistant.py#L234),
 [orchestrator.py:475](apps/api-py/app/ai/orchestrator.py#L475),
 [orchestrator.py:523](apps/api-py/app/ai/orchestrator.py#L523),
 [orchestrator.py:578](apps/api-py/app/ai/orchestrator.py#L578),
-[student.py:974](apps/api-py/app/routers/student.py#L974)).
+[student.py:974](apps/api-py/app/api/student/self_service.py#L974)).
 
 The practical consequence is that the refusal inside `complete_chat` is a **backstop, not
 the live mechanism**. Both real `carries_student_data=True` call sites pre-check the gate
@@ -453,7 +453,7 @@ themselves and simply never call the model when it is closed, so
 with no test and no named handler. If it ever did fire on the resume path it would be
 swallowed by `except Exception as exc` and surface to the student as the innocuously
 worded `note = f"AI polish failed ({exc}); kept the deterministic draft."`
-([student.py:975](apps/api-py/app/routers/student.py#L975)) rather than as a policy
+([student.py:975](apps/api-py/app/api/student/self_service.py#L975)) rather than as a policy
 refusal.
 
 ```mermaid
@@ -482,12 +482,12 @@ honesty, the one model call in `apps/api-py` that does not go through it at all:
 
 | Where | Function | Flag | What is in the prompt |
 |-------|----------|------|-----------------------|
-| [routers/agent.py:170](apps/api-py/app/routers/agent.py#L170) | `chat` (`POST /api/agent/chat`) | default `False` | `SYSTEM_PROMPT` + up to 40 replayed turns of the caller's own conversation |
-| [routers/agent.py:231](apps/api-py/app/routers/agent.py#L231) | `chat_stream` (`POST /api/agent/chat/stream`) | default `False` | identical to the above |
+| [api/legacy/text_assistant.py:170](apps/api-py/app/api/legacy/text_assistant.py#L170) | `chat` (`POST /api/agent/chat`) | default `False` | `SYSTEM_PROMPT` + up to 40 replayed turns of the caller's own conversation |
+| [api/legacy/text_assistant.py:231](apps/api-py/app/api/legacy/text_assistant.py#L231) | `chat_stream` (`POST /api/agent/chat/stream`) | default `False` | identical to the above |
 | [ai/orchestrator.py:474](apps/api-py/app/ai/orchestrator.py#L474) | `_policy` | explicit `False` | `_POLICY_SYSTEM` + the question + APPROVED KB chunks |
 | [ai/orchestrator.py:522](apps/api-py/app/ai/orchestrator.py#L522) | `_general` | explicit `False` | `_GENERAL_SYSTEM` + the raw question |
 | [ai/orchestrator.py:572](apps/api-py/app/ai/orchestrator.py#L572) | `_finalize` (polish) | **`True`** | `_POLISH_SYSTEM` + the deterministically composed student-data answer |
-| [routers/student.py:970](apps/api-py/app/routers/student.py#L970) | `generate_resume` | **`True`** | a resume-writer system prompt + the whole composed resume markdown |
+| [api/student/self_service.py:970](apps/api-py/app/api/student/self_service.py#L970) | `generate_resume` | **`True`** | a resume-writer system prompt + the whole composed resume markdown |
 | [voice_agent.py:686](apps/api-py/voice_agent.py#L686) | `entrypoint` → `AgentSession(...)` | **n/a — does not use the adapter** | the student's own spoken turns, sent to Groq by the LiveKit plugin with no egress gate, no `llm_config()`, no `_PROVIDERS` lookup |
 
 That last row is not a defect being alleged; it is a scope boundary being drawn. The voice
@@ -511,7 +511,7 @@ docstring restates the rule:
     PII, so a model is used ONLY when it is local or explicitly allowed; otherwise
     it composes deterministically and says so (the AGENTS.md egress rule)."""
 ```
-— [routers/student.py:929-931](apps/api-py/app/routers/student.py#L929)
+— [api/student/self_service.py:929-931](apps/api-py/app/api/student/self_service.py#L929)
 
 The order of operations is the whole lesson. The **deterministic composer runs first,
 unconditionally**:
@@ -523,10 +523,10 @@ unconditionally**:
     cfg = llm_config()
     if cfg is not None and student_data_egress_allowed(cfg.base_url):
 ```
-— [student.py:955-959](apps/api-py/app/routers/student.py#L955)
+— [student.py:955-959](apps/api-py/app/api/student/self_service.py#L955)
 
 Two things to notice. First, `_compose_resume_markdown`
-([student.py:901-915](apps/api-py/app/routers/student.py#L901)) has already built a full
+([student.py:901-915](apps/api-py/app/api/student/self_service.py#L901)) has already built a full
 document — the student's name, career summary, a contact line of
 `profile.email · profile.phone · profile.linkedin_url · profile.city`, the skills list,
 the latest CGPA, and every `AcademicQualification` row rendered as
@@ -546,7 +546,7 @@ Inside the gate the markdown is first wrapped in a one-line instruction:
             "Keep every fact; invent nothing.\n\n" + markdown
         )
 ```
-— [student.py:960-963](apps/api-py/app/routers/student.py#L960)
+— [student.py:960-963](apps/api-py/app/api/student/self_service.py#L960)
 
 That prefix is what makes the request a *rewrite* rather than a dump, and "Keep every
 fact; invent nothing" is the same preservation instruction the orchestrator's polish
@@ -564,7 +564,7 @@ call is made with the flag on:
             )
             generated_by, model, used_ai = cfg.provider, cfg.model, True
 ```
-— [student.py:965-973](apps/api-py/app/routers/student.py#L965)
+— [student.py:965-973](apps/api-py/app/api/student/self_service.py#L965)
 
 And when the gate is closed, the `else` branch writes the operator-facing explanation that
 reaches the student verbatim:
@@ -576,22 +576,22 @@ reaches the student verbatim:
             "LLM_ALLOW_REMOTE_STUDENT_DATA=true or use a local model to enable AI."
         )
 ```
-— [student.py:977-981](apps/api-py/app/routers/student.py#L977)
+— [student.py:977-981](apps/api-py/app/api/student/self_service.py#L977)
 
 `used_ai` reaches the client because the response body carries it explicitly alongside
 `generated_by`, `model`, `note` and `markdown` — the dict runs
-[student.py:1000-1008](apps/api-py/app/routers/student.py#L1000), with `"used_ai": used_ai`
+[student.py:1000-1008](apps/api-py/app/api/student/self_service.py#L1000), with `"used_ai": used_ai`
 on line 1005. The client can therefore display "composed without AI" honestly rather than
 pretending.
 
 > **One inconsistency worth flagging.** The exception handler at
-> [student.py:974-975](apps/api-py/app/routers/student.py#L974) interpolates the caught
+> [student.py:974-975](apps/api-py/app/api/student/self_service.py#L974) interpolates the caught
 > exception's text into `note` and returns it to the *student*. On the agent router the
 > standing rule is the opposite, stated in one line of its module docstring:
 > "Provider/exception detail is logged server-side and NEVER surfaced to the client"
-> ([agent.py:17](apps/api-py/app/routers/agent.py#L17)), backed by the constant
+> ([agent.py:17](apps/api-py/app/api/legacy/text_assistant.py#L17)), backed by the constant
 > `FRIENDLY_ERROR` and the comment "The real cause is logged server-side — never leaked to
-> the caller" ([agent.py:57-58](apps/api-py/app/routers/agent.py#L57)). A provider error
+> the caller" ([agent.py:57-58](apps/api-py/app/api/legacy/text_assistant.py#L57)). A provider error
 > string can contain endpoint, account or quota detail. The two routers disagree about leak
 > discipline, and the resume router is the permissive one.
 
@@ -616,15 +616,15 @@ The LLM goes through the universal adapter (app/ai/llm.py). The egress gate stil
 applies: this is a general conversational assistant, so `carries_student_data`
 stays False; wire it True on any path that injects a student's private records.
 ```
-— [agent.py:14-16](apps/api-py/app/routers/agent.py#L14)
+— [agent.py:14-16](apps/api-py/app/api/legacy/text_assistant.py#L14)
 
 The operative word is **injects**. `/chat` and `/chat/stream` replay
 `convo.history(db, conversation.id, limit=HISTORY_LIMIT)` — the caller's own previously
 typed messages and the assistant's own previous replies
-([agent.py:166-167](apps/api-py/app/routers/agent.py#L166)). No database record of the
+([agent.py:166-167](apps/api-py/app/api/legacy/text_assistant.py#L166)). No database record of the
 student is placed in the prompt by the server; `SYSTEM_PROMPT` even instructs the model to
 disclaim record access ("if asked for specific marks/attendance, say those come from the
-authenticated records view", [agent.py:49-51](apps/api-py/app/routers/agent.py#L49)). The
+authenticated records view", [agent.py:49-51](apps/api-py/app/api/legacy/text_assistant.py#L49)). The
 distinction the codebase draws is between *the server injecting a record* and *the user
 authoring a sentence*, and it is a real distinction: the gate protects data REEP holds on
 the student's behalf, not text the student chose to type.
@@ -829,7 +829,7 @@ The error path is hand-rolled, and the comment on it is a captured gotcha:
 > instead of the provider's actual 401 or 429 explanation. The constructed message
 > deliberately embeds the provider's raw body, which is exactly the detail an operator
 > needs and exactly the detail a client must never see;
-> [agent.py:234-237](apps/api-py/app/routers/agent.py#L234) resolves the tension by logging
+> [agent.py:234-237](apps/api-py/app/api/legacy/text_assistant.py#L234) resolves the tension by logging
 > server-side and yielding only the constant `FRIENDLY_ERROR` in-band.
 
 Now the body. The provider answers a `stream: true` request not with one JSON document but
@@ -875,10 +875,10 @@ deltas are all discarded; only `choices[0].delta.content` survives.
 
 Finally: both functions are **synchronous and blocking**, and every handler that calls them
 is declared `def`, not `async def` — `chat` at
-[agent.py:144](apps/api-py/app/routers/agent.py#L144), `chat_stream` at
-[agent.py:189](apps/api-py/app/routers/agent.py#L189), `ask` at
-[agent.py:266](apps/api-py/app/routers/agent.py#L266), `generate_resume` at
-[student.py:924](apps/api-py/app/routers/student.py#L924). FastAPI inspects that
+[agent.py:144](apps/api-py/app/api/legacy/text_assistant.py#L144), `chat_stream` at
+[agent.py:189](apps/api-py/app/api/legacy/text_assistant.py#L189), `ask` at
+[agent.py:266](apps/api-py/app/api/legacy/text_assistant.py#L266), `generate_resume` at
+[student.py:924](apps/api-py/app/api/student/self_service.py#L924). FastAPI inspects that
 declaration and dispatches accordingly: an `async def` handler runs directly on the single
 event loop that serves every request, so a blocking call inside one stalls the whole
 process, while a plain `def` handler is handed to a bounded worker threadpool instead. So a
@@ -900,7 +900,7 @@ in one sentence:
 ```
 The model is a *language + orchestration* layer, never the source of truth.
 Every specific fact about a student comes from a read-only tool in
-``app.assistant_tools`` (which runs the same code path as the student's own
+``app.assistant.tools`` (which runs the same code path as the student's own
 screens); every policy statement comes from an APPROVED knowledge chunk. The
 model only ever *phrases* what the tools return — and student PII is never sent
 to a refused (off-machine) provider.
@@ -1009,8 +1009,8 @@ def answer_question(
 
 This is the only function any production code outside the module calls. The one import
 site is `from ..ai import orchestrator`
-([agent.py:32](apps/api-py/app/routers/agent.py#L32)) and the one call is at
-[agent.py:293-295](apps/api-py/app/routers/agent.py#L293). Its docstring pins two
+([agent.py:32](apps/api-py/app/api/legacy/text_assistant.py#L32)) and the one call is at
+[agent.py:293-295](apps/api-py/app/api/legacy/text_assistant.py#L293). Its docstring pins two
 guarantees: it "Never raises for an LLM/provider failure — it degrades to a deterministic
 or friendly answer and logs the cause", and `intent`/`resolved` "are stamped onto every
 return path here" ([orchestrator.py:189-198](apps/api-py/app/ai/orchestrator.py#L189)).
@@ -1044,7 +1044,7 @@ The containment handler is the promise that `/api/agent/ask` never 502s:
 
 What it actually contains is broader than it looks. Every student-data builder calls a
 tool, and every tool re-enters a **real FastAPI endpoint function** from
-`app.routers.student` with a synthetic session (§8.6). Those functions can raise anything
+`app.api.student.self_service` with a synthetic session (§8.6). Those functions can raise anything
 a request can raise — including `fastapi.HTTPException` and any SQLAlchemy error. Because
 `HTTPException` subclasses `Exception`, a 403 raised *inside* a tool is swallowed here and
 converted into a 200 carrying `FRIENDLY_FALLBACK`. The stack trace is preserved
@@ -1053,7 +1053,7 @@ server-side and the answer text is a fixed constant, so nothing leaks.
 The limit of that containment, reasoned from the code: the handler does **not** call
 `db.rollback()`. `/api/agent/ask` shares its request `Session` with the orchestrator and,
 after `answer_question` returns, performs `convo.append_message` and `_persist_run` which
-commits ([agent.py:305-321](apps/api-py/app/routers/agent.py#L305)). If the swallowed
+commits ([agent.py:305-321](apps/api-py/app/api/legacy/text_assistant.py#L305)). If the swallowed
 exception had deactivated the transaction, those writes would raise and the request *would*
 500. The containment is complete for logic faults in tool code and for provider faults, but
 not necessarily for a poisoned transaction. No test or comment addresses this.
@@ -1137,14 +1137,14 @@ three-way `when` expression renders `f"in {d} day(s)"`, `f"{abs(d)} day(s) overd
 > **The third arm is unreachable — but not for the reason the type hints suggest.** The
 > obvious check is the Pydantic schema, and it appears to contradict the claim:
 > `CertProgressOut.days_until_due` really is declared `int | None`
-> ([routers/student.py:1148](apps/api-py/app/routers/student.py#L1148)), and the
+> ([api/student/self_service.py:1148](apps/api-py/app/api/student/self_service.py#L1148)), and the
 > certifications endpoint really does assign it `None` — but only inside
 > `if due is None: days_until_due = None`
-> ([student.py:1184-1185](apps/api-py/app/routers/student.py#L1184)). That branch cannot be
+> ([student.py:1184-1185](apps/api-py/app/api/student/self_service.py#L1184)). That branch cannot be
 > taken. `CertificationProgress.due_date` is a non-nullable `Mapped[datetime]`
 > ([models/certification.py:61](apps/api-py/app/models/certification.py#L61)), so
 > `prog.due_date` is never `None`; and `CertProgressOut.due_date` is likewise a bare
-> `datetime` ([student.py:1144](apps/api-py/app/routers/student.py#L1144)), which would
+> `datetime` ([student.py:1144](apps/api-py/app/api/student/self_service.py#L1144)), which would
 > reject a null on serialisation anyway. `days_until_due` is thus always an `int` in
 > practice, the `isinstance(d, int)` tests always succeed, and the `f"due {c['due_date']}"`
 > arm never fires. Harmless defensive code, but dead.
@@ -1173,10 +1173,10 @@ because the argument that no caller controls the breadth of grounding depends on
 `_policy` calls `tools.policy_search(db, question, audience="student")`
 ([orchestrator.py:451](apps/api-py/app/ai/orchestrator.py#L451)), and `policy_search`
 forwards `knowledge.search(db, query, audience=audience)`
-([assistant_tools.py:177](apps/api-py/app/assistant_tools.py#L177)). Neither hop passes
+([assistant/tools.py:177](apps/api-py/app/assistant/tools.py#L177)). Neither hop passes
 `limit`. The value of 5 is a **signature default**, declared on `search` itself
-([knowledge.py:74-79](apps/api-py/app/knowledge.py#L74), with `limit: int = 5` on
-[knowledge.py:78](apps/api-py/app/knowledge.py#L78)) — so nothing in the orchestrator pins
+([knowledge.py:74-79](apps/api-py/app/assistant/knowledge_base.py#L74), with `limit: int = 5` on
+[knowledge.py:78](apps/api-py/app/assistant/knowledge_base.py#L78)) — so nothing in the orchestrator pins
 how many chunks ground an answer, and changing that default would silently change the
 grounding breadth of every policy answer in the product.
 
@@ -1184,7 +1184,7 @@ The retrieval algorithm itself — hybrid Postgres full-text blended with pgvect
 is Chapter 10's territory. All this chapter asserts about it is that default limit of 5,
 the APPROVED-plus-audience filter, and the documented result keys
 `{chunk_text, document_title, source_type, source_url, anchor, score}`
-([knowledge.py:80-85](apps/api-py/app/knowledge.py#L80)). Note the audience is
+([knowledge.py:80-85](apps/api-py/app/assistant/knowledge_base.py#L80)). Note the audience is
 **hard-coded to `"student"`** at the orchestrator hop, so a MENTOR or DIRECTOR asking a
 policy question is answered from the student-audience corpus.
 
@@ -1219,7 +1219,7 @@ and to the metrics. Sources are deduped by title with an ordered `seen` set
 Two consequences worth naming: **policy answers never carry actions** (the client gets
 citations but no CTA), and `source_url`, `anchor` and `score` are **discarded** — only
 `label` and `type` survive, and `SourceOut` has only those two fields
-([agent.py:87-89](apps/api-py/app/routers/agent.py#L87)) — so a cited policy source cannot
+([agent.py:87-89](apps/api-py/app/api/legacy/text_assistant.py#L87)) — so a cited policy source cannot
 be deep-linked even though the KB stores the URL and anchor.
 
 ### 8.5.6 `_general`
@@ -1240,7 +1240,7 @@ guidance is not grounded in a tool or an approved policy chunk."
 
 That is a deliberate and consequential choice. A perfectly good general answer is recorded
 as **not resolved**, and `/api/agent/metrics` computes `refusal_rate` over
-`AgentRun.resolved` ([agent.py:532-535](apps/api-py/app/routers/agent.py#L532)), so every
+`AgentRun.resolved` ([agent.py:532-535](apps/api-py/app/api/legacy/text_assistant.py#L532)), so every
 general-chat turn counts against the assistant's resolution rate by design. `_general` is
 also one of the two branches reachable with no provider configured and no prior guard — the
 other is `_policy`, which calls `complete_chat` inside a bare `try` with no `llm_config()`
@@ -1371,7 +1371,7 @@ flowchart TD
 
 ---
 
-## 8.6 The tool surface: `app/assistant_tools.py`
+## 8.6 The tool surface: `app/assistant/tools.py`
 
 177 lines, sitting at the *package root* rather than under `app/ai/`, even though its only
 consumer is the orchestrator. Its docstring is the design contract:
@@ -1381,14 +1381,14 @@ consumer is the orchestrator. Its docstring is the design contract:
   ``student_id`` and returns a plain ``dict`` / ``list`` (JSON-ready), never a
   Pydantic model or an ORM row.
 * Business logic is NOT reproduced here. Each tool invokes the real endpoint
-  function from ``app.routers.student`` (with a minimal synthetic session) or a
+  function from ``app.api.student.self_service`` (with a minimal synthetic session) or a
   shared helper from that module, then projects the result down to the shape the
   orchestrator wants. If a screen's number changes, these tools change with it.
 * These tools are read-only and student-scoped: they only ever return the
   caller's own facts, and they never send anything to a model. Grounding the
   assistant with them keeps live student data on this machine (AGENTS.md).
 ```
-— [apps/api-py/app/assistant_tools.py:10-19](apps/api-py/app/assistant_tools.py#L10)
+— [apps/api-py/app/assistant/tools.py:10-19](apps/api-py/app/assistant/tools.py#L10)
 
 That last clause names Rule 1 outright, and it is the claim §8.6.3 goes on to test. The
 failure being guarded against by the middle clause is **divergence**: an assistant that
@@ -1404,7 +1404,7 @@ def _session(student_id: str) -> dict:
     """
     return {"studentId": student_id}
 ```
-— [assistant_tools.py:37-44](apps/api-py/app/assistant_tools.py#L37)
+— [assistant/tools.py:37-44](apps/api-py/app/assistant/tools.py#L37)
 
 FastAPI route handlers are declared with `Depends(...)` objects as ordinary Python default
 values, so calling `student_ep.my_jobs(session=_session(student_id), db=db)` bypasses
@@ -1425,11 +1425,11 @@ endpoint's row-scoping SQL but not its authentication**.
 | `placement_readiness` | `(db, student_id) -> dict` | `student_ep.placement_readiness` | the endpoint payload **whole**, unprojected |
 | `policy_search` | `(db, query, audience="student") -> list[dict]` | `knowledge.search` | approved KB chunks; **no student id parameter** |
 
-`profile_completion` ([assistant_tools.py:137-164](apps/api-py/app/assistant_tools.py#L137))
+`profile_completion` ([assistant/tools.py:137-164](apps/api-py/app/assistant/tools.py#L137))
 is the documented exception — there is no single endpoint for it. It walks
 `_PROFILE_FIELDS`, seven `(field, human label)` pairs (`phone`, `email`, `linkedin_url`,
 `github_url`, `portfolio_url`, `city`, `career_summary`)
-([assistant_tools.py:126-134](apps/api-py/app/assistant_tools.py#L126)), and averages the
+([assistant/tools.py:126-134](apps/api-py/app/assistant/tools.py#L126)), and averages the
 filled share with `student_ep._resume_pct`. A silent-failure hazard lives in
 `getattr(prof, field, None)`: a typo or a renamed column raises nothing, so the field is
 counted "missing" forever, permanently depressing `percent` and adding a phantom entry the
@@ -1445,19 +1445,19 @@ they are enrolled in with due dates and days remaining; every skill they hold wi
 and verification state; which claims are under review; which contact fields are blank; and
 per job posting, whether they qualify and the literal reason why not — strings like
 `f"CGPA {latest_cgpa} is below the required {min_cgpa}"`
-([routers/student.py:609](apps/api-py/app/routers/student.py#L609)). It does not carry
+([api/student/self_service.py:609](apps/api-py/app/api/student/self_service.py#L609)). It does not carry
 name or USN, but by any reasonable reading this is the student's private academic record.
 
 **What stops it being shipped to a remote model.** Three layers, of unequal strength.
 
-1. **Structural — a strong signal, not a wall.** `assistant_tools.py` imports `sqlalchemy`,
-   `app.knowledge`, `StudentProfile` and `app.routers.student` — and nothing else
-   ([assistant_tools.py:29-34](apps/api-py/app/assistant_tools.py#L29)). It imports nothing
+1. **Structural — a strong signal, not a wall.** `assistant/tools.py` imports `sqlalchemy`,
+   `app.assistant.knowledge_base`, `StudentProfile` and `app.api.student.self_service` — and nothing else
+   ([assistant/tools.py:29-34](apps/api-py/app/assistant/tools.py#L29)). It imports nothing
    from `app.ai` **directly** and holds no network client of its own. But the barrier is
    conventional rather than absolute, and the chapter would be lying to call it physical:
-   `app.routers.student`, which every tool calls into, itself begins
+   `app.api.student.self_service`, which every tool calls into, itself begins
    `from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed`
-   ([routers/student.py:11](apps/api-py/app/routers/student.py#L11)). So
+   ([api/student/self_service.py:11](apps/api-py/app/api/student/self_service.py#L11)). So
    `student_ep.complete_chat` — and through it `httpx` — is reachable from inside the
    module by anyone who goes looking. Treat this layer as a review signal that makes an
    accidental egress path visible in a diff, not as an impossibility.
@@ -1486,7 +1486,7 @@ read, or whether one is read at all.
 **What actually scopes a tool to one student.** Nothing inside the module — every tool
 trusts the `student_id` string it is handed. The boundary is one line in the caller:
 `session.get("studentId")` from the verified session cookie
-([agent.py:293-295](apps/api-py/app/routers/agent.py#L293)). There is no request-body field
+([agent.py:293-295](apps/api-py/app/api/legacy/text_assistant.py#L293)). There is no request-body field
 that can name a student id. The second constraint is `is_student` plus the
 `STUDENT_DATA_INTENTS` guard in `answer_question`. **Any future caller of
 `assistant_tools` must derive `student_id` from the verified session, because the tools
@@ -1679,7 +1679,7 @@ shadows the name `_policy` and `_general` resolve, so the real adapter is never 
 That silences the LLM adapter only — it does not make the run unconditionally offline. The
 autouse fixture seeds the KB and the three policy cases go through `knowledge.search`, which
 does `if embedder_configured(): vecs = embed([q])`
-([knowledge.py:159-160](apps/api-py/app/knowledge.py#L159)) — an outbound POST to an
+([knowledge.py:159-160](apps/api-py/app/assistant/knowledge_base.py#L159)) — an outbound POST to an
 OpenAI-compatible `/embeddings` endpoint, and `embedder_configured()` auto-selects Mistral
 from a bare `MISTRAL_API_KEY` with no `EMBEDDING_*` set at all
 ([embeddings.py:55-57](apps/api-py/app/ai/embeddings.py#L55)). On a developer machine
@@ -1863,7 +1863,7 @@ where it does not.
 post-processes — every path in this chapter except the free-form chat stream. Use
 `stream_chat` only where an SSE surface is already established (i.e. the handler returns a
 `StreamingResponse` emitting `data: {json}\n\n` frames, as
-[agent.py:231-237](apps/api-py/app/routers/agent.py#L231) does), and remember it is a
+[agent.py:231-237](apps/api-py/app/api/legacy/text_assistant.py#L231) does), and remember it is a
 generator: construct it *inside* the `try`, or the config error, the egress refusal and the
 HTTP failure will all fire somewhere you are not catching. Never combine streaming with
 `json_mode`; the signature does not offer it.
@@ -1873,7 +1873,7 @@ records reach the prompt** — marks, USN, CGPA, attendance, backlogs, readiness
 eligibility reasons, certification names, profile fields, resume content. The test is
 whether *the server* put a record into the prompt, not whether the text is about a student.
 Replaying the caller's own typed messages is not injection, and the codebase says so
-explicitly ([agent.py:14-16](apps/api-py/app/routers/agent.py#L14)). Pass it **explicitly**
+explicitly ([agent.py:14-16](apps/api-py/app/api/legacy/text_assistant.py#L14)). Pass it **explicitly**
 even when the value is `False`, as every call site in this layer does — it makes the audit
 greppable. Then justify it: `_policy` carries the one-line comment "PUBLIC content only"
 directly above the call ([orchestrator.py:472](apps/api-py/app/ai/orchestrator.py#L472)),
@@ -1905,13 +1905,13 @@ fractures the `by_model` aggregation in `/api/agent/metrics` and drops the provi
 `_LITELLM_NATIVE`. And remember that `_PROVIDERS` itself has a second consumer outside its
 own module (see the note under the naming table), so a change to its shape is not local.
 
-**Adding a tool.** Put it in `app/assistant_tools.py` with the signature
+**Adding a tool.** Put it in `app/assistant/tools.py` with the signature
 `(db: Session, student_id: str)`, name it as a bare domain noun-phrase (no `get_`/`fetch_`
 prefix), call the real `/student/...` endpoint function with `_session(student_id)` rather
 than reimplementing its logic, and project the Pydantic result to a plain JSON-ready
 `dict`/`list`. **Import nothing from `app.ai` and no network client** — the module's
 import list is the layer a reviewer can check in a diff (§8.6.3 explains why it is a signal
-rather than a barrier, since `app.routers.student` already re-exports `complete_chat`).
+rather than a barrier, since `app.api.student.self_service` already re-exports `complete_chat`).
 Then add a builder `_<intent>(db, student_id)` in the orchestrator, a `_student_source(...)`
 citation, an entry in `classify()`, and a golden case.
 
@@ -1952,7 +1952,7 @@ citation, an entry in `classify()`, and a golden case.
 
 **Two conventions that will bite you if ignored.** A test that stubs the adapter must patch
 the **importing module's namespace** — `orchestrator.complete_chat`,
-`app.routers.agent.complete_chat` — never `app.ai.llm.complete_chat`, because all three
+`app.api.legacy.text_assistant.complete_chat` — never `app.ai.llm.complete_chat`, because all three
 consumers use `from … import <name>` and bind the object at import time. Patching the wrong
 target is a silent no-op that turns your offline test into a live network call. And
 `llm_config()` may return `None`: handle it explicitly, or you get an `AttributeError` on
@@ -1999,7 +1999,7 @@ outside the gate.
 - **The routing asymmetries in `classify()`** (§8.5.2) are reported as mechanical behaviour.
   No comment, test or golden case addresses them, so whether they are intentional is
   unknown; this chapter offers no defect verdict on them.
-- **`app/knowledge.py`, `app/ai/embeddings.py`, `apps/api-py/voice_agent.py` and the six
+- **`app/assistant/knowledge_base.py`, `app/ai/embeddings.py`, `apps/api-py/voice_agent.py` and the six
   reused `/student/...` endpoints** were read only at their seams, per the chapter
   boundaries. Descriptions of what `policy_search` returns and what PII the six builders
   place in the polish prompt rest on the orchestrator's own use of those return values; what

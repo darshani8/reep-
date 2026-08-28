@@ -390,7 +390,7 @@ inputs yet — your mentor and the placement cell add these."
 ([:298-327](apps/web/src/app/features/student/overview/student-overview.component.ts#L298))
 returns `null` if and only if `this.swoc()` is null, which happens only when `getJson`
 returned null. A genuinely empty board is a 200: `my_swoc`
-([student.py:263-288](apps/api-py/app/routers/student.py#L263)) always constructs a
+([student.py:263-288](apps/api-py/app/api/student/self_service.py#L263)) always constructs a
 `SwocBoardOut` and never 404s, so four empty lists come back, `swocBoxes` returns its four
 boxes, and `joinSwoc`
 ([:329-331](apps/web/src/app/features/student/overview/student-overview.component.ts#L329))
@@ -423,7 +423,7 @@ the one-line verdict. Two surfaces, one `streakChip()`/`streak()` pair behind th
   readonly topActions = computed(() => this.nextActions()?.slice(0, 4) ?? []);
 ```
 
-The comment is true — [student.py:2006-2007](apps/api-py/app/routers/student.py#L2006)
+The comment is true — [student.py:2006-2007](apps/api-py/app/api/student/self_service.py#L2006)
 does `actions.sort(key=lambda a: a.priority)` then `return NextActionsOut(actions=actions[:5])`.
 The server hands over five and the client shows four, so **the fifth action is
 permanently invisible.** Each row prints the title, the reason, a status chip, an optional
@@ -447,7 +447,7 @@ const STATUS_CHIPS: Record<string, StatusChip> = {
 
 Those six keys are the six literal status strings `next_actions` emits, verified
 one-for-one against the handler at
-[student.py:1837-2007](apps/api-py/app/routers/student.py#L1837). The
+[student.py:1837-2007](apps/api-py/app/api/student/self_service.py#L1837). The
 lookup is total — `STATUS_CHIPS[status] ?? { cls: 'neutral', icon: 'info' }`
 ([:211-213](apps/web/src/app/features/student/overview/student-overview.component.ts#L211))
 — and the template prints `{{ a.status }}` beside the chip, so a renamed server string
@@ -468,7 +468,7 @@ server's band string to a tone
 ```
 
 `_readiness_band` emits exactly `Not ready` / `Developing` / `On track` / `Ready`
-([student.py:2024-2031](apps/api-py/app/routers/student.py#L2024)), so the mapping is
+([student.py:2024-2031](apps/api-py/app/api/student/self_service.py#L2024)), so the mapping is
 correct today. Note the failure mode is asymmetric: an added or renamed band falls into
 the `else` and paints red. That is a hard-coded copy of the server's vocabulary, not a
 recomputation — an important distinction §10 returns to.
@@ -674,7 +674,7 @@ Its interfaces are the ones to copy. `SubjectMark`/`SemesterResult`
 ([:45-56](apps/web/src/app/features/student/records/records.component.ts#L45)) match their
 `*Out` models, and `Qualification`/`AcademicGap`/`Academics`
 ([:59-81](apps/web/src/app/features/student/records/records.component.ts#L59)) match
-[student.py:461-484](apps/api-py/app/routers/student.py#L461) field for field including
+[student.py:461-484](apps/api-py/app/api/student/self_service.py#L461) field for field including
 the server-computed `percent` and `total_mo`. **Records is the only one of the two
 academics-consuming screens outside the resume builder that is correct against the API.**
 
@@ -700,12 +700,12 @@ Two derived values on this screen are recomputations of server rules, and §10 l
 as divergences. `attendanceChip` hard-codes 85 and 75
 ([:194-206](apps/web/src/app/features/student/records/records.component.ts#L194)) while
 the server reads `crit.min_attendance_pct` off the active `PlacementCriteria`, defaulting
-to `75.0` when there is none ([student.py:2051](apps/api-py/app/routers/student.py#L2051))
+to `75.0` when there is none ([student.py:2051](apps/api-py/app/api/student/self_service.py#L2051))
 against a model default of `85` ([placement_criteria.py:27](apps/api-py/app/models/placement_criteria.py#L27)).
 And `latestCgpa` ([:127-134](apps/web/src/app/features/student/records/records.component.ts#L127))
 scans the results array backwards for the first *non-null* CGPA, whereas the server's
 `_latest_cgpa` takes the **highest semester row and returns its `cgpa`, null included**
-([student.py:1782-1789](apps/api-py/app/routers/student.py#L1782)).
+([student.py:1782-1789](apps/api-py/app/api/student/self_service.py#L1782)).
 
 ### `academics.component.ts` — the screen that cannot work
 
@@ -740,7 +740,7 @@ interface Semester { semester: number; cgpa: number | null; closedBacklogs: numb
 interface AcademicsView { qualifications: Qualification[]; gap: Gap; semesters: Semester[] }
 ```
 
-`AcademicsOut` ([student.py:482-485](apps/api-py/app/routers/student.py#L482)) declares
+`AcademicsOut` ([student.py:482-485](apps/api-py/app/api/student/self_service.py#L482)) declares
 only `qualifications` and `gap`, in snake_case, and there is no alias generator anywhere in
 `apps/api-py`. So `load()`'s `this.semesters.set(v.semesters)`
 ([:83](apps/web/src/app/features/student/academics/academics.component.ts#L83)) stores
@@ -757,12 +757,12 @@ compiler never tests, and `strict` is off.
 ([:107-112](apps/web/src/app/features/student/academics/academics.component.ts#L107)). The
 backend exposes exactly one academics route,
 `@router.get("/academics", response_model=AcademicsOut)`
-([student.py:487](apps/api-py/app/routers/student.py#L487)) — a repo-wide grep for
+([student.py:487](apps/api-py/app/api/student/self_service.py#L487)) — a repo-wide grep for
 `academics` across `app/routers/` returns exactly three source hits, and they are that one
 route: the model import `from ..models.academics import SemesterResult`
-([student.py:17](apps/api-py/app/routers/student.py#L17)), the `get` decorator above, and
+([student.py:17](apps/api-py/app/api/student/self_service.py#L17)), the `get` decorator above, and
 the handler it decorates, `def my_academics(`
-([student.py:488](apps/api-py/app/routers/student.py#L488)). There is no second decorator
+([student.py:488](apps/api-py/app/api/student/self_service.py#L488)). There is no second decorator
 and no `@router.put("/academics")` anywhere in the backend. Every save
 is a 405, so the student sees "Could not save your academics." unconditionally. The
 editable half of the screen — five level buttons, an eight-field qualification grid, four
@@ -937,7 +937,7 @@ literally that. `JobRow`'s thirteen fields
 ([:36-50](apps/web/src/app/features/student/jobs/jobs.component.ts#L36)) match `JobRowOut`
 one for one, and `Offer`'s ten
 ([:53-64](apps/web/src/app/features/student/jobs/jobs.component.ts#L53)) match `OfferOut`
-([student.py:674-684](apps/api-py/app/routers/student.py#L674)). **This is the convention:
+([student.py:674-684](apps/api-py/app/api/student/self_service.py#L674)). **This is the convention:
 name the interface after the Pydantic model with `Out` dropped, and copy its snake_case
 field names byte for byte.** Because the response is consumed through an unchecked
 `(await res.json()) as T` cast, that convention is the *only* thing standing between the
@@ -1063,11 +1063,11 @@ guards on the first line are the *only* guards in the system.
 > **The rule that lives only in the browser.** `POST /student/jobs/{id}/apply` resolves the
 > student, 404s an unknown job, dedupes against an existing `JobApplication`, inserts, and
 > returns — there is no eligibility test and no `closes_on` test anywhere in the handler
-> ([student.py:638-658](apps/api-py/app/routers/student.py#L638)). The eligibility
+> ([student.py:638-658](apps/api-py/app/api/student/self_service.py#L638)). The eligibility
 > *verdict* is server-computed and correct (per-posting `min_cgpa` / `max_live_backlogs`
 > override the active `PlacementCriteria`, with the comment "A null CGPA is unassessed
 > (not blocking); only an actual below-cutoff blocks",
-> [student.py:594-624](apps/api-py/app/routers/student.py#L594)) and the client only ever
+> [student.py:594-624](apps/api-py/app/api/student/self_service.py#L594)) and the client only ever
 > *displays* `row.eligible` and `row.reasons`. But the decision to let the student press
 > Apply is made at [jobs.component.ts:283](apps/web/src/app/features/student/jobs/jobs.component.ts#L283)
 > and in the disabled-CTA ladder at
@@ -1096,7 +1096,7 @@ input case), and — the part most often got wrong —
 
 `detail` is what FastAPI's `HTTPException` produces, so `create_offer`'s 422 "Invalid
 role_type / channel / work_mode."
-([student.py:703-716](apps/api-py/app/routers/student.py#L703)) reaches the student
+([student.py:703-716](apps/api-py/app/api/student/self_service.py#L703)) reaches the student
 verbatim. On success the form closes and `loadOffers()` is awaited — the server's truth is
 re-read rather than an optimistic row being invented.
 
@@ -1116,7 +1116,7 @@ The consequences are entirely predictable once you know the cast is unchecked, b
 are *not* uniform, and that is the part worth getting right. A camelCase interface over a
 snake_case payload does not blank every field; it blanks the fields whose names actually
 differ. Set the two declarations side by side —
-`OfferOut` ([student.py:674-684](apps/api-py/app/routers/student.py#L674)) against
+`OfferOut` ([student.py:674-684](apps/api-py/app/api/student/self_service.py#L674)) against
 `Offer` ([offers.component.ts:23-41](apps/web/src/app/features/student/offers/offers.component.ts#L23))
 — and the seventeen client fields fall into three groups:
 
@@ -1139,15 +1139,15 @@ with gaps in the data rather than as a broken screen. Specifically:
   `fixedGrossInr` and `workMode` fail identically.
 - `roleLabel[o.roleType]` indexes `ROLE_LABEL` with `undefined` and prints nothing —
   `OfferOut` sends the field as `role_type`
-  ([student.py:676](apps/api-py/app/routers/student.py#L676)). This is the **only** one of
+  ([student.py:676](apps/api-py/app/api/student/self_service.py#L676)). This is the **only** one of
   the screen's two label lookups that breaks.
 - `statusLabel[o.status]` resolves correctly and prints "Draft" / "Awaiting approval" /
   "Approved" / "Rejected"
   ([offers.component.ts:48-53](apps/web/src/app/features/student/offers/offers.component.ts#L48),
   rendered at [offers.component.html:83](apps/web/src/app/features/student/offers/offers.component.html#L83)),
   because `OfferOut` declares `status: str`
-  ([student.py:684](apps/api-py/app/routers/student.py#L684)) and `_offer_out` fills it
-  from `o.status.value` ([student.py:698](apps/api-py/app/routers/student.py#L698)) — the
+  ([student.py:684](apps/api-py/app/api/student/self_service.py#L684)) and `_offer_out` fills it
+  from `o.status.value` ([student.py:698](apps/api-py/app/api/student/self_service.py#L698)) — the
   literal string `"DRAFT"` for a new draft. The `[attr.data-status]` badge colours resolve
   off the same value.
 - Therefore `@if (o.status === 'DRAFT')`
@@ -1156,7 +1156,7 @@ with gaps in the data rather than as a broken screen. Specifically:
   `submitOffer` ([:174-180](apps/web/src/app/features/student/offers/offers.component.ts#L174))
   is live, reachable code. Drafts genuinely exist to press it on, because the *Jobs*
   screen's `createOffer` posts a correct snake_case body and `create_offer` inserts with
-  `status=OfferStatus.DRAFT` ([student.py:730](apps/api-py/app/routers/student.py#L730)).
+  `status=OfferStatus.DRAFT` ([student.py:730](apps/api-py/app/api/student/self_service.py#L730)).
   What `submitOffer` cannot do is tell the student when it failed — see the unchecked
   `res.ok` below.
 
@@ -1176,7 +1176,7 @@ network failure is an unhandled rejection with nothing shown; the submit legs
 ([:161-166](apps/web/src/app/features/student/offers/offers.component.ts#L161),
 [:174-180](apps/web/src/app/features/student/offers/offers.component.ts#L174)) fire POSTs
 and never inspect `res.ok`, so a 409 "Only a draft offer can be submitted."
-([student.py:761-764](apps/api-py/app/routers/student.py#L761)) is swallowed and the row
+([student.py:761-764](apps/api-py/app/api/student/self_service.py#L761)) is swallowed and the row
 simply re-renders unchanged; and `inject` is imported and never used
 ([:11](apps/web/src/app/features/student/offers/offers.component.ts#L11)).
 
@@ -1190,7 +1190,7 @@ enforce, and the copy is aimed at the student, not the developer
 > it (the backend refuses edits after, so a report never reads a figure changed
 > post-approval)."
 
-`submit_offer` ([student.py:751-768](apps/api-py/app/routers/student.py#L751)) 404s an
+`submit_offer` ([student.py:751-768](apps/api-py/app/api/student/self_service.py#L751)) 404s an
 offer belonging to another student, 409s anything not in `DRAFT`, and otherwise moves
 `DRAFT → PENDING_APPROVAL`. There is no student-facing offer-update endpoint at all. The
 lock is real; only this screen's wiring is not.
@@ -1333,9 +1333,9 @@ against them, check by check.
 
 | Check | Client | Server | Verdict |
 |---|---|---|---|
-| Max size | `MAX_BYTES = 10 * 1024 * 1024`, tested `file.size > MAX_BYTES` ([:69](apps/web/src/app/features/student/uploads/uploads.component.ts#L69), [:183](apps/web/src/app/features/student/uploads/uploads.component.ts#L183)) | `MAX_BYTES = 10 * 1024 * 1024`, tested `len(content) > MAX_BYTES` ([document_store.py:30](apps/api-py/app/document_store.py#L30), [:54](apps/api-py/app/document_store.py#L54)) | **Exactly equal.** Same expression, same strict `>`. 10 485 760 bytes passes both; one byte more is refused by both, and the client refuses it without a round trip. |
-| Empty file | none — `0 > MAX_BYTES` is false and an empty `File` is truthy | `if not content: raise UploadRejected("The file is empty.")` ([document_store.py:52](apps/api-py/app/document_store.py#L52)) | Client more permissive; the 422 is surfaced verbatim, so it degrades honestly. |
-| File type | **none in code.** Only the HTML `accept="application/pdf,image/png,image/jpeg"` ([uploads.component.html:108](apps/web/src/app/features/student/uploads/uploads.component.html#L108)) and the copy "Accepted: PDF, PNG, JPEG · up to 10 MB" ([:82](apps/web/src/app/features/student/uploads/uploads.component.html#L82)) | `_sniff()` against three magic-byte signatures — `%PDF`, the 8-byte PNG header, `FF D8 FF` ([document_store.py:24-41](apps/api-py/app/document_store.py#L24)) | Client strictly more permissive, three ways over. |
+| Max size | `MAX_BYTES = 10 * 1024 * 1024`, tested `file.size > MAX_BYTES` ([:69](apps/web/src/app/features/student/uploads/uploads.component.ts#L69), [:183](apps/web/src/app/features/student/uploads/uploads.component.ts#L183)) | `MAX_BYTES = 10 * 1024 * 1024`, tested `len(content) > MAX_BYTES` ([document_store.py:30](apps/api-py/app/platform/document_store.py#L30), [:54](apps/api-py/app/platform/document_store.py#L54)) | **Exactly equal.** Same expression, same strict `>`. 10 485 760 bytes passes both; one byte more is refused by both, and the client refuses it without a round trip. |
+| Empty file | none — `0 > MAX_BYTES` is false and an empty `File` is truthy | `if not content: raise UploadRejected("The file is empty.")` ([document_store.py:52](apps/api-py/app/platform/document_store.py#L52)) | Client more permissive; the 422 is surfaced verbatim, so it degrades honestly. |
+| File type | **none in code.** Only the HTML `accept="application/pdf,image/png,image/jpeg"` ([uploads.component.html:108](apps/web/src/app/features/student/uploads/uploads.component.html#L108)) and the copy "Accepted: PDF, PNG, JPEG · up to 10 MB" ([:82](apps/web/src/app/features/student/uploads/uploads.component.html#L82)) | `_sniff()` against three magic-byte signatures — `%PDF`, the 8-byte PNG header, `FF D8 FF` ([document_store.py:24-41](apps/api-py/app/platform/document_store.py#L24)) | Client strictly more permissive, three ways over. |
 
 The size limit is the reassuring row; the type row is the one to understand. `accept`
 governs only the file-picker dialog's default filter, and **drag-and-drop bypasses it
@@ -1344,7 +1344,7 @@ round trip and returns a 422 the student can read. The more confusing case is th
 a file *named* `x.pdf` whose bytes are HTML passes `accept` and the size check and is
 refused on magic bytes, so the student sees a type error on a file whose extension is in
 the accepted list. That is precisely the case the store was built for
-([document_store.py:1-15](apps/api-py/app/document_store.py#L1)):
+([document_store.py:1-15](apps/api-py/app/platform/document_store.py#L1)):
 
 > **Why it is like this.** "The type is decided by MAGIC BYTES, not the client-sent name or
 > Content-Type. A '.pdf' that is actually an executable is rejected; the recorded mime is
@@ -1426,8 +1426,8 @@ The error handling is asymmetric in a way worth fixing. Step one surfaces the se
 step two discards it for a flat "Could not file the claim. Please try again."
 ([:177](apps/web/src/app/features/student/skilling/skilling.component.ts#L177)), so the
 server's specific 404s — "Skill not found." and "Evidence upload not found."
-([student.py:1489](apps/api-py/app/routers/student.py#L1489),
-[:1494](apps/api-py/app/routers/student.py#L1494)) — never reach the student. That second
+([student.py:1489](apps/api-py/app/api/student/self_service.py#L1489),
+[:1494](apps/api-py/app/api/student/self_service.py#L1494)) — never reach the student. That second
 one exists for a reason the handler states outright: "Never let a claim point at someone
 else's upload."
 
@@ -1440,7 +1440,7 @@ category headings from `Map` insertion order and says so
 ([:100-101](apps/web/src/app/features/student/skilling/skilling.component.ts#L100)): "the
 server already sorts by (category, -level), so the first-seen order is category-sorted and
 strongest-first". `my_skills` does exactly that, on its last line and with its own comment
-saying so ([student.py:353-354](apps/api-py/app/routers/student.py#L353)):
+saying so ([student.py:353-354](apps/api-py/app/api/student/self_service.py#L353)):
 `# Grouped by category, strongest first within each.` /
 `return sorted(out, key=lambda s: (s.category, -s.level))`. Remove that `sorted(...)` and
 the card silently renders duplicate category headings interleaved in arrival order — the
@@ -1469,7 +1469,7 @@ matters most, because every row is a *classmate*.
 
 `LeaderRow` ships **seven** fields per cohort peer — `rank`, `student_id`, `name`,
 `initials`, `value`, `value_label`, `is_me`
-([student.py:1674-1681](apps/api-py/app/routers/student.py#L1674)). The Angular `LbEntry`
+([student.py:1674-1681](apps/api-py/app/api/student/self_service.py#L1674)). The Angular `LbEntry`
 declares **five**
 ([leaderboards.component.ts:24-31](apps/web/src/app/features/student/leaderboards/leaderboards.component.ts#L24)):
 
@@ -1508,9 +1508,9 @@ and when it is on the entire board is replaced by a panel that makes two promise
 
 Both are accurate, and each is honoured by a *different* mechanism in the same handler. The
 caller's own opt-out short-circuits before any roster query runs
-([student.py:1709-1710](apps/api-py/app/routers/student.py#L1709)), and separately the
+([student.py:1709-1710](apps/api-py/app/api/student/self_service.py#L1709)), and separately the
 cohort roster is filtered against the set of every opted-out `student_id`
-([:1711-1724](apps/api-py/app/routers/student.py#L1711)) so the student appears on nobody
+([:1711-1724](apps/api-py/app/api/student/self_service.py#L1711)) so the student appears on nobody
 else's board either. The bidirectionality is deliberate: an opted-out student watching a
 board they are absent from is the asymmetry the design rejects. The privacy note is true by
 construction — the flag is read by this one endpoint and no `require_mentor` or
@@ -1519,7 +1519,7 @@ construction — the flag is read by this one endpoint and no `require_mentor` o
 Three things the copy does not say.
 
 1. **`cohort_size` is not the cohort.** It is `len(rows)`
-   ([student.py:1741](apps/api-py/app/routers/student.py#L1741)) — the count of *visible*
+   ([student.py:1741](apps/api-py/app/api/student/self_service.py#L1741)) — the count of *visible*
    ranked peers after opted-out students are removed. The Pydantic field comment is honest
    ("number of ranked students on the board"), but the UI prints it as "Rank {N} of {n}"
    and repeats `of {{ cohortSize() }}` on every single row
@@ -1546,18 +1546,18 @@ and two of the five `scored` phrases are wrong against the rule engine Chapter 6
 - **Skills** is described as "verified and held skills"
   ([:59](apps/web/src/app/features/student/leaderboards/leaderboards.component.ts#L59)), but
   `_board_values` counts every `StudentSkill` with **no filter on `verified`**
-  ([student.py:1626-1633](apps/api-py/app/routers/student.py#L1626)). The explainer tells
+  ([student.py:1626-1633](apps/api-py/app/api/student/self_service.py#L1626)). The explainer tells
   the student the board rewards verification when it does not.
 - **Streak** is the tab's label, but the board counts *distinct `LoginDay` rows* — total
   lifetime active days, labelled "{n} active days"
-  ([student.py:1658-1669](apps/api-py/app/routers/student.py#L1658)) — not the consecutive
+  ([student.py:1658-1669](apps/api-py/app/api/student/self_service.py#L1658)) — not the consecutive
   run that `GET /student/streak` computes. The `scored` string ("active-day count") is
   honest; the tab label is not.
 
 Two mechanics complete the picture. Every roster member is ranked even at zero, so an
 untouched cohort produces a full board of zeros rather than an empty state; and ranking is
 positional (`enumerate(sorted(...))`,
-[student.py:1724-1740](apps/api-py/app/routers/student.py#L1724)), not competition-ranked,
+[student.py:1724-1740](apps/api-py/app/api/student/self_service.py#L1724)), not competition-ranked,
 so two students on three certificates each see "Rank 4" and "Rank 5" with the tie broken by
 query order.
 
@@ -1570,7 +1570,7 @@ returns nothing. What the screen actually is: five hour-buckets for one calendar
 typed in as numbers and posted in a single batch behind one Save button. The nearest thing
 in the product to an attendance ping is the `LoginDay` row that feeds the streak board
 (§6), and the backend writes that itself on a successful sign-in
-([auth.py:63](apps/api-py/app/routers/auth.py#L63)) — not anything a student presses.
+([auth.py:63](apps/api-py/app/api/account/sign_in.py#L63)) — not anything a student presses.
 
 Five fixed buckets mirror the `DayActivity` enum
 ([time-log.component.ts:44-50](apps/web/src/app/features/student/time-log/time-log.component.ts#L44)),
@@ -1593,7 +1593,7 @@ function todayKey(): string {
 > tomorrow's date. The sheet then loads back empty, the student re-enters it, and one day's
 > work becomes two days of data. The read side matches: `days=1` means today only, because
 > the window is `since = date.today() - timedelta(days=window - 1)`
-> ([student.py:437-438](apps/api-py/app/routers/student.py#L437)) — the `- 1` is what makes
+> ([student.py:437-438](apps/api-py/app/api/student/self_service.py#L437)) — the `- 1` is what makes
 > one mean one.
 
 **The bar has one scale that stretches.** `denom()` is `max(24, total)` and `markerPct()`
@@ -1616,7 +1616,7 @@ Saving fires five parallel POSTs, one row per `(day, activity)`, each clamped
 ```
 
 which exactly matches the server's `minutes: int = Field(ge=0, le=1440)`
-([student.py:866](apps/api-py/app/routers/student.py#L866)) — the clamp is what prevents a
+([student.py:866](apps/api-py/app/api/student/self_service.py#L866)) — the clamp is what prevents a
 Pydantic 422. Success is `results.every((r) => r.ok)`; a partial failure sets "Some buckets
 did not save — please try again.", does not reload, does not name the failing bucket, and
 leaves `dirty` true so the button stays live.
@@ -1729,14 +1729,14 @@ and the screen shows a red `chip risk` "Not cleared" as though the placement off
 actively barred them.
 
 **These four validators are the only validation in the system.** `ProfileUpdateIn`
-([student.py:793-807](apps/api-py/app/routers/student.py#L793)) declares fourteen fields
+([student.py:793-807](apps/api-py/app/api/student/self_service.py#L793)) declares fourteen fields
 with no constraints on any of them — seven bare `str | None` (`phone`, `email`,
 `linkedin_url`, `github_url`, `portfolio_url`, `city`, `career_summary`), three
 `bool | None` (`interested_in_jobs`, `interested_in_internships`, `leaderboard_opt_out`)
 and four untyped `list | None` (`education`, `experience`, `projects`, `achievements`) —
 and `update_profile`
-([student.py:810-827](apps/api-py/app/routers/student.py#L810)) does an unconditional
-attribute splat ([:823-824](apps/api-py/app/routers/student.py#L823)):
+([student.py:810-827](apps/api-py/app/api/student/self_service.py#L810)) does an unconditional
+attribute splat ([:823-824](apps/api-py/app/api/student/self_service.py#L823)):
 
 ```py
     for field, value in body.model_dump(exclude_unset=True).items():
@@ -1849,7 +1849,7 @@ a field in place instead and the save bar would read "Saved" over unsaved edits.
 
 **The rule that follows from `PUT` being a whole-blob replace.** `put_resume_profile` does
 `row.data = body.data` — no merge, no `If-Match`, no version column
-([student.py:1570-1590](apps/api-py/app/routers/student.py#L1570)) — and the client always
+([student.py:1570-1590](apps/api-py/app/api/student/self_service.py#L1570)) — and the client always
 sends `this.data()` entire and never re-reads after the initial `load()`. Two tabs open on
 the builder will each save their own snapshot and the later save silently deletes whatever
 the other added. The mitigation is that `patch()` spreads, so keys loaded at startup but
@@ -2037,12 +2037,12 @@ _RESUME_SECTIONS = [
 ]
 ```
 
-([student.py:1521-1524](apps/api-py/app/routers/student.py#L1521); the comment above it
+([student.py:1521-1524](apps/api-py/app/api/student/self_service.py#L1521); the comment above it
 explains the omission — "Education / certifications / attachments are shown by the builder
 too but come from their own endpoints, so they don't count here.") `_section_filled`
-([:1527-1535](apps/api-py/app/routers/student.py#L1527)) treats `None`, `''`, `[]` and `{}`
+([:1527-1535](apps/api-py/app/api/student/self_service.py#L1527)) treats `None`, `''`, `[]` and `{}`
 as unfilled and recurses `any(...)` over dict values. The meter itself is two lines
-([:1541-1542](apps/api-py/app/routers/student.py#L1541)):
+([:1541-1542](apps/api-py/app/api/student/self_service.py#L1541)):
 
 ```py
     filled = sum(1 for k in _RESUME_SECTIONS if _section_filled(data.get(k)))
@@ -2069,10 +2069,10 @@ rules: the resume next-action fires below it, the placement-readiness factor is
 `rb-preview` is the only screen in the app that triggers a model call on student data. It
 does **not** auto-run on mount — each POST creates a new `Resume` row, so generation is an
 explicit action, and the server computes `version = max(...) + 1` and inserts every time
-([student.py:983-996](apps/api-py/app/routers/student.py#L983)).
+([student.py:983-996](apps/api-py/app/api/student/self_service.py#L983)).
 
 Server-side, the gate is one condition
-([student.py:958-981](apps/api-py/app/routers/student.py#L958)):
+([student.py:958-981](apps/api-py/app/api/student/self_service.py#L958)):
 
 ```py
     cfg = llm_config()
@@ -2111,11 +2111,11 @@ resumes from a previous session must go to All Resumes to fetch one.
 **The fifteen sections the student spends the most time filling in do not reach the
 generated resume.** `generate_resume` never loads `ResumeProfile`. A repo-wide grep finds
 `ResumeProfile` at exactly three call sites: `get_resume_profile`, `put_resume_profile`, and
-`_resume_pct` ([student.py:1817-1819](apps/api-py/app/routers/student.py#L1817)), which only
+`_resume_pct` ([student.py:1817-1819](apps/api-py/app/api/student/self_service.py#L1817)), which only
 feeds the completeness percentage. What `_compose_resume_markdown` is actually handed is the
 session `name`, the `StudentProfile` row, the `Skill`/`StudentSkill` join, the latest
 `SemesterResult` CGPA and the `AcademicQualification` rows
-([student.py:901-916](apps/api-py/app/routers/student.py#L901)) — and it emits exactly a
+([student.py:901-916](apps/api-py/app/api/student/self_service.py#L901)) — and it emits exactly a
 name heading, an optional career summary, an optional contact line, `## Skills`, and
 `## Academics`.
 
@@ -2545,10 +2545,10 @@ because `create_upload`'s 422s always carry a plain string.
 **The eligibility rules the applicant is never shown.** `_pick_rule` takes the lowest
 `priority` among enabled matching rules, ties broken by `created_at` "so a rule added later
 can't silently outrank an equal"
-([registration.py:48-61](apps/api-py/app/routers/registration.py#L48)). `_rule_matches`
+([registration.py:48-61](apps/api-py/app/api/account/registration.py#L48)). `_rule_matches`
 treats an empty condition as a wildcard and requires every populated one to hold — and the
 USN clause is the decisive one
-([registration.py:38-45](apps/api-py/app/routers/registration.py#L38)):
+([registration.py:38-45](apps/api-py/app/api/account/registration.py#L38)):
 
 ```py
     if rule.usn_pattern:
@@ -2568,7 +2568,7 @@ form says so: the field has no required marker and no hint beyond a placeholder.
 plus the server's `decision_reason`, and a primary button "Continue to sign in" pointing at
 `/login`. But `submit()` creates a `Registration` **row and nothing else** — no `User`, no
 `Student`, no password
-([registration.py:110-155](apps/api-py/app/routers/registration.py#L110)) — and the
+([registration.py:110-155](apps/api-py/app/api/account/registration.py#L110)) — and the
 director's `decide()` path says outright that "Student provisioning is a separate follow-up
 step." A repo-wide grep for `approved_student_id` finds it only in the model, the migration
 and the read-side schema; **no code ever assigns it.** An AUTO_APPROVED applicant is told
@@ -2589,10 +2589,10 @@ not a signal.
 | # | Deviation | Where | Consequence |
 |---|---|---|---|
 | 1 | **DTOs in camelCase against a snake_case API**, consumed through an unchecked `as T` cast | [academics.component.ts:19-33](apps/web/src/app/features/student/academics/academics.component.ts#L19), [offers.component.ts:23-41](apps/web/src/app/features/student/offers/offers.component.ts#L23) | Every *renamed* field reads `undefined` at runtime while `ng build` stays green — blank job titles, "—" salaries, a blank role label, and a `.length` read on `undefined`. The fields that happen to collide (`id`, `organisation`, `channel`, `location`, `status`) render correctly, which is what makes the failure read as missing data rather than a broken screen |
-| 2 | **A PUT to a path that only exposes GET** | [academics.component.ts:107-112](apps/web/src/app/features/student/academics/academics.component.ts#L107) vs [student.py:487](apps/api-py/app/routers/student.py#L487) | Every save is a 405; the editable half of the screen cannot persist anything |
+| 2 | **A PUT to a path that only exposes GET** | [academics.component.ts:107-112](apps/web/src/app/features/student/academics/academics.component.ts#L107) vs [student.py:487](apps/api-py/app/api/student/self_service.py#L487) | Every save is a 405; the editable half of the screen cannot persist anything |
 | 3 | **A `computed()` with no signal in its body** | [academics.component.ts:60-66](apps/web/src/app/features/student/academics/academics.component.ts#L60) — `gap` is a plain property | "Total gap: N months" is frozen at first read and never moves as the student types |
-| 4 | **A client re-deciding a server rule**: hard-coded 85/75 attendance thresholds | [records.component.ts:194-206](apps/web/src/app/features/student/records/records.component.ts#L194) vs `crit.min_attendance_pct` ([student.py:2051](apps/api-py/app/routers/student.py#L2051)) | Set `min_attendance_pct` to 80 and Records calls 78 % "Watch" (amber) while placement-readiness marks the factor unmet |
-| 5 | **Two different definitions of "latest CGPA"** | [records.component.ts:127-134](apps/web/src/app/features/student/records/records.component.ts#L127) (first non-null, scanning back) vs [student.py:1782-1789](apps/api-py/app/routers/student.py#L1782) (highest semester row, null included) | The headline tile reads 8.1 while the eligibility gate treats the student as unassessed |
+| 4 | **A client re-deciding a server rule**: hard-coded 85/75 attendance thresholds | [records.component.ts:194-206](apps/web/src/app/features/student/records/records.component.ts#L194) vs `crit.min_attendance_pct` ([student.py:2051](apps/api-py/app/api/student/self_service.py#L2051)) | Set `min_attendance_pct` to 80 and Records calls 78 % "Watch" (amber) while placement-readiness marks the factor unmet |
+| 5 | **Two different definitions of "latest CGPA"** | [records.component.ts:127-134](apps/web/src/app/features/student/records/records.component.ts#L127) (first non-null, scanning back) vs [student.py:1782-1789](apps/api-py/app/api/student/self_service.py#L1782) (highest semester row, null included) | The headline tile reads 8.1 while the eligibility gate treats the student as unassessed |
 | 6 | **Live backlogs summed client-side, twice** | [records.component.ts:136-138](apps/web/src/app/features/student/records/records.component.ts#L136), [academics.component.ts:67](apps/web/src/app/features/student/academics/academics.component.ts#L67) vs `_live_backlogs` | Same formula today; a second and third implementation of an eligibility input |
 | 7 | **A total recomputed when the API already ships it** | [academics.component.ts:64-66](apps/web/src/app/features/student/academics/academics.component.ts#L64) recomputes `total_mo`; [records.component.html:228](apps/web/src/app/features/student/records/records.component.html#L228) reads `gap.total_mo` correctly | The recomputation is how the frozen-computed bug and the camelCase bug both stayed invisible |
 | 8 | **A hard-coded status with no server field behind it** | [jobs.component.html:191](apps/web/src/app/features/student/jobs/jobs.component.html#L191) — "Under review" on every application | `JobApplication` has no status column; nothing will ever move that chip |
@@ -2613,7 +2613,7 @@ not a signal.
 | 23 | **An `output()` nothing binds** | [preview.component.ts:108](apps/web/src/app/features/student/resume/views/preview.component.ts#L108), [all-resumes.component.ts:60](apps/web/src/app/features/student/resume/views/all-resumes.component.ts#L60) | Six visible buttons in the resume builder do nothing at all |
 | 24 | **A slice key in neither registry** | `external_certs` is not a step key and not in `_RESUME_SECTIONS` | External certifications never light the stepper dot and never move the completeness meter |
 | 25 | **A live object reference passed to `patch()`** | [other.component.ts:256](apps/web/src/app/features/student/resume/sections/other.component.ts#L256) and the same in `references` / `policy`, versus the deep clone in [basic.component.ts:192](apps/web/src/app/features/student/resume/sections/basic.component.ts#L192) | Nothing is lost today; a future mutation without a `push()` would ride into the next save without marking the profile dirty |
-| 26 | **Fields shipped to every browser and never read** | `LeaderRow.student_id` and `.value` ([student.py:1674-1681](apps/api-py/app/routers/student.py#L1674)) vs `LbEntry` ([leaderboards.component.ts:24-31](apps/web/src/app/features/student/leaderboards/leaderboards.component.ts#L24)) | Every student's browser receives the database id of every visible classmate |
+| 26 | **Fields shipped to every browser and never read** | `LeaderRow.student_id` and `.value` ([student.py:1674-1681](apps/api-py/app/api/student/self_service.py#L1674)) vs `LbEntry` ([leaderboards.component.ts:24-31](apps/web/src/app/features/student/leaderboards/leaderboards.component.ts#L24)) | Every student's browser receives the database id of every visible classmate |
 | 27 | **An unused import** | `inject` at line 11 of both [offers.component.ts](apps/web/src/app/features/student/offers/offers.component.ts#L11) and [academics.component.ts](apps/web/src/app/features/student/academics/academics.component.ts#L11) | — |
 | 28 | **Asymmetric loading fidelity on one screen** | `loadJobs` sets a loading flag, `loadOffers` does not ([jobs.component.ts:204-216](apps/web/src/app/features/student/jobs/jobs.component.ts#L204)) | The offers table flashes "No offers yet" before data lands, and a failed offers load is only visible inside one `@empty` cell |
 | 29 | **A shared kit that almost nothing uses** | Only three components import `shared/kit/kit.components`: [assistant.component.ts:36](apps/web/src/app/features/assistant/assistant.component.ts#L36), [academics.component.ts:15](apps/web/src/app/features/student/academics/academics.component.ts#L15), [offers.component.ts:15](apps/web/src/app/features/student/offers/offers.component.ts#L15) — and those three templates are the only ones in `apps/web/src` containing a `kit-*` element. `kit-stat` ([kit.components.ts:120](apps/web/src/app/shared/kit/kit.components.ts#L120)) and `kit-banner` ([:204](apps/web/src/app/shared/kit/kit.components.ts#L204)) have **no caller anywhere** | Fourteen of the seventeen screens hand-roll their own `.dt-header` / `.card` page structure, so a change to `kit-page-intro` reaches three screens — and two of those three are the orphaned, broken academics and offers screens this chapter tells you not to copy. The shared component whose whole purpose is consistency is the least consistent thing in the layer |
@@ -2741,7 +2741,7 @@ usability affordance, never a security control.
   files under `apps/web/src/app/features/assistant/` are modified but uncommitted;
   `git diff HEAD` shows the template shrinking from 371 lines to 201 and the TypeScript from
   476 to 410, with the general REEP Agent surface replaced by a realtime "Mock interview"
-  screen backed by new, untracked files (`app/routers/interview.py`,
+  screen backed by new, untracked files (`app/api/student/interview_session.py`,
   `core/interview.service.ts`). Every §8 line number, and the assistant rows in §1's index
   and §10, are read from the **committed** files. Nothing else in `features/` differs
   between the working tree and `HEAD`. If that rewrite lands, §8 and four rows of §10 need

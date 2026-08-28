@@ -9,7 +9,7 @@ named as three tests you can find by searching for the word "mentor":
 
 A MENTOR with no `Mentor` group is the account the rule exists to exclude, and
 "no group" has been read as "no filter, therefore everybody" in this codebase
-before — app/routers/leave.py's header records that exact bug, found by the
+before — app/api/mentor/leave.py's header records that exact bug, found by the
 2026-08 audit, in which a group-less mentor listed every leave request programme
 wide with the reason attached. An interview transcript is the same class of
 material: fifteen minutes of a named student's unrehearsed speech, plus a score.
@@ -58,7 +58,7 @@ from app.models.interview import (
     InterviewTurn,
 )
 from app.models.user import Mentor, Role, Student, User
-from app.security import SESSION_COOKIE, create_session_token
+from app.platform.credentials import SESSION_COOKIE, create_session_token
 
 RAW_RESPONSE = "MODEL-PRIVATE-REASONING-ABOUT-THE-STUDENT"
 
@@ -73,7 +73,7 @@ def api():
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from app.routers import interview_records
+    from app.api.student import interview_records
 
     app = FastAPI()
     app.include_router(interview_records.student_router)
@@ -394,7 +394,7 @@ def test_the_students_own_routes_take_no_student_id():
     forget the filter. A path parameter is easy to add and impossible to notice
     in review, so it is asserted here.
     """
-    from app.routers import interview_records
+    from app.api.student import interview_records
 
     for route in interview_records.student_router.routes:
         assert "{student_id}" not in route.path, route.path
@@ -822,7 +822,7 @@ def test_the_routers_are_mounted_at_the_documented_paths():
     prefix.
 
     Both routers declare their full `/api/...` path (the shape
-    app/routers/interview.py uses), while the domain routers next to them in
+    app/api/student/interview_session.py uses), while the domain routers next to them in
     main.py declare `/mentor` and are mounted with `prefix="/api"`. Copying that
     line for `staff_router` serves it at `/api/api/mentor/...`: every request
     404s, nothing raises, and the only symptom is a mentor screen that is
@@ -845,7 +845,7 @@ def test_the_routers_are_mounted_at_the_documented_paths():
     app actually serve", which is the question being asked.
     """
     from app.main import app
-    from app.routers import interview_records
+    from app.api.student import interview_records
 
     expected = {
         route.path

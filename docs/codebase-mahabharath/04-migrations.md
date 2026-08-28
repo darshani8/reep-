@@ -1135,7 +1135,7 @@ therefore not destructive. It is also faster and cannot fail on a malformed valu
 The important structural point is that the *repopulation* is not the migration's job. It is
 delegated to `app.ai.embeddings.reembed_all`, which is called by `app/seed_kb.py` when an
 embedder is configured. So `alembic upgrade head` on a fresh database leaves
-`knowledge_chunks.embedding` entirely NULL — and `app/knowledge.py` is written to work in
+`knowledge_chunks.embedding` entirely NULL — and `app/assistant/knowledge_base.py` is written to work in
 exactly that state, guarding the vector branch so retrieval degrades to full-text rather than
 failing. (Chapter 10 owns retrieval; this is only the migration-side half.)
 
@@ -1424,7 +1424,7 @@ This is the only revision that appends real SQL after the autogenerate banner, a
     # ### end Alembic commands ###
 
     # Postgres full-text GIN index over the chunk text — backs the PRIMARY
-    # retrieval path in app/knowledge.py (ts_rank over to_tsvector('english', ...)).
+    # retrieval path in app/assistant/knowledge_base.py (ts_rank over to_tsvector('english', ...)).
     # Hand-written because Alembic can't autogenerate a functional/expression index.
     op.execute(
         "CREATE INDEX ix_knowledge_chunk_fts "
@@ -1500,16 +1500,16 @@ it worth reading is the shape:
 Uniqueness on `worker_id` is what makes the heartbeat an **upsert per worker** rather than an
 append-only log. The router reads the row for the incoming `worker_id` and either updates
 `last_seen` on it or inserts one
-([app/routers/voice.py:134-143](../../apps/api-py/app/routers/voice.py#L134)); the constraint is
+([app/api/legacy/voice_assistant.py:134-143](../../apps/api-py/app/api/legacy/voice_assistant.py#L134)); the constraint is
 what makes "one row per worker" an invariant the database holds rather than a hope. The same
 handler then reaps rows whose `last_seen` is older than `HEARTBEAT_REAP_AFTER`
-([voice.py:152-156](../../apps/api-py/app/routers/voice.py#L152)), and the comment above it
+([voice.py:152-156](../../apps/api-py/app/api/legacy/voice_assistant.py#L152)), and the comment above it
 records why:
 
 > "Every worker process gets a fresh random `worker_id` at startup (`VOICE_WORKER_ID` default),
 > so without this the table grows by one permanent row per restart, redeploy, crash and local dev
 > run — unbounded, and eventually the thing readiness scans on every /status call."
-> — [voice.py:145-149](../../apps/api-py/app/routers/voice.py#L145)
+> — [voice.py:145-149](../../apps/api-py/app/api/legacy/voice_assistant.py#L145)
 
 Between the constraint and the reaper, the table stays roughly one row per live worker — which
 is what lets `GET /api/voice/status` answer with a single bounded existence query rather than an
@@ -1525,7 +1525,7 @@ def _worker_healthy(db: Session) -> bool:
     )
     return fresh is not None
 ```
-— [voice.py:174-181](../../apps/api-py/app/routers/voice.py#L174)
+— [voice.py:174-181](../../apps/api-py/app/api/legacy/voice_assistant.py#L174)
 
 And the table has no foreign key to anything, because the voice worker is a separate OS
 process in a separate virtual environment (Chapter 1, §3) with no user identity — there is nothing

@@ -222,7 +222,7 @@ Two different voices exist in this codebase:
 
 ## 8. Interview call recording
 
-Already in the engine (`app/interview_audio.py`), enabled by this stack's
+Already in the engine (`app/interview/audio_store.py`), enabled by this stack's
 `interview_recording_enabled=true`. What that means, precisely: recording is
 **two independent switches** — the deployment flag AND the student's own
 consent grant with the store-audio scope ticked (a separate, unticked-by-default

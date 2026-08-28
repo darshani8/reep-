@@ -10,7 +10,7 @@ This document is the implementable spec for fixing that. It assumes
 Read those first; nothing here overrides them.
 
 The whole change turns on one boolean, `turn_detection.create_response`, at
-`apps/api-py/app/interview_relay.py:715`. Everything else in this document is a
+`apps/api-py/app/interview/realtime_relay.py:715`. Everything else in this document is a
 consequence of moving that decision into this process — and most of it is the
 work of making the new failure modes visible instead of silent.
 
@@ -20,7 +20,7 @@ work of making the new failure modes visible instead of silent.
 
 Three emitters: **B** = browser, **R** = this relay, **U** = `api.openai.com`.
 
-### The handshake, once (`_handshake`, `interview_relay.py:847`)
+### The handshake, once (`_handshake`, `interview/realtime_relay.py:847`)
 
 | # | Dir | Event | Anchor |
 |---|---|---|---|
@@ -60,7 +60,7 @@ question is typically half-spoken before the relay learns what the student said.
    *after* U processes it; there is no event that amends a response already
    generating. So the directive computed for answer N steers the response to
    answer N+1. The tail of that bug is the product requirement failing outright:
-   after answer 5 the machine reaches `WRAP_UP` (`interview_matrix.py`,
+   after answer 5 the machine reaches `WRAP_UP` (`interview/specializations.py`,
    `_WRAP_UP_AFTER_ANSWERS = 5`), but the in-flight response, composed under the
    deep-dive directive, asks a *sixth question*. The verdict needs a sixth
    answer — and if `interview_max_seconds` (900) lands first, **there is no
@@ -197,7 +197,7 @@ say exactly that in the comment above it.
 > the verdict's does. `_force_wrap_up` skips the beat — the clock path has no
 > time for it — and, if the reserve deadline lands while the student is
 > thinking of a question to ask, ends the beat and goes straight to the
-> verdict. The local engine (`interview_local.py`) mirrors the same two beats
+> verdict. The local engine (`interview/offline_engine.py`) mirrors the same two beats
 > in its own turn loop.
 >
 > The same amendment adds two smaller things, overriding §2.1/§2.2 where they
@@ -300,7 +300,7 @@ iteration, the same shape as `request_stop`), never by sending.
 | **L2** | A cancelled question's partial text. | Already correct at :1301-1304, and the comment there is right — do not regress it. Add `is_partial` to the `interview_turns` row so the record distinguishes "asked" from "cut off". |
 | **L3** | The evaluation write is the last thing to happen and therefore the most likely to be cancelled by `_TURN_WRITE_DRAIN_S = 2.0` (:1371). | **Await the evaluation write; do not fire-and-forget it.** It is one row, it happens once, and the interview is already over — the reason fire-and-forget exists (*"the student is mid-sentence and cannot be helped by an exception"*, :1311) does not apply. Bound it ~3 s, and on failure still send `reep.report` so the student sees the scorecard even if Postgres did not take it. **A deliberate, documented divergence from the house rule; say so at the call site.** |
 | **L4** | **A timed-out or failed transcript is `""`, and `_emit_turn` returns early on `not text.strip()` (:1330).** So the very turns v3 adds a status column for would leave **no row at all**. | The blank-text guard applies to the `messages` insert **only**. The `interview_turns` row is written regardless — `content = ''` is legal there, `transcription_status` says why, and that row is the entire reason the table exists. **This is the trap in this change most likely to ship unnoticed.** |
-| **L5** | **`append_message` now raises `ConversationGone`** (Track A's M6 fix, already on the working tree in `app/conversations.py`), and `_make_turn_writer` in `routers/interview.py` has **not** been updated to its call-site contract. | Adopt the contract: let it propagate to `_run_turn_write`'s `except Exception`, log it with the connection id, and **end the session** — `request_stop(_CLOSE_OK, "Conversation cleared")`. Safe from there: `_run_turn_write` catches on the event loop, not in the worker thread. This is also why `interview_turns` is keyed on `interview_session_id` and never on `conversation_id`: the interview record survives a conversation that has stopped accepting turns. |
+| **L5** | **`append_message` now raises `ConversationGone`** (Track A's M6 fix, already on the working tree in `app/assistant/conversations.py`), and `_make_turn_writer` in `api/student/interview_session.py` has **not** been updated to its call-site contract. | Adopt the contract: let it propagate to `_run_turn_write`'s `except Exception`, log it with the connection id, and **end the session** — `request_stop(_CLOSE_OK, "Conversation cleared")`. Safe from there: `_run_turn_write` catches on the event loop, not in the worker thread. This is also why `interview_turns` is keyed on `interview_session_id` and never on `conversation_id`: the interview record survives a conversation that has stopped accepting turns. |
 
 ### 2.7 The comments that become false, and must be rewritten in the same commit
 
@@ -388,7 +388,7 @@ a second thing to keep in sync; `awaiting_transcript` is `_pending`;
 
 | Variable | Values | Status | The invariant it protects |
 |---|---|---|---|
-| `InterviewPhase` (`interview_matrix.py`) | 5 | exists, unit-tested | The model's instructions match the stage of the arc. **Do not extend it.** |
+| `InterviewPhase` (`interview/specializations.py`) | 5 | exists, unit-tested | The model's instructions match the stage of the arc. **Do not extend it.** |
 | `_active_response_id: str \| None` (:565) | nullable id | exists | (a) audio from a cancelled response never reaches a flushed browser (`_forward_model_audio` :1227); (b) **new** — at most one response is in flight, so we never collide with our own create. |
 | `_question_open: bool` | 2 | **new** | **Only an answer to a question that was actually ASKED advances the arc.** Set from `response.done.status == "completed"`; cleared at `response.create`. |
 | `_pending: dict[str, _Pending]`, insertion-ordered, capped at 8 | 0..8 | **new** | Exactly one `response.create` per drainable batch, in commit order, and no committed segment waits forever. `_Pending` is a small mutable record: `(item_id, deadline_at, transcript, status)`. |
@@ -429,7 +429,7 @@ _deferred
     None   --[create requested while _active_response_id is not None]--> record
     record --[response.done fires it]---------------------------------> None
 
-phase (interview_matrix.py, unchanged)
+phase (interview/specializations.py, unchanged)
     opening --1 accepted answer--> probing --3--> deep_dive --5--> wrap_up
     any --> ended.   wrap_up is sticky: student_answered() returns False there.
 ```
@@ -444,7 +444,7 @@ on every single turn.
 
 ### 4.1 The rule
 
-Lives in `app/interview_matrix.py` (no I/O, unit-testable with no fixtures — the
+Lives in `app/interview/specializations.py` (no I/O, unit-testable with no fixtures — the
 same property that module's docstring already claims):
 
 ```python
@@ -494,7 +494,7 @@ creates a response and does not advance the arc.
 creates the response with a **per-response `instructions` override**. Two rules
 on that override, both load-bearing:
 
-1. **Compose it in `app/interview_matrix.py`, not inline in the relay**, so
+1. **Compose it in `app/interview/specializations.py`, not inline in the relay**, so
    instruction composition stays in one module and the base persona keeps
    arriving first and verbatim — the property `build_instructions`' docstring
    promises. The override **replaces** the session persona for that response
@@ -673,7 +673,7 @@ laptop mic, with no human in the loop, is a number they will screenshot and
 believe. Withholding it is still worse, for three reasons:
 
 1. **The model already speaks a verdict aloud** at WRAP_UP
-   (`interview_matrix.py`, the WRAP_UP directive). The student has heard the
+   (`interview/specializations.py`, the WRAP_UP directive). The student has heard the
    judgement. Hiding the number hides only the number.
 2. A score the student cannot see but their mentor can is **a secret file on a
    student**. That is the one arrangement here that would be genuinely hard to
@@ -724,7 +724,7 @@ are unchanged. That contract does not bend.
 `Conversation.consent_state` (`app/models/conversation.py`). Reason: all three of
 AGENTS.md's Alembic enum gotchas are `CREATE TYPE` ordering pain, and **these
 vocabularies will move** — a fifth specialization is a data change today
-(`interview_matrix.py`), and turning it into a migration is a regression.
+(`interview/specializations.py`), and turning it into a migration is a regression.
 `Upload.status` earned its enum because it is a frozen three-state review
 workflow; none of these are. The vocabulary goes in a comment next to the column,
 which is where the next editor will look.
@@ -852,7 +852,7 @@ no such value.**
 
 One consequence, stated plainly: `interview_turns.interview_session_id` requires
 an `interview_sessions` row to exist **before** the first turn. Open it in
-`routers/interview.py` beside `_open_conversation` — same `to_thread`, same
+`api/student/interview_session.py` beside `_open_conversation` — same `to_thread`, same
 failure handling (a failed open already closes 1011) — and hand its id to
 `_make_turn_writer`. That is **one extra insert per interview, not per turn.**
 
@@ -895,7 +895,7 @@ summary line (:1600, so that line carries the terminal status). Runs on
 with a teardown detail, the same discipline `_close_downstream` documents at
 :1631-1636. Covers: clean end, guardrails, disconnect, upstream close, 1011.
 
-**Layer 2 — the router's backstop.** `routers/interview.py`'s existing `finally:`
+**Layer 2 — the router's backstop.** `api/student/interview_session.py`'s existing `finally:`
 already runs on `CancelledError` (which re-raises *after* the finally) and on any
 exception. Add
 `await asyncio.to_thread(_finalize_if_running, interview_session_id, code, reason)`:
@@ -957,14 +957,14 @@ codebase, not two.**
 ## 7. Access control
 
 **Rule 2 is not re-implemented here.** `_assert_can_access_student` is imported
-from `app/routers/mentor.py` and called as the **first line** of every staff
-endpoint. `app/routers/leave.py` already establishes both the precedent and the
+from `app/api/mentor/mentees.py` and called as the **first line** of every staff
+endpoint. `app/api/mentor/leave.py` already establishes both the precedent and the
 reasoning: *a second copy here would be the copy that stops tracking the first.*
 A MENTOR with no `Mentor` group lands in that function's own 404 branch and sees
 nobody, which is the point.
 
-New module `app/routers/interview_records.py`. It declares **two** routers — one
-at `/api/interview` and one at `/api/mentor` — so that `app/routers/mentor.py` is
+New module `app/api/student/interview_records.py`. It declares **two** routers — one
+at `/api/interview` and one at `/api/mentor` — so that `app/api/mentor/mentees.py` is
 **not touched at all**, and this work never collides with Track A. Both are
 included from `app/main.py`.
 
@@ -1071,7 +1071,7 @@ Do not merge those two into one commit.
 >
 > The decision below was reversed: a stored recording is required for authorised
 > review of the interview engine. It is implemented in
-> **`apps/api-py/app/interview_audio.py`**, with the relay's capture path, the
+> **`apps/api-py/app/interview/audio_store.py`**, with the relay's capture path, the
 > `audio_*` columns on `interview_sessions`, the DIRECTOR-only download at
 > `GET /api/mentor/students/{sid}/interviews/{id}/audio`, and deletion through
 > `retention.purge_expired`. `docs/interview-assistant.md` carries the operator
@@ -1102,7 +1102,7 @@ Do not merge those two into one commit.
 > audio inside 141.3 s of wall clock — and any merge of those two puts the
 > student's answers under the wrong questions, exactly as this section warned.
 >
-> `app/interview_audio.py` now stamps the recorder with one monotonic clock and
+> `app/interview/audio_store.py` now stamps the recorder with one monotonic clock and
 > pads each track's gaps with zeroed samples, so both files carry the SESSION's
 > timeline; only then are they summed, with saturating arithmetic, into a third
 > `mixed` file that `GET .../audio` serves by default. The per-speaker files
@@ -1121,7 +1121,7 @@ Do not merge those two into one commit.
    24 kHz mono is 48 kB/s — about 43 MB per 15-minute interview, 4.3 GB/hour at
    100 concurrent sessions, onto a box whose file store has no per-student quota.
    There is no encoder, no cap-truncation semantics, no retrieval path, no
-   deletion path. And `app/document_store.py` **cannot** be reused: it decides type by
+   deletion path. And `app/platform/document_store.py` **cannot** be reused: it decides type by
    magic bytes and accepts only PDF/PNG/JPEG, so admitting audio means loosening
    the one control that makes that store trustworthy.
 2. **Voice is biometric-adjacent.** A stored voice recording of a named student,
@@ -1153,7 +1153,7 @@ Do not merge those two into one commit.
 - ~~**`settings.interview_recording_enabled` and
   `settings.interview_recording_max_bytes` already exist in `app/config.py`
   (Track A landed them) and are READ BY NO CODE.**~~ *(Superseded: both are read
-  by `app/interview_audio.py`. The underlying rule stands and is why this was
+  by `app/interview/audio_store.py`. The underlying rule stands and is why this was
   written down — a setting that exists and does nothing is a trap — so
   `docs/interview-assistant.md` now states what they actually do instead.)*
 - ~~**No `audio_path`, `audio_bytes` or `audio_duration_ms` columns.**~~
@@ -1189,15 +1189,15 @@ implementers and worked in parallel; the dependency arrows say what must land
 first.
 
 **Coordination, before anything starts.** Track A (the audit remediation) has
-already modified `app/config.py`, `app/conversations.py`, `app/main.py`,
-`app/routers/voice.py` and others on the working tree. `interview_relay.py`,
-`routers/interview.py` and `interview_matrix.py` are **untouched**, so Track B
+already modified `app/config.py`, `app/assistant/conversations.py`, `app/main.py`,
+`app/api/legacy/voice_assistant.py` and others on the working tree. `interview/realtime_relay.py`,
+`api/student/interview_session.py` and `interview/specializations.py` are **untouched**, so Track B
 owns those outright. **Two files are shared and must be edited by exactly one
 person at a time: `app/config.py` (step 2) and `app/main.py` (step 6).**
 
 ### Close codes — assigned once, here, so two tracks cannot collide
 
-Added to `interview_relay.py:316-325`, and **every one of them must also get an
+Added to `interview/realtime_relay.py:316-325`, and **every one of them must also get an
 entry in `CLOSE_MESSAGES` at `interview.service.ts:359`.** An unmapped code falls
 through to *"The interview connection closed unexpectedly"*, which is the exact
 degradation 4003 and 4010 were added to prevent.
@@ -1225,7 +1225,7 @@ Two meanings also shift without a new code, and both need a client-side edit:
 
 ### The steps
 
-1. **Telemetry, with the flag still `true`.** *(files: `app/interview_relay.py`)*
+1. **Telemetry, with the flag still `true`.** *(files: `app/interview/realtime_relay.py`)*
    Stamp the monotonic clock at `speech_stopped`, measure to `.completed`, add
    `asrP50`/`asrMax` to the summary line (:1611). No behaviour change. This is
    what turns §2.8's central question from an argument into a number, and it
@@ -1245,8 +1245,8 @@ Two meanings also shift without a new code, and both need a client-side edit:
    `interview_max_clarifications_per_question`, `interview_report_timeout_ms`,
    `interview_retention_days`, `interview_consent_version`.
 
-3. **The relay spine.** *(files: `app/interview_relay.py`,
-   `app/interview_matrix.py`, `tests/test_interview_relay.py` (new),
+3. **The relay spine.** *(files: `app/interview/realtime_relay.py`,
+   `app/interview/specializations.py`, `tests/test_interview_relay.py` (new),
    `tests/test_interview_matrix.py`)* Depends on step 2.
    Flip `:715` to `false`; extend `_verify_turn_detection` :923 and add the
    `_expecting_response` runtime guard (D2); add `input_audio_buffer.committed`
@@ -1255,7 +1255,7 @@ Two meanings also shift without a new code, and both need a client-side edit:
    `_pending`, `_question_open`, `_deferred`, `_clarifications` and the deadline
    handling; add `_advance_turn` as the single post-handshake `response.create`
    call site; move the phase tick ahead of the create; add `classify_answer` and
-   the clarification override to `interview_matrix.py`; rewrite the four comments
+   the clarification override to `interview/specializations.py`; rewrite the four comments
    in §2.7.
    **`.failed` (M5) and the deadline must ship in the SAME commit as the flag
    flip.** A `create_response: false` build without both is strictly worse than
@@ -1266,7 +1266,7 @@ Two meanings also shift without a new code, and both need a client-side edit:
    `_handle_upstream_event` against a fake upstream: **no database, no socket**,
    the same "no I/O by design" property `test_interview_matrix.py` already claims.
 
-4. **The report.** *(files: `app/interview_relay.py` — sequential with step 3,
+4. **The report.** *(files: `app/interview/realtime_relay.py` — sequential with step 3,
    same file, same implementer)*
    The text-only `response.create` at WRAP_UP, `_TEXT_DELTA_TYPES`, the
    defensive parse, the two scorecard guards (§5.5), `reep.report`, and close
@@ -1280,7 +1280,7 @@ Two meanings also shift without a new code, and both need a client-side edit:
    AGENTS.md's three enum gotchas apply.
 
 6. **The record write path and the session row.** *(files:
-   `app/routers/interview.py`, `app/interview_relay.py`)* Depends on 3, 4, 5.
+   `app/api/student/interview_session.py`, `app/interview/realtime_relay.py`)* Depends on 3, 4, 5.
    Open the `interview_sessions` row beside `_open_conversation`; extend
    `_emit_turn` with the meta record; make `_make_turn_writer` do two inserts in
    one transaction; **apply the blank-text carve-out (L4)**; adopt the
@@ -1292,7 +1292,7 @@ Two meanings also shift without a new code, and both need a client-side edit:
    `finalize_orphaned_interviews`, the third `purge_expired` stage, the
    startup call in `lifespan`, and the two `interview_records` router includes.
 
-8. **Read endpoints.** *(files: `app/routers/interview_records.py` (new),
+8. **Read endpoints.** *(files: `app/api/student/interview_records.py` (new),
    `tests/test_interview_access.py` (new))* Depends on 5.
    Everything in §7. Imports `_assert_can_access_student` from `.mentor`
    read-only; **does not edit `mentor.py`.** The test module must cover the three
@@ -1311,7 +1311,7 @@ Two meanings also shift without a new code, and both need a client-side edit:
    the budget is set close enough that one re-eager-ed route fails `ng build` in
    CI.
 
-10. **Enforce consent, then document.** *(files: `app/routers/interview.py`,
+10. **Enforce consent, then document.** *(files: `app/api/student/interview_session.py`,
     `docs/interview-assistant.md`, `AGENTS.md`)* Depends on 9.
     Only now does the socket require a consent row (4013) and revocation stop
     live sessions (4014) — §8.3. Then the docs: the v3 turn protocol summary, the
@@ -1401,10 +1401,10 @@ Nothing in v3 reaches them.
 
 **Track A's findings.** C1, H1, H2, M1–M4, M8–M11 and the LOW list are the other
 track's work. Two of them are load-bearing here and are named rather than fixed:
-**M6** is already fixed in `app/conversations.py` on the working tree and this
+**M6** is already fixed in `app/assistant/conversations.py` on the working tree and this
 spec adopts its contract (L5); **H1** owns close code 4012 and the per-user cap,
 so Track B must not grow `_ConnectionLimiter` in a second shape. Note that
-`routers/voice.py`'s `_TOKEN_GRANTS.try_acquire(user_id, limit)` is a
+`api/legacy/voice_assistant.py`'s `_TOKEN_GRANTS.try_acquire(user_id, limit)` is a
 TTL-expiring grant for a stateless token and is **not** reusable for a held
 WebSocket; `_ConnectionLimiter` should gain its own per-user `dict[str, int]`.
 
@@ -1420,11 +1420,11 @@ and the scorecard directive. **No student transcript is ever composed into
 student's own words are already upstream in that same realtime session, so
 reusing them costs no new egress) but because the shape of the code is the
 guardrail, and the moment student text is composed into an instruction string,
-the next editor composes a resume into it. `interview_relay.py` still imports no
+the next editor composes a resume into it. `interview/realtime_relay.py` still imports no
 ORM model, no `assistant_tools`, no `knowledge` and no `app.ai.llm`.
 
 **Rule 2 (staff scope is decided by role).** Every new staff endpoint opens with
-`_assert_can_access_student` imported from `app/routers/mentor.py` — never a
+`_assert_can_access_student` imported from `app/api/mentor/mentees.py` — never a
 second copy — and then re-checks that the row's own `student_id` matches the
 path. `raw_response` additionally requires `require_director`. A MENTOR with no
 `Mentor` group sees nobody, by the existing function, with nothing added.

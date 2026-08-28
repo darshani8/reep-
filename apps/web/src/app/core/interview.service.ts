@@ -424,7 +424,7 @@ const CLOSE_MESSAGES: ReadonlyMap<number, CloseMessage> = new Map<number, CloseM
   // The old wording asserted the first, which sent the second student to sign in
   // again — the one action that cannot fix a missing Student row — instead of to
   // the placement cell. Both reasons are complete sentences authored in
-  // routers/interview.py, not echoes of anything upstream, so appending the
+  // api/student/interview_session.py, not echoes of anything upstream, so appending the
   // server's own is safe and is the only way this banner can be true twice.
   [
     1008,
@@ -445,7 +445,7 @@ const CLOSE_MESSAGES: ReadonlyMap<number, CloseMessage> = new Map<number, CloseM
     },
   ],
   // 1001 is what the relay sends when it is asked to stop and gets to close its
-  // own sockets (_CLOSE_GOING_AWAY in app/interview_relay.py); 1012 is what
+  // own sockets (_CLOSE_GOING_AWAY in app/interview/realtime_relay.py); 1012 is what
   // uvicorn sends when its teardown outruns that drain and it fails every live
   // WebSocket itself. BOTH mean the same thing to a student — a routine deploy —
   // and under uvicorn 1012 is in fact the usual one. Without these entries a
@@ -1394,7 +1394,7 @@ export class InterviewService {
   readonly specialization = this._specialization.asReadonly();
 
   private readonly _phase = signal<string | null>(null);
-  /** The state machine's current phase KEY, exactly as app/interview_matrix.py
+  /** The state machine's current phase KEY, exactly as app/interview/specializations.py
    *  names it (`opening`, `probing`, `deep_dive`, `wrap_up`, `ended`). The
    *  component owns the wording, so a phase added server-side degrades to its
    *  raw key rather than to a blank pill. */

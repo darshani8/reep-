@@ -24,21 +24,21 @@ artefact and are gone.
 | # | status | where |
 |---|---|---|
 | **C1** | **FIXED** | `Settings.production_boot_failures()` (`app/config.py`) refuses to start on the repo's `AUTH_SECRET`, a placeholder, a blank, or anything under 32 characters — and on the repo's `DATABASE_URL` password. `app/main.py`'s `lifespan` raises, so the process never binds a port. Pinned by `tests/test_boot_guard.py`, which also pins "empty on every development ENV" — a guard that trips on a laptop gets deleted by whoever is shipping that afternoon. |
-| **H1** | **FIXED, with one sub-point deliberately left** | `_ConnectionLimiter(limit, per_user_limit)` (`app/interview_relay.py`) owns a per-user `dict[str, int]`; one `try_acquire` checks both caps (a two-step acquire leaks slots), the worker cap first so a genuinely full process still says "the server is full". Refusal is close **4012** with its own sentence, and `GET /api/interview/status` says the same thing in words. `tests/test_interview_write_path.py::TestPerUserSessionCap`. **Left deliberately:** the all-zero-frame weakness in the idle cap. An energy gate would close healthy sessions, because the browser's echo-gate keepalive sends zeroed frames *by design* while the interviewer speaks. The abuse it would prevent is bounded by `interview_max_seconds` and now by the per-user cap; the reasoning is written into the watchdog's idle comment. |
-| **H2** | **FIXED** | `_TokenGrantLedger.try_acquire(user_id, limit)` (`app/routers/voice.py`) caps concurrent token grants per student, and `VOICE_MAX_CALL_SECONDS` is now **enforced in the worker** (`voice_agent.py::_end_call_at_max_duration`) rather than left to a token TTL that only bounds join time. The header there states the resulting arithmetic instead of leaving it to be discovered. |
+| **H1** | **FIXED, with one sub-point deliberately left** | `_ConnectionLimiter(limit, per_user_limit)` (`app/interview/realtime_relay.py`) owns a per-user `dict[str, int]`; one `try_acquire` checks both caps (a two-step acquire leaks slots), the worker cap first so a genuinely full process still says "the server is full". Refusal is close **4012** with its own sentence, and `GET /api/interview/status` says the same thing in words. `tests/test_interview_write_path.py::TestPerUserSessionCap`. **Left deliberately:** the all-zero-frame weakness in the idle cap. An energy gate would close healthy sessions, because the browser's echo-gate keepalive sends zeroed frames *by design* while the interviewer speaks. The abuse it would prevent is bounded by `interview_max_seconds` and now by the per-user cap; the reasoning is written into the watchdog's idle comment. |
+| **H2** | **FIXED** | `_TokenGrantLedger.try_acquire(user_id, limit)` (`app/api/legacy/voice_assistant.py`) caps concurrent token grants per student, and `VOICE_MAX_CALL_SECONDS` is now **enforced in the worker** (`voice_agent.py::_end_call_at_max_duration`) rather than left to a token TTL that only bounds join time. The header there states the resulting arithmetic instead of leaving it to be discovered. |
 
 ### Medium — all eleven fixed
 
 | # | status | where |
 |---|---|---|
 | **M1** | **FIXED** | The gate is `settings.worker_auth_optional` — the dev/CI allowlist — not `is_prod`. An unrecognised `ENV` with a blank secret now shuts the door instead of opening it, the same fail-closed shape `password_login_allowed` uses. |
-| **M2** | **FIXED** | `_cookie_secure()` in `app/routers/auth.py`, used at all four cookie sites (set and delete, session and flow), so the attributes cannot drift apart again. |
-| **M3** | **FIXED** | `app/routers/leave.py` imports `_assert_can_access_student` from `.mentor` — never a second copy — and calls it. A MENTOR with no group again sees nobody. |
+| **M2** | **FIXED** | `_cookie_secure()` in `app/api/account/sign_in.py`, used at all four cookie sites (set and delete, session and flow), so the attributes cannot drift apart again. |
+| **M3** | **FIXED** | `app/api/mentor/leave.py` imports `_assert_can_access_student` from `.mentor` — never a second copy — and calls it. A MENTOR with no group again sees nobody. |
 | **M4** | **FIXED** | `validate_usn_pattern()` at rule-write time: a length cap, a refusal of quantifiers applied to groups, and `re.error` turned into a `ValueError` the writer sees. The public endpoint no longer inherits an unvalidated pattern. |
 | **M5** | **FIXED** | `conversation.item.input_audio_transcription.failed` is in `_HANDLED_UPSTREAM` with a branch. A failed or timed-out transcript resolves its pending entry, the turn is still recorded (with `transcription_status` saying why), and the interview continues. |
-| **M6** | **FIXED** | `ConversationGone` (`app/conversations.py`) is raised rather than written into a soft-deleted row; the interview writer translates it to `_TurnWriteRefused` at the boundary where it holds a Session, and the relay logs it against the connection id and ends the session — instead of one dropped-turn line per turn for the rest of a fifteen-minute call. |
+| **M6** | **FIXED** | `ConversationGone` (`app/assistant/conversations.py`) is raised rather than written into a soft-deleted row; the interview writer translates it to `_TurnWriteRefused` at the boundary where it holds a Session, and the relay logs it against the connection id and ends the session — instead of one dropped-turn line per turn for the rest of a fifteen-minute call. |
 | **M7** | **FIXED, and it was the reason for the v3 engine** | `turn_detection.create_response` is `false`; the relay creates every response from one call site, and the phase tick runs **ahead of** the create. The directive computed for answer N now steers the response to answer N. See `docs/interview-engine-v3.md`. |
-| **M8** | **FIXED** | `users.token_version` rides in the session token and `POST /api/auth/logout` bumps it (`app/routers/auth.py`), with `current_token_version` checked in `verify_session_token`. A token captured before logout is refused. |
+| **M8** | **FIXED** | `users.token_version` rides in the session token and `POST /api/auth/logout` bumps it (`app/api/account/sign_in.py`), with `current_token_version` checked in `verify_session_token`. A token captured before logout is refused. |
 | **M9** | **FIXED** | `users.google_sub` is persisted on first sign-in and pinned thereafter; a verified `sub` that does not match the stored one is **refused**, so a re-provisioned institutional address cannot inherit the previous student's record. |
 | **M10** | **FIXED** | The default line logs role, character count and item id. Spoken text is logged only behind an explicit `VOICE_LOG_TRANSCRIPTS` flag, with the consequence written next to it. |
 | **M11** | **FIXED** | `VOICE_TTS` defaults to `groq`. edge-tts is opt-in, and the function that builds it says so. |
@@ -82,7 +82,7 @@ set-time attributes.
   With N uvicorn workers `available:true` can precede a 1013. The per-user cap
   (H1) removed the common way to hit it, not the arithmetic.
 - **Unbounded log volume on the two hostile-client frame paths.** Both oversized
-  frame branches in `interview_relay.py` still log one WARNING per frame with no
+  frame branches in `interview/realtime_relay.py` still log one WARNING per frame with no
   budget, unlike the 32-entry cap on the unknown-control memo a few hundred lines
   above them.
 - **No dedicated CSRF token.** Unchanged and accepted: protection still rests on
@@ -101,7 +101,7 @@ The fourth — `POST /api/agent/feedback` 404ing on every request and the
 `AgentRun` counters in `GET /api/agent/metrics` reading 0 — was answered by
 making both **say so** rather than by making them work, which is the honest fix
 for a surface that is deliberately unfed. `AGENT_RUNS_COLLECTED = False`
-(`app/routers/agent.py`) gates a 404 detail that names the supersession, and the
+(`app/api/legacy/text_assistant.py`) gates a 404 detail that names the supersession, and the
 metrics payload carries `collected: false` plus `SUPERSEDED_RUNS_NOTE` so a
 frozen history is not read as a live zero. Both retire themselves on rollback:
 flip the constant back to `True` and the plain answers return with no second
@@ -133,9 +133,9 @@ mark `abandoned` and a mentor to read as someone who walked out.
 
 Four independent reviewers, one per surface, plus the backend test suite run against a live Postgres (`REEP_REQUIRE_DB=1`, so the RBAC/voice/conversation tests could not silently skip):
 
-1. **Auth / SSO** — `google_auth.py`, `routers/auth.py`, `security.py`, `identity.py`, `config.py`, the seeds.
-2. **Voice stack** — `voice_agent.py` (LiveKit worker), `routers/voice.py`, worker-secret auth, LiveKit token scoping.
-3. **Interview relay** — `interview_relay.py`, `routers/interview.py`, `interview_matrix.py`, the WebSocket to the OpenAI Realtime API.
+1. **Auth / SSO** — `platform/google_sign_in.py`, `api/account/sign_in.py`, `platform/credentials.py`, `identity.py`, `config.py`, the seeds.
+2. **Voice stack** — `voice_agent.py` (LiveKit worker), `api/legacy/voice_assistant.py`, worker-secret auth, LiveKit token scoping.
+3. **Interview relay** — `interview/realtime_relay.py`, `api/student/interview_session.py`, `interview/specializations.py`, the WebSocket to the OpenAI Realtime API.
 4. **Core API + data layer** — role scoping / IDOR across every router, the egress gate and all its callers, KB retrieval, migrations, file store.
 
 ## The two must-not-break rules — both hold (with one exception)
@@ -148,21 +148,21 @@ Four independent reviewers, one per surface, plus the backend test suite run aga
 ### CRITICAL
 
 **C1 — Default `AUTH_SECRET` boots in production with no guard.** `config.py:70`
-The default `"reep-dev-secret-change-me-in-production-0123456789abcdef"` is committed to the repo (and `.env.example:11`). It signs the HS256 `reep_session` JWTs (`security.py:48`) and derives the OAuth flow-cookie key (`google_auth.py:201`). Nothing validates it at startup — the `lifespan` hook (`main.py:63`) checks only `VOICE_WORKER_SECRET`.
+The default `"reep-dev-secret-change-me-in-production-0123456789abcdef"` is committed to the repo (and `.env.example:11`). It signs the HS256 `reep_session` JWTs (`platform/credentials.py:48`) and derives the OAuth flow-cookie key (`platform/google_sign_in.py:201`). Nothing validates it at startup — the `lifespan` hook (`main.py:63`) checks only `VOICE_WORKER_SECRET`.
 *Scenario:* a prod deploy that forgets to set `AUTH_SECRET` boots normally; anyone who has seen the repo mints `{"userId":"x","role":"DIRECTOR",...}` signed with the default, drops it in the cookie, and gets full DIRECTOR access to every student's marks, attendance and USN — plus forgeable OAuth state. *(Flagged independently by both the auth and core-API reviewers.)*
 *Fix shape:* refuse to boot when `is_prod` and `auth_secret` equals the default / is too short.
 
 ### HIGH
 
-**H1 — No per-user cap on concurrent interviews: one student can hold every slot and multiply OpenAI spend.** `routers/interview.py:269`, `interview_relay.py:421-457`
-The limiter counts sessions **globally per worker**, never per `userId` (`_LIVE_SESSIONS` is an unkeyed set, `interview.py:92`). *Scenario:* any enrolled student loops `new WebSocket('/api/interview')` from devtools — each socket auths, takes a slot, and the upstream handshake fires `response.create` (`interview_relay.py:886-894`), so the model speaks and **bills immediately with zero microphone input**. A 1920-byte all-zero frame every <120 s advances `_last_audio_at` (`interview_relay.py:1003`, no energy check), defeating the idle cap; the 15-min hard cap is answered by reopening. Result: all `interview_max_sessions` (default 100) held by one account, everyone else gets 1013.
+**H1 — No per-user cap on concurrent interviews: one student can hold every slot and multiply OpenAI spend.** `api/student/interview_session.py:269`, `interview/realtime_relay.py:421-457`
+The limiter counts sessions **globally per worker**, never per `userId` (`_LIVE_SESSIONS` is an unkeyed set, `interview.py:92`). *Scenario:* any enrolled student loops `new WebSocket('/api/interview')` from devtools — each socket auths, takes a slot, and the upstream handshake fires `response.create` (`interview/realtime_relay.py:886-894`), so the model speaks and **bills immediately with zero microphone input**. A 1920-byte all-zero frame every <120 s advances `_last_audio_at` (`interview/realtime_relay.py:1003`, no energy check), defeating the idle cap; the 15-min hard cap is answered by reopening. Result: all `interview_max_sessions` (default 100) held by one account, everyone else gets 1013.
 
-**H2 — Voice path mirrors it: unlimited tokens, no call-duration cap.** `routers/voice.py:241`, `voice_agent.py:590-594`
+**H2 — Voice path mirrors it: unlimited tokens, no call-duration cap.** `api/legacy/voice_assistant.py:241`, `voice_agent.py:590-594`
 Unlimited tokens minted per student (each a fresh room); token TTL bounds *join* time, not call length. Contrast the interview stack's `interview_max_seconds=900` / `interview_max_sessions=100`. *Scenario:* one scripted session loops mint-token + join → worker memory exhaustion and unbounded Groq spend. Only mitigated today because the voice UI has no caller (rollback path).
 
 ### MEDIUM
 
-**M1 — Worker-auth fail-closed is keyed on `is_prod`, not the dev allowlist.** `routers/voice.py:81-87`
+**M1 — Worker-auth fail-closed is keyed on `is_prod`, not the dev allowlist.** `api/legacy/voice_assistant.py:81-87`
 An unrecognized `ENV` (`staging`, a typo, blank from a broken deploy) with a blank `VOICE_WORKER_SECRET` leaves `/heartbeat` and `/transcript` **fully unauthenticated** — anyone can forge heartbeats (voice reports available, students handed tokens into silent rooms) and write forged assistant-labelled turns into any conversation whose 32-hex id they observe (turns render in the UI and replay into later LLM prompts). The startup warning (`main.py:63-69`) is also `is_prod`-gated, so nothing warns. Contradicts the fail-closed philosophy the codebase applies to `password_login_allowed`.
 
 **M2 — Session + OAuth-state cookies lack `Secure` on any environment not named exactly prod.** `auth.py:143,197,344`
@@ -174,17 +174,17 @@ An unrecognized `ENV` (`staging`, a typo, blank from a broken deploy) with a bla
 **M4 — DB-sourced regex evaluated on the public registration endpoint.** `registration.py:41`
 `re.search(rule.usn_pattern, usn)` runs over all enabled rules on the unauthenticated `POST /api/register`. An invalid pattern (`[`) raises `re.error` → 500 on every USN-carrying application; a catastrophic pattern is a ReDoS on the public front door. Requires a director/DB write to plant, but the blast radius is total loss of sign-up with nothing pointing at the bad rule.
 
-**M5 — Interview transcriber failure is unhandled: the phase machine silently freezes and the student's half of the record is dropped.** `interview_relay.py:150-165`
+**M5 — Interview transcriber failure is unhandled: the phase machine silently freezes and the student's half of the record is dropped.** `interview/realtime_relay.py:150-165`
 `conversation.item.input_audio_transcription.failed` is absent from `_HANDLED_UPSTREAM` and has no branch. The user turn is persisted, and the state machine ticks, only from the `.completed` branch. *Scenario:* the transcription backend degrades mid-session → the interviewer keeps asking questions, the phase never leaves OPENING/PROBING (no wrap-up verdict), the DB records assistant-only turns, and the browser shows no "You" lines with no error surfaced.
 
 **M6 — Interview/voice turns keep writing into a soft-deleted conversation.** `interview.py:312`, `conversations.py:92-130`
 `conversation_id` is resolved once at socket open and reused for the whole session; `append_message` never checks `deleted_at`. *Scenario:* mid-interview the student hits `DELETE /api/agent/conversation` from a second tab → every subsequent turn lands in the soft-deleted row, invisible to `GET /api/agent/history` forever, while the runbook's `group by channel` query still counts them (masking the loss).
 
-**M7 — Phase directives land one response late; the wrap-up verdict effectively needs a sixth answer.** `interview_relay.py:1162-1184` vs `:715`
+**M7 — Phase directives land one response late; the wrap-up verdict effectively needs a sixth answer.** `interview/realtime_relay.py:1162-1184` vs `:715`
 The machine ticks on `_USER_TRANSCRIPT_DONE`, but the session runs `create_response:True`, so the response to answer N is created at VAD commit *before* transcription completes; `_push_phase`'s instructions-only `session.update` steers only the *following* response. After answer 5 the machine moves to WRAP_UP but the in-flight response (composed under the deep-dive directive) asks another question; the student needs a 6th answer to hear the verdict — and if the hard cap lands first, no verdict at all.
 
 **M8 — Stateless sessions have no server-side revocation.** `auth.py:490-493`
-`logout` only deletes the cookie; a token captured before logout stays valid for the full 12h TTL (`security.py:21`). No `jti`/deny-list. "Log out on a shared lab machine" does not invalidate a copied token.
+`logout` only deletes the cookie; a token captured before logout stays valid for the full 12h TTL (`platform/credentials.py:21`). No `jti`/deny-list. "Log out on a shared lab machine" does not invalidate a copied token.
 
 **M9 — Identity keyed on email string only; Google `sub` verified but never persisted.** `auth.py:469-481`, `:413`
 The roster match is on `lower(email)`. If the college re-provisions an institutional address to a new person, the new Google account inherits the prior student's marks, uploads and mentor notes with a fully valid sign-in. The code documents the fix (pin `users.google_sub`) but doesn't do it.
@@ -209,9 +209,9 @@ The first 60 chars of every turn are logged. `conversations.clear` soft-delete, 
 - **404-detail existence leak to out-of-group mentors** — `mentor.py:215-218,365-368,448-451,548-551` ("X not found" vs "not in your group"); uuid4 ids make it minimal.
 - **Client ignores the advertised audio format** — `interview.service.ts:54` hard-codes `SAMPLE_RATE=24000`, ignoring `reep.ready` → a server rate change would silently pitch-shift audio.
 - **Dead terminal state** — `InterviewStateMachine.end()`/`InterviewPhase.ENDED` are unreachable in production (only a unit test calls them).
-- **No time-based path to WRAP_UP** — `interview_matrix.py:169-171` is answer-count-only; a deliberate student giving 3 long answers is cut off at 15 min with no verdict.
+- **No time-based path to WRAP_UP** — `interview/specializations.py:169-171` is answer-count-only; a deliberate student giving 3 long answers is cut off at 15 min with no verdict.
 - **`/api/interview/status` presents per-worker counters as global** — `interview.py:83-87`; with N uvicorn workers `available:true` can precede a 1013.
-- **Unbounded log volume on two hostile-client paths** — `interview_relay.py:979-988` and `:1037-1052` log a WARNING per frame (uncapped, unlike the 32-cap unknown-control memo).
+- **Unbounded log volume on two hostile-client paths** — `interview/realtime_relay.py:979-988` and `:1037-1052` log a WARNING per frame (uncapped, unlike the 32-cap unknown-control memo).
 - **`logout` cookie deletion doesn't mirror set-time attributes** — `auth.py:492` (works today; asymmetric with `_clear_flow_cookie`).
 - **No dedicated CSRF token** — protection rests entirely on `SameSite=Lax` + explicit-origin CORS; a future `SameSite=None` route would silently lose it.
 - **Default `DATABASE_URL` carries a committed dev password** — `config.py:68` (same "prod on a repo default, no guard" pattern as C1, but fails safer).

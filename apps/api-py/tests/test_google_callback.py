@@ -11,7 +11,7 @@ What they pin, in order of what would hurt most if it broke:
   1. THE SESSION IS THE SAME SESSION. Constraint 2 of the brief: Google
      authenticates, it does not get a session mechanism of its own. The cookie
      name, attributes and claim KEYS must be indistinguishable from the ones
-     POST /api/auth/login sets, because app/identity.py, require_mentor,
+     POST /api/auth/login sets, because app/platform/identity.py, require_mentor,
      _assert_can_access_student and the interview WebSocket all read them and
      none of them was changed.
   2. THE ROSTER IS THE ACCESS CONTROL. A perfectly valid, Google-verified
@@ -33,11 +33,11 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from sqlalchemy import delete
 
-from app import google_auth
+from app.platform import google_sign_in as google_auth
 from app.config import settings
 from app.db import SessionLocal
 from app.models.user import LoginDay, Role, Student, User
-from app.security import SESSION_COOKIE, verify_session_token
+from app.platform.credentials import SESSION_COOKIE, verify_session_token
 
 from conftest import requires_db  # noqa: E402 — the house import, see test_voice.py
 

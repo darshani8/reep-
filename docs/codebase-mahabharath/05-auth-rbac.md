@@ -10,9 +10,9 @@ data breach; say which of those decisions a test actually pins and which are one
 edit from silently regressing; and add a new endpoint with the right guard on the first
 line of its body, because that first line *is* the security control in this codebase.
 
-**In scope.** `app/security.py`, `app/schemas/auth.py`, `app/routers/auth.py`, `app/identity.py`,
-the guard family in `app/routers/mentor.py`, `app/routers/student.py` and
-`app/routers/voice.py`, the auth-relevant slice of `app/config.py` and `app/seed.py`,
+**In scope.** `app/platform/credentials.py`, `app/schemas/auth.py`, `app/api/account/sign_in.py`, `app/platform/identity.py`,
+the guard family in `app/api/mentor/mentees.py`, `app/api/student/self_service.py` and
+`app/api/legacy/voice_assistant.py`, the auth-relevant slice of `app/config.py` and `app/seed.py`,
 `tests/test_auth_rbac.py`, and the client-side session model — three files,
 `apps/web/src/app/core/session.ts`, `core/auth.service.ts` and `core/auth.guard.ts`.
 
@@ -72,7 +72,7 @@ explain why that single location is load-bearing.
 _SCRYPT = dict(n=16384, r=8, p=1, dklen=64, maxmem=64 * 1024 * 1024)
 ```
 
-— [apps/api-py/app/security.py:23-25](apps/api-py/app/security.py#L23-L25).
+— [apps/api-py/app/platform/credentials.py:23-25](apps/api-py/app/platform/credentials.py#L23-L25).
 
 scrypt is a *key derivation function*: it turns a password into a fixed-length key, slowly
 and using a lot of memory, so that an attacker who steals the database cannot try billions
@@ -93,7 +93,7 @@ against.
 ### 1.3 The two functions, in full
 
 Both are short enough that the whole function is the point
-([apps/api-py/app/security.py:28-42](apps/api-py/app/security.py#L28-L42)):
+([apps/api-py/app/platform/credentials.py:28-42](apps/api-py/app/platform/credentials.py#L28-L42)):
 
 ```python
 def hash_password(password: str) -> str:
@@ -146,7 +146,7 @@ A reviewer who has hashed passwords before will reach for `bytes.fromhex(salt)`.
 would invalidate every password in the database.
 
 > **Why it is like this.** The module docstring states the contract in its first five lines
-> ([apps/api-py/app/security.py:1-9](apps/api-py/app/security.py#L1-L9)):
+> ([apps/api-py/app/platform/credentials.py:1-9](apps/api-py/app/platform/credentials.py#L1-L9)):
 >
 > ```
 > Password:  "scrypt:<salt_hex>:<digest_hex>", scrypt(N=16384, r=8, p=1, dklen=64)
@@ -164,7 +164,7 @@ would invalidate every password in the database.
 The redundancy costs nothing in strength: the salt is still a 16-byte CSPRNG draw, merely
 transported as 32 bytes of text. The commit that created this file — `73a901b feat(api-py):
 FastAPI backend scaffold + auth slice (migration Phase 1)`, the only commit `git log
---follow` reports for `security.py`, `schemas/auth.py` and `routers/auth.py` — says the
+--follow` reports for `platform/credentials.py`, `schemas/auth.py` and `api/account/sign_in.py` — says the
 format was "cross-verified Node->Python". No fixture or test preserves that check today;
 §8.3 records it as a coverage gap.
 
@@ -172,7 +172,7 @@ format was "cross-verified Node->Python". No fixture or test preserves that chec
 
 Yes, and deliberately. `hmac.compare_digest(derived, digest)` compares in time independent
 of where the first differing byte falls; `hmac` is imported at
-[apps/api-py/app/security.py:12](apps/api-py/app/security.py#L12) for this single call. Both
+[apps/api-py/app/platform/credentials.py:12](apps/api-py/app/platform/credentials.py#L12) for this single call. Both
 operands are `str`, which `compare_digest` accepts provided both are ASCII-only — hex always
 is. Swapping in `==` would reintroduce a byte-wise early-exit timing oracle: `==` on two
 strings stops at the first differing character, so the time it takes leaks how many leading
@@ -182,9 +182,9 @@ is exactly the kind of "simplification" that passes review unnoticed, and this o
 the whole defence.
 
 The same standard is not applied everywhere. `require_voice_worker` compares its shared
-secret with a plain `!=` ([apps/api-py/app/routers/voice.py:89](apps/api-py/app/routers/voice.py#L89)),
+secret with a plain `!=` ([apps/api-py/app/api/legacy/voice_assistant.py:89](apps/api-py/app/api/legacy/voice_assistant.py#L89)),
 in a different module of the same package — `hmac.compare_digest` is used once in the whole
-backend, at [security.py:42](apps/api-py/app/security.py#L42), and the voice guard does not
+backend, at [platform/credentials.py:42](apps/api-py/app/platform/credentials.py#L42), and the voice guard does not
 reach for it. That is an internal inconsistency worth knowing about, not a demonstrated
 vulnerability — see §7.
 
@@ -219,8 +219,8 @@ def create_session_token(payload: dict) -> str:
     return jwt.encode(claims, settings.auth_secret, algorithm="HS256")
 ```
 
-— [apps/api-py/app/security.py:45-48](apps/api-py/app/security.py#L45-L48). The library is
-PyJWT (`import jwt`, [security.py:16](apps/api-py/app/security.py#L16)), pinned
+— [apps/api-py/app/platform/credentials.py:45-48](apps/api-py/app/platform/credentials.py#L45-L48). The library is
+PyJWT (`import jwt`, [platform/credentials.py:16](apps/api-py/app/platform/credentials.py#L16)), pinned
 `pyjwt==2.13.0` in [apps/api-py/requirements.txt:25](apps/api-py/requirements.txt#L25). The
 algorithm is HS256 — HMAC-SHA256, symmetric, one secret for both signing and verification.
 
@@ -239,7 +239,7 @@ tamper-evidence, not confidentiality. That is the real reason the cookie is `Htt
 never handed to JavaScript (§3.1) — not to hide the token's existence, but because the token
 is a readable identity document and every script on the page would otherwise hold a copy.
 
-`SESSION_TTL_SECONDS = 60 * 60 * 12` ([security.py:21](apps/api-py/app/security.py#L21)) is
+`SESSION_TTL_SECONDS = 60 * 60 * 12` ([platform/credentials.py:21](apps/api-py/app/platform/credentials.py#L21)) is
 43,200 seconds: **twelve hours**, expressed as arithmetic so the intent is readable.
 
 The merge order is the safe one. `{**payload, "iat": …, "exp": …}` spreads the caller's
@@ -250,7 +250,7 @@ objects and PyJWT converts registered date claims to integer UNIX seconds during
 ### 2.2 The claim set
 
 `_payload_for(user)` decides what goes in
-([apps/api-py/app/routers/auth.py:29-40](apps/api-py/app/routers/auth.py#L29-L40)):
+([apps/api-py/app/api/account/sign_in.py:29-40](apps/api-py/app/api/account/sign_in.py#L29-L40)):
 
 ```python
 def _payload_for(user: User) -> dict:
@@ -345,7 +345,7 @@ def verify_session_token(token: str) -> dict | None:
         return None
 ```
 
-— [apps/api-py/app/security.py:51-55](apps/api-py/app/security.py#L51-L55). Two things
+— [apps/api-py/app/platform/credentials.py:51-55](apps/api-py/app/platform/credentials.py#L51-L55). Two things
 matter here.
 
 `algorithms=["HS256"]` is an explicit allow-list, and it is the defence against algorithm
@@ -447,15 +447,15 @@ again — and the UI cannot distinguish that from "you genuinely have no mentees
     )
 ```
 
-— [apps/api-py/app/routers/auth.py:68-76](apps/api-py/app/routers/auth.py#L68-L76), with
+— [apps/api-py/app/api/account/sign_in.py:68-76](apps/api-py/app/api/account/sign_in.py#L68-L76), with
 `SESSION_COOKIE = "reep_session"` at
-[apps/api-py/app/security.py:20](apps/api-py/app/security.py#L20). **Convention: the cookie
+[apps/api-py/app/platform/credentials.py:20](apps/api-py/app/platform/credentials.py#L20). **Convention: the cookie
 name and the REEP-specific environment variables are product-prefixed** — `reep_session`,
 `REEP_REQUIRE_DB`, `REEP_API_URL` — so they never collide with another app on the same host.
 
 | Attribute | Value | Set where | Notes |
 |---|---|---|---|
-| name | `reep_session` | `security.py:20` | one constant, imported by name, never re-typed |
+| name | `reep_session` | `platform/credentials.py:20` | one constant, imported by name, never re-typed |
 | `HttpOnly` | always | `auth.py:71` | JavaScript can never read the session |
 | `SameSite` | `lax` | `auth.py:72` | sent on same-site requests and top-level navigations |
 | `Secure` | `settings.is_prod` | `auth.py:73` | **the only environment-dependent attribute** |
@@ -557,8 +557,8 @@ Here they are in one sequence, with the real identifiers:
 sequenceDiagram
     autonumber
     participant B as Browser (Angular SPA)
-    participant A as FastAPI — routers/auth.py
-    participant S as app/security.py
+    participant A as FastAPI — api/account/sign_in.py
+    participant S as app/platform/credentials.py
     participant D as Postgres
 
     B->>A: POST /api/auth/login {email, password}
@@ -598,7 +598,7 @@ reads a dictionary. That is the mechanism behind §2.6.
 ### 4.1 The router, and the conventions around it
 
 The router is declared once at module level
-([apps/api-py/app/routers/auth.py:26](apps/api-py/app/routers/auth.py#L26)) as
+([apps/api-py/app/api/account/sign_in.py:26](apps/api-py/app/api/account/sign_in.py#L26)) as
 `router = APIRouter(prefix="/auth", tags=["auth"])` and mounted with the shared prefix at
 [apps/api-py/app/main.py:77](apps/api-py/app/main.py#L77), so the live paths are
 `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`.
@@ -608,11 +608,11 @@ prefix and a single-element `tags` list; the `/api` prefix is applied once at in
 There are three exceptions, and they are all visible in `main.py`:
 
 - `agent.py` and `voice.py` carry `/api` in their own prefix
-  (`APIRouter(prefix="/api/agent", …)` at [agent.py:44](apps/api-py/app/routers/agent.py#L44),
-  `APIRouter(prefix="/api/voice", …)` at [voice.py:39](apps/api-py/app/routers/voice.py#L39))
+  (`APIRouter(prefix="/api/agent", …)` at [agent.py:44](apps/api-py/app/api/legacy/text_assistant.py#L44),
+  `APIRouter(prefix="/api/voice", …)` at [voice.py:39](apps/api-py/app/api/legacy/voice_assistant.py#L39))
   and are included without one ([main.py:72-73](apps/api-py/app/main.py#L72-L73));
 - `health.py` declares a bare `router = APIRouter()` — **no prefix and no `tags` at all**
-  ([health.py:24](apps/api-py/app/routers/health.py#L24)) — and is mounted unprefixed
+  ([health.py:24](apps/api-py/app/api/system/health.py#L24)) — and is mounted unprefixed
   ([main.py:69-70](apps/api-py/app/main.py#L69-L70)), because `/health` and `/ready` are
   infra probes, not a domain area, and must not sit under `/api`.
 
@@ -621,17 +621,17 @@ There are three exceptions, and they are all visible in `main.py`:
 route handler: the function decorated with `@router.get(...)` / `@router.post(...)`.)
 
 **Convention: Pydantic request models are named `<Noun>In` and response models `<Noun>Out`.**
-The mentor router is the clearest example — `NoteIn` ([mentor.py:95](apps/api-py/app/routers/mentor.py#L95))
-/ `NoteOut` ([:87](apps/api-py/app/routers/mentor.py#L87)), `UploadReviewIn`
-([:433](apps/api-py/app/routers/mentor.py#L433)) / `UploadOut`
-([:375](apps/api-py/app/routers/mentor.py#L375)), `SkillClaimReviewIn`
-([:531](apps/api-py/app/routers/mentor.py#L531)) / `SkillClaimReviewOut`
-([:477](apps/api-py/app/routers/mentor.py#L477)), `DecisionIn`
-([:280](apps/api-py/app/routers/mentor.py#L280)), `MenteeOut`
-([:37](apps/api-py/app/routers/mentor.py#L37)), `AlertOut`
-([:161](apps/api-py/app/routers/mentor.py#L161)) — and voice follows it too (`HeartbeatIn` at
-[voice.py:101](apps/api-py/app/routers/voice.py#L101), `StatusOut` at
-[voice.py:166](apps/api-py/app/routers/voice.py#L166)). **`app/schemas/auth.py` is the
+The mentor router is the clearest example — `NoteIn` ([mentor.py:95](apps/api-py/app/api/mentor/mentees.py#L95))
+/ `NoteOut` ([:87](apps/api-py/app/api/mentor/mentees.py#L87)), `UploadReviewIn`
+([:433](apps/api-py/app/api/mentor/mentees.py#L433)) / `UploadOut`
+([:375](apps/api-py/app/api/mentor/mentees.py#L375)), `SkillClaimReviewIn`
+([:531](apps/api-py/app/api/mentor/mentees.py#L531)) / `SkillClaimReviewOut`
+([:477](apps/api-py/app/api/mentor/mentees.py#L477)), `DecisionIn`
+([:280](apps/api-py/app/api/mentor/mentees.py#L280)), `MenteeOut`
+([:37](apps/api-py/app/api/mentor/mentees.py#L37)), `AlertOut`
+([:161](apps/api-py/app/api/mentor/mentees.py#L161)) — and voice follows it too (`HeartbeatIn` at
+[voice.py:101](apps/api-py/app/api/legacy/voice_assistant.py#L101), `StatusOut` at
+[voice.py:166](apps/api-py/app/api/legacy/voice_assistant.py#L166)). **`app/schemas/auth.py` is the
 deliberate exception**: `LoginRequest` and `SessionUser` keep the names the retired stack
 used, alongside the camelCase fields, so the client contract is unchanged. Note also that
 most schemas are declared *inside the router that uses them*; `app/schemas/` holds only the
@@ -686,7 +686,7 @@ Note the asymmetry with §2.2: the **JWT omits** `studentId`/`mentorId` when the
 while the **HTTP body sends explicit `null`**, because Pydantic fills the declared default
 and FastAPI does not exclude `None` by default. §9.6 explains why that matters on the client.
 
-The handler ([apps/api-py/app/routers/auth.py:43-52](apps/api-py/app/routers/auth.py#L43-L52)):
+The handler ([apps/api-py/app/api/account/sign_in.py:43-52](apps/api-py/app/api/account/sign_in.py#L43-L52)):
 
 ```python
 @router.post("/login", response_model=SessionUser)
@@ -728,7 +728,7 @@ additionally pays the full scrypt cost. There is no dummy-hash comparison on the
 to level it, so enumeration by response time remains possible.
 
 On success the handler records two things
-([auth.py:54-64](apps/api-py/app/routers/auth.py#L54-L64)): `user.last_login_at` in UTC, and
+([auth.py:54-64](apps/api-py/app/api/account/sign_in.py#L54-L64)): `user.last_login_at` in UTC, and
 a `LoginDay` row keyed on the **local** calendar date, guarded by a SELECT-then-INSERT and
 committed together.
 
@@ -758,7 +758,7 @@ def me(session: dict = Depends(get_current_session)) -> SessionUser:
     return SessionUser(**session)
 ```
 
-— [apps/api-py/app/routers/auth.py:80-82](apps/api-py/app/routers/auth.py#L80-L82). 200 with
+— [apps/api-py/app/api/account/sign_in.py:80-82](apps/api-py/app/api/account/sign_in.py#L80-L82). 200 with
 the same `SessionUser` body as login, or 401 `"Sign in required."` from the dependency.
 **There is no database read**: `/auth/me` reflects the token, never the current row, which is
 the mechanism behind the staleness property in §2.6. The splat works only because the session
@@ -777,7 +777,7 @@ def logout(response: Response) -> dict:
     return {"ok": True}
 ```
 
-— [apps/api-py/app/routers/auth.py:85-88](apps/api-py/app/routers/auth.py#L85-L88). No
+— [apps/api-py/app/api/account/sign_in.py:85-88](apps/api-py/app/api/account/sign_in.py#L85-L88). No
 `response_model`, no session dependency: an unauthenticated caller gets a harmless 200. The
 body is always `{"ok": true}`.
 
@@ -796,11 +796,11 @@ logout remains valid for the remainder of its twelve hours.
 
 `POST /api/register` is a different thing entirely and does not mint a session. It is public
 by design — the docstring at
-[apps/api-py/app/routers/registration.py:112](apps/api-py/app/routers/registration.py#L112)
+[apps/api-py/app/api/account/registration.py:112](apps/api-py/app/api/account/registration.py#L112)
 reads "Public: submit an application. No auth — the applicant is not a user yet."
 
 Its shapes, since it is one of the four endpoints this section owns. The request model is
-`RegisterIn` ([registration.py:64-71](apps/api-py/app/routers/registration.py#L64-L71)):
+`RegisterIn` ([registration.py:64-71](apps/api-py/app/api/account/registration.py#L64-L71)):
 
 ```python
 class RegisterIn(BaseModel):
@@ -814,15 +814,15 @@ class RegisterIn(BaseModel):
 ```
 
 The response model is `RegistrationOut`
-([registration.py:74+](apps/api-py/app/routers/registration.py#L74)), and the route is
+([registration.py:74+](apps/api-py/app/api/account/registration.py#L74)), and the route is
 declared `status_code=status.HTTP_201_CREATED`
-([registration.py:110](apps/api-py/app/routers/registration.py#L110)). Its status codes:
+([registration.py:110](apps/api-py/app/api/account/registration.py#L110)). Its status codes:
 
 | Code | When | Detail |
 |---|---|---|
 | **201** | application stored | the `RegistrationOut` body |
-| **422** | `"@" not in email` or the part after the last `@` has no dot ([registration.py:114-117](apps/api-py/app/routers/registration.py#L114-L117)) | `"A valid email is required."` |
-| **409** | an application with that email already exists ([registration.py:118-122](apps/api-py/app/routers/registration.py#L118-L122)) | `"An application with this email already exists."` |
+| **422** | `"@" not in email` or the part after the last `@` has no dot ([registration.py:114-117](apps/api-py/app/api/account/registration.py#L114-L117)) | `"A valid email is required."` |
+| **409** | an application with that email already exists ([registration.py:118-122](apps/api-py/app/api/account/registration.py#L118-L122)) | `"An application with this email already exists."` |
 
 That 422 is worth pausing on next to §4.2: **this is the only email-format check in the
 backend.** `LoginRequest.email` is a bare `str` with no validation at all, so a malformed
@@ -834,10 +834,10 @@ only keys on the domain anyway.
 Approval only stamps a decision; provisioning the actual `User` and `Student` is a deliberate
 follow-up step outside that router, so **no path in `registration.py` ever calls
 `hash_password`**. The three staff routes in the same module call `require_director`, imported
-from the mentor router at [registration.py:27](apps/api-py/app/routers/registration.py#L27):
-`GET /api/register/pending` ([:163](apps/api-py/app/routers/registration.py#L163)),
-`POST /api/register/{registration_id}/decision` ([:186](apps/api-py/app/routers/registration.py#L186))
-and `GET /api/register/rules` ([:229](apps/api-py/app/routers/registration.py#L229)). Chapter 6
+from the mentor router at [registration.py:27](apps/api-py/app/api/account/registration.py#L27):
+`GET /api/register/pending` ([:163](apps/api-py/app/api/account/registration.py#L163)),
+`POST /api/register/{registration_id}/decision` ([:186](apps/api-py/app/api/account/registration.py#L186))
+and `GET /api/register/rules` ([:229](apps/api-py/app/api/account/registration.py#L229)). Chapter 6
 covers the flow and the rule engine.
 
 ### 4.6 Rate limiting and lockout: there is none
@@ -859,11 +859,11 @@ limiting in a reverse proxy; nothing in this repo supplies it.
 
 ### 5.1 `identity.py` contains one function, and no `require_*` at all
 
-AGENTS.md says "`require_*` dependencies in `apps/api-py/app/identity.py` / the routers read the
+AGENTS.md says "`require_*` dependencies in `apps/api-py/app/platform/identity.py` / the routers read the
 session". **The code disagrees with the first half of that sentence, and the disagreement
-matters for anyone grepping.** `apps/api-py/app/identity.py` is thirteen lines end to end and
+matters for anyone grepping.** `apps/api-py/app/platform/identity.py` is thirteen lines end to end and
 defines exactly one function
-([apps/api-py/app/identity.py:1-13](apps/api-py/app/identity.py#L1-L13)):
+([apps/api-py/app/platform/identity.py:1-13](apps/api-py/app/platform/identity.py#L1-L13)):
 
 ```python
 """Request dependencies: read the session from the reep_session cookie."""
@@ -923,7 +923,7 @@ Two properties follow from the fact that this lives in the **signature**:
 
 Being a real dependency does **not**, by itself, put anything in the OpenAPI schema — only a
 dependency's *declared request parameters* are documented, and `get_current_session` declares
-only `request: Request` ([identity.py:8](apps/api-py/app/identity.py#L8)), which FastAPI excludes. I
+only `request: Request` ([identity.py:8](apps/api-py/app/platform/identity.py#L8)), which FastAPI excludes. I
 generated the schema in the project venv:
 `app.openapi()['paths']['/api/auth/me']['get']` has keys `['tags', 'summary', 'operationId',
 'responses']` — no `parameters`, no `security` — and `components.securitySchemes` is absent
@@ -943,12 +943,12 @@ neither of the two properties above. §5.6 is entirely about what follows from t
 
 | Guard | File | Real `Depends`? | Reads | Returns | Admits | Rejects | Raises |
 |---|---|---|---|---|---|---|---|
-| `get_current_session` | [identity.py:8](apps/api-py/app/identity.py#L8) | yes | `reep_session` cookie | decoded claims dict | any valid unexpired signature | missing / malformed / expired / wrong-signature | **401** `"Sign in required."` |
-| `require_mentor` | [mentor.py:31](apps/api-py/app/routers/mentor.py#L31) | **no** | `session.get("role")` | the same dict | MENTOR, DIRECTOR, ADMIN | STUDENT, absent or unknown role | **403** `"Staff access required."` |
-| `require_director` | [mentor.py:233](apps/api-py/app/routers/mentor.py#L233) | **no** | `session.get("role")` | the same dict | DIRECTOR, ADMIN | STUDENT **and MENTOR** | **403** `"Director access required."` |
-| `_assert_can_access_student` | [mentor.py:72](apps/api-py/app/routers/mentor.py#L72) | **no** | `role`, `mentorId`, a `Student` row | `None` | DIRECTOR/ADMIN for any existing student; MENTOR for `Student.mentor_id == mentorId` | everyone else | **403** via `require_mentor`; **404** `"Student not found."`; **404** `"Student not in your mentor group."` |
-| `_require_student` | [student.py:118](apps/api-py/app/routers/student.py#L118) | **no** | `session.get("studentId")` | the student id (str) | any session with a truthy `studentId` | sessions without one | **403** `"Not a student account."` |
-| `require_voice_worker` | [voice.py:65](apps/api-py/app/routers/voice.py#L65) | yes | `X-Voice-Worker-Secret` header | `None` | exact secret match; anything when the secret is blank and `ENV != prod` | mismatched/absent header when the secret is set; everything when blank under `ENV=prod` | **401** `"Invalid voice worker secret."` / **500** `"Voice worker authentication is not configured."` |
+| `get_current_session` | [identity.py:8](apps/api-py/app/platform/identity.py#L8) | yes | `reep_session` cookie | decoded claims dict | any valid unexpired signature | missing / malformed / expired / wrong-signature | **401** `"Sign in required."` |
+| `require_mentor` | [mentor.py:31](apps/api-py/app/api/mentor/mentees.py#L31) | **no** | `session.get("role")` | the same dict | MENTOR, DIRECTOR, ADMIN | STUDENT, absent or unknown role | **403** `"Staff access required."` |
+| `require_director` | [mentor.py:233](apps/api-py/app/api/mentor/mentees.py#L233) | **no** | `session.get("role")` | the same dict | DIRECTOR, ADMIN | STUDENT **and MENTOR** | **403** `"Director access required."` |
+| `_assert_can_access_student` | [mentor.py:72](apps/api-py/app/api/mentor/mentees.py#L72) | **no** | `role`, `mentorId`, a `Student` row | `None` | DIRECTOR/ADMIN for any existing student; MENTOR for `Student.mentor_id == mentorId` | everyone else | **403** via `require_mentor`; **404** `"Student not found."`; **404** `"Student not in your mentor group."` |
+| `_require_student` | [student.py:118](apps/api-py/app/api/student/self_service.py#L118) | **no** | `session.get("studentId")` | the student id (str) | any session with a truthy `studentId` | sessions without one | **403** `"Not a student account."` |
+| `require_voice_worker` | [voice.py:65](apps/api-py/app/api/legacy/voice_assistant.py#L65) | yes | `X-Voice-Worker-Secret` header | `None` | exact secret match; anything when the secret is blank and `ENV != prod` | mismatched/absent header when the secret is set; everything when blank under `ENV=prod` | **401** `"Invalid voice worker secret."` / **500** `"Voice worker authentication is not configured."` |
 
 **Convention: a `get_` prefix names a dependency that provides a value (`get_current_session`,
 `get_db`); a `require_` prefix names a checker that raises. A leading underscore marks a
@@ -968,7 +968,7 @@ def require_mentor(session: dict) -> dict:
     return session
 ```
 
-— [apps/api-py/app/routers/mentor.py:28-34](apps/api-py/app/routers/mentor.py#L28-L34).
+— [apps/api-py/app/api/mentor/mentees.py:28-34](apps/api-py/app/api/mentor/mentees.py#L28-L34).
 
 ```python
 _DIRECTORS = {"DIRECTOR", "ADMIN"}
@@ -982,7 +982,7 @@ def require_director(session: dict) -> dict:
     return session
 ```
 
-— [apps/api-py/app/routers/mentor.py:230-238](apps/api-py/app/routers/mentor.py#L230-L238),
+— [apps/api-py/app/api/mentor/mentees.py:230-238](apps/api-py/app/api/mentor/mentees.py#L230-L238),
 defined mid-file after the alert endpoints rather than beside its sibling.
 
 The hierarchy is worth stating exactly, because "hierarchy" overstates the mechanism. These
@@ -1011,7 +1011,7 @@ def _require_student(session: dict) -> str:
     return student_id
 ```
 
-— [apps/api-py/app/routers/student.py:118-122](apps/api-py/app/routers/student.py#L118-L122).
+— [apps/api-py/app/api/student/self_service.py:118-122](apps/api-py/app/api/student/self_service.py#L118-L122).
 
 Three deliberate differences from its siblings. It keys on the **presence of a claim**, not on
 a role string: `not student_id` is the whole test, so a STUDENT-role account with no `Student`
@@ -1022,9 +1022,9 @@ which is why no student handler ever has to reach into the session dict a second
 mistype the key. And it raises **403, not 401**: the caller *is* authenticated (they got past
 `get_current_session`), they are simply not a student, so "sign in" would be useless advice.
 
-Two handlers do not call it. `my_streak` ([student.py:384](apps/api-py/app/routers/student.py#L384))
+Two handlers do not call it. `my_streak` ([student.py:384](apps/api-py/app/api/student/self_service.py#L384))
 legitimately scopes by `session["userId"]` instead, because `LoginDay` hangs off the user, not
-the student. `my_profile` ([student.py:66](apps/api-py/app/routers/student.py#L66)) is the
+the student. `my_profile` ([student.py:66](apps/api-py/app/api/student/self_service.py#L66)) is the
 interesting one — it inlines the guard's body rather than calling it:
 
 ```python
@@ -1035,23 +1035,23 @@ interesting one — it inlines the guard's body rather than calling it:
         )
 ```
 
-— [student.py:69-73](apps/api-py/app/routers/student.py#L69-L73). Not a character-for-character
+— [student.py:69-73](apps/api-py/app/api/student/self_service.py#L69-L73). Not a character-for-character
 copy — compare the two quotations: `_require_student` raises on a single line
-([student.py:121](apps/api-py/app/routers/student.py#L121)) while `my_profile` splits the same
-call across three ([student.py:71-73](apps/api-py/app/routers/student.py#L71-L73)). Same
+([student.py:121](apps/api-py/app/api/student/self_service.py#L121)) while `my_profile` splits the same
+call across three ([student.py:71-73](apps/api-py/app/api/student/self_service.py#L71-L73)). Same
 semantics, same status, same detail string, no shared helper. It is harmless today and it is a
 copy that will drift; rulebook item 3 says to call the helper.
 
 ### 5.6 The mechanism point: these are not FastAPI dependencies
 
 `Depends(require_...)` appears exactly twice in the entire backend, both for
-`require_voice_worker` ([voice.py:114](apps/api-py/app/routers/voice.py#L114) and
-[:406](apps/api-py/app/routers/voice.py#L406)), and `dependencies=[...]` — the router-level
+`require_voice_worker` ([voice.py:114](apps/api-py/app/api/legacy/voice_assistant.py#L114) and
+[:406](apps/api-py/app/api/legacy/voice_assistant.py#L406)), and `dependencies=[...]` — the router-level
 or decorator-level dependency list — appears **nowhere** (grep-verified across
 `apps/api-py/app`). `require_mentor(session)` and `require_director(session)` are ordinary
 function calls written as the first statement of a handler body, as at
-[mentor.py:49](apps/api-py/app/routers/mentor.py#L49) and
-[director.py:40](apps/api-py/app/routers/director.py#L40).
+[mentor.py:49](apps/api-py/app/api/mentor/mentees.py#L49) and
+[director.py:40](apps/api-py/app/api/director/programme_dashboard.py#L40).
 
 Three consequences, all of them things you will trip over:
 
@@ -1070,13 +1070,13 @@ role decision in this application is a hand-written line inside a handler. That 
 most important operational fact in this chapter after Rule 2 itself.
 
 A few endpoints skip the helpers and inline the role literal instead — `/api/agent/knowledge/search`
-(STUDENT-only, [agent.py:424-428](apps/api-py/app/routers/agent.py#L424-L428)),
+(STUDENT-only, [agent.py:424-428](apps/api-py/app/api/legacy/text_assistant.py#L424-L428)),
 `/api/agent/metrics` (DIRECTOR/ADMIN,
-[agent.py:508-513](apps/api-py/app/routers/agent.py#L508-L513)) and the three voice routes
+[agent.py:508-513](apps/api-py/app/api/legacy/text_assistant.py#L508-L513)) and the three voice routes
 (`if session.get("role") != Role.STUDENT.value`,
-[voice.py:220](apps/api-py/app/routers/voice.py#L220),
-[:252](apps/api-py/app/routers/voice.py#L252),
-[:361](apps/api-py/app/routers/voice.py#L361)). Note these compare through the `Role` enum
+[voice.py:220](apps/api-py/app/api/legacy/voice_assistant.py#L220),
+[:252](apps/api-py/app/api/legacy/voice_assistant.py#L252),
+[:361](apps/api-py/app/api/legacy/voice_assistant.py#L361)). Note these compare through the `Role` enum
 while `mentor.py` compares bare string literals; both work because of the str-enum invariant
 in §2.2 — `Role.STUDENT.value` *is* the string `"STUDENT"` — and I found no comment explaining
 the split.
@@ -1089,19 +1089,19 @@ signature, and every one of them is deliberate. I enumerated them by walking eve
 
 Five carry no authentication at all:
 
-- `GET /health` ([health.py:28](apps/api-py/app/routers/health.py#L28)) and `GET /ready`
-  ([health.py:34](apps/api-py/app/routers/health.py#L34)) — infra probes, mounted unprefixed
+- `GET /health` ([health.py:28](apps/api-py/app/api/system/health.py#L28)) and `GET /ready`
+  ([health.py:34](apps/api-py/app/api/system/health.py#L34)) — infra probes, mounted unprefixed
   at [main.py:69-70](apps/api-py/app/main.py#L69-L70);
-- `POST /api/auth/login` ([auth.py:44](apps/api-py/app/routers/auth.py#L44)) — necessarily
+- `POST /api/auth/login` ([auth.py:44](apps/api-py/app/api/account/sign_in.py#L44)) — necessarily
   public;
-- `POST /api/auth/logout` ([auth.py:86](apps/api-py/app/routers/auth.py#L86)) — harmless, it
+- `POST /api/auth/logout` ([auth.py:86](apps/api-py/app/api/account/sign_in.py#L86)) — harmless, it
   only clears a cookie;
-- `POST /api/register` ([registration.py:111](apps/api-py/app/routers/registration.py#L111)) —
+- `POST /api/register` ([registration.py:111](apps/api-py/app/api/account/registration.py#L111)) —
   the applicant is not a user yet.
 
 The remaining two — `POST /api/voice/heartbeat`
-([voice.py:111](apps/api-py/app/routers/voice.py#L111)) and `POST /api/voice/transcript`
-([voice.py:403](apps/api-py/app/routers/voice.py#L403)) — are authenticated by
+([voice.py:111](apps/api-py/app/api/legacy/voice_assistant.py#L111)) and `POST /api/voice/transcript`
+([voice.py:403](apps/api-py/app/api/legacy/voice_assistant.py#L403)) — are authenticated by
 `require_voice_worker` instead of a session, as a real `Depends` in the signature. They are
 machine endpoints; §7 is about them.
 
@@ -1155,8 +1155,8 @@ a reassignment does not take effect until the token expires or the user logs in 
 
 `session.get("mentorId")` occurs in exactly six places in the whole backend, all in
 `mentor.py`: the four list narrowings (§6.4), the helper itself
-([mentor.py:79](apps/api-py/app/routers/mentor.py#L79)), and `add_note`
-([:136](apps/api-py/app/routers/mentor.py#L136), §6.6). There is no seventh reader anywhere.
+([mentor.py:79](apps/api-py/app/api/mentor/mentees.py#L79)), and `add_note`
+([:136](apps/api-py/app/api/mentor/mentees.py#L136), §6.6). There is no seventh reader anywhere.
 
 ### 6.3 The function, entire
 
@@ -1176,7 +1176,7 @@ def _assert_can_access_student(session: dict, student_id: str, db: Session) -> N
         )
 ```
 
-— [apps/api-py/app/routers/mentor.py:72-84](apps/api-py/app/routers/mentor.py#L72-L84).
+— [apps/api-py/app/api/mentor/mentees.py:72-84](apps/api-py/app/api/mentor/mentees.py#L72-L84).
 
 **Line 74, `require_mentor(session)`.** A STUDENT — or any non-staff role — is rejected 403
 *before a single row is read*. The function therefore never leaks the existence of anything
@@ -1244,7 +1244,7 @@ entire programme**: every student's name, USN, stage, semester, alerts, uploads 
 claims. The list endpoint returns 200 with a full roster and looks, from every angle, like a
 working feature. AGENTS.md states the prohibition — "Never read 'no mentor group' as 'whole
 programme'" — and the module docstring states it in code
-([apps/api-py/app/routers/mentor.py:1-7](apps/api-py/app/routers/mentor.py#L1-L7)):
+([apps/api-py/app/api/mentor/mentees.py:1-7](apps/api-py/app/api/mentor/mentees.py#L1-L7)):
 
 ```python
 """Mentor area — staff (MENTOR / DIRECTOR / ADMIN) views of their mentees.
@@ -1263,7 +1263,7 @@ deliberately.
 The correct shape — an **early return of an empty list, never a skipped `WHERE`** — appears
 at four sites, verified by grepping `return []` across `app/routers/`, which returns exactly
 these four and nothing in any other router. The canonical one is `mentees`
-([mentor.py:49-57](apps/api-py/app/routers/mentor.py#L49-L57)):
+([mentor.py:49-57](apps/api-py/app/api/mentor/mentees.py#L49-L57)):
 
 ```python
     require_mentor(session)
@@ -1278,12 +1278,12 @@ these four and nothing in any other router. The canonical one is `mentees`
 ```
 
 The same three statements are repeated in `alerts`
-([mentor.py:199-203](apps/api-py/app/routers/mentor.py#L199-L203)), `pending_uploads`
-([mentor.py:424-428](apps/api-py/app/routers/mentor.py#L424-L428)) and
-`pending_skill_claims` ([mentor.py:522-526](apps/api-py/app/routers/mentor.py#L522-L526)) —
+([mentor.py:199-203](apps/api-py/app/api/mentor/mentees.py#L199-L203)), `pending_uploads`
+([mentor.py:424-428](apps/api-py/app/api/mentor/mentees.py#L424-L428)) and
+`pending_skill_claims` ([mentor.py:522-526](apps/api-py/app/api/mentor/mentees.py#L522-L526)) —
 but not byte for byte. Only `pending_uploads` kept the guiding comment; at
-[mentor.py:202](apps/api-py/app/routers/mentor.py#L202) and
-[:525](apps/api-py/app/routers/mentor.py#L525) it is a bare `return []`. That the explanatory
+[mentor.py:202](apps/api-py/app/api/mentor/mentees.py#L202) and
+[:525](apps/api-py/app/api/mentor/mentees.py#L525) it is a bare `return []`. That the explanatory
 comment survived one copy out of three is itself the tell of hand-copying. Three hand-copied
 duplicates of the canonical block, with no shared helper, is a real maintenance hazard: a
 fifth list endpoint written by copy-paste is one dropped `return []` away from a breach.
@@ -1295,21 +1295,21 @@ permission error somebody might "fix" by widening the query.
 ### 6.5 Every call site of the helper
 
 Seven, all in `mentor.py`, in two shapes. (Grep-verified: `_assert_can_access_student` occurs
-eight times in `app/` — the definition at [mentor.py:72](apps/api-py/app/routers/mentor.py#L72)
+eight times in `app/` — the definition at [mentor.py:72](apps/api-py/app/api/mentor/mentees.py#L72)
 plus these seven calls. No other module imports it.)
 
 **Student id in the path — the helper is the only guard needed**, because it calls
-`require_mentor` itself: `list_notes` ([:117](apps/api-py/app/routers/mentor.py#L117)),
-`add_note` ([:135](apps/api-py/app/routers/mentor.py#L135)) and `student_focus`
-([:349](apps/api-py/app/routers/mentor.py#L349)), each the first statement of the body.
+`require_mentor` itself: `list_notes` ([:117](apps/api-py/app/api/mentor/mentees.py#L117)),
+`add_note` ([:135](apps/api-py/app/api/mentor/mentees.py#L135)) and `student_focus`
+([:349](apps/api-py/app/api/mentor/mentees.py#L349)), each the first statement of the body.
 
 **Object id in the path — the student id is derived from the fetched row.** The uniform
 sequence is role gate → fetch by the object's own id → 404 if absent → scope-check the row's
 `student_id` → business rules → mutate. `resolve_alert`
-([:214-218](apps/api-py/app/routers/mentor.py#L214-L218)), `confirm_focus`
-([:364-368](apps/api-py/app/routers/mentor.py#L364-L368)), `review_upload`
-([:447-451](apps/api-py/app/routers/mentor.py#L447-L451)) and `review_skill_claim`
-([:547-551](apps/api-py/app/routers/mentor.py#L547-L551)). The client never supplies a
+([:214-218](apps/api-py/app/api/mentor/mentees.py#L214-L218)), `confirm_focus`
+([:364-368](apps/api-py/app/api/mentor/mentees.py#L364-L368)), `review_upload`
+([:447-451](apps/api-py/app/api/mentor/mentees.py#L447-L451)) and `review_skill_claim`
+([:547-551](apps/api-py/app/api/mentor/mentees.py#L547-L551)). The client never supplies a
 student id on these, which removes any chance of a mismatched pair — passing your own
 mentee's id while acting on another group's alert.
 
@@ -1325,7 +1325,7 @@ is my inference from statement ordering; no comment states it, and a tidy-up tha
 "redundant" lines would reopen it.)
 
 *Scope before state.* `review_upload` checks scope at line 451 and only then the workflow
-state at line 452 ([mentor.py:451-455](apps/api-py/app/routers/mentor.py#L451-L455));
+state at line 452 ([mentor.py:451-455](apps/api-py/app/api/mentor/mentees.py#L451-L455));
 `review_skill_claim` does the same at 551-552. Reversing them would leak workflow state
 ("Only a pending upload can be reviewed.") about another group's records.
 
@@ -1339,7 +1339,7 @@ suggesting the asymmetry was noticed.
 ### 6.6 The one place a DIRECTOR is narrower than a MENTOR
 
 `add_note` passes `_assert_can_access_student` for a DIRECTOR (who may read any student's
-notes), then refuses to write ([mentor.py:136-141](apps/api-py/app/routers/mentor.py#L136-L141)):
+notes), then refuses to write ([mentor.py:136-141](apps/api-py/app/api/mentor/mentees.py#L136-L141)):
 
 ```python
     mentor_id = session.get("mentorId")
@@ -1357,27 +1357,27 @@ key to `mentors.id`
 an author with no `Mentor` row. The 400 is a pre-emptive translation of what would otherwise
 be an `IntegrityError` and a 500. It is also the only place in the family where a role-shaped
 refusal is reported as 400 rather than 403. Note that the note is stamped with the *session's*
-`mentorId` ([mentor.py:149](apps/api-py/app/routers/mentor.py#L149)), never with anything from
+`mentorId` ([mentor.py:149](apps/api-py/app/api/mentor/mentees.py#L149)), never with anything from
 the request body — authorship cannot be spoofed.
 
 ### 6.7 The audit: is the rule kept everywhere?
 
 Yes, in `mentor.py`. All thirteen routes were checked (thirteen `@router.<method>`
 decorators). Seven are scoped through the helper, four narrow inline, and the remaining two —
-`pending_offers` ([mentor.py:265-277](apps/api-py/app/routers/mentor.py#L265-L277)) and
-`decide_offer` ([mentor.py:285-318](apps/api-py/app/routers/mentor.py#L285-L318)) — return
+`pending_offers` ([mentor.py:265-277](apps/api-py/app/api/mentor/mentees.py#L265-L277)) and
+`decide_offer` ([mentor.py:285-318](apps/api-py/app/api/mentor/mentees.py#L285-L318)) — return
 programme-wide student data with no narrowing and are correct, because both call
-`require_director` as their first statement ([:269](apps/api-py/app/routers/mentor.py#L269),
-[:292](apps/api-py/app/routers/mentor.py#L292)). A MENTOR calling either gets 403
+`require_director` as their first statement ([:269](apps/api-py/app/api/mentor/mentees.py#L269),
+[:292](apps/api-py/app/api/mentor/mentees.py#L292)). A MENTOR calling either gets 403
 `"Director access required."` The only surprise is topological: two director-only endpoints
 live under the `/mentor` prefix, so a reader auditing by URL would misread them. Audit by the
 first line of the handler body, not by the path.
 
 `director.py` never narrows and never needs to. Its docstring says so
-([apps/api-py/app/routers/director.py:1-3](apps/api-py/app/routers/director.py#L1-L3)) —
+([apps/api-py/app/api/director/programme_dashboard.py:1-3](apps/api-py/app/api/director/programme_dashboard.py#L1-L3)) —
 "Director dashboard — programme-wide aggregates. Director/admin only; reuses the mentor
 router's require_director guard." — it imports the guard rather than redefining it
-([director.py:21](apps/api-py/app/routers/director.py#L21)), calls it as the first statement
+([director.py:21](apps/api-py/app/api/director/programme_dashboard.py#L21)), calls it as the first statement
 of all seven handlers (lines 40, 101, 135, 177, 223, 247, 298), and imports `Student` only for
 `func.count` and `group_by`. There is no per-student endpoint in the file. The
 forward-looking invariant: **if `director.py` ever grows a `/director/students/{id}/...`
@@ -1395,13 +1395,13 @@ refuses personalised intents otherwise, and the agent router passes
 another student.
 
 One case I deliberately do **not** call a Rule 2 violation, but flag: `GET /api/leaves/pending`
-([apps/api-py/app/routers/leave.py:79-98](apps/api-py/app/routers/leave.py#L79-L98)) calls
-`require_mentor` ([leave.py:83](apps/api-py/app/routers/leave.py#L83)) and then returns every
+([apps/api-py/app/api/mentor/leave.py:79-98](apps/api-py/app/api/mentor/leave.py#L79-L98)) calls
+`require_mentor` ([leave.py:83](apps/api-py/app/api/mentor/leave.py#L83)) and then returns every
 submitted leave request excluding the caller's own, with no `Student.mentor_id` filter
 anywhere in the module. Two reasons it is defensible: `LeaveOut` omits requester identity
 entirely (id, dates, reason, status — `requester_user_id` exists on the model and is never
 serialised), and the module's two-distinct-approver workflow
-([leave.py:1-7](apps/api-py/app/routers/leave.py#L1-L7)) would deadlock under group scoping.
+([leave.py:1-7](apps/api-py/app/api/mentor/leave.py#L1-L7)) would deadlock under group scoping.
 What is certain is that the choice is **undocumented**: no comment says the unnarrowed queue
 was considered, and the free-text `reason` can self-identify a student.
 
@@ -1411,7 +1411,7 @@ was considered, and the free-text `reason` can self-identify a student.
 
 The voice worker is a fourth process (AGENTS.md; Chapter 1 §2-3, Chapter 11) that POSTs
 heartbeats and transcripts to the API. It has no user, no cookie and no role — only a shared
-secret ([apps/api-py/app/routers/voice.py:65-93](apps/api-py/app/routers/voice.py#L65-L93)):
+secret ([apps/api-py/app/api/legacy/voice_assistant.py:65-93](apps/api-py/app/api/legacy/voice_assistant.py#L65-L93)):
 
 ```python
 def require_voice_worker(
@@ -1429,8 +1429,8 @@ missing header is `None` rather than a 422.
 wire name; the wire name itself follows `X-<Product>-<Thing>` (`X-Voice-Worker-Secret`); and
 the unused-but-required dependency parameter at the call site is named `_worker`**
 (`_worker: None = Depends(require_voice_worker)`,
-[voice.py:114](apps/api-py/app/routers/voice.py#L114) and
-[:406](apps/api-py/app/routers/voice.py#L406)). The leading underscore on `_worker` says the
+[voice.py:114](apps/api-py/app/api/legacy/voice_assistant.py#L114) and
+[:406](apps/api-py/app/api/legacy/voice_assistant.py#L406)). The leading underscore on `_worker` says the
 same thing it says on a module-level name: nothing reads this, it is here for its effect.
 
 The body is a two-branch decision:
@@ -1458,12 +1458,12 @@ The body is a two-branch decision:
 | blank | `prod` | any | **500** `"Voice worker authentication is not configured."` — *for every caller, the real worker included* |
 | blank | anything else | ignored | pass unconditionally |
 
-That `!=` at [voice.py:89](apps/api-py/app/routers/voice.py#L89) is the comparison §1.5 flags:
+That `!=` at [voice.py:89](apps/api-py/app/api/legacy/voice_assistant.py#L89) is the comparison §1.5 flags:
 it short-circuits on the first differing character, where `verify_password` uses
 `hmac.compare_digest`. Two credential comparisons in one codebase, two standards.
 
 > **Why it is like this.** The docstring
-> ([voice.py:70-80](apps/api-py/app/routers/voice.py#L70-L80)) carries three decisions.
+> ([voice.py:70-80](apps/api-py/app/api/legacy/voice_assistant.py#L70-L80)) carries three decisions.
 > Fail-closed: "A blank VOICE_WORKER_SECRET leaves /heartbeat and /transcript open to anyone
 > who can reach the API — they could forge a heartbeat to make voice look available, or write
 > fabricated turns into any conversation whose id they can guess or observe. That is
@@ -1488,8 +1488,8 @@ comments" bullet titled *"The lifespan warning overstates the prod case"*. Chapt
 the status/token gate.
 
 A whitespace edge the docstrings do not cover: three places test this setting and they
-disagree. [voice.py:81](apps/api-py/app/routers/voice.py#L81) and
-[health.py:60](apps/api-py/app/routers/health.py#L60) test the raw string;
+disagree. [voice.py:81](apps/api-py/app/api/legacy/voice_assistant.py#L81) and
+[health.py:60](apps/api-py/app/api/system/health.py#L60) test the raw string;
 [main.py:48](apps/api-py/app/main.py#L48) tests `.strip()`. With
 `VOICE_WORKER_SECRET=" "` and `ENV=prod` the endpoints are genuinely authenticated (the
 header must equal `" "`), `/ready` correctly reports `worker_auth_configured: true`, and the
@@ -1541,7 +1541,7 @@ Test 7 is the most valuable assertion in the file and also the sharpest illustra
 gap. It asserts the *status code* of `/api/mentor/mentees`, never the rows. The seeded mentor
 has a `Mentor` row and the seeded student is assigned to it, so the response is a one-row
 list — but a regression that deleted the narrowing at
-[mentor.py:52-56](apps/api-py/app/routers/mentor.py#L52-L56) and returned the whole programme
+[mentor.py:52-56](apps/api-py/app/api/mentor/mentees.py#L52-L56) and returned the whole programme
 would still be a 200 and still pass. **The rule the docstring calls the security spine is
 tested negatively (staff vs non-staff) and never positively (this mentor's students, not
 everyone's).**
@@ -1580,19 +1580,19 @@ Nothing anywhere in `apps/api-py/tests` exercises:
   the exact misreading AGENTS.md warns against would not be caught by CI.
 - **`require_mentor` beyond one call site.** It has nine call sites in `mentor.py` — lines
   49, 74 (the call *inside* `_assert_can_access_student` itself), 191, 214, 364, 417, 447,
-  514, 547 — plus two in `leave.py` ([83](apps/api-py/app/routers/leave.py#L83),
-  [113](apps/api-py/app/routers/leave.py#L113)): eleven in all, of which only
+  514, 547 — plus two in `leave.py` ([83](apps/api-py/app/api/mentor/leave.py#L83),
+  [113](apps/api-py/app/api/mentor/leave.py#L113)): eleven in all, of which only
   `/mentor/mentees` is ever hit. DIRECTOR and ADMIN calling a `/mentor/*` route are untested,
   and **ADMIN is never exercised anywhere in the suite**.
 - **`require_director` beyond two routes.** Ten of its twelve call sites are untested: the
-  three in `registration.py` ([163](apps/api-py/app/routers/registration.py#L163),
-  [186](apps/api-py/app/routers/registration.py#L186),
-  [229](apps/api-py/app/routers/registration.py#L229)), the two director-only routes hiding
-  under `/api/mentor/offers/` ([mentor.py:269](apps/api-py/app/routers/mentor.py#L269),
-  [:292](apps/api-py/app/routers/mentor.py#L292)), and five of the seven in `director.py`.
-  Only `/director/overview` ([director.py:40](apps/api-py/app/routers/director.py#L40), tests
+  three in `registration.py` ([163](apps/api-py/app/api/account/registration.py#L163),
+  [186](apps/api-py/app/api/account/registration.py#L186),
+  [229](apps/api-py/app/api/account/registration.py#L229)), the two director-only routes hiding
+  under `/api/mentor/offers/` ([mentor.py:269](apps/api-py/app/api/mentor/mentees.py#L269),
+  [:292](apps/api-py/app/api/mentor/mentees.py#L292)), and five of the seven in `director.py`.
+  Only `/director/overview` ([director.py:40](apps/api-py/app/api/director/programme_dashboard.py#L40), tests
   6 and 8) and `/director/alert-rules`
-  ([director.py:223](apps/api-py/app/routers/director.py#L223), test 7) are ever hit.
+  ([director.py:223](apps/api-py/app/api/director/programme_dashboard.py#L223), test 7) are ever hit.
 - **`_require_student`** — no deliberate test; its 403 branch is reached only by accident
   through the contaminated test 9. Nothing at all covers `my_profile`'s inlined copy of it
   (§5.5).
@@ -1849,7 +1849,7 @@ apply to a diff.
      the router that owns the area, and import it elsewhere rather than redefining it.
 3. **Never invent another spelling of "is a student".** The app already has three:
    `_require_student` keys on the presence of a `studentId` claim; `my_profile`
-   ([student.py:69-73](apps/api-py/app/routers/student.py#L69-L73)) inlines that same body
+   ([student.py:69-73](apps/api-py/app/api/student/self_service.py#L69-L73)) inlines that same body
    instead of calling it; and the voice and knowledge-search routes key on
    `role != Role.STUDENT.value`. Call `_require_student`, and do not add a fourth.
 
@@ -2000,7 +2000,7 @@ apply to a diff.
   unconditionally; whether a reverse proxy blocks them cannot be determined from this repo,
   which describes no production ingress.
 - **Two documentation disagreements, recorded rather than resolved.** AGENTS.md places the
-  `require_*` dependencies in `app/identity.py`; they are in the routers. And
+  `require_*` dependencies in `app/platform/identity.py`; they are in the routers. And
   [tests/test_auth_rbac.py:68](apps/api-py/tests/test_auth_rbac.py#L68) says the
-  unauthenticated convention is 403 while [identity.py:12](apps/api-py/app/identity.py#L12) raises
+  unauthenticated convention is 403 while [identity.py:12](apps/api-py/app/platform/identity.py#L12) raises
   401 — Chapter 2 owns the status-code rulebook and should adjudicate the second.

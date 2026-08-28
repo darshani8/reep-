@@ -19,7 +19,7 @@ from sqlalchemy import delete, select
 
 from conftest import requires_db
 
-from app import knowledge
+from app.assistant import knowledge_base as knowledge
 from app.ai import embeddings
 from app.db import SessionLocal
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeStatus

@@ -26,7 +26,7 @@ from app.models.english_baseline import (
     SectionStatus,
 )
 from app.models.mentor_note import MentorAction, MentorNote
-from app.models.redesign import (
+from app.models.notebook import (
     MentorNotebookEntry,
     NotebookEntryType,
     NotebookVisibility,

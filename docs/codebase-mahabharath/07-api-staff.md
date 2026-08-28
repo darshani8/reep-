@@ -11,10 +11,10 @@ under which `POST /api/voice/token` answers 200, 409 or 503. You will also know 
 these endpoints has no automated test at all — which, on a surface that returns other
 people's marks and USNs, is the most operationally useful fact in the chapter.
 
-**In scope:** [`app/routers/mentor.py`](apps/api-py/app/routers/mentor.py) (13 endpoints,
-both role tiers), [`app/routers/director.py`](apps/api-py/app/routers/director.py) (7),
-[`app/routers/agent.py`](apps/api-py/app/routers/agent.py) (9) and
-[`app/routers/voice.py`](apps/api-py/app/routers/voice.py) (5) — 34 endpoints, documented
+**In scope:** [`app/api/mentor/mentees.py`](apps/api-py/app/api/mentor/mentees.py) (13 endpoints,
+both role tiers), [`app/api/director/programme_dashboard.py`](apps/api-py/app/api/director/programme_dashboard.py) (7),
+[`app/api/legacy/text_assistant.py`](apps/api-py/app/api/legacy/text_assistant.py) (9) and
+[`app/api/legacy/voice_assistant.py`](apps/api-py/app/api/legacy/voice_assistant.py) (5) — 34 endpoints, documented
 as HTTP contracts.
 
 **Rule 2, stated once, up front.** "Rule 2" is used throughout this chapter and it is not
@@ -23,7 +23,7 @@ docstring, and it is the sentence the whole staff surface exists to honour:
 
 > "a MENTOR sees only students in their Mentor group; DIRECTOR/ADMIN see all. A MENTOR with
 > NO Mentor group (no mentorId in the session) sees NOBODY — never the whole programme."
-> ([mentor.py:3-6](apps/api-py/app/routers/mentor.py#L3-L6))
+> ([mentor.py:3-6](apps/api-py/app/api/mentor/mentees.py#L3-L6))
 
 Three actors, three answers. A DIRECTOR or ADMIN gets the whole programme. A MENTOR gets the
 students whose `mentor_id` matches theirs. A MENTOR whose account was never attached to a
@@ -76,23 +76,23 @@ Six domain routers mount under a single `/api` prefix. Two of them — `leave.py
 is the blast-radius point made two paragraphs down.
 
 So `mentor.py` declares `APIRouter(prefix="/mentor", tags=["mentor"])`
-([mentor.py:26](apps/api-py/app/routers/mentor.py#L26)) and answers at `/api/mentor/...`,
+([mentor.py:26](apps/api-py/app/api/mentor/mentees.py#L26)) and answers at `/api/mentor/...`,
 while `agent.py` declares `APIRouter(prefix="/api/agent", tags=["agent"])`
-([agent.py:44](apps/api-py/app/routers/agent.py#L44)) and is included bare. If you add an
+([agent.py:44](apps/api-py/app/api/legacy/text_assistant.py#L44)) and is included bare. If you add an
 endpoint to `agent.py` or `voice.py` and it comes out at `/api/api/agent/...`, this is why.
 
 | Router | File | Router prefix | Included with | Endpoints |
 |---|---|---|---|---|
-| mentor | `app/routers/mentor.py` | `/mentor` | `prefix="/api"` | 13 |
-| director | `app/routers/director.py` | `/director` | `prefix="/api"` | 7 |
-| agent | `app/routers/agent.py` | `/api/agent` | *(none)* | 9 |
-| voice | `app/routers/voice.py` | `/api/voice` | *(none)* | 5 |
+| mentor | `app/api/mentor/mentees.py` | `/mentor` | `prefix="/api"` | 13 |
+| director | `app/api/director/programme_dashboard.py` | `/director` | `prefix="/api"` | 7 |
+| agent | `app/api/legacy/text_assistant.py` | `/api/agent` | *(none)* | 9 |
+| voice | `app/api/legacy/voice_assistant.py` | `/api/voice` | *(none)* | 5 |
 
 `mentor.py` is more than a feature router: it is the **definition site for the staff
 authorisation vocabulary**. `require_mentor` is imported by
-[`leave.py:19`](apps/api-py/app/routers/leave.py#L19); `require_director` by
-[`director.py:21`](apps/api-py/app/routers/director.py#L21) and
-[`registration.py:27`](apps/api-py/app/routers/registration.py#L27). Four routers depend on
+[`leave.py:19`](apps/api-py/app/api/mentor/leave.py#L19); `require_director` by
+[`director.py:21`](apps/api-py/app/api/director/programme_dashboard.py#L21) and
+[`registration.py:27`](apps/api-py/app/api/account/registration.py#L27). Four routers depend on
 two functions defined in one of them, which is why any change to their shape has blast
 radius well beyond `mentor.py`.
 
@@ -103,12 +103,12 @@ There are exactly two staff tiers, expressed as two module-private sets:
 ```python
 _STAFF = {"MENTOR", "DIRECTOR", "ADMIN"}
 ```
-([mentor.py:28](apps/api-py/app/routers/mentor.py#L28))
+([mentor.py:28](apps/api-py/app/api/mentor/mentees.py#L28))
 
 ```python
 _DIRECTORS = {"DIRECTOR", "ADMIN"}
 ```
-([mentor.py:230](apps/api-py/app/routers/mentor.py#L230))
+([mentor.py:230](apps/api-py/app/api/mentor/mentees.py#L230))
 
 `require_mentor` admits the first set; `require_director` the second. Note that
 `_DIRECTORS` is **not** grouped with `_STAFF` at the top of the file — it sits at line 230,
@@ -128,7 +128,7 @@ def require_mentor(session: dict) -> dict:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Staff access required.")
     return session
 ```
-([mentor.py:31-34](apps/api-py/app/routers/mentor.py#L31-L34))
+([mentor.py:31-34](apps/api-py/app/api/mentor/mentees.py#L31-L34))
 
 **No call site in the codebase uses that return value.** Every one is a bare statement call.
 The return exists for a chaining style nobody adopted.
@@ -138,10 +138,10 @@ The return exists for a chaining style nobody adopted.
 This is the single most important thing to understand before adding an endpoint here.
 
 FastAPI's `Depends(...)` machinery resolves declared dependencies *before* the handler body
-runs, and a dependency that raises aborts the request. `app/identity.py` contains exactly one
+runs, and a dependency that raises aborts the request. `app/platform/identity.py` contains exactly one
 function — `get_current_session` — and it **authenticates**: it reads the `reep_session`
 cookie, verifies it, and 401s when it is missing or invalid
-([identity.py:8-13](apps/api-py/app/identity.py#L8-L13)). It says nothing whatsoever about role.
+([identity.py:8-13](apps/api-py/app/platform/identity.py#L8-L13)). It says nothing whatsoever about role.
 
 `require_mentor` and `require_director` are **plain functions**. They take an
 already-resolved session dict, so they cannot be used as dependencies without a wrapper, and
@@ -154,7 +154,7 @@ def mentees(
 ) -> list[MenteeOut]:
     require_mentor(session)
 ```
-([mentor.py:45-49](apps/api-py/app/routers/mentor.py#L45-L49))
+([mentor.py:45-49](apps/api-py/app/api/mentor/mentees.py#L45-L49))
 
 The `Depends(...)` line *looks* like the guard. It is not. Delete line 49 and the endpoint
 still compiles, still authenticates, still returns 200 — to a STUDENT, with every student's
@@ -184,11 +184,11 @@ these two guards**: every one calls its guard as the first *executable* statemen
 handler body.
 `mentor.py` lines 49, 117, 135, 191, 214, 269, 292, 349, 364, 417, 447, 514, 547 (13
 handlers); `director.py` lines 40, 101, 135, 177, 223, 247, 298 (7 handlers);
-[`leave.py:83`](apps/api-py/app/routers/leave.py#L83) (`pending_leaves`) and
-[`leave.py:113`](apps/api-py/app/routers/leave.py#L113) (`decide_leave`), both
-`require_mentor`; [`registration.py:163`](apps/api-py/app/routers/registration.py#L163)
-(`pending`), [`186`](apps/api-py/app/routers/registration.py#L186) (`decide`) and
-[`229`](apps/api-py/app/routers/registration.py#L229) (`rules`), all `require_director`.
+[`leave.py:83`](apps/api-py/app/api/mentor/leave.py#L83) (`pending_leaves`) and
+[`leave.py:113`](apps/api-py/app/api/mentor/leave.py#L113) (`decide_leave`), both
+`require_mentor`; [`registration.py:163`](apps/api-py/app/api/account/registration.py#L163)
+(`pending`), [`186`](apps/api-py/app/api/account/registration.py#L186) (`decide`) and
+[`229`](apps/api-py/app/api/account/registration.py#L229) (`rules`), all `require_director`.
 The last five are outside this chapter's endpoint census but inside the guards' blast radius,
 so they are audited here rather than left silently unexamined.
 
@@ -210,17 +210,17 @@ available in the repo.
 > **Why it is like this.** The scope rule is a *port*, not an invention. `mentor.py`'s
 > module docstring names its ancestor explicitly: "Scope rule (mirrors
 > `mentorScope()`/`menteeWhere()` in the Next.js app, and the AGENTS.md guidance)"
-> ([mentor.py:1-7](apps/api-py/app/routers/mentor.py#L1-L7)). In the deleted Next.js app
+> ([mentor.py:1-7](apps/api-py/app/api/mentor/mentees.py#L1-L7)). In the deleted Next.js app
 > those were helper functions you called inside a resolver, and the port carried the calling
 > convention across with the logic. That is how a plain function ended up doing a
 > dependency's job.
 
 **One important exception, and a correction.** `require_voice_worker`
-([voice.py:65](apps/api-py/app/routers/voice.py#L65)) is often lumped in with the other two
+([voice.py:65](apps/api-py/app/api/legacy/voice_assistant.py#L65)) is often lumped in with the other two
 because it also lives in a router rather than in `identity.py`. It is **not** the same shape: it
 takes a `Header(default=None)` parameter and is wired through `Depends`, at
-[voice.py:114](apps/api-py/app/routers/voice.py#L114) and
-[voice.py:406](apps/api-py/app/routers/voice.py#L406):
+[voice.py:114](apps/api-py/app/api/legacy/voice_assistant.py#L114) and
+[voice.py:406](apps/api-py/app/api/legacy/voice_assistant.py#L406):
 
 ```python
     _worker: None = Depends(require_voice_worker),
@@ -250,10 +250,10 @@ of the five copies are an **inequality against STUDENT** — "you must be a stud
 ```python
     if session.get("role") != Role.STUDENT.value:
 ```
-([agent.py:424](apps/api-py/app/routers/agent.py#L424) — `/knowledge/search`;
-[voice.py:220](apps/api-py/app/routers/voice.py#L220) — `/status`;
-[voice.py:252](apps/api-py/app/routers/voice.py#L252) — `/token`;
-[voice.py:361](apps/api-py/app/routers/voice.py#L361) — `/consent`)
+([agent.py:424](apps/api-py/app/api/legacy/text_assistant.py#L424) — `/knowledge/search`;
+[voice.py:220](apps/api-py/app/api/legacy/voice_assistant.py#L220) — `/status`;
+[voice.py:252](apps/api-py/app/api/legacy/voice_assistant.py#L252) — `/token`;
+[voice.py:361](apps/api-py/app/api/legacy/voice_assistant.py#L361) — `/consent`)
 
 The fifth is a **set-membership test against two director-tier roles** — the inverse
 population:
@@ -262,7 +262,7 @@ population:
     role = session.get("role")
     if role not in (Role.DIRECTOR.value, Role.ADMIN.value):
 ```
-([agent.py:508-509](apps/api-py/app/routers/agent.py#L508-L509) — `/metrics`)
+([agent.py:508-509](apps/api-py/app/api/legacy/text_assistant.py#L508-L509) — `/metrics`)
 
 Note the consequence for Rule 2's vocabulary: `/api/agent/knowledge/search` admits STUDENT
 and **only** STUDENT — a DIRECTOR gets 403 there, which is the inverse of the
@@ -278,7 +278,7 @@ def _require_student(session: dict) -> str:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a student account.")
     return student_id
 ```
-([student.py:118-122](apps/api-py/app/routers/student.py#L118-L122))
+([student.py:118-122](apps/api-py/app/api/student/self_service.py#L118-L122))
 
 It is a different question asked in a different way: it refuses on a **missing `studentId`**
 rather than on a role value, and it *returns* the id so the handler can use it (see §3.6,
@@ -342,9 +342,9 @@ established in this code:
   alike: `_STAFF`, `_DIRECTORS`, `_assert_can_access_student`, `_note_out`, `_alert_out`,
   `_offer_row`, `_focus_row`, `_upload_out`, `_claim_out`, `_alert_rule_out`, `_persist_run`,
   `_worker_healthy`, `_compute_status`, `_now`. **The convention is not applied uniformly**:
-  `agent.py`'s `SYSTEM_PROMPT` ([46](apps/api-py/app/routers/agent.py#L46)), `HISTORY_LIMIT`
-  ([55](apps/api-py/app/routers/agent.py#L55)) and `FRIENDLY_ERROR`
-  ([59](apps/api-py/app/routers/agent.py#L59)) are module-private in practice — a repo-wide
+  `agent.py`'s `SYSTEM_PROMPT` ([46](apps/api-py/app/api/legacy/text_assistant.py#L46)), `HISTORY_LIMIT`
+  ([55](apps/api-py/app/api/legacy/text_assistant.py#L55)) and `FRIENDLY_ERROR`
+  ([59](apps/api-py/app/api/legacy/text_assistant.py#L59)) are module-private in practice — a repo-wide
   grep finds no importer outside `agent.py` itself — yet carry no underscore, unlike
   `mentor.py`'s `_STAFF`/`_DIRECTORS`. `voice.py`'s bare `HEARTBEAT_FRESH_SECONDS`,
   `TOKEN_TTL`, `VOICE_AGENT_NAME` and `MAX_TRANSCRIPT_CHARS` are *not* counter-examples:
@@ -378,7 +378,7 @@ established in this code:
 - **Session-payload keys are camelCase** (`session["userId"]`, `session.get("mentorId")`)
   while every Pydantic field and DB column is snake_case. The two collide inside single
   expressions, e.g. `Student.mentor_id == mentor_id` where `mentor_id` came from
-  `session.get("mentorId")` ([mentor.py:56](apps/api-py/app/routers/mentor.py#L56)). Chapter
+  `session.get("mentorId")` ([mentor.py:56](apps/api-py/app/api/mentor/mentees.py#L56)). Chapter
   5, §2.3 explains the heritage.
 
 ---
@@ -405,7 +405,7 @@ def _assert_can_access_student(session: dict, student_id: str, db: Session) -> N
             status_code=status.HTTP_404_NOT_FOUND, detail="Student not in your mentor group."
         )
 ```
-([mentor.py:72-84](apps/api-py/app/routers/mentor.py#L72-L84))
+([mentor.py:72-84](apps/api-py/app/api/mentor/mentees.py#L72-L84))
 
 It calls `require_mentor` itself (line 74). A handler whose only guard is this call is fully
 guarded — a STUDENT is 403'd inside it before any database work. Three of the thirteen
@@ -447,7 +447,7 @@ user row actually has a `Mentor` relation**:
     if user.mentor is not None:
         payload["mentorId"] = user.mentor.id
 ```
-([auth.py:36-39](apps/api-py/app/routers/auth.py#L36-L39))
+([auth.py:36-39](apps/api-py/app/api/account/sign_in.py#L36-L39))
 
 A user with `role = MENTOR` but no `Mentor` row therefore logs in successfully, passes
 `require_mentor` (which tests the role string and nothing else), and carries a session dict
@@ -463,7 +463,7 @@ the state the `return []` below exists for. Now the idiom:
         query = query.where(Student.mentor_id == mentor_id)
     # DIRECTOR / ADMIN: no narrowing — the whole programme.
 ```
-([mentor.py:52-57](apps/api-py/app/routers/mentor.py#L52-L57))
+([mentor.py:52-57](apps/api-py/app/api/mentor/mentees.py#L52-L57))
 
 The load-bearing line is `return []`. Without it, a MENTOR whose `Mentor` group was never
 assigned would fall through to a query with no `WHERE` — a director-level view of the entire
@@ -471,10 +471,10 @@ programme handed to the least-privileged staff account. That is AGENTS.md Rule 2
 failure mode: *never read "no mentor group" as "whole programme."*
 
 The idiom is hand-copied four times, at
-[mentor.py:52-57](apps/api-py/app/routers/mentor.py#L52-L57) (`/mentees`),
-[199-203](apps/api-py/app/routers/mentor.py#L199-L203) (`/alerts`),
-[424-428](apps/api-py/app/routers/mentor.py#L424-L428) (`/uploads/pending`) and
-[522-526](apps/api-py/app/routers/mentor.py#L522-L526) (`/skill-claims/pending`). Only two
+[mentor.py:52-57](apps/api-py/app/api/mentor/mentees.py#L52-L57) (`/mentees`),
+[199-203](apps/api-py/app/api/mentor/mentees.py#L199-L203) (`/alerts`),
+[424-428](apps/api-py/app/api/mentor/mentees.py#L424-L428) (`/uploads/pending`) and
+[522-526](apps/api-py/app/api/mentor/mentees.py#L522-L526) (`/skill-claims/pending`). Only two
 copies carry the explanatory comment; the other two are the same code with the comment
 dropped. There is no shared helper, and nothing structural keeps the four in step.
 
@@ -511,14 +511,14 @@ exercises the mentor-group narrowing, and none inspects a response body.** See �
 
 ### 2.4 `GET` and `POST /api/mentor/students/{student_id}/notes`
 
-`NoteOut` ([mentor.py:87-92](apps/api-py/app/routers/mentor.py#L87-L92)) is five fields,
-built by `_note_out` ([mentor.py:101-108](apps/api-py/app/routers/mentor.py#L101-L108)):
+`NoteOut` ([mentor.py:87-92](apps/api-py/app/api/mentor/mentees.py#L87-L92)) is five fields,
+built by `_note_out` ([mentor.py:101-108](apps/api-py/app/api/mentor/mentees.py#L101-L108)):
 
 | Field | Type | Source |
 |---|---|---|
 | `id` | `str` | `note.id` |
 | `note_text` | `str` | `note.note_text` |
-| `linked_action` | `str` | `note.linked_action.value` — **the `.value` conversion at the mapper boundary**, turning a `MentorAction` enum into a plain string ([mentor.py:105](apps/api-py/app/routers/mentor.py#L105)) |
+| `linked_action` | `str` | `note.linked_action.value` — **the `.value` conversion at the mapper boundary**, turning a `MentorAction` enum into a plain string ([mentor.py:105](apps/api-py/app/api/mentor/mentees.py#L105)) |
 | `meeting_at` | `datetime` | `note.meeting_at` |
 | `created_at` | `datetime` | `note.created_at` |
 
@@ -526,14 +526,14 @@ Note what it does **not** carry: neither `student_id` nor `mentor_id`. A list of
 therefore has **no authorship** — a director reading a mentee's notes cannot tell which
 mentor wrote which.
 
-**`GET`** ([mentor.py:111-123](apps/api-py/app/routers/mentor.py#L111-L123)) is guarded by
+**`GET`** ([mentor.py:111-123](apps/api-py/app/api/mentor/mentees.py#L111-L123)) is guarded by
 `_assert_can_access_student` at line 117 and nothing else. It orders by
 `MentorNote.meeting_at.desc()` — newest meeting first — and is unbounded. Status codes: 200,
 401, 403, 404.
 
-**`POST`** ([mentor.py:126-158](apps/api-py/app/routers/mentor.py#L126-L158)) returns
+**`POST`** ([mentor.py:126-158](apps/api-py/app/api/mentor/mentees.py#L126-L158)) returns
 `status.HTTP_201_CREATED`. Body `NoteIn`
-([mentor.py:95-98](apps/api-py/app/routers/mentor.py#L95-L98)):
+([mentor.py:95-98](apps/api-py/app/api/mentor/mentees.py#L95-L98)):
 
 | Field | Type | Constraint |
 |---|---|---|
@@ -552,7 +552,7 @@ The order of checks matters and is worth reading in full:
             detail="Only a mentor (with a Mentor profile) can author notes.",
         )
 ```
-([mentor.py:135-141](apps/api-py/app/routers/mentor.py#L135-L141))
+([mentor.py:135-141](apps/api-py/app/api/mentor/mentees.py#L135-L141))
 
 **A DIRECTOR or ADMIN with no `Mentor` row cannot author a note at all.** They pass the
 scope guard — directors see everyone — and are then rejected with a 400. That is not a
@@ -571,7 +571,7 @@ Then the enum check:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid linked_action."
         )
 ```
-([mentor.py:142-147](apps/api-py/app/routers/mentor.py#L142-L147))
+([mentor.py:142-147](apps/api-py/app/api/mentor/mentees.py#L142-L147))
 
 Construction **by value**, therefore **case-sensitive**: `"NONE"` works, `"none"` raises and
 422s. The four legal values are `NONE`, `FLAGGED`, `NUDGE_SENT`, `ONE_ON_ONE_SCHEDULED`
@@ -580,7 +580,7 @@ Construction **by value**, therefore **case-sensitive**: `"NONE"` works, `"none"
 folding, and this is the one place it is not done.
 
 The insert takes `mentor_id=mentor_id` **from the session**
-([mentor.py:149](apps/api-py/app/routers/mentor.py#L149)). `NoteIn` has no mentor field, so
+([mentor.py:149](apps/api-py/app/api/mentor/mentees.py#L149)). `NoteIn` has no mentor field, so
 authorship cannot be spoofed by the client.
 
 > **Why it is like this.** `meeting_at` defaults to now but is a separate column from
@@ -596,15 +596,15 @@ endpoint** for a note — through this API, notes are append-only.
 ### 2.5 `GET /api/mentor/students/{student_id}/focus`
 
 The focus log is the student's lab/study check-in history.
-`FocusRowOut` ([mentor.py:321-328](apps/api-py/app/routers/mentor.py#L321-L328)) is seven
-fields, built by `_focus_row` ([mentor.py:331-340](apps/api-py/app/routers/mentor.py#L331-L340)):
+`FocusRowOut` ([mentor.py:321-328](apps/api-py/app/api/mentor/mentees.py#L321-L328)) is seven
+fields, built by `_focus_row` ([mentor.py:331-340](apps/api-py/app/api/mentor/mentees.py#L331-L340)):
 
 | Field | Type | Source |
 |---|---|---|
 | `id` | `str` | `ls.id` |
 | `course_code` | `str` | `ls.course_code` |
 | `module` | `str` | `ls.module` |
-| `activity` | `str` | `ls.activity.value` — the second demonstration of the `.value` convention; one of 15 `ActivityType` members ([mentor.py:336](apps/api-py/app/routers/mentor.py#L336)) |
+| `activity` | `str` | `ls.activity.value` — the second demonstration of the `.value` convention; one of 15 `ActivityType` members ([mentor.py:336](apps/api-py/app/api/mentor/mentees.py#L336)) |
 | `duration_min` | `int \| None` | `ls.duration_min` |
 | `check_in_at` | `datetime` | `ls.check_in_at` |
 | `mentor_confirmed` | `bool` | `ls.mentor_confirmed` |
@@ -656,16 +656,16 @@ flowchart LR
 
 **Three of the queues sort ascending — oldest first, i.e. FIFO work queues:**
 `/offers/pending` by `PlacementOffer.created_at`
-([mentor.py:275](apps/api-py/app/routers/mentor.py#L275)), `/uploads/pending` by
-`Upload.uploaded_at` ([mentor.py:429](apps/api-py/app/routers/mentor.py#L429)),
+([mentor.py:275](apps/api-py/app/api/mentor/mentees.py#L275)), `/uploads/pending` by
+`Upload.uploaded_at` ([mentor.py:429](apps/api-py/app/api/mentor/mentees.py#L429)),
 `/skill-claims/pending` by `SkillClaim.created_at`
-([mentor.py:527](apps/api-py/app/routers/mentor.py#L527)). **Three read surfaces sort
+([mentor.py:527](apps/api-py/app/api/mentor/mentees.py#L527)). **Three read surfaces sort
 descending — newest first, i.e. feeds:** `/alerts`, `/students/{id}/notes`,
 `/students/{id}/focus`. The convention is perfectly consistent and stated in no comment.
 
 **No endpoint in this router accepts `limit`, `offset`, `page` or a date window**, and none
 applies a server-side cap. The single query parameter in the whole file is `open_only: bool
-= True` on `/alerts` ([mentor.py:187](apps/api-py/app/routers/mentor.py#L187)).
+= True` on `/alerts` ([mentor.py:187](apps/api-py/app/api/mentor/mentees.py#L187)).
 
 **Nothing here notifies the student.** `mentor.py` imports no mailer and constructs no
 `MailLog`; a rejected certificate, a reduced skill grant and an approved offer are all
@@ -682,14 +682,14 @@ evaluates a rule and inserts an alert. And because `python -m app.seed` refuses 
 `ENV=prod` (AGENTS.md), on a production host **this queue is permanently empty**. §4.6
 covers the configuration surface that has no engine behind it.
 
-`AlertOut` ([mentor.py:161-169](apps/api-py/app/routers/mentor.py#L161-L169)): `id`,
+`AlertOut` ([mentor.py:161-169](apps/api-py/app/api/mentor/mentees.py#L161-L169)): `id`,
 `student_id`, `student_name`, `rule_triggered`, `severity`, `message`, `triggered_at`,
 `resolved`. The last field is **computed, not stored**:
 
 ```python
         resolved=alert.resolved_at is not None,
 ```
-([mentor.py:181](apps/api-py/app/routers/mentor.py#L181))
+([mentor.py:181](apps/api-py/app/api/mentor/mentees.py#L181))
 
 The table has `resolved_at` and `resolved_by`, no boolean
 ([models/alert.py:55-56](apps/api-py/app/models/alert.py#L55-L56)). The mapper deliberately
@@ -725,7 +725,7 @@ The write is guarded, and this is the only one of the five decision endpoints wh
         db.commit()
         db.refresh(alert)
 ```
-([mentor.py:219-223](apps/api-py/app/routers/mentor.py#L219-L223))
+([mentor.py:219-223](apps/api-py/app/api/mentor/mentees.py#L219-L223))
 
 **Idempotent by preservation.** A second call finds `resolved_at` non-null, skips the block
 entirely — no commit, no refresh — and returns the stored state. The original resolver and
@@ -751,25 +751,25 @@ The three endpoints that take a `decision` body are all terminal and all 409 on 
 **What populates the queue:** every `Upload` row in `PENDING_REVIEW`. The list endpoint's
 own docstring names them: "Documents awaiting review — profile photos, certificate proofs,
 offer letters — scoped to the mentor's own group (DIRECTOR/ADMIN see all)"
-([mentor.py:415-416](apps/api-py/app/routers/mentor.py#L415-L416)).
+([mentor.py:415-416](apps/api-py/app/api/mentor/mentees.py#L415-L416)).
 
 `UploadOut` is **14 fields** — the class statement is at
-[mentor.py:375](apps/api-py/app/routers/mentor.py#L375) and the fields occupy
-[376-389](apps/api-py/app/routers/mentor.py#L376-L389) — built by `_upload_out`
-([mentor.py:392-408](apps/api-py/app/routers/mentor.py#L392-L408)):
+[mentor.py:375](apps/api-py/app/api/mentor/mentees.py#L375) and the fields occupy
+[376-389](apps/api-py/app/api/mentor/mentees.py#L376-L389) — built by `_upload_out`
+([mentor.py:392-408](apps/api-py/app/api/mentor/mentees.py#L392-L408)):
 
 | Field | Type | Source |
 |---|---|---|
 | `id` | `str` | `u.id` |
 | `student_id` | `str` | `u.student_id` |
 | `student_name` | `str` | **joined** `User.name`, passed in by the caller — not a column on `Upload` |
-| `kind` | `str` | `u.kind.value` — `.value` at the mapper boundary ([mentor.py:397](apps/api-py/app/routers/mentor.py#L397)) |
+| `kind` | `str` | `u.kind.value` — `.value` at the mapper boundary ([mentor.py:397](apps/api-py/app/api/mentor/mentees.py#L397)) |
 | `cert_code` | `str \| None` | `u.cert_code` |
 | `title` | `str` | `u.title` |
 | `original_name` | `str` | `u.original_name` — the **client-supplied** filename |
 | `mime_type` | `str` | `u.mime_type` |
 | `size_bytes` | `int` | `u.size_bytes` |
-| `status` | `str` | `u.status.value` — `.value` again ([mentor.py:403](apps/api-py/app/routers/mentor.py#L403)) |
+| `status` | `str` | `u.status.value` — `.value` again ([mentor.py:403](apps/api-py/app/api/mentor/mentees.py#L403)) |
 | `reviewed_by_id` | `str \| None` | `u.reviewed_by_id`, a raw user id with **no name resolution** |
 | `reviewed_at` | `datetime \| None` | `u.reviewed_at` |
 | `review_note` | `str \| None` | `u.review_note` |
@@ -779,7 +779,7 @@ It exposes `original_name` but **never `stored_name`**, the random on-disk key t
 [models/upload.py:57-58](apps/api-py/app/models/upload.py#L57-L58) describes as "Random, so
 an uploaded name can never traverse a path". The storage key stays server-side.
 
-The review handler ([mentor.py:438-474](apps/api-py/app/routers/mentor.py#L438-L474)) runs
+The review handler ([mentor.py:438-474](apps/api-py/app/api/mentor/mentees.py#L438-L474)) runs
 four gates in order: `require_mentor` (447) → `db.get` + 404 (448-450) →
 `_assert_can_access_student` (451) → the pending precondition:
 
@@ -789,14 +789,14 @@ four gates in order: `require_mentor` (447) → `db.get` + 404 (448-450) →
             status_code=status.HTTP_409_CONFLICT, detail="Only a pending upload can be reviewed."
         )
 ```
-([mentor.py:452-455](apps/api-py/app/routers/mentor.py#L452-L455))
+([mentor.py:452-455](apps/api-py/app/api/mentor/mentees.py#L452-L455))
 
 **Decision vocabulary** (full treatment in §7): `VERIFY`, `VERIFIED`, `APPROVE` → VERIFIED;
 `REJECT`, `REJECTED` → REJECTED; anything else → 422 with a message naming only two of the
 five accepted tokens.
 
 **Stamping is unconditional on both branches**
-([mentor.py:466-468](apps/api-py/app/routers/mentor.py#L466-L468)): `reviewed_by_id` from
+([mentor.py:466-468](apps/api-py/app/api/mentor/mentees.py#L466-L468)): `reviewed_by_id` from
 the session, `reviewed_at` from `now(utc)`, `review_note` from the body — set to `None` when
 the client omits it, so a re-review that dropped the note would blank it, if a re-review were
 possible.
@@ -815,17 +815,17 @@ the most load-bearing sentence in the file:
     upserts the student's verified StudentSkill at the granted level and points
     it at the evidence upload — the claim is how a skill becomes verified."""
 ```
-([mentor.py:544-546](apps/api-py/app/routers/mentor.py#L544-L546))
+([mentor.py:544-546](apps/api-py/app/api/mentor/mentees.py#L544-L546))
 
 The list endpoint is the file's only three-way join — `SkillClaim → Student → User` plus
 `SkillClaim → Skill` — because a claim needs both the student's and the skill's display
-names ([mentor.py:515-521](apps/api-py/app/routers/mentor.py#L515-L521)). Correspondingly,
+names ([mentor.py:515-521](apps/api-py/app/api/mentor/mentees.py#L515-L521)). Correspondingly,
 `_claim_out` is the only mapper taking **three** arguments
-([mentor.py:492](apps/api-py/app/routers/mentor.py#L492)).
+([mentor.py:492](apps/api-py/app/api/mentor/mentees.py#L492)).
 
-`SkillClaimReviewOut` ([mentor.py:477-489](apps/api-py/app/routers/mentor.py#L477-L489)) is
+`SkillClaimReviewOut` ([mentor.py:477-489](apps/api-py/app/api/mentor/mentees.py#L477-L489)) is
 twelve fields, built by `_claim_out`
-([mentor.py:492-506](apps/api-py/app/routers/mentor.py#L492-L506)):
+([mentor.py:492-506](apps/api-py/app/api/mentor/mentees.py#L492-L506)):
 
 | Field | Type | Source |
 |---|---|---|
@@ -836,7 +836,7 @@ twelve fields, built by `_claim_out`
 | `skill_name` | `str` | **joined** `Skill.name`, passed in — the second joined argument, which is why this is the only three-argument mapper |
 | `upload_id` | `str` | `sc.upload_id` — the evidence document |
 | `claimed_level` | `int` | `sc.claimed_level` |
-| `status` | `str` | `sc.status.value` — `.value` at the boundary ([mentor.py:501](apps/api-py/app/routers/mentor.py#L501)) |
+| `status` | `str` | `sc.status.value` — `.value` at the boundary ([mentor.py:501](apps/api-py/app/api/mentor/mentees.py#L501)) |
 | `reviewed_by_id` | `str \| None` | `sc.reviewed_by_id` |
 | `reviewed_at` | `datetime \| None` | `sc.reviewed_at` |
 | `review_note` | `str \| None` | `sc.review_note` |
@@ -847,7 +847,7 @@ level**. After a reduced grant the response still shows what was asked for; the 
 actually granted is observable only on the `StudentSkill` row, via the student surface.
 
 Body `SkillClaimReviewIn`
-([mentor.py:531-534](apps/api-py/app/routers/mentor.py#L531-L534)):
+([mentor.py:531-534](apps/api-py/app/api/mentor/mentees.py#L531-L534)):
 
 | Field | Type | Constraint |
 |---|---|---|
@@ -883,7 +883,7 @@ The grant branch:
             existing.verified = True
             existing.evidence_upload_id = sc.upload_id
 ```
-([mentor.py:557-580](apps/api-py/app/routers/mentor.py#L557-L580))
+([mentor.py:557-580](apps/api-py/app/api/mentor/mentees.py#L557-L580))
 
 Four things about that block.
 
@@ -917,7 +917,7 @@ failure in the upsert cannot leave a claim marked VERIFIED with no skill granted
 
 The handler ends with **two** name lookups — the student's via the User/Student join and
 `skname = db.scalar(select(Skill.name).where(Skill.id == sc.skill_id))`
-([mentor.py:593-596](apps/api-py/app/routers/mentor.py#L593-L596)).
+([mentor.py:593-596](apps/api-py/app/api/mentor/mentees.py#L593-L596)).
 
 **Terminal, not idempotent.** **Status codes:** 200, 401, 403, 404, 409, 422.
 
@@ -935,7 +935,7 @@ The smallest endpoint in the router, and the one with the least accountability.
     db.commit()
     db.refresh(ls)
 ```
-([mentor.py:364-371](apps/api-py/app/routers/mentor.py#L364-L371))
+([mentor.py:364-371](apps/api-py/app/api/mentor/mentees.py#L364-L371))
 
 **Body: none.** Three consequences:
 
@@ -957,18 +957,18 @@ the auth session. It is the only path parameter in the router that is not
 `/uploads/{id}/review` and `/skill-claims/{id}/review` both ask a mentor to judge a document,
 and the DTOs hand back `original_name`, `mime_type`, `size_bytes` and `upload_id`. But the
 only endpoint that streams the bytes is `GET /api/student/uploads/{upload_id}/file`
-([student.py:1391](apps/api-py/app/routers/student.py#L1391)), whose first line is:
+([student.py:1391](apps/api-py/app/api/student/self_service.py#L1391)), whose first line is:
 
 ```python
     student_id = _require_student(session)
 ```
-([student.py:1398](apps/api-py/app/routers/student.py#L1398))
+([student.py:1398](apps/api-py/app/api/student/self_service.py#L1398))
 
 and `_require_student` raises `403 "Not a student account."` whenever the session has no
-`studentId` ([student.py:118-122](apps/api-py/app/routers/student.py#L118-L122)) — which is
+`studentId` ([student.py:118-122](apps/api-py/app/api/student/self_service.py#L118-L122)) — which is
 every MENTOR, DIRECTOR and ADMIN session, because `_payload_for` sets `studentId` only when
 `user.student is not None`
-([auth.py:36-37](apps/api-py/app/routers/auth.py#L36-L37)). The handler then also checks
+([auth.py:36-37](apps/api-py/app/api/account/sign_in.py#L36-L37)). The handler then also checks
 `upload.student_id != student_id`.
 
 **There is no route by which a reviewer can fetch the file they are approving.** The review
@@ -988,8 +988,8 @@ deliberate expression of that. There is not one `Student.mentor_id ==` clause, n
 file. Every query is a bare programme-wide aggregate over the whole table.
 
 The two optional query parameters in the file — `kind` on `/mail`
-([director.py:171](apps/api-py/app/routers/director.py#L171)) and `cohort_id` on
-`/alert-rules` ([director.py:218](apps/api-py/app/routers/director.py#L218)) — are caller
+([director.py:171](apps/api-py/app/api/director/programme_dashboard.py#L171)) and `cohort_id` on
+`/alert-rules` ([director.py:218](apps/api-py/app/api/director/programme_dashboard.py#L218)) — are caller
 conveniences, not security scopes. Nothing checks that the caller is entitled to that cohort,
 because at DIRECTOR/ADMIN level there is nothing to check.
 
@@ -1000,7 +1000,7 @@ The module docstring says exactly this and every word of it is true of the file 
 the mentor router's require_director guard. Compute-only over existing data.
 """
 ```
-([director.py:1-3](apps/api-py/app/routers/director.py#L1-L3))
+([director.py:1-3](apps/api-py/app/api/director/programme_dashboard.py#L1-L3))
 
 "Compute-only" is an accurate promise: six of seven endpoints are pure reads, and the seventh
 writes only configuration, never domain data.
@@ -1014,14 +1014,14 @@ required."; DIRECTOR or ADMIN → the handler runs.
 Before `director.py`, two director-only endpoints sitting under `/api/mentor`.
 
 **`GET /api/mentor/offers/pending`**
-([mentor.py:265-277](apps/api-py/app/routers/mentor.py#L265-L277)) is guarded by
+([mentor.py:265-277](apps/api-py/app/api/mentor/mentees.py#L265-L277)) is guarded by
 `require_director` at line 269 — so a plain MENTOR gets 403 on a path under the `/mentor`
 prefix. There is **no mentor-scope narrowing at all**, and correctly so: only DIRECTOR/ADMIN
 reach it, and they see everything anyway.
 
-`PendingOfferOut` ([mentor.py:241-249](apps/api-py/app/routers/mentor.py#L241-L249)) is eight
+`PendingOfferOut` ([mentor.py:241-249](apps/api-py/app/api/mentor/mentees.py#L241-L249)) is eight
 fields, built by `_offer_row`
-([mentor.py:252-262](apps/api-py/app/routers/mentor.py#L252-L262)):
+([mentor.py:252-262](apps/api-py/app/api/mentor/mentees.py#L252-L262)):
 
 | Field | Type | Source |
 |---|---|---|
@@ -1030,9 +1030,9 @@ fields, built by `_offer_row`
 | `student_name` | `str` | **joined** `User.name`, passed in — **not a column on `PlacementOffer`** |
 | `job_title` | `str` | `offer.job_title` |
 | `organisation` | `str` | `offer.organisation` |
-| `role_type` | `str` | `offer.role_type.value` — `.value` at the boundary ([mentor.py:259](apps/api-py/app/routers/mentor.py#L259)) |
+| `role_type` | `str` | `offer.role_type.value` — `.value` at the boundary ([mentor.py:259](apps/api-py/app/api/mentor/mentees.py#L259)) |
 | `ctc_inr` | `int` | `offer.ctc_inr` |
-| `status` | `str` | `offer.status.value` ([mentor.py:261](apps/api-py/app/routers/mentor.py#L261)) |
+| `status` | `str` | `offer.status.value` ([mentor.py:261](apps/api-py/app/api/mentor/mentees.py#L261)) |
 
 `PlacementOffer` declares **24 mapped columns**
 ([models/offer.py:51-91](apps/api-py/app/models/offer.py#L51-L91)). Seven of them reach the
@@ -1046,14 +1046,14 @@ terms. The evidence for the decision is not in the payload, and (per §3.6) coul
 fetched anyway.
 
 **`POST /api/mentor/offers/{offer_id}/decision`**
-([mentor.py:285-318](apps/api-py/app/routers/mentor.py#L285-L318)). Body `DecisionIn`:
+([mentor.py:285-318](apps/api-py/app/api/mentor/mentees.py#L285-L318)). Body `DecisionIn`:
 
 ```python
 class DecisionIn(BaseModel):
     decision: str  # "APPROVE" | "REJECT"
     note: str | None = None
 ```
-([mentor.py:280-282](apps/api-py/app/routers/mentor.py#L280-L282))
+([mentor.py:280-282](apps/api-py/app/api/mentor/mentees.py#L280-L282))
 
 Neither field has a Pydantic constraint — no `min_length`, no `Literal`, no enum — so
 validation is entirely hand-rolled, and OpenAPI advertises only `string`.
@@ -1069,7 +1069,7 @@ Stamping is unconditional on both branches:
     offer.decided_at = datetime.now(timezone.utc)
     offer.decision_note = body.note
 ```
-([mentor.py:310-312](apps/api-py/app/routers/mentor.py#L310-L312))
+([mentor.py:310-312](apps/api-py/app/api/mentor/mentees.py#L310-L312))
 
 Note that `approved_by_id` is stamped even on a REJECT — the column name lies about its
 content. It is also the **only** reviewer stamp anywhere in this chapter backed by a real
@@ -1085,9 +1085,9 @@ router only *counts* the same rows.
 
 ### 4.3 `GET /api/director/overview`
 
-`OverviewOut` ([director.py:26-34](apps/api-py/app/routers/director.py#L26-L34)) with the
+`OverviewOut` ([director.py:26-34](apps/api-py/app/api/director/programme_dashboard.py#L26-L34)) with the
 exact computation of each field
-([director.py:42-85](apps/api-py/app/routers/director.py#L42-L85)):
+([director.py:42-85](apps/api-py/app/api/director/programme_dashboard.py#L42-L85)):
 
 | Field | Computation | Note |
 |---|---|---|
@@ -1112,7 +1112,7 @@ the file:
         or 0
     )
 ```
-([director.py:65-72](apps/api-py/app/routers/director.py#L65-L72))
+([director.py:65-72](apps/api-py/app/api/director/programme_dashboard.py#L65-L72))
 
 `approved_offers >= placed_students` always, and they diverge exactly when a student holds
 more than one approved offer — which the model permits: `ix_offer_student_status` is an
@@ -1132,7 +1132,7 @@ database.
 ### 4.4 `GET /api/director/cohorts`
 
 Two queries, joined in **Python**, never in SQL
-([director.py:102-116](apps/api-py/app/routers/director.py#L102-L116)):
+([director.py:102-116](apps/api-py/app/api/director/programme_dashboard.py#L102-L116)):
 
 ```python
     counts = dict(
@@ -1181,7 +1181,7 @@ The selection rule *is* the endpoint:
             status_code=status.HTTP_404_NOT_FOUND, detail="No active placement criteria set."
         )
 ```
-([director.py:136-145](apps/api-py/app/routers/director.py#L136-L145))
+([director.py:136-145](apps/api-py/app/api/director/programme_dashboard.py#L136-L145))
 
 **The most recently updated active row wins.** The table can legally hold many active rows —
 there is no unique or partial-unique constraint on `active` — and the tie-break is
@@ -1220,9 +1220,9 @@ router.
 **The same query appears three times and the copies disagree on the missing-row case.** It
 is written verbatim — same `select`, same `.where(active.is_(True))`, same
 `order_by(updated_at.desc()).limit(1)` — at
-[director.py:136-141](apps/api-py/app/routers/director.py#L136-L141),
-[student.py:581-586](apps/api-py/app/routers/student.py#L581-L586) (job eligibility) and
-[student.py:2042-2047](apps/api-py/app/routers/student.py#L2042-L2047) (placement readiness).
+[director.py:136-141](apps/api-py/app/api/director/programme_dashboard.py#L136-L141),
+[student.py:581-586](apps/api-py/app/api/student/self_service.py#L581-L586) (job eligibility) and
+[student.py:2042-2047](apps/api-py/app/api/student/self_service.py#L2042-L2047) (placement readiness).
 All three ranges are anchored at the same statement boundary, the `db.scalar(` assignment, so
 the "verbatim" claim is checkable line for line. There is no shared `_active_criteria(db)`
 helper. And the three disagree on what a missing row means:
@@ -1241,7 +1241,7 @@ helper. And the three disagree on what a missing row means:
         )
         max_gap = crit.max_gap_months if crit else None
   ```
-  ([student.py:598-605](apps/api-py/app/routers/student.py#L598-L605))
+  ([student.py:598-605](apps/api-py/app/api/student/self_service.py#L598-L605))
 
   So a missing criteria row un-gates only what the posting does not specify. `Job` carries its
   own nullable `min_cgpa` and `max_live_backlogs`
@@ -1249,11 +1249,11 @@ helper. And the three disagree on what a missing row means:
   ([seed.py:338-339](apps/api-py/app/seed.py#L338-L339)) — such a posting still gates
   normally with no criteria row at all. A posting that sets neither becomes unconditionally
   eligible. And the **education-gap check vanishes entirely**, because `max_gap` at
-  [student.py:605](apps/api-py/app/routers/student.py#L605) has no per-posting fallback: it
+  [student.py:605](apps/api-py/app/api/student/self_service.py#L605) has no per-posting fallback: it
   is the criteria row or nothing. That is the asymmetry to carry away — two of the three
   cutoffs degrade gracefully, one disappears.
 - `student.py`'s readiness path substitutes hard-coded fallbacks
-  ([student.py:2048-2052](apps/api-py/app/routers/student.py#L2048-L2052)):
+  ([student.py:2048-2052](apps/api-py/app/api/student/self_service.py#L2048-L2052)):
 
 ```python
     # Defaults when the director has set no active criteria.
@@ -1271,7 +1271,7 @@ gets a 404 instead of being shown the effective values.
 
 ### 4.6 `GET` and `PUT /api/director/alert-rules`
 
-**`GET`** ([director.py:216-228](apps/api-py/app/routers/director.py#L216-L228)) takes an
+**`GET`** ([director.py:216-228](apps/api-py/app/api/director/programme_dashboard.py#L216-L228)) takes an
 optional `cohort_id`, orders by `(cohort_id, rule_key)` and applies **no limit**. The
 ordering has a subtlety: `rule_key` is a Postgres `ENUM` column, so it sorts by the type's
 declared **label order**, not alphabetically — `NO_CHECKIN_N_DAYS` < `PACE_BELOW_THRESHOLD` <
@@ -1280,15 +1280,15 @@ declaration order at
 [models/alert.py:25-30](apps/api-py/app/models/alert.py#L25-L30). `cohort_id` is opaque
 uuid4 hex, so the primary sort groups per cohort in an arbitrary-looking order.
 
-`_alert_rule_out` ([director.py:205-213](apps/api-py/app/routers/director.py#L205-L213)) is
+`_alert_rule_out` ([director.py:205-213](apps/api-py/app/api/director/programme_dashboard.py#L205-L213)) is
 the file's **only** private helper. It was factored out because two endpoints need it — the
-GET at [director.py:216](apps/api-py/app/routers/director.py#L216) and the PUT at
-[239](apps/api-py/app/routers/director.py#L239). That accounts for two of the router's seven
+GET at [director.py:216](apps/api-py/app/api/director/programme_dashboard.py#L216) and the PUT at
+[239](apps/api-py/app/api/director/programme_dashboard.py#L239). That accounts for two of the router's seven
 endpoints; the remaining **five** — `overview` (77-85), `cohorts` (106-116), `criteria`
 (146-156), `mail_log` (182-193) and `job_imports` (300-313) — each build their response
 inline at the call site, because each is the sole consumer of its own shape.
 
-**`PUT`** ([director.py:239-277](apps/api-py/app/routers/director.py#L239-L277)) is a true
+**`PUT`** ([director.py:239-277](apps/api-py/app/api/director/programme_dashboard.py#L239-L277)) is a true
 upsert. Body `AlertRuleIn`:
 
 | Field | Type | Default | Validation |
@@ -1303,7 +1303,7 @@ The validation order is strict and observable: cohort existence first, then `rul
 `severity`. A request wrong on all three axes gets the **404**, never the 422.
 
 Four properties of the write itself
-([director.py:263-277](apps/api-py/app/routers/director.py#L263-L277)):
+([director.py:263-277](apps/api-py/app/api/director/programme_dashboard.py#L263-L277)):
 
 1. **True PUT semantics.** `params`, `enabled` and `severity` are all assigned
    unconditionally, so a caller who omits `enabled`/`severity` silently resets an existing
@@ -1319,7 +1319,7 @@ Four properties of the write itself
 > **Why it is like this.** Three separate comments defend the same choice, which is a strong
 > signal it was previously hard-coded and hurt. The endpoint docstring: "the config lives in
 > data, so tuning it never needs a deploy"
-> ([director.py:245-246](apps/api-py/app/routers/director.py#L245-L246)). The model: "Admin-
+> ([director.py:245-246](apps/api-py/app/api/director/programme_dashboard.py#L245-L246)). The model: "Admin-
 > configurable thresholds, per cohort. Never hard-coded — the mentor office edits `params`
 > between intakes without a deploy. One row per (cohort, rule_key)."
 > ([models/alert.py:59-62](apps/api-py/app/models/alert.py#L59-L62)).
@@ -1346,7 +1346,7 @@ severity weighting.
 An ops audit view of the mailer. Optional exact-equality `kind` filter (a Python truthiness
 test, so `?kind=` is treated as no filter), ordered `sent_at DESC`, **hard limit 100** with
 no offset, no pagination parameter and no total count — the 101st-most-recent mail is
-unreachable through this API ([director.py:178-181](apps/api-py/app/routers/director.py#L178-L181)).
+unreachable through this API ([director.py:178-181](apps/api-py/app/api/director/programme_dashboard.py#L178-L181)).
 
 `MailLogOut`: `id`, `kind`, `recipient`, `subject`, `status` (`m.status.value` — `MailStatus`
 SENT / FAILED / SUPPRESSED), `error`, `sent_at`. **Deliberately not exposed:
@@ -1371,7 +1371,7 @@ product, and a new template should not need a migration to be sent". Which is ex
 ### 4.8 `GET /api/director/job-imports`
 
 `select(JobImportRun).order_by(JobImportRun.started_at.desc()).limit(50)`
-([director.py:299](apps/api-py/app/routers/director.py#L299)) — hard limit 50, no pagination,
+([director.py:299](apps/api-py/app/api/director/programme_dashboard.py#L299)) — hard limit 50, no pagination,
 backed by `ix_jobimport_started`.
 
 `JobImportRunOut`: `id`, `file_name`, `uploaded_by_id`, `started_at`, `finished_at`,
@@ -1381,7 +1381,7 @@ endpoint is:
 ```python
             error_count=len(r.errors or []),
 ```
-([director.py:310](apps/api-py/app/routers/director.py#L310))
+([director.py:310](apps/api-py/app/api/director/programme_dashboard.py#L310))
 
 The null-safe `or []` matters because `errors` is JSONB and could be JSON `null` if written
 outside the ORM.
@@ -1406,7 +1406,7 @@ length. That is all of it.
 **There are no risk bands, no cohort comparisons, no readiness scoring and no rule evaluation
 in `director.py`.** Every band and threshold in this backend lives elsewhere: the
 placement-readiness score is computed *per student* in
-[`student.py:2010-2120`](apps/api-py/app/routers/student.py#L2010-L2120), reachable only by a
+[`student.py:2010-2120`](apps/api-py/app/api/student/self_service.py#L2010-L2120), reachable only by a
 STUDENT, with six weighted factors (CGPA 3, live backlogs 3, attendance 2, certification 2,
 placement profile 1, resume profile 1; total weight 12) and four bands. Chapter 6 owns that
 rule set.
@@ -1422,7 +1422,7 @@ counts instead — a different axis entirely.
 ## 5. The assistant HTTP surface — `agent.py`
 
 Nine endpoints. The module docstring lists only five
-([agent.py:8-12](apps/api-py/app/routers/agent.py#L8-L12)) — `/ask`, `/knowledge/search`,
+([agent.py:8-12](apps/api-py/app/api/legacy/text_assistant.py#L8-L12)) — `/ask`, `/knowledge/search`,
 `/feedback` and `/metrics` were added in later phases and the header was never updated. Treat
 the docstring as history, not as an index.
 
@@ -1440,7 +1440,7 @@ history to read. This closes the P0 where a client-chosen `assistant-${userId}`
 let a signed-in user read/write another user's thread.
 """
 ```
-([agent.py:1-6](apps/api-py/app/routers/agent.py#L1-L6))
+([agent.py:1-6](apps/api-py/app/api/legacy/text_assistant.py#L1-L6))
 
 > **Why it is like this.** The pre-migration assistant keyed its conversation off a
 > client-supplied string of the form `assistant-${userId}`. Any signed-in user could
@@ -1450,9 +1450,9 @@ The defence is **structural, not validating** — there is simply no field to ca
 `ChatIn` and `AskIn` declare only `message`; `/history` and `/conversation` declare **zero**
 parameters; `/feedback`'s `run_id` is ownership-checked. Every write goes through
 `convo.get_or_create(db, session["userId"], Role(session["role"]))`
-([agent.py:160](apps/api-py/app/routers/agent.py#L160),
-[211](apps/api-py/app/routers/agent.py#L211),
-[289](apps/api-py/app/routers/agent.py#L289)); every read through
+([agent.py:160](apps/api-py/app/api/legacy/text_assistant.py#L160),
+[211](apps/api-py/app/api/legacy/text_assistant.py#L211),
+[289](apps/api-py/app/api/legacy/text_assistant.py#L289)); every read through
 `convo.current_conversation(db, session["userId"])`. Chapter 9 owns the conversation service;
 what matters here is that no `agent.py` endpoint ever calls `convo.assert_owner`, because
 none of them accepts an id in the first place. (In fact **no endpoint in the backend** calls
@@ -1474,11 +1474,11 @@ into the audit row:
 ```python
     scope = "self" if session.get("role") == "STUDENT" else "programme"
 ```
-([agent.py:123](apps/api-py/app/routers/agent.py#L123))
+([agent.py:123](apps/api-py/app/api/legacy/text_assistant.py#L123))
 
 The three restricted endpoints use idiom 3 from §1.4 rather than the mentor guards:
-`/knowledge/search` is STUDENT-**only** ([agent.py:424-428](apps/api-py/app/routers/agent.py#L424-L428));
-`/metrics` is DIRECTOR/ADMIN ([agent.py:508-513](apps/api-py/app/routers/agent.py#L508-L513))
+`/knowledge/search` is STUDENT-**only** ([agent.py:424-428](apps/api-py/app/api/legacy/text_assistant.py#L424-L428));
+`/metrics` is DIRECTOR/ADMIN ([agent.py:508-513](apps/api-py/app/api/legacy/text_assistant.py#L508-L513))
 with a different 403 message from `require_director`'s, so the director-only refusal text is
 not uniform across the API; `/feedback` restricts by **ownership** rather than role.
 
@@ -1488,7 +1488,7 @@ not uniform across the API; `/feedback` restricts by **ownership** rather than r
 **Response `ChatOut`:** `reply: str`, `conversation_id: str`, `model: str`.
 
 `model` is the exact string `f"{cfg.provider}:{cfg.model}"`
-([agent.py:157](apps/api-py/app/routers/agent.py#L157)) — e.g. `groq:llama-3.3-70b-versatile`,
+([agent.py:157](apps/api-py/app/api/legacy/text_assistant.py#L157)) — e.g. `groq:llama-3.3-70b-versatile`,
 the auto-selected Groq provider's registered default
 ([llm.py:65](apps/api-py/app/ai/llm.py#L65)) — and the
 same string is stored in `AgentRun.model`.
@@ -1514,7 +1514,7 @@ On failure the audit row is written **before** the 502 is raised, with an empty 
         log.exception("agent chat LLM call failed (conversation=%s)", conversation.id)
         _persist_run(db, session, body.message, "", AgentRunStatus.FAILED, model_label, started)
 ```
-([agent.py:171-173](apps/api-py/app/routers/agent.py#L171-L173))
+([agent.py:171-173](apps/api-py/app/api/legacy/text_assistant.py#L171-L173))
 
 so a failed turn is still auditable. One consequence worth knowing: because the user turn was
 already committed, a 502'd turn leaves an **orphan user message** in the conversation with no
@@ -1522,10 +1522,10 @@ assistant reply, and that orphan is replayed to the model as context on the next
 
 `HISTORY_LIMIT = 40` carries its reason inline: "Keep the replayed context bounded so a long
 session can't blow the token window"
-([agent.py:54-55](apps/api-py/app/routers/agent.py#L54-L55)). `FRIENDLY_ERROR` likewise:
+([agent.py:54-55](apps/api-py/app/api/legacy/text_assistant.py#L54-L55)). `FRIENDLY_ERROR` likewise:
 "Shown to the client on any provider/network/quota failure. The real cause is logged
 server-side — never leaked to the caller"
-([agent.py:57-59](apps/api-py/app/routers/agent.py#L57-L59)).
+([agent.py:57-59](apps/api-py/app/api/legacy/text_assistant.py#L57-L59)).
 
 ### 5.4 `POST /api/agent/chat/stream` — what actually goes on the wire
 
@@ -1535,9 +1535,9 @@ a browser `EventSource` receives all of them on `onmessage` and no client can di
 event name.
 
 The frames-on-the-wire half of the generator, quoted from
-[agent.py:218-237](apps/api-py/app/routers/agent.py#L218-L237). Its persistence tail — the
+[agent.py:218-237](apps/api-py/app/api/legacy/text_assistant.py#L218-L237). Its persistence tail — the
 `"".join(chunks)`, the `model_said_something` predicate, the fresh session and the terminating
-`[DONE]` yield, [agent.py:239-256](apps/api-py/app/routers/agent.py#L239-L256) — is quoted in
+`[DONE]` yield, [agent.py:239-256](apps/api-py/app/api/legacy/text_assistant.py#L239-L256) — is quoted in
 §5.5 and §5.6, where it is the point:
 
 ```python
@@ -1572,7 +1572,7 @@ The response object:
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 ```
-([agent.py:258-262](apps/api-py/app/routers/agent.py#L258-L262))
+([agent.py:258-262](apps/api-py/app/api/legacy/text_assistant.py#L258-L262))
 
 `X-Accel-Buffering: no` disables nginx proxy buffering so deltas are not held back until the
 response completes.
@@ -1585,7 +1585,7 @@ response completes.
 | 2 | `data: {"delta": "Jai Shri Gurudev! "}` | only when the greeting is owed |
 | 3…N | `data: {"delta": "<token text>"}` | one per content delta from `stream_chat` |
 | — | `data: {"error": "The assistant is temporarily unavailable, please try again."}` | at most once, on a mid-stream failure |
-| last | `data: [DONE]` | after every **LLM** outcome, success or failure — but it is yielded at [agent.py:256](apps/api-py/app/routers/agent.py#L256), *after* the persistence block at [250-255](apps/api-py/app/routers/agent.py#L250-L255), so a database failure in `append_message`, `mark_greeted` or `_persist_run` propagates out of the generator and the stream ends with **no terminator** |
+| last | `data: [DONE]` | after every **LLM** outcome, success or failure — but it is yielded at [agent.py:256](apps/api-py/app/api/legacy/text_assistant.py#L256), *after* the persistence block at [250-255](apps/api-py/app/api/legacy/text_assistant.py#L250-L255), so a database failure in `append_message`, `mark_greeted` or `_persist_run` propagates out of the generator and the stream ends with **no terminator** |
 
 Four properties a client must handle.
 
@@ -1615,7 +1615,7 @@ client that blocks waiting for the terminator hangs until its own timeout. That 
 to code defensively against, and no test covers it.
 
 The 401 / 422 / 503 pre-flight is identical to `/chat` and happens *before* the response
-object exists ([agent.py:199-204](apps/api-py/app/routers/agent.py#L199-L204)).
+object exists ([agent.py:199-204](apps/api-py/app/api/legacy/text_assistant.py#L199-L204)).
 
 ### 5.5 The yield-dependency subtlety
 
@@ -1623,7 +1623,7 @@ Three comments in the file flag it. The handler docstring:
 
 > "…The full turn is saved and an AgentRun row is written once the stream ends — **from a
 > fresh Session, since the request's own session is torn down when this handler returns and
-> the generator keeps running**." ([agent.py:194-198](apps/api-py/app/routers/agent.py#L194-L198))
+> the generator keeps running**." ([agent.py:194-198](apps/api-py/app/api/legacy/text_assistant.py#L194-L198))
 
 Then, above the pre-return work:
 
@@ -1631,7 +1631,7 @@ Then, above the pre-return work:
     # Resolve + persist the user turn on the request's own session, so the
     # conversation id is settled before the generator (with a fresh session) runs.
 ```
-([agent.py:209-210](apps/api-py/app/routers/agent.py#L209-L210))
+([agent.py:209-210](apps/api-py/app/api/legacy/text_assistant.py#L209-L210))
 
 And inside the generator, the blunt version:
 
@@ -1639,7 +1639,7 @@ And inside the generator, the blunt version:
         # Fresh session: the injected request scope is already gone by now.
         with SessionLocal() as fresh:
 ```
-([agent.py:249-250](apps/api-py/app/routers/agent.py#L249-L250))
+([agent.py:249-250](apps/api-py/app/api/legacy/text_assistant.py#L249-L250))
 
 **The constraint.** `get_db` is a generator dependency —
 `db = SessionLocal(); try: yield db; finally: db.close()`
@@ -1674,7 +1674,7 @@ sequenceDiagram
 
 **What the generator may touch:** only plain Python values captured by the closure —
 `conversation_id` (a `str`, deliberately copied off the ORM object at
-[agent.py:212](apps/api-py/app/routers/agent.py#L212) while the session was still live),
+[agent.py:212](apps/api-py/app/api/legacy/text_assistant.py#L212) while the session was still live),
 `first_reply` (`bool`), `messages` (a `list[dict]` of primitives, because `convo.history`
 returns plain dicts), `model_label`, `started`, `body` (a Pydantic model), and `session` (a
 plain dict decoded from the JWT, never an ORM row).
@@ -1691,7 +1691,7 @@ first. `/api/agent/chat/stream` persists the assistant turn only after the last 
 hard kill mid-stream loses it."
 
 This is also why `_persist_run` takes `db: Session` as its **first** parameter
-([agent.py:105-106](apps/api-py/app/routers/agent.py#L105-L106)) instead of opening its own:
+([agent.py:105-106](apps/api-py/app/api/legacy/text_assistant.py#L105-L106)) instead of opening its own:
 `/chat` and `/ask` hand it the request session, the stream hands it `fresh`.
 
 ### 5.6 The streaming persistence predicate
@@ -1701,7 +1701,7 @@ This is also why `_persist_run` takes `db: Session` as its **first** parameter
             c for c in chunks[1:] if c.strip()
         ) if first_reply else bool(reply.strip())
 ```
-([agent.py:245-247](apps/api-py/app/routers/agent.py#L245-L247))
+([agent.py:245-247](apps/api-py/app/api/legacy/text_assistant.py#L245-L247))
 
 Python's conditional expression binds looser than `and`, so this parses as
 `((outcome == ANSWERED) and any(...)) if first_reply else bool(reply.strip())`. `chunks[1:]`
@@ -1712,7 +1712,7 @@ skips element 0, which in that branch is always the greeting.
 > outage on the very first turn leaves `chunks` holding nothing but 'Jai Shri Gurudev! ' — a
 > bare greeting persisted as the answer, replayed to the model as context on the next turn,
 > and the student never greeted again."
-> ([agent.py:240-244](apps/api-py/app/routers/agent.py#L240-L244))
+> ([agent.py:240-244](apps/api-py/app/api/legacy/text_assistant.py#L240-L244))
 
 | Case | Assistant turn persisted? | `mark_greeted`? | `AgentRun` written? |
 |---|---|---|---|
@@ -1722,14 +1722,14 @@ skips element 0, which in that branch is always the greeting.
 | later turn, any non-blank accumulated text | **yes, even when `outcome == FAILED`** | n/a | yes |
 
 The `AgentRun` row is written unconditionally on both branches
-([agent.py:255](apps/api-py/app/routers/agent.py#L255)), outside the `if
+([agent.py:255](apps/api-py/app/api/legacy/text_assistant.py#L255)), outside the `if
 model_said_something`. The first-turn/later-turn asymmetry — a partial failure is discarded on
 turn one and kept on turn two — follows from the operator precedence, is defensible ("the
 transcript must match the screen"), and is stated in no comment.
 
 One divergence worth flagging. `/chat` and `/ask` both apply the greeting through
 `convo.open_with_greeting`, which explicitly refuses to stack it
-([conversations.py:182-188](apps/api-py/app/conversations.py#L182-L188)). The stream path
+([conversations.py:182-188](apps/api-py/app/assistant/conversations.py#L182-L188)). The stream path
 emits `f"{convo.GREETING}! "` directly and bypasses that check, so a model whose own first
 tokens begin with the greeting would produce it twice on the streaming surface and once on
 the others.
@@ -1744,7 +1744,7 @@ raw `fetch` rather than `HttpClient` so an `AbortController` can cancel it.
 max_length=4000)`.
 
 **Response `AskOut(AssistantResponse)`**
-([agent.py:92-102](apps/api-py/app/routers/agent.py#L92-L102)):
+([agent.py:92-102](apps/api-py/app/api/legacy/text_assistant.py#L92-L102)):
 
 | Field | Type | From |
 |---|---|---|
@@ -1762,12 +1762,12 @@ max_length=4000)`.
     cfg = llm_config()
     model_label = f"{cfg.provider}:{cfg.model}" if cfg else "deterministic"
 ```
-([agent.py:285-286](apps/api-py/app/routers/agent.py#L285-L286))
+([agent.py:285-286](apps/api-py/app/api/legacy/text_assistant.py#L285-L286))
 
 With no provider configured the endpoint still answers, and stamps the literal string
 `"deterministic"` into `AgentRun.model` and onto the wire. The docstring states the rule:
 "The orchestrator degrades gracefully on any LLM/provider fault, so this endpoint does not
-502" ([agent.py:282](apps/api-py/app/routers/agent.py#L282)).
+502" ([agent.py:282](apps/api-py/app/api/legacy/text_assistant.py#L282)).
 
 **The orchestrator call, in full:**
 
@@ -1776,7 +1776,7 @@ With no provider configured the endpoint still answers, and stamps the literal s
         db, session.get("studentId"), session.get("role"), body.message
     )
 ```
-([agent.py:293-295](apps/api-py/app/routers/agent.py#L293-L295))
+([agent.py:293-295](apps/api-py/app/api/legacy/text_assistant.py#L293-L295))
 
 Four positional arguments matching
 `def answer_question(db: Session, student_id: str | None, role: str, question: str) ->
@@ -1800,14 +1800,14 @@ The greeting is applied at one place, and the comment explains why that place:
     if first_reply:
         result["answer"] = convo.open_with_greeting(result["answer"])
 ```
-([agent.py:297-303](apps/api-py/app/routers/agent.py#L297-L303))
+([agent.py:297-303](apps/api-py/app/api/legacy/text_assistant.py#L297-L303))
 
 The audit write folds the structured payload into the generic `AgentRun` columns:
 **actions go into `trace`, sources go into `citations`**
-([agent.py:317-318](apps/api-py/app/routers/agent.py#L317-L318)), plus `intent` and
+([agent.py:317-318](apps/api-py/app/api/legacy/text_assistant.py#L317-L318)), plus `intent` and
 `resolved` via `.get()`. `intent` and `resolved` are **stored but deliberately not returned**
 — "only the AssistantResponse fields belong on the wire"
-([agent.py:323-324](apps/api-py/app/routers/agent.py#L323-L324)).
+([agent.py:323-324](apps/api-py/app/api/legacy/text_assistant.py#L323-L324)).
 
 **The status is hard-coded `ANSWERED`** even when the orchestrator refused a non-student,
 found no approved policy chunk, or hit its exception fallback. `AgentRunStatus.REFUSED` and
@@ -1819,7 +1819,7 @@ ANSWERED (agent.py:184, 220, 314). Refusal is expressed through `resolved=False`
 
 ### 5.8 `GET /api/agent/history` and `DELETE /api/agent/conversation`
 
-**`GET /history`** ([agent.py:336-349](apps/api-py/app/routers/agent.py#L336-L349)) has **no
+**`GET /history`** ([agent.py:336-349](apps/api-py/app/api/legacy/text_assistant.py#L336-L349)) has **no
 path or query parameters at all**, and the docstring states the rule: "The CALLER's current
 conversation — resolved from the session, no id in. A user can only ever read their own
 thread; there is no parameter to name someone else's."
@@ -1828,16 +1828,16 @@ When there is no conversation it returns `HistoryOut(conversation_id="", turns=[
 **empty string** id, not null, not a 404. `test_conversations.py:184-185` pins that exact
 body. Otherwise it returns at most `HISTORY_LIMIT` (40) **final** turns, oldest-first, as
 `[{"role": <sender>, "content": ...}]`; `convo.history` filters `Message.is_final.is_(True)`
-([conversations.py:133-145](apps/api-py/app/conversations.py#L133-L145)), so partial voice
+([conversations.py:133-145](apps/api-py/app/assistant/conversations.py#L133-L145)), so partial voice
 transcripts never appear. Because history is keyed on the conversation and not the channel,
 **voice turns written by the worker show up here too** — the one-memory property §6.7 depends
 on.
 
-**`DELETE /conversation`** ([agent.py:352-359](apps/api-py/app/routers/agent.py#L352-L359))
+**`DELETE /conversation`** ([agent.py:352-359](apps/api-py/app/api/legacy/text_assistant.py#L352-L359))
 is declared `status_code=status.HTTP_204_NO_CONTENT` and returns an explicit body-less
 `Response`. It calls `convo.clear(db, session["userId"])`, which **soft-deletes** by setting
 `deleted_at` and is a no-op when nothing is open
-([conversations.py:191-197](apps/api-py/app/conversations.py#L191-L197)) — so a double DELETE
+([conversations.py:191-197](apps/api-py/app/assistant/conversations.py#L191-L197)) — so a double DELETE
 is still 204.
 
 **Status codes:** both 401 or success.
@@ -1846,7 +1846,7 @@ is still 204.
 
 `RunOut`: `id`, `scope`, `question`, `status` (`r.status.value`), `model`, `duration_ms`,
 `created_at`. Query: the caller's **own** rows only, `created_at DESC`, hard cap 50, no
-pagination and no filters ([agent.py:377-382](apps/api-py/app/routers/agent.py#L377-L382)).
+pagination and no filters ([agent.py:377-382](apps/api-py/app/api/legacy/text_assistant.py#L377-L382)).
 The composite index `ix_agentrun_actor_created`
 ([models/agent_run.py:33](apps/api-py/app/models/agent_run.py#L33)) exists for exactly this
 query.
@@ -1869,18 +1869,18 @@ The call is `knowledge.search(db, q, audience="student", limit=5)` with the audi
 ```python
     return KnowledgeSearchOut(results=[KnowledgeHit(**h) for h in hits])
 ```
-([agent.py:430](apps/api-py/app/routers/agent.py#L430))
+([agent.py:430](apps/api-py/app/api/legacy/text_assistant.py#L430))
 
 `KnowledgeHit` is `chunk_text`, `document_title`, `source_type`, `source_url`, `anchor`,
 `score` — a six-key coupling to `knowledge.search`'s documented dict shape
-([knowledge.py:74-83](apps/api-py/app/knowledge.py#L74-L83)) that `test_knowledge.py:166-168`
+([knowledge.py:74-83](apps/api-py/app/assistant/knowledge_base.py#L74-L83)) that `test_knowledge.py:166-168`
 pins by asserting the exact key set.
 
 The docstring records both the policy and the intent: "STUDENT-only and scoped to the
 'student' audience: this surfaces the 'explain the rules' layer (policy/FAQ/guidance), never
 any live student fact. Returns an empty list when nothing approved matches, so the caller can
 say 'no approved answer' rather than inventing one"
-([agent.py:416-423](apps/api-py/app/routers/agent.py#L416-L423)). It is a building block: the
+([agent.py:416-423](apps/api-py/app/api/legacy/text_assistant.py#L416-L423)). It is a building block: the
 shipped `/ask` path reaches the same retrieval through the orchestrator's policy branch, not
 over HTTP. Chapter 10 owns the retrieval itself.
 
@@ -1904,14 +1904,14 @@ The ownership check, quoted in full because the comment is the point:
             status_code=status.HTTP_404_NOT_FOUND, detail="Run not found."
         )
 ```
-([agent.py:460-465](apps/api-py/app/routers/agent.py#L460-L465))
+([agent.py:460-465](apps/api-py/app/api/legacy/text_assistant.py#L460-L465))
 
 **404, never 403** — the same convention `_assert_can_access_student` uses (§9.3).
 
 The note is redacted before storage — `note = redact_pii(body.note)`
-([agent.py:467](apps/api-py/app/routers/agent.py#L467)) — and the upsert is done in Python,
+([agent.py:467](apps/api-py/app/api/legacy/text_assistant.py#L467)) — and the upsert is done in Python,
 not SQL: SELECT on `(run_id, owner_user_id)`, then mutate or insert, then one commit
-([agent.py:468-486](apps/api-py/app/routers/agent.py#L468-L486)). The DB backstop is
+([agent.py:468-486](apps/api-py/app/api/legacy/text_assistant.py#L468-L486)). The DB backstop is
 `UniqueConstraint("run_id", "owner_user_id", name="uq_feedback_run_owner")`
 ([models/feedback.py:48](apps/api-py/app/models/feedback.py#L48)). Note this read-then-write
 is **not** wrapped in an `IntegrityError` handler the way `convo.get_or_create` and the voice
@@ -1919,7 +1919,7 @@ transcript writer are, so two simultaneous votes on one run would surface a 500 
 graceful merge.
 
 **A structural consequence:** `run_id` crosses the wire only from `/ask`
-([agent.py:332](apps/api-py/app/routers/agent.py#L332)). `/chat` and `/chat/stream` return no
+([agent.py:332](apps/api-py/app/api/legacy/text_assistant.py#L332)). `/chat` and `/chat/stream` return no
 run id at all, so turns produced on those two surfaces **can never be rated** — any future UI
 trying will get a 404.
 
@@ -1948,7 +1948,7 @@ cohort scoping; every `AgentRun` ever written by every user.
 **The two rates use different denominators, and that is not a bug you can ignore.**
 `resolution_rate` divides by *all* runs; `refusal_rate` divides by runs that carry the
 grounding signal at all
-([agent.py:532-535](apps/api-py/app/routers/agent.py#L532-L535)). Since `/chat` and
+([agent.py:532-535](apps/api-py/app/api/legacy/text_assistant.py#L532-L535)). Since `/chat` and
 `/chat/stream` never stamp `intent` or `resolved` — nullable by design, "chat/stream runs and
 pre-Phase-D rows leave them null"
 ([models/agent_run.py:47-51](apps/api-py/app/models/agent_run.py#L47-L51)) — **every
@@ -1962,7 +1962,7 @@ refusal truth lives in `resolved`.
 The docstring carries its own caveat, worth preserving: "TTFT (time-to-first-token) is a
 STREAMING-path metric; /ask is non-streaming, so `avg_duration_ms` here is the compose-latency
 proxy (full request duration), not TTFT"
-([agent.py:504-506](apps/api-py/app/routers/agent.py#L504-L506)).
+([agent.py:504-506](apps/api-py/app/api/legacy/text_assistant.py#L504-L506)).
 
 `voice_turns` is a string comparison against the free-text `channel` column — the same query
 the AGENTS.md voice runbook tells you to run by hand.
@@ -1973,13 +1973,13 @@ the AGENTS.md voice runbook tells you to run by hand.
 
 Stated in the module docstring: "this is a general conversational assistant, so
 `carries_student_data` stays False; wire it True on any path that injects a student's private
-records" ([agent.py:14-16](apps/api-py/app/routers/agent.py#L14-L16)). Concretely,
+records" ([agent.py:14-16](apps/api-py/app/api/legacy/text_assistant.py#L14-L16)). Concretely,
 `complete_chat(messages, max_tokens=1024)` and `stream_chat(messages, max_tokens=1024)` both
 leave the flag at its default, so `student_data_egress_allowed` is never consulted on the
 `/chat` and `/chat/stream` paths — what is sent is the system prompt plus the caller's own
 typed history, and the system prompt itself tells the model it "do[es] not have direct access
 to a student's private records"
-([agent.py:46-52](apps/api-py/app/routers/agent.py#L46-L52)).
+([agent.py:46-52](apps/api-py/app/api/legacy/text_assistant.py#L46-L52)).
 
 `/ask` does not call the LLM itself at all: every model call on that path happens inside the
 orchestrator, where the gate **is** applied. Chapter 8 owns that; Rule 1's mechanism is
@@ -1991,7 +1991,7 @@ Chapter 1, §6.
 
 Five endpoints: three browser-facing (STUDENT-only) and two worker-only. The module docstring
 still says "Three endpoints" — consent and transcript were added later
-([voice.py:1-18](apps/api-py/app/routers/voice.py#L1-L18)) — but the rule it states still
+([voice.py:1-18](apps/api-py/app/api/legacy/voice_assistant.py#L1-L18)) — but the rule it states still
 governs all five: **"the client never names the conversation."**
 
 The worker *process* is Chapter 11. Everything below is the HTTP contract only.
@@ -2042,12 +2042,12 @@ def require_voice_worker(
     x_voice_worker_secret: str | None = Header(default=None),
 ) -> None:
 ```
-([voice.py:65-67](apps/api-py/app/routers/voice.py#L65-L67))
+([voice.py:65-67](apps/api-py/app/api/legacy/voice_assistant.py#L65-L67))
 
 FastAPI's underscore-to-hyphen conversion makes the wire header **`X-Voice-Worker-Secret`**.
 As established in §1.3, this one *is* a real dependency.
 
-The logic, in order ([voice.py:81-93](apps/api-py/app/routers/voice.py#L81-L93)):
+The logic, in order ([voice.py:81-93](apps/api-py/app/api/legacy/voice_assistant.py#L81-L93)):
 
 | Condition | Result |
 |---|---|
@@ -2065,7 +2065,7 @@ The logic, in order ([voice.py:81-93](apps/api-py/app/routers/voice.py#L81-L93))
 > it is quoted whole rather than cut at the full stop. On rejecting at request time rather
 > than at boot: "the API serves the whole dashboard, and a misconfigured voice secret should
 > disable voice ingestion, not take the site down."
-> ([voice.py:68-80](apps/api-py/app/routers/voice.py#L68-L80))
+> ([voice.py:68-80](apps/api-py/app/api/legacy/voice_assistant.py#L68-L80))
 
 **What that actually means per environment.** With a blank secret in **dev**, both worker
 endpoints are completely open — no header required, any `worker_id` accepted — which is the
@@ -2081,7 +2081,7 @@ optional secret would take the whole dashboard down over a feature the operator 
 using."
 
 Two smaller facts: the comparison at
-[voice.py:89](apps/api-py/app/routers/voice.py#L89) is a plain `!=`, not
+[voice.py:89](apps/api-py/app/api/legacy/voice_assistant.py#L89) is a plain `!=`, not
 `hmac.compare_digest`, so it is not constant-time. And the same field's emptiness is judged
 three different ways across the codebase — raw falsiness here, `.strip()` at
 [main.py:48](apps/api-py/app/main.py#L48), `bool(...)` in the readiness probe — so a
@@ -2090,12 +2090,12 @@ fires.
 
 ### 6.2 `POST /api/voice/heartbeat`
 
-**Body `HeartbeatIn`** ([voice.py:101-107](apps/api-py/app/routers/voice.py#L101-L107)):
+**Body `HeartbeatIn`** ([voice.py:101-107](apps/api-py/app/api/legacy/voice_assistant.py#L101-L107)):
 `worker_id: str = Field(min_length=1, max_length=200)` and `draining: bool = False`.
 **Dependencies:** `get_db` and the worker guard. **No user session** — a browser cookie is
 irrelevant here. **No `response_model`**, and it returns two differently-shaped raw dicts.
 
-**Branch A — draining** ([voice.py:125-132](apps/api-py/app/routers/voice.py#L125-L132)):
+**Branch A — draining** ([voice.py:125-132](apps/api-py/app/api/legacy/voice_assistant.py#L125-L132)):
 `DELETE FROM voice_worker_heartbeats WHERE worker_id = :worker_id`, commit, return
 `{"ok": True, "deregistered": True}`. No 404 if the row never existed.
 
@@ -2103,9 +2103,9 @@ irrelevant here. **No `response_model`**, and it returns two differently-shaped 
 > to withdraw readiness IMMEDIATELY rather than waiting out HEARTBEAT_FRESH_SECONDS. Going
 > quiet alone would leave /status reporting the worker healthy — and tokens being minted at it
 > — for that whole window after it began draining."
-> ([voice.py:103-106](apps/api-py/app/routers/voice.py#L103-L106))
+> ([voice.py:103-106](apps/api-py/app/api/legacy/voice_assistant.py#L103-L106))
 
-**Branch B — normal beat** ([voice.py:134-158](apps/api-py/app/routers/voice.py#L134-L158)):
+**Branch B — normal beat** ([voice.py:134-158](apps/api-py/app/api/legacy/voice_assistant.py#L134-L158)):
 SELECT by `worker_id`, insert or refresh `last_seen`, then — unconditionally, in the same
 transaction — reap every row older than `HEARTBEAT_REAP_AFTER`, and return
 `{"ok": True, "last_seen": <ISO-8601 UTC>}`. This is a read-then-write upsert, not `ON
@@ -2118,7 +2118,7 @@ index, and that `IntegrityError` is neither caught nor tested.
 > thing readiness scans on every /status call. Done opportunistically here rather than as a
 > cron: the heartbeat is already the only writer, already runs every 15s, and this keeps the
 > cleanup impossible to forget to deploy."
-> ([voice.py:145-151](apps/api-py/app/routers/voice.py#L145-L151))
+> ([voice.py:145-151](apps/api-py/app/api/legacy/voice_assistant.py#L145-L151))
 
 Note the "every 15s" in that comment is stale: the worker's interval is **10 seconds**
 (`HEARTBEAT_INTERVAL_SECONDS`, `voice_agent.py`, overridable by
@@ -2130,7 +2130,7 @@ Chapter 11 covers the worker side.
 422 (blank or >200-char `worker_id`), 200 otherwise. **There is no 503 path.**
 
 The three tunables, each with its reason inline
-([voice.py:41-51](apps/api-py/app/routers/voice.py#L41-L51)):
+([voice.py:41-51](apps/api-py/app/api/legacy/voice_assistant.py#L41-L51)):
 
 | Constant | Value | Rationale |
 |---|---|---|
@@ -2156,7 +2156,7 @@ def _worker_healthy(db: Session) -> bool:
     )
     return fresh is not None
 ```
-([voice.py:174-181](apps/api-py/app/routers/voice.py#L174-L181))
+([voice.py:174-181](apps/api-py/app/api/legacy/voice_assistant.py#L174-L181))
 
 - **Table:** `voice_worker_heartbeats`. **Column:** `last_seen`.
 - **Window:** 30 seconds. **Comparison:** `>=` against a UTC `datetime.now(timezone.utc)`
@@ -2183,14 +2183,14 @@ def _compute_status(db: Session) -> StatusOut:
 
     available = provider_ready and worker_healthy and maintenance is None
 ```
-([voice.py:184-191](apps/api-py/app/routers/voice.py#L184-L191))
+([voice.py:184-191](apps/api-py/app/api/legacy/voice_assistant.py#L184-L191))
 
 Note `.strip() or None`: a whitespace-only maintenance message collapses to `None` and does
 not block voice, and a real message is returned **stripped**, because it is rendered straight
 into the student's UI.
 
 The `reason` string follows a strict precedence chain
-([voice.py:193-203](apps/api-py/app/routers/voice.py#L193-L203)):
+([voice.py:193-203](apps/api-py/app/api/legacy/voice_assistant.py#L193-L203)):
 
 | Precedence | Condition | `reason` |
 |---|---|---|
@@ -2257,7 +2257,7 @@ The refusal branch:
         )
         raise HTTPException(status_code=code, detail=st.reason)
 ```
-([voice.py:259-268](apps/api-py/app/routers/voice.py#L259-L268))
+([voice.py:259-268](apps/api-py/app/api/legacy/voice_assistant.py#L259-L268))
 
 Unrolled, in evaluation order:
 
@@ -2287,12 +2287,12 @@ pinned by `test_status_available_iff_token_succeeds`, which asserts both `(token
 status.available` and `token.detail == status.reason` on every refusal.
 
 **What the token contains.** After the gate, the conversation is resolved from the session
-([voice.py:270](apps/api-py/app/routers/voice.py#L270)), then:
+([voice.py:270](apps/api-py/app/api/legacy/voice_assistant.py#L270)), then:
 
 ```python
     room = f"reep-conversation-{conversation.id}-{uuid.uuid4().hex[:8]}"
 ```
-([voice.py:280](apps/api-py/app/routers/voice.py#L280))
+([voice.py:280](apps/api-py/app/api/legacy/voice_assistant.py#L280))
 
 > **Why the room name carries a nonce.** "The room name must be UNIQUE PER CALL, not per
 > conversation. LiveKit applies a token's RoomConfiguration only when the room is first
@@ -2300,7 +2300,7 @@ status.available` and `token.detail == status.reason` on every refusal.
 > default). A stable per-conversation name would therefore have the agent dispatched on the
 > first call and SILENTLY DROPPED on any call that re-uses the still-live room — an
 > intermittent silent call that looks like a flaky provider."
-> ([voice.py:272-279](apps/api-py/app/routers/voice.py#L272-L279))
+> ([voice.py:272-279](apps/api-py/app/api/legacy/voice_assistant.py#L272-L279))
 
 `TokenOut` is `token`, `url` (`settings.livekit_url`), `room`, `identity` and
 `conversation_id` — the last two are the **same string by construction**, which is the
@@ -2312,7 +2312,7 @@ deliberately:
                 can_publish_data=False,
                 can_update_own_metadata=False,
 ```
-([voice.py:299-301](apps/api-py/app/routers/voice.py#L299-L301))
+([voice.py:299-301](apps/api-py/app/api/legacy/voice_assistant.py#L299-L301))
 
 "Without these the token also authorises publishing VIDEO and arbitrary DATA messages into
 the room — capabilities this product never uses, but which a leaked 10-minute token would
@@ -2322,11 +2322,11 @@ And the room config carries an explicit `RoomAgentDispatch(agent_name=VOICE_AGEN
 because "Naming an agent opts it OUT of LiveKit's automatic dispatch: a named worker never
 joins a room on its own… Without this the student joins, the worker sits idle with no job,
 and the call is silence with no error anywhere"
-([voice.py:53-58](apps/api-py/app/routers/voice.py#L53-L58)).
+([voice.py:53-58](apps/api-py/app/api/legacy/voice_assistant.py#L53-L58)).
 
 ### 6.7 `POST /api/voice/transcript`
 
-**Body `TranscriptIn`** ([voice.py:388-395](apps/api-py/app/routers/voice.py#L388-L395)):
+**Body `TranscriptIn`** ([voice.py:388-395](apps/api-py/app/api/legacy/voice_assistant.py#L388-L395)):
 
 | Field | Type | Constraint |
 |---|---|---|
@@ -2351,10 +2351,10 @@ def assert_owner(db: Session, conversation_id: str, user_id: str) -> Conversatio
     Raises 404 for missing, not-owned, or deleted alike — the caller can never
     tell "someone else's" apart from "does not exist" (no existence leak)."""
 ```
-([conversations.py:76-79](apps/api-py/app/conversations.py#L76-L79))
+([conversations.py:76-79](apps/api-py/app/assistant/conversations.py#L76-L79))
 
 **No endpoint anywhere calls it.** A repo-wide grep for `assert_owner` over `apps/api-py`
-returns two matches in `app/conversations.py` — the module-docstring mention at line 6 and
+returns two matches in `app/assistant/conversations.py` — the module-docstring mention at line 6 and
 the definition at line 76 — plus nine in `tests/test_conversations.py` (lines 7, 242, 245,
 254, 259, 264, 269, 274, 280, of which five are actual calls), and nothing else — not
 `/chat`, not `/chat/stream`, not `/ask`, not `/transcript`. That is not an oversight: every *other* conversation-writing
@@ -2364,7 +2364,7 @@ surface that *does* take an id — and it is the one that does not check. Its wh
 the shared worker secret plus the unguessability of 32-hex `uuid4` conversation ids.
 
 **Four gates and a return, in this exact order**
-([voice.py:422-479](apps/api-py/app/routers/voice.py#L422-L479)) — item 5 is the outcome when
+([voice.py:422-479](apps/api-py/app/api/legacy/voice_assistant.py#L422-L479)) — item 5 is the outcome when
 all four gates pass, not a fifth gate, and the numbering matters because the ordering
 consequence at the end of this section depends on it:
 
@@ -2381,7 +2381,7 @@ consequence at the end of this section depends on it:
 
 Gate 2 is technically redundant for *correctness* — `convo.append_message` performs its own
 identical dedup and returns the pre-existing `Message` rather than inserting
-([conversations.py:104-112](apps/api-py/app/conversations.py#L104-L112)). It exists so the
+([conversations.py:104-112](apps/api-py/app/assistant/conversations.py#L104-L112)). It exists so the
 endpoint can report `stored=False` **truthfully**; relying on `append_message` alone would
 report `stored=True` for a dedup hit.
 
@@ -2391,7 +2391,7 @@ Four rationales are written into this handler and all four are worth carrying:
 > real utterance is ever truncated, and small enough that a compromised or buggy worker cannot
 > write unbounded rows into a student's conversation — the text is replayed into later LLM
 > prompts and rendered in the UI, so unbounded input is both a storage and a prompt-injection
-> surface." ([voice.py:378-383](apps/api-py/app/routers/voice.py#L378-L383)) The same logic is
+> surface." ([voice.py:378-383](apps/api-py/app/api/legacy/voice_assistant.py#L378-L383)) The same logic is
 > why `speaker` is a `Literal`: a stored `system` turn would be an injection vector on every
 > subsequent request.
 
@@ -2400,21 +2400,21 @@ Four rationales are written into this handler and all four are worth carrying:
 > rows were invisible in the UI (history reads only live conversations) and
 > `retention.purge_expired` would not re-scrub them, so a student's spoken words survived the
 > one action the product offers for removing them."
-> ([voice.py:440-445](apps/api-py/app/routers/voice.py#L440-L445))
+> ([voice.py:440-445](apps/api-py/app/api/legacy/voice_assistant.py#L440-L445))
 
 > **404 and not 409.** "from the worker's side 'this thread no longer accepts writes' is one
 > situation with one correct response, and the worker treats both by ENDING the call (see
 > _persist_turn). That pairing is the whole design — a bare 404 with no worker change would
 > silently discard every remaining turn of a live call, because the room and identity stay
 > pinned to the dead conversation for the token's full TTL and the worker has no way to
-> re-resolve." ([voice.py:447-453](apps/api-py/app/routers/voice.py#L447-L453))
+> re-resolve." ([voice.py:447-453](apps/api-py/app/api/legacy/voice_assistant.py#L447-L453))
 
 > **The race.** "The read-then-insert above is a CHECK, not a guarantee: two workers (or one
 > worker retrying) can both pass it before either commits, and the unique index on
 > (conversation_id, provider_turn_id) then raises. Losing that race is not an error — the turn
 > IS stored, just by the other writer — so treat it as the idempotent no-op the caller expects
 > rather than surfacing a 500 to a worker that did nothing wrong."
-> ([voice.py:460-465](apps/api-py/app/routers/voice.py#L460-L465))
+> ([voice.py:460-465](apps/api-py/app/api/legacy/voice_assistant.py#L460-L465))
 
 **Why the endpoint is so forgiving.** Transcript writes are fire-and-forget by design — a bad
 write must never kill a live call — so *any* status other than 200 or 404 is effectively
@@ -2438,7 +2438,7 @@ guaranteed only for turn ids the server has not seen.
 **Guard:** STUDENT-only, idiom 3.
 **Logic:** four lines — resolve the conversation from the session, set `consent_state = "voice"
 if body.consent else "none"`, commit, return the new state
-([voice.py:361-370](apps/api-py/app/routers/voice.py#L361-L370)). Note the column allows three
+([voice.py:361-370](apps/api-py/app/api/legacy/voice_assistant.py#L361-L370)). Note the column allows three
 values (`'none' | 'text' | 'voice'`) but this endpoint only ever writes two.
 
 **Status codes:** 401, 403, 422, 200.
@@ -2455,7 +2455,7 @@ Its docstring is the most emphatic disclaimer in the codebase and belongs here a
 > this endpoint does not gate either. If a record-aware mode is ever built, this flag must be
 > fetched by the worker at session start AND re-checked on revocation; until then, treat the
 > consent panel as a disclosure notice, not a permission gate."
-> ([voice.py:342-359](apps/api-py/app/routers/voice.py#L342-L359))
+> ([voice.py:342-359](apps/api-py/app/api/legacy/voice_assistant.py#L342-L359))
 
 ---
 
@@ -2482,11 +2482,11 @@ scoped.
 | `POST /api/mentor/alerts/{id}/resolve` | `_assert_can_access_student` | *(no body)* | — | — |
 | `POST /api/mentor/focus/{id}/confirm` | `_assert_can_access_student` | *(no body)* | — | — |
 
-Source lines: offers [mentor.py:300-309](apps/api-py/app/routers/mentor.py#L300-L309),
-uploads [mentor.py:456-465](apps/api-py/app/routers/mentor.py#L456-L465), skill claims
-[mentor.py:556-587](apps/api-py/app/routers/mentor.py#L556-L587), leave
-[leave.py:122-127](apps/api-py/app/routers/leave.py#L122-L127), registration
-[registration.py:194-203](apps/api-py/app/routers/registration.py#L194-L203).
+Source lines: offers [mentor.py:300-309](apps/api-py/app/api/mentor/mentees.py#L300-L309),
+uploads [mentor.py:456-465](apps/api-py/app/api/mentor/mentees.py#L456-L465), skill claims
+[mentor.py:556-587](apps/api-py/app/api/mentor/mentees.py#L556-L587), leave
+[leave.py:122-127](apps/api-py/app/api/mentor/leave.py#L122-L127), registration
+[registration.py:194-203](apps/api-py/app/api/account/registration.py#L194-L203).
 
 Three different vocabularies for what a user experiences as one action. `APPROVE` is the one
 token accepted by all five. `REJECTED` is accepted by two of the five — the offers, leave and
@@ -2496,24 +2496,24 @@ names only the canonical pair**, so the synonyms are completely undiscoverable f
 
 **The extra preconditions the two out-of-chapter copies add.** `decide_leave` refuses your
 own request with a **400** "You cannot approve your own leave."
-([leave.py:118-121](apps/api-py/app/routers/leave.py#L118-L121)) *before* parsing the
+([leave.py:118-121](apps/api-py/app/api/mentor/leave.py#L118-L121)) *before* parsing the
 decision, and 409s both when the same approver tries to give the second signature
-([leave.py:142-145](apps/api-py/app/routers/leave.py#L142-L145)) and when the request is in
-any other state ([leave.py:155-159](apps/api-py/app/routers/leave.py#L155-L159)) — it is the
+([leave.py:142-145](apps/api-py/app/api/mentor/leave.py#L142-L145)) and when the request is in
+any other state ([leave.py:155-159](apps/api-py/app/api/mentor/leave.py#L155-L159)) — it is the
 only two-signature decision in the backend. `registration.decide` 404s on an unknown id
-([registration.py:188-189](apps/api-py/app/routers/registration.py#L188-L189)) and **409s**
-with "Application already decided." ([registration.py:190-193](apps/api-py/app/routers/registration.py#L190-L193))
+([registration.py:188-189](apps/api-py/app/api/account/registration.py#L188-L189)) and **409s**
+with "Application already decided." ([registration.py:190-193](apps/api-py/app/api/account/registration.py#L190-L193))
 — the same terminal shape as the three in this chapter.
 
 > **A naming collision worth knowing about.** The request schema for the offers decision is
-> `class DecisionIn` ([mentor.py:280-282](apps/api-py/app/routers/mentor.py#L280-L282)). The
+> `class DecisionIn` ([mentor.py:280-282](apps/api-py/app/api/mentor/mentees.py#L280-L282)). The
 > request schema for the registration decision is *also* `class DecisionIn`
-> ([registration.py:172-174](apps/api-py/app/routers/registration.py#L172-L174)), with a
+> ([registration.py:172-174](apps/api-py/app/api/account/registration.py#L172-L174)), with a
 > byte-identical body (`decision: str  # "APPROVE" | "REJECT"` and `note: str | None = None`).
 > They are distinct classes in distinct modules and nothing breaks, but a grep for
 > `DecisionIn` returns two definitions, and FastAPI's OpenAPI generator disambiguates them by
 > module path in the schema component names. `leave.py` avoided the collision by qualifying:
-> `LeaveDecisionIn` ([leave.py:101-103](apps/api-py/app/routers/leave.py#L101-L103)). That
+> `LeaveDecisionIn` ([leave.py:101-103](apps/api-py/app/api/mentor/leave.py#L101-L103)). That
 > qualified spelling is the one to copy — the `...In`/`...Out` suffix convention of §1.6 says
 > nothing about uniqueness across modules, and this is where that bites.
 
@@ -2590,10 +2590,10 @@ primary key and therefore has no joined `User.name`:
     )
     return _alert_out(alert, name or "")
 ```
-([mentor.py:224-227](apps/api-py/app/routers/mentor.py#L224-L227); identically at
-[315-318](apps/api-py/app/routers/mentor.py#L315-L318),
-[471-474](apps/api-py/app/routers/mentor.py#L471-L474),
-[593-597](apps/api-py/app/routers/mentor.py#L593-L597))
+([mentor.py:224-227](apps/api-py/app/api/mentor/mentees.py#L224-L227); identically at
+[315-318](apps/api-py/app/api/mentor/mentees.py#L315-L318),
+[471-474](apps/api-py/app/api/mentor/mentees.py#L471-L474),
+[593-597](apps/api-py/app/api/mentor/mentees.py#L593-L597))
 
 The `or ""` is defensive and load-bearing. `Student.user_id` is a non-nullable unique FK
 ([models/user.py:61](apps/api-py/app/models/user.py#L61)), so the join cannot legitimately
@@ -2644,13 +2644,13 @@ What it actually covers is the **role tier** and nothing else. No body is ever i
   with no `Mentor` group and asserts an empty list rather than the whole programme.
 - `_assert_can_access_student`'s 404 for a student outside the caller's group, on any of the
   **seven** endpoints that call it —
-  [mentor.py:117](apps/api-py/app/routers/mentor.py#L117) (`list_notes`),
-  [135](apps/api-py/app/routers/mentor.py#L135) (`add_note`),
-  [218](apps/api-py/app/routers/mentor.py#L218) (`resolve_alert`),
-  [349](apps/api-py/app/routers/mentor.py#L349) (`student_focus`),
-  [368](apps/api-py/app/routers/mentor.py#L368) (`confirm_focus`),
-  [451](apps/api-py/app/routers/mentor.py#L451) (`review_upload`) and
-  [551](apps/api-py/app/routers/mentor.py#L551) (`review_skill_claim`). Seven untested Rule 2
+  [mentor.py:117](apps/api-py/app/api/mentor/mentees.py#L117) (`list_notes`),
+  [135](apps/api-py/app/api/mentor/mentees.py#L135) (`add_note`),
+  [218](apps/api-py/app/api/mentor/mentees.py#L218) (`resolve_alert`),
+  [349](apps/api-py/app/api/mentor/mentees.py#L349) (`student_focus`),
+  [368](apps/api-py/app/api/mentor/mentees.py#L368) (`confirm_focus`),
+  [451](apps/api-py/app/api/mentor/mentees.py#L451) (`review_upload`) and
+  [551](apps/api-py/app/api/mentor/mentees.py#L551) (`review_skill_claim`). Seven untested Rule 2
   boundaries, not five.
 - Every one of the five review/decision endpoints: the vocabularies, the synonyms, the 422
   branch, the 409 preconditions.
@@ -2837,10 +2837,10 @@ Role refusal is 403, because "you are not staff" leaks nothing about data. Scope
 404, because a 403 would confirm that a student id exists outside the caller's group and let a
 mentor enumerate the roster by probing. `_assert_can_access_student` collapses three distinct
 conditions into one 404 with one message
-([mentor.py:81-84](apps/api-py/app/routers/mentor.py#L81-L84)); `/feedback` applies the same
-rule to run ids ([agent.py:460-465](apps/api-py/app/routers/agent.py#L460-L465)); and
+([mentor.py:81-84](apps/api-py/app/api/mentor/mentees.py#L81-L84)); `/feedback` applies the same
+rule to run ids ([agent.py:460-465](apps/api-py/app/api/legacy/text_assistant.py#L460-L465)); and
 `convo.assert_owner` encodes it for conversation ids
-([conversations.py:76-89](apps/api-py/app/conversations.py#L76-L89)) — though, as §6.7
+([conversations.py:76-89](apps/api-py/app/assistant/conversations.py#L76-L89)) — though, as §6.7
 records, nothing currently calls that one.
 
 One residual shape to be aware of, recorded honestly. Four handlers do the entity lookup
@@ -2916,7 +2916,7 @@ Everything asserted above was read in the files cited. The following are the poi
 not settle by reading alone, stated so they are not mistaken for verified facts.
 
 1. **`open_only` as a query parameter.** `open_only: bool = True`
-   ([mentor.py:187](apps/api-py/app/routers/mentor.py#L187)) is FastAPI's documented inference
+   ([mentor.py:187](apps/api-py/app/api/mentor/mentees.py#L187)) is FastAPI's documented inference
    for a non-path scalar with a default, and the commit that added it describes usage as
    `open_only=false`. I did not run the app or inspect the generated OpenAPI document to
    confirm it at runtime.
@@ -2936,8 +2936,8 @@ not settle by reading alone, stated so they are not mistaken for verified facts.
    incidental.
 
 4. **The missing `[DONE]` on a database failure** (§5.4). The `[DONE]` frame is yielded at
-   [agent.py:256](apps/api-py/app/routers/agent.py#L256), after the `with SessionLocal() as
-   fresh:` block at [250-255](apps/api-py/app/routers/agent.py#L250-L255), and nothing in the
+   [agent.py:256](apps/api-py/app/api/legacy/text_assistant.py#L256), after the `with SessionLocal() as
+   fresh:` block at [250-255](apps/api-py/app/api/legacy/text_assistant.py#L250-L255), and nothing in the
    generator catches a database exception. I read that ordering off the source rather than
    forcing a write failure and observing a truncated stream. The structural claim — that the
    terminator is downstream of the persistence — is certain; the client-visible consequence is
@@ -2948,7 +2948,7 @@ not settle by reading alone, stated so they are not mistaken for verified facts.
    code paths. There is no test and no consumer, so I could not demonstrate it empirically.
 
 6. **The `/feedback` concurrent-vote race.** The read-then-write upsert at
-   [agent.py:468-486](apps/api-py/app/routers/agent.py#L468-L486) is not wrapped in an
+   [agent.py:468-486](apps/api-py/app/api/legacy/text_assistant.py#L468-L486) is not wrapped in an
    `IntegrityError` handler the way `convo.get_or_create` and `voice_transcript` are. I did not
    reproduce a violation of `uq_feedback_run_owner`; flagged as a gap in an otherwise
    consistent house pattern, not a confirmed bug.
@@ -2991,7 +2991,7 @@ not settle by reading alone, stated so they are not mistaken for verified facts.
     cannot rule out an out-of-band job.
 
 14. **Two documentation defects, stated as findings rather than silently corrected.** AGENTS.md
-    describes "`require_*` dependencies in `apps/api-py/app/identity.py`"; both halves are wrong —
+    describes "`require_*` dependencies in `apps/api-py/app/platform/identity.py`"; both halves are wrong —
     `identity.py` holds only `get_current_session`, and `require_mentor`/`require_director` are not
     dependencies (§1.3). Separately, `config.py:56-57` claims the `/api/voice` endpoints "return
     503 until all three are set", which is false for `/status` (§6.5) and only conditionally

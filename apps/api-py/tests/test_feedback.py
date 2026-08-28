@@ -18,7 +18,7 @@ from conftest import requires_db
 
 from app.db import SessionLocal
 from app.models.feedback import AssistantFeedback, FeedbackRating
-from app.redaction import redact_pii
+from app.platform.redaction import redact_pii
 
 
 def _ask_run_id(client, headers, monkeypatch) -> str:

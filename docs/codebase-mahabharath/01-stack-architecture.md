@@ -42,7 +42,7 @@ the same value survives being written into a JWT claim, read back as a plain str
 compared against a literal — which is exactly what every guard in this codebase does.
 
 The role reaches the browser through the session payload built by `_payload_for`
-([auth.py:29-40](apps/api-py/app/routers/auth.py#L29-L40)):
+([auth.py:29-40](apps/api-py/app/api/account/sign_in.py#L29-L40)):
 
 ```python
 def _payload_for(user: User) -> dict:
@@ -164,7 +164,7 @@ flowchart LR
 
 Read the arrows carefully. **The API never calls the worker, and never calls LiveKit's server
 API.** `from livekit import api` at
-[voice.py:25](apps/api-py/app/routers/voice.py#L25) is used only to *sign* an `AccessToken`
+[voice.py:25](apps/api-py/app/api/legacy/voice_assistant.py#L25) is used only to *sign* an `AccessToken`
 locally — a pure cryptographic operation on the key pair, with no network call. The worker is
 observed indirectly, through a heartbeat row it asks the API to write. That shape is stated in
 [Dockerfile.voice:34-36](apps/api-py/Dockerfile.voice#L34-L36):
@@ -175,14 +175,14 @@ observed indirectly, through a heartbeat row it asks the API to write. That shap
 
 Note also what the dotted line to the remote providers actually carries. It is **not** "public
 KB text only". `/api/agent/chat` sends the caller's own typed conversation to whatever provider
-is configured ([agent.py:170](apps/api-py/app/routers/agent.py#L170)); what never crosses that
+is configured ([agent.py:170](apps/api-py/app/api/legacy/text_assistant.py#L170)); what never crosses that
 line is a record REEP *injects* — marks, CGPA, attendance, USN. §6 explains why that
 distinction is the whole design and not a loophole.
 
 ### The operator's view: what `/ready` actually returns
 
 `/ready` is the only place an operator sees this four-process stack summarised. Its voice block
-is [health.py:53-62](apps/api-py/app/routers/health.py#L53-L62):
+is [health.py:53-62](apps/api-py/app/api/system/health.py#L53-L62):
 
 ```python
     # Soft dependency: voice degrades on its own and says so via /api/voice/status.
@@ -209,24 +209,24 @@ Four keys, each answering a different question:
 - **`maintenance`** — is the kill switch engaged?
 
 None of the four can fail the probe. Only the database check flips `healthy` to false
-([health.py:44-51](apps/api-py/app/routers/health.py#L44-L51)).
+([health.py:44-51](apps/api-py/app/api/system/health.py#L44-L51)).
 
 ### What degrades when each is missing
 
 **Postgres down.** `GET /health` still returns 200 — it is deliberately dependency-free
-([health.py:27-30](apps/api-py/app/routers/health.py#L27-L30)) — while `GET /ready` reports
+([health.py:27-30](apps/api-py/app/api/system/health.py#L27-L30)) — while `GET /ready` reports
 `checks["database"] = "error: OperationalError"` and sets 503
-([health.py:64-65](apps/api-py/app/routers/health.py#L64-L65)). The split is not fussiness:
+([health.py:64-65](apps/api-py/app/api/system/health.py#L64-L65)). The split is not fussiness:
 
 > **Why it is like this.** From the module docstring at
-> [health.py:13-15](apps/api-py/app/routers/health.py#L13-L15):
+> [health.py:13-15](apps/api-py/app/api/system/health.py#L13-L15):
 > *"Conflating the two is a common outage amplifier: if liveness checks the DB, a brief
 > Postgres wobble restarts every API container at once and turns a recoverable dependency blip
 > into a full outage."* The production compose healthcheck therefore probes `/health`, never
 > `/ready`.
 
 Note also that `/ready` reports the exception **type** only, never its message
-([health.py:49-50](apps/api-py/app/routers/health.py#L49-L50)) — a connection string carrying
+([health.py:49-50](apps/api-py/app/api/system/health.py#L49-L50)) — a connection string carrying
 a password must not leak through a public probe.
 
 **API down.** Everything is down — and it presents as being *logged out*, not as an error. The
@@ -291,13 +291,13 @@ notices requires assembling three pieces that live in two processes.
    arrives and keeps beating between calls.
 2. **The API writes the row on its behalf.** The worker holds no database connection at all
    (§3). The API upserts one `VoiceWorkerHeartbeat` row per `worker_id`
-   ([voice.py:134-143](apps/api-py/app/routers/voice.py#L134-L143)) and opportunistically reaps
+   ([voice.py:134-143](apps/api-py/app/api/legacy/voice_assistant.py#L134-L143)) and opportunistically reaps
    rows older than `HEARTBEAT_REAP_AFTER = timedelta(hours=1)`
-   ([voice.py:152-156](apps/api-py/app/routers/voice.py#L152-L156)) so that a fresh random
+   ([voice.py:152-156](apps/api-py/app/api/legacy/voice_assistant.py#L152-L156)) so that a fresh random
    `worker_id` per process restart does not grow the table forever.
 3. **Readiness asks one question.** `_worker_healthy` asks whether **any** row's `last_seen`
    falls inside a 30-second window
-   ([voice.py:174-181](apps/api-py/app/routers/voice.py#L174-L181)):
+   ([voice.py:174-181](apps/api-py/app/api/legacy/voice_assistant.py#L174-L181)):
 
 ```python
 def _worker_healthy(db: Session) -> bool:
@@ -311,21 +311,21 @@ def _worker_healthy(db: Session) -> bool:
 ```
 
 A 10-second beat inside a 30-second window means one missed beat is not an outage — that
-headroom is stated at [voice.py:41-43](apps/api-py/app/routers/voice.py#L41-L43). But note the
+headroom is stated at [voice.py:41-43](apps/api-py/app/api/legacy/voice_assistant.py#L41-L43). But note the
 word **any**: the query is not scoped to a particular worker. Anyone who can POST a heartbeat
 can make voice look available. Hold that thought for §6, where it is the reachable abuse.
 
 Shutdown is not merely going quiet. When the SDK begins draining, the beat loop exits and posts
 one final `{"draining": true}` ([voice_agent.py:307-314](apps/api-py/voice_agent.py#L307-L314)),
 and the API **deletes** the row rather than tombstoning it
-([voice.py:125-132](apps/api-py/app/routers/voice.py#L125-L132)) — withdrawing readiness in
+([voice.py:125-132](apps/api-py/app/api/legacy/voice_assistant.py#L125-L132)) — withdrawing readiness in
 about a second instead of after the full 30-second window, during which students would be handed
 tokens into rooms nobody will join.
 
 With no worker at all, `_compute_status` reports `available=False,
-reason="Voice worker offline."` ([voice.py:200-201](apps/api-py/app/routers/voice.py#L200-L201))
+reason="Voice worker offline."` ([voice.py:200-201](apps/api-py/app/api/legacy/voice_assistant.py#L200-L201))
 and `POST /api/voice/token` answers **409**. Every other screen is untouched; `/ready` reports
-voice but *never fails on it* ([health.py:38-40](apps/api-py/app/routers/health.py#L38-L40)).
+voice but *never fails on it* ([health.py:38-40](apps/api-py/app/api/system/health.py#L38-L40)).
 
 **Angular dev server down.** Irrelevant to the API. The API is reachable directly on 3300,
 including its OpenAPI docs at `/docs`.
@@ -419,11 +419,11 @@ credentials file while still differing where they must.
 ### One compile-time coupling to know about
 
 The dispatch name is hard-coded on **both** sides: `VOICE_AGENT_NAME = "reep-voice"` at
-[voice.py:58](apps/api-py/app/routers/voice.py#L58) and
+[voice.py:58](apps/api-py/app/api/legacy/voice_assistant.py#L58) and
 `@server.rtc_session(agent_name="reep-voice")` at
 [voice_agent.py:626](apps/api-py/voice_agent.py#L626).
 
-> **Why it is like this.** [voice.py:53-57](apps/api-py/app/routers/voice.py#L53-L57):
+> **Why it is like this.** [voice.py:53-57](apps/api-py/app/api/legacy/voice_assistant.py#L53-L57):
 > *"MUST match the agent_name the worker registers under (@server.rtc_session in
 > voice_agent.py). Naming an agent opts it OUT of LiveKit's automatic dispatch: a named worker
 > never joins a room on its own, so the token has to request it explicitly via
@@ -434,7 +434,7 @@ The dispatch name is hard-coded on **both** sides: `VOICE_AGENT_NAME = "reep-voi
 ([.env.example:97-101](apps/api-py/.env.example#L97-L101)):
 
 > *"Do NOT set LIVEKIT_AGENT_NAME or similar. The dispatch name is compile-time on both sides
-> (VOICE_AGENT_NAME in app/routers/voice.py, matched by the worker's registration and pinned by
+> (VOICE_AGENT_NAME in app/api/legacy/voice_assistant.py, matched by the worker's registration and pinned by
 > a test). Making it an env var invites the two to disagree, and that failure is silent: the
 > token mints, the room opens, the microphone publishes, and no agent ever joins."*
 
@@ -580,7 +580,7 @@ def my_jobs(
 ) -> list[JobRowOut]:
 ```
 
-([student.py:546-548](apps/api-py/app/routers/student.py#L546-L548)) both `get_current_session`
+([student.py:546-548](apps/api-py/app/api/student/self_service.py#L546-L548)) both `get_current_session`
 and `get_db` run **before** a single line of the handler body, in the order they are declared,
 and either one can abort the whole request by raising `HTTPException`. That is why a missing
 cookie produces a 401 without `my_jobs` ever executing, and it is why the parameter named
@@ -592,7 +592,7 @@ once the response is finished. That is the entire mechanism behind "one Session 
 always closed": nothing in the handler closes the session, and nothing has to.
 
 **Step 4 — the session cookie.** `Depends(get_current_session)` is six lines
-([app/identity.py:8-13](apps/api-py/app/identity.py#L8-L13)):
+([app/platform/identity.py:8-13](apps/api-py/app/platform/identity.py#L8-L13)):
 
 ```python
 def get_current_session(request: Request) -> dict:
@@ -606,14 +606,14 @@ def get_current_session(request: Request) -> dict:
 Note that a missing cookie and a bad cookie collapse into the *same* 401 `"Sign in required."`.
 Verification is `jwt.decode(token, settings.auth_secret, algorithms=["HS256"])` wrapped in
 `except jwt.PyJWTError: return None`
-([security.py:51-55](apps/api-py/app/security.py#L51-L55)) — so a forged signature, a malformed
+([platform/credentials.py:51-55](apps/api-py/app/platform/credentials.py#L51-L55)) — so a forged signature, a malformed
 token and an expired token all become `None` and then the same 401. The explicit
 `algorithms=["HS256"]` list is the standard defence against the `alg: none` /
 algorithm-confusion class of attack: without it, a library may accept a token that tells it
 which algorithm to use.
 
 The cookie is set once, by `POST /api/auth/login`
-([auth.py:68-76](apps/api-py/app/routers/auth.py#L68-L76)):
+([auth.py:68-76](apps/api-py/app/api/account/sign_in.py#L68-L76)):
 
 ```python
     response.set_cookie(
@@ -630,20 +630,20 @@ The cookie is set once, by `POST /api/auth/login`
 `secure=settings.is_prod` is what makes dev work over plain HTTP and production refuse to send
 the cookie over anything but TLS. `max_age` is the same `SESSION_TTL_SECONDS = 60 * 60 * 12`
 (12 hours) used for the JWT's own `exp`
-([security.py:21](apps/api-py/app/security.py#L21),
-[security.py:47](apps/api-py/app/security.py#L47)), so the browser drops the cookie at the moment
+([platform/credentials.py:21](apps/api-py/app/platform/credentials.py#L21),
+[platform/credentials.py:47](apps/api-py/app/platform/credentials.py#L47)), so the browser drops the cookie at the moment
 the token stops verifying — there is no window in which a stale cookie is sent and 401s. There is
 **no server-side session store and no revocation list**: `logout` is
 `response.delete_cookie(SESSION_COOKIE, path="/")` and nothing more
-([auth.py:85-88](apps/api-py/app/routers/auth.py#L85-L88)), so a token captured before logout
+([auth.py:85-88](apps/api-py/app/api/account/sign_in.py#L85-L88)), so a token captured before logout
 stays valid until its 12-hour expiry. That is a real property of the design, not an oversight.
 
 Login itself folds both failure modes into one message
-([auth.py:47-52](apps/api-py/app/routers/auth.py#L47-L52) — *"One message for both cases — never
+([auth.py:47-52](apps/api-py/app/api/account/sign_in.py#L47-L52) — *"One message for both cases — never
 reveal which of email/password was wrong"*), and passwords are `scrypt:salt:digest` with
 `N=16384, r=8, p=1, dklen=64`, the salt hashed **as its hex string** (`salt.encode()`, not
 `bytes.fromhex(salt)`) so hashes minted by Node's `scryptSync` verify unchanged
-([security.py:28-42](apps/api-py/app/security.py#L28-L42)). Comparison is
+([platform/credentials.py:28-42](apps/api-py/app/platform/credentials.py#L28-L42)). Comparison is
 `hmac.compare_digest`, constant-time.
 
 **Step 5 — the database session.** `get_db()` is the generator dependency described above
@@ -678,9 +678,9 @@ generated primary key mid-transaction must call `db.flush()` explicitly; `autoco
 means every writing handler calls `db.commit()` itself.
 
 **Step 6 — the handler.** `my_jobs` at
-[student.py:545-548](apps/api-py/app/routers/student.py#L545-L548) calls
+[student.py:545-548](apps/api-py/app/api/student/self_service.py#L545-L548) calls
 `_require_student(session)` first
-([student.py:118-122](apps/api-py/app/routers/student.py#L118-L122)):
+([student.py:118-122](apps/api-py/app/api/student/self_service.py#L118-L122)):
 
 ```python
 def _require_student(session: dict) -> str:
@@ -695,7 +695,7 @@ authenticates fine, so no 401 — but carries no `studentId`, hence **403**, not
 is not authorised.
 
 It then issues **seven** database round-trips before it loops
-([student.py:553-595](apps/api-py/app/routers/student.py#L553-L595)):
+([student.py:553-595](apps/api-py/app/api/student/self_service.py#L553-L595)):
 
 1. the student's skill slugs (`Skill` joined to `StudentSkill`);
 2. the latest `SemesterResult`, for CGPA;
@@ -785,10 +785,10 @@ All seven `@property` members on the same class, with their real consumers.
 | Property | Definition | Used by |
 |---|---|---|
 | `gemini_key_present` ([config.py:68-77](apps/api-py/app/config.py#L68-L77)) | field **or** raw `GEMINI_API_KEY` **or** raw `GOOGLE_API_KEY` | **Nothing — no call site anywhere in the codebase.** `grep -rn "gemini_key_present" apps/api-py` returns exactly one hit: its own definition. It is the only code that would honour `GOOGLE_API_KEY`, left behind by the retired native speech-to-speech path that `voice_model_key_present` replaced. Dead, and interesting *because* its sibling explicitly documents why the Gemini key must not be consulted. |
-| `voice_model_key_present` ([config.py:79-90](apps/api-py/app/config.py#L79-L90)) | `groq_api_key` **or** raw `os.getenv("GROQ_API_KEY")` | `_compute_status` ([voice.py:187](apps/api-py/app/routers/voice.py#L187)), `/ready` ([health.py:56](apps/api-py/app/routers/health.py#L56)) |
+| `voice_model_key_present` ([config.py:79-90](apps/api-py/app/config.py#L79-L90)) | `groq_api_key` **or** raw `os.getenv("GROQ_API_KEY")` | `_compute_status` ([voice.py:187](apps/api-py/app/api/legacy/voice_assistant.py#L187)), `/ready` ([health.py:56](apps/api-py/app/api/system/health.py#L56)) |
 | `livekit_ready` ([config.py:92-94](apps/api-py/app/config.py#L92-L94)) | all three `LIVEKIT_*` truthy | `_compute_status`, `/ready` |
-| `is_prod` ([config.py:100-102](apps/api-py/app/config.py#L100-L102)) | `env.lower() == "prod"` | cookie `Secure` ([auth.py:73](apps/api-py/app/routers/auth.py#L73)), `require_voice_worker` ([voice.py:82](apps/api-py/app/routers/voice.py#L82)), the `lifespan` warning ([main.py:48](apps/api-py/app/main.py#L48)), the seed refusal |
-| `uploads_path` ([config.py:104-109](apps/api-py/app/config.py#L104-L109)) | `Path(upload_dir)` or `apps/api-py/var/uploads` | `app/document_store.py` |
+| `is_prod` ([config.py:100-102](apps/api-py/app/config.py#L100-L102)) | `env.lower() == "prod"` | cookie `Secure` ([auth.py:73](apps/api-py/app/api/account/sign_in.py#L73)), `require_voice_worker` ([voice.py:82](apps/api-py/app/api/legacy/voice_assistant.py#L82)), the `lifespan` warning ([main.py:48](apps/api-py/app/main.py#L48)), the seed refusal |
+| `uploads_path` ([config.py:104-109](apps/api-py/app/config.py#L104-L109)) | `Path(upload_dir)` or `apps/api-py/var/uploads` | `app/platform/document_store.py` |
 | `allow_remote_student_data` ([config.py:111-113](apps/api-py/app/config.py#L111-L113)) | `llm_allow_remote_student_data.strip().lower() == "true"` | the egress gate ([llm.py:110](apps/api-py/app/ai/llm.py#L110)) |
 | `sqlalchemy_url` ([config.py:119-149](apps/api-py/app/config.py#L119-L149)) | normalised DSN (below) | `db.py:20`, `migrations/env.py:17` |
 
@@ -887,8 +887,8 @@ set that is a judgement call rather than a fact.
 
 **Understand what the gate can and cannot see.** Its only input is a URL string. It never sees
 the messages, the student, or the caller's role. **The boundary is declaration-based, not
-detection-based** — it trusts what the caller says about the payload. `app/redaction.py` says so
-of itself at [redaction.py:9](apps/api-py/app/redaction.py#L9): *"Not a security boundary — the
+detection-based** — it trusts what the caller says about the payload. `app/platform/redaction.py` says so
+of itself at [redaction.py:9](apps/api-py/app/platform/redaction.py#L9): *"Not a security boundary — the
 egress gate (app/ai/llm.py) is. This is hygiene on stored free text."*
 
 #### The gate is consulted in two different shapes — know both
@@ -913,7 +913,7 @@ either way. The flag only decides whether the request happens at all.
 **Shape two: the caller asks the predicate directly, and nothing raises.** This is what the
 resume path does, and it is worth being precise because it is *not* an example of the exception
 above. `POST /api/student/resume/generate` consults the gate itself, ahead of the call
-([student.py:958-959](apps/api-py/app/routers/student.py#L958-L959)):
+([student.py:958-959](apps/api-py/app/api/student/self_service.py#L958-L959)):
 
 ```python
     cfg = llm_config()
@@ -923,7 +923,7 @@ above. `POST /api/student/resume/generate` consults the gate itself, ahead of th
 On the blocked path `complete_chat` is never reached, so no `StudentDataEgressRefused` is ever
 raised and there is no `except` clause to go looking for. The deterministic
 `_compose_resume_markdown` result simply stands, and the `else` branch attaches a `note` that
-names the way to change it ([student.py:976-981](apps/api-py/app/routers/student.py#L976-L981)):
+names the way to change it ([student.py:976-981](apps/api-py/app/api/student/self_service.py#L976-L981)):
 
 ```python
     else:
@@ -973,10 +973,10 @@ lets the KB text be embedded and even sent to a remote embedder (it is public po
 student PII stays behind the egress gate."* That separation is what licenses the remote embedder.
 
 **Second, the gate covers records REEP *injects*, not free text a student volunteers.** Both
-`/api/agent/chat` ([agent.py:170](apps/api-py/app/routers/agent.py#L170)) and
-`/api/agent/chat/stream` ([agent.py:231](apps/api-py/app/routers/agent.py#L231)) call the adapter
+`/api/agent/chat` ([agent.py:170](apps/api-py/app/api/legacy/text_assistant.py#L170)) and
+`/api/agent/chat/stream` ([agent.py:231](apps/api-py/app/api/legacy/text_assistant.py#L231)) call the adapter
 with `carries_student_data` at its `False` default, so the student's own typed conversation does
-go to the remote provider. [agent.py:14-16](apps/api-py/app/routers/agent.py#L14-L16) treats that
+go to the remote provider. [agent.py:14-16](apps/api-py/app/api/legacy/text_assistant.py#L14-L16) treats that
 as intentional scope: *"The egress gate still applies: this is a general conversational
 assistant, so `carries_student_data` stays False; wire it True on any path that injects a
 student's private records."* The student chose to type it; REEP did not attach their transcript
@@ -992,19 +992,19 @@ prompt, so there is nothing personal for the remote model to receive, memorise o
 Three guards, three addresses:
 
 - `require_mentor(session)` admits **MENTOR, DIRECTOR and ADMIN**
-  ([mentor.py:28-34](apps/api-py/app/routers/mentor.py#L28-L34)), raising 403
+  ([mentor.py:28-34](apps/api-py/app/api/mentor/mentees.py#L28-L34)), raising 403
   `"Staff access required."` otherwise.
 - `require_director(session)` admits **DIRECTOR and ADMIN** only, gated on
   `_DIRECTORS = {"DIRECTOR", "ADMIN"}`
-  ([mentor.py:230-238](apps/api-py/app/routers/mentor.py#L230-L238)), raising 403
+  ([mentor.py:230-238](apps/api-py/app/api/mentor/mentees.py#L230-L238)), raising 403
   `"Director access required."`.
 - `_require_student(session)` admits anyone holding a `studentId` claim
-  ([student.py:118-122](apps/api-py/app/routers/student.py#L118-L122)), raising 403
+  ([student.py:118-122](apps/api-py/app/api/student/self_service.py#L118-L122)), raising 403
   `"Not a student account."`.
 
 None of the three narrows to a *particular* student. The helper that does is
 `_assert_can_access_student(session, student_id, db)` at
-[mentor.py:72-84](apps/api-py/app/routers/mentor.py#L72-L84):
+[mentor.py:72-84](apps/api-py/app/api/mentor/mentees.py#L72-L84):
 
 ```python
 def _assert_can_access_student(session: dict, student_id: str, db: Session) -> None:
@@ -1025,7 +1025,7 @@ def _assert_can_access_student(session: dict, student_id: str, db: Session) -> N
 Note the deliberate **404, not 403** on the mentor branch — a mentor must not be able to confirm
 the *existence* of a student outside their group. A 403 would say "this student exists and you
 may not see them"; the 404 says nothing at all. The list endpoint expresses the same rule in one
-line ([mentor.py:52-55](apps/api-py/app/routers/mentor.py#L52-L55)):
+line ([mentor.py:52-55](apps/api-py/app/api/mentor/mentees.py#L52-L55)):
 
 ```python
     if session["role"] == "MENTOR":
@@ -1048,7 +1048,7 @@ can reach, and nothing in the routing layer catches it. When you add a staff rou
 line of the body is the security control.
 
 > **Note for the reader.** AGENTS.md says the `require_*` dependencies live in
-> `apps/api-py/app/identity.py`. The code disagrees: `identity.py` contains exactly one function,
+> `apps/api-py/app/platform/identity.py`. The code disagrees: `identity.py` contains exactly one function,
 > `get_current_session`. All three `require_*` guards live in routers —
 > `require_mentor` and `require_director` in `mentor.py`, `require_voice_worker` in `voice.py` —
 > and `director.py`, `leave.py` and `registration.py` import them across router modules. That
@@ -1056,11 +1056,11 @@ line of the body is the security control.
 
 ### The third boundary: the worker link
 
-`require_voice_worker` ([voice.py:65-93](apps/api-py/app/routers/voice.py#L65-L93)) reads the
+`require_voice_worker` ([voice.py:65-93](apps/api-py/app/api/legacy/voice_assistant.py#L65-L93)) reads the
 `X-Voice-Worker-Secret` header and has three outcomes: blank secret **and** `ENV=prod` → **500**;
 blank secret in dev → open, as documented; secret set but mismatched → **401**. It rejects at
 request time rather than at boot for a stated reason
-([voice.py:77-80](apps/api-py/app/routers/voice.py#L77-L80)): *"Rejecting at request time rather
+([voice.py:77-80](apps/api-py/app/api/legacy/voice_assistant.py#L77-L80)): *"Rejecting at request time rather
 than refusing to boot is deliberate: the API serves the whole dashboard, and a misconfigured
 voice secret should disable voice ingestion, not take the site down."*
 
@@ -1074,11 +1074,11 @@ The complementary boot-time signal is the `lifespan` warning in
 
 This is the §2 heartbeat mechanism read adversarially. `_worker_healthy` asks only whether *any*
 row is fresh, and `HeartbeatIn` accepts any non-empty `worker_id`
-([voice.py:101-107](apps/api-py/app/routers/voice.py#L101-L107)) — so one forged POST is enough.
+([voice.py:101-107](apps/api-py/app/api/legacy/voice_assistant.py#L101-L107)) — so one forged POST is enough.
 
 > **A nuance the docstring glosses.** That docstring says a blank secret "leaves BOTH worker
 > endpoints open" in production — but `require_voice_worker`'s prod branch returns 500 to *every*
-> caller, the real worker included ([voice.py:81-86](apps/api-py/app/routers/voice.py#L81-L86)).
+> caller, the real worker included ([voice.py:81-86](apps/api-py/app/api/legacy/voice_assistant.py#L81-L86)).
 > So under `ENV=prod` the observable effect of a blank secret is dead voice ingestion (heartbeats
 > 500 → `worker_healthy` false → `/token` 409 forever), not an open door. The genuinely open
 > configuration is blank secret **plus** `ENV=dev`. Both halves of the docstring are true of
@@ -1091,27 +1091,27 @@ row is fresh, and `HeartbeatIn` accepts any non-empty `worker_id`
 
 | Code | Detail message | Raised at | Read it as |
 |---|---|---|---|
-| **201** | — (returns the created `NoteOut`) | [mentor.py:126-128](apps/api-py/app/routers/mentor.py#L126-L128) | A mentor note was written. The only non-200 success in the mentor router. |
-| **204** | — (empty body) | [agent.py:352-359](apps/api-py/app/routers/agent.py#L352-L359) | `DELETE /api/agent/conversation` soft-cleared the caller's thread. Soft, not hard — the rows are tombstoned, not dropped. |
-| **400** | `Only a mentor (with a Mentor profile) can author notes.` | [mentor.py:138-141](apps/api-py/app/routers/mentor.py#L138-L141) | Staff, and allowed to *see* the student, but no `mentorId` claim — a DIRECTOR/ADMIN cannot author a note, because a note needs an owning `Mentor` row. |
-| **401** | `Sign in required.` | [identity.py:12](apps/api-py/app/identity.py#L12) | No cookie, or a cookie that does not verify. Both cases, one message. |
-| **401** | `Invalid email or password.` | [auth.py:49-52](apps/api-py/app/routers/auth.py#L49-L52) | Login failed. Deliberately does not say which half was wrong. |
-| **401** | `Invalid voice worker secret.` | [voice.py:89-93](apps/api-py/app/routers/voice.py#L89-L93) | The worker's `X-Voice-Worker-Secret` does not match the API's. The classic cause of "the call sounded fine but saved nothing" (§8). |
-| **403** | `Not a student account.` | [student.py:121](apps/api-py/app/routers/student.py#L121) | Authenticated, but no `studentId` claim — e.g. a director on a student route. |
-| **403** | `Staff access required.` | [mentor.py:33](apps/api-py/app/routers/mentor.py#L33) | Role is not MENTOR/DIRECTOR/ADMIN. |
-| **403** | `Director access required.` | [mentor.py:234-236](apps/api-py/app/routers/mentor.py#L234-L236) | Role is not DIRECTOR/ADMIN. |
-| **403** | `Voice is a student feature.` | [voice.py:220-224](apps/api-py/app/routers/voice.py#L220-L224), [voice.py:252-256](apps/api-py/app/routers/voice.py#L252-L256) | Staff have no voice assistant, by design. |
-| **404** | `Student not found.` | [mentor.py:76-77](apps/api-py/app/routers/mentor.py#L76-L77) | DIRECTOR/ADMIN branch: the id genuinely does not exist. |
-| **404** | `Student not in your mentor group.` | [mentor.py:82-84](apps/api-py/app/routers/mentor.py#L82-L84) | MENTOR branch. **404 on purpose** — a 403 would confirm the student exists. |
-| **404** | `Alert not found.` | [mentor.py:217](apps/api-py/app/routers/mentor.py#L217) | Resolving an alert id that does not exist. Note the order: the 404 fires *before* `_assert_can_access_student`, so it leaks the non-existence of an alert but never its owner. |
-| **404** | `Conversation not found.` | [voice.py:456-458](apps/api-py/app/routers/voice.py#L456-L458) | A transcript POST naming a conversation that is absent or soft-deleted. This is the check that makes forged transcripts hard (see below) — and, per the comment above it, the reason a bare 404 here would silently discard the rest of a live call. |
-| **409** | the `reason` from `_compute_status` | [voice.py:263-268](apps/api-py/app/routers/voice.py#L263-L268) | Provider configured, no worker heartbeat. **Start the fourth process.** |
+| **201** | — (returns the created `NoteOut`) | [mentor.py:126-128](apps/api-py/app/api/mentor/mentees.py#L126-L128) | A mentor note was written. The only non-200 success in the mentor router. |
+| **204** | — (empty body) | [agent.py:352-359](apps/api-py/app/api/legacy/text_assistant.py#L352-L359) | `DELETE /api/agent/conversation` soft-cleared the caller's thread. Soft, not hard — the rows are tombstoned, not dropped. |
+| **400** | `Only a mentor (with a Mentor profile) can author notes.` | [mentor.py:138-141](apps/api-py/app/api/mentor/mentees.py#L138-L141) | Staff, and allowed to *see* the student, but no `mentorId` claim — a DIRECTOR/ADMIN cannot author a note, because a note needs an owning `Mentor` row. |
+| **401** | `Sign in required.` | [identity.py:12](apps/api-py/app/platform/identity.py#L12) | No cookie, or a cookie that does not verify. Both cases, one message. |
+| **401** | `Invalid email or password.` | [auth.py:49-52](apps/api-py/app/api/account/sign_in.py#L49-L52) | Login failed. Deliberately does not say which half was wrong. |
+| **401** | `Invalid voice worker secret.` | [voice.py:89-93](apps/api-py/app/api/legacy/voice_assistant.py#L89-L93) | The worker's `X-Voice-Worker-Secret` does not match the API's. The classic cause of "the call sounded fine but saved nothing" (§8). |
+| **403** | `Not a student account.` | [student.py:121](apps/api-py/app/api/student/self_service.py#L121) | Authenticated, but no `studentId` claim — e.g. a director on a student route. |
+| **403** | `Staff access required.` | [mentor.py:33](apps/api-py/app/api/mentor/mentees.py#L33) | Role is not MENTOR/DIRECTOR/ADMIN. |
+| **403** | `Director access required.` | [mentor.py:234-236](apps/api-py/app/api/mentor/mentees.py#L234-L236) | Role is not DIRECTOR/ADMIN. |
+| **403** | `Voice is a student feature.` | [voice.py:220-224](apps/api-py/app/api/legacy/voice_assistant.py#L220-L224), [voice.py:252-256](apps/api-py/app/api/legacy/voice_assistant.py#L252-L256) | Staff have no voice assistant, by design. |
+| **404** | `Student not found.` | [mentor.py:76-77](apps/api-py/app/api/mentor/mentees.py#L76-L77) | DIRECTOR/ADMIN branch: the id genuinely does not exist. |
+| **404** | `Student not in your mentor group.` | [mentor.py:82-84](apps/api-py/app/api/mentor/mentees.py#L82-L84) | MENTOR branch. **404 on purpose** — a 403 would confirm the student exists. |
+| **404** | `Alert not found.` | [mentor.py:217](apps/api-py/app/api/mentor/mentees.py#L217) | Resolving an alert id that does not exist. Note the order: the 404 fires *before* `_assert_can_access_student`, so it leaks the non-existence of an alert but never its owner. |
+| **404** | `Conversation not found.` | [voice.py:456-458](apps/api-py/app/api/legacy/voice_assistant.py#L456-L458) | A transcript POST naming a conversation that is absent or soft-deleted. This is the check that makes forged transcripts hard (see below) — and, per the comment above it, the reason a bare 404 here would silently discard the rest of a live call. |
+| **409** | the `reason` from `_compute_status` | [voice.py:263-268](apps/api-py/app/api/legacy/voice_assistant.py#L263-L268) | Provider configured, no worker heartbeat. **Start the fourth process.** |
 | **422** | FastAPI's validation envelope | framework default (no custom handler) | A malformed request body — e.g. an empty `worker_id`, which `HeartbeatIn` declares `min_length=1`. |
-| **422** | `Invalid linked_action.` | [mentor.py:145-147](apps/api-py/app/routers/mentor.py#L145-L147) | A **hand-raised** 422, not the framework envelope above: `linked_action` is typed `str` on the schema and only checked by `MentorAction(...)` in the handler, so the body is a flat `{"detail": …}`, not a `detail` array. |
-| **500** | `Voice worker authentication is not configured.` | [voice.py:81-86](apps/api-py/app/routers/voice.py#L81-L86) | Blank `VOICE_WORKER_SECRET` under `ENV=prod`. Fails closed. |
-| **502** | `The assistant is temporarily unavailable, please try again.` | [agent.py:174-176](apps/api-py/app/routers/agent.py#L174-L176) | Provider/network/quota failure. Provider detail is logged, never returned. |
-| **503** | the `reason` from `_compute_status` | [voice.py:263-268](apps/api-py/app/routers/voice.py#L263-L268) | LiveKit or Groq unconfigured, or the maintenance message is set. **Fix configuration.** |
-| **503** | `{"status": "degraded", …}` body | [health.py:64-65](apps/api-py/app/routers/health.py#L64-L65) | `/ready` only, and only for the database. Voice never fails this probe. |
+| **422** | `Invalid linked_action.` | [mentor.py:145-147](apps/api-py/app/api/mentor/mentees.py#L145-L147) | A **hand-raised** 422, not the framework envelope above: `linked_action` is typed `str` on the schema and only checked by `MentorAction(...)` in the handler, so the body is a flat `{"detail": …}`, not a `detail` array. |
+| **500** | `Voice worker authentication is not configured.` | [voice.py:81-86](apps/api-py/app/api/legacy/voice_assistant.py#L81-L86) | Blank `VOICE_WORKER_SECRET` under `ENV=prod`. Fails closed. |
+| **502** | `The assistant is temporarily unavailable, please try again.` | [agent.py:174-176](apps/api-py/app/api/legacy/text_assistant.py#L174-L176) | Provider/network/quota failure. Provider detail is logged, never returned. |
+| **503** | the `reason` from `_compute_status` | [voice.py:263-268](apps/api-py/app/api/legacy/voice_assistant.py#L263-L268) | LiveKit or Groq unconfigured, or the maintenance message is set. **Fix configuration.** |
+| **503** | `{"status": "degraded", …}` body | [health.py:64-65](apps/api-py/app/api/system/health.py#L64-L65) | `/ready` only, and only for the database. Voice never fails this probe. |
 
 ---
 
@@ -1140,8 +1140,8 @@ reep-dashboard/
 │     │                       and the router mount table (§4 step 2)
 │     ├─ app/config.py        The Settings class + the process-wide `settings` singleton (§5)
 │     ├─ app/db.py            engine · SessionLocal · Base · get_db (§4 step 5)
-│     ├─ app/identity.py          get_current_session — the ONLY session dependency, 6 lines
-│     ├─ app/security.py      scrypt password hashing + HS256 session tokens (§4 step 4)
+│     ├─ app/platform/identity.py          get_current_session — the ONLY session dependency, 6 lines
+│     ├─ app/platform/credentials.py      scrypt password hashing + HS256 session tokens (§4 step 4)
 │     ├─ app/routers/         auth · student · mentor · director · leave · registration ·
 │     │                       agent · voice · health. Each exposes a module-level `router`,
 │     │                       and each declares its own Pydantic `*In`/`*Out` models inline.
@@ -1152,15 +1152,15 @@ reep-dashboard/
 │     │                       response model — see the note below.
 │     ├─ app/ai/              llm.py (adapter + THE GATE), embeddings.py, orchestrator.py,
 │     │                       agents.py + adk.py (Phase-4 scaffolding, not on a live path)
-│     ├─ app/knowledge.py     Hybrid KB retrieval: Postgres full-text blended with pgvector
-│     ├─ app/conversations.py Server-owned conversation get_or_create / append_message
+│     ├─ app/assistant/knowledge_base.py     Hybrid KB retrieval: Postgres full-text blended with pgvector
+│     ├─ app/assistant/conversations.py Server-owned conversation get_or_create / append_message
 │     ├─ app/memory.py        Durable assistant memory
-│     ├─ app/assistant_tools.py  The tool surface the grounded assistant may call
-│     ├─ app/redaction.py     Best-effort PII scrub on stored free text. NOT a boundary.
+│     ├─ app/assistant/tools.py  The tool surface the grounded assistant may call
+│     ├─ app/platform/redaction.py     Best-effort PII scrub on stored free text. NOT a boundary.
 │     ├─ app/retention.py     Retention / purge policy for conversation data
-│     ├─ app/document_store.py     On-disk uploads, rooted at settings.uploads_path
-│     ├─ app/mailer.py        Outbound email
-│     ├─ app/resume_pdf.py    Markdown → PDF for the resume builder
+│     ├─ app/platform/document_store.py     On-disk uploads, rooted at settings.uploads_path
+│     ├─ app/platform/mailer.py        Outbound email
+│     ├─ app/reports/resume_pdf.py    Markdown → PDF for the resume builder
 │     ├─ app/seed.py          DEV seed — three demo logins; REFUSES to run when ENV=prod
 │     ├─ app/seed_kb.py       Production-safe seed — the Knowledge Base, no accounts
 │     ├─ app/eval/            golden.py — the assistant regression gate
@@ -1313,7 +1313,7 @@ the UI says a fourth process exists. `POST /api/voice/token` returns **409** in 
 case — provider configured, no worker listening. If instead you get **503**, the cause is
 different: one of `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` is blank, or
 `GROQ_API_KEY` is missing, or `VOICE_MAINTENANCE_MESSAGE` is set. The discriminator is one
-expression at [voice.py:263-268](apps/api-py/app/routers/voice.py#L263-L268):
+expression at [voice.py:263-268](apps/api-py/app/api/legacy/voice_assistant.py#L263-L268):
 
 ```python
         code = (
@@ -1325,7 +1325,7 @@ expression at [voice.py:263-268](apps/api-py/app/routers/voice.py#L263-L268):
 
 Read it as **409 = start the process; 503 = fix configuration**. `GET /api/voice/status` will
 already have told the student which, in a `reason` string written to be shown verbatim
-([voice.py:193-203](apps/api-py/app/routers/voice.py#L193-L203)).
+([voice.py:193-203](apps/api-py/app/api/legacy/voice_assistant.py#L193-L203)).
 
 **2. "The call sounded fine but saved nothing."** This is the worst failure mode in the stack,
 because it is silent: transcript POSTs are deliberately fire-and-forget so a bad write can never
@@ -1337,7 +1337,7 @@ select channel, count(*), max(created_at) from messages group by channel;
 
 No `voice` rows, or a stale `max(created_at)`, means turns are being dropped. Two causes, in
 order of likelihood: (a) **`VOICE_WORKER_SECRET` differs between the API and the worker**, so
-every POST 401s ([voice.py:89-93](apps/api-py/app/routers/voice.py#L89-L93)) — and the worker
+every POST 401s ([voice.py:89-93](apps/api-py/app/api/legacy/voice_assistant.py#L89-L93)) — and the worker
 still connects to LiveKit and answers normally, so nothing looks wrong from the outside;
 (b) **`REEP_API_URL` is wrong**, usually `localhost` from inside a container, so the POSTs never
 arrive. Both now appear in the worker log as
@@ -1369,7 +1369,7 @@ Four things I could not settle, recorded rather than smoothed over:
 3. **Documentation drift I verified.** AGENTS.md and the README say "Angular 20";
    `apps/web/package.json:16` pins `@angular/core: ^22.1.0` and the lockfile resolves 22.1.1. Two
    comments ([voice_agent.py:38](apps/api-py/voice_agent.py#L38),
-   [voice.py:150](apps/api-py/app/routers/voice.py#L150)) say the heartbeat runs every ~15 s while
+   [voice.py:150](apps/api-py/app/api/legacy/voice_assistant.py#L150)) say the heartbeat runs every ~15 s while
    the live default is 10 ([voice_agent.py:151](apps/api-py/voice_agent.py#L151)).
    [docs/deployment-env.md:120](docs/deployment-env.md#L120) gives the worker's
    `stop_grace_period` as 300 s while

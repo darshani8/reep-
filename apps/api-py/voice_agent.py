@@ -258,7 +258,7 @@ DRAIN_POLL_SECONDS = 1.0
 # equal by configuration rather than by an import (this worker imports nothing
 # from app/ -- see tests/test_voice_worker_source.py).
 #
-# THE LIVEKIT TOKEN'S TTL IS NOT THIS. app/routers/voice.py mints a token valid
+# THE LIVEKIT TOKEN'S TTL IS NOT THIS. app/api/legacy/voice_assistant.py mints a token valid
 # for 10 minutes, but LiveKit validates it once, at JOIN, and never again: a
 # student admitted at 9m59s keeps the room, this worker process, and a
 # Groq-billed STT+LLM+TTS cascade for as long as the tab stays open. Before this
@@ -936,7 +936,7 @@ async def entrypoint(ctx: JobContext) -> None:
         """Hang up once the call has run for VOICE_MAX_CALL_SECONDS.
 
         The LiveKit token cannot do this. Its 10-minute TTL (TOKEN_TTL in
-        app/routers/voice.py) bounds how long the JWT may be used to JOIN; the
+        app/api/legacy/voice_assistant.py) bounds how long the JWT may be used to JOIN; the
         room checks it once and never again, so a tab left open holds this
         process and a billed STT+LLM+TTS cascade indefinitely. The API cannot do
         it either -- it never hears that a call started, let alone that it is

@@ -18,7 +18,7 @@ is stated at the top rather than left for the next editor to wonder about.
 
 The reason is in `app/models/interview.py`'s module docstring: these vocabularies
 will move. A fifth interview specialization is a one-line data change in
-`interview_matrix.py` today; making it an `ALTER TYPE ... ADD VALUE` instead
+`interview/specializations.py` today; making it an `ALTER TYPE ... ADD VALUE` instead
 would be a regression. `Upload.status` earned its PG enum because it is a frozen
 three-state review workflow — none of these seven are frozen.
 

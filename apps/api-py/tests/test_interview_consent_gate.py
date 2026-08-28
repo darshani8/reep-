@@ -36,7 +36,7 @@ from app.db import SessionLocal
 from app.models.conversation import Conversation
 from app.models.interview import InterviewConsent, InterviewSession
 from app.models.user import Role, Student, User
-from app.routers.interview import (
+from app.api.student.interview_session import (
     _ConsentRequired,
     _make_heartbeat,
     _open_records,

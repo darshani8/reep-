@@ -104,7 +104,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Catches the failure app/interview_local.py shipped: it imported numpy
+      # Catches the failure app/interview/offline_engine.py shipped: it imported numpy
       # with no requirements entry, and because the import is lazy — inside a
       # request handler — the API still booted and every test still passed. The
       # break was invisible until pytest could not COLLECT on a clean machine.

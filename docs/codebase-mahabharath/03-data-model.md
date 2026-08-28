@@ -89,8 +89,8 @@ declaring `class TimeSheetEntry(Base)` is what registers the table, and that sta
 only runs on import. Other modules do import individual slices directly (`from
 .models.academics import SemesterResult` at
 [app/seed.py:30](../../apps/api-py/app/seed.py#L30); `from .models.conversation import
-Conversation, Message` at [app/conversations.py:17](../../apps/api-py/app/conversations.py#L17);
-the same in `app/knowledge.py`, `app/mailer.py`, `app/retention.py` and every router). And
+Conversation, Message` at [app/assistant/conversations.py:17](../../apps/api-py/app/assistant/conversations.py#L17);
+the same in `app/assistant/knowledge_base.py`, `app/platform/mailer.py`, `app/retention.py` and every router). And
 because importing *any* submodule of a package runs that package's `__init__.py` first,
 any one of those imports drags in all 31 modules. That is the trick: this file is the
 single door, and every entrance leads through it.
@@ -468,8 +468,8 @@ no `Mentor.students` relationship. The group of mentor `M` is exactly the set
 Login materialises the link into the session JWT: `_payload_for(user)` always sets
 `userId/email/name/role`, and adds `studentId` only when `user.student is not None` and
 `mentorId` only when `user.mentor is not None`
-([routers/auth.py:29-40](../../apps/api-py/app/routers/auth.py#L29-L40)). `get_current_session`
-merely decodes that cookie ([app/identity.py:8-13](../../apps/api-py/app/identity.py#L8-L13)), so the
+([api/account/sign_in.py:29-40](../../apps/api-py/app/api/account/sign_in.py#L29-L40)). `get_current_session`
+merely decodes that cookie ([app/platform/identity.py:8-13](../../apps/api-py/app/platform/identity.py#L8-L13)), so the
 whole scope decision runs off a payload **frozen at login**: creating a `mentors` row for
 an already-signed-in MENTOR grants no scope until they sign in again.
 
@@ -483,9 +483,9 @@ Rule 2 is then decided in the mentor router on exactly these columns:
         query = query.where(Student.mentor_id == mentor_id)
 ```
 
-— [routers/mentor.py:52-56](../../apps/api-py/app/routers/mentor.py#L52-L56), with the per-row
+— [api/mentor/mentees.py:52-56](../../apps/api-py/app/api/mentor/mentees.py#L52-L56), with the per-row
 form in `_assert_can_access_student`
-([mentor.py:72-84](../../apps/api-py/app/routers/mentor.py#L72-L84)), which refuses with **404**
+([mentor.py:72-84](../../apps/api-py/app/api/mentor/mentees.py#L72-L84)), which refuses with **404**
 — not 403 — so an out-of-group student id cannot be probed for existence. Note the two
 distinct "sees nobody" states that collapse to the same outcome: a MENTOR-role user with
 no `mentors` row (no `mentorId` in the session, early `return []`), and a MENTOR *with* a
@@ -543,10 +543,10 @@ A Mentor row carries **no data of its own**; it exists purely as an identity anc
 > **Why it is like this.** "The day is the local calendar date (matching the Next.js app),
 > so an evening sign-in is not bucketed onto the next UTC day."
 > ([user.py:90-91](../../apps/api-py/app/models/user.py#L90-L91)) The claim is executed at
-> [routers/auth.py:56-58](../../apps/api-py/app/routers/auth.py#L56-L58), which deliberately
+> [api/account/sign_in.py:56-58](../../apps/api-py/app/api/account/sign_in.py#L56-L58), which deliberately
 > uses naive `datetime.now()` for the streak bucket — three lines after using
 > `datetime.now(timezone.utc)` for `last_login_at` at
-> [auth.py:54-55](../../apps/api-py/app/routers/auth.py#L54-L55).
+> [auth.py:54-55](../../apps/api-py/app/api/account/sign_in.py#L54-L55).
 
 **`student_profiles`** — [profile.py:22-56](../../apps/api-py/app/models/student_profile.py#L22-L56).
 One row per student, enforced by `student_id` (VARCHAR NOT NULL, FK CASCADE, `unique=True`).
@@ -580,10 +580,10 @@ raw `INSERT` or bulk load that omits any of the nine fails.
 
 Second, the "ADMIN-set" rule on `placement_eligible` is enforced **by omission, not by a
 constraint**: `ProfileUpdateIn`
-([routers/student.py:793-807](../../apps/api-py/app/routers/student.py#L793-L807)) simply does
+([api/student/self_service.py:793-807](../../apps/api-py/app/api/student/self_service.py#L793-L807)) simply does
 not declare the field — the handler's own docstring says "placement_eligible is admin-set
 and intentionally absent from the editable set"
-([student.py:815-816](../../apps/api-py/app/routers/student.py#L815-L816)) — and the update
+([student.py:815-816](../../apps/api-py/app/api/student/self_service.py#L815-L816)) — and the update
 applies `model_dump(exclude_unset=True)` via `setattr`. Add the field to that schema and
 any student can mark themselves placement-eligible. (`skills` is likewise absent from
 `ProfileUpdateIn`, though nothing documents that omission as deliberate.)
@@ -599,7 +599,7 @@ The structural gap here is worth naming plainly: **`students.cohort_id` is not a
 key.** No migration ever adds one. Deleting a cohort therefore orphans student rows with
 no error. And because `Student.cohort_id` is nullable, the leaderboard roster query
 `where(Student.cohort_id == me.cohort_id)`
-([routers/student.py:1721](../../apps/api-py/app/routers/student.py#L1721)) renders as
+([api/student/self_service.py:1721](../../apps/api-py/app/api/student/self_service.py#L1721)) renders as
 `WHERE students.cohort_id IS NULL` for a cohort-less student — pooling every unassigned
 student into one pseudo-cohort ranked against each other.
 
@@ -664,7 +664,7 @@ members are unreachable at runtime: `submit()` only assigns `PENDING_REVIEW` or
 default and `PENDING_VERIFICATION` assigned nowhere. The router states the omission is
 deliberate — "Provisioning the actual Student (User row, cohort seat) is a deliberate
 follow-up step, not done here"
-([routers/registration.py:10-13](../../apps/api-py/app/routers/registration.py#L10-L13)) — so
+([api/account/registration.py:10-13](../../apps/api-py/app/api/account/registration.py#L10-L13)) — so
 there is currently **no code path that turns an approved Registration into a
 `users`+`students` pair**. Outside the test fixtures (which build both directly at
 [tests/conftest.py:84-93](../../apps/api-py/tests/conftest.py#L84-L93)), the only creator of
@@ -739,10 +739,10 @@ convention, not enforcement.
 `attendance_records` and no cached aggregate on `students`. It is recomputed at read time
 in three independent places: `GET /student/attendance` folds `(course_code, present)` into
 a per-course `[present, total]` counter
-([student.py:174-206](../../apps/api-py/app/routers/student.py#L174-L206)); `GET /student/dashboard`
-inlines its own version ([student.py:218-247](../../apps/api-py/app/routers/student.py#L218-L247));
+([student.py:174-206](../../apps/api-py/app/api/student/self_service.py#L174-L206)); `GET /student/dashboard`
+inlines its own version ([student.py:218-247](../../apps/api-py/app/api/student/self_service.py#L218-L247));
 and `_attendance_pct(db, student_id)`
-([student.py:1772-1779](../../apps/api-py/app/routers/student.py#L1772-L1779)) is a third copy
+([student.py:1772-1779](../../apps/api-py/app/api/student/self_service.py#L1772-L1779)) is a third copy
 whose docstring says it is "the same computation the dashboard/attendance uses". All three
 return `0.0` when there are no records — never null — which is the hostile direction: a
 brand-new student scores 0% and fails the attendance readiness factor.
@@ -750,9 +750,9 @@ brand-new student scores 0% and fails the attendance readiness factor.
 **Prior-qualification percentage is likewise derived, twice, differently.**
 `academic_qualifications` stores `marks` and `max_marks`, and
 `GET /student/academics` computes `round(100 * q.marks / q.max_marks, 1)`
-([student.py:518](../../apps/api-py/app/routers/student.py#L518)) while the resume composer
+([student.py:518](../../apps/api-py/app/api/student/self_service.py#L518)) while the resume composer
 computes `round(100 * q.marks / q.max_marks)` — integer rounding — at
-[student.py:913](../../apps/api-py/app/routers/student.py#L913).
+[student.py:913](../../apps/api-py/app/api/student/self_service.py#L913).
 
 **Gap months are stored explicitly and summed on read.** `academic_gaps` holds four
 integer columns and no total; both readers sum them inline, and a student with **no**
@@ -795,7 +795,7 @@ the uncertainty section; do not repeat the rationale as fact.
 a 409 if the session is already closed.
 
 **`lab_sessions.source` is decided by the server**: `POST /student/checkin` hard-codes
-`CheckInSource.SELF_REPORTED` ([student.py:1241](../../apps/api-py/app/routers/student.py#L1241))
+`CheckInSource.SELF_REPORTED` ([student.py:1241](../../apps/api-py/app/api/student/self_service.py#L1241))
 so a client cannot forge a BADGE or LAB_PC check-in — which is the entire reason that enum
 exists.
 
@@ -812,7 +812,7 @@ row rather than in a child table:
 That last sentence is a modelling principle worth stealing: **nullability IS the pending
 state**, so there is no redundant PENDING member that can drift out of step with a NULL.
 The two-distinct-approver invariant lives entirely in
-[routers/leave.py](../../apps/api-py/app/routers/leave.py) — the schema permits
+[api/mentor/leave.py](../../apps/api-py/app/api/mentor/leave.py) — the schema permits
 `first_approver_user_id == second_approver_user_id`. The asymmetric `ondelete` is
 deliberate: the requester CASCADEs (delete the account, delete their requests) while both
 approvers SET NULL (a mentor leaving the institution must not erase the record of what was
@@ -871,7 +871,7 @@ default, because no employer-side or import-side path creates an application.
 
 ### The eligibility verdict, and where each input comes from
 
-`GET /student/jobs` ([student.py:545-631](../../apps/api-py/app/routers/student.py#L545-L631))
+`GET /student/jobs` ([student.py:545-631](../../apps/api-py/app/api/student/self_service.py#L545-L631))
 is the single most consequential read in the product, and it is worth knowing exactly
 which column each of its five inputs comes from:
 
@@ -879,7 +879,7 @@ which column each of its five inputs comes from:
 |---|---|---|
 | skill match % | `skills.slug` joined through `student_skills` | `len(held & required) / len(required)`, or **100.0** when `required` is empty |
 | latest CGPA | `semester_results.cgpa` | the row with the **highest `semester`** — `published_on` is never consulted |
-| live backlogs | `semester_results.live_backlogs` | `coalesce(sum(...), 0)` **across all semesters**, inlined in the endpoint itself ([student.py:567-574](../../apps/api-py/app/routers/student.py#L567-L574)) — `GET /student/jobs` does *not* call the `_live_backlogs` helper at [student.py:1792-1800](../../apps/api-py/app/routers/student.py#L1792-L1800), which is the same query written a second time for the readiness / next-actions endpoints |
+| live backlogs | `semester_results.live_backlogs` | `coalesce(sum(...), 0)` **across all semesters**, inlined in the endpoint itself ([student.py:567-574](../../apps/api-py/app/api/student/self_service.py#L567-L574)) — `GET /student/jobs` does *not* call the `_live_backlogs` helper at [student.py:1792-1800](../../apps/api-py/app/api/student/self_service.py#L1792-L1800), which is the same query written a second time for the readiness / next-actions endpoints |
 | gap months | `academic_gaps.*_mo` | the four columns summed inline; a missing row is 0 |
 | the thresholds | `jobs.min_cgpa` / `max_live_backlogs`, else `placement_criteria` | per-posting override wins |
 
@@ -893,11 +893,11 @@ The override rule and the null rule are both written out:
         if min_cgpa is not None and latest_cgpa is not None and latest_cgpa < min_cgpa:
 ```
 
-— [student.py:598-608](../../apps/api-py/app/routers/student.py#L598-L608). Note `is not None`
+— [student.py:598-608](../../apps/api-py/app/api/student/self_service.py#L598-L608). Note `is not None`
 rather than truthiness: `min_cgpa = 0.0` and `max_live_backlogs = 0` are the most common
 real values, and truthiness would silently make a strict posting permissive. Note also
 that `max_gap` comes only from the criteria — a job has no gap override
-([student.py:605](../../apps/api-py/app/routers/student.py#L605)).
+([student.py:605](../../apps/api-py/app/api/student/self_service.py#L605)).
 
 `required_skills` on `jobs` is a Postgres **`varchar[]`** holding canonical `skills.slug`
 values, denormalised on purpose. Note the type carefully before you hand-write a cast: the
@@ -937,7 +937,7 @@ legal transitions, each guarded:
 3. **PENDING_APPROVAL → APPROVED | REJECTED** — `POST /mentor/offers/{id}/decision`,
    guarded by `require_director` (not `require_mentor`), 409 "Only a pending offer can be
    decided.", and it writes `status`, `approved_by_id`, `decided_at` and `decision_note`
-   as one unit ([routers/mentor.py:285-318](../../apps/api-py/app/routers/mentor.py#L285-L318)).
+   as one unit ([api/mentor/mentees.py:285-318](../../apps/api-py/app/api/mentor/mentees.py#L285-L318)).
 
 APPROVED and REJECTED are terminal, and there is **no offer-edit endpoint at all** — so
 the offers screen's claim that a submitted draft is locked because "the backend refuses
@@ -946,7 +946,7 @@ edits after, so a report never reads a figure changed post-approval"
 is true only because nothing was ever written to refuse. An APPROVED offer is also the
 definition of "placed": `GET /director/overview` computes
 `placed = count(distinct student_id) where status == APPROVED`
-([routers/director.py:65-72](../../apps/api-py/app/routers/director.py#L65-L72)). Nothing else
+([api/director/programme_dashboard.py:65-72](../../apps/api-py/app/api/director/programme_dashboard.py#L65-L72)). Nothing else
 sets a placed flag on `Student`.
 
 ### `placement_offers` — the widest table in the schema
@@ -1004,7 +1004,7 @@ Three tables interlock. `uploads` holds file **metadata only**:
 
 `mime_type` and `size_bytes` are **server-determined** — sniffed from magic bytes by
 `_sniff()` and measured with `len(content)` in
-[app/document_store.py:37-59](../../apps/api-py/app/document_store.py#L37-L59) — so they are trustworthy
+[app/platform/document_store.py:37-59](../../apps/api-py/app/platform/document_store.py#L37-L59) — so they are trustworthy
 columns, unlike a client-supplied Content-Type. `stored_name` is a random `uuid4().hex +
 ext` and UNIQUE: "Filename on disk. Random, so an uploaded name can never traverse a path"
 ([upload.py:57](../../apps/api-py/app/models/upload.py#L57)). See Chapter 2 for the document_store
@@ -1015,10 +1015,10 @@ itself.
 `upload_id` is NOT NULL — a claim without evidence is structurally impossible. Granting a
 claim upserts `student_skills` at the granted level and points
 `student_skills.evidence_upload_id` at the same upload
-([routers/mentor.py:537-597](../../apps/api-py/app/routers/mentor.py#L537-L597)) — that path is
+([api/mentor/mentees.py:537-597](../../apps/api-py/app/api/mentor/mentees.py#L537-L597)) — that path is
 the **only** code outside `app/seed.py` that sets `student_skills.verified = True`, on
-either branch of the upsert ([mentor.py:573](../../apps/api-py/app/routers/mentor.py#L573)
-for the insert, [mentor.py:579](../../apps/api-py/app/routers/mentor.py#L579) for the
+either branch of the upsert ([mentor.py:573](../../apps/api-py/app/api/mentor/mentees.py#L573)
+for the insert, [mentor.py:579](../../apps/api-py/app/api/mentor/mentees.py#L579) for the
 update). The seed is the one other writer: it hands the demo student a pre-verified `excel`
 skill at [seed.py:265](../../apps/api-py/app/seed.py#L265), so a verified row on a seeded
 database is not evidence that any claim was ever reviewed.
@@ -1063,9 +1063,9 @@ claim review plus the `student_skills` upsert it triggers). `jobs`, `job_import_
 `mock_attempts` and `swoc_entries` are written **only** by `app/seed.py`. There is no job
 importer, no criteria editor, and no certification-progress writer — which is why
 `ProgressStatus.OVERDUE` is never *written* by any code path (dead branches at
-[student.py:1163](../../apps/api-py/app/routers/student.py#L1163),
-[student.py:1855](../../apps/api-py/app/routers/student.py#L1855) and
-[student.py:2174](../../apps/api-py/app/routers/student.py#L2174) sit waiting for a value
+[student.py:1163](../../apps/api-py/app/api/student/self_service.py#L1163),
+[student.py:1855](../../apps/api-py/app/api/student/self_service.py#L1855) and
+[student.py:2174](../../apps/api-py/app/api/student/self_service.py#L2174) sit waiting for a value
 nothing produces), why `certification_progress.last_synced_at` appears nowhere outside its
 model line and its migration, and why `job_import_runs` is an audit table for an import
 that no endpoint performs.
@@ -1091,8 +1091,8 @@ The security spine is stated at the top of the module:
 `Message.channel` is a plain `VARCHAR` with server default `'text'`, **not** a PG enum —
 there is no `message_channel` type. The literal stored for a spoken turn is the lowercase
 string `"voice"`, written at
-[routers/voice.py:472](../../apps/api-py/app/routers/voice.py#L472) and read back at
-[routers/agent.py:560](../../apps/api-py/app/routers/agent.py#L560). That is what makes the
+[api/legacy/voice_assistant.py:472](../../apps/api-py/app/api/legacy/voice_assistant.py#L472) and read back at
+[api/legacy/text_assistant.py:560](../../apps/api-py/app/api/legacy/text_assistant.py#L560). That is what makes the
 `AGENTS.md` voice runbook query work:
 
 ```sql
@@ -1108,7 +1108,7 @@ any code path, so every row holds `'text'` forever. `conversations.consent_state
 written by `POST /api/voice/consent`, but nothing reads it; the endpoint's own docstring
 warns it is "NOT AN ENFORCED RUNTIME CONTROL" and "scaffolding for a record-aware voice
 mode that does not exist yet"
-([routers/voice.py:344-349](../../apps/api-py/app/routers/voice.py#L344-L349)).
+([api/legacy/voice_assistant.py:344-349](../../apps/api-py/app/api/legacy/voice_assistant.py#L344-L349)).
 
 [conversation.py:13](../../apps/api-py/app/models/conversation.py#L13) imports `enum` and the
 module declares no enum class — a dead import, and the only hint that `sender`, `channel`
@@ -1128,13 +1128,13 @@ be nothing more than copy-paste from that skeleton. Treat it as a curiosity, not
 | `channel` | VARCHAR | no | `'text'` | `'text' \| 'voice' \| 'mixed'` — never written |
 | `consent_state` | VARCHAR | no | `'none'` | `'none' \| 'text' \| 'voice'` — written, never read |
 | `created_at`, `last_activity_at` | TIMESTAMPTZ | no | `_now` **and** `now()` | Python default plus server default |
-| `retention_until` | TIMESTAMPTZ | yes | — | set to `now + 90d` at creation ([conversations.py:60](../../apps/api-py/app/conversations.py#L60)) |
+| `retention_until` | TIMESTAMPTZ | yes | — | set to `now + 90d` at creation ([conversations.py:60](../../apps/api-py/app/assistant/conversations.py#L60)) |
 | `deleted_at` | TIMESTAMPTZ | yes | — | `# soft-clear`; also the partial-index predicate |
 | `greeted_at` | TIMESTAMPTZ | yes | — | when the compulsory opening greeting landed |
 
 Indexes: `ix_conversation_owner_activity(owner_user_id, last_activity_at)` — the owner and
 activity columns `current_conversation` filters and orders on
-([app/conversations.py:29-37](../../apps/api-py/app/conversations.py#L29-L37)); note that its
+([app/assistant/conversations.py:29-37](../../apps/api-py/app/assistant/conversations.py#L29-L37)); note that its
 *third* predicate, `deleted_at IS NULL`, is **not** in this index, so the index narrows the
 scan but does not fully cover the query. And the partial unique index
 `uq_conversation_one_active_per_owner`, covered in §8, which is the one that carries
@@ -1170,7 +1170,7 @@ One row per assistant question:
 | `id` | VARCHAR | PK, `_uuid` |
 | `actor_id` | VARCHAR | FK `users.id` CASCADE |
 | `role` | `role` enum | reused, `create_type=False` |
-| `scope` | VARCHAR | `"self" \| "programme"` — computed, not passed: `"self" if role == "STUDENT" else "programme"` ([agent.py:123](../../apps/api-py/app/routers/agent.py#L123)) |
+| `scope` | VARCHAR | `"self" \| "programme"` — computed, not passed: `"self" if role == "STUDENT" else "programme"` ([agent.py:123](../../apps/api-py/app/api/legacy/text_assistant.py#L123)) |
 | `question` | VARCHAR | NOT NULL, no default; redacted to `[redacted]` by `redact_expired_runs` |
 | `answer` | VARCHAR | NOT NULL, default/server `""`; redacted the same way |
 | `status` | `agent_run_status` | ANSWERED / EXHAUSTED / REFUSED / FAILED — **only ANSWERED and FAILED are ever written** |
@@ -1199,7 +1199,7 @@ and `ix_agentrun_status(status)`, which is the index behind the `/metrics` statu
 `uq_feedback_run_owner(run_id, owner_user_id)` — "a re-vote UPSERTs onto this row"
 ([feedback.py:47-48](../../apps/api-py/app/models/feedback.py#L47-L48)) — and
 `ix_feedback_run(run_id)`. The note is passed through `redact_pii`
-([app/redaction.py:41](../../apps/api-py/app/redaction.py#L41)) before storage because "the note
+([app/platform/redaction.py:41](../../apps/api-py/app/platform/redaction.py#L41)) before storage because "the note
 is a product signal, not a place to accumulate student PII"
 ([feedback.py:9-10](../../apps/api-py/app/models/feedback.py#L9-L10)).
 
@@ -1269,7 +1269,7 @@ Chapter 10 covers the hybrid retrieval that uses both columns.
 NULL, `now()`); `resolved_at` (nullable); `resolved_by` (a bare String user id, nullable,
 no FK). "Open" is expressed as `resolved_at IS NULL`, not a boolean — which is exactly
 what `GET /director/overview` queries
-([director.py:73-74](../../apps/api-py/app/routers/director.py#L73-L74)).
+([director.py:73-74](../../apps/api-py/app/api/director/programme_dashboard.py#L73-L74)).
 
 Indexes: `ix_alert_student_resolved(student_id, resolved_at)` — precisely the shape of the
 open-alerts-for-a-student query — and `ix_alert_rule(rule_triggered)`
@@ -1633,7 +1633,7 @@ the one-row-per-student uniques on `student_profiles.student_id` and
 Two of those deserve a sentence. **`uploads.stored_name`** is unique *and* random, which is
 what makes path traversal and cross-student overwrite structurally impossible rather than
 merely guarded. **`mail_logs.dedupe_key`** is the reservation that
-`mailer.deliver_once` ([app/mailer.py:28](../../apps/api-py/app/mailer.py#L28)) flushes against
+`mailer.deliver_once` ([app/platform/mailer.py:28](../../apps/api-py/app/platform/mailer.py#L28)) flushes against
 **before** invoking any driver — the ordering is what prevents a crash between "send" and
 "insert" producing a duplicate on the next run.
 
@@ -1707,7 +1707,7 @@ that list: each carries exactly one index, the inline `index=True` one at the bo
 table above.) Three are worth noticing. The jobs board is scanned in full on every
 `GET /student/jobs`, and `placement_criteria` likewise. And `students` is the one this
 chapter keeps circling back to: `students.mentor_id` — the column every mentee query in
-`routers/mentor.py` filters on, and the whole substrate of Rule 2 — has no index behind it,
+`api/mentor/mentees.py` filters on, and the whole substrate of Rule 2 — has no index behind it,
 only the FK.
 
 ### The one partial index — one active conversation per owner
@@ -1750,7 +1750,7 @@ The resolution is written to match:
         return winner
 ```
 
-— [app/conversations.py:63-71](../../apps/api-py/app/conversations.py#L63-L71). The predicate
+— [app/assistant/conversations.py:63-71](../../apps/api-py/app/assistant/conversations.py#L63-L71). The predicate
 `deleted_at IS NULL` is also what makes "clear my conversation" work: clearing
 soft-deletes the row, which drops it out of the index and frees the owner to open a fresh
 thread — which then starts unstamped and is greeted again.
@@ -1768,7 +1768,7 @@ all of them:
 - `swoc_entries.weight` is "1-5, how strongly the author holds this"
   ([swoc.py:46](../../apps/api-py/app/models/swoc.py#L46)) with no DB bound.
 - `time_sheet_entries.minutes` is bounded `ge=0, le=1440` **per bucket** by `TimeSheetLogIn`
-  ([student.py:866](../../apps/api-py/app/routers/student.py#L866)), and the *sum* of the
+  ([student.py:866](../../apps/api-py/app/api/student/self_service.py#L866)), and the *sum* of the
   five buckets describing one day is bounded **nowhere at all** — not in the database, not
   in Pydantic, and not in the Angular client either. The client's clamp is per-bucket and
   numerically identical to the server's:
@@ -1793,9 +1793,9 @@ all of them:
 - `placement_criteria.active` has no partial unique index, so **two rows can be active at
   once**. All three readers compensate identically with
   `.where(active.is_(True)).order_by(updated_at.desc()).limit(1)`
-  ([student.py:581-586](../../apps/api-py/app/routers/student.py#L581-L586),
-  [student.py:2042-2047](../../apps/api-py/app/routers/student.py#L2042-L2047),
-  [director.py:136-141](../../apps/api-py/app/routers/director.py#L136-L141)). A fourth consumer
+  ([student.py:581-586](../../apps/api-py/app/api/student/self_service.py#L581-L586),
+  [student.py:2042-2047](../../apps/api-py/app/api/student/self_service.py#L2042-L2047),
+  [director.py:136-141](../../apps/api-py/app/api/director/programme_dashboard.py#L136-L141)). A fourth consumer
   written without that `order_by`+`limit` would get a nondeterministic gate or a
   `MultipleResultsFound`.
 
@@ -1875,12 +1875,12 @@ as a word boundary (`time_sheet_entries`).
 are exactly **three camelCase islands** in the backend:
 
 1. The **JWT session payload** (`userId`, `studentId`, `mentorId`), minted at
-   [routers/auth.py:29-40](../../apps/api-py/app/routers/auth.py#L29-L40).
+   [api/account/sign_in.py:29-40](../../apps/api-py/app/api/account/sign_in.py#L29-L40).
 2. The **`SessionUser` Pydantic schema that mirrors it** —
    [app/schemas/auth.py:12-18](../../apps/api-py/app/schemas/auth.py#L12-L18), fields `userId`,
    `email`, `name`, `role`, `studentId`, `mentorId`. It is the `response_model` of both
-   `POST /auth/login` ([auth.py:43](../../apps/api-py/app/routers/auth.py#L43)) and `GET
-   /auth/me` ([auth.py:80](../../apps/api-py/app/routers/auth.py#L80)), so it is the very first
+   `POST /auth/login` ([auth.py:43](../../apps/api-py/app/api/account/sign_in.py#L43)) and `GET
+   /auth/me` ([auth.py:80](../../apps/api-py/app/api/account/sign_in.py#L80)), so it is the very first
    schema a reader of the auth flow meets. The module docstring gives the reason: "Field
    names mirror the Next.js session payload (camelCase) so the Angular client is unchanged
    across the cutover" ([schemas/auth.py:1-2](../../apps/api-py/app/schemas/auth.py#L1-L2)).
@@ -2036,7 +2036,7 @@ no DDL for the new table, and — if the table already exists in the database �
 
 - **The semantics of summing `live_backlogs`.** Both eligibility readers compute
   `SUM(live_backlogs)` over *every* `semester_results` row
-  ([student.py:1792-1800](../../apps/api-py/app/routers/student.py#L1792-L1800)). A live backlog
+  ([student.py:1792-1800](../../apps/api-py/app/api/student/self_service.py#L1792-L1800)). A live backlog
   is a point-in-time fact, so if an importer records a subject failed in semester 1 as live
   in both the semester-1 and semester-2 rows, the sum double-counts and the student is over
   the default `max_live_backlogs = 0` gate forever. If instead each row means "newly
@@ -2085,16 +2085,16 @@ no DDL for the new table, and — if the table already exists in the database �
   ([seed.py:216](../../apps/api-py/app/seed.py#L216)) — nothing in `app/` ever selects it.
   All three attendance readers project only the columns they count:
   `(course_code, present)` at
-  [student.py:179-183](../../apps/api-py/app/routers/student.py#L179-L183), `present` alone
-  at [student.py:234-236](../../apps/api-py/app/routers/student.py#L234-L236) and
-  [student.py:1774-1776](../../apps/api-py/app/routers/student.py#L1774-L1776). The one
+  [student.py:179-183](../../apps/api-py/app/api/student/self_service.py#L179-L183), `present` alone
+  at [student.py:234-236](../../apps/api-py/app/api/student/self_service.py#L234-L236) and
+  [student.py:1774-1776](../../apps/api-py/app/api/student/self_service.py#L1774-L1776). The one
   `_date` column that genuinely *is* read is `certification_progress.due_date` — ordered on
   and returned by the certifications list and the next-actions builder
-  ([student.py:1177](../../apps/api-py/app/routers/student.py#L1177),
-  [1183](../../apps/api-py/app/routers/student.py#L1183),
-  [1200](../../apps/api-py/app/routers/student.py#L1200),
-  [1852](../../apps/api-py/app/routers/student.py#L1852),
-  [2177](../../apps/api-py/app/routers/student.py#L2177)) — so the same question about its
+  ([student.py:1177](../../apps/api-py/app/api/student/self_service.py#L1177),
+  [1183](../../apps/api-py/app/api/student/self_service.py#L1183),
+  [1200](../../apps/api-py/app/api/student/self_service.py#L1200),
+  [1852](../../apps/api-py/app/api/student/self_service.py#L1852),
+  [2177](../../apps/api-py/app/api/student/self_service.py#L2177)) — so the same question about its
   TIMESTAMPTZ typing has real consequences, where the others' does not.
 - **The stray `import enum` in `conversation.py`.** [Line 13](../../apps/api-py/app/models/conversation.py#L13)
   imports `enum` and the module declares no enum class. It is consistent with `sender`,
@@ -2104,8 +2104,8 @@ no DDL for the new table, and — if the table already exists in the database �
 - **`SwocSource.PM`.** The abbreviation is expanded nowhere in the codebase or docs.
   "Programme manager" is a guess from context and is not asserted here as fact.
 - **AGENTS.md says a DIRECTOR "reads every student's marks, attendance and USN."** USN is
-  exposed to staff by `GET /mentor/mentees`. Marks and attendance are not: `routers/mentor.py`
-  and `routers/director.py` import none of `SemesterResult`, `SubjectMark`,
+  exposed to staff by `GET /mentor/mentees`. Marks and attendance are not: `api/mentor/mentees.py`
+  and `api/director/programme_dashboard.py` import none of `SemesterResult`, `SubjectMark`,
   `AttendanceRecord`, `AcademicQualification` or `Enrollment`, and no endpoint returns
   another student's marks or attendance. The only academic row that crosses the
   student/staff boundary today is `LabSession`, via `GET /mentor/students/{id}/focus`. The
@@ -2121,7 +2121,7 @@ no DDL for the new table, and — if the table already exists in the database �
   `certification_progress.last_synced_at`, `resumes.evidence` and `resumes.scoring`
   (`resumes.content` is the near-miss: `POST /student/resume/generate` *does* write it, but
   only ever as the literal empty dict `content={}` at
-  [student.py:992](../../apps/api-py/app/routers/student.py#L992), so the column is
+  [student.py:992](../../apps/api-py/app/api/student/self_service.py#L992), so the column is
   populated on every generated resume and still holds nothing),
   `semester_results.marksheet_upload_id` and `published_on`, the three
   `lab_sessions.progress_*` columns plus `activity_note` and `notes`,

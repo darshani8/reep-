@@ -5,7 +5,7 @@ uses a unique dedupe_key per run so it never collides with prior data.
 import uuid
 
 from app.db import SessionLocal
-from app.mailer import deliver_once
+from app.platform.mailer import deliver_once
 from app.models.mail import MailStatus
 
 from conftest import requires_db

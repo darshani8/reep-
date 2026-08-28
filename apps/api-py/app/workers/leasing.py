@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from ..models.redesign import DeliveryStatus, DomainJob, JobStatus, OutboxEvent
+from ..models.audit import DeliveryStatus, DomainJob, JobStatus, OutboxEvent
 
 
 def utc_now() -> datetime:

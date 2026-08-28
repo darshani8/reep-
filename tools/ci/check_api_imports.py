@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prove that `app/` imports nothing requirements.txt does not declare.
 
-WHY THIS EXISTS. `app/interview_local.py` reached main importing numpy with no
+WHY THIS EXISTS. `app/interview/offline_engine.py` reached main importing numpy with no
 entry in any requirements file. It survived review and it survived CI, because
 of exactly one detail: the import is LAZY — it sits inside a request handler —
 so the API still booted, every existing test still passed, and the break was

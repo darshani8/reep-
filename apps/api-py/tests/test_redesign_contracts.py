@@ -1,8 +1,8 @@
 import pytest
 from fastapi import HTTPException
 
-from app.architecture_events import request_hash, require_idempotency_key
-from app.policies import STAFF_ROLES, student_identity
+from app.platform.audit_trail import request_hash, require_idempotency_key
+from app.platform.access_rules import STAFF_ROLES, student_identity
 
 
 def test_missing_idempotency_key_is_rejected_for_commands():

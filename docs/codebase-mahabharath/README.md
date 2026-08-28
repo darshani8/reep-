@@ -32,10 +32,10 @@ verification are rewritten, not shipped with a caveat.
 | 5 | [Auth & RBAC](05-auth-rbac.md) | scrypt hashing, HS256 sessions, the cookie, `require_*`, `_assert_can_access_student` (Rule 2) |
 | 6 | [The Student API](06-api-student.md) | All 49 student-reachable endpoints: `student.py`, `registration.py`, `leave.py`, and the rule engines behind readiness, next-actions and leaderboards |
 | 7 | [HTTP API — Staff & Machine Surface](07-api-staff.md) | `mentor`, `director`, `agent`, `voice`, `health` routers |
-| 8 | [The AI Layer](08-ai-layer.md) | `ai/llm.py`, the egress gate (Rule 1), `agents.py`, `orchestrator.py`, `adk.py`, `assistant_tools.py` |
+| 8 | [The AI Layer](08-ai-layer.md) | `ai/llm.py`, the egress gate (Rule 1), `agents.py`, `orchestrator.py`, `adk.py`, `assistant/tools.py` |
 | 9 | [Conversations, Memory & Governance](09-conversations-memory.md) | `conversations.py`, `memory.py`, `eval/`, `retention.py`, `redaction.py`, feedback |
 | 10 | [Vector DB & the Knowledge Base](10-vector-kb.md) | pgvector, `ai/embeddings.py`, hybrid retrieval in `knowledge.py`, `seed_kb.py` |
-| 11 | [The Voice Assistant](11-voice.md) | `routers/voice.py`, `voice_agent.py`, the state machine, consent, transcripts, heartbeats |
+| 11 | [The Voice Assistant](11-voice.md) | `api/legacy/voice_assistant.py`, `voice_agent.py`, the state machine, consent, transcripts, heartbeats |
 | 12 | [Frontend Architecture](12-frontend-architecture.md) | Bootstrap, lazy routes, `core/` services, guards, the shell, signals |
 | 13 | [Frontend Features](13-frontend-features.md) | Every feature component, the resume builder, the assistant UI |
 | 14 | [The Design System](14-design-system.md) | `reep-v2.scss`, the kit, `tone.ts`, charts, the colour-plus-text rule |

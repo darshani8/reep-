@@ -19,8 +19,8 @@ import json
 
 import pytest
 
-from app.interview_matrix import SPECIALIZATIONS, InterviewPhase
-from app.interview_relay import _CLOSE_OK, _SessionEnded
+from app.interview.specializations import SPECIALIZATIONS, InterviewPhase
+from app.interview.realtime_relay import _CLOSE_OK, _SessionEnded
 
 # The harness is deliberately imported, not copied: one fake upstream, one
 # fake browser, one set of event-sequence helpers, so a change to the harness

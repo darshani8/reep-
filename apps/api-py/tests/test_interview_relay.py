@@ -26,8 +26,8 @@ import pytest
 from websockets.exceptions import ConnectionClosedOK
 
 from app.config import settings
-from app.interview_matrix import SPECIALIZATIONS, InterviewPhase
-from app.interview_relay import (
+from app.interview.specializations import SPECIALIZATIONS, InterviewPhase
+from app.interview.realtime_relay import (
     _AUDIO_TRACK_STUDENT,
     _CLOSE_OK,
     _CLOSE_TURN_STALLED,
@@ -1303,7 +1303,7 @@ class TestTheReport:
 
 
 class _FakeRecorder:
-    """app/interview_audio.py's recorder, reduced to feed()."""
+    """app/interview/audio_store.py's recorder, reduced to feed()."""
 
     def __init__(self) -> None:
         self.fed: list[tuple[str, bytes]] = []

@@ -27,7 +27,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
-from . import retention
+from app import retention
 from .db import SessionLocal
 
 log = logging.getLogger("reep.reap")

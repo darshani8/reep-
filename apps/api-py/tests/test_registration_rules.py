@@ -5,7 +5,7 @@ the applicant fields), so it needs no DB.
 
 from app.models.job import DegreeLevel
 from app.models.registration import RegistrationRule
-from app.routers.registration import _email_domain, _rule_matches
+from app.api.account.registration import _email_domain, _rule_matches
 
 
 def _rule(**kw) -> RegistrationRule:

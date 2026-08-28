@@ -31,24 +31,23 @@ Each outbox payload contains:
 ```json
 {
   "event_id": "unique-message-id",
-    "event_type": "mentor.notebook.entry.published",
-      "aggregate_type": "mentor_notebook_entry",
-        "aggregate_id": "entry-id",
-          "actor_id": "user-id",
-            "tenant_id": "tenant-id-or-null",
-              "request_id": "http-request-id-or-null",
-                "correlation_id": "workflow-id-or-null",
-                  "payload": {"student_id": "student-id"}
-                  }
-                  ```
+  "event_type": "mentor.notebook.entry.published",
+  "aggregate_type": "mentor_notebook_entry",
+  "aggregate_id": "entry-id",
+  "actor_id": "user-id",
+  "tenant_id": "tenant-id-or-null",
+  "request_id": "http-request-id-or-null",
+  "correlation_id": "workflow-id-or-null",
+  "payload": {"student_id": "student-id"}
+}
+```
 
-                  A relay publishes pending outbox rows to SQS. Consumers acknowledge only after their side effect is committed, use `event_id` as a deduplication key, retry with backoff, and move poison messages to a DLQ. Workers use the job row and database authorization context as authority; they do not trust tenant or user scope from an unverified client payload.
+A relay publishes pending outbox rows to SQS. Consumers acknowledge only after their side effect is committed, use `event_id` as a deduplication key, retry with backoff, and move poison messages to a DLQ. Workers use the job row and database authorization context as authority; they do not trust tenant or user scope from an unverified client payload.
 
-                  ## Vector-search workflow
+## Vector-search workflow
 
-                  Knowledge ingestion creates a document version and chunks, then queues embedding jobs. The worker validates the provider response dimension against `embedding_models.dimension` before writing `READY`. Retrieval filters by namespace and published version, prefers the active model, and retains full-text search as a fallback. Model replacement is blue/green: register, backfill, shadow compare, switch, retain the previous model, then remove it only after rollback confidence.
+Knowledge ingestion creates a document version and chunks, then queues embedding jobs. The worker validates the provider response dimension against `embedding_models.dimension` before writing `READY`. Retrieval filters by namespace and published version, prefers the active model, and retains full-text search as a fallback. Model replacement is blue/green: register, backfill, shadow compare, switch, retain the previous model, then remove it only after rollback confidence.
 
-                  ## Security boundaries
+## Security boundaries
 
-                  Private notebook content is excluded from student responses, notifications, logs, analytics, and AI prompts unless an explicit approved workflow is added. Attachment downloads require the same scope check and a short-lived signed URL. No client-provided ownership, role, student ID, or tenant ID overrides the authenticated session and database relationship. Secrets remain in Secrets Manager and never enter Git, Terraform variables, logs, or browser bundles.
-                  
+Private notebook content is excluded from student responses, notifications, logs, analytics, and AI prompts unless an explicit approved workflow is added. Attachment downloads require the same scope check and a short-lived signed URL. No client-provided ownership, role, student ID, or tenant ID overrides the authenticated session and database relationship. Secrets remain in Secrets Manager and never enter Git, Terraform variables, logs, or browser bundles.

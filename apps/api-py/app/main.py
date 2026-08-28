@@ -30,6 +30,7 @@ from .routers import (
     mentee_records,
     mentor,
     registration,
+    redesign,
     staff_upskilling,
     student,
     student_programme,

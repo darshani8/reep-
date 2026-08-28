@@ -14,12 +14,16 @@ control and a @gmail.com address granted here signs in exactly like any other.
 single-account counterpart, for the people a roster never contains — the operator
 who has to get in before anyone else does, a mentor hired mid-term, a director.
 
-STUDENT IS REFUSED HERE, deliberately. A student is not a `User` row alone:
+STUDENT REQUIRES --usn, deliberately. A student is not a `User` row alone:
 `_payload_for()` in app/routers/auth.py only puts `studentId` in the session
 when `user.student` exists, and every /api/student/* route 403s without it — so
-this tool would mint an account that signs in perfectly and then fails on every
-screen it can reach. `app/seed_roster.py` creates the User + Student +
-StudentProfile trio properly; use it.
+a bare student User row would sign in perfectly and then fail on every screen
+it can reach. With --usn this tool creates the full User + Student +
+StudentProfile trio exactly as `app/seed_roster.py` does; it exists for the
+student the roster never contains — the operator's own TEST account, a late
+joiner. Use a USN no roster row will ever claim (e.g. TEST01): it is UNIQUE,
+and a real USN granted here blocks that student's roster seed. The real batch
+stays `app.seed_roster`'s job.
 
 PRODUCTION-SAFE, deliberately. Unlike `app/seed.py` — which refuses when
 ``ENV=prod`` because it creates demo accounts behind passwords published in
@@ -43,7 +47,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .db import SessionLocal
-from .models.user import Role, User
+from .models.student_profile import StudentProfile
+from .models.user import Role, Student, User
 from .seed_roster import db_target
 
 # The roles this tool may mint on its own. STUDENT is absent on purpose — see the
@@ -62,7 +67,9 @@ _GRANTABLE_ROLES = (Role.MENTOR, Role.DIRECTOR, Role.ADMIN)
 SSO_ONLY_PASSWORD_HASH = "google-only"
 
 
-def grant(db: Session, email: str, name: str, role: Role) -> tuple[User, bool]:
+def grant(
+    db: Session, email: str, name: str, role: Role, usn: str | None = None
+) -> tuple[User, bool]:
     """Create or update the user row that permits `email` to sign in.
 
     Takes an existing session, the shape `seed_kb.seed_knowledge` and
@@ -70,16 +77,27 @@ def grant(db: Session, email: str, name: str, role: Role) -> tuple[User, bool]:
     scope. Returns the row and whether it was newly created, so the caller can
     print an honest summary instead of claiming to have created something it
     updated.
+
+    STUDENT is granted only when `usn` is supplied, and then it creates the
+    FULL trio (User + Student + StudentProfile) exactly as seed_roster does —
+    the module refuses a bare student User row for the reason the docstring
+    gives, not students as such. This path exists for the account the roster
+    never contains: the operator's own test student, a late joiner. The USN is
+    the caller's to choose and UNIQUE — a test account should use one that can
+    never collide with a real roster row (e.g. TEST01), because a real USN
+    granted here would block that student's roster seed forever.
     """
     normalised = email.strip().lower()
     if "@" not in normalised:
         raise ValueError(f"not an email address: {email!r}")
-    if role not in _GRANTABLE_ROLES:
+    if role is Role.STUDENT and not (usn or "").strip():
         raise ValueError(
-            f"{role.value} cannot be granted here — use `python -m app.seed_roster` "
-            "for students (a User row alone gives no studentId, and every "
-            "/api/student/* route 403s without it)"
+            "STUDENT needs --usn (a User row alone gives no studentId, and every "
+            "/api/student/* route 403s without it) — or use `python -m "
+            "app.seed_roster` for the real batch"
         )
+    if role is not Role.STUDENT and role not in _GRANTABLE_ROLES:
+        raise ValueError(f"{role.value} cannot be granted here")
 
     # Case-insensitive, matching the callback's lookup: granting a second row
     # that differs only in case would create an account nobody can sign into,
@@ -104,6 +122,30 @@ def grant(db: Session, email: str, name: str, role: Role) -> tuple[User, bool]:
         user.name = name
         user.role = role
 
+    if role is Role.STUDENT:
+        # The trio, exactly as seed_roster builds it. flush() before each
+        # dependent row so the ids exist; idempotent on re-run, filling in only
+        # what is missing — the same contract seed_roster keeps for accounts a
+        # student has already touched.
+        db.flush()
+        wanted_usn = (usn or "").strip().upper()
+        other = db.scalar(select(Student).where(Student.usn == wanted_usn))
+        if other is not None and other.user_id != user.id:
+            db.rollback()
+            raise ValueError(
+                f"USN {wanted_usn} already belongs to another account — a test "
+                "student must use a USN no roster row will ever claim"
+            )
+        stu = db.scalar(select(Student).where(Student.user_id == user.id))
+        if stu is None:
+            stu = Student(user_id=user.id, usn=wanted_usn)
+            db.add(stu)
+        elif not stu.usn:
+            stu.usn = wanted_usn
+        db.flush()
+        if db.scalar(select(StudentProfile).where(StudentProfile.student_id == stu.id)) is None:
+            db.add(StudentProfile(student_id=stu.id))
+
     db.commit()
     db.refresh(user)
     return user, created
@@ -123,8 +165,15 @@ def main() -> int:
         # student's marks, attendance and USN. A forgotten flag must be an
         # argparse error, not a silent grant of everything.
         required=True,
-        choices=[r.value for r in _GRANTABLE_ROLES],
+        choices=[r.value for r in _GRANTABLE_ROLES] + [Role.STUDENT.value],
         help="role to grant — required, because there is no safe default",
+    )
+    parser.add_argument(
+        "--usn",
+        default=None,
+        help="STUDENT only, and then required: the USN for the Student row. "
+        "Use one no roster row will ever claim (e.g. TEST01) — it is UNIQUE, "
+        "and a real USN granted here blocks that student's roster seed.",
     )
     args = parser.parse_args()
 
@@ -135,7 +184,7 @@ def main() -> int:
 
     with SessionLocal() as db:
         try:
-            user, created = grant(db, args.email, args.name, Role(args.role))
+            user, created = grant(db, args.email, args.name, Role(args.role), usn=args.usn)
         except ValueError as exc:
             # Reachable from a library caller; argparse's `choices` catches the
             # STUDENT case first on the command line, with its own message.

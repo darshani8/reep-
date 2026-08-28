@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -18,7 +19,16 @@ _RESERVATION_TTL = timedelta(minutes=15)
 
 
 def request_context(request: Any) -> tuple[str | None, str | None]:
-    return request.headers.get("X-Request-ID"), request.headers.get("X-Correlation-ID")
+    """Return the middleware-normalized IDs for audit and outbox records."""
+    request_id = getattr(getattr(request, "state", None), "request_id", None)
+    if request_id is None:
+        # Keep direct callers/tests safe while preserving the same sanitization
+        # contract as RequestTraceMiddleware.
+        incoming = request.headers.get("X-Request-ID", "")
+        request_id = re.sub(r"[^A-Za-z0-9._-]", "", incoming)[:64] or None
+    correlation = request.headers.get("X-Correlation-ID", "")
+    correlation = re.sub(r"[^A-Za-z0-9._-]", "", correlation)[:64] or None
+    return request_id, correlation
 
 
 def request_hash(payload: Any) -> str:
@@ -53,8 +63,19 @@ def replay_or_reserve(
         )
         .with_for_update()
     )
+    if row is not None and row.expires_at is not None and row.expires_at <= now:
+        # Expired keys are reusable, but only after the locked row is removed.
+        # This prevents indefinite replay retention while preserving the same
+        # principal/route/key uniqueness contract for concurrent callers.
+        db.delete(row)
+        db.flush()
+        row = None
+
     if row is not None:
         row.last_seen_at = now
+        if row.expires_at is None:
+            # Repair rows created before expiry was populated.
+            row.expires_at = now + _IDEMPOTENCY_TTL
         if row.request_hash != digest:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

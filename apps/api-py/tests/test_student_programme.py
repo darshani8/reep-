@@ -26,6 +26,12 @@ from app.models.english_baseline import (
     SectionStatus,
 )
 from app.models.mentor_note import MentorAction, MentorNote
+from app.models.redesign import (
+    MentorNotebookEntry,
+    NotebookEntryType,
+    NotebookVisibility,
+    RecordStatus,
+)
 from app.models.milestone import MilestoneStatus, StudentMilestone
 from app.models.user import Role, Student
 from tests.conftest import requires_db
@@ -333,3 +339,131 @@ def test_stored_milestones_and_the_derived_english_row(client, make_user):
 def test_programme_is_student_only(client, make_user):
     director = make_user("prog-director", role=Role.DIRECTOR)
     assert client.get("/api/student/programme", headers=director.headers).status_code == 403
+
+
+@requires_db
+def test_a_published_notebook_entry_reaches_the_students_log(client, make_user, mentor_row):
+    """The mentor writes in the Phase 4 notebook; the student reads this screen.
+
+    Those are two different tables, and until they were merged here publishing
+    an entry had no visible effect at all: the row sat PUBLISHED and
+    STUDENT_VISIBLE while this endpoint read `mentor_notes` alone, so the
+    mentor's deliberate act of sharing produced an empty log and no error on
+    either screen.
+
+    Also pins what must NOT cross: a DRAFT and a PRIVATE_STAFF entry are
+    staff-internal by construction. If either ever appears here, a mentor's
+    private working note has been published to the student it is about.
+    """
+    stu = make_user("nb-own")
+    mentor = mentor_row("nb-mentor")
+    sid = _student_id(stu.user_id)
+    base = datetime.now(timezone.utc)
+
+    with SessionLocal() as db:
+        db.add_all(
+            [
+                MentorNote(
+                    mentor_id=mentor.mentor_id, student_id=sid,
+                    note_text="Legacy note", title="Older 1:1",
+                    meeting_at=base - timedelta(days=10),
+                ),
+                MentorNotebookEntry(
+                    student_id=sid, author_user_id=mentor.user_id,
+                    mentor_id=mentor.mentor_id, body="Published notebook entry",
+                    title="Placement readiness", entry_type=NotebookEntryType.MEETING,
+                    visibility=NotebookVisibility.STUDENT_VISIBLE,
+                    status=RecordStatus.PUBLISHED,
+                    meeting_at=base - timedelta(days=2), published_at=base,
+                ),
+                MentorNotebookEntry(
+                    student_id=sid, author_user_id=mentor.user_id,
+                    mentor_id=mentor.mentor_id, body="Still a draft",
+                    visibility=NotebookVisibility.STUDENT_VISIBLE,
+                    status=RecordStatus.DRAFT, meeting_at=base - timedelta(days=1),
+                ),
+                MentorNotebookEntry(
+                    student_id=sid, author_user_id=mentor.user_id,
+                    mentor_id=mentor.mentor_id, body="Staff eyes only",
+                    visibility=NotebookVisibility.PRIVATE_STAFF,
+                    status=RecordStatus.PUBLISHED, meeting_at=base,
+                ),
+            ]
+        )
+        db.commit()
+
+    body = client.get("/api/student/mentor-meetings", headers=stu.headers).json()
+    notes = [m["note"] for m in body["meetings"]]
+
+    assert "Published notebook entry" in notes
+    assert "Legacy note" in notes
+    assert "Still a draft" not in notes
+    assert "Staff eyes only" not in notes
+
+    # Both stores in one list, newest first, with the count agreeing.
+    assert notes == ["Published notebook entry", "Legacy note"]
+    assert body["meetings_logged"] == 2
+
+    entry = body["meetings"][0]
+    assert entry["title"] == "Placement readiness"
+    # The notebook records no location; the field stays null rather than
+    # inventing one.
+    assert entry["location"] is None
+    # A notebook entry carries no mentor_notes action, so it reads as a note.
+    assert entry["action_label"] == "Note only"
+    # It must not inflate the open-actions tile: a note is not a task.
+    assert body["open_actions"] == 0
+
+
+@requires_db
+def test_an_untitled_notebook_entry_falls_back_to_its_type(client, make_user, mentor_row):
+    """Same contract as an untitled mentor_note: a heading is derived, never
+    blank, and never the raw staff enum. A student reading "WELLBEING" as a
+    heading about themselves learns less than the words do."""
+    stu = make_user("nb-untitled")
+    mentor = mentor_row("nb-untitled-mentor")
+    sid = _student_id(stu.user_id)
+
+    with SessionLocal() as db:
+        db.add(
+            MentorNotebookEntry(
+                student_id=sid, author_user_id=mentor.user_id,
+                mentor_id=mentor.mentor_id, body="No title on this one",
+                entry_type=NotebookEntryType.WELLBEING,
+                visibility=NotebookVisibility.STUDENT_VISIBLE,
+                status=RecordStatus.PUBLISHED,
+                meeting_at=datetime.now(timezone.utc),
+            )
+        )
+        db.commit()
+
+    body = client.get("/api/student/mentor-meetings", headers=stu.headers).json()
+    assert body["meetings"][0]["title"] == "Wellbeing check-in"
+
+
+@requires_db
+def test_a_notebook_entry_with_no_meeting_date_still_dates_the_line(client, make_user, mentor_row):
+    """meeting_at is nullable on a notebook entry -- not every entry records a
+    meeting -- but met_on is NOT NULL on the way out. It falls back to when the
+    entry was published, so the student gets a line they can place in time
+    rather than a blank date."""
+    stu = make_user("nb-nodate")
+    mentor = mentor_row("nb-nodate-mentor")
+    sid = _student_id(stu.user_id)
+    published = datetime.now(timezone.utc) - timedelta(days=3)
+
+    with SessionLocal() as db:
+        db.add(
+            MentorNotebookEntry(
+                student_id=sid, author_user_id=mentor.user_id,
+                mentor_id=mentor.mentor_id, body="Dated by publication",
+                visibility=NotebookVisibility.STUDENT_VISIBLE,
+                status=RecordStatus.PUBLISHED,
+                meeting_at=None, published_at=published,
+            )
+        )
+        db.commit()
+
+    body = client.get("/api/student/mentor-meetings", headers=stu.headers).json()
+    assert body["meetings"][0]["met_on"] is not None
+    assert body["meetings"][0]["day"] == f"{published:%d}"

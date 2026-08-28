@@ -49,6 +49,12 @@ from ..models.english_baseline import (
     SectionStatus,
 )
 from ..models.mentor_note import MentorAction, MentorNote
+from ..models.redesign import (
+    MentorNotebookEntry,
+    NotebookEntryType,
+    NotebookVisibility,
+    RecordStatus,
+)
 from ..models.milestone import (
     MILESTONES,
     STAGES,
@@ -857,6 +863,19 @@ _ACTION_LABEL = {
 #: Actions that are still outstanding, and so count on the "Open actions" tile.
 _OPEN_ACTIONS = frozenset({MentorAction.FLAGGED, MentorAction.ONE_ON_ONE_SCHEDULED})
 
+#: Headings for a notebook entry the mentor left untitled. Same reasoning as
+#: _ACTION_LABEL: the staff enum is internal, and a student reading "WELLBEING"
+#: as a heading about themselves learns less than the words do.
+_ENTRY_TYPE_LABEL = {
+    NotebookEntryType.MEETING: "Mentor meeting",
+    NotebookEntryType.ACADEMIC_REVIEW: "Academic review",
+    NotebookEntryType.WELLBEING: "Wellbeing check-in",
+    NotebookEntryType.PLACEMENT: "Placement discussion",
+    NotebookEntryType.ATTENDANCE: "Attendance review",
+    NotebookEntryType.REFERRAL: "Referral",
+    NotebookEntryType.CUSTOM: "Mentor note",
+}
+
 
 @router.get("/mentor-meetings", response_model=MentorLogOut)
 def read_mentor_meetings(
@@ -865,11 +884,25 @@ def read_mentor_meetings(
 ) -> MentorLogOut:
     """The student's own 1:1 history, newest first, plus the next scheduled one.
 
-    Reads `mentor_notes` filtered to this student's own id from the session —
-    the same rows a mentor writes. The screen says plainly that these notes are
-    visible to the student and the placement office, which is why nothing here
-    is filtered by author or hidden: a note a student cannot see is a note that
-    should not have been written on this table.
+    Reads TWO stores and merges them, because a mentor has two places to write
+    and a student has one place to look.
+
+    `mentor_notes` is the original table. The Phase 4 mentor notebook
+    (`redesign_mentor_notebook_entries`) is the newer one the staff screen now
+    opens on, and publishing an entry there is the mentor's deliberate act of
+    showing it to the student. Until this merge existed, that act had no effect
+    anywhere the student could see: the entry was PUBLISHED and STUDENT_VISIBLE
+    in one table while this screen read the other, so a mentor wrote a note,
+    published it, and the student's log stayed empty -- with nothing on either
+    screen to say why.
+
+    Only PUBLISHED + STUDENT_VISIBLE + not-deleted entries cross over. A draft
+    or a PRIVATE_STAFF entry is staff-internal by construction and must never
+    appear here; that filter is the whole contract of the notebook's visibility
+    column, so it is applied in the query rather than after it.
+
+    Nothing is filtered by author or hidden beyond that: a note a student cannot
+    see is a note that should not have been written on these tables.
     """
     student_id = _require_student(session)
 
@@ -877,6 +910,15 @@ def read_mentor_meetings(
         select(MentorNote)
         .where(MentorNote.student_id == student_id)
         .order_by(MentorNote.meeting_at.desc())
+    ).all()
+
+    notebook_rows = db.scalars(
+        select(MentorNotebookEntry).where(
+            MentorNotebookEntry.student_id == student_id,
+            MentorNotebookEntry.visibility == NotebookVisibility.STUDENT_VISIBLE,
+            MentorNotebookEntry.status == RecordStatus.PUBLISHED,
+            MentorNotebookEntry.deleted_at.is_(None),
+        )
     ).all()
 
     mentor_name: str | None = None
@@ -900,6 +942,55 @@ def read_mentor_meetings(
             author_cache[mentor_id] = name
         return author_cache[mentor_id]
 
+    def _user_name(user_id: str) -> str:
+        if user_id not in author_cache:
+            user = db.get(User, user_id)
+            author_cache[user_id] = user.name if user is not None and user.name else "Your mentor"
+        return author_cache[user_id]
+
+    meetings = [
+        MeetingOut(
+            id=r.id,
+            met_on=r.meeting_at,
+            day=f"{r.meeting_at:%d}",
+            month=f"{r.meeting_at:%b %Y}",
+            # Falls back to the action rather than to an empty heading — see
+            # the migration's note on not backfilling titles.
+            title=r.title or _ACTION_LABEL.get(r.linked_action, "Mentor meeting"),
+            location=r.location,
+            action=r.linked_action.value,
+            action_label=_ACTION_LABEL.get(r.linked_action, r.linked_action.value),
+            note=r.note_text,
+            logged_by=_author(r.mentor_id),
+        )
+        for r in rows
+    ]
+
+    for e in notebook_rows:
+        # meeting_at is nullable on a notebook entry (not every entry records a
+        # meeting), so the date falls back to when it was published and then to
+        # when it was written. met_on is NOT NULL on the way out, and a dated
+        # line the student can place in time beats a blank one.
+        met_on = e.meeting_at or e.published_at or e.created_at
+        meetings.append(
+            MeetingOut(
+                id=e.id,
+                met_on=met_on,
+                day=f"{met_on:%d}",
+                month=f"{met_on:%b %Y}",
+                title=e.title or _ENTRY_TYPE_LABEL.get(e.entry_type, "Mentor note"),
+                # The notebook records no location; the field stays null rather
+                # than inventing one, and the template already omits a null.
+                location=None,
+                action=MentorAction.NONE.value,
+                action_label=_ACTION_LABEL[MentorAction.NONE],
+                note=e.body,
+                logged_by=_user_name(e.author_user_id),
+            )
+        )
+
+    meetings.sort(key=lambda m: m.met_on, reverse=True)
+
     upcoming = db.scalar(
         select(ScheduleItem)
         .where(
@@ -913,8 +1004,11 @@ def read_mentor_meetings(
 
     return MentorLogOut(
         mentor_name=mentor_name,
-        meetings_logged=len(rows),
-        last_meeting=rows[0].meeting_at if rows else None,
+        meetings_logged=len(meetings),
+        last_meeting=meetings[0].met_on if meetings else None,
+        # Counted from mentor_notes alone, deliberately. The notebook keeps its
+        # actions in their own table with their own lifecycle; folding a
+        # notebook entry in here as "open" would count a note as a task.
         open_actions=sum(1 for r in rows if r.linked_action in _OPEN_ACTIONS),
         next_meeting=(
             NextMeetingOut(
@@ -923,23 +1017,7 @@ def read_mentor_meetings(
             if upcoming
             else None
         ),
-        meetings=[
-            MeetingOut(
-                id=r.id,
-                met_on=r.meeting_at,
-                day=f"{r.meeting_at:%d}",
-                month=f"{r.meeting_at:%b %Y}",
-                # Falls back to the action rather than to an empty heading — see
-                # the migration's note on not backfilling titles.
-                title=r.title or _ACTION_LABEL.get(r.linked_action, "Mentor meeting"),
-                location=r.location,
-                action=r.linked_action.value,
-                action_label=_ACTION_LABEL.get(r.linked_action, r.linked_action.value),
-                note=r.note_text,
-                logged_by=_author(r.mentor_id),
-            )
-            for r in rows
-        ],
+        meetings=meetings,
     )
 
 

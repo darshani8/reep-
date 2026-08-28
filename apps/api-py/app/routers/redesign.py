@@ -511,6 +511,7 @@ def create_action(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> ActionOut | JSONResponse:
+    require_notebook_staff(session)
     assert_student_scope(session, student_id, db)
     if session["role"] != "MENTOR":
         raise HTTPException(status_code=403, detail="Only a mentor can create notebook actions.")

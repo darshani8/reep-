@@ -7,20 +7,21 @@
 export type Role = 'STUDENT' | 'MENTOR' | 'DIRECTOR' | 'ADMIN' | 'ALUMNI';
 
 export interface SessionPayload {
-  userId: string;
-  email: string;
-  name: string;
-  role: Role;
-  /// Present for STUDENT, absent otherwise.
+    userId: string;
+    email: string;
+    name: string;
+    role: Role;
+    /// Present for STUDENT, absent otherwise.
   studentId?: string;
-  mentorId?: string;
+    mentorId?: string;
+    tokenVersion?: number;
 }
 
 /// Where each role lands after signing in — the port of HOME_FOR_ROLE.
 export const HOME_FOR_ROLE: Record<Role, string> = {
-  STUDENT: '/student',
-  MENTOR: '/mentor',
-  DIRECTOR: '/director',
-  ADMIN: '/director',
-  ALUMNI: '/alumni',
+    STUDENT: '/student',
+    MENTOR: '/mentor',
+    DIRECTOR: '/director',
+    ADMIN: '/director',
+    ALUMNI: '/alumni',
 };

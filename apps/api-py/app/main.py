@@ -10,7 +10,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import retention
@@ -30,6 +30,7 @@ from .routers import (
     mentee_records,
     mentor,
     registration,
+    redesign,
     staff_upskilling,
     student,
     student_programme,
@@ -245,6 +246,33 @@ app.add_middleware(
 # echoed header rides on responses CORS has already stamped.
 app.add_middleware(RequestTraceMiddleware)
 
+
+# Response hardening on every HTTP response this process serves. These belong
+# on the application, not only on whatever proxy happens to sit in front —
+# apps/web/nginx.conf carries the same headers for the SPA's files, but the
+# documented dev setup and any future ingress talk to uvicorn directly.
+#   nosniff       — the download endpoints serve student-supplied bytes with a
+#                   stored mime type; without this a browser is free to sniff
+#                   its own, which is how "it's just a PNG" becomes markup.
+#   DENY          — no screen in this app is ever legitimately framed, and a
+#                   framed login is a clickjacking kit's first ingredient.
+#   HSTS          — only outside the dev allowlist (the same
+#                   insecure_cookies_allowed gate the Secure cookie flag keys
+#                   on): a laptop on http://localhost must not have this host
+#                   pinned to HTTPS by a stray header.
+# setdefault, never overwrite: a handler that deliberately sets one of these
+# knows more than this blanket does.
+@app.middleware("http")
+async def _security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    if not settings.insecure_cookies_allowed:
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
+    return response
+
 # Health is infra liveness — unprefixed at /health.
 app.include_router(health.router)
 # agent + voice + interview already carry /api in their own prefix
@@ -256,6 +284,9 @@ app.include_router(interview.router)
 # Angular client calls lives under /api — matching environment.apiBase and the
 # dev proxy (apps/web/proxy.conf.json), with no path rewriting.
 app.include_router(auth.router, prefix="/api")
+# Canonical v1 surface. The legacy /api surface remains during the expand/contract window.
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(redesign.router, prefix="/api/v1")
 app.include_router(student.router, prefix="/api")
 # The v2 UI's three new screens (ledger, English baseline, mentor meeting log)
 # and the landing programme cards. Its own module so routers/student.py — the

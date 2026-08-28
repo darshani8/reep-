@@ -251,6 +251,13 @@ def manual_award(
     _assert_can_access_student(session, student_id, db)
     if code not in BADGE_BY_CODE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such badge.")
+    if BADGE_BY_CODE[code].staff_awarded:
+        # Readiness badges certify that assessment THRESHOLDS were met — a call
+        # nothing in this handler verifies, so it stays with the role that can
+        # also undo it. Revoke below is require_director; an award any MENTOR
+        # could mint but only a DIRECTOR could unwind is an asymmetry that only
+        # ever accumulates points.
+        require_director(session)
     _award(db, student_id, code, session["userId"], (body.note or "").strip() or "Manually awarded")
     db.commit()
     return compose_badges(db.get(Student, student_id), db)
@@ -489,6 +496,13 @@ def export_cohort_csv(
     for r in db.scalars(select(CapabilityAssessment)).all():
         assessments[r.student_id][r.capability][r.checkpoint.value] = r.score
 
+    def _cell(value: str) -> str:
+        # CSV formula injection: a name registered as "=HYPERLINK(...)" becomes
+        # a live formula the moment a placement officer opens this export in
+        # Excel/Sheets. The leading apostrophe is the spreadsheet convention
+        # for "this is text" — it is not displayed, only obeyed.
+        return f"'{value}" if value[:1] in ("=", "+", "-", "@", "\t", "\r") else value
+
     buf = io.StringIO()
     writer = csv.writer(buf)
     cat_headers = [CATEGORY_LABEL[c] for c in BadgeCategory]
@@ -510,8 +524,8 @@ def export_cohort_csv(
         mean_growth = round(sum(growths) / len(growths), 2) if growths else ""
         writer.writerow(
             [
-                name,
-                student.usn or "",
+                _cell(name),
+                _cell(student.usn or ""),
                 student.current_stage.value,
                 sum(sb.points_awarded for sb in badges),
                 *[per_cat[c] for c in BadgeCategory],

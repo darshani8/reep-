@@ -14,6 +14,7 @@ export interface SessionPayload {
   /// Present for STUDENT, absent otherwise.
   studentId?: string;
   mentorId?: string;
+  tokenVersion?: number;
 }
 
 /// Where each role lands after signing in — the port of HOME_FOR_ROLE.

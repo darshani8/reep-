@@ -29,75 +29,75 @@ from ..db import Base
 
 
 def _uuid() -> str:
-      return uuid.uuid4().hex
+    return uuid.uuid4().hex
 
 
 class MembershipRole(str, enum.Enum):
-      STUDENT = "STUDENT"
-      MENTOR = "MENTOR"
-      DIRECTOR = "DIRECTOR"
-      ADMIN = "ADMIN"
+    STUDENT = "STUDENT"
+    MENTOR = "MENTOR"
+    DIRECTOR = "DIRECTOR"
+    ADMIN = "ADMIN"
 
 
 class RecordStatus(str, enum.Enum):
-      DRAFT = "DRAFT"
-      PUBLISHED = "PUBLISHED"
-      ARCHIVED = "ARCHIVED"
+    DRAFT = "DRAFT"
+    PUBLISHED = "PUBLISHED"
+    ARCHIVED = "ARCHIVED"
 
 
 class NotebookVisibility(str, enum.Enum):
-      PRIVATE_STAFF = "PRIVATE_STAFF"
-      STUDENT_VISIBLE = "STUDENT_VISIBLE"
+    PRIVATE_STAFF = "PRIVATE_STAFF"
+    STUDENT_VISIBLE = "STUDENT_VISIBLE"
 
 
 class NotebookEntryType(str, enum.Enum):
-      MEETING = "MEETING"
-      ACADEMIC_REVIEW = "ACADEMIC_REVIEW"
-      WELLBEING = "WELLBEING"
-      PLACEMENT = "PLACEMENT"
-      ATTENDANCE = "ATTENDANCE"
-      REFERRAL = "REFERRAL"
-      CUSTOM = "CUSTOM"
+    MEETING = "MEETING"
+    ACADEMIC_REVIEW = "ACADEMIC_REVIEW"
+    WELLBEING = "WELLBEING"
+    PLACEMENT = "PLACEMENT"
+    ATTENDANCE = "ATTENDANCE"
+    REFERRAL = "REFERRAL"
+    CUSTOM = "CUSTOM"
 
 
 class ActionStatus(str, enum.Enum):
-      OPEN = "OPEN"
-      IN_PROGRESS = "IN_PROGRESS"
-      DONE = "DONE"
-      CANCELLED = "CANCELLED"
+    OPEN = "OPEN"
+    IN_PROGRESS = "IN_PROGRESS"
+    DONE = "DONE"
+    CANCELLED = "CANCELLED"
 
 
 class ActionPriority(str, enum.Enum):
-      LOW = "LOW"
-      NORMAL = "NORMAL"
-      HIGH = "HIGH"
-      URGENT = "URGENT"
+    LOW = "LOW"
+    NORMAL = "NORMAL"
+    HIGH = "HIGH"
+    URGENT = "URGENT"
 
 
 class JobStatus(str, enum.Enum):
-      QUEUED = "QUEUED"
-      RUNNING = "RUNNING"
-      SUCCEEDED = "SUCCEEDED"
-      FAILED = "FAILED"
-      CANCELLED = "CANCELLED"
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
 
 
 class EmbeddingStatus(str, enum.Enum):
-      PENDING = "PENDING"
-      READY = "READY"
-      STALE = "STALE"
-      FAILED = "FAILED"
+    PENDING = "PENDING"
+    READY = "READY"
+    STALE = "STALE"
+    FAILED = "FAILED"
 
 
 class DeliveryStatus(str, enum.Enum):
-      PENDING = "PENDING"
-      DELIVERED = "DELIVERED"
-      FAILED = "FAILED"
+    PENDING = "PENDING"
+    DELIVERED = "DELIVERED"
+    FAILED = "FAILED"
 
 
 class Tenant(Base):
-      __tablename__ = "redesign_tenants"
-      __table_args__ = (UniqueConstraint("slug", name="uq_redesign_tenant_slug"),)
+    __tablename__ = "redesign_tenants"
+    __table_args__ = (UniqueConstraint("slug", name="uq_redesign_tenant_slug"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     slug: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -108,11 +108,11 @@ class Tenant(Base):
 
 
 class TenantMembership(Base):
-      __tablename__ = "redesign_tenant_memberships"
-      __table_args__ = (
-          UniqueConstraint("tenant_id", "user_id", name="uq_redesign_membership_tenant_user"),
-          Index("ix_redesign_membership_user_role", "user_id", "role"),
-      )
+    __tablename__ = "redesign_tenant_memberships"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "user_id", name="uq_redesign_membership_tenant_user"),
+        Index("ix_redesign_membership_user_role", "user_id", "role"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="CASCADE"))
@@ -124,11 +124,11 @@ class TenantMembership(Base):
 
 
 class AuditEvent(Base):
-      __tablename__ = "redesign_audit_events"
-      __table_args__ = (
-          Index("ix_redesign_audit_tenant_time", "tenant_id", "occurred_at"),
-          Index("ix_redesign_audit_entity_time", "entity_type", "entity_id", "occurred_at"),
-      )
+    __tablename__ = "redesign_audit_events"
+    __table_args__ = (
+        Index("ix_redesign_audit_tenant_time", "tenant_id", "occurred_at"),
+        Index("ix_redesign_audit_entity_time", "entity_type", "entity_id", "occurred_at"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     tenant_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="SET NULL"), nullable=True)
@@ -146,11 +146,11 @@ class AuditEvent(Base):
 
 
 class OutboxEvent(Base):
-      __tablename__ = "redesign_outbox_events"
-      __table_args__ = (
-          Index("ix_redesign_outbox_delivery", "status", "available_at"),
-          Index("ix_redesign_outbox_aggregate", "aggregate_type", "aggregate_id"),
-      )
+    __tablename__ = "redesign_outbox_events"
+    __table_args__ = (
+        Index("ix_redesign_outbox_delivery", "status", "available_at"),
+        Index("ix_redesign_outbox_aggregate", "aggregate_type", "aggregate_id"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     tenant_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="SET NULL"), nullable=True)
@@ -167,8 +167,8 @@ class OutboxEvent(Base):
 
 
 class DomainJob(Base):
-      __tablename__ = "redesign_domain_jobs"
-      __table_args__ = (Index("ix_redesign_job_queue", "status", "available_at"),)
+    __tablename__ = "redesign_domain_jobs"
+    __table_args__ = (Index("ix_redesign_job_queue", "status", "available_at"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     tenant_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="SET NULL"), nullable=True)
@@ -188,8 +188,8 @@ class DomainJob(Base):
 
 
 class ApiIdempotencyKey(Base):
-      __tablename__ = "redesign_api_idempotency_keys"
-      __table_args__ = (UniqueConstraint("principal_id", "route", "key", name="uq_redesign_idempotency_principal_route_key"),)
+    __tablename__ = "redesign_api_idempotency_keys"
+    __table_args__ = (UniqueConstraint("principal_id", "route", "key", name="uq_redesign_idempotency_principal_route_key"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     principal_id: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -203,11 +203,11 @@ class ApiIdempotencyKey(Base):
 
 
 class MentorNotebookEntry(Base):
-      __tablename__ = "redesign_mentor_notebook_entries"
-      __table_args__ = (
-          Index("ix_redesign_notebook_student_time", "student_id", "meeting_at"),
-          Index("ix_redesign_notebook_student_visibility", "student_id", "visibility", "status"),
-      )
+    __tablename__ = "redesign_mentor_notebook_entries"
+    __table_args__ = (
+        Index("ix_redesign_notebook_student_time", "student_id", "meeting_at"),
+        Index("ix_redesign_notebook_student_visibility", "student_id", "visibility", "status"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
@@ -231,8 +231,8 @@ class MentorNotebookEntry(Base):
 
 
 class MentorNotebookAction(Base):
-      __tablename__ = "redesign_mentor_notebook_actions"
-      __table_args__ = (Index("ix_redesign_notebook_action_student_due", "student_id", "status", "due_at"),)
+    __tablename__ = "redesign_mentor_notebook_actions"
+    __table_args__ = (Index("ix_redesign_notebook_action_student_due", "student_id", "status", "due_at"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     entry_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_mentor_notebook_entries.id", ondelete="SET NULL"), nullable=True)
@@ -250,8 +250,8 @@ class MentorNotebookAction(Base):
 
 
 class MentorNotebookEntryRevision(Base):
-      __tablename__ = "redesign_mentor_notebook_entry_revisions"
-      __table_args__ = (UniqueConstraint("entry_id", "version", name="uq_redesign_notebook_revision"),)
+    __tablename__ = "redesign_mentor_notebook_entry_revisions"
+    __table_args__ = (UniqueConstraint("entry_id", "version", name="uq_redesign_notebook_revision"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     entry_id: Mapped[str] = mapped_column(ForeignKey("redesign_mentor_notebook_entries.id", ondelete="CASCADE"), nullable=False)
@@ -262,8 +262,8 @@ class MentorNotebookEntryRevision(Base):
 
 
 class MentorNotebookAttachment(Base):
-      __tablename__ = "redesign_mentor_notebook_attachments"
-      __table_args__ = (Index("ix_redesign_notebook_attachment_entry", "entry_id"),)
+    __tablename__ = "redesign_mentor_notebook_attachments"
+    __table_args__ = (Index("ix_redesign_notebook_attachment_entry", "entry_id"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     entry_id: Mapped[str] = mapped_column(ForeignKey("redesign_mentor_notebook_entries.id", ondelete="CASCADE"), nullable=False)
@@ -278,8 +278,8 @@ class MentorNotebookAttachment(Base):
 
 
 class KnowledgeNamespace(Base):
-      __tablename__ = "redesign_knowledge_namespaces"
-      __table_args__ = (UniqueConstraint("tenant_id", "slug", name="uq_redesign_knowledge_namespace"),)
+    __tablename__ = "redesign_knowledge_namespaces"
+    __table_args__ = (UniqueConstraint("tenant_id", "slug", name="uq_redesign_knowledge_namespace"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     tenant_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="CASCADE"), nullable=True)
@@ -288,8 +288,8 @@ class KnowledgeNamespace(Base):
 
 
 class KnowledgeDocumentVersion(Base):
-      __tablename__ = "redesign_knowledge_document_versions"
-      __table_args__ = (UniqueConstraint("document_id", "version_no", name="uq_redesign_knowledge_document_version"),)
+    __tablename__ = "redesign_knowledge_document_versions"
+    __table_args__ = (UniqueConstraint("document_id", "version_no", name="uq_redesign_knowledge_document_version"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     document_id: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -304,11 +304,11 @@ class KnowledgeDocumentVersion(Base):
 
 
 class KnowledgeChunkV2(Base):
-      __tablename__ = "redesign_knowledge_chunks"
-      __table_args__ = (
-          UniqueConstraint("document_version_id", "ordinal", name="uq_redesign_knowledge_chunk_ordinal"),
-          Index("ix_redesign_knowledge_chunk_version", "document_version_id"),
-      )
+    __tablename__ = "redesign_knowledge_chunks"
+    __table_args__ = (
+        UniqueConstraint("document_version_id", "ordinal", name="uq_redesign_knowledge_chunk_ordinal"),
+        Index("ix_redesign_knowledge_chunk_version", "document_version_id"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     document_version_id: Mapped[str] = mapped_column(ForeignKey("redesign_knowledge_document_versions.id", ondelete="CASCADE"), nullable=False)
@@ -322,8 +322,8 @@ class KnowledgeChunkV2(Base):
 
 
 class EmbeddingModel(Base):
-      __tablename__ = "redesign_embedding_models"
-      __table_args__ = (UniqueConstraint("provider", "model_name", "dimension", name="uq_redesign_embedding_model"),)
+    __tablename__ = "redesign_embedding_models"
+    __table_args__ = (UniqueConstraint("provider", "model_name", "dimension", name="uq_redesign_embedding_model"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     provider: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -336,11 +336,11 @@ class EmbeddingModel(Base):
 
 
 class KnowledgeChunkEmbedding(Base):
-      __tablename__ = "redesign_knowledge_chunk_embeddings"
-      __table_args__ = (
-          UniqueConstraint("chunk_id", "embedding_model_id", name="uq_redesign_chunk_embedding_model"),
-          Index("ix_redesign_embedding_status_model", "embedding_model_id", "status"),
-      )
+    __tablename__ = "redesign_knowledge_chunk_embeddings"
+    __table_args__ = (
+        UniqueConstraint("chunk_id", "embedding_model_id", name="uq_redesign_chunk_embedding_model"),
+        Index("ix_redesign_embedding_status_model", "embedding_model_id", "status"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     chunk_id: Mapped[str] = mapped_column(ForeignKey("redesign_knowledge_chunks.id", ondelete="CASCADE"), nullable=False)

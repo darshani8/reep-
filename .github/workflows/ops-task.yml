@@ -31,10 +31,13 @@ on:
         description: "grant-access only: the person's name"
         required: false
       role:
-        description: "grant-access only: role (STUDENT is refused by the tool)"
+        description: "grant-access only: role (STUDENT also needs usn)"
         type: choice
-        options: [ADMIN, DIRECTOR, MENTOR, ALUMNI]
+        options: [ADMIN, DIRECTOR, MENTOR, ALUMNI, STUDENT]
         default: ADMIN
+      usn:
+        description: "grant-access + STUDENT only: a USN no roster row will ever claim (e.g. TEST01)"
+        required: false
       confirm:
         description: 'Type "run" to confirm this touches production data'
         required: true
@@ -73,6 +76,7 @@ jobs:
           GRANT_EMAIL: ${{ inputs.email }}
           GRANT_NAME: ${{ inputs.display_name }}
           GRANT_ROLE: ${{ inputs.role }}
+          GRANT_USN: ${{ inputs.usn }}
         run: |
           case "$TASK" in
             seed-roster-dry-run)
@@ -86,8 +90,8 @@ jobs:
                 echo "::error::grant-access needs both email and display_name."
                 exit 1
               fi
-              CMD=$(jq -cn --arg e "$GRANT_EMAIL" --arg n "$GRANT_NAME" --arg r "$GRANT_ROLE" \
-                '["python","-m","app.grant_access",$e,"--name",$n,"--role",$r]') ;;
+              CMD=$(jq -cn --arg e "$GRANT_EMAIL" --arg n "$GRANT_NAME" --arg r "$GRANT_ROLE" --arg u "$GRANT_USN" \
+                '["python","-m","app.grant_access",$e,"--name",$n,"--role",$r] + (if $u != "" then ["--usn",$u] else [] end)') ;;
             *)
               echo "::error::Unknown task."; exit 1 ;;
           esac

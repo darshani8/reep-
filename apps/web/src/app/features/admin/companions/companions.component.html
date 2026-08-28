@@ -1,0 +1,106 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">ADMINISTRATION</p>
+    <h1 class="reep-h1">Companions &amp; Memory</h1>
+    <p class="intro">Create role-aware assistants and govern the memory they are allowed to use.</p>
+  </div>
+  <span class="security-note"><span class="icon" aria-hidden="true">lock</span> Admin-only controls</span>
+</section>
+
+@if (error(); as message) {
+  <p class="feedback feedback--err" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="feedback feedback--ok" role="status">{{ message }}</p>
+}
+
+<div class="admin-grid">
+  <section class="card registry">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">REGISTRY</p>
+        <h2>Registered companions</h2>
+      </div>
+      <span class="count-chip">{{ companions().length }}</span>
+    </div>
+
+    @if (loading()) {
+      <p class="muted">Loading registry…</p>
+    } @else if (!companions().length) {
+      <p class="muted">No companions yet. Create the first one below.</p>
+    } @else {
+      <div class="companion-list">
+        @for (companion of companions(); track companion.id) {
+          <button class="companion-row" [class.selected]="selectedId() === companion.id" (click)="selectCompanion(companion.id)">
+            <span class="companion-icon"><span class="icon" aria-hidden="true">smart_toy</span></span>
+            <span class="companion-copy">
+              <strong>{{ companion.name }}</strong>
+              <small>{{ companion.role_key }} · {{ companion.slug }}</small>
+            </span>
+            <span class="row-meta">
+              <span class="status-chip" [class.inactive]="companion.status === 'INACTIVE'">{{ companion.status }}</span>
+              <small>{{ companion.memory_count }} memories</small>
+            </span>
+          </button>
+        }
+      </div>
+    }
+
+    <form class="form-stack" (ngSubmit)="createCompanion()">
+      <div class="section-heading form-heading"><h2>Create companion</h2></div>
+      <div class="form-grid">
+        <label>Display name<input name="name" [(ngModel)]="newCompanion.name" required placeholder="Interview Coach" /></label>
+        <label>Slug<input name="slug" [(ngModel)]="newCompanion.slug" required placeholder="interview-coach" /></label>
+        <label>Role key<input name="role_key" [(ngModel)]="newCompanion.role_key" required placeholder="INTERVIEW_TRAINER" /></label>
+        <label>Capabilities<input name="capabilities" [(ngModel)]="newCompanion.capabilities" placeholder="text, voice, interview" /></label>
+        <label>Allowed user roles<input name="allowed_roles" [(ngModel)]="newCompanion.allowed_roles" placeholder="STUDENT, MENTOR" /></label>
+      </div>
+      <label>Description<textarea name="description" [(ngModel)]="newCompanion.description" rows="2" placeholder="What this companion helps with"></textarea></label>
+      <label>System prompt<textarea name="system_prompt" [(ngModel)]="newCompanion.system_prompt" rows="3" placeholder="Optional operating instructions"></textarea></label>
+      <button class="dt-btn dt-btn--primary" type="submit" [disabled]="saving()">Create companion</button>
+    </form>
+  </section>
+
+  <section class="card memory-panel">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">MEMORY GOVERNANCE</p>
+        <h2>Scoped memory</h2>
+      </div>
+      @if (selectedId()) {
+        @if (selectedCompanion(); as selected) {
+          <button class="text-button" type="button" (click)="toggleStatus(selected)" [disabled]="saving()">
+            {{ selected.status === 'ACTIVE' ? 'Deactivate' : 'Activate' }}
+          </button>
+        }
+      }
+    </div>
+    <p class="memory-explainer"><strong>Private</strong> entries belong to one user. <strong>Shared</strong> entries are centralized and only enter any companion’s context after admin approval.</p>
+
+    @if (!selectedId()) {
+      <p class="muted">Select a companion to inspect its memory scope.</p>
+    } @else {
+      <div class="memory-list">
+        @for (memory of memories(); track memory.id) {
+          <article class="memory-row">
+            <div class="memory-title"><span class="status-dot" [class.approved]="memory.status === 'APPROVED'"></span><strong>{{ memory.title }}</strong></div>
+            <span class="memory-badges"><span>{{ memory.scope }}</span><span>{{ memory.status }}</span></span>
+            <p>{{ memory.content }}</p>
+            @if (memory.scope === 'SHARED' && memory.status === 'DRAFT') {
+              <button class="dt-btn dt-btn--small" type="button" (click)="approve(memory)" [disabled]="saving()">Approve shared memory</button>
+            }
+          </article>
+        } @empty {
+          <p class="muted">No memory is visible for this companion yet.</p>
+        }
+      </div>
+    }
+
+    <form class="form-stack shared-form" (ngSubmit)="createSharedMemory()">
+      <div class="section-heading form-heading"><h2>Add centralized memory</h2></div>
+      <label>Title<input name="memory_title" [(ngModel)]="newMemory.title" required placeholder="Interview feedback policy" /></label>
+      <label>Content<textarea name="memory_content" [(ngModel)]="newMemory.content" required rows="4" placeholder="A durable fact or policy shared by approved companions"></textarea></label>
+      <button class="dt-btn dt-btn--primary" type="submit" [disabled]="saving()">Save as draft</button>
+    </form>
+  </section>
+</div>

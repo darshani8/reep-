@@ -44,6 +44,12 @@
           <a routerLink="/mentor/assistant" routerLinkActive="active">
             <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
           </a>
+          @if (session()?.role === 'ADMIN') {
+            <div class="sec-label">Administration</div>
+            <a routerLink="/admin/companions" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">hub</span> Companions &amp; Memory
+            </a>
+          }
         }
         @case ('alumni') {
           <a routerLink="/alumni" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">

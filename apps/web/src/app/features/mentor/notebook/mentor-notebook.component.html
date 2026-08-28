@@ -1,70 +1,68 @@
 <div class="dt-header">
-    <div>
-          <div class="dt-title">Mentor notebook</div>
-          <div class="dt-sub">Capture the meeting while it is fresh. Drafts stay staff-private until you publish.</div>
-    </div>
-    <span class="chip"><span class="icon">lock</span>span> Private by default</span>span>
+  <div>
+    <div class="dt-title">Mentor notebook</div>
+    <div class="dt-sub">Capture the meeting while it is fresh. Drafts stay staff-private until you publish.</div>
+  </div>
+  <span class="chip"><span class="icon">lock</span> Private by default</span>
 </div>
 
 @if (error()) {
-  <div class="feedback feedback--err" role="alert"><span class="icon">error</span>span><div class="feedback__body">{{ error() }}</div></div>
+  <div class="feedback feedback--err" role="alert"><span class="icon">error</span><div class="feedback__body">{{ error() }}</div></div>
 }
 
 <div class="notebook-grid">
-    <section class="card notebook-students" aria-label="Assigned students">
-          <h3 class="reep-h4">My students</h3>h3>
-          <input type="search" placeholder="Search name or USN" [ngModel]="search()" (ngModelChange)="search.set($event)" />
-          @if (mentees(); as list) {
-            @for (student of filteredMentees(); track student.student_id) {
-              <button type="button" class="student-row" [class.active]="student.student_id === selectedId()" (click)="select(student.student_id)">
-                          <strong>{{ student.name }}</strong>
-                        <span>{{ student.usn || 'No USN' }} · Sem {{ student.current_semester }}</span>
-              </button>button>
-          } @empty { <p class="empty-note">No students match this search.</p>p> }
-        } @else { <p class="empty-note">Loading students…</p>p> }
-    </section>section>
+  <section class="card notebook-students" aria-label="Assigned students">
+    <h3 class="reep-h4">My students</h3>
+    <input type="search" placeholder="Search name or USN" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+    @if (mentees(); as list) {
+      @for (student of filteredMentees(); track student.student_id) {
+        <button type="button" class="student-row" [class.active]="student.student_id === selectedId()" (click)="select(student.student_id)">
+          <strong>{{ student.name }}</strong>
+          <span>{{ student.usn || 'No USN' }} · Sem {{ student.current_semester }}</span>
+        </button>
+      } @empty { <p class="empty-note">No students match this search.</p> }
+    } @else { <p class="empty-note">Loading students…</p> }
+  </section>
 
   <section class="notebook-workspace">
-      @if (selected(); as student) {
-        <div class="card notebook-compose">
-                <div class="section-kicker">Selected mentee</div>
-                <h2 class="reep-h3">{{ student.name }}</h2>h2>
-                <p class="dt-sub">{{ student.current_stage }} · Semester {{ student.current_semester }}</p>p>
-                <label>Entry type
-                          <select [(ngModel)]="noteType">
-                            <option value="MEETING">Meeting</option>option><option value="ACADEMIC_REVIEW">Academic review</option>option>
-                            <option value="WELLBEING">Wellbeing</option>option><option value="PLACEMENT">Placement</option>option>
-                            <option value="REFERRAL">Referral</option>option>
-                          </select>select>
-                </label>
-                <label>Title <span class="dt-sub">(optional)</span>span><input [(ngModel)]="noteTitle" maxlength="200" placeholder="Weekly 1:1 review" /></label>
-                <label>Private draft<textarea [(ngModel)]="noteBody" rows="7" maxlength="20000" placeholder="Discussion, observations, decisions, and follow-ups…"></textarea></label>
-                <div class="notebook-compose__actions">
-                          <button type="button" class="dt-btn primary" [disabled]="saving()" (click)="saveDraft()"><span class="icon">save</span>{{ saving() ? 'Saving…' : 'Save private draft' }}</button>button>
-                          <span class="dt-sub">Publishing is a separate action.</span>
-                </div>
+    @if (selected(); as student) {
+      <div class="card notebook-compose">
+        <div class="section-kicker">Selected mentee</div>
+        <h2 class="reep-h3">{{ student.name }}</h2>
+        <p class="dt-sub">{{ student.current_stage }} · Semester {{ student.current_semester }}</p>
+        <label>Entry type
+          <select [(ngModel)]="noteType">
+            <option value="MEETING">Meeting</option><option value="ACADEMIC_REVIEW">Academic review</option>
+            <option value="WELLBEING">Wellbeing</option><option value="PLACEMENT">Placement</option>
+            <option value="REFERRAL">Referral</option>
+          </select>
+        </label>
+        <label>Title <span class="dt-sub">(optional)</span><input [(ngModel)]="noteTitle" maxlength="200" placeholder="Weekly 1:1 review" /></label>
+        <label>Private draft<textarea [(ngModel)]="noteBody" rows="7" maxlength="20000" placeholder="Discussion, observations, decisions, and follow-ups…"></textarea></label>
+        <div class="notebook-compose__actions">
+          <button type="button" class="dt-btn primary" [disabled]="saving()" (click)="saveDraft()"><span class="icon">save</span>{{ saving() ? 'Saving…' : 'Save private draft' }}</button>
+          <span class="dt-sub">Publishing is a separate action.</span>
         </div>
-  
-        <div class="section-kicker notebook-history-title">Timeline</div>
-        @if (entries(); as list) {
-          @for (entry of list; track entry.id) {
-            <article class="card notebook-entry">
-                        <div class="notebook-entry__head">
-                                      <div>
-                                                      <span class="chip" [class.good]="entry.status === 'PUBLISHED'"><span class="icon">{{ entry.status === 'PUBLISHED' ? 'visibility' : 'lock' }}</span>{{ entry.status === 'PUBLISHED' ? 'Student-visible' : 'Staff-private draft' }}</span>
-                                                      <h3>{{ entry.title || entry.entry_type }}</h3>
-                                      </div>
-                                      <time>{{ entry.meeting_at | date: 'd MMM y, h:mm a' }}</time>
-                        </div>
-                        <p>{{ entry.body }}</p>
-                        @if (isDraft(entry)) { <button type="button" class="dt-btn" [disabled]="publishing() === entry.id" (click)="publish(entry)">{{ publishing() === entry.id ? 'Publishing…' : 'Publish to student' }}</button>button> }
-            </article>article>
-          } @empty { <div class="card empty-note">No entries yet. Save the first private draft above.</div> }
-        } @else { <div class="card empty-note">Loading notebook timeline…</div> }
-      } @else if (mentees()?.length === 0) {
-        <div class="card empty-note">No assigned students. A mentor without an assignment cannot see programme-wide records.</div>
-      }
-  </section>section>
+      </div>
+
+      <div class="section-kicker notebook-history-title">Timeline</div>
+      @if (entries(); as list) {
+        @for (entry of list; track entry.id) {
+          <article class="card notebook-entry">
+            <div class="notebook-entry__head">
+              <div>
+                <span class="chip" [class.good]="entry.status === 'PUBLISHED'"><span class="icon">{{ entry.status === 'PUBLISHED' ? 'visibility' : 'lock' }}</span>{{ entry.status === 'PUBLISHED' ? 'Student-visible' : 'Staff-private draft' }}</span>
+                <h3>{{ entry.title || entry.entry_type }}</h3>
+              </div>
+              <time>{{ entry.meeting_at | date: 'd MMM y, h:mm a' }}</time>
+            </div>
+            <p>{{ entry.body }}</p>
+            @if (isDraft(entry)) { <button type="button" class="dt-btn" [disabled]="publishing() === entry.id" (click)="publish(entry)">{{ publishing() === entry.id ? 'Publishing…' : 'Publish to student' }}</button> }
+          </article>
+        } @empty { <div class="card empty-note">No entries yet. Save the first private draft above.</div> }
+      } @else { <div class="card empty-note">Loading notebook timeline…</div> }
+    } @else if (mentees()?.length === 0) {
+      <div class="card empty-note">No assigned students. A mentor without an assignment cannot see programme-wide records.</div>
+    }
+  </section>
 </div>
-</p></time></h3></label></label></span></strong>
-    </div>

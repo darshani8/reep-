@@ -3,14 +3,18 @@
 import hashlib
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .models.redesign import ApiIdempotencyKey, AuditEvent, OutboxEvent
+
+_IDEMPOTENCY_TTL = timedelta(hours=24)
+_RESERVATION_TTL = timedelta(minutes=15)
 
 
 def request_context(request: Any) -> tuple[str | None, str | None]:
@@ -22,16 +26,24 @@ def request_hash(payload: Any) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def require_idempotency_key(key: str | None) -> str:
+    """Require a bounded command key; read-only routes must not call this."""
+    normalized = (key or "").strip()
+    if not normalized or len(normalized) > 200:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Idempotency-Key is required for command mutations.",
+        )
+    return normalized
+
+
 def replay_or_reserve(
     db: Session, *, principal_id: str, route: str, key: str | None, payload: Any
-) -> ApiIdempotencyKey | None:
-    """Return a stored response or reserve the key inside the current transaction."""
-    if not key:
-        return None
-    key = key.strip()
-    if not key or len(key) > 200:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Idempotency-Key.")
+) -> ApiIdempotencyKey:
+    """Return a completed response or reserve a key without rolling back outer work."""
+    key = require_idempotency_key(key)
     digest = request_hash(payload)
+    now = datetime.now(timezone.utc)
     row = db.scalar(
         select(ApiIdempotencyKey)
         .where(
@@ -42,17 +54,63 @@ def replay_or_reserve(
         .with_for_update()
     )
     if row is not None:
+        row.last_seen_at = now
         if row.request_hash != digest:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Idempotency-Key was reused with a different request.")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Idempotency-Key was reused with a different request.",
+            )
         if row.response_json is None:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An identical command is already being processed.")
+            if row.reserved_at and row.reserved_at + _RESERVATION_TTL <= now:
+                row.reserved_at = now
+                row.reservation_token = uuid.uuid4().hex
+                row.expires_at = now + _IDEMPOTENCY_TTL
+                return row
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An identical command is already being processed.",
+            )
         return row
-    row = ApiIdempotencyKey(principal_id=principal_id, route=route, key=key, request_hash=digest)
-    db.add(row)
-    db.flush()
-    # Return the newly reserved row so the caller can store its response in the
-    # same transaction. Returning None here made the initial command succeed but
-    # left response_json empty, defeating replay after a client retry.
+
+    row = ApiIdempotencyKey(
+        principal_id=principal_id,
+        route=route,
+        key=key,
+        request_hash=digest,
+        reserved_at=now,
+        reservation_token=uuid.uuid4().hex,
+        last_seen_at=now,
+        expires_at=now + _IDEMPOTENCY_TTL,
+    )
+    try:
+        # A savepoint prevents a concurrent unique-key race from rolling back
+        # unrelated domain writes in the caller's transaction.
+        with db.begin_nested():
+            db.add(row)
+            db.flush()
+    except IntegrityError:
+        row = db.scalar(
+            select(ApiIdempotencyKey)
+            .where(
+                ApiIdempotencyKey.principal_id == principal_id,
+                ApiIdempotencyKey.route == route,
+                ApiIdempotencyKey.key == key,
+            )
+            .with_for_update()
+        )
+        if row is None:
+            raise
+        row.last_seen_at = now
+        if row.request_hash != digest:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Idempotency-Key was reused with a different request.",
+            )
+        if row.response_json is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An identical command is already being processed.",
+            )
     return row
 
 
@@ -60,6 +118,7 @@ def store_response(row: ApiIdempotencyKey | None, *, status_code: int, body: dic
     if row is not None:
         row.response_status = status_code
         row.response_json = body
+        row.last_seen_at = datetime.now(timezone.utc)
 
 
 def record_change(
@@ -76,11 +135,18 @@ def record_change(
     ))
     event_id = uuid.uuid4().hex
     db.add(OutboxEvent(
-        tenant_id=tenant_id, event_type=event_type, aggregate_type=entity_type,
-        aggregate_id=entity_id, payload={
-            "event_id": event_id, "event_type": event_type, "aggregate_type": entity_type,
-            "aggregate_id": entity_id, "actor_id": session.get("userId"),
-            "tenant_id": tenant_id, "request_id": request_id, "correlation_id": correlation_id,
+        id=event_id,
+        tenant_id=tenant_id,
+        event_type=event_type,
+        event_version=1,
+        routing_key="default",
+        aggregate_type=entity_type,
+        aggregate_id=entity_id,
+        payload={
+            "event_id": event_id, "event_type": event_type, "event_version": 1,
+            "aggregate_type": entity_type, "aggregate_id": entity_id,
+            "actor_id": session.get("userId"), "tenant_id": tenant_id,
+            "request_id": request_id, "correlation_id": correlation_id,
             "payload": payload,
         },
     ))

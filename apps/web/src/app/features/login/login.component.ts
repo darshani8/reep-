@@ -1,10 +1,19 @@
 /**
- * Sign in — Google only.
+ * Sign in — Google in production, plus a password door that only development
+ * servers are allowed to open.
  *
- * There is one way into REEP: a college Google account that is already on the
- * programme roster. The email/password form this screen used to carry is gone
- * from the UI; `POST /api/auth/login` still exists on the API, but only as a
- * dev/CI affordance that production refuses, and nothing here calls it.
+ * There is one way into a deployed REEP: a college Google account that is
+ * already on the programme roster. `POST /api/auth/login` still exists on the
+ * API as a dev/CI affordance that production refuses, and this screen now
+ * offers it — but ONLY when the server itself says it is allowed, via
+ * `password_login_available` on the capability probe below. See the
+ * `devLogin` signal for why that flag fails closed while the Google one fails
+ * open; the short version is that a broken probe must never draw a second door
+ * on a production login screen.
+ *
+ * Without it, a machine with no `GOOGLE_CLIENT_ID` has no way into the UI at
+ * all — the dashboard is unreachable on a fresh clone, which is what this
+ * restores.
  *
  * The flow is backend-terminal, and that is what keeps this component small:
  *
@@ -58,6 +67,29 @@ interface SsoStatus {
 /** Stand-in until the probe tells us the institutional domain. The domain is
  *  configurable server-side, so it is never hard-coded into a message here. */
 const DEFAULT_DOMAIN_LABEL = 'your college';
+
+/**
+ * Where a signed-in user lands when no `?next=` was carried.
+ *
+ * MIRRORS `_HOME_FOR_ROLE` in app/routers/auth.py — keep the two in step. The
+ * SPA's own `''` route redirects to `/student` UNCONDITIONALLY, so a DIRECTOR
+ * sent to `/` bounces off a student-only screen and sees "We couldn't reach
+ * your record" on every sign-in. The Google flow never hits that because the
+ * server picks the destination before it 302s back; the password flow lands in
+ * the browser, so it has to do the same arithmetic here.
+ *
+ * The server's comment has always claimed to mirror a constant of this name in
+ * this file. It was true, then the password form was deleted and took the
+ * constant with it, and the reference dangled until this door reopened.
+ */
+const HOME_FOR_ROLE: Record<string, string> = {
+  STUDENT: '/student',
+  MENTOR: '/mentor',
+  DIRECTOR: '/director',
+  ADMIN: '/director',
+  ALUMNI: '/alumni',
+};
+const DEFAULT_HOME = '/student';
 
 /**
  * `?error=` codes the callback redirects with, and what a human should read.
@@ -179,6 +211,31 @@ export class LoginComponent {
   readonly unavailableReason = signal<string | null>(null);
   readonly domain = signal(DEFAULT_DOMAIN_LABEL);
 
+  /**
+   * The developer password door — and it FAILS CLOSED, the opposite of
+   * `available` above.
+   *
+   * That asymmetry is the whole design, so it is worth saying why. A broken
+   * probe leaving the Google button live is harmless: the worst case is a
+   * student clicking it and getting a refusal from the server. A broken probe
+   * conjuring a PASSWORD FORM is not harmless — it is a second door drawn on a
+   * production login screen. So this one starts `false` and only ever opens on
+   * a positive `password_login_available: true`; a 404, a timeout, a reshaped
+   * payload or a `undefined` all leave it shut.
+   *
+   * The flag is the server's own `settings.password_login_allowed`, which is an
+   * ALLOWLIST of dev/CI environment names (`_DEV_ENV_NAMES` in app/config.py),
+   * not `not is_prod` — a typo'd `ENV` closes the door rather than opening it.
+   * This form therefore cannot appear on prod, staging, uat or demo, and even
+   * if someone forced it to render, `POST /api/auth/login` applies the very
+   * same guard and answers 403. Two independent locks, one key.
+   */
+  readonly devLogin = signal(false);
+  readonly devEmail = signal('');
+  readonly devPassword = signal('');
+  readonly devPending = signal(false);
+  readonly devError = signal<string | null>(null);
+
   constructor() {
     const code = this.route.snapshot.queryParamMap.get('error');
     if (code) {
@@ -250,9 +307,80 @@ export class LoginComponent {
               'way in yet. Tell whoever runs the dashboard.',
         );
       }
+      // Strict `=== true`, matching the `=== false` above and for the same
+      // reason the interface keeps these fields optional: `undefined` is not a
+      // yes. An older API that has never heard of this field leaves the door
+      // shut, which is the correct way for this particular flag to be wrong.
+      this.devLogin.set(status.password_login_available === true);
     } catch {
-      // Fail open, deliberately. See the docstring above.
+      // Fail open for Google, closed for passwords. See both docstrings above.
     }
+  }
+
+  /**
+   * Sign in with the seeded credentials — development environments only.
+   *
+   * This calls the same `POST /api/auth/login` the suite's `login` fixture
+   * uses, so it exercises the real endpoint rather than a shortcut around it:
+   * the server hashes, compares, mints the identical HS256 session and sets the
+   * identical httpOnly `reep_session` cookie. Nothing here sees a token.
+   *
+   * The redirect is a FULL PAGE LOAD, not a router navigation, and that is
+   * deliberate — it is the same cold boot the Google callback produces at step
+   * 3, so `authGuard` and `AuthService.refresh()` run exactly one code path for
+   * both doors. A `router.navigate` would leave the SPA holding pre-login state
+   * and quietly diverge from the flow that actually ships.
+   */
+  async submitDevLogin(event: Event): Promise<void> {
+    event.preventDefault();
+    if (!this.devLogin() || this.devPending()) return;
+
+    this.devPending.set(true);
+    this.devError.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: this.devEmail().trim(),
+          password: this.devPassword(),
+        }),
+      });
+
+      if (!res.ok) {
+        // 403 is the guard, not a typo, and it is the one message worth
+        // distinguishing: it means this build is talking to a server where the
+        // password door is shut, so no amount of retyping will help.
+        this.devError.set(
+          res.status === 403
+            ? 'This server refuses password sign-in. Use Google, or point the app at a development API.'
+            : res.status === 401
+              ? 'That email and password do not match a seeded account.'
+              : `Sign-in failed (HTTP ${res.status}).`,
+        );
+        this.devPending.set(false);
+        return;
+      }
+
+      // `?next=` wins when present, exactly as the server's callback prefers
+      // `flow.next_path`; otherwise land on the role's own home rather than
+      // `/`, which redirects to /student for everyone.
+      const session = (await res.json()) as { role?: string };
+      const home = HOME_FOR_ROLE[session.role ?? ''] ?? DEFAULT_HOME;
+      window.location.assign(this.safeNext ?? home);
+    } catch {
+      this.devError.set('Could not reach the API. Is it running on port 3300?');
+      this.devPending.set(false);
+    }
+  }
+
+  /** Fill the form from the seeded logins in AGENTS.md, so a developer opening
+   *  this screen does not have to go and look them up. */
+  useSeeded(role: 'student' | 'mentor' | 'director' | 'alumni'): void {
+    this.devEmail.set(`${role}@bgscet.ac.in`);
+    this.devPassword.set(`${role}123`);
+    this.devError.set(null);
   }
 
   /// Does NOT preventDefault — the anchor's navigation is the whole mechanism.

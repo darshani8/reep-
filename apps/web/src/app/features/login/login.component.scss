@@ -318,3 +318,95 @@
     display: flex;
   }
 }
+
+/* Development-only password door. Rendered only when the server reports
+   password_login_available: true — see login.component.ts. Styled to read as a
+   scaffold rather than a peer of the Google button: dashed border and a warning
+   chip, so nobody mistakes it for part of the shipped sign-in. */
+.devlogin {
+  margin-top: 28px;
+  padding: 20px;
+  border: 1px dashed var(--reep-warning-main);
+  border-radius: 8px;
+  background-color: var(--reep-bg-paper);
+}
+.devlogin__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.devlogin__badge {
+  flex: none;
+}
+.devlogin__title {
+  margin: 0;
+  color: var(--reep-text-primary);
+}
+.devlogin__body {
+  margin: 8px 0 0;
+  color: var(--reep-text-secondary);
+}
+.devlogin__field {
+  display: block;
+  margin-top: 14px;
+}
+.devlogin__label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--reep-text-secondary);
+}
+.devlogin__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-family: var(--reep-font-stack);
+  font-size: 0.875rem;
+  color: var(--reep-text-primary);
+  background-color: var(--reep-bg-default);
+  border: 1px solid var(--reep-divider);
+  border-radius: 6px;
+}
+.devlogin__input:focus {
+  outline: 2px solid var(--reep-primary-main);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+.devlogin__submit {
+  width: 100%;
+  margin-top: 16px;
+  justify-content: center;
+}
+.devlogin__seeded {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--reep-divider);
+}
+.devlogin__seeded-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  color: var(--reep-text-secondary);
+}
+.devlogin__seeded-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.devlogin__pill {
+  padding: 5px 12px;
+  font-family: var(--reep-font-stack);
+  font-size: 0.75rem;
+  color: var(--reep-text-primary);
+  background-color: var(--reep-bg-default);
+  border: 1px solid var(--reep-divider);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.devlogin__pill:hover {
+  background-color: var(--reep-action-hover);
+  border-color: var(--reep-primary-main);
+}

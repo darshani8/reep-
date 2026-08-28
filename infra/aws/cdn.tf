@@ -55,6 +55,11 @@ resource "aws_cloudfront_distribution" "main" {
     cached_methods         = ["GET", "HEAD"]
     cache_policy_id        = local.cache_optimized_id
     compress               = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.spa_fallback.arn
+    }
   }
 
   ordered_cache_behavior {
@@ -68,18 +73,13 @@ resource "aws_cloudfront_distribution" "main" {
     compress                 = true
   }
 
-  # The SPA owns its routes: a hard refresh on /student/badges asks S3 for a
-  # key that does not exist — serve index.html and let the router take it.
-  custom_error_response {
-    error_code         = 403
-    response_code      = 200
-    response_page_path = "/index.html"
-  }
-  custom_error_response {
-    error_code         = 404
-    response_code      = 200
-    response_page_path = "/index.html"
-  }
+  # NO custom_error_response HERE, deliberately. It is distribution-wide --
+  # it applies to EVERY behavior, /api/* included -- so mapping 403/404 to
+  # index.html turned real API refusals into "200 text/html". A client then
+  # sees res.ok true, parses a web page as JSON, and renders an empty screen
+  # with no error: a mentor blocked by rule 2 got a blank page instead of
+  # "you cannot see this student". The SPA fallback is done by the function
+  # below, which is attached only to the S3 behavior.
 
   restrictions {
     geo_restriction {
@@ -106,4 +106,37 @@ check "origin_certificate_can_match" {
       "alb_dns_name output, or expect CloudFront to fail origin TLS validation.",
     ])
   }
+}
+
+
+# The SPA owns its routes: a hard refresh on /student/badges asks S3 for a key
+# that does not exist. This rewrites such a request to /index.html so the
+# Angular router can take it.
+#
+# It is attached to the S3 behavior ONLY, which is the whole point: the /api/*
+# behavior never runs it, so the API's own 401/403/404 reach the browser intact.
+# A request is a file request (left alone) when its last segment contains a dot
+# -- main-ABC123.js, styles.css, favicon.ico; everything else is a route.
+resource "aws_cloudfront_function" "spa_fallback" {
+  name    = "${var.project}-spa-fallback"
+  runtime = "cloudfront-js-2.0"
+  comment = "Serve index.html for SPA routes. Never runs on /api/*."
+  publish = true
+  code    = <<-JS
+    function handler(event) {
+      var request = event.request;
+      var uri = request.uri;
+      // Belt and braces: this function is not attached to the /api/* behavior,
+      // but if it is ever attached more widely by mistake, the API must still
+      // keep its own status codes.
+      if (uri.startsWith('/api/')) {
+        return request;
+      }
+      var last = uri.substring(uri.lastIndexOf('/') + 1);
+      if (last.indexOf('.') === -1) {
+        request.uri = '/index.html';
+      }
+      return request;
+    }
+  JS
 }

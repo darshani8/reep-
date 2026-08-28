@@ -25,8 +25,15 @@ from ..models.redesign import (
     NotebookVisibility,
     RecordStatus,
 )
+from ..models.redesign import MembershipRole, TenantMembership
 from ..models.user import Student, User
-from ..policies import assert_student_scope, require_staff, student_identity
+from ..policies import (
+    assert_student_scope,
+    require_notebook_staff,
+    require_staff,
+    student_identity,
+    tenant_id_for_session,
+)
 
 router = APIRouter(tags=["v1-redesign"])
 
@@ -165,7 +172,17 @@ def list_mentees(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[MenteeOut]:
     require_staff(session)
+    tenant_id = tenant_id_for_session(session, db)
     query = select(Student, User.name).join(User, Student.user_id == User.id)
+    if tenant_id:
+        query = query.join(
+            TenantMembership, TenantMembership.user_id == Student.user_id
+        ).where(
+            TenantMembership.tenant_id == tenant_id,
+            TenantMembership.role == MembershipRole.STUDENT,
+            TenantMembership.status == "ACTIVE",
+            TenantMembership.ended_at.is_(None),
+        )
     if session["role"] == "MENTOR":
         mentor_id = session.get("mentorId")
         if not mentor_id:
@@ -189,6 +206,7 @@ def list_entries(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[NotebookEntryOut]:
+    require_notebook_staff(session)
     assert_student_scope(session, student_id, db)
     rows = db.scalars(
         select(MentorNotebookEntry)
@@ -217,6 +235,7 @@ def create_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
+    require_notebook_staff(session)
     assert_student_scope(session, student_id, db)
     if session["role"] != "MENTOR" or not session.get("mentorId"):
         raise HTTPException(
@@ -262,7 +281,7 @@ def create_entry(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_entry",
         entity_id=row.id,
         action="created",
@@ -287,7 +306,7 @@ def update_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
-    require_staff(session)
+    require_notebook_staff(session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],
@@ -331,7 +350,7 @@ def update_entry(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_entry",
         entity_id=row.id,
         action="updated",
@@ -355,7 +374,7 @@ def publish_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
-    require_staff(session)
+    require_notebook_staff(session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],
@@ -393,7 +412,7 @@ def publish_entry(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_entry",
         entity_id=row.id,
         action="published",
@@ -417,7 +436,7 @@ def archive_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
-    require_staff(session)
+    require_notebook_staff(session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],
@@ -444,7 +463,7 @@ def archive_entry(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_entry",
         entity_id=row.id,
         action="archived",
@@ -453,9 +472,11 @@ def archive_entry(
         event_type="mentor.notebook.entry.archived",
         payload={"student_id": row.student_id},
     )
+    response = _entry_out(row)
+    store_response(replay, status_code=200, body=response.model_dump(mode="json"))
     db.commit()
     db.refresh(row)
-    return _entry_out(row)
+    return response
 
 
 @router.get("/mentor/notebook/students/{student_id}/actions", response_model=list[ActionOut])
@@ -464,6 +485,7 @@ def list_actions(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[ActionOut]:
+    require_notebook_staff(session)
     assert_student_scope(session, student_id, db)
     rows = db.scalars(
         select(MentorNotebookAction)
@@ -516,7 +538,7 @@ def create_action(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_action",
         entity_id=row.id,
         action="created",
@@ -545,7 +567,7 @@ def create_attachment(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AttachmentOut | JSONResponse:
-    require_staff(session)
+    require_notebook_staff(session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],
@@ -576,7 +598,7 @@ def create_attachment(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_attachment",
         entity_id=row.id,
         action="registered",

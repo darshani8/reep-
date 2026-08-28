@@ -230,6 +230,25 @@
   background-color: transparent;
 }
 
+/* --- role entry descriptions --------------------------------------------- */
+.role-entry {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+.role-entry div {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 7px;
+  background: var(--reep-bg-paper);
+}
+.role-entry span {
+  color: var(--reep-text-secondary);
+  font-size: 0.75rem;
+}
+
 /* --- who can sign in ------------------------------------------------------ */
 .who {
   margin-top: 28px;

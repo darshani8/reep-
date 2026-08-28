@@ -99,8 +99,18 @@ def delete(stored_name: str) -> None:
     (_store_dir() / stored_name).unlink(missing_ok=True)
 
 
-def content_disposition(original_name: str, *, inline: bool = True) -> str:
+def content_disposition(original_name: str, *, inline: bool = False) -> str:
     """Build a Content-Disposition header that survives a non-ASCII filename.
+
+    The default is ``attachment``, and that is a security posture, not a UX
+    choice: everything this store serves is a user-supplied file, and the SPA
+    and API are same-origin by design. A PDF rendered INLINE runs its embedded
+    JavaScript in that shared origin — uploaded by one student, opened by the
+    mentor reviewing it — and the magic-byte sniff cannot help, because the
+    payload IS a valid PDF. `attachment` hands the bytes to the browser's
+    download UI instead of its renderer. Pass ``inline=True`` only for content
+    this server authored itself (the interview WAVs, whose container
+    interview_audio.py writes).
 
     Starlette encodes header values as **latin-1**. Interpolating a student's own
     filename straight into this header therefore raises UnicodeEncodeError inside

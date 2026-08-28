@@ -309,6 +309,14 @@
         <div class="feedback__body">{{ lbError() }}</div>
       </div>
     } @else if (leaderboard(); as lb) {
+      @if (lb.opted_out) {
+        <div class="card" style="padding: 16px">
+          <span class="icon">visibility_off</span>
+          You’re hidden from the leaderboards — you don’t appear on any board and, in turn, you
+          don’t see peer rankings. Turn off “Hide me from leaderboards” on the Leaderboards page
+          to take part again.
+        </div>
+      } @else {
       @if (lb.view === 'most_improved') {
         <p class="dt-sub" style="margin: 0 0 10px">
           Ranked on growth from your T0 baseline — not total points — because everyone starts the
@@ -336,6 +344,7 @@
             }
           </tbody>
         </table>
+      }
       }
     } @else {
       <div class="card" style="padding: 16px">Loading the leaderboard…</div>

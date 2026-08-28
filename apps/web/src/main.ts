@@ -1,25 +1,42 @@
+import { ErrorHandler } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
 import { environment } from './environments/environment';
 
 /**
- * Sentry (one tool for observability + traceability, same as the API). A
- * DYNAMIC import on purpose: with no DSN configured the SDK is never fetched,
- * so the initial bundle and every non-telemetry deployment stay exactly as
- * they were. Errors and page/route traces land in the same Sentry org as the
- * API's, where the API tags every request with the X-Request-ID the SPA can
- * read off any response — one id from a click to a backend log line.
+ * Sentry is initialized before Angular bootstraps so framework errors are
+ * captured through Angular's ErrorHandler, not only uncaught browser errors.
+ * The SDK remains a dynamic import when no DSN is configured.
  */
-if (environment.sentryDsn) {
-  void import('@sentry/angular').then((Sentry) => {
-    Sentry.init({
-      dsn: environment.sentryDsn,
-      environment: environment.production ? 'production' : 'development',
-      tracesSampleRate: 0.2,
-      sendDefaultPii: false,
-    });
-  });
+async function bootstrap(): Promise<void> {
+    const sentry = environment.sentryDsn
+      ? await import('@sentry/angular')
+          : null;
+
+  if (sentry) {
+        sentry.init({
+                dsn: environment.sentryDsn,
+                environment: environment.production ? 'production' : 'development',
+                integrations: [sentry.browserTracingIntegration()],
+                // Restrict distributed-trace headers to this app's API surface.
+                tracePropagationTargets: [/^\/api(?:\/|$)/],
+                tracesSampleRate: 0.2,
+                sendDefaultPii: false,
+        });
+  }
+
+  const config = sentry
+      ? {
+                ...appConfig,
+                providers: [
+                            ...appConfig.providers,
+                  { provide: ErrorHandler, useValue: sentry.createErrorHandler() },
+                          ],
+      }
+        : appConfig;
+
+  await bootstrapApplication(App, config);
 }
 
 /**
@@ -47,27 +64,27 @@ if (environment.sentryDsn) {
 const ICON_FACE = '24px "Material Symbols Rounded"';
 
 function revealIcons(): void {
-  document.documentElement.classList.add('fonts-ready');
+    document.documentElement.classList.add('fonts-ready');
 }
 
 if (!('fonts' in document)) {
-  revealIcons();
+    revealIcons();
 } else {
-  document.fonts
-    .load(ICON_FACE)
-    .then((faces) => {
-      // The FACE STATUS, not document.fonts.check(). `check()` answers "can I
-      // render this text?", and a browser that has fallen back to a system font
-      // answers yes — which is exactly the broken case, so check() reveals the
-      // ligature words it was added to hide. `load()` resolves with the matched
-      // FontFace objects, and a face that failed to fetch is 'error', never
-      // 'loaded'.
-      if (faces.some((face) => face.status === 'loaded')) revealIcons();
-    })
-    .catch(() => {
-      /* Blocked or failed: leave the icons hidden rather than showing ligature
-         text. Nothing else on the page depends on this resolving. */
-    });
+    document.fonts
+      .load(ICON_FACE)
+      .then((faces) => {
+              // The FACE STATUS, not document.fonts.check(). `check()` answers "can I
+                  // render this text?", and a browser that has fallen back to a system font
+                  // answers yes — which is exactly the broken case, so check() reveals the
+                  // ligature words it was added to hide. `load()` resolves with the matched
+                  // FontFace objects, and a face that failed to fetch is 'error', never
+                  // 'loaded'.
+                  if (faces.some((face) => face.status === 'loaded')) revealIcons();
+      })
+      .catch(() => {
+              /* Blocked or failed: leave the icons hidden rather than showing ligature
+                 text. Nothing else on the page depends on this resolving. */
+      });
 }
 
-bootstrapApplication(App, appConfig).catch((err) => console.error(err));
+void bootstrap().catch((err) => console.error(err));

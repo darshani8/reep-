@@ -1,0 +1,120 @@
+name: Ops task
+
+# RUN A ONE-OFF DATA TASK FROM THE BROWSER. Actions → "Ops task" → Run
+# workflow. The counterpart to deploy.yml's migration step, for the data
+# modules that are production-safe by design: app.grant_access (one staff row —
+# the operator who has to get in before anyone else), app.seed_roster (the
+# student batch), app.seed_kb (the assistant's knowledge base). It assumes the
+# same `reep-github-deploy` OIDC role, pinned to this repository and to main.
+#
+# The command is chosen from a FIXED menu, never typed: a free-text command
+# input here would be remote code execution on the production cluster for
+# anyone who can press the button. Free text exists only as ARGUMENTS to
+# grant_access (an email, a name), passed as argv entries via jq so a quote or
+# semicolon in a name is a name, not shell.
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Which task"
+        type: choice
+        options:
+          - seed-roster-dry-run
+          - seed-roster
+          - seed-kb
+          - grant-access
+      email:
+        description: "grant-access only: the Google email to allow"
+        required: false
+      display_name:
+        description: "grant-access only: the person's name"
+        required: false
+      role:
+        description: "grant-access only: role (STUDENT also needs usn)"
+        type: choice
+        options: [ADMIN, DIRECTOR, MENTOR, ALUMNI, STUDENT]
+        default: ADMIN
+      usn:
+        description: "grant-access + STUDENT only: a USN no roster row will ever claim (e.g. TEST01)"
+        required: false
+      confirm:
+        description: 'Type "run" to confirm this touches production data'
+        required: true
+
+concurrency:
+  group: ops-task
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  run:
+    name: Run on the API image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the confirmation word
+        run: |
+          if [ "${{ inputs.confirm }}" != "run" ]; then
+            echo "::error::Type 'run' in the confirm box. Nothing was changed."
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN || 'arn:aws:iam::445363794125:role/reep-github-deploy' }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
+          role-session-name: reep-ops-${{ github.run_id }}
+
+      # The command array is built with jq from the menu choice, so user-typed
+      # values only ever become argv entries of the fixed module invocation.
+      - name: Build the command
+        env:
+          TASK: ${{ inputs.task }}
+          GRANT_EMAIL: ${{ inputs.email }}
+          GRANT_NAME: ${{ inputs.display_name }}
+          GRANT_ROLE: ${{ inputs.role }}
+          GRANT_USN: ${{ inputs.usn }}
+        run: |
+          case "$TASK" in
+            seed-roster-dry-run)
+              CMD=$(jq -cn '["python","-m","app.seed_roster","--dry-run"]') ;;
+            seed-roster)
+              CMD=$(jq -cn '["python","-m","app.seed_roster"]') ;;
+            seed-kb)
+              CMD=$(jq -cn '["python","-m","app.seed_kb"]') ;;
+            grant-access)
+              if [ -z "$GRANT_EMAIL" ] || [ -z "$GRANT_NAME" ]; then
+                echo "::error::grant-access needs both email and display_name."
+                exit 1
+              fi
+              CMD=$(jq -cn --arg e "$GRANT_EMAIL" --arg n "$GRANT_NAME" --arg r "$GRANT_ROLE" --arg u "$GRANT_USN" \
+                '["python","-m","app.grant_access",$e,"--name",$n,"--role",$r] + (if $u != "" then ["--usn",$u] else [] end)') ;;
+            *)
+              echo "::error::Unknown task."; exit 1 ;;
+          esac
+          echo "CMD=$CMD" >> "$GITHUB_ENV"
+
+      # Same shape as deploy.yml's migration step: run on the image the task
+      # definition already references, wait, and FAIL the job on a non-zero
+      # exit so a silent data failure cannot look green.
+      - name: Run the task
+        run: |
+          OVERRIDES=$(jq -cn --argjson cmd "$CMD" '{containerOverrides:[{name:"api",command:$cmd}]}')
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" \
+            --task-definition "${{ vars.ECS_TASK_FAMILY || 'reep-api' }}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ vars.ECS_SUBNETS || 'subnet-0792c0ddcdd02f34f,subnet-0a41b8c5a98485d1a' }}],securityGroups=[${{ vars.ECS_SECURITY_GROUP || 'sg-0dfa5c76167d79093' }}],assignPublicIp=DISABLED}" \
+            --overrides "$OVERRIDES" \
+            --query 'tasks[0].taskArn' --output text)
+          echo "Task: $TASK_ARN"
+          aws ecs wait tasks-stopped --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --tasks "$TASK_ARN"
+          EXIT=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          REASON=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --tasks "$TASK_ARN" \
+            --query 'tasks[0].stoppedReason' --output text)
+          echo "Exit code: $EXIT ($REASON)"
+          [ "$EXIT" = "0" ] || { echo "::error::Task failed — check the /reep/api log group."; exit 1; }

@@ -15,6 +15,7 @@ from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
 from ..identity import get_current_session
 from ..document_store import (
+    MAX_BYTES,
     MAX_UPLOAD_BYTES_PER_STUDENT,
     MAX_UPLOADS_PER_STUDENT,
     UploadRejected,
@@ -1483,7 +1484,12 @@ def create_upload(
             ),
         )
 
-    content = file.file.read()
+    # read(MAX+1), never read(): the per-file cap is enforced by save_bytes on
+    # len(content), so reading one byte past it is enough to trip the refusal —
+    # while an unbounded read loads a body only nginx's client_max_body_size
+    # bounds into RAM, and that bound does not exist when uvicorn is exposed
+    # directly (the documented dev setup, or a different ingress).
+    content = file.file.read(MAX_BYTES + 1)
     if used_bytes + len(content) > MAX_UPLOAD_BYTES_PER_STUDENT:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,

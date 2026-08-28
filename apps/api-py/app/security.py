@@ -110,13 +110,11 @@ def _cache_ttl() -> float:
 def current_token_version(user_id: str) -> int | None:
     """The user's `token_version`, from this worker's cache or the database.
 
-    None means COULD NOT BE DETERMINED, and the caller admits on None. That is
-    deliberate and it is the right trade: a database that is down would
-    otherwise sign every student, mentor and director out of a dashboard whose
-    cached pages, uploads and static routes are still serving perfectly. A
-    stricter logout is not worth taking the whole app down for, so this fails
-    OPEN — and says so in the log, because a silent fail-open is how a control
-    stops existing without anyone noticing.
+    None means the database returned no user row and resolves to version 0. A
+    database exception returns the internal negative sentinel instead; callers
+    treat that as an authorization failure. This is intentionally fail-closed:
+    revocation state is security state, so the application must not admit a
+    bearer token when it cannot confirm the current token version.
     """
     global _db_retry_after
 
@@ -126,10 +124,9 @@ def current_token_version(user_id: str) -> int | None:
         if entry is not None and now < entry[0]:
             return entry[1]
         if now < _db_retry_after:
-            # Still inside the backoff from a failed read. Admit, silently: the
-            # ERROR that armed it already said what is wrong, and repeating it
-            # per request buries the outage in its own symptom.
-            return None
+            # Still inside the backoff from a failed read. Revocation is
+            # authorization state, so refuse until the database can answer.
+            return -1
 
     try:
         # Imported HERE, not at module scope. app/seed.py, app/seed_roster.py
@@ -143,20 +140,20 @@ def current_token_version(user_id: str) -> int | None:
         with SessionLocal() as db:
             version = db.scalar(select(User.token_version).where(User.id == user_id))
     except Exception:
-        # Bare Exception on purpose: OperationalError, InterfaceError, a DNS
-        # failure inside psycopg and a half-applied migration that has not added
-        # the column yet all arrive as different types, and every one of them
-        # must end in "admit and complain" rather than a 401 storm.
+        # OperationalError, InterfaceError, DNS failure and a half-applied
+        # migration all fail closed. Privileged authorization must not continue
+        # when the source of truth cannot confirm the identity state.
         with _version_lock:
             _db_retry_after = time.monotonic() + _DB_FAILURE_BACKOFF_SECONDS
         log.exception(
-            "could not read token_version for user %s; admitting the session and "
-            "not re-asking for %.0fs (logout revocation is NOT being enforced until "
-            "the database answers)",
+            "could not read token_version for user %s; refusing the session and "
+            "not re-asking for %.0fs until the database answers",
             user_id,
             _DB_FAILURE_BACKOFF_SECONDS,
         )
-        return None
+        # -1 is an internal failure sentinel, distinct from a missing user row
+        # (which resolves to version 0). verify_session_token refuses it.
+        return -1
 
     # A row that has vanished — a user deleted while still holding a session —
     # reads as version 0 rather than as a refusal. This function answers exactly
@@ -232,6 +229,8 @@ def verify_session_token(token: str) -> dict | None:
     # sessions people are actually holding beats logging the whole college out
     # of a system that has just been through an incident.
     current = current_token_version(str(claims["userId"]))
+    if current is not None and current < 0:
+        return None
     if current is not None and _claimed_version(claims) < current:
         return None
     return claims

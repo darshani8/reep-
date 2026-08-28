@@ -2,11 +2,11 @@
 
 Password:  "scrypt:<salt_hex>:<digest_hex>", scrypt(N=16384, r=8, p=1, dklen=64)
            with the salt passed as its hex STRING (exactly what node:crypto's
-                      scryptSync does), so hashes migrate across without a reset.
-                      Session:   HS256 JWT signed with AUTH_SECRET, claims = the session payload, plus
-                                 iat/exp (12h). Same secret + alg as jose, so tokens verify on both
-                                            sides during cutover. Cookie name: reep_session.
-                                            """
+           scryptSync does), so hashes migrate across without a reset.
+Session:   HS256 JWT signed with AUTH_SECRET, claims = the session payload, plus
+           iat/exp (12h). Same secret + alg as jose, so tokens verify on both
+           sides during cutover. Cookie name: reep_session.
+"""
 
 import hashlib
 import hmac
@@ -80,78 +80,78 @@ _SCRYPT = dict(n=16384, r=8, p=1, dklen=64, maxmem=64 * 1024 * 1024)
 
 
 def hash_password(password: str) -> str:
-               salt = secrets.token_hex(16)
-               digest = hashlib.scrypt(password.encode(), salt=salt.encode(), **_SCRYPT).hex()
-               return f"scrypt:{salt}:{digest}"
+    salt = secrets.token_hex(16)
+    digest = hashlib.scrypt(password.encode(), salt=salt.encode(), **_SCRYPT).hex()
+    return f"scrypt:{salt}:{digest}"
 
 
 def verify_password(password: str, stored: str) -> bool:
-               parts = stored.split(":")
-               if len(parts) != 3:
-                                  return False
-                              scheme, salt, digest = parts
+    parts = stored.split(":")
+    if len(parts) != 3:
+        return False
+    scheme, salt, digest = parts
     if scheme != "scrypt" or not salt or not digest:
-                       return False
-                   derived = hashlib.scrypt(password.encode(), salt=salt.encode(), **_SCRYPT).hex()
+        return False
+    derived = hashlib.scrypt(password.encode(), salt=salt.encode(), **_SCRYPT).hex()
     return hmac.compare_digest(derived, digest)
 
 
 def create_session_token(payload: dict) -> str:
-               now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
     claims = {**payload, "iat": now, "exp": now + timedelta(seconds=SESSION_TTL_SECONDS)}
     return jwt.encode(claims, settings.auth_secret, algorithm="HS256")
 
 
 def _cache_ttl() -> float:
-               """Read per call, not at import, so a test can move it. Never negative."""
+    """Read per call, not at import, so a test can move it. Never negative."""
     return max(float(settings.auth_revocation_cache_seconds), 0.0)
 
 
 def current_token_version(user_id: str) -> int | None:
-               """The user's `token_version`, from this worker's cache or the database.
+    """The user's `token_version`, from this worker's cache or the database.
 
-                   None means the database returned no user row and resolves to version 0. A
-                       database exception returns the internal negative sentinel instead; callers
-                           treat that as an authorization failure. This is intentionally fail-closed:
-                               revocation state is security state, so the application must not admit a
-                                   bearer token when it cannot confirm the current token version.
-                                       """
+    None means the database returned no user row and resolves to version 0. A
+    database exception returns the internal negative sentinel instead; callers
+    treat that as an authorization failure. This is intentionally fail-closed:
+    revocation state is security state, so the application must not admit a
+    bearer token when it cannot confirm the current token version.
+    """
     global _db_retry_after
 
     now = time.monotonic()
     with _version_lock:
-                       entry = _version_cache.get(user_id)
-                       if entry is not None and now < entry[0]:
-                                              return entry[1]
-                                          if now < _db_retry_after:
-                                                                 # Still inside the backoff from a failed read. Admit, silently: the
-                                                                 # ERROR that armed it already said what is wrong, and repeating it
-                                                                 # per request buries the outage in its own symptom.
-                                                                 return None
+        entry = _version_cache.get(user_id)
+        if entry is not None and now < entry[0]:
+            return entry[1]
+        if now < _db_retry_after:
+            # Still inside the backoff from a failed read. Admit, silently: the
+            # ERROR that armed it already said what is wrong, and repeating it
+            # per request buries the outage in its own symptom.
+            return None
 
     try:
-                       # Imported HERE, not at module scope. app/seed.py, app/seed_roster.py
-                       # and the CLI tools import this module for `hash_password` alone, and
-                       # `app.models.user` drags the whole 31-module models package — and the
-                       # engine underneath it — in behind it. Nothing else in this file needs a
-                       # database, and the password half must stay importable without one.
-                       from .db import SessionLocal
+        # Imported HERE, not at module scope. app/seed.py, app/seed_roster.py
+        # and the CLI tools import this module for `hash_password` alone, and
+        # `app.models.user` drags the whole 31-module models package — and the
+        # engine underneath it — in behind it. Nothing else in this file needs a
+        # database, and the password half must stay importable without one.
+        from .db import SessionLocal
         from .models.user import User
 
         with SessionLocal() as db:
-                               version = db.scalar(select(User.token_version).where(User.id == user_id))
-except Exception:
+            version = db.scalar(select(User.token_version).where(User.id == user_id))
+    except Exception:
         # OperationalError, InterfaceError, DNS failure and a half-applied
         # migration all fail closed. Privileged authorization must not continue
         # when the source of truth cannot confirm the identity state.
         with _version_lock:
-                               _db_retry_after = time.monotonic() + _DB_FAILURE_BACKOFF_SECONDS
-                           log.exception(
-                                                  "could not read token_version for user %s; refusing the session and "
-                                                  "not re-asking for %.0fs until the database answers",
-                                                  user_id,
-                                                  _DB_FAILURE_BACKOFF_SECONDS,
-                           )
+            _db_retry_after = time.monotonic() + _DB_FAILURE_BACKOFF_SECONDS
+        log.exception(
+            "could not read token_version for user %s; refusing the session and "
+            "not re-asking for %.0fs until the database answers",
+            user_id,
+            _DB_FAILURE_BACKOFF_SECONDS,
+        )
         # -1 is an internal failure sentinel, distinct from a missing user row
         # (which resolves to version 0). verify_session_token refuses it.
         return -1
@@ -164,66 +164,66 @@ except Exception:
     # not to a signature check.
     resolved = int(version or 0)
     with _version_lock:
-                       _version_cache[user_id] = (now + _cache_ttl(), resolved)
+        _version_cache[user_id] = (now + _cache_ttl(), resolved)
     return resolved
 
 
 def note_revocation(user_id: str, version: int) -> None:
-               """Record a just-committed bump so THIS worker refuses the old token now.
+    """Record a just-committed bump so THIS worker refuses the old token now.
 
-                   Without it a logout would not bite even in the process that served it until
-                       the TTL lapsed — and that is the one case a student is watching: sign out,
-                           press Back, still signed in. Other workers converge within the TTL.
-                               """
+    Without it a logout would not bite even in the process that served it until
+    the TTL lapsed — and that is the one case a student is watching: sign out,
+    press Back, still signed in. Other workers converge within the TTL.
+    """
     with _version_lock:
-                       _version_cache[user_id] = (time.monotonic() + _cache_ttl(), int(version))
+        _version_cache[user_id] = (time.monotonic() + _cache_ttl(), int(version))
 
 
 def _claimed_version(claims: dict) -> int:
-               """The `tokenVersion` the token carries. A MISSING CLAIM IS VERSION 0.
+    """The `tokenVersion` the token carries. A MISSING CLAIM IS VERSION 0.
 
-                   That is not laxity, it is the deploy story: every session minted before this
-                       column existed lacks the claim, and reading "absent" as "invalid" would sign
-                           the entire college out at the moment the new build goes live, for no
-                               security gain whatsoever — those tokens predate any revocation to enforce.
-                                   A claim that is present but not an integer is a different thing: only this
-                                       server mints these, so a non-integer means a forged or hand-edited token,
-                                           and -1 puts it behind every possible row value.
-                                               """
+    That is not laxity, it is the deploy story: every session minted before this
+    column existed lacks the claim, and reading "absent" as "invalid" would sign
+    the entire college out at the moment the new build goes live, for no
+    security gain whatsoever — those tokens predate any revocation to enforce.
+    A claim that is present but not an integer is a different thing: only this
+    server mints these, so a non-integer means a forged or hand-edited token,
+    and -1 puts it behind every possible row value.
+    """
     raw = claims.get(SESSION_VERSION_CLAIM, 0)
     try:
-                       return int(raw)
-except (TypeError, ValueError):
+        return int(raw)
+    except (TypeError, ValueError):
         return -1
 
 
 def verify_session_token(token: str) -> dict | None:
-               """The claims of a valid session cookie, or None. Signature AND shape.
+    """The claims of a valid session cookie, or None. Signature AND shape.
 
-                   A SESSION IS A TOKEN THAT CARRIES AN IDENTITY, and nothing else is. The
-                       shape check is not belt-and-braces: AUTH_SECRET signs a second kind of token
-                           since Google sign-in landed — the ten-minute OAuth state/nonce cookie in
-                               app/google_auth.py, which has no server-side store to live in — and that one
-                                   deliberately carries no userId and no role. It authorises nothing (every
-                                       require_* guard reads `role` through .get() and refuses), but it IS
-                                           structurally a valid HS256 JWT under this secret, and the consumers past the
-                                               guards index session["userId"] / session["role"] directly: pasted into
-                                                   `reep_session` by the browser's own owner, it turned an unauthenticated
-                                                       request into a 500 instead of a clean 401. google_auth.read_flow_state
-                                                           already refuses the mirror case; this closes the other direction. Every
-                                                               payload _payload_for() mints has both keys, so no real session changes.
+    A SESSION IS A TOKEN THAT CARRIES AN IDENTITY, and nothing else is. The
+    shape check is not belt-and-braces: AUTH_SECRET signs a second kind of token
+    since Google sign-in landed — the ten-minute OAuth state/nonce cookie in
+    app/google_auth.py, which has no server-side store to live in — and that one
+    deliberately carries no userId and no role. It authorises nothing (every
+    require_* guard reads `role` through .get() and refuses), but it IS
+    structurally a valid HS256 JWT under this secret, and the consumers past the
+    guards index session["userId"] / session["role"] directly: pasted into
+    `reep_session` by the browser's own owner, it turned an unauthenticated
+    request into a 500 instead of a clean 401. google_auth.read_flow_state
+    already refuses the mirror case; this closes the other direction. Every
+    payload _payload_for() mints has both keys, so no real session changes.
 
-                                                                   REVOCATION LIVES HERE, not in app/identity.py, because this is the ONE function
-                                                                       that turns a cookie into an identity — the HTTP dependency, the WebSocket
-                                                                           dependency and every test read the session through it. A revocation check
-                                                                               bolted onto one caller is a revocation check the next caller forgets.
-                                                                                   """
+    REVOCATION LIVES HERE, not in app/identity.py, because this is the ONE function
+    that turns a cookie into an identity — the HTTP dependency, the WebSocket
+    dependency and every test read the session through it. A revocation check
+    bolted onto one caller is a revocation check the next caller forgets.
+    """
     try:
-                       claims = jwt.decode(token, settings.auth_secret, algorithms=["HS256"])
-except jwt.PyJWTError:
+        claims = jwt.decode(token, settings.auth_secret, algorithms=["HS256"])
+    except jwt.PyJWTError:
         return None
     if not isinstance(claims, dict) or not claims.get("userId") or not claims.get("role"):
-                       return None
+        return None
     # STRICTLY BEHIND is revoked; equal or ahead is admitted. `<` rather than
     # `!=` on purpose: "ahead" cannot happen in normal operation, only after a
     # database restore rolls the counter back, and in that case admitting the
@@ -231,7 +231,7 @@ except jwt.PyJWTError:
     # of a system that has just been through an incident.
     current = current_token_version(str(claims["userId"]))
     if current is not None and current < 0:
-                       return None
+        return None
     if current is not None and _claimed_version(claims) < current:
-                       return None
+        return None
     return claims

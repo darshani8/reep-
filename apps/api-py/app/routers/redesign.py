@@ -1,5 +1,7 @@
 """Canonical v1 identity, mentor notebook, student visibility, and actions API."""
 
+import hashlib
+import json
 from datetime import datetime
 from typing import Any
 
@@ -23,8 +25,15 @@ from ..models.redesign import (
     NotebookVisibility,
     RecordStatus,
 )
+from ..models.redesign import MembershipRole, TenantMembership
 from ..models.user import Student, User
-from ..policies import assert_student_scope, require_staff, student_identity
+from ..policies import (
+    assert_student_scope,
+    require_notebook_staff,
+    require_staff,
+    student_identity,
+    tenant_id_for_session,
+)
 
 router = APIRouter(tags=["v1-redesign"])
 
@@ -134,12 +143,24 @@ def _action_out(row: MentorNotebookAction) -> ActionOut:
 
 
 def _entry_snapshot(row: MentorNotebookEntry) -> dict[str, Any]:
+    """Return a redacted change snapshot safe for audit and revision storage.
+
+    Notebook bodies and structured values are private staff content. Keep only
+    stable metadata, hashes, and keys in durable history so audit readers,
+    exports, backups, and workers cannot accidentally receive the plaintext.
+    """
+    body_hash = hashlib.sha256((row.body or "").encode("utf-8")).hexdigest()
+    structured_json = json.dumps(
+        row.structured_data or {}, sort_keys=True, separators=(",", ":"), default=str
+    )
+    structured_hash = hashlib.sha256(structured_json.encode("utf-8")).hexdigest()
     return {
         "id": row.id,
         "student_id": row.student_id,
         "title": row.title,
-        "body": row.body,
-        "structured_data": row.structured_data,
+        "body_sha256": body_hash,
+        "structured_data_sha256": structured_hash,
+        "structured_data_keys": sorted((row.structured_data or {}).keys()),
         "visibility": row.visibility.value,
         "status": row.status.value,
         "version": row.version,
@@ -151,7 +172,17 @@ def list_mentees(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[MenteeOut]:
     require_staff(session)
+    tenant_id = tenant_id_for_session(session, db)
     query = select(Student, User.name).join(User, Student.user_id == User.id)
+    if tenant_id:
+        query = query.join(
+            TenantMembership, TenantMembership.user_id == Student.user_id
+        ).where(
+            TenantMembership.tenant_id == tenant_id,
+            TenantMembership.role == MembershipRole.STUDENT,
+            TenantMembership.status == "ACTIVE",
+            TenantMembership.ended_at.is_(None),
+        )
     if session["role"] == "MENTOR":
         mentor_id = session.get("mentorId")
         if not mentor_id:
@@ -175,6 +206,7 @@ def list_entries(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[NotebookEntryOut]:
+    require_notebook_staff(session)
     assert_student_scope(session, student_id, db)
     rows = db.scalars(
         select(MentorNotebookEntry)
@@ -203,6 +235,7 @@ def create_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
+    require_notebook_staff(session)
     assert_student_scope(session, student_id, db)
     if session["role"] != "MENTOR" or not session.get("mentorId"):
         raise HTTPException(
@@ -248,7 +281,7 @@ def create_entry(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_entry",
         entity_id=row.id,
         action="created",
@@ -273,7 +306,7 @@ def update_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
-    require_staff(session)
+    require_notebook_staff(session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],
@@ -317,7 +350,7 @@ def update_entry(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_entry",
         entity_id=row.id,
         action="updated",
@@ -337,11 +370,25 @@ def update_entry(
 def publish_entry(
     entry_id: str,
     request: Request,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> NotebookEntryOut:
-    require_staff(session)
-    row = db.get(MentorNotebookEntry, entry_id)
+) -> NotebookEntryOut | JSONResponse:
+    require_notebook_staff(session)
+    replay = replay_or_reserve(
+        db,
+        principal_id=session["userId"],
+        route=str(request.url.path),
+        key=idempotency_key,
+        payload={"entry_id": entry_id, "command": "publish"},
+    )
+    if replay.response_json is not None:
+        return JSONResponse(status_code=replay.response_status or 200, content=replay.response_json)
+    row = db.scalar(
+        select(MentorNotebookEntry)
+        .where(MentorNotebookEntry.id == entry_id)
+        .with_for_update()
+    )
     if row is None or row.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Notebook entry not found.")
     assert_student_scope(session, row.student_id, db)
@@ -365,7 +412,7 @@ def publish_entry(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_entry",
         entity_id=row.id,
         action="published",
@@ -374,9 +421,11 @@ def publish_entry(
         event_type="mentor.notebook.entry.published",
         payload={"student_id": row.student_id},
     )
+    response = _entry_out(row)
+    store_response(replay, status_code=200, body=response.model_dump(mode="json"))
     db.commit()
     db.refresh(row)
-    return _entry_out(row)
+    return response
 
 
 @router.post("/mentor/notebook/entries/{entry_id}/archive", response_model=NotebookEntryOut)
@@ -387,7 +436,7 @@ def archive_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
-    require_staff(session)
+    require_notebook_staff(session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],
@@ -414,7 +463,7 @@ def archive_entry(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_entry",
         entity_id=row.id,
         action="archived",
@@ -423,9 +472,11 @@ def archive_entry(
         event_type="mentor.notebook.entry.archived",
         payload={"student_id": row.student_id},
     )
+    response = _entry_out(row)
+    store_response(replay, status_code=200, body=response.model_dump(mode="json"))
     db.commit()
     db.refresh(row)
-    return _entry_out(row)
+    return response
 
 
 @router.get("/mentor/notebook/students/{student_id}/actions", response_model=list[ActionOut])
@@ -434,6 +485,7 @@ def list_actions(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[ActionOut]:
+    require_notebook_staff(session)
     assert_student_scope(session, student_id, db)
     rows = db.scalars(
         select(MentorNotebookAction)
@@ -459,6 +511,7 @@ def create_action(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> ActionOut | JSONResponse:
+    require_notebook_staff(session)
     assert_student_scope(session, student_id, db)
     if session["role"] != "MENTOR":
         raise HTTPException(status_code=403, detail="Only a mentor can create notebook actions.")
@@ -486,7 +539,7 @@ def create_action(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_action",
         entity_id=row.id,
         action="created",
@@ -511,10 +564,20 @@ def create_attachment(
     entry_id: str,
     body: AttachmentIn,
     request: Request,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> AttachmentOut:
-    require_staff(session)
+) -> AttachmentOut | JSONResponse:
+    require_notebook_staff(session)
+    replay = replay_or_reserve(
+        db,
+        principal_id=session["userId"],
+        route=str(request.url.path),
+        key=idempotency_key,
+        payload={"entry_id": entry_id, **body.model_dump(mode="json")},
+    )
+    if replay.response_json is not None:
+        return JSONResponse(status_code=replay.response_status or 201, content=replay.response_json)
     entry = db.get(MentorNotebookEntry, entry_id)
     if entry is None or entry.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Notebook entry not found.")
@@ -526,16 +589,17 @@ def create_attachment(
         content_type=body.content_type,
         byte_size=body.byte_size,
         sha256=body.sha256.lower(),
-        storage_key=f"pending/{entry_id}/{body.sha256.lower()}",
+        storage_key="pending",
         status="PENDING",
     )
     db.add(row)
     db.flush()
+    row.storage_key = f"pending/{row.id}"
     record_change(
         db,
         session=session,
         request=request,
-        tenant_id=None,
+        tenant_id=tenant_id_for_session(session, db),
         entity_type="mentor_notebook_attachment",
         entity_id=row.id,
         action="registered",

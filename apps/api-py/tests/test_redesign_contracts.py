@@ -1,5 +1,20 @@
-from app.architecture_events import request_hash
+import pytest
+from fastapi import HTTPException
+
+from app.architecture_events import request_hash, require_idempotency_key
 from app.policies import STAFF_ROLES, student_identity
+
+
+def test_missing_idempotency_key_is_rejected_for_commands():
+    with pytest.raises(HTTPException) as error:
+        require_idempotency_key(None)
+    assert error.value.status_code == 400
+
+
+def test_student_identity_rejects_staff_session():
+    with pytest.raises(HTTPException) as error:
+        student_identity({"role": "MENTOR", "userId": "u", "mentorId": "m"})
+    assert error.value.status_code == 403
 
 
 def test_request_hash_is_order_independent():

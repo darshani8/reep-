@@ -187,6 +187,7 @@ export const routes: Routes = [
       },
       {
         path: 'mentor/notebook',
+        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
         loadComponent: () =>
           import('./features/mentor/notebook/mentor-notebook.component').then(
             (m) => m.MentorNotebookComponent,

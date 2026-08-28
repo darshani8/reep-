@@ -269,11 +269,25 @@ def update_entry(
     entry_id: str,
     body: NotebookEntryPatch,
     request: Request,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> NotebookEntryOut:
+) -> NotebookEntryOut | JSONResponse:
     require_staff(session)
-    row = db.get(MentorNotebookEntry, entry_id)
+    replay = replay_or_reserve(
+        db,
+        principal_id=session["userId"],
+        route=str(request.url.path),
+        key=idempotency_key,
+        payload=body.model_dump(mode="json"),
+    )
+    if replay.response_json is not None:
+        return JSONResponse(status_code=replay.response_status or 200, content=replay.response_json)
+    row = db.scalar(
+        select(MentorNotebookEntry)
+        .where(MentorNotebookEntry.id == entry_id)
+        .with_for_update()
+    )
     if row is None or row.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Notebook entry not found.")
     assert_student_scope(session, row.student_id, db)
@@ -312,9 +326,11 @@ def update_entry(
         event_type="mentor.notebook.entry.updated",
         payload={"version": row.version},
     )
+    response = _entry_out(row)
+    store_response(replay, status_code=200, body=response.model_dump(mode="json"))
     db.commit()
     db.refresh(row)
-    return _entry_out(row)
+    return response
 
 
 @router.post("/mentor/notebook/entries/{entry_id}/publish", response_model=NotebookEntryOut)
@@ -367,11 +383,25 @@ def publish_entry(
 def archive_entry(
     entry_id: str,
     request: Request,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> NotebookEntryOut:
+) -> NotebookEntryOut | JSONResponse:
     require_staff(session)
-    row = db.get(MentorNotebookEntry, entry_id)
+    replay = replay_or_reserve(
+        db,
+        principal_id=session["userId"],
+        route=str(request.url.path),
+        key=idempotency_key,
+        payload={"entry_id": entry_id, "command": "archive"},
+    )
+    if replay.response_json is not None:
+        return JSONResponse(status_code=replay.response_status or 200, content=replay.response_json)
+    row = db.scalar(
+        select(MentorNotebookEntry)
+        .where(MentorNotebookEntry.id == entry_id)
+        .with_for_update()
+    )
     if row is None or row.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Notebook entry not found.")
     assert_student_scope(session, row.student_id, db)
@@ -514,9 +544,11 @@ def create_attachment(
         event_type="mentor.notebook.attachment.registered",
         payload={"entry_id": entry_id},
     )
+    response = AttachmentOut.model_validate(row)
+    store_response(replay, status_code=201, body=response.model_dump(mode="json"))
     db.commit()
     db.refresh(row)
-    return AttachmentOut.model_validate(row)
+    return response
 
 
 @router.get("/student/mentor-notebook", response_model=list[StudentNotebookOut])

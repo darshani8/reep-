@@ -32,7 +32,7 @@ Outbox: PostgreSQL transaction -> worker delivery -> idempotent consumers
 
 ```text
 identity       users, tenants, memberships, sessions, capabilities
-a  cademic     profiles, results, attendance, courses, cohorts
+academic       profiles, results, attendance, courses, cohorts
 placement      jobs, applications, interviews, offers
 mentor         assignments, notebook entries, actions, attachments, reviews
 knowledge      versioned documents, chunks, models, embeddings, retrieval events

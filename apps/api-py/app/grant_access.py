@@ -56,7 +56,14 @@ from .seed_roster import db_target
 # in and then 403s everywhere. MENTOR is present but warned about below: a MENTOR
 # with no `Mentor` group correctly sees NOBODY (AGENTS.md rule 2), which is safe
 # but silent, and the operator should know before the mentor reports it as a bug.
-_GRANTABLE_ROLES = (Role.MENTOR, Role.DIRECTOR, Role.ADMIN)
+#
+# ALUMNI needs nothing but the row. It has no Student and no Mentor row by
+# definition (its session claims carry neither studentId nor mentorId), and its
+# profile is deliberately NOT created here: `GET /api/alumni/profile` answers
+# `created: false` until they save one, and that flag is what makes the client
+# show the first-login create form. Minting a blank profile would skip the only
+# screen a new alumnus is meant to land on.
+_GRANTABLE_ROLES = (Role.MENTOR, Role.DIRECTOR, Role.ADMIN, Role.ALUMNI)
 
 # Unusable-password sentinel, identical to seed_roster.SSO_ONLY_PASSWORD_HASH and
 # for the same reason: `users.password_hash` is NOT NULL, but these accounts must
@@ -68,7 +75,12 @@ SSO_ONLY_PASSWORD_HASH = "google-only"
 
 
 def grant(
-    db: Session, email: str, name: str, role: Role, usn: str | None = None
+    db: Session,
+    email: str,
+    name: str,
+    role: Role,
+    usn: str | None = None,
+    with_group: bool = False,
 ) -> tuple[User, bool]:
     """Create or update the user row that permits `email` to sign in.
 
@@ -77,6 +89,13 @@ def grant(
     scope. Returns the row and whether it was newly created, so the caller can
     print an honest summary instead of claiming to have created something it
     updated.
+
+    `with_group` applies to MENTOR only and creates the `Mentor` row that makes
+    the account a real mentor. Without it the grant is exactly what it was: a
+    MENTOR who signs in and sees nobody. It is opt-in rather than automatic
+    because tests/test_auth_rbac.py builds a group-less mentor on purpose to
+    prove rule 2 refuses, and a tool that always created the group would leave
+    no way to reach that state.
 
     STUDENT is granted only when `usn` is supplied, and then it creates the
     FULL trio (User + Student + StudentProfile) exactly as seed_roster does â
@@ -98,6 +117,8 @@ def grant(
         )
     if role is not Role.STUDENT and role not in _GRANTABLE_ROLES:
         raise ValueError(f"{role.value} cannot be granted here")
+    if with_group and role is not Role.MENTOR:
+        raise ValueError("--with-group applies to MENTOR only")
 
     # Case-insensitive, matching the callback's lookup: granting a second row
     # that differs only in case would create an account nobody can sign into,
@@ -153,6 +174,17 @@ def grant(
         if db.scalar(select(StudentProfile).where(StudentProfile.student_id == stu.id)) is None:
             db.add(StudentProfile(student_id=stu.id))
 
+    if role is Role.MENTOR and with_group:
+        # The `Mentor` row IS the group: `_assert_can_access_student` narrows a
+        # MENTOR to the students whose `mentor_id` points at it, and
+        # `_payload_for` only puts `mentorId` in the session when this row
+        # exists. Idempotent -- a second run finds the existing row.
+        from .models.user import Mentor
+
+        db.flush()
+        if db.scalar(select(Mentor).where(Mentor.user_id == user.id)) is None:
+            db.add(Mentor(user_id=user.id))
+
     db.commit()
     db.refresh(user)
     return user, created
@@ -176,6 +208,12 @@ def main() -> int:
         help="role to grant â required, because there is no safe default",
     )
     parser.add_argument(
+        "--with-group",
+        action="store_true",
+        help="MENTOR only: also create the Mentor group row. Without it the "
+        "mentor signs in and sees no students at all (AGENTS.md rule 2).",
+    )
+    parser.add_argument(
         "--usn",
         default=None,
         help="STUDENT only, and then required: the USN for the Student row. "
@@ -191,7 +229,14 @@ def main() -> int:
 
     with SessionLocal() as db:
         try:
-            user, created = grant(db, args.email, args.name, Role(args.role), usn=args.usn)
+            user, created = grant(
+                db,
+                args.email,
+                args.name,
+                Role(args.role),
+                usn=args.usn,
+                with_group=args.with_group,
+            )
         except ValueError as exc:
             # Reachable from a library caller; argparse's `choices` catches the
             # STUDENT case first on the command line, with its own message.
@@ -203,14 +248,22 @@ def main() -> int:
     print(f"{verb}: {email}  role={role.value}  name={display_name}")
     if not created:
         print("  (address already present â name and role were updated in place)")
-    if role is Role.MENTOR:
+    if role is Role.ALUMNI:
+        # Says the quiet part out loud: the empty profile is the point, not an
+        # oversight, and the first screen they land on is the one that fills it.
+        print("  No alumni profile row was created, deliberately - the first-login")
+        print("  create-profile form is what this account is meant to land on.")
+    if role is Role.MENTOR and args.with_group:
+        print("  Mentor group created. Students still need their mentor_id pointed at it")
+        print("  before this mentor can see anybody (AGENTS.md rule 2).")
+    if role is Role.MENTOR and not args.with_group:
         # Not a failure, but it will be reported as one. `_assert_can_access_student`
         # narrows a MENTOR to their own `Mentor` group, and no group means no
         # students â correctly, per AGENTS.md rule 2, but with nothing on screen
         # to explain it.
         print(
             "  NOTE: this mentor has no Mentor group yet, so they will sign in "
-            "and see no students at all until one is assigned.",
+            "and see no students at all. Re-run with --with-group to create it.",
             file=sys.stderr,
         )
     print()

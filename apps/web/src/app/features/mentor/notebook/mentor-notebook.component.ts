@@ -133,6 +133,7 @@ export class MentorNotebookComponent {
       const res = await fetch(`${this.apiBase}/v1/mentor/notebook/entries/${entry.id}/publish`, {
         method: 'POST',
         credentials: 'include',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
       });
       if (!res.ok) {
         const detail = await res.json().catch(() => null);

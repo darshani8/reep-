@@ -25,8 +25,11 @@
 
       @switch (navKind()) {
         @case ('staff') {
+          <a routerLink="/mentor/notebook" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">menu_book</span> Mentor Notebook
+          </a>
           <a routerLink="/mentor/mentees" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">groups</span> Mentee Log
+            <span class="icon" aria-hidden="true">groups</span> Legacy Mentee Log
           </a>
           <a routerLink="/mentor/leave" routerLinkActive="active">
             <span class="icon" aria-hidden="true">event_available</span> Leave Requests

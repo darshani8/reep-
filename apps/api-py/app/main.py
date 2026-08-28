@@ -30,6 +30,7 @@ from .routers import (
     mentee_records,
     mentor,
     registration,
+    redesign,
     staff_upskilling,
     student,
     student_programme,
@@ -283,6 +284,9 @@ app.include_router(interview.router)
 # Angular client calls lives under /api — matching environment.apiBase and the
 # dev proxy (apps/web/proxy.conf.json), with no path rewriting.
 app.include_router(auth.router, prefix="/api")
+# Canonical v1 surface. The legacy /api surface remains during the expand/contract window.
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(redesign.router, prefix="/api/v1")
 app.include_router(student.router, prefix="/api")
 # The v2 UI's three new screens (ledger, English baseline, mentor meeting log)
 # and the landing programme cards. Its own module so routers/student.py — the

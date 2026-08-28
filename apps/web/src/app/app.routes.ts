@@ -1,7 +1,7 @@
 import { Routes, Route } from '@angular/router';
 
 import { AppShellComponent } from './layout/app-shell.component';
-import { authGuard, homeRedirectGuard } from './core/auth.guard';
+import { authGuard, homeRedirectGuard, roleGuard } from './core/auth.guard';
 
 /**
  * Every nav destination in the shell needs a route, or clicking it goes nowhere
@@ -177,7 +177,21 @@ export const routes: Routes = [
       },
 
       // --- mentor / faculty ---
-      placeholder('mentor', 'Cohort'),
+      {
+        path: 'mentor',
+        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/mentor/notebook/mentor-notebook.component').then(
+            (m) => m.MentorNotebookComponent,
+          ),
+      },
+      {
+        path: 'mentor/notebook',
+        loadComponent: () =>
+          import('./features/mentor/notebook/mentor-notebook.component').then(
+            (m) => m.MentorNotebookComponent,
+          ),
+      },
       placeholder('mentor/student', 'Students'),
       {
         path: 'mentor/mentees',

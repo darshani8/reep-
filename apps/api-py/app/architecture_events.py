@@ -53,8 +53,19 @@ def replay_or_reserve(
         )
         .with_for_update()
     )
+    if row is not None and row.expires_at is not None and row.expires_at <= now:
+        # Expired keys are reusable, but only after the locked row is removed.
+        # This prevents indefinite replay retention while preserving the same
+        # principal/route/key uniqueness contract for concurrent callers.
+        db.delete(row)
+        db.flush()
+        row = None
+
     if row is not None:
         row.last_seen_at = now
+        if row.expires_at is None:
+            # Repair rows created before expiry was populated.
+            row.expires_at = now + _IDEMPOTENCY_TTL
         if row.request_hash != digest:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

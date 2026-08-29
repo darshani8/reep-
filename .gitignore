@@ -9,9 +9,36 @@ __pycache__/
 .mypy_cache/
 
 # env / secrets
+#
+# A NEGATED ALLOWLIST, not an enumeration. The previous block named `.env`,
+# `.env.local` and `**/.env` one at a time, so every filename nobody had thought
+# of was tracked by default -- and AGENTS.md's ENV allowlist (`prod`,
+# `production`, `staging`, `uat`, `demo`) teaches an operator to think in
+# environment names, so the natural file to create on a real box is
+# `.env.production` and the natural next command is `git add -A`. That file
+# carries AUTH_SECRET, and whoever knows AUTH_SECRET is every user: a forged
+# {"role":"DIRECTOR"} cookie reads every student's marks, attendance and USN
+# with no login and no database row involved. On a public repo there is no
+# un-pushing it -- only rotation, which signs every live session out.
+#
+# So: ignore the whole `.env*` family and re-admit only the templates by name.
+# A variant invented next year is ignored because it was never enumerated.
 .env
-.env.local
-**/.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Credential material by EXTENSION, for the same reason: a private key, a
+# service-account JSON or a PKCS#12 bundle dropped next to the code has no
+# filename anyone predicted either. Nothing matching these is tracked today
+# (`git ls-files` returns none), so none of this un-tracks an existing file.
+*.pem
+*.key
+*.p12
+*.pfx
+*-credentials.json
+service-account*.json
+secrets.json
 
 # logs
 *.log

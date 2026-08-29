@@ -5,10 +5,32 @@
 .venv*/
 __pycache__/
 *.pyc
-.env
-.env.local
 .pytest_cache/
 .mypy_cache/
+
+# env / secrets -- the same negated allowlist as the root .gitignore, repeated
+# HERE deliberately. The root file already covers these names, so this block is
+# not what makes them ignored today; it is what keeps them ignored the day
+# somebody reorganises the root file, and it is the file a backend developer
+# actually opens when they wonder whether `apps/api-py/.env` is safe. Two copies
+# of a rule that must not silently disappear is cheaper than one copy that does.
+#
+# `apps/api-py/.env` is the file that carries AUTH_SECRET, VOICE_WORKER_SECRET,
+# GROQ_API_KEY, the LIVEKIT_* triple and OPENAI_API_KEY -- and, per AGENTS.md,
+# the SAME file the 3.12 voice worker reads, so it is the single densest
+# credential file in the repository.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+*.pem
+*.key
+*.p12
+*.pfx
+*-credentials.json
+service-account*.json
+secrets.json
 
 # Local SQLite chat-memory bank
 *.db

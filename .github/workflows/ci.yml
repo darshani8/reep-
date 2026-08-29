@@ -12,9 +12,33 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # A newer push supersedes an in-flight run on the same ref.
+  # A newer push supersedes an in-flight run on the same ref -- ON A PULL
+  # REQUEST ONLY. On main, a run always finishes.
+  #
+  # Why the condition. A cancelled check run is neither `success` nor `failure`:
+  # its conclusion is `cancelled`, and a required status check that concludes
+  # `cancelled` never resolves. With `cancel-in-progress: true` on every ref, a
+  # burst of pushes to main leaves the superseded runs cancelled, and the moment
+  # these four jobs become REQUIRED checks (the ruleset in
+  # .github/rulesets/main.json, which an admin still has to apply) main wears a
+  # permanently amber check that no re-run clears. That reads as a flake, and the
+  # first person blocked by it goes looking for the bypass -- which is the same
+  # failure AGENTS.md names about the boot guard: a guard that trips when it
+  # should not is a guard somebody deletes on the afternoon they need to ship.
+  #
+  # It is not hypothetical here. Two of the last twelve runs of this workflow on
+  # main concluded `cancelled`: run 33178139295 on c9ef4f3, and run 33176873138
+  # on 543a265. That second one is the whole argument -- it was CREATED at
+  # 13:45:35Z and concluded `cancelled` at 13:46:34Z, and deploy run 33176879314
+  # shipped that same sha to production at 13:45:39Z: four seconds after its
+  # checks started, and fifty-five seconds before they stopped without a verdict.
+  # Nothing failed. Nothing passed. Nothing was waiting for either.
+  #
+  # On a pull request the superseding behaviour is what you want and costs
+  # nothing: the branch's final push is the one that has to be green, and an
+  # obsolete run cancelled on a PR blocks nothing.
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   api:

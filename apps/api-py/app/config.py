@@ -40,6 +40,19 @@ _DEFAULT_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"
 # deployment that has verified a newer id still gets it.
 _BETA_TRANSCRIPTION_MODEL = "whisper-1"
 
+# The engines that may run a mock interview, and the whole of the allowlist
+# INTERVIEW_ENGINE is validated against. Named here rather than spelled inside
+# the validator so that adding one is a single edit and so the warning that
+# rejects a typo can print the real list instead of a hand-maintained sentence.
+_INTERVIEW_ENGINES = frozenset({"openai", "nova", "local"})
+
+# Amazon Nova 2 Sonic, the speech-to-speech model behind INTERVIEW_ENGINE=nova.
+# The id is the model itself and not an inference profile: the bidirectional
+# streaming API is invoked with the bare model id in every AWS example, and a
+# regional profile prefix ("apac.") is rejected there — which is why this is a
+# separate setting from BEDROCK_MODEL rather than reusing it.
+_DEFAULT_NOVA_SONIC_MODEL = "amazon.nova-2-sonic-v1:0"
+
 # The institution's mail domain. One constant behind two settings
 # (GOOGLE_ALLOWED_DOMAIN and ROSTER_EMAIL_DOMAIN) because they describe the same
 # real-world fact: which addresses belong to this college. It is NOT a security
@@ -527,6 +540,11 @@ class Settings(BaseSettings):
     # "openai"  app/interview_relay.py -> api.openai.com. One speech-to-speech
     #           model hears, reasons and speaks. Needs OPENAI_API_KEY and costs
     #           money per minute.
+    # "nova"    app/interview_nova.py -> Amazon Nova 2 Sonic on Bedrock, over
+    #           the native InvokeModelWithBidirectionalStream API. Also one
+    #           speech-to-speech model, and also off-machine, but authenticated
+    #           by the IAM role this deployment already runs under rather than
+    #           by a pasted key -- which is why an AWS-hosted REEP prefers it.
     # "local"   app/interview_local.py -> nothing leaves the machine.
     #           faster-whisper hears, the Ollama model in LLM_MODEL reasons,
     #           Piper speaks. No key, no cost, and rule 1 holds by construction
@@ -546,21 +564,73 @@ class Settings(BaseSettings):
 
         Deliberately an ALLOWLIST rather than `!= "local"`: a typo like
         INTERVIEW_ENGINE=loca must not quietly run the hosted engine while the
-        operator believes nothing is leaving the machine. It falls back to the
+        operator believes nothing is leaving the machine, and INTERVIEW_ENGINE=
+        nove must not bill an OpenAI key an AWS deployment did not mean to use. It falls back to the
         documented default and says so, which is the same shape as
         `password_login_allowed` -- an unknown value closes the door rather than
         guessing which one was meant.
         """
         text = str(value or "").strip().lower()
-        if text in {"openai", "local"}:
+        if text in _INTERVIEW_ENGINES:
             return text
         if text:
             import logging
 
             logging.getLogger(__name__).warning(
-                "INTERVIEW_ENGINE=%r is not 'openai' or 'local'; using 'openai'", value
+                "INTERVIEW_ENGINE=%r is not one of %s; using 'openai'",
+                value,
+                ", ".join(sorted(_INTERVIEW_ENGINES)),
             )
         return "openai"
+
+    # ---- The Nova 2 Sonic engine (INTERVIEW_ENGINE=nova) ----------------
+    #
+    # Bedrock's speech-to-speech model, reached over
+    # InvokeModelWithBidirectionalStream. There is NO api key here and that is
+    # the point: the stream is signed with SigV4 from whatever the standard AWS
+    # chain resolves (task role, instance profile, SSO profile, or the
+    # AWS_ACCESS_KEY_ID pair in the environment), so an AWS-hosted REEP grants
+    # bedrock:InvokeModelWithBidirectionalStream to the task role and pastes
+    # nothing anywhere.
+    #
+    # Rule 1 (AGENTS.md) reads exactly as it does for the OpenAI relay: Bedrock
+    # is off-machine, so no student record enters the session. What the engine
+    # authors upstream is the fixed persona plus the fixed per-phase directives
+    # from app/interview_matrix.py, and everything else on the uplink is the
+    # student's own microphone.
+    nova_sonic_model: str = _DEFAULT_NOVA_SONIC_MODEL
+    # Blank falls back to BEDROCK_REGION and then to the ordinary AWS
+    # environment (AWS_REGION / AWS_DEFAULT_REGION) — see `nova_region`'s
+    # resolver property below. It must resolve to SOMETHING, because the
+    # bidirectional endpoint is regional and Nova 2 Sonic is not in every
+    # region; `interview_ready` reports the interview unavailable rather than
+    # letting a student meet the failure as a dead socket.
+    nova_sonic_region: str = ""
+    # The voice for the GENERIC interview (no ?specialization=). Each matrix row
+    # carries its own — see nova_voice_for() in app/interview_matrix.py — and an
+    # unknown name here falls back to the model's own default with a line in the
+    # log rather than failing the session.
+    nova_sonic_voice: str = "matthew"
+    # HIGH | MEDIUM | LOW: how fast Nova decides the student has stopped
+    # speaking. MEDIUM is AWS's recommended default and the right one HERE for a
+    # reason of its own — an interview answer contains thinking pauses that a
+    # HIGH setting reads as the end of the turn, and being cut off mid-answer is
+    # the single most damaging thing a mock interviewer can do to a nervous
+    # student.
+    nova_sonic_endpointing: str = "MEDIUM"
+    # What the uplink is resampled to. The browser captures at 24 kHz (the
+    # client link is unchanged from the OpenAI relay) and Nova accepts 8/16/24
+    # kHz; 16 kHz is what every AWS sample streams and what the model is
+    # documented against, so it is the default and the resample happens here.
+    nova_sonic_input_rate_hz: int = 16000
+    # THE 8-MINUTE WALL. A Nova bidirectional stream is closed by the service
+    # after 8 minutes, which is less than half of interview_max_seconds (900).
+    # An interview that runs into it ends mid-sentence with no verdict and no
+    # scorecard, so the engine treats this as the real cap and forces the
+    # wrap-up early enough to finish speaking. 480 is the documented limit; the
+    # setting exists so a deployment that sees the stream cut sooner can say so
+    # rather than discovering it one interview at a time.
+    nova_sonic_connection_seconds: int = 480
 
     # The interviewer's model, SEPARATE from llm_model on purpose.
     #
@@ -710,6 +780,8 @@ class Settings(BaseSettings):
         "interview_min_answer_words",
         "interview_max_clarifications_per_question",
         "interview_report_timeout_ms",
+        "nova_sonic_input_rate_hz",
+        "nova_sonic_connection_seconds",
         "interview_recording_enabled",
         "interview_recording_max_bytes",
         "interview_retention_days",
@@ -931,6 +1003,110 @@ class Settings(BaseSettings):
         handshake time, i.e. a failure the student meets instead of the operator.
         """
         return bool(self.openai_api_key.strip())
+
+    @property
+    def nova_region(self) -> str:
+        """The region the Nova Sonic stream is opened in, or "" if unknown.
+
+        THREE sources, most specific first: NOVA_SONIC_REGION, then
+        BEDROCK_REGION (a deployment already calling Bedrock for the resume
+        builder has said where its Bedrock lives, and making it say so twice is
+        how the two drift), then the ordinary AWS environment every other tool
+        on the box reads. Unlike boto3's client, the bidirectional endpoint is
+        composed from this string BY US, so "" cannot be handed on as "let the
+        SDK decide" — it is an unconfigured deployment, and `interview_ready`
+        says so in words instead of leaving a student at a dead socket.
+        """
+        import os
+
+        return (
+            self.nova_sonic_region.strip()
+            or self.bedrock_region.strip()
+            or os.environ.get("AWS_REGION", "").strip()
+            or os.environ.get("AWS_DEFAULT_REGION", "").strip()
+        )
+
+    @property
+    def nova_sonic_ready(self) -> bool:
+        """Whether the Nova engine has enough to open a stream.
+
+        Deliberately NOT a credential check. Credentials come from the standard
+        AWS chain (task role, instance profile, profile, environment) which is
+        resolved asynchronously at connect time and cannot be probed from a
+        synchronous property without a network call on a request path. What CAN
+        be checked here is the pair this process composes itself — the model id
+        and the region of the endpoint — and those are also the two an operator
+        actually gets wrong. A missing ROLE fails at handshake and closes 4002
+        with the reason in the log, which is the right place for a fault only
+        AWS can explain.
+        """
+        return bool(self.nova_sonic_model.strip() and self.nova_region)
+
+    @property
+    def interview_ready(self) -> bool:
+        """Whether the mock interview can run ON THE ENGINE THIS DEPLOYMENT USES.
+
+        `realtime_ready` answers the OpenAI question alone, and both the status
+        probe and the socket used to ask it whatever INTERVIEW_ENGINE said —
+        which meant a deployment running the local engine (no key by design, and
+        nothing leaving the machine) was told its interviews were "not
+        configured on this server yet" until it pasted an OpenAI key it would
+        never spend. Each engine answers for itself here.
+        """
+        engine = self.interview_engine.strip().lower()
+        if engine == "nova":
+            return self.nova_sonic_ready
+        if engine == "local":
+            # Nothing to configure: the models are on disk and the failure mode
+            # (a missing weights file, no GPU) surfaces at start with its own
+            # close code and its own sentence, which is more useful than a
+            # blanket "unavailable" here.
+            return True
+        return self.realtime_ready
+
+    @property
+    def interview_unready_reason(self) -> str:
+        """The one sentence a student reads when the interview is off.
+
+        Engine-specific because the fixes are: an operator who reads "set
+        OPENAI_API_KEY" on an AWS deployment goes and buys the wrong thing.
+        Written for the student (who can only be told it is not their fault)
+        while naming the variable for the operator standing behind them.
+        """
+        engine = self.interview_engine.strip().lower()
+        if engine == "nova" and not self.nova_region:
+            return (
+                "Mock interviews are not configured on this server yet "
+                "(no AWS region for Nova Sonic)."
+            )
+        return "Mock interviews are not configured on this server yet."
+
+    @property
+    def interview_provider_label(self) -> str:
+        """WHO receives the student's voice, in words a student can read.
+
+        This is consent copy, not decoration. The assistant screen tells the
+        student where their microphone audio goes before they agree to it, and
+        that sentence used to name OpenAI in the HTML — which became a FALSE
+        disclosure the day INTERVIEW_ENGINE grew a second hosted engine. A
+        consent record whose wording says the wrong company is worse than no
+        record: `interview_consents` exists to answer "what did they agree to",
+        and it would answer wrongly with a straight face.
+
+        Operator note that belongs next to this string: changing engines
+        changes who receives the audio, so it warrants bumping
+        INTERVIEW_CONSENT_VERSION and asking again.
+        """
+        engine = self.interview_engine.strip().lower()
+        if engine == "nova":
+            return "Amazon's Nova Sonic model, running on AWS Bedrock"
+        if engine == "local":
+            # Deliberately still phrased as a disclosure. Nothing leaves the
+            # machine on this engine, so the surrounding copy overstates in the
+            # SAFE direction: a student told more leaves than does is not
+            # harmed, and one told less is.
+            return "a speech model running on the college's own server"
+        return "OpenAI's realtime model"
 
     @property
     def realtime_url(self) -> str:

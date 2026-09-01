@@ -173,6 +173,15 @@ variable "nova_sonic_region" {
   default     = "ap-northeast-1"
 }
 
+# Version of the consent wording shown before a student opens an interview.
+# Bump when the provider or another material disclosure changes; old grants
+# then stop satisfying the current-version gate and students re-accept once.
+variable "interview_consent_version" {
+  description = "Consent wording version required for the interview feature."
+  type        = string
+  default     = "2026-09"
+}
+
 # --- alerting ----------------------------------------------------------------
 
 variable "alert_email" {

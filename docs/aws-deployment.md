@@ -49,6 +49,15 @@ Internet ── WAF ── CloudFront ──┬── S3 (Angular SPA, private, 
   is set. CloudFront verifies the origin's certificate against the *origin
   domain name*, and no public CA issues for `*.elb.amazonaws.com`, so the
   origin needs a name your certificate can actually cover.
+
+  **It is a SECOND hostname, not the one people type.** `domain_name` is the
+  public name and CNAMEs to CloudFront; `alb_origin_domain` CNAMEs to the ALB.
+  Setting them to the same value reads sensible and routes `/api/*` from
+  CloudFront back into CloudFront: the edge answers `403 "Bad request"` without
+  ever reaching the ALB, while the S3 behaviour is untouched, so **the
+  dashboard loads perfectly and nothing inside it works** — no login, no data,
+  and no error anywhere that names a cause. `cdn.tf` now refuses that
+  configuration at plan time rather than letting you find out from the edge.
 - A Sentry org with two projects (api → Python/FastAPI, web → Angular); note
   both DSNs.
 

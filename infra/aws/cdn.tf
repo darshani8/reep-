@@ -93,6 +93,49 @@ resource "aws_cloudfront_distribution" "main" {
     ssl_support_method             = var.domain_name != "" ? "sni-only" : null
     minimum_protocol_version       = var.domain_name != "" ? "TLSv1.2_2021" : "TLSv1"
   }
+
+  # These are preconditions and not `check` blocks on purpose. A check block
+  # WARNS and applies anyway; each of the mistakes below takes the whole API or
+  # the whole site down, and a warning scrolls past in a plan with eight other
+  # updates in it. Fail the plan.
+  lifecycle {
+    # THE ORIGIN MUST NOT BE THE DISTRIBUTION. Setting alb_origin_domain to the
+    # public hostname reads as "the site is at reep.example.com, so that is the
+    # origin" -- but that name is a CNAME to this distribution, so every
+    # /api/* request is routed from CloudFront back into CloudFront. The edge
+    # answers 403 "Bad request" without ever contacting the ALB, and because
+    # the S3 behavior is untouched the SPA still loads perfectly: the dashboard
+    # paints and nothing in it works, with no error anywhere that names a
+    # cause. The origin needs its OWN hostname (origin.<domain>) pointed at the
+    # alb_dns_name output -- see the alb_origin_domain variable.
+    precondition {
+      condition = var.alb_origin_domain == "" || (
+        var.alb_origin_domain != var.domain_name &&
+        !endswith(var.alb_origin_domain, ".cloudfront.net")
+      )
+      error_message = join(" ", [
+        "alb_origin_domain (${var.alb_origin_domain}) is the public hostname or a",
+        "CloudFront domain, so the /api/* origin would point back at this",
+        "distribution and every API request would 403 at the edge while the SPA",
+        "kept loading. It must be a SEPARATE name -- e.g. origin.${var.domain_name != "" ? var.domain_name : "<your-domain>"}",
+        "-- with a DNS-only record pointing at the alb_dns_name output.",
+      ])
+    }
+
+    # A custom domain without a certificate for it is a browser warning on every
+    # visit. AWS rejects this too, but with an API error that names neither
+    # variable, and the certificate must be in us-east-1 -- a regional cert that
+    # works perfectly for the ALB is silently the wrong one here.
+    precondition {
+      condition = var.domain_name == "" || trimspace(var.cloudfront_acm_certificate_arn) != ""
+      error_message = join(" ", [
+        "domain_name is set to ${var.domain_name} but cloudfront_acm_certificate_arn",
+        "is empty, so the distribution would serve its default *.cloudfront.net",
+        "certificate and every visitor would get a name-mismatch warning. The",
+        "certificate must be issued in us-east-1, NOT in var.region.",
+      ])
+    }
+  }
 }
 
 

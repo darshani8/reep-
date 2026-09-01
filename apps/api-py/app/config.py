@@ -605,7 +605,15 @@ class Settings(BaseSettings):
     # student agrees to changes, and rows carrying the old string stop counting
     # as consent for the new terms — which is exactly what should happen. A date
     # is enough; nothing parses it, and it sorts.
-    interview_consent_version: str = "2026-08"
+    #
+    # 2026-09, not 2026-08: the wording names WHO receives the student's voice,
+    # and that became Amazon Bedrock when the OpenAI relay was deleted. Grants
+    # made under the old string were given against a sentence naming a
+    # different company, so they must stop counting. Bumped in the code default
+    # and not only in the task definition, because a deployment that does not
+    # set the variable would otherwise record grants under a version whose
+    # wording it no longer shows.
+    interview_consent_version: str = "2026-09"
 
     @field_validator(
         "llm_timeout_ms",

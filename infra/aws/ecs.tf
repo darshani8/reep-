@@ -95,14 +95,19 @@ locals {
     { name = "BEDROCK_MODEL", value = var.bedrock_model },
     { name = "BEDROCK_REGION", value = var.region },
     # Which engine runs the mock interview, and where its model lives. The
-    # region is passed even while the engine is "openai", so that turning the
-    # interviewer on is one variable rather than two — and so that it can never
-    # be inherited from BEDROCK_REGION, which points at a region that does not
-    # serve Nova 2 Sonic (see the variable's own note).
-    { name = "INTERVIEW_CONSENT_VERSION", value = var.interview_consent_version },
-
+    # region is named here rather than inherited from BEDROCK_REGION, which
+    # points at a region that does not serve Nova 2 Sonic (see the variable's
+    # own note) — an inherited value would SATISFY the readiness check and then
+    # die at the handshake, which is a dead socket in front of a student
+    # instead of an honest "not configured".
     { name = "INTERVIEW_ENGINE", value = var.interview_engine },
     { name = "NOVA_SONIC_REGION", value = var.nova_sonic_region },
+    # WHO receives the student's voice is part of what they agreed to, so
+    # changing engines invalidates the old grants ON PURPOSE: bumping this stops
+    # them satisfying the current-version gate and every student is asked once
+    # more. Set here rather than left to the code default so that the next bump
+    # is a terraform variable rather than a release.
+    { name = "INTERVIEW_CONSENT_VERSION", value = var.interview_consent_version },
     { name = "LLM_ALLOW_REMOTE_STUDENT_DATA", value = var.allow_remote_student_data },
   ]
 

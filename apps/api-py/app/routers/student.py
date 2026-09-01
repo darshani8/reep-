@@ -22,6 +22,8 @@ from ..document_store import (
     content_disposition,
     delete as document_store_delete,
     read_bytes,
+    VolumeQuota,
+    QuotaRejected,
     save_bytes,
 )
 from ..resume_pdf import render_resume_pdf
@@ -1472,17 +1474,21 @@ def create_upload(
             Upload.student_id == student_id
         )
     ).one()
-    if used_count >= MAX_UPLOADS_PER_STUDENT:
-        # 409, not 413: the file is fine, the shelf is full. Deleting an upload
-        # (DELETE /student/uploads/{id}) removes the bytes and the row, so the
-        # student can act on this themselves — say so, or it reads as a dead end.
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                f"You already have {used_count} files uploaded, which is the limit of "
-                f"{MAX_UPLOADS_PER_STUDENT}. Delete one you no longer need, then try again."
-            ),
-        )
+    # 409 for a full shelf, 413 for the byte allowance: the file is fine either
+    # way, so neither is 422. Deleting an upload (DELETE /student/uploads/{id})
+    # removes the bytes and the row, so the student can act on this themselves —
+    # the messages say so, or the limit reads as a dead end.
+    quota = VolumeQuota(
+        max_files=MAX_UPLOADS_PER_STUDENT,
+        max_bytes=MAX_UPLOAD_BYTES_PER_STUDENT,
+        used_files=used_count,
+        used_bytes=used_bytes,
+        noun="file",
+    )
+    try:
+        quota.check_slot()
+    except QuotaRejected as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
     # read(MAX+1), never read(): the per-file cap is enforced by save_bytes on
     # len(content), so reading one byte past it is enough to trip the refusal —
@@ -1490,18 +1496,10 @@ def create_upload(
     # bounds into RAM, and that bound does not exist when uvicorn is exposed
     # directly (the documented dev setup, or a different ingress).
     content = file.file.read(MAX_BYTES + 1)
-    if used_bytes + len(content) > MAX_UPLOAD_BYTES_PER_STUDENT:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=(
-                f"This file would take you past your "
-                f"{MAX_UPLOAD_BYTES_PER_STUDENT // (1024 * 1024)} MB upload allowance "
-                f"({used_bytes / (1024 * 1024):.1f} MB used). Delete something you no "
-                "longer need, then try again."
-            ),
-        )
     try:
-        stored_name, mime, size = save_bytes(content)
+        stored_name, mime, size = save_bytes(content, quota=quota)
+    except QuotaRejected as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
     except UploadRejected as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
 

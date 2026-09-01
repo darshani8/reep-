@@ -106,6 +106,28 @@ jobs:
         working-directory: apps/api-py
         run: python -m pytest -q
 
+  pii-gate:
+    name: Rule 1 (every model call declares its cargo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      # No install step: this is a static AST walk over app/, not an import.
+      # It asks what the SOURCE says, and a keyword argument is visible without
+      # executing anything -- so it runs in seconds and cannot be defeated by a
+      # missing dependency.
+      #
+      # carries_student_data defaults to False, so an OMITTED argument silently
+      # asserts "this prompt holds no student record". That assertion is
+      # sometimes wrong and nothing fails when it is. This makes the assertion
+      # something a human had to type, where a reviewer can see it.
+      - name: Every complete_chat/stream_chat call declares carries_student_data
+        run: python tools/ci/check_pii_gate.py
+
   api-imports:
     name: API (dependency completeness)
     runs-on: ubuntu-latest

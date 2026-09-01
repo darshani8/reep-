@@ -25,7 +25,7 @@ from ..db import get_db
 from ..identity import get_current_session
 from ..document_store import MAX_BYTES, UploadRejected, content_disposition
 from ..document_store import delete as document_store_delete
-from ..document_store import read_bytes, save_bytes
+from ..document_store import QuotaRejected, VolumeQuota, read_bytes, save_bytes
 from ..models.alumni import AlumniProfile
 from ..models.job import Job
 
@@ -134,7 +134,18 @@ def save_profile(
         # reasoning).
         content = resume.file.read(MAX_BYTES + 1)
         try:
-            stored = save_bytes(content)  # (stored_name, mime, size)
+            # One profile, one resume, and the old bytes are deleted below
+            # before the row points at the new ones -- so this owner's volume is
+            # bounded at a single file by construction rather than by counting.
+            # It still has to SAY so: save_bytes takes no caller that stays
+            # silent about who is counting, which is how this endpoint came to
+            # have no quota at all while the store's comment still claimed a
+            # single writer.
+            stored = save_bytes(
+                content, quota=VolumeQuota.single_slot("resume")
+            )  # (stored_name, mime, size)
+        except QuotaRejected as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc))
         except UploadRejected as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)

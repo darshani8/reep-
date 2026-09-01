@@ -255,13 +255,19 @@ def interview_status(session: dict = Depends(get_current_session)) -> StatusOut:
             active_sessions=_LIMITER.active,
             max_sessions=_LIMITER.limit,
         )
-    if not settings.realtime_ready:
+    if not settings.interview_ready:
+        # ENGINE-AWARE, and it has to be: `realtime_ready` asks the OpenAI
+        # question alone, so a deployment running INTERVIEW_ENGINE=nova (signed
+        # by an IAM role) or =local (nothing leaves the machine) was told its
+        # interviews were unconfigured until somebody pasted an OpenAI key it
+        # would never spend.
         log.warning(
-            "GET /api/interview/status -> unavailable: OPENAI_API_KEY is not set"
+            "GET /api/interview/status -> unavailable: engine %r is not configured",
+            settings.interview_engine,
         )
         return StatusOut(
             available=False,
-            reason="Mock interviews are not configured on this server yet.",
+            reason=settings.interview_unready_reason,
             active_sessions=_LIMITER.active,
             max_sessions=_LIMITER.limit,
         )
@@ -745,11 +751,16 @@ async def interview(websocket: WebSocket) -> None:
         )
         return
 
-    if not settings.realtime_ready:
+    if not settings.interview_ready:
+        # Asked of the ENGINE this deployment actually runs — see the same
+        # check in the status probe above. The close reason stays generic
+        # because it is read by a student; the log line names the engine,
+        # because it is read by the operator who can fix it.
         log.error(
-            "[conn=%s] WS /api/interview -> %d: OPENAI_API_KEY is not set",
+            "[conn=%s] WS /api/interview -> %d: engine %r is not configured",
             conn_id,
             _CLOSE_NOT_CONFIGURED,
+            settings.interview_engine,
         )
         await _close_downstream(
             websocket, _CLOSE_NOT_CONFIGURED, "Voice service not configured"
@@ -964,15 +975,23 @@ async def interview(websocket: WebSocket) -> None:
                 conn_id,
             )
 
-    # WHICH ENGINE. Chosen here and nowhere else: both classes take this
-    # constructor and both return (code, reason) from run(), so every writer,
-    # the limiter, the recorder and all three finalization layers below are
-    # identical either way and never learn which one spoke.
+    # WHICH ENGINE. Chosen here and nowhere else: all three classes take this
+    # constructor and all three return (code, reason) from run(), so every
+    # writer, the limiter, the recorder and all three finalization layers below
+    # are identical whichever one runs and never learn which one spoke.
     engine_cls = _RelaySession
-    if settings.interview_engine.strip().lower() == "local":
+    engine_name = settings.interview_engine.strip().lower()
+    if engine_name == "local":
         from ..interview_local import LocalSession
 
         engine_cls = LocalSession
+    elif engine_name == "nova":
+        # Imported HERE and not at module scope, like the local engine above:
+        # aws-sdk-bedrock-runtime pulls aiohttp and the whole smithy stack in,
+        # and a deployment on another engine should not pay that at boot.
+        from ..interview_nova import NovaSonicSession
+
+        engine_cls = NovaSonicSession
 
     relay = engine_cls(
         websocket,

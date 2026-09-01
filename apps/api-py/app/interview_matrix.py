@@ -68,6 +68,26 @@ KNOWN_REALTIME_VOICES: Final[frozenset[str]] = frozenset(
      "marin", "cedar"}
 )
 
+# The same list for Amazon Nova 2 Sonic (app/interview_nova.py), which is a
+# DIFFERENT vocabulary entirely -- "coral" is not a Nova voice and "kiara" is
+# not an OpenAI one, so a single `voice` column could not have served both
+# engines and the row carries one of each. Nova answers an unknown voiceId with
+# a ValidationException that kills the stream at the handshake, i.e. before a
+# single word is spoken, so the engine validates against this set and falls back
+# with a line in the log rather than losing the interview to a typo.
+KNOWN_NOVA_VOICES: Final[frozenset[str]] = frozenset(
+    {"matthew", "tiffany", "amy", "olivia", "lupe", "carlos", "ambre",
+     "florian", "lennart", "beatrice", "lorenzo", "tina", "carolina", "leo",
+     "kiara", "arjun"}
+)
+
+# Where the engine lands when the configured voice is not in the set above.
+# "matthew" rather than the first name alphabetically: it is the US English
+# masculine voice AWS's own examples default to, so an operator who mistypes
+# gets an interviewer that sounds ordinary rather than one that suddenly speaks
+# in another accent halfway through a cohort.
+DEFAULT_NOVA_VOICE: Final[str] = "matthew"
+
 
 @dataclass(frozen=True, slots=True)
 class Specialization:
@@ -89,6 +109,15 @@ class Specialization:
     frameworks: tuple[str, ...]
     sample_question: str
     voice: str
+    # The same role's voice on Amazon Nova 2 Sonic, whose voice names have
+    # nothing in common with OpenAI's. Two columns rather than a lookup keyed on
+    # `voice`, because the mapping is a CASTING decision and not a translation:
+    # the four roles are deliberately spread across accents and registers on
+    # each engine, and a table that turned "coral" into whatever Nova voice
+    # happened to be nearest would silently recast a role the day either
+    # provider renamed one. Defaulted so a row that predates Nova still
+    # constructs -- nova_voice_for() falls back to the configured generic voice.
+    nova_voice: str = ""
     # The course the student was actually taught, module by module, when the
     # programme has one. `frameworks` is what a PRACTITIONER is assessed on and
     # is pitched at the industry bar; `syllabus` is what this cohort has sat in
@@ -122,6 +151,10 @@ SPECIALIZATIONS: Final[dict[str, Specialization]] = {
                 "claim involving a top-performing executive."
             ),
             voice="coral",
+            # English (India), feminine. The one role in the matrix a student is
+            # most likely to meet in their own campus drive, and the accent is
+            # part of the rehearsal.
+            nova_voice="kiara",
         ),
         Specialization(
             key="dm",
@@ -174,6 +207,10 @@ SPECIALIZATIONS: Final[dict[str, Specialization]] = {
                 "100; ROAS = attributed revenue / cost.",
             ),
             voice="marin",
+            # English (US), feminine. A growth CMO in this cohort's target
+            # companies is as often a video call from another country as a
+            # person in the building.
+            nova_voice="tiffany",
         ),
         Specialization(
             key="ba",
@@ -191,6 +228,10 @@ SPECIALIZATIONS: Final[dict[str, Specialization]] = {
                 "customer churn using messy e-commerce logs?"
             ),
             voice="cedar",
+            # English (India), masculine. Paired against HR deliberately: two
+            # Indian-English voices of different registers, so the four roles
+            # do not all sound like the same interviewer.
+            nova_voice="arjun",
         ),
         Specialization(
             key="fa",
@@ -208,6 +249,9 @@ SPECIALIZATIONS: Final[dict[str, Specialization]] = {
                 "the three financial statements."
             ),
             voice="ash",
+            # English (US), masculine. The most formal of the four, which is the
+            # register a Managing Director interview actually runs at.
+            nova_voice="matthew",
         ),
     )
 }
@@ -223,6 +267,29 @@ def get_specialization(key: str | None) -> Specialization | None:
     if not key:
         return None
     return SPECIALIZATIONS.get(key.strip().lower())
+
+
+def nova_voice_for(spec: Specialization | None) -> tuple[str, str]:
+    """(the Nova voice to use, the name that was asked for).
+
+    Both halves, because they differ exactly when something is wrong and the
+    engine has to be able to SAY so: Nova answers an unknown voiceId with a
+    ValidationException that ends the stream during the handshake, so a
+    mistyped NOVA_SONIC_VOICE would otherwise present as "the interview never
+    starts" with nothing naming the cause. Falling back keeps the interview,
+    and returning the requested name lets the engine log what it ignored.
+
+    `spec` is None for the generic interview that predates the matrix, which is
+    the case NOVA_SONIC_VOICE exists for.
+    """
+    requested = (
+        spec.nova_voice
+        if spec is not None and spec.nova_voice
+        else settings.nova_sonic_voice
+    ).strip().lower()
+    if requested in KNOWN_NOVA_VOICES:
+        return requested, requested
+    return DEFAULT_NOVA_VOICE, requested
 
 
 # ---------------------------------------------------------------------------
@@ -544,6 +611,33 @@ _DELIVERY_STYLE: Final[str] = (
     "recitations. Warm but professional; this is a practice interview, not an "
     "interrogation."
 )
+
+
+def phase_directive(spec: Specialization, phase: InterviewPhase) -> str:
+    """The phase's steering directive ALONE, with no persona in front of it.
+
+    For an engine whose system prompt is set ONCE and cannot be replaced
+    mid-session. app/interview_relay.py re-sends the whole composition on every
+    phase change because that is what a Realtime `session.update` takes;
+    app/interview_nova.py cannot -- Nova 2 Sonic has no update event -- so it
+    sends the persona once at the handshake and injects only what CHANGED as a
+    control note. Both read the same string from the same private function, so
+    the two engines cannot drift into steering students differently.
+    """
+    return _phase_directive(spec, phase)
+
+
+def turn_directive(kind: str) -> str:
+    """One entry of _TURN_DIRECTIVES, for the same reason as phase_directive.
+
+    Raises on an unknown kind rather than returning "", because an engine that
+    silently injected an empty directive would look exactly like a model
+    ignoring it.
+    """
+    directive = _TURN_DIRECTIVES.get(kind)
+    if directive is None:
+        raise ValueError(f"Unknown turn kind {kind!r}")
+    return directive
 
 
 def build_turn_instructions(

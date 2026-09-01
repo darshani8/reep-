@@ -54,6 +54,16 @@ httpx==0.28.1
 # api-imports rule: a lazy import of an undeclared package only moves the crash
 # from boot to the first request that reaches the path.
 boto3==1.43.80
+# Amazon Nova 2 Sonic, the speech-to-speech engine behind INTERVIEW_ENGINE=nova
+# (app/interview_nova.py). A SEPARATE package from boto3 and not a duplicate of
+# it: boto3 has no InvokeModelWithBidirectionalStream at all — the bidirectional
+# API is served only by this experimental smithy-based SDK, which is why AWS's
+# own Python samples import it alongside boto3 rather than instead of it.
+#
+# The import is lazy, for the same reason boto3's is above: it pulls aiohttp and
+# the smithy stack in, and a deployment on another engine should not pay that at
+# boot. It is DECLARED here anyway, per the api-imports rule.
+aws-sdk-bedrock-runtime==0.11.0
 # Sentry — the single observability + traceability tool: errors + performance
 # traces, initialised in app/main.py only when SENTRY_DSN is set (blank = every
 # sentry_sdk call is a no-op). [fastapi] pulls the ASGI/Starlette integration.

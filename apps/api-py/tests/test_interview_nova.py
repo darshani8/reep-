@@ -1,0 +1,1068 @@
+"""The Nova 2 Sonic engine: the arc, the record, and what goes on the wire.
+
+app/interview_nova.py runs the same interview as the relay on Amazon Nova 2
+Sonic. The model owns the TURN there (Nova detects the end of the student's
+speech and answers on its own; there is no `response.create` to withhold), so
+what this engine owns is the PHASE — and that is precisely what these tests
+pin, because it is the half a reader cannot check by listening to a call.
+
+NO DATABASE, NO SOCKET AND NO AWS: a fake browser socket that records what was
+forwarded, a fake upstream that records the event documents that would have
+gone to Bedrock, and `on_turn=None` so the persistence path is never entered.
+What is asserted is what went ON THE WIRE and what the state machine did.
+
+Each test is named for the failure it prevents, because that is the only useful
+thing to know when one of them goes red in two years.
+"""
+
+import asyncio
+import base64
+import inspect
+import json
+
+import pytest
+from fastapi.websockets import WebSocketState
+
+from app import interview_nova as nova
+from app.config import Settings, settings
+from app.interview_matrix import (
+    DEFAULT_NOVA_VOICE,
+    KNOWN_NOVA_VOICES,
+    SPECIALIZATIONS,
+    InterviewPhase,
+    build_instructions,
+    nova_voice_for,
+)
+from app.interview_nova import NovaSonicSession
+from app.interview_relay import (
+    _CLOSE_OK,
+    _INTERVIEWER_PERSONA,
+    _RelaySession,
+    _SessionEnded,
+)
+
+
+# ---------------------------------------------------------------------------
+# Fakes
+# ---------------------------------------------------------------------------
+
+
+class _FakeBrowser:
+    """Starlette's WebSocket, reduced to what this engine calls."""
+
+    def __init__(self) -> None:
+        self.control: list[dict] = []
+        self.audio: list[bytes] = []
+        self.client_state = WebSocketState.CONNECTED
+
+    async def send_text(self, text: str) -> None:
+        self.control.append(json.loads(text))
+
+    async def send_bytes(self, data: bytes) -> None:
+        self.audio.append(data)
+
+    def of_type(self, kind: str) -> list[dict]:
+        return [frame for frame in self.control if frame.get("type") == kind]
+
+
+class _FakeUpstream:
+    """Bedrock, reduced to send(). Every event document is kept, parsed."""
+
+    def __init__(self) -> None:
+        self.sent: list[dict] = []
+
+    async def send(self, event: dict) -> None:
+        self.sent.append(event)
+
+    @property
+    def notes(self) -> list[str]:
+        """Every control note injected into the session, in order."""
+        return [
+            (event["event"]["textInput"]["content"])
+            for event in self.sent
+            if "textInput" in event.get("event", {})
+        ]
+
+
+class _Nova(NovaSonicSession):
+    """The real engine, with the persistence call captured instead of scheduled."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.emitted: list[tuple[str, str, str, str | None, bool]] = []
+
+    def _emit_turn(self, sender, text, provider_turn_id, *, status, quality, counted=False):
+        self.emitted.append((sender, text, provider_turn_id, quality, counted))
+        super()._emit_turn(
+            sender, text, provider_turn_id, status=status, quality=quality, counted=counted
+        )
+
+
+def make_session(spec_key: str | None = "hr") -> tuple[_Nova, _FakeUpstream, _FakeBrowser]:
+    browser = _FakeBrowser()
+    session = _Nova(
+        browser,
+        "c0ffee123456",
+        on_turn=None,
+        specialization=SPECIALIZATIONS[spec_key] if spec_key else None,
+    )
+    upstream = _FakeUpstream()
+    session._upstream = upstream
+    return session, upstream, browser
+
+
+def run(coro):
+    return asyncio.run(coro)
+
+
+# ---------------------------------------------------------------------------
+# Sequence helpers — the event shapes Bedrock actually sends
+# ---------------------------------------------------------------------------
+
+_FINAL = json.dumps({"generationStage": "FINAL"})
+_SPECULATIVE = json.dumps({"generationStage": "SPECULATIVE"})
+
+_GOOD_ANSWER = "I led the campus fintech club and grew it to eighty members"
+
+
+async def interviewer_turn(session, cid: str = "a1", said: str = "Tell me about yourself.") -> None:
+    """One complete model turn: audio opens, speaks, transcribes, completes."""
+    await session._on_upstream_event(
+        {"event": {"contentStart": {"contentId": cid, "type": "AUDIO", "role": "ASSISTANT"}}}
+    )
+    await session._on_upstream_event(
+        {
+            "event": {
+                "audioOutput": {
+                    "contentId": cid,
+                    "content": base64.b64encode(b"\x01\x00" * 32).decode("ascii"),
+                }
+            }
+        }
+    )
+    await session._on_upstream_event(
+        {
+            "event": {
+                "contentStart": {
+                    "contentId": f"{cid}-text",
+                    "type": "TEXT",
+                    "role": "ASSISTANT",
+                    "additionalModelFields": _FINAL,
+                }
+            }
+        }
+    )
+    await session._on_upstream_event(
+        {"event": {"textOutput": {"contentId": f"{cid}-text", "content": said}}}
+    )
+    await session._on_upstream_event(
+        {"event": {"contentEnd": {"contentId": cid, "type": "AUDIO", "stopReason": "END_TURN"}}}
+    )
+    await session._on_upstream_event({"event": {"completionEnd": {"stopReason": "END_TURN"}}})
+
+
+async def student_says(session, cid: str, transcript: str) -> None:
+    """The model's ASR transcript of one student answer."""
+    await session._on_upstream_event(
+        {
+            "event": {
+                "contentStart": {
+                    "contentId": cid,
+                    "type": "TEXT",
+                    "role": "USER",
+                    "additionalModelFields": _FINAL,
+                }
+            }
+        }
+    )
+    await session._on_upstream_event(
+        {"event": {"textOutput": {"contentId": cid, "content": transcript}}}
+    )
+    await session._on_upstream_event(
+        {"event": {"contentEnd": {"contentId": cid, "type": "TEXT", "stopReason": "END_TURN"}}}
+    )
+
+
+# ---------------------------------------------------------------------------
+# It is a drop-in
+# ---------------------------------------------------------------------------
+
+
+class TestItIsADropIn:
+    """The router swaps three engines on one setting; they must be interchangeable."""
+
+    def test_the_constructor_matches_the_relay(self):
+        """Every keyword the router passes must exist on every engine.
+
+        A missing one is a TypeError at the moment a student presses Start,
+        which is the worst possible time to find out.
+        """
+        relay = set(inspect.signature(_RelaySession.__init__).parameters)
+        assert relay == set(inspect.signature(NovaSonicSession.__init__).parameters)
+
+    def test_run_and_request_stop_exist_with_the_same_shape(self):
+        assert inspect.iscoroutinefunction(NovaSonicSession.run)
+        stop = inspect.signature(NovaSonicSession.request_stop)
+        assert list(stop.parameters) == ["self", "code", "reason"]
+
+    def test_the_payload_records_are_the_relay_s_own(self):
+        """Imported, not redefined — a parallel definition drifts silently."""
+        from app import interview_relay
+
+        assert nova._TurnRecord is interview_relay._TurnRecord
+        assert nova._ReportRecord is interview_relay._ReportRecord
+        assert nova._SessionOutcome is interview_relay._SessionOutcome
+
+    def test_the_persona_is_the_relay_s_own(self):
+        """Byte-identical, or two students' scorecards stop being comparable.
+
+        The persona is verbatim product spec. A copy here would let the Nova
+        interview drift into assessing something else while every test still
+        passed.
+        """
+        assert nova._INTERVIEWER_PERSONA is _INTERVIEWER_PERSONA
+
+
+# ---------------------------------------------------------------------------
+# Rule 1
+# ---------------------------------------------------------------------------
+
+
+class TestRuleOne:
+    def test_the_engine_touches_no_database_and_no_orm(self):
+        """The containment is structural, exactly as it is in the relay.
+
+        Bedrock is a remote provider. Nothing that can reach a student's record
+        may be importable from the module that holds the uplink.
+        """
+        source = inspect.getsource(nova)
+        for banned in ("from .models", "app.models", "SessionLocal", "app.conversations"):
+            assert banned not in source
+
+    def test_student_text_never_enters_the_instructions(self):
+        spec = SPECIALIZATIONS["dm"]
+        composed = build_instructions(spec, _INTERVIEWER_PERSONA, InterviewPhase.PROBING)
+        secret = "my USN is 1MP25MDM01 and my CGPA is 8.4"
+        assert secret not in composed
+
+    def test_the_system_prompt_is_the_persona_plus_fixed_blocks(self):
+        """The whole uplink this app authors, in one assertion.
+
+        If a future edit composes anything about the student in here, the
+        persona is no longer the only thing sent — which is the exact moment
+        rule 1's gate starts being required.
+        """
+        session, _upstream, _browser = make_session("hr")
+        composed = session._instructions()
+        assert composed.startswith(_INTERVIEWER_PERSONA)
+        assert composed.endswith(nova._CONTROL_CHANNEL_NOTE)
+
+    def test_a_control_note_is_marked_as_not_the_student(self):
+        """The model must be able to tell a directive from a person.
+
+        Without the prefix a phase directive reads as the student issuing
+        instructions, and the interviewer thanks them for it out loud.
+        """
+        assert nova._control_note("Do the thing").startswith(nova._CONTROL_PREFIX)
+
+
+# ---------------------------------------------------------------------------
+# The arc
+# ---------------------------------------------------------------------------
+
+
+class TestTheArc:
+    def test_an_accepted_answer_advances_the_phase_and_steers_the_model(self):
+        """The tick AND the note. Either alone is a broken interview.
+
+        The tick alone records a phase the model was never told about; the note
+        alone steers a model whose record says it is still in the opening.
+        """
+        session, upstream, browser = make_session("hr")
+
+        async def scenario():
+            await interviewer_turn(session, "a1")
+            await student_says(session, "u1", _GOOD_ANSWER)
+
+        run(scenario())
+        assert session._machine.phase is InterviewPhase.PROBING
+        assert browser.of_type("reep.phase")[0]["phase"] == "probing"
+        assert any("Probe" in note for note in upstream.notes)
+
+    def test_a_transcript_split_across_events_is_still_one_answer(self):
+        """The arc must not race to the wrap-up because ASR arrived in pieces.
+
+        Nova delivers the transcription as one content BLOCK, but nothing says
+        it must arrive as one `textOutput`. Counting each event as a finished
+        answer would spend a five-answer interview in two turns, and the
+        student would be given a verdict on an interview they never had.
+        """
+        session, _upstream, _browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentStart": {
+                            "contentId": "u1",
+                            "type": "TEXT",
+                            "role": "USER",
+                            "additionalModelFields": _FINAL,
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event(
+                {"event": {"textOutput": {"contentId": "u1", "content": "I led the campus"}}}
+            )
+            await session._on_upstream_event(
+                {"event": {"textOutput": {"contentId": "u1", "content": " fintech club for two years"}}}
+            )
+            await session._on_upstream_event(
+                {"event": {"contentEnd": {"contentId": "u1", "type": "TEXT", "stopReason": "END_TURN"}}}
+            )
+
+        run(scenario())
+        assert session._answers_accepted == 1
+        assert session.emitted[-1][1] == "I led the campus fintech club for two years"
+
+    def test_a_filler_answer_moves_nothing(self):
+        """A cough must not advance the interview.
+
+        `classify_answer` is shared with both other engines for this reason: a
+        student's arc has to be the same interview whichever one ran it.
+        """
+        session, upstream, browser = make_session("hr")
+        before = len(upstream.notes)
+
+        run(student_says(session, "u1", "um, yeah"))
+
+        assert session._machine.phase is InterviewPhase.OPENING
+        assert len(upstream.notes) == before
+        assert session.emitted[-1][3] == "filler"
+        assert session.emitted[-1][4] is False
+
+    def test_a_short_answer_is_recorded_but_not_clarified(self):
+        """The documented difference from the relay, pinned so it stays deliberate.
+
+        The relay holds the turn and can ask for more detail. Nova has already
+        started replying, so a clarification directive here would produce a
+        SECOND question on top of the one the student is about to hear.
+        """
+        session, upstream, _browser = make_session("hr")
+
+        run(student_says(session, "u1", "yes it was"))
+
+        assert session.emitted[-1][3] == "too_short"
+        assert not any("too brief" in note for note in upstream.notes)
+
+    def test_the_fifth_answer_invites_questions_before_the_verdict(self):
+        """A real interview ends by handing the floor over, then closing.
+
+        Going straight to the verdict is the failure this beat exists to stop:
+        the student never gets the one part of an interview they can prepare.
+        """
+        session, upstream, browser = make_session("hr")
+
+        async def scenario():
+            for index in range(5):
+                await student_says(session, f"u{index}", _GOOD_ANSWER)
+
+        run(scenario())
+        assert session._machine.phase is InterviewPhase.WRAP_UP
+        assert session._awaiting_candidate_questions is True
+        assert any("any questions for you" in note for note in upstream.notes)
+        assert not any("closing verdict" in note for note in upstream.notes)
+
+    def test_the_reply_to_that_invitation_is_never_word_gated(self):
+        """"No, I'm good" is filler to the answer gate and a real answer here.
+
+        Word-gating the final turn would trap the student in a clarification
+        loop at the one moment the interview is supposed to end.
+        """
+        session, upstream, _browser = make_session("hr")
+
+        async def scenario():
+            for index in range(5):
+                await student_says(session, f"u{index}", _GOOD_ANSWER)
+            await student_says(session, "u-final", "no thanks")
+
+        run(scenario())
+        assert session._verdict_requested is True
+        assert any("closing verdict" in note for note in upstream.notes)
+
+    def test_the_scorecard_is_requested_after_the_verdict_is_spoken(self):
+        """Not when it is asked for. The student would hear the model talk over itself.
+
+        The request rides on completionEnd — the model has stopped speaking —
+        which is also what makes the client's "Writing your report…" honest.
+        """
+        session, upstream, _browser = make_session("hr")
+
+        async def scenario():
+            for index in range(5):
+                await student_says(session, f"u{index}", _GOOD_ANSWER)
+            await student_says(session, "u-final", "no thanks")
+            assert session._report_requested is False
+            await interviewer_turn(session, "verdict", "You did well. Good luck.")
+
+        run(scenario())
+        assert session._report_requested is True
+        assert any(nova._SCORECARD_TOOL_NAME in note for note in upstream.notes)
+
+    def test_the_generic_interview_has_no_arc_and_no_verdict(self):
+        """No ?specialization= is the pre-matrix interview, on every engine.
+
+        There is no syllabus to steer against and no bar to score to, so the
+        phase must not move and no scorecard may be invented.
+        """
+        session, upstream, _browser = make_session(None)
+
+        async def scenario():
+            for index in range(6):
+                await student_says(session, f"u{index}", _GOOD_ANSWER)
+
+        run(scenario())
+        assert session._machine.phase is InterviewPhase.OPENING
+        assert session._report_requested is False
+
+
+# ---------------------------------------------------------------------------
+# The scorecard
+# ---------------------------------------------------------------------------
+
+
+class TestTheScorecard:
+    def test_a_tool_call_becomes_the_report_and_closes_1000(self):
+        """It arrives as arguments, never as speech.
+
+        Nova speaks everything it generates, so a scorecard asked for as text
+        would be read aloud to the student. The tool call is what keeps it
+        silent, and the interview still closes 1000: the interview completed.
+        """
+        session, _upstream, browser = make_session("hr")
+        payload = {
+            "overall": 72,
+            "communication": 70,
+            "domain": 65,
+            "structure": 80,
+            "strengths": ["clear structure"],
+            "improvements": ["quantify results"],
+            "drill": "Rehearse two STAR answers out loud",
+            "summary": "A solid first attempt.",
+        }
+
+        async def scenario():
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "toolUse": {
+                            "toolName": nova._SCORECARD_TOOL_NAME,
+                            "toolUseId": "tu-1",
+                            "content": json.dumps(payload),
+                            "contentId": "t1",
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event(
+                {"event": {"contentEnd": {"contentId": "t1", "type": "TOOL", "stopReason": "TOOL_USE"}}}
+            )
+
+        with pytest.raises(_SessionEnded) as raised:
+            run(scenario())
+        assert raised.value.code == _CLOSE_OK
+        report = browser.of_type("reep.report")[0]
+        assert report["available"] is True
+        assert report["report"]["overall"] == 72
+        assert session._report_status == "ok"
+
+    def test_a_spoken_scorecard_is_salvaged_rather_than_lost(self):
+        """A model that reads the JSON aloud has still produced it.
+
+        Degrade, never assert: the student is owed the scorecard even when the
+        model ignored the tool it was given.
+        """
+        session, _upstream, browser = make_session("hr")
+        session._report_requested = True
+        spoken = json.dumps(
+            {
+                "overall": 55,
+                "communication": 50,
+                "domain": 60,
+                "structure": 55,
+                "strengths": ["engaged"],
+                "improvements": ["more detail"],
+                "drill": "Practise one metric walkthrough",
+                "summary": "Keep going.",
+            }
+        )
+
+        with pytest.raises(_SessionEnded):
+            run(interviewer_turn(session, "verdict", spoken))
+        assert browser.of_type("reep.report")[0]["available"] is True
+
+    def test_an_unparseable_scorecard_is_a_payload_not_a_close_code(self):
+        """The interview COMPLETED; only the scorecard did not.
+
+        A dedicated error code would make a successful interview read as a
+        failure in the client, in the logs and in the record.
+        """
+        session, _upstream, browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "toolUse": {
+                            "toolName": nova._SCORECARD_TOOL_NAME,
+                            "toolUseId": "tu-1",
+                            "content": "sorry, I could not score that",
+                            "contentId": "t1",
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event(
+                {"event": {"contentEnd": {"contentId": "t1", "type": "TOOL"}}}
+            )
+
+        with pytest.raises(_SessionEnded) as raised:
+            run(scenario())
+        assert raised.value.code == _CLOSE_OK
+        assert browser.of_type("reep.report")[0]["available"] is False
+        assert session._report_status == "unparseable"
+
+    def test_the_grading_bar_is_the_shared_one(self):
+        """REPORT_DIRECTIVE verbatim, or the Nova interview grades differently.
+
+        Two engines that score the same student against different words produce
+        two scorecards a mentor cannot compare.
+        """
+        session, upstream, _browser = make_session("hr")
+        run(session._request_report())
+        from app.interview_matrix import REPORT_DIRECTIVE
+
+        assert any(REPORT_DIRECTIVE in note for note in upstream.notes)
+
+
+# ---------------------------------------------------------------------------
+# The wire
+# ---------------------------------------------------------------------------
+
+
+class TestTheDownstreamContract:
+    """The browser is not changed for this engine, so the names must match."""
+
+    def test_the_model_s_audio_reaches_the_browser_as_binary(self):
+        session, _upstream, browser = make_session("hr")
+        run(interviewer_turn(session, "a1"))
+        assert browser.audio
+        assert b"".join(browser.audio) == b"\x01\x00" * 32
+
+    def test_a_turn_opens_with_response_created_and_ends_with_response_done(self):
+        """The client keys its whole state machine off this pair.
+
+        Without `response.created` the player never drops the previous stream's
+        odd-byte carry; without `response.done` the wrap-up never becomes
+        "Writing your report…".
+        """
+        session, _upstream, browser = make_session("hr")
+        run(interviewer_turn(session, "a1"))
+        assert browser.of_type("response.created")
+        assert browser.of_type("response.audio.done")
+        assert browser.of_type("response.done")
+
+    def test_the_live_caption_is_the_speculative_text(self):
+        session, _upstream, browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentStart": {
+                            "contentId": "s1",
+                            "type": "TEXT",
+                            "role": "ASSISTANT",
+                            "additionalModelFields": _SPECULATIVE,
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event(
+                {"event": {"textOutput": {"contentId": "s1", "content": "Tell me"}}}
+            )
+
+        run(scenario())
+        delta = browser.of_type("response.audio_transcript.delta")[0]
+        assert delta["delta"] == "Tell me"
+
+    def test_the_recorded_turn_is_what_was_actually_said(self):
+        """FINAL, not SPECULATIVE. On a barge-in the two differ.
+
+        A transcript that does not match the audio is worse than no transcript:
+        a mentor reads a question the student never heard.
+        """
+        session, _upstream, _browser = make_session("hr")
+        run(interviewer_turn(session, "a1", "So, walk me through your CV."))
+        assert session.emitted[-1][0] == nova._SENDER_INTERVIEWER
+        assert session.emitted[-1][1] == "So, walk me through your CV."
+
+    def test_the_student_s_transcript_lands_on_the_name_the_client_reads(self):
+        session, _upstream, browser = make_session("hr")
+        run(student_says(session, "u1", _GOOD_ANSWER))
+        completed = browser.of_type(
+            "conversation.item.input_audio_transcription.completed"
+        )[0]
+        assert completed["transcript"] == _GOOD_ANSWER
+        assert completed["item_id"] == "u1"
+        assert browser.of_type("input_audio_buffer.speech_stopped")
+
+    def test_a_barge_in_flushes_the_player_and_is_not_a_transcript(self):
+        """Nova's interruption marker is a textOutput, not an event of its own.
+
+        Treated as speech it would appear in the chat as the interviewer saying
+        `{ "interrupted" : true }`, and the queue the student is talking over
+        would keep playing.
+        """
+        session, _upstream, browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentStart": {
+                            "contentId": "i1",
+                            "type": "TEXT",
+                            "role": "ASSISTANT",
+                            "additionalModelFields": _FINAL,
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event(
+                {"event": {"textOutput": {"contentId": "i1", "content": '{ "interrupted" : true }'}}}
+            )
+
+        run(scenario())
+        assert browser.of_type("reep.audio.flush")
+        assert not browser.of_type("response.audio_transcript.delta")
+        assert session._interruptions == 1
+
+    def test_a_stream_error_event_ends_the_session_rather_than_waiting(self):
+        """Bedrock reports some failures as EVENTS, not as a dropped connection.
+
+        Ignoring them leaves the student sitting in silence in front of a model
+        that is never going to speak again, with the idle cap two minutes away
+        and nothing in the log naming the cause.
+        """
+        session, _upstream, _browser = make_session("hr")
+        with pytest.raises(_SessionEnded) as raised:
+            run(
+                session._on_upstream_event(
+                    {"event": {"validationException": {"message": "bad voiceId"}}}
+                )
+            )
+        assert raised.value.code == nova._CLOSE_UPSTREAM_UNAVAILABLE
+
+    def test_ready_names_the_engine_and_the_real_cap(self):
+        """The clock the student sees must be the clock they get.
+
+        A countdown promising fifteen minutes on an eight-minute stream is
+        worse than no countdown: the two-minute warning never arrives.
+        """
+        session, _upstream, browser = make_session("hr")
+        run(session._send_ready())
+        ready = browser.of_type("reep.ready")[0]
+        assert ready["engine"] == "nova"
+        assert ready["limits"]["session_max_seconds"] == int(session._effective_cap())
+
+
+# ---------------------------------------------------------------------------
+# The uplink
+# ---------------------------------------------------------------------------
+
+
+class TestTheUplink:
+    def test_the_student_is_recorded_at_the_rate_the_wav_claims(self):
+        """The recorder gets the ORIGINAL 24 kHz bytes, never the resampled ones.
+
+        app/interview_audio.py writes 24 kHz WAVs. A 16 kHz payload in a 24 kHz
+        container plays back as a chipmunk — the one artefact that would make a
+        recording useless as evidence of what a student said.
+        """
+        captured: list[tuple[str, bytes]] = []
+
+        class _Recorder:
+            def feed(self, track, pcm):
+                captured.append((track, pcm))
+
+        session, upstream, _browser = make_session("hr")
+        session._recorder = _Recorder()
+        frame = b"\x10\x00" * 480  # 40 ms at 24 kHz
+
+        run(session._forward_client_audio(frame))
+
+        assert captured == [(nova.TRACK_STUDENT, frame)]
+        sent = upstream.sent[-1]["event"]["audioInput"]["content"]
+        assert len(base64.b64decode(sent)) < len(frame)
+
+    def test_a_split_sample_is_carried_not_dropped(self):
+        """Half a sample interpreted as a whole one misaligns the whole session.
+
+        It sounds fine locally (the browser never sees the uplink) and is noise
+        upstream, which is the worst possible way for this to fail.
+        """
+        session, _upstream, _browser = make_session("hr")
+        run(session._forward_client_audio(b"\x01\x00\x02"))
+        assert session._pcm_carry == b"\x02"
+
+    def test_an_oversized_frame_is_refused(self):
+        """One client must not push arbitrary bytes into a billed session."""
+        session, upstream, _browser = make_session("hr")
+        run(session._forward_client_audio(b"\x00" * (nova._MAX_CLIENT_FRAME_BYTES + 2)))
+        assert session._oversized_frames == 1
+        assert not upstream.sent
+
+    def test_resampling_lands_on_the_expected_number_of_samples(self):
+        out = nova._resample(b"\x01\x00" * 480, 24_000, 16_000)
+        assert len(out) == 320 * 2
+
+    def test_a_mic_gate_frame_does_not_hold_the_session_open(self):
+        """A text frame that advanced the idle clock would keep a billed stream
+        alive with no audio at all."""
+        session, _upstream, _browser = make_session("hr")
+        before = session._last_audio_at
+        session._handle_client_control(json.dumps({"type": "reep.mic.gate", "open": False}))
+        assert session._gate_closes == 1
+        assert session._last_audio_at == before
+
+    def test_reep_end_stops_the_session_with_1000(self):
+        session, _upstream, _browser = make_session("hr")
+        session._handle_client_control(json.dumps({"type": "reep.end"}))
+        assert session._stop_requested.is_set()
+        assert session._stop_outcome[0] == _CLOSE_OK
+
+
+# ---------------------------------------------------------------------------
+# The 8-minute wall
+# ---------------------------------------------------------------------------
+
+
+class TestTheConnectionWall:
+    def test_bedrock_s_limit_wins_over_the_relay_s_cap(self):
+        """A Nova stream dies at 8 minutes; INTERVIEW_MAX_SECONDS is 900.
+
+        Running the longer cap against the shorter stream produces exactly the
+        failure the phase machine exists to prevent: an interview cut off with
+        no verdict and no scorecard.
+        """
+        session, _upstream, _browser = make_session("hr")
+        assert session._effective_cap() < float(settings.interview_max_seconds)
+        assert session._effective_cap() <= float(settings.nova_sonic_connection_seconds)
+
+    def test_the_wrap_up_is_forced_with_room_to_finish_speaking(self):
+        """The reserve is the verdict plus the scorecard, not a rounding margin."""
+        session, _upstream, _browser = make_session("hr")
+        assert nova._WRAP_UP_RESERVE_S >= 60
+        assert session._effective_cap() - nova._WRAP_UP_RESERVE_S > 0
+
+    def test_forcing_the_wrap_up_skips_the_invitation(self):
+        """Out of time is not the moment to ask "any questions for us?".
+
+        The only possible answer is the socket closing, and the student loses
+        the verdict they sat the interview for.
+        """
+        session, upstream, _browser = make_session("hr")
+        run(session._force_wrap_up())
+        assert session._machine.phase is InterviewPhase.WRAP_UP
+        assert session._verdict_requested is True
+        assert any("closing verdict" in note for note in upstream.notes)
+        assert not any("any questions for you" in note for note in upstream.notes)
+
+    def test_forcing_the_wrap_up_twice_asks_once(self):
+        """The watchdog re-enters every second past the threshold."""
+        session, upstream, _browser = make_session("hr")
+
+        async def scenario():
+            await session._force_wrap_up()
+            await session._force_wrap_up()
+
+        run(scenario())
+        assert sum("closing verdict" in note for note in upstream.notes) == 1
+
+
+# ---------------------------------------------------------------------------
+# Casting and configuration
+# ---------------------------------------------------------------------------
+
+
+class TestVoices:
+    def test_every_matrix_row_casts_a_real_nova_voice(self):
+        """An unknown voiceId is a ValidationException at the handshake.
+
+        That is an interview that never starts, with nothing on the student's
+        screen naming the cause — so the four rows are pinned here.
+        """
+        for spec in SPECIALIZATIONS.values():
+            assert spec.nova_voice in KNOWN_NOVA_VOICES
+
+    def test_the_four_roles_do_not_all_sound_the_same(self):
+        voices = {spec.nova_voice for spec in SPECIALIZATIONS.values()}
+        assert len(voices) == len(SPECIALIZATIONS)
+
+    def test_a_mistyped_voice_falls_back_instead_of_failing_the_session(self):
+        session, _upstream, _browser = make_session(None)
+        try:
+            settings.nova_sonic_voice = "coral"  # an OpenAI voice, not a Nova one
+            voice, requested = nova_voice_for(None)
+        finally:
+            settings.nova_sonic_voice = Settings.model_fields["nova_sonic_voice"].default
+        assert voice == DEFAULT_NOVA_VOICE
+        assert requested == "coral"
+        assert session is not None
+
+    def test_an_openai_voice_is_never_a_nova_voice(self):
+        """The two vocabularies have nothing in common, which is why the row
+        carries one of each rather than a translation table."""
+        from app.interview_matrix import KNOWN_REALTIME_VOICES
+
+        assert not (KNOWN_REALTIME_VOICES & KNOWN_NOVA_VOICES)
+
+
+class TestEngineSelection:
+    def test_nova_is_a_recognised_engine(self):
+        assert Settings(interview_engine="nova").interview_engine == "nova"
+
+    def test_a_typo_falls_back_to_the_documented_default(self):
+        """INTERVIEW_ENGINE=nove must not silently bill an OpenAI key."""
+        assert Settings(interview_engine="nove").interview_engine == "openai"
+
+    def test_readiness_asks_the_engine_that_is_actually_running(self):
+        """`realtime_ready` asks the OpenAI question alone.
+
+        Gating every engine on it told a Nova (or local) deployment its
+        interviews were unconfigured until somebody pasted a key it would never
+        spend.
+        """
+        aws = Settings(
+            interview_engine="nova", openai_api_key="", nova_sonic_region="us-east-1"
+        )
+        assert aws.interview_ready is True
+        assert aws.realtime_ready is False
+
+    def test_a_nova_deployment_with_no_region_is_reported_unavailable(self):
+        """The endpoint is composed from the region by this process.
+
+        Blank is not "let the SDK decide" here — it is a DNS failure the
+        student meets as a dead socket.
+        """
+        stranded = Settings(
+            interview_engine="nova", nova_sonic_region="", bedrock_region=""
+        )
+        if stranded.nova_region:
+            pytest.skip("AWS_REGION is set in this environment")
+        assert stranded.interview_ready is False
+        assert "region" in stranded.interview_unready_reason
+
+    def test_the_endpointing_default_is_not_the_fastest_one(self):
+        """An interview answer contains thinking pauses.
+
+        HIGH reads them as the end of the turn, and being cut off mid-answer is
+        the most damaging thing a mock interviewer can do to a nervous student.
+        """
+        session, _upstream, _browser = make_session("hr")
+        assert session._endpointing() == "MEDIUM"
+
+
+# ---------------------------------------------------------------------------
+# The whole loop
+# ---------------------------------------------------------------------------
+
+
+class _ScriptedUpstream(_FakeUpstream):
+    """Bedrock, scripted: the events one interview would receive, in order.
+
+    Running out of script means the stream has gone quiet, which is the only
+    state in which a deadline can be the thing that ends the session.
+    """
+
+    def __init__(self, script: list[dict]) -> None:
+        super().__init__()
+        self.script = list(script)
+        self.closed = False
+
+    async def open(self) -> None:
+        return None
+
+    async def receive(self) -> dict | None:
+        if not self.script:
+            await asyncio.sleep(3600)
+        return self.script.pop(0)
+
+    async def aclose(self, *, prompt_name=None, audio_content=None) -> None:
+        self.closed = True
+
+
+class _SilentBrowser(_FakeBrowser):
+    """A browser that is connected and says nothing — the student is listening."""
+
+    async def receive(self) -> dict:
+        await asyncio.sleep(3600)
+        raise AssertionError("unreachable")
+
+
+class TestTheWholeLoop:
+    def test_run_opens_greets_scores_and_closes_1000(self, monkeypatch):
+        """One interview end to end through the real task group.
+
+        The unit tests above drive `_on_upstream_event` directly, which cannot
+        catch an ordering bug in the handshake or a pump that never starts —
+        the two failures that would make every one of them pass while no
+        student could hold an interview.
+        """
+        report = {
+            "overall": 68,
+            "communication": 70,
+            "domain": 62,
+            "structure": 70,
+            "strengths": ["clear opening"],
+            "improvements": ["quantify impact"],
+            "drill": "Record a two-minute self-introduction",
+            "summary": "A promising first run.",
+        }
+        script = [
+            {"event": {"completionStart": {"sessionId": "sess-42"}}},
+            {"event": {"contentStart": {"contentId": "a1", "type": "AUDIO", "role": "ASSISTANT"}}},
+            {
+                "event": {
+                    "audioOutput": {
+                        "contentId": "a1",
+                        "content": base64.b64encode(b"\x02\x00" * 16).decode("ascii"),
+                    }
+                }
+            },
+            {"event": {"contentEnd": {"contentId": "a1", "type": "AUDIO", "stopReason": "END_TURN"}}},
+            {"event": {"completionEnd": {"stopReason": "END_TURN"}}},
+            {
+                "event": {
+                    "toolUse": {
+                        "toolName": nova._SCORECARD_TOOL_NAME,
+                        "toolUseId": "tu-9",
+                        "contentId": "t1",
+                        "content": json.dumps(report),
+                    }
+                }
+            },
+            {"event": {"contentEnd": {"contentId": "t1", "type": "TOOL", "stopReason": "TOOL_USE"}}},
+        ]
+        upstream = _ScriptedUpstream(script)
+        monkeypatch.setattr(nova, "_NovaUpstream", lambda *args, **kwargs: upstream)
+        monkeypatch.setattr(settings, "nova_sonic_region", "us-east-1")
+
+        browser = _SilentBrowser()
+        session = NovaSonicSession(
+            browser, "c0ffee123456", specialization=SPECIALIZATIONS["ba"]
+        )
+
+        code, reason = run(session.run())
+
+        assert (code, reason) == (_CLOSE_OK, "Interview complete")
+        # The handshake, in the order Nova's contract requires.
+        names = [next(iter(event["event"])) for event in upstream.sent]
+        assert names[:2] == ["sessionStart", "promptStart"]
+        # The system prompt, then the microphone, then the kick-off note: an
+        # order Nova's contract fixes and a reordering would break at the
+        # handshake rather than in any assertion above.
+        assert names[2:5] == ["contentStart", "textInput", "contentEnd"]
+        assert upstream.closed is True
+        # The student was greeted before they said anything, and scored after.
+        assert browser.of_type("reep.ready")
+        assert browser.of_type("reep.report")[0]["report"]["overall"] == 68
+        assert session._session_id == "sess-42"
+
+    def test_a_stream_that_dies_before_the_scorecard_is_not_reported_complete(
+        self, monkeypatch
+    ):
+        """The 8-minute wall, or a dropped connection, mid-interview.
+
+        Telling the student "Interview complete" when the stream was cut is how
+        a missing scorecard becomes a support ticket instead of a retry.
+        """
+
+        class _DeadStream(_ScriptedUpstream):
+            async def receive(self):
+                return None
+
+        upstream = _DeadStream([])
+        monkeypatch.setattr(nova, "_NovaUpstream", lambda *args, **kwargs: upstream)
+        monkeypatch.setattr(settings, "nova_sonic_region", "us-east-1")
+
+        session = NovaSonicSession(
+            _SilentBrowser(), "c0ffee123456", specialization=SPECIALIZATIONS["hr"]
+        )
+        code, _reason = run(session.run())
+        assert code == nova._CLOSE_UPSTREAM_UNAVAILABLE
+
+    def test_an_unreachable_bedrock_is_4002_and_never_a_traceback(self, monkeypatch):
+        """Credentials, IAM, an unsupported region, a throttle at the door.
+
+        All of them are one close code to the student and a named cause in the
+        log; none of them is a 1011 that reads as a bug in REEP.
+        """
+
+        class _Refusing(_FakeUpstream):
+            async def open(self):
+                raise RuntimeError("no credentials found")
+
+            async def aclose(self, **kwargs):
+                return None
+
+        monkeypatch.setattr(nova, "_NovaUpstream", lambda *args, **kwargs: _Refusing())
+        monkeypatch.setattr(settings, "nova_sonic_region", "us-east-1")
+
+        session = NovaSonicSession(_SilentBrowser(), "c0ffee123456")
+        code, _reason = run(session.run())
+        assert code == nova._CLOSE_UPSTREAM_UNAVAILABLE
+
+
+class _RecordingUpstream(nova._NovaUpstream):
+    """The real teardown, with the wire replaced. `__slots__` is why this is a
+    subclass and not a monkeypatched attribute."""
+
+    def __init__(self) -> None:
+        super().__init__("amazon.nova-2-sonic-v1:0", "us-east-1", nova.log)
+        self.sent: list[dict] = []
+
+    async def send(self, event: dict) -> None:  # type: ignore[override]
+        if self._closed:
+            return
+        self.sent.append(event)
+
+
+class TestTheClosingSequence:
+    def test_the_stream_is_closed_in_the_order_bedrock_requires(self):
+        """contentEnd, promptEnd, sessionEnd — then the socket.
+
+        Skipping them leaks the prompt on Bedrock's side until the 8-minute
+        timeout reaps it, and a half-closed prompt is what a "the model would
+        not answer my next session" report looks like.
+        """
+        upstream = _RecordingUpstream()
+        run(upstream.aclose(prompt_name="p", audio_content="mic"))
+        assert [next(iter(event["event"])) for event in upstream.sent] == [
+            "contentEnd",
+            "promptEnd",
+            "sessionEnd",
+        ]
+
+    def test_closing_twice_is_a_no_op(self):
+        """Teardown runs from run()'s finally and from the router's backstop."""
+        upstream = _RecordingUpstream()
+
+        async def scenario():
+            await upstream.aclose(prompt_name="p", audio_content="mic")
+            await upstream.aclose(prompt_name="p", audio_content="mic")
+
+        run(scenario())
+        assert len(upstream.sent) == 3

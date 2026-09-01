@@ -656,7 +656,19 @@ def test_consent_reports_the_version_the_server_is_asking_for(api, world):
     assert r.json() == {
         "version": settings.interview_consent_version,
         "consent": None,
+        # WHO receives the student's voice, for the disclosure the panel shows
+        # before they agree. Engine-dependent (INTERVIEW_ENGINE picks between
+        # the OpenAI relay, Nova Sonic on Bedrock and the on-machine engine), so
+        # it is read from settings rather than spelled out here. It stays inside
+        # the exact-payload comparison on purpose: a field the client does not
+        # expect is as much a bug as a missing one.
+        "provider": settings.interview_provider_label,
     }
+    # Never blank, whatever the engine is. The copy reads "your microphone audio
+    # is streamed to {provider} so it can hear you", and an empty string there
+    # is a sentence with a hole in it on the screen where a student agrees to
+    # having their voice sent somewhere.
+    assert r.json()["provider"].strip()
 
 
 @requires_db

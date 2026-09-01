@@ -134,21 +134,23 @@ variable "interview_recording_enabled" {
   default     = "true"
 }
 
-# Which engine speaks to the student: "openai" (app/interview_relay.py, the
-# OPENAI_API_KEY in the external secret), "nova" (app/interview_nova.py, Amazon
+# Which engine speaks to the student: "nova" (app/interview_nova.py, Amazon
 # Nova 2 Sonic over Bedrock's bidirectional stream, no key at all) or "local"
-# (nothing leaves the machine, and nothing in this stack can run it).
+# (nothing leaves the machine, and nothing in this stack can run it — no model
+# weights, no GPU).
 #
-# DEFAULT IS "openai" ON PURPOSE, and applying this change on its own must not
-# move a single interview: a deployment already running the hosted interviewer
-# cannot have what its students are assessed by change because a variable
-# appeared. Flipping it is one edit and one apply, and it wants the checklist in
-# docs/aws-deployment.md §7 first — Bedrock model access and a region that
-# serves the model are not things this file can grant.
+# A THIRD ENGINE, "openai", relayed the interview to api.openai.com until
+# 2026-09 and was the default here. It is gone, and so is OPENAI_API_KEY from
+# the task definition; the value in the operator-owned secret is left alone
+# (see secrets.tf) rather than deleted by an apply.
+#
+# The checklist in docs/aws-deployment.md §7 still applies before this stack can
+# hold a real interview: Bedrock model access and a region that serves the model
+# are not things this file can grant.
 variable "interview_engine" {
-  description = "INTERVIEW_ENGINE for the API: 'openai' (default), 'nova' (Nova 2 Sonic on Bedrock) or 'local'. An unrecognised value falls back to 'openai' in app/config.py with a warning."
+  description = "INTERVIEW_ENGINE for the API: 'nova' (default, Nova 2 Sonic on Bedrock) or 'local'. An unrecognised value falls back to the default in app/config.py with a warning."
   type        = string
-  default     = "openai"
+  default     = "nova"
 }
 
 # THE REGION THE SONIC STREAM IS OPENED IN, AND IT IS DELIBERATELY NOT var.region.

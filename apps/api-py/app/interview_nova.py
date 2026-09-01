@@ -2,25 +2,28 @@
 
     browser  <--WS /api/interview-->  THIS PROCESS  <--HTTP/2-->  Bedrock
 
-Same interview as app/interview_relay.py, on AWS's native speech-to-speech
-model instead of OpenAI's. `INTERVIEW_ENGINE=nova` chooses it and nothing else
-changes: the router constructs this class exactly as it constructs the relay,
-and the Angular client is not touched at all, because this engine speaks the
-same DOWNSTREAM event vocabulary (`response.created`, `response.done`,
+THE hosted engine, and the default one (`INTERVIEW_ENGINE=nova`);
+app/interview_local.py is the alternative that keeps everything on the machine.
+The contracts both hold to — the persona, the records, the close codes, the
+caps — live in app/interview_core.py.
+
+The DOWNSTREAM event vocabulary (`response.created`, `response.done`,
 `conversation.item.input_audio_transcription.completed`, the five `reep.*`
-controls). The event names are the contract; which model produced the audio is
-an implementation detail the browser must never have to know.
+controls) is inherited from the OpenAI relay this replaced, and is kept
+deliberately: it is the Angular client's contract, the client is good, and
+renaming events to match whichever model is speaking would be churn paid for in
+a screen students depend on. The event names are the contract; which model
+produced the audio is an implementation detail the browser must never know.
 
-WHY IT IS WORTH A SECOND HOSTED ENGINE. The relay's OPENAI_API_KEY is a
-spendable credential that has to be pasted into the environment of every host
-that runs an interview. This engine has no key at all: the bidirectional stream
-is signed with SigV4 from whatever the standard AWS chain resolves — the ECS
-task role, the instance profile, an SSO profile, or the environment — so an
-AWS-hosted REEP grants `bedrock:InvokeModelWithBidirectionalStream` to the role
-it already has and stores no secret anywhere. Nothing about the interview
-itself changes for the student.
+NO API KEY, AND THAT IS THE POINT. The relay's OPENAI_API_KEY was a spendable
+credential that had to be pasted into the environment of every host that runs an
+interview. This engine has none: the bidirectional stream is signed with SigV4
+from whatever the standard AWS chain resolves — the ECS task role, the instance
+profile, an SSO profile, or the environment — so an AWS-hosted REEP grants
+`bedrock:InvokeModelWithBidirectionalStream` to the role it already has and
+stores no secret anywhere.
 
-RULE 1 (AGENTS.md) reads here EXACTLY as it reads in the relay, and for the
+RULE 1 (AGENTS.md) reads here EXACTLY as it read in the relay, and for the
 same reason: Bedrock is a remote provider. No student record enters this
 session — no marks, attendance, CGPA, USN or resume text. What this module
 authors upstream is the fixed `_INTERVIEWER_PERSONA`, the fixed per-phase and
@@ -32,16 +35,18 @@ goes through complete_chat(..., carries_student_data=True) in app/ai/llm.py and
 degrades when the gate refuses — the same shape as /student/resume/generate
 falling back to used_ai=false.
 
-THE ONE ARCHITECTURAL DIFFERENCE, STATED PLAINLY: **Nova owns the turn, this
-engine owns the phase.** The v3 relay sets `turn_detection.create_response:
-false` and issues exactly one `response.create` from one call site, which is
-what makes "one open question at a time" a property of the call graph. Nova 2
-Sonic has no equivalent switch — it detects the end of the student's speech and
-answers on its own, and that IS the product (its turn-taking and its barge-in
-are the reason to use it). So the arc is steered rather than driven:
+WHO OWNS THE TURN, STATED PLAINLY: **Nova owns the turn, this engine owns the
+phase.** The retired v3 relay set `turn_detection.create_response: false` and
+issued exactly one `response.create` from one call site, which made "one open
+question at a time" a property of the call graph — read
+docs/interview-engine-v3.md for why that mattered, because the reasoning
+survives its engine. Nova 2 Sonic has no equivalent switch: it detects the end
+of the student's speech and answers on its own, and that IS the product (its
+turn-taking and its barge-in are the reason to use it). So the arc is steered
+rather than driven:
 
   * the phase machine still ticks on ACCEPTED answers only, judged by the same
-    deterministic `classify_answer` word gate as the other two engines, so a
+    deterministic `classify_answer` word gate as the local engine, so a
     student's scorecard is comparable whichever engine ran the interview;
   * a phase change reaches the model as a CONTROL NOTE — a cross-modal text
     input, the documented way to put text into a live Nova voice session —
@@ -50,15 +55,16 @@ are the reason to use it). So the arc is steered rather than driven:
   * the two beats that must happen at a fixed point regardless of what the
     model would do next — "any questions for us?" and the closing verdict — are
     injected the same way;
-  * a clarification is NOT injected. The relay asks a too-short answer for more
-    detail because it is holding the turn anyway; here the model has already
-    started replying, and a second directive would produce a second question.
+  * a clarification is NOT injected. An engine that holds the turn can ask a
+    too-short answer for more detail — the relay did, and the local engine still
+    does; here the model has already started replying, and a second directive
+    would produce a second question.
     The turn is still RECORDED as `too_short`/`filler`, which is the fact a
     mentor reads, and it still does not advance the arc.
 
 THE SCORECARD IS A TOOL CALL. Nova speaks everything it generates, so the
-relay's trick — one extra text-only response after the verdict — would read a
-JSON blob aloud to the student. Instead the session declares one tool,
+relay's trick — one extra text-only response after the verdict — would have read
+a JSON blob aloud to the student. Instead the session declares one tool,
 `submit_scorecard`, and the closing control note asks the model to call it: the
 arguments are the scorecard, they are never spoken, never written into the chat
 history, and they are persisted whatever happens to them. The grading
@@ -72,7 +78,7 @@ the phase machine exists to prevent — so this engine treats
 NOVA_SONIC_CONNECTION_SECONDS as the real cap and forces the wrap-up early
 enough for the verdict and the scorecard to finish inside it.
 
-Wire format downstream is byte-for-byte the relay's:
+Wire format downstream, unchanged from the engine this replaced:
 
     browser -> relay : BINARY = raw PCM16 LE mono 24 kHz
                        TEXT   = JSON control ({"type": "reep.end"}, ...)
@@ -119,7 +125,7 @@ from .interview_matrix import (
 # value into the database. The persona is imported for a stronger reason still:
 # it is verbatim product spec, and a student sitting the Nova interview must be
 # assessed against the same words as one sitting the OpenAI interview.
-from .interview_relay import (
+from .interview_core import (
     _CLOSE_GOING_AWAY,
     _CLOSE_IDLE,
     _CLOSE_NOT_CONFIGURED,
@@ -144,9 +150,9 @@ log = logging.getLogger(__name__)
 # Audio
 # ---------------------------------------------------------------------------
 
-# The browser link, unchanged from the relay in both directions: the client's
-# capture and playback are built for this and nothing here is worth a client
-# change.
+# The browser link, unchanged from the retired relay in both directions: the
+# client's capture and playback are built for this rate, and nothing here is
+# worth a client change.
 _CLIENT_RATE_HZ: Final[int] = 24_000
 # What Nova speaks. Requested explicitly in promptStart so the downlink needs no
 # resampling at all -- the bytes Bedrock sends are the bytes the browser plays.
@@ -159,7 +165,7 @@ _DOWNLINK_CHUNK_BYTES: Final[int] = int(_OUTPUT_RATE_HZ * _CHUNK_MS / 1000) * 2
 
 # Anything larger than ~0.5 s of 24 kHz PCM in ONE frame is not a browser
 # capturing a microphone. Dropped and counted rather than forwarded: the same
-# bound the relay puts on its uplink, for the same reason -- one client must not
+# bound the relay put on its uplink, for the same reason -- one client must not
 # be able to push arbitrary bytes into a billed upstream session.
 _MAX_CLIENT_FRAME_BYTES: Final[int] = 24_000
 
@@ -172,7 +178,7 @@ _MAX_CLIENT_FRAME_BYTES: Final[int] = 24_000
 # caps, not turns.
 _WATCHDOG_INTERVAL_S: Final[float] = 1.0
 # How often heartbeat_at is stamped on the interview_sessions row. Matched to
-# the relay's, because retention's orphan sweeper and the consent-revocation
+# the relay's was, because retention's orphan sweeper and the consent-revocation
 # poll are both written against that interval and neither knows which engine
 # produced the row.
 _HEARTBEAT_WRITE_INTERVAL_S: Final[float] = 60.0
@@ -755,7 +761,7 @@ class NovaSonicSession:
     def _instructions(self) -> str:
         """The system prompt, composed ONCE for the whole session.
 
-        Nova has no `session.update`, so unlike the relay this cannot be
+        Nova has no `session.update`, so unlike the relay's this cannot be
         replaced when the phase changes — which is exactly why the phase
         directive is injected as a control note later instead. The persona
         arrives first and verbatim, carrying the conduct rules and the rule-1
@@ -1194,9 +1200,9 @@ class NovaSonicSession:
 
         if kind == "AUDIO" and stop_reason in ("END_TURN", "INTERRUPTED"):
             # Lets the browser's player drop its scheduling cursor and play the
-            # tail out. Sent under both API generations' names by the relay; the
-            # client accepts either, and this engine sends the one that matches
-            # what it actually is.
+            # tail out. The client accepts two spellings of this event (the
+            # relay had two API generations to serve); this engine sends the one
+            # that matches what it actually is.
             await self._send_control({"type": "response.audio.done"})
         elif kind == "TOOL" and self._pending_tool is not None:
             await self._settle_tool_use()

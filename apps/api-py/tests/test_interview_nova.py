@@ -33,13 +33,9 @@ from app.interview_matrix import (
     build_instructions,
     nova_voice_for,
 )
+from app.interview_core import _CLOSE_OK, _INTERVIEWER_PERSONA, _SessionEnded
+from app.interview_local import LocalSession
 from app.interview_nova import NovaSonicSession
-from app.interview_relay import (
-    _CLOSE_OK,
-    _INTERVIEWER_PERSONA,
-    _RelaySession,
-    _SessionEnded,
-)
 
 
 # ---------------------------------------------------------------------------
@@ -191,29 +187,33 @@ async def student_says(session, cid: str, transcript: str) -> None:
 class TestItIsADropIn:
     """The router swaps three engines on one setting; they must be interchangeable."""
 
-    def test_the_constructor_matches_the_relay(self):
+    def test_the_constructor_matches_the_other_engine(self):
         """Every keyword the router passes must exist on every engine.
 
         A missing one is a TypeError at the moment a student presses Start,
-        which is the worst possible time to find out.
+        which is the worst possible time to find out. Checked against the LOCAL
+        engine because it is the other implementation of
+        interview_core.InterviewEngine — a Protocol cannot pin constructor
+        keywords, so this is what does.
         """
-        relay = set(inspect.signature(_RelaySession.__init__).parameters)
-        assert relay == set(inspect.signature(NovaSonicSession.__init__).parameters)
+        other = set(inspect.signature(LocalSession.__init__).parameters)
+        assert other == set(inspect.signature(NovaSonicSession.__init__).parameters)
 
     def test_run_and_request_stop_exist_with_the_same_shape(self):
         assert inspect.iscoroutinefunction(NovaSonicSession.run)
         stop = inspect.signature(NovaSonicSession.request_stop)
         assert list(stop.parameters) == ["self", "code", "reason"]
 
-    def test_the_payload_records_are_the_relay_s_own(self):
-        """Imported, not redefined — a parallel definition drifts silently."""
-        from app import interview_relay
+    def test_the_payload_records_are_the_shared_ones(self):
+        """Imported from app/interview_core.py, not redefined — a parallel
+        definition drifts silently."""
+        from app import interview_core
 
-        assert nova._TurnRecord is interview_relay._TurnRecord
-        assert nova._ReportRecord is interview_relay._ReportRecord
-        assert nova._SessionOutcome is interview_relay._SessionOutcome
+        assert nova._TurnRecord is interview_core._TurnRecord
+        assert nova._ReportRecord is interview_core._ReportRecord
+        assert nova._SessionOutcome is interview_core._SessionOutcome
 
-    def test_the_persona_is_the_relay_s_own(self):
+    def test_the_persona_is_the_shared_one(self):
         """Byte-identical, or two students' scorecards stop being comparable.
 
         The persona is verbatim product spec. A copy here would let the Nova
@@ -822,34 +822,37 @@ class TestVoices:
         assert requested == "coral"
         assert session is not None
 
-    def test_an_openai_voice_is_never_a_nova_voice(self):
-        """The two vocabularies have nothing in common, which is why the row
-        carries one of each rather than a translation table."""
-        from app.interview_matrix import KNOWN_REALTIME_VOICES
-
-        assert not (KNOWN_REALTIME_VOICES & KNOWN_NOVA_VOICES)
-
-
 class TestEngineSelection:
-    def test_nova_is_a_recognised_engine(self):
+    def test_nova_is_the_default_engine(self):
+        assert Settings().interview_engine == "nova"
         assert Settings(interview_engine="nova").interview_engine == "nova"
 
     def test_a_typo_falls_back_to_the_documented_default(self):
-        """INTERVIEW_ENGINE=nove must not silently bill an OpenAI key."""
-        assert Settings(interview_engine="nove").interview_engine == "openai"
+        """An allowlist, so a typo lands on something that exists."""
+        assert Settings(interview_engine="nove").interview_engine == "nova"
+
+    def test_the_retired_engine_is_not_a_recognised_value(self):
+        """"openai" ran this interview until 2026-09 and its module is gone.
+
+        Left in the allowlist it would resolve to an engine the router can no
+        longer construct — a TypeError at the moment a student presses Start.
+        It falls back like any other unknown string instead.
+        """
+        assert Settings(interview_engine="openai").interview_engine == "nova"
 
     def test_readiness_asks_the_engine_that_is_actually_running(self):
-        """`realtime_ready` asks the OpenAI question alone.
+        """Each engine answers for itself, and neither needs a pasted key.
 
-        Gating every engine on it told a Nova (or local) deployment its
-        interviews were unconfigured until somebody pasted a key it would never
-        spend.
+        This used to be one question — "is OPENAI_API_KEY set?" — asked of every
+        engine, which told a Nova or local deployment its interviews were
+        unconfigured until somebody pasted a key it would never spend.
         """
-        aws = Settings(
-            interview_engine="nova", openai_api_key="", nova_sonic_region="us-east-1"
-        )
+        aws = Settings(interview_engine="nova", nova_sonic_region="us-east-1")
         assert aws.interview_ready is True
-        assert aws.realtime_ready is False
+        # The local engine needs nothing configured: its failures (missing
+        # weights, no GPU) surface at start with their own close code and their
+        # own sentence, which is more useful than a blanket "unavailable".
+        assert Settings(interview_engine="local").interview_ready is True
 
     def test_a_nova_deployment_with_no_region_is_reported_unavailable(self):
         """The endpoint is composed from the region by this process.

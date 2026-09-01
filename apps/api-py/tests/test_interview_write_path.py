@@ -28,28 +28,29 @@ ones use a fake browser socket, a fake writer and no Postgres.
 """
 
 import asyncio
+import json
 import uuid
 
 import pytest
+from fastapi.websockets import WebSocketState
 from sqlalchemy import delete, select
 
 from conftest import requires_db
 
 from app.db import SessionLocal
 from app.interview_matrix import SPECIALIZATIONS, InterviewPhase
-from app.interview_relay import (
+from app.interview_core import (
     _CLOSE_IDLE,
     _CLOSE_INTERNAL,
     _CLOSE_OK,
     _ConnectionLimiter,
-    _Pending,
-    _RelaySession,
     _ReportRecord,
     _SessionEnded,
     _SessionOutcome,
     _TurnRecord,
     _TurnWriteRefused,
 )
+from app.interview_nova import NovaSonicSession
 from app.models.conversation import Conversation, Message
 from app.models.interview import InterviewEvaluation, InterviewSession, InterviewTurn
 from app.models.user import Role, Student, User
@@ -139,49 +140,59 @@ class TestPerUserSessionCap:
 
 
 class _FakeBrowser:
-    """Starlette's WebSocket, reduced to the two methods the relay calls."""
+    """Starlette's WebSocket, reduced to what the engine calls."""
 
     def __init__(self) -> None:
         self.control: list[dict] = []
+        # Checked before every send: a browser that has gone away must not be
+        # written to. Starlette's real socket carries it.
+        self.client_state = WebSocketState.CONNECTED
 
-    async def send_json(self, payload: dict) -> None:
-        self.control.append(payload)
+    async def send_text(self, text: str) -> None:
+        self.control.append(json.loads(text))
 
     async def send_bytes(self, data: bytes) -> None:  # pragma: no cover
         pass
 
 
-def _relay(on_turn=None, **kwargs) -> _RelaySession:
-    return _RelaySession(
+class _FakeUpstream:
+    """Bedrock, reduced to send(). The engine holds one; these tests read none
+    of it — what they are about is what reaches the WRITER."""
+
+    def __init__(self) -> None:
+        self.sent: list[dict] = []
+
+    async def send(self, event: dict) -> None:
+        self.sent.append(event)
+
+
+def _relay(on_turn=None, **kwargs) -> NovaSonicSession:
+    """One engine, wired to fakes. Named `_relay` because every test below is
+    about the writers, not about which engine drove them."""
+    session = NovaSonicSession(
         _FakeBrowser(),
         "feed0feed0fe",
         on_turn=on_turn,
         specialization=SPECIALIZATIONS["hr"],
         **kwargs,
     )
-
-
-def _answered(transcript: str, status: str = "ok") -> _Pending:
-    return _Pending(
-        key="p1", armed_at=0.0, deadline_at=0.0, item_id="item_1",
-        transcript=transcript, status=status,
-    )
+    session._upstream = _FakeUpstream()
+    return session
 
 
 class TestWhatTheWriterIsHanded:
     def test_a_blank_transcript_still_reaches_the_writer(self):
-        """L4, the relay half, and the trap this change was most likely to ship.
+        """L4, the engine half, and the trap this change was most likely to ship.
 
         The blank-text guard used to return before the writer was ever called, so
-        a transcription that timed out or failed left NO ROW ANYWHERE -- the exact
+        a transcription that heard nothing left NO ROW ANYWHERE -- the exact
         turns v3 adds `transcription_status` to record.
         """
         seen: list[tuple[str, str, str, _TurnRecord]] = []
 
         async def scenario():
             relay = _relay(on_turn=lambda *a: seen.append(a))
-            relay._question_open = True
-            await relay._after_answer([_answered("", status="timeout")])
+            await relay._on_student_transcript("", "content-1")
             await asyncio.gather(*tuple(relay._writes), return_exceptions=True)
 
         asyncio.run(scenario())
@@ -189,10 +200,10 @@ class TestWhatTheWriterIsHanded:
         assert len(seen) == 1
         sender, text, turn_id, record = seen[0]
         assert (sender, text) == ("user", "")
-        assert record.transcription_status == "timeout"
-        # NULL, not 'empty': there was no answer to judge, which is a different
-        # fact from an answer that was empty.
-        assert record.answer_quality is None
+        assert record.transcription_status == "empty"
+        # And it did not advance the arc: an answer nobody heard is not an
+        # answer, whatever else is true about it.
+        assert record.counted_as_answer is False
 
     def test_a_counted_answer_carries_its_phase_and_its_tick(self):
         """The two columns a shared `messages` row can never hold.
@@ -205,9 +216,8 @@ class TestWhatTheWriterIsHanded:
 
         async def scenario():
             relay = _relay(on_turn=lambda *a: seen.append(a))
-            relay._question_open = True
-            await relay._after_answer(
-                [_answered("I led the campus fintech club for two years")]
+            await relay._on_student_transcript(
+                "I led the campus fintech club for two years", "content-1"
             )
             await asyncio.gather(*tuple(relay._writes), return_exceptions=True)
 
@@ -219,57 +229,39 @@ class TestWhatTheWriterIsHanded:
         assert record.answer_quality == "accepted"
         assert record.seq == 1
 
-    def test_one_split_answer_carries_exactly_one_tick(self):
-        """VAD splitting an answer at a pause is one answer, not two.
+    def test_an_interviewer_turn_is_never_judged_as_an_answer(self):
+        """The columns that only make sense for a STUDENT turn stay empty.
 
-        Marking both halves would double-count an arc that advanced once, and
-        `sum(counted_as_answer) == answers_accepted` -- the property that makes
-        the phase arc auditable -- would stop holding.
+        `answer_quality` on an interviewer turn would read as the model having
+        been assessed, and `transcription_status` of 'ok' would claim a
+        transcriber succeeded on a turn it never saw.
+
+        Two tests stood here that went with the OpenAI relay: one for an answer
+        split across two VAD segments (the split is a transcript-level concern
+        on the Nova engine and is pinned in test_interview_nova.py), and one for
+        `is_partial` on an interrupted question -- a distinction only an engine
+        that can cancel its own response in flight can draw.
         """
         seen: list[tuple] = []
 
         async def scenario():
             relay = _relay(on_turn=lambda *a: seen.append(a))
-            relay._question_open = True
-            first = _answered("I led the campus fintech club")
-            second = _Pending(
-                key="p2", armed_at=0.0, deadline_at=0.0, item_id="item_2",
-                transcript="and grew it to eighty members", status="ok",
-            )
-            await relay._after_answer([first, second])
-            await asyncio.gather(*tuple(relay._writes), return_exceptions=True)
-
-        asyncio.run(scenario())
-
-        assert [row[3].counted_as_answer for row in seen] == [False, True]
-        assert [row[3].seq for row in seen] == [1, 2]
-
-    def test_an_interrupted_question_is_recorded_as_partial(self):
-        """L2. "She never answered it" and "she never heard the end of it" are
-        different findings, and only `is_partial` separates them."""
-        seen: list[tuple] = []
-
-        async def scenario():
-            relay = _relay(on_turn=lambda *a: seen.append(a))
-            relay._expecting_response = True
-            await relay._handle_upstream_event(
-                {"type": "response.created", "response": {"id": "resp_1"}}
-            )
-            await relay._handle_upstream_event(
-                {
-                    "type": "response.done",
-                    "response": {"id": "resp_1", "status": "cancelled"},
-                }
+            relay._emit_turn(
+                "assistant",
+                "So, tell me about yourself.",
+                "nova-a1",
+                status="not_applicable",
+                quality=None,
             )
             await asyncio.gather(*tuple(relay._writes), return_exceptions=True)
 
         asyncio.run(scenario())
 
         record = seen[0][3]
-        assert record.is_partial is True
-        # The model produced this text; nothing transcribed it.
         assert record.transcription_status == "not_applicable"
         assert record.answer_quality is None
+        assert record.counted_as_answer is False
+        assert record.is_partial is False
 
     def test_a_refused_turn_write_ends_the_interview(self):
         """L5, and it is not "swallow it".
@@ -285,7 +277,13 @@ class TestWhatTheWriterIsHanded:
 
         async def scenario():
             relay = _relay(on_turn=refuse)
-            relay._emit_turn("assistant", "So, tell me about yourself.", "a:resp_1")
+            relay._emit_turn(
+                "assistant",
+                "So, tell me about yourself.",
+                "nova-a1",
+                status="not_applicable",
+                quality=None,
+            )
             await asyncio.gather(*tuple(relay._writes), return_exceptions=True)
             return relay
 
@@ -299,7 +297,13 @@ class TestWhatTheWriterIsHanded:
     def test_a_written_turn_counts_as_persisted(self):
         async def scenario():
             relay = _relay(on_turn=lambda *a: None)
-            relay._emit_turn("assistant", "So, tell me about yourself.", "a:resp_1")
+            relay._emit_turn(
+                "assistant",
+                "So, tell me about yourself.",
+                "nova-a1",
+                status="not_applicable",
+                quality=None,
+            )
             await asyncio.gather(*tuple(relay._writes), return_exceptions=True)
             return relay
 

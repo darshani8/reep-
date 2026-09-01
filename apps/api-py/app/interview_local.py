@@ -2,8 +2,8 @@
 
     browser  <--WS /api/interview-->  THIS PROCESS  ---> nothing leaves it
 
-app/interview_relay.py sends 24 kHz PCM to api.openai.com and gets speech back
-from one model that hears, reasons and speaks. That model has no local
+app/interview_nova.py sends 24 kHz PCM to Amazon Nova 2 Sonic and gets speech
+back from one model that hears, reasons and speaks. That model has no local
 equivalent, so this module rebuilds the same behaviour out of three pieces that
 do: faster-whisper hears, an Ollama model reasons, Piper speaks.
 
@@ -310,7 +310,7 @@ class _Vad:
 # the moment one of them gained a field -- silently, because both would still
 # construct and only one would carry the new value into the database.
 from .interview_audio import TRACK_INTERVIEWER, TRACK_STUDENT  # noqa: E402
-from .interview_relay import (  # noqa: E402
+from .interview_core import (  # noqa: E402
     _INTERVIEWER_PERSONA,
     _ReportRecord,
     _SessionOutcome,
@@ -365,7 +365,7 @@ class LocalSession:
         # and can never ask a follow-up -- which is the whole of PROBING.
         #
         # Student text lives HERE and never in the instructions. That is the
-        # same line app/interview_relay.py draws: instructions stay fixed
+        # same line app/interview_nova.py draws: instructions stay fixed
         # strings, and what the student said travels as a message. The
         # distinction is what stops the next editor putting a resume in the
         # persona.

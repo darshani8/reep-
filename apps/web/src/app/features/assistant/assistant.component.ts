@@ -105,6 +105,12 @@ interface ConsentGrant {
 interface ConsentState {
   version: string;
   consent: ConsentGrant | null;
+  /** WHO receives the student's voice, in words, from the server — because the
+   *  browser cannot know which engine is running. The disclosure below used to
+   *  name OpenAI in the template, which became a FALSE statement the day a
+   *  second hosted engine (Nova Sonic on Bedrock) shipped. Optional so an older
+   *  API answers without one and the fallback copy stands. */
+  provider?: string;
 }
 
 /** The pill's wording. The pill carries colour; this carries meaning, and both
@@ -264,6 +270,11 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
    *  Null until that call answers — and Start cannot grant without it, because
    *  POST refuses a version it does not know. */
   readonly consentVersion = signal<string | null>(null);
+  /** The provider named in the consent copy, from the server. The default is
+   *  deliberately vague rather than a guessed company name: naming the WRONG
+   *  recipient is worse than naming none, and this value is only ever the
+   *  fallback for an API that did not send one. */
+  readonly consentProvider = signal<string>("the interviewer's speech model");
   /** The caller's live grant for that version, or null. */
   readonly consent = signal<ConsentGrant | null>(null);
   /** The audio checkbox, OFF by default. A pre-ticked box is not consent — it
@@ -628,6 +639,7 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
       const state = (await res.json()) as ConsentState;
       this.consentVersion.set(state.version);
       this.consent.set(state.consent);
+      if (state.provider) this.consentProvider.set(state.provider);
     } catch {
       this.consentError.set('Could not reach the server. Please try again.');
     } finally {
@@ -726,6 +738,7 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
       const state = (await res.json()) as ConsentState;
       this.consentVersion.set(state.version);
       this.consent.set(state.consent);
+      if (state.provider) this.consentProvider.set(state.provider);
     } catch {
       /* offline or not signed in — the panel handles it on Start */
     }

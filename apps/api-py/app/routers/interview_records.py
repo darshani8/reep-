@@ -235,6 +235,11 @@ class ConsentStateOut(BaseModel):
 
     version: str
     consent: ConsentOut | None
+    # WHO receives the student's voice, in words, for the disclosure the panel
+    # shows before they agree. Server-side because the client cannot know which
+    # engine is running — and the sentence it used to hard-code named OpenAI,
+    # which becomes a false disclosure the moment a deployment switches engines.
+    provider: str
 
 
 class ConsentIn(BaseModel):
@@ -602,6 +607,7 @@ def my_consent(
     return ConsentStateOut(
         version=settings.interview_consent_version,
         consent=None if row is None else _consent_out(row),
+        provider=settings.interview_provider_label,
     )
 
 
@@ -732,7 +738,11 @@ def revoke_consent(
     db.commit()
     # The new state, so the client replaces what it holds instead of inferring
     # it from a 204 and getting the version string wrong.
-    return ConsentStateOut(version=settings.interview_consent_version, consent=None)
+    return ConsentStateOut(
+        version=settings.interview_consent_version,
+        consent=None,
+        provider=settings.interview_provider_label,
+    )
 
 
 # ---------------------------------------------------------------------------

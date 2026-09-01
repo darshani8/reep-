@@ -316,7 +316,19 @@ def chat(
     db.commit()
 
     try:
-        reply = complete_chat(messages, max_tokens=1024)
+        # carries_student_data=False, stated rather than inherited. `messages`
+        # is SYSTEM_PROMPT plus this conversation's own turns -- no Student row
+        # is read into it anywhere in this module, and the prompt itself tells
+        # the model it has no access to private records.
+        #
+        # A student who TYPES their own marks into the chat box is a different
+        # thing: rule 1 is that student data must not leave the machine
+        # UNBIDDEN, and a person volunteering their own information in a
+        # conversation they started has bidden it. What this flag governs is
+        # the server composing a record into a prompt, which this path does not
+        # do. If that ever changes -- a profile block, a marks summary, a
+        # retrieved attendance figure -- this must become True in the same diff.
+        reply = complete_chat(messages, carries_student_data=False, max_tokens=1024)
     except httpx.TransportError as exc:
         # The provider was never reached — see UNREACHABLE_REPLY. Degraded, not
         # failed: 200 with an honest answer and used_ai=false, mirroring the
@@ -407,7 +419,12 @@ def chat_stream(
             chunks.append(opening)
             yield f"data: {json.dumps({'delta': opening})}\n\n"
         try:
-            for delta in stream_chat(messages, max_tokens=1024):
+            # Same declaration as the blocking path above, for the same
+            # reason -- see the comment there. The two must not drift: they
+            # send the identical `messages`.
+            for delta in stream_chat(
+                messages, carries_student_data=False, max_tokens=1024
+            ):
                 chunks.append(delta)
                 yield f"data: {json.dumps({'delta': delta})}\n\n"
         except Exception:  # provider/network/quota — reported in-band, never leaked

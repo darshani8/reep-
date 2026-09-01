@@ -22,6 +22,7 @@ from ..models.offer import OfferStatus, PlacementOffer
 from ..models.skill import Skill, SkillClaim, StudentSkill
 from ..models.upload import Upload, UploadStatus
 from ..models.user import Student, User
+from ..policies import assert_student_scope
 
 router = APIRouter(prefix="/mentor", tags=["mentor"])
 
@@ -69,19 +70,37 @@ def mentees(
     ]
 
 
-def _assert_can_access_student(session: dict, student_id: str, db: Session) -> None:
-    """Staff only, and a MENTOR only for a student in their own group."""
-    require_mentor(session)
-    if session["role"] in ("DIRECTOR", "ADMIN"):
-        if db.get(Student, student_id) is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
-        return
-    mentor_id = session.get("mentorId")
-    student = db.get(Student, student_id)
-    if not mentor_id or student is None or student.mentor_id != mentor_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Student not in your mentor group."
-        )
+def _assert_can_access_student(session: dict, student_id: str, db: Session) -> Student:
+    """Rule 2's gate. ONE NAME, ONE IMPLEMENTATION -- this delegates.
+
+    This used to be a second, independent implementation of "may this staff
+    member see this student", alongside `policies.assert_student_scope` which
+    the /v1 routers call. Two functions for the project's most load-bearing
+    invariant is how a scope rule ends up with two answers depending on which
+    URL a request happened to hit -- and rule 2 is exactly the rule where a
+    wrong answer is a data-exposure bug, not a UX one.
+
+    The policies version is the survivor because it was STRICTLY STRONGER, not
+    merely different: it carried the same MENTOR-group narrowing this one did,
+    and additionally required the student to be in the caller's tenant, and
+    additionally refused a session with no userId. Keeping the weaker one and
+    deleting the stronger would have been a silent downgrade at 25 call sites.
+
+    Both names survive because both are load-bearing in prose: half a dozen
+    module docstrings name `_assert_can_access_student` as THE gate, and
+    rewriting 25 call sites to prove a point would put the risk in the diff
+    rather than in the design.
+
+    Tenant narrowing is inert on a database that has no memberships --
+    `tenant_id_for_session` returns None and the behaviour is byte-identical to
+    what this function did before. Where memberships DO exist it narrows, which
+    is the rule /v1 already enforced and this side silently did not.
+
+    Returns the Student now rather than None, so a caller that needs the row
+    does not fetch it a second time. Existing callers ignore it and are
+    unaffected.
+    """
+    return assert_student_scope(session, student_id, db)
 
 
 class NoteOut(BaseModel):

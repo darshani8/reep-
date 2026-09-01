@@ -18,6 +18,7 @@ below for the quota that stops one account filling the disk 10 MB at a time.
 """
 
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
 
@@ -40,10 +41,14 @@ MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 #
 # The numbers are deliberately far above real use (a marksheet per semester, a
 # handful of certificates, a photo, a CV) and far below "one account can hurt
-# the box". They live here, next to MAX_BYTES, because they are properties of the
-# store; the counting needs the `uploads` table, so ENFORCEMENT is in
-# routers/student.py create_upload — the single caller of save_bytes. Any second
-# writer must apply the same check, or the quota is decoration.
+# the box".
+#
+# This comment used to end "ENFORCEMENT is in routers/student.py create_upload —
+# the single caller of save_bytes. Any second writer must apply the same check,
+# or the quota is decoration." Three writers later, one of them had no check at
+# all. Enforcement now lives in VolumeQuota below and `save_bytes` refuses a
+# caller that brings none; the counting still belongs to the caller, because it
+# needs that owner's table.
 #
 # Module constants rather than settings: adding a numeric setting means adding it
 # to BOTH validator name-lists in app/config.py, and a limit nobody has ever
@@ -51,9 +56,103 @@ MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_UPLOADS_PER_STUDENT = 40
 MAX_UPLOAD_BYTES_PER_STUDENT = 200 * 1024 * 1024  # 200 MB
 
+# Per-STAFF-user quota, same reasoning, different shelf.
+MAX_CERTIFICATES_PER_USER = 20
+MAX_CERTIFICATE_BYTES_PER_USER = 100 * 1024 * 1024  # 100 MB
+
 
 class UploadRejected(ValueError):
     """The bytes are not an accepted file (bad type, empty, or too large)."""
+
+
+class QuotaRejected(ValueError):
+    """The file is fine; the OWNER has no room for it.
+
+    Deliberately NOT a subclass of UploadRejected. Routers answer that one with
+    422 ("we will not accept these bytes"), and these need different codes: the
+    bytes are perfectly acceptable, the shelf is full. Subclassing would have
+    every existing `except UploadRejected` silently answer 422 and tell a
+    student their valid PDF was malformed.
+    """
+
+    status_code = 409
+
+
+class ShelfFull(QuotaRejected):
+    """Too many files already. 409 -- the caller can delete one and retry."""
+
+    status_code = 409
+
+
+class AllowanceExceeded(QuotaRejected):
+    """This file would cross the total-bytes allowance. 413."""
+
+    status_code = 413
+
+
+@dataclass(frozen=True)
+class VolumeQuota:
+    """How much room one owner has left, and the arithmetic that decides.
+
+    THIS EXISTS BECAUSE THE OLD COMMENT WAS WRONG. It said enforcement lives in
+    "routers/student.py create_upload -- the single caller of save_bytes", and
+    that any second writer must repeat the check. There are now three writers.
+    routers/staff_upskilling.py re-implemented the check; routers/alumni.py did
+    not. An invariant that lives in the caller is a convention, and a convention
+    is one new endpoint away from being false.
+
+    So the LIMITS and the ARITHMETIC live here, and `save_bytes` will not store
+    a byte without one. The COUNTING still belongs to the caller, because it
+    needs that owner's table (`uploads`, `staff_upskilling_certificates`), and
+    this module stays free of the ORM -- which is what lets it be tested with
+    four integers and no database.
+
+    Two phases, and the order is the point. `check_slot()` runs BEFORE the
+    request body is read, so an owner who is already over their file count never
+    gets their megabytes buffered into this process at all; `check_bytes()` runs
+    after, when the size is finally known. A single combined check would have to
+    read first, which is exactly the denial-of-service the count cap exists to
+    stop.
+    """
+
+    max_files: int
+    max_bytes: int
+    used_files: int
+    used_bytes: int
+    #: What the owner calls these on their own screen -- "file", "certificate".
+    #: The message is read by the person who hit the limit, not by an operator.
+    noun: str = "file"
+
+    @classmethod
+    def single_slot(cls, noun: str = "file") -> "VolumeQuota":
+        """For an owner that holds exactly one of these, replaced in place.
+
+        routers/alumni.py is the case: one profile, one resume, and the old
+        bytes are deleted before the row points at the new ones. Its volume is
+        bounded at one file by construction rather than by counting -- but it
+        still has to say so, because `save_bytes` no longer accepts callers that
+        say nothing.
+        """
+        return cls(max_files=1, max_bytes=MAX_BYTES, used_files=0, used_bytes=0, noun=noun)
+
+    def check_slot(self) -> None:
+        """Refuse before the body is read. Call first."""
+        if self.used_files >= self.max_files:
+            raise ShelfFull(
+                f"You already have {self.used_files} {self.noun}s uploaded, which is "
+                f"the limit of {self.max_files}. Delete one you no longer need, then "
+                "try again."
+            )
+
+    def check_bytes(self, incoming: int) -> None:
+        """Refuse once the size is known. Call after reading the body."""
+        if self.used_bytes + incoming > self.max_bytes:
+            raise AllowanceExceeded(
+                f"This file would take you past your "
+                f"{self.max_bytes // (1024 * 1024)} MB upload allowance "
+                f"({self.used_bytes / (1024 * 1024):.1f} MB used). Delete "
+                f"a {self.noun} you no longer need, then try again."
+            )
 
 
 def _sniff(content: bytes) -> tuple[str, str]:
@@ -69,12 +168,24 @@ def _store_dir() -> Path:
     return d
 
 
-def save_bytes(content: bytes) -> tuple[str, str, int]:
-    """Validate and store; return (stored_name, sniffed_mime, size_bytes)."""
+def save_bytes(content: bytes, *, quota: VolumeQuota) -> tuple[str, str, int]:
+    """Validate and store; return (stored_name, sniffed_mime, size_bytes).
+
+    `quota` is REQUIRED and keyword-only, which is the whole point of it. A
+    default would let the next writer store bytes for an owner nobody is
+    counting -- the exact way routers/alumni.py came to have no quota while the
+    module comment still claimed a single caller. A caller with genuinely one
+    slot passes `VolumeQuota.single_slot()` and says so out loud.
+
+    `check_bytes` is repeated here even though every caller should already have
+    run it: by this line the size is known for certain, and a backstop inside
+    the store is worth more than trust in three call sites.
+    """
     if not content:
         raise UploadRejected("The file is empty.")
     if len(content) > MAX_BYTES:
         raise UploadRejected("File too large — the limit is 10 MB.")
+    quota.check_bytes(len(content))
     mime, ext = _sniff(content)
     stored_name = uuid.uuid4().hex + ext
     (_store_dir() / stored_name).write_bytes(content)

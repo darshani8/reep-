@@ -25,16 +25,22 @@ from ..db import get_db
 from ..identity import get_current_session
 from ..document_store import MAX_BYTES, UploadRejected, content_disposition
 from ..document_store import delete as document_store_delete
-from ..document_store import read_bytes, save_bytes
+from ..document_store import (
+    MAX_CERTIFICATE_BYTES_PER_USER,
+    MAX_CERTIFICATES_PER_USER,
+    QuotaRejected,
+    VolumeQuota,
+    read_bytes,
+    save_bytes,
+)
 from ..models.staff_upskilling import StaffUpskillingCertificate
 from .mentor import require_mentor
 
 router = APIRouter(prefix="/staff/upskilling", tags=["staff-upskilling"])
 
-# Per-STAFF-user quota (same reasoning as document_store's per-student one): far above
-# real use, far below "one account fills the disk".
-MAX_CERTIFICATES_PER_USER = 20
-MAX_CERTIFICATE_BYTES_PER_USER = 100 * 1024 * 1024  # 100 MB
+# The two limits moved to app/document_store.py, next to MAX_BYTES and the
+# per-student pair: they are properties of the store, and keeping a second
+# copy here is how the two shelves drift apart.
 
 
 class CertificateOut(BaseModel):
@@ -95,31 +101,26 @@ def upload_certificate(
             func.coalesce(func.sum(StaffUpskillingCertificate.size_bytes), 0),
         ).where(StaffUpskillingCertificate.user_id == user_id)
     ).one()
-    if used_count >= MAX_CERTIFICATES_PER_USER:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                f"You already have {used_count} certificates uploaded, which is the "
-                f"limit of {MAX_CERTIFICATES_PER_USER}. Delete one you no longer need, then "
-                "try again."
-            ),
-        )
+    quota = VolumeQuota(
+        max_files=MAX_CERTIFICATES_PER_USER,
+        max_bytes=MAX_CERTIFICATE_BYTES_PER_USER,
+        used_files=used_count,
+        used_bytes=used_bytes,
+        noun="certificate",
+    )
+    try:
+        quota.check_slot()
+    except QuotaRejected as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
     # read(MAX+1), never read(): save_bytes refuses anything past the per-file
     # cap, so one extra byte trips it without buffering an unbounded body in
     # RAM (routers/student.py create_upload, same reasoning).
     content = file.file.read(MAX_BYTES + 1)
-    if used_bytes + len(content) > MAX_CERTIFICATE_BYTES_PER_USER:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=(
-                f"This file would take you past your "
-                f"{MAX_CERTIFICATE_BYTES_PER_USER // (1024 * 1024)} MB upload allowance. "
-                "Delete a certificate you no longer need, then try again."
-            ),
-        )
     try:
-        stored_name, mime, size = save_bytes(content)
+        stored_name, mime, size = save_bytes(content, quota=quota)
+    except QuotaRejected as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
     except UploadRejected as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
 

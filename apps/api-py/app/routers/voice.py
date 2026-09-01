@@ -339,7 +339,7 @@ class _TokenGrantLedger:
     Module-level rather than app.state so a second FastAPI app in one process
     (the test client) cannot silently double the cap.
 
-    A LOCK, unlike _ConnectionLimiter in interview_relay.py. That one is safe
+    A LOCK, unlike _ConnectionLimiter in interview_core.py. That one is safe
     without one because it is only ever touched from the single-threaded event
     loop. This is not: POST /token is a synchronous `def`, so Starlette runs it
     in the anyio worker THREADPOOL and two of a student's requests can be in

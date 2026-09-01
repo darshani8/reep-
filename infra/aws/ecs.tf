@@ -107,7 +107,6 @@ locals {
   api_secrets = [
     { name = "AUTH_SECRET", valueFrom = "${aws_secretsmanager_secret.app.arn}:AUTH_SECRET::" },
     { name = "DATABASE_URL", valueFrom = "${aws_secretsmanager_secret.app.arn}:DATABASE_URL::" },
-    { name = "OPENAI_API_KEY", valueFrom = "${aws_secretsmanager_secret.external.arn}:OPENAI_API_KEY::" },
     { name = "GOOGLE_CLIENT_ID", valueFrom = "${aws_secretsmanager_secret.external.arn}:GOOGLE_CLIENT_ID::" },
     { name = "GOOGLE_CLIENT_SECRET", valueFrom = "${aws_secretsmanager_secret.external.arn}:GOOGLE_CLIENT_SECRET::" },
     { name = "SENTRY_DSN", valueFrom = "${aws_secretsmanager_secret.external.arn}:SENTRY_DSN::" },

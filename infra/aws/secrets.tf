@@ -42,12 +42,16 @@ resource "aws_secretsmanager_secret" "external" {
 resource "aws_secretsmanager_secret_version" "external" {
   secret_id = aws_secretsmanager_secret.external.id
   secret_string = jsonencode({
-    OPENAI_API_KEY       = ""
     GOOGLE_CLIENT_ID     = ""
     GOOGLE_CLIENT_SECRET = ""
     SENTRY_DSN           = ""
     VOICE_WORKER_SECRET  = ""
   })
+  # OPENAI_API_KEY stood here until 2026-09, for the interview relay this stack
+  # no longer runs. `ignore_changes` means removing the key from this map does
+  # NOT delete it from the live secret — the operator-owned value is untouched
+  # by an apply, which is the whole point of that lifecycle block. Delete it in
+  # the console once nothing reads it, and the interview no longer does.
   lifecycle {
     ignore_changes = [secret_string]
   }

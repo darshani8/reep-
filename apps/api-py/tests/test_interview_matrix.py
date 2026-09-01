@@ -21,7 +21,7 @@ import pytest
 
 from app.config import settings
 from app.interview_matrix import (
-    KNOWN_REALTIME_VOICES,
+    KNOWN_NOVA_VOICES,
     REPORT_DIRECTIVE,
     SPECIALIZATIONS,
     InterviewPhase,
@@ -31,7 +31,7 @@ from app.interview_matrix import (
     classify_answer,
     get_specialization,
 )
-from app.interview_relay import _INTERVIEWER_PERSONA
+from app.interview_core import _INTERVIEWER_PERSONA
 
 
 class TestMatrix:
@@ -48,19 +48,21 @@ class TestMatrix:
         # Phrased as a prompt, not necessarily with a "?": two of the four are
         # "Walk me through..." statements in the spec.
         assert len(spec.sample_question) > 30
-        # Every role speaks with a voice the GA session shape actually has.
-        assert spec.voice in KNOWN_REALTIME_VOICES
+        # Every role speaks with a voice the model will actually accept: an
+        # unknown one is a ValidationException at the handshake, i.e. an
+        # interview that never starts.
+        assert spec.nova_voice in KNOWN_NOVA_VOICES
 
     def test_the_per_specialization_voices(self):
         """A CHRO does not sound like a CFO. Pinned so a casual re-voice of
         every track to the same name is a deliberate act."""
-        assert SPECIALIZATIONS["hr"].voice == "coral"
-        assert SPECIALIZATIONS["dm"].voice == "marin"
-        assert SPECIALIZATIONS["ba"].voice == "cedar"
-        assert SPECIALIZATIONS["fa"].voice == "ash"
+        assert SPECIALIZATIONS["hr"].nova_voice == "kiara"
+        assert SPECIALIZATIONS["dm"].nova_voice == "tiffany"
+        assert SPECIALIZATIONS["ba"].nova_voice == "arjun"
+        assert SPECIALIZATIONS["fa"].nova_voice == "matthew"
         # Four roles, four voices -- the field is per-specialization, not a
         # second global default wearing a matrix costume.
-        assert len({spec.voice for spec in SPECIALIZATIONS.values()}) == 4
+        assert len({spec.nova_voice for spec in SPECIALIZATIONS.values()}) == 4
 
     def test_the_spec_sample_questions(self):
         # The spec's own wording, pinned so a casual edit is a deliberate act.

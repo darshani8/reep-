@@ -1,17 +1,17 @@
-"""The local interview engine — the parts that must hold with no API key.
+"""The local interview engine — the parts that must hold with nothing hosted.
 
-app/interview_local.py runs the same interview as the relay with nothing
+app/interview_local.py runs the same interview as the Nova engine with nothing
 leaving the machine. These tests pin the contracts that make that a drop-in
 rather than a fork, and they do NO model work: loading faster-whisper and Piper
 takes seconds and needs a GPU, and a suite that needs either stops being run.
 
 What is pinned here:
 
-1. The engine is interchangeable with the relay. Same constructor, same run()
-   contract, same payload records -- because the router picks between them on
-   one setting and every writer around them is shared.
+1. The engine is interchangeable with the hosted one. Same constructor, same
+   run() contract, same payload records -- because the router picks between them
+   on one setting and every writer around them is shared.
 2. Student text reaches the model as a MESSAGE and never as an instruction.
-   That is the same line the relay draws and the reason it draws it.
+   That is the same line the hosted engine draws and the reason it draws it.
 3. The turn boundary. `_Vad` is the local replacement for a server VAD, so its
    thresholds decide when a student is judged to have stopped talking.
 """
@@ -23,19 +23,20 @@ import pytest
 from app import interview_local as local
 from app.config import settings
 from app.interview_matrix import SPECIALIZATIONS, InterviewPhase, build_instructions
-from app.interview_relay import _INTERVIEWER_PERSONA, _RelaySession
+from app.interview_core import _INTERVIEWER_PERSONA
+from app.interview_nova import NovaSonicSession
 
 
 class TestItIsADropIn:
     """The router swaps these two on a setting; they must be interchangeable."""
 
-    def test_the_constructor_matches_the_relay(self):
+    def test_the_constructor_matches_the_hosted_engine(self):
         """Every keyword the router passes must exist on both engines.
 
         A missing one is a TypeError at the moment a student presses Start,
         which is the worst possible time to find out.
         """
-        relay = set(inspect.signature(_RelaySession.__init__).parameters)
+        relay = set(inspect.signature(NovaSonicSession.__init__).parameters)
         localsig = set(inspect.signature(local.LocalSession.__init__).parameters)
         assert relay == localsig
 
@@ -44,18 +45,18 @@ class TestItIsADropIn:
         stop = inspect.signature(local.LocalSession.request_stop)
         assert list(stop.parameters) == ["self", "code", "reason"]
 
-    def test_the_payload_records_are_the_relay_s_own(self):
-        """Imported, not redefined.
+    def test_the_payload_records_are_the_shared_ones(self):
+        """Imported from app/interview_core.py, not redefined.
 
         A parallel definition would drift the moment either gained a field, and
         it would drift silently: both would still construct, and only one would
         carry the new value into the database.
         """
-        from app import interview_relay
+        from app import interview_core
 
-        assert local._TurnRecord is interview_relay._TurnRecord
-        assert local._ReportRecord is interview_relay._ReportRecord
-        assert local._SessionOutcome is interview_relay._SessionOutcome
+        assert local._TurnRecord is interview_core._TurnRecord
+        assert local._ReportRecord is interview_core._ReportRecord
+        assert local._SessionOutcome is interview_core._SessionOutcome
 
 
 class TestRuleOne:
@@ -191,10 +192,14 @@ class TestReportParsing:
 
 
 class TestEngineSelection:
-    def test_the_default_is_the_hosted_relay(self):
-        """A deployment already running the hosted interview must not change
-        what its students are assessed by because a setting appeared."""
-        assert type(settings).model_fields["interview_engine"].default == "openai"
+    def test_the_default_is_the_hosted_engine(self):
+        """The local engine is opt-IN, and stays that way.
+
+        It needs a fourth venv, model weights on disk and ideally a GPU; a
+        deployment that has not set any of that up must not find its interviews
+        silently running on an engine that cannot start.
+        """
+        assert type(settings).model_fields["interview_engine"].default == "nova"
 
     @pytest.mark.parametrize("bad", ["loca", "LOCALL", "yes", "true", "  "])
     def test_an_unrecognised_engine_falls_back_rather_than_guessing(self, bad):
@@ -202,11 +207,14 @@ class TestEngineSelection:
 
         A typo must not quietly run the hosted engine while the operator
         believes nothing is leaving the machine -- nor silently run the local
-        one when they are paying for the hosted quality.
+        one, which needs weights on disk they may never have installed.
         """
-        assert type(settings)._known_engine(bad) == "openai"
+        assert type(settings)._known_engine(bad) == "nova"
 
-    @pytest.mark.parametrize("good,expected", [("local", "local"), (" LOCAL ", "local"), ("openai", "openai")])
+    @pytest.mark.parametrize(
+        "good,expected",
+        [("local", "local"), (" LOCAL ", "local"), ("nova", "nova"), (" Nova ", "nova")],
+    )
     def test_the_known_names_survive_normalisation(self, good, expected):
         assert type(settings)._known_engine(good) == expected
 

@@ -4,15 +4,13 @@ The student-facing assistant on `/student/assistant`. The browser's microphone i
 relayed, inside the API process, to a speech-to-speech model and back.
 
 ```
-browser  <--WS /api/interview-->  apps/api-py (uvicorn)  <--WS-->  api.openai.com
-                                                         <--HTTP/2-->  Bedrock (Nova 2 Sonic)
+browser  <--WS /api/interview-->  apps/api-py (uvicorn)  <--HTTP/2-->  Bedrock (Nova 2 Sonic)
                                                          --->  nothing (the local engine)
 ```
 
-WHICH of those three runs is one setting, `INTERVIEW_ENGINE` — see *Engines*
-below. Everything else on this page is the same whichever one is chosen: the
-same socket, the same event names, the same records, the same consent gate and
-the same client.
+WHICH of those two runs is one setting, `INTERVIEW_ENGINE` — see *Engines*
+below. Everything else on this page is the same either way: the same socket, the
+same event names, the same records, the same consent gate and the same client.
 
 There is **no fifth process**. The relay runs inside the FastAPI app that already
 serves the dashboard, so it shares that app's session cookie, its database and
@@ -23,8 +21,8 @@ authentication and no database; do not run it.)
 | file | role |
 |---|---|
 | `apps/api-py/app/routers/interview.py` | the boundary: auth, STUDENT check, both concurrency caps, **the consent gate**, specialization validation, the conversation and `interview_sessions` row, the turn/report/finalize/heartbeat writers |
-| `apps/api-py/app/interview_relay.py` | the OpenAI engine: one `_RelaySession` per interview, both pumps, the v3 turn protocol, the guardrails. Also the home of the payload records, the persona and the close codes every engine imports |
-| `apps/api-py/app/interview_nova.py` | the Amazon Nova 2 Sonic engine (`INTERVIEW_ENGINE=nova`): the same interview over Bedrock's bidirectional stream, signed by an IAM role instead of an API key |
+| `apps/api-py/app/interview_core.py` | what every engine shares and none owns: the persona, the payload records, the close codes, both concurrency caps, the scorecard parse, the `InterviewEngine` protocol |
+| `apps/api-py/app/interview_nova.py` | the default engine: Amazon Nova 2 Sonic over Bedrock's bidirectional stream, signed by an IAM role, no API key anywhere |
 | `apps/api-py/app/interview_local.py` | the on-machine engine (`INTERVIEW_ENGINE=local`): faster-whisper hears, Ollama reasons, Piper speaks |
 | `apps/api-py/app/interview_matrix.py` | the Specialization Matrix (HR/DM/BA/FA personas, frameworks, sample questions, per-role voices), the phase state machine, `classify_answer` and the per-turn instruction overrides |
 | `apps/api-py/app/routers/interview_records.py` | the READ side and consent: the student's own history, the staff views behind rule 2, `GET/POST/DELETE /api/interview/consent` |
@@ -46,29 +44,39 @@ branch for the engine.
 
 | `INTERVIEW_ENGINE` | module | upstream | credential | notes |
 |---|---|---|---|---|
-| `openai` *(default)* | `interview_relay.py` | `wss://api.openai.com/v1/realtime` | `OPENAI_API_KEY` | the v3 turn protocol: the relay owns the turn |
-| `nova` | `interview_nova.py` | Bedrock `InvokeModelWithBidirectionalStream`, `amazon.nova-2-sonic-v1:0` | **none** — SigV4 from the task role / instance profile / profile / environment | Nova owns the turn, the engine owns the phase |
+| `nova` *(default)* | `interview_nova.py` | Bedrock `InvokeModelWithBidirectionalStream`, `amazon.nova-2-sonic-v1:0` | **none** — SigV4 from the task role / instance profile / profile / environment | Nova owns the turn, the engine owns the phase |
 | `local` | `interview_local.py` | nothing leaves the machine | none | faster-whisper + Ollama + Piper; rule 1 holds by construction |
 
-The default is `openai` deliberately, even though the local engine is free: a
-deployment that has been running the hosted interview must not silently change
-what its students are assessed by because a new setting appeared. An
-unrecognised value falls back to `openai` **with a warning** rather than being
-guessed at — `INTERVIEW_ENGINE=loca` must not quietly leave the machine, and
-`INTERVIEW_ENGINE=nove` must not bill an OpenAI key an AWS deployment did not
-mean to use.
+The default is the hosted one because the local engine is opt-IN: it needs a
+fourth venv, model weights on disk and ideally a GPU, and a deployment that has
+set none of that up must not find its interviews silently running on an engine
+that cannot start. An unrecognised value falls back to the default **with a
+warning** rather than being guessed at — `INTERVIEW_ENGINE=loca` must not
+quietly leave the machine.
+
+**A third engine, `openai`, ran this interview until 2026-09.** It relayed the
+microphone to `wss://api.openai.com/v1/realtime` on an `OPENAI_API_KEY`, and
+`app/interview_relay.py` was deleted when Nova replaced it. Two things survive
+it and are worth knowing about:
+
+* **the contracts it happened to hold** moved to `app/interview_core.py`
+  unchanged — they were never about OpenAI;
+* **the reasoning** is `docs/interview-engine-v3.md`, still the design record
+  for the phase machine, the deterministic word gate and "one open question at a
+  time". The mechanism died; the argument did not. Read it before changing the
+  arc.
 
 ### Nova 2 Sonic — what is different, and what is not
 
-**Not different:** the persona (imported verbatim from `interview_relay.py`, so
+**Not different:** the persona (imported verbatim from `interview_core.py`, so
 two students are assessed against the same words), the Specialization Matrix,
 `classify_answer`'s word gate, the phase thresholds, `REPORT_DIRECTIVE`, the
 four tables, consent, the recorder, and every close code.
 
 **Different, and deliberately:**
 
-* **Nova owns the turn.** The v3 relay sets `turn_detection.create_response:
-  false` and issues exactly one `response.create` from one call site. Nova 2
+* **Nova owns the turn.** The v3 relay set `turn_detection.create_response:
+  false` and issued exactly one `response.create` from one call site. Nova 2
   Sonic has no equivalent switch — its own endpointing and barge-in *are* the
   product — so the engine steers the arc instead of driving it: the phase
   machine still ticks on accepted answers only, and what changed reaches the
@@ -76,13 +84,14 @@ four tables, consent, the recorder, and every close code.
   `[INTERVIEW CONTROL]` and carrying a fixed directive from
   `interview_matrix.py`. The system prompt is set once at the handshake because
   Nova has no `session.update`.
-* **No clarification turn.** The relay can ask a too-short answer for more
-  detail because it is holding the turn; here the model has already begun
-  replying, and a second directive would produce a second question. The turn is
+* **No clarification turn.** An engine that holds the turn can ask a too-short
+  answer for more detail — the relay did, and the local engine still does; here
+  the model has already begun replying, and a second directive would produce a
+  second question. The turn is
   still recorded as `too_short` / `filler`, and it still does not advance the
   arc.
 * **The scorecard is a tool call.** Nova speaks everything it generates, so the
-  relay's text-only second response would read the JSON aloud to the student.
+  relay's text-only second response would have read the JSON aloud.
   The session declares one tool, `submit_scorecard`; the closing control note
   asks for it; the arguments are parsed by the relay's own `_parse_report` and
   are never spoken and never written into the chat history. A model that reads
@@ -93,13 +102,13 @@ four tables, consent, the recorder, and every close code.
   the real cap, reports THAT as `session_max_seconds` in `reep.ready` so the
   client's countdown and two-minute warning are honest, and forces the wrap-up
   90 s before it so the verdict and the scorecard both fit.
-* **Voices are a different vocabulary.** `coral` is not a Nova voice and `kiara`
-  is not an OpenAI one, so each matrix row carries `voice` *and* `nova_voice` —
-  a casting decision, not a translation. HR speaks as `kiara` and BA as `arjun`
-  (English, India), DM as `tiffany` and FA as `matthew` (English, US). An
-  unknown voice falls back with a log line, because Nova answers a bad
-  `voiceId` with a ValidationException *at the handshake* — an interview that
-  never starts and says nothing about why.
+* **Voices.** Each matrix row carries `nova_voice`: HR speaks as `kiara` and BA
+  as `arjun` (English, India), DM as `tiffany` and FA as `matthew` (English,
+  US). A casting decision, not a translation — the row used to carry an OpenAI
+  `voice` as well, and the two vocabularies shared no names at all. An unknown
+  voice falls back with a log line, because Nova answers a bad `voiceId` with a
+  ValidationException *at the handshake* — an interview that never starts and
+  says nothing about why.
 
 Rule 1 is unchanged and unrelaxed: Bedrock is a remote provider, so no student
 record enters the session. `app/interview_nova.py` imports no ORM model and no
@@ -309,13 +318,14 @@ would be indistinguishable from "the wifi dropped".
 
 ## Rule 1 (AGENTS.md): no student record reaches the model
 
-`api.openai.com` is a remote provider, so **nothing personal enters the session**.
+Bedrock is a remote provider, so **nothing personal enters the session**.
 This is structural, not a matter of asking the model nicely:
 
 - the only thing the server authors upstream is `_INTERVIEWER_PERSONA`, a fixed
   string with no student data in it;
 - the only other thing on the uplink is the student's own microphone;
-- `interview_relay.py` imports no ORM model, no `assistant_tools`, no `knowledge`;
+- the engines import no ORM model, no `assistant_tools`, no `knowledge`, and
+  neither does `interview_core.py`;
 - the session id, conversation id and user id never leave the process.
 
 The persona **also tells the model it is blind** — the same disclosure
@@ -429,7 +439,7 @@ student may reasonably accept two and refuse the third:
 
 | scope | what the student is agreeing to |
 |---|---|
-| `scope_live_ai` | their microphone audio is streamed to OpenAI's realtime model while the interview runs |
+| `scope_live_ai` | their microphone audio is streamed to the interviewer's speech model while the interview runs — the panel names the actual recipient, which the server supplies as `provider` on `GET /api/interview/consent` |
 | `scope_store_transcript` | a written transcript and an AI practice score are kept on the college's server, readable by their mentor and the placement director, for 180 days |
 | `scope_store_audio` | the audio itself is kept — **optional, unticked, and off by default at both ends** |
 
@@ -490,8 +500,8 @@ default deployment:
 Both gates live inside `recorder_for()` so that *"when does REEP record a
 student's voice?"* has one answer in one function. It **fails closed** — an
 unreachable database means "do not record", never "record anyway" — and it is
-called from `routers/interview.py`, because `interview_relay.py` imports no ORM
-model and a recording feature is not what that containment gets spent on.
+called from `routers/interview.py`, because the engines import no ORM model and
+a recording feature is not what that containment gets spent on.
 
 | | |
 |---|---|
@@ -525,8 +535,8 @@ and unticked, and why the download is DIRECTOR/ADMIN only.
 
 Everything lives in `apps/api-py/.env` — the one file all processes share. See the
 `Realtime mock interview` block in `.env.example`. **Readiness is asked of the
-engine that is actually running**: on `openai` a blank `OPENAI_API_KEY` is off,
-on `nova` an unresolvable region is off, and the local engine needs nothing.
+engine that is actually running**: on `nova` an unresolvable region is off, and
+the local engine needs nothing.
 Either way `/status` reports unavailable with a reason and the socket closes
 4001. Nothing else in the dashboard is affected.
 
@@ -565,15 +575,12 @@ and reports no fault to anyone:
 | `INTERVIEW_VOICE_SPEED` | 1.0 | the interviewer's speaking rate (GA only, `audio.output.speed`, 0.25–1.5). Sent only when not 1.0; never sent on the beta shape |
 | `INTERVIEW_TEMPERATURE` | *(unset)* | sampling temperature (0.0–2.0), both session shapes. Sent **only when set** — the default keeps the model's own, because an unverified parameter on `session.update` can kill the handshake |
 
-`OPENAI_API_KEY` is deliberately **not** part of the LLM auto-select chain in
-`app/ai/llm.py`: the Realtime API is not OpenAI-compatible chat, and a key pasted
-here must not quietly become the provider for resume generation.
-
-The key is attached to exactly one socket (the outbound `Authorization` header),
-is never serialised downstream, and is never logged. `app/main.py` pins the
-`websockets` logger to INFO because at DEBUG that library prints the outbound
-handshake header by header, unredacted — and `--log-level debug` is a documented
-troubleshooting step.
+There is **no API key on this path at all** any more. The stream is signed with
+SigV4 from the standard AWS chain, so what used to be a containment problem —
+one pasted credential, attached to exactly one socket, never logged — is now
+absent by construction. `app/main.py` still pins the `websockets` logger to INFO
+(the LiveKit voice path uses that library and `--log-level debug` prints
+handshake headers unredacted).
 
 ## Close codes
 
@@ -589,7 +596,7 @@ The client maps each of these to a sentence (`CLOSE_MESSAGES` in
 | 1008 | not signed in, not a STUDENT, or a STUDENT session with no `studentId` (`interview_sessions.student_id` is NOT NULL, and meeting that as a 1011 thirty seconds in with an upstream session already billed is worse) |
 | 1011 | internal error |
 | 1013 | per-worker concurrency cap — the server is full, everyone is affected |
-| 4001 | the engine is not configured — `OPENAI_API_KEY` not set (or upstream 401) on `openai`, no resolvable AWS region on `nova` |
+| 4001 | the engine is not configured — on `nova`, no resolvable AWS region |
 | 4002 | upstream 403/429/5xx/handshake failure, **or** `create_response: false` was not applied (refusing beats running a known-double interview). On `nova` it is also every way Bedrock can refuse the stream — credentials, IAM, an unsupported region, a throttle at the door — and the log line names which |
 | 4003 | Origin refused (a deployment mistake) |
 | 4008 | idle cap — **no inbound audio**. Not a backstop for a transcription stall: the browser's echo-gate keepalive keeps frames flowing, which is why the answer deadline exists |
@@ -609,16 +616,25 @@ are the only two the client renders with `detail`.
 refused before accept, so the API never saw a route. Check the API is on 3300 and
 that `/api/interview/status` answers.
 
-**Every session closes immediately (4001)** — `OPENAI_API_KEY` is unset or has a
-trailing newline. `/api/interview/status` says so in words.
+**Every session closes immediately (4001)** — no AWS region resolves for Nova
+Sonic. `/api/interview/status` says so in words; set `NOVA_SONIC_REGION` to a
+region that serves the model.
 
-**Connects, transcribes, plays no sound** — the two API generations name the audio
-events differently. The relay matches a *set* of names for exactly this reason; if
-it recurs, check `OPENAI_REALTIME_BETA_HEADER` against the model in use.
+**Every session closes immediately (4002)** — Bedrock refused the stream. The
+log line names which: credentials, IAM (the task role needs
+`bedrock:InvokeModelWithBidirectionalStream`, a *third* action that
+`InvokeModel` does not imply), a region that does not serve the model, model
+access not granted in the account, or a throttle.
 
-**The student talks and the interviewer never answers** — server VAD is off. The
-relay verifies this from `session.updated` and closes 4002 rather than leaving the
-student in silence; the log line names the echoed `turn_detection`.
+**Connects, transcribes, plays no sound** — the client matches a *set* of audio
+event names for exactly this reason, so a name change upstream cannot mute the
+interviewer silently. Check the engine is emitting `response.audio.done` and that
+`audioOutput` frames are arriving in the API log.
+
+**The interviewer asks two questions in a row at a phase boundary** — a control
+note landed after the model had begun its reply. This is the known trade in
+`app/interview_nova.py`'s header; the injection point is `_on_student_transcript`
+and the alternative it rejected is documented there.
 
 **"Please accept the interview terms before starting." (4013)** — the student has
 no live grant for `INTERVIEW_CONSENT_VERSION`. Normally the consent panel appears

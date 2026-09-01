@@ -88,7 +88,7 @@ async def lifespan(_app: FastAPI):
     # guarded by Protocol.debug = logger.isEnabledFor(DEBUG)) and redacts
     # nothing -- and one of those headers is
     # `Authorization: Bearer <OPENAI_API_KEY>` on the interview relay's upstream
-    # socket (app/interview_relay.py). Running uvicorn with --log-level debug is
+    # socket. Running uvicorn with --log-level debug is
     # a documented troubleshooting step, so without this the operator following
     # the manual is the one who prints the credential into the API log, beside
     # student traffic, in whatever aggregator this deployment ships to. That

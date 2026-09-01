@@ -26,7 +26,7 @@ output "app_secret_arn" {
 }
 
 output "external_secret_arn" {
-  description = "Operator-owned: put OPENAI_API_KEY / GOOGLE_* / SENTRY_DSN here."
+  description = "Operator-owned: put GOOGLE_* / SENTRY_DSN / VOICE_WORKER_SECRET here."
   value       = aws_secretsmanager_secret.external.arn
 }
 

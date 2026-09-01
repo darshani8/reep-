@@ -160,7 +160,7 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 # PCM16 LE mono 24 kHz — the wire format of BOTH directions of /api/interview
-# (see the module header of app/interview_relay.py). These are not a preference;
+# (see the module header of app/interview_nova.py). These are not a preference;
 # changing one without changing the relay produces a file that plays back at the
 # wrong speed, which sounds like a defect in the student rather than in us.
 _SAMPLE_RATE_HZ: Final[int] = 24000
@@ -825,7 +825,7 @@ class InterviewRecorder:
             # takes, and it must not raise on the hot path.
             return
         # Held so CPython cannot garbage-collect a running task mid-write, the
-        # same reason app/interview_relay.py keeps its `_writes` set.
+        # same reason app/interview_nova.py keeps its `_writes` set.
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
 
@@ -1225,7 +1225,7 @@ def audio_consent_granted(user_id: str) -> bool:
 
     Imported lazily so that the file store above stays importable with no
     database at all — `retention.purge_expired` and the unit tests both rely on
-    that, and it keeps app/interview_relay.py's "no ORM behind the relay"
+    that, and it keeps app/interview_core.py's "no ORM behind the engine"
     property intact for anything that only ever calls the writer side.
     """
     from sqlalchemy import select

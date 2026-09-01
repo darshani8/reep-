@@ -134,6 +134,54 @@ variable "interview_recording_enabled" {
   default     = "true"
 }
 
+# Which engine speaks to the student: "nova" (app/interview_nova.py, Amazon
+# Nova 2 Sonic over Bedrock's bidirectional stream, no key at all) or "local"
+# (nothing leaves the machine, and nothing in this stack can run it — no model
+# weights, no GPU).
+#
+# A THIRD ENGINE, "openai", relayed the interview to api.openai.com until
+# 2026-09 and was the default here. It is gone, and so is OPENAI_API_KEY from
+# the task definition; the value in the operator-owned secret is left alone
+# (see secrets.tf) rather than deleted by an apply.
+#
+# The checklist in docs/aws-deployment.md §7 still applies before this stack can
+# hold a real interview: Bedrock model access and a region that serves the model
+# are not things this file can grant.
+variable "interview_engine" {
+  description = "INTERVIEW_ENGINE for the API: 'nova' (default, Nova 2 Sonic on Bedrock) or 'local'. An unrecognised value falls back to the default in app/config.py with a warning."
+  type        = string
+  default     = "nova"
+}
+
+# THE REGION THE SONIC STREAM IS OPENED IN, AND IT IS DELIBERATELY NOT var.region.
+#
+# This stack lives in ap-south-1 because the cohort is in Bengaluru, and
+# ap-south-1 DOES NOT SERVE Nova 2 Sonic — it is offered in us-east-1, us-west-2
+# and ap-northeast-1. The app falls back NOVA_SONIC_REGION -> BEDROCK_REGION ->
+# AWS_REGION, so leaving this empty here would resolve to Mumbai, satisfy the
+# readiness check, and fail at the handshake as a dead socket in front of a
+# student. Setting it explicitly is what removes that silent fallback.
+#
+# Tokyo is the nearest serving region to the cohort; the extra round trip is
+# tens of milliseconds against a conversation. Cross-region is a Bedrock
+# endpoint choice, not a data-residency change of anything else in this stack —
+# the audio is the student's own microphone either way (rule 1 unchanged: no
+# record from the dashboard enters the session).
+variable "nova_sonic_region" {
+  description = "AWS region for the Nova 2 Sonic bidirectional stream. Must be a region that serves the model; ap-south-1 does not."
+  type        = string
+  default     = "ap-northeast-1"
+}
+
+# Version of the consent wording shown before a student opens an interview.
+# Bump when the provider or another material disclosure changes; old grants
+# then stop satisfying the current-version gate and students re-accept once.
+variable "interview_consent_version" {
+  description = "Consent wording version required for the interview feature."
+  type        = string
+  default     = "2026-09"
+}
+
 # --- alerting ----------------------------------------------------------------
 
 variable "alert_email" {

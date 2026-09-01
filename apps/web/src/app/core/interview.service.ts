@@ -186,10 +186,10 @@ const CONNECT_TIMEOUT_MS = 30_000;
    THE BUG THIS EXISTS FOR. The student is usually on laptop SPEAKERS. Browser
    AEC is tuned for a locally-rendered loopback and is unreliable against a
    REMOTELY-rendered voice it never saw as a reference signal; AGC then boosts
-   whatever residue survives. The relay's server VAD runs with
-   `create_response: true`, so the moment it hears the model's own voice it opens
-   a turn and the interviewer answers itself. That is the self-talk loop, and no
-   server-side knob can close it: server VAD sees one mono stream in which the
+   whatever residue survives. The model's own turn detection runs on the uplink,
+   so the moment it hears the model's own voice it opens a turn and the
+   interviewer answers itself. That is the self-talk loop, and no server-side
+   knob can close it: turn detection sees one mono stream in which the
    model's own voice IS speech. Only two things discriminate - energy at the
    microphone, and duplex state - and both live on this side of the wire.
 
@@ -325,9 +325,9 @@ const NOISE_FLOOR_CEILING = 0.02;
  *  the relay confirms with `reep.audio.flush`. This is load-bearing and easy to
  *  miss: flushing the player alone is undone within one frame, because the relay
  *  keeps streaming and onMessage re-enqueues. The stream only stops at source
- *  when the relay sends response.cancel, which it does only once server VAD sees
- *  the audio we have just resumed sending. 700 ms = one generous round trip plus
- *  the server's 300 ms VAD prefix plus integration. Expiring unconfirmed means
+ *  when the model itself notices the interruption, which it can only do from the
+ *  audio we have just resumed sending. 700 ms = one generous round trip plus the
+ *  model's own endpointing plus integration. Expiring unconfirmed means
  *  the detection was a false positive: playback simply resumes, so the cost of a
  *  false positive is bounded at 700 ms of skipped interviewer audio, and it is
  *  counted rather than silent. */
@@ -356,10 +356,11 @@ const GATE_CONTROL_TYPE = 'reep.mic.gate';
    Wire vocabulary.
 
    The relay decodes the model's audio server-side and sends it DOWNSTREAM AS
-   BINARY, so there is no base64 audio frame to handle here. The JSON names are
-   listed in both API generations anyway: a model change upstream must never
-   silently mute the interviewer — beta emits response.audio.*, GA emits
-   response.output_audio.*, and the payloads are identical.
+   BINARY, so there is no base64 audio frame to handle here. TWO SPELLINGS of
+   each JSON name are accepted, and that is deliberate: they were the two OpenAI
+   Realtime API generations this client was written against, the server now
+   speaks Amazon Nova 2 Sonic, and the whole point of matching a SET is that a
+   change of engine upstream can never silently mute the interviewer.
    ========================================================================== */
 
 const AUDIO_DONE_TYPES: ReadonlySet<string> = new Set([

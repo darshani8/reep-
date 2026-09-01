@@ -3,7 +3,9 @@
   GET /api/interview/status   -> is an interview usable right now? (STUDENT)
   WS  /api/interview          -> one interview, relayed (STUDENT)
 
-The relay engine itself is app/interview_relay.py; this module is the boundary:
+The engines themselves are app/interview_nova.py (Amazon Nova 2 Sonic, the
+default) and app/interview_local.py (nothing leaves the machine); the contracts
+they share are app/interview_core.py. This module is the boundary:
 authentication, the STUDENT check, the concurrency cap, the server-owned
 conversation, and the turn writer. It replaces POST /api/agent/ask as the
 assistant screen's entry point — see the header on app/routers/agent.py, which
@@ -18,11 +20,11 @@ and there is one origin in production. The cookie is SameSite=Lax
 (app/routers/auth.py), which is also why a cross-site page cannot carry it onto
 this handshake at all.
 
-RULE 1 (AGENTS.md). The Realtime session is a REMOTE provider, so no student
-record enters it. This module reads the session ONLY to answer "who owns the
-conversation these turns are written to" — that id never leaves the process. The
-sole thing sent upstream is the fixed persona in app/interview_relay.py plus the
-student's microphone. Nothing here imports app.assistant_tools, app.knowledge or
+RULE 1 (AGENTS.md). The hosted engine speaks to a REMOTE provider, so no
+student record enters it. This module reads the session ONLY to answer "who owns
+the conversation these turns are written to" — that id never leaves the process.
+The sole thing sent upstream is the fixed persona in app/interview_core.py, the
+fixed directives app/interview_matrix.py composes, and the student's microphone. Nothing here imports app.assistant_tools, app.knowledge or
 app.ai.llm, and no student field is ever placed on the uplink.
 
 PERSISTENCE, IN TWO PLACES THAT MUST NOT DISAGREE. Every turn still lands in the
@@ -44,7 +46,7 @@ missing turns. That is the exact silent failure the runbook exists to catch,
 reintroduced somewhere new.
 
 An `interview_sessions` row is opened beside the conversation and closed by
-whichever of three layers gets there first: the relay's own finalizer (Layer 1),
+whichever of three layers gets there first: the engine's own finalizer (Layer 1),
 this module's `finally` backstop (Layer 2), and retention's orphan sweeper
 (Layer 3, for the process that was killed). A `running` row that is never closed
 is worse than no row -- it is a record that lies.
@@ -86,7 +88,7 @@ from ..db import SessionLocal, engine
 from ..identity import get_current_session, get_ws_session
 from ..interview_audio import recorder_for
 from ..interview_matrix import Specialization, get_specialization
-from ..interview_relay import (
+from ..interview_core import (
     _CLOSE_CONSENT_REQUIRED,
     _CLOSE_CONSENT_REVOKED,
     _CLOSE_DAILY_CAP,
@@ -102,7 +104,6 @@ from ..interview_relay import (
     _CLOSE_USER_SESSION_CAP,
     _REFUSED_BY_USER,
     _ConnectionLimiter,
-    _RelaySession,
     _ReportRecord,
     _SessionOutcome,
     _TurnRecord,
@@ -110,6 +111,7 @@ from ..interview_relay import (
     _close_downstream,
     ask_all_sessions_to_stop,
 )
+from ..interview_core import InterviewEngine  # the contract both engines satisfy
 from ..models.interview import (
     InterviewConsent,
     InterviewEvaluation,
@@ -168,7 +170,7 @@ _TERMINAL_FAILED = "failed"
 # Live sessions, so shutdown can ask each to close with a real code and reason
 # instead of being torn down as a bare 1006. Not keyed by student, room or id —
 # which is what lets this process be replicated with no shared registry.
-_LIVE_SESSIONS: set[_RelaySession] = set()
+_LIVE_SESSIONS: set[InterviewEngine] = set()
 
 
 class _ConsentRequired(Exception):
@@ -315,12 +317,12 @@ def _make_turn_writer(conversation_id: str, interview_session_id: str):
     request on this worker. This is also why the WebSocket route has no
     Depends(get_db).
 
-    It deliberately does NOT catch the general case. The relay calls this
+    It deliberately does NOT catch the general case. The engine calls this
     fire-and-forget and logs a failure with its cause against the connection id
-    (_RelaySession._run_turn_write), so catching here would only lose the one
-    identifier that makes the line diagnosable. The two exceptions below are
+    (each engine's own `_run_turn_write`), so catching here would only lose the
+    one identifier that makes the line diagnosable. The two exceptions below are
     handled because neither is that: one is not a failure at all, and the other
-    is a failure only the relay can act on.
+    is a failure only the engine can act on.
 
     TWO INSERTS, ONE TRANSACTION (§6.5), AND THAT COSTS ONE UNUSUAL LINE. The
     Session is bound to a Connection that already has a transaction open, with
@@ -400,7 +402,7 @@ def _make_turn_writer(conversation_id: str, interview_session_id: str):
             # purged it) mid-call, so every remaining turn of a 15-minute session
             # would be refused identically. Translated into the relay's own
             # vocabulary rather than raised across the module boundary, because
-            # app/interview_relay.py imports no ORM model and no database code at
+            # the engines import no ORM model and no database code at
             # all and that containment is the point — see _TurnWriteRefused. It
             # is NOT swallowed and NOT folded into the IntegrityError branch
             # below, which is precisely what that contract forbids: the relay
@@ -928,7 +930,7 @@ async def interview(websocket: WebSocket) -> None:
     # today. Both gates live inside recorder_for(): INTERVIEW_RECORDING_ENABLED
     # (false by default) AND a live `scope_store_audio` grant of the current
     # version. It is called HERE rather than inside the relay because
-    # app/interview_relay.py imports no ORM model and no database code at all,
+    # the engines import no ORM model and no database code at all,
     # and a recording feature is not what that containment gets spent on. It is
     # total by its own contract — a bad id, an unwritable root or an unreachable
     # database all return None and the interview runs without a recording — so
@@ -947,7 +949,7 @@ async def interview(websocket: WebSocket) -> None:
     # is constructed with its hooks. The closure reads this list at call time,
     # which is always after the append two lines below — the first heartbeat is
     # a minute away, and the relay is not even running yet.
-    relay_box: list[_RelaySession] = []
+    relay_box: list[InterviewEngine] = []
 
     def _consent_withdrawn() -> None:
         """4014, from the heartbeat's worker thread back onto the event loop.
@@ -975,20 +977,21 @@ async def interview(websocket: WebSocket) -> None:
                 conn_id,
             )
 
-    # WHICH ENGINE. Chosen here and nowhere else: all three classes take this
-    # constructor and all three return (code, reason) from run(), so every
-    # writer, the limiter, the recorder and all three finalization layers below
-    # are identical whichever one runs and never learn which one spoke.
-    engine_cls = _RelaySession
-    engine_name = settings.interview_engine.strip().lower()
-    if engine_name == "local":
+    # WHICH ENGINE. Chosen here and nowhere else: both classes satisfy
+    # interview_core.InterviewEngine — the same constructor, the same
+    # (code, reason) from run() — so every writer, the limiter, the recorder and
+    # all three finalization layers below are identical whichever one runs and
+    # never learn which one spoke.
+    #
+    # BOTH IMPORTS ARE LAZY. The Nova engine pulls aiohttp and the whole smithy
+    # stack in and the local one pulls faster-whisper and Piper; a deployment
+    # pays for the engine it runs and not for the other.
+    engine_cls: type[InterviewEngine]
+    if settings.interview_engine.strip().lower() == "local":
         from ..interview_local import LocalSession
 
         engine_cls = LocalSession
-    elif engine_name == "nova":
-        # Imported HERE and not at module scope, like the local engine above:
-        # aws-sdk-bedrock-runtime pulls aiohttp and the whole smithy stack in,
-        # and a deployment on another engine should not pay that at boot.
+    else:
         from ..interview_nova import NovaSonicSession
 
         engine_cls = NovaSonicSession

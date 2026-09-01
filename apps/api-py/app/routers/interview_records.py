@@ -715,11 +715,11 @@ def revoke_consent(
     WHAT THIS DOES NOT DO YET: it does not end a live interview. §7.1 pairs
     revocation with `stop_sessions_for_user(user_id)` closing the socket 4014,
     and neither that function nor the per-user session registry it needs exists
-    — `_RelaySession` does not carry a user id today (app/interview_relay.py),
+    — an engine does not carry a user id today (app/interview_core.py),
     and consent enforcement is deliberately the LAST step of the rollout (§8.3)
     so that no student is locked out before the client is posting grants. Until
     then, revoking mid-interview takes effect on the next interview. Wiring it
-    up is a change to routers/interview.py and interview_relay.py, not to this
+    up is a change to routers/interview.py and the engines, not to this
     module.
     """
     if session.get("role") != Role.STUDENT.value:

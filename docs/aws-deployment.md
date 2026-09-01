@@ -210,15 +210,55 @@ Two different voices exist in this codebase:
    gate still in force (`LLM_ALLOW_REMOTE_STUDENT_DATA=true` is the stack
    default, a defensible call for in-account Bedrock, which does not train on
    your traffic).
-2. **The realtime speech-to-speech interviewer** (`/api/interview`) speaks the
-   OpenAI Realtime protocol and keeps `OPENAI_API_KEY` for now. The honest
-   migration path is **Amazon Nova Sonic** over Bedrock's bidirectional
-   stream (`InvokeModelWithBidirectionalStream`): the relay's turn-taking
-   invariants (docs/interview-engine-v3.md — one `response.create` site, the
-   deterministic word gate, the phase machine) map onto Sonic's event model,
-   but that is a careful engine port, not a config flip, and it should be built
-   and soak-tested against real calls before the OpenAI path is retired. The
-   IAM in this stack already permits it; nothing else blocks it.
+2. **The realtime speech-to-speech interviewer** (`/api/interview`) runs
+   whichever engine `INTERVIEW_ENGINE` names. It ships as `openai` — the
+   Realtime relay on `OPENAI_API_KEY` — and **`nova` now exists**:
+   `app/interview_nova.py` speaks to **Amazon Nova 2 Sonic**
+   (`amazon.nova-2-sonic-v1:0`) over Bedrock's bidirectional stream, signed by
+   this stack's task role with no key anywhere. See
+   `docs/interview-assistant.md` § *Engines* for what differs behind it (Nova
+   owns the turn, the engine owns the phase; the scorecard is a tool call; the
+   8-minute stream limit caps the session).
+
+   **It has not spoken to a real student yet.** Everything below is what
+   turning it on requires; none of it happens by deploying code.
+
+### Turning the Nova interviewer on
+
+The Deploy workflow ships code and never infrastructure, so steps 1–2 are a
+`terraform apply` at a terminal and step 3 is a console visit.
+
+1. **Bedrock model access** for `amazon.nova-2-sonic-v1:0`, in the account, in a
+   region that serves it. As of this writing that is **us-east-1, us-west-2 and
+   ap-northeast-1** — and pointedly **not ap-south-1**, where the rest of this
+   stack lives. `var.nova_sonic_region` therefore defaults to Tokyo rather than
+   inheriting `var.region`; the extra round trip is tens of milliseconds against
+   a conversation, and the alternative is a socket that dies at the handshake.
+   Re-check the model card before assuming the list has not moved.
+2. **`terraform apply`** with `interview_engine = "nova"`. The task role already
+   carries `bedrock:InvokeModelWithBidirectionalStream` (`infra/aws/ecs.tf`) —
+   a **third, distinct** IAM action that `InvokeModel` and
+   `InvokeModelWithResponseStream` do not imply. An earlier version of this page
+   claimed the IAM "already permits it"; it did not, and the symptom of that
+   mistake is close 4002 with an AccessDeniedException in the API log.
+3. **Bump `INTERVIEW_CONSENT_VERSION`.** The consent panel names who receives
+   the student's voice, and the server now supplies that label from the running
+   engine (`GET /api/interview/consent` → `provider`). Changing engines changes
+   the recipient, so the students who agreed to the old wording have not agreed
+   to this one. `interview_consents` exists to answer *what did they agree to*;
+   leaving the version alone makes it answer wrongly.
+4. **Make one call yourself before a student does**, and check three things in
+   the same session: that the interviewer greets you unprompted (the kick-off
+   control note landed), that it does not ask two questions in a row at a phase
+   boundary (`docs/interview-assistant.md` explains why that is the line to
+   watch), and that a row lands in `interview_evaluations` with
+   `report_status = 'ok'` — the scorecard arrives as a tool call, and a model
+   that talks instead of calling the tool is the failure mode to catch here
+   rather than in front of a cohort.
+5. **Rolling back is one variable.** `interview_engine = "openai"` and apply:
+   the relay is untouched, its key is still in the external secret, and no
+   interview record changes shape. Interviews already conducted on Nova keep
+   their rows and their transcripts.
 
 ## 8. Interview call recording
 

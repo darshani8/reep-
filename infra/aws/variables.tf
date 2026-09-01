@@ -134,6 +134,43 @@ variable "interview_recording_enabled" {
   default     = "true"
 }
 
+# Which engine speaks to the student: "openai" (app/interview_relay.py, the
+# OPENAI_API_KEY in the external secret), "nova" (app/interview_nova.py, Amazon
+# Nova 2 Sonic over Bedrock's bidirectional stream, no key at all) or "local"
+# (nothing leaves the machine, and nothing in this stack can run it).
+#
+# DEFAULT IS "openai" ON PURPOSE, and applying this change on its own must not
+# move a single interview: a deployment already running the hosted interviewer
+# cannot have what its students are assessed by change because a variable
+# appeared. Flipping it is one edit and one apply, and it wants the checklist in
+# docs/aws-deployment.md §7 first — Bedrock model access and a region that
+# serves the model are not things this file can grant.
+variable "interview_engine" {
+  description = "INTERVIEW_ENGINE for the API: 'openai' (default), 'nova' (Nova 2 Sonic on Bedrock) or 'local'. An unrecognised value falls back to 'openai' in app/config.py with a warning."
+  type        = string
+  default     = "openai"
+}
+
+# THE REGION THE SONIC STREAM IS OPENED IN, AND IT IS DELIBERATELY NOT var.region.
+#
+# This stack lives in ap-south-1 because the cohort is in Bengaluru, and
+# ap-south-1 DOES NOT SERVE Nova 2 Sonic — it is offered in us-east-1, us-west-2
+# and ap-northeast-1. The app falls back NOVA_SONIC_REGION -> BEDROCK_REGION ->
+# AWS_REGION, so leaving this empty here would resolve to Mumbai, satisfy the
+# readiness check, and fail at the handshake as a dead socket in front of a
+# student. Setting it explicitly is what removes that silent fallback.
+#
+# Tokyo is the nearest serving region to the cohort; the extra round trip is
+# tens of milliseconds against a conversation. Cross-region is a Bedrock
+# endpoint choice, not a data-residency change of anything else in this stack —
+# the audio is the student's own microphone either way (rule 1 unchanged: no
+# record from the dashboard enters the session).
+variable "nova_sonic_region" {
+  description = "AWS region for the Nova 2 Sonic bidirectional stream. Must be a region that serves the model; ap-south-1 does not."
+  type        = string
+  default     = "ap-northeast-1"
+}
+
 # --- alerting ----------------------------------------------------------------
 
 variable "alert_email" {

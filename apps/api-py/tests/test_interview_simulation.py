@@ -1,42 +1,57 @@
 """Full-interview simulations: every specialization, end to end, no sockets.
 
-test_interview_relay.py drives the turn protocol one failure at a time; this
-module walks a COMPLETE interview the way a student actually experiences it --
-handshake, opening, five real answers (one of them split by VAD at a thinking
-pause, one of them too short and clarified exactly once), the candidate-
-questions beat, the spoken verdict, the text-only scorecard, close 1000 -- and
-asserts on everything that went on the wire in between.
+test_interview_nova.py drives the engine one failure at a time; this module
+walks a COMPLETE interview the way a student actually experiences it — the
+handshake, the greeting, five real answers (one of them arriving in two pieces,
+one of them too short), the candidate-questions beat, the spoken verdict, the
+scorecard tool call, close 1000 — and asserts on everything that went on the
+wire in between.
 
 That is the "does it FEEL like a real interview" regression net: the matrix
-tests pin the words, the relay tests pin the failure modes, and these pin that
+tests pin the words, the engine tests pin the failure modes, and these pin that
 the two compose into the right CONVERSATION, per specialization, in order.
 
-The harness is test_interview_relay.py's own: a fake upstream that records
-what was sent, a fake browser that records what was forwarded, no database.
+WHAT CHANGED WHEN THE OPENAI RELAY WENT (2026-09). The old version of this file
+counted `response.create` events, because the relay owned the turn and "one
+question per answer" was a property you could count. Nova owns the turn — its
+own endpointing decides when to answer — so the countable property is now the
+STEERING: one control note per phase change, and never one per answer. Where an
+assertion below looks weaker than its predecessor, that is why, and the engine's
+header says what replaced it.
+
+The harness is test_interview_nova.py's own: a fake upstream that records the
+event documents, a fake browser that records what was forwarded, no database.
 """
 
 import json
 
 import pytest
 
+from app.interview_core import _CLOSE_OK, _SessionEnded
 from app.interview_matrix import SPECIALIZATIONS, InterviewPhase
-from app.interview_relay import _CLOSE_OK, _SessionEnded
 
-# The harness is deliberately imported, not copied: one fake upstream, one
-# fake browser, one set of event-sequence helpers, so a change to the harness
-# changes every driver of it at once.
-from test_interview_relay import (  # noqa: E402
+# The harness is deliberately imported, not copied: one fake upstream, one fake
+# browser, one set of event-sequence helpers, so a change to the harness changes
+# every driver of it at once.
+from test_interview_nova import (  # noqa: E402
     _GOOD_ANSWER,
-    _REPORT_JSON,
-    _FakeBrowser,
-    _Relay,
-    _ScriptedUpstream,
-    ask_question,
-    make_relay,
-    report_done_event,
+    interviewer_turn,
+    make_session,
     run,
     student_says,
 )
+from app import interview_nova as nova
+
+_REPORT = {
+    "overall": 71,
+    "communication": 68,
+    "domain": 74,
+    "structure": 70,
+    "strengths": ["clear structure", "used real numbers"],
+    "improvements": ["name the trade-off sooner"],
+    "drill": "Rehearse two STAR answers out loud, timed",
+    "summary": "A solid, honest interview with room to be more specific.",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -44,66 +59,64 @@ from test_interview_relay import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 
-def _handshake_events() -> list[dict]:
-    """What api.openai.com answers a well-formed startup with (GA shape)."""
+def _notes(upstream) -> list[str]:
+    """Every control note this session put on the wire, in order."""
     return [
-        {"type": "session.created", "session": {"id": "sess_sim", "model": "gpt-realtime"}},
-        {
-            "type": "session.updated",
-            "session": {
-                "id": "sess_sim",
-                "audio": {
-                    "input": {
-                        "turn_detection": {"type": "server_vad", "create_response": False}
-                    }
-                },
-            },
-        },
+        event["event"]["textInput"]["content"]
+        for event in upstream.sent
+        if "textInput" in event.get("event", {})
     ]
 
 
-def _all_instruction_strings(upstream) -> list[str]:
-    """Every instruction string this session put on the wire, both carriers."""
-    out: list[str] = []
-    for event in upstream.sent:
-        if event.get("type") == "session.update":
-            instructions = (event.get("session") or {}).get("instructions")
-            if instructions:
-                out.append(instructions)
-        elif event.get("type") == "response.create":
-            instructions = (event.get("response") or {}).get("instructions")
-            if instructions:
-                out.append(instructions)
-    return out
+def _system_prompt(upstream) -> str:
+    """The one instruction string the session is configured with."""
+    return _notes(upstream)[0]
 
 
-async def _split_answer(relay: _Relay, first: str, second: str, base: str) -> None:
-    """One answer that server VAD split at a thinking pause into TWO segments.
+async def _split_answer(session, first: str, second: str, content_id: str) -> None:
+    """One answer that arrived as TWO textOutput events in one content block.
 
-    The transcripts even arrive out of order, which is the realistic case:
-    the drain must merge them into ONE verdict and ONE question.
+    Nova is documented to deliver the transcription as one block; nothing says
+    one event. Treating each as a finished answer would spend a five-answer
+    interview in two turns.
     """
-    await relay._handle_upstream_event({"type": "input_audio_buffer.speech_stopped"})
-    await relay._handle_upstream_event(
-        {"type": "input_audio_buffer.committed", "item_id": f"{base}a"}
-    )
-    await relay._handle_upstream_event({"type": "input_audio_buffer.speech_stopped"})
-    await relay._handle_upstream_event(
-        {"type": "input_audio_buffer.committed", "item_id": f"{base}b"}
-    )
-    await relay._handle_upstream_event(
+    await session._on_upstream_event(
         {
-            "type": "conversation.item.input_audio_transcription.completed",
-            "item_id": f"{base}b",
-            "transcript": second,
+            "event": {
+                "contentStart": {
+                    "contentId": content_id,
+                    "type": "TEXT",
+                    "role": "USER",
+                    "additionalModelFields": json.dumps({"generationStage": "FINAL"}),
+                }
+            }
         }
     )
-    await relay._handle_upstream_event(
+    for piece in (first, second):
+        await session._on_upstream_event(
+            {"event": {"textOutput": {"contentId": content_id, "content": piece}}}
+        )
+    await session._on_upstream_event(
+        {"event": {"contentEnd": {"contentId": content_id, "type": "TEXT", "stopReason": "END_TURN"}}}
+    )
+
+
+async def _scorecard(session) -> None:
+    """The model answering the report request with the tool it was given."""
+    await session._on_upstream_event(
         {
-            "type": "conversation.item.input_audio_transcription.completed",
-            "item_id": f"{base}a",
-            "transcript": first,
+            "event": {
+                "toolUse": {
+                    "toolName": nova._SCORECARD_TOOL_NAME,
+                    "toolUseId": "tu-1",
+                    "contentId": "tool-1",
+                    "content": json.dumps(_REPORT),
+                }
+            }
         }
+    )
+    await session._on_upstream_event(
+        {"event": {"contentEnd": {"contentId": "tool-1", "type": "TOOL", "stopReason": "TOOL_USE"}}}
     )
 
 
@@ -115,52 +128,40 @@ async def _split_answer(relay: _Relay, first: str, second: str, base: str) -> No
 @pytest.mark.parametrize("spec_key", ["hr", "dm", "ba", "fa"])
 def test_a_complete_specialized_interview(spec_key):
     spec = SPECIALIZATIONS[spec_key]
-    browser = _FakeBrowser()
-    relay = _Relay(browser, "c0ffee123456", on_turn=None, specialization=spec)
-    upstream = _ScriptedUpstream(_handshake_events())
-    relay._upstream = upstream
+    session, upstream, browser = make_session(spec_key)
 
     async def scenario():
-        # -- the handshake: session.update, then the opening create ----------
-        await relay._handshake(upstream)
+        # -- the handshake: session, prompt, system prompt, mic, kick-off -----
+        await session._handshake()
+        await interviewer_turn(session, "a0", "Hello, and welcome. Tell me about yourself.")
 
-        # -- answer 1: the self-intro, split by VAD at a thinking pause -------
-        await ask_question(relay, "resp_open")
+        # -- answer 1: the self-intro, arriving in two pieces -----------------
         await _split_answer(
-            relay,
+            session,
             "I am a final-year student and",
             "I have always enjoyed working with people",
-            "item_1",
+            "u1",
         )
+        await interviewer_turn(session, "a1")
 
-        # -- answer 2: too short ONCE, clarified ONCE, then a real one --------
-        await ask_question(relay, "resp_q1")
-        await student_says(relay, "item_2", "I think so")
-        await ask_question(relay, "resp_clarify")
-        await student_says(relay, "item_3", _GOOD_ANSWER)
+        # -- answer 2: too short, and the arc does NOT move -------------------
+        await student_says(session, "u2", "I think so")
+        await interviewer_turn(session, "a2")
 
-        # -- answers 3, 4, 5: the rest of the arc ------------------------------
-        await ask_question(relay, "resp_q2")
-        await student_says(relay, "item_4", _GOOD_ANSWER)
-        await ask_question(relay, "resp_q3")
-        await student_says(relay, "item_5", _GOOD_ANSWER)
-        await ask_question(relay, "resp_q4")
-        await student_says(relay, "item_6", _GOOD_ANSWER)
+        # -- answers 2..5 proper -----------------------------------------------
+        for index in range(3, 7):
+            await student_says(session, f"u{index}", _GOOD_ANSWER)
+            await interviewer_turn(session, f"a{index}")
 
-        # -- the candidate-questions beat, then the verdict --------------------
-        await ask_question(relay, "resp_invite")
+        # -- the candidate-questions beat, then the verdict -------------------
         await student_says(
-            relay, "item_7", "Yes, what does the first year in this role look like?"
+            session, "u-final", "Yes, what does the first year in this role look like?"
         )
-        await ask_question(relay, "resp_verdict")
+        await interviewer_turn(session, "verdict", "You structured your answers well. Good luck.")
 
         # -- the scorecard, then close ----------------------------------------
-        relay._expecting_report = True
-        await relay._handle_upstream_event(
-            {"type": "response.created", "response": {"id": "resp_report"}}
-        )
         with pytest.raises(_SessionEnded) as caught:
-            await relay._handle_upstream_event(report_done_event(_REPORT_JSON))
+            await _scorecard(session)
         return caught.value
 
     ended = run(scenario())
@@ -172,130 +173,84 @@ def test_a_complete_specialized_interview(spec_key):
     assert reports[0]["available"] is True
     assert reports[0]["report"]["overall"] == 71
 
-    # THE OPENING: the session.update carries this track's voice, and the
-    # opening instructions are a REAL opening -- greet, introduce, set
-    # expectations, ask the student to introduce themselves. The opening
-    # response.create itself carries NO instructions: supplying them would
-    # replace the session persona on the turn that sets the tone.
-    session_updates = upstream.of_type("session.update")
-    opening_update = session_updates[0]["session"]
-    assert opening_update["audio"]["output"]["voice"] == spec.voice
-    opening_instructions = opening_update["instructions"]
-    assert spec.persona in opening_instructions
-    assert "introduce themselves" in opening_instructions
-    assert spec.sample_question not in opening_instructions
-    opening_create = upstream.creates[0]
-    assert "instructions" not in opening_create["response"]
+    # THE OPENING: the prompt carries this track's voice, and the system prompt
+    # is a REAL opening -- greet, introduce, set expectations, ask the student
+    # to introduce themselves -- with the hard scenario question held back for
+    # PROBING.
+    prompt_start = [e for e in upstream.sent if "promptStart" in e.get("event", {})][0]
+    voice = prompt_start["event"]["promptStart"]["audioOutputConfiguration"]["voiceId"]
+    assert voice == spec.nova_voice
+    opening = _system_prompt(upstream)
+    assert spec.persona in opening
+    assert "introduce themselves" in opening
+    assert spec.sample_question not in opening
 
-    # THE ARC, in order, and every phase directive pushed BEFORE its create:
-    # a session.update sent after the create steers the question AFTER next.
-    assert relay._machine.answers == 5
-    types = [event["type"] for event in upstream.sent]
-    phase_pushes = [i for i, t in enumerate(types) if t == "session.update"][1:]
-    assert len(phase_pushes) == 3  # probing, deep_dive, wrap_up
-    for push_index in phase_pushes:
-        following = types.index("response.create", push_index)
-        assert following > push_index
+    # THE ARC: five accepted answers, and the phase reached WRAP_UP.
+    assert session._machine.answers == 5
+    assert session._machine.phase is InterviewPhase.WRAP_UP
 
-    # ONE create per student turn, and upstream never created one itself.
-    # Opening (handshake) + merged a1 + clarify + a2 + a3 + a4 + invite +
-    # verdict + report = 9; anything more is the two-questions-per-answer bug.
-    assert len(upstream.creates) == 9
-    assert relay._server_created_response is False
+    # THE STEERING, in order and once each. The kick-off note is the OPENING
+    # directive; then one note per phase change, then the two closing beats and
+    # the report request. A note per ANSWER would mean the engine was talking
+    # over the model it is supposed to be steering.
+    notes = _notes(upstream)[1:]  # the system prompt is not a control note
+    assert len(notes) == 6
+    assert "introduce themselves" in notes[0]          # kick-off / OPENING
+    assert "Probe" in notes[1]                          # -> PROBING
+    assert "Raise the difficulty" in notes[2]           # -> DEEP_DIVE
+    assert "any questions for you" in notes[3]          # WRAP_UP: the invite
+    assert "closing verdict" in notes[4]                # the verdict
+    assert nova._SCORECARD_TOOL_NAME in notes[5]        # the scorecard
 
-    # The split answer merged: ONE question for it, two turn records.
-    assert [turn[2] for turn in relay.emitted if turn[0] == "user"][:2] == [
-        "u:item_1a",
-        "u:item_1b",
+    # The too-short answer was RECORDED and did not advance the arc, and it
+    # earned no note of its own: the model was already replying, and a second
+    # directive would have been a second question.
+    assert not any("too brief" in note for note in notes)
+
+    # The split answer is ONE answer: two textOutput events, one turn, one tick.
+    assert session._answers_accepted == 5
+
+    # RULE 1's SHAPE, checked against the whole session: nothing the student
+    # said appears in anything this engine authored upstream.
+    student_words = [
+        _GOOD_ANSWER,
+        "I am a final-year student",
+        "I think so",
+        "the first year in this role",
     ]
-
-    # The too-short answer earned EXACTLY ONE clarify, then the arc moved on.
-    clarifies = [
-        c
-        for c in upstream.creates
-        if "too brief" in (c["response"].get("instructions") or "")
-    ]
-    assert len(clarifies) == 1
-
-    # The beat: the invite carried the invite override and NO report yet; the
-    # verdict carried NO override (the session already holds WRAP_UP); the
-    # report is the only text-only create and it fired exactly once, after the
-    # verdict.
-    invite = upstream.creates[-3]
-    assert "any questions for you" in invite["response"]["instructions"]
-    verdict = upstream.creates[-2]
-    assert "instructions" not in verdict["response"]
-    report_create = upstream.creates[-1]
-    body = report_create["response"]
-    assert body.get("modalities") == ["text"] or body.get("output_modalities") == ["text"]
-    assert body["max_output_tokens"] == 800
-    assert "single JSON object" in body["instructions"]
-
-    # RULE 1's SHAPE, checked against the whole session: no instruction string
-    # anywhere contains anything the student said.
-    student_words = [_GOOD_ANSWER, "I am a final-year student", "I think so",
-                     "the first year in this role"]
-    for instructions in _all_instruction_strings(upstream):
+    for note in _notes(upstream):
         for words in student_words:
-            assert words not in instructions
+            assert words not in note
 
 
 def test_the_generic_interview_never_reaches_wrap_up_on_its_own():
-    """No ?specialization= -- the arc does not exist, and the ONLY route to a
-    verdict and a scorecard is the session cap forcing one. This pins the
-    current behaviour end to end rather than per branch."""
-    browser = _FakeBrowser()
-    relay = _Relay(browser, "c0ffee123456", on_turn=None, specialization=None)
-    upstream = _ScriptedUpstream(_handshake_events())
-    relay._upstream = upstream
+    """No ?specialization= -- the arc does not exist, and the only route to a
+    verdict is the session cap forcing one. Pinned end to end rather than per
+    branch."""
+    session, upstream, browser = make_session(None)
 
     async def scenario():
-        await relay._handshake(upstream)
+        await session._handshake()
         # Eight accepted answers -- well past five. The machine never ticks.
         for index in range(8):
-            await ask_question(relay, f"resp_{index}")
-            await student_says(relay, f"item_{index}", _GOOD_ANSWER)
-        assert relay._machine.phase is InterviewPhase.OPENING
-        assert relay._report_requested is False
+            await student_says(session, f"u{index}", _GOOD_ANSWER)
+            await interviewer_turn(session, f"a{index}")
+        assert session._machine.phase is InterviewPhase.OPENING
+        assert session._report_requested is False
 
-        # The cap is the only closer this track has. The ninth question is
-        # still in flight when it lands, so the verdict is deferred (DF4) and
-        # fires when that question finishes -- exactly the shape
-        # test_a_forced_wrap_up_during_a_live_response_still_speaks_the_verdict
-        # pins for the specialized tracks.
-        relay._wrap_up_deadline = 0.0
-        await relay._on_deadline()
-        assert relay._machine.phase is InterviewPhase.WRAP_UP
-        assert relay._verdict_requested is True
-        assert relay._deferred is not None and relay._deferred.kind == "verdict"
+        # The clock is the only closer this track has -- and on the generic
+        # track it closes nothing: there is no bar to score against, so no
+        # verdict is forced and no scorecard is invented.
+        await session._force_wrap_up()
+        return session
 
-        await ask_question(relay, "resp_8")
-        assert "deliver the closing verdict" in upstream.creates[-1]["response"]["instructions"]
-        await ask_question(relay, "resp_verdict")
-        assert relay._report_requested is True
+    run(scenario())
 
-        relay._expecting_report = True
-        await relay._handle_upstream_event(
-            {"type": "response.created", "response": {"id": "resp_report"}}
-        )
-        with pytest.raises(_SessionEnded) as caught:
-            await relay._handle_upstream_event(report_done_event(_REPORT_JSON))
-        return caught.value
-
-    ended = run(scenario())
-
-    assert ended.code == _CLOSE_OK == 1000
-    # No phase pushes and no specialization ever named: exactly ONE
-    # session.update (the handshake's) went upstream all interview long.
-    assert len(upstream.of_type("session.update")) == 1
-    assert all(
-        c.get("phase") in (None, "opening") or c["type"] != "reep.phase"
-        for c in browser.control
-    )
-    # The verdict at the cap is the forced kind -- the candidate-questions
-    # beat belongs to the arc path, which this track never walks.
-    assert relay._awaiting_candidate_questions is False
-    assert "deliver the closing verdict" in upstream.creates[-2]["response"]["instructions"]
+    assert session._machine.phase is InterviewPhase.OPENING
+    assert session._verdict_requested is False
+    assert session._report_requested is False
+    # No phase was ever announced to the browser, because none was reached.
+    assert not [c for c in browser.control if c["type"] == "reep.phase"]
     # Rule 1's shape, on the generic track too.
-    for instructions in _all_instruction_strings(upstream):
-        assert _GOOD_ANSWER not in instructions
+    for note in _notes(upstream):
+        assert _GOOD_ANSWER not in note

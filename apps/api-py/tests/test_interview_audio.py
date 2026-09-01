@@ -55,12 +55,11 @@ from app.interview_audio import (
     recorder_for,
     track_path,
 )
-from app.interview_relay import (
-    _AUDIO_TRACK_INTERVIEWER,
-    _AUDIO_TRACK_STUDENT,
-    _CLOSE_OK,
-    _RelaySession,
-)
+from fastapi.websockets import WebSocketState
+
+from app import interview_nova as nova
+from app.interview_core import _CLOSE_OK
+from app.interview_nova import NovaSonicSession
 
 # 24 kHz, 16-bit, mono: 48000 bytes is exactly one second of it. Every duration
 # assertion below is derived from this rather than from a magic number, so a
@@ -1281,42 +1280,59 @@ def consent_user():
 
 
 # ---------------------------------------------------------------------------
-# The relay side — capture is on the audio path, and cannot end an interview
+# The engine side — capture is on the audio path, and cannot end an interview
 # ---------------------------------------------------------------------------
 class _FakeBrowser:
     def __init__(self) -> None:
         self.audio: list[bytes] = []
+        # The engine checks this before every send: a browser that has gone
+        # away must not be written to. Starlette's real socket carries it.
+        self.client_state = WebSocketState.CONNECTED
 
     async def send_bytes(self, data: bytes) -> None:
         self.audio.append(data)
 
-    async def send_json(self, payload: dict) -> None:  # pragma: no cover
+    async def send_text(self, text: str) -> None:  # pragma: no cover
         pass
 
 
 class _FakeUpstream:
+    """Bedrock, reduced to send(). One event document per call."""
+
     def __init__(self) -> None:
-        self.sent: list[str] = []
+        self.sent: list[dict] = []
 
-    async def send(self, raw: str) -> None:
-        self.sent.append(raw)
+    async def send(self, event: dict) -> None:
+        self.sent.append(event)
 
 
-class TestTheRelayFeedsIt:
+class TestTheEngineFeedsIt:
     def test_the_track_names_match_the_store(self):
-        """app/interview_relay.py spells the two track names itself rather than
-        importing them (it deliberately imports nothing from the audio store, so
-        no ORM model can arrive behind it). A mismatch would write files the
-        download endpoint cannot find, and nothing would raise."""
-        assert (_AUDIO_TRACK_STUDENT, _AUDIO_TRACK_INTERVIEWER) == SOURCE_TRACKS
-        # And SOURCE_TRACKS is the half of TRACKS the relay may feed: `mixed` is
+        """The engine feeds the two names the store writes files under.
+
+        The OpenAI relay spelled its own copies of these strings and this test
+        existed because a divergence would write files the download endpoint
+        could not find, with nothing raising. app/interview_nova.py imports them
+        from the store instead, so the divergence is impossible by construction
+        — and this assertion is what fails if somebody reintroduces local
+        copies."""
+        assert (nova.TRACK_STUDENT, nova.TRACK_INTERVIEWER) == SOURCE_TRACKS
+        # SOURCE_TRACKS is the half of TRACKS an engine may feed: `mixed` is
         # derived at close and nothing on the audio path knows it exists.
         assert TRACK_MIXED in TRACKS and TRACK_MIXED not in SOURCE_TRACKS
 
     def _relay(self, recorder=None):
+        """One engine wired to a fake browser and a fake Bedrock stream.
+
+        Still named `_relay` so the tests below read unchanged: what they are
+        about is the RECORDER, and which engine drives it is incidental.
+        """
         browser = _FakeBrowser()
-        relay = _RelaySession(browser, "c0ffee123456", on_turn=None, recorder=recorder)
-        return relay, browser
+        session = NovaSonicSession(
+            browser, "c0ffee123456", on_turn=None, recorder=recorder
+        )
+        session._upstream = _FakeUpstream()
+        return session, browser
 
     def test_both_directions_are_captured_and_reported_on_the_outcome(self, store):
         """The student's uplink and the interviewer's downlink, through the real
@@ -1330,14 +1346,11 @@ class TestTheRelayFeedsIt:
         relay._on_finalize = outcomes.append
 
         async def scenario():
-            upstream = _FakeUpstream()
-            await relay._forward_client_audio(upstream, _pcm(4800))
-            relay._active_response_id = "resp_1"
-            await relay._handle_upstream_event(
+            await relay._forward_client_audio(_pcm(4800))
+            await relay._on_audio_output(
                 {
-                    "type": "response.output_audio.delta",
-                    "response_id": "resp_1",
-                    "delta": __import__("base64").b64encode(_pcm(9600)).decode(),
+                    "contentId": "a1",
+                    "content": __import__("base64").b64encode(_pcm(9600)).decode(),
                 }
             )
             await relay._finalize_session(_CLOSE_OK, "Interview complete")
@@ -1365,7 +1378,7 @@ class TestTheRelayFeedsIt:
         relay._on_finalize = outcomes.append
 
         async def scenario():
-            await relay._forward_client_audio(_FakeUpstream(), _pcm(4800))
+            await relay._forward_client_audio(_pcm(4800))
             await relay._finalize_session(_CLOSE_OK, "Interview complete")
 
         asyncio.run(scenario())
@@ -1395,16 +1408,16 @@ class TestTheRelayFeedsIt:
         relay, _browser = self._relay(_Broken())
         outcomes = []
         relay._on_finalize = outcomes.append
-        upstream = _FakeUpstream()
 
         async def scenario():
-            await relay._forward_client_audio(upstream, _pcm(4800))
+            await relay._forward_client_audio(_pcm(4800))
             await relay._finalize_session(_CLOSE_OK, "Interview complete")
 
         asyncio.run(scenario())
 
-        # The student's audio still reached OpenAI, and the record still closed.
-        assert upstream.sent
+        # The student's audio still reached the model, and the record still
+        # closed.
+        assert relay._upstream.sent
         assert outcomes[0].status == "abandoned"
         # aclose() raised, so the fallback snapshot is what was recorded.
         assert outcomes[0].audio_recorded is False
@@ -1419,7 +1432,7 @@ class TestTheRelayFeedsIt:
         relay, _browser = self._relay(recorder)
 
         async def scenario():
-            await relay._forward_client_audio(_FakeUpstream(), _pcm(4800))
+            await relay._forward_client_audio(_pcm(4800))
             # What run()'s finally does, on the path where nothing else ran.
             await relay._close_recorder()
 

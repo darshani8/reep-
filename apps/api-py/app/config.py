@@ -5,7 +5,6 @@ Field names map to env vars case-insensitively (database_url <- DATABASE_URL).
 
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
 
 from pydantic import AliasChoices, Field, ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,35 +15,18 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # a Prisma-only query param. This app reads its own file or nothing.
 _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
-# Upstream for the realtime mock interview (app/routers/interview.py). Kept apart
-# from the model id so the model can be swapped by env without anyone
-# hand-assembling a query string - and forgetting to escape it.
-_DEFAULT_REALTIME_BASE_URL = "wss://api.openai.com/v1/realtime"
-# The GA realtime model, and the fallback when OPENAI_REALTIME_MODEL is set to
-# whitespace: a blank model in the query string is a 404 at handshake time, which
-# reads to a student as "the interview is down" rather than "it is misconfigured".
-_DEFAULT_REALTIME_MODEL = "gpt-realtime"
-# The Whisper-family model that transcribes the STUDENT's half of the interview
-# (the model's own words come back as an assistant transcript and are not sent
-# through this). "whisper-1" was hard-coded at BOTH call sites in
-# app/interview_relay.py, which is what made "Whisper is missing from the stack"
-# look true - it was there, as the LEGACY id, with no way off it short of a
-# redeploy. gpt-4o-mini-transcribe is the same Whisper lineage with lower word
-# error on accented English and a lower price per minute.
-_DEFAULT_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"
-# The legacy id, and the only transcriber the BETA event surface is KNOWN to
-# accept. Kept as the blank-default for beta rather than as a code path nobody
-# exercises: flipping the default under an existing beta-pinned deployment turns
-# a working interview into a close 4002 at handshake, with no .env change to
-# explain it. An explicit INTERVIEW_TRANSCRIPTION_MODEL always wins, so a beta
-# deployment that has verified a newer id still gets it.
-_BETA_TRANSCRIPTION_MODEL = "whisper-1"
-
 # The engines that may run a mock interview, and the whole of the allowlist
 # INTERVIEW_ENGINE is validated against. Named here rather than spelled inside
 # the validator so that adding one is a single edit and so the warning that
 # rejects a typo can print the real list instead of a hand-maintained sentence.
-_INTERVIEW_ENGINES = frozenset({"openai", "nova", "local"})
+_INTERVIEW_ENGINES = frozenset({"nova", "local"})
+
+# Where an unrecognised INTERVIEW_ENGINE lands. Named rather than repeated, so
+# the fallback in the validator and the field's own default cannot drift apart.
+# They did drift once, when the third engine ("openai") was removed and the
+# validator kept naming it: every deployment that had not set the variable would
+# have been "corrected" to an engine that no longer existed.
+_DEFAULT_INTERVIEW_ENGINE = "nova"
 
 # Amazon Nova 2 Sonic, the speech-to-speech model behind INTERVIEW_ENGINE=nova.
 # The id is the model itself and not an inference profile: the bidirectional
@@ -340,54 +322,12 @@ class Settings(BaseSettings):
     # mid-sentence, and there is deliberately no value meaning "unlimited".
     voice_max_call_seconds: int = 900
 
-    # Realtime mock interview (app/routers/interview.py) - the student-facing
-    # assistant. The API relays the browser's microphone to OpenAI's Realtime API
-    # over one outbound WebSocket. OPENAI_API_KEY is used on exactly that socket:
-    # it is never serialised into a downstream frame and never logged, and that
-    # containment is the whole reason the relay lives here instead of the browser
-    # talking to OpenAI directly.
-    #
-    # OPENAI_API_KEY is deliberately NOT part of the LLM auto-select chain in
-    # app/ai/llm.py. The Realtime API is not OpenAI-compatible chat, so a key
-    # pasted here must not quietly become the provider for resume generation.
-    #
-    # Rule 1 (AGENTS.md): this is a REMOTE provider, so no student record may
-    # enter the session - no marks, attendance, CGPA, USN or resume text. The
-    # interviewer persona asks questions; it does not need them, exactly as
-    # voice_agent.py's BASE_INSTRUCTIONS states for the LiveKit worker. Anything
-    # that would personalise the prompt goes through complete_chat(...,
-    # carries_student_data=True) in app/ai/llm.py, or is left out.
-    #
-    # Blank OPENAI_API_KEY -> GET /api/interview/status reports unavailable with a
-    # reason naming this variable and the WebSocket refuses the session; nothing
-    # else in the dashboard is affected.
-    openai_api_key: str = ""
-    openai_realtime_model: str = _DEFAULT_REALTIME_MODEL
-    openai_realtime_base_url: str = _DEFAULT_REALTIME_BASE_URL
-    # The voice is frozen the moment the model emits audio, so it is sent in the
-    # single session.update and never changed mid-session. "alloy" exists on both
-    # API generations; the newer names (marin, cedar) are GA-only, and an unknown
-    # name is answered with an `error` event and a silent fall back to the
-    # default - i.e. it fails without failing.
-    openai_realtime_voice: str = "alloy"
-    # Playback speed of the interviewer's voice, GA session shape only
-    # (audio.output.speed, 0.25-1.5). Sent ONLY when not 1.0: the parameter is
-    # confirmed on GA, but the default stays off the wire so a stock session's
-    # payload stays minimal, and the beta shape never carries it at all.
-    interview_voice_speed: float = 1.0
     # Sampling temperature for the interviewer's responses, 0.0-2.0. UNSET by
-    # default and sent only when explicitly configured, in BOTH session shapes:
-    # this codebase deliberately omits unverified parameters (a rejected
-    # session.update can kill the interview in the handshake), so the model's
-    # own default is the behaviour unless an operator has a reason to tune.
+    # default and sent only when explicitly configured: this codebase
+    # deliberately omits unverified parameters (a rejected inference
+    # configuration kills the session at the handshake), so the model's own
+    # default is the behaviour unless an operator has a reason to tune.
     interview_temperature: float | None = None
-    # Non-empty pins the BETA event surface (the value is "realtime=v1"), which
-    # emits response.audio.delta and expects a FLAT session object; blank selects
-    # GA (response.output_audio.delta, nested session.audio.*). A string, not a
-    # bool, for the same reason as llm_allow_remote_student_data: a blank line in
-    # a shared .env must be legal. This is the lever for the day one generation is
-    # retired, not a knob to turn casually.
-    openai_realtime_beta_header: str = ""
 
     # Hard cap on one interview - a cost ceiling as much as a product decision:
     # audio tokens bill per second of a session that a forgotten browser tab
@@ -413,8 +353,9 @@ class Settings(BaseSettings):
     interview_max_sessions_per_user: int = 2
     # The VOLUME half of the per-student cap, which concurrency alone never was:
     # 2 concurrent slots x back-to-back 15-minute sessions is ~96 interviews a
-    # day from one account — each one billing OpenAI Realtime audio from the
-    # handshake — and nothing counted them (audit H: unbounded spend). Enforced
+    # day from one account — each one billing a hosted speech-to-speech model
+    # from the handshake — and nothing counted them (audit H: unbounded spend).
+    # Enforced
     # in _open_records with one indexed COUNT over the student's sessions in the
     # last 24 h, refused with close 4015 BEFORE any upstream socket opens or row
     # is written. 8 is a full afternoon of honest practice; a student who hits
@@ -423,112 +364,17 @@ class Settings(BaseSettings):
     # finishes is a cap a crash loop never hits.
     interview_max_per_student_per_day: int = 8
 
-    # Server-VAD tuning. Settings rather than literals because these are the
-    # numbers a real deployment retunes against real rooms, and needing a
-    # redeploy to change a float is how tuning stops happening.
-    #
-    # READ THE ECHO NOTES BELOW BEFORE TURNING ANY OF THESE. Server VAD sits
-    # downstream of the mixer: it sees one mono stream in which the interviewer's
-    # own voice, arriving back through a laptop speaker into the microphone, IS
-    # speech. It cannot tell whose voice it is, so no value here eliminates the
-    # self-talk loop - that discrimination happens in the browser, which has the
-    # loudspeaker signal and the microphone in one clock domain. These three
-    # change how OFTEN echo clears the bar, not whether it can.
-    #
-    #   threshold  0.0-1.0 activation energy. 0.5 suits a nervous candidate in a
-    #              hostel room with a ceiling fan; lower lets room noise start a
-    #              turn, raise toward 0.6 only if VAD self-triggers on noise.
-    #              ECHO: raising it makes speaker-borne echo (which reaches the
-    #              mic 15-25 dB below the student's own near-field voice) less
-    #              likely to open a turn, so the interviewer answers itself less
-    #              often - at the cost that a quiet or leaned-back student stops
-    #              being heard at all, and barge-in with it. It is a level knob,
-    #              not a duplex fix.
-    #   prefix     audio kept BEFORE detected speech onset so the first phoneme
-    #              survives. Below ~200 ms candidates lose the leading consonant
-    #              of "Actually...".
-    #              ECHO: this padding is pulled out of the append buffer, so on a
-    #              turn that echo triggered, raising it prepends MORE of the
-    #              interviewer's own sentence - which transcribes into coherent
-    #              text the model then answers confidently. It does not change
-    #              how often a false turn fires, only how convincing it is.
-    #   silence    how long a pause ends the turn. Above the API's 500 ms
-    #              default, but only just: real interview answers contain
-    #              400-600 ms thinking pauses mid-sentence, so 600 sits at the
-    #              upper edge of that band. It was 700 under the assumption
-    #              that a VAD split at a thinking pause cut the candidate off -
-    #              under Interview Engine v3 that is no longer true, because a
-    #              split answer is merged by _drain_pending into ONE verdict
-    #              and ONE response.create, so the cost of a split is a slightly
-    #              longer wait, not an interruption. The browser's "thinking"
-    #              affordance covers the extra ASR wait that remains.
-    #              ECHO: raising it makes self-talk LESS FREQUENT and LONGER -
-    #              600 ms already exceeds the gaps between the model's own words,
-    #              so an echo-triggered segment swallows a whole clause before it
-    #              commits. Lowering it commits sooner and fires more often.
-    interview_vad_threshold: float = 0.5
-    interview_vad_prefix_padding_ms: int = 300
-    interview_vad_silence_duration_ms: int = 600
-
-    # The ASR for the student's own speech, sent on BOTH API shapes (flat beta
-    # `input_audio_transcription`, nested GA `audio.input.transcription`). A
-    # setting because the transcription model is retired on a different clock
-    # from the realtime model, and moving to a newer one is something a
-    # deployment does against real recordings - not a code change.
-    #
-    # Defaults to "" — meaning UNSET — rather than to a model id, because the
-    # `transcription_model` property below resolves a blank differently per API
-    # surface and cannot tell "the operator chose this id" from "this is the
-    # field default" if the two look identical. Blank never reaches the wire.
-    #
-    # A WRONG id is rejected at session.update with an `error` echoing our
-    # event_id, which _await_upstream_event turns into a close 4002 during the
-    # handshake: loud, at startup, not a silent interview with no "You" lines.
-    # That is the only reason this is safe to expose.
-    interview_transcription_model: str = ""
-
-    # --- Interview Engine v3: the relay owns the turn, not the upstream VAD ----
-    # v3 runs `turn_detection.create_response: false`, so end-of-speech no longer
-    # creates the next question by itself: the relay waits for the transcript,
-    # validates the answer, ticks the phase machine and only then asks. One
-    # question is open at a time BY CONSTRUCTION rather than by asking the model
-    # nicely. Everything in this block is a consequence of that trade — with the
-    # upstream no longer driving, every wait needs a deadline and every loop
-    # needs a stop, or a stalled dependency becomes an interview that never
-    # continues and reports no fault to anyone.
-    #
-    # How long to wait for the STUDENT's transcript after the audio buffer
-    # commits before giving up on it. On expiry the turn is recorded with an
-    # unknown transcript and the next question is asked anyway: the interview
-    # must never stall on a transcriber. Too low and real answers land unscored;
-    # too high and the student sits in dead air they read as a hang.
-    interview_transcription_timeout_ms: int = 8000
-    # How long to wait for OUR OWN response.create to be acknowledged with a
-    # response.created before assuming upstream dropped it. Under v3 the relay
-    # is the only party that creates a response, so a create that vanishes is
-    # an interview that never continues: the student sits in silence, the idle
-    # watchdog does not fire (the browser's echo-gate keepalive keeps sending
-    # frames), and only the 15-minute cap ends it -- with no verdict. On expiry
-    # the create is retried once with a fresh event id; a second expiry closes
-    # the socket 4011 so the student is told to start again instead of waiting.
-    # Wider than a healthy acknowledgement (~200 ms) because a busy upstream is
-    # slow, not gone.
-    interview_response_create_timeout_ms: int = 10000
     # The deterministic answer gate — a word count, not a model call, because
     # this runs on the hot path between the student finishing and the
     # interviewer replying, and a round-trip here is latency every single turn.
-    # Below this many words the transcript is not treated as an answer: it earns
-    # a clarification and does NOT advance the phase machine. 4 clears "yes",
+    # Below this many words the transcript is not treated as an answer: it is
+    # recorded as `too_short` and does NOT advance the phase machine (the OpenAI
+    # relay also re-asked the question; app/interview_nova.py deliberately does
+    # not — see its header). 4 clears "yes",
     # "I don't know" and a cough transcribed as "uh", while leaving a real short
     # answer ("I led the campus fintech club") intact. 0 disables the gate — the
     # pre-v3 behaviour, where anything at all counted as an answer.
     interview_min_answer_words: int = 4
-    # How many times ONE question may be re-asked before the interviewer accepts
-    # whatever it got and moves on. The cap is the entire point: without it a
-    # student who answers "yes" three times, or a transcriber returning noise,
-    # pins the interview on question 2 until the hard cap ends it with no
-    # verdict at all. 0 means never clarify.
-    interview_max_clarifications_per_question: int = 1
     # Budget for the final scorecard: one extra, text-only response.create issued
     # after the spoken wrap-up verdict, in the same session that already holds
     # the transcript. It is the LAST thing in a session, so the student is
@@ -537,25 +383,25 @@ class Settings(BaseSettings):
     # report must never cost the transcript.
     # ---- Which engine runs the interview -------------------------------
     #
-    # "openai"  app/interview_relay.py -> api.openai.com. One speech-to-speech
-    #           model hears, reasons and speaks. Needs OPENAI_API_KEY and costs
-    #           money per minute.
     # "nova"    app/interview_nova.py -> Amazon Nova 2 Sonic on Bedrock, over
-    #           the native InvokeModelWithBidirectionalStream API. Also one
-    #           speech-to-speech model, and also off-machine, but authenticated
+    #           the native InvokeModelWithBidirectionalStream API. One
+    #           speech-to-speech model hears, reasons and speaks, authenticated
     #           by the IAM role this deployment already runs under rather than
-    #           by a pasted key -- which is why an AWS-hosted REEP prefers it.
+    #           by a pasted key.
     # "local"   app/interview_local.py -> nothing leaves the machine.
     #           faster-whisper hears, the Ollama model in LLM_MODEL reasons,
     #           Piper speaks. No key, no cost, and rule 1 holds by construction
     #           rather than by a gate.
     #
-    # DEFAULT IS "openai" deliberately, even though the local engine is free: a
-    # deployment that has been running the hosted interview must not silently
-    # change what its students are assessed by because a new setting appeared.
-    # Opting in is one line; opting out by surprise is not recoverable, because
-    # the interviews have already happened.
-    interview_engine: str = "openai"
+    # DEFAULT IS "nova", the hosted engine, because the local one is opt-IN:
+    # it needs a fourth venv, model weights on disk and ideally a GPU, and a
+    # deployment that has set none of that up must not find its interviews
+    # silently running on an engine that cannot start.
+    #
+    # A THIRD ENGINE, "openai", ran this interview until 2026-09 and is gone;
+    # `openai` is therefore no longer a recognised value and falls back to the
+    # default with a warning, like any other unknown string.
+    interview_engine: str = _DEFAULT_INTERVIEW_ENGINE
 
     @field_validator("interview_engine", mode="before")
     @classmethod
@@ -564,8 +410,7 @@ class Settings(BaseSettings):
 
         Deliberately an ALLOWLIST rather than `!= "local"`: a typo like
         INTERVIEW_ENGINE=loca must not quietly run the hosted engine while the
-        operator believes nothing is leaving the machine, and INTERVIEW_ENGINE=
-        nove must not bill an OpenAI key an AWS deployment did not mean to use. It falls back to the
+        operator believes nothing is leaving the machine. It falls back to the
         documented default and says so, which is the same shape as
         `password_login_allowed` -- an unknown value closes the door rather than
         guessing which one was meant.
@@ -577,11 +422,11 @@ class Settings(BaseSettings):
             import logging
 
             logging.getLogger(__name__).warning(
-                "INTERVIEW_ENGINE=%r is not one of %s; using 'openai'",
+                "INTERVIEW_ENGINE=%r is not one of %s; using the default",
                 value,
                 ", ".join(sorted(_INTERVIEW_ENGINES)),
             )
-        return "openai"
+        return _DEFAULT_INTERVIEW_ENGINE
 
     # ---- The Nova 2 Sonic engine (INTERVIEW_ENGINE=nova) ----------------
     #
@@ -593,7 +438,8 @@ class Settings(BaseSettings):
     # bedrock:InvokeModelWithBidirectionalStream to the task role and pastes
     # nothing anywhere.
     #
-    # Rule 1 (AGENTS.md) reads exactly as it does for the OpenAI relay: Bedrock
+    # Rule 1 (AGENTS.md) applies in full, as it did to the relay before it:
+    # Bedrock
     # is off-machine, so no student record enters the session. What the engine
     # authors upstream is the fixed persona plus the fixed per-phase directives
     # from app/interview_matrix.py, and everything else on the uplink is the
@@ -775,10 +621,7 @@ class Settings(BaseSettings):
         "interview_max_sessions",
         "interview_max_sessions_per_user",
         "interview_max_per_student_per_day",
-        "interview_transcription_timeout_ms",
-        "interview_response_create_timeout_ms",
         "interview_min_answer_words",
-        "interview_max_clarifications_per_question",
         "interview_report_timeout_ms",
         "nova_sonic_input_rate_hz",
         "nova_sonic_connection_seconds",
@@ -787,10 +630,6 @@ class Settings(BaseSettings):
         "interview_retention_days",
         "interview_orphan_grace_seconds",
         "interview_audio_min_free_bytes",
-        "interview_vad_threshold",
-        "interview_vad_prefix_padding_ms",
-        "interview_vad_silence_duration_ms",
-        "interview_voice_speed",
         "interview_temperature",
         "voice_max_sessions_per_user",
         "voice_max_call_seconds",
@@ -842,15 +681,11 @@ class Settings(BaseSettings):
         "interview_max_sessions",
         "interview_max_sessions_per_user",
         "interview_max_per_student_per_day",
-        "interview_transcription_timeout_ms",
-        "interview_response_create_timeout_ms",
         "interview_report_timeout_ms",
         "interview_recording_max_bytes",
         "interview_retention_days",
         "interview_orphan_grace_seconds",
         "interview_audio_min_free_bytes",
-        "interview_vad_prefix_padding_ms",
-        "interview_vad_silence_duration_ms",
         "voice_max_sessions_per_user",
         "voice_max_call_seconds",
     )
@@ -873,7 +708,6 @@ class Settings(BaseSettings):
 
     @field_validator(
         "interview_min_answer_words",
-        "interview_max_clarifications_per_question",
         "auth_revocation_cache_seconds",
     )
     @classmethod
@@ -891,21 +725,6 @@ class Settings(BaseSettings):
         """
         if value < 0:
             raise ValueError(f"{info.field_name} must be zero or a positive integer, got {value}")
-        return value
-
-    @field_validator("interview_voice_speed")
-    @classmethod
-    def _voice_speed_in_range(cls, value: float) -> float:
-        """0.25-1.5 is upstream's own documented range for audio.output.speed.
-
-        Validated at startup because a rejected session.update is the
-        handshake's close-4002 path: loud there, an interview-killer at
-        mid-session. Catching a typo here keeps the failure where it belongs.
-        """
-        if not 0.25 <= value <= 1.5:
-            raise ValueError(
-                f"interview_voice_speed must be between 0.25 and 1.5, got {value}"
-            )
         return value
 
     @field_validator("interview_temperature")
@@ -946,16 +765,6 @@ class Settings(BaseSettings):
             }
         return values
 
-    @field_validator("interview_vad_threshold")
-    @classmethod
-    def _threshold_in_range(cls, value: float) -> float:
-        """An out-of-range threshold is rejected upstream with an `error` event
-        that does NOT close the socket, so the interview would quietly run on the
-        default while the config claimed otherwise. Fail loudly here instead."""
-        if not 0.0 <= value <= 1.0:
-            raise ValueError(f"interview_vad_threshold must be between 0.0 and 1.0, got {value}")
-        return value
-
     @property
     def google_ready(self) -> bool:
         """Whether Google sign-in — the only way a human signs in — is configured.
@@ -991,18 +800,6 @@ class Settings(BaseSettings):
             return explicit
         first = self.google_allowed_domain.split(",")[0].strip().lstrip("@").lower()
         return first or _DEFAULT_COLLEGE_DOMAIN
-
-    @property
-    def realtime_ready(self) -> bool:
-        """Whether the mock interview can run at all.
-
-        Only the key is checked: model, base URL and voice all carry working
-        defaults, so the key is the one thing an operator must supply. `.strip()`
-        because a key pasted into a .env file routinely arrives with a trailing
-        space or newline, and whitespace is not a credential - it is a 401 at
-        handshake time, i.e. a failure the student meets instead of the operator.
-        """
-        return bool(self.openai_api_key.strip())
 
     @property
     def nova_region(self) -> str:
@@ -1098,58 +895,13 @@ class Settings(BaseSettings):
         INTERVIEW_CONSENT_VERSION and asking again.
         """
         engine = self.interview_engine.strip().lower()
-        if engine == "nova":
-            return "Amazon's Nova Sonic model, running on AWS Bedrock"
         if engine == "local":
             # Deliberately still phrased as a disclosure. Nothing leaves the
             # machine on this engine, so the surrounding copy overstates in the
             # SAFE direction: a student told more leaves than does is not
             # harmed, and one told less is.
             return "a speech model running on the college's own server"
-        return "OpenAI's realtime model"
-
-    @property
-    def realtime_url(self) -> str:
-        """Upstream WebSocket URL, with the model percent-encoded into the query.
-
-        This is the ONLY place the URL is composed, so escaping happens exactly
-        once. Dated model ids carry no unsafe characters today; `quote` costs
-        nothing and removes the class of bug where a future one does.
-        """
-        model = self.openai_realtime_model.strip() or _DEFAULT_REALTIME_MODEL
-        base = (self.openai_realtime_base_url.strip() or _DEFAULT_REALTIME_BASE_URL).rstrip("/")
-        return f"{base}?model={quote(model, safe='')}"
-
-    @property
-    def transcription_model(self) -> str:
-        """The input-transcription model id, resolved once for both API shapes.
-
-        The BLANK fallback differs BY SURFACE. On GA the current id is right; on
-        the BETA surface (OPENAI_REALTIME_BETA_HEADER non-empty) "whisper-1" is
-        the id known to be accepted, and a rejected session.update there is not a
-        degraded interview but a close 4002 at handshake. A `str` default is not
-        the place to carry an unverified assumption when the code already knows
-        which surface it is on.
-
-        An EXPLICIT INTERVIEW_TRANSCRIPTION_MODEL always wins on both surfaces,
-        so this only changes what an operator who set nothing receives.
-
-        `.strip()` for the reason every other id here is stripped: a value
-        pasted into a shared .env arrives with a trailing space, and " whisper-1"
-        is not a model name - it is a rejected session.update the student meets
-        as "the interview is down".
-        """
-        explicit = self.interview_transcription_model.strip()
-        if explicit:
-            return explicit
-        if self.realtime_beta_header:
-            return _BETA_TRANSCRIPTION_MODEL
-        return _DEFAULT_TRANSCRIPTION_MODEL
-
-    @property
-    def realtime_beta_header(self) -> str:
-        """The OpenAI-Beta header value, or "" meaning omit the header entirely."""
-        return self.openai_realtime_beta_header.strip()
+        return "Amazon's Nova Sonic model, running on AWS Bedrock"
 
     @property
     def gemini_key_present(self) -> bool:

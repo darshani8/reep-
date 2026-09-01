@@ -49,6 +49,16 @@ resource "aws_iam_role" "api_task" {
 # The ONLY AWS API the application code holds: invoking Nova on Bedrock. No S3,
 # no Secrets Manager (secrets arrive as env at launch), nothing else — a
 # compromised task can talk to a model and that is all.
+#
+# THE THIRD ACTION IS A SEPARATE PERMISSION, not a variant of the other two.
+# InvokeModelWithBidirectionalStream is what app/interview_nova.py opens for the
+# speech-to-speech interviewer, and a role holding the first two is refused it —
+# which reaches the student as an AccessDeniedException at the handshake, i.e.
+# close 4002 and an interview that will not start, with the cause visible only
+# in the API log. Granted unconditionally rather than behind
+# var.interview_engine: the permission is inert until something opens that
+# stream, and a role whose contents depend on an application setting is a role
+# nobody can reason about from the console.
 resource "aws_iam_role_policy" "api_bedrock" {
   name = "invoke-nova"
   role = aws_iam_role.api_task.id
@@ -56,7 +66,11 @@ resource "aws_iam_role_policy" "api_bedrock" {
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
-      Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+      Action = [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream",
+        "bedrock:InvokeModelWithBidirectionalStream",
+      ]
       Resource = [
         "arn:aws:bedrock:*::foundation-model/amazon.nova-*",
         "arn:aws:bedrock:*:${data.aws_caller_identity.current.account_id}:inference-profile/*",
@@ -80,13 +94,21 @@ locals {
     { name = "INTERVIEW_RECORDING_ENABLED", value = var.interview_recording_enabled },
     { name = "BEDROCK_MODEL", value = var.bedrock_model },
     { name = "BEDROCK_REGION", value = var.region },
+    # Which engine runs the mock interview, and where its model lives. The
+    # region is passed even while the engine is "openai", so that turning the
+    # interviewer on is one variable rather than two — and so that it can never
+    # be inherited from BEDROCK_REGION, which points at a region that does not
+    # serve Nova 2 Sonic (see the variable's own note).
+    { name = "INTERVIEW_CONSENT_VERSION", value = var.interview_consent_version },
+
+    { name = "INTERVIEW_ENGINE", value = var.interview_engine },
+    { name = "NOVA_SONIC_REGION", value = var.nova_sonic_region },
     { name = "LLM_ALLOW_REMOTE_STUDENT_DATA", value = var.allow_remote_student_data },
   ]
 
   api_secrets = [
     { name = "AUTH_SECRET", valueFrom = "${aws_secretsmanager_secret.app.arn}:AUTH_SECRET::" },
     { name = "DATABASE_URL", valueFrom = "${aws_secretsmanager_secret.app.arn}:DATABASE_URL::" },
-    { name = "OPENAI_API_KEY", valueFrom = "${aws_secretsmanager_secret.external.arn}:OPENAI_API_KEY::" },
     { name = "GOOGLE_CLIENT_ID", valueFrom = "${aws_secretsmanager_secret.external.arn}:GOOGLE_CLIENT_ID::" },
     { name = "GOOGLE_CLIENT_SECRET", valueFrom = "${aws_secretsmanager_secret.external.arn}:GOOGLE_CLIENT_SECRET::" },
     { name = "SENTRY_DSN", valueFrom = "${aws_secretsmanager_secret.external.arn}:SENTRY_DSN::" },

@@ -25,7 +25,7 @@ Internet ── WAF ── CloudFront ──┬── S3 (Angular SPA, private, 
 | Observability | **Sentry** — errors + performance traces from the API (`SENTRY_DSN`) and the SPA (`environment.sentryDsn`), PII off. CloudWatch keeps only what Sentry can't: raw logs, infra metrics/alarms → email, and the dropped-interview-turn tripwire |
 | Traceability | One `X-Request-ID` per request: caller-supplied or minted, echoed on the response, tagged on every Sentry event, printed in every `reep.access` log line, with ALB access logs in S3 as the edge record. One id from a click to a log line |
 | Claude connectivity | The `reep-claude-observer` IAM role (read-only logs/metrics/ECS/RDS) for AWS-side diagnosis, plus the Sentry MCP connector for issue-level work — see §6 |
-| Voice AI on Nova | `BEDROCK_MODEL` (default `apac.amazon.nova-pro-v1:0`) drives the LLM adapter for the resume brief and the grounded assistant. The realtime interviewer still speaks the OpenAI Realtime protocol — §7 covers the Nova Sonic migration honestly |
+| Voice AI on Nova | `BEDROCK_MODEL` (default `apac.amazon.nova-pro-v1:0`) drives the LLM adapter for the resume brief and the grounded assistant. The realtime interviewer runs **Nova 2 Sonic** over the bidirectional stream — §7 is the checklist for turning it on, and it is not one variable |
 | Call recording | `INTERVIEW_RECORDING_ENABLED=true` (a stack variable): two WAVs per interview (student and AI tracks, deliberately unmixed) on EFS at `/data/interview-audio`, only for students whose consent grant ticks store-audio, downloadable by DIRECTOR/ADMIN via `/api/interview` records, deleted on the 180-day retention clock |
 
 ## 2. Prerequisites
@@ -89,7 +89,7 @@ Then, in order:
 # 1. Fill the operator-owned secret (Terraform never overwrites it):
 aws secretsmanager put-secret-value \
   --secret-id "$(terraform output -raw external_secret_arn)" \
-  --secret-string '{"OPENAI_API_KEY":"sk-…","GOOGLE_CLIENT_ID":"…","GOOGLE_CLIENT_SECRET":"…","SENTRY_DSN":"https://…ingest.sentry.io/…","VOICE_WORKER_SECRET":""}'
+  --secret-string '{"GOOGLE_CLIENT_ID":"…","GOOGLE_CLIENT_SECRET":"…","SENTRY_DSN":"https://…ingest.sentry.io/…","VOICE_WORKER_SECRET":""}'
 
 # 2. Build & push the api image:
 aws ecr get-login-password | docker login --username AWS --password-stdin "$(terraform output -raw api_ecr_repository | cut -d/ -f1)"
@@ -210,15 +210,59 @@ Two different voices exist in this codebase:
    gate still in force (`LLM_ALLOW_REMOTE_STUDENT_DATA=true` is the stack
    default, a defensible call for in-account Bedrock, which does not train on
    your traffic).
-2. **The realtime speech-to-speech interviewer** (`/api/interview`) speaks the
-   OpenAI Realtime protocol and keeps `OPENAI_API_KEY` for now. The honest
-   migration path is **Amazon Nova Sonic** over Bedrock's bidirectional
-   stream (`InvokeModelWithBidirectionalStream`): the relay's turn-taking
-   invariants (docs/interview-engine-v3.md — one `response.create` site, the
-   deterministic word gate, the phase machine) map onto Sonic's event model,
-   but that is a careful engine port, not a config flip, and it should be built
-   and soak-tested against real calls before the OpenAI path is retired. The
-   IAM in this stack already permits it; nothing else blocks it.
+2. **The realtime speech-to-speech interviewer** (`/api/interview`) runs
+   **Amazon Nova 2 Sonic** (`amazon.nova-2-sonic-v1:0`) over Bedrock's
+   bidirectional stream, signed by this stack's task role with no key anywhere.
+   `INTERVIEW_ENGINE` chooses between it and the on-machine engine, and it is
+   the default. See `docs/interview-assistant.md` § *Engines* for what that
+   means behind the socket (Nova owns the turn, the engine owns the phase; the
+   scorecard is a tool call; the 8-minute stream limit caps the session).
+
+   The OpenAI relay that served this until 2026-09 has been deleted, so there
+   is no longer a second hosted engine to fall back to. **Nova has not spoken to
+   a real student yet.** Everything below is what turning it on requires; none
+   of it happens by deploying code.
+
+### Turning the Nova interviewer on
+
+The Deploy workflow ships code and never infrastructure, so steps 1–2 are a
+`terraform apply` at a terminal and step 3 is a console visit.
+
+1. **Bedrock model access** for `amazon.nova-2-sonic-v1:0`, in the account, in a
+   region that serves it. As of this writing that is **us-east-1, us-west-2 and
+   ap-northeast-1** — and pointedly **not ap-south-1**, where the rest of this
+   stack lives. `var.nova_sonic_region` therefore defaults to Tokyo rather than
+   inheriting `var.region`; the extra round trip is tens of milliseconds against
+   a conversation, and the alternative is a socket that dies at the handshake.
+   Re-check the model card before assuming the list has not moved.
+2. **`terraform apply`.** `interview_engine` already defaults to `"nova"`; the
+   task role already
+   carries `bedrock:InvokeModelWithBidirectionalStream` (`infra/aws/ecs.tf`) —
+   a **third, distinct** IAM action that `InvokeModel` and
+   `InvokeModelWithResponseStream` do not imply. An earlier version of this page
+   claimed the IAM "already permits it"; it did not, and the symptom of that
+   mistake is close 4002 with an AccessDeniedException in the API log.
+3. **Bump `INTERVIEW_CONSENT_VERSION`.** The consent panel names who receives
+   the student's voice, and the server now supplies that label from the running
+   engine (`GET /api/interview/consent` → `provider`). Changing engines changes
+   the recipient, so the students who agreed to the old wording have not agreed
+   to this one. `interview_consents` exists to answer *what did they agree to*;
+   leaving the version alone makes it answer wrongly.
+4. **Make one call yourself before a student does**, and check three things in
+   the same session: that the interviewer greets you unprompted (the kick-off
+   control note landed), that it does not ask two questions in a row at a phase
+   boundary (`docs/interview-assistant.md` explains why that is the line to
+   watch), and that a row lands in `interview_evaluations` with
+   `report_status = 'ok'` — the scorecard arrives as a tool call, and a model
+   that talks instead of calling the tool is the failure mode to catch here
+   rather than in front of a cohort.
+5. **There is no hosted rollback any more.** `interview_engine = "local"` runs
+   the interview on this machine, but this stack has no model weights and no
+   GPU, so on AWS that is "no interviews" rather than "different interviews".
+   The honest rollback is a revert of the deletion commit — `OPENAI_API_KEY` is
+   still in the operator-owned secret, untouched by any apply (`secrets.tf`
+   says why). Interviews already conducted keep their rows and transcripts
+   whatever you choose.
 
 ## 8. Interview call recording
 

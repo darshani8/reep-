@@ -745,6 +745,71 @@ class TestTheUplink:
 
 
 # ---------------------------------------------------------------------------
+# The transport under the stream
+# ---------------------------------------------------------------------------
+
+
+class TestTheTransport:
+    """The default transport REFUSES the only call this engine exists to make.
+
+    aws-sdk-bedrock-runtime does not depend on awscrt, and
+    AsyncBedrockRuntimeConfig.resolve() with no transport picks aiohttp, which
+    sets SUPPORTS_DUPLEX_STREAMING = False. invoke_model_with_bidirectional_stream
+    then raises UnsupportedTransportError before a packet leaves the process —
+    on every region, in every account, with credentials or none.
+
+    Nothing else in this suite can see that: every other test fakes the upstream,
+    and api-imports only proves the MODULE imports, while the transport is chosen
+    inside a lazy call the CI never makes. Two tests, because there are two ways
+    to lose it — the package going undeclared, and the argument going unpassed.
+    """
+
+    def test_the_engine_can_import_a_duplex_capable_transport(self):
+        """Pins the manifest: awscrt is a runtime dependency, not an extra."""
+        from smithy_http.aio.crt import AWSCRTHTTPClient
+
+        assert AWSCRTHTTPClient.SUPPORTS_DUPLEX_STREAMING is True
+
+    def test_open_hands_that_transport_to_resolve(self):
+        """Pins the call: the transport is named, never left to the default."""
+        import aws_sdk_bedrock_runtime.client as sdk_client
+        import aws_sdk_bedrock_runtime.config as sdk_config
+
+        captured: dict[str, object] = {}
+
+        async def _fake_resolve(**kwargs):
+            captured.update(kwargs)
+            return object()
+
+        class _FakeStream:
+            async def await_output(self):
+                return (None, None)
+
+        class _FakeClient:
+            def __init__(self, config):
+                pass
+
+            async def invoke_model_with_bidirectional_stream(self, _input):
+                return _FakeStream()
+
+        original_resolve = sdk_config.AsyncBedrockRuntimeConfig.resolve
+        original_client = sdk_client.AsyncBedrockRuntimeClient
+        sdk_config.AsyncBedrockRuntimeConfig.resolve = _fake_resolve
+        sdk_client.AsyncBedrockRuntimeClient = _FakeClient
+        try:
+            upstream = nova._NovaUpstream("amazon.nova-2-sonic-v1:0", "ap-northeast-1", None)
+            run(upstream.open())
+        finally:
+            sdk_config.AsyncBedrockRuntimeConfig.resolve = original_resolve
+            sdk_client.AsyncBedrockRuntimeClient = original_client
+
+        assert captured["region"] == "ap-northeast-1"
+        transport = captured.get("transport")
+        assert transport is not None, "resolve() was left to pick the transport"
+        assert type(transport).SUPPORTS_DUPLEX_STREAMING is True
+
+
+# ---------------------------------------------------------------------------
 # The 8-minute wall
 # ---------------------------------------------------------------------------
 

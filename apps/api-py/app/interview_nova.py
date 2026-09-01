@@ -423,18 +423,30 @@ class _NovaUpstream:
             from aws_sdk_bedrock_runtime.models import (  # noqa: PLC0415
                 InvokeModelWithBidirectionalStreamOperationInput,
             )
+            from smithy_http.aio.crt import AWSCRTHTTPClient  # noqa: PLC0415
         except ImportError as exc:  # pragma: no cover - requirements.txt declares it
             raise RuntimeError(
-                "aws-sdk-bedrock-runtime is not installed; INTERVIEW_ENGINE=nova "
-                "needs it (see apps/api-py/requirements.txt)"
+                "aws-sdk-bedrock-runtime and awscrt are not both installed; "
+                "INTERVIEW_ENGINE=nova needs both (see apps/api-py/requirements.txt)"
             ) from exc
 
         # `resolve` is the SDK's own credential + endpoint resolution: the
         # environment, the shared config files, the container/IMDS role, in the
-        # standard order. Passing only the region is deliberate — anything this
-        # code resolved by hand would be a second, worse copy of a chain the
-        # rest of the AWS toolchain on the box already agrees on.
-        config = await AsyncBedrockRuntimeConfig.resolve(region=self._region)
+        # standard order. Nothing about the CREDENTIALS is resolved by hand —
+        # anything this code worked out itself would be a second, worse copy of
+        # a chain the rest of the AWS toolchain on the box already agrees on.
+        #
+        # THE TRANSPORT IS THE ONE THING WE MUST NAME, and leaving it to the
+        # default is not a slower path or a fallback — it is a hard refusal.
+        # `resolve()` defaults to the aiohttp transport, which declares
+        # SUPPORTS_DUPLEX_STREAMING = False, so the very next line raises
+        # UnsupportedTransportError before a packet leaves the process: every
+        # region, every account, credentials or none. The bidirectional API is
+        # HTTP/2 with both halves open at once, and awscrt is the only transport
+        # in this stack that does that. The student sees close 4002.
+        config = await AsyncBedrockRuntimeConfig.resolve(
+            region=self._region, transport=AWSCRTHTTPClient()
+        )
         self._client = AsyncBedrockRuntimeClient(config=config)
         self._stream = await self._client.invoke_model_with_bidirectional_stream(
             InvokeModelWithBidirectionalStreamOperationInput(model_id=self._model)

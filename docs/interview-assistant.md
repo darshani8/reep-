@@ -626,6 +626,17 @@ log line names which: credentials, IAM (the task role needs
 `InvokeModel` does not imply), a region that does not serve the model, model
 access not granted in the account, or a throttle.
 
+**Every session closes immediately (4002) with `UnsupportedTransportError`, in
+every region, with or without credentials** — this one is not AWS refusing
+anything; the request never left the process. `awscrt` is missing, or the engine
+resolved its config without naming a transport. `aws-sdk-bedrock-runtime` does
+not depend on `awscrt`, and the default aiohttp transport declares
+`SUPPORTS_DUPLEX_STREAMING = False`, which the bidirectional API requires.
+`pip install -r requirements.txt` (it is pinned there) and check
+`AsyncBedrockRuntimeConfig.resolve` is still being passed `transport=`. Tests
+that fake the upstream cannot see this, which is why two in
+`tests/test_interview_nova.py::TestTheTransport` pin it directly.
+
 **Connects, transcribes, plays no sound** — the client matches a *set* of audio
 event names for exactly this reason, so a name change upstream cannot mute the
 interviewer silently. Check the engine is emitting `response.audio.done` and that

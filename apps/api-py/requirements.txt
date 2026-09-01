@@ -64,6 +64,16 @@ boto3==1.43.80
 # the smithy stack in, and a deployment on another engine should not pay that at
 # boot. It is DECLARED here anyway, per the api-imports rule.
 aws-sdk-bedrock-runtime==0.11.0
+# awscrt is what actually CARRIES that stream, and it is not optional.
+# aws-sdk-bedrock-runtime does not depend on it, so pip resolves a set that
+# imports fine, passes api-imports, and passes every test that fakes the
+# upstream — and then refuses the one call the engine exists to make:
+# resolve() falls back to the aiohttp transport, which answers
+# UnsupportedTransportError to invoke_model_with_bidirectional_stream before
+# a packet leaves the process. Not a region problem and not an IAM problem;
+# it fails identically on a laptop with no credentials at all.
+# The wheel is cp313-abi3, so the 3.14 image installs it without a compiler.
+awscrt==0.36.2
 # Sentry — the single observability + traceability tool: errors + performance
 # traces, initialised in app/main.py only when SENTRY_DSN is set (blank = every
 # sentry_sdk call is a no-op). [fastapi] pulls the ASGI/Starlette integration.

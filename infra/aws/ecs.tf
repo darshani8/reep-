@@ -99,6 +99,8 @@ locals {
     # interviewer on is one variable rather than two — and so that it can never
     # be inherited from BEDROCK_REGION, which points at a region that does not
     # serve Nova 2 Sonic (see the variable's own note).
+    { name = "INTERVIEW_CONSENT_VERSION", value = var.interview_consent_version },
+
     { name = "INTERVIEW_ENGINE", value = var.interview_engine },
     { name = "NOVA_SONIC_REGION", value = var.nova_sonic_region },
     { name = "LLM_ALLOW_REMOTE_STUDENT_DATA", value = var.allow_remote_student_data },

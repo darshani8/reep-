@@ -1,0 +1,106 @@
+# Handoff: email + password sign-in (with OTP) — resume point
+
+Written so a fresh session can continue without the conversation. Update at every
+milestone. Delete when the feature is merged.
+
+## Where everything stands (2026-09-02 06:15 UTC)
+
+### Nova 2 Sonic interviewer — ALL code/infra done, ONE unknown left
+- PR #11 merged → `main` = `97b1b37`. Deploy #35 (18:31 UTC 09-01) shipped it.
+- Transport bug fixed (`awscrt` + `transport=AWSCRTHTTPClient()`), verified against real Bedrock.
+- Terraform applied: IAM `bedrock:InvokeModelWithBidirectionalStream`, `INTERVIEW_ENGINE=nova`,
+  `NOVA_SONIC_REGION=ap-northeast-1`, `INTERVIEW_CONSENT_VERSION=2026-09`.
+- **Unknown:** whether Bedrock model access for `amazon.nova-2-sonic-v1:0` is granted in
+  `ap-northeast-1`. Nobody has pressed Start yet (no `POST /api/interview/consent`, no
+  `WebSocket /api/interview` in `/reep/api` logs). When they do, search the log for
+  `Could not open the Nova Sonic stream` — `AccessDeniedException` = model access missing.
+- CloudWatch Logs `/reep/api` (ap-south-1) IS readable with this session's `reep-operator` creds.
+  Everything else (ECS/IAM/S3/Bedrock/RDS) is denied. No terraform runs from here.
+
+### Production outage on 09-01 — fixed
+- Cause: `alb_origin_domain` was set to the PUBLIC hostname (`reep.sast-skills.com`, a CNAME to
+  CloudFront `d3vofjzru0es1c.cloudfront.net`) → `/api/*` looped → 403 at the edge.
+- Fix applied by the owner: `alb_origin_domain=origin.reep.sast-skills.com` (CNAME → ALB
+  `reep-alb-916119662.ap-south-1.elb.amazonaws.com`, ACM cert in ap-south-1 covers exactly it).
+- Guard added on this branch (`71efecf`): `cdn.tf` preconditions refuse origin==domain_name /
+  `*.cloudfront.net`, and domain_name without a us-east-1 cert.
+
+### Still pending on the OWNER (not code)
+1. **`reep.sast-skills.com` is not an alias on the distribution** (CloudFront 403s that Host;
+   default `*.cloudfront.net` cert). Needs a **us-east-1** ACM cert + `-var domain_name=…
+   -var cloudfront_acm_certificate_arn=…`. Until then the site only works at the cloudfront.net URL.
+2. Google OAuth: `https://d3vofjzru0es1c.cloudfront.net/api/auth/sso/google/callback` was added
+   and login WORKS at the cloudfront URL (log shows callback→session at 01:16:56Z). After (1),
+   also register `https://reep.sast-skills.com/api/auth/sso/google/callback` BEFORE applying,
+   because `WEB_ORIGIN` flips and the redirect URI with it (flow cookie is host-only).
+3. Press Start on an interview and read the log line above.
+
+### Git
+- Designated branch: `claude/nova-sonic-ai-interview-jm7jrb`, based on `main@97b1b37`.
+- Unmerged on it: `b810967` (consent-bump tidy + code default 2026-09), `71efecf` (cdn guard).
+- Commit style: `type: lowercase phrase` + 4-beat body. Preserve per-file CRLF/LF
+  (`auth.py`, `google_auth.py`, `config.py`, `cdn.tf` are LF; `docs/interview-assistant.md` is CRLF —
+  always check with `file`). Never global renormalise.
+- Attribution footer for commits (current instruction):
+  `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` +
+  `Claude-Session: https://claude.ai/code/session_013dtNk5E9WrDBM9vruvuJAe`
+- Do NOT open a PR unless asked. Local Postgres for tests:
+  `su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/tmp/reep-pg/data -o '-p 5433 -k /var/tmp/reep-pg/run' -l /var/tmp/reep-pg/pg.log start"`
+  then `cd apps/api-py && .venv/bin/python -m pytest -q`. Terraform 1.9.8 binary at
+  `/tmp/claude-0/-home-user-reep-/7063be7f-4c8e-5e52-9cdb-d5aefd109aa7/scratchpad/terraform`
+  (re-download from releases.hashicorp.com if the scratchpad is gone).
+
+## THE FEATURE — decisions are FINAL (owner confirmed)
+
+Email + password sign-in for pre-enrolled college accounts, beside Google, with OTP by email.
+
+1. Login screen has TWO separate paths: "Sign in with Google" (unchanged) and "Email & password".
+2. Password path ONLY for emails already in `users` (roster / grant_access) AND with domain ==
+   `settings.college_email_domain` (bgscet.ac.in). No registration, ever.
+3. **OTP by email is required for: create password (first time), forgot password, AND change
+   password while logged in.** All three are the same 3-step flow (email → code → new password)
+   and share one screen + one endpoint set; "change password" is a link inside the app.
+4. **Normal sign-in = email + password, NO code** (owner chose "Option A" explicitly).
+   An OTP-on-every-login switch may exist but defaults OFF.
+5. No email sender exists today. Add `app/email.py` adapter: transports `ses` (boto3 SESv2, prod),
+   `smtp` (stdlib), `log` (dev/CI). Unconfigured in prod ⇒ password path reports UNAVAILABLE via a
+   status endpoint (mirror `GET /api/auth/sso/status`) and the form renders disabled. NEVER a boot
+   failure.
+6. No enumeration: OTP request answers 202 always; code only sent when enrolled + domain ok.
+7. Setting a password revokes other sessions (`security.py` token_version + `note_revocation`).
+8. Google code path byte-for-byte unchanged. Rules 1 & 2 untouched.
+9. Rework `settings.password_login_allowed` (currently dev/CI allowlist that refuses prod) so prod
+   serves password login WHEN enabled+configured, without breaking `tests/conftest.py` `login`
+   fixture or `test_boot_guard.py`.
+10. A deployment that does not configure email keeps working exactly as today.
+11. Infra: SES in ap-south-1 (`aws_sesv2_email_identity` + DKIM, task-role `ses:SendEmail` scoped),
+    env/secrets via `ecs.tf`/`secrets.tf`/`variables.tf`. Document SES sandbox steps.
+12. Docs: AGENTS.md auth section says "Google-only" — must be rewritten; `docs/google-sign-in.md`,
+    `.env.example`, `docs/aws-deployment.md`.
+
+## Design workflow (Workflow tool) — partial, resumable
+- Run: `wf_277604b9-e41`. Script:
+  `/root/.claude/projects/-home-user-reep-/7063be7f-4c8e-5e52-9cdb-d5aefd109aa7/workflows/scripts/password-signin-design-wf_277604b9-e41.js`
+- Journal (full agent outputs):
+  `/root/.claude/projects/-home-user-reep-/7063be7f-4c8e-5e52-9cdb-d5aefd109aa7/subagents/workflows/wf_277604b9-e41/journal.jsonl`
+- DONE (cached): 5 codebase maps (backend-auth, config-guards, frontend-login, infra,
+  tests-seeds-docs) + 3 full proposals (security-first, minimal-diff, operator-first).
+- FAILED on session limit (now reset): 3 judges + synthesize. Resume with same args →
+  8 cached, 4 live. Inject decision #3 (change-password also OTP) + #4 (Option A) into the
+  judge/synthesize prompts by editing the script (args must stay byte-identical for cache hits).
+- If the journal is gone: re-run the whole script (≈12 agents).
+
+## Implementation plan (after the spec)
+- Backend: `app/models/login_otp.py` (+ `models/__init__`), Alembic migration, `app/email.py`,
+  config settings + `password_login_ready`/reason, endpoints under `/api/auth/password/*`
+  (status, otp, set) + rework of `/login` guard, tests.
+- Frontend: login component gets the email/password card + links; new lazy route
+  `/login/password` (3-step: email → code → new password); "Change password" link in the shell.
+- Infra: SES identity, IAM, env vars (`EMAIL_TRANSPORT`, `EMAIL_FROM`, `PASSWORD_LOGIN_ENABLED`),
+  operator steps incl. sandbox.
+- Verify: pytest (live PG), `tools/ci/check_api_imports.py`, `ng build`, `terraform validate`,
+  then adversarial review workflow (security / correctness / repo-rules lenses) → fix → re-verify.
+- Commit on the designated branch; push; do not open a PR unless asked.
+
+## Milestone log
+- 06:15 UTC — handoff written; resuming design workflow.

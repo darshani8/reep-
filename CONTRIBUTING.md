@@ -586,7 +586,9 @@ The template's checkboxes name the two hard rules **by file path**:
   (`app/routers/mentor.py`, `app/policies.py`)
 - Does this add an Alembic revision?
 - Does this touch `app/config.py`'s guards (`production_boot_failures`,
-  `password_login_allowed`), `app/security.py`, `app/google_auth.py`, `.github/workflows/**`
+  `password_login_allowed` — which must remain an allowlist of dev/CI environment names
+  OR the explicit `LOCAL_AUTH_ENABLED` opt-in with a ready email transport, never
+  `not is_prod`), `app/security.py`, `app/google_auth.py`, `.github/workflows/**`
   or `infra/aws/**`?
 - Did a dependency go into the right manifest?
 

@@ -202,9 +202,13 @@ account behind a password printed in AGENTS.md must never exist on a production 
 Chapter 16 covers that guard and its three tests; it matters here only because those three
 hashes are the ones every test in `tests/test_auth_rbac.py` authenticates against.
 
-There is **no password-change or password-reset endpoint anywhere in the backend** — no
-router calls `hash_password` — so in the current codebase the only way a password comes into
-existence is the seed, and the only way one changes is a direct database write.
+That was true when this chapter was written and is **no longer so**: `app/routers/local_auth.py`
+(`POST /api/auth/password/otp` and `POST /api/auth/password/set`) creates, resets and changes a
+password behind a 6-digit code emailed to the roster address, and is the one router that calls
+`hash_password` — over an existing `users` row only, never creating one. The sentinel this
+chapter describes now has a name (`security.UNUSABLE_PASSWORD_HASH`, tested by
+`has_usable_password`), and setting a password bumps `users.token_version`. The design record,
+the guard rework and the runbook are in `docs/email-password-sign-in.md`.
 
 ---
 

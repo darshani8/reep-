@@ -114,7 +114,7 @@ Tick one:
 ## Config, auth and deploy guards
 
 - [ ] This PR does not touch `app/config.py`, `app/security.py`, `app/google_auth.py`, `app/identity.py`, `.github/workflows/**` or `infra/aws/**`.
-- [ ] It does, and the PR body above says which guard changed and what it now refuses. Specifically: `production_boot_failures()` must still refuse to boot on a repo-default `AUTH_SECRET`, and `password_login_allowed` must remain an **allowlist** of dev/CI environment names — never `not is_prod`, because an unrecognised `ENV` has to shut the password door, not open it.
+- [ ] It does, and the PR body above says which guard changed and what it now refuses. Specifically: `production_boot_failures()` must still refuse to boot on a repo-default `AUTH_SECRET`, and `password_login_allowed` must remain an **allowlist** of dev/CI environment names OR the explicit `LOCAL_AUTH_ENABLED` opt-in with a ready email transport — never `not is_prod`, because an unrecognised `ENV` has to shut the password door, not open it, and the only thing that opens it elsewhere is the same deliberate opt-in that opens it in production.
 
 ## Checks
 

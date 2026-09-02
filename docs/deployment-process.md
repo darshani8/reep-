@@ -417,8 +417,10 @@ generated the documented way). Then confirm, from the same secret:
   in the stack detects it — §8 is where you catch it.
 - `ENV` is a production spelling (`prod`, `production`, `prd`, `live`). Anything
   else — including a typo — is treated as production-like by
-  `password_login_allowed`'s allowlist, which is the correct direction, but only
-  a recognised name gives you the `Secure` cookie and the seed refusal too.
+  `password_login_allowed`'s allowlist (an allowlist of dev/CI names OR the
+  explicit `LOCAL_AUTH_ENABLED` opt-in with a ready email transport, never
+  `not is_prod`), which is the correct direction, but only a recognised name
+  gives you the `Secure` cookie and the seed refusal too.
 - `VOICE_WORKER_SECRET` is identical in the API and the worker, if you run the
   worker at all. Disagreeing values 401 every transcript POST while the worker's
   own logs look perfectly healthy.
@@ -641,9 +643,13 @@ curl -s https://<domain>/api/auth/sso/status | jq
 - `google_available: true` — sign-in works. `false` means
   `GOOGLE_CLIENT_ID`/`SECRET` did not reach the task, and **nobody can log in**;
   the login screen renders a disabled button with the reason.
-- `password_login_available` **must be `false`.** `true` means `ENV` is not a
-  production name and the password door is open on the internet. This one line
-  is the cheapest read of whether the environment is what you think it is.
+- `password_login_available` **must be `false` unless you opened it.** With
+  `local_auth_enabled` unset, `true` means `ENV` is not a production name and
+  the password door is open on the internet — this one line is the cheapest
+  read of whether the environment is what you think it is. With the opt-in on
+  (docs/aws-deployment.md §8) expect `true`, `password_setup_available: true`
+  and `password_reason: null`; a reason here names the variable that is
+  missing.
 
 ```bash
 curl -s https://<domain>/api/interview/status | jq   # OPENAI_API_KEY reached the task

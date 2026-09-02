@@ -218,7 +218,7 @@ box(BX[1], 1074, 348, 96, "BACKUPS & DISASTER RECOVERY", [
     "!Two independent planes: one destroy loses nothing",
 ], C_DATA, body=9.6, lh=12, head=22, title_size=11)
 box(BX[2], 1074, 350, 96, "SECURITY & ACCESS CONTROL", [
-    "Google-only SSO — the roster IS the allowlist",
+    "Google + email/password — the roster IS the allowlist",
     "google_sub pins identity · token_version revokes",
     "!RULE 1  student PII reaches no model unless opened",
     "!RULE 2  staff scope by role, never by a missing field",

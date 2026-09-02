@@ -59,6 +59,13 @@ that looks like a backend bug.
 | `EMBEDDING_BASE_URL` / `EMBEDDING_MODEL` / `EMBEDDING_API_KEY` | KB retrieval falls back to Postgres full-text. Degrades answer quality; nothing breaks. The KB is public policy text, so it carries no PII to the embedder. |
 | `VOICE_MAINTENANCE_MESSAGE` | Non-empty forces voice unavailable and surfaces the text — the incident switch. |
 | `PGSSLMODE`, `PGSSLROOTCERT` | Read by libpq directly. Set `require` (or stricter) for a managed database on an untrusted network. |
+| `LOCAL_AUTH_ENABLED` | `false`: the email & password door stays shut — `POST /api/auth/login` answers 403 outside dev/CI, the two `/api/auth/password/*` endpoints answer 503 with the reason, and the login screen renders the form disabled with that reason. `true` opens it **only together with a ready transport below**; the flag alone opens nothing. Never a boot failure. `docs/email-password-sign-in.md`. |
+| `EMAIL_TRANSPORT` | Blank = no outbound email — except on a dev `ENV`, where blank means `log`. `ses` (AWS SESv2, signed by the task role — no key, no secret), `smtp` (any relay), or `log` (the message goes into the API log and is NOT sent; **refused as ready on every non-dev `ENV`**, because a sign-in code in a log is a sign-in code). An unknown value is kept so `password_reason` can name it. |
+| `EMAIL_FROM` | Required by `ses` and `smtp`: `REEP <no-reply@bgscet.ac.in>` or a bare address. On AWS it must be the address the IAM grant is conditioned on (`mail_from_address`). |
+| `EMAIL_REPLY_TO` | Blank = no Reply-To. Set it to the placement office so a student who answers the code email reaches a person. |
+| `SES_REGION` | Blank ⇒ `AWS_REGION` / `AWS_DEFAULT_REGION` (boto3's chain). Terraform sets it explicitly. |
+| `SES_CONFIGURATION_SET` | Blank = no configuration set on the send (no bounce/complaint events). Terraform passes the stack's. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_STARTTLS` | `smtp` only. Port defaults to `587` and STARTTLS to `true`; port `465` uses implicit TLS. `SMTP_USERNAME` set with `SMTP_STARTTLS=false` on a port other than 465 is **refused as ready** — credentials would cross the wire in the clear. A local Mailpit/MailHog (`localhost:1025`, no username, `SMTP_STARTTLS=false`) is fine. |
 
 ---
 
@@ -228,3 +235,8 @@ half-configured stack.
 `apps/api-py/.env` is gitignored and is for local development only. Anything that
 has ever been in a local `.env` and then discussed, pasted, or logged should be
 treated as disclosed and rotated at the provider.
+
+`SMTP_PASSWORD` is a secret and belongs with the others (an app password on a
+Workspace relay account sends mail as that account). The SES transport has **no
+secret at all** — the task role signs the request — which is why nothing about
+email is added to the operator-owned secret on AWS.

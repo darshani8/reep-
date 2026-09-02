@@ -104,3 +104,18 @@ Email + password sign-in for pre-enrolled college accounts, beside Google, with 
 
 ## Milestone log
 - 06:15 UTC — handoff written; resuming design workflow.
+- 06:40 UTC — design workflow complete (12/12). Final spec saved at `.claude/password-signin-spec.md`
+  (security-first proposal won 145 vs 65, all three judges). Flag name is `LOCAL_AUTH_ENABLED`.
+- 07:05 UTC — BACKEND written by hand (uncommitted): app/email.py, app/local_auth.py,
+  app/routers/local_auth.py, app/models/auth_otp.py (+__init__), migration a7e1c9d4f2b8
+  (head, applied locally), config.py (CRLF preserved; new fields + properties +
+  password_login_allowed rework), security.py (UNUSABLE_PASSWORD_HASH/has_usable_password),
+  identity.py (get_optional_session), ratelimit.py (FixedWindow), registration.py (uses it),
+  main.py (mount + INFO line), health.py, retention.py, seed_roster/grant_access (sentinel import),
+  .env.example (CRLF), auth.py (login rework + SsoStatus fields). Tests: test_email,
+  test_ratelimit_windows, test_local_auth_gates, test_local_auth (+ edits to test_sso_contract,
+  test_google_callback, test_boot_guard). FULL SUITE: 726 passed, 3 skipped, 0 failed.
+- 07:05 UTC — FRONTEND + INFRA/DOCS written by two workflow agents (wf_9a89a8af-81c), uncommitted.
+  Frontend self-verified: tsc clean, ng test 13 passed, ng build 173.8 kB initial. Infra: see journal.
+- NEXT: verify agents' work myself → adversarial review workflow → commit in 4 commits
+  (transport / auth / web / infra+docs) → push. Do NOT open a PR unless asked.

@@ -21,12 +21,13 @@ Internet ── WAF ── CloudFront ──┬── S3 (Angular SPA, private, 
 |---|---|
 | Autoscaling | ECS target tracking: CPU 60% / memory 75%, `api_min_tasks`(2) → `api_max_tasks`(10); RDS storage autoscaling 20→100 GB |
 | Backups | RDS automated snapshots (point-in-time, 14 d) **and** an independent AWS Backup vault (daily, 35 d) covering the DB *and* EFS; deletion protection + final snapshot on the instance |
-| Security | Private subnets for everything but the ALB; per-hop security groups; WAF managed rules + rate limit; TLS everywhere incl. CloudFront→ALB; secrets in Secrets Manager (never in task defs); the api task's IAM can invoke Nova and *nothing else*; the boot guard still refuses prod on dev credentials |
+| Security | Private subnets for everything but the ALB; per-hop security groups; WAF managed rules + rate limit; TLS everywhere incl. CloudFront→ALB; secrets in Secrets Manager (never in task defs); the api task's IAM can invoke Nova and, when an SES identity exists, send sign-in codes from it — *nothing else*; the boot guard still refuses prod on dev credentials |
 | Observability | **Sentry** — errors + performance traces from the API (`SENTRY_DSN`) and the SPA (`environment.sentryDsn`), PII off. CloudWatch keeps only what Sentry can't: raw logs, infra metrics/alarms → email, and the dropped-interview-turn tripwire |
 | Traceability | One `X-Request-ID` per request: caller-supplied or minted, echoed on the response, tagged on every Sentry event, printed in every `reep.access` log line, with ALB access logs in S3 as the edge record. One id from a click to a log line |
 | Claude connectivity | The `reep-claude-observer` IAM role (read-only logs/metrics/ECS/RDS) for AWS-side diagnosis, plus the Sentry MCP connector for issue-level work — see §6 |
 | Voice AI on Nova | `BEDROCK_MODEL` (default `apac.amazon.nova-pro-v1:0`) drives the LLM adapter for the resume brief and the grounded assistant. The realtime interviewer runs **Nova 2 Sonic** over the bidirectional stream — §7 is the checklist for turning it on, and it is not one variable |
 | Call recording | `INTERVIEW_RECORDING_ENABLED=true` (a stack variable): two WAVs per interview (student and AI tracks, deliberately unmixed) on EFS at `/data/interview-audio`, only for students whose consent grant ticks store-audio, downloadable by DIRECTOR/ADMIN via `/api/interview` records, deleted on the 180-day retention clock |
+| Email & password sign-in | Off until `mail_from_domain` + `local_auth_enabled` are set: an SESv2 domain identity with Easy DKIM, a configuration set whose bounces/complaints/rejects land on the alerts topic, a `ses:SendEmail` grant scoped to that identity and one From address, and a CloudWatch tripwire on `auth-otp send failed`. No secret — the task role signs. §8 is the checklist |
 
 ## 2. Prerequisites
 
@@ -60,6 +61,11 @@ Internet ── WAF ── CloudFront ──┬── S3 (Angular SPA, private, 
   configuration at plan time rather than letting you find out from the edge.
 - A Sentry org with two projects (api → Python/FastAPI, web → Angular); note
   both DSNs.
+- **If you will turn on email & password sign-in (§8)**: SES in a fresh account
+  is **sandboxed** per region — it sends only to verified identities, 200 a day,
+  1 a second — and leaving the sandbox is a request AWS answers in about a day.
+  The three DKIM CNAMEs go in the *sending* domain's zone, which may be the
+  college's rather than yours, and they are grey-cloud too.
 
 ### If your DNS is at Cloudflare
 
@@ -95,7 +101,8 @@ terraform apply \
 Then, in order:
 
 ```bash
-# 1. Fill the operator-owned secret (Terraform never overwrites it):
+# 1. Fill the operator-owned secret (Terraform never overwrites it). SES needs
+#    NO entry here — the task role signs the send — so §8 never touches it:
 aws secretsmanager put-secret-value \
   --secret-id "$(terraform output -raw external_secret_arn)" \
   --secret-string '{"GOOGLE_CLIENT_ID":"…","GOOGLE_CLIENT_SECRET":"…","SENTRY_DSN":"https://…ingest.sentry.io/…","VOICE_WORKER_SECRET":""}'
@@ -273,7 +280,123 @@ The Deploy workflow ships code and never infrastructure, so steps 1–2 are a
    says why). Interviews already conducted keep their rows and transcripts
    whatever you choose.
 
-## 8. Interview call recording
+## 8. Email & password sign-in on SES
+
+The second door beside Google (`docs/email-password-sign-in.md` is the design
+record and the runbook; this is the AWS checklist). It ships **dark**: with
+`mail_from_domain` blank nothing in `infra/aws/email.tf` exists, the task carries
+`EMAIL_TRANSPORT=""` and `LOCAL_AUTH_ENABLED=false`, and the stack behaves
+byte-for-byte as before. Like §7, none of this happens by deploying code — the
+Deploy workflow's role cannot create IAM or SES — so every step below is a
+`terraform apply` at a terminal or a console visit.
+
+**Read step 0 first.** The API answers `202` to every code request whatever the
+transport does (that is what stops the endpoint enumerating the roster), so a
+door opened before the identity is verified tells every student a code is on
+its way and delivers none.
+
+0. **Do not set `local_auth_enabled` before step 6.** Everything before it can
+   be done while students still see Google only; identity verification, DNS and
+   SES production access all take wall-clock time, and the UI must not
+   advertise a door that silently sends nothing.
+1. **Choose the sending domain, consciously.** Two honest options:
+   - **The roster domain** — `mail_from_domain = "bgscet.ac.in"`,
+     `mail_from_address = "REEP <no-reply@bgscet.ac.in>"`, `mail_reply_to` =
+     the placement office. Recommended when the college's DNS admin will add
+     three CNAMEs: inside the SES sandbox a verified **domain** identity makes
+     every `@bgscet.ac.in` recipient deliverable, so a cohort pilot can run
+     before production access is granted (only the 200/day and 1/s caps bite).
+   - **The app's own subdomain** — `mail_from_domain = var.domain_name` (e.g.
+     `reep.bgscet.ac.in`), `mail_from_address = "REEP <no-reply@reep.bgscet.ac.in>"`.
+     DNS stays in your hands, but **every student is undeliverable until step 5
+     is approved**.
+
+   Either way the college's root-domain SPF and DMARC are never edited (Easy
+   DKIM aligns on the From domain under relaxed alignment, the default). Prove
+   whichever you chose with one real send (step 7) before rollout day.
+2. **`terraform apply`** with the `mail_*` variables set (`prod.tfvars` is
+   gitignored; `terraform validate` must pass first):
+   ```bash
+   cd infra/aws && terraform apply -var-file=prod.tfvars
+   ```
+   This creates the SESv2 identity with Easy DKIM, the configuration set with
+   BOUNCE/COMPLAINT/REJECT events to the alerts topic, the scoped
+   `send-sign-in-codes` policy on the api task role, registers a new task
+   revision carrying `EMAIL_TRANSPORT=ses` / `EMAIL_FROM` / `EMAIL_REPLY_TO` /
+   `SES_REGION` / `SES_CONFIGURATION_SET`, and re-points the service. **The
+   operator-owned secret is not touched — do not re-put it.** The apply refuses
+   at plan time if `mail_from_address` is not under `mail_from_domain`.
+3. **Add the three DKIM CNAMEs** printed by `terraform output dns_records_to_create`
+   at the registrar / Cloudflare, **DNS only (grey cloud)** — a proxied CNAME
+   breaks DKIM verification exactly as it breaks the ALB origin. Then poll
+   ```bash
+   terraform refresh && terraform output ses_identity
+   # or
+   aws sesv2 get-email-identity --email-identity <domain> --region ap-south-1 \
+     --query '{sending:VerifiedForSendingStatus,dkim:DkimAttributes.Status}'
+   ```
+   until `verified = true` (minutes to an hour, up to 72 h). Until then SES
+   refuses to send from the domain.
+4. **The SES sandbox**, on by default for every new account per region: while
+   sandboxed, SES sends **only to recipients that are themselves verified
+   identities** (a verified *domain* counts for every address on it), at most
+   200 messages a day and 1 per second. Check with
+   ```bash
+   aws sesv2 get-account --region ap-south-1 \
+     --query '{prod:ProductionAccessEnabled,quota:SendQuota}'
+   ```
+   If your sending domain is not the roster domain, verify your own address for
+   the end-to-end test — `aws sesv2 create-email-identity --email-identity
+   you@bgscet.ac.in --region ap-south-1` and click the link. Any unverified
+   student would get nothing while the API answers 202; the witnesses are the
+   ERROR line `auth-otp send failed` (SES code `MessageRejected`, *Email
+   address is not verified*), the FAILED row in
+   `GET /api/director/mail?kind=auth-otp`, and the `reep-auth-otp-send-failures`
+   alarm.
+5. **Request production access** (leaves the sandbox; required for a non-roster
+   sender, for more than 200 codes a day, or for bursts above 1/s): console →
+   Amazon SES → Account dashboard → *Request production access*, or
+   ```bash
+   aws sesv2 put-account-details --production-access-enabled \
+     --mail-type TRANSACTIONAL --website-url https://reep.bgscet.ac.in \
+     --use-case-description "One-time sign-in codes for a college placement dashboard; recipients are enrolled students and staff on bgscet.ac.in; ~50/day; bounces and complaints go to an SNS topic and addresses are removed from the roster by the placement office" \
+     --additional-contact-email-addresses ops@… --contact-language EN \
+     --region ap-south-1
+   ```
+   AWS answers within about 24 h; confirm `ProductionAccessEnabled: true`.
+6. **Turn the door on.** Ship the code (and its `auth_email_otps` migration —
+   the Deploy workflow runs `alembic upgrade head` as a one-off task by family)
+   **first**, then set `local_auth_enabled = "true"` in `prod.tfvars`,
+   `terraform apply` (a new task revision), and run the Deploy workflow or
+   `aws ecs update-service --cluster reep --service api --force-new-deployment`
+   so every task carries `LOCAL_AUTH_ENABLED=true`. If the roster email
+   convention was ever in doubt, run `python -m app.seed_roster --rekey-domain`
+   **before** this step: a row that has set a password is no longer movable, by
+   design.
+7. **Verify.** `curl https://<domain>/api/auth/sso/status` shows
+   `password_login_available: true`, `password_setup_available: true`,
+   `password_reason: null`; `/ready` shows `email.transport: ses`,
+   `configured: true`, `local_auth: true`. Then, with your own roster address,
+   use *Create your password* end to end: the code arrives with `DKIM=pass` in
+   the Gmail headers (*Show original*), the password signs you in,
+   `select status, error, sent_at from mail_logs where kind='auth-otp' order by sent_at desc limit 5;`
+   shows `SENT`, and a second browser that held your old session now answers
+   401 on `/api/auth/me`. Then sign in with Google on the same account to
+   confirm both doors mint a working session, and use the shell's *Change
+   password* link once.
+8. **Rollback**: `local_auth_enabled = "false"` + apply. The form renders
+   disabled with the reason, `/login` and `/password/*` refuse, passwords
+   already set stay in the database inert and work again the moment the flag
+   returns, Google is unaffected throughout, and no sessions are revoked by the
+   flag either way. Setting `mail_from_domain` back to blank additionally
+   destroys the identity, the configuration set and the grant.
+
+"I never got a code" has its own runbook table in
+`docs/email-password-sign-in.md`; the short version is `GET
+/api/director/mail?kind=auth-otp` first, then the alarm, then the bounce
+notifications on the alerts topic.
+
+## 9. Interview call recording
 
 Already in the engine (`app/interview_audio.py`), enabled by this stack's
 `interview_recording_enabled=true`. What that means, precisely: recording is
@@ -286,7 +409,7 @@ Backup plan, retrievable only by DIRECTOR/ADMIN, and deleted with the rest of
 the interview record after `INTERVIEW_RETENTION_DAYS` (180). A student who
 never ticks the box is never recorded, whatever the flag says.
 
-## 9. Costs, roughly (ap-south-1, light term-time load)
+## 10. Costs, roughly (ap-south-1, light term-time load)
 
 Fargate 2×(0.5 vCPU/1 GB) ≈ $30/mo · RDS db.t4g.small single-AZ ≈ $25/mo +
 storage · NAT ≈ $35/mo · ALB ≈ $20/mo · EFS/S3/CloudFront/logs ≈ $5–15/mo →

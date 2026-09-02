@@ -28,6 +28,8 @@ npx ng serve                                     # → http://localhost:4200
 
 The dev server proxies `/api` → `http://localhost:3300`, so the app is same-origin.
 
+`LOCAL_AUTH_ENABLED=true` in `apps/api-py/.env` turns on the email & password door locally (create / reset / change a password with an emailed code); on a dev `ENV` the codes print in the API log instead of being sent. See [docs/email-password-sign-in.md](docs/email-password-sign-in.md).
+
 **Seeded logins**
 
 | Role     | Email                    | Password    |

@@ -182,6 +182,59 @@ variable "interview_consent_version" {
   default     = "2026-09"
 }
 
+# --- email & password sign-in --------------------------------------------------
+
+# The SES identity the API sends sign-in codes from. Blank = no identity, no
+# grant, no transport - the email & password door stays shut and nothing in this
+# stack changes. TWO honest choices, with different consequences
+# (docs/aws-deployment.md §8):
+#   - the ROSTER domain (bgscet.ac.in): inside the SES sandbox a verified DOMAIN
+#     identity makes every recipient on it deliverable, so a pilot can run
+#     before production access is granted (only the 200/day and 1/s caps bite) -
+#     at the cost of three DKIM CNAMEs in the college's zone;
+#   - the app's own subdomain (var.domain_name): DNS stays in the operator's
+#     hands, but every student is undeliverable until SES production access is
+#     granted.
+# Either way the college's root-domain SPF and DMARC are never edited (Easy DKIM
+# aligns on the From domain under relaxed alignment, the default).
+variable "mail_from_domain" {
+  description = "Domain to verify as an SES sending identity (Easy DKIM). Blank disables outbound email and the password door."
+  type        = string
+  default     = ""
+}
+
+# The From header, and the one address the task role may send as: email.tf
+# conditions the ses:SendEmail grant on it, so a compromised task cannot send
+# as anyone else on the domain. The address part must be under mail_from_domain
+# (or a subdomain of it) - email.tf refuses the apply otherwise, because SES
+# would refuse the send and the refusal would surface only as an ERROR line
+# behind a 202 in front of a student.
+variable "mail_from_address" {
+  description = "EMAIL_FROM for the API, e.g. 'REEP <no-reply@bgscet.ac.in>'. The address part MUST be under mail_from_domain; the IAM grant is conditioned on it."
+  type        = string
+  default     = ""
+}
+
+# Where a student's reply lands. no-reply@ is where the codes come FROM; a
+# student who answers the message anyway should reach a person.
+variable "mail_reply_to" {
+  description = "EMAIL_REPLY_TO, e.g. the placement office. Blank = none."
+  type        = string
+  default     = ""
+}
+
+# The application opt-in, separate from the transport on purpose: an identity
+# can be verified and tested before a single student sees the form. Flip to
+# "true" only after step 6 of docs/aws-deployment.md §8 - the API answers 202
+# to every code request whatever the transport does, so a door opened before
+# the identity is verified tells every student a code is on its way and
+# delivers none.
+variable "local_auth_enabled" {
+  description = "LOCAL_AUTH_ENABLED for the API: 'true' opens email & password sign-in. Requires mail_from_domain."
+  type        = string
+  default     = "false"
+}
+
 # --- alerting ----------------------------------------------------------------
 
 variable "alert_email" {

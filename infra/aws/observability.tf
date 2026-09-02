@@ -2,8 +2,9 @@
 # web, joined to raw logs by the request_id tag). What lives here is only what
 # Sentry cannot be: the raw log plane (awslogs -> CloudWatch, where every
 # rid=<X-Request-ID> access line lands), the INFRA metrics autoscaling and
-# paging require, and one AI-health tripwire — silently dropped interview
-# turns, which never raise an exception anywhere Sentry could see.
+# paging require, and two tripwires for failures that never raise an exception
+# anywhere Sentry could see — silently dropped interview turns, and sign-in
+# codes the API accepted for delivery and could not send.
 
 resource "aws_cloudwatch_log_group" "api" {
   name              = "/reep/api"
@@ -43,6 +44,41 @@ resource "aws_cloudwatch_metric_alarm" "dropped_turns" {
   alarm_description   = "Interview turns are being dropped - conversations sound fine and save nothing. See the voice runbook in AGENTS.md."
   namespace           = "REEP/AI"
   metric_name         = "DroppedInterviewTurns"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
+
+# --- the sign-in-code tripwire ------------------------------------------------
+# POST /api/auth/password/otp answers 202 whatever the transport does — the
+# response must not distinguish an enrolled address from an unknown one, so a
+# failed send cannot be a 503 (docs/email-password-sign-in.md). The API logs
+# `auth-otp send failed for otp <id>: <error>` instead, and writes a FAILED
+# mail_logs row; this filter is what turns that line into a page. The usual
+# cause is the SES sandbox (MessageRejected: the recipient is not a verified
+# identity) or a From address the grant in email.tf does not cover.
+
+resource "aws_cloudwatch_log_metric_filter" "otp_send_failures" {
+  name           = "auth-otp-send-failures"
+  log_group_name = aws_cloudwatch_log_group.api.name
+  pattern        = "\"auth-otp send failed\""
+  metric_transformation {
+    name          = "OtpSendFailures"
+    namespace     = "REEP/Auth"
+    value         = "1"
+    default_value = 0
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "otp_send_failures" {
+  alarm_name          = "${var.project}-auth-otp-send-failures"
+  alarm_description   = "Sign-in codes are not being delivered - the API answers 202 and students receive nothing. See docs/email-password-sign-in.md."
+  namespace           = "REEP/Auth"
+  metric_name         = "OtpSendFailures"
   statistic           = "Sum"
   period              = 300
   evaluation_periods  = 1
@@ -165,6 +201,10 @@ resource "aws_iam_role_policy" "claude_observer_read" {
         "rds:Describe*",
         "elasticloadbalancing:Describe*",
         "application-autoscaling:Describe*",
+        # "Is the account still sandboxed, has the identity verified, what did
+        # the configuration set send?" — the questions behind every "I never
+        # got a code" report. Reads only; no Send*, no Put*, no Create*.
+        "ses:GetAccount", "ses:GetEmailIdentity", "ses:ListEmailIdentities", "ses:GetConfigurationSet",
       ]
       Resource = "*"
     }]

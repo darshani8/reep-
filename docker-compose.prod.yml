@@ -211,6 +211,19 @@ services:
       # the DATABASE_URL query string carries.
       PGSSLMODE: ${PGSSLMODE:-prefer}
       PGSSLROOTCERT: ${PGSSLROOTCERT:-}
+      # Email & password sign-in beside Google. Blank = the password door stays
+      # shut (Google only, exactly as before); see docs/email-password-sign-in.md.
+      # Off AWS the transport is smtp (a Workspace relay, or any host); "log" is
+      # refused as ready under ENV=prod because a code in a log is a code.
+      LOCAL_AUTH_ENABLED: ${LOCAL_AUTH_ENABLED:-false}
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-}
     volumes:
       # Uploads MUST outlive the container. Without this they land in the image
       # layer and every redeploy destroys them.

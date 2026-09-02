@@ -87,5 +87,21 @@ output "dns_records_to_create" {
   value = join("\n", compact([
     var.alb_origin_domain != "" ? "CNAME  ${var.alb_origin_domain}  ->  ${aws_lb.main.dns_name}   (DNS only / grey cloud)" : "",
     var.domain_name != "" ? "CNAME  ${var.domain_name}  ->  ${aws_cloudfront_distribution.main.domain_name}   (DNS only / grey cloud)" : "No custom domain set — reach the app at ${aws_cloudfront_distribution.main.domain_name}",
+    # Easy DKIM: three CNAMEs, one per signing token, in the SENDING domain's
+    # zone (which may be the college's, not yours — docs/aws-deployment.md §8).
+    local.mail_on ? join("\n", [for t in aws_sesv2_email_identity.mail[0].dkim_signing_attributes[0].tokens : "CNAME  ${t}._domainkey.${var.mail_from_domain}  ->  ${t}.dkim.amazonses.com   (DNS only / grey cloud)"]) : "",
   ]))
+}
+
+# "Are the DKIM CNAMEs in yet?" — `terraform refresh && terraform output
+# ses_identity`. verified=false means SES still refuses to send from the domain
+# and every code request is a 202 that delivers nothing. null = no identity
+# (mail_from_domain is blank).
+output "ses_identity" {
+  description = "The SES sending identity and whether it has verified. null when outbound email is off."
+  value = local.mail_on ? {
+    domain   = var.mail_from_domain
+    verified = aws_sesv2_email_identity.mail[0].verified_for_sending_status
+    dkim     = aws_sesv2_email_identity.mail[0].dkim_signing_attributes[0].status
+  } : null
 }

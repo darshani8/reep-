@@ -375,7 +375,7 @@ sequenceDiagram
 | Signing | `AUTH_SECRET` — the *same* secret also derives the OAuth flow-cookie key |
 | Passwords | `scrypt:<salt_hex>:<digest_hex>`, N=16384 r=8 p=1 dklen=64, salt as a **hex string** — byte-compatible with Node `scryptSync`, so hashes migrated without a reset |
 | Revocation | `users.token_version` rides in the token; `AUTH_REVOCATION_CACHE_SECONDS` (default **60**) bounds how long a logged-out token still works. DB read failure **admits** the session (fails open) and logs. |
-| Password login | `POST /api/auth/login` **kept**, refused with 403 when `settings.password_login_allowed` is false. That is an **allowlist of dev/CI env names**, not `not is_prod` — an unrecognised `ENV` ("staging", "uat", blank) shuts the door rather than opening it. |
+| Password login | `POST /api/auth/login` **kept**, refused with 403 when `settings.password_login_allowed` is false. That is an **allowlist of dev/CI env names OR the explicit `LOCAL_AUTH_ENABLED` opt-in with a ready email transport**, not `not is_prod` — an unrecognised `ENV` ("staging", "uat", blank) with nothing configured shuts the door rather than opening it. Passwords are set, reset and changed with an emailed 6-digit code (`POST /api/auth/password/otp` + `/set`, one screen for all three) — `docs/email-password-sign-in.md`. |
 | Roster | `python -m app.seed_roster` derives `1MP25MDM01` → `1mp25mdm01@bgscet.ac.in` (`ROSTER_EMAIL_DOMAIN`, alias `COLLEGE_EMAIL_DOMAIN`, `--rekey-domain` to move a batch) |
 | Allowlist | the `users` table itself. `GOOGLE_ALLOWED_DOMAIN` is a **label, not a fence**. |
 
@@ -650,7 +650,9 @@ as hard as it pins the refusal: **a guard that trips on a laptop gets deleted by
 whoever is trying to ship that afternoon.**
 
 Three more fail-closed switches keyed on the same dev-env allowlist:
-`password_login_allowed` · `insecure_cookies_allowed` · `worker_auth_optional`.
+`password_login_allowed` (which also opens on the explicit `LOCAL_AUTH_ENABLED` opt-in with a
+ready email transport — never on `not is_prod`) · `insecure_cookies_allowed` ·
+`worker_auth_optional`.
 `docs_exposed` mounts `/docs`, `/redoc`, `/openapi.json` in dev and **off in production**
 unless `DOCS_ENABLED` is set deliberately — the endpoints stay authenticated either
 way; what an open schema hands out is the **map**.

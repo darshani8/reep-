@@ -1,9 +1,14 @@
 # Google-only sign-in
 
-Every role signs in with Google. There is no password field on the production
-login screen, and **the roster is the access control**: after Google has proved
-who the visitor is, the API looks that verified email up in the `users` table
-and refuses anyone who is not already there. Nothing self-provisions.
+Every role can sign in with Google, and **the roster is the access control**:
+after Google has proved who the visitor is, the API looks that verified email up
+in the `users` table and refuses anyone who is not already there. Nothing
+self-provisions. Since 2026-09 there is a **second door beside it** — an email &
+password the student sets themselves with a 6-digit code emailed to their
+roster address, open only where `LOCAL_AUTH_ENABLED` is set with a working
+transport, and reading the same roster with the same rule. That door has its own
+design record and runbook, `docs/email-password-sign-in.md`; this page is the
+Google one, and the roster mechanics below apply to both.
 
 ```
 browser  --->  accounts.google.com  --->  GET /api/auth/sso/google/callback
@@ -27,7 +32,7 @@ the whole reason this change is small: `get_current_session`, `require_mentor`,
 | file | role |
 |---|---|
 | `apps/api-py/app/google_auth.py` | the OIDC layer: authorisation URL, code exchange, ID-token verification against Google's JWKS, state/nonce sealing |
-| `apps/api-py/app/routers/auth.py` | the endpoints: `/auth/sso/*`, the roster lookup, the cookie, the streak write, and the password endpoint's production refusal |
+| `apps/api-py/app/routers/auth.py` | the endpoints: `/auth/sso/*`, the roster lookup, the cookie, the streak write, and the password door's guard (`routers/local_auth.py` holds the two code endpoints) |
 | `apps/api-py/app/config.py` | `google_client_id`, `google_client_secret`, `google_redirect_uri`, `college_email_domain` + derived `@property` helpers |
 | `apps/api-py/app/seed_roster.py` | the roster itself — production-safe, idempotent, no passwords |
 | `apps/web/src/app/features/login/login.component.*` | the Google button, the capability probe, and the refusal messages |
@@ -92,10 +97,12 @@ streak frozen at whatever it was — silent, and only noticed weeks later.
 
 | endpoint | purpose | answers |
 |---|---|---|
-| `GET /api/auth/sso/status` | capability probe for the login screen | `200 {google_available, password_login_available, domain, reason}` — never a 4xx, so the client can show *why* |
+| `GET /api/auth/sso/status` | capability probe for the login screen | `200 {google_available, password_login_available, password_setup_available, domain, reason, password_reason}` — never a 4xx, so the client can show *why* |
 | `GET /api/auth/sso/google?next=/path` | start the flow | `302` to Google, plus the state cookie |
 | `GET /api/auth/sso/google/callback?code&state` | finish it | `302` to `next` with `reep_session` set, or `302 /login?error=…` |
-| `POST /api/auth/login` | password — dev/CI only | `200` in dev, **`403` when `ENV=prod`** |
+| `POST /api/auth/login` | password — the second door | `200` when `password_login_allowed`; `403` otherwise (dev/CI, or `LOCAL_AUTH_ENABLED` with a ready transport); `401` one sentence for every miss; `429` on the failure windows |
+| `POST /api/auth/password/otp` | email a 6-digit code to a roster address | **`202` for everyone** (`{ok, resend_after_seconds}`); `403` signed in as another address; `429`; `503` door shut, with the reason |
+| `POST /api/auth/password/set` | code + new password → signed in | `200 SessionUser` + cookie; `400` one sentence for every bad code; `403`; `422` weak password; `429`; `503` |
 | `GET /api/auth/me` | unchanged | `200 SessionUser` / `401` |
 | `POST /api/auth/logout` | unchanged | `200 {ok:true}` |
 
@@ -116,9 +123,10 @@ button renders disabled with the reason underneath.
 | `sso_identity` | the ID token did not verify (signature, `aud`, `iss`, `exp`, `nonce`) | network / config — check the API log |
 | `sso_unverified_email` | the ID token's `email_verified` was not `true` | the Google account |
 | `sso_not_enrolled` | verified identity, no matching `users` row | roster |
+| `sso_identity_mismatch` | the row is pinned (`users.google_sub`) to a **different** Google account — an address re-issued to a new holder, or someone who arranged that | the placement office: only a human clears `google_sub`, and retrying refuses identically forever |
 | `sso_failed` | the backstop — anything not enumerated above | check the API log |
 
-These seven-plus-one strings are a **three-way contract**: the callback in
+These eight-plus-one strings are a **three-way contract**: the callback in
 `app/routers/auth.py` emits them, `messageFor` in
 `apps/web/src/app/features/login/login.component.ts` turns each into a sentence,
 and this table documents them. They were once three independent vocabularies
@@ -194,7 +202,7 @@ means the feature is off, the same convention the LiveKit and OpenAI keys follow
 | `ROSTER_EMAIL_DOMAIN` | first `GOOGLE_ALLOWED_DOMAIN` entry, else `bgscet.ac.in` | the default is used | your institution's Google Workspace domain — the part after `@` in student mail. `COLLEGE_EMAIL_DOMAIN` is accepted as an alias |
 | `WEB_ORIGIN` | `http://localhost:4200` | — | existing setting. Also the CORS origin. In production this is the public site origin |
 | `AUTH_SECRET` | dev placeholder | — | existing setting. Signs `reep_session` **and** the state/nonce cookie. Rotating it signs everyone out |
-| `ENV` | `dev` | — | existing setting. `prod` turns on `Secure` cookies **and** makes password login refuse |
+| `ENV` | `dev` | — | existing setting. `prod` turns on `Secure` cookies **and** shuts the password door unless `LOCAL_AUTH_ENABLED` opens it |
 
 `GOOGLE_CLIENT_SECRET` is a credential. It never leaves the API process, is never
 logged, and is not needed by the Angular app — the authorisation-code flow keeps
@@ -295,10 +303,13 @@ garnish: `_payload_for()` only puts `studentId` in the session JWT when
 a user who logged in perfectly.
 
 The `password_hash` column is `NOT NULL`, so the seed writes a deliberately
-**unusable** sentinel — a value that can never satisfy `verify_password`, which
-requires exactly `scrypt:<salt>:<digest>`. The effect is that these accounts have
-no password at all: `POST /api/auth/login` returns the same generic 401 it
-returns for an unknown email, and they are reachable only through Google.
+**unusable** sentinel (`security.UNUSABLE_PASSWORD_HASH`) — a value that can
+never satisfy `verify_password`, which requires exactly `scrypt:<salt>:<digest>`.
+The effect is that these accounts start with no password at all: `POST
+/api/auth/login` returns the same generic 401 it returns for an unknown email.
+Google works from the first day; a student who wants a password sets one
+through the emailed-code flow, which overwrites the sentinel on their existing
+row (`docs/email-password-sign-in.md`).
 
 ### What a refused student sees
 
@@ -406,38 +417,35 @@ successful login is worth more than any amount of reasoning about the domain.
 
 ---
 
-## Password login: kept, and refused in production
+## Password login: the second door
 
-`POST /api/auth/login` still exists. It is guarded, not deleted:
+`POST /api/auth/login` still exists, and it is no longer only a dev/CI affordance.
+The guard is one property in `app/config.py`:
 
 ```python
-# Dev/CI affordance. 13 of 18 test files — and the shared `login` fixture in
-# tests/conftest.py — authenticate through this endpoint; deleting it would take
-# the DB-backed suite and CI with it. Production has exactly one way in, and it
-# is Google. Same guard shape, and the same reasoning, as app/seed.py.
-if settings.is_prod:
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Password sign-in is disabled. Use Sign in with Google.",
-    )
+@property
+def password_login_allowed(self) -> bool:
+    return _is_dev_env(self.env) or self.local_auth_ready
 ```
 
-Consequences worth knowing:
+Two ways to be open, and nothing else opens it: the dev/CI allowlist (kept
+verbatim, so `tests/conftest.py`'s `login` fixture and the seeded
+`student@ / mentor@ / director@` logins keep working with no configuration), or
+`LOCAL_AUTH_ENABLED=true` **with a ready email transport** — the operator has
+switched the email & password door on and a student can actually obtain a
+password through it. The flag alone does not open it, a transport alone does not
+either, and it is still an allowlist rather than `not is_prod`: an unrecognised,
+blank or typo'd `ENV` with nothing configured refuses exactly as before. Shut, it
+answers `403` and names Google; open, it is the door the login form posts to,
+with one `401` sentence for an unknown address, an off-domain one, a row with no
+usable password, or a wrong password.
 
-- **In dev and CI nothing changed.** `tests/conftest.py`'s `login` fixture, the
-  eight test files that take it, and `test_conversations.py`'s inline login all
-  keep passing unmodified. The seeded `student@ / mentor@ / director@` logins
-  still work locally.
-- **In production it is a hard 403**, with a message that names the alternative.
-  The production login screen does not render the password form at all; the 403
-  is the backstop for anyone posting directly.
-- **It is not an account oracle.** For roster students the endpoint would have
-  returned the generic 401 anyway (their password hash is an unusable sentinel),
-  so the 403 leaks nothing about which accounts exist.
-
-There is no override flag, for the same reason `app/seed.py` has none: an escape
-hatch would be found and used, and every path through it ends with password
-authentication live in production against accounts nobody ever set a password on.
+Passwords are created, reset and changed through `POST /api/auth/password/otp`
+and `POST /api/auth/password/set` — a 6-digit code to the roster address, then
+the new password, on one screen (`/login/password`). The design, the guard's
+truth table, the SES setup and the runbook are in
+`docs/email-password-sign-in.md`; the roster rule on this page is unchanged by
+it, and the Google path is byte-for-byte what it was.
 
 ---
 
@@ -550,6 +558,7 @@ them. A student is not missing because their number is absent.
 | Google says "Access blocked: … has not completed the Google verification process" | an **External** consent screen still in *Testing*, and this account is not a listed test user | switch the consent screen to **Internal** (correct for a Workspace institution), or add the tester |
 | Signed in, but the login streak stopped counting | the `LoginDay` write was skipped on the SSO path | the callback must do the same `last_login_at` + `LoginDay` upsert as password login; check `select max(day) from login_days where user_id = …` |
 | Everyone signed out at once, with no deploy | `AUTH_SECRET` changed, or differs between replicas | it signs both `reep_session` and the state cookie; it must be identical everywhere and stable |
+| The password form is disabled with a reason under it | the password door is shut: `LOCAL_AUTH_ENABLED` unset, or the email transport is not ready | `GET /api/auth/sso/status` → `password_reason` names the variable; `docs/email-password-sign-in.md` |
 
 ---
 
@@ -566,4 +575,6 @@ them. A student is not missing because their number is absent.
 5. Sign in as one real student, end to end. Confirm their USN shows on
    `/student/profile` without them typing it, and that
    `select count(*) from login_days where day = current_date;` moved.
-6. `POST /api/auth/login` answers **403** in production.
+6. `POST /api/auth/login` answers **403** until `LOCAL_AUTH_ENABLED` is set with a
+   ready email transport (`docs/email-password-sign-in.md`); `GET
+   /api/auth/sso/status` says `password_login_available: false` until then.

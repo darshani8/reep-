@@ -46,9 +46,12 @@ resource "aws_iam_role" "api_task" {
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
 }
 
-# The ONLY AWS API the application code holds: invoking Nova on Bedrock. No S3,
-# no Secrets Manager (secrets arrive as env at launch), nothing else — a
-# compromised task can talk to a model and that is all.
+# TWO AWS APIs, and the application code holds nothing else: invoking Nova on
+# Bedrock (here) and, when an SES identity exists, sending sign-in codes from it
+# (email.tf, scoped to that one identity and one From address). No S3, no
+# Secrets Manager (secrets arrive as env at launch), nothing else — a
+# compromised task can talk to a model, send a plain-text message from
+# no-reply@, and that is all.
 #
 # THE THIRD ACTION IS A SEPARATE PERMISSION, not a variant of the other two.
 # InvokeModelWithBidirectionalStream is what app/interview_nova.py opens for the
@@ -109,6 +112,18 @@ locals {
     # is a terraform variable rather than a release.
     { name = "INTERVIEW_CONSENT_VERSION", value = var.interview_consent_version },
     { name = "LLM_ALLOW_REMOTE_STUDENT_DATA", value = var.allow_remote_student_data },
+    # Email & password sign-in. The transport is decided by whether an SES
+    # identity exists (email.tf), the opt-in is a separate variable, and the
+    # region is named explicitly rather than inherited (this file's rule for
+    # NOVA_SONIC_REGION): SES is served in ap-south-1, so this is var.region.
+    # Nothing here is a secret — SES is signed by the task role — so
+    # api_secrets below and the operator-owned secret are untouched.
+    { name = "LOCAL_AUTH_ENABLED", value = var.local_auth_enabled },
+    { name = "EMAIL_TRANSPORT", value = local.mail_on ? "ses" : "" },
+    { name = "EMAIL_FROM", value = var.mail_from_address },
+    { name = "EMAIL_REPLY_TO", value = var.mail_reply_to },
+    { name = "SES_REGION", value = var.region },
+    { name = "SES_CONFIGURATION_SET", value = local.mail_on ? aws_sesv2_configuration_set.mail[0].configuration_set_name : "" },
   ]
 
   api_secrets = [

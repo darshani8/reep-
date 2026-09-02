@@ -178,6 +178,13 @@ the earlier design's documented "one INSERT versus one SELECT" residual is
 removed structurally rather than accepted. (There is no `time.sleep` floor: a
 floor is not an equaliser, and it pins a threadpool thread.)
 
+One residual is accepted and named: `POST /api/auth/password/set` does one
+query for an unknown or off-domain address and two for a roster address (the
+users lookup, then the code lookup), so its latency is not identical across the
+two. It is bounded by the 20-per-15-minutes per-IP window and it answers
+nothing a caller can use without also holding the code; the request endpoint,
+which needs no code, is the one that must not leak and does not.
+
 The same rule is why a **transport failure is not a 503**: only enrolled
 addresses could receive it. The witnesses are elsewhere, and they are the
 runbook below — the ERROR line `auth-otp send failed for otp <id>: <error>`

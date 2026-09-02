@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import re
+import threading
 import uuid
 from datetime import timedelta
 
@@ -460,3 +461,100 @@ def test_password_endpoints_also_answer_under_api_v1(client, door):
     assert client.post("/api/v1/auth/password/otp", json={"email": "x@bgscet.ac.in"}).status_code == 202
     r = client.post("/api/v1/auth/password/set", json={"email": "x@bgscet.ac.in", "code": "123456", "new_password": GOOD_PASSWORD})
     assert r.status_code == 400
+
+
+# --- the review's findings, pinned ---------------------------------------------
+
+
+def test_concurrent_wrong_guesses_each_count(client, door, roster_user):
+    """Eight threads guess wrong behind a barrier; the cap must hold at 5, not collapse to 1."""
+    uid, email = roster_user()
+    _request(client, email)
+    with SessionLocal() as db:
+        user = db.get(User, uid)
+        db.expunge(user)
+    barrier = threading.Barrier(8)
+
+    def _guess():
+        with SessionLocal() as db:
+            barrier.wait()
+            local_auth.verify_code(db, user, local_auth.PURPOSE_PASSWORD, "000000")
+
+    threads = [threading.Thread(target=_guess) for _ in range(8)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join()
+    # Under the row lock the guesses serialise: five count, the rest meet a dead
+    # code and count nothing. Before the lock the finder measured 1 of 10.
+    (row,) = _otp_rows(uid)
+    assert row.attempts == local_auth.OTP_MAX_ATTEMPTS
+    assert _set(client, email, _code_from(door))[0].status_code == 400  # burned
+
+
+def test_concurrent_requests_issue_one_code_inside_the_cooldown(client, door, roster_user, monkeypatch):
+    monkeypatch.setattr(local_auth, "OTP_RESEND_SECONDS", 60)
+    uid, email = roster_user()
+    with SessionLocal() as db:
+        user = db.get(User, uid)
+        db.expunge(user)
+    barrier = threading.Barrier(6)
+    issued: list[bool] = []
+
+    def _issue():
+        with SessionLocal() as db:
+            barrier.wait()
+            issued.append(local_auth.issue_code(db, user, local_auth.PURPOSE_PASSWORD) is not None)
+
+    threads = [threading.Thread(target=_issue) for _ in range(6)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join()
+    assert sum(issued) == 1 and len(_otp_rows(uid)) == 1
+
+
+def test_the_send_failure_line_never_carries_the_address_even_when_the_provider_does(
+    client, door, roster_user, monkeypatch, caplog
+):
+    uid, email = roster_user()
+
+    def _boom(message):
+        raise email_mod.EmailError(
+            "ses: MessageRejected: Email address is not verified. The following identities "
+            f"failed the check in region AP-SOUTH-1: {message.to}"
+        )
+
+    monkeypatch.setattr(email_mod, "send", _boom)
+    with caplog.at_level(logging.ERROR):
+        assert _request(client, email).status_code == 202
+    errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.ERROR]
+    assert any(local_auth.SEND_FAILED_LOG in m and "<address>" in m for m in errors)
+    assert all(email not in m for m in errors)
+    with SessionLocal() as db:
+        row = db.scalar(select(MailLog).where(MailLog.recipient == email))
+    assert email in row.error  # verbatim beside the recipient column, on purpose
+
+
+def test_set_still_signs_in_when_the_streak_row_cannot_be_written(client, door, roster_user, monkeypatch):
+    from sqlalchemy.exc import OperationalError
+
+    from app.routers import local_auth as router_module
+
+    uid, email = roster_user()
+    _request(client, email)
+
+    def _down(db, user):
+        raise OperationalError("insert into login_days", {}, Exception("connection lost"))
+
+    monkeypatch.setattr(router_module, "_record_login", _down)
+    r, cookie = _set(client, email, _code_from(door))
+    assert r.status_code == 200, r.text
+    assert client.get(ME, headers=cookie).status_code == 200
+    client.cookies.clear()
+    assert _user(uid).password_hash.startswith("scrypt:")
+
+
+def test_redact_addresses():
+    assert local_auth.redact_addresses("failed: a.b@c.d, <x@y.z>; done") == "failed: <address>, <<address>>; done"
+    assert local_auth.redact_addresses(None) == ""

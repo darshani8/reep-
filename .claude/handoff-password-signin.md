@@ -122,5 +122,15 @@ Email + password sign-in for pre-enrolled college accounts, beside Google, with 
   Branch `claude/nova-sonic-ai-interview-jm7jrb` now carries 5 unmerged commits on main@97b1b37.
 - 07:22 UTC — adversarial review workflow running: `wf_68c98659-40f` (4 find lenses → 2 refuters
   per finding). Journal: `.../subagents/workflows/wf_68c98659-40f/journal.jsonl`.
-- NEXT: fix confirmed findings → re-run pytest/tsc/ng build/terraform validate → commit `fix:` → push.
-  Then tell the owner. Do NOT open a PR unless asked. No PR exists for this branch yet.
+- 11:30 UTC — review workflow was cut by the session limit (2/4 finders ran, 0/12 refuters).
+  Judged its 6 findings by hand: FIXED (a) verify_code now SELECT ... FOR UPDATE + atomic
+  `attempts = attempts + 1` (cap holds at 5 under 8 concurrent guesses; test pins it);
+  (b) issue_code locks the user row so a burst issues ONE code inside the cooldown (test);
+  (c) the `auth-otp send failed` line redacts addresses the provider's message may carry (test);
+  (d) /password/set survives a failed _record_login and still issues the cookie (test).
+  ACCEPTED + documented: /set does 1 vs 2 queries for unknown vs roster addresses (bounded by
+  the 20/15-min per-IP window; docs/email-password-sign-in.md). Duplicate finding merged.
+  Frontend lens never ran; spot-checked by hand (timer cleanup, FormsModule, name attrs, fail-open).
+  FULL SUITE: 731 passed, 3 skipped, 0 failed. Committed + pushed as the `fix:` commit below.
+- STATE: feature COMPLETE on the branch. Nothing pending except the owner's decisions
+  (merge; SES setup per docs/aws-deployment.md §8; LOCAL_AUTH_ENABLED). No PR opened.

@@ -28,6 +28,7 @@ import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from .. import local_auth
@@ -169,7 +170,17 @@ def set_password(
     note_revocation(user.id, version)
     log.info("auth-otp: password set for user %s", user.id)
 
-    _record_login(db, user)
+    # The password is committed and every other session is already dead, so
+    # from here the only acceptable outcome is a cookie. The streak row is
+    # telemetry; a failed write of it must not turn a successful reset into a
+    # 500 with no session and a consumed code (the Google callback makes the
+    # same call: routers/auth.py). Build the claims first, because a rollback
+    # after the failure expires the loaded attributes.
     payload = _payload_for(user)
+    try:
+        _record_login(db, user)
+    except SQLAlchemyError:
+        db.rollback()
+        log.exception("auth-otp: password set for user %s but the login record failed", user.id)
     _issue_session(response, payload)
     return SessionUser(**payload)

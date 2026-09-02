@@ -41,10 +41,11 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from . import email as email_mod
@@ -155,6 +156,12 @@ def issue_code(
     email. Older live codes are EXPIRED, not deleted, so the cap and the
     cooldown still count the request they are supposed to count."""
     now = now or utcnow()
+    # Serialise on the user row for the length of this transaction. The cooldown
+    # and the hourly cap are decided from a snapshot of this user's rows; without
+    # a lock, N concurrent requests (30 per IP fit inside the window) each read
+    # the pre-burst snapshot, all pass, and one address receives N emails. Every
+    # return path below commits, which releases it.
+    db.execute(select(User.id).where(User.id == user.id).with_for_update())
     db.execute(
         delete(EmailOtp).where(
             EmailOtp.user_id == user.id,
@@ -200,19 +207,28 @@ def verify_code(
     counted against that code. Does NOT consume: consumption is one transaction
     with the password write, in consume_and_set_password."""
     now = now or utcnow()
+    # FOR UPDATE, so the liveness check and the miss count run under the row
+    # lock: parallel wrong guesses otherwise all read attempts=0, all pass, and
+    # all write 1 - a 5-guess budget that a burst turns into 20.
     row = db.scalar(
         select(EmailOtp)
         .where(EmailOtp.user_id == user.id, EmailOtp.purpose == purpose)
         .order_by(EmailOtp.created_at.desc())
         .limit(1)
+        .with_for_update()
     )
     if row is None or not _is_live(row, now):
         # Burn the same comparison so a missing row costs what a wrong code costs.
         hmac.compare_digest(otp_hash(user.id, purpose, code), otp_hash(user.id, purpose, "0"))
+        db.commit()
         return None
     if hmac.compare_digest(row.code_hash, otp_hash(user.id, purpose, code)):
+        db.commit()  # releases the lock; consumption is the caller's transaction
         return row
-    row.attempts += 1
+    # Atomic in SQL as well as locked: `attempts = attempts + 1`, never a Python
+    # value written back, so a lost update is impossible even if the lock above
+    # is ever loosened.
+    db.execute(update(EmailOtp).where(EmailOtp.id == row.id).values(attempts=EmailOtp.attempts + 1))
     db.commit()
     return None
 
@@ -260,8 +276,20 @@ def deliver_code(db: Session, otp: EmailOtp, to: str, code: str) -> MailLog:
         send=lambda _recipient, _subject: email_mod.send(message),
     )
     if row.status is MailStatus.FAILED:
-        log.error("%s for otp %s: %s", SEND_FAILED_LOG, otp.id, row.error)
+        # The provider's message may name the recipient (SES: "Email address is
+        # not verified. The following identities failed the check ...: <addr>").
+        # mail_logs.error keeps it verbatim beside the recipient column it
+        # already holds; the log line, which reaches CloudWatch and the alarm,
+        # does not.
+        log.error("%s for otp %s: %s", SEND_FAILED_LOG, otp.id, redact_addresses(row.error))
     return row
+
+
+_ADDRESS = re.compile(r"[^\s@<>,;:]+@[^\s@<>,;:]+")
+
+
+def redact_addresses(text: str | None) -> str:
+    return _ADDRESS.sub("<address>", text or "")
 
 
 def request_code(email: str) -> None:

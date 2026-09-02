@@ -13,6 +13,21 @@ def get_current_session(request: Request) -> dict:
     return payload
 
 
+def get_optional_session(request: Request) -> dict | None:
+    """The session if a valid reep_session cookie is present, else None. Never raises.
+
+    For endpoints that serve both anonymous callers and signed-in ones with the
+    same handler — the password endpoints in app/routers/local_auth.py: create
+    and forgot arrive with no cookie, change arrives with one. They bind a
+    present session to the submitted address and require nothing when there is
+    none. An invalid or expired cookie reads as "no session" rather than a 401,
+    because the anonymous path is a legitimate one and a stale cookie must not
+    turn a forgot-password attempt into a refusal.
+    """
+    token = request.cookies.get(SESSION_COOKIE)
+    return verify_session_token(token) if token else None
+
+
 def get_ws_session(websocket: WebSocket) -> dict:
     """Session for a WebSocket route. Same cookie, same verification, different
     failure vocabulary — a WS scope cannot carry an HTTP response.

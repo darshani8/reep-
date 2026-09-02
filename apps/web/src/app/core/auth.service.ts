@@ -1,13 +1,16 @@
 /**
  * The client half of authentication.
  *
- * The client POSTs credentials to the FastAPI backend (apps/api-py), which sets
- * the http-only `reep_session` cookie and returns the
- * session payload. `withCredentials` is what carries that cookie back on every
- * later request — the cookie is never read by JavaScript, exactly as before.
+ * Two doors, one session: the Google callback sets the httpOnly `reep_session`
+ * cookie server-side and the SPA simply reboots into it; the email & password
+ * form (`login()`) and the set-password screen (`setPassword()`) POST here and
+ * receive the same cookie plus the session payload in the body. `withCredentials`
+ * is what carries that cookie back on every later request — the cookie is never
+ * read by JavaScript, whichever door minted it.
  *
  * The signed-in session is held in a signal so guards and the shell can react
- * to it without re-fetching.
+ * to it without re-fetching, and both POSTs set it on success so the guard
+ * chain has one source of truth rather than a second `/auth/me` round trip.
  */
 
 import { Injectable, computed, inject, signal } from '@angular/core';
@@ -25,14 +28,30 @@ export class AuthService {
   readonly session = this._session.asReadonly();
   readonly isSignedIn = computed(() => this._session() !== null);
 
-  /// POST the credentials; the backend validates against the same scrypt hash
-  /// and sets the session cookie. Returns the session so the caller can route
-  /// by role.
-  async login(email: string, password: string, next?: string): Promise<SessionPayload> {
+  /// POST the credentials; the backend validates against the scrypt hash and
+  /// sets the session cookie. Returns the session so the caller can route by
+  /// role. 401/403/429 arrive as HttpErrorResponse with a `detail` sentence.
+  async login(email: string, password: string): Promise<SessionPayload> {
     const session = await firstValueFrom(
       this.http.post<SessionPayload>(
         `${environment.apiBase}/auth/login`,
-        { email, password, next },
+        { email, password },
+        { withCredentials: true },
+      ),
+    );
+    this._session.set(session);
+    return session;
+  }
+
+  /// Redeem an emailed code for a new password (create, reset or change — the
+  /// endpoint is the same for all three). On success the caller is signed in
+  /// on a fresh cookie and every other session of theirs is revoked, so the
+  /// signal is set here too. 400/403/422/429/503 arrive as HttpErrorResponse.
+  async setPassword(email: string, code: string, newPassword: string): Promise<SessionPayload> {
+    const session = await firstValueFrom(
+      this.http.post<SessionPayload>(
+        `${environment.apiBase}/auth/password/set`,
+        { email, code, new_password: newPassword },
         { withCredentials: true },
       ),
     );

@@ -2,6 +2,18 @@
   <div class="desktop-titlebar">
     <span class="icon" style="font-size:14px" aria-hidden="true">school</span>
     REEP · {{ roleLabel() | uppercase }}
+    <!-- Change password: the set-password screen in `change` mode, bound to the
+         session's address. The shell does not probe whether the door is on —
+         the destination renders disabled with the reason if it is not, which
+         is the honest behaviour for a link that is on every screen. -->
+    <a
+      class="titlebar-link"
+      routerLink="/login/password"
+      [queryParams]="{ mode: 'change', email: session()?.email }"
+    >
+      <span class="icon" style="font-size:14px" aria-hidden="true">lock</span>
+      Change password
+    </a>
     <button type="button" class="titlebar-logout" (click)="signOut()">
       <span class="icon" style="font-size:14px" aria-hidden="true">logout</span>
       Sign out

@@ -354,7 +354,8 @@ def test_it_does_not_fire_on_an_unrecognised_env():
     staging or uat box holding the committed secret starts anyway. The audit's
     fail-closed treatment of an unrecognised ENV lives in the guards that can
     afford it — `insecure_cookies_allowed`, `worker_auth_optional`,
-    `password_login_allowed` — because those degrade one feature, where this one
+    `password_login_allowed` (which now ALSO opens on the explicit LOCAL_AUTH_ENABLED
+    opt-in with a ready email transport) — because those degrade one feature, where this one
     refuses to boot at all and would take a demo box down over a name it did not
     recognise.
 
@@ -377,3 +378,14 @@ def test_the_suite_itself_boots_clean():
         f"{live_settings.env!r}. Every test that uses the `client` fixture is "
         "about to fail at startup."
     )
+
+
+def test_email_and_local_auth_settings_never_refuse_boot(monkeypatch):
+    """The email transport and the password door are ONE feature that degrades
+    and says why (GET /api/auth/sso/status); they must never take the process
+    down. The worst configuration — the door switched on with a transport that
+    does not exist — boots clean."""
+    cfg = _cfg(local_auth_enabled=True, email_transport="nonsense", email_from="")
+    assert cfg.production_boot_failures() == []
+    assert cfg.local_auth_ready is False
+    _boot(monkeypatch, cfg)

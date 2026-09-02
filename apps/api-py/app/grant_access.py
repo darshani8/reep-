@@ -50,6 +50,7 @@ from .db import SessionLocal
 from .models.student_profile import StudentProfile
 from .models.user import Role, Student, User
 from .seed_roster import db_target
+from .security import UNUSABLE_PASSWORD_HASH
 
 # The roles this tool may mint on its own. STUDENT is absent on purpose â see the
 # module docstring; a User row without its Student row is an account that signs
@@ -71,7 +72,7 @@ _GRANTABLE_ROLES = (Role.MENTOR, Role.DIRECTOR, Role.ADMIN, Role.ALUMNI)
 # and rejects anything that is not exactly scrypt:<salt>:<digest>, so this value
 # returns False for every password ever tried â POST /api/auth/login answers with
 # its ordinary 401 and reveals nothing about which accounts are SSO-only.
-SSO_ONLY_PASSWORD_HASH = "google-only"
+SSO_ONLY_PASSWORD_HASH = UNUSABLE_PASSWORD_HASH  # one constant, app/security.py
 
 
 def grant(

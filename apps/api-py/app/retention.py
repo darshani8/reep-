@@ -382,6 +382,17 @@ def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
             summary["interviews_hard_deleted"] = len(doomed_session_ids)
 
     db.commit()
+    # --- 4) Sign-in codes and their delivery records. --------------------------
+    #
+    # A code is dead after ten minutes and its row is evidence for a day; the
+    # mail_logs row that records its delivery holds the recipient address and is
+    # kept 180 days (the interview clock) so "did they ever get a code" stays
+    # answerable for a semester and not forever. app/local_auth.py owns both
+    # numbers; this is the only caller.
+    from . import local_auth  # noqa: PLC0415 — avoids a config import at module load
+
+    summary.update(local_auth.purge_stale(db, now=now))
+
     return summary
 
 

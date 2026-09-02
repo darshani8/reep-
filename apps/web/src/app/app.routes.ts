@@ -32,6 +32,14 @@ function placeholder(path: string, title: string): Route {
 }
 
 export const routes: Routes = [
+  // Longer path first. Create, reset and change password are ONE screen with a
+  // `mode` query param; it sits outside the shell like /login, because two of
+  // its three modes are reached by someone who cannot sign in yet.
+  {
+    path: 'login/password',
+    loadComponent: () =>
+      import('./features/login/password-setup.component').then((m) => m.PasswordSetupComponent),
+  },
   {
     path: 'login',
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),

@@ -51,6 +51,7 @@ from .db import SessionLocal
 from .models.cohort import Cohort
 from .models.student_profile import StudentProfile
 from .models.user import Role, Student, User
+from .security import UNUSABLE_PASSWORD_HASH
 
 # Last-resort fallback for the email domain. The configured value is
 # `settings.roster_domain` (ROSTER_EMAIL_DOMAIN, alias COLLEGE_EMAIL_DOMAIN,
@@ -61,7 +62,9 @@ from .models.user import Role, Student, User
 # sign-in at once, and the fix has to ship in minutes.
 DEFAULT_COLLEGE_DOMAIN = "bgscet.ac.in"
 
-# Unusable-password sentinel. These are Google-only accounts, but `users
+# Unusable-password sentinel: an account with no local password YET. Google
+# works for it, and the student can set a password through the emailed-code
+# flow (app/local_auth.py), which overwrites this value. `users
 # .password_hash` is NOT NULL in the schema (models/user.py:48 and the original
 # migration), so a value must be supplied and it must be one that can never
 # authenticate. `verify_password` (app/security.py) splits on ":" and rejects
@@ -70,7 +73,7 @@ DEFAULT_COLLEGE_DOMAIN = "bgscet.ac.in"
 # ordinary 401 — no crash, no oracle telling an attacker which accounts are
 # SSO-only. Nothing else in the codebase writes a non-scrypt password_hash;
 # this is new ground, and it is why no migration is needed to ship the roster.
-SSO_ONLY_PASSWORD_HASH = "google-only"
+SSO_ONLY_PASSWORD_HASH = UNUSABLE_PASSWORD_HASH  # one constant, app/security.py
 
 # Source document: the MBA 1MP25MDM batch roster (33 students) supplied by the
 # department with the Google-only sign-in brief, 2026-08. Transcribed verbatim,

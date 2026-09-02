@@ -287,6 +287,17 @@ def test_sso_status_reports_the_doors_and_the_domain(client):
     r = client.get("/api/auth/sso/status")
     assert r.status_code == 200, r.text
     body = r.json()
-    assert set(body) == {"google_available", "password_login_available", "domain", "reason"}
+    assert set(body) == {
+        "google_available",
+        "password_login_available",
+        "password_setup_available",
+        "domain",
+        "reason",
+        "password_reason",
+    }
+    # The suite runs on the dev default: the door is off until LOCAL_AUTH_ENABLED
+    # is set, and the reason names it.
+    assert body["password_setup_available"] is False
+    assert "LOCAL_AUTH_ENABLED" in body["password_reason"]
     assert body["domain"] == settings.roster_domain
     assert isinstance(body["google_available"], bool)

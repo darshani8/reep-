@@ -1,6 +1,8 @@
-"""Auth endpoints â password sign-in (dev/CI) and Google sign-in (everywhere).
+"""Auth endpoints â password sign-in (dev/CI, or opted in) and Google sign-in (everywhere).
 
-  POST /api/auth/login                 -> email + password. REFUSED when ENV=prod.
+  POST /api/auth/login                 -> email + password (see password_login_allowed)
+  POST /api/auth/password/otp          -> email a one-time code   (app/routers/local_auth.py)
+  POST /api/auth/password/set          -> code + new password -> signed in (same file)
   GET  /api/auth/sso/status            -> which sign-in doors this server offers
   GET  /api/auth/sso/google            -> begin Google sign-in (302 to Google)
   GET  /api/auth/sso/google/callback   -> finish it (302 back into the SPA)
@@ -34,7 +36,8 @@ THE ROSTER IS THE ALLOWLIST. A verified Google identity whose email matches no
 account would need a role invented for it, and AGENTS.md rule 2 makes guessing a
 role a data-exposure bug rather than a UX one (a wrong MENTOR/DIRECTOR reads
 every student's marks, attendance and USN). Accounts are created from the roster
-by `python -m app.seed_roster`, which is also where the USN comes from â so a
+by `python -m app.seed_roster`, which is also where the USN comes from. The
+password door reads the same roster and adds a domain fence (app/local_auth.py) â so a
 student's profile shows it already filled in and they never type it.
 
 THE EMAIL FINDS THE ROW; THE GOOGLE `sub` PINS IT. An institutional address is a
@@ -84,7 +87,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from .. import google_auth
+from .. import google_auth, local_auth
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
@@ -95,6 +98,7 @@ from ..security import (
     SESSION_TTL_SECONDS,
     SESSION_VERSION_CLAIM,
     create_session_token,
+    has_usable_password,
     hash_password,
     note_revocation,
     verify_password,
@@ -259,59 +263,83 @@ def _clear_flow_cookie(response: Response) -> None:
 
 
 @router.post("/login", response_model=SessionUser)
-def login(body: LoginRequest, response: Response, db: Session = Depends(get_db)) -> SessionUser:
-    """Email + password. A DEV AND CI AFFORDANCE THAT PRODUCTION REFUSES.
+def login(
+    body: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)
+) -> SessionUser:
+    """Email + password: the second door, beside Google.
 
-    Sign-in is Google-only for real users, for every role. This endpoint is kept
-    â not deleted â because tests/conftest.py's `login` fixture and the six test
-    modules that use it (test_auth_rbac, test_conversations, test_feedback,
-    test_knowledge, test_metrics, test_orchestrator) authenticate through it, and
-    an OAuth round-trip cannot be driven from a TestClient without either
-    stubbing Google or shipping a second, weaker door that exists in production.
-    Refusing outside dev/CI is that second door not existing where it matters,
-    and it is the same guard shape app/seed.py uses for the same kind of reason:
-    some things must not merely be discouraged in production, they must be
-    impossible there.
+    OPEN in dev/CI without configuration (tests/conftest.py's fixtures and the
+    modules that post here authenticate through it, and an OAuth round-trip
+    cannot be driven from a TestClient), and in ANY environment that opts in
+    with LOCAL_AUTH_ENABLED and a ready email transport - because a password a
+    student cannot obtain is not a door. `password_login_allowed` (app/config.py)
+    is that rule and it is still an allowlist, never `not is_prod`: an ENV
+    nobody anticipated shuts this door rather than opening it.
 
-    `password_login_allowed`, NOT `not is_prod`: an allowlist of the environments
-    this endpoint serves, so an ENV nobody anticipated shuts the door rather than
-    opening it (see app/config.py). The guard fires BEFORE the database is
-    touched, so it cannot be probed for which accounts exist and cannot be
-    defeated by a timing difference.
+    ORDER: guard -> per-IP window -> per-address window -> lookup (case-
+    insensitive) -> domain fence -> usable hash -> verify -> session. Every gate
+    fires BEFORE the database, so nothing here can be probed for which accounts
+    exist, and every refusal below the guard is the same 401 at the same cost:
+    the scrypt equaliser is burned for an unknown address, an off-domain one AND
+    a roster row that has never set a password, so the sentinel is not a
+    stopwatch oracle either.
     """
     if not settings.password_login_allowed:
         log.warning(
-            "POST /api/auth/login -> 403: password sign-in is disabled when ENV=%r "
-            "(Google sign-in only); this endpoint exists for dev and CI",
+            "POST /api/auth/login -> 403: password sign-in is not available when "
+            "ENV=%r (%s)",
             settings.env,
+            settings.local_auth_unready_reason,
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Password sign-in is disabled. Use Continue with Google.",
+            detail="Password sign-in is not available on this server. Use Continue with Google.",
         )
 
-    email = body.email.strip().lower()
-    user = db.scalar(select(User).where(User.email == email))
-    # One message for both cases â never reveal which of email/password was wrong.
-    # `not user.password_hash` covers a roster account that has no usable local
-    # password: without it, verify_password would raise AttributeError on None and
-    # turn a 401 into a 500, which is both a crash and an account-existence oracle.
-    if user is None or not user.password_hash:
-        # The message hides which case this is; the CLOCK must too. scrypt takes
-        # tens of milliseconds, so skipping it for an unknown email makes "does
-        # this account exist" answerable with a stopwatch despite the uniform
-        # 401. Burn the same work against a throwaway hash before refusing.
+    client_ip = request.client.host if request.client else "unknown"
+    email = local_auth.normalise_email(body.email)
+    too_many = (
+        "Too many failed sign-in attempts. Wait a few minutes, or reset your password "
+        "with an emailed code."
+    )
+    for window, key in (
+        (local_auth.LOGIN_IP_FAILURES, client_ip),
+        (local_auth.LOGIN_ADDRESS_FAILURES, email),
+    ):
+        wait = window.blocked(key)
+        if wait is not None:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=too_many,
+                headers={"Retry-After": str(wait)},
+            )
+
+    def _refuse() -> HTTPException:
+        # Every 401 records one failure on both windows; a success clears the
+        # address window below. The message hides which case this is.
+        local_auth.LOGIN_IP_FAILURES.hit(client_ip)
+        local_auth.LOGIN_ADDRESS_FAILURES.hit(email)
+        return HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password.",
+        )
+
+    user = local_auth.find_user(db, email)
+    if (
+        user is None
+        or not local_auth.address_allowed(email)
+        or not has_usable_password(user.password_hash)
+    ):
+        # The CLOCK must hide the case too: scrypt takes tens of milliseconds,
+        # so skipping it for an unknown or password-less account would make
+        # "does this account exist" answerable with a stopwatch despite the
+        # uniform 401. Burn the same work against a throwaway hash first.
         verify_password(body.password, _TIMING_EQUALIZER_HASH)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password.",
-        )
+        raise _refuse()
     if not verify_password(body.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password.",
-        )
+        raise _refuse()
 
+    local_auth.LOGIN_ADDRESS_FAILURES.clear(email)
     _record_login(db, user)
     payload = _payload_for(user)
     _issue_session(response, payload)
@@ -336,8 +364,13 @@ class SsoStatus(BaseModel):
 
     google_available: bool
     password_login_available: bool
+    # The email & password door's OWN readiness and reason, separate from
+    # Google's: the login screen renders the form disabled with `password_reason`
+    # when this is false, the same way it disables the Google button on `reason`.
+    password_setup_available: bool = False
     domain: str
     reason: str | None = None
+    password_reason: str | None = None
 
 
 @router.get("/sso/status", response_model=SsoStatus)
@@ -364,7 +397,9 @@ def sso_status() -> SsoStatus:
         return SsoStatus(
             google_available=True,
             password_login_available=settings.password_login_allowed,
+            password_setup_available=settings.local_auth_ready,
             domain=settings.roster_domain,
+            password_reason=settings.local_auth_unready_reason,
         )
     reason = "Google sign-in is not configured on this server yet."
     if settings.is_prod:
@@ -373,8 +408,10 @@ def sso_status() -> SsoStatus:
     return SsoStatus(
         google_available=False,
         password_login_available=settings.password_login_allowed,
+        password_setup_available=settings.local_auth_ready,
         domain=settings.roster_domain,
         reason=reason,
+        password_reason=settings.local_auth_unready_reason,
     )
 
 

@@ -27,6 +27,7 @@ from ..db import get_db
 from ..identity import get_current_session
 from ..models.job import DegreeLevel
 from ..models.registration import Registration, RegistrationRule, RegistrationStatus
+from ..ratelimit import FixedWindow
 from .mentor import require_director
 
 router = APIRouter(prefix="/register", tags=["registration"])
@@ -188,28 +189,16 @@ def _rule_matches(rule: RegistrationRule, email: str, usn: str | None, degree: D
 _RATE_WINDOW_SECONDS = 600
 _RATE_MAX_PER_WINDOW = 20
 _RATE_MAX_KEYS = 4096
-_rate_windows: dict[str, tuple[float, int]] = {}
+# The window itself now lives in app/ratelimit.py (FixedWindow) so the sign-in
+# doors could share it rather than copy it; the numbers and the caveats above
+# are unchanged.
+_rate_window = FixedWindow(_RATE_WINDOW_SECONDS, _RATE_MAX_PER_WINDOW, max_keys=_RATE_MAX_KEYS)
 
 
 def _rate_limit_retry_after(client_ip: str) -> int | None:
     """Count this attempt. Returns None to proceed, or seconds until the window
     resets when the caller has spent it."""
-    now = time.monotonic()
-    window_start, count = _rate_windows.get(client_ip, (now, 0))
-    if now - window_start >= _RATE_WINDOW_SECONDS:
-        window_start, count = now, 0
-    if count >= _RATE_MAX_PER_WINDOW:
-        # Not recorded: a caller who keeps hammering must not extend their own
-        # window, or a refusal would become a permanent block.
-        return max(1, int(_RATE_WINDOW_SECONDS - (now - window_start)))
-    if client_ip not in _rate_windows and len(_rate_windows) >= _RATE_MAX_KEYS:
-        for key, (started, _n) in list(_rate_windows.items()):
-            if now - started >= _RATE_WINDOW_SECONDS:
-                del _rate_windows[key]
-        if len(_rate_windows) >= _RATE_MAX_KEYS:
-            _rate_windows.clear()  # every window still live: start over, never grow
-    _rate_windows[client_ip] = (window_start, count + 1)
-    return None
+    return _rate_window.retry_after(client_ip)
 
 
 def _pick_rule(

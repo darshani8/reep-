@@ -1,0 +1,231 @@
+/* The pieces the two pre-login screens share: `/login` and `/login/password`.
+
+   Both sit OUTSIDE the shell and dress themselves on the `--reep-*` tokens
+   (reep-theme.scss), never on the v2 component classes — reep-v2.scss is the
+   shell's, and reep-v2-resume.scss loads after it and leaks every property it
+   does not set, so nothing here is added to either global sheet. Each
+   component `@use`s this partial, so the rules are emitted once per component
+   under that component's own encapsulation attribute. Keep it small: the
+   anyComponentStyle budget warns at 16 kB per component and this partial is
+   counted in both.
+
+   Every alert is icon + text together, never colour alone. */
+
+/* --- alerts --------------------------------------------------------------- */
+.alert {
+  margin-top: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--reep-divider);
+  background-color: var(--reep-action-hover);
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.5;
+}
+.alert__icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.alert__text {
+  margin: 0;
+  font-weight: 500;
+}
+.alert__meta {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: var(--reep-text-secondary);
+}
+.alert--error {
+  color: var(--reep-error-main);
+  border-color: var(--reep-error-main);
+}
+.alert--warn {
+  color: var(--reep-warning-main);
+  border-color: var(--reep-warning-main);
+}
+.alert--info {
+  color: var(--reep-text-primary);
+  border-color: var(--reep-secondary-main);
+}
+
+/* --- buttons -------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 7px;
+  padding-inline: 16px;
+  cursor: pointer;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.btn--primary {
+  width: 100%;
+  min-height: 46px;
+  background-color: var(--reep-primary-main);
+  color: var(--reep-primary-contrast);
+}
+.btn--primary:hover:not(:disabled) {
+  background-color: var(--reep-primary-dark);
+}
+.btn--primary:focus-visible {
+  outline: 2px solid var(--reep-secondary-main);
+  outline-offset: 2px;
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: reep-spin 0.7s linear infinite;
+}
+@keyframes reep-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+/* --- the second door ------------------------------------------------------ */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--reep-text-disabled);
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--reep-divider);
+}
+.door {
+  margin-top: 20px;
+}
+.door h2 {
+  margin: 0 0 12px;
+  color: var(--reep-text-primary);
+}
+
+/* --- form fields ---------------------------------------------------------- */
+.form-field {
+  display: block;
+  margin-top: 14px;
+}
+.form-field__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--reep-text-secondary);
+}
+.form-field__row {
+  display: flex;
+  gap: 8px;
+}
+.form-field__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 7px;
+  background-color: var(--reep-bg-paper);
+  color: var(--reep-text-primary);
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+}
+.form-field__input:focus-visible {
+  outline: 2px solid var(--reep-secondary-main);
+  outline-offset: 1px;
+}
+.form-field__input:disabled,
+.form-field__input:read-only {
+  color: var(--reep-text-secondary);
+  background-color: var(--reep-action-hover);
+}
+.form-field__input:disabled {
+  color: var(--reep-text-disabled);
+}
+.form-field__help {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--reep-text-secondary);
+}
+.form-actions {
+  margin-top: 20px;
+}
+/* The show/hide toggle beside a password field: a real button, with
+   aria-pressed, so the state is announced and not just drawn. */
+.form-field__toggle {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 7px;
+  background-color: var(--reep-bg-paper);
+  color: var(--reep-text-secondary);
+  font-family: var(--reep-font-stack);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.form-field__toggle[aria-pressed='true'] {
+  color: var(--reep-text-primary);
+  border-color: var(--reep-text-secondary);
+}
+.form-field__toggle:focus-visible {
+  outline: 2px solid var(--reep-secondary-main);
+  outline-offset: 2px;
+}
+
+/* --- links under the form ------------------------------------------------- */
+.setup-link {
+  margin: 16px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--reep-text-secondary);
+}
+.setup-link a,
+.linklike {
+  color: var(--reep-primary-main);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.linklike {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+.linklike:disabled {
+  color: var(--reep-text-disabled);
+  text-decoration: none;
+  cursor: default;
+}
+.setup-link a:focus-visible,
+.linklike:focus-visible {
+  outline: 2px solid var(--reep-secondary-main);
+  outline-offset: 2px;
+  border-radius: 3px;
+}

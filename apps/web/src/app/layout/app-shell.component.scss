@@ -1,14 +1,15 @@
 /* The v2 desktop shell. Every visual token for .desktop-frame, .desktop-nav,
    .nav-profile, .desktop-main etc. lives globally in src/styles/reep-v2.scss;
-   this file styles only the title-bar sign-out affordance, which has no global
-   class because nothing else in the app is a control on a gradient title bar. */
+   this file styles only the two title-bar affordances (change password, sign
+   out), which have no global class because nothing else in the app is a
+   control on a gradient title bar. */
 
 :host {
   display: block;
 }
 
+.titlebar-link,
 .titlebar-logout {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -21,7 +22,15 @@
   font-size: 12px;
   font-weight: 700;
   opacity: 0.75;
+  text-decoration: none;
 }
+.titlebar-link {
+  margin-left: auto;
+}
+.titlebar-logout {
+  margin-left: 8px;
+}
+.titlebar-link:hover,
 .titlebar-logout:hover {
   opacity: 1;
   border-color: rgba(122, 47, 158, 0.45);

@@ -38,6 +38,8 @@ _WEB = (
 _ROUTER = _API / "routers" / "auth.py"
 _GOOGLE_AUTH = _API / "google_auth.py"
 _LOGIN_TS = _WEB / "login.component.ts"
+_SETUP_TS = _WEB / "password-setup.component.ts"
+_AUTH_SERVICE_TS = _WEB.parent.parent / "core" / "auth.service.ts"
 
 
 def _codes_emitted() -> set[str]:
@@ -103,7 +105,14 @@ def test_the_router_docstring_lists_exactly_what_the_router_emits() -> None:
 
 @pytest.mark.parametrize(
     "field",
-    ["google_available", "password_login_available", "domain", "reason"],
+    [
+        "google_available",
+        "password_login_available",
+        "password_setup_available",
+        "domain",
+        "reason",
+        "password_reason",
+    ],
 )
 def test_the_probe_field_names_match_on_both_sides(field: str) -> None:
     """GET /api/auth/sso/status is snake_case on the wire, in both files.
@@ -125,18 +134,26 @@ def test_the_probe_field_names_match_on_both_sides(field: str) -> None:
     )
 
 
-def test_the_login_screen_calls_paths_the_router_actually_serves() -> None:
-    """Both the button and the probe, against the router's real route table."""
+@pytest.mark.parametrize(
+    "ts_path",
+    [_LOGIN_TS, _SETUP_TS, _AUTH_SERVICE_TS],
+    ids=["login.component.ts", "password-setup.component.ts", "auth.service.ts"],
+)
+def test_the_login_screen_calls_paths_the_router_actually_serves(ts_path: Path) -> None:
+    """Every /auth/... URL the client builds, against the real route tables of
+    BOTH auth routers (Google + password) — the button, the probe, the login
+    form and the two code endpoints."""
     from app.routers.auth import router
+    from app.routers.local_auth import router as password_router
 
-    served = {r.path for r in router.routes}
-    ts = _LOGIN_TS.read_text(encoding="utf-8")
+    served = {r.path for r in router.routes} | {r.path for r in password_router.routes}
+    ts = ts_path.read_text(encoding="utf-8")
     called = set(re.findall(r"environment\.apiBase\}(/auth/[a-z/]+)", ts))
 
-    assert called, "no /auth/... URL found in login.component.ts — did it move?"
+    assert called, f"no /auth/... URL found in {ts_path.name} — did it move?"
     missing = called - served
     assert not missing, (
-        f"login.component.ts calls {sorted(missing)}, which app/routers/auth.py "
-        f"does not serve. It serves {sorted(served)}. A 404 here fails OPEN: the "
-        f"probe gives up and the Google button renders live regardless."
+        f"{ts_path.name} calls {sorted(missing)}, which neither auth router serves. "
+        f"They serve {sorted(served)}. A 404 here fails OPEN: the probe gives up "
+        f"and the button renders live regardless."
     )

@@ -1,42 +1,57 @@
 /**
- * Sign in — Google only.
+ * Sign in — two doors, one roster.
  *
- * There is one way into REEP: a college Google account that is already on the
- * programme roster. The email/password form this screen used to carry is gone
- * from the UI; `POST /api/auth/login` still exists on the API, but only as a
- * dev/CI affordance that production refuses, and nothing here calls it.
+ * There are two ways into REEP and one access control: a college Google
+ * account, or an email & password the person set themselves through an emailed
+ * code — and either way the address must already be on the programme roster.
+ * Nothing self-provisions from this screen; the roster decides for both doors.
  *
- * The flow is backend-terminal, and that is what keeps this component small:
+ * THE GOOGLE DOOR is backend-terminal, and that is what keeps that half small:
  *
  *   1. a full-page navigation to `/api/auth/sso/google` (an <a href>, not a
  *      fetch — OAuth needs a real top-level redirect, and an XHR cannot leave
  *      the origin and come back with a cookie);
  *   2. the API mints the OAuth `state`, sends the browser to Google, validates
- *      the callback, and sets the same httpOnly `reep_session` cookie the
- *      password path always set;
+ *      the callback, and sets the httpOnly `reep_session` cookie;
  *   3. it 302s back into the SPA, which cold-boots, `authGuard` runs,
  *      `AuthService.refresh()` reads `GET /api/auth/me` with the fresh cookie,
  *      and the session is live.
  *
- * So this component never sees a token, never sets a cookie, and does not route
- * by role — step 3 is an ordinary hard refresh, which the guard already handles.
- * The only thing that comes back to *this* screen is a refusal.
+ * So that path never sees a token here. The only thing that comes back to
+ * *this* screen from Google is a refusal, and REFUSALS ARRIVE AS
+ * `/login?error=<code>`, nothing else. The codes in `messageFor` are the
+ * contract with the callback docstring in `app/routers/auth.py` — keep them
+ * byte-identical to it. An unrecognised code still renders an honest,
+ * non-blaming message rather than nothing, but that fallback is a bug report,
+ * not a feature: the first version of this screen invented its own vocabulary
+ * (`not_on_roster`, `wrong_domain`, …) that shared NOT ONE code with the seven
+ * the server emits, so every single refusal — including the commonest one, a
+ * personal Gmail — rendered as "the reason given is not one this page knows"
+ * and every honest message below was dead code.
  *
- * REFUSALS ARRIVE AS `/login?error=<code>`, and nothing else. The codes in
- * `messageFor` are the contract with the callback docstring in
- * `app/routers/auth.py` — keep them byte-identical to it. An unrecognised code
- * still renders an honest, non-blaming message rather than nothing, but that
- * fallback is a bug report, not a feature: the first version of this screen
- * invented its own vocabulary (`not_on_roster`, `wrong_domain`, …) that shared
- * NOT ONE code with the seven the server emits, so every single refusal —
- * including the commonest one, a personal Gmail — rendered as "the reason given
- * is not one this page knows" and every honest message below was dead code.
+ * THE PASSWORD DOOR is a plain form: `POST /api/auth/login` through
+ * AuthService, which sets the very same cookie and hands back the session so
+ * this screen routes by role itself. Its refusals are JSON (`{detail}`) on
+ * 401/403/429 and land in `formError`, NEVER in `error` — that signal is the
+ * `?error=` contract above, and the probe callback rewrites it once the domain
+ * is known, so a form failure parked there would be overwritten mid-read.
+ * `messageFor` gains no case for the password path, on purpose.
+ *
+ * The form is rendered disabled, with the server's reason, when the probe says
+ * the door is shut (`password_login_available: false`); the create/forgot links
+ * below it give way to the reason when only the emailed-code setup is off
+ * (`password_setup_available: false`). Both fail OPEN like the Google probe.
  */
 
 import { Component, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
+import { AuthService } from '../../core/auth.service';
+import { HOME_FOR_ROLE } from '../../core/session';
+import { detailOfHttpError } from './auth-errors';
 
 /**
  * `GET /api/auth/sso/status` — the capability probe.
@@ -47,13 +62,24 @@ import { environment } from '../../../environments/environment';
  * live forever on a server that cannot sign anybody in. Everything but
  * `google_available` is optional so the API can grow the shape without
  * breaking this client.
+ *
+ * Exported because the set-password screen probes the same endpoint; it lives
+ * HERE, not in its own file, because tests/test_sso_contract.py greps this file
+ * for the declaration line below and reads up to the first closing brace — so
+ * the body must stay flat, with no nested braces, and that literal must not
+ * appear anywhere above it (this comment included).
  */
-interface SsoStatus {
+export interface SsoStatus {
   google_available: boolean;
   password_login_available?: boolean;
+  password_setup_available?: boolean;
   domain?: string | null;
   reason?: string | null;
+  password_reason?: string | null;
 }
+
+/** What the form says when the probe shuts the setup links without a sentence. */
+const SETUP_UNAVAILABLE = 'Email & password sign-in is not configured on this server.';
 
 /** Stand-in until the probe tells us the institutional domain. The domain is
  *  configurable server-side, so it is never hard-coded into a message here. */
@@ -154,7 +180,9 @@ function messageFor(code: string, domain: string): string {
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [],
+  // Both are load-bearing: without FormsModule `[(ngModel)]` binds nothing and
+  // the form posts empty strings; without RouterLink the setup links are inert.
+  imports: [FormsModule, RouterLink],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
   // Coming BACK from Google with the browser's back button restores this page
@@ -165,8 +193,11 @@ function messageFor(code: string, domain: string): string {
 })
 export class LoginComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
-  /** The refusal carried back on the callback redirect, if any. */
+  /** The refusal carried back on the callback redirect, if any. Reserved for
+   *  the `?error=` contract — the password form has `formError`. */
   readonly error = signal<string | null>(null);
   /** The raw `?error=` code, kept so the message can be rebuilt once the probe
    *  supplies the real domain (the `sso_not_enrolled` copy names it). */
@@ -178,6 +209,20 @@ export class LoginComponent {
   readonly available = signal(true);
   readonly unavailableReason = signal<string | null>(null);
   readonly domain = signal(DEFAULT_DOMAIN_LABEL);
+
+  // --- the password door ---
+  /** Fail-open too: the form is live unless the API positively shuts it. */
+  readonly passwordAvailable = signal(true);
+  /** Whether the emailed-code create/forgot flow is on. When it is not, the
+   *  links under the form give way to the reason. */
+  readonly setupAvailable = signal(true);
+  readonly passwordReason = signal<string | null>(null);
+  readonly formPending = signal(false);
+  readonly formError = signal<string | null>(null);
+  readonly showPassword = signal(false);
+  /** Two-way bound form model, the registration screen's pattern. */
+  email = '';
+  password = '';
 
   constructor() {
     const code = this.route.snapshot.queryParamMap.get('error');
@@ -191,7 +236,7 @@ export class LoginComponent {
   /// Same-origin paths only. This check is a courtesy — the server re-applies
   /// it when it decides where to send the browser after the callback, because
   /// the value crosses an origin we do not control on the way there.
-  private get safeNext(): string | undefined {
+  protected get safeNext(): string | undefined {
     const next = this.route.snapshot.queryParamMap.get('next');
     return next && next.startsWith('/') && !next.startsWith('//') ? next : undefined;
   }
@@ -250,8 +295,73 @@ export class LoginComponent {
               'way in yet. Tell whoever runs the dashboard.',
         );
       }
+      // Only an explicit `false` shuts either half of the password door;
+      // `undefined` (an older API) keeps it live, exactly as for Google.
+      if (status.password_login_available === false) this.passwordAvailable.set(false);
+      if (status.password_setup_available === false) {
+        this.setupAvailable.set(false);
+        this.passwordReason.set(status.password_reason || SETUP_UNAVAILABLE);
+      }
     } catch {
       // Fail open, deliberately. See the docstring above.
+    }
+  }
+
+  /** Query params for the create / reset links: the typed address rides along
+   *  as a prefill (an address, not a secret) and `next` survives the detour. */
+  setupParams(mode: 'create' | 'reset'): Record<string, string> {
+    const params: Record<string, string> = { mode };
+    const email = this.email.trim();
+    if (email) params['email'] = email;
+    const next = this.safeNext;
+    if (next) params['next'] = next;
+    return params;
+  }
+
+  toggleShowPassword(): void {
+    this.showPassword.update((v) => !v);
+  }
+
+  /**
+   * The password door. POSTs through AuthService so the guard's session signal
+   * is set by the same call that sets the cookie, then routes by role — the
+   * one thing the Google path leaves to the guard that this path must do
+   * itself, because no cold boot happens here.
+   */
+  async submitPassword(event: Event): Promise<void> {
+    event.preventDefault();
+    if (this.formPending() || !this.passwordAvailable()) return;
+
+    const email = this.email.trim();
+    const password = this.password;
+    this.formError.set(null);
+    if (!email || !password) {
+      this.formError.set('Enter your college email address and your password.');
+      return;
+    }
+
+    this.formPending.set(true);
+    try {
+      const session = await this.auth.login(email, password);
+      await this.router.navigateByUrl(this.safeNext ?? HOME_FOR_ROLE[session.role]);
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && err.status === 401) {
+        // One sentence for wrong password, unknown address, off-domain address
+        // and an account with no password yet — the server does not say which,
+        // and neither does this. The second line points at the self-service
+        // fix for the two of those a student can act on.
+        this.formError.set(
+          'Invalid email or password. Not created a password yet, or forgotten ' +
+            'it? Use the links below — a code will be emailed to your college ' +
+            'address.',
+        );
+      } else if (err instanceof HttpErrorResponse) {
+        this.formError.set(detailOfHttpError(err));
+      } else {
+        this.formError.set('Could not reach the sign-in service.');
+      }
+    } finally {
+      this.formPending.set(false);
     }
   }
 

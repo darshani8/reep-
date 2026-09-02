@@ -96,6 +96,25 @@ def verify_password(password: str, stored: str) -> bool:
     return hmac.compare_digest(derived, digest)
 
 
+# The value app.seed_roster and app.grant_access write for an account that has
+# no local password yet. Structurally unverifiable: one part, not three, so
+# verify_password refuses it before doing any work. Defined HERE so the two
+# seeds, the tests and both sign-in doors share one constant; seed_roster's
+# --rekey-domain compares rows against it, so its VALUE must never change.
+UNUSABLE_PASSWORD_HASH = "google-only"
+
+
+def has_usable_password(stored: str | None) -> bool:
+    """Whether `stored` is a real scrypt hash rather than the sentinel, blank
+    or garbage. The login door burns the timing equaliser on a False here, so a
+    roster account that has never set a password is indistinguishable from an
+    unknown address on the clock as well as in the message."""
+    if not stored:
+        return False
+    parts = stored.split(":")
+    return len(parts) == 3 and parts[0] == "scrypt" and bool(parts[1]) and bool(parts[2])
+
+
 def create_session_token(payload: dict) -> str:
     now = datetime.now(timezone.utc)
     claims = {**payload, "iat": now, "exp": now + timedelta(seconds=SESSION_TTL_SECONDS)}

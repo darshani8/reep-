@@ -84,11 +84,88 @@ def llm_rate_limited(session: dict = Depends(get_current_session)) -> None:
         )
 
 
+class FixedWindow:
+    """A per-process fixed window keyed on a caller-supplied string.
+
+    Extracted from app/routers/registration.py's limiter so the sign-in doors do
+    not carry a third copy. Same caveats as the module docstring — PER WORKER,
+    keyed on whatever the caller passes (a socket peer, a submitted address), and
+    bounded at `max_keys` entries so the limiter cannot itself become the memory
+    exhaustion it exists to prevent. Three verbs, because the doors need three
+    different questions:
+
+      retry_after(key)  count this attempt; None to proceed, else seconds to wait
+      blocked(key)      the same verdict WITHOUT counting (peek before doing work)
+      hit(key)          count without asking (a failure the caller decided on)
+
+    A caller who is already over the limit is never counted, so a refusal cannot
+    extend its own window into a permanent block. Every instance registers
+    itself so `reset()` below clears it between tests.
+    """
+
+    def __init__(self, window_seconds: float, limit: int, *, max_keys: int = 4096) -> None:
+        self.window_seconds = float(window_seconds)
+        self.limit = int(limit)
+        self.max_keys = int(max_keys)
+        self._windows: dict[str, tuple[float, int]] = {}
+        self._lock = threading.Lock()
+        _WINDOWS.append(self)
+
+    def _verdict(self, key: str, *, count: bool) -> int | None:
+        now = time.monotonic()
+        with self._lock:
+            start, n = self._windows.get(key, (now, 0))
+            if now - start >= self.window_seconds:
+                start, n = now, 0
+            if n >= self.limit:
+                return max(1, int(self.window_seconds - (now - start)))
+            if count:
+                self._store(key, start, n + 1, now)
+            return None
+
+    def _store(self, key: str, start: float, n: int, now: float) -> None:
+        if key not in self._windows and len(self._windows) >= self.max_keys:
+            for k, (started, _n) in list(self._windows.items()):
+                if now - started >= self.window_seconds:
+                    del self._windows[k]
+            if len(self._windows) >= self.max_keys:
+                self._windows.clear()  # every window still live: start over, never grow
+        self._windows[key] = (start, n)
+
+    def retry_after(self, key: str) -> int | None:
+        return self._verdict(key, count=True)
+
+    def blocked(self, key: str) -> int | None:
+        return self._verdict(key, count=False)
+
+    def hit(self, key: str) -> None:
+        now = time.monotonic()
+        with self._lock:
+            start, n = self._windows.get(key, (now, 0))
+            if now - start >= self.window_seconds:
+                start, n = now, 0
+            self._store(key, start, n + 1, now)
+
+    def clear(self, key: str) -> None:
+        with self._lock:
+            self._windows.pop(key, None)
+
+    def reset(self) -> None:
+        with self._lock:
+            self._windows.clear()
+
+
+_WINDOWS: list[FixedWindow] = []
+
+
 def reset() -> None:
     """Forget every window. FOR TESTS: the suite drives one seeded student
     through dozens of /api/agent/chat calls in one process, and a limiter that
     remembers them across tests would fail the suite for being thorough — the
     exact trap AGENTS.md warns turns guards into deleted guards. conftest.py
-    calls this around each test."""
+    calls this around each test. Clears every FixedWindow too, so a login test
+    that spent an address window cannot fail the next one."""
     with _lock:
         _calls.clear()
+    for window in _WINDOWS:
+        window.reset()

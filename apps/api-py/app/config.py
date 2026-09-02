@@ -3,6 +3,8 @@
 Field names map to env vars case-insensitively (database_url <- DATABASE_URL).
 """
 
+import os
+from email.utils import parseaddr
 from pathlib import Path
 from typing import Any
 
@@ -55,8 +57,10 @@ _PROD_ENV_NAMES = frozenset({"prod", "production", "prd", "live"})
 # the password door is shut", never "neither". ENV is "dev" by default and CI
 # sets nothing, so the suite and every laptop keep the doors they already have.
 #
-# Three guards read it, all through _is_dev_env below: password sign-in
-# (password_login_allowed), a session cookie without `Secure`
+# Four guards read it, all through _is_dev_env below: password sign-in
+# (password_login_allowed — which ALSO opens on the explicit LOCAL_AUTH_ENABLED
+# opt-in with a ready email transport, see local_auth_ready), the `log` email
+# transport (email_ready accepts it nowhere else), a session cookie without `Secure`
 # (insecure_cookies_allowed) and an unauthenticated voice worker
 # (worker_auth_optional). The 2026-08 audit found the last two keyed on
 # `is_prod` instead, which is a NAME TEST: a `staging`/`uat`/`demo` box — real
@@ -158,7 +162,7 @@ class Settings(BaseSettings):
     db_pool_timeout_s: int = 5
 
     # --- Google sign-in (OIDC authorization-code flow) -------------------------
-    # Sign-in is Google-only for every role. These credentials decide only WHO
+    # Google is one of two doors; app/local_auth.py is the other. These decide only WHO
     # GOOGLE SAYS YOU ARE; they decide nothing about access. The roster in the
     # `users` table is the allowlist — a verified Google account with no user row
     # is refused — so a leaked client id buys an attacker an identity we then
@@ -615,6 +619,32 @@ class Settings(BaseSettings):
     # wording it no longer shows.
     interview_consent_version: str = "2026-09"
 
+    # --- Outbound email (app/email.py) -----------------------------------------
+    # Which transport sends mail. "ses" (AWS SESv2, signed by the task role — no
+    # key), "smtp" (any relay, stdlib smtplib; port 465 = implicit TLS, otherwise
+    # STARTTLS), "log" (dev/CI: the message is written to the API log and NEVER
+    # sent — and because a sign-in code in a log is a sign-in code, "log" is
+    # refused as ready on every non-dev ENV). Blank is off — except on a dev
+    # ENV, where blank resolves to "log" so the password flow works on a fresh
+    # clone with no .env edit. See email_transport_effective / email_ready.
+    email_transport: str = ""
+    email_from: str = ""  # 'REEP <no-reply@bgscet.ac.in>' or a bare address
+    email_reply_to: str = ""  # the placement office, say; blank = none
+    ses_region: str = ""  # blank -> AWS_REGION -> AWS_DEFAULT_REGION (ses_region_resolved)
+    ses_configuration_set: str = ""  # blank = none; Terraform passes the stack's
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""  # a credential: never logged, never echoed
+    smtp_starttls: bool = True
+
+    # --- Email & password sign-in (app/local_auth.py) --------------------------
+    # The explicit opt-in for the second door beside Google. Off = today's
+    # behaviour byte for byte: production refuses POST /api/auth/login and the
+    # code endpoints answer 503 with this variable's name. On, it still needs a
+    # READY transport above before anything opens — see local_auth_ready.
+    local_auth_enabled: bool = False
+
     @field_validator(
         "llm_timeout_ms",
         "llm_requests_per_minute",
@@ -642,6 +672,9 @@ class Settings(BaseSettings):
         "voice_max_sessions_per_user",
         "voice_max_call_seconds",
         "auth_revocation_cache_seconds",
+        "smtp_port",
+        "smtp_starttls",
+        "local_auth_enabled",
         mode="before",
     )
     @classmethod
@@ -952,15 +985,112 @@ class Settings(BaseSettings):
     def password_login_allowed(self) -> bool:
         """Whether POST /api/auth/login may answer at all.
 
-        Sign-in is Google-only for humans; that endpoint is a dev/CI affordance,
-        kept because tests/conftest.py's `login` fixture and the test modules
-        that use it cannot drive an OAuth round-trip from a TestClient. Keyed on
-        the environments it SERVES rather than on `not is_prod`, so an ENV nobody
-        anticipated ("staging", a typo, an empty string from a broken deploy)
-        refuses rather than admits: the failure mode of a misconfiguration here
-        must be "nobody can use a password", never "anyone can".
+        TWO ways to be open, and NOTHING ELSE opens it:
+
+          1. `_is_dev_env(self.env)` — the dev/CI allowlist, kept verbatim so
+             tests/conftest.py's `login`/`make_user` fixtures and the seeded
+             student@/mentor@/director@ logins keep working on a laptop and in
+             CI with no configuration at all.
+          2. `self.local_auth_ready` — the operator has set LOCAL_AUTH_ENABLED
+             AND a real email transport is configured, i.e. the email & password
+             door is deliberately on and a student can actually obtain a
+             password through it. A configured transport ALONE does not open
+             this door, and the flag ALONE does not either.
+
+        Still an allowlist, still never `not is_prod`: an unrecognised, blank or
+        typo'd ENV with nothing configured refuses exactly as before, and the
+        only way an unrecognised ENV opens the door is the same explicit opt-in
+        that opens it in production. The failure mode of a misconfiguration
+        remains "nobody can use a password", never "anyone can".
         """
-        return _is_dev_env(self.env)
+        return _is_dev_env(self.env) or self.local_auth_ready
+
+    # ---- Outbound email + the email & password door -----------------------
+
+    @property
+    def email_transport_effective(self) -> str:
+        """The transport that will actually be used: what EMAIL_TRANSPORT says,
+        else "log" on a development ENV (a fresh clone exercises the whole
+        password flow with no .env edit) and nothing anywhere else."""
+        explicit = self.email_transport.strip().lower()
+        if explicit:
+            return explicit
+        return "log" if _is_dev_env(self.env) else ""
+
+    @property
+    def ses_region_resolved(self) -> str:
+        """SES_REGION, else the AWS chain's own variables — the nova_region shape.
+        Blank means boto3 resolves it, or fails to, and email_ready says so."""
+        for candidate in (
+            self.ses_region,
+            os.environ.get("AWS_REGION", ""),
+            os.environ.get("AWS_DEFAULT_REGION", ""),
+        ):
+            if candidate.strip():
+                return candidate.strip()
+        return ""
+
+    def _email_problem(self) -> str | None:
+        """One sentence naming the variable that stops mail leaving, or None.
+        Config-only: no I/O on a request path, no boot-time provider call."""
+        transport = self.email_transport_effective
+        if not transport:
+            return "Email is not configured on this server (EMAIL_TRANSPORT is blank)."
+        from_ok = "@" in parseaddr(self.email_from.strip())[1]
+        if transport == "log":
+            if _is_dev_env(self.env):
+                return None
+            return (
+                "EMAIL_TRANSPORT=log writes every message, sign-in codes included, into "
+                "the server log, so it is only accepted on a development ENV."
+            )
+        if transport == "smtp":
+            if not self.smtp_host.strip():
+                return "SMTP_HOST is blank."
+            if not from_ok:
+                return "EMAIL_FROM is blank or is not an email address."
+            if (
+                self.smtp_username.strip()
+                and not self.smtp_starttls
+                and int(self.smtp_port) != 465
+            ):
+                return (
+                    "SMTP_USERNAME is set but SMTP_STARTTLS=false and SMTP_PORT is not "
+                    "465, so the credentials would go over the wire in the clear."
+                )
+            return None
+        if transport == "ses":
+            if not from_ok:
+                return "EMAIL_FROM is blank or is not an email address."
+            if not self.ses_region_resolved:
+                return "SES_REGION is blank and neither AWS_REGION nor AWS_DEFAULT_REGION is set."
+            return None
+        return f"EMAIL_TRANSPORT={transport} is not one of ses, smtp, log."
+
+    @property
+    def email_ready(self) -> bool:
+        return self._email_problem() is None
+
+    @property
+    def email_unready_reason(self) -> str | None:
+        return self._email_problem()
+
+    @property
+    def local_auth_ready(self) -> bool:
+        """The email & password door is on AND can actually deliver a code."""
+        return bool(self.local_auth_enabled) and self.email_ready
+
+    @property
+    def local_auth_unready_reason(self) -> str | None:
+        """Why the door is shut, in a sentence that names the variable; None
+        when it is open. Served as `password_reason` on GET /api/auth/sso/status
+        and as the 503 detail on the code endpoints."""
+        if not self.local_auth_enabled:
+            return (
+                "Email & password sign-in is not switched on for this server "
+                "(LOCAL_AUTH_ENABLED)."
+            )
+        return self._email_problem()
 
     @property
     def insecure_cookies_allowed(self) -> bool:

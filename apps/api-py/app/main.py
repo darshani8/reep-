@@ -27,10 +27,11 @@ from .routers import (
     health,
     interview,
     leave,
+    local_auth,
     mentee_records,
     mentor,
-    registration,
     redesign,
+    registration,
     staff_upskilling,
     student,
     student_programme,
@@ -152,6 +153,18 @@ async def lifespan(_app: FastAPI):
             "and the voice worker.",
             settings.env.strip() or "(blank)",
         )
+
+    # 2b) Say once which email transport is live and whether the email &
+    #     password door is open. A LINE, not a gate: nothing about email is
+    #     ever a boot failure — an unconfigured transport shuts one door and
+    #     GET /api/auth/sso/status says why.
+    from . import email as email_transport  # noqa: PLC0415
+
+    log.info(
+        "email transport: %s; email & password sign-in: %s",
+        email_transport.transport_name() or "(none)",
+        "ready" if settings.local_auth_ready else settings.local_auth_unready_reason,
+    )
 
     # 3) Close the interview rows the PREVIOUS process died holding.
     #
@@ -284,8 +297,10 @@ app.include_router(interview.router)
 # Angular client calls lives under /api — matching environment.apiBase and the
 # dev proxy (apps/web/proxy.conf.json), with no path rewriting.
 app.include_router(auth.router, prefix="/api")
+app.include_router(local_auth.router, prefix="/api")
 # Canonical v1 surface. The legacy /api surface remains during the expand/contract window.
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(local_auth.router, prefix="/api/v1")
 app.include_router(redesign.router, prefix="/api/v1")
 app.include_router(student.router, prefix="/api")
 # The v2 UI's three new screens (ledger, English baseline, mentor meeting log)

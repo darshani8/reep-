@@ -61,6 +61,14 @@ def ready(response: Response) -> dict:
         "maintenance": bool(settings.voice_maintenance_message.strip()),
     }
 
+    # Soft, like voice: the password door degrades on its own and says why via
+    # GET /api/auth/sso/status. Config-only — no I/O on a probe.
+    checks["email"] = {
+        "transport": settings.email_transport_effective or None,
+        "configured": settings.email_ready,
+        "local_auth": settings.local_auth_ready,
+    }
+
     if not healthy:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {"status": "ok" if healthy else "degraded", "checks": checks}

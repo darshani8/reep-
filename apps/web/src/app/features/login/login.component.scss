@@ -1,9 +1,13 @@
 /* Sign in — measurements are the MUI original: 8px spacing unit, lg 1200px,
    sm 600px. Colours are ported tokens only; nothing is hard-coded.
 
-   The email/password field styles that used to live here are gone with the
-   form. Sign-in is Google only, so this file now dresses exactly three things:
-   the brand panel, one button, and the two ways sign-in can refuse. */
+   Two doors: the Google button and, under a divider, the email & password
+   form. The alerts, buttons, field and link styles the form shares with the
+   set-password screen live in _auth-surface.scss and are pulled in here; this
+   file dresses only what is specific to this screen — the brand panel, the
+   Google control, the role cards, the roster note. */
+
+@use 'auth-surface';
 
 :host {
   display: block;
@@ -120,84 +124,12 @@
   color: var(--reep-text-secondary);
 }
 
-/* --- alerts ---------------------------------------------------------------
-   A refusal is never colour alone: icon + heading + explanation together, so
-   it reads the same in greyscale and to a screen reader. */
-.alert {
-  margin-top: 20px;
-  border-radius: 8px;
-  border: 1px solid var(--reep-divider);
-  background-color: var(--reep-action-hover);
-  padding: 12px 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  line-height: 1.5;
-}
-.alert__icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.alert__text {
-  margin: 0;
-  font-weight: 500;
-}
-.alert__meta {
-  margin: 4px 0 0;
-  font-size: 0.8125rem;
-  color: var(--reep-text-secondary);
-}
-.alert--error {
-  color: var(--reep-error-main);
-  border-color: var(--reep-error-main);
-}
-.alert--warn {
-  color: var(--reep-warning-main);
-  border-color: var(--reep-warning-main);
-}
-
-/* --- buttons ------------------------------------------------------------- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-family: var(--reep-font-stack);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  border: none;
-  border-radius: 7px;
-  padding-inline: 16px;
-  cursor: pointer;
-}
-.btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: reep-spin 0.7s linear infinite;
-}
-@keyframes reep-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation: none;
-  }
-}
-
-/* --- the one sign-in control ---------------------------------------------
-   Declared AFTER .btn on purpose. Both selectors carry the same emulated
-   encapsulation attribute, so equal specificity is broken by source order —
-   which is what lets these borders survive `.btn { border: none }`. The old
-   shared `.btn--outlined` global lost that fight and rendered borderless. */
+/* --- the Google control ---------------------------------------------------
+   Declared AFTER .btn (which the `@use` above emits at the top of this file)
+   on purpose. Both selectors carry the same emulated encapsulation attribute,
+   so equal specificity is broken by source order — which is what lets these
+   borders survive `.btn { border: none }`. The old shared `.btn--outlined`
+   global lost that fight and rendered borderless. */
 .sso {
   margin-top: 24px;
 }
@@ -228,6 +160,11 @@
 .sso__btn[disabled] {
   color: var(--reep-text-disabled);
   background-color: transparent;
+}
+
+/* The reason the setup links gave way to. Text, not colour, does the work. */
+.setup-link--muted {
+  color: var(--reep-text-disabled);
 }
 
 /* --- role entry descriptions --------------------------------------------- */

@@ -117,5 +117,10 @@ Email + password sign-in for pre-enrolled college accounts, beside Google, with 
   test_google_callback, test_boot_guard). FULL SUITE: 726 passed, 3 skipped, 0 failed.
 - 07:05 UTC — FRONTEND + INFRA/DOCS written by two workflow agents (wf_9a89a8af-81c), uncommitted.
   Frontend self-verified: tsc clean, ng test 13 passed, ng build 173.8 kB initial. Infra: see journal.
-- NEXT: verify agents' work myself → adversarial review workflow → commit in 4 commits
-  (transport / auth / web / infra+docs) → push. Do NOT open a PR unless asked.
+- 07:20 UTC — Verified agents' work myself (terraform fmt/validate, tsc, ng test 13, ng build).
+  COMMITTED + PUSHED: `925498d` feat(auth) [apps/api-py + apps/web], `233ca3c` infra+docs.
+  Branch `claude/nova-sonic-ai-interview-jm7jrb` now carries 5 unmerged commits on main@97b1b37.
+- 07:22 UTC — adversarial review workflow running: `wf_68c98659-40f` (4 find lenses → 2 refuters
+  per finding). Journal: `.../subagents/workflows/wf_68c98659-40f/journal.jsonl`.
+- NEXT: fix confirmed findings → re-run pytest/tsc/ng build/terraform validate → commit `fix:` → push.
+  Then tell the owner. Do NOT open a PR unless asked. No PR exists for this branch yet.

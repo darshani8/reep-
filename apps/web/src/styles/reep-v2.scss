@@ -424,25 +424,30 @@ html.fonts-ready .icon {
 
 .dt-title {
   font-family: var(--font-display);
-  font-size: 22px;
+  /* Every screen title in the handoff is 28/700/120%. At 22px the titles sat
+     too close to the 16px card headings for the page to have an obvious top. */
+  font-size: 28px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: -0.02em;
   margin: 0;
 }
 
 .dt-sub {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--muted);
-  margin: 4px 0 0;
+  line-height: 1.4;
+  margin: 5px 0 0;
 }
 
 .eyebrow {
   font-family: var(--font-display);
-  font-size: 9.5px;
+  /* 9.5px uppercase was legible in Orbitron's wide caps and is not in Inter's;
+     the handoff sets these at 11-12px with the tracking relaxed to match. */
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   color: var(--faint);
   margin: 0 0 6px;
 }

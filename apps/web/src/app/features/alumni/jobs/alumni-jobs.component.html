@@ -11,10 +11,12 @@
     <div class="feedback__body">{{ error() }}</div>
   </div>
 } @else if (jobs(); as list) {
-  <div style="margin-bottom: 12px; max-width: 320px">
+  <div class="field" style="margin-bottom: 12px; max-width: 320px">
+    <label for="alumni-job-search">Search</label>
     <input
+      id="alumni-job-search"
       type="search"
-      placeholder="Search role, company or location"
+      placeholder="Role, company or location"
       [ngModel]="filter()"
       (ngModelChange)="filter.set($event)"
     />

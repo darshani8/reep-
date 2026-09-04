@@ -144,15 +144,9 @@
   align-items: center;
   gap: 8px;
 }
-.dz-kind select {
-  font-family: var(--font);
-  font-size: 12.5px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--hairline);
-  background: var(--surface);
-  color: var(--ink);
-}
+/* The select itself carries `.ctrl` from reep-v2.scss. The copy that stood here
+   was a third control style — 8px radius against the design's 12px, a plain
+   hairline instead of the inset well, and no focus ring. */
 .up-accepts {
   display: inline-flex;
   align-items: center;
@@ -353,20 +347,6 @@
   opacity: 0.55;
   cursor: default;
 }
-.dt-btn.danger {
-  color: var(--risk);
-  border-color: rgba(139, 58, 46, 0.35);
-}
-.dt-btn.danger:hover:not(:disabled) {
-  background: rgba(139, 58, 46, 0.08);
-}
-
-/* local neutral chip tone (globals define good/warn/risk only) */
-.chip.neutral {
-  background: var(--ground);
-  color: var(--muted);
-}
-
 /* --- states -------------------------------------------------------------- */
 .empty {
   display: flex;
@@ -415,3 +395,9 @@
     background-position: -200% 0;
   }
 }
+
+/* `.dt-btn.sm`, `.dt-btn.danger` and `.chip.neutral` are GLOBAL in
+   reep-v2.scss. Local copies here were how one "small button" ended up at three
+   different sizes across four screens, and how a neutral chip ended up two
+   different colours — both of them the retired warm-paper palette rather than
+   the v2 tokens. */

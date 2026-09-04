@@ -274,11 +274,10 @@
   color: var(--muted);
 }
 
-// Neutral chip tone, in case the global sheet load order changes.
-.chip.neutral {
-  background: rgba(28, 24, 16, 0.06);
-  color: var(--muted);
-}
+// `.chip.neutral` is GLOBAL in reep-v2.scss. The copy that stood here was
+// defensive ("in case the global sheet load order changes") and carried the
+// retired warm-paper fill, so it did not guard the global — it silently
+// replaced it with a different colour on this one screen.
 
 @media (max-width: 640px) {
   .att-course {

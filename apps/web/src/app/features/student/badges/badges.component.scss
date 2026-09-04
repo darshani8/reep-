@@ -201,17 +201,14 @@
   }
 }
 
+/* The fields inside are `.field` blocks from reep-v2.scss — the label treatment
+   and the control chrome are the design system's. They used to be bare
+   `<label><input></label>` pairs, which meant every select and text box in the
+   claim form rendered as a browser default in the middle of the glass card. */
 .claim-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 13px;
-  }
+  gap: 12px;
 
   .claim-form__row {
     display: grid;

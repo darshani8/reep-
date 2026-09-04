@@ -1,18 +1,124 @@
-.notebook-grid { display: grid; grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.6fr); gap: 18px; align-items: start; }
-.notebook-students { position: sticky; top: 18px; }
-.student-row { display: flex; flex-direction: column; gap: 4px; width: 100%; border: 0; border-top: 1px solid var(--border, #e5e7eb); background: transparent; padding: 13px 8px; text-align: left; cursor: pointer; }
-.student-row.active { background: var(--surface-muted, #f4f6f8); border-left: 3px solid var(--accent, #2563eb); }
-.student-row span { color: var(--muted, #667085); font-size: 12px; }
-.notebook-workspace { min-width: 0; }
-.notebook-compose { display: grid; gap: 12px; margin-bottom: 22px; }
-.notebook-compose label { display: grid; gap: 5px; font-weight: 600; }
-.notebook-compose input, .notebook-compose select, .notebook-compose textarea, .notebook-students input { border: 1px solid var(--border, #d0d5dd); border-radius: 8px; padding: 10px 12px; font: inherit; background: white; }
-.notebook-compose textarea { resize: vertical; }
-.notebook-compose__actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.notebook-history-title { margin: 8px 0; }
-.notebook-entry { margin-bottom: 12px; }
-.notebook-entry__head { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
-.notebook-entry__head h3 { margin: 10px 0 0; }
-.notebook-entry time { color: var(--muted, #667085); font-size: 12px; white-space: nowrap; }
-.notebook-entry p { white-space: pre-wrap; line-height: 1.55; }
-@media (max-width: 800px) { .notebook-grid { grid-template-columns: 1fr; } .notebook-students { position: static; } }
+/* Layout only. Every colour, control and chip comes from the global reep-v2
+ * classes.
+ *
+ * WHAT WAS HERE BEFORE was a set of fallbacks against tokens this design system
+ * does not define — `var(--border, #e5e7eb)`, `var(--surface-muted, #f4f6f8)`
+ * and, most visibly, `var(--accent, #2563eb)`. None of those three names exist
+ * in reep-v2.scss, so every one of them fell through to its literal: the
+ * selected mentee in a lilac-and-magenta app was marked with a BLUE bar, and
+ * the compose form's inputs were grey system boxes with none of the design's
+ * hairline, inset well or focus ring. A fallback to a hardcoded colour does not
+ * degrade gracefully — it silently ships a second palette.
+ */
+
+.notebook-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.6fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.notebook-students {
+  position: sticky;
+  top: 18px;
+}
+
+.student-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: transparent;
+  padding: 10px 11px;
+  margin-top: 4px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+}
+.student-row:hover {
+  background: var(--tint-3);
+  border-color: var(--hairline-26);
+}
+.student-row.active {
+  background: var(--tint-2);
+  border-color: var(--hairline-45);
+  box-shadow: var(--sh-well);
+}
+.student-row span {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.notebook-workspace {
+  min-width: 0;
+}
+
+.notebook-compose {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.notebook-compose__name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.notebook-compose p.dt-sub {
+  margin: -6px 0 0;
+}
+.notebook-compose textarea {
+  resize: vertical;
+}
+.notebook-compose__actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.notebook-history-title {
+  margin: 8px 0;
+}
+
+.notebook-entry {
+  margin-bottom: 12px;
+}
+.notebook-entry__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+.notebook-entry__head h3 {
+  margin: 10px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.notebook-entry time {
+  color: var(--muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.notebook-entry p {
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.empty-note {
+  padding: 14px;
+  color: var(--muted);
+}
+
+@media (max-width: 800px) {
+  .notebook-grid {
+    grid-template-columns: 1fr;
+  }
+  .notebook-students {
+    position: static;
+  }
+}

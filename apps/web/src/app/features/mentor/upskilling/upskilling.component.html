@@ -7,19 +7,24 @@
 
 <div class="card" style="margin-bottom: 14px; padding: 14px">
   <h4 style="margin: 0 0 10px">Upload a certificate</h4>
-  <div style="display: flex; gap: 10px; flex-wrap: wrap">
-    <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; flex: 1; min-width: 200px">
-      Course / certificate name
-      <input type="text" placeholder="e.g. Business Analytics with Power BI" [(ngModel)]="title" />
-    </label>
-    <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; min-width: 160px">
-      Provider <span class="dt-sub">(optional)</span>
-      <input type="text" placeholder="Coursera, NPTEL…" [(ngModel)]="provider" />
-    </label>
-    <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px">
-      Completed on <span class="dt-sub">(optional)</span>
-      <input type="date" [(ngModel)]="completedOn" />
-    </label>
+  <div style="display: flex; gap: 12px; flex-wrap: wrap">
+    <div class="field" style="flex: 1; min-width: 200px">
+      <label for="ups-title">Course / certificate name</label>
+      <input
+        id="ups-title"
+        type="text"
+        placeholder="e.g. Business Analytics with Power BI"
+        [(ngModel)]="title"
+      />
+    </div>
+    <div class="field" style="min-width: 160px">
+      <label for="ups-provider">Provider <span class="dt-sub">(optional)</span></label>
+      <input id="ups-provider" type="text" placeholder="Coursera, NPTEL…" [(ngModel)]="provider" />
+    </div>
+    <div class="field">
+      <label for="ups-completed">Completed on <span class="dt-sub">(optional)</span></label>
+      <input id="ups-completed" type="date" [(ngModel)]="completedOn" />
+    </div>
   </div>
   <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap">
     <button type="button" class="dt-btn primary" [disabled]="uploading()" (click)="picker.click()">

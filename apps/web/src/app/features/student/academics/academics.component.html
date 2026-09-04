@@ -48,22 +48,22 @@
               <button type="button" class="btn btn--small" (click)="removeQualification($index)">Remove</button>
             </div>
             <div class="grid">
-              <label class="fld"><span class="fld__label">Institution</span>
-                <input class="fld__input" [(ngModel)]="q.institution" [name]="'inst'+$index" /></label>
-              <label class="fld"><span class="fld__label">Board / University</span>
-                <input class="fld__input" [(ngModel)]="q.board" [name]="'board'+$index" /></label>
-              <label class="fld"><span class="fld__label">Year</span>
-                <input class="fld__input" type="number" [(ngModel)]="q.year" [name]="'year'+$index" /></label>
-              <label class="fld"><span class="fld__label">Marks</span>
-                <input class="fld__input" type="number" [(ngModel)]="q.marks" [name]="'marks'+$index" /></label>
-              <label class="fld"><span class="fld__label">Out of</span>
-                <input class="fld__input" type="number" [(ngModel)]="q.maxMarks" [name]="'max'+$index" /></label>
-              <label class="fld"><span class="fld__label">Medium</span>
-                <input class="fld__input" [(ngModel)]="q.medium" [name]="'medium'+$index" /></label>
-              <label class="fld"><span class="fld__label">Location</span>
-                <input class="fld__input" [(ngModel)]="q.location" [name]="'loc'+$index" /></label>
-              <label class="fld"><span class="fld__label">Subjects</span>
-                <input class="fld__input" [(ngModel)]="q.subjects" [name]="'subj'+$index" placeholder="e.g. PCMB" /></label>
+              <label class="field"><span class="field__label">Institution</span>
+                <input class="ctrl" [(ngModel)]="q.institution" [name]="'inst'+$index" /></label>
+              <label class="field"><span class="field__label">Board / University</span>
+                <input class="ctrl" [(ngModel)]="q.board" [name]="'board'+$index" /></label>
+              <label class="field"><span class="field__label">Year</span>
+                <input class="ctrl" type="number" [(ngModel)]="q.year" [name]="'year'+$index" /></label>
+              <label class="field"><span class="field__label">Marks</span>
+                <input class="ctrl" type="number" [(ngModel)]="q.marks" [name]="'marks'+$index" /></label>
+              <label class="field"><span class="field__label">Out of</span>
+                <input class="ctrl" type="number" [(ngModel)]="q.maxMarks" [name]="'max'+$index" /></label>
+              <label class="field"><span class="field__label">Medium</span>
+                <input class="ctrl" [(ngModel)]="q.medium" [name]="'medium'+$index" /></label>
+              <label class="field"><span class="field__label">Location</span>
+                <input class="ctrl" [(ngModel)]="q.location" [name]="'loc'+$index" /></label>
+              <label class="field"><span class="field__label">Subjects</span>
+                <input class="ctrl" [(ngModel)]="q.subjects" [name]="'subj'+$index" placeholder="e.g. PCMB" /></label>
             </div>
           </div>
         }
@@ -74,14 +74,14 @@
   <!-- gaps -->
   <kit-section title="Academic gaps" subtitle="Months of gap between stages. A gap over a drive's limit disqualifies — record it honestly.">
     <div class="grid">
-      <label class="fld"><span class="fld__label">12th → graduation (months)</span>
-        <input class="fld__input" type="number" min="0" [(ngModel)]="gap.twelfthToGradMo" name="g1" /></label>
-      <label class="fld"><span class="fld__label">Diploma → graduation (months)</span>
-        <input class="fld__input" type="number" min="0" [(ngModel)]="gap.diplomaToGradMo" name="g2" /></label>
-      <label class="fld"><span class="fld__label">Graduation → PG (months)</span>
-        <input class="fld__input" type="number" min="0" [(ngModel)]="gap.gradToPgMo" name="g3" /></label>
-      <label class="fld"><span class="fld__label">Other (months)</span>
-        <input class="fld__input" type="number" min="0" [(ngModel)]="gap.otherMo" name="g4" /></label>
+      <label class="field"><span class="field__label">12th → graduation (months)</span>
+        <input class="ctrl" type="number" min="0" [(ngModel)]="gap.twelfthToGradMo" name="g1" /></label>
+      <label class="field"><span class="field__label">Diploma → graduation (months)</span>
+        <input class="ctrl" type="number" min="0" [(ngModel)]="gap.diplomaToGradMo" name="g2" /></label>
+      <label class="field"><span class="field__label">Graduation → PG (months)</span>
+        <input class="ctrl" type="number" min="0" [(ngModel)]="gap.gradToPgMo" name="g3" /></label>
+      <label class="field"><span class="field__label">Other (months)</span>
+        <input class="ctrl" type="number" min="0" [(ngModel)]="gap.otherMo" name="g4" /></label>
     </div>
     <p class="reep-caption note">Total gap: <strong>{{ totalGap() }}</strong> months.</p>
   </kit-section>

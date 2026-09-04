@@ -15,16 +15,6 @@
 
 /* Compact button variant (global reep-v2 has no .sm; jobs.component defines its
  * own scoped copy — mirror it here so action/reco CTAs match). */
-.dt-btn.sm {
-  padding: 5px 10px;
-  font-size: 11.5px;
-}
-/* Anchor CTAs styled as buttons — strip the link chrome. */
-a.dt-btn {
-  text-decoration: none;
-  cursor: pointer;
-}
-
 /* --- 1) Next actions --- */
 .action-list {
   display: flex;
@@ -152,3 +142,8 @@ a.dt-btn {
 .badge-locked .icon {
   font-size: 12px;
 }
+
+/* `.dt-btn.sm`, `.dt-btn.danger`, `a.dt-btn` and `.chip.neutral` are GLOBAL in
+   reep-v2.scss. Local copies here were how one "small button" ended up at three
+   different sizes across four screens, and how a neutral chip ended up two
+   different colours. */

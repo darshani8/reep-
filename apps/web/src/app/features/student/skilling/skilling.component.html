@@ -11,25 +11,33 @@
     <div class="card">
       <h4>Claim a skill</h4>
       <div class="claim-fields">
-        <label class="claim-label">
-          Skill
-          <select [value]="claimSkillId()" (change)="claimSkillId.set($any($event.target).value)">
+        <div class="field claim-label">
+          <label for="claim-skill">Skill</label>
+          <select
+            id="claim-skill"
+            [value]="claimSkillId()"
+            (change)="claimSkillId.set($any($event.target).value)"
+          >
             <option value="">Choose a skill…</option>
             @for (s of catalogue(); track s.id) {
               <option [value]="s.id">{{ s.name }} · {{ s.category }}</option>
             }
           </select>
-        </label>
-        <label class="claim-label">
-          Level
-          <select [value]="claimLevel()" (change)="claimLevel.set(+$any($event.target).value)">
+        </div>
+        <div class="field claim-label">
+          <label for="claim-level">Level</label>
+          <select
+            id="claim-level"
+            [value]="claimLevel()"
+            (change)="claimLevel.set(+$any($event.target).value)"
+          >
             <option value="3">Working</option>
             <option value="1">Aware</option>
             <option value="2">Beginner</option>
             <option value="4">Proficient</option>
             <option value="5">Expert</option>
           </select>
-        </label>
+        </div>
       </div>
       <button
         type="button"
@@ -82,6 +90,25 @@
       }
     </div>
   </div>
+
+  <!-- Recommended for you — rule-based on the server, no model involved. -->
+  @if (recommendations(); as recs) {
+    @if (recs.length > 0) {
+      <div class="card">
+        <h4>Recommended for you</h4>
+        @for (r of recs; track r.title) {
+          <div class="reco-row">
+            <span class="icon">arrow_forward</span>
+            <div class="reco-copy">
+              <div class="reco-title">{{ r.title }}</div>
+              <div class="dt-sub">{{ r.why }}</div>
+            </div>
+            <a class="btn" [routerLink]="r.cta_route">{{ r.cta_label }}</a>
+          </div>
+        }
+      </div>
+    }
+  }
 
   <!-- Skill claims — each with its review-status chip -->
   <div class="card">

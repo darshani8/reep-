@@ -68,9 +68,11 @@
               <span class="chip neutral">No file attached</span>
             }
             <input
+              class="ctrl"
               type="text"
               placeholder="Verification note (optional)"
               style="flex: 1; min-width: 180px"
+              [attr.aria-label]="'Verification note for ' + r.badge_name"
               [(ngModel)]="notes[r.id]"
             />
             <button type="button" class="dt-btn primary" [disabled]="decidingId() === r.id" (click)="decide(r, 'APPROVE')">
@@ -92,23 +94,23 @@
 } @else {
   <!-- both remaining tabs need a mentee -->
   <div class="card" style="padding: 12px 14px; margin-bottom: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
-    <label style="display: flex; gap: 8px; align-items: center; font-size: 13px">
-      Mentee
-      <select [ngModel]="selectedStudent()" (ngModelChange)="onStudentChange($event)">
+    <div class="field" style="min-width: 220px">
+      <label for="bc-mentee">Mentee</label>
+      <select id="bc-mentee" [ngModel]="selectedStudent()" (ngModelChange)="onStudentChange($event)">
         @for (m of mentees(); track m.student_id) {
           <option [value]="m.student_id">{{ m.name }}{{ m.usn ? ' · ' + m.usn : '' }}</option>
         }
       </select>
-    </label>
+    </div>
     @if (tab() === 'assessments') {
-      <label style="display: flex; gap: 8px; align-items: center; font-size: 13px">
-        Checkpoint
-        <select [ngModel]="checkpoint()" (ngModelChange)="onCheckpointChange($event)">
+      <div class="field">
+        <label for="bc-checkpoint">Checkpoint</label>
+        <select id="bc-checkpoint" [ngModel]="checkpoint()" (ngModelChange)="onCheckpointChange($event)">
           @for (cp of checkpoints; track cp) {
             <option [value]="cp">{{ cp }}</option>
           }
         </select>
-      </label>
+      </div>
     }
     @if (isDirector()) {
       <a class="dt-btn" [href]="exportUrl()" target="_blank" rel="noopener">
@@ -149,11 +151,13 @@
                 <td>{{ formatScore(row.scores[checkpoint()]) }}</td>
                 <td>
                   <input
+                    class="ctrl"
                     type="number"
                     min="1"
                     max="10"
                     step="0.1"
                     style="width: 90px"
+                    [attr.aria-label]="'Score for ' + row.label"
                     [(ngModel)]="scores[row.capability]"
                   />
                 </td>

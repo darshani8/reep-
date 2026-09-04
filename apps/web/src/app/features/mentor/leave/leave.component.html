@@ -58,9 +58,11 @@
           <p style="margin: 8px 0; white-space: pre-wrap">{{ r.reason }}</p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
             <input
+              class="ctrl"
               type="text"
               placeholder="Decision note (optional)"
               style="flex: 1; min-width: 180px"
+              [attr.aria-label]="'Decision note for the leave from ' + r.from_date"
               [(ngModel)]="notes[r.id]"
             />
             <button
@@ -89,19 +91,24 @@
 } @else {
   <div class="card" style="margin-bottom: 14px; padding: 14px">
     <h4 style="margin: 0 0 10px">Request leave</h4>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap">
-      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px">
-        From
-        <input type="date" [(ngModel)]="fromDate" />
-      </label>
-      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px">
-        To
-        <input type="date" [(ngModel)]="toDate" />
-      </label>
-      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; flex: 1; min-width: 220px">
-        Reason
-        <input type="text" placeholder="Why you need this leave" [(ngModel)]="reason" />
-      </label>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap">
+      <div class="field">
+        <label for="leave-from">From</label>
+        <input id="leave-from" type="date" [(ngModel)]="fromDate" />
+      </div>
+      <div class="field">
+        <label for="leave-to">To</label>
+        <input id="leave-to" type="date" [(ngModel)]="toDate" />
+      </div>
+      <div class="field" style="flex: 1; min-width: 220px">
+        <label for="leave-reason">Reason</label>
+        <input
+          id="leave-reason"
+          type="text"
+          placeholder="Why you need this leave"
+          [(ngModel)]="reason"
+        />
+      </div>
     </div>
     @if (submitError()) {
       <div class="feedback feedback--err" role="alert" style="margin-top: 8px">

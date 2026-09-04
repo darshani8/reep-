@@ -155,9 +155,9 @@
           <div class="dt-sub section-head">Add evidence</div>
           <div class="claim-form">
             @if (b.approved_certifications.length > 0) {
-              <label>
-                Approved certification <span class="dt-sub">(the quicker path)</span>
-                <select [(ngModel)]="claimCertId">
+              <div class="field">
+                <label for="claim-cert">Approved certification <span class="dt-sub">(the quicker path)</span></label>
+                <select id="claim-cert" [(ngModel)]="claimCertId">
                   <option value="">— not from the catalogue —</option>
                   @for (c of b.approved_certifications; track c.id) {
                     <option [value]="c.id">
@@ -165,46 +165,51 @@
                     </option>
                   }
                 </select>
-              </label>
+              </div>
             }
             @if (!claimCertId) {
               <div class="claim-form__row">
-                <label>
-                  Evidence type
-                  <select [(ngModel)]="claimType">
+                <div class="field">
+                  <label for="claim-type">Evidence type</label>
+                  <select id="claim-type" [(ngModel)]="claimType">
                     @for (t of evidenceTypes; track t.value) {
                       <option [value]="t.value">{{ t.label }}</option>
                     }
                   </select>
-                </label>
-                <label>
-                  What is the evidence?
-                  <input type="text" placeholder="e.g. Negotiation certificate / live project" [(ngModel)]="claimTitle" />
-                </label>
-                <label>
-                  Provider <span class="dt-sub">(optional)</span>
-                  <input type="text" placeholder="Coursera, NPTEL…" [(ngModel)]="claimProvider" />
-                </label>
+                </div>
+                <div class="field">
+                  <label for="claim-title">What is the evidence?</label>
+                  <input
+                    id="claim-title"
+                    type="text"
+                    placeholder="e.g. Negotiation certificate / live project"
+                    [(ngModel)]="claimTitle"
+                  />
+                </div>
+                <div class="field">
+                  <label for="claim-provider">Provider <span class="dt-sub">(optional)</span></label>
+                  <input id="claim-provider" type="text" placeholder="Coursera, NPTEL…" [(ngModel)]="claimProvider" />
+                </div>
               </div>
             }
             <div class="claim-form__row">
-              <label>
-                Certificate file <span class="dt-sub">(from your Uploads)</span>
-                <select [(ngModel)]="claimUploadId">
+              <div class="field">
+                <label for="claim-upload">Certificate file <span class="dt-sub">(from your Uploads)</span></label>
+                <select id="claim-upload" [(ngModel)]="claimUploadId">
                   <option value="">— none attached —</option>
                   @for (u of uploads(); track u.id) {
                     <option [value]="u.id">{{ u.title }} ({{ u.original_name }})</option>
                   }
                 </select>
-              </label>
-              <label>
-                Completed on <span class="dt-sub">(optional)</span>
-                <input type="date" [(ngModel)]="claimCompletedOn" />
-              </label>
-              <label>
-                Note to reviewer <span class="dt-sub">(optional)</span>
-                <input type="text" [(ngModel)]="claimNote" />
-              </label>
+              </div>
+              <div class="field">
+                <label for="claim-completed">Completed on <span class="dt-sub">(optional)</span></label>
+                <input id="claim-completed" type="date" [(ngModel)]="claimCompletedOn" />
+              </div>
+              <div class="field">
+                <label for="claim-note">Note to reviewer <span class="dt-sub">(optional)</span></label>
+                <input id="claim-note" type="text" [(ngModel)]="claimNote" />
+              </div>
             </div>
             @if (claimError()) {
               <div class="feedback feedback--err" role="alert">
@@ -296,7 +301,13 @@
         >{{ v.label }}</button>
       }
       @if (lbView() === 'sectoral') {
-        <select [ngModel]="lbTrack()" (ngModelChange)="lbTrack.set($event); loadLeaderboard()">
+        <select
+          class="ctrl"
+          style="width: auto"
+          aria-label="Sectoral track"
+          [ngModel]="lbTrack()"
+          (ngModelChange)="lbTrack.set($event); loadLeaderboard()"
+        >
           @for (t of sectoralTracks; track t.key) {
             <option [value]="t.key">{{ t.label }}</option>
           }

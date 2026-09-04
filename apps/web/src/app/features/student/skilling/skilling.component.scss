@@ -12,23 +12,12 @@
   gap: 10px;
   margin-bottom: 12px;
 }
+/* `.claim-label` is a `.field` from reep-v2.scss now; only the flex share is
+   local. The select chrome that stood here was a second, slightly different
+   control style — 8px radius against the design's 12px, a plain hairline
+   against the design's inset well, and no focus ring at all. */
 .claim-label {
   flex: 1;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--muted);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.claim-label select {
-  font-family: var(--font);
-  font-size: 12.5px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--hairline);
-  background: var(--surface);
-  color: var(--ink);
 }
 .dropzone--action {
   display: block;
@@ -114,4 +103,17 @@
 .review-note .icon {
   font-size: 14px;
   color: var(--faint);
+}
+
+/* "Recommended for you" — the handoff's row: a lead glyph, a two-line copy
+   block that takes the slack, and the CTA pinned right. `.reco-row` is the
+   global flex row; only the copy column is local. */
+.reco-copy {
+  flex: 1;
+  min-width: 0;
+}
+.reco-title {
+  font-size: 12.8px;
+  font-weight: 700;
+  color: var(--ink);
 }

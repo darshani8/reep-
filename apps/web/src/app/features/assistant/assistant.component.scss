@@ -102,7 +102,7 @@
   padding: 22px 24px 20px;
   border-radius: 14px;
   border: 1px solid var(--reep-divider);
-  background: var(--reep-surface, #fff);
+  background: var(--surface);
   color: var(--reep-text-primary);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
 }
@@ -118,7 +118,7 @@
 .consent__warn {
   padding: 10px 12px;
   border-left: 3px solid var(--reep-warning-main, #b26a00);
-  background: var(--reep-warning-bg, rgba(178, 106, 0, 0.1));
+  background: var(--warn-bg);
   color: var(--reep-text-primary);
   border-radius: 0 8px 8px 0;
   font-weight: 600;
@@ -464,7 +464,7 @@
   padding: 12px 14px;
   border: 1px solid var(--reep-divider);
   border-radius: 12px;
-  background: var(--reep-surface, var(--reep-action-hover));
+  background: var(--surface);
 }
 .tscript__empty {
   margin: 0;
@@ -590,7 +590,7 @@
   cursor: pointer;
   border: 1px solid var(--reep-divider);
   border-radius: 8px;
-  background: var(--reep-surface, #fff);
+  background: var(--surface);
 }
 .specs__option:hover {
   border-color: var(--reep-primary-main, #1a3c5e);

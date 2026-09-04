@@ -14,13 +14,16 @@
   <div class="mentee-split">
     <!-- LEFT: mentee list -->
     <div class="card mentee-list">
-      <input
-        class="mentee-search"
-        type="search"
-        placeholder="Search name or USN"
-        [ngModel]="filter()"
-        (ngModelChange)="filter.set($event)"
-      />
+      <div class="field mentee-search">
+        <label for="mentee-search">Search</label>
+        <input
+          id="mentee-search"
+          type="search"
+          placeholder="Name or USN"
+          [ngModel]="filter()"
+          (ngModelChange)="filter.set($event)"
+        />
+      </div>
       @if (mentees(); as list) {
         @if (list.length === 0) {
           <div class="empty-note">
@@ -57,31 +60,32 @@
           </h4>
           <div class="note-form">
             <div class="note-form__row">
-              <label>
-                Heading <span class="dt-sub">(optional)</span>
-                <input type="text" placeholder="1:1 review" [(ngModel)]="noteTitle" />
-              </label>
-              <label>
-                Location <span class="dt-sub">(optional)</span>
-                <input type="text" placeholder="Cabin 3" [(ngModel)]="noteLocation" />
-              </label>
-              <label>
-                Linked action
-                <select [(ngModel)]="noteAction">
+              <div class="field">
+                <label for="note-heading">Heading <span class="dt-sub">(optional)</span></label>
+                <input id="note-heading" type="text" placeholder="1:1 review" [(ngModel)]="noteTitle" />
+              </div>
+              <div class="field">
+                <label for="note-location">Location <span class="dt-sub">(optional)</span></label>
+                <input id="note-location" type="text" placeholder="Cabin 3" [(ngModel)]="noteLocation" />
+              </div>
+              <div class="field">
+                <label for="note-action">Linked action</label>
+                <select id="note-action" [(ngModel)]="noteAction">
                   @for (opt of actionOptions; track opt.value) {
                     <option [value]="opt.value">{{ opt.label }}</option>
                   }
                 </select>
-              </label>
+              </div>
             </div>
-            <label>
-              Meeting note
+            <div class="field">
+              <label for="note-text">Meeting note</label>
               <textarea
+                id="note-text"
                 rows="4"
                 placeholder="What was discussed, agreed and planned. The student reads this on their Mentor Meeting Log."
                 [(ngModel)]="noteText"
               ></textarea>
-            </label>
+            </div>
             @if (saveError()) {
               <div class="feedback feedback--err" role="alert">
                 <span class="icon">error</span>

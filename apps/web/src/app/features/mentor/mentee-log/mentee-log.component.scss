@@ -28,21 +28,24 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  padding: 8px 10px;
+  padding: 9px 11px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: none;
-  cursor: pointer;
   text-align: left;
   font: inherit;
-  color: inherit;
+  color: var(--ink);
 
   &:hover {
-    border-color: var(--hairline);
+    background: var(--tint-3);
+    border-color: var(--hairline-26);
   }
+  /* The same selected treatment as every other pick list in the app
+     (.pick-row in reep-v2.scss): a tinted well, not a purple outline. */
   &.active {
-    border-color: var(--brand-purple);
-    background: var(--surface);
+    background: var(--tint-2);
+    border-color: var(--hairline-45);
+    box-shadow: var(--sh-well);
   }
 }
 
@@ -50,22 +53,16 @@
   font-weight: 600;
 }
 .mentee-meta {
-  font-size: 12px;
-  color: var(--ink-soft, inherit);
-  opacity: 0.75;
+  font-size: 11.5px;
+  color: var(--muted);
 }
 
+/* The fields inside are `.field` blocks from reep-v2.scss — the label
+   treatment and the control chrome are the design system's, not this file's. */
 .note-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 13px;
-  }
+  gap: 12px;
 }
 
 .note-form__row {

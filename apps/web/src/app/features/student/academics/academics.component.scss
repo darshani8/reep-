@@ -18,13 +18,11 @@
 .qual__level { font-size: 0.9375rem; font-weight: 600; color: var(--reep-text-primary); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
-.fld { display: flex; flex-direction: column; gap: 5px; }
-.fld__label { font-size: 0.75rem; font-weight: 500; color: var(--reep-text-secondary); }
-.fld__input {
-  width: 100%; box-sizing: border-box; min-height: 40px; padding: 8px 12px;
-  font-family: var(--reep-font-stack); font-size: 0.9375rem; color: var(--reep-text-primary);
-  background: var(--reep-bg-default); border: 1px solid var(--reep-divider); border-radius: 7px; outline: none;
-}
-.fld__input:focus { border-color: var(--reep-primary-main); }
+/* The control chrome is `.ctrl` and the label chrome is `.field__label`, both
+   GLOBAL in reep-v2.scss. What stood here was a fourth control style built on
+   the MUI-era --reep-* tokens: 7px radius against the design's 12px, a 15px
+   body font against 12.8px, no inset well and no focus ring. Those token names
+   are reserved for the surfaces OUTSIDE the shell (login, register, the resume
+   builder); this screen is inside it. */
 
 .actions { display: flex; align-items: center; gap: 14px; margin-top: 8px; }

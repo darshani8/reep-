@@ -1,18 +1,22 @@
 /**
  * Student skilling — the reep-v2 port of the `data-p="skilling"` panel.
  *
- * Left: "Claim a skill" — a dropzone placeholder. Binary file upload is not built
- * server-side yet, so it renders inert with a "file upload coming soon" note
- * rather than posting anything. Right: the student's own skills grouped by
- * category with a verified/unverified chip each. Below: their skill claims with a
- * review-status chip (PENDING_REVIEW / VERIFIED / REJECTED).
+ * Left: "Claim a skill" — pick a skill and a level, then upload the certificate
+ * that evidences it; the file is posted and the claim filed against it. Right:
+ * the student's own skills grouped by category with a verified/unverified chip
+ * each. Then the handoff's "Recommended for you" card, and below it their skill
+ * claims with a review-status chip (PENDING_REVIEW / VERIFIED / REJECTED).
  *
- * Two independent GETs (/student/skills, /student/skill-claims) so a missing or
- * failing endpoint degrades that section to an empty/error note on its own,
- * never blanking the screen.
+ * Four independent GETs (/student/skills, /student/skill-claims,
+ * /student/skills/catalogue, /student/recommendations) so a missing or failing
+ * endpoint degrades that section to an empty/error note on its own, never
+ * blanking the screen. The recommendations card in particular is rule-based on
+ * the server and calls NO model — nothing on this screen sends a student record
+ * anywhere.
  */
 
 import { Component, computed, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 
@@ -34,6 +38,13 @@ interface SkillClaim {
   review_note: string | null;
   reviewed_at: string | null;
   created_at: string;
+}
+
+interface Recommendation {
+  title: string;
+  why: string;
+  cta_label: string;
+  cta_route: string;
 }
 
 interface StatusChip {
@@ -75,7 +86,7 @@ function statusChip(status: string): StatusChip {
 @Component({
   selector: 'app-student-skilling',
   standalone: true,
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './skilling.component.html',
   styleUrl: './skilling.component.scss',
 })
@@ -123,10 +134,35 @@ export class SkillingComponent {
     }));
   });
 
+  /** The handoff's "Recommended for you" card. `null` while in flight, `[]`
+   *  when the server has nothing to suggest — and an empty list HIDES the card
+   *  rather than rendering an empty one, because a heading with nothing under
+   *  it reads as a screen that failed to load. */
+  readonly recommendations = signal<Recommendation[] | null>(null);
+
   constructor() {
     void this.loadSkills();
     void this.loadClaims();
     void this.loadCatalogue();
+    void this.loadRecommendations();
+  }
+
+  private async loadRecommendations(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/student/recommendations`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        this.recommendations.set([]);
+        return;
+      }
+      const body = (await res.json()) as { items: Recommendation[] };
+      this.recommendations.set(body.items ?? []);
+    } catch {
+      // No card rather than an error banner: a recommendation is a nice-to-have
+      // beside the skills and claims this screen exists for.
+      this.recommendations.set([]);
+    }
   }
 
   private async loadCatalogue(): Promise<void> {

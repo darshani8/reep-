@@ -71,7 +71,7 @@
   <div class="up-top">
     <label class="dz-kind">
       Document type
-      <select [value]="kind()" (change)="setKind($any($event.target).value)">
+      <select class="ctrl" [value]="kind()" (change)="setKind($any($event.target).value)">
         @for (opt of kindOptions; track opt.value) {
           <option [value]="opt.value">{{ opt.label }}</option>
         }

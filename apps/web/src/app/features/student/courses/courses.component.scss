@@ -112,19 +112,6 @@
   padding-top: 4px;
 }
 
-// A smaller dt-btn and a router-link styled as a button.
-.dt-btn.sm {
-  padding: 7px 12px;
-  font-size: 12px;
-  text-decoration: none;
-}
-
-// Neutral chip tone (the global sheet ships good/warn/risk only).
-.chip.neutral {
-  background: rgba(28, 24, 16, 0.06);
-  color: var(--muted);
-}
-
 .chip.unlocks {
   font-weight: 600;
 }
@@ -134,3 +121,9 @@
   outline: none;
   box-shadow: var(--sh-ctrl), var(--edge-hi), var(--focus-ring);
 }
+
+/* `.dt-btn.sm`, `.dt-btn.danger` and `.chip.neutral` are GLOBAL in
+   reep-v2.scss. Local copies here were how one "small button" ended up at three
+   different sizes across four screens, and how a neutral chip ended up two
+   different colours — both of them the retired warm-paper palette rather than
+   the v2 tokens. */

@@ -125,13 +125,7 @@
   max-width: 100%;
   white-space: normal;
   line-height: 1.35;
-}
-.dt-btn.sm {
-  padding: 6px 12px;
-  font-size: 12px;
-  text-decoration: none;
-}
-/* smaller inline icons than the global 20px default, scoped to this screen */
+}/* smaller inline icons than the global 20px default, scoped to this screen */
 .icon {
   font-size: 15px;
 }
@@ -142,3 +136,8 @@
   border-color: var(--brand-magenta);
   box-shadow: var(--sh-well), var(--focus-ring);
 }
+
+/* `.dt-btn.sm`, `.dt-btn.danger`, `a.dt-btn` and `.chip.neutral` are GLOBAL in
+   reep-v2.scss. Local copies here were how one "small button" ended up at three
+   different sizes across four screens, and how a neutral chip ended up two
+   different colours. */

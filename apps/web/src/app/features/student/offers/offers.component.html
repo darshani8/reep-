@@ -8,52 +8,52 @@
   <kit-section title="New offer" subtitle="Once you submit, this cannot be edited — so a placement report never reads a figure that changed after approval.">
     <div class="form">
       <div class="grid2">
-        <label class="fld"><span class="fld__label">Role type</span>
-          <select class="fld__input" [(ngModel)]="form.roleType" name="roleType">
+        <label class="field"><span class="field__label">Role type</span>
+          <select class="ctrl" [(ngModel)]="form.roleType" name="roleType">
             @for (r of roles; track r) { <option [value]="r">{{ roleLabel[r] }}</option> }
           </select></label>
-        <label class="fld"><span class="fld__label">Channel</span>
-          <select class="fld__input" [(ngModel)]="form.channel" name="channel">
+        <label class="field"><span class="field__label">Channel</span>
+          <select class="ctrl" [(ngModel)]="form.channel" name="channel">
             @for (c of channels; track c) { <option [value]="c">{{ c }}</option> }
           </select></label>
-        <label class="fld"><span class="fld__label">Job title *</span>
-          <input class="fld__input" [(ngModel)]="form.jobTitle" name="jobTitle" /></label>
-        <label class="fld"><span class="fld__label">Organisation *</span>
-          <input class="fld__input" [(ngModel)]="form.organisation" name="organisation" /></label>
-        <label class="fld"><span class="fld__label">Work mode</span>
-          <select class="fld__input" [(ngModel)]="form.workMode" name="workMode">
+        <label class="field"><span class="field__label">Job title *</span>
+          <input class="ctrl" [(ngModel)]="form.jobTitle" name="jobTitle" /></label>
+        <label class="field"><span class="field__label">Organisation *</span>
+          <input class="ctrl" [(ngModel)]="form.organisation" name="organisation" /></label>
+        <label class="field"><span class="field__label">Work mode</span>
+          <select class="ctrl" [(ngModel)]="form.workMode" name="workMode">
             @for (w of workModes; track w) { <option [value]="w">{{ w }}</option> }
           </select></label>
-        <label class="fld"><span class="fld__label">Location</span>
-          <input class="fld__input" [(ngModel)]="form.location" name="location" /></label>
-        <label class="fld"><span class="fld__label">Joining date</span>
-          <input class="fld__input" type="date" [(ngModel)]="form.joiningDate" name="joiningDate" /></label>
-        <label class="fld"><span class="fld__label">CTC (₹ per year)</span>
-          <input class="fld__input" type="number" min="0" [(ngModel)]="form.ctcInr" name="ctcInr" /></label>
-        <label class="fld"><span class="fld__label">Fixed gross (₹ per year)</span>
-          <input class="fld__input" type="number" min="0" [(ngModel)]="form.fixedGrossInr" name="fixedGrossInr" /></label>
+        <label class="field"><span class="field__label">Location</span>
+          <input class="ctrl" [(ngModel)]="form.location" name="location" /></label>
+        <label class="field"><span class="field__label">Joining date</span>
+          <input class="ctrl" type="date" [(ngModel)]="form.joiningDate" name="joiningDate" /></label>
+        <label class="field"><span class="field__label">CTC (₹ per year)</span>
+          <input class="ctrl" type="number" min="0" [(ngModel)]="form.ctcInr" name="ctcInr" /></label>
+        <label class="field"><span class="field__label">Fixed gross (₹ per year)</span>
+          <input class="ctrl" type="number" min="0" [(ngModel)]="form.fixedGrossInr" name="fixedGrossInr" /></label>
       </div>
 
       <div class="bonuses">
         <div class="bonuses__head">
-          <span class="fld__label">Bonuses</span>
+          <span class="field__label">Bonuses</span>
           <button type="button" class="btn btn--small btn--outlined" (click)="addBonus()">Add bonus</button>
         </div>
         @for (b of form.bonuses; track $index) {
           <div class="bonus-row">
-            <input class="fld__input" placeholder="Label (e.g. Joining bonus)" [(ngModel)]="b.label" [name]="'blabel' + $index" />
-            <input class="fld__input" type="number" min="0" placeholder="₹" [(ngModel)]="b.amountInr" [name]="'bamt' + $index" />
+            <input class="ctrl" placeholder="Label (e.g. Joining bonus)" [(ngModel)]="b.label" [name]="'blabel' + $index" />
+            <input class="ctrl" type="number" min="0" placeholder="₹" [(ngModel)]="b.amountInr" [name]="'bamt' + $index" />
             <button type="button" class="btn btn--small" (click)="removeBonus($index)">✕</button>
           </div>
         }
       </div>
 
-      <label class="fld"><span class="fld__label">Job description</span>
-        <textarea class="fld__input fld__area" rows="2" [(ngModel)]="form.jobDescription" name="jd"></textarea></label>
-      <label class="fld"><span class="fld__label">Bond details</span>
-        <textarea class="fld__input fld__area" rows="2" [(ngModel)]="form.bondDetails" name="bond"></textarea></label>
-      <label class="fld"><span class="fld__label">Other benefits</span>
-        <textarea class="fld__input fld__area" rows="2" [(ngModel)]="form.otherBenefits" name="benefits"></textarea></label>
+      <label class="field"><span class="field__label">Job description</span>
+        <textarea class="ctrl fld__area" rows="2" [(ngModel)]="form.jobDescription" name="jd"></textarea></label>
+      <label class="field"><span class="field__label">Bond details</span>
+        <textarea class="ctrl fld__area" rows="2" [(ngModel)]="form.bondDetails" name="bond"></textarea></label>
+      <label class="field"><span class="field__label">Other benefits</span>
+        <textarea class="ctrl fld__area" rows="2" [(ngModel)]="form.otherBenefits" name="benefits"></textarea></label>
 
       @if (formError()) { <p class="err reep-caption">{{ formError() }}</p> }
       <div class="actions">

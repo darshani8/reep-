@@ -41,8 +41,8 @@ icons="$(paste -sd, "$here/icon-names.txt")"
 # during the fallback period, which is the exact failure self-hosting is meant to
 # remove. block leaves the (clamped, hidden) box empty instead.
 declare -A FAMILIES=(
-  ["orbitron"]="Orbitron:wght@500;700;900&display=swap"
-  ["chakra-petch"]="Chakra+Petch:wght@400;500;600;700&display=swap"
+  ["plus-jakarta-sans"]="Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+  ["inter"]="Inter:wght@400;500;600;700&display=swap"
   ["material-symbols-rounded"]="Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-50..200&icon_names=${icons}&display=block"
 )
 

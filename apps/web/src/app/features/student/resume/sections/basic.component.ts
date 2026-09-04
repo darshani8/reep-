@@ -147,9 +147,7 @@ export class RbBasicComponent {
 
   /** URL to preview the stored photo, or null when none is set. */
   readonly photoUrl = computed(() =>
-    this.photoId()
-      ? `${environment.apiBase}/student/uploads/${this.photoId()}/file`
-      : null,
+    this.photoId() ? `${environment.apiBase}/student/uploads/${this.photoId()}/file` : null,
   );
   /** Signal mirror of m.photo_upload_id so photoUrl recomputes after upload. */
   private readonly photoId = signal<string>('');

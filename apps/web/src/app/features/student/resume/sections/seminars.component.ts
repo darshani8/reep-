@@ -80,7 +80,11 @@ function blank(): SeminarEntry {
       <div class="entry">
         <div class="field">
           <label>Title</label>
-          <input class="ctrl" [(ngModel)]="draft.title" placeholder="e.g. Data Storytelling Workshop" />
+          <input
+            class="ctrl"
+            [(ngModel)]="draft.title"
+            placeholder="e.g. Data Storytelling Workshop"
+          />
         </div>
         <div class="grid2">
           <div class="field">

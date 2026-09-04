@@ -125,7 +125,11 @@ function blank(): ExperienceEntry {
         </div>
         <div class="field">
           <label>Description</label>
-          <textarea class="ctrl" [(ngModel)]="draft.description" placeholder="What you did and delivered…"></textarea>
+          <textarea
+            class="ctrl"
+            [(ngModel)]="draft.description"
+            placeholder="What you did and delivered…"
+          ></textarea>
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
           <button class="btn" (click)="cancel()">Cancel</button>

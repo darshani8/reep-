@@ -35,7 +35,12 @@
           <div class="empty">
             <span class="icon">description</span>
             <p>No resumes generated yet.</p>
-            <button type="button" class="btn primary" style="margin-top:12px;" (click)="navigate.emit('preview')">
+            <button
+              type="button"
+              class="btn primary"
+              style="margin-top: 12px"
+              (click)="navigate.emit('preview')"
+            >
               <span class="icon">auto_awesome</span> Generate your first resume
             </button>
           </div>
@@ -43,7 +48,7 @@
           <div class="res-grid">
             @for (r of list; track r.id) {
               <div class="res-card" [class.default]="isDefault(r)">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start">
                   <div>
                     <h4>{{ r.title }}</h4>
                     <div class="meta">Generated · v{{ r.version }}</div>
@@ -53,12 +58,14 @@
                   }
                 </div>
 
-                <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+                <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap">
                   <span class="chip {{ statusChip(r).cls }}">
-                    <span class="icon">{{ statusChip(r).icon }}</span>{{ statusChip(r).label }}
+                    <span class="icon">{{ statusChip(r).icon }}</span
+                    >{{ statusChip(r).label }}
                   </span>
                   <span class="chip {{ sourceChip(r).cls }}">
-                    <span class="icon">{{ sourceChip(r).icon }}</span>{{ sourceChip(r).label }}
+                    <span class="icon">{{ sourceChip(r).icon }}</span
+                    >{{ sourceChip(r).label }}
                   </span>
                 </div>
 
@@ -70,7 +77,12 @@
                     <span class="icon">download</span> Download
                   </button>
                   @if (isDefault(r)) {
-                    <button type="button" class="btn" disabled title="This is already your default resume.">
+                    <button
+                      type="button"
+                      class="btn"
+                      disabled
+                      title="This is already your default resume."
+                    >
                       <span class="icon">star</span> Default
                     </button>
                   } @else {
@@ -112,7 +124,7 @@
 
     <div class="footbar">
       <div class="hint">
-        <span class="icon" style="font-size:16px">info</span>
+        <span class="icon" style="font-size: 16px">info</span>
         Only one resume can be default at a time.
         @if (count() > 0) {
           · {{ count() }} resume{{ count() === 1 ? '' : 's' }} on file.

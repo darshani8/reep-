@@ -67,13 +67,21 @@ const KIND_LABEL: Record<string, string> = {
     <div class="card">
       <h3>
         Document ledger
-        <span class="chip neutral"><span class="icon">link</span>managed in their own sections</span>
+        <span class="chip neutral"
+          ><span class="icon">link</span>managed in their own sections</span
+        >
       </h3>
 
       @if (error()) {
-        <div class="empty" style="padding:26px;"><span class="icon">error</span><p>{{ error() }}</p></div>
+        <div class="empty" style="padding:26px;">
+          <span class="icon">error</span>
+          <p>{{ error() }}</p>
+        </div>
       } @else if (rows() === null) {
-        <div class="empty" style="padding:26px;"><span class="icon">hourglass_top</span><p>Loading your documents…</p></div>
+        <div class="empty" style="padding:26px;">
+          <span class="icon">hourglass_top</span>
+          <p>Loading your documents…</p>
+        </div>
       } @else if (rows()!.length === 0) {
         <div class="empty">
           <span class="icon">folder_open</span>
@@ -81,7 +89,12 @@ const KIND_LABEL: Record<string, string> = {
         </div>
       } @else {
         <table class="tbl">
-          <tr><th>Document</th><th>Source section</th><th>Status</th><th>Uploaded</th></tr>
+          <tr>
+            <th>Document</th>
+            <th>Source section</th>
+            <th>Status</th>
+            <th>Uploaded</th>
+          </tr>
           @for (u of rows()!; track u.id) {
             <tr>
               <td>
@@ -91,7 +104,10 @@ const KIND_LABEL: Record<string, string> = {
               <td>{{ kindLabel(u.kind) }}</td>
               <td>
                 @let meta = status(u.status);
-                <span class="chip {{ meta.tone }}"><span class="icon">{{ meta.icon }}</span>{{ meta.label }}</span>
+                <span class="chip {{ meta.tone }}"
+                  ><span class="icon">{{ meta.icon }}</span
+                  >{{ meta.label }}</span
+                >
               </td>
               <td>{{ u.uploaded_at | date: 'd MMM y' }}</td>
             </tr>

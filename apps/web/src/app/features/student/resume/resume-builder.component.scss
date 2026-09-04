@@ -7,24 +7,143 @@
 
 /* top-level view tabs — a pill row echoing the mockup's .meta-tabs, kept local
    so the global stylesheet stays free of demo-harness chrome. */
-.rb-tabs {
+/* The numbered flow. Wraps rather than scrolls: four steps at 13px do not fit a
+   narrow column, and a step the student cannot see is a step they will not
+   take. */
+.rb-steps {
   display: flex;
   gap: 6px;
-  margin-bottom: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
-.rb-tabs button {
+.rb-steps button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   padding: 8px 16px;
   border-radius: 999px;
-  font-size: 12.8px;
+  font-family: var(--font);
+  font-size: 13px;
   font-weight: 600;
   color: var(--muted);
   border: 1px solid var(--hairline);
   background: var(--tint-3);
+  white-space: nowrap;
 }
-.rb-tabs button.active {
-  background: var(--ink);
-  color: var(--tint-3);
-  border-color: var(--ink);
+.rb-steps button .n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(58, 31, 82, 0.1);
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+}
+.rb-steps button.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--sh-primary);
+}
+.rb-steps button.active .n {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* --- goal strip --- */
+.rb-goal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  background: var(--tint-2);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.rb-goal label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+/* The posting is the longest value and the one worth reading in full. */
+.rb-goal .goal-opp {
+  flex: 1;
+  min-width: 220px;
+}
+.goal-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.rb-goal select {
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-45);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 13px;
+  max-width: 100%;
+}
+.goal-match {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+/* Tone carries meaning here, so each one also carries its own words — the label
+   says "eligible" or "not yet eligible", never colour alone. */
+.goal-match--neutral {
+  background: rgba(58, 31, 82, 0.08);
+  color: var(--muted);
+}
+.goal-match--good {
+  background: var(--good-bg);
+  color: var(--good);
+}
+.goal-match--warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+/* --- import verified record --- */
+.import-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--purple-mid);
+  background: var(--tint-1);
+  color: var(--brand-purple);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+.import-btn:hover {
+  background: var(--surface);
+}
+.import-btn .icon {
+  font-size: 16px;
+}
+.import-done {
+  font-size: 11.5px;
+  color: var(--good);
+  text-align: center;
+  margin: -8px 0 14px;
 }
 
 /* the builder's stepper + main sit side by side inside a framed shell (the

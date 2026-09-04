@@ -2,7 +2,9 @@
   <div class="dt-header">
     <div>
       <div class="dt-title">Skilling</div>
-      <div class="dt-sub">Upload a certificate to claim a skill, then track your verified badges</div>
+      <div class="dt-sub">
+        Upload a certificate to claim a skill, then track your verified badges
+      </div>
     </div>
   </div>
 
@@ -17,8 +19,8 @@
     @if (claimSubmitted()) {
       <div class="claim-done">
         <p>
-          <b>Claim submitted.</b> Your mentor will review the certificate and verify the badge within
-          two working days.
+          <b>Claim submitted.</b> Your mentor will review the certificate and verify the badge
+          within two working days.
         </p>
         <button type="button" class="btn-outline-good" (click)="claimAnother()">
           Claim another skill
@@ -52,10 +54,7 @@
       <div class="claim-grid">
         <label class="claim-field">
           <span class="field-label">Skill category</span>
-          <select
-            [value]="claimCategory()"
-            (change)="onCategoryChange($any($event.target).value)"
-          >
+          <select [value]="claimCategory()" (change)="onCategoryChange($any($event.target).value)">
             <option value="">Select a category</option>
             @for (c of categories(); track c) {
               <option [value]="c">{{ c }}</option>
@@ -102,7 +101,12 @@
       }
 
       <div class="claim-actions">
-        <button type="button" class="btn primary" [disabled]="!canSubmitClaim()" (click)="submitClaim()">
+        <button
+          type="button"
+          class="btn primary"
+          [disabled]="!canSubmitClaim()"
+          (click)="submitClaim()"
+        >
           {{ claiming() ? 'Submitting…' : 'Submit claim' }}
         </button>
         <span class="claim-hint">Typically verified within two working days</span>
@@ -121,7 +125,8 @@
         <div class="reco-row">
           {{ c.skillName }}
           <span class="chip {{ c.chipClass }}">
-            <span class="icon">{{ c.chipIcon }}</span>{{ c.chipLabel }}
+            <span class="icon">{{ c.chipIcon }}</span
+            >{{ c.chipLabel }}
           </span>
         </div>
         @if (c.reviewNote) {
@@ -134,9 +139,7 @@
   <!-- The badge board -->
   <div class="card board">
     <div class="board-legend">
-      <span class="legend-item">
-        <span class="dot dot-open"></span>Skill available
-      </span>
+      <span class="legend-item"> <span class="dot dot-open"></span>Skill available </span>
       <span class="legend-item legend-item--lit">
         <span class="dot dot-lit"></span>Skill verified &amp; acquired
       </span>
@@ -166,7 +169,9 @@
       }
 
       <div class="board-foot">
-        <div><b>{{ litCount() }}</b> skills currently illuminated</div>
+        <div>
+          <b>{{ litCount() }}</b> skills currently illuminated
+        </div>
         <div class="board-foot-hint">Outline → acquire &amp; verify → glow</div>
       </div>
     }

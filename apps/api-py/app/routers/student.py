@@ -397,6 +397,10 @@ class StudentSkillOut(BaseModel):
     category: str
     level: int
     verified: bool
+    # The upload the mentor verified this against, when there is one. The resume
+    # builder's "View proof" needs it: a verified skill the student cannot open
+    # the evidence for is an assertion, not a citation.
+    evidence_upload_id: str | None = None
 
 
 @router.get("/skills", response_model=list[StudentSkillOut])
@@ -414,6 +418,7 @@ def my_skills(
             category=r.skill.category,
             level=r.level,
             verified=r.verified,
+            evidence_upload_id=r.evidence_upload_id,
         )
         for r in rows
     ]
@@ -982,7 +987,11 @@ def _compose_resume_markdown(name, profile, skill_names, cgpa, quals) -> str:
         contact = [x for x in (profile.email, profile.phone, profile.linkedin_url, profile.city) if x]
     if contact:
         lines += ["**Contact:** " + " · ".join(contact), ""]
-    lines += ["## Skills", ", ".join(skill_names) if skill_names else "—", ""]
+    lines += [
+        "## Verified Skills",
+        ", ".join(skill_names) if skill_names else "— none verified yet",
+        "",
+    ]
     lines += ["## Academics", f"- Latest CGPA: {cgpa}" if cgpa is not None else "- CGPA: not yet assessed"]
     for q in quals:
         pct = round(100 * q.marks / q.max_marks) if q.max_marks else 0
@@ -1007,13 +1016,28 @@ def generate_resume(
     student_id = _require_student(session)
     name = session.get("name", "")
     profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
-    skill_names = list(
-        db.scalars(
-            select(Skill.name)
-            .join(StudentSkill, StudentSkill.skill_id == Skill.id)
-            .where(StudentSkill.student_id == student_id)
-        ).all()
+    # ONLY VERIFIED SKILLS REACH THE DOCUMENT. A resume is a claim made to an
+    # employer, and an unverified StudentSkill is a claim still with the mentor
+    # — printing the two in one undifferentiated "Skills" line presented work in
+    # review as work confirmed, which is the one thing the verification flow
+    # exists to prevent.
+    verified_rows = db.execute(
+        select(Skill.slug, Skill.name)
+        .join(StudentSkill, StudentSkill.skill_id == Skill.id)
+        .where(StudentSkill.student_id == student_id, StudentSkill.verified.is_(True))
+    ).all()
+    # The builder lets the student switch individual verified skills off when
+    # tailoring to a posting. An empty/absent list means they have not curated,
+    # so everything verified goes in; an explicit list is respected as written.
+    resume_state = db.scalar(
+        select(ResumeProfile.data).where(ResumeProfile.student_id == student_id)
     )
+    included = ((resume_state or {}).get("evidence_skills") or {}).get("included") or []
+    if included:
+        chosen = set(included)
+        skill_names = [name for slug, name in verified_rows if slug in chosen]
+    else:
+        skill_names = [name for _slug, name in verified_rows]
     latest = db.scalar(
         select(SemesterResult)
         .where(SemesterResult.student_id == student_id)

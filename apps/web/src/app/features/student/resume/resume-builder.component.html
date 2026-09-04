@@ -1,26 +1,77 @@
-<!-- Three top-level view tabs. Styled locally (.rb-tabs) — the mockup's demo
-     .meta-tabs chrome is intentionally not part of the global stylesheet. -->
-<div class="rb-tabs">
-  <button type="button" [class.active]="view() === 'builder'" (click)="view.set('builder')">
-    Profile &amp; Builder
+<!-- The four steps of the flow, in order: write it, aim it, read it, send it.
+     Numbered because the sequence is the guidance — the previous three tabs
+     named three places and left the student to guess the order. -->
+<div class="rb-steps">
+  <button type="button" [class.active]="flowStep() === 'build'" (click)="go('build')">
+    <span class="n">1</span> Build content
   </button>
-  <button type="button" [class.active]="view() === 'resumes'" (click)="view.set('resumes')">
-    All Resumes
+  <button type="button" [class.active]="flowStep() === 'tailor'" (click)="go('tailor')">
+    <span class="n">2</span> Tailor to opportunity
   </button>
-  <button type="button" [class.active]="view() === 'preview'" (click)="view.set('preview')">
-    Generated Resume
+  <button type="button" [class.active]="flowStep() === 'preview'" (click)="go('preview')">
+    <span class="n">3</span> Preview
+  </button>
+  <button type="button" [class.active]="flowStep() === 'export'" (click)="go('export')">
+    <span class="n">4</span> Export &amp; share
   </button>
 </div>
 
-@switch (view()) {
-  @case ('resumes') {
-    <rb-all-resumes />
+<!-- The goal. Every step below reads it, so it stays visible on all four. -->
+<div class="rb-goal">
+  <label>
+    <span class="goal-lbl">Target role</span>
+    <select [value]="goalSvc.goal().role" (change)="goalSvc.setRole($any($event.target).value)">
+      <option value="">Not set</option>
+      @for (r of goalSvc.roleOptions(); track r) {
+        <option [value]="r">{{ r }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <span class="goal-lbl">Location</span>
+    <select
+      [value]="goalSvc.goal().location"
+      (change)="goalSvc.setLocation($any($event.target).value)"
+    >
+      <option value="">Any</option>
+      @for (l of goalSvc.locationOptions(); track l) {
+        <option [value]="l">{{ l }}</option>
+      }
+    </select>
+  </label>
+  <label class="goal-opp">
+    <span class="goal-lbl">Selected opportunity</span>
+    <select
+      [value]="goalSvc.goal().opportunityId"
+      (change)="goalSvc.setOpportunity($any($event.target).value)"
+    >
+      <option value="">Not chosen</option>
+      @for (j of goalSvc.jobs() ?? []; track j.id) {
+        <option [value]="j.id">
+          {{ j.company }} — {{ j.title }}
+          @if (j.location) {
+            · {{ j.location }}
+          }
+        </option>
+      }
+    </select>
+  </label>
+  <!-- Match and eligibility together: a score alone would read as permission. -->
+  <span class="goal-match goal-match--{{ goalSvc.matchTone() }}">{{ goalSvc.matchLabel() }}</span>
+</div>
+
+@switch (flowStep()) {
+  @case ('tailor') {
+    <rb-tailor (navigate)="go($event)" />
   }
   @case ('preview') {
-    <rb-preview />
+    <rb-preview (navigate)="go($event === 'builder' ? 'build' : 'export')" />
+  }
+  @case ('export') {
+    <rb-export (navigate)="go($event)" />
   }
   @default {
-    <!-- BUILDER: left stepper + main column -->
+    <!-- BUILD CONTENT: left stepper + main column -->
     <div class="rb-shell">
       <aside class="stepper">
         <div class="completeness">
@@ -35,14 +86,25 @@
           </small>
         </div>
 
+        <!-- One click brings in everything REEP already holds verified, so the
+             student never retypes what a mentor has already confirmed. -->
+        <button type="button" class="import-btn" (click)="importVerified()">
+          <span class="icon">sync</span> Import verified record
+        </button>
+        @if (importedCount() !== null) {
+          <div class="import-done">
+            @if (importedCount()! > 0) {
+              {{ importedCount() }} verified skill(s) added ✓
+            } @else {
+              Everything verified is already included ✓
+            }
+          </div>
+        }
+
         @for (group of groups; track group.name) {
           <div class="step-group">{{ group.name }}</div>
           @for (s of group.steps; track s.key) {
-            <div
-              class="step-item"
-              [class.active]="step() === s.key"
-              (click)="step.set(s.key)"
-            >
+            <div class="step-item" [class.active]="step() === s.key" (click)="step.set(s.key)">
               <span
                 class="step-dot"
                 [class.done]="stepStates()[s.key] === 'done'"
@@ -68,10 +130,10 @@
             <div class="sub">{{ current().sub }}</div>
           </div>
           <div class="head-actions">
-            <button type="button" class="btn" (click)="view.set('resumes')">
+            <button type="button" class="btn" (click)="go('export')">
               <span class="icon">folder_open</span> All Resumes
             </button>
-            <button type="button" class="btn accent" (click)="view.set('preview')">
+            <button type="button" class="btn primary" (click)="go('preview')">
               <span class="icon">auto_awesome</span> Generate Resume
             </button>
           </div>
@@ -79,21 +141,54 @@
 
         <div class="body">
           @switch (step()) {
-            @case ('basic') { <rb-basic /> }
-            @case ('contact') { <rb-contact /> }
-            @case ('family') { <rb-family /> }
-            @case ('education') { <rb-education /> }
-            @case ('attachments') { <rb-attachments /> }
-            @case ('experience') { <rb-experience /> }
-            @case ('internship') { <rb-internship /> }
-            @case ('projects') { <rb-projects /> }
-            @case ('publications') { <rb-publications /> }
-            @case ('seminars') { <rb-seminars /> }
-            @case ('certifications') { <rb-certifications /> }
-            @case ('por') { <rb-por /> }
-            @case ('other') { <rb-other /> }
-            @case ('references') { <rb-references /> }
-            @case ('policy') { <rb-policy /> }
+            @case ('basic') {
+              <rb-basic />
+            }
+            @case ('contact') {
+              <rb-contact />
+            }
+            @case ('family') {
+              <rb-family />
+            }
+            @case ('education') {
+              <rb-education />
+            }
+            @case ('attachments') {
+              <rb-attachments />
+            }
+            @case ('evidence_skills') {
+              <rb-evidence-skills />
+            }
+            @case ('experience') {
+              <rb-experience />
+            }
+            @case ('internship') {
+              <rb-internship />
+            }
+            @case ('projects') {
+              <rb-projects />
+            }
+            @case ('publications') {
+              <rb-publications />
+            }
+            @case ('seminars') {
+              <rb-seminars />
+            }
+            @case ('certifications') {
+              <rb-certifications />
+            }
+            @case ('por') {
+              <rb-por />
+            }
+            @case ('other') {
+              <rb-other />
+            }
+            @case ('references') {
+              <rb-references />
+            }
+            @case ('policy') {
+              <rb-policy />
+            }
           }
         </div>
 

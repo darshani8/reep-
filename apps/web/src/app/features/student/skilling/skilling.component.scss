@@ -1,94 +1,282 @@
-/* All visual styling comes from the global reep-v2 classes (.panel, .dt-header,
- * .grid-2, .card, .dropzone, .reco-row, .chip, .icon). Nothing global is
- * redefined here — only the host block and a few small skilling-specific tweaks
- * (the inert dropzone, category labels, level text, state and review notes). */
+/* Skilling — the claim card and the badge board.
+ *
+ * Structure comes from the global reep-v2 classes (.panel, .dt-header, .card,
+ * .chip, .btn, .icon); nothing global is redefined. What lives here is the two
+ * things this screen alone has: the certificate dropzone with its picked state,
+ * and the badge board's category rows and pills.
+ *
+ * The claim form's controls are PILLS (999px) rather than the app's 12px
+ * fields. That is the handoff's choice on this screen and it earns itself: the
+ * card is a single vertical run of five controls, and the pill shape keeps them
+ * reading as one sequence instead of five stacked boxes. */
 :host {
   display: block;
 }
 
-/* Claim-a-skill form: skill + level pickers, then the clickable dropzone. */
-.claim-fields {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+/* --- claim card ------------------------------------------------------- */
+
+.claim-card {
+  margin-bottom: 20px;
 }
-.claim-label {
-  flex: 1;
-  font-size: 11.5px;
-  font-weight: 700;
+.claim-lede {
+  font-size: 13px;
   color: var(--muted);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.claim-label select {
-  font-family: var(--font);
-  font-size: 12.5px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--hairline);
-  background: var(--surface);
-  color: var(--ink);
-}
-.dropzone--action {
-  display: block;
-  width: 100%;
-  cursor: pointer;
-  font-family: var(--font);
-}
-.dropzone--action:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  margin: 0 0 18px;
 }
 
-/* The dropzone is a placeholder until server-side file upload exists. */
-.dropzone--soon {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-.soon-note {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
+.field-label {
   font-size: 12px;
-  font-weight: 600;
-}
-.soon-note .icon {
-  font-size: 15px;
-  color: var(--purple-mid);
-}
-
-/* Small "x/y verified" tag riding the flex .card h4. */
-.skill-count {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-/* Category subheading between reco-row groups. */
-.cat-label {
-  font-size: 10.5px;
   font-weight: 700;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--faint);
-  margin: 12px 0 2px;
-}
-.cat-label:first-of-type {
-  margin-top: 0;
+  display: block;
+  margin-bottom: 6px;
 }
 
-/* The proficiency / claimed-level text; pushes it and the chip to the right. */
-.reco-row .lvl {
-  margin-left: auto;
-  font-size: 11px;
-  font-weight: 600;
+.claim-field {
+  display: block;
+  margin-bottom: 16px;
+}
+.claim-field select,
+.claim-field input {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-45);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+}
+/* Disabled reads as "not yet", not as broken: the badge select is waiting on a
+   category, and its placeholder says so. */
+.claim-field select:disabled {
+  background: var(--tint-3);
   color: var(--muted);
-  white-space: nowrap;
+  cursor: not-allowed;
 }
 
-/* Loading / empty / error line inside a card. */
+.claim-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+/* One column below the point where two selects would truncate their options. */
+@media (max-width: 620px) {
+  .claim-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+/* The dropzone, and the row it becomes once a file is chosen. */
+.cert-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  border: 2px dashed rgba(122, 47, 158, 0.35);
+  border-radius: 18px;
+  padding: 36px 16px;
+  text-align: center;
+  background: transparent;
+  font-family: var(--font);
+  cursor: pointer;
+  margin-bottom: 18px;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+.cert-drop:hover {
+  border-color: var(--purple-mid);
+  background: var(--tint-3);
+}
+.cert-drop .icon {
+  font-size: 30px;
+  color: var(--purple-mid);
+}
+.cert-drop-main {
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.cert-drop-sub {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.cert-picked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(19, 122, 74, 0.4);
+  background: var(--surface);
+  margin-bottom: 18px;
+}
+.cert-picked .icon {
+  font-size: 22px;
+  color: var(--good);
+}
+.cert-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--purple-mid);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex: none;
+}
+
+.claim-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.claim-hint {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Submitted confirmation, in the success tone. */
+.claim-done {
+  background: var(--good-bg);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.claim-done p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--good);
+}
+.btn-outline-good {
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--good);
+  background: var(--surface);
+  color: var(--good);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* --- badge board ------------------------------------------------------ */
+
+.board-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--hairline-26);
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.legend-item--lit {
+  font-weight: 700;
+  color: var(--ink);
+}
+.dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  display: inline-block;
+  flex: none;
+}
+.dot-open {
+  border: 1.5px solid rgba(160, 138, 178, 0.6);
+}
+.dot-lit {
+  background: var(--purple-mid);
+  box-shadow: 0 0 0 2px rgba(122, 47, 158, 0.25);
+}
+
+.board-row {
+  display: flex;
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--hairline-26);
+  flex-wrap: wrap;
+}
+.board-cat {
+  flex: 0 0 180px;
+}
+.board-cat-name {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.board-cat-note {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.board-badges {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-content: flex-start;
+}
+
+/* A badge is a STATE, not a control — it reports what the student holds and
+   nothing happens when you press it, so it is a span, not a button. */
+.badge-pill {
+  padding: 9px 15px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--surface);
+  border: 1px solid rgba(160, 138, 178, 0.4);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.badge-pill--lit {
+  border: 1.5px solid var(--purple-mid);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(122, 47, 158, 0.22);
+}
+
+.board-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.board-foot-hint {
+  font-size: 12.5px;
+  color: var(--faint);
+}
+
+/* --- shared small pieces (kept from the previous screen) --------------- */
+
 .state-note {
   display: flex;
   align-items: center;
@@ -102,7 +290,6 @@
   color: var(--purple-mid);
 }
 
-/* A reviewer's note under a claim. */
 .review-note {
   display: flex;
   align-items: center;

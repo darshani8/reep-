@@ -1572,6 +1572,7 @@ class SkillClaimOut(BaseModel):
     upload_id: str
     claimed_level: int
     status: str
+    student_note: str | None
     review_note: str | None
     reviewed_at: datetime | None
     created_at: datetime
@@ -1580,7 +1581,11 @@ class SkillClaimOut(BaseModel):
 class SkillClaimIn(BaseModel):
     skill_id: str
     upload_id: str
+    # The claim form no longer asks the student to grade themselves — it asks for
+    # the certificate and the badge it proves, and the mentor sets the level when
+    # they grant it. The default stands in for the claim's "working" level.
     claimed_level: int = Field(default=3, ge=1, le=5)
+    student_note: str | None = None
 
 
 @router.get("/skill-claims", response_model=list[SkillClaimOut])
@@ -1603,6 +1608,7 @@ def my_skill_claims(
             upload_id=sc.upload_id,
             claimed_level=sc.claimed_level,
             status=sc.status.value,
+            student_note=sc.student_note,
             review_note=sc.review_note,
             reviewed_at=sc.reviewed_at,
             created_at=sc.created_at,
@@ -1633,6 +1639,7 @@ def create_skill_claim(
         skill_id=body.skill_id,
         upload_id=body.upload_id,
         claimed_level=body.claimed_level,
+        student_note=body.student_note,
     )
     db.add(claim)
     db.commit()
@@ -1644,6 +1651,7 @@ def create_skill_claim(
         upload_id=claim.upload_id,
         claimed_level=claim.claimed_level,
         status=claim.status.value,
+        student_note=claim.student_note,
         review_note=claim.review_note,
         reviewed_at=claim.reviewed_at,
         created_at=claim.created_at,

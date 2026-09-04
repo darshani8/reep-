@@ -517,6 +517,7 @@ class SkillClaimReviewOut(BaseModel):
     upload_id: str
     claimed_level: int
     status: str
+    student_note: str | None
     reviewed_by_id: str | None
     reviewed_at: datetime | None
     review_note: str | None
@@ -533,6 +534,7 @@ def _claim_out(sc: SkillClaim, student_name: str, skill_name: str) -> SkillClaim
         upload_id=sc.upload_id,
         claimed_level=sc.claimed_level,
         status=sc.status.value,
+        student_note=sc.student_note,
         reviewed_by_id=sc.reviewed_by_id,
         reviewed_at=sc.reviewed_at,
         review_note=sc.review_note,

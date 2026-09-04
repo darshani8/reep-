@@ -10,6 +10,7 @@ import uuid
 from datetime import date, datetime
 
 from sqlalchemy import Date, DateTime, Enum, ForeignKey, Index, String, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -67,7 +68,24 @@ class LeaveRequest(Base):
     second_decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     second_note: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    # --- the official BGSCET form -------------------------------------------
+    # Which of the printed options is being applied for: the form lists Casual
+    # Leave / Permission / OOD / RH / LOP and strikes off the rest, so this is a
+    # selection among them rather than a free leave-type vocabulary.
+    leave_kind: Mapped[str | None] = mapped_column(String, nullable=True)
+    # The form's "Credit" cell. A free string, because the sheet accepts one.
+    credit: Mapped[str | None] = mapped_column(String, nullable=True)
+    # "Alternate Arrangements: (For Department purpose)" — a name, then a table
+    # of Date / Staff Name / Class / Time / Remarks. Stored as JSON because the
+    # rows are a printed table with no life outside this document; giving them
+    # their own table would imply queries nobody makes.
+    alt_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    alt_rows: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # When the applicant signed. The form's SIGNATURE OF STAFF block prints from
+    # this and the requester's name; a request with no timestamp is a draft.
+    signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

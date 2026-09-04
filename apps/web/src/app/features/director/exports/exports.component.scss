@@ -1,0 +1,48 @@
+/* Exports. Panel / card / btn / icon are global. */
+:host {
+  display: block;
+}
+
+/* The warning comes before the buttons, because it is about pressing them. */
+.note-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.note-card > .icon {
+  font-size: 20px;
+  color: var(--purple-mid);
+  flex: none;
+}
+
+.export-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.export-icon {
+  font-size: 24px;
+  color: var(--purple-mid);
+  flex: none;
+}
+.export-main {
+  flex: 1;
+  min-width: 220px;
+}
+.export-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.export-detail {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}

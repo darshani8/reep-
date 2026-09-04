@@ -93,17 +93,27 @@ function blank(): ProjectEntry {
       <div class="entry">
         <div class="field">
           <label>Project title</label>
-          <input class="ctrl" [(ngModel)]="draft.title" placeholder="e.g. Inventory forecasting model" />
+          <input
+            class="ctrl"
+            [(ngModel)]="draft.title"
+            placeholder="e.g. Inventory forecasting model"
+          />
         </div>
         <div class="field">
           <label>Description</label>
-          <textarea class="ctrl" [(ngModel)]="draft.description" placeholder="What the project does and your contribution…"></textarea>
+          <textarea
+            class="ctrl"
+            [(ngModel)]="draft.description"
+            placeholder="What the project does and your contribution…"
+          ></textarea>
         </div>
         <div class="field">
           <label>Tech / skills used</label>
           <div class="taginput">
             @for (t of draft.tech; track $index) {
-              <span class="chipx">{{ t }} <span class="icon" (click)="removeTech($index)">close</span></span>
+              <span class="chipx"
+                >{{ t }} <span class="icon" (click)="removeTech($index)">close</span></span
+              >
             }
             <input
               [(ngModel)]="techInput"
@@ -114,7 +124,11 @@ function blank(): ProjectEntry {
         </div>
         <div class="field">
           <label>Link</label>
-          <input class="ctrl" [(ngModel)]="draft.link" placeholder="https:// repository, demo or write-up" />
+          <input
+            class="ctrl"
+            [(ngModel)]="draft.link"
+            placeholder="https:// repository, demo or write-up"
+          />
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
           <button class="btn" (click)="cancel()">Cancel</button>

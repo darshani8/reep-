@@ -1,0 +1,108 @@
+<div class="rb-view">
+  <section class="main">
+    <div class="main-head">
+      <div>
+        <h2>Export &amp; share</h2>
+        <div class="sub">Your saved versions, and what leaves REEP when you send one.</div>
+      </div>
+      <div class="head-actions">
+        <button type="button" class="btn" (click)="navigate.emit('preview')">
+          <span class="icon">visibility</span> Back to preview
+        </button>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="card">
+        <h3>Send to an opportunity</h3>
+        <div class="desc">
+          Attaching a resume to an application shares it with that employer. Check what is going
+          before you send it.
+        </div>
+
+        @if (!job()) {
+          <div class="state-note">
+            <span class="icon">info</span>
+            Pick a posting in <b>Selected opportunity</b> above to send a copy for it.
+          </div>
+        } @else {
+          <div class="share-target">
+            <span class="icon">work</span>
+            <div>
+              <b>{{ job()!.title }}</b> · {{ job()!.company }}
+              @if (job()!.location) {
+                · {{ job()!.location }}
+              }
+              @if (!job()!.eligible) {
+                <div class="share-warn">
+                  You are not yet eligible for this posting, so an application may not be
+                  considered. You can still keep a tailored copy.
+                </div>
+              }
+            </div>
+          </div>
+
+          <label class="opt-row">
+            <input
+              type="checkbox"
+              [checked]="proofAppendix()"
+              (change)="proofAppendix.set($any($event.target).checked)"
+            />
+            <span>
+              <b>Attach a proof appendix</b>
+              <small>
+                Adds the {{ proofCount() }} certificate(s) behind your included skills. Off by
+                default — the resume itself stays clean.
+              </small>
+            </span>
+          </label>
+
+          <label class="opt-row">
+            <input
+              type="checkbox"
+              [checked]="consented()"
+              (change)="consented.set($any($event.target).checked)"
+            />
+            <span>
+              <b>I understand what is being shared</b>
+              <small>
+                Your resume — name, contact details, academic record and included verified skills —
+                will be shared with {{ job()!.company }}
+                @if (proofAppendix()) {
+                  , along with your certificate files
+                }
+                .
+              </small>
+            </span>
+          </label>
+
+          @if (shared()) {
+            <div class="share-done">
+              <span class="icon">check_circle</span>
+              <div>
+                Marked for <b>{{ job()!.title }}</b
+                >. Sending is not wired to an endpoint yet, so nothing has left REEP — this records
+                the choice only.
+              </div>
+            </div>
+          } @else {
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="!canShare()"
+              (click)="useForApplication()"
+            >
+              <span class="icon">send</span> Use for this application
+            </button>
+            @if (!consented()) {
+              <div class="opt-hint">Tick the confirmation above to enable this.</div>
+            }
+          }
+        }
+      </div>
+
+      <!-- Versions. -->
+      <rb-all-resumes />
+    </div>
+  </section>
+</div>

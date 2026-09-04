@@ -288,8 +288,16 @@
       'meter meter'
       'fig fig';
   }
-  .att-course-code { grid-area: code; }
-  .att-course-chip { grid-area: chip; }
-  .att-course .meter { grid-area: meter; }
-  .att-course-fig { grid-area: fig; }
+  .att-course-code {
+    grid-area: code;
+  }
+  .att-course-chip {
+    grid-area: chip;
+  }
+  .att-course .meter {
+    grid-area: meter;
+  }
+  .att-course-fig {
+    grid-area: fig;
+  }
 }

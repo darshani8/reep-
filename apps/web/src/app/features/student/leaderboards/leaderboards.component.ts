@@ -54,15 +54,17 @@ interface Tab {
   styleUrl: './leaderboards.component.scss',
 })
 export class LeaderboardsComponent {
+  // Certificates came out of the board set: a certificate is evidence for a
+  // skill rather than an achievement of its own, and the Skills board already
+  // ranks on what those certificates were verified into.
   readonly tabs: Tab[] = [
-    { key: 'certificates', label: 'Certificates', scored: 'completed certifications' },
     { key: 'skills', label: 'Skills', scored: 'verified and held skills' },
     { key: 'vtu', label: 'VTU results', scored: 'your latest-semester CGPA' },
     { key: 'streak', label: 'Streak', scored: 'active-day count' },
     { key: 'mocks', label: 'Mocks taken', scored: 'mock attempts taken' },
   ];
 
-  readonly active = signal<string>('certificates');
+  readonly active = signal<string>('skills');
   readonly rows = signal<LbEntry[]>([]);
   readonly cohortSize = signal(0);
   readonly loading = signal(true);

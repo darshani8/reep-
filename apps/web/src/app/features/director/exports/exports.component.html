@@ -1,0 +1,32 @@
+<div class="panel" data-p="exports">
+  <div class="dt-header">
+    <div>
+      <div class="eyebrow">Admin · reporting</div>
+      <div class="dt-title">Exports</div>
+      <div class="dt-sub">Programme data as spreadsheets, for reporting outside REEP.</div>
+    </div>
+  </div>
+
+  <div class="card note-card">
+    <span class="icon">shield_person</span>
+    <div>
+      <b>These files carry student data.</b>
+      They leave REEP the moment they are downloaded, and nothing here can recall them — share them
+      the way your institution requires for student records.
+    </div>
+  </div>
+
+  @for (r of rows; track r.path) {
+    <div class="card export-row">
+      <span class="icon export-icon">{{ r.icon }}</span>
+      <div class="export-main">
+        <div class="export-title">{{ r.title }}</div>
+        <div class="export-detail">{{ r.detail }}</div>
+      </div>
+      <!-- A real link, so the browser streams the file straight to disk. -->
+      <a class="btn primary" [href]="url(r)" [attr.download]="r.filename">
+        <span class="icon">download</span> Download CSV
+      </a>
+    </div>
+  }
+</div>

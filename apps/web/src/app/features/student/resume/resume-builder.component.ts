@@ -3,9 +3,14 @@
  *
  * Renders inside the app-shell's <router-outlet>, so it repeats none of the
  * desktop titlebar/rail. Instead it owns three things:
- *   - a `view` signal ('builder' | 'resumes' | 'preview') driving a top row of
- *     view tabs, and switching between the builder, <rb-all-resumes/> and
- *     <rb-preview/>;
+ *   - a `step` signal ('build' | 'tailor' | 'preview' | 'export') driving the
+ *     numbered flow across the top. The four steps are an ORDER, not a set of
+ *     views: content is written, then aimed at a posting, then read as the
+ *     employer will read it, then sent. The old three tabs (Profile & Builder /
+ *     All Resumes / Generated Resume) named three places with no sequence
+ *     between them, so nothing told a student what to do after filling the form;
+ *   - the GOAL STRIP above them, which every later step reads — a resume is only
+ *     good relative to a target, and there was none;
  *   - a `step` signal (one of the 15 section keys) driving the left stepper and
  *     the @switch that mounts exactly one section component in the .body;
  *   - the .main-head title/sub (from STEPS' meta) and the .footbar save action.
@@ -38,10 +43,15 @@ import { RbReferencesComponent } from './sections/references.component';
 import { RbPolicyComponent } from './sections/policy.component';
 
 // 2 view components (views/<name>.component.ts) — created in parallel.
-import { RbAllResumesComponent } from './views/all-resumes.component';
 import { RbPreviewComponent } from './views/preview.component';
+import { RbTailorComponent } from './views/tailor.component';
+import { RbExportComponent } from './views/export.component';
+import { RbEvidenceSkillsComponent } from './sections/evidence-skills.component';
+import { ResumeGoalService } from './resume-goal.service';
+import { ResumeEvidenceService } from './resume-evidence.service';
 
-type View = 'builder' | 'resumes' | 'preview';
+/** The four steps of the flow, in order. */
+type ResumeStep = 'build' | 'tailor' | 'preview' | 'export';
 
 interface Step {
   /** section key, matches svc.section(key) and the @switch cases */
@@ -101,6 +111,15 @@ const STEP_GROUPS: StepGroup[] = [
         label: 'Attachments',
         title: 'Attachments',
         sub: 'A ledger of every document, routed from the section that owns it.',
+      },
+      {
+        // Sits in Academics rather than a group of its own: it is the record of
+        // what REEP can vouch for, next to the record of what the university
+        // can. Both are things the student does not type.
+        key: 'evidence_skills',
+        label: 'Evidence-backed Skills',
+        title: 'Evidence-backed Skills',
+        sub: 'Skills a mentor has verified, and which of them this resume claims.',
       },
     ],
   },
@@ -200,8 +219,10 @@ const STEP_GROUPS: StepGroup[] = [
     RbOtherComponent,
     RbReferencesComponent,
     RbPolicyComponent,
-    RbAllResumesComponent,
     RbPreviewComponent,
+    RbTailorComponent,
+    RbExportComponent,
+    RbEvidenceSkillsComponent,
   ],
   templateUrl: './resume-builder.component.html',
   styleUrl: './resume-builder.component.scss',
@@ -211,8 +232,14 @@ export class ResumeBuilderComponent {
 
   readonly groups = STEP_GROUPS;
 
-  readonly view = signal<View>('builder');
+  readonly goalSvc = inject(ResumeGoalService);
+  readonly ev = inject(ResumeEvidenceService);
+
+  readonly flowStep = signal<ResumeStep>('build');
   readonly step = signal<string>('basic');
+
+  /** Set by "Import verified record" so the sidebar can report what it did. */
+  readonly importedCount = signal<number | null>(null);
 
   /** The active step's meta (title/sub for the .main-head). */
   readonly current = computed<Step>(() => {
@@ -269,10 +296,21 @@ export class ResumeBuilderComponent {
 
   constructor() {
     void this.svc.load();
+    void this.goalSvc.load();
+    void this.ev.load();
   }
 
   save(): void {
     void this.svc.save();
+  }
+
+  go(step: ResumeStep): void {
+    this.flowStep.set(step);
+  }
+
+  /** Pull every mentor-verified skill into the resume in one action. */
+  importVerified(): void {
+    this.importedCount.set(this.ev.importVerified());
   }
 
   /**

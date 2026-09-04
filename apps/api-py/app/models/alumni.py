@@ -10,9 +10,9 @@ one update.
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -33,6 +33,10 @@ class AlumniProfile(Base):
     # Where they work now — the one field the first-login form requires.
     company: Mapped[str] = mapped_column(String)
     designation: Mapped[str | None] = mapped_column(String, nullable=True)
+    # When they started in the current role. A date rather than a year: an
+    # alumnus a few months into a job and one three years in are different
+    # people to a placement report, and "2026" cannot tell them apart.
+    joined_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     graduation_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Current resume: metadata only, bytes in the document_store under resume_stored_name.

@@ -1,0 +1,79 @@
+<div class="panel" data-p="catalogue">
+  <div class="dt-header">
+    <div>
+      <div class="eyebrow">Admin · programme design</div>
+      <div class="dt-title">Catalogue</div>
+      <div class="dt-sub">Every course in the programme and the certifications mapped to it.</div>
+    </div>
+    @if (courses()?.length) {
+      <div class="cat-totals">
+        <span class="chip neutral">{{ totals().courses }} courses</span>
+        <span class="chip neutral">{{ totals().certs }} certifications</span>
+        @if (totals().uncovered) {
+          <span class="chip warn">
+            <span class="icon">info</span>{{ totals().uncovered }} with no certification
+          </span>
+        }
+      </div>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+  } @else if (semesters() === null) {
+    <div class="state-note"><span class="icon">hourglass_empty</span>Loading the catalogue…</div>
+  } @else if (semesters()!.length === 0) {
+    <div class="card">No courses in the catalogue yet.</div>
+  } @else {
+    @for (sem of semesters()!; track sem.semester) {
+      <h3 class="sem-head">Semester {{ sem.semester }}</h3>
+      @for (c of sem.courses; track c.code) {
+        <div class="card course">
+          <div class="course-head">
+            <div>
+              <strong>{{ c.code }}</strong> · {{ c.name }}
+              <div class="course-meta">
+                {{ c.stage }} · {{ c.dimension }} · {{ c.model_type }} ·
+                {{ c.duration_weeks }} weeks
+              </div>
+            </div>
+            <div class="course-hours">
+              <span>{{ c.teaching_hours }} h taught</span>
+              <span>{{ c.self_learning_hours_required }} h self-study</span>
+            </div>
+          </div>
+
+          @if (c.certifications.length) {
+            <div class="certs">
+              @for (cert of c.certifications; track cert.code) {
+                <div class="cert">
+                  <span class="icon">workspace_premium</span>
+                  <div class="cert-main">
+                    <div class="cert-name">
+                      @if (cert.link) {
+                        <a [href]="cert.link" target="_blank" rel="noopener">{{ cert.name }}</a>
+                      } @else {
+                        {{ cert.name }}
+                      }
+                    </div>
+                    <div class="cert-meta">{{ cert.provider }} · {{ cert.required_hours }} h</div>
+                  </div>
+                  @if (cert.is_optional) {
+                    <span class="chip neutral">Optional</span>
+                  } @else {
+                    <span class="chip good">Required</span>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="no-cert">
+              <span class="icon">info</span>
+              No certification mapped — students on this course have no evidence path from it.
+            </div>
+          }
+        </div>
+      }
+    }
+  }
+</div>

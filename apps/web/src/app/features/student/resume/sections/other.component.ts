@@ -43,8 +43,8 @@ type ListKey = 'achievements' | 'awards' | 'co_curricular' | 'extra_curricular';
     <div class="card">
       <h3>Career objective</h3>
       <div class="desc">
-        What you want from the role and what you bring. This is the paragraph the
-        generated resume opens with.
+        What you want from the role and what you bring. This is the paragraph the generated resume
+        opens with.
       </div>
       <textarea
         class="ctrl"
@@ -61,14 +61,13 @@ type ListKey = 'achievements' | 'awards' | 'co_curricular' | 'extra_curricular';
     <div class="card">
       <h3>Key expertise</h3>
       <div class="desc">
-        Press Enter after each skill. A comma- or space-separated string is stored
-        as one skill, which is almost never what you want.
+        Press Enter after each skill. A comma- or space-separated string is stored as one skill,
+        which is almost never what you want.
       </div>
       <div class="taginput">
         @for (skill of model.key_expertise; track $index) {
           <span class="chipx"
-            >{{ skill }}
-            <span class="icon" (click)="removeTag($index)">close</span></span
+            >{{ skill }} <span class="icon" (click)="removeTag($index)">close</span></span
           >
         }
         <input
@@ -301,9 +300,7 @@ export class RbOtherComponent {
   }
 
   setLinkUrl(i: number, v: string): void {
-    this.model.web_links = this.model.web_links.map((l, idx) =>
-      idx === i ? { ...l, url: v } : l,
-    );
+    this.model.web_links = this.model.web_links.map((l, idx) => (idx === i ? { ...l, url: v } : l));
     this.push();
   }
 

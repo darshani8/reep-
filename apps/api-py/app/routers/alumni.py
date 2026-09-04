@@ -14,7 +14,7 @@ already refuses them). The two surfaces here are deliberately small:
     rule 1 is untouched — nothing here goes near a model.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from pydantic import BaseModel
@@ -52,6 +52,7 @@ class ProfileOut(BaseModel):
     email: str
     company: str | None = None
     designation: str | None = None
+    joined_on: date | None = None
     graduation_year: int | None = None
     resume: ResumeOut | None = None
     updated_at: datetime | None = None
@@ -73,6 +74,7 @@ def _profile_out(session: dict, prof: AlumniProfile | None) -> ProfileOut:
         email=session["email"],
         company=prof.company,
         designation=prof.designation,
+        joined_on=prof.joined_on,
         graduation_year=prof.graduation_year,
         resume=resume,
         updated_at=prof.updated_at,
@@ -95,6 +97,7 @@ def my_profile(
 def save_profile(
     company: str = Form(...),
     designation: str = Form(""),
+    joined_on: str = Form(""),
     graduation_year: int | None = Form(None),
     resume: UploadFile | None = File(None),
     session: dict = Depends(get_current_session),
@@ -157,6 +160,18 @@ def save_profile(
 
     prof.company = company
     prof.designation = designation.strip() or None
+    # A blank field clears the date; a malformed one is refused rather than
+    # silently dropped, so the form cannot appear to save a value it discarded.
+    if joined_on.strip():
+        try:
+            prof.joined_on = date.fromisoformat(joined_on.strip())
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Date of joining must be a valid date.",
+            )
+    else:
+        prof.joined_on = None
     prof.graduation_year = graduation_year
     if stored is not None:
         # Replacing the resume: drop the old bytes BEFORE the row points at the

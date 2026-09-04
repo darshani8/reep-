@@ -1,0 +1,66 @@
+<div class="panel" data-p="analytics">
+  <div class="dt-header">
+    <div>
+      <div class="eyebrow">Admin · programme-wide</div>
+      <div class="dt-title">Analytics</div>
+      <div class="dt-sub">
+        Every mentor and their assigned students, read by one metric at a time.
+      </div>
+    </div>
+    <label class="metric-pick">
+      <span class="metric-lbl">Metric</span>
+      <select [value]="metric()" (change)="setMetric($any($event.target).value)">
+        @for (m of metricKeys; track m) {
+          <option [value]="m">{{ metricLabel(m) }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (error()) {
+    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+  }
+
+  @if (load() !== null && load()!.length === 0 && !error()) {
+    <div class="card">
+      <span class="icon">info</span>
+      No mentors on the roster yet, so there is nothing to map.
+    </div>
+  }
+
+  <div class="chart-grid" [class.chart-grid--hidden]="!load()?.length">
+    <div class="card chart-card chart-card--sun">
+      <h3>
+        Mentorship map
+        <span class="chart-sub">
+          {{ totals().mentors }} mentors · {{ totals().mentees }} assigned students
+        </span>
+      </h3>
+      <div class="chart-hint">
+        Inner ring is the mentor, outer ring their students, shaded by
+        {{ metricLabel(metric()) | lowercase }}. Click a mentor to load their students beside it.
+      </div>
+      <div #sun class="chart chart--sun"></div>
+    </div>
+
+    <div class="card chart-card">
+      <h3>
+        @if (focusName()) {
+          {{ focusName() }}'s students
+        } @else {
+          Mentor averages
+        }
+      </h3>
+      <div class="chart-hint">
+        @if (focusName()) {
+          {{ metricLabel(metric()) }} per student.
+          <button type="button" class="link-btn" (click)="clearFocus()">Show all mentors</button>
+        } @else {
+          Mean {{ metricLabel(metric()) | lowercase }} across each mentor's students. Click a mentor
+          in the map to see them individually.
+        }
+      </div>
+      <div #bar class="chart chart--bar"></div>
+    </div>
+  </div>
+</div>

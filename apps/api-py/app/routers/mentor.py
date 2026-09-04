@@ -8,12 +8,13 @@ session) sees NOBODY — never the whole programme.
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..document_store import content_disposition, read_bytes
 from ..identity import get_current_session
 from ..models.alert import Alert
 from ..models.lab import LabSession
@@ -517,6 +518,7 @@ class SkillClaimReviewOut(BaseModel):
     upload_id: str
     claimed_level: int
     status: str
+    student_note: str | None
     reviewed_by_id: str | None
     reviewed_at: datetime | None
     review_note: str | None
@@ -533,6 +535,7 @@ def _claim_out(sc: SkillClaim, student_name: str, skill_name: str) -> SkillClaim
         upload_id=sc.upload_id,
         claimed_level=sc.claimed_level,
         status=sc.status.value,
+        student_note=sc.student_note,
         reviewed_by_id=sc.reviewed_by_id,
         reviewed_at=sc.reviewed_at,
         review_note=sc.review_note,
@@ -562,8 +565,45 @@ def pending_skill_claims(
     return [_claim_out(sc, sname, skname) for sc, sname, skname in rows]
 
 
+@router.get("/uploads/{upload_id}/file")
+def download_student_upload(
+    upload_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Stream a mentee's uploaded file so the reviewer can actually read it.
+
+    Reviewing a skill claim means looking at the certificate behind it, and the
+    only download route was /student/uploads/{id}/file, which is scoped to the
+    uploader — a mentor hitting it got a 404 for a file they are being asked to
+    approve. The queue was asking people to verify evidence they could not open.
+
+    Scoped by `_assert_can_access_student`, the same gate every other mentor
+    read goes through, so a mentor still cannot reach a student outside their
+    group.
+    """
+    require_mentor(session)
+    upload = db.get(Upload, upload_id)
+    if upload is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
+    _assert_can_access_student(session, upload.student_id, db)
+    try:
+        content = read_bytes(upload.stored_name)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Stored file is missing."
+        )
+    return Response(
+        content=content,
+        media_type=upload.mime_type,
+        # Same RFC 6266 encoding as the student route: a non-latin-1 filename
+        # interpolated raw raises inside Response.__init__.
+        headers={"Content-Disposition": content_disposition(upload.original_name)},
+    )
+
+
 class SkillClaimReviewIn(BaseModel):
-    decision: str  # "GRANT" | "REJECT"
+    decision: str  # "GRANT" | "CHANGES" | "REJECT"
     granted_level: int | None = Field(default=None, ge=1, le=5)
     note: str | None = None
 
@@ -612,12 +652,27 @@ def review_skill_claim(
             existing.level = granted
             existing.verified = True
             existing.evidence_upload_id = sc.upload_id
+    elif decision in ("CHANGES", "NEEDS_CHANGES", "RETURN"):
+        # Back to the student to redo, not refused.
+        if not (body.note or "").strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Say what needs changing — the student only sees this note.",
+            )
+        sc.status = UploadStatus.NEEDS_CHANGES
     elif decision in ("REJECT", "REJECTED"):
+        # A refusal the student cannot act on is indistinguishable from a bug on
+        # their side of the screen, so a reason is required here too.
+        if not (body.note or "").strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="A rejection needs a reason — the student is shown it.",
+            )
         sc.status = UploadStatus.REJECTED
     else:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="decision must be GRANT or REJECT.",
+            detail="decision must be GRANT, CHANGES or REJECT.",
         )
     sc.reviewed_by_id = session["userId"]
     sc.reviewed_at = datetime.now(timezone.utc)

@@ -12,7 +12,11 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { environment } from '../../../../environments/environment';
-import { PageIntroComponent, SectionComponent, EmptyComponent } from '../../../shared/kit/kit.components';
+import {
+  PageIntroComponent,
+  SectionComponent,
+  EmptyComponent,
+} from '../../../shared/kit/kit.components';
 
 type Level = 'TENTH' | 'TWELFTH' | 'DIPLOMA' | 'UNDERGRAD' | 'POSTGRAD';
 
@@ -28,9 +32,23 @@ interface Qualification {
   location: string | null;
   subjects: string | null;
 }
-interface Gap { twelfthToGradMo: number; diplomaToGradMo: number; gradToPgMo: number; otherMo: number }
-interface Semester { semester: number; cgpa: number | null; closedBacklogs: number; liveBacklogs: number }
-interface AcademicsView { qualifications: Qualification[]; gap: Gap; semesters: Semester[] }
+interface Gap {
+  twelfthToGradMo: number;
+  diplomaToGradMo: number;
+  gradToPgMo: number;
+  otherMo: number;
+}
+interface Semester {
+  semester: number;
+  cgpa: number | null;
+  closedBacklogs: number;
+  liveBacklogs: number;
+}
+interface AcademicsView {
+  qualifications: Qualification[];
+  gap: Gap;
+  semesters: Semester[];
+}
 
 const LEVEL_LABEL: Record<Level, string> = {
   TENTH: '10th Standard',
@@ -61,8 +79,9 @@ export class AcademicsComponent {
   gap: Gap = { twelfthToGradMo: 0, diplomaToGradMo: 0, gradToPgMo: 0, otherMo: 0 };
   semesters = signal<Semester[]>([]);
 
-  readonly totalGap = computed(() =>
-    this.gap.twelfthToGradMo + this.gap.diplomaToGradMo + this.gap.gradToPgMo + this.gap.otherMo,
+  readonly totalGap = computed(
+    () =>
+      this.gap.twelfthToGradMo + this.gap.diplomaToGradMo + this.gap.gradToPgMo + this.gap.otherMo,
   );
   readonly liveBacklogs = computed(() => this.semesters().reduce((s, r) => s + r.liveBacklogs, 0));
 
@@ -72,7 +91,9 @@ export class AcademicsComponent {
 
   private async load(): Promise<void> {
     try {
-      const res = await fetch(`${environment.apiBase}/student/academics`, { credentials: 'include' });
+      const res = await fetch(`${environment.apiBase}/student/academics`, {
+        credentials: 'include',
+      });
       if (!res.ok) {
         this.error.set('Could not load your academics.');
         return;
@@ -90,7 +111,17 @@ export class AcademicsComponent {
   addQualification(level: Level): void {
     this.quals.set([
       ...this.quals(),
-      { level, institution: '', board: null, year: new Date().getFullYear(), marks: 0, maxMarks: 100, medium: null, location: null, subjects: null },
+      {
+        level,
+        institution: '',
+        board: null,
+        year: new Date().getFullYear(),
+        marks: 0,
+        maxMarks: 100,
+        medium: null,
+        location: null,
+        subjects: null,
+      },
     ]);
     this.saved.set(false);
   }

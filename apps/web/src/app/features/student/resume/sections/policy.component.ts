@@ -45,12 +45,12 @@ interface PolicyModel {
   template: `
     <div class="card">
       <h3>Placement policy</h3>
-      <div class="desc">
-        This governs which opportunities you appear against on the Jobs page.
-      </div>
+      <div class="desc">This governs which opportunities you appear against on the Jobs page.</div>
 
       <div class="field">
-        <label>Eligible for placements <span class="reqp">Required for placement profile</span></label>
+        <label
+          >Eligible for placements <span class="reqp">Required for placement profile</span></label
+        >
         <div class="radio-row">
           <label>
             <input
@@ -77,7 +77,10 @@ interface PolicyModel {
 
       <div class="grid2" style="margin-top:6px;">
         <div class="field">
-          <label>Interested in jobs <span class="req">*</span><span class="reqp">Required for placement profile</span></label>
+          <label
+            >Interested in jobs <span class="req">*</span
+            ><span class="reqp">Required for placement profile</span></label
+          >
           <select
             class="ctrl"
             [ngModel]="model.interested_jobs"
@@ -89,7 +92,10 @@ interface PolicyModel {
           </select>
         </div>
         <div class="field">
-          <label>Interested in internships <span class="req">*</span><span class="reqp">Required for placement profile</span></label>
+          <label
+            >Interested in internships <span class="req">*</span
+            ><span class="reqp">Required for placement profile</span></label
+          >
           <select
             class="ctrl"
             [ngModel]="model.interested_internships"
@@ -105,9 +111,8 @@ interface PolicyModel {
       <div class="notice info" style="margin:6px 0 0;">
         <span class="icon">visibility</span>
         <div>
-          Setting <b>Eligible for placements: No</b> removes you from all recruiter
-          shortlists immediately. Your mentor is notified so it can be discussed
-          rather than discovered later.
+          Setting <b>Eligible for placements: No</b> removes you from all recruiter shortlists
+          immediately. Your mentor is notified so it can be discussed rather than discovered later.
         </div>
       </div>
     </div>

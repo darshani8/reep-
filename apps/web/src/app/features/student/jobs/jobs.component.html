@@ -6,304 +6,137 @@
     </div>
   </div>
 
-  <div class="tabs-row" role="tablist" aria-label="Jobs sections">
-    <button
-      role="tab"
-      [attr.aria-selected]="subtab() === 'opportunities'"
-      [class.active]="subtab() === 'opportunities'"
-      (click)="setSubtab('opportunities')"
-    >Opportunities</button>
-    <button
-      role="tab"
-      [attr.aria-selected]="subtab() === 'applications'"
-      [class.active]="subtab() === 'applications'"
-      (click)="setSubtab('applications')"
-    >Applications</button>
-    <button
-      role="tab"
-      [attr.aria-selected]="subtab() === 'offers'"
-      [class.active]="subtab() === 'offers'"
-      (click)="setSubtab('offers')"
-    >Offers</button>
-  </div>
+  @if (loading()) {
+    <div class="card"><div class="dt-sub">Loading opportunities…</div></div>
+  } @else if (error()) {
+    <div class="card">
+      <h4>Board unavailable</h4>
+      <div class="dt-sub">{{ error() }}</div>
+    </div>
+  } @else {
+    <div class="filter-row">
+      <label class="filt">
+        <span>Eligibility</span>
+        <select class="ctrl" [ngModel]="filterElig()" (ngModelChange)="filterElig.set($event)">
+          <option value="all">All</option>
+          <option value="eligible">Eligible</option>
+          <option value="ineligible">Not eligible</option>
+        </select>
+      </label>
+      <label class="filt">
+        <span>Location</span>
+        <select
+          class="ctrl"
+          [ngModel]="filterLocation()"
+          (ngModelChange)="filterLocation.set($event)"
+        >
+          <option value="all">All locations</option>
+          @for (loc of locations(); track loc) {
+            <option [value]="loc">{{ loc }}</option>
+          }
+        </select>
+      </label>
+      <label class="filt">
+        <span>Deadline</span>
+        <select
+          class="ctrl"
+          [ngModel]="filterDeadline()"
+          (ngModelChange)="filterDeadline.set($event)"
+        >
+          <option value="all">All</option>
+          <option value="soon">Closing soon (≤7 days)</option>
+          <option value="open">Open</option>
+        </select>
+      </label>
+      @if (anyFilter()) {
+        <button class="dt-btn sm clear" (click)="clearFilters()">
+          <span class="icon">close</span>Clear
+        </button>
+      }
+    </div>
 
-  <div class="grid-2" style="margin-bottom:16px;">
-    <!-- LEFT: the active subtab -->
-    <div>
-      @if (subtab() === 'opportunities') {
-        <!-- degree toggle -->
-        <div class="tabs-row level-toggle" role="tablist" aria-label="Degree level">
-          <button
-            role="tab"
-            [attr.aria-selected]="level() === 'UG'"
-            [class.active]="level() === 'UG'"
-            (click)="setLevel('UG')"
-          >Undergraduate</button>
-          <button
-            role="tab"
-            [attr.aria-selected]="level() === 'PG'"
-            [class.active]="level() === 'PG'"
-            (click)="setLevel('PG')"
-          >Postgraduate</button>
-        </div>
-
-        <!-- Build-CV callout -->
-        <a class="card cv-callout" routerLink="/student/resume">
-          <span class="icon">description</span>
-          <span class="cv-copy">
-            <b>Build your CV in the Resume Builder</b>
-            <span class="dt-sub">Tip: a 70%+ complete profile makes a noticeably stronger CV. Opens your resume workspace.</span>
-          </span>
-          <span class="icon go">chevron_right</span>
-        </a>
-
-        @if (loading()) {
-          <div class="card"><div class="dt-sub">Loading opportunities…</div></div>
-        } @else if (error()) {
-          <div class="card">
-            <h4>Board unavailable</h4>
-            <div class="dt-sub">{{ error() }}</div>
-          </div>
-        } @else {
-          <!-- filter row -->
-          <div class="filter-row">
-            <label class="filt">
-              <span>Eligibility</span>
-              <select class="ctrl" [ngModel]="filterElig()" (ngModelChange)="filterElig.set($event)">
-                <option value="all">All</option>
-                <option value="eligible">Eligible</option>
-                <option value="ineligible">Not eligible</option>
-              </select>
-            </label>
-            <label class="filt">
-              <span>Location</span>
-              <select class="ctrl" [ngModel]="filterLocation()" (ngModelChange)="filterLocation.set($event)">
-                <option value="all">All locations</option>
-                @for (loc of locations(); track loc) {
-                  <option [value]="loc">{{ loc }}</option>
-                }
-              </select>
-            </label>
-            <label class="filt">
-              <span>Deadline</span>
-              <select class="ctrl" [ngModel]="filterDeadline()" (ngModelChange)="filterDeadline.set($event)">
-                <option value="all">All</option>
-                <option value="soon">Closing soon (≤7 days)</option>
-                <option value="open">Open</option>
-              </select>
-            </label>
-            @if (anyFilter()) {
-              <button class="dt-btn sm clear" (click)="clearFilters()">
-                <span class="icon">close</span>Clear
-              </button>
+    <!-- One grid of every posting. The degree-level split is gone: the feed is
+         already scoped to this student, so a second filter for their own degree
+         only ever hid rows that were theirs to see. -->
+    <div class="opp-grid">
+      @for (row of opportunityRows(); track row.id) {
+        @let dl = deadline(row);
+        <div class="card opp" [class.ineligible]="!row.eligible">
+          <div class="opp-head">
+            <div class="opp-id">
+              <div class="opp-title">{{ row.title }}</div>
+              <div class="dt-sub">{{ row.company }}</div>
+            </div>
+            @if (row.applied) {
+              <span class="chip good"><span class="icon">check_circle</span>Applied</span>
+            } @else {
+              <span class="chip neutral"
+                ><span class="icon">radio_button_unchecked</span>Not applied</span
+              >
             }
           </div>
 
-          <!-- opportunity cards -->
-          @for (row of opportunityRows(); track row.id) {
-            @let dl = deadline(row);
-            <div class="card opp" [class.ineligible]="!row.eligible">
-              <div class="opp-head">
-                <div class="opp-id">
-                  <div class="opp-title">{{ row.title }}</div>
-                  <div class="dt-sub">{{ row.company }}</div>
-                </div>
-                @if (row.applied) {
-                  <span class="chip good"><span class="icon">check_circle</span>Applied</span>
-                } @else {
-                  <span class="chip neutral"><span class="icon">radio_button_unchecked</span>Not applied</span>
-                }
-              </div>
+          <div class="opp-meta">
+            @if (row.location) {
+              <span class="meta"><span class="icon">place</span>{{ row.location }}</span>
+            }
+            <span class="chip {{ dl.tone }}"
+              ><span class="icon">{{ dl.icon }}</span
+              >{{ dl.label }}</span
+            >
+            @if (row.eligible) {
+              <span class="chip good"><span class="icon">verified</span>Eligible</span>
+            } @else {
+              <span class="chip risk"><span class="icon">block</span>Not eligible</span>
+            }
+          </div>
 
-              <div class="opp-meta">
-                @if (row.location) {
-                  <span class="meta"><span class="icon">place</span>{{ row.location }}</span>
-                }
-                <span class="chip {{ dl.tone }}"><span class="icon">{{ dl.icon }}</span>{{ dl.label }}</span>
-                @if (row.eligible) {
-                  <span class="chip good"><span class="icon">verified</span>Eligible</span>
-                } @else {
-                  <span class="chip risk"><span class="icon">block</span>Not eligible</span>
-                }
-              </div>
+          <div class="opp-match">
+            <span class="match-bar">
+              <span
+                class="match-fill {{ matchTone(row.match_percent) }}"
+                [style.width.%]="row.match_percent"
+              ></span>
+            </span>
+            <span class="match-val">{{ row.match_percent }}% skill match</span>
+          </div>
 
-              <div class="opp-match">
-                <span class="match-bar">
-                  <span class="match-fill {{ matchTone(row.match_percent) }}" [style.width.%]="row.match_percent"></span>
-                </span>
-                <span class="match-val">{{ row.match_percent }}% skill match</span>
-              </div>
-
-              @if (!row.eligible && row.reasons.length) {
-                <ul class="why">
-                  @for (r of row.reasons; track r) {
-                    <li><span class="icon">info</span>Why: {{ r }}</li>
-                  }
-                </ul>
+          <!-- The exact missing requirement, never a bare "not eligible". -->
+          @if (!row.eligible && row.reasons.length) {
+            <ul class="why">
+              @for (r of row.reasons; track r) {
+                <li><span class="icon">info</span>Why: {{ r }}</li>
               }
-
-              <div class="opp-cta">
-                @if (row.applied) {
-                  <button class="dt-btn sm" disabled><span class="icon">check</span>Applied ✓</button>
-                } @else if (dl.closed) {
-                  <button class="dt-btn sm" disabled><span class="icon">event_busy</span>Closed</button>
-                } @else if (!row.eligible) {
-                  <button class="dt-btn sm" disabled [attr.title]="row.reasons.join('; ')">
-                    <span class="icon">block</span>Not eligible
-                  </button>
-                } @else {
-                  <button class="dt-btn primary sm" (click)="apply(row)">
-                    <span class="icon">open_in_new</span>Apply
-                  </button>
-                }
-              </div>
-            </div>
-          } @empty {
-            <div class="card">
-              <div class="dt-sub" style="text-align:center;">
-                @if (anyFilter()) {
-                  No {{ level() === 'UG' ? 'undergraduate' : 'postgraduate' }} roles match these filters.
-                } @else {
-                  No {{ level() === 'UG' ? 'undergraduate' : 'postgraduate' }} roles on the board yet.
-                }
-              </div>
-            </div>
+            </ul>
           }
-        }
-      }
 
-      @if (subtab() === 'applications') {
-        @if (loading()) {
-          <div class="card"><div class="dt-sub">Loading applications…</div></div>
-        } @else if (error()) {
-          <div class="card">
-            <h4>Applications unavailable</h4>
-            <div class="dt-sub">{{ error() }}</div>
-          </div>
-        } @else {
-          <table class="dt-table">
-            <tr><th>Role</th><th>Company</th><th>Location</th><th>Status</th></tr>
-            @for (row of appliedRows(); track row.id) {
-              <tr>
-                <td>{{ row.title }}</td>
-                <td>{{ row.company }}</td>
-                <td>{{ row.location || '—' }}</td>
-                <td><span class="chip warn"><span class="icon">hourglass_top</span>Under review</span></td>
-              </tr>
-            } @empty {
-              <tr><td colspan="4" style="text-align:center; color:var(--muted);">No applications yet</td></tr>
-            }
-          </table>
-        }
-      }
-
-      @if (subtab() === 'offers') {
-        <div class="card">
-          <h4>
-            Have you received an offer directly?
-            <button class="dt-btn primary sm" (click)="openOfferForm()">+ Create Offer</button>
-          </h4>
-          <div class="dt-sub">Self-report an off-platform offer for TPO/mentor records and approval.</div>
-        </div>
-
-        @if (formOpen()) {
-          <div class="card">
-            <h4>New offer</h4>
-            <div class="reg-grid">
-              <div class="field">
-                <label>Role / job title</label>
-                <input [(ngModel)]="form.job_title" placeholder="e.g. Business Analyst" />
-              </div>
-              <div class="field">
-                <label>Company</label>
-                <input [(ngModel)]="form.organisation" placeholder="e.g. Nova Fintech" />
-              </div>
-              <div class="field">
-                <label>Offer type</label>
-                <select [(ngModel)]="form.role_type">
-                  <option value="FULL_TIME">Full-time job</option>
-                  <option value="FULL_TIME_PLUS_INTERNSHIP">Job + internship</option>
-                  <option value="INTERNSHIP">Internship</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Channel</label>
-                <select [(ngModel)]="form.channel">
-                  <option value="ON_CAMPUS">On campus</option>
-                  <option value="OFF_CAMPUS">Off campus</option>
-                  <option value="POOL">Pool</option>
-                  <option value="REFERRAL">Referral</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Work mode</label>
-                <select [(ngModel)]="form.work_mode">
-                  <option value="ONSITE">Onsite</option>
-                  <option value="REMOTE">Remote</option>
-                  <option value="HYBRID">Hybrid</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Location</label>
-                <input [(ngModel)]="form.location" placeholder="e.g. Bengaluru" />
-              </div>
-              <div class="field">
-                <label>CTC (₹ / year)</label>
-                <input type="number" [(ngModel)]="form.ctc_inr" min="0" />
-              </div>
-              <div class="field">
-                <label>Fixed gross (₹ / year)</label>
-                <input type="number" [(ngModel)]="form.fixed_gross_inr" min="0" />
-              </div>
-            </div>
-            @if (formError()) {
-              <div class="dt-sub" style="color:var(--risk);">{{ formError() }}</div>
-            }
-            <div class="dt-toolbar" style="margin-top:12px;">
-              <button class="dt-btn primary sm" [disabled]="saving()" (click)="createOffer()">
-                {{ saving() ? 'Saving…' : 'Save offer' }}
+          <div class="opp-cta">
+            @if (row.applied) {
+              <button class="dt-btn sm" disabled><span class="icon">check</span>Applied ✓</button>
+            } @else if (dl.closed) {
+              <button class="dt-btn sm" disabled><span class="icon">event_busy</span>Closed</button>
+            } @else if (!row.eligible) {
+              <button class="dt-btn sm" disabled [attr.title]="row.reasons.join('; ')">
+                <span class="icon">block</span>Not eligible
               </button>
-              <button class="dt-btn sm" [disabled]="saving()" (click)="closeOfferForm()">Cancel</button>
-            </div>
+            } @else {
+              <button class="dt-btn primary sm" (click)="apply(row)">
+                <span class="icon">open_in_new</span>Apply
+              </button>
+            }
           </div>
-        }
-
-        <table class="dt-table">
-          <tr><th>Role</th><th>Company</th><th>Status</th></tr>
-          @for (o of offers(); track o.id) {
-            <tr>
-              <td>{{ o.job_title }}</td>
-              <td>{{ o.organisation }}</td>
-              <td>
-                @let s = offerStatus(o.status);
-                <span class="chip {{ s.cls }}"><span class="icon">{{ s.icon }}</span>{{ s.label }}</span>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="3" style="text-align:center; color:var(--muted);">
-                {{ offersError() ? offersError() : 'No offers yet' }}
-              </td>
-            </tr>
-          }
-        </table>
+        </div>
+      } @empty {
+        <div class="card">
+          <div class="dt-sub" style="text-align: center">
+            @if (anyFilter()) {
+              No roles match these filters.
+            } @else {
+              No roles on the board yet.
+            }
+          </div>
+        </div>
       }
     </div>
-
-    <!-- RIGHT: counts computed client-side -->
-    <div>
-      <div class="card">
-        <h4>Opportunities <span style="font-weight:800">{{ oppCount() }}</span></h4>
-        <div class="dt-sub">Eligible for: {{ eligibleCount() }} of {{ oppCount() }}</div>
-      </div>
-      <div class="card">
-        <h4>Applications <span style="font-weight:800">{{ appliedCount() }}</span></h4>
-        <div class="dt-sub">{{ appliedBreakdown() }}</div>
-      </div>
-      <div class="card">
-        <h4>Offers <span style="font-weight:800">{{ offerCount() }}</span></h4>
-        <div class="dt-sub">{{ offerBreakdown() }}</div>
-      </div>
-    </div>
-  </div>
+  }
 </div>

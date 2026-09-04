@@ -201,6 +201,20 @@ export const routes: Routes = [
             (m) => m.MenteeLogComponent,
           ),
       },
+      // The skill-claim review queue: the ONLY route by which a skill becomes
+      // verified, and mentor-scoped on the server as well as here.
+      {
+        path: 'mentor/verifications',
+        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/mentor/verifications/verifications.component').then(
+            (m) => m.MentorVerificationsComponent,
+          ),
+      },
+      // Badge Centre came out of the mentor navigation — the handoff replaced it
+      // with the verification queue above, which reviews the same evidence in
+      // terms of the claim it backs. The route stays so an existing link still
+      // resolves rather than falling through to the ** redirect.
       {
         path: 'mentor/badge-centre',
         loadComponent: () =>
@@ -230,20 +244,81 @@ export const routes: Routes = [
       },
       placeholder('mentor/settings', 'Thresholds'),
 
-      // --- director ---
-      placeholder('director', 'Analytics'),
-      placeholder('director/registrations', 'Registrations'),
-      placeholder('director/mentors', 'Mentor assignment'),
-      placeholder('director/courses', 'Courses'),
-      placeholder('director/certifications', 'Certifications'),
-      placeholder('director/placement', 'Placement'),
-      placeholder('director/jobs', 'Jobs sheet'),
+      // --- admin (the DIRECTOR/ADMIN roles; the UI calls it Admin) ---
+      {
+        path: 'director',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/analytics/analytics.component').then(
+            (m) => m.DirectorAnalyticsComponent,
+          ),
+      },
+      {
+        path: 'director/leave-approvals',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/leave-approvals/leave-approvals.component').then(
+            (m) => m.DirectorLeaveApprovalsComponent,
+          ),
+      },
+      {
+        path: 'director/registrations',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/registrations/registrations.component').then(
+            (m) => m.DirectorRegistrationsComponent,
+          ),
+      },
+      {
+        path: 'director/mentors',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/mentors-students/mentors-students.component').then(
+            (m) => m.DirectorMentorsStudentsComponent,
+          ),
+      },
+      // Courses and certifications are ONE screen: a certification only means
+      // anything against the course it certifies, so they are read together.
+      // Both paths resolve to it rather than leaving one a dead placeholder.
+      {
+        path: 'director/catalogue',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/catalogue/catalogue.component').then(
+            (m) => m.DirectorCatalogueComponent,
+          ),
+      },
+      { path: 'director/courses', redirectTo: 'director/catalogue' },
+      { path: 'director/certifications', redirectTo: 'director/catalogue' },
+      {
+        path: 'director/placement',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/placement/placement.component').then(
+            (m) => m.DirectorPlacementComponent,
+          ),
+      },
+      {
+        path: 'director/jobs',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/jobs-sheet/jobs-sheet.component').then(
+            (m) => m.DirectorJobsSheetComponent,
+          ),
+      },
       {
         path: 'director/assistant',
         loadComponent: () =>
           import('./features/assistant/assistant.component').then((m) => m.AssistantComponent),
       },
-      placeholder('director/exports', 'Exports'),
+      {
+        path: 'director/exports',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/exports/exports.component').then(
+            (m) => m.DirectorExportsComponent,
+          ),
+      },
 
       // --- alumni ---
       {
@@ -256,9 +331,7 @@ export const routes: Routes = [
       {
         path: 'alumni/jobs',
         loadComponent: () =>
-          import('./features/alumni/jobs/alumni-jobs.component').then(
-            (m) => m.AlumniJobsComponent,
-          ),
+          import('./features/alumni/jobs/alumni-jobs.component').then((m) => m.AlumniJobsComponent),
       },
 
       // Role-aware landing: `redirectTo: 'student'` sent every role to the

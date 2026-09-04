@@ -1,0 +1,84 @@
+<div class="panel" data-p="placement">
+  <div class="dt-header">
+    <div>
+      <div class="eyebrow">Admin · placement</div>
+      <div class="dt-title">Placement</div>
+      <div class="dt-sub">
+        Self-reported offers awaiting approval. Approving one is what makes it count towards the
+        placement figures.
+      </div>
+    </div>
+    <span class="chip warn"
+      ><span class="icon">hourglass_top</span> Pending {{ pendingCount() }}</span
+    >
+  </div>
+
+  @if (error()) {
+    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+  }
+
+  @for (entry of done() | keyvalue; track entry.key) {
+    <div class="decided"><span class="icon">check_circle</span>{{ entry.value }}</div>
+  }
+
+  @if (rows() === null) {
+    <div class="state-note"><span class="icon">hourglass_empty</span>Loading offers…</div>
+  } @else if (rows()!.length === 0) {
+    <div class="card empty-card">
+      <span class="icon">task_alt</span>
+      <div>
+        <b>No offers waiting.</b>
+        <div class="empty-sub">Offers a student submits appear here for approval.</div>
+      </div>
+    </div>
+  } @else {
+    @for (r of rows()!; track r.id) {
+      <div class="card offer">
+        <div class="offer-head">
+          <div>
+            <strong>{{ r.student_name }}</strong>
+            <div class="offer-role">{{ r.job_title }} · {{ r.organisation }}</div>
+          </div>
+          <div class="offer-facts">
+            <span class="chip neutral">{{ roleLabel(r.role_type) }}</span>
+            <span class="offer-ctc">{{ ctc(r.ctc_inr) }}<small>CTC</small></span>
+          </div>
+        </div>
+
+        <label class="note-field">
+          <span class="fld">
+            Note <span class="fld-hint">(required to reject, optional to approve)</span>
+          </span>
+          <input
+            type="text"
+            [value]="note(r.id)"
+            (input)="setNote(r.id, $any($event.target).value)"
+            placeholder="e.g. Offer letter seen and verified with the company."
+          />
+        </label>
+        @if (noteError()) {
+          <div class="note-error">{{ noteError() }}</div>
+        }
+
+        <div class="decide-row">
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="deciding() === r.id"
+            (click)="decide(r, 'APPROVE')"
+          >
+            <span class="icon">check_circle</span> Approve
+          </button>
+          <button
+            type="button"
+            class="btn btn-reject"
+            [disabled]="deciding() === r.id"
+            (click)="decide(r, 'REJECT')"
+          >
+            <span class="icon">cancel</span> Reject
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>

@@ -4,7 +4,7 @@
  * The restrained Y2K-chrome / glass language from the design handoff
  * (`REEP Student App.dc.html` + its README): a soft lilac-to-pink page wash,
  * white translucent cards with 1px lavender hairlines and layered soft shadows,
- * Orbitron for headings and labels, Chakra Petch for body, and a purple→magenta
+ * Plus Jakarta Sans for headings and labels, Inter for body, and a purple→magenta
  * gradient reserved for primary actions and the active nav pill.
  *
  * NOT COMPONENT SCOPED, on purpose. These classes (.card, .dt-table, .chip,
@@ -41,18 +41,35 @@
   --magenta-mid: #a0248f;
 
   /* --- ink -------------------------------------------------------------- */
-  --ink: #3a1f52;
+  /* Primary and secondary text are CHARCOAL, not tinted purple. The tint read
+     as a third brand colour on text-dense screens and left the actual accent
+     with nothing to contrast against; purple is now accent-only. --ink-soft
+     and --ink-nav keep their violet because the legend and the sidebar are
+     where the brand still belongs. */
+  --ink: #1e1b29;
   --ink-soft: #4a2668;
   --ink-nav: #5b3080;
-  --muted: #7a6392;
-  --faint: #a08cb2;
+  --muted: #585566;
+  /* #a08cb2 was ~2.9:1 on the card fill and failed WCAG AA; #7c7891 is ~5.4:1
+     against the same surface and is the only tertiary text colour. */
+  --faint: #7c7891;
 
-  /* --- series (the ledger's five heads, and the legend that names them) -- */
-  --series-sleep: #b9a8c9;
-  --series-personal: #d9c8e6;
-  --series-lectures: #7a2f9e;
-  --series-coursework: #552c7e;
-  --series-skilling: #ba2185;
+  /* --- series (the ledger's five heads) ---------------------------------
+     ONE ORDERED RAMP, NOT FIVE HUES. These were violet, pale violet, purple,
+     deep purple and magenta, which read as five unrelated categories competing
+     for attention on a screen that is mostly a table of numbers. They are now a
+     sequence: the two heads that are not work (sleep, personal) sit in neutral
+     lavender-greys, and the three that are step light -> deep purple in the
+     order a day's effort escalates. Amber is then left as the only accent in
+     the ledger, reserved for unlogged and over-capacity hours, which is the one
+     thing there worth interrupting for.
+     The two pale steps are darker than the handoff's first pass — #b9a8c9 and
+     #d9c8e6 disappeared against the track behind them. */
+  --series-sleep: #a795b8;
+  --series-personal: #c9b8d8;
+  --series-lectures: #9a5fbf;
+  --series-coursework: #7a2f9e;
+  --series-skilling: #552c7e;
 
   /* --- surfaces --------------------------------------------------------- */
   --surface: #ffffff;
@@ -77,18 +94,8 @@
 
   /* --- washes and gradients --------------------------------------------- */
   --page-wash: linear-gradient(180deg, #ece4f5 0%, #f2e7f8 45%, #fbe6f2 100%);
-  --primary-gradient: linear-gradient(
-    120deg,
-    #552c7e,
-    #7a2f9e 38%,
-    #a0248f 68%,
-    #ba2185
-  );
-  --card-gradient: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.86),
-    rgba(245, 237, 250, 0.7)
-  );
+  --primary-gradient: linear-gradient(120deg, #552c7e, #7a2f9e 38%, #a0248f 68%, #ba2185);
+  --card-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(245, 237, 250, 0.7));
   --titlebar-gradient: linear-gradient(180deg, #faf6fd, #ece0f2);
   --voice-overlay: radial-gradient(
     120% 85% at 50% 12%,
@@ -110,19 +117,20 @@
   /* --- shadows ---------------------------------------------------------- */
   --sh-card: 0 10px 26px rgba(58, 31, 82, 0.1), inset 0 1px 0 #fff;
   --sh-ctrl: 0 2px 6px rgba(58, 31, 82, 0.06), inset 0 1px 0 #fff;
-  --sh-primary: 0 8px 18px rgba(85, 44, 126, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  --sh-primary-hover: 0 10px 22px rgba(85, 44, 126, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  --sh-navpill: 0 5px 14px rgba(85, 44, 126, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --sh-primary: 0 8px 18px rgba(85, 44, 126, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --sh-primary-hover: 0 10px 22px rgba(85, 44, 126, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --sh-navpill: 0 5px 14px rgba(85, 44, 126, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.55);
   --sh-well: inset 0 1px 2px rgba(58, 31, 82, 0.12);
-  --sh-voice: 0 10px 24px rgba(12, 4, 22, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  --sh-voice: 0 10px 24px rgba(12, 4, 22, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 
   /* --- type ------------------------------------------------------------- */
-  --font-display: 'Orbitron', 'Chakra Petch', system-ui, sans-serif;
-  --font: 'Chakra Petch', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Plus Jakarta Sans carries the display role and Inter the UI/data role.
+     Orbitron's wide techno letterforms were hurting the dense data screens —
+     the ledger, the analytics tables, the leaderboard — where the type is
+     small and set in columns. The pair keeps the geometric character in
+     headings while reading cleanly at the 13-14px the tables actually use. */
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* --- nav -------------------------------------------------------------- */
   --nav-width: 220px;
@@ -158,6 +166,10 @@ body {
   background-attachment: fixed;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  line-height: 1.45;
+  /* Document-wide, so every metric column aligns without each screen having
+     to remember. The app is mostly numbers in columns. */
+  font-variant-numeric: tabular-nums;
   /* Only the horizontal axis is locked (setting overflow-x makes overflow-y
      compute to auto). The full-bleed shell contains its OWN vertical scroll via
      .desktop-main; pages OUTSIDE the shell (login, register) must still scroll
@@ -172,7 +184,15 @@ h4,
 h5 {
   font-family: var(--font-display);
   color: var(--ink);
-  letter-spacing: 0.005em;
+  /* Orbitron needed the extra 0.005em to breathe. Plus Jakarta Sans is
+     already generously spaced and reads tighter and more deliberate pulled
+     in, which is what the handoff sets on every header. */
+  letter-spacing: -0.02em;
+}
+
+p,
+li {
+  text-wrap: pretty;
 }
 
 a {
@@ -189,7 +209,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--brand-magenta);
+  outline: 2px solid var(--purple-mid);
   outline-offset: 2px;
 }
 
@@ -216,7 +236,11 @@ button {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  font-variation-settings: 'opsz' 24, 'wght' 400, 'FILL' 0, 'GRAD' 0;
+  font-variation-settings:
+    'opsz' 24,
+    'wght' 400,
+    'FILL' 0,
+    'GRAD' 0;
   -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
   user-select: none;
@@ -331,7 +355,7 @@ html.fonts-ready .icon {
 .desktop-nav .brand {
   font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--brand-purple);
   padding: 2px 12px 10px;
@@ -348,7 +372,9 @@ html.fonts-ready .icon {
   color: var(--ink-nav);
   background: transparent;
   margin-bottom: 2px;
-  transition: background 0.14s ease, color 0.14s ease;
+  transition:
+    background 0.14s ease,
+    color 0.14s ease;
 }
 .desktop-nav a:hover {
   background: var(--tint-2);
@@ -400,25 +426,30 @@ html.fonts-ready .icon {
 
 .dt-title {
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 900;
-  line-height: 1.15;
-  letter-spacing: 0.005em;
+  /* Every screen title in the handoff is 28/700/120%. At 22px the titles sat
+     too close to the 16px card headings for the page to have an obvious top. */
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 .dt-sub {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--muted);
-  margin: 4px 0 0;
+  line-height: 1.4;
+  margin: 5px 0 0;
 }
 
 .eyebrow {
   font-family: var(--font-display);
-  font-size: 9.5px;
+  /* 9.5px uppercase was legible in Orbitron's wide caps and is not in Inter's;
+     the handoff sets these at 11-12px with the tracking relaxed to match. */
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   color: var(--faint);
   margin: 0 0 6px;
 }
@@ -792,7 +823,10 @@ html.fonts-ready .icon {
   font-size: 12.5px;
   font-weight: 700;
   box-shadow: var(--sh-ctrl);
-  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease,
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    box-shadow 0.14s ease,
     transform 0.14s ease;
 }
 .btn .icon,
@@ -1206,7 +1240,7 @@ html.fonts-ready .icon {
 .reg-frame h2 {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: 700;
   margin: 0 0 6px;
 }
 .reg-sub {
@@ -1575,9 +1609,13 @@ html.fonts-ready .icon {
   font-size: 10px;
   font-weight: 700;
 }
+/* "Balanced" is a state, not an achievement. It was the only green on the
+   screen, which made a slot that merely adds up look like a success and drew
+   the eye away from the amber that actually wants attention. A purple tint says
+   the same thing at the right volume. */
 .ledger-table .slot-chip.good {
-  background: var(--good-bg);
-  color: var(--good);
+  background: rgba(85, 44, 126, 0.1);
+  color: var(--brand-purple);
 }
 .ledger-table .slot-chip.warn {
   background: var(--warn-bg);
@@ -1674,7 +1712,7 @@ html.fonts-ready .icon {
 .band-dial .band {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: 700;
   color: var(--brand-magenta);
 }
 
@@ -1745,7 +1783,7 @@ html.fonts-ready .icon {
 .meeting .date .d {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -1866,7 +1904,9 @@ html.fonts-ready .icon {
     rgba(186, 33, 133, 0.55) 60%,
     rgba(85, 44, 126, 0.7)
   );
-  box-shadow: 0 20px 60px rgba(12, 4, 22, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 20px 60px rgba(12, 4, 22, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .voice-overlay .vo-state {
   font-size: 12.8px;
@@ -1940,7 +1980,9 @@ html.fonts-ready .icon {
   border: 1px solid rgba(255, 255, 255, 0.22);
   color: #fff;
   box-shadow: var(--sh-voice);
-  transition: background 0.14s ease, transform 0.14s ease;
+  transition:
+    background 0.14s ease,
+    transform 0.14s ease;
 }
 .voice-controls button:hover {
   background: rgba(255, 255, 255, 0.18);

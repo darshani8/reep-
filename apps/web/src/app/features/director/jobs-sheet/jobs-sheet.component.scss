@@ -1,0 +1,74 @@
+/* Jobs sheet. Panel / card / chip / dt-table are global. */
+:host {
+  display: block;
+}
+
+.js-totals {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-self: center;
+}
+/* A chip that filters, so it looks like the count it filters on. */
+.js-filter {
+  border: 1px solid transparent;
+  cursor: pointer;
+  font: inherit;
+}
+.js-filter.on {
+  border-color: var(--warn);
+}
+
+/* The table has seven columns and a long role name; it scrolls INSIDE its own
+   box rather than pushing the page sideways. */
+.js-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+.js-table {
+  min-width: 820px;
+  margin: 0;
+}
+.js-posted {
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+.js-gates {
+  font-size: 12px;
+  color: var(--muted);
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* The row worth finding. */
+.quiet td {
+  background: var(--warn-bg);
+}
+.js-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 14px;
+}
+
+.state-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.state-note .icon {
+  font-size: 16px;
+  color: var(--purple-mid);
+}
+.state-note.risk {
+  color: var(--risk);
+}
+.state-note.risk .icon {
+  color: var(--risk);
+}

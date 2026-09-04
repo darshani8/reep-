@@ -12,12 +12,18 @@ from ..identity import get_current_session
 from datetime import datetime
 
 from ..models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
+from ..models.attendance import AttendanceRecord
+from ..models.skill import StudentSkill
+from ..models.time_ledger import TimeLedgerCell, TimeLedgerDay
+from ..models.certification import Certification
 from ..models.cohort import Cohort
+from ..models.course import Course
+from ..models.job import Job, JobApplication
 from ..models.job_import_run import JobImportRun
 from ..models.mail import MailLog
 from ..models.offer import OfferStatus, PlacementOffer
 from ..models.placement_criteria import PlacementCriteria
-from ..models.user import Student
+from ..models.user import Mentor, Student, User
 from .mentor import require_director
 
 router = APIRouter(prefix="/director", tags=["director"])
@@ -310,4 +316,286 @@ def job_imports(
             error_count=len(r.errors or []),
         )
         for r in rows
+    ]
+
+
+# --- mentorship map -------------------------------------------------------
+# The analytics screen draws mentors as an inner ring and their mentees as an
+# outer one, then re-scales a linked bar chart by whichever metric is selected.
+# All three metrics are returned together, ONE query each over the whole cohort
+# rather than per student: the alternative is a chart that fires N+1 requests as
+# the reader clicks around it, which is how a dashboard becomes the slowest page
+# in the product.
+
+
+class MenteeMetricsOut(BaseModel):
+    student_id: str
+    name: str
+    usn: str | None
+    stage: str | None
+    # Percent of recorded sessions attended. None when nothing is recorded —
+    # distinct from 0, which would draw a student as a total absentee.
+    attendance_percent: float | None
+    verified_skills: int
+    # Hours logged in the time ledger, all time.
+    logged_hours: float
+
+
+class MentorLoadOut(BaseModel):
+    mentor_id: str
+    name: str
+    mentee_count: int
+    mentees: list[MenteeMetricsOut]
+
+
+@router.get("/mentor-load", response_model=list[MentorLoadOut])
+def mentor_load(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[MentorLoadOut]:
+    """Every mentor with their assigned students and each student's three
+    headline metrics. Programme-wide, so director/admin only."""
+    require_director(session)
+
+    mentors = db.execute(
+        select(Mentor.id, User.name).join(User, Mentor.user_id == User.id).order_by(User.name)
+    ).all()
+
+    students = db.execute(
+        select(Student.id, User.name, Student.usn, Student.current_stage, Student.mentor_id)
+        .join(User, Student.user_id == User.id)
+        .order_by(User.name)
+    ).all()
+
+    # Attendance: present and total per student, in one pass.
+    att = {
+        sid: (present or 0, total or 0)
+        for sid, present, total in db.execute(
+            select(
+                AttendanceRecord.student_id,
+                func.count().filter(AttendanceRecord.present.is_(True)),
+                func.count(),
+            ).group_by(AttendanceRecord.student_id)
+        ).all()
+    }
+    skills = {
+        sid: n
+        for sid, n in db.execute(
+            select(StudentSkill.student_id, func.count())
+            .where(StudentSkill.verified.is_(True))
+            .group_by(StudentSkill.student_id)
+        ).all()
+    }
+    # Cells store HALF hours, so the sum is halved once here rather than in the
+    # client, where every consumer would have to remember.
+    hours = {
+        sid: (half or 0) / 2
+        for sid, half in db.execute(
+            select(TimeLedgerDay.student_id, func.sum(TimeLedgerCell.half_hours))
+            .join(TimeLedgerCell, TimeLedgerCell.ledger_day_id == TimeLedgerDay.id)
+            .group_by(TimeLedgerDay.student_id)
+        ).all()
+    }
+
+    def metrics(sid: str, name: str, usn, stage) -> MenteeMetricsOut:
+        present, total = att.get(sid, (0, 0))
+        return MenteeMetricsOut(
+            student_id=sid,
+            name=name,
+            usn=usn,
+            stage=stage.value if stage is not None and hasattr(stage, "value") else stage,
+            attendance_percent=round(100 * present / total, 1) if total else None,
+            verified_skills=skills.get(sid, 0),
+            logged_hours=hours.get(sid, 0.0),
+        )
+
+    by_mentor: dict[str, list[MenteeMetricsOut]] = {}
+    for sid, name, usn, stage, mentor_id in students:
+        if mentor_id:
+            by_mentor.setdefault(mentor_id, []).append(metrics(sid, name, usn, stage))
+
+    return [
+        MentorLoadOut(
+            mentor_id=mid,
+            name=name,
+            mentee_count=len(by_mentor.get(mid, [])),
+            mentees=by_mentor.get(mid, []),
+        )
+        for mid, name in mentors
+    ]
+
+
+class UnassignedStudentOut(BaseModel):
+    student_id: str
+    name: str
+    usn: str | None
+    stage: str | None
+
+
+@router.get("/unassigned-students", response_model=list[UnassignedStudentOut])
+def unassigned_students(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[UnassignedStudentOut]:
+    """Students with no mentor yet — the pool the assignment screen draws from."""
+    require_director(session)
+    rows = db.execute(
+        select(Student.id, User.name, Student.usn, Student.current_stage)
+        .join(User, Student.user_id == User.id)
+        .where(Student.mentor_id.is_(None))
+        .order_by(User.name)
+    ).all()
+    return [
+        UnassignedStudentOut(
+            student_id=sid,
+            name=name,
+            usn=usn,
+            stage=stage.value if stage is not None and hasattr(stage, "value") else stage,
+        )
+        for sid, name, usn, stage in rows
+    ]
+
+
+class AssignMentorIn(BaseModel):
+    # Null releases the student back to the unassigned pool. An explicit null is
+    # the un-assign action, so this is Optional rather than absent-means-keep.
+    mentor_id: str | None = None
+
+
+@router.post("/students/{student_id}/mentor", status_code=status.HTTP_204_NO_CONTENT)
+def set_student_mentor(
+    student_id: str,
+    body: AssignMentorIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> None:
+    """Assign a student to a mentor, or release them.
+
+    Director/admin only, and deliberately not available to a MENTOR: mentor_id is
+    what rule 2's scope gate filters on, so a mentor who could set it could
+    assign themselves any student in the programme and then read everything about
+    them. Who mentors whom is an administrative decision, not a mentoring one.
+    """
+    require_director(session)
+    student = db.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
+    if body.mentor_id is not None and db.get(Mentor, body.mentor_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mentor not found.")
+    student.mentor_id = body.mentor_id
+    db.commit()
+
+
+# --- catalogue ------------------------------------------------------------
+
+
+class CatalogueCertOut(BaseModel):
+    code: str
+    name: str
+    provider: str
+    required_hours: float
+    is_optional: bool
+    link: str | None
+
+
+class CatalogueCourseOut(BaseModel):
+    code: str
+    name: str
+    stage: str
+    dimension: str
+    semester: int
+    teaching_hours: float
+    self_learning_hours_required: float
+    model_type: str
+    duration_weeks: int
+    certifications: list[CatalogueCertOut]
+
+
+@router.get("/catalogue", response_model=list[CatalogueCourseOut])
+def catalogue(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[CatalogueCourseOut]:
+    """The programme as designed: every course with the certifications mapped to
+    it. Nested rather than two flat lists, because a certification only means
+    anything against the course it certifies — the screen's whole question is
+    which courses have evidence attached and which do not."""
+    require_director(session)
+    courses = db.scalars(select(Course).order_by(Course.semester, Course.code)).all()
+    certs: dict[str, list[CatalogueCertOut]] = {}
+    for c in db.scalars(select(Certification).order_by(Certification.name)).all():
+        certs.setdefault(c.course_code, []).append(
+            CatalogueCertOut(
+                code=c.code,
+                name=c.name,
+                provider=c.provider,
+                required_hours=c.required_hours,
+                is_optional=c.is_optional,
+                link=c.link,
+            )
+        )
+    return [
+        CatalogueCourseOut(
+            code=c.code,
+            name=c.name,
+            stage=c.stage.value,
+            dimension=c.dimension.value,
+            semester=c.semester,
+            teaching_hours=c.teaching_hours,
+            self_learning_hours_required=c.self_learning_hours_required,
+            model_type=c.model_type.value,
+            duration_weeks=c.duration_weeks,
+            certifications=certs.get(c.code, []),
+        )
+        for c in courses
+    ]
+
+
+# --- jobs sheet -----------------------------------------------------------
+
+
+class JobSheetOut(BaseModel):
+    id: str
+    title: str
+    company: str
+    degree_level: str
+    location: str | None
+    apply_url: str | None
+    required_skills: list[str]
+    posted_on: datetime
+    closes_on: datetime | None
+    min_cgpa: float | None
+    max_live_backlogs: int | None
+    # How many students have applied. The sheet's real question is which
+    # postings are working, and a posting nobody applied to looks identical to a
+    # healthy one without this.
+    applicants: int
+
+
+@router.get("/jobs", response_model=list[JobSheetOut])
+def jobs_sheet(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[JobSheetOut]:
+    """Every posting on the board, newest first, with its application count."""
+    require_director(session)
+    counts = {
+        jid: n
+        for jid, n in db.execute(
+            select(JobApplication.job_id, func.count()).group_by(JobApplication.job_id)
+        ).all()
+    }
+    rows = db.scalars(select(Job).order_by(Job.posted_on.desc())).all()
+    return [
+        JobSheetOut(
+            id=j.id,
+            title=j.title,
+            company=j.company,
+            degree_level=j.degree_level.value,
+            location=j.location,
+            apply_url=j.apply_url,
+            required_skills=list(j.required_skills or []),
+            posted_on=j.posted_on,
+            closes_on=j.closes_on,
+            min_cgpa=j.min_cgpa,
+            max_live_backlogs=j.max_live_backlogs,
+            applicants=counts.get(j.id, 0),
+        )
+        for j in rows
     ]

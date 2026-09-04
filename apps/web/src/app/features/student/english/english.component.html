@@ -3,8 +3,8 @@
     <p class="eyebrow">Reboot · Baseline assessment</p>
     <h1 class="dt-title">English Proficiency Baseline</h1>
     <p class="dt-sub">
-      AI-scored across reading, writing, listening and speaking · CEFR-aligned · one
-      attempt per semester
+      AI-scored across reading, writing, listening and speaking · CEFR-aligned · one attempt per
+      semester
     </p>
   </div>
 
@@ -52,15 +52,10 @@
             <span class="icon" aria-hidden="true">record_voice_over</span>
             <p><b>You have not taken the baseline yet.</b></p>
             <p>
-              It takes about 70 minutes across four sections and places you on the CEFR
-              scale. Your mentor sees the band, not your answers.
+              It takes about 70 minutes across four sections and places you on the CEFR scale. Your
+              mentor sees the band, not your answers.
             </p>
-            <button
-              type="button"
-              class="btn primary"
-              [disabled]="busy()"
-              (click)="startOrResume()"
-            >
+            <button type="button" class="btn primary" [disabled]="busy()" (click)="startOrResume()">
               <span class="icon" aria-hidden="true">mic</span>
               Start assessment
             </button>
@@ -68,7 +63,7 @@
         </div>
       } @else {
         <!-- Hero: the band dial -->
-        <div class="card" style="margin-bottom:16px">
+        <div class="card" style="margin-bottom: 16px">
           <div class="band-dial">
             <div
               class="dial"
@@ -80,22 +75,21 @@
             >
               <div class="inner">
                 <div class="score">
-                  {{ d.overall_score ?? '--'
-                  }}<span class="unit">/ 100</span>
+                  {{ d.overall_score ?? '--' }}<span class="unit">/ 100</span>
                 </div>
               </div>
             </div>
 
             <div>
-              <p class="eyebrow" style="margin-bottom:4px">
+              <p class="eyebrow" style="margin-bottom: 4px">
                 {{ d.provisional ? 'Provisional band' : 'Band' }}
               </p>
               <div class="band">{{ d.band ?? '—' }}</div>
               @if (d.band_label) {
-                <p class="dt-sub" style="margin-top:2px">{{ d.band_label }}</p>
+                <p class="dt-sub" style="margin-top: 2px">{{ d.band_label }}</p>
               }
 
-              <p class="dt-sub" style="margin-top:10px">
+              <p class="dt-sub" style="margin-top: 10px">
                 {{ d.sections_scored }} of {{ d.sections_total }} sections scored
               </p>
               @if (d.pending_label) {
@@ -105,16 +99,16 @@
                 </span>
               }
               @if (d.taken_on) {
-                <p class="dt-sub" style="margin-top:8px">
+                <p class="dt-sub" style="margin-top: 8px">
                   Taken {{ d.taken_on | date: 'd MMM y' }}
                 </p>
               }
             </div>
 
-            <div style="flex:1;min-width:180px">
+            <div style="flex: 1; min-width: 180px">
               <p class="eyebrow">Assessment progress</p>
               <div class="meter-row">
-                <div class="meter" style="flex:1">
+                <div class="meter" style="flex: 1">
                   <span [style.width.%]="d.progress_percent"></span>
                 </div>
                 <b>{{ d.progress_percent }}%</b>
@@ -124,7 +118,7 @@
         </div>
 
         <!-- Four skill cards -->
-        <div class="grid4" style="margin-bottom:16px">
+        <div class="grid4" style="margin-bottom: 16px">
           @for (s of d.sections; track s.skill) {
             <div class="skill-card">
               <header>
@@ -138,20 +132,21 @@
                 }
               </header>
 
-              <p class="dt-sub" style="margin:0 0 8px">{{ s.minutes }} min · AI scored</p>
+              <p class="dt-sub" style="margin: 0 0 8px">{{ s.minutes }} min · AI scored</p>
 
               <!-- Branching on STATUS, not on a falsy score: `score || '--'`
                    would also swallow a genuine 0. -->
               @if (s.status === 'SCORED') {
                 <div class="big">
-                  {{ s.score }}<span class="unit" style="font-size:13px;color:var(--faint)">
+                  {{ s.score
+                  }}<span class="unit" style="font-size: 13px; color: var(--faint)">
                     / 100 · CEFR</span
                   >
-                  <span class="band" style="font-size:16px">{{ s.band }}</span>
+                  <span class="band" style="font-size: 16px">{{ s.band }}</span>
                 </div>
               } @else {
                 <div class="big pending">--</div>
-                <p class="dt-sub" style="margin:2px 0 0">—</p>
+                <p class="dt-sub" style="margin: 2px 0 0">—</p>
               }
 
               @for (sub of s.subscores; track sub.label) {
@@ -171,15 +166,10 @@
                   {{ openReport() === s.skill ? 'Hide AI report' : 'View AI report' }}
                 </button>
                 @if (openReport() === s.skill && s.ai_report) {
-                  <p class="dt-sub" style="margin:6px 0 0">{{ s.ai_report }}</p>
+                  <p class="dt-sub" style="margin: 6px 0 0">{{ s.ai_report }}</p>
                 }
               } @else if (s.status === 'PENDING') {
-                <button
-                  type="button"
-                  class="addlink"
-                  [disabled]="busy()"
-                  (click)="startOrResume()"
-                >
+                <button type="button" class="addlink" [disabled]="busy()" (click)="startOrResume()">
                   Start {{ s.label | lowercase }} test
                 </button>
               }
@@ -188,15 +178,15 @@
         </div>
 
         <!-- AI feedback -->
-        <div class="grid-2" style="margin-bottom:16px">
+        <div class="grid-2" style="margin-bottom: 16px">
           <div class="card">
             <h4>
-              <span class="icon" aria-hidden="true" style="font-size:16px">auto_awesome</span>
+              <span class="icon" aria-hidden="true" style="font-size: 16px">auto_awesome</span>
               AI feedback · Strengths
             </h4>
             @for (item of d.strengths; track item) {
               <div class="rowline">
-                <span class="icon" aria-hidden="true" style="color:var(--good);font-size:16px"
+                <span class="icon" aria-hidden="true" style="color: var(--good); font-size: 16px"
                   >check_circle</span
                 >
                 {{ item }}
@@ -208,12 +198,12 @@
 
           <div class="card">
             <h4>
-              <span class="icon" aria-hidden="true" style="font-size:16px">target</span>
+              <span class="icon" aria-hidden="true" style="font-size: 16px">target</span>
               Focus areas
             </h4>
             @for (item of d.focus_areas; track item) {
               <div class="rowline">
-                <span class="icon" aria-hidden="true" style="color:var(--warn);font-size:16px"
+                <span class="icon" aria-hidden="true" style="color: var(--warn); font-size: 16px"
                   >pending</span
                 >
                 {{ item }}
@@ -228,14 +218,14 @@
         @if (d.next_steps.length) {
           <div class="card">
             <h4>
-              <span class="icon" aria-hidden="true" style="font-size:16px">trending_up</span>
+              <span class="icon" aria-hidden="true" style="font-size: 16px">trending_up</span>
               Recommended next
             </h4>
             <div class="grid-3">
               @for (step of d.next_steps; track step.title) {
                 <div class="preview">
                   <b>{{ step.title }}</b>
-                  <p class="dt-sub" style="margin:4px 0 10px">{{ step.sub }}</p>
+                  <p class="dt-sub" style="margin: 4px 0 10px">{{ step.sub }}</p>
                   @if (step.target) {
                     <a class="btn" [routerLink]="step.target">
                       Open

@@ -207,41 +207,17 @@ textarea {
   gap: 7px;
 }
 
-/* --- buttons --- */
-.btn {
-  padding: 9px 15px;
-  border-radius: 9px;
-  border: 1px solid var(--hairline);
-  background: var(--surface);
-  font-size: 12.8px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ink);
-}
-.btn .icon {
-  font-size: 16px;
-}
-.btn.primary {
-  background: var(--ink);
-  color: var(--tint-3);
-  border-color: var(--ink);
-}
-.btn.accent {
-  background: var(--purple-mid);
-  color: #fff;
-  border-color: var(--purple-mid);
-}
-.btn.ghost {
-  background: transparent;
-  border-color: transparent;
-  color: var(--purple-mid);
-}
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+/* --- buttons ---
+   DELIBERATELY ABSENT. reep-v2.scss already defines .btn, .btn.primary,
+   .btn.accent and .btn.ghost, and this file's contract is that only classes it
+   does NOT define live here. The copies that stood here broke that rule and,
+   because this sheet loads last, they won everywhere: all 28 `.btn.primary`
+   buttons in the app — Submit day on the ledger, Submit claim on skilling,
+   every primary CTA in the mentor and admin screens — rendered as this file's
+   flat charcoal 9px rectangle instead of the handoff's gradient pill. The
+   resume builder wants the same button as the rest of the app, so there is
+   nothing to scope here; the rule is simply gone.
+   Only `:disabled` differed in kind, and reep-v2's `[disabled]` covers it. */
 
 /* --- form primitives --- */
 .grid2 {

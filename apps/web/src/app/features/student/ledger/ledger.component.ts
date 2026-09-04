@@ -268,10 +268,6 @@ export class LedgerComponent {
     return this.write('/student/ledger', { day: this.day(), cells: this.cellsPayload() }, 'PUT');
   }
 
-  copyYesterday(): Promise<boolean> {
-    return this.write('/student/ledger/copy-yesterday', { day: this.day() });
-  }
-
   /** Save first, then submit. Submitting what is on screen rather than what was
    *  last written is the only behaviour that matches the button's label. */
   async submitDay(): Promise<void> {
@@ -280,12 +276,6 @@ export class LedgerComponent {
   }
 
   // --- helpers used by the template ---------------------------------------
-
-  segStyle(seg: Segment): Record<string, string> {
-    const style: Record<string, string> = { width: `${seg.percent}%` };
-    if (seg.colour) style['background'] = seg.colour;
-    return style;
-  }
 
   trackKey = (_: number, item: { key: string }) => item.key;
 }

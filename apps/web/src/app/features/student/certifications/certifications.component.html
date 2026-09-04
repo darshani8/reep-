@@ -11,8 +11,8 @@
   @if (view(); as list) {
     @if (list.length === 0) {
       <div class="card">
-        No certifications are mapped to your courses yet. They appear here as soon as you
-        are enrolled on the courses that carry them.
+        No certifications are mapped to your courses yet. They appear here as soon as you are
+        enrolled on the courses that carry them.
       </div>
     } @else {
       <div class="cert-grid">
@@ -25,7 +25,8 @@
                 <div class="dt-sub">{{ row.provider }}</div>
               </div>
               <span class="chip {{ row.chip.cls }}">
-                <span class="icon">{{ row.chip.icon }}</span>{{ row.chip.label }}
+                <span class="icon">{{ row.chip.icon }}</span
+                >{{ row.chip.label }}
               </span>
             </div>
 
@@ -60,7 +61,8 @@
               </span>
               @if (row.est_hours_remaining > 0 && row.status !== 'COMPLETED') {
                 <span class="meta-item">
-                  <span class="icon">hourglass_top</span>{{ row.est_hours_remaining | number: '1.0-1' }}h left
+                  <span class="icon">hourglass_top</span
+                  >{{ row.est_hours_remaining | number: '1.0-1' }}h left
                 </span>
               }
             </div>

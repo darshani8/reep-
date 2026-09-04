@@ -60,12 +60,7 @@ const WAVE_DURATIONS = [1.05, 1.23, 1.41, 1.59, 1.77];
     </button>
 
     @if (voice()) {
-      <div
-        class="voice-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label="REEP Agent voice mode"
-      >
+      <div class="voice-overlay" role="dialog" aria-modal="true" aria-label="REEP Agent voice mode">
         <div class="vo-top">
           <span class="inline">
             <span class="icon" aria-hidden="true">smart_toy</span>
@@ -121,8 +116,8 @@ const WAVE_DURATIONS = [1.05, 1.23, 1.41, 1.59, 1.77];
         </div>
 
         <p class="voice-disclaimer">
-          REEP Agent answers on programme rules and deadlines. It does not see your
-          marks, attendance or USN.
+          REEP Agent answers on programme rules and deadlines. It does not see your marks,
+          attendance or USN.
         </p>
       </div>
     }

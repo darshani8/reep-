@@ -89,7 +89,8 @@
   --reep-neu-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(245, 237, 250, 0.7));
   --reep-neu-flat: #f5edfa;
   --reep-neu-shadow: 0 10px 26px rgba(58, 31, 82, 0.1), inset 0 1px 0 #fff;
-  --reep-neu-shadow-lift: 0 10px 22px rgba(85, 44, 126, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --reep-neu-shadow-lift:
+    0 10px 22px rgba(85, 44, 126, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   --reep-neu-inset: inset 0 1px 2px rgba(58, 31, 82, 0.12);
 
   --reep-bloom-a: rgba(186, 33, 133, 0.18);
@@ -104,7 +105,6 @@
   --reep-cell-well-inset: inset 0 1px 2px rgba(58, 31, 82, 0.12);
 }
 
-
 /* --- typography scale (from theme.ts `typography`) ------------------------ */
 /* Kept as classes rather than element selectors: MUI's Typography maps variant
    to element by config, not by tag, so `h1` here is the visual scale, applied
@@ -114,15 +114,49 @@
   --reep-font-stack: var(--font-inter), system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-.reep-h1 { font-size: 1.625rem; font-weight: 600; letter-spacing: -0.021em; line-height: 1.25; }
-.reep-h2 { font-size: 1.3125rem; font-weight: 600; letter-spacing: -0.017em; line-height: 1.3; }
-.reep-h3 { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.011em; line-height: 1.4; }
-.reep-h4 { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.006em; }
-.reep-subtitle1 { font-size: 0.9375rem; font-weight: 500; }
-.reep-subtitle2 { font-size: 0.8125rem; font-weight: 500; }
-.reep-body1 { font-size: 0.9375rem; line-height: 1.6; }
-.reep-body2 { font-size: 0.8125rem; line-height: 1.6; }
-.reep-caption { font-size: 0.75rem; line-height: 1.5; }
+.reep-h1 {
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.021em;
+  line-height: 1.25;
+}
+.reep-h2 {
+  font-size: 1.3125rem;
+  font-weight: 600;
+  letter-spacing: -0.017em;
+  line-height: 1.3;
+}
+.reep-h3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.011em;
+  line-height: 1.4;
+}
+.reep-h4 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.006em;
+}
+.reep-subtitle1 {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+.reep-subtitle2 {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.reep-body1 {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.reep-body2 {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.reep-caption {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
 
 /* --- baseline (from MuiCssBaseline styleOverrides) ----------------------- */
 
@@ -191,7 +225,9 @@ body {
   background: transparent;
   color: var(--reep-text-primary);
   cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
 }
 .btn:hover {
   background: var(--reep-action-hover);

@@ -135,32 +135,6 @@
 }
 
 /* --- HIDE-ME toggle in the header --- */
-.lb-hide {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--hairline);
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--sh-ctrl), var(--edge-hi);
-}
-.lb-hide.on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--tint-3);
-}
-.lb-hide .icon {
-  font-size: 17px;
-}
-.lb-hide input {
-  accent-color: var(--brand-magenta);
-  cursor: pointer;
-}
 .lb-hide input:disabled {
   cursor: progress;
 }
@@ -197,4 +171,10 @@
 .lb-empty__title {
   font-weight: 700;
   margin-bottom: 2px;
+}
+
+/* The only remaining way back onto the boards, so it is a real button rather
+   than a link buried in the explanation. */
+.lb-rejoin {
+  margin-top: 12px;
 }

@@ -18,8 +18,8 @@
   </div>
 } @else if (!courses().length) {
   <div class="card c-note">
-    You are not enrolled in any courses yet. They appear here once the office
-    registers you for the semester.
+    You are not enrolled in any courses yet. They appear here once the office registers you for the
+    semester.
   </div>
 } @else {
   <div class="plan-list">
@@ -29,10 +29,13 @@
         <div class="plan-top">
           <div class="plan-id">
             <div class="c-name">{{ c.name }}</div>
-            <div class="c-code">{{ c.code }} · Sem {{ c.semester }} · {{ stageLabel(c.stage) }}</div>
+            <div class="c-code">
+              {{ c.code }} · Sem {{ c.semester }} · {{ stageLabel(c.stage) }}
+            </div>
           </div>
           <span class="chip {{ chip.cls }}">
-            <span class="icon">{{ chip.icon }}</span>{{ chip.label }}
+            <span class="icon">{{ chip.icon }}</span
+            >{{ chip.label }}
           </span>
         </div>
 

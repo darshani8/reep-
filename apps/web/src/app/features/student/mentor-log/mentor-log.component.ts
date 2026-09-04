@@ -1,5 +1,10 @@
 /**
- * Mentor Meeting Log — the student's own 1:1 history.
+ * Mentor / TPO Log — the student's own 1:1 history, and the SWOC written about
+ * them.
+ *
+ * Named for both because both write here: the assigned mentor and the placement
+ * cell. It is VIEW-ONLY apart from requesting a meeting — nothing on this screen
+ * approves, verifies or signs anything, and no admin content appears on it.
  *
  * Reads `mentor_notes` filtered to the signed-in student. The screen says
  * plainly that these notes are visible to the student and the placement office,
@@ -11,10 +16,22 @@
  * the raw enum.
  */
 
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../environments/environment';
+
+/** One SWOC line, as /student/overview returns it. */
+interface SwocItem {
+  text: string;
+}
+
+interface SwocBoard {
+  strengths: SwocItem[];
+  weaknesses: SwocItem[];
+  opportunities: SwocItem[];
+  challenges: SwocItem[];
+}
 
 interface Meeting {
   id: string;
@@ -44,6 +61,11 @@ interface MentorLog {
   meetings: Meeting[];
 }
 
+/** Four SWOC lists arrive as arrays; the card shows one sentence per box. */
+function joinSwoc(items: SwocItem[]): string {
+  return items.length ? items.map((i) => i.text).join(' · ') : 'No entries yet';
+}
+
 @Component({
   selector: 'app-mentor-log',
   standalone: true,
@@ -63,8 +85,63 @@ export class MentorLogComponent {
   readonly reason = signal('');
   readonly preferred = signal('');
 
+  /**
+   * SWOC belongs with the mentor log, not on the dashboard.
+   * It is written BY the mentor and the placement cell — the caption says so —
+   * and on the landing screen it sat among things the student does, where a
+   * judgement written about them read as another task. Here it is next to the
+   * meetings where it was formed and where it gets revised.
+   */
+  readonly swoc = signal<SwocBoard | null>(null);
+
+  readonly swocBoxes = computed(() => {
+    const s = this.swoc();
+    if (!s) return null;
+    return [
+      {
+        cls: 'swoc-box swoc-s',
+        title: 'Strength',
+        text: joinSwoc(s.strengths),
+        frame: 'Leverage this in your applications and interviews.',
+      },
+      {
+        cls: 'swoc-box swoc-w',
+        title: 'Weakness',
+        text: joinSwoc(s.weaknesses),
+        frame: 'Recommended activity — turn this into a skilling goal.',
+      },
+      {
+        cls: 'swoc-box swoc-o',
+        title: 'Opportunity',
+        text: joinSwoc(s.opportunities),
+        frame: 'Act before the window closes — check the jobs board and deadlines.',
+      },
+      {
+        cls: 'swoc-box swoc-c',
+        title: 'Challenge',
+        text: joinSwoc(s.challenges),
+        frame: 'Plan a prep task now to get ahead of this.',
+      },
+    ];
+  });
+
+  /** Its own fetch, so a failing overview leaves the meeting log intact. */
+  private async loadSwoc(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/student/overview`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const body = (await res.json()) as { swoc?: SwocBoard | null };
+      this.swoc.set(body.swoc ?? null);
+    } catch {
+      /* the card simply does not render */
+    }
+  }
+
   constructor() {
     void this.load();
+    void this.loadSwoc();
   }
 
   openRequest(): void {

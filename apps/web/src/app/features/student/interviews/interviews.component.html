@@ -76,7 +76,8 @@
           <td>
             @if (statusChip(row.status); as chip) {
               <span class="chip {{ chip.tone }}"
-                ><span class="icon">{{ chip.icon }}</span>{{ chip.label }}</span
+                ><span class="icon">{{ chip.icon }}</span
+                >{{ chip.label }}</span
               >
             }
             <!-- Only when a recording actually exists. This reads
@@ -95,7 +96,8 @@
           <td>
             @if (reportChip(row.report_status); as chip) {
               <span class="chip {{ chip.tone }}"
-                ><span class="icon">{{ chip.icon }}</span>{{ chip.label }}</span
+                ><span class="icon">{{ chip.icon }}</span
+                >{{ chip.label }}</span
               >
             } @else {
               <span class="iv-muted">—</span>
@@ -142,7 +144,8 @@
           </div>
           @if (statusChip(row.status); as chip) {
             <span class="chip {{ chip.tone }}"
-              ><span class="icon">{{ chip.icon }}</span>{{ chip.label }}</span
+              ><span class="icon">{{ chip.icon }}</span
+              >{{ chip.label }}</span
             >
           }
         </div>

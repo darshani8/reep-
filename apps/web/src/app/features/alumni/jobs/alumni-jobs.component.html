@@ -38,7 +38,9 @@
       <tbody>
         @for (j of filtered(); track j.id) {
           <tr>
-            <td><strong>{{ j.title }}</strong></td>
+            <td>
+              <strong>{{ j.title }}</strong>
+            </td>
             <td>{{ j.company }}</td>
             <td>{{ j.degree_level }}</td>
             <td>{{ j.location || '—' }}</td>

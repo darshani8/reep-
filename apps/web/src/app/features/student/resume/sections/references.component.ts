@@ -43,8 +43,8 @@ type RefField = keyof Reference;
         </button>
       </h3>
       <div class="desc">
-        Name, designation, organisation, relationship, email and phone. Your
-        faculty mentor can be added with one click.
+        Name, designation, organisation, relationship, email and phone. Your faculty mentor can be
+        added with one click.
       </div>
 
       <div class="entry" style="border-style:dashed;">

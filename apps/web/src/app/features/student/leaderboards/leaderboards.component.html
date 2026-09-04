@@ -2,19 +2,10 @@
   <div class="dt-header">
     <div>
       <div class="dt-title">Leaderboards</div>
-      <div class="dt-sub">Ranked within your cohort — everyone sees the same name, position and total.</div>
+      <div class="dt-sub">
+        Ranked within your cohort — everyone sees the same name, position and total.
+      </div>
     </div>
-
-    <label class="lb-hide" [class.on]="optedOut()">
-      <input
-        type="checkbox"
-        [checked]="optedOut()"
-        [disabled]="savingVisibility()"
-        (change)="setHidden($any($event.target).checked)"
-      />
-      <span class="icon">{{ optedOut() ? 'visibility_off' : 'visibility' }}</span>
-      <span>Hide me from leaderboards</span>
-    </label>
   </div>
 
   @if (visibilityMsg(); as msg) {
@@ -41,7 +32,9 @@
   @if (loading()) {
     <div class="card lb-empty">
       <span class="icon">hourglass_top</span>
-      <div><div class="lb-empty__title">Loading the {{ activeLabel() }} board…</div></div>
+      <div>
+        <div class="lb-empty__title">Loading the {{ activeLabel() }} board…</div>
+      </div>
     </div>
   } @else if (optedOut()) {
     <div class="card lb-empty">
@@ -49,9 +42,17 @@
       <div>
         <div class="lb-empty__title">You’re hidden from the leaderboards</div>
         <div class="dt-sub">
-          You don’t appear on any board and, in turn, you don’t see peer rankings. Turn off
-          “Hide me from leaderboards” above to take part again.
+          You don’t appear on any board and, in turn, you don’t see peer rankings.
         </div>
+        <button
+          type="button"
+          class="btn primary lb-rejoin"
+          [disabled]="savingVisibility()"
+          (click)="setHidden(false)"
+        >
+          <span class="icon">visibility</span>
+          {{ savingVisibility() ? 'Updating…' : 'Take part again' }}
+        </button>
         <div class="lb-privacy-note">
           <span class="icon">shield_person</span>
           <span>
@@ -64,7 +65,9 @@
   } @else if (error()) {
     <div class="card lb-empty">
       <span class="icon">error</span>
-      <div><div class="lb-empty__title">{{ error() }}</div></div>
+      <div>
+        <div class="lb-empty__title">{{ error() }}</div>
+      </div>
     </div>
   } @else {
     <!-- OWN RANK — prominent, cohort-aware, encouraging -->
@@ -110,7 +113,9 @@
           <span class="lb-avatar">{{ row.initials }}</span>
           <span class="lb-name">
             {{ row.name }}
-            @if (row.is_me) { <span class="lb-you">You</span> }
+            @if (row.is_me) {
+              <span class="lb-you">You</span>
+            }
           </span>
           <span class="lb-of">of {{ cohortSize() }}</span>
           <span class="lb-val">{{ row.value_label }}</span>

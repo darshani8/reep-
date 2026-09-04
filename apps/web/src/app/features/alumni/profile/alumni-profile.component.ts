@@ -27,6 +27,7 @@ interface AlumniProfileOut {
   email: string;
   company: string | null;
   designation: string | null;
+  joined_on: string | null;
   graduation_year: number | null;
   resume: ResumeMeta | null;
   updated_at: string | null;
@@ -53,6 +54,8 @@ export class AlumniProfileComponent {
   // Form fields.
   company = '';
   designation = '';
+  /** ISO yyyy-MM-dd, which is what <input type="date"> reads and writes. */
+  joinedOn = '';
   graduationYear = '';
   pickedFile: File | null = null;
 
@@ -79,6 +82,7 @@ export class AlumniProfileComponent {
       } else {
         this.company = prof.company ?? '';
         this.designation = prof.designation ?? '';
+        this.joinedOn = prof.joined_on ?? '';
         this.graduationYear = prof.graduation_year ? String(prof.graduation_year) : '';
       }
     } catch {
@@ -97,6 +101,7 @@ export class AlumniProfileComponent {
     if (!prof?.created) return; // nothing to fall back to before creation
     this.company = prof.company ?? '';
     this.designation = prof.designation ?? '';
+    this.joinedOn = prof.joined_on ?? '';
     this.graduationYear = prof.graduation_year ? String(prof.graduation_year) : '';
     this.pickedFile = null;
     this.saveError.set(null);
@@ -138,6 +143,7 @@ export class AlumniProfileComponent {
       const form = new FormData();
       form.append('company', company);
       form.append('designation', this.designation.trim());
+      form.append('joined_on', this.joinedOn);
       // Omitted when blank — the server parses it as an int and an empty
       // string would 422 instead of meaning "not given".
       if (year) form.append('graduation_year', year);

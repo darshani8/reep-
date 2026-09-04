@@ -1,0 +1,133 @@
+<div class="panel" data-p="mentors-students">
+  <div class="dt-header">
+    <div>
+      <div class="eyebrow">Admin · assignment</div>
+      <div class="dt-title">Mentors &amp; Students</div>
+      <div class="dt-sub">
+        Pick a mentor, then move students between their roster and the unassigned pool.
+      </div>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+  }
+  @if (lastAction()) {
+    <div class="decided"><span class="icon">check_circle</span>{{ lastAction() }}</div>
+  }
+
+  @if (mentors() === null) {
+    <div class="state-note"><span class="icon">hourglass_empty</span>Loading…</div>
+  } @else if (mentors()!.length === 0) {
+    <div class="card">No mentors on the roster yet.</div>
+  } @else {
+    <div class="assign-grid">
+      <!-- Mentors -->
+      <div class="card list-card">
+        <h3>Mentors</h3>
+        <div class="mentor-list">
+          @for (m of mentors()!; track m.mentor_id) {
+            <button
+              type="button"
+              class="mentor-row"
+              [class.active]="selectedMentor() === m.mentor_id"
+              (click)="pick(m.mentor_id)"
+            >
+              <span class="mentor-name">{{ m.name }}</span>
+              <span class="mentor-load">{{ m.mentee_count }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Roster -->
+      <div class="card list-card">
+        <h3>
+          @if (current()) {
+            {{ current()!.name }}'s roster
+            <span class="count">{{ current()!.mentee_count }}</span>
+          } @else {
+            Roster
+          }
+        </h3>
+        @if (!current()) {
+          <div class="state-note"><span class="icon">info</span>Pick a mentor on the left.</div>
+        } @else if (current()!.mentees.length === 0) {
+          <div class="state-note">
+            <span class="icon">info</span>No students assigned to this mentor yet.
+          </div>
+        } @else {
+          @for (s of current()!.mentees; track s.student_id) {
+            <div class="student-row">
+              <div class="student-main">
+                <div class="student-name">{{ s.name }}</div>
+                <div class="student-meta">
+                  {{ s.usn || 'No USN' }}
+                  @if (s.stage) {
+                    · {{ s.stage }}
+                  }
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn ghost"
+                [disabled]="busy()"
+                (click)="release(s)"
+                title="Move back to the unassigned pool"
+              >
+                <span class="icon">person_remove</span> Release
+              </button>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Pool -->
+      <div class="card list-card">
+        <h3>
+          Unassigned
+          <span class="count">{{ (pool() ?? []).length }}</span>
+        </h3>
+        @if ((pool() ?? []).length === 0) {
+          <div class="state-note">
+            <span class="icon">task_alt</span>Every student has a mentor.
+          </div>
+        } @else {
+          @for (s of pool()!; track s.student_id) {
+            <label class="student-row student-row--pick">
+              <input
+                type="checkbox"
+                [checked]="isChecked(s.student_id)"
+                (change)="toggleCheck(s.student_id)"
+              />
+              <div class="student-main">
+                <div class="student-name">{{ s.name }}</div>
+                <div class="student-meta">
+                  {{ s.usn || 'No USN' }}
+                  @if (s.stage) {
+                    · {{ s.stage }}
+                  }
+                </div>
+              </div>
+            </label>
+          }
+          <div class="pool-actions">
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="!current() || checkedCount() === 0 || busy()"
+              (click)="assignChecked()"
+            >
+              <span class="icon">person_add</span>
+              @if (current()) {
+                Assign {{ checkedCount() }} to {{ current()!.name }}
+              } @else {
+                Pick a mentor first
+              }
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

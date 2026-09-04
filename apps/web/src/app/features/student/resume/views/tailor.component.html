@@ -1,0 +1,122 @@
+<div class="rb-view">
+  <section class="main">
+    <div class="main-head">
+      <div>
+        <h2>Tailor to opportunity</h2>
+        <div class="sub">
+          How this resume reads against the posting you picked, and what would strengthen it.
+        </div>
+      </div>
+      <div class="head-actions">
+        <button type="button" class="btn" (click)="navigate.emit('build')">
+          <span class="icon">edit</span> Back to content
+        </button>
+        <button type="button" class="btn primary" (click)="navigate.emit('preview')">
+          <span class="icon">visibility</span> Preview
+        </button>
+      </div>
+    </div>
+
+    <div class="body">
+      @if (goalSvc.jobsError()) {
+        <div class="state-note"><span class="icon">error</span>{{ goalSvc.jobsError() }}</div>
+      } @else if (!goalSvc.selectedJob()) {
+        <div class="card">
+          <h3>Pick an opportunity first</h3>
+          <div class="desc">
+            Choose a posting in the <b>Selected opportunity</b> box above and this step will show
+            your match, the requirements you can already evidence, and the ones you cannot.
+          </div>
+        </div>
+      } @else {
+        @let job = goalSvc.selectedJob()!;
+
+        <!-- Verdict first, and separate from the score. -->
+        <div class="card verdict" [class.verdict--ok]="job.eligible">
+          <div class="verdict-head">
+            <span class="icon">{{ job.eligible ? 'task_alt' : 'info' }}</span>
+            <div>
+              <div class="verdict-title">
+                {{
+                  job.eligible ? 'You are eligible to apply' : 'Not yet eligible for this posting'
+                }}
+              </div>
+              <div class="verdict-sub">
+                {{ job.title }} · {{ job.company }}
+                @if (job.location) {
+                  · {{ job.location }}
+                }
+              </div>
+            </div>
+            <span class="verdict-pct"
+              >{{ job.match_percent | number: '1.0-0' }}%<small>skill match</small></span
+            >
+          </div>
+          @if (!job.eligible && job.reasons.length) {
+            <ul class="verdict-reasons">
+              @for (r of job.reasons; track r) {
+                <li>{{ r }}</li>
+              }
+            </ul>
+            <div class="verdict-foot">
+              A stronger resume does not change these — they are set by the posting itself.
+            </div>
+          }
+        </div>
+
+        <div class="tailor-grid">
+          <div class="card">
+            <h3>
+              Covered by verified evidence <span class="t-count">{{ matched().length }}</span>
+            </h3>
+            <div class="desc">
+              Requirements your included, mentor-verified skills already answer.
+            </div>
+            @if (matched().length === 0) {
+              <div class="state-note">
+                <span class="icon">info</span>
+                None yet. Include a verified skill in <b>Build content</b> and it will count here.
+              </div>
+            } @else {
+              <div class="t-pills">
+                @for (s of matched(); track s) {
+                  <span class="t-pill t-pill--have">{{ s }}</span>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="card">
+            <h3>
+              Not yet evidenced <span class="t-count">{{ missing().length }}</span>
+            </h3>
+            <div class="desc">
+              What this posting asks for that your resume cannot currently prove.
+            </div>
+            @if (missing().length === 0) {
+              <div class="state-note">
+                <span class="icon">check_circle</span>Every listed requirement is covered.
+              </div>
+            } @else {
+              <div class="t-pills">
+                @for (s of missing(); track s) {
+                  <span class="t-pill">{{ s }}</span>
+                }
+              </div>
+              @if (missingButHeld().length) {
+                <div class="t-hint">
+                  <span class="icon">toggle_on</span>
+                  <div>
+                    You already have <b>{{ missingButHeld().join(', ') }}</b> verified but switched
+                    off. Turn it on in <b>Build content</b> and this posting is better covered
+                    immediately.
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+</div>

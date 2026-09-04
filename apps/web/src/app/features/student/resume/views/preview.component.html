@@ -14,12 +14,7 @@
         <button type="button" class="btn" (click)="navigate.emit('builder')">
           <span class="icon">edit</span> Edit profile
         </button>
-        <button
-          type="button"
-          class="btn"
-          [disabled]="!result()"
-          (click)="download()"
-        >
+        <button type="button" class="btn" [disabled]="!result()" (click)="download()">
           <span class="icon">download</span> Download PDF
         </button>
         <button
@@ -44,12 +39,7 @@
               [(ngModel)]="title"
               [disabled]="generating()"
             />
-            <button
-              type="button"
-              class="btn accent"
-              [disabled]="generating()"
-              (click)="generate()"
-            >
+            <button type="button" class="btn accent" [disabled]="generating()" (click)="generate()">
               <span class="icon">auto_awesome</span>
               {{ generating() ? 'Generating…' : result() ? 'Regenerate' : 'Generate Resume' }}
             </button>
@@ -69,14 +59,22 @@
                   @case ('title') {
                     <h2>
                       @for (s of b.segs; track $index) {
-                        @if (s.bold) { <b>{{ s.text }}</b> } @else { {{ s.text }} }
+                        @if (s.bold) {
+                          <b>{{ s.text }}</b>
+                        } @else {
+                          {{ s.text }}
+                        }
                       }
                     </h2>
                   }
                   @case ('section') {
                     <div class="psec">
                       @for (s of b.segs; track $index) {
-                        @if (s.bold) { <b>{{ s.text }}</b> } @else { {{ s.text }} }
+                        @if (s.bold) {
+                          <b>{{ s.text }}</b>
+                        } @else {
+                          {{ s.text }}
+                        }
                       }
                     </div>
                   }
@@ -85,7 +83,11 @@
                       <span class="dot">•</span>
                       <span>
                         @for (s of b.segs; track $index) {
-                          @if (s.bold) { <b>{{ s.text }}</b> } @else { {{ s.text }} }
+                          @if (s.bold) {
+                            <b>{{ s.text }}</b>
+                          } @else {
+                            {{ s.text }}
+                          }
                         }
                       </span>
                     </div>
@@ -93,7 +95,11 @@
                   @default {
                     <p class="ppara">
                       @for (s of b.segs; track $index) {
-                        @if (s.bold) { <b>{{ s.text }}</b> } @else { {{ s.text }} }
+                        @if (s.bold) {
+                          <b>{{ s.text }}</b>
+                        } @else {
+                          {{ s.text }}
+                        }
                       }
                     </p>
                   }
@@ -150,10 +156,22 @@
           <div class="card">
             <h3>Evidence pack</h3>
             <div class="evi">
-              <div><span class="chip good"><span class="icon">check</span></span> Composed only from your saved REEP records</div>
-              <div><span class="chip good"><span class="icon">check</span></span> Academic &amp; certification data pulled from source</div>
-              <div><span class="chip good"><span class="icon">check</span></span> Nothing invented — every claim is grounded</div>
-              <div><span class="chip warn"><span class="icon">remove</span></span> Self-reported items awaiting verification are excluded</div>
+              <div>
+                <span class="chip good"><span class="icon">check</span></span> Composed only from
+                your saved REEP records
+              </div>
+              <div>
+                <span class="chip good"><span class="icon">check</span></span> Academic &amp;
+                certification data pulled from source
+              </div>
+              <div>
+                <span class="chip good"><span class="icon">check</span></span> Nothing invented —
+                every claim is grounded
+              </div>
+              <div>
+                <span class="chip warn"><span class="icon">remove</span></span> Self-reported items
+                awaiting verification are excluded
+              </div>
             </div>
           </div>
 
@@ -161,21 +179,21 @@
             <h3>What would strengthen this</h3>
             <div class="strengthen">
               @if (suggestions().length >= 2) {
-                Adding <b>{{ suggestions()[0] }}</b> and <b>{{ suggestions()[1] }}</b> would give the
-                resume more substantive sections and lift your profile completeness from
+                Adding <b>{{ suggestions()[0] }}</b> and <b>{{ suggestions()[1] }}</b> would give
+                the resume more substantive sections and lift your profile completeness from
                 <b>{{ svc.completeness() }}%</b>.
               } @else if (suggestions().length === 1) {
                 Adding <b>{{ suggestions()[0] }}</b> would give the resume another substantive
                 section and lift your profile completeness from <b>{{ svc.completeness() }}%</b>.
               } @else {
-                Your profile is <b>{{ svc.completeness() }}%</b> complete and every value-add section
-                is filled — this resume is drawing on your full record.
+                Your profile is <b>{{ svc.completeness() }}%</b> complete and every value-add
+                section is filled — this resume is drawing on your full record.
               }
               @if (suggestions().length > 0) {
                 <button
                   type="button"
                   class="btn primary"
-                  style="margin-top:12px; padding:7px 12px; font-size:12px;"
+                  style="margin-top: 12px; padding: 7px 12px; font-size: 12px"
                   (click)="navigate.emit('builder')"
                 >
                   <span class="icon">arrow_forward</span> Complete those sections
@@ -189,7 +207,7 @@
 
     <div class="footbar">
       <div class="hint">
-        <span class="icon" style="font-size:16px">lock</span>
+        <span class="icon" style="font-size: 16px">lock</span>
         Generated on-device · evidence stored for mentor audit
       </div>
     </div>

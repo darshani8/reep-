@@ -1,0 +1,79 @@
+<div class="panel" data-p="jobs-sheet">
+  <div class="dt-header">
+    <div>
+      <div class="eyebrow">Admin · placement</div>
+      <div class="dt-title">Jobs sheet</div>
+      <div class="dt-sub">Every posting on the board, with how many students have applied.</div>
+    </div>
+    @if (rows()?.length) {
+      <div class="js-totals">
+        <span class="chip neutral">{{ totals().postings }} postings</span>
+        <span class="chip neutral">{{ totals().applications }} applications</span>
+        @if (totals().quiet) {
+          <button
+            type="button"
+            class="chip warn js-filter"
+            [class.on]="onlyQuiet()"
+            (click)="onlyQuiet.set(!onlyQuiet())"
+          >
+            <span class="icon">filter_alt</span>
+            {{ totals().quiet }} with no applicants
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+  } @else if (rows() === null) {
+    <div class="state-note"><span class="icon">hourglass_empty</span>Loading the sheet…</div>
+  } @else if (rows()!.length === 0) {
+    <div class="card">No postings on the board yet.</div>
+  } @else {
+    <div class="js-scroll">
+      <table class="dt-table js-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Company</th>
+            <th>Level</th>
+            <th>Location</th>
+            <th>Eligibility</th>
+            <th>Closes</th>
+            <th class="num">Applicants</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of visible(); track r.id) {
+            <tr [class.quiet]="r.applicants === 0">
+              <td>
+                @if (r.apply_url) {
+                  <a [href]="r.apply_url" target="_blank" rel="noopener">{{ r.title }}</a>
+                } @else {
+                  {{ r.title }}
+                }
+                <div class="js-posted">Posted {{ r.posted_on | date: 'd MMM y' }}</div>
+              </td>
+              <td>{{ r.company }}</td>
+              <td>{{ r.degree_level }}</td>
+              <td>{{ r.location || '—' }}</td>
+              <td class="js-gates">{{ gates(r) }}</td>
+              <td>
+                @let c = closes(r);
+                <span class="chip {{ c.tone }}">{{ c.label }}</span>
+              </td>
+              <td class="num">
+                <b>{{ r.applicants }}</b>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="js-empty">Every posting has at least one applicant.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

@@ -33,7 +33,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.leave import LeaveDecision, LeaveRequest, LeaveStatus
-from ..models.user import Student
+from ..models.user import Student, User
 # _assert_can_access_student is private to mentor.py on purpose, and importing it
 # anyway is the lesser evil: it is the ONE implementation of "a MENTOR only for a
 # student in their own group", and a second copy here would be the copy that
@@ -43,10 +43,29 @@ from .mentor import _assert_can_access_student, require_mentor
 router = APIRouter(prefix="/leaves", tags=["leaves"])
 
 
+class AltRow(BaseModel):
+    """One line of the form's Alternate Arrangements table."""
+
+    date: str = ""
+    staff_name: str = ""
+    cls: str = ""
+    time: str = ""
+    remarks: str = ""
+
+
 class LeaveIn(BaseModel):
     from_date: date
     to_date: date
+    # The form's "Purpose" cell. Still `reason` in the schema — renaming a
+    # column that four call sites and a scope-rule docstring refer to, to match
+    # a label, would be churn for no gain.
     reason: str = Field(min_length=1, max_length=2000)
+    # Printed options only: the form lists these five and strikes off the rest,
+    # so this is a choice among them and not an open leave-type vocabulary.
+    leave_kind: str | None = Field(default=None, pattern="^(CASUAL|PERMISSION|OOD|RH|LOP)$")
+    credit: str | None = Field(default=None, max_length=200)
+    alt_name: str | None = Field(default=None, max_length=200)
+    alt_rows: list[AltRow] = Field(default_factory=list, max_length=20)
 
 
 class LeaveOut(BaseModel):
@@ -55,15 +74,54 @@ class LeaveOut(BaseModel):
     to_date: date
     reason: str
     status: str
+    leave_kind: str | None
+    credit: str | None
+    alt_name: str | None
+    alt_rows: list[AltRow]
+
+    # The form prints the applicant's institutional identity beside their name,
+    # so the document can be rendered from one response rather than the client
+    # stitching it together from /auth/me.
+    requester_name: str
+    requester_designation: str | None
+    requester_department: str | None
+
+    # The two signature blocks. A signature is a NAME AND A TIME, and neither
+    # half is printed without the other: an approval with no timestamp, or a
+    # timestamp with no approver, is exactly the ambiguity a signed form exists
+    # to remove.
+    signed_at: datetime | None
+    director_name: str | None
+    director_decided_at: datetime | None
+    director_note: str | None
 
 
-def _leave_out(lr: LeaveRequest) -> LeaveOut:
+def _leave_out(lr: LeaveRequest, db: Session) -> LeaveOut:
+    requester = db.get(User, lr.requester_user_id)
+    # The PROGRAM DIRECTOR block prints only for a request that reached a final
+    # decision. A first-of-two approval is a step, not a sanction, and printing a
+    # name against it would show the form as signed off when it is not.
+    director = None
+    if lr.status in (LeaveStatus.APPROVED, LeaveStatus.REJECTED):
+        approver_id = lr.second_approver_user_id or lr.first_approver_user_id
+        director = db.get(User, approver_id) if approver_id else None
     return LeaveOut(
         id=lr.id,
         from_date=lr.from_date,
         to_date=lr.to_date,
         reason=lr.reason,
         status=lr.status.value,
+        leave_kind=lr.leave_kind,
+        credit=lr.credit,
+        alt_name=lr.alt_name,
+        alt_rows=[AltRow(**r) for r in (lr.alt_rows or [])],
+        requester_name=requester.name if requester else "",
+        requester_designation=requester.designation if requester else None,
+        requester_department=requester.department if requester else None,
+        signed_at=lr.signed_at,
+        director_name=director.name if director else None,
+        director_decided_at=lr.second_decided_at or lr.first_decided_at,
+        director_note=lr.second_note or lr.first_note,
     )
 
 
@@ -78,12 +136,20 @@ def submit_leave(
         from_date=body.from_date,
         to_date=body.to_date,
         reason=body.reason,
+        leave_kind=body.leave_kind,
+        credit=body.credit,
+        alt_name=body.alt_name,
+        alt_rows=[r.model_dump() for r in body.alt_rows],
         status=LeaveStatus.SUBMITTED,
+        # Submitting IS signing on this form — the applicant's signature block is
+        # what sends it — so the stamp is taken here rather than left for a
+        # second call that could never arrive.
+        signed_at=datetime.now(timezone.utc),
     )
     db.add(lr)
     db.commit()
     db.refresh(lr)
-    return _leave_out(lr)
+    return _leave_out(lr, db)
 
 
 @router.get("/mine", response_model=list[LeaveOut])
@@ -95,7 +161,7 @@ def my_leaves(
         .where(LeaveRequest.requester_user_id == session["userId"])
         .order_by(LeaveRequest.created_at.desc())
     ).all()
-    return [_leave_out(lr) for lr in rows]
+    return [_leave_out(lr, db) for lr in rows]
 
 
 def _assert_can_decide(session: dict, lr: LeaveRequest, db: Session) -> None:
@@ -160,7 +226,7 @@ def pending_leaves(
     rows = db.scalars(query).all()
     # Not decidable by me if I already gave the first signature.
     return [
-        _leave_out(lr)
+        _leave_out(lr, db)
         for lr in rows
         if not (lr.status == LeaveStatus.FIRST_APPROVED and lr.first_approver_user_id == uid)
     ]
@@ -233,4 +299,4 @@ def decide_leave(
 
     db.commit()
     db.refresh(lr)
-    return _leave_out(lr)
+    return _leave_out(lr, db)

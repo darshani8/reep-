@@ -26,10 +26,7 @@ import { Component, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
-import {
-  InterviewReportCardComponent,
-  ReportCardView,
-} from './interview-report-card.component';
+import { InterviewReportCardComponent, ReportCardView } from './interview-report-card.component';
 
 /** Row shape of GET /api/interview/sessions, verbatim from InterviewSessionOut. */
 interface SessionRow {

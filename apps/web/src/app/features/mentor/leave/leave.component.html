@@ -1,160 +1,301 @@
-<div class="dt-header">
-  <div>
-    <div class="dt-title">Leave Requests</div>
-    <div class="dt-sub">
-      Approve requests from your mentees, and submit your own. Two different approvers must sign
-      before a request is approved.
-    </div>
-  </div>
-</div>
-
-<div class="tabs-row" role="tablist" aria-label="Leave sections">
-  <button
-    role="tab"
-    [attr.aria-selected]="subtab() === 'approvals'"
-    [class.active]="subtab() === 'approvals'"
-    (click)="setSubtab('approvals')"
-  >Approvals</button>
-  <button
-    role="tab"
-    [attr.aria-selected]="subtab() === 'mine'"
-    [class.active]="subtab() === 'mine'"
-    (click)="setSubtab('mine')"
-  >My requests</button>
-</div>
-
-@if (subtab() === 'approvals') {
-  @if (decideError()) {
-    <div class="feedback feedback--err" role="alert">
-      <span class="icon">error</span>
-      <div class="feedback__body">{{ decideError() }}</div>
-    </div>
-  }
-  @if (pendingError()) {
-    <div class="feedback feedback--err" role="alert">
-      <span class="icon">wifi_off</span>
-      <div class="feedback__body">{{ pendingError() }}</div>
-    </div>
-  } @else if (pending(); as rows) {
-    @if (rows.length === 0) {
-      <div class="card" style="padding: 16px">
-        <strong>No requests waiting on you.</strong>
-        <div class="dt-sub" style="margin-top: 4px">
-          You see requests from students in your own mentee group (directors see all). A request you
-          already first-approved waits for a different second approver.
+<div class="panel" data-p="leave">
+  @if (!composing() && !viewing()) {
+    <!-- DASHBOARD -->
+    <div class="dt-header">
+      <div>
+        <div class="dt-title">Leave requests</div>
+        <div class="dt-sub">
+          The official BGSCET leave form — sign and send to the Program Director.
         </div>
       </div>
+      <button type="button" class="btn primary" (click)="startNew()">
+        <span class="icon">add_circle</span> New leave request
+      </button>
+    </div>
+
+    @if (error()) {
+      <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+    }
+
+    @if (rows() === null) {
+      <div class="state-note"><span class="icon">hourglass_empty</span>Loading your requests…</div>
+    } @else if (rows()!.length === 0) {
+      <div class="card">No leave requests yet.</div>
     } @else {
-      @for (r of rows; track r.id) {
-        <div class="card" style="margin-bottom: 10px; padding: 14px">
-          <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap">
-            <strong>
-              {{ r.from_date | date: 'd MMM y' }} → {{ r.to_date | date: 'd MMM y' }}
-            </strong>
-            <span class="chip {{ statusTone(r.status) }}"
-              ><span class="icon">{{ statusIcon(r.status) }}</span>{{ statusLabel(r.status) }}</span
-            >
+      @for (r of rows()!; track r.id) {
+        <div class="card req-card" (click)="open(r)">
+          <div class="req-main">
+            <div class="req-top">
+              <strong>{{ kindLabel(r.leave_kind) }}</strong>
+            </div>
+            <div class="req-dates">{{ dateSpan(r) }}</div>
           </div>
-          <p style="margin: 8px 0; white-space: pre-wrap">{{ r.reason }}</p>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
-            <input
-              type="text"
-              placeholder="Decision note (optional)"
-              style="flex: 1; min-width: 180px"
-              [(ngModel)]="notes[r.id]"
-            />
-            <button
-              type="button"
-              class="dt-btn primary"
-              [disabled]="decidingId() === r.id"
-              (click)="decide(r, 'APPROVE')"
-            >
-              <span class="icon">check_circle</span>Approve
-            </button>
-            <button
-              type="button"
-              class="dt-btn danger"
-              [disabled]="decidingId() === r.id"
-              (click)="decide(r, 'REJECT')"
-            >
-              <span class="icon">cancel</span>Reject
-            </button>
-          </div>
+          <span class="chip {{ chip(r.status).tone }}">
+            <span class="icon">{{ chip(r.status).icon }}</span> {{ chip(r.status).label }}
+          </span>
         </div>
       }
     }
   } @else {
-    <div class="card" style="padding: 16px">Loading the approval queue…</div>
-  }
-} @else {
-  <div class="card" style="margin-bottom: 14px; padding: 14px">
-    <h4 style="margin: 0 0 10px">Request leave</h4>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap">
-      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px">
-        From
-        <input type="date" [(ngModel)]="fromDate" />
-      </label>
-      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px">
-        To
-        <input type="date" [(ngModel)]="toDate" />
-      </label>
-      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; flex: 1; min-width: 220px">
-        Reason
-        <input type="text" placeholder="Why you need this leave" [(ngModel)]="reason" />
-      </label>
+    <!-- THE FORM -->
+    <div class="form-bar">
+      <button type="button" class="iconbtn" title="Back to requests" (click)="backToDash()">
+        <span class="icon">arrow_back</span>
+      </button>
+      <div class="form-bar-note">
+        Signatures are recorded as a name and a timestamp against your REEP account.
+      </div>
     </div>
-    @if (submitError()) {
-      <div class="feedback feedback--err" role="alert" style="margin-top: 8px">
-        <span class="icon">error</span>
-        <div class="feedback__body">{{ submitError() }}</div>
+
+    @if (viewing()?.director_note) {
+      <div class="remarks">
+        <span class="icon">flag</span>
+        <div>
+          <strong>Program Director's remarks</strong>
+          <div>{{ viewing()!.director_note }}</div>
+        </div>
       </div>
     }
-    <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px">
-      <button type="button" class="dt-btn primary" [disabled]="submitting()" (click)="submit()">
-        <span class="icon">send</span>{{ submitting() ? 'Submitting…' : 'Submit request' }}
-      </button>
-      @if (submittedFlash()) {
-        <span class="chip good"><span class="icon">check_circle</span>Submitted</span>
-      }
-    </div>
-  </div>
 
-  @if (mineError()) {
-    <div class="feedback feedback--err" role="alert">
-      <span class="icon">wifi_off</span>
-      <div class="feedback__body">{{ mineError() }}</div>
-    </div>
-  } @else if (mine(); as rows) {
-    @if (rows.length === 0) {
-      <div class="card" style="padding: 16px">You have not requested any leave yet.</div>
-    } @else {
-      <table class="dt-table">
+    @let v = viewing();
+    <div class="sheet">
+      <div class="sheet-invoke">|| Jai Sri Gurudev ||</div>
+      <div class="sheet-college">BGS COLLEGE OF ENGINEERING AND TECHNOLOGY,MBA</div>
+      <div class="sheet-addr">Mahalakshmipuram,Bengaluru-86.</div>
+
+      <div class="sheet-apply">
+        Application for
+        @for (k of kinds; track k.id) {
+          @if (v) {
+            <span class="kind" [class.kind--off]="v.leave_kind !== k.id">{{ k.label }}</span>
+          } @else {
+            <button
+              type="button"
+              class="kind kind--btn"
+              [class.kind--off]="fKind() !== k.id"
+              (click)="fKind.set(k.id)"
+            >
+              {{ k.label }}
+            </button>
+          }
+          @if (!$last) {
+            <span class="kind-sep">/</span>
+          }
+        }
+        (Strike-off, if not applicable)
+      </div>
+
+      <table class="sheet-table">
+        <tbody>
+          <tr>
+            <th scope="row">Name</th>
+            <td>
+              {{ v ? v.requester_name : identity().name }}
+              <span class="synced">(synced)</span>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Designation</th>
+            <td>
+              {{ (v ? v.requester_designation : identity().designation) || 'Not on record' }}
+              <span class="synced">(synced)</span>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Department</th>
+            <td>
+              {{ (v ? v.requester_department : identity().department) || 'Not on record' }}
+              <span class="synced">(synced)</span>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Date</th>
+            <td>
+              @if (v) {
+                {{ dateSpan(v) }}
+              } @else {
+                <span class="date-pair">
+                  <input
+                    type="date"
+                    [value]="fFrom()"
+                    (input)="fFrom.set($any($event.target).value)"
+                  />
+                  <span>to</span>
+                  <input type="date" [value]="fTo()" (input)="fTo.set($any($event.target).value)" />
+                </span>
+              }
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Purpose</th>
+            <td>
+              @if (v) {
+                {{ v.reason }}
+              } @else {
+                <textarea
+                  rows="2"
+                  [value]="fPurpose()"
+                  (input)="fPurpose.set($any($event.target).value)"
+                ></textarea>
+              }
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Credit</th>
+            <td>
+              @if (v) {
+                {{ v.credit || '—' }}
+              } @else {
+                <input
+                  type="text"
+                  [value]="fCredit()"
+                  (input)="fCredit.set($any($event.target).value)"
+                />
+              }
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Sanctioned</th>
+            <td>{{ v ? chip(v.status).label : '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="sig-row">
+        <div class="sig">
+          @if (v?.signed_at) {
+            <div class="sig-name">{{ v!.requester_name }}</div>
+            <div class="sig-when">{{ v!.signed_at | date: 'd MMM y, HH:mm' }}</div>
+          }
+          <div class="sig-line">SIGNATURE OF STAFF</div>
+        </div>
+        <div class="sig">
+          @if (v?.director_name && v?.director_decided_at) {
+            <div class="sig-name">{{ v!.director_name }}</div>
+            <div class="sig-when">{{ v!.director_decided_at | date: 'd MMM y, HH:mm' }}</div>
+          } @else {
+            <div class="sig-await">Awaiting</div>
+          }
+          <div class="sig-line">PROGRAM DIRECTOR</div>
+        </div>
+      </div>
+
+      <div class="sheet-rule"></div>
+
+      <div class="alt-head">Alternate Arrangements: (For Department purpose)</div>
+      <div class="alt-name">
+        Name:
+        @if (v) {
+          <span class="alt-name-val">{{ v.alt_name || '—' }}</span>
+        } @else {
+          <input
+            type="text"
+            [value]="fAltName()"
+            (input)="fAltName.set($any($event.target).value)"
+          />
+        }
+      </div>
+
+      <table class="alt-table">
         <thead>
           <tr>
-            <th>From</th>
-            <th>To</th>
-            <th>Reason</th>
-            <th>Status</th>
+            <th>Date</th>
+            <th>Staff Name (Alternative)</th>
+            <th>Class</th>
+            <th>Time</th>
+            <th>Remarks</th>
           </tr>
         </thead>
         <tbody>
-          @for (r of rows; track r.id) {
-            <tr>
-              <td>{{ r.from_date | date: 'd MMM y' }}</td>
-              <td>{{ r.to_date | date: 'd MMM y' }}</td>
-              <td>{{ r.reason }}</td>
-              <td>
-                <span class="chip {{ statusTone(r.status) }}"
-                  ><span class="icon">{{ statusIcon(r.status) }}</span
-                  >{{ statusLabel(r.status) }}</span
-                >
-              </td>
-            </tr>
+          @if (v) {
+            @for (r of v.alt_rows; track $index) {
+              <tr>
+                <td>{{ r.date }}</td>
+                <td>{{ r.staff_name }}</td>
+                <td>{{ r.cls }}</td>
+                <td>{{ r.time }}</td>
+                <td>{{ r.remarks }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="alt-empty">No alternate arrangements recorded.</td>
+              </tr>
+            }
+          } @else {
+            @for (r of fAltRows(); track $index) {
+              <tr>
+                <td>
+                  <input
+                    type="text"
+                    [value]="r.date"
+                    (input)="setAltCell($index, 'date', $any($event.target).value)"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    [value]="r.staff_name"
+                    (input)="setAltCell($index, 'staff_name', $any($event.target).value)"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    [value]="r.cls"
+                    (input)="setAltCell($index, 'cls', $any($event.target).value)"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    [value]="r.time"
+                    (input)="setAltCell($index, 'time', $any($event.target).value)"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    [value]="r.remarks"
+                    (input)="setAltCell($index, 'remarks', $any($event.target).value)"
+                  />
+                </td>
+              </tr>
+            }
           }
         </tbody>
       </table>
+      @if (!v) {
+        <button type="button" class="btn ghost add-row" (click)="addAltRow()">
+          <span class="icon">add</span> Add a row
+        </button>
+      }
+
+      <div class="sig-foot">
+        @if (v?.signed_at) {
+          <div class="sig-name">{{ v!.requester_name }}</div>
+        }
+        <div class="sig-line">Signature of staff.</div>
+      </div>
+    </div>
+
+    @if (!viewing()) {
+      @if (formError()) {
+        <div class="state-note risk"><span class="icon">error</span>{{ formError() }}</div>
+      }
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn primary"
+          [disabled]="!canSubmit()"
+          (click)="signAndSubmit()"
+        >
+          <span class="icon">draw</span>
+          {{ submitting() ? 'Submitting…' : 'Sign & submit to Program Director' }}
+        </button>
+        @if (!canSubmit() && !submitting()) {
+          <span class="form-hint">Dates and a purpose are needed before this can be signed.</span>
+        }
+      </div>
     }
-  } @else {
-    <div class="card" style="padding: 16px">Loading your requests…</div>
   }
-}
+</div>

@@ -10,8 +10,8 @@
 
 <div class="card">
   <h3>Identity</h3>
-  <div style="display:flex; gap:22px;">
-    <div style="width:190px; flex:0 0 auto;">
+  <div style="display: flex; gap: 22px">
+    <div style="width: 190px; flex: 0 0 auto">
       <div class="field">
         <label>Photo</label>
         @if (photoUrl(); as url) {
@@ -24,16 +24,22 @@
           (click)="photoPicker.click()"
         >
           <span class="icon">add_a_photo</span>
-          {{ uploadingPhoto() ? 'Uploading…' : (photoUrl() ? 'Replace photo' : 'Click to upload') }}
+          {{ uploadingPhoto() ? 'Uploading…' : photoUrl() ? 'Replace photo' : 'Click to upload' }}
           <small>PNG or JPEG</small>
         </button>
-        <input #photoPicker type="file" accept="image/png,image/jpeg" hidden (change)="onPhotoFile($event)" />
+        <input
+          #photoPicker
+          type="file"
+          accept="image/png,image/jpeg"
+          hidden
+          (change)="onPhotoFile($event)"
+        />
         @if (photoError()) {
           <small class="photo-err">{{ photoError() }}</small>
         }
       </div>
     </div>
-    <div style="flex:1;">
+    <div style="flex: 1">
       <div class="field">
         <label>USN <span class="req">*</span><span class="lock">SYNCED</span></label>
         <input class="ctrl" [value]="usn()" placeholder="—" disabled />
@@ -75,7 +81,10 @@
   <h3>Personal</h3>
   <div class="grid2">
     <div class="field">
-      <label>Gender <span class="req">*</span><span class="reqp">Required for placement profile</span></label>
+      <label
+        >Gender <span class="req">*</span
+        ><span class="reqp">Required for placement profile</span></label
+      >
       <select class="ctrl" [ngModel]="m.gender" (ngModelChange)="m.gender = $event; push()">
         <option value="">Select</option>
         <option value="Female">Female</option>
@@ -84,13 +93,11 @@
       </select>
     </div>
     <div class="field">
-      <label>Date of birth <span class="req">*</span><span class="reqp">Required for placement profile</span></label>
-      <input
-        class="ctrl"
-        type="date"
-        [ngModel]="m.dob"
-        (ngModelChange)="m.dob = $event; push()"
-      />
+      <label
+        >Date of birth <span class="req">*</span
+        ><span class="reqp">Required for placement profile</span></label
+      >
+      <input class="ctrl" type="date" [ngModel]="m.dob" (ngModelChange)="m.dob = $event; push()" />
     </div>
     <div class="field">
       <label>Blood group</label>
@@ -152,8 +159,8 @@
       <label>Medical history</label>
       <small class="sensitive-note">
         <span class="icon">info</span>
-        Optional. Collected only so the placement office can arrange reasonable
-        accommodations; visible to your mentor and the placement office, never to recruiters.
+        Optional. Collected only so the placement office can arrange reasonable accommodations;
+        visible to your mentor and the placement office, never to recruiters.
       </small>
       <input
         class="ctrl"

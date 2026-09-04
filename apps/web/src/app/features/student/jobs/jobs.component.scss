@@ -173,3 +173,13 @@
 .opp-cta {
   margin-top: 14px;
 }
+
+/* One responsive board rather than a fixed two-column split. auto-fill at 280px
+   means a wide screen shows three or four postings and a narrow one shows a
+   single readable column, without a breakpoint per layout. */
+.opp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: start;
+}

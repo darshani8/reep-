@@ -1,0 +1,183 @@
+<div class="panel" data-p="leave-approvals">
+  <div class="dt-header">
+    <div>
+      <div class="eyebrow">Admin · Program Director</div>
+      <div class="dt-title">Leave approvals</div>
+      <div class="dt-sub">
+        Faculty leave forms awaiting a decision. Two distinct approvers are required, so a request
+        you have already signed does not appear here.
+      </div>
+    </div>
+    <span class="chip warn"
+      ><span class="icon">hourglass_top</span> Pending {{ pendingCount() }}</span
+    >
+  </div>
+
+  @if (error()) {
+    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+  }
+
+  @for (entry of done() | keyvalue; track entry.key) {
+    <div class="decided"><span class="icon">check_circle</span>{{ entry.value }}</div>
+  }
+
+  @if (rows() === null) {
+    <div class="state-note"><span class="icon">hourglass_empty</span>Loading the queue…</div>
+  } @else if (rows()!.length === 0) {
+    <div class="card empty-card">
+      <span class="icon">task_alt</span>
+      <div>
+        <b>Nothing waiting.</b>
+        <div class="empty-sub">Signed leave forms appear here for a decision.</div>
+      </div>
+    </div>
+  } @else {
+    @for (r of rows()!; track r.id) {
+      <div class="card req">
+        <div class="req-head">
+          <div>
+            <strong>{{ r.requester_name }}</strong>
+            <span class="req-kind"> · {{ kindLabel(r.leave_kind) }}</span>
+            <div class="req-meta">
+              {{ r.requester_department || 'Department not on record' }} · {{ dateSpan(r) }}
+            </div>
+          </div>
+          <span class="chip warn"><span class="icon">schedule</span> Awaiting decision</span>
+        </div>
+
+        @if (openId() !== r.id) {
+          <div class="req-actions-right">
+            <button type="button" class="btn primary" (click)="toggle(r.id)">
+              <span class="icon">description</span> Read the form
+            </button>
+          </div>
+        } @else {
+          <!-- The document as signed. -->
+          <div class="sheet">
+            <div class="sheet-invoke">|| Jai Sri Gurudev ||</div>
+            <div class="sheet-college">BGS COLLEGE OF ENGINEERING AND TECHNOLOGY,MBA</div>
+            <div class="sheet-addr">Mahalakshmipuram,Bengaluru-86.</div>
+            <div class="sheet-apply">
+              Application for <span class="kind-on">{{ kindLabel(r.leave_kind) }}</span>
+            </div>
+
+            <table class="sheet-table">
+              <tbody>
+                <tr>
+                  <th scope="row">Name</th>
+                  <td>{{ r.requester_name }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Designation</th>
+                  <td>{{ r.requester_designation || 'Not on record' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Department</th>
+                  <td>{{ r.requester_department || 'Not on record' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Date</th>
+                  <td>{{ dateSpan(r) }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Purpose</th>
+                  <td>{{ r.reason }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Credit</th>
+                  <td>{{ r.credit || '—' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Sanctioned</th>
+                  <td>Pending your decision</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="sig-row">
+              <div class="sig">
+                @if (r.signed_at) {
+                  <div class="sig-name">{{ r.requester_name }}</div>
+                  <div class="sig-when">{{ r.signed_at | date: 'd MMM y, HH:mm' }}</div>
+                }
+                <div class="sig-line">SIGNATURE OF STAFF</div>
+              </div>
+              <div class="sig">
+                <div class="sig-await">Signs on approval</div>
+                <div class="sig-line">PROGRAM DIRECTOR</div>
+              </div>
+            </div>
+
+            <div class="sheet-rule"></div>
+            <div class="alt-head">Alternate Arrangements: (For Department purpose)</div>
+            <div class="alt-name">
+              Name: <span class="alt-name-val">{{ r.alt_name || '—' }}</span>
+            </div>
+            <table class="alt-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Staff Name (Alternative)</th>
+                  <th>Class</th>
+                  <th>Time</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of r.alt_rows; track $index) {
+                  <tr>
+                    <td>{{ a.date }}</td>
+                    <td>{{ a.staff_name }}</td>
+                    <td>{{ a.cls }}</td>
+                    <td>{{ a.time }}</td>
+                    <td>{{ a.remarks }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="alt-empty">No alternate arrangements recorded.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <label class="note-field">
+            <span class="fld">
+              Remarks
+              <span class="fld-hint">(required to reject, optional to approve)</span>
+            </span>
+            <input
+              type="text"
+              [value]="note(r.id)"
+              (input)="setNote(r.id, $any($event.target).value)"
+              placeholder="e.g. Cover arrangements confirmed with the department."
+            />
+          </label>
+          @if (noteError()) {
+            <div class="note-error">{{ noteError() }}</div>
+          }
+
+          <div class="decide-row">
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="deciding() === r.id"
+              (click)="decide(r, 'APPROVE')"
+            >
+              <span class="icon">draw</span> Sanction &amp; sign
+            </button>
+            <button
+              type="button"
+              class="btn btn-reject"
+              [disabled]="deciding() === r.id"
+              (click)="decide(r, 'REJECT')"
+            >
+              <span class="icon">cancel</span> Reject
+            </button>
+            <button type="button" class="btn ghost" (click)="toggle(r.id)">Close</button>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

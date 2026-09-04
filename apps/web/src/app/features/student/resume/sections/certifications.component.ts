@@ -65,7 +65,12 @@ const STATUS_LABEL: Record<string, string> = {
     <div class="card">
       <h3>
         Certifications &amp; assessments
-        <button type="button" class="btn primary right" style="padding:7px 13px;" (click)="toggleForm()">
+        <button
+          type="button"
+          class="btn primary right"
+          style="padding:7px 13px;"
+          (click)="toggleForm()"
+        >
           <span class="icon">add</span> Add certification
         </button>
       </h3>
@@ -74,53 +79,96 @@ const STATUS_LABEL: Record<string, string> = {
       @if (formOpen()) {
         <div class="entry" style="border-style:dashed;">
           <div class="grid2">
-            <div class="field"><label>Certification name <span class="req">*</span></label>
-              <input class="ctrl" [(ngModel)]="form.name" name="extName" placeholder="e.g. Google Data Analytics"></div>
-            <div class="field"><label>Provider / issuer</label>
-              <input class="ctrl" [(ngModel)]="form.provider" name="extProvider" placeholder="e.g. Google · Coursera"></div>
-            <div class="field"><label>Year</label>
-              <input class="ctrl" [(ngModel)]="form.year" name="extYear" placeholder="e.g. 2026"></div>
-            <div class="field"><label>Credential link</label>
-              <input class="ctrl" [(ngModel)]="form.link" name="extLink" placeholder="https://…"></div>
+            <div class="field">
+              <label>Certification name <span class="req">*</span></label>
+              <input
+                class="ctrl"
+                [(ngModel)]="form.name"
+                name="extName"
+                placeholder="e.g. Google Data Analytics"
+              />
+            </div>
+            <div class="field">
+              <label>Provider / issuer</label>
+              <input
+                class="ctrl"
+                [(ngModel)]="form.provider"
+                name="extProvider"
+                placeholder="e.g. Google · Coursera"
+              />
+            </div>
+            <div class="field">
+              <label>Year</label>
+              <input class="ctrl" [(ngModel)]="form.year" name="extYear" placeholder="e.g. 2026" />
+            </div>
+            <div class="field">
+              <label>Credential link</label>
+              <input class="ctrl" [(ngModel)]="form.link" name="extLink" placeholder="https://…" />
+            </div>
           </div>
           @if (formError()) {
             <div class="desc" style="color:var(--risk); margin:0 0 10px;">{{ formError() }}</div>
           }
           <div style="display:flex; gap:8px;">
-            <button type="button" class="btn primary" style="padding:7px 13px;" (click)="addExternal()">
+            <button
+              type="button"
+              class="btn primary"
+              style="padding:7px 13px;"
+              (click)="addExternal()"
+            >
               <span class="icon">check</span> Add
             </button>
-            <button type="button" class="btn" style="padding:7px 13px;" (click)="closeForm()">Cancel</button>
+            <button type="button" class="btn" style="padding:7px 13px;" (click)="closeForm()">
+              Cancel
+            </button>
           </div>
         </div>
       }
 
       @if (error()) {
-        <div class="empty" style="padding:26px;"><span class="icon">error</span><p>{{ error() }}</p></div>
+        <div class="empty" style="padding:26px;">
+          <span class="icon">error</span>
+          <p>{{ error() }}</p>
+        </div>
       } @else if (rows() === null) {
-        <div class="empty" style="padding:26px;"><span class="icon">hourglass_top</span><p>Loading your certifications…</p></div>
+        <div class="empty" style="padding:26px;">
+          <span class="icon">hourglass_top</span>
+          <p>Loading your certifications…</p>
+        </div>
       } @else {
         <!-- REEP programme certs (locked, provider-verified) -->
         @for (c of rows()!; track c.code) {
           <div class="entry">
-            <div class="tools"><button type="button"><span class="icon" style="font-size:17px">visibility</span></button></div>
+            <div class="tools">
+              <button type="button">
+                <span class="icon" style="font-size:17px">visibility</span>
+              </button>
+            </div>
             @if (c.self_reported) {
               <h4>
                 {{ c.name }}
                 @if (c.status === 'COMPLETED') {
-                  <span class="chip good" style="margin-left:8px;"><span class="icon">check_circle</span>Self-reported · complete</span>
+                  <span class="chip good" style="margin-left:8px;"
+                    ><span class="icon">check_circle</span>Self-reported · complete</span
+                  >
                 } @else {
-                  <span class="chip warn" style="margin-left:8px;"><span class="icon">hourglass_top</span>Self-reported · awaiting verification</span>
+                  <span class="chip warn" style="margin-left:8px;"
+                    ><span class="icon">hourglass_top</span>Self-reported · awaiting
+                    verification</span
+                  >
                 }
               </h4>
               <div class="org">{{ c.provider }}</div>
               <div class="meta">
-                {{ statusLabel(c.status) }} — {{ c.progress_pct }}% · {{ c.hours_logged }} / {{ c.required_hours }} hrs · due {{ c.due_date | date: 'd MMM y' }}
+                {{ statusLabel(c.status) }} — {{ c.progress_pct }}% · {{ c.hours_logged }} /
+                {{ c.required_hours }} hrs · due {{ c.due_date | date: 'd MMM y' }}
               </div>
             } @else {
               <h4>
                 {{ c.name }}
-                <span class="tag evi"><span class="icon" style="font-size:12px">bolt</span>From REEP record</span>
+                <span class="tag evi"
+                  ><span class="icon" style="font-size:12px">bolt</span>From REEP record</span
+                >
                 <span class="tag lock">Locked</span>
               </h4>
               <div class="org">{{ c.provider }}</div>
@@ -128,7 +176,8 @@ const STATUS_LABEL: Record<string, string> = {
                 @if (c.status === 'COMPLETED') {
                   Completed · {{ c.hours_logged }} / {{ c.required_hours }} hrs · provider-verified
                 } @else {
-                  {{ statusLabel(c.status) }} — {{ c.progress_pct }}% · {{ c.hours_logged }} / {{ c.required_hours }} hrs · provider-verified
+                  {{ statusLabel(c.status) }} — {{ c.progress_pct }}% · {{ c.hours_logged }} /
+                  {{ c.required_hours }} hrs · provider-verified
                 }
               </div>
             }
@@ -139,13 +188,22 @@ const STATUS_LABEL: Record<string, string> = {
         @for (c of externals(); track $index) {
           <div class="entry">
             <div class="tools">
-              <button type="button" (click)="removeExternal($index)"><span class="icon" style="font-size:17px">delete</span></button>
+              <button type="button" (click)="removeExternal($index)">
+                <span class="icon" style="font-size:17px">delete</span>
+              </button>
             </div>
             <h4>{{ c.name }} <span class="tag">Self-added</span></h4>
-            @if (c.provider) { <div class="org">{{ c.provider }}</div> }
+            @if (c.provider) {
+              <div class="org">{{ c.provider }}</div>
+            }
             <div class="meta">
               {{ c.year ? c.year : 'Year not set' }}
-              @if (c.link) { · <a [href]="c.link" target="_blank" rel="noopener" style="color:var(--purple-mid);">credential</a> }
+              @if (c.link) {
+                ·
+                <a [href]="c.link" target="_blank" rel="noopener" style="color:var(--purple-mid);"
+                  >credential</a
+                >
+              }
             </div>
           </div>
         }
@@ -153,7 +211,10 @@ const STATUS_LABEL: Record<string, string> = {
         @if (rows()!.length === 0 && externals().length === 0) {
           <div class="empty">
             <span class="icon">workspace_premium</span>
-            <p>No certifications yet. Programme certifications sync automatically; add outside ones above.</p>
+            <p>
+              No certifications yet. Programme certifications sync automatically; add outside ones
+              above.
+            </p>
           </div>
         }
       }

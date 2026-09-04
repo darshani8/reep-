@@ -1,0 +1,159 @@
+<div class="panel" data-p="verifications">
+  <div class="dt-header">
+    <div>
+      <div class="eyebrow">Mentor · sole approver</div>
+      <div class="dt-title">Skill verifications</div>
+      <div class="dt-sub">
+        Evidence your assigned mentees submitted for a skill. Only you can verify, request changes,
+        or reject it — nothing here goes to an admin.
+      </div>
+    </div>
+    <span class="chip warn queue-chip">
+      <span class="icon">hourglass_top</span> Pending {{ pendingCount() }}
+    </span>
+  </div>
+
+  @if (error()) {
+    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+  }
+
+  <!-- Outcomes from this session, so a decision does not just make a card vanish. -->
+  @for (entry of done() | keyvalue; track entry.key) {
+    <div class="decided"><span class="icon">check_circle</span>{{ entry.value }}</div>
+  }
+
+  @if (claims() === null) {
+    <div class="state-note"><span class="icon">hourglass_empty</span>Loading the queue…</div>
+  } @else if (claims()!.length === 0) {
+    <div class="card empty-card">
+      <span class="icon">task_alt</span>
+      <div>
+        <b>Nothing waiting.</b>
+        <div class="empty-sub">
+          When a mentee claims a skill with a certificate, it appears here for you to verify.
+        </div>
+      </div>
+    </div>
+  } @else {
+    @for (c of claims()!; track c.id) {
+      <div class="card claim">
+        <div class="claim-head">
+          <div>
+            <strong>{{ c.skill_name }}</strong>
+            <span class="claim-lvl"> · claimed at {{ levelName(c.claimed_level) }}</span>
+            <div class="claim-who">
+              {{ c.student_name }} · submitted {{ c.created_at | date: 'd MMM y' }}
+            </div>
+          </div>
+          <span class="chip warn"><span class="icon">hourglass_top</span> Under review</span>
+        </div>
+
+        @if (openId() !== c.id) {
+          <div class="claim-actions-right">
+            <button type="button" class="btn primary" (click)="toggle(c.id)">
+              <span class="icon">visibility</span> Review evidence
+            </button>
+          </div>
+        } @else {
+          <div class="claim-body">
+            <div class="claim-grid">
+              <div>
+                <div class="fld">Mapped skill</div>
+                <div class="val val--strong">{{ c.skill_name }}</div>
+              </div>
+              <div>
+                <div class="fld">Level claimed</div>
+                <div class="val">{{ levelName(c.claimed_level) }}</div>
+              </div>
+              <div>
+                <div class="fld">Student</div>
+                <div class="val">{{ c.student_name }}</div>
+              </div>
+              <div>
+                <div class="fld">Submitted</div>
+                <div class="val">{{ c.created_at | date: 'd MMM y, HH:mm' }}</div>
+              </div>
+            </div>
+
+            @if (c.student_note) {
+              <div class="claim-note-block">
+                <div class="fld">What the student told you</div>
+                <div class="val">{{ c.student_note }}</div>
+              </div>
+            }
+
+            <div class="claim-file">
+              @if (c.upload_id) {
+                <a class="btn" [href]="fileUrl(c.upload_id)" target="_blank" rel="noopener">
+                  <span class="icon">open_in_new</span> Open the certificate
+                </a>
+              } @else {
+                <span class="chip neutral">No file attached</span>
+              }
+            </div>
+
+            <div class="rubric">
+              <div class="fld">Verification rubric</div>
+              <ul>
+                <li>
+                  The certificate names this student, and the skill it evidences is the one claimed.
+                </li>
+                <li>The issuer is identifiable and the assessment is more than attendance.</li>
+                <li>
+                  The level claimed is consistent with what the evidence demonstrates — grant a
+                  lower one if not.
+                </li>
+              </ul>
+            </div>
+
+            <label class="note-field">
+              <span class="fld">
+                Mentor note
+                <span class="fld-hint"
+                  >(required for Request changes / Reject, optional for Verify)</span
+                >
+              </span>
+              <input
+                type="text"
+                [value]="note(c.id)"
+                (input)="setNote(c.id, $any($event.target).value)"
+                placeholder="e.g. Clear evidence of the dashboard build — verifying."
+              />
+            </label>
+            @if (noteError()) {
+              <div class="note-error">{{ noteError() }}</div>
+            }
+
+            <div class="decide-row">
+              <button
+                type="button"
+                class="btn primary"
+                [disabled]="deciding() === c.id"
+                (click)="decide(c, 'GRANT')"
+              >
+                <span class="icon">check_circle</span> Verify
+              </button>
+              <button
+                type="button"
+                class="btn btn-changes"
+                [disabled]="deciding() === c.id"
+                (click)="decide(c, 'CHANGES')"
+              >
+                <span class="icon">undo</span> Request changes
+              </button>
+              <button
+                type="button"
+                class="btn btn-reject"
+                [disabled]="deciding() === c.id"
+                (click)="decide(c, 'REJECT')"
+              >
+                <span class="icon">cancel</span> Reject
+              </button>
+              <button type="button" class="btn ghost" (click)="toggle(c.id)">Close</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

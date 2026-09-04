@@ -78,9 +78,12 @@ function parseMarkdown(md: string): Block[] {
     const line = raw.trim();
     if (!line) continue;
     if (line.startsWith('# ')) blocks.push({ kind: 'title', segs: segmentsOf(line.slice(2)) });
-    else if (line.startsWith('## ')) blocks.push({ kind: 'section', segs: segmentsOf(line.slice(3)) });
-    else if (line.startsWith('### ')) blocks.push({ kind: 'section', segs: segmentsOf(line.slice(4)) });
-    else if (line.startsWith('- ')) blocks.push({ kind: 'bullet', segs: segmentsOf(line.slice(2)) });
+    else if (line.startsWith('## '))
+      blocks.push({ kind: 'section', segs: segmentsOf(line.slice(3)) });
+    else if (line.startsWith('### '))
+      blocks.push({ kind: 'section', segs: segmentsOf(line.slice(4)) });
+    else if (line.startsWith('- '))
+      blocks.push({ kind: 'bullet', segs: segmentsOf(line.slice(2)) });
     else blocks.push({ kind: 'para', segs: segmentsOf(line) });
   }
   return blocks;

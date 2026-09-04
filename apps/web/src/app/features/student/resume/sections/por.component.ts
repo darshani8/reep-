@@ -40,8 +40,8 @@ function blank(): PorEntry {
         </button>
       </h3>
       <div class="desc">
-        Club roles, committee positions, class representative, event leadership. Title, organisation,
-        duration and what you were accountable for.
+        Club roles, committee positions, class representative, event leadership. Title,
+        organisation, duration and what you were accountable for.
       </div>
 
       @if (editing() === -1) {
@@ -101,7 +101,11 @@ function blank(): PorEntry {
         </div>
         <div class="field">
           <label>What you were accountable for</label>
-          <textarea class="ctrl" [(ngModel)]="draft.description" placeholder="Responsibilities and outcomes…"></textarea>
+          <textarea
+            class="ctrl"
+            [(ngModel)]="draft.description"
+            placeholder="Responsibilities and outcomes…"
+          ></textarea>
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
           <button class="btn" (click)="cancel()">Cancel</button>

@@ -1,0 +1,126 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Faculty</div>
+    <div class="dt-title">Alerts</div>
+    <div class="dt-sub">
+      Rules that fired on students in your scope. Resolving one records who closed it.
+    </div>
+  </div>
+  <div class="head-actions">
+    <button type="button" class="btn" (click)="toggleResolved()">
+      <span class="icon">{{ showResolved() ? 'visibility_off' : 'history' }}</span>
+      {{ showResolved() ? 'Open only' : 'Include resolved' }}
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else if (alerts(); as list) {
+  <div class="dense-grid">
+    <div class="dense-stat">
+      <span class="lbl">Open</span>
+      <span class="val">{{ openCount() }}</span>
+      <span class="sub" [class.warn]="openCount() > 0">
+        @if (openCount() > 0) {
+          Waiting on a mentor
+        } @else {
+          Nothing open
+        }
+      </span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Critical</span>
+      <span class="val">{{ criticalCount() }}</span>
+      <span class="sub" [class.risk]="criticalCount() > 0">
+        @if (criticalCount() > 0) {
+          Open and critical
+        } @else {
+          None critical
+        }
+      </span>
+    </div>
+  </div>
+
+  @if (actionError(); as msg) {
+    <div class="feedback feedback--err" role="alert">
+      <span class="icon">error</span>
+      <div class="feedback__body">{{ msg }}</div>
+    </div>
+  }
+
+  <div class="card">
+    <h4>{{ showResolved() ? 'All alerts' : 'Open alerts' }}</h4>
+    @if (visible().length === 0) {
+      <div class="empty">
+        <span class="icon">notifications_off</span>
+        @if (list.length === 0 && !showResolved()) {
+          Nothing is open on the students in your scope. If you have no mentor group, you see
+          nobody's alerts rather than everybody's.
+        } @else {
+          No alerts to show.
+        }
+      </div>
+    } @else {
+      <table class="dt-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Rule</th>
+            <th>Severity</th>
+            <th>Triggered</th>
+            <th>State</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of visible(); track a.id) {
+            <tr>
+              <td>
+                <b>{{ a.student_name }}</b>
+                <div class="dt-sub">{{ a.message }}</div>
+              </td>
+              <td>{{ ruleLabel(a.rule_triggered) }}</td>
+              <td>
+                <span
+                  class="chip"
+                  [class.risk]="tone(a.severity) === 'risk'"
+                  [class.warn]="tone(a.severity) === 'warn'"
+                  [class.neutral]="tone(a.severity) === 'neutral'"
+                >
+                  <span class="icon">priority_high</span>{{ a.severity }}
+                </span>
+              </td>
+              <td>{{ a.triggered_at | date: 'd MMM y, h:mm a' }}</td>
+              <td>
+                @if (a.resolved) {
+                  <span class="chip good"><span class="icon">check_circle</span>Resolved</span>
+                } @else {
+                  <span class="chip warn"><span class="icon">pending</span>Open</span>
+                }
+              </td>
+              <td style="text-align: right">
+                @if (!a.resolved) {
+                  <button
+                    type="button"
+                    class="btn ghost"
+                    [disabled]="resolvingId() === a.id"
+                    (click)="resolve(a)"
+                  >
+                    <span class="icon">check</span>
+                    {{ resolvingId() === a.id ? 'Resolving…' : 'Resolve' }}
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+} @else {
+  <div class="loading-line">Loading alerts…</div>
+}

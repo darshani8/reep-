@@ -8,12 +8,13 @@ session) sees NOBODY — never the whole programme.
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..document_store import content_disposition, read_bytes
 from ..identity import get_current_session
 from ..models.alert import Alert
 from ..models.lab import LabSession
@@ -462,6 +463,47 @@ def pending_uploads(
         query = query.where(Student.mentor_id == mentor_id)
     rows = db.execute(query.order_by(Upload.uploaded_at)).all()
     return [_upload_out(u, name) for u, name in rows]
+
+
+@router.get("/uploads/{upload_id}/file")
+def pending_upload_file(
+    upload_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Stream the document behind a pending review so the reviewer can read what
+    they are being asked to verify.
+
+    The student's own `/student/uploads/{id}/file` is scoped to that student's
+    rows, so without this a mentor's review queue asked them to verify or reject
+    a file they could not open — a verdict with nothing behind it.
+
+    Same scope as the review endpoint, and the same FLATTENED 404: a document
+    belonging to a student outside this mentor's group answers "not found"
+    rather than "forbidden", so the response cannot be used to probe whether a
+    given upload id exists.
+    """
+    require_mentor(session)
+    up = db.get(Upload, upload_id)
+    if up is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
+    try:
+        _assert_can_access_student(session, up.student_id, db)
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found."
+        ) from None
+    try:
+        content = read_bytes(up.stored_name)
+    except FileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored file is missing.")
+    return Response(
+        content=content,
+        media_type=up.mime_type,
+        # RFC 6266 via document_store.content_disposition — a filename outside
+        # latin-1 must not 500 the download here either.
+        headers={"Content-Disposition": content_disposition(up.original_name)},
+    )
 
 
 class UploadReviewIn(BaseModel):

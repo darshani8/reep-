@@ -1,0 +1,125 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Programme · all cohorts</div>
+    <div class="dt-title">Analytics</div>
+    <div class="dt-sub">Headline counts across the whole programme. No student is named here.</div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else if (loading()) {
+  <div class="loading-line">Loading the programme overview…</div>
+} @else if (overview(); as o) {
+  <div class="dense-grid">
+    <div class="dense-stat">
+      <span class="lbl">Students</span>
+      <span class="val">{{ o.total_students }}</span>
+      <span class="sub">On the programme roster</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Placed</span>
+      <span class="val">{{ o.placed_students }}</span>
+      <span class="sub">{{ o.placement_percent }}% of the roster</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Offers approved</span>
+      <span class="val">{{ o.approved_offers }}</span>
+      <span class="sub">{{ o.pending_offers }} awaiting a decision</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Open alerts</span>
+      <span class="val">{{ o.open_alerts }}</span>
+      <span class="sub">Unresolved across every mentor group</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h4>Stage split</h4>
+      @if (stages().length === 0) {
+        <div class="empty">
+          <span class="icon">groups</span>
+          No students on the roster yet.
+        </div>
+      } @else {
+        @for (s of stages(); track s.key) {
+          <div class="meter-row" style="margin-bottom: 12px">
+            <span style="width: 78px; font-weight: 700; color: var(--ink)">{{ s.label }}</span>
+            <span class="meter" style="flex: 1">
+              <span [style.width.%]="s.share ?? 0"></span>
+            </span>
+            <span style="width: 92px; text-align: right; color: var(--ink)">
+              {{ s.count }}
+              @if (s.share !== null) {
+                <span style="color: var(--faint)">· {{ s.share }}%</span>
+              }
+            </span>
+          </div>
+        }
+      }
+    </div>
+
+    <div class="card">
+      <h4>
+        Cohorts
+        @if (cohorts(); as list) {
+          <span style="font-weight: 800">{{ list.length }}</span>
+        }
+      </h4>
+      @if (cohorts(); as list) {
+        @if (list.length === 0) {
+          <div class="empty">
+            <span class="icon">school</span>
+            No cohorts have been created yet.
+          </div>
+        } @else {
+          <table class="dt-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Batch</th>
+                <th>Level</th>
+                <th style="text-align: right">Students</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of list; track c.id) {
+                <tr>
+                  <td>
+                    <b>{{ c.code }}</b>
+                    <div class="dt-sub">{{ c.name }}</div>
+                  </td>
+                  <td>{{ c.batch_label }}</td>
+                  <td>{{ c.degree_level }}</td>
+                  <td style="text-align: right; font-variant-numeric: tabular-nums">
+                    {{ c.student_count }}
+                  </td>
+                </tr>
+              }
+              <tr>
+                <td colspan="3" style="font-weight: 700">In a cohort</td>
+                <td style="text-align: right; font-weight: 800; font-variant-numeric: tabular-nums">
+                  {{ totalCohortStudents() }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          @if (totalCohortStudents() < o.total_students) {
+            <div class="feedback feedback--warn">
+              <span class="icon">info</span>
+              <div class="feedback__body">
+                {{ o.total_students - totalCohortStudents() }} student(s) are not in any cohort.
+              </div>
+            </div>
+          }
+        }
+      } @else {
+        <div class="loading-line">Loading cohorts…</div>
+      }
+    </div>
+  </div>
+}

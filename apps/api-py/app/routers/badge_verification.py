@@ -599,6 +599,40 @@ def _validated_certification_fields(body: ApprovedCertificationIn) -> tuple[Evid
     return ev_type, stage
 
 
+class BadgeCatalogueOut(BaseModel):
+    code: str
+    name: str
+    category: str
+    stage: str
+    points: int
+    staff_awarded: bool
+
+
+@router.get("/director/badge-catalogue", response_model=list[BadgeCatalogueOut])
+def badge_catalogue(session: dict = Depends(get_current_session)) -> list[BadgeCatalogueOut]:
+    """The 48-badge catalogue, so the approved-certification form can offer real
+    badge codes instead of asking a director to type one from memory.
+
+    Read straight off `BADGES` in app/models/badge.py — the catalogue is CODE
+    (AGENTS.md's milestone rule: only student state is rows), so this endpoint
+    touches no table and cannot drift from what the write path validates
+    against. It is the same dict `_validated_certification_fields` rejects an
+    unknown code with.
+    """
+    require_director(session)
+    return [
+        BadgeCatalogueOut(
+            code=b.code,
+            name=b.name,
+            category=b.category.value,
+            stage=b.stage.value,
+            points=b.points,
+            staff_awarded=b.staff_awarded,
+        )
+        for b in BADGES
+    ]
+
+
 @router.get("/director/approved-certifications", response_model=list[ApprovedCertificationOut])
 def list_approved_certifications(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)

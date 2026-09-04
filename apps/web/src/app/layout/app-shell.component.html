@@ -25,21 +25,74 @@
 
       @switch (navKind()) {
         @case ('staff') {
+          <a routerLink="/mentor/student" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">groups</span> Students
+          </a>
           <a routerLink="/mentor/notebook" routerLinkActive="active">
             <span class="icon" aria-hidden="true">menu_book</span> Mentor Notebook
           </a>
           <a routerLink="/mentor/mentees" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">groups</span> Legacy Mentee Log
+            <span class="icon" aria-hidden="true">event_note</span> Mentee Meeting Log
           </a>
-          <a routerLink="/mentor/leave" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">event_available</span> Leave Requests
+          <a routerLink="/mentor/alerts" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">notification_important</span> Alerts
+          </a>
+
+          <div class="sec-label">Review</div>
+          <a routerLink="/mentor/uploads" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">fact_check</span> Verifications
           </a>
           <a routerLink="/mentor/badge-centre" routerLinkActive="active">
             <span class="icon" aria-hidden="true">military_tech</span> Badge Centre
           </a>
+          <a routerLink="/mentor/reports" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">insights</span> Reports
+          </a>
+
+          <div class="sec-label">Me</div>
+          <a routerLink="/mentor/leave" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">event_available</span> Leave Requests
+          </a>
           <a routerLink="/mentor/upskilling" routerLinkActive="active">
             <span class="icon" aria-hidden="true">workspace_premium</span> Upskilling
           </a>
+
+          <!-- The director/admin group. A MENTOR never sees it: every screen
+               behind it is `require_director` server-side, so showing the links
+               to a mentor would be six nav items that all bounce. -->
+          @if (isDirector()) {
+            <div class="sec-label">Programme</div>
+            <a routerLink="/director" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+              <span class="icon" aria-hidden="true">monitoring</span> Analytics
+            </a>
+            <a routerLink="/director/registrations" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">how_to_reg</span> Registrations
+            </a>
+            <a routerLink="/director/mentors" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">supervisor_account</span> Mentor Assignment
+            </a>
+            <a routerLink="/director/placement" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">handshake</span> Placement
+            </a>
+            <a routerLink="/director/jobs" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">work</span> Jobs Sheet
+            </a>
+
+            <div class="sec-label">Catalogue</div>
+            <a routerLink="/director/courses" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">school</span> Courses
+            </a>
+            <a routerLink="/director/certifications" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">verified</span> Certifications
+            </a>
+            <a routerLink="/mentor/settings" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">tune</span> Alert Thresholds
+            </a>
+            <a routerLink="/director/exports" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">download</span> Exports
+            </a>
+          }
+
           <div class="sec-label">More</div>
           <a routerLink="/mentor/assistant" routerLinkActive="active">
             <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent

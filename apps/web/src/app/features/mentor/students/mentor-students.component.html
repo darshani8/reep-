@@ -1,0 +1,121 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Faculty</div>
+    <div class="dt-title">Students</div>
+    <div class="dt-sub">The students in your mentor group, and what is open on each of them.</div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else if (mentees(); as list) {
+  @if (list.length === 0) {
+    <div class="card">
+      <h4>No students in your group</h4>
+      <div class="dt-sub">
+        You are not the mentor for anybody yet. That is not the same as the programme being empty —
+        mentor groups are assigned by the director, and until you have one you see nobody rather
+        than everybody.
+      </div>
+    </div>
+  } @else {
+    <div class="dense-grid">
+      <div class="dense-stat">
+        <span class="lbl">Your students</span>
+        <span class="val">{{ list.length }}</span>
+        <span class="sub">In your mentor group</span>
+      </div>
+      <div class="dense-stat">
+        <span class="lbl">Open alerts</span>
+        <span class="val">{{ alerts()?.length ?? 0 }}</span>
+        <span class="sub" [class.warn]="(alerts()?.length ?? 0) > 0">
+          @if ((alerts()?.length ?? 0) > 0) {
+            Waiting on you
+          } @else {
+            Nothing open
+          }
+        </span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Your group</h4>
+      <div class="dt-toolbar" style="margin-bottom: 12px">
+        <div class="field" style="margin: 0">
+          <label for="mentee-search">Search</label>
+          <input
+            id="mentee-search"
+            type="search"
+            placeholder="Name or USN"
+            [ngModel]="filter()"
+            (ngModelChange)="filter.set($event)"
+          />
+        </div>
+        <div class="field" style="margin: 0">
+          <label for="mentee-stage">Stage</label>
+          <select id="mentee-stage" [ngModel]="stageFilter()" (ngModelChange)="stageFilter.set($event)">
+            <option value="all">All stages</option>
+            @for (s of stages(); track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (filtered().length === 0) {
+        <div class="empty">
+          <span class="icon">search_off</span>
+          No student matches that filter.
+        </div>
+      } @else {
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>USN</th>
+              <th>Stage</th>
+              <th>Sem</th>
+              <th>Open alerts</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of filtered(); track m.student_id) {
+              <tr>
+                <td><b>{{ m.name }}</b></td>
+                <td>{{ m.usn || '—' }}</td>
+                <td>{{ m.current_stage }}</td>
+                <td style="font-variant-numeric: tabular-nums">{{ m.current_semester }}</td>
+                <td>
+                  @if (openAlerts(m.student_id) > 0) {
+                    <span class="chip warn">
+                      <span class="icon">notification_important</span>
+                      {{ openAlerts(m.student_id) }}
+                    </span>
+                  } @else {
+                    <span class="dt-sub">—</span>
+                  }
+                </td>
+                <td>
+                  <div style="display: flex; gap: 6px; justify-content: flex-end">
+                    <a class="btn ghost" routerLink="/mentor/notebook">
+                      <span class="icon">menu_book</span>Notebook
+                    </a>
+                    <a class="btn ghost" routerLink="/mentor/mentees">
+                      <span class="icon">event_note</span>Meeting log
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+} @else {
+  <div class="loading-line">Loading your students…</div>
+}

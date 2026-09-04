@@ -1,0 +1,169 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Placement</div>
+    <div class="dt-title">Offer approvals</div>
+    <div class="dt-sub">
+      The placement percentage every report quotes is computed from approved offers — this queue is
+      where it comes from.
+    </div>
+  </div>
+</div>
+
+@if (decidedFlash(); as msg) {
+  <div class="feedback feedback--ok" role="status">
+    <span class="icon">check_circle</span>
+    <div class="feedback__body">{{ msg }}</div>
+  </div>
+}
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else {
+  @if (overview(); as o) {
+    <div class="dense-grid">
+      <div class="dense-stat">
+        <span class="lbl">Placed</span>
+        <span class="val">{{ o.placed_students }}<span class="unit">of {{ o.total_students }}</span></span>
+        <span class="sub">{{ o.placement_percent }}% of the roster</span>
+      </div>
+      <div class="dense-stat">
+        <span class="lbl">Offers approved</span>
+        <span class="val">{{ o.approved_offers }}</span>
+        <span class="sub">Counted towards placement</span>
+      </div>
+      <div class="dense-stat">
+        <span class="lbl">Awaiting a decision</span>
+        <span class="val">{{ o.pending_offers }}</span>
+        <span class="sub" [class.warn]="o.pending_offers > 0">
+          @if (o.pending_offers > 0) {
+            Not yet counted
+          } @else {
+            Queue is clear
+          }
+        </span>
+      </div>
+    </div>
+  }
+
+  <div class="queue-split" style="margin-bottom: 16px">
+    <div class="card pick-list">
+      @if (offers(); as list) {
+        @if (list.length === 0) {
+          <div class="empty">
+            <span class="icon">inbox</span>
+            No offers waiting on a decision.
+          </div>
+        } @else {
+          @for (o of list; track o.id) {
+            <button
+              type="button"
+              class="pick-row"
+              [class.active]="o.id === selectedId()"
+              (click)="select(o.id)"
+            >
+              <span class="nm">{{ o.student_name }}</span>
+              <span class="meta">{{ o.job_title }} · {{ o.organisation }}</span>
+            </button>
+          }
+        }
+      } @else {
+        <div class="loading-line">Loading the offer queue…</div>
+      }
+    </div>
+
+    <div>
+      @if (selected(); as o) {
+        <div class="card">
+          <h4>
+            {{ o.job_title }}
+            <span class="chip warn"><span class="icon">pending</span>Awaiting approval</span>
+          </h4>
+          <dl class="kv">
+            <dt>Student</dt>
+            <dd>{{ o.student_name }}</dd>
+            <dt>Organisation</dt>
+            <dd>{{ o.organisation }}</dd>
+            <dt>Role type</dt>
+            <dd>{{ o.role_type }}</dd>
+            <dt>CTC</dt>
+            <dd>{{ ctcLakhs(o.ctc_inr) }} <span class="dt-sub">(₹{{ o.ctc_inr }} / year)</span></dd>
+          </dl>
+
+          <div class="field" style="margin-top: 16px">
+            <label for="offer-note">Decision note <span class="dt-sub">(optional)</span></label>
+            <textarea
+              id="offer-note"
+              rows="3"
+              placeholder="Recorded against the offer."
+              [(ngModel)]="note"
+            ></textarea>
+          </div>
+
+          @if (decideError()) {
+            <div class="feedback feedback--err" role="alert">
+              <span class="icon">error</span>
+              <div class="feedback__body">{{ decideError() }}</div>
+            </div>
+          }
+
+          <div class="decide-row">
+            <button type="button" class="btn primary" [disabled]="deciding()" (click)="decide('APPROVE')">
+              <span class="icon">check</span>{{ deciding() ? 'Saving…' : 'Approve offer' }}
+            </button>
+            <button type="button" class="btn" [disabled]="deciding()" (click)="decide('REJECT')">
+              <span class="icon">close</span>Reject
+            </button>
+            <span class="dt-sub">Approving counts this student as placed.</span>
+          </div>
+        </div>
+      } @else if (offers()?.length === 0) {
+        <div class="card">
+          <h4>Queue is clear</h4>
+          <div class="dt-sub">Every self-reported offer has been decided.</div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Eligibility criteria</h4>
+    @if (criteria(); as c) {
+      <div class="dt-sub" style="margin-bottom: 12px">
+        <b>{{ c.name }}</b>
+        @if (c.active) {
+          <span class="chip good" style="margin-left: 8px"
+            ><span class="icon">check_circle</span>Active</span
+          >
+        } @else {
+          <span class="chip neutral" style="margin-left: 8px"
+            ><span class="icon">block</span>Inactive</span
+          >
+        }
+      </div>
+      <dl class="kv">
+        <dt>Minimum CGPA</dt>
+        <dd>{{ c.min_cgpa }}</dd>
+        <dt>Live backlogs</dt>
+        <dd>At most {{ c.max_live_backlogs }}</dd>
+        <dt>Education gap</dt>
+        <dd>At most {{ c.max_gap_months }} months</dd>
+        <dt>Attendance</dt>
+        <dd>At least {{ c.min_attendance_pct }}%</dd>
+        <dt>REEP completion</dt>
+        <dd>At least {{ c.min_reep_completion_pct }}%</dd>
+        <dt>Certification completion</dt>
+        <dd>At least {{ c.min_cert_completion_pct }}%</dd>
+        <dt>Core certifications</dt>
+        <dd>{{ c.require_core_certs ? 'Required' : 'Not required' }}</dd>
+      </dl>
+    } @else {
+      <div class="empty">
+        <span class="icon">rule</span>
+        No active placement criteria are configured, so the jobs board applies no eligibility bar.
+      </div>
+    }
+  </div>
+}

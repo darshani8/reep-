@@ -1,0 +1,214 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Badge framework · §12</div>
+    <div class="dt-title">Approved certifications</div>
+    <div class="dt-sub">
+      Which external certifications count as evidence for which badge. The 48 badges themselves are
+      code, not rows — adding one is a code change.
+    </div>
+  </div>
+  <div class="head-actions">
+    <button type="button" class="btn primary" (click)="startAdd()">
+      <span class="icon">add</span>Add certification
+    </button>
+  </div>
+</div>
+
+@if (savedFlash(); as msg) {
+  <div class="feedback feedback--ok" role="status">
+    <span class="icon">check_circle</span>
+    <div class="feedback__body">{{ msg }}</div>
+  </div>
+}
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else {
+  @if (editingId() !== null) {
+    <div class="card" style="margin-bottom: 16px">
+      <h4>{{ editingId() === '' ? 'New approved certification' : 'Edit certification' }}</h4>
+      <div class="grid-2">
+        <div class="field">
+          <label for="cert-name">Certification name</label>
+          <input id="cert-name" type="text" placeholder="e.g. Google Data Analytics" [(ngModel)]="form.name" />
+        </div>
+        <div class="field">
+          <label for="cert-provider">Provider</label>
+          <input id="cert-provider" type="text" placeholder="e.g. Coursera" [(ngModel)]="form.provider" />
+        </div>
+        <div class="field">
+          <label for="cert-badge">Badge it evidences</label>
+          <select id="cert-badge" [(ngModel)]="form.badge_code">
+            @for (b of claimableBadges(); track b.code) {
+              <option [value]="b.code">{{ b.name }} · {{ b.category }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="cert-evidence">Evidence type</label>
+          <select id="cert-evidence" [(ngModel)]="form.evidence_type">
+            @for (t of evidenceTypes; track t.value) {
+              <option [value]="t.value">{{ t.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="cert-stage">Stage</label>
+          <select id="cert-stage" [(ngModel)]="form.stage">
+            @for (s of stages; track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="cert-duration">Duration <span class="dt-sub">(optional)</span></label>
+          <input id="cert-duration" type="text" placeholder="e.g. 6 weeks" [(ngModel)]="form.duration_text" />
+        </div>
+        <div class="field">
+          <label for="cert-url">Link <span class="dt-sub">(optional)</span></label>
+          <input id="cert-url" type="url" placeholder="https://…" [(ngModel)]="form.url" />
+        </div>
+        <div class="field">
+          <label>Flags</label>
+          <div class="radio-row">
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="form.is_free" />
+              Free to take
+            </label>
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="form.active" />
+              Active in the catalogue
+            </label>
+          </div>
+        </div>
+      </div>
+
+      @if (saveError()) {
+        <div class="feedback feedback--err" role="alert">
+          <span class="icon">error</span>
+          <div class="feedback__body">{{ saveError() }}</div>
+        </div>
+      }
+
+      <div class="decide-row">
+        <button type="button" class="btn primary" [disabled]="saving()" (click)="save()">
+          <span class="icon">save</span>{{ saving() ? 'Saving…' : 'Save' }}
+        </button>
+        <button type="button" class="btn" [disabled]="saving()" (click)="cancel()">Cancel</button>
+      </div>
+    </div>
+  }
+
+  <div class="card">
+    <h4>
+      Catalogue
+      @if (certs(); as list) {
+        <span style="font-weight: 800">{{ activeCount() }} active</span>
+      }
+    </h4>
+    <div class="dt-toolbar" style="margin-bottom: 12px">
+      <div class="field" style="margin: 0">
+        <label for="cert-search">Search</label>
+        <input
+          id="cert-search"
+          type="search"
+          placeholder="Certification, provider or badge"
+          [ngModel]="filter()"
+          (ngModelChange)="filter.set($event)"
+        />
+      </div>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="showInactive()"
+          (ngModelChange)="showInactive.set($event)"
+        />
+        Show deactivated
+      </label>
+    </div>
+
+    @if (certs(); as list) {
+      @if (filtered().length === 0) {
+        <div class="empty">
+          <span class="icon">workspace_premium</span>
+          @if (list.length === 0) {
+            No approved certifications yet. Add the first one above.
+          } @else {
+            No certification matches that filter.
+          }
+        </div>
+      } @else {
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>Certification</th>
+              <th>Badge</th>
+              <th>Evidence</th>
+              <th>Stage</th>
+              <th>Cost</th>
+              <th>State</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of filtered(); track c.id) {
+              <tr>
+                <td>
+                  <b>{{ c.name }}</b>
+                  <div class="dt-sub">
+                    {{ c.provider }}
+                    @if (c.duration_text) {
+                      · {{ c.duration_text }}
+                    }
+                  </div>
+                </td>
+                <td>{{ c.badge_name }}</td>
+                <td>{{ evidenceLabel(c.evidence_type) }}</td>
+                <td>{{ c.stage }}</td>
+                <td>
+                  @if (c.is_free) {
+                    <span class="chip good"><span class="icon">payments</span>Free</span>
+                  } @else {
+                    <span class="chip neutral"><span class="icon">payments</span>Paid</span>
+                  }
+                </td>
+                <td>
+                  @if (c.active) {
+                    <span class="chip good"><span class="icon">check_circle</span>Active</span>
+                  } @else {
+                    <span class="chip neutral"><span class="icon">block</span>Deactivated</span>
+                  }
+                </td>
+                <td>
+                  <div style="display: flex; gap: 6px; justify-content: flex-end">
+                    <button type="button" class="btn ghost" (click)="startEdit(c)">
+                      <span class="icon">edit</span>Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="btn ghost"
+                      [disabled]="saving()"
+                      (click)="setActive(c, !c.active)"
+                    >
+                      <span class="icon">{{ c.active ? 'visibility_off' : 'visibility' }}</span>
+                      {{ c.active ? 'Deactivate' : 'Reactivate' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <div class="dt-sub" style="margin-top: 10px">
+          Certifications are deactivated, never deleted — an approved piece of student evidence was
+          judged against this row, and removing it would make that judgement unexplainable.
+        </div>
+      }
+    } @else {
+      <div class="loading-line">Loading the certification catalogue…</div>
+    }
+  </div>
+}

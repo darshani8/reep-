@@ -585,6 +585,21 @@ html.fonts-ready .icon {
   display: block;
   margin-top: 5px;
 }
+/* The sub-line carries the metric's verdict as well as its unit, so it needs
+   the status colours the chips have. Text AND colour: the words still say
+   which way it went with the colour stripped. */
+.dense-stat .sub.warn {
+  color: var(--warn);
+  font-weight: 700;
+}
+.dense-stat .sub.good {
+  color: var(--good);
+  font-weight: 700;
+}
+.dense-stat .sub.risk {
+  color: var(--risk);
+  font-weight: 700;
+}
 
 /* ==========================================================================
  * Tables
@@ -990,6 +1005,56 @@ html.fonts-ready .icon {
   font-size: 13px;
   color: var(--muted);
   padding: 8px 0;
+}
+
+/* The inline feedback banner every write path uses to report what happened —
+   an error from a save, a "Saved" confirmation. It lived in
+   uploads.component.scss, which is view-encapsulated, so the ELEVEN other
+   templates that use these class names rendered the banner as unstyled body
+   text: no fill, no colour, no icon sizing. Status is text + colour together
+   here, as everywhere else in this file. */
+.feedback {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border-radius: var(--r-alert);
+  padding: 12px 14px;
+  margin-top: 14px;
+  font-size: 12.5px;
+  border: 1px solid transparent;
+}
+.feedback--err {
+  background: var(--risk-bg);
+  border-color: rgba(173, 36, 82, 0.28);
+  color: var(--risk);
+}
+.feedback--ok {
+  background: var(--good-bg);
+  border-color: rgba(19, 122, 74, 0.24);
+  color: var(--good);
+}
+.feedback--warn {
+  background: var(--warn-bg);
+  border-color: rgba(217, 154, 0, 0.3);
+  color: var(--warn);
+}
+.feedback .icon {
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+.feedback__main,
+.feedback__body {
+  min-width: 0;
+}
+.feedback__title {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.feedback__main .feedback__body {
+  margin-top: 3px;
+  line-height: 1.4;
 }
 
 /* ==========================================================================
@@ -1960,4 +2025,103 @@ html.fonts-ready .icon {
   max-width: 52ch;
   text-align: center;
   margin-top: 14px;
+}
+
+/* ==========================================================================
+ * Queue screens — the staff and director surfaces
+ *
+ * Every review queue in the app has the same shape: a scoped list on the left,
+ * the selected row's detail and its decision controls on the right. It is one
+ * layout, so it is one class here rather than a `.mentee-split` in one
+ * component's scss, a `.queue` in the next and a bare inline grid in the third
+ * — three names for one thing is how two of them drift.
+ * ======================================================================= */
+
+.queue-split {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.queue-split.narrow {
+  grid-template-columns: 240px 1fr;
+}
+.queue-split.wide {
+  grid-template-columns: 1.4fr 1fr;
+}
+@media (max-width: 980px) {
+  .queue-split,
+  .queue-split.narrow,
+  .queue-split.wide {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* A selectable row in the left-hand list of a queue split. */
+.pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+}
+.pick-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  width: 100%;
+}
+.pick-row:hover {
+  background: var(--tint-3);
+  border-color: var(--hairline-26);
+}
+.pick-row.active {
+  background: var(--tint-2);
+  border-color: var(--hairline-45);
+  box-shadow: var(--sh-well);
+}
+.pick-row .nm {
+  font-size: 12.8px;
+  font-weight: 700;
+}
+.pick-row .meta {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* The decision pair every queue ends in. Colour AND word, never colour alone. */
+.decide-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* A key/value pair list for a detail panel. */
+.kv {
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) 1fr;
+  gap: 6px 14px;
+  font-size: 12.6px;
+}
+.kv dt {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--faint);
+  align-self: center;
+}
+.kv dd {
+  margin: 0;
+  color: var(--ink);
 }

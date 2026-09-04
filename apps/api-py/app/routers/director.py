@@ -1,11 +1,18 @@
 """Director dashboard — programme-wide aggregates. Director/admin only; reuses
-the mentor router's require_director guard. Compute-only over existing data.
+the mentor router's require_director guard.
+
+Read-only over existing data with ONE exception: `PUT /students/{id}/mentor`,
+which moves a student between mentor groups. That write lives here rather than
+in routers/mentor.py deliberately — rule 2's `_assert_can_access_student`
+narrows a MENTOR to the students already in their own group, and a screen whose
+purpose is to move a student OUT of one cannot be scoped by the group they are
+currently in. `require_director` is the only correct gate for it.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from ..db import get_db
 from ..identity import get_current_session
@@ -13,11 +20,12 @@ from datetime import datetime
 
 from ..models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
 from ..models.cohort import Cohort
+from ..models.course import Course, Enrollment, ProgressStatus
 from ..models.job_import_run import JobImportRun
 from ..models.mail import MailLog
 from ..models.offer import OfferStatus, PlacementOffer
 from ..models.placement_criteria import PlacementCriteria
-from ..models.user import Student
+from ..models.user import Mentor, Student, User
 from .mentor import require_director
 
 router = APIRouter(prefix="/director", tags=["director"])
@@ -310,4 +318,207 @@ def job_imports(
             error_count=len(r.errors or []),
         )
         for r in rows
+    ]
+
+
+# ==========================================================================
+# Mentor assignment
+#
+# The director's "who mentors whom" screen. It exists here rather than in
+# routers/mentor.py because everything on it is programme-wide by definition —
+# rule 2's `_assert_can_access_student` narrows a MENTOR to their own group, and
+# a screen whose whole job is to MOVE a student between groups cannot be scoped
+# by the group the student is currently in. `require_director` is therefore the
+# only gate, and a MENTOR gets 403 rather than a partial, misleading roster.
+# ==========================================================================
+
+
+class MentorOut(BaseModel):
+    id: str
+    user_id: str
+    name: str
+    email: str
+    student_count: int
+
+
+@router.get("/mentors", response_model=list[MentorOut])
+def mentors(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[MentorOut]:
+    """Every mentor group and how many students sit in it. Compute-only."""
+    require_director(session)
+    counts = dict(
+        db.execute(
+            select(Student.mentor_id, func.count())
+            .where(Student.mentor_id.is_not(None))
+            .group_by(Student.mentor_id)
+        ).all()
+    )
+    rows = db.execute(select(Mentor, User).join(User, Mentor.user_id == User.id)).all()
+    out = [
+        MentorOut(
+            id=m.id,
+            user_id=u.id,
+            name=u.name,
+            email=u.email,
+            student_count=counts.get(m.id, 0),
+        )
+        for m, u in rows
+    ]
+    out.sort(key=lambda r: r.name.lower())
+    return out
+
+
+class RosterStudentOut(BaseModel):
+    id: str
+    name: str
+    email: str
+    usn: str | None
+    cohort_id: str | None
+    mentor_id: str | None
+    mentor_name: str | None
+    current_stage: str
+    current_semester: int
+
+
+@router.get("/students", response_model=list[RosterStudentOut])
+def roster(
+    unassigned_only: bool = False,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[RosterStudentOut]:
+    """The programme roster with each student's current mentor group.
+
+    `mentor_name` is NULL when the student has no mentor — which is a real and
+    common state, not an error, and the screen must show it as "Unassigned"
+    rather than as a blank cell that reads like a rendering fault.
+    """
+    require_director(session)
+    mentor_user = aliased(User)
+    query = (
+        select(Student, User.name, User.email, mentor_user.name)
+        .join(User, Student.user_id == User.id)
+        .outerjoin(Mentor, Student.mentor_id == Mentor.id)
+        .outerjoin(mentor_user, Mentor.user_id == mentor_user.id)
+    )
+    if unassigned_only:
+        query = query.where(Student.mentor_id.is_(None))
+    rows = db.execute(query.order_by(User.name)).all()
+    return [
+        RosterStudentOut(
+            id=s.id,
+            name=name,
+            email=email,
+            usn=s.usn,
+            cohort_id=s.cohort_id,
+            mentor_id=s.mentor_id,
+            mentor_name=mentor_name,
+            current_stage=s.current_stage.value,
+            current_semester=s.current_semester,
+        )
+        for s, name, email, mentor_name in rows
+    ]
+
+
+class AssignMentorIn(BaseModel):
+    # `None` unassigns. Explicit rather than a separate DELETE route: "no
+    # mentor" is a state a director sets deliberately, and rule 2 reads it as
+    # "this student is in nobody's group", never as "everybody's".
+    mentor_id: str | None = None
+
+
+@router.put("/students/{student_id}/mentor", response_model=RosterStudentOut)
+def assign_mentor(
+    student_id: str,
+    body: AssignMentorIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> RosterStudentOut:
+    """Move a student into a mentor's group, or out of every group."""
+    require_director(session)
+    student = db.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
+    mentor_name: str | None = None
+    if body.mentor_id is not None:
+        mentor = db.get(Mentor, body.mentor_id)
+        if mentor is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mentor not found.")
+        mentor_name = db.scalar(select(User.name).where(User.id == mentor.user_id))
+    student.mentor_id = body.mentor_id
+    db.commit()
+    db.refresh(student)
+    user = db.get(User, student.user_id)
+    return RosterStudentOut(
+        id=student.id,
+        name=user.name if user else "",
+        email=user.email if user else "",
+        usn=student.usn,
+        cohort_id=student.cohort_id,
+        mentor_id=student.mentor_id,
+        mentor_name=mentor_name,
+        current_stage=student.current_stage.value,
+        current_semester=student.current_semester,
+    )
+
+
+# ==========================================================================
+# Course catalogue
+# ==========================================================================
+
+
+class DirectorCourseOut(BaseModel):
+    code: str
+    name: str
+    stage: str
+    dimension: str
+    semester: int
+    teaching_hours: float
+    self_learning_hours_required: float
+    model_type: str
+    duration_weeks: int
+    enrolled: int
+    completed: int
+    in_progress: int
+    overdue: int
+
+
+@router.get("/courses", response_model=list[DirectorCourseOut])
+def course_catalogue(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[DirectorCourseOut]:
+    """The curriculum with programme-wide enrolment counts per course.
+
+    Read-only. The catalogue itself is seeded curriculum, not something a
+    director edits through the dashboard, so there is no write path here to
+    imply otherwise.
+    """
+    require_director(session)
+    counts: dict[str, dict[str, int]] = {}
+    for code, prog_status, count in db.execute(
+        select(Enrollment.course_code, Enrollment.status, func.count()).group_by(
+            Enrollment.course_code, Enrollment.status
+        )
+    ).all():
+        bucket = counts.setdefault(code, {})
+        bucket[prog_status.value] = count
+
+    rows = db.scalars(select(Course).order_by(Course.semester, Course.code)).all()
+    return [
+        DirectorCourseOut(
+            code=c.code,
+            name=c.name,
+            stage=c.stage.value,
+            dimension=c.dimension.value,
+            semester=c.semester,
+            teaching_hours=c.teaching_hours,
+            self_learning_hours_required=c.self_learning_hours_required,
+            model_type=c.model_type.value,
+            duration_weeks=c.duration_weeks,
+            enrolled=sum(counts.get(c.code, {}).values()),
+            completed=counts.get(c.code, {}).get(ProgressStatus.COMPLETED.value, 0),
+            in_progress=counts.get(c.code, {}).get(ProgressStatus.IN_PROGRESS.value, 0),
+            overdue=counts.get(c.code, {}).get(ProgressStatus.OVERDUE.value, 0),
+        )
+        for c in rows
     ]

@@ -1,0 +1,179 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Admissions</div>
+    <div class="dt-title">Registrations</div>
+    <div class="dt-sub">
+      Applications the routing rules could not decide on their own. Auto-approved and
+      auto-rejected applications never reach this queue.
+    </div>
+  </div>
+</div>
+
+@if (decidedFlash(); as msg) {
+  <div class="feedback feedback--ok" role="status">
+    <span class="icon">check_circle</span>
+    <div class="feedback__body">{{ msg }}</div>
+  </div>
+}
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else {
+  <div class="queue-split" style="margin-bottom: 16px">
+    <!-- LEFT: the queue -->
+    <div class="card pick-list">
+      @if (pending(); as list) {
+        @if (list.length === 0) {
+          <div class="empty">
+            <span class="icon">inbox</span>
+            Nothing waiting on a human. Check the rule table below — a rule may be
+            auto-deciding everything.
+          </div>
+        } @else {
+          @for (r of list; track r.id) {
+            <button
+              type="button"
+              class="pick-row"
+              [class.active]="r.id === selectedId()"
+              (click)="select(r.id)"
+            >
+              <span class="nm">{{ r.name }}</span>
+              <span class="meta">{{ r.usn || 'No USN' }} · {{ r.degree_level }}</span>
+            </button>
+          }
+        }
+      } @else {
+        <div class="loading-line">Loading the queue…</div>
+      }
+    </div>
+
+    <!-- RIGHT: the selected application -->
+    <div>
+      @if (selected(); as r) {
+        <div class="card">
+          <h4>
+            {{ r.name }}
+            <span class="chip warn"><span class="icon">pending</span>Awaiting review</span>
+          </h4>
+          <dl class="kv">
+            <dt>Email</dt>
+            <dd>{{ r.email }}</dd>
+            <dt>USN</dt>
+            <dd>{{ r.usn || '—' }}</dd>
+            <dt>Level</dt>
+            <dd>{{ r.degree_level }}</dd>
+            <dt>Cohort</dt>
+            <dd>{{ r.cohort_id || 'Not routed to a cohort' }}</dd>
+            <dt>Applied</dt>
+            <dd>{{ r.created_at | date: 'd MMM y, h:mm a' }}</dd>
+            <dt>Why here</dt>
+            <dd>{{ r.decision_reason || 'No rule matched this application.' }}</dd>
+          </dl>
+
+          <div class="field" style="margin-top: 16px">
+            <label for="reg-note">Decision note <span class="dt-sub">(optional)</span></label>
+            <textarea
+              id="reg-note"
+              rows="3"
+              placeholder="Recorded against the application, for whoever reads it next."
+              [(ngModel)]="note"
+            ></textarea>
+          </div>
+
+          @if (decideError()) {
+            <div class="feedback feedback--err" role="alert">
+              <span class="icon">error</span>
+              <div class="feedback__body">{{ decideError() }}</div>
+            </div>
+          }
+
+          <div class="decide-row">
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="deciding()"
+              (click)="decide('APPROVE')"
+            >
+              <span class="icon">check</span>{{ deciding() ? 'Saving…' : 'Approve' }}
+            </button>
+            <button type="button" class="btn" [disabled]="deciding()" (click)="decide('REJECT')">
+              <span class="icon">close</span>Reject
+            </button>
+            <span class="dt-sub">
+              Approving records the decision. Provisioning the student account is a separate step.
+            </span>
+          </div>
+        </div>
+      } @else if (pending()?.length === 0) {
+        <div class="card">
+          <h4>Nothing to review</h4>
+          <div class="dt-sub">
+            Every application so far was decided by a rule. The rules below are what decided them.
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>
+      Routing rules
+      @if (rules(); as rs) {
+        <span style="font-weight: 800">{{ rs.length }}</span>
+      }
+    </h4>
+    <div class="dt-sub" style="margin-bottom: 12px">
+      Evaluated top to bottom. The first rule that matches decides the application.
+    </div>
+    @if (rules(); as rs) {
+      @if (rs.length === 0) {
+        <div class="empty">
+          <span class="icon">rule</span>
+          No rules configured — every application lands in the queue above.
+        </div>
+      } @else {
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Rule</th>
+              <th>Matches</th>
+              <th>Cohort</th>
+              <th>Outcome</th>
+              <th>State</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of rs; track r.id) {
+              <tr>
+                <td style="font-variant-numeric: tabular-nums">{{ r.priority }}</td>
+                <td><b>{{ r.name }}</b></td>
+                <td>{{ ruleCondition(r) }}</td>
+                <td>{{ r.cohort_id || '—' }}</td>
+                <td>
+                  @if (r.auto_approve) {
+                    <span class="chip good"><span class="icon">bolt</span>Auto-approve</span>
+                  } @else {
+                    <span class="chip neutral"><span class="icon">how_to_reg</span>To review</span>
+                  }
+                </td>
+                <td>
+                  @if (r.enabled) {
+                    <span class="chip good"><span class="icon">check_circle</span>Enabled</span>
+                  } @else {
+                    <span class="chip neutral"><span class="icon">block</span>Disabled</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    } @else {
+      <div class="loading-line">Loading rules…</div>
+    }
+  </div>
+}

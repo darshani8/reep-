@@ -1,0 +1,145 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Jobs board · operations</div>
+    <div class="dt-title">Jobs sheet</div>
+    <div class="dt-sub">
+      What was imported onto the board, and what the alert mailer did about it. An import with no
+      matching sends looks healthy from the student side and told nobody.
+    </div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else if (runs(); as list) {
+  <div class="dense-grid">
+    <div class="dense-stat">
+      <span class="lbl">Imports</span>
+      <span class="val">{{ totals().runs }}</span>
+      <span class="sub">Most recent 50</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Vacancies created</span>
+      <span class="val">{{ totals().created }}</span>
+      <span class="sub">{{ totals().updated }} updated in place</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Row errors</span>
+      <span class="val">{{ totals().errors }}</span>
+      <span class="sub" [class.risk]="totals().errors > 0">
+        @if (totals().errors > 0) {
+          Rows that did not import
+        } @else {
+          Every row imported
+        }
+      </span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Alert mail failures</span>
+      <span class="val">{{ mailFailures() }}</span>
+      <span class="sub" [class.risk]="mailFailures() > 0">
+        @if (mailFailures() > 0) {
+          Students not told
+        } @else {
+          Every alert delivered
+        }
+      </span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 16px">
+    <h4>Import runs</h4>
+    @if (list.length === 0) {
+      <div class="empty">
+        <span class="icon">upload_file</span>
+        No bulk imports have been run. Vacancies added by hand do not appear here.
+      </div>
+    } @else {
+      <table class="dt-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Started</th>
+            <th style="text-align: right">Seen</th>
+            <th style="text-align: right">Created</th>
+            <th style="text-align: right">Updated</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of list; track r.id) {
+            <tr>
+              <td><b>{{ r.file_name || 'Unnamed upload' }}</b></td>
+              <td>{{ r.started_at | date: 'd MMM y, h:mm a' }}</td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums">{{ r.rows_seen }}</td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums">{{ r.rows_created }}</td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums">{{ r.rows_updated }}</td>
+              <td>
+                @let st = runState(r);
+                <span
+                  class="chip"
+                  [class.good]="st.tone === 'good'"
+                  [class.warn]="st.tone === 'warn'"
+                  [class.risk]="st.tone === 'risk'"
+                >
+                  <span class="icon">{{ st.icon }}</span>{{ st.label }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <div class="card">
+    <h4>Job-alert mail</h4>
+    @if (mail(); as ms) {
+      @if (ms.length === 0) {
+        <div class="empty">
+          <span class="icon">mail</span>
+          The mailer has not been asked to send a job alert yet.
+        </div>
+      } @else {
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>Recipient</th>
+              <th>Subject</th>
+              <th>Sent</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of ms; track m.id) {
+              <tr>
+                <td>{{ m.recipient }}</td>
+                <td>{{ m.subject || '—' }}</td>
+                <td>{{ m.sent_at | date: 'd MMM y, h:mm a' }}</td>
+                <td>
+                  @if (m.status === 'SENT') {
+                    <span class="chip good"><span class="icon">check_circle</span>Sent</span>
+                  } @else {
+                    <span class="chip risk">
+                      <span class="icon">error</span>{{ m.status }}
+                    </span>
+                    @if (m.error) {
+                      <div class="dt-sub">{{ m.error }}</div>
+                    }
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    } @else {
+      <div class="loading-line">Loading the mail log…</div>
+    }
+  </div>
+} @else {
+  <div class="loading-line">Loading the import history…</div>
+}

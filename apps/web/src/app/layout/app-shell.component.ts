@@ -4,7 +4,13 @@
  * A title bar, a 220px sidebar (profile card + grouped nav) and a scrolling main
  * area the child route renders into. The nav switches on the session's role:
  * students get the full student navigation, staff (MENTOR/DIRECTOR/ADMIN) get
- * the faculty pages (mentee log, leave, upskilling), alumni get profile + jobs.
+ * the faculty pages, alumni get profile + jobs.
+ *
+ * Within the staff nav there is a further split: the Programme and Catalogue
+ * groups (analytics, registrations, mentor assignment, placement, the jobs
+ * sheet, the course and certification catalogues, alert thresholds, exports)
+ * render only for DIRECTOR/ADMIN, because every endpoint behind them is
+ * `require_director`. Showing them to a MENTOR would be nine links that bounce.
  *
  * Every visual token for .desktop-frame, .desktop-nav, .nav-profile and the rest
  * lives globally in src/styles/reep-v2.scss — AGENTS.md's rule is that the design
@@ -42,6 +48,17 @@ export class AppShellComponent {
 
   readonly session = this.auth.session;
   readonly roleLabel = computed(() => ROLE_LABEL[this.session()?.role ?? 'STUDENT'] ?? 'Student');
+
+  /** Whether the director/admin nav group renders.
+   *
+   *  DIRECTOR and ADMIN only. It is not a security control — every screen
+   *  behind it is `require_director` on the server and `roleGuard` on the route
+   *  — it is honesty: a MENTOR shown these links would get nine nav items that
+   *  each bounce them back to their own home. */
+  readonly isDirector = computed(() => {
+    const role = this.session()?.role;
+    return role === 'DIRECTOR' || role === 'ADMIN';
+  });
 
   /** Which of the three navigation sets to render. STUDENT is the fallback
    *  while /auth/me is in flight — the guard has already verified a session

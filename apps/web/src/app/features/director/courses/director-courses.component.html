@@ -1,0 +1,139 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Curriculum</div>
+    <div class="dt-title">Courses</div>
+    <div class="dt-sub">
+      The seeded curriculum with programme-wide enrolment. Read-only — the catalogue is curriculum,
+      not dashboard configuration.
+    </div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else if (courses(); as list) {
+  <div class="dense-grid">
+    <div class="dense-stat">
+      <span class="lbl">Courses</span>
+      <span class="val">{{ totals().courses }}</span>
+      <span class="sub">In the catalogue</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Enrolments</span>
+      <span class="val">{{ totals().enrolments }}</span>
+      <span class="sub">Across every course</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Completed</span>
+      <span class="val">{{ totals().completed }}</span>
+      <span class="sub">Enrolments marked complete</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Overdue</span>
+      <span class="val">{{ totals().overdue }}</span>
+      <span class="sub" [class.warn]="totals().overdue > 0">
+        @if (totals().overdue > 0) {
+          Past their due date
+        } @else {
+          Nothing past due
+        }
+      </span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Catalogue</h4>
+    <div class="dt-toolbar" style="margin-bottom: 12px">
+      <div class="field" style="margin: 0">
+        <label for="course-search">Search</label>
+        <input
+          id="course-search"
+          type="search"
+          placeholder="Course name or code"
+          [ngModel]="filter()"
+          (ngModelChange)="filter.set($event)"
+        />
+      </div>
+      <div class="field" style="margin: 0">
+        <label for="course-stage">Stage</label>
+        <select id="course-stage" [ngModel]="stageFilter()" (ngModelChange)="stageFilter.set($event)">
+          <option value="all">All stages</option>
+          @for (s of stages(); track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (filtered().length === 0) {
+      <div class="empty">
+        <span class="icon">menu_book</span>
+        @if (list.length === 0) {
+          No courses have been seeded yet.
+        } @else {
+          No course matches that filter.
+        }
+      </div>
+    } @else {
+      <table class="dt-table">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th>Stage</th>
+            <th>Sem</th>
+            <th>Model</th>
+            <th style="text-align: right">Hours</th>
+            <th style="text-align: right">Enrolled</th>
+            <th>Completion</th>
+            <th>Overdue</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of filtered(); track c.code) {
+            <tr>
+              <td>
+                <b>{{ c.name }}</b>
+                <div class="dt-sub">{{ c.code }} · {{ c.dimension }}</div>
+              </td>
+              <td>{{ c.stage }}</td>
+              <td style="font-variant-numeric: tabular-nums">{{ c.semester }}</td>
+              <td>{{ modelLabel(c.model_type) }}</td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums">
+                {{ c.teaching_hours }}t · {{ c.self_learning_hours_required }}s
+              </td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums">{{ c.enrolled }}</td>
+              <td>
+                @if (completionPct(c) === null) {
+                  <span class="dt-sub">No enrolments</span>
+                } @else {
+                  <div class="meter-row">
+                    <span class="meter" style="width: 84px">
+                      <span [style.width.%]="completionPct(c)"></span>
+                    </span>
+                    <span style="color: var(--ink); font-variant-numeric: tabular-nums">
+                      {{ completionPct(c) }}%
+                    </span>
+                  </div>
+                }
+              </td>
+              <td>
+                @if (c.overdue > 0) {
+                  <span class="chip warn"
+                    ><span class="icon">schedule</span>{{ c.overdue }} overdue</span
+                  >
+                } @else {
+                  <span class="chip good"><span class="icon">check_circle</span>On track</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+} @else {
+  <div class="loading-line">Loading the course catalogue…</div>
+}

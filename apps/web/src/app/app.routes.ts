@@ -1,14 +1,18 @@
-import { Routes, Route } from '@angular/router';
+import { Routes } from '@angular/router';
 
 import { AppShellComponent } from './layout/app-shell.component';
 import { authGuard, homeRedirectGuard, roleGuard } from './core/auth.guard';
 
 /**
  * Every nav destination in the shell needs a route, or clicking it goes nowhere
- * and navigation reads as broken. Built screens map to their component; the rest
- * map to a labelled PlaceholderComponent so each link navigates and highlights.
- * Migrating a screen is then a one-line swap: replace `placeholder(...)` with a
- * real `loadComponent`.
+ * and navigation reads as broken.
+ *
+ * THE `placeholder(...)` HELPER IS GONE, and its absence is the point: it used
+ * to stand in for thirteen destinations — the whole director section, and five
+ * faculty screens — with a page that said "this is being ported". All thirteen
+ * are real screens now, on the endpoints that already existed behind them, so
+ * there is nothing left for it to hold open. Reintroducing it would be a way to
+ * ship a nav item with no page again.
  *
  * ROUTES ARE LAZY (`loadComponent`, not `component`). A static `import` at the
  * top of this file pulls the component into the initial bundle no matter which
@@ -22,14 +26,6 @@ import { authGuard, homeRedirectGuard, roleGuard } from './core/auth.guard';
  * here means adding a `loadComponent` — a plain `component:` reference silently
  * un-splits the bundle again and only shows up as a budget failure later.
  */
-function placeholder(path: string, title: string): Route {
-  return {
-    path,
-    loadComponent: () =>
-      import('./features/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-    data: { title },
-  };
-}
 
 export const routes: Routes = [
   {
@@ -193,7 +189,14 @@ export const routes: Routes = [
             (m) => m.MentorNotebookComponent,
           ),
       },
-      placeholder('mentor/student', 'Students'),
+      {
+        path: 'mentor/student',
+        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/mentor/students/mentor-students.component').then(
+            (m) => m.MentorStudentsComponent,
+          ),
+      },
       {
         path: 'mentor/mentees',
         loadComponent: () =>
@@ -215,9 +218,26 @@ export const routes: Routes = [
             (m) => m.UpskillingComponent,
           ),
       },
-      placeholder('mentor/alerts', 'Alerts'),
-      placeholder('mentor/uploads', 'Verifications'),
-      placeholder('mentor/reports', 'Reports'),
+      {
+        path: 'mentor/alerts',
+        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/mentor/alerts/alerts.component').then((m) => m.MentorAlertsComponent),
+      },
+      {
+        path: 'mentor/uploads',
+        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/mentor/verifications/verifications.component').then(
+            (m) => m.MentorVerificationsComponent,
+          ),
+      },
+      {
+        path: 'mentor/reports',
+        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/mentor/reports/reports.component').then((m) => m.MentorReportsComponent),
+      },
       {
         path: 'mentor/leave',
         loadComponent: () =>
@@ -228,22 +248,91 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/assistant/assistant.component').then((m) => m.AssistantComponent),
       },
-      placeholder('mentor/settings', 'Thresholds'),
+      // Thresholds is DIRECTOR/ADMIN even though it lives under /mentor: the
+      // endpoint behind it (PUT /director/alert-rules) is `require_director`,
+      // so a mentor offered this screen would get a form that always 403s. The
+      // path is kept so the old nav destination still resolves.
+      {
+        path: 'mentor/settings',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/mentor/thresholds/thresholds.component').then(
+            (m) => m.ThresholdsComponent,
+          ),
+      },
 
-      // --- director ---
-      placeholder('director', 'Analytics'),
-      placeholder('director/registrations', 'Registrations'),
-      placeholder('director/mentors', 'Mentor assignment'),
-      placeholder('director/courses', 'Courses'),
-      placeholder('director/certifications', 'Certifications'),
-      placeholder('director/placement', 'Placement'),
-      placeholder('director/jobs', 'Jobs sheet'),
+      // --- director / admin ---
+      // Every one is DIRECTOR/ADMIN behind `roleGuard`, mirroring the
+      // `require_director` gate each endpoint applies server-side. The guard is
+      // navigation only — it decides which screen paints, never who may read a
+      // row; that decision is repeated by the API on every request.
+      {
+        path: 'director',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/analytics/analytics.component').then(
+            (m) => m.DirectorAnalyticsComponent,
+          ),
+      },
+      {
+        path: 'director/registrations',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/registrations/registrations.component').then(
+            (m) => m.DirectorRegistrationsComponent,
+          ),
+      },
+      {
+        path: 'director/mentors',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/mentors/mentor-assignment.component').then(
+            (m) => m.MentorAssignmentComponent,
+          ),
+      },
+      {
+        path: 'director/courses',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/courses/director-courses.component').then(
+            (m) => m.DirectorCoursesComponent,
+          ),
+      },
+      {
+        path: 'director/certifications',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/certifications/approved-certifications.component').then(
+            (m) => m.ApprovedCertificationsComponent,
+          ),
+      },
+      {
+        path: 'director/placement',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/placement/placement.component').then(
+            (m) => m.DirectorPlacementComponent,
+          ),
+      },
+      {
+        path: 'director/jobs',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/jobs/job-imports.component').then((m) => m.JobImportsComponent),
+      },
       {
         path: 'director/assistant',
         loadComponent: () =>
           import('./features/assistant/assistant.component').then((m) => m.AssistantComponent),
       },
-      placeholder('director/exports', 'Exports'),
+      {
+        path: 'director/exports',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/exports/exports.component').then(
+            (m) => m.DirectorExportsComponent,
+          ),
+      },
 
       // --- alumni ---
       {

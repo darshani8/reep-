@@ -1,0 +1,190 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Faculty</div>
+    <div class="dt-title">Verifications</div>
+    <div class="dt-sub">
+      Documents and skill claims from students in your scope, waiting on a verdict.
+    </div>
+  </div>
+</div>
+
+<div class="tabs-row" role="tablist" aria-label="Verification queues">
+  <button
+    role="tab"
+    [attr.aria-selected]="tab() === 'uploads'"
+    [class.active]="tab() === 'uploads'"
+    (click)="tab.set('uploads')"
+  >
+    Documents ({{ uploads()?.length ?? 0 }})
+  </button>
+  <button
+    role="tab"
+    [attr.aria-selected]="tab() === 'claims'"
+    [class.active]="tab() === 'claims'"
+    (click)="tab.set('claims')"
+  >
+    Skill claims ({{ claims()?.length ?? 0 }})
+  </button>
+</div>
+
+@if (flash(); as msg) {
+  <div class="feedback feedback--ok" role="status">
+    <span class="icon">check_circle</span>
+    <div class="feedback__body">{{ msg }}</div>
+  </div>
+}
+@if (actionError(); as msg) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ msg }}</div>
+  </div>
+}
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else if (tab() === 'uploads') {
+  @if (uploads(); as list) {
+    @if (list.length === 0) {
+      <div class="card">
+        <h4>No documents waiting</h4>
+        <div class="dt-sub">
+          Nothing in your scope is pending review. A mentor with no group sees nobody's documents
+          rather than the whole programme's.
+        </div>
+      </div>
+    } @else {
+      @for (u of list; track u.id) {
+        <div class="card" style="margin-bottom: 14px">
+          <h4>
+            {{ u.title }}
+            <span class="chip warn"><span class="icon">pending</span>Pending review</span>
+          </h4>
+          <dl class="kv">
+            <dt>Student</dt>
+            <dd>{{ u.student_name }}</dd>
+            <dt>Kind</dt>
+            <dd>{{ u.kind }}{{ u.cert_code ? ' · ' + u.cert_code : '' }}</dd>
+            <dt>File</dt>
+            <dd>
+              <a [href]="fileUrl(u)" target="_blank" rel="noopener">{{ u.original_name }}</a>
+              <span class="dt-sub">{{ u.mime_type }} · {{ sizeKb(u.size_bytes) }}</span>
+            </dd>
+            <dt>Uploaded</dt>
+            <dd>{{ u.uploaded_at | date: 'd MMM y, h:mm a' }}</dd>
+          </dl>
+
+          <div class="field" style="margin-top: 14px">
+            <label [attr.for]="'note-' + u.id">Review note <span class="dt-sub">(optional)</span></label>
+            <textarea
+              [id]="'note-' + u.id"
+              rows="2"
+              placeholder="Why it was verified or rejected. The student reads this."
+              [ngModel]="note(u.id)"
+              (ngModelChange)="setNote(u.id, $event)"
+            ></textarea>
+          </div>
+
+          <div class="decide-row">
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="busyId() === u.id"
+              (click)="reviewUpload(u, 'VERIFY')"
+            >
+              <span class="icon">verified</span>{{ busyId() === u.id ? 'Saving…' : 'Verify' }}
+            </button>
+            <button
+              type="button"
+              class="btn"
+              [disabled]="busyId() === u.id"
+              (click)="reviewUpload(u, 'REJECT')"
+            >
+              <span class="icon">close</span>Reject
+            </button>
+          </div>
+        </div>
+      }
+    }
+  } @else {
+    <div class="loading-line">Loading the document queue…</div>
+  }
+} @else {
+  @if (claims(); as list) {
+    @if (list.length === 0) {
+      <div class="card">
+        <h4>No skill claims waiting</h4>
+        <div class="dt-sub">Nothing in your scope is pending review.</div>
+      </div>
+    } @else {
+      @for (c of list; track c.id) {
+        <div class="card" style="margin-bottom: 14px">
+          <h4>
+            {{ c.skill_name }}
+            <span class="chip warn"><span class="icon">pending</span>Claimed at level {{ c.claimed_level }}</span>
+          </h4>
+          <dl class="kv">
+            <dt>Student</dt>
+            <dd>{{ c.student_name }}</dd>
+            <dt>Claimed</dt>
+            <dd>{{ c.created_at | date: 'd MMM y, h:mm a' }}</dd>
+          </dl>
+
+          <div class="grid-2" style="margin-top: 14px">
+            <div class="field">
+              <label [attr.for]="'level-' + c.id">Grant at level</label>
+              <select
+                [id]="'level-' + c.id"
+                [ngModel]="grantLevel(c)"
+                (ngModelChange)="setGrantLevel(c.id, $event)"
+              >
+                @for (l of levels; track l) {
+                  <option [value]="l">Level {{ l }}{{ l === c.claimed_level ? ' (claimed)' : '' }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label [attr.for]="'cnote-' + c.id">Review note <span class="dt-sub">(optional)</span></label>
+              <input
+                [id]="'cnote-' + c.id"
+                type="text"
+                placeholder="Why this level"
+                [ngModel]="note(c.id)"
+                (ngModelChange)="setNote(c.id, $event)"
+              />
+            </div>
+          </div>
+
+          <div class="decide-row">
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="busyId() === c.id"
+              (click)="reviewClaim(c, 'GRANT')"
+            >
+              <span class="icon">verified</span>
+              {{ busyId() === c.id ? 'Saving…' : 'Grant at level ' + grantLevel(c) }}
+            </button>
+            <button
+              type="button"
+              class="btn"
+              [disabled]="busyId() === c.id"
+              (click)="reviewClaim(c, 'REJECT')"
+            >
+              <span class="icon">close</span>Reject
+            </button>
+            @if (grantLevel(c) < c.claimed_level) {
+              <span class="chip neutral">
+                <span class="icon">arrow_downward</span>Below the claimed level
+              </span>
+            }
+          </div>
+        </div>
+      }
+    }
+  } @else {
+    <div class="loading-line">Loading the skill-claim queue…</div>
+  }
+}

@@ -1,0 +1,179 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Programme · scope</div>
+    <div class="dt-title">Mentor assignment</div>
+    <div class="dt-sub">
+      A student with no mentor group is in nobody's group — no mentor sees their alerts, uploads or
+      meeting log.
+    </div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else {
+  @if (savedFlash(); as msg) {
+    <div class="feedback feedback--ok" role="status">
+      <span class="icon">check_circle</span>
+      <div class="feedback__body">{{ msg }}</div>
+    </div>
+  }
+  @if (saveError(); as msg) {
+    <div class="feedback feedback--err" role="alert">
+      <span class="icon">error</span>
+      <div class="feedback__body">{{ msg }}</div>
+    </div>
+  }
+
+  <div class="dense-grid">
+    <div class="dense-stat">
+      <span class="lbl">Students</span>
+      <span class="val">{{ students()?.length ?? 0 }}</span>
+      <span class="sub">On the roster</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Mentor groups</span>
+      <span class="val">{{ mentors()?.length ?? 0 }}</span>
+      <span class="sub">Staff with a mentor row</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Unassigned</span>
+      <span class="val">{{ unassignedCount() }}</span>
+      <span class="sub" [class.warn]="unassignedCount() > 0">
+        @if (unassignedCount() > 0) {
+          Seen by no mentor
+        } @else {
+          Every student has a mentor
+        }
+      </span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 16px">
+    <h4>Group sizes</h4>
+    @if (mentors(); as ms) {
+      @if (ms.length === 0) {
+        <div class="empty">
+          <span class="icon">supervisor_account</span>
+          No mentor groups exist yet. A staff account needs a mentor row before students can be
+          assigned to it.
+        </div>
+      } @else {
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>Mentor</th>
+              <th>Email</th>
+              <th style="text-align: right">Students</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of ms; track m.id) {
+              <tr>
+                <td><b>{{ m.name }}</b></td>
+                <td>{{ m.email }}</td>
+                <td style="text-align: right; font-variant-numeric: tabular-nums">
+                  {{ m.student_count }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    } @else {
+      <div class="loading-line">Loading mentor groups…</div>
+    }
+  </div>
+
+  <div class="card">
+    <h4>Roster</h4>
+    <div class="dt-toolbar" style="margin-bottom: 12px">
+      <div class="field" style="margin: 0">
+        <label for="roster-search">Search</label>
+        <input
+          id="roster-search"
+          type="search"
+          placeholder="Name, USN or email"
+          [ngModel]="filter()"
+          (ngModelChange)="filter.set($event)"
+        />
+      </div>
+      <div class="field" style="margin: 0">
+        <label for="roster-group">Group</label>
+        <select
+          id="roster-group"
+          [ngModel]="groupFilter()"
+          (ngModelChange)="groupFilter.set($event)"
+        >
+          <option value="all">All students</option>
+          <option value="unassigned">Unassigned only</option>
+          @for (m of mentors() ?? []; track m.id) {
+            <option [value]="m.id">{{ m.name }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (students(); as roster) {
+      @if (filtered().length === 0) {
+        <div class="empty">
+          <span class="icon">search_off</span>
+          @if (roster.length === 0) {
+            No students on the roster yet.
+          } @else {
+            No student matches that filter.
+          }
+        </div>
+      } @else {
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>USN</th>
+              <th>Stage</th>
+              <th>Sem</th>
+              <th>Mentor group</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of filtered(); track s.id) {
+              <tr>
+                <td>
+                  <b>{{ s.name }}</b>
+                  <div class="dt-sub">{{ s.email }}</div>
+                </td>
+                <td>{{ s.usn || '—' }}</td>
+                <td>{{ s.current_stage }}</td>
+                <td style="font-variant-numeric: tabular-nums">{{ s.current_semester }}</td>
+                <td>
+                  <select
+                    class="ctrl"
+                    [disabled]="savingId() === s.id"
+                    [ngModel]="s.mentor_id ?? ''"
+                    (ngModelChange)="assign(s, $event)"
+                    [attr.aria-label]="'Mentor group for ' + s.name"
+                  >
+                    <option value="">Unassigned</option>
+                    @for (m of mentors() ?? []; track m.id) {
+                      <option [value]="m.id">{{ m.name }}</option>
+                    }
+                  </select>
+                  @if (s.mentor_id === null) {
+                    <span class="chip warn" style="margin-left: 8px">
+                      <span class="icon">person_off</span>No mentor
+                    </span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    } @else {
+      <div class="loading-line">Loading the roster…</div>
+    }
+  </div>
+}

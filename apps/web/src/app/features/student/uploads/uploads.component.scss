@@ -211,45 +211,9 @@
   }
 }
 
-/* feedback banners (error / success) */
-.feedback {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-top: 14px;
-  font-size: 12.5px;
-}
-.feedback--err {
-  background: rgba(139, 58, 46, 0.1);
-  color: var(--risk);
-}
-.feedback--ok {
-  background: rgba(92, 122, 58, 0.1);
-  color: var(--good);
-}
-.feedback .icon {
-  font-size: 18px;
-  flex: 0 0 auto;
-}
-.feedback__main {
-  min-width: 0;
-}
-.feedback__title {
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.feedback__body {
-  color: var(--ink-nav);
-  margin-top: 3px;
-  line-height: 1.4;
-}
-.feedback--err .feedback__body {
-  color: var(--risk);
-}
+/* The `.feedback` banner is a GLOBAL class in reep-v2.scss. It used to be
+   defined here, which meant the eleven other templates using the same class
+   names got no banner at all — view encapsulation kept it to this component. */
 
 /* success preview thumbnail */
 .preview {

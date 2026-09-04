@@ -1,0 +1,115 @@
+<div class="dt-header">
+  <div>
+    <div class="eyebrow">Reporting</div>
+    <div class="dt-title">Exports</div>
+    <div class="dt-sub">The cohort report, and the summary it is drawn from.</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 16px">
+  <h4>Download</h4>
+  <div class="link-row static">
+    <span class="icon lead">table_view</span>
+    <span class="lbl">Badge cohort report — one row per student</span>
+    <a class="btn primary" [href]="apiBase + '/director/badges/export.csv'">
+      <span class="icon">download</span>CSV
+    </a>
+  </div>
+  <div class="dt-sub" style="margin-top: 10px">
+    Points, badges earned per category, and mean growth from baseline. It names every student, so
+    treat the file as the student record it is.
+  </div>
+</div>
+
+@if (error()) {
+  <div class="feedback feedback--err" role="alert">
+    <span class="icon">error</span>
+    <div class="feedback__body">{{ error() }}</div>
+  </div>
+} @else if (cohort(); as c) {
+  <div class="dense-grid">
+    <div class="dense-stat">
+      <span class="lbl">Students</span>
+      <span class="val">{{ c.students }}</span>
+      <span class="sub">Rows in the export</span>
+    </div>
+    <div class="dense-stat">
+      <span class="lbl">Badges earned</span>
+      <span class="val">{{ totalEarned() }}</span>
+      <span class="sub">Across every category</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h4>Badges by category</h4>
+      @if (categories().length === 0) {
+        <div class="empty">
+          <span class="icon">military_tech</span>
+          No badges have been earned yet.
+        </div>
+      } @else {
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th style="text-align: right">Earned</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (cat of categories(); track cat.key) {
+              <tr>
+                <td>{{ cat.label }}</td>
+                <td style="text-align: right; font-variant-numeric: tabular-nums">{{ cat.count }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+
+    <div class="card">
+      <h4>Capability averages</h4>
+      @if (c.capabilities.length === 0) {
+        <div class="empty">
+          <span class="icon">insights</span>
+          No capability assessments have been entered.
+        </div>
+      } @else {
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              @for (cp of checkpoints(); track cp) {
+                <th style="text-align: right">{{ cp }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of c.capabilities; track row.capability) {
+              <tr>
+                <td>{{ row.label }}</td>
+                @for (cp of checkpoints(); track cp) {
+                  <td style="text-align: right; font-variant-numeric: tabular-nums">
+                    @if (row.averages[cp] === null) {
+                      <span class="dt-sub" [title]="'Nobody assessed at ' + cp">—</span>
+                    } @else {
+                      {{ row.averages[cp] }}
+                      <span class="dt-sub">({{ row.assessed_counts[cp] }})</span>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+        <div class="dt-sub" style="margin-top: 10px">
+          A dash means nobody has been assessed at that checkpoint — not a score of zero. The figure
+          in brackets is how many students the average is over.
+        </div>
+      }
+    </div>
+  </div>
+} @else {
+  <div class="loading-line">Loading the cohort summary…</div>
+}

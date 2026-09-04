@@ -9,12 +9,7 @@
 
   <div class="dt-toolbar">
     <div class="stepper-ctrl">
-      <button
-        type="button"
-        class="iconbtn"
-        aria-label="Previous day"
-        (click)="step(-1)"
-      >
+      <button type="button" class="iconbtn" aria-label="Previous day" (click)="step(-1)">
         <span class="icon" aria-hidden="true">chevron_left</span>
       </button>
       <span class="lbl">{{ day() | date: 'EEE · d MMM y' }}</span>
@@ -28,16 +23,6 @@
         <span class="icon" aria-hidden="true">chevron_right</span>
       </button>
     </div>
-
-    <button
-      type="button"
-      class="btn"
-      [disabled]="saving() || submitted()"
-      (click)="copyYesterday()"
-    >
-      <span class="icon" aria-hidden="true">content_copy</span>
-      Copy yesterday
-    </button>
 
     <button
       type="button"
@@ -93,46 +78,6 @@
           }
         </div>
 
-        <!-- Day band. Flex weights are the slot durations, straight from the
-             server, so the band cannot be drawn out of scale. -->
-        <div class="band-head">
-          <h4 style="margin:0;padding:0;border:0">Day at a glance</h4>
-          <span class="cap">Chronological · 5 am to 5 am</span>
-        </div>
-        <div class="day-band">
-          @for (s of l.slots; track s.key) {
-            <div class="track" [style.flex]="s.weight" [attr.aria-label]="s.label">
-              @for (seg of s.mix; track $index) {
-                <span
-                  class="seg"
-                  [class.hatch]="seg.activity === null"
-                  [style]="segStyle(seg)"
-                  [attr.title]="seg.label + ' · ' + seg.hours + ' h'"
-                ></span>
-              }
-            </div>
-          }
-        </div>
-        <div class="band-ticks" aria-hidden="true">
-          @for (s of l.slots; track s.key) {
-            <div [style.flex]="s.weight">{{ s.tick }}</div>
-          }
-        </div>
-
-        <!-- Legend. Text and colour together — never colour alone. -->
-        <div class="legend">
-          @for (item of l.legend; track item.label) {
-            <span [class.unaccounted]="item.activity === null">
-              @if (item.colour) {
-                <i [style.background]="item.colour" aria-hidden="true"></i>
-              } @else {
-                <i class="hatch-swatch" aria-hidden="true"></i>
-              }
-              {{ item.label }} · {{ item.hours }} h
-            </span>
-          }
-        </div>
-
         <!-- The table: six slot rows × five activity columns. -->
         <table class="ledger-table">
           <thead>
@@ -147,7 +92,6 @@
                 </th>
               }
               <th><span class="lbl">Logged</span></th>
-              <th class="mix-col"><span class="lbl">Mix</span></th>
             </tr>
           </thead>
 
@@ -199,18 +143,6 @@
                 <td class="logged">
                   {{ slotTotal(s) }}<span class="of">/{{ s.capacity_hours }}</span>
                 </td>
-
-                <td class="mix-col">
-                  <div class="mix">
-                    @for (seg of s.mix; track $index) {
-                      <span
-                        class="seg"
-                        [class.hatch]="seg.activity === null"
-                        [style]="segStyle(seg)"
-                      ></span>
-                    }
-                  </div>
-                </td>
               </tr>
             }
 
@@ -221,23 +153,28 @@
                   {{ columnTotal(a.key) }}
                 </td>
               }
-              <td class="logged">
-                {{ dayTotal() }}<span class="of">/24</span>
-              </td>
-              <td class="mix-col"></td>
+              <td class="logged">{{ dayTotal() }}<span class="of">/24</span></td>
             </tr>
           </tbody>
         </table>
 
         @if (weekly(); as w) {
-          <div class="rowline" style="margin-top:16px;border-top:1px solid var(--hairline-26);border-bottom:0;padding-top:14px">
-            <span class="icon" aria-hidden="true" style="color:var(--brand-magenta)">bolt</span>
-            <div style="flex:1;min-width:0">
+          <div
+            class="rowline"
+            style="
+              margin-top: 16px;
+              border-top: 1px solid var(--hairline-26);
+              border-bottom: 0;
+              padding-top: 14px;
+            "
+          >
+            <span class="icon" aria-hidden="true" style="color: var(--brand-magenta)">bolt</span>
+            <div style="flex: 1; min-width: 0">
               <b>Skilling this week</b>
               <span class="dt-sub">
                 · {{ w.skilling_hours }} h of a {{ w.weekly_hour_target }} h target
               </span>
-              <div class="meter" style="margin-top:6px">
+              <div class="meter" style="margin-top: 6px">
                 <span [style.width.%]="weeklyPercent()"></span>
               </div>
             </div>
@@ -264,12 +201,7 @@
                 {{ reason }}
               </span>
             }
-            <button
-              type="button"
-              class="btn"
-              [disabled]="!dirty() || saving()"
-              (click)="save()"
-            >
+            <button type="button" class="btn" [disabled]="!dirty() || saving()" (click)="save()">
               <span class="icon" aria-hidden="true">save</span>
               {{ saving() ? 'Saving…' : 'Save draft' }}
             </button>

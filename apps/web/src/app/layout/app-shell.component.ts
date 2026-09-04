@@ -24,7 +24,8 @@ import { AgentOrbComponent } from './agent-orb.component';
 const ROLE_LABEL: Record<Role, string> = {
   STUDENT: 'Student',
   MENTOR: 'Mentor',
-  DIRECTOR: 'Director',
+  // The UI calls this role Admin throughout; DIRECTOR is the stored value.
+  DIRECTOR: 'Admin',
   ADMIN: 'Admin',
   ALUMNI: 'Alumni',
 };

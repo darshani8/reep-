@@ -54,12 +54,22 @@
      against the same surface and is the only tertiary text colour. */
   --faint: #7c7891;
 
-  /* --- series (the ledger's five heads, and the legend that names them) -- */
-  --series-sleep: #b9a8c9;
-  --series-personal: #d9c8e6;
-  --series-lectures: #7a2f9e;
-  --series-coursework: #552c7e;
-  --series-skilling: #ba2185;
+  /* --- series (the ledger's five heads) ---------------------------------
+     ONE ORDERED RAMP, NOT FIVE HUES. These were violet, pale violet, purple,
+     deep purple and magenta, which read as five unrelated categories competing
+     for attention on a screen that is mostly a table of numbers. They are now a
+     sequence: the two heads that are not work (sleep, personal) sit in neutral
+     lavender-greys, and the three that are step light -> deep purple in the
+     order a day's effort escalates. Amber is then left as the only accent in
+     the ledger, reserved for unlogged and over-capacity hours, which is the one
+     thing there worth interrupting for.
+     The two pale steps are darker than the handoff's first pass — #b9a8c9 and
+     #d9c8e6 disappeared against the track behind them. */
+  --series-sleep: #a795b8;
+  --series-personal: #c9b8d8;
+  --series-lectures: #9a5fbf;
+  --series-coursework: #7a2f9e;
+  --series-skilling: #552c7e;
 
   /* --- surfaces --------------------------------------------------------- */
   --surface: #ffffff;
@@ -84,18 +94,8 @@
 
   /* --- washes and gradients --------------------------------------------- */
   --page-wash: linear-gradient(180deg, #ece4f5 0%, #f2e7f8 45%, #fbe6f2 100%);
-  --primary-gradient: linear-gradient(
-    120deg,
-    #552c7e,
-    #7a2f9e 38%,
-    #a0248f 68%,
-    #ba2185
-  );
-  --card-gradient: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.86),
-    rgba(245, 237, 250, 0.7)
-  );
+  --primary-gradient: linear-gradient(120deg, #552c7e, #7a2f9e 38%, #a0248f 68%, #ba2185);
+  --card-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(245, 237, 250, 0.7));
   --titlebar-gradient: linear-gradient(180deg, #faf6fd, #ece0f2);
   --voice-overlay: radial-gradient(
     120% 85% at 50% 12%,
@@ -117,15 +117,11 @@
   /* --- shadows ---------------------------------------------------------- */
   --sh-card: 0 10px 26px rgba(58, 31, 82, 0.1), inset 0 1px 0 #fff;
   --sh-ctrl: 0 2px 6px rgba(58, 31, 82, 0.06), inset 0 1px 0 #fff;
-  --sh-primary: 0 8px 18px rgba(85, 44, 126, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  --sh-primary-hover: 0 10px 22px rgba(85, 44, 126, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  --sh-navpill: 0 5px 14px rgba(85, 44, 126, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --sh-primary: 0 8px 18px rgba(85, 44, 126, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --sh-primary-hover: 0 10px 22px rgba(85, 44, 126, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --sh-navpill: 0 5px 14px rgba(85, 44, 126, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.55);
   --sh-well: inset 0 1px 2px rgba(58, 31, 82, 0.12);
-  --sh-voice: 0 10px 24px rgba(12, 4, 22, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  --sh-voice: 0 10px 24px rgba(12, 4, 22, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 
   /* --- type ------------------------------------------------------------- */
   /* Plus Jakarta Sans carries the display role and Inter the UI/data role.
@@ -240,7 +236,11 @@ button {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  font-variation-settings: 'opsz' 24, 'wght' 400, 'FILL' 0, 'GRAD' 0;
+  font-variation-settings:
+    'opsz' 24,
+    'wght' 400,
+    'FILL' 0,
+    'GRAD' 0;
   -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
   user-select: none;
@@ -372,7 +372,9 @@ html.fonts-ready .icon {
   color: var(--ink-nav);
   background: transparent;
   margin-bottom: 2px;
-  transition: background 0.14s ease, color 0.14s ease;
+  transition:
+    background 0.14s ease,
+    color 0.14s ease;
 }
 .desktop-nav a:hover {
   background: var(--tint-2);
@@ -821,7 +823,10 @@ html.fonts-ready .icon {
   font-size: 12.5px;
   font-weight: 700;
   box-shadow: var(--sh-ctrl);
-  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease,
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    box-shadow 0.14s ease,
     transform 0.14s ease;
 }
 .btn .icon,
@@ -1604,9 +1609,13 @@ html.fonts-ready .icon {
   font-size: 10px;
   font-weight: 700;
 }
+/* "Balanced" is a state, not an achievement. It was the only green on the
+   screen, which made a slot that merely adds up look like a success and drew
+   the eye away from the amber that actually wants attention. A purple tint says
+   the same thing at the right volume. */
 .ledger-table .slot-chip.good {
-  background: var(--good-bg);
-  color: var(--good);
+  background: rgba(85, 44, 126, 0.1);
+  color: var(--brand-purple);
 }
 .ledger-table .slot-chip.warn {
   background: var(--warn-bg);
@@ -1895,7 +1904,9 @@ html.fonts-ready .icon {
     rgba(186, 33, 133, 0.55) 60%,
     rgba(85, 44, 126, 0.7)
   );
-  box-shadow: 0 20px 60px rgba(12, 4, 22, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 20px 60px rgba(12, 4, 22, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .voice-overlay .vo-state {
   font-size: 12.8px;
@@ -1969,7 +1980,9 @@ html.fonts-ready .icon {
   border: 1px solid rgba(255, 255, 255, 0.22);
   color: #fff;
   box-shadow: var(--sh-voice);
-  transition: background 0.14s ease, transform 0.14s ease;
+  transition:
+    background 0.14s ease,
+    transform 0.14s ease;
 }
 .voice-controls button:hover {
   background: rgba(255, 255, 255, 0.18);

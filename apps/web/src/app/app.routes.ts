@@ -201,6 +201,20 @@ export const routes: Routes = [
             (m) => m.MenteeLogComponent,
           ),
       },
+      // The skill-claim review queue: the ONLY route by which a skill becomes
+      // verified, and mentor-scoped on the server as well as here.
+      {
+        path: 'mentor/verifications',
+        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/mentor/verifications/verifications.component').then(
+            (m) => m.MentorVerificationsComponent,
+          ),
+      },
+      // Badge Centre came out of the mentor navigation — the handoff replaced it
+      // with the verification queue above, which reviews the same evidence in
+      // terms of the claim it backs. The route stays so an existing link still
+      // resolves rather than falling through to the ** redirect.
       {
         path: 'mentor/badge-centre',
         loadComponent: () =>
@@ -256,9 +270,7 @@ export const routes: Routes = [
       {
         path: 'alumni/jobs',
         loadComponent: () =>
-          import('./features/alumni/jobs/alumni-jobs.component').then(
-            (m) => m.AlumniJobsComponent,
-          ),
+          import('./features/alumni/jobs/alumni-jobs.component').then((m) => m.AlumniJobsComponent),
       },
 
       // Role-aware landing: `redirectTo: 'student'` sent every role to the

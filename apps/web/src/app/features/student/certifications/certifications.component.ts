@@ -94,7 +94,11 @@ export class CertificationsComponent {
     if (r.status === 'COMPLETED') return { dueText: 'Completed', dueCls: 'good' };
     const d = r.days_until_due;
     if (d === null || d === undefined) return { dueText: 'No due date', dueCls: 'warn' };
-    if (d < 0) return { dueText: `Overdue by ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`, dueCls: 'risk' };
+    if (d < 0)
+      return {
+        dueText: `Overdue by ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`,
+        dueCls: 'risk',
+      };
     if (d === 0) return { dueText: 'Due today', dueCls: 'risk' };
     if (d <= 7) return { dueText: `Due in ${d} days`, dueCls: 'warn' };
     return { dueText: `Due in ${d} days`, dueCls: 'good' };

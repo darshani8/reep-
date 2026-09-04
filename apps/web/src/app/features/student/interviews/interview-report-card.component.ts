@@ -78,29 +78,25 @@ const MISSING_REPORT: Record<string, StatusChip & { body: string }> = {
     tone: 'neutral',
     icon: 'schedule',
     label: 'No report',
-    body:
-      'This interview ended before the wrap-up, so there was nothing to score yet — usually the time limit, or ending early. Everything you said is still saved below.',
+    body: 'This interview ended before the wrap-up, so there was nothing to score yet — usually the time limit, or ending early. Everything you said is still saved below.',
   },
   timeout: {
     tone: 'warn',
     icon: 'hourglass_disabled',
     label: 'Report unavailable',
-    body:
-      'The interview finished, but the report took too long to come back. Your answers and the transcript are saved.',
+    body: 'The interview finished, but the report took too long to come back. Your answers and the transcript are saved.',
   },
   unparseable: {
     tone: 'warn',
     icon: 'help',
     label: 'Report unavailable',
-    body:
-      'The interview finished, but the report came back in a form this app could not read. Your answers and the transcript are saved.',
+    body: 'The interview finished, but the report came back in a form this app could not read. Your answers and the transcript are saved.',
   },
   rejected: {
     tone: 'warn',
     icon: 'block',
     label: 'Report unavailable',
-    body:
-      'The interview finished, but the model would not generate the report. Your answers and the transcript are saved.',
+    body: 'The interview finished, but the model would not generate the report. Your answers and the transcript are saved.',
   },
 };
 
@@ -108,8 +104,7 @@ const GENERIC_MISSING: StatusChip & { body: string } = {
   tone: 'neutral',
   icon: 'help',
   label: 'No report',
-  body:
-    'The interview finished, but no report was generated for it. Your answers and the transcript are saved.',
+  body: 'The interview finished, but no report was generated for it. Your answers and the transcript are saved.',
 };
 
 @Component({
@@ -120,7 +115,8 @@ const GENERIC_MISSING: StatusChip & { body: string } = {
       <div class="rep__head">
         <h4 class="rep__title">Practice report</h4>
         <span class="chip {{ chip().tone }}"
-          ><span class="icon">{{ chip().icon }}</span>{{ chip().label }}</span
+          ><span class="icon">{{ chip().icon }}</span
+          >{{ chip().label }}</span
         >
       </div>
 
@@ -350,9 +346,7 @@ export class InterviewReportCardComponent {
 
   /** Status as text AND colour, always together. */
   readonly chip = computed<StatusChip>(() =>
-    this.ok()
-      ? { tone: 'good', icon: 'task_alt', label: 'Report ready' }
-      : this.missing(),
+    this.ok() ? { tone: 'good', icon: 'task_alt', label: 'Report ready' } : this.missing(),
   );
 
   readonly generatedLabel = computed(() => {

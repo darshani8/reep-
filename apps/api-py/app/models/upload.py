@@ -32,6 +32,11 @@ class UploadKind(str, enum.Enum):
 class UploadStatus(str, enum.Enum):
     PENDING_REVIEW = "PENDING_REVIEW"
     VERIFIED = "VERIFIED"
+    # Sent back to be fixed, NOT refused. The distinction is the student's next
+    # action: NEEDS_CHANGES means "do this again with better evidence" and
+    # REJECTED means "this claim will not be granted". Collapsing them lost the
+    # only thing the student needed to know from a decision that was not a yes.
+    NEEDS_CHANGES = "NEEDS_CHANGES"
     REJECTED = "REJECTED"
 
 

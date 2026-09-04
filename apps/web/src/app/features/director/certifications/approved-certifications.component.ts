@@ -110,9 +110,7 @@ export class ApprovedCertificationsComponent {
    *  evidence entirely (§8), so pointing a certification at one would create a
    *  catalogue entry no student could ever claim against. They are excluded
    *  from the dropdown rather than offered and then rejected. */
-  readonly claimableBadges = computed(() =>
-    (this.badges() ?? []).filter((b) => !b.staff_awarded),
-  );
+  readonly claimableBadges = computed(() => (this.badges() ?? []).filter((b) => !b.staff_awarded));
 
   readonly filtered = computed(() => {
     const q = this.filter().trim().toLowerCase();

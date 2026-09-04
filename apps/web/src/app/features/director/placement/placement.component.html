@@ -26,7 +26,9 @@
     <div class="dense-grid">
       <div class="dense-stat">
         <span class="lbl">Placed</span>
-        <span class="val">{{ o.placed_students }}<span class="unit">of {{ o.total_students }}</span></span>
+        <span class="val"
+          >{{ o.placed_students }}<span class="unit">of {{ o.total_students }}</span></span
+        >
         <span class="sub">{{ o.placement_percent }}% of the roster</span>
       </div>
       <div class="dense-stat">
@@ -89,7 +91,9 @@
             <dt>Role type</dt>
             <dd>{{ o.role_type }}</dd>
             <dt>CTC</dt>
-            <dd>{{ ctcLakhs(o.ctc_inr) }} <span class="dt-sub">(₹{{ o.ctc_inr }} / year)</span></dd>
+            <dd>
+              {{ ctcLakhs(o.ctc_inr) }} <span class="dt-sub">(₹{{ o.ctc_inr }} / year)</span>
+            </dd>
           </dl>
 
           <div class="field" style="margin-top: 16px">
@@ -110,7 +114,12 @@
           }
 
           <div class="decide-row">
-            <button type="button" class="btn primary" [disabled]="deciding()" (click)="decide('APPROVE')">
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="deciding()"
+              (click)="decide('APPROVE')"
+            >
               <span class="icon">check</span>{{ deciding() ? 'Saving…' : 'Approve offer' }}
             </button>
             <button type="button" class="btn" [disabled]="deciding()" (click)="decide('REJECT')">

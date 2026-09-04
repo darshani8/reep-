@@ -60,7 +60,9 @@
             @for (cat of categories(); track cat.key) {
               <tr>
                 <td>{{ cat.label }}</td>
-                <td style="text-align: right; font-variant-numeric: tabular-nums">{{ cat.count }}</td>
+                <td style="text-align: right; font-variant-numeric: tabular-nums">
+                  {{ cat.count }}
+                </td>
               </tr>
             }
           </tbody>

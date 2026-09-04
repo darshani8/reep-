@@ -117,6 +117,9 @@ export class MentorAlertsComponent {
    *  value rather than to a blank — a new server-side rule must be legible on
    *  the day it ships, not on the day this map is updated. */
   ruleLabel(key: string): string {
-    return key.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+    return key
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/^./, (c) => c.toUpperCase());
   }
 }

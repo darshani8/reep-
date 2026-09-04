@@ -126,16 +126,12 @@ export class MentorAssignmentComponent {
         return;
       }
       const updated = (await res.json()) as RosterStudent;
-      this.students.update((list) =>
-        (list ?? []).map((s) => (s.id === updated.id ? updated : s)),
-      );
+      this.students.update((list) => (list ?? []).map((s) => (s.id === updated.id ? updated : s)));
       // The group sizes on the strip above are now stale by exactly one move.
       // Re-derive them from the roster rather than re-fetching: the roster in
       // hand is the authority, and a second round trip could disagree with it.
       this.recountGroups();
-      this.savedFlash.set(
-        `${updated.name} → ${updated.mentor_name ?? 'no mentor group'}.`,
-      );
+      this.savedFlash.set(`${updated.name} → ${updated.mentor_name ?? 'no mentor group'}.`);
       setTimeout(() => this.savedFlash.set(null), 3000);
     } catch {
       this.saveError.set('Could not reach the server.');

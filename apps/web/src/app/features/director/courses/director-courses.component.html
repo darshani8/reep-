@@ -59,7 +59,11 @@
       </div>
       <div class="field" style="margin: 0">
         <label for="course-stage">Stage</label>
-        <select id="course-stage" [ngModel]="stageFilter()" (ngModelChange)="stageFilter.set($event)">
+        <select
+          id="course-stage"
+          [ngModel]="stageFilter()"
+          (ngModelChange)="stageFilter.set($event)"
+        >
           <option value="all">All stages</option>
           @for (s of stages(); track s) {
             <option [value]="s">{{ s }}</option>
@@ -104,7 +108,9 @@
               <td style="text-align: right; font-variant-numeric: tabular-nums">
                 {{ c.teaching_hours }}t · {{ c.self_learning_hours_required }}s
               </td>
-              <td style="text-align: right; font-variant-numeric: tabular-nums">{{ c.enrolled }}</td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums">
+                {{ c.enrolled }}
+              </td>
               <td>
                 @if (completionPct(c) === null) {
                   <span class="dt-sub">No enrolments</span>

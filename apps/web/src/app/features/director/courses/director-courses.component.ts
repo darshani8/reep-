@@ -53,9 +53,7 @@ export class DirectorCoursesComponent {
   readonly filter = signal('');
   readonly stageFilter = signal('all');
 
-  readonly stages = computed(() => [
-    ...new Set((this.courses() ?? []).map((c) => c.stage)),
-  ]);
+  readonly stages = computed(() => [...new Set((this.courses() ?? []).map((c) => c.stage))]);
 
   readonly filtered = computed(() => {
     const q = this.filter().trim().toLowerCase();

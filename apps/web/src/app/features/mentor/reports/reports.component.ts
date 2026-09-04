@@ -119,6 +119,9 @@ export class MentorReportsComponent {
   }
 
   ruleLabel(key: string): string {
-    return key.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+    return key
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/^./, (c) => c.toUpperCase());
   }
 }

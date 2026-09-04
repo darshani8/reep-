@@ -63,7 +63,9 @@ export class DirectorPlacementComponent {
   readonly error = signal<string | null>(null);
 
   readonly selectedId = signal<string | null>(null);
-  readonly selected = computed(() => this.offers()?.find((o) => o.id === this.selectedId()) ?? null);
+  readonly selected = computed(
+    () => this.offers()?.find((o) => o.id === this.selectedId()) ?? null,
+  );
 
   note = '';
   readonly deciding = signal(false);

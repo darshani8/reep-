@@ -72,11 +72,19 @@
         <tbody>
           @for (r of list; track r.id) {
             <tr>
-              <td><b>{{ r.file_name || 'Unnamed upload' }}</b></td>
+              <td>
+                <b>{{ r.file_name || 'Unnamed upload' }}</b>
+              </td>
               <td>{{ r.started_at | date: 'd MMM y, h:mm a' }}</td>
-              <td style="text-align: right; font-variant-numeric: tabular-nums">{{ r.rows_seen }}</td>
-              <td style="text-align: right; font-variant-numeric: tabular-nums">{{ r.rows_created }}</td>
-              <td style="text-align: right; font-variant-numeric: tabular-nums">{{ r.rows_updated }}</td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums">
+                {{ r.rows_seen }}
+              </td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums">
+                {{ r.rows_created }}
+              </td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums">
+                {{ r.rows_updated }}
+              </td>
               <td>
                 @let st = runState(r);
                 <span
@@ -85,7 +93,8 @@
                   [class.warn]="st.tone === 'warn'"
                   [class.risk]="st.tone === 'risk'"
                 >
-                  <span class="icon">{{ st.icon }}</span>{{ st.label }}
+                  <span class="icon">{{ st.icon }}</span
+                  >{{ st.label }}
                 </span>
               </td>
             </tr>
@@ -123,9 +132,7 @@
                   @if (m.status === 'SENT') {
                     <span class="chip good"><span class="icon">check_circle</span>Sent</span>
                   } @else {
-                    <span class="chip risk">
-                      <span class="icon">error</span>{{ m.status }}
-                    </span>
+                    <span class="chip risk"> <span class="icon">error</span>{{ m.status }} </span>
                     @if (m.error) {
                       <div class="dt-sub">{{ m.error }}</div>
                     }

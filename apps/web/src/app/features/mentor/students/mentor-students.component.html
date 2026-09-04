@@ -56,7 +56,11 @@
         </div>
         <div class="field" style="margin: 0">
           <label for="mentee-stage">Stage</label>
-          <select id="mentee-stage" [ngModel]="stageFilter()" (ngModelChange)="stageFilter.set($event)">
+          <select
+            id="mentee-stage"
+            [ngModel]="stageFilter()"
+            (ngModelChange)="stageFilter.set($event)"
+          >
             <option value="all">All stages</option>
             @for (s of stages(); track s) {
               <option [value]="s">{{ s }}</option>
@@ -85,7 +89,9 @@
           <tbody>
             @for (m of filtered(); track m.student_id) {
               <tr>
-                <td><b>{{ m.name }}</b></td>
+                <td>
+                  <b>{{ m.name }}</b>
+                </td>
                 <td>{{ m.usn || '—' }}</td>
                 <td>{{ m.current_stage }}</td>
                 <td style="font-variant-numeric: tabular-nums">{{ m.current_semester }}</td>

@@ -136,9 +136,7 @@ export class DirectorRegistrationsComponent {
         this.decideError.set(detail?.detail ?? 'Could not record the decision.');
         return;
       }
-      this.decidedFlash.set(
-        `${reg.name} ${decision === 'APPROVE' ? 'approved' : 'rejected'}.`,
-      );
+      this.decidedFlash.set(`${reg.name} ${decision === 'APPROVE' ? 'approved' : 'rejected'}.`);
       setTimeout(() => this.decidedFlash.set(null), 3500);
       this.note = '';
       await this.load();

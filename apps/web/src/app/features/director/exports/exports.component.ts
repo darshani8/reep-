@@ -67,9 +67,7 @@ export class DirectorExportsComponent {
     }));
   });
 
-  readonly totalEarned = computed(() =>
-    this.categories().reduce((n, c) => n + c.count, 0),
-  );
+  readonly totalEarned = computed(() => this.categories().reduce((n, c) => n + c.count, 0));
 
   constructor() {
     void this.load();

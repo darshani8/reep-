@@ -3,8 +3,8 @@
     <div class="eyebrow">Admissions</div>
     <div class="dt-title">Registrations</div>
     <div class="dt-sub">
-      Applications the routing rules could not decide on their own. Auto-approved and
-      auto-rejected applications never reach this queue.
+      Applications the routing rules could not decide on their own. Auto-approved and auto-rejected
+      applications never reach this queue.
     </div>
   </div>
 </div>
@@ -29,8 +29,8 @@
         @if (list.length === 0) {
           <div class="empty">
             <span class="icon">inbox</span>
-            Nothing waiting on a human. Check the rule table below — a rule may be
-            auto-deciding everything.
+            Nothing waiting on a human. Check the rule table below — a rule may be auto-deciding
+            everything.
           </div>
         } @else {
           @for (r of list; track r.id) {
@@ -150,7 +150,9 @@
             @for (r of rs; track r.id) {
               <tr>
                 <td style="font-variant-numeric: tabular-nums">{{ r.priority }}</td>
-                <td><b>{{ r.name }}</b></td>
+                <td>
+                  <b>{{ r.name }}</b>
+                </td>
                 <td>{{ ruleCondition(r) }}</td>
                 <td>{{ r.cohort_id || '—' }}</td>
                 <td>

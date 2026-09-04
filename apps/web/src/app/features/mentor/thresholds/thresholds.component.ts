@@ -193,8 +193,7 @@ export class ThresholdsComponent {
     const row = this.rows().find((r) => r.key === key);
     const rule = row?.rule ?? null;
     const spec = row?.spec ?? null;
-    const value =
-      spec && rule ? String(rule.params?.[spec.param] ?? '') : '';
+    const value = spec && rule ? String(rule.params?.[spec.param] ?? '') : '';
     return {
       value,
       severity: rule?.severity ?? 'WARNING',

@@ -77,7 +77,9 @@
           </dl>
 
           <div class="field" style="margin-top: 14px">
-            <label [attr.for]="'note-' + u.id">Review note <span class="dt-sub">(optional)</span></label>
+            <label [attr.for]="'note-' + u.id"
+              >Review note <span class="dt-sub">(optional)</span></label
+            >
             <textarea
               [id]="'note-' + u.id"
               rows="2"
@@ -123,7 +125,9 @@
         <div class="card" style="margin-bottom: 14px">
           <h4>
             {{ c.skill_name }}
-            <span class="chip warn"><span class="icon">pending</span>Claimed at level {{ c.claimed_level }}</span>
+            <span class="chip warn"
+              ><span class="icon">pending</span>Claimed at level {{ c.claimed_level }}</span
+            >
           </h4>
           <dl class="kv">
             <dt>Student</dt>
@@ -141,12 +145,16 @@
                 (ngModelChange)="setGrantLevel(c.id, $event)"
               >
                 @for (l of levels; track l) {
-                  <option [value]="l">Level {{ l }}{{ l === c.claimed_level ? ' (claimed)' : '' }}</option>
+                  <option [value]="l">
+                    Level {{ l }}{{ l === c.claimed_level ? ' (claimed)' : '' }}
+                  </option>
                 }
               </select>
             </div>
             <div class="field">
-              <label [attr.for]="'cnote-' + c.id">Review note <span class="dt-sub">(optional)</span></label>
+              <label [attr.for]="'cnote-' + c.id"
+                >Review note <span class="dt-sub">(optional)</span></label
+              >
               <input
                 [id]="'cnote-' + c.id"
                 type="text"

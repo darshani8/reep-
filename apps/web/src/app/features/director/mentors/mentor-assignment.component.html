@@ -73,7 +73,9 @@
           <tbody>
             @for (m of ms; track m.id) {
               <tr>
-                <td><b>{{ m.name }}</b></td>
+                <td>
+                  <b>{{ m.name }}</b>
+                </td>
                 <td>{{ m.email }}</td>
                 <td style="text-align: right; font-variant-numeric: tabular-nums">
                   {{ m.student_count }}

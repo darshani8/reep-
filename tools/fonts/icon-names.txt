@@ -1,6 +1,8 @@
 add
 add_a_photo
+add_circle
 add_comment
+arrow_back
 arrow_forward
 arrow_right_alt
 auto_awesome
@@ -19,6 +21,7 @@ content_copy
 delete
 description
 download
+draw
 edit
 edit_note
 emoji_events
@@ -42,6 +45,7 @@ home
 hourglass_disabled
 hourglass_empty
 hourglass_top
+how_to_reg
 info
 insights
 keyboard
@@ -60,6 +64,8 @@ open_in_new
 pending
 pending_actions
 person
+person_add
+person_remove
 photo_camera
 picture_as_pdf
 place
@@ -69,19 +75,21 @@ radio_button_unchecked
 rate_review
 record_voice_over
 remove
+rule
 save
 schedule
 school
 send
 shield_person
 smart_toy
-sports_esports
 star
 sync
 table_rows
 target
 task_alt
+toggle_on
 trending_up
+undo
 upload_file
 verified
 verified_user

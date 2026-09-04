@@ -62,7 +62,10 @@
               <div class="student-main">
                 <div class="student-name">{{ s.name }}</div>
                 <div class="student-meta">
-                  {{ s.usn || 'No USN' }}@if (s.stage) { · {{ s.stage }} }
+                  {{ s.usn || 'No USN' }}
+                  @if (s.stage) {
+                    · {{ s.stage }}
+                  }
                 </div>
               </div>
               <button
@@ -100,7 +103,10 @@
               <div class="student-main">
                 <div class="student-name">{{ s.name }}</div>
                 <div class="student-meta">
-                  {{ s.usn || 'No USN' }}@if (s.stage) { · {{ s.stage }} }
+                  {{ s.usn || 'No USN' }}
+                  @if (s.stage) {
+                    · {{ s.stage }}
+                  }
                 </div>
               </div>
             </label>

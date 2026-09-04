@@ -277,16 +277,48 @@ export const routes: Routes = [
             (m) => m.DirectorMentorsStudentsComponent,
           ),
       },
-      placeholder('director/courses', 'Courses'),
-      placeholder('director/certifications', 'Certifications'),
-      placeholder('director/placement', 'Placement'),
-      placeholder('director/jobs', 'Jobs sheet'),
+      // Courses and certifications are ONE screen: a certification only means
+      // anything against the course it certifies, so they are read together.
+      // Both paths resolve to it rather than leaving one a dead placeholder.
+      {
+        path: 'director/catalogue',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/catalogue/catalogue.component').then(
+            (m) => m.DirectorCatalogueComponent,
+          ),
+      },
+      { path: 'director/courses', redirectTo: 'director/catalogue' },
+      { path: 'director/certifications', redirectTo: 'director/catalogue' },
+      {
+        path: 'director/placement',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/placement/placement.component').then(
+            (m) => m.DirectorPlacementComponent,
+          ),
+      },
+      {
+        path: 'director/jobs',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/jobs-sheet/jobs-sheet.component').then(
+            (m) => m.DirectorJobsSheetComponent,
+          ),
+      },
       {
         path: 'director/assistant',
         loadComponent: () =>
           import('./features/assistant/assistant.component').then((m) => m.AssistantComponent),
       },
-      placeholder('director/exports', 'Exports'),
+      {
+        path: 'director/exports',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/exports/exports.component').then(
+            (m) => m.DirectorExportsComponent,
+          ),
+      },
 
       // --- alumni ---
       {

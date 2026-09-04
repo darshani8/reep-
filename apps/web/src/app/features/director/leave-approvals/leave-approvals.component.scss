@@ -1,0 +1,136 @@
+/* Leave approvals. The form sheet comes from the shared partial so the reviewer
+   reads exactly the document that was signed; everything else here is the queue
+   around it. */
+@use '../../../../styles/leave-sheet';
+
+:host {
+  display: block;
+}
+
+.req {
+  margin-bottom: 12px;
+}
+.req-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.req-head strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.req-kind {
+  color: var(--muted);
+  font-size: 13px;
+}
+.req-meta {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.req-actions-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fld {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.fld-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 14px;
+}
+.note-field input {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline-45);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 13px;
+  box-shadow: var(--sh-well);
+}
+.note-error {
+  color: var(--risk);
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.decide-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.btn-reject {
+  color: var(--risk);
+  border-color: rgba(173, 36, 82, 0.35);
+}
+
+.decided {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--good-bg);
+  color: var(--good);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.decided .icon {
+  font-size: 18px;
+}
+
+.empty-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 13px;
+}
+.empty-card > .icon {
+  font-size: 20px;
+  color: var(--good);
+}
+.empty-sub {
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.state-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.state-note .icon {
+  font-size: 16px;
+  color: var(--purple-mid);
+}
+.state-note.risk {
+  color: var(--risk);
+}
+.state-note.risk .icon {
+  color: var(--risk);
+}

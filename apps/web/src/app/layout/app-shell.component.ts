@@ -46,9 +46,13 @@ export class AppShellComponent {
   /** Which of the three navigation sets to render. STUDENT is the fallback
    *  while /auth/me is in flight — the guard has already verified a session
    *  exists, so this only decides which links paint first. */
-  readonly navKind = computed<'student' | 'staff' | 'alumni'>(() => {
+  readonly navKind = computed<'student' | 'staff' | 'admin' | 'alumni'>(() => {
     const role = this.session()?.role;
-    if (role === 'MENTOR' || role === 'DIRECTOR' || role === 'ADMIN') return 'staff';
+    // Admin is its own set, not staff-plus-extras. A DIRECTOR/ADMIN was getting
+    // the mentor navigation, so every screen built for them — analytics,
+    // approvals, registrations, assignment — was routed and unreachable.
+    if (role === 'DIRECTOR' || role === 'ADMIN') return 'admin';
+    if (role === 'MENTOR') return 'staff';
     if (role === 'ALUMNI') return 'alumni';
     return 'student';
   });

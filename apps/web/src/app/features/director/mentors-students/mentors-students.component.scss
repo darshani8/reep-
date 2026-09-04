@@ -1,0 +1,151 @@
+/* Mentor assignment. Three columns: who, their roster, and the pool. Panel /
+   card / btn / icon are global. */
+:host {
+  display: block;
+}
+
+.assign-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+/* Below this the three columns stop being readable side by side; the mentor
+   list goes full width and the two student panels pair up. */
+@media (max-width: 1040px) {
+  .assign-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .assign-grid > .list-card:first-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 700px) {
+  .assign-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.list-card h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.count {
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.mentor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mentor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-nav);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+.mentor-row:hover {
+  background: var(--tint-2);
+}
+.mentor-row.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  box-shadow: var(--sh-navpill);
+}
+.mentor-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* The load count is the number that makes this list a decision rather than a
+   menu, so it stays legible on the active pill too. */
+.mentor-load {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.student-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline-26);
+}
+.student-row:last-of-type {
+  border-bottom: none;
+}
+.student-row--pick {
+  cursor: pointer;
+}
+.student-main {
+  flex: 1;
+  min-width: 0;
+}
+.student-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.student-meta {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.pool-actions {
+  margin-top: 12px;
+}
+
+.decided {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--good-bg);
+  color: var(--good);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.decided .icon {
+  font-size: 18px;
+}
+
+.state-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.state-note .icon {
+  font-size: 16px;
+  color: var(--purple-mid);
+}
+.state-note.risk {
+  color: var(--risk);
+}
+.state-note.risk .icon {
+  color: var(--risk);
+}

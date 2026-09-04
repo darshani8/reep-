@@ -12,12 +12,15 @@ from ..identity import get_current_session
 from datetime import datetime
 
 from ..models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
+from ..models.attendance import AttendanceRecord
+from ..models.skill import StudentSkill
+from ..models.time_ledger import TimeLedgerCell, TimeLedgerDay
 from ..models.cohort import Cohort
 from ..models.job_import_run import JobImportRun
 from ..models.mail import MailLog
 from ..models.offer import OfferStatus, PlacementOffer
 from ..models.placement_criteria import PlacementCriteria
-from ..models.user import Student
+from ..models.user import Mentor, Student, User
 from .mentor import require_director
 
 router = APIRouter(prefix="/director", tags=["director"])
@@ -311,3 +314,168 @@ def job_imports(
         )
         for r in rows
     ]
+
+
+# --- mentorship map -------------------------------------------------------
+# The analytics screen draws mentors as an inner ring and their mentees as an
+# outer one, then re-scales a linked bar chart by whichever metric is selected.
+# All three metrics are returned together, ONE query each over the whole cohort
+# rather than per student: the alternative is a chart that fires N+1 requests as
+# the reader clicks around it, which is how a dashboard becomes the slowest page
+# in the product.
+
+
+class MenteeMetricsOut(BaseModel):
+    student_id: str
+    name: str
+    usn: str | None
+    stage: str | None
+    # Percent of recorded sessions attended. None when nothing is recorded —
+    # distinct from 0, which would draw a student as a total absentee.
+    attendance_percent: float | None
+    verified_skills: int
+    # Hours logged in the time ledger, all time.
+    logged_hours: float
+
+
+class MentorLoadOut(BaseModel):
+    mentor_id: str
+    name: str
+    mentee_count: int
+    mentees: list[MenteeMetricsOut]
+
+
+@router.get("/mentor-load", response_model=list[MentorLoadOut])
+def mentor_load(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[MentorLoadOut]:
+    """Every mentor with their assigned students and each student's three
+    headline metrics. Programme-wide, so director/admin only."""
+    require_director(session)
+
+    mentors = db.execute(
+        select(Mentor.id, User.name).join(User, Mentor.user_id == User.id).order_by(User.name)
+    ).all()
+
+    students = db.execute(
+        select(Student.id, User.name, Student.usn, Student.current_stage, Student.mentor_id)
+        .join(User, Student.user_id == User.id)
+        .order_by(User.name)
+    ).all()
+
+    # Attendance: present and total per student, in one pass.
+    att = {
+        sid: (present or 0, total or 0)
+        for sid, present, total in db.execute(
+            select(
+                AttendanceRecord.student_id,
+                func.count().filter(AttendanceRecord.present.is_(True)),
+                func.count(),
+            ).group_by(AttendanceRecord.student_id)
+        ).all()
+    }
+    skills = {
+        sid: n
+        for sid, n in db.execute(
+            select(StudentSkill.student_id, func.count())
+            .where(StudentSkill.verified.is_(True))
+            .group_by(StudentSkill.student_id)
+        ).all()
+    }
+    # Cells store HALF hours, so the sum is halved once here rather than in the
+    # client, where every consumer would have to remember.
+    hours = {
+        sid: (half or 0) / 2
+        for sid, half in db.execute(
+            select(TimeLedgerDay.student_id, func.sum(TimeLedgerCell.half_hours))
+            .join(TimeLedgerCell, TimeLedgerCell.ledger_day_id == TimeLedgerDay.id)
+            .group_by(TimeLedgerDay.student_id)
+        ).all()
+    }
+
+    def metrics(sid: str, name: str, usn, stage) -> MenteeMetricsOut:
+        present, total = att.get(sid, (0, 0))
+        return MenteeMetricsOut(
+            student_id=sid,
+            name=name,
+            usn=usn,
+            stage=stage.value if stage is not None and hasattr(stage, "value") else stage,
+            attendance_percent=round(100 * present / total, 1) if total else None,
+            verified_skills=skills.get(sid, 0),
+            logged_hours=hours.get(sid, 0.0),
+        )
+
+    by_mentor: dict[str, list[MenteeMetricsOut]] = {}
+    for sid, name, usn, stage, mentor_id in students:
+        if mentor_id:
+            by_mentor.setdefault(mentor_id, []).append(metrics(sid, name, usn, stage))
+
+    return [
+        MentorLoadOut(
+            mentor_id=mid,
+            name=name,
+            mentee_count=len(by_mentor.get(mid, [])),
+            mentees=by_mentor.get(mid, []),
+        )
+        for mid, name in mentors
+    ]
+
+
+class UnassignedStudentOut(BaseModel):
+    student_id: str
+    name: str
+    usn: str | None
+    stage: str | None
+
+
+@router.get("/unassigned-students", response_model=list[UnassignedStudentOut])
+def unassigned_students(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[UnassignedStudentOut]:
+    """Students with no mentor yet — the pool the assignment screen draws from."""
+    require_director(session)
+    rows = db.execute(
+        select(Student.id, User.name, Student.usn, Student.current_stage)
+        .join(User, Student.user_id == User.id)
+        .where(Student.mentor_id.is_(None))
+        .order_by(User.name)
+    ).all()
+    return [
+        UnassignedStudentOut(
+            student_id=sid,
+            name=name,
+            usn=usn,
+            stage=stage.value if stage is not None and hasattr(stage, "value") else stage,
+        )
+        for sid, name, usn, stage in rows
+    ]
+
+
+class AssignMentorIn(BaseModel):
+    # Null releases the student back to the unassigned pool. An explicit null is
+    # the un-assign action, so this is Optional rather than absent-means-keep.
+    mentor_id: str | None = None
+
+
+@router.post("/students/{student_id}/mentor", status_code=status.HTTP_204_NO_CONTENT)
+def set_student_mentor(
+    student_id: str,
+    body: AssignMentorIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> None:
+    """Assign a student to a mentor, or release them.
+
+    Director/admin only, and deliberately not available to a MENTOR: mentor_id is
+    what rule 2's scope gate filters on, so a mentor who could set it could
+    assign themselves any student in the programme and then read everything about
+    them. Who mentors whom is an administrative decision, not a mentoring one.
+    """
+    require_director(session)
+    student = db.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
+    if body.mentor_id is not None and db.get(Mentor, body.mentor_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mentor not found.")
+    student.mentor_id = body.mentor_id
+    db.commit()

@@ -244,10 +244,39 @@ export const routes: Routes = [
       },
       placeholder('mentor/settings', 'Thresholds'),
 
-      // --- director ---
-      placeholder('director', 'Analytics'),
-      placeholder('director/registrations', 'Registrations'),
-      placeholder('director/mentors', 'Mentor assignment'),
+      // --- admin (the DIRECTOR/ADMIN roles; the UI calls it Admin) ---
+      {
+        path: 'director',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/analytics/analytics.component').then(
+            (m) => m.DirectorAnalyticsComponent,
+          ),
+      },
+      {
+        path: 'director/leave-approvals',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/leave-approvals/leave-approvals.component').then(
+            (m) => m.DirectorLeaveApprovalsComponent,
+          ),
+      },
+      {
+        path: 'director/registrations',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/registrations/registrations.component').then(
+            (m) => m.DirectorRegistrationsComponent,
+          ),
+      },
+      {
+        path: 'director/mentors',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/mentors-students/mentors-students.component').then(
+            (m) => m.DirectorMentorsStudentsComponent,
+          ),
+      },
       placeholder('director/courses', 'Courses'),
       placeholder('director/certifications', 'Certifications'),
       placeholder('director/placement', 'Placement'),

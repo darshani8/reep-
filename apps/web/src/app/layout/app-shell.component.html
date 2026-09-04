@@ -45,6 +45,25 @@
             <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
           </a>
         }
+        @case ('admin') {
+          <a routerLink="/director" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <span class="icon" aria-hidden="true">insights</span> Analytics
+          </a>
+          <a routerLink="/director/registrations" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">how_to_reg</span> Registrations
+          </a>
+          <a routerLink="/director/mentors" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">groups</span> Mentors &amp; Students
+          </a>
+          <a routerLink="/director/leave-approvals" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">event_available</span> Leave Approvals
+          </a>
+
+          <div class="sec-label">More</div>
+          <a routerLink="/director/assistant" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
+          </a>
+        }
         @case ('alumni') {
           <a
             routerLink="/alumni"

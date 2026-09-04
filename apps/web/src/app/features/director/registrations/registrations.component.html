@@ -1,0 +1,97 @@
+<div class="panel" data-p="registrations">
+  <div class="dt-header">
+    <div>
+      <div class="eyebrow">Admin · intake</div>
+      <div class="dt-title">Registrations</div>
+      <div class="dt-sub">Applications waiting on a decision before they enter the programme.</div>
+    </div>
+    <span class="chip warn"><span class="icon">how_to_reg</span> Pending {{ pendingCount() }}</span>
+  </div>
+
+  @if (error()) {
+    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+  }
+
+  @for (entry of done() | keyvalue; track entry.key) {
+    <div class="decided"><span class="icon">check_circle</span>{{ entry.value }}</div>
+  }
+
+  @if (rows() === null) {
+    <div class="state-note"><span class="icon">hourglass_empty</span>Loading applications…</div>
+  } @else if (rows()!.length === 0) {
+    <div class="card empty-card">
+      <span class="icon">task_alt</span>
+      <div>
+        <b>No applications waiting.</b>
+        <div class="empty-sub">New registrations appear here for review.</div>
+      </div>
+    </div>
+  } @else {
+    @for (r of rows()!; track r.id) {
+      <div class="card reg">
+        <div class="reg-head">
+          <div class="reg-who">
+            <strong>{{ r.name }}</strong>
+            <div class="reg-contact">{{ r.email }}@if (r.usn) { · {{ r.usn }} }</div>
+          </div>
+          <div class="reg-facts">
+            <span class="chip neutral">{{ r.degree_level }}</span>
+            <span class="reg-when">Applied {{ r.created_at | date: 'd MMM y' }}</span>
+          </div>
+        </div>
+
+        <div class="reg-rule">
+          @if (r.matched_rule_id) {
+            <span class="icon">rule</span>
+            <span>
+              Matched an intake rule@if (r.cohort_id) { and was placed in a cohort }.
+              @if (r.decision_reason) {
+                <em>{{ r.decision_reason }}</em>
+              }
+            </span>
+          } @else {
+            <span class="icon">help</span>
+            <span>
+              No intake rule matched, so no cohort was chosen automatically — this one is a
+              judgement call.
+            </span>
+          }
+        </div>
+
+        <label class="note-field">
+          <span class="fld">
+            Note <span class="fld-hint">(required to reject, optional to approve)</span>
+          </span>
+          <input
+            type="text"
+            [value]="note(r.id)"
+            (input)="setNote(r.id, $any($event.target).value)"
+            placeholder="e.g. Transcript verified against the 2026 intake list."
+          />
+        </label>
+        @if (noteError()) {
+          <div class="note-error">{{ noteError() }}</div>
+        }
+
+        <div class="decide-row">
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="deciding() === r.id"
+            (click)="decide(r, 'APPROVE')"
+          >
+            <span class="icon">check_circle</span> Approve
+          </button>
+          <button
+            type="button"
+            class="btn btn-reject"
+            [disabled]="deciding() === r.id"
+            (click)="decide(r, 'REJECT')"
+          >
+            <span class="icon">cancel</span> Reject
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>

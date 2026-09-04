@@ -4,7 +4,7 @@
  * The restrained Y2K-chrome / glass language from the design handoff
  * (`REEP Student App.dc.html` + its README): a soft lilac-to-pink page wash,
  * white translucent cards with 1px lavender hairlines and layered soft shadows,
- * Orbitron for headings and labels, Chakra Petch for body, and a purple→magenta
+ * Plus Jakarta Sans for headings and labels, Inter for body, and a purple→magenta
  * gradient reserved for primary actions and the active nav pill.
  *
  * NOT COMPONENT SCOPED, on purpose. These classes (.card, .dt-table, .chip,
@@ -41,11 +41,18 @@
   --magenta-mid: #a0248f;
 
   /* --- ink -------------------------------------------------------------- */
-  --ink: #3a1f52;
+  /* Primary and secondary text are CHARCOAL, not tinted purple. The tint read
+     as a third brand colour on text-dense screens and left the actual accent
+     with nothing to contrast against; purple is now accent-only. --ink-soft
+     and --ink-nav keep their violet because the legend and the sidebar are
+     where the brand still belongs. */
+  --ink: #1e1b29;
   --ink-soft: #4a2668;
   --ink-nav: #5b3080;
-  --muted: #7a6392;
-  --faint: #a08cb2;
+  --muted: #585566;
+  /* #a08cb2 was ~2.9:1 on the card fill and failed WCAG AA; #7c7891 is ~5.4:1
+     against the same surface and is the only tertiary text colour. */
+  --faint: #7c7891;
 
   /* --- series (the ledger's five heads, and the legend that names them) -- */
   --series-sleep: #b9a8c9;
@@ -121,8 +128,13 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
 
   /* --- type ------------------------------------------------------------- */
-  --font-display: 'Orbitron', 'Chakra Petch', system-ui, sans-serif;
-  --font: 'Chakra Petch', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Plus Jakarta Sans carries the display role and Inter the UI/data role.
+     Orbitron's wide techno letterforms were hurting the dense data screens —
+     the ledger, the analytics tables, the leaderboard — where the type is
+     small and set in columns. The pair keeps the geometric character in
+     headings while reading cleanly at the 13-14px the tables actually use. */
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* --- nav -------------------------------------------------------------- */
   --nav-width: 220px;
@@ -158,6 +170,10 @@ body {
   background-attachment: fixed;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  line-height: 1.45;
+  /* Document-wide, so every metric column aligns without each screen having
+     to remember. The app is mostly numbers in columns. */
+  font-variant-numeric: tabular-nums;
   /* Only the horizontal axis is locked (setting overflow-x makes overflow-y
      compute to auto). The full-bleed shell contains its OWN vertical scroll via
      .desktop-main; pages OUTSIDE the shell (login, register) must still scroll
@@ -172,7 +188,15 @@ h4,
 h5 {
   font-family: var(--font-display);
   color: var(--ink);
-  letter-spacing: 0.005em;
+  /* Orbitron needed the extra 0.005em to breathe. Plus Jakarta Sans is
+     already generously spaced and reads tighter and more deliberate pulled
+     in, which is what the handoff sets on every header. */
+  letter-spacing: -0.02em;
+}
+
+p,
+li {
+  text-wrap: pretty;
 }
 
 a {
@@ -189,7 +213,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--brand-magenta);
+  outline: 2px solid var(--purple-mid);
   outline-offset: 2px;
 }
 
@@ -331,7 +355,7 @@ html.fonts-ready .icon {
 .desktop-nav .brand {
   font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--brand-purple);
   padding: 2px 12px 10px;
@@ -401,9 +425,9 @@ html.fonts-ready .icon {
 .dt-title {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.15;
-  letter-spacing: 0.005em;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -1206,7 +1230,7 @@ html.fonts-ready .icon {
 .reg-frame h2 {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: 700;
   margin: 0 0 6px;
 }
 .reg-sub {
@@ -1674,7 +1698,7 @@ html.fonts-ready .icon {
 .band-dial .band {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: 700;
   color: var(--brand-magenta);
 }
 
@@ -1745,7 +1769,7 @@ html.fonts-ready .icon {
 .meeting .date .d {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }

@@ -234,16 +234,11 @@ export class ProfileComponent {
     portfolioUrl: validateHttpUrl(this.portfolioUrl()),
   }));
 
-  readonly anyError = computed(() =>
-    Object.values(this.errors()).some((e) => e !== null),
-  );
+  readonly anyError = computed(() => Object.values(this.errors()).some((e) => e !== null));
 
   /** Show an inline error only once the field is blurred or a save was tried. */
   showError(field: FieldKey): boolean {
-    return (
-      this.errors()[field] !== null &&
-      (this.touched().has(field) || this.triedSave())
-    );
+    return this.errors()[field] !== null && (this.touched().has(field) || this.triedSave());
   }
 
   errorText(field: FieldKey): string | null {

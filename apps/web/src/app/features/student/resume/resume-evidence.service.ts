@@ -22,7 +22,8 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { ResumeBuilderService } from './resume-builder.service';
 
-export type EvidenceStatus = 'verified' | 'in-review' | 'needs-changes' | 'student-added';
+export type EvidenceStatus =
+  'verified' | 'in-review' | 'needs-changes' | 'rejected' | 'student-added';
 
 export interface EvidenceSkill {
   slug: string;
@@ -59,7 +60,8 @@ interface ClaimRow {
 const CHIP: Record<EvidenceStatus, { cls: string; label: string }> = {
   verified: { cls: 'good', label: 'Verified' },
   'in-review': { cls: 'warn', label: 'In review' },
-  'needs-changes': { cls: 'risk', label: 'Needs changes' },
+  'needs-changes': { cls: 'warn', label: 'Needs changes' },
+  rejected: { cls: 'risk', label: 'Not verified' },
   'student-added': { cls: 'neutral', label: 'Student-added' },
 };
 
@@ -95,11 +97,16 @@ export class ResumeEvidenceService {
       } else if (claim?.status === 'PENDING_REVIEW') {
         status = 'in-review';
         statusNote = 'With your mentor. It can go on the resume once verified.';
-      } else if (claim?.status === 'REJECTED') {
+      } else if (claim?.status === 'NEEDS_CHANGES') {
         status = 'needs-changes';
         statusNote = claim.review_note
           ? `Your mentor asked for a change: ${claim.review_note}`
           : 'Your mentor sent this back. Add stronger evidence and claim it again.';
+      } else if (claim?.status === 'REJECTED') {
+        status = 'rejected';
+        statusNote = claim.review_note
+          ? `Not verified: ${claim.review_note}`
+          : 'Your mentor did not verify this claim.';
       } else {
         status = 'student-added';
         statusNote = 'You added this yourself. Claim it with a certificate to have it verified.';

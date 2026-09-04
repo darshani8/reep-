@@ -161,7 +161,9 @@ export class RecordsComponent {
 
   private async loadAttendance(): Promise<void> {
     try {
-      const res = await fetch(`${environment.apiBase}/student/attendance`, { credentials: 'include' });
+      const res = await fetch(`${environment.apiBase}/student/attendance`, {
+        credentials: 'include',
+      });
       if (!res.ok) {
         this.attendanceState.set('error');
         return;
@@ -175,7 +177,9 @@ export class RecordsComponent {
 
   private async loadAcademics(): Promise<void> {
     try {
-      const res = await fetch(`${environment.apiBase}/student/academics`, { credentials: 'include' });
+      const res = await fetch(`${environment.apiBase}/student/academics`, {
+        credentials: 'include',
+      });
       if (!res.ok) {
         this.academicsState.set('error');
         return;
@@ -193,7 +197,8 @@ export class RecordsComponent {
 
   /** Attendance tone: good ≥85, warn 75–85, risk <75 — text + colour together. */
   attendanceChip(percent: number): Chip {
-    if (percent >= 85) return { cls: 'good', icon: 'check_circle', label: `${percent}% · On track` };
+    if (percent >= 85)
+      return { cls: 'good', icon: 'check_circle', label: `${percent}% · On track` };
     if (percent >= 75) return { cls: 'warn', icon: 'error', label: `${percent}% · Watch` };
     return { cls: 'risk', icon: 'warning', label: `${percent}% · Below 75%` };
   }

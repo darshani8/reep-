@@ -80,6 +80,11 @@ interface OpenClaim {
 
 /** Anything the student still needs to see: in flight, or sent back. */
 function openClaimChip(status: string): Omit<OpenClaim, 'id' | 'skillName' | 'reviewNote'> | null {
+  // NEEDS_CHANGES and REJECTED look similar and mean different things: the first
+  // is an instruction to claim again with better evidence, the second is a no.
+  // The label has to carry that, because it is all the student gets.
+  if (status === 'NEEDS_CHANGES')
+    return { chipClass: 'warn', chipIcon: 'edit_note', chipLabel: 'Needs changes' };
   if (status === 'REJECTED')
     return { chipClass: 'risk', chipIcon: 'cancel', chipLabel: 'Not verified' };
   if (status === 'PENDING_REVIEW')

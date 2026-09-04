@@ -76,7 +76,10 @@ export class StudentHomeComponent {
     const id = this.identity();
     if (!id) return null;
     const stage = id.stage.replace(/_/g, ' ').toLowerCase();
-    const parts = [`${stage.charAt(0).toUpperCase()}${stage.slice(1)} stage`, `Semester ${id.semester}`];
+    const parts = [
+      `${stage.charAt(0).toUpperCase()}${stage.slice(1)} stage`,
+      `Semester ${id.semester}`,
+    ];
     if (id.usn) parts.push(id.usn);
     return parts.join(' · ');
   });

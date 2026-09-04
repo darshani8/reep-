@@ -12,14 +12,21 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { environment } from '../../../../environments/environment';
-import { PageIntroComponent, SectionComponent, EmptyComponent } from '../../../shared/kit/kit.components';
+import {
+  PageIntroComponent,
+  SectionComponent,
+  EmptyComponent,
+} from '../../../shared/kit/kit.components';
 
 type RoleType = 'FULL_TIME' | 'FULL_TIME_PLUS_INTERNSHIP' | 'INTERNSHIP';
 type WorkMode = 'REMOTE' | 'ONSITE' | 'HYBRID';
 type Channel = 'ON_CAMPUS' | 'OFF_CAMPUS' | 'POOL' | 'REFERRAL';
 type Status = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
 
-interface Bonus { label: string; amountInr: number }
+interface Bonus {
+  label: string;
+  amountInr: number;
+}
 interface Offer {
   id: string;
   roleType: RoleType;
@@ -154,7 +161,10 @@ export class OffersComponent {
         }),
       });
       if (!res.ok) {
-        this.formError.set(((await res.json().catch(() => ({}))) as { message?: string }).message ?? 'Could not save.');
+        this.formError.set(
+          ((await res.json().catch(() => ({}))) as { message?: string }).message ??
+            'Could not save.',
+        );
         return;
       }
       const created = (await res.json()) as Offer;

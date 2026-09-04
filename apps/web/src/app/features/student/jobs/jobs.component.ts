@@ -124,9 +124,7 @@ export class JobsComponent {
   form = this.blankForm();
 
   // --- opportunities for the active degree level (pre-filter) ---
-  readonly levelRows = computed(() =>
-    this.jobs().filter((j) => j.degree_level === this.level()),
-  );
+  readonly levelRows = computed(() => this.jobs().filter((j) => j.degree_level === this.level()));
 
   /** Distinct, sorted locations within the current degree level. */
   readonly locations = computed(() => {
@@ -154,7 +152,10 @@ export class JobsComponent {
   });
 
   readonly anyFilter = computed(
-    () => this.filterElig() !== 'all' || this.filterLocation() !== 'all' || this.filterDeadline() !== 'all',
+    () =>
+      this.filterElig() !== 'all' ||
+      this.filterLocation() !== 'all' ||
+      this.filterDeadline() !== 'all',
   );
 
   // --- applications (all applied rows) ---
@@ -257,15 +258,23 @@ export class JobsComponent {
     const days = this.daysLeft(row.closes_on);
     if (days === null)
       return { tone: 'neutral', icon: 'event_available', label: 'No deadline', closed: false };
-    if (days < 0)
-      return { tone: 'risk', icon: 'event_busy', label: 'Closed', closed: true };
-    if (days === 0)
-      return { tone: 'risk', icon: 'schedule', label: 'Closes today', closed: false };
+    if (days < 0) return { tone: 'risk', icon: 'event_busy', label: 'Closed', closed: true };
+    if (days === 0) return { tone: 'risk', icon: 'schedule', label: 'Closes today', closed: false };
     if (days <= 3)
-      return { tone: 'risk', icon: 'schedule', label: `Closes in ${days} day${days === 1 ? '' : 's'}`, closed: false };
+      return {
+        tone: 'risk',
+        icon: 'schedule',
+        label: `Closes in ${days} day${days === 1 ? '' : 's'}`,
+        closed: false,
+      };
     if (days <= 7)
       return { tone: 'warn', icon: 'schedule', label: `Closes in ${days} days`, closed: false };
-    return { tone: 'neutral', icon: 'event', label: `Closes ${this.fmtDate(row.closes_on!)}`, closed: false };
+    return {
+      tone: 'neutral',
+      icon: 'event',
+      label: `Closes ${this.fmtDate(row.closes_on!)}`,
+      closed: false,
+    };
   }
 
   /** Tint the match bar so a weak match reads at a glance. */

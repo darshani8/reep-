@@ -2,108 +2,173 @@
   <div class="dt-header">
     <div>
       <div class="dt-title">Skilling</div>
-      <div class="dt-sub">Upload a certificate to claim a skill, then track your verified skills</div>
+      <div class="dt-sub">Upload a certificate to claim a skill, then track your verified badges</div>
     </div>
   </div>
 
-  <div class="grid-2">
-    <!-- Claim a skill — pick a skill + level, upload the certificate as proof -->
-    <div class="card">
-      <h4>Claim a skill</h4>
-      <div class="claim-fields">
-        <label class="claim-label">
-          Skill
-          <select [value]="claimSkillId()" (change)="claimSkillId.set($any($event.target).value)">
-            <option value="">Choose a skill…</option>
-            @for (s of catalogue(); track s.id) {
-              <option [value]="s.id">{{ s.name }} · {{ s.category }}</option>
+  <!-- Claim a skill with a certificate -->
+  <div class="card claim-card">
+    <h4>Claim a skill with a certificate</h4>
+    <p class="claim-lede">
+      Upload the certificate and pick the badge it proves. Your mentor verifies it before the badge
+      lights up.
+    </p>
+
+    @if (claimSubmitted()) {
+      <div class="claim-done">
+        <p>
+          <b>Claim submitted.</b> Your mentor will review the certificate and verify the badge within
+          two working days.
+        </p>
+        <button type="button" class="btn-outline-good" (click)="claimAnother()">
+          Claim another skill
+        </button>
+      </div>
+    } @else if (catalogueError()) {
+      <div class="state-note"><span class="icon">error</span>{{ catalogueError() }}</div>
+    } @else {
+      <div class="field-label">Certificate</div>
+      @if (claimFile()) {
+        <div class="cert-picked">
+          <span class="icon">check_circle</span>
+          <span class="cert-name">{{ claimFileName() }}</span>
+          <button type="button" class="link-btn" (click)="picker.click()">Replace</button>
+        </div>
+      } @else {
+        <button type="button" class="cert-drop" (click)="picker.click()">
+          <span class="icon">upload_file</span>
+          <span class="cert-drop-main">Click to upload or drop a file</span>
+          <span class="cert-drop-sub">PDF or JPEG, up to 5 MB</span>
+        </button>
+      }
+      <input
+        #picker
+        type="file"
+        accept="application/pdf,image/png,image/jpeg"
+        hidden
+        (change)="onFilePicked($event)"
+      />
+
+      <div class="claim-grid">
+        <label class="claim-field">
+          <span class="field-label">Skill category</span>
+          <select
+            [value]="claimCategory()"
+            (change)="onCategoryChange($any($event.target).value)"
+          >
+            <option value="">Select a category</option>
+            @for (c of categories(); track c) {
+              <option [value]="c">{{ c }}</option>
             }
           </select>
         </label>
-        <label class="claim-label">
-          Level
-          <select [value]="claimLevel()" (change)="claimLevel.set(+$any($event.target).value)">
-            <option value="3">Working</option>
-            <option value="1">Aware</option>
-            <option value="2">Beginner</option>
-            <option value="4">Proficient</option>
-            <option value="5">Expert</option>
+        <label class="claim-field">
+          <span class="field-label">Skill badge</span>
+          <select
+            [value]="claimBadge()"
+            [disabled]="!claimCategory()"
+            (change)="claimBadge.set($any($event.target).value)"
+          >
+            <option value="">
+              {{ claimCategory() ? 'Select a badge' : 'Pick a category first' }}
+            </option>
+            @for (b of badgeOptions(); track b.id) {
+              <option [value]="b.id">{{ b.name }}</option>
+            }
           </select>
         </label>
       </div>
-      <button
-        type="button"
-        class="dropzone dropzone--action"
-        [disabled]="!claimSkillId() || claiming()"
-        (click)="picker.click()"
-      >
-        <span class="icon">workspace_premium</span>
-        {{ claiming() ? 'Submitting…' : (claimSkillId() ? 'Upload certificate (PDF/PNG/JPEG) to claim' : 'Choose a skill first') }}
-      </button>
-      <input #picker type="file" accept="application/pdf,image/png,image/jpeg" hidden (change)="onClaimFile($event)" />
+
+      <label class="claim-field">
+        <span class="field-label">Issued by</span>
+        <input
+          [value]="claimIssuer()"
+          (input)="claimIssuer.set($any($event.target).value)"
+          placeholder="e.g. NISM, Coursera, internal assessment"
+        />
+      </label>
+
+      <label class="claim-field">
+        <span class="field-label">Note for your mentor</span>
+        <input
+          [value]="claimNote()"
+          (input)="claimNote.set($any($event.target).value)"
+          placeholder="Optional — what the certificate covers"
+        />
+      </label>
+
       @if (claimError()) {
         <div class="state-note"><span class="icon">error</span>{{ claimError() }}</div>
       }
-      @if (claimOk()) {
-        <div class="state-note"><span class="icon">check_circle</span>Claim submitted — pending mentor review.</div>
-      }
-    </div>
 
-    <!-- My skills — grouped by category, verified vs not -->
-    <div class="card">
-      <h4>
-        My skills
-        @if (skillCount()) {
-          <span class="skill-count">{{ verifiedCount() }}/{{ skillCount() }} verified</span>
-        }
-      </h4>
-
-      @if (skillsError()) {
-        <div class="state-note"><span class="icon">error</span>{{ skillsError() }}</div>
-      } @else if (groups() === null) {
-        <div class="state-note"><span class="icon">hourglass_empty</span>Loading your skills…</div>
-      } @else if (groups()!.length === 0) {
-        <div class="state-note"><span class="icon">info</span>No skills recorded yet — claim one with a certificate.</div>
-      } @else {
-        @for (group of groups()!; track group.category) {
-          <div class="cat-label">{{ group.category }}</div>
-          @for (s of group.skills; track s.slug) {
-            <div class="reco-row">
-              {{ s.name }}
-              <span class="lvl">{{ s.levelLabel }}</span>
-              @if (s.verified) {
-                <span class="chip good"><span class="icon">check_circle</span>Verified</span>
-              } @else {
-                <span class="chip warn"><span class="icon">schedule</span>Unverified</span>
-              }
-            </div>
-          }
-        }
-      }
-    </div>
+      <div class="claim-actions">
+        <button type="button" class="btn primary" [disabled]="!canSubmitClaim()" (click)="submitClaim()">
+          {{ claiming() ? 'Submitting…' : 'Submit claim' }}
+        </button>
+        <span class="claim-hint">Typically verified within two working days</span>
+      </div>
+    }
   </div>
 
-  <!-- Skill claims — each with its review-status chip -->
-  <div class="card">
-    <h4>Skill claims</h4>
-
-    @if (claimsError()) {
-      <div class="state-note"><span class="icon">error</span>{{ claimsError() }}</div>
-    } @else if (claimRows() === null) {
-      <div class="state-note"><span class="icon">hourglass_empty</span>Loading your claims…</div>
-    } @else if (claimRows()!.length === 0) {
-      <div class="state-note"><span class="icon">info</span>You have not claimed any skills yet.</div>
-    } @else {
-      @for (c of claimRows()!; track c.id) {
+  <!--
+    Claims the student still has to act on. Renders only when there IS one, so
+    the screen matches the handoff whenever nothing is outstanding.
+  -->
+  @if (openClaims().length) {
+    <div class="card">
+      <h4>Claims in progress</h4>
+      @for (c of openClaims(); track c.id) {
         <div class="reco-row">
           {{ c.skillName }}
-          <span class="lvl">Claimed: {{ c.levelLabel }}</span>
-          <span class="chip {{ c.chip.cls }}"><span class="icon">{{ c.chip.icon }}</span>{{ c.chip.label }}</span>
+          <span class="chip {{ c.chipClass }}">
+            <span class="icon">{{ c.chipIcon }}</span>{{ c.chipLabel }}
+          </span>
         </div>
         @if (c.reviewNote) {
           <div class="review-note"><span class="icon">chat_bubble</span>{{ c.reviewNote }}</div>
         }
       }
+    </div>
+  }
+
+  <!-- The badge board -->
+  <div class="card board">
+    <div class="board-legend">
+      <span class="legend-item">
+        <span class="dot dot-open"></span>Skill available
+      </span>
+      <span class="legend-item legend-item--lit">
+        <span class="dot dot-lit"></span>Skill verified &amp; acquired
+      </span>
+    </div>
+
+    @if (skillsError()) {
+      <div class="state-note"><span class="icon">error</span>{{ skillsError() }}</div>
+    } @else if (board() === null) {
+      <div class="state-note"><span class="icon">hourglass_empty</span>Loading your badges…</div>
+    } @else if (board()!.length === 0) {
+      <div class="state-note"><span class="icon">info</span>No badges in the catalogue yet.</div>
+    } @else {
+      @for (cat of board()!; track cat.category) {
+        <div class="board-row">
+          <div class="board-cat">
+            <div class="board-cat-name">{{ cat.category }}</div>
+            <div class="board-cat-note">{{ cat.note }}</div>
+          </div>
+          <div class="board-badges">
+            @for (b of cat.badges; track b.slug) {
+              <span class="badge-pill" [class.badge-pill--lit]="b.acquired">
+                {{ b.name }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="board-foot">
+        <div><b>{{ litCount() }}</b> skills currently illuminated</div>
+        <div class="board-foot-hint">Outline → acquire &amp; verify → glow</div>
+      </div>
     }
   </div>
 </div>

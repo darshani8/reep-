@@ -32,7 +32,12 @@
         <div class="reg-head">
           <div class="reg-who">
             <strong>{{ r.name }}</strong>
-            <div class="reg-contact">{{ r.email }}@if (r.usn) { · {{ r.usn }} }</div>
+            <div class="reg-contact">
+              {{ r.email }}
+              @if (r.usn) {
+                · {{ r.usn }}
+              }
+            </div>
           </div>
           <div class="reg-facts">
             <span class="chip neutral">{{ r.degree_level }}</span>
@@ -44,7 +49,11 @@
           @if (r.matched_rule_id) {
             <span class="icon">rule</span>
             <span>
-              Matched an intake rule@if (r.cohort_id) { and was placed in a cohort }.
+              Matched an intake rule
+              @if (r.cohort_id) {
+                and was placed in a cohort
+              }
+              .
               @if (r.decision_reason) {
                 <em>{{ r.decision_reason }}</em>
               }

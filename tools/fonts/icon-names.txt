@@ -17,7 +17,6 @@ chevron_left
 chevron_right
 close
 cloud_upload
-content_copy
 delete
 description
 download
@@ -31,7 +30,7 @@ event_available
 event_busy
 event_note
 event_repeat
-fact_check
+filter_alt
 flag
 folder_open
 graphic_eq

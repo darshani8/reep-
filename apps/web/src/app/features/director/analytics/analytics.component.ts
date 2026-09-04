@@ -337,7 +337,11 @@ export class DirectorAnalyticsComponent implements AfterViewInit, OnDestroy {
                   silent: true,
                   symbol: 'none',
                   lineStyle: { color: '#d99a00', type: 'dashed' },
-                  label: { formatter: `target ${spec.target}${spec.unit}`, color: '#8f6100', fontSize: 10.5 },
+                  label: {
+                    formatter: `target ${spec.target}${spec.unit}`,
+                    color: '#8f6100',
+                    fontSize: 10.5,
+                  },
                   data: [{ xAxis: spec.target }],
                 }
               : undefined,

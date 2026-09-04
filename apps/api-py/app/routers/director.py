@@ -15,7 +15,10 @@ from ..models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
 from ..models.attendance import AttendanceRecord
 from ..models.skill import StudentSkill
 from ..models.time_ledger import TimeLedgerCell, TimeLedgerDay
+from ..models.certification import Certification
 from ..models.cohort import Cohort
+from ..models.course import Course
+from ..models.job import Job, JobApplication
 from ..models.job_import_run import JobImportRun
 from ..models.mail import MailLog
 from ..models.offer import OfferStatus, PlacementOffer
@@ -479,3 +482,120 @@ def set_student_mentor(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mentor not found.")
     student.mentor_id = body.mentor_id
     db.commit()
+
+
+# --- catalogue ------------------------------------------------------------
+
+
+class CatalogueCertOut(BaseModel):
+    code: str
+    name: str
+    provider: str
+    required_hours: float
+    is_optional: bool
+    link: str | None
+
+
+class CatalogueCourseOut(BaseModel):
+    code: str
+    name: str
+    stage: str
+    dimension: str
+    semester: int
+    teaching_hours: float
+    self_learning_hours_required: float
+    model_type: str
+    duration_weeks: int
+    certifications: list[CatalogueCertOut]
+
+
+@router.get("/catalogue", response_model=list[CatalogueCourseOut])
+def catalogue(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[CatalogueCourseOut]:
+    """The programme as designed: every course with the certifications mapped to
+    it. Nested rather than two flat lists, because a certification only means
+    anything against the course it certifies — the screen's whole question is
+    which courses have evidence attached and which do not."""
+    require_director(session)
+    courses = db.scalars(select(Course).order_by(Course.semester, Course.code)).all()
+    certs: dict[str, list[CatalogueCertOut]] = {}
+    for c in db.scalars(select(Certification).order_by(Certification.name)).all():
+        certs.setdefault(c.course_code, []).append(
+            CatalogueCertOut(
+                code=c.code,
+                name=c.name,
+                provider=c.provider,
+                required_hours=c.required_hours,
+                is_optional=c.is_optional,
+                link=c.link,
+            )
+        )
+    return [
+        CatalogueCourseOut(
+            code=c.code,
+            name=c.name,
+            stage=c.stage.value,
+            dimension=c.dimension.value,
+            semester=c.semester,
+            teaching_hours=c.teaching_hours,
+            self_learning_hours_required=c.self_learning_hours_required,
+            model_type=c.model_type.value,
+            duration_weeks=c.duration_weeks,
+            certifications=certs.get(c.code, []),
+        )
+        for c in courses
+    ]
+
+
+# --- jobs sheet -----------------------------------------------------------
+
+
+class JobSheetOut(BaseModel):
+    id: str
+    title: str
+    company: str
+    degree_level: str
+    location: str | None
+    apply_url: str | None
+    required_skills: list[str]
+    posted_on: datetime
+    closes_on: datetime | None
+    min_cgpa: float | None
+    max_live_backlogs: int | None
+    # How many students have applied. The sheet's real question is which
+    # postings are working, and a posting nobody applied to looks identical to a
+    # healthy one without this.
+    applicants: int
+
+
+@router.get("/jobs", response_model=list[JobSheetOut])
+def jobs_sheet(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[JobSheetOut]:
+    """Every posting on the board, newest first, with its application count."""
+    require_director(session)
+    counts = {
+        jid: n
+        for jid, n in db.execute(
+            select(JobApplication.job_id, func.count()).group_by(JobApplication.job_id)
+        ).all()
+    }
+    rows = db.scalars(select(Job).order_by(Job.posted_on.desc())).all()
+    return [
+        JobSheetOut(
+            id=j.id,
+            title=j.title,
+            company=j.company,
+            degree_level=j.degree_level.value,
+            location=j.location,
+            apply_url=j.apply_url,
+            required_skills=list(j.required_skills or []),
+            posted_on=j.posted_on,
+            closes_on=j.closes_on,
+            min_cgpa=j.min_cgpa,
+            max_live_backlogs=j.max_live_backlogs,
+            applicants=counts.get(j.id, 0),
+        )
+        for j in rows
+    ]

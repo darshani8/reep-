@@ -8,7 +8,9 @@
         you have already signed does not appear here.
       </div>
     </div>
-    <span class="chip warn"><span class="icon">hourglass_top</span> Pending {{ pendingCount() }}</span>
+    <span class="chip warn"
+      ><span class="icon">hourglass_top</span> Pending {{ pendingCount() }}</span
+    >
   </div>
 
   @if (error()) {
@@ -61,13 +63,34 @@
 
             <table class="sheet-table">
               <tbody>
-                <tr><th scope="row">Name</th><td>{{ r.requester_name }}</td></tr>
-                <tr><th scope="row">Designation</th><td>{{ r.requester_designation || 'Not on record' }}</td></tr>
-                <tr><th scope="row">Department</th><td>{{ r.requester_department || 'Not on record' }}</td></tr>
-                <tr><th scope="row">Date</th><td>{{ dateSpan(r) }}</td></tr>
-                <tr><th scope="row">Purpose</th><td>{{ r.reason }}</td></tr>
-                <tr><th scope="row">Credit</th><td>{{ r.credit || '—' }}</td></tr>
-                <tr><th scope="row">Sanctioned</th><td>Pending your decision</td></tr>
+                <tr>
+                  <th scope="row">Name</th>
+                  <td>{{ r.requester_name }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Designation</th>
+                  <td>{{ r.requester_designation || 'Not on record' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Department</th>
+                  <td>{{ r.requester_department || 'Not on record' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Date</th>
+                  <td>{{ dateSpan(r) }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Purpose</th>
+                  <td>{{ r.reason }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Credit</th>
+                  <td>{{ r.credit || '—' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Sanctioned</th>
+                  <td>Pending your decision</td>
+                </tr>
               </tbody>
             </table>
 
@@ -87,19 +110,32 @@
 
             <div class="sheet-rule"></div>
             <div class="alt-head">Alternate Arrangements: (For Department purpose)</div>
-            <div class="alt-name">Name: <span class="alt-name-val">{{ r.alt_name || '—' }}</span></div>
+            <div class="alt-name">
+              Name: <span class="alt-name-val">{{ r.alt_name || '—' }}</span>
+            </div>
             <table class="alt-table">
               <thead>
-                <tr><th>Date</th><th>Staff Name (Alternative)</th><th>Class</th><th>Time</th><th>Remarks</th></tr>
+                <tr>
+                  <th>Date</th>
+                  <th>Staff Name (Alternative)</th>
+                  <th>Class</th>
+                  <th>Time</th>
+                  <th>Remarks</th>
+                </tr>
               </thead>
               <tbody>
                 @for (a of r.alt_rows; track $index) {
                   <tr>
-                    <td>{{ a.date }}</td><td>{{ a.staff_name }}</td><td>{{ a.cls }}</td>
-                    <td>{{ a.time }}</td><td>{{ a.remarks }}</td>
+                    <td>{{ a.date }}</td>
+                    <td>{{ a.staff_name }}</td>
+                    <td>{{ a.cls }}</td>
+                    <td>{{ a.time }}</td>
+                    <td>{{ a.remarks }}</td>
                   </tr>
                 } @empty {
-                  <tr><td colspan="5" class="alt-empty">No alternate arrangements recorded.</td></tr>
+                  <tr>
+                    <td colspan="5" class="alt-empty">No alternate arrangements recorded.</td>
+                  </tr>
                 }
               </tbody>
             </table>

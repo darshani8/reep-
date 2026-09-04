@@ -86,7 +86,9 @@
   font-family: var(--font);
   cursor: pointer;
   margin-bottom: 18px;
-  transition: border-color 0.14s ease, background 0.14s ease;
+  transition:
+    border-color 0.14s ease,
+    background 0.14s ease;
 }
 .cert-drop:hover {
   border-color: var(--purple-mid);

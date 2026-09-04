@@ -221,7 +221,10 @@ export class SkillingComponent {
       // The issuer belongs on the artefact, not the claim — it describes the
       // certificate, which is what a reviewer opens.
       const issuer = this.claimIssuer().trim();
-      form.append('title', issuer ? `${badge?.name ?? file.name} — ${issuer}` : (badge?.name ?? file.name));
+      form.append(
+        'title',
+        issuer ? `${badge?.name ?? file.name} — ${issuer}` : (badge?.name ?? file.name),
+      );
       const up = await fetch(`${environment.apiBase}/student/uploads`, {
         method: 'POST',
         credentials: 'include',

@@ -77,7 +77,10 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
         <div>{{ error() }}</div>
       </div>
     } @else if (!loaded()) {
-      <div class="empty"><span class="icon">hourglass_top</span><p>Loading your academic record…</p></div>
+      <div class="empty">
+        <span class="icon">hourglass_top</span>
+        <p>Loading your academic record…</p>
+      </div>
     } @else {
       <div class="notice info">
         <span class="icon">verified_user</span>
@@ -96,7 +99,8 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
         </div>
         @if (semesters().length === 0) {
           <div class="empty" style="padding:26px;">
-            <span class="icon">table_rows</span><p>No semester results imported yet.</p>
+            <span class="icon">table_rows</span>
+            <p>No semester results imported yet.</p>
           </div>
         } @else {
           <table class="tbl">
@@ -120,10 +124,18 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
             }
             @if (aggregate(); as agg) {
               <tr>
-                <td colspan="2"><b>Aggregate <span class="req" style="color:var(--risk)">*</span></b></td>
-                <td class="num"><b>{{ agg.cgpa != null ? agg.cgpa : '—' }}</b></td>
-                <td class="num"><b>{{ agg.closed }}</b></td>
-                <td class="num"><b>{{ agg.live }}</b></td>
+                <td colspan="2">
+                  <b>Aggregate <span class="req" style="color:var(--risk)">*</span></b>
+                </td>
+                <td class="num">
+                  <b>{{ agg.cgpa != null ? agg.cgpa : '—' }}</b>
+                </td>
+                <td class="num">
+                  <b>{{ agg.closed }}</b>
+                </td>
+                <td class="num">
+                  <b>{{ agg.live }}</b>
+                </td>
                 <td></td>
               </tr>
             }
@@ -136,24 +148,34 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
         <h3>Other degrees</h3>
         @if (degrees().length === 0) {
           <div class="empty" style="padding:26px;">
-            <span class="icon">school</span><p>No prior degrees on record.</p>
+            <span class="icon">school</span>
+            <p>No prior degrees on record.</p>
           </div>
         } @else {
           @for (q of degrees(); track $index) {
             <div class="entry">
-              <div class="tools"><button type="button"><span class="icon" style="font-size:17px">visibility</span></button></div>
+              <div class="tools">
+                <button type="button">
+                  <span class="icon" style="font-size:17px">visibility</span>
+                </button>
+              </div>
               <h4>
                 {{ levelLabel(q.level) }}
-                @if (q.subjects) { <span class="tag">{{ q.subjects }}</span> }
+                @if (q.subjects) {
+                  <span class="tag">{{ q.subjects }}</span>
+                }
               </h4>
               <div class="org">{{ q.institution }}</div>
               <div class="meta">
                 {{ q.board ? q.board + ' · ' : '' }}{{ q.year }} · {{ q.marks }} / {{ q.max_marks }}
-                @if (q.percent) { ({{ q.percent }}%) }
+                @if (q.percent) {
+                  ({{ q.percent }}%)
+                }
               </div>
               @if (q.medium || q.location) {
                 <div class="meta">
-                  {{ q.medium ? 'Medium: ' + q.medium : '' }}{{ q.medium && q.location ? ' · ' : '' }}{{ q.location }}
+                  {{ q.medium ? 'Medium: ' + q.medium : '' }}{{ q.medium && q.location ? ' · ' : ''
+                  }}{{ q.location }}
                 </div>
               }
             </div>
@@ -166,16 +188,28 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
         <div class="card" style="margin-bottom:0;">
           <h3>12th standard</h3>
           @if (twelfth().length === 0) {
-            <div class="empty" style="padding:26px;"><span class="icon">school</span><p>No 12th record added.</p></div>
+            <div class="empty" style="padding:26px;">
+              <span class="icon">school</span>
+              <p>No 12th record added.</p>
+            </div>
           } @else {
             @for (q of twelfth(); track $index) {
               <div class="entry">
-                <div class="tools"><button type="button"><span class="icon" style="font-size:17px">visibility</span></button></div>
+                <div class="tools">
+                  <button type="button">
+                    <span class="icon" style="font-size:17px">visibility</span>
+                  </button>
+                </div>
                 <h4>{{ q.institution }}</h4>
-                <div class="meta">{{ q.board ? q.board + ' — ' : '' }}{{ q.year }} · {{ q.marks }} / {{ q.max_marks }}</div>
+                <div class="meta">
+                  {{ q.board ? q.board + ' — ' : '' }}{{ q.year }} · {{ q.marks }} /
+                  {{ q.max_marks }}
+                </div>
                 @if (q.subjects || q.medium) {
                   <div class="meta">
-                    {{ q.subjects ? 'Subjects: ' + q.subjects : '' }}{{ q.subjects && q.medium ? ' · ' : '' }}{{ q.medium ? 'Medium: ' + q.medium : '' }}
+                    {{ q.subjects ? 'Subjects: ' + q.subjects : ''
+                    }}{{ q.subjects && q.medium ? ' · ' : ''
+                    }}{{ q.medium ? 'Medium: ' + q.medium : '' }}
                   </div>
                 }
               </div>
@@ -185,14 +219,26 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
         <div class="card" style="margin-bottom:0;">
           <h3>10th standard</h3>
           @if (tenth().length === 0) {
-            <div class="empty" style="padding:26px;"><span class="icon">school</span><p>No 10th record added.</p></div>
+            <div class="empty" style="padding:26px;">
+              <span class="icon">school</span>
+              <p>No 10th record added.</p>
+            </div>
           } @else {
             @for (q of tenth(); track $index) {
               <div class="entry">
-                <div class="tools"><button type="button"><span class="icon" style="font-size:17px">visibility</span></button></div>
+                <div class="tools">
+                  <button type="button">
+                    <span class="icon" style="font-size:17px">visibility</span>
+                  </button>
+                </div>
                 <h4>{{ q.institution }}</h4>
-                <div class="meta">{{ q.board ? q.board + ' — ' : '' }}{{ q.year }} · {{ q.marks }} / {{ q.max_marks }}</div>
-                @if (q.medium) { <div class="meta">Medium: {{ q.medium }}</div> }
+                <div class="meta">
+                  {{ q.board ? q.board + ' — ' : '' }}{{ q.year }} · {{ q.marks }} /
+                  {{ q.max_marks }}
+                </div>
+                @if (q.medium) {
+                  <div class="meta">Medium: {{ q.medium }}</div>
+                }
               </div>
             }
           }
@@ -203,14 +249,25 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
       <div class="card" style="margin-top:18px;">
         <h3>Diploma (equivalent to 12th)</h3>
         @if (diploma().length === 0) {
-          <div class="empty" style="padding:26px;"><span class="icon">school</span><p>No diploma record added.</p></div>
+          <div class="empty" style="padding:26px;">
+            <span class="icon">school</span>
+            <p>No diploma record added.</p>
+          </div>
         } @else {
           @for (q of diploma(); track $index) {
             <div class="entry">
-              <div class="tools"><button type="button"><span class="icon" style="font-size:17px">visibility</span></button></div>
+              <div class="tools">
+                <button type="button">
+                  <span class="icon" style="font-size:17px">visibility</span>
+                </button>
+              </div>
               <h4>{{ q.institution }}</h4>
-              <div class="meta">{{ q.board ? q.board + ' — ' : '' }}{{ q.year }} · {{ q.marks }} / {{ q.max_marks }}</div>
-              @if (q.subjects) { <div class="meta">Subjects: {{ q.subjects }}</div> }
+              <div class="meta">
+                {{ q.board ? q.board + ' — ' : '' }}{{ q.year }} · {{ q.marks }} / {{ q.max_marks }}
+              </div>
+              @if (q.subjects) {
+                <div class="meta">Subjects: {{ q.subjects }}</div>
+              }
             </div>
           }
         }
@@ -224,12 +281,26 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
           than leave a hole. Managed with your mentor.
         </div>
         <div class="grid4">
-          <div class="field"><label>12th → graduation (months)</label><input class="ctrl" [value]="gap().twelfth_to_grad_mo" disabled></div>
-          <div class="field"><label>Diploma → graduation (months)</label><input class="ctrl" [value]="gap().diploma_to_grad_mo" disabled></div>
-          <div class="field"><label>Graduation → PG (months)</label><input class="ctrl" [value]="gap().grad_to_pg_mo" disabled></div>
-          <div class="field"><label>Other gap (months)</label><input class="ctrl" [value]="gap().other_mo" disabled></div>
+          <div class="field">
+            <label>12th → graduation (months)</label
+            ><input class="ctrl" [value]="gap().twelfth_to_grad_mo" disabled />
+          </div>
+          <div class="field">
+            <label>Diploma → graduation (months)</label
+            ><input class="ctrl" [value]="gap().diploma_to_grad_mo" disabled />
+          </div>
+          <div class="field">
+            <label>Graduation → PG (months)</label
+            ><input class="ctrl" [value]="gap().grad_to_pg_mo" disabled />
+          </div>
+          <div class="field">
+            <label>Other gap (months)</label
+            ><input class="ctrl" [value]="gap().other_mo" disabled />
+          </div>
         </div>
-        <div class="desc" style="margin:0;">Total declared gap: <b>{{ gap().total_mo }}</b> months.</div>
+        <div class="desc" style="margin:0;">
+          Total declared gap: <b>{{ gap().total_mo }}</b> months.
+        </div>
       </div>
     }
   `,

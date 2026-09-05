@@ -213,3 +213,57 @@ def test_generated_resume_lists_verified_skills_only(client, pair):
 
     assert granted_name in markdown, "a verified skill must reach the document"
     assert pending_name not in markdown, "an unverified skill must not be presented as a skill"
+
+
+@requires_db
+def test_recently_reviewed_is_scoped_and_carries_the_decision(client, pair, make_user):
+    """The queue's history strip: a decided claim leaves the pending list and
+    appears under Recently reviewed WITH the note the student was given — and
+    under the same rule-2 scope as the queue, so a mentor with no group reads an
+    empty history rather than the programme's."""
+    skill_id, skill_name = new_skill(pair, "history")
+    claim = file_a_claim(client, pair.student, skill_id)
+
+    # The pending card names the evidence behind the claim before it is opened.
+    r = client.get("/api/mentor/skill-claims/pending", headers=pair.mentor_headers)
+    assert r.status_code == 200, r.text
+    row = next(c for c in r.json() if c["id"] == claim)
+    assert row["evidence_title"] == "Course certificate"
+    assert row["evidence_file_name"] == "cert.pdf"
+    assert row["evidence_kind"] == "CERTIFICATE_PROOF"
+
+    r = client.get("/api/mentor/skill-claims/reviewed", headers=pair.mentor_headers)
+    assert r.status_code == 200, r.text
+    assert claim not in [c["id"] for c in r.json()], "undecided claims are not history"
+
+    r = client.post(
+        f"/api/mentor/skill-claims/{claim}/review",
+        headers=pair.mentor_headers,
+        json={"decision": "CHANGES", "note": "Upload the certificate with your name on it."},
+    )
+    assert r.status_code == 200, r.text
+
+    r = client.get("/api/mentor/skill-claims/reviewed", headers=pair.mentor_headers)
+    assert r.status_code == 200, r.text
+    hist = next(c for c in r.json() if c["id"] == claim)
+    assert hist["status"] == "NEEDS_CHANGES"
+    assert hist["skill_name"] == skill_name
+    assert hist["review_note"] == "Upload the certificate with your name on it."
+    assert hist["reviewed_at"] is not None
+
+    r = client.get("/api/mentor/skill-claims/pending", headers=pair.mentor_headers)
+    assert claim not in [c["id"] for c in r.json()], "a decided claim has left the queue"
+
+    # `limit` is honoured and bounded.
+    r = client.get("/api/mentor/skill-claims/reviewed?limit=1", headers=pair.mentor_headers)
+    assert r.status_code == 200 and len(r.json()) == 1
+    assert client.get(
+        "/api/mentor/skill-claims/reviewed?limit=0", headers=pair.mentor_headers
+    ).status_code == 422
+
+    # Rule 2: a MENTOR with no group sees NOBODY's history, and a student none at all.
+    loner = make_user("sv-loner", Role.MENTOR)
+    r = client.get("/api/mentor/skill-claims/reviewed", headers=loner.headers)
+    assert r.status_code == 200 and r.json() == []
+    r = client.get("/api/mentor/skill-claims/reviewed", headers=pair.student.headers)
+    assert r.status_code == 403

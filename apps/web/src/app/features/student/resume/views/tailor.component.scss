@@ -74,60 +74,67 @@
   margin-top: 8px;
 }
 
-.tailor-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+/* --- the guidance card: what is still missing for the role --- */
+.tailored {
   margin-top: 16px;
 }
-@media (max-width: 820px) {
-  .tailor-grid {
-    grid-template-columns: 1fr;
-  }
+.tailored-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
 }
-
-.t-count {
-  font-family: var(--font);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--muted);
-}
-.t-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-.t-pill {
-  padding: 6px 12px;
-  border-radius: 999px;
+.tailored-lede {
   font-size: 12.5px;
-  font-weight: 600;
-  background: var(--tint-2);
-  border: 1px solid var(--hairline);
   color: var(--muted);
+  margin-bottom: 14px;
 }
-.t-pill--have {
-  background: var(--good-bg);
-  border-color: rgba(19, 122, 74, 0.35);
-  color: var(--good);
-}
-
-.t-hint {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  margin-top: 12px;
-  padding: 10px 12px;
+.block {
   border-radius: 14px;
-  background: rgba(85, 44, 126, 0.09);
-  color: var(--brand-purple);
-  font-size: 12.5px;
-  line-height: 1.5;
+  padding: 12px 14px;
+  margin-bottom: 12px;
 }
-.t-hint .icon {
-  font-size: 18px;
-  flex: none;
+.block:last-child {
+  margin-bottom: 0;
+}
+.block--risk {
+  background: rgba(173, 36, 82, 0.08);
+}
+.block--risk .block-title {
+  color: var(--risk);
+}
+.block--tint {
+  background: var(--tint-2);
+}
+.block--tint .block-title {
+  color: var(--muted);
+}
+.block-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.block-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-top: 1px solid rgba(173, 36, 82, 0.12);
+  color: var(--ink);
+}
+.block-status {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.block-line {
+  font-size: 13px;
+  padding: 4px 0;
+  color: var(--ink);
 }
 
 .state-note {

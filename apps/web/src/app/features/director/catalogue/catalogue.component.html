@@ -1,79 +1,242 @@
 <div class="panel" data-p="catalogue">
   <div class="dt-header">
     <div>
-      <div class="eyebrow">Admin · programme design</div>
       <div class="dt-title">Catalogue</div>
-      <div class="dt-sub">Every course in the programme and the certifications mapped to it.</div>
-    </div>
-    @if (courses()?.length) {
-      <div class="cat-totals">
-        <span class="chip neutral">{{ totals().courses }} courses</span>
-        <span class="chip neutral">{{ totals().certs }} certifications</span>
-        @if (totals().uncovered) {
-          <span class="chip warn">
-            <span class="icon">info</span>{{ totals().uncovered }} with no certification
-          </span>
-        }
+      <div class="dt-sub">
+        What students may enrol in, and which certifications count towards a badge.
       </div>
+    </div>
+    @if (tab() === 'certs') {
+      <button type="button" class="btn primary" (click)="toggleForm()">
+        <span class="icon">{{ formOpen() ? 'close' : 'add' }}</span>
+        {{ formOpen() ? 'Close' : 'Add certification' }}
+      </button>
     }
+  </div>
+
+  <div class="tabs-row">
+    <button type="button" [class.active]="tab() === 'courses'" (click)="setTab('courses')">
+      Courses
+    </button>
+    <button type="button" [class.active]="tab() === 'certs'" (click)="setTab('certs')">
+      Certifications
+    </button>
   </div>
 
   @if (error()) {
     <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
-  } @else if (semesters() === null) {
-    <div class="state-note"><span class="icon">hourglass_empty</span>Loading the catalogue…</div>
-  } @else if (semesters()!.length === 0) {
-    <div class="card">No courses in the catalogue yet.</div>
-  } @else {
-    @for (sem of semesters()!; track sem.semester) {
-      <h3 class="sem-head">Semester {{ sem.semester }}</h3>
-      @for (c of sem.courses; track c.code) {
-        <div class="card course">
-          <div class="course-head">
-            <div>
-              <strong>{{ c.code }}</strong> · {{ c.name }}
-              <div class="course-meta">
-                {{ c.stage }} · {{ c.dimension }} · {{ c.model_type }} ·
-                {{ c.duration_weeks }} weeks
-              </div>
-            </div>
-            <div class="course-hours">
-              <span>{{ c.teaching_hours }} h taught</span>
-              <span>{{ c.self_learning_hours_required }} h self-study</span>
-            </div>
-          </div>
+  }
 
-          @if (c.certifications.length) {
-            <div class="certs">
-              @for (cert of c.certifications; track cert.code) {
-                <div class="cert">
-                  <span class="icon">workspace_premium</span>
-                  <div class="cert-main">
-                    <div class="cert-name">
-                      @if (cert.link) {
-                        <a [href]="cert.link" target="_blank" rel="noopener">{{ cert.name }}</a>
+  @if (tab() === 'certs' && formOpen()) {
+    <div class="card form-card">
+      <div class="card-title">New certification</div>
+      <div class="form-grid">
+        <label class="fld">
+          Certification
+          <input
+            type="text"
+            class="ctrl"
+            placeholder="e.g. Microsoft PL-300"
+            [value]="fName()"
+            (input)="fName.set($any($event.target).value)"
+          />
+        </label>
+        <label class="fld">
+          Provider
+          <input
+            type="text"
+            class="ctrl"
+            placeholder="e.g. Microsoft"
+            [value]="fProvider()"
+            (input)="fProvider.set($any($event.target).value)"
+          />
+        </label>
+        <label class="fld">
+          Badge
+          <select class="ctrl" [value]="fBadge()" (change)="fBadge.set($any($event.target).value)">
+            @for (b of badges(); track b.code) {
+              <option [value]="b.code">{{ b.name }} · {{ b.points }} pts</option>
+            }
+          </select>
+        </label>
+        <label class="fld">
+          Link <span class="opt">(optional)</span>
+          <input
+            type="url"
+            class="ctrl"
+            placeholder="https://…"
+            [value]="fUrl()"
+            (input)="fUrl.set($any($event.target).value)"
+          />
+        </label>
+      </div>
+      <div class="form-foot">
+        <button type="button" class="btn primary" [disabled]="saving()" (click)="addCert()">
+          <span class="icon">add</span> Add to catalogue
+        </button>
+        @if (formBadge(); as b) {
+          <span class="derived">
+            Category {{ b.category_label }} · {{ b.points }} points · {{ stage(b.stage) }} stage
+          </span>
+        }
+        @if (formErr()) {
+          <span class="chip risk"><span class="icon">error</span> {{ formErr() }}</span>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="card">
+    @switch (tab()) {
+      @case ('courses') {
+        @if (courses() === null) {
+          <div class="state-note">
+            <span class="icon">hourglass_empty</span>Loading the catalogue…
+          </div>
+        } @else {
+          <div class="scroll">
+            <table class="dt-table cat-table">
+              <thead>
+                <tr>
+                  <th>Course</th>
+                  <th>Dimension</th>
+                  <th>Stage</th>
+                  <th>Semester</th>
+                  <th class="num">Hours</th>
+                  <th class="num">Enrolled</th>
+                  <th>Evidence path</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of courses()!; track c.code) {
+                  <tr>
+                    <td>
+                      <strong>{{ c.code }} · {{ c.name }}</strong>
+                      <div class="meta">
+                        {{ dimension(c.model_type) }} · {{ c.duration_weeks }} weeks
+                      </div>
+                    </td>
+                    <td>{{ dimension(c.dimension) }}</td>
+                    <td>{{ stage(c.stage) }}</td>
+                    <td class="num">{{ c.semester }}</td>
+                    <td class="num" [title]="c.teaching_hours + ' h taught · ' + c.self_learning_hours_required + ' h self-study'">
+                      {{ hours(c) }}
+                    </td>
+                    <td class="num">{{ c.enrolled }}</td>
+                    <td>
+                      @if (c.certifications.length) {
+                        <span
+                          class="chip good"
+                          [title]="c.certifications.map((x) => x.name).join(', ')"
+                        >
+                          {{ c.certifications.length }} certification{{
+                            c.certifications.length === 1 ? '' : 's'
+                          }}
+                        </span>
                       } @else {
-                        {{ cert.name }}
+                        <span class="chip warn">None mapped</span>
                       }
-                    </div>
-                    <div class="cert-meta">{{ cert.provider }} · {{ cert.required_hours }} h</div>
-                  </div>
-                  @if (cert.is_optional) {
-                    <span class="chip neutral">Optional</span>
-                  } @else {
-                    <span class="chip good">Required</span>
-                  }
-                </div>
-              }
-            </div>
-          } @else {
-            <div class="no-cert">
-              <span class="icon">info</span>
-              No certification mapped — students on this course have no evidence path from it.
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7" class="empty-cell">No courses in the catalogue yet.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="foot-note">
+            Courses are the seeded curriculum — code, stage, dimension and delivery model come
+            from the programme design, not from this screen.
+          </div>
+        }
+      }
+      @case ('certs') {
+        @if (certs() === null) {
+          <div class="state-note">
+            <span class="icon">hourglass_empty</span>Loading the catalogue…
+          </div>
+        } @else {
+          <div class="scroll">
+            <table class="dt-table cat-table">
+              <thead>
+                <tr>
+                  <th>Certification</th>
+                  <th>Category</th>
+                  <th>Badge</th>
+                  <th class="num">Points</th>
+                  <th class="num">Claims</th>
+                  <th class="rm-col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of visibleCerts(); track c.id) {
+                  <tr [class.inactive]="!c.active">
+                    <td>
+                      <strong>
+                        @if (c.url) {
+                          <a [href]="c.url" target="_blank" rel="noopener">{{ c.name }}</a>
+                        } @else {
+                          {{ c.name }}
+                        }
+                      </strong>
+                      <div class="meta">
+                        {{ c.provider }}
+                        @if (!c.active) {
+                          · <span class="chip neutral">Inactive</span>
+                        }
+                      </div>
+                    </td>
+                    <td>{{ c.badge_category }}</td>
+                    <td>{{ c.badge_name }}</td>
+                    <td class="num">{{ c.badge_points }}</td>
+                    <td class="num">{{ c.claims }}</td>
+                    <td class="rm-col">
+                      @if (c.active) {
+                        <button
+                          type="button"
+                          class="rm-btn"
+                          title="Remove from the catalogue"
+                          [attr.aria-label]="'Remove ' + c.name + ' from the catalogue'"
+                          [disabled]="busyId() === c.id"
+                          (click)="setActive(c, false)"
+                        >
+                          <span class="icon">close</span>
+                        </button>
+                      } @else {
+                        <button
+                          type="button"
+                          class="btn sm"
+                          [disabled]="busyId() === c.id"
+                          (click)="setActive(c, true)"
+                        >
+                          Restore
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6" class="empty-cell">
+                      No approved certifications yet — add the first one above.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (inactiveCerts().length) {
+            <div class="foot-note">
+              <button type="button" class="link-btn" (click)="showInactive.set(!showInactive())">
+                {{ showInactive() ? 'Hide' : 'Show' }} {{ inactiveCerts().length }} removed
+              </button>
+              — removed certifications stay on record so evidence already filed against them
+              keeps its reference.
             </div>
           }
-        </div>
+        }
       }
     }
-  }
+  </div>
 </div>

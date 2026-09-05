@@ -1,57 +1,103 @@
-/* Jobs sheet. Panel / card / chip / dt-table are global. */
+/* Jobs sheet. Panel / card / chip / btn / ctrl / dt-table are global. */
 :host {
   display: block;
 }
 
-.js-totals {
+.form-card {
+  margin-bottom: 16px;
+}
+.card-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+.fld {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.fld .opt {
+  font-weight: 400;
+  color: var(--muted);
+}
+.form-foot {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
   flex-wrap: wrap;
-  align-self: center;
-}
-/* A chip that filters, so it looks like the count it filters on. */
-.js-filter {
-  border: 1px solid transparent;
-  cursor: pointer;
-  font: inherit;
-}
-.js-filter.on {
-  border-color: var(--warn);
 }
 
-/* The table has seven columns and a long role name; it scrolls INSIDE its own
-   box rather than pushing the page sideways. */
-.js-scroll {
+/* Seven columns and a long role name: the table scrolls INSIDE its own box
+   rather than pushing the page sideways. */
+.scroll {
   overflow-x: auto;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-card);
-  background: var(--surface);
 }
 .js-table {
-  min-width: 820px;
-  margin: 0;
+  min-width: 760px;
 }
-.js-posted {
+.js-table td {
+  color: var(--ink);
+  font-size: 13px;
+}
+.js-table strong {
+  font-weight: 700;
+}
+.meta {
   font-size: 11.5px;
   color: var(--faint);
   margin-top: 2px;
 }
-.js-gates {
-  font-size: 12px;
-  color: var(--muted);
+.nowrap {
+  white-space: nowrap;
 }
 .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-/* The row worth finding. */
-.quiet td {
-  background: var(--warn-bg);
-}
-.js-empty {
+.rm-col {
+  width: 44px;
   text-align: center;
+}
+.rm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--hairline-42);
+  background: var(--surface);
   color: var(--muted);
-  padding: 14px;
+}
+.rm-btn .icon {
+  font-size: 16px;
+}
+.rm-btn:hover:not([disabled]) {
+  background: var(--risk-bg);
+  color: var(--risk);
+  border-color: rgba(173, 36, 82, 0.3);
+}
+.rm-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.empty-cell {
+  padding: 16px 10px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .state-note {

@@ -1,84 +1,168 @@
 <div class="panel" data-p="placement">
   <div class="dt-header">
     <div>
-      <div class="eyebrow">Admin · placement</div>
       <div class="dt-title">Placement</div>
       <div class="dt-sub">
-        Self-reported offers awaiting approval. Approving one is what makes it count towards the
-        placement figures.
+        @if (data(); as d) {
+          @if (d.semester !== null) {
+            Semester {{ d.semester }} ·
+          }
+          {{ d.eligible }} eligible student{{ d.eligible === 1 ? '' : 's' }} · {{ d.offers }} offer{{
+            d.offers === 1 ? '' : 's'
+          }}
+          submitted
+        } @else if (!error()) {
+          Loading the placement figures…
+        } @else {
+          Placement figures unavailable.
+        }
       </div>
     </div>
-    <span class="chip warn"
-      ><span class="icon">hourglass_top</span> Pending {{ pendingCount() }}</span
-    >
+    @if (pendingCount() > 0) {
+      <span class="chip warn pending-chip">
+        <span class="icon">hourglass_top</span> {{ pendingCount() }} awaiting approval
+      </span>
+    }
   </div>
 
   @if (error()) {
     <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
   }
-
-  @for (entry of done() | keyvalue; track entry.key) {
-    <div class="decided"><span class="icon">check_circle</span>{{ entry.value }}</div>
+  @if (flash()) {
+    <div class="decided"><span class="icon">check_circle</span>{{ flash() }}</div>
   }
 
-  @if (rows() === null) {
-    <div class="state-note"><span class="icon">hourglass_empty</span>Loading offers…</div>
-  } @else if (rows()!.length === 0) {
-    <div class="card empty-card">
-      <span class="icon">task_alt</span>
-      <div>
-        <b>No offers waiting.</b>
-        <div class="empty-sub">Offers a student submits appear here for approval.</div>
+  @if (data(); as d) {
+    <div class="funnel">
+      <div class="stage">
+        <div class="stage-lbl">Eligible</div>
+        <div class="stage-val">{{ d.eligible }}</div>
+      </div>
+      <div class="stage">
+        <div class="stage-lbl">Applied</div>
+        <div class="stage-val">{{ d.applied }}</div>
+      </div>
+      <div class="stage">
+        <div class="stage-lbl">Offers</div>
+        <div class="stage-val">{{ d.offers }}</div>
+      </div>
+      <div class="stage">
+        <div class="stage-lbl">Approved</div>
+        <div class="stage-val">{{ d.approved }}</div>
       </div>
     </div>
-  } @else {
-    @for (r of rows()!; track r.id) {
-      <div class="card offer">
-        <div class="offer-head">
-          <div>
-            <strong>{{ r.student_name }}</strong>
-            <div class="offer-role">{{ r.job_title }} · {{ r.organisation }}</div>
-          </div>
-          <div class="offer-facts">
-            <span class="chip neutral">{{ roleLabel(r.role_type) }}</span>
-            <span class="offer-ctc">{{ ctc(r.ctc_inr) }}<small>CTC</small></span>
-          </div>
-        </div>
 
-        <label class="note-field">
-          <span class="fld">
-            Note <span class="fld-hint">(required to reject, optional to approve)</span>
-          </span>
-          <input
-            type="text"
-            [value]="note(r.id)"
-            (input)="setNote(r.id, $any($event.target).value)"
-            placeholder="e.g. Offer letter seen and verified with the company."
-          />
-        </label>
-        @if (noteError()) {
-          <div class="note-error">{{ noteError() }}</div>
-        }
-
-        <div class="decide-row">
-          <button
-            type="button"
-            class="btn primary"
-            [disabled]="deciding() === r.id"
-            (click)="decide(r, 'APPROVE')"
-          >
-            <span class="icon">check_circle</span> Approve
-          </button>
-          <button
-            type="button"
-            class="btn btn-reject"
-            [disabled]="deciding() === r.id"
-            (click)="decide(r, 'REJECT')"
-          >
-            <span class="icon">cancel</span> Reject
-          </button>
-        </div>
+    <div class="card offers-card">
+      <div class="card-title">Recent offers</div>
+      <div class="scroll">
+        <table class="dt-table offers-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Company</th>
+              <th>Role</th>
+              <th>CTC</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of d.recent; track r.id) {
+              <tr>
+                <td>
+                  {{ r.student_name }}
+                  @if (r.usn) {
+                    <span class="usn">· {{ r.usn }}</span>
+                  }
+                </td>
+                <td>{{ r.organisation }}</td>
+                <td>
+                  {{ r.job_title }}
+                  <div class="meta">{{ roleLabel(r.role_type) }}</div>
+                </td>
+                <td class="nowrap">{{ ctc(r.ctc_inr) }}</td>
+                <td>
+                  @let c = chip(r.status);
+                  <span class="chip {{ c.tone }}">{{ c.label }}</span>
+                  @if (r.decided_at) {
+                    <div class="meta">{{ r.decided_at | date: 'd MMM y' }}</div>
+                  }
+                </td>
+                <td>
+                  @if (r.status === 'PENDING_APPROVAL' && !rejectUi(r.id)) {
+                    <div class="row-actions">
+                      <button
+                        type="button"
+                        class="btn primary sm"
+                        [disabled]="deciding() === r.id"
+                        (click)="approve(r)"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        class="btn sm btn-reject"
+                        [disabled]="deciding() === r.id"
+                        (click)="openReject(r.id)"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  }
+                </td>
+              </tr>
+              @if (rejectUi(r.id); as ui) {
+                <tr class="reject-row">
+                  <td colspan="6">
+                    <div class="reject-line">
+                      <input
+                        type="text"
+                        class="ctrl remarks"
+                        placeholder="Remarks — why this offer is not approved (required, shown to the student)"
+                        [value]="ui.remarks"
+                        (input)="setRemarks(r.id, $any($event.target).value)"
+                      />
+                      <button
+                        type="button"
+                        class="btn sm btn-confirm-reject"
+                        [disabled]="deciding() === r.id"
+                        (click)="confirmReject(r)"
+                      >
+                        Confirm reject
+                      </button>
+                      <button type="button" class="btn sm" (click)="cancelReject(r.id)">
+                        Cancel
+                      </button>
+                    </div>
+                    @if (ui.err) {
+                      <div class="note-error">Remarks are required.</div>
+                    }
+                  </td>
+                </tr>
+              }
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty-cell">
+                  No offers recorded yet. Offers a student submits appear here for approval.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
-    }
+    </div>
+
+    <div class="card">
+      <div class="card-title">Top recruiters this semester</div>
+      <div class="recruiters">
+        @for (r of d.top_recruiters; track r.organisation) {
+          <span class="chip recruiter">{{ r.organisation }} · {{ r.count }}</span>
+        } @empty {
+          <span class="muted">No approved offers yet, so no recruiter has a count.</span>
+        }
+      </div>
+    </div>
+  } @else if (!error()) {
+    <div class="state-note"><span class="icon">hourglass_empty</span>Loading offers…</div>
   }
 </div>

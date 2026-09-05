@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -560,15 +560,25 @@ class ApprovedCertificationOut(BaseModel):
     provider: str
     badge_code: str
     badge_name: str
+    # Read off the badge catalogue (code, not rows): the category the badge
+    # sits in and the points it is worth. The Catalogue screen's Category and
+    # Points columns, derived here so the two can never disagree with the badge.
+    badge_category: str
+    badge_points: int
     evidence_type: str
     stage: str
     duration_text: str | None
     is_free: bool
     url: str | None
     active: bool
+    # Evidence rows students have filed against this catalogue entry, in any
+    # review state. A certification nobody claims is a finding, not a gap.
+    claims: int
 
 
-def _approved_certification_row(c: ApprovedCertification) -> ApprovedCertificationOut:
+def _approved_certification_row(
+    c: ApprovedCertification, claims: int = 0
+) -> ApprovedCertificationOut:
     badge = BADGE_BY_CODE.get(c.badge_code)
     return ApprovedCertificationOut(
         id=c.id,
@@ -576,12 +586,15 @@ def _approved_certification_row(c: ApprovedCertification) -> ApprovedCertificati
         provider=c.provider,
         badge_code=c.badge_code,
         badge_name=badge.name if badge else c.badge_code,
+        badge_category=CATEGORY_LABEL[badge.category] if badge else "",
+        badge_points=badge.points if badge else 0,
         evidence_type=c.evidence_type.value,
         stage=c.stage.value,
         duration_text=c.duration_text,
         is_free=c.is_free,
         url=c.url,
         active=c.active,
+        claims=claims,
     )
 
 
@@ -604,8 +617,16 @@ def list_approved_certifications(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[ApprovedCertificationOut]:
     require_director(session)
+    claims = {
+        cert_id: n
+        for cert_id, n in db.execute(
+            select(BadgeEvidence.approved_certification_id, func.count())
+            .where(BadgeEvidence.approved_certification_id.is_not(None))
+            .group_by(BadgeEvidence.approved_certification_id)
+        ).all()
+    }
     return [
-        _approved_certification_row(c)
+        _approved_certification_row(c, claims.get(c.id, 0))
         for c in db.scalars(select(ApprovedCertification).order_by(ApprovedCertification.name)).all()
     ]
 
@@ -660,4 +681,12 @@ def edit_approved_certification(
     cert.active = body.active
     db.commit()
     db.refresh(cert)
-    return _approved_certification_row(cert)
+    claims = (
+        db.scalar(
+            select(func.count())
+            .select_from(BadgeEvidence)
+            .where(BadgeEvidence.approved_certification_id == cert.id)
+        )
+        or 0
+    )
+    return _approved_certification_row(cert, claims)

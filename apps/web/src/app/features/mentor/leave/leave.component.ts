@@ -23,12 +23,20 @@
  * Name, Designation and Department are printed from the user record and are not
  * editable: they are what the institution holds, and a form whose identity
  * fields can be typed over is not evidence of anything.
+ *
+ * DRAFTS LIVE IN THIS BROWSER, AND SAY SO. `leave_requests` has no DRAFT status
+ * — a row exists once it is signed — so "Save draft" keeps the unsigned form in
+ * localStorage, one per device, labelled "saved on this device" wherever it is
+ * shown. Nothing about it reaches the server until Sign & submit. "Edit &
+ * resubmit" on a rejected request copies that form into a new draft; the
+ * rejected row itself stays exactly as the director decided it.
  */
 
 import { DatePipe } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/auth.service';
 
 interface AltRow {
   date: string;
@@ -57,6 +65,20 @@ interface LeaveRow {
   director_note: string | null;
 }
 
+/** What "Save draft" keeps, in this browser only. */
+interface LocalDraft {
+  kind: string;
+  from: string;
+  to: string;
+  purpose: string;
+  credit: string;
+  altName: string;
+  altRows: AltRow[];
+  savedAt: string;
+}
+
+const DRAFT_KEY = 'reep.mentor.leave.draft';
+
 /** The five printed options, in the order the sheet lists them. */
 export const LEAVE_KINDS = [
   { id: 'CASUAL', label: 'Casual Leave' },
@@ -72,21 +94,35 @@ interface Chip {
   label: string;
 }
 
+/** Status -> chip. Text and colour together, never colour alone. */
 function statusChip(status: string): Chip {
   switch (status) {
     case 'APPROVED':
-      return { tone: 'good', icon: 'verified', label: 'Sanctioned' };
+      return { tone: 'good', icon: 'check_circle', label: 'Approved' };
     case 'REJECTED':
-      return { tone: 'risk', icon: 'cancel', label: 'Not sanctioned' };
+      return { tone: 'risk', icon: 'cancel', label: 'Rejected' };
+    case 'CANCELLED':
+      return { tone: 'neutral', icon: 'event_busy', label: 'Cancelled' };
     case 'FIRST_APPROVED':
-      return { tone: 'warn', icon: 'hourglass_top', label: 'Part-approved' };
+      return { tone: 'warn', icon: 'how_to_reg', label: 'One approval in · awaiting Program Director' };
     default:
-      return { tone: 'warn', icon: 'schedule', label: 'With the Program Director' };
+      return { tone: 'warn', icon: 'hourglass_top', label: 'Pending Admin / Program Director' };
   }
 }
 
 function emptyAltRow(): AltRow {
   return { date: '', staff_name: '', cls: '', time: '', remarks: '' };
+}
+
+function readDraft(): LocalDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as LocalDraft;
+    return d && typeof d === 'object' && Array.isArray(d.altRows) ? d : null;
+  } catch {
+    return null;
+  }
 }
 
 @Component({
@@ -97,16 +133,21 @@ function emptyAltRow(): AltRow {
   styleUrl: './leave.component.scss',
 })
 export class LeaveComponent {
+  private readonly auth = inject(AuthService);
   readonly kinds = LEAVE_KINDS;
+  readonly today = new Date();
 
   readonly rows = signal<LeaveRow[] | null>(null);
   readonly error = signal<string | null>(null);
 
-  /// null = the dashboard; a row = reading that form; 'new' = filling one in.
+  /// null = the dashboard; a row = reading that form; composing = filling one in.
   readonly viewing = signal<LeaveRow | null>(null);
   readonly composing = signal(false);
   readonly submitting = signal(false);
   readonly formError = signal<string | null>(null);
+  /// The draft kept on this device, if any.
+  readonly draft = signal<LocalDraft | null>(readDraft());
+  readonly draftFlash = signal(false);
 
   /// Draft state for a new form.
   readonly fKind = signal<string>('CASUAL');
@@ -117,11 +158,13 @@ export class LeaveComponent {
   readonly fAltName = signal('');
   readonly fAltRows = signal<AltRow[]>([emptyAltRow(), emptyAltRow(), emptyAltRow()]);
 
-  /// Identity for the form being composed, taken from any existing request.
+  /// Identity for the form being composed: the signed-in name, and the
+  /// designation / department the last request printed (the user record is
+  /// the source; a first-ever form shows "Not on record" until one exists).
   readonly identity = computed(() => {
     const any = (this.rows() ?? [])[0];
     return {
-      name: any?.requester_name ?? '',
+      name: any?.requester_name || this.auth.session()?.name || '',
       designation: any?.requester_designation ?? null,
       department: any?.requester_department ?? null,
     };
@@ -143,12 +186,59 @@ export class LeaveComponent {
     return LEAVE_KINDS.find((k) => k.id === id)?.label ?? '—';
   }
 
+  /** The form's "Sanctioned" cell: only a final decision fills it. */
+  sanctioned(status: string): string {
+    if (status === 'APPROVED') return 'Sanctioned';
+    if (status === 'REJECTED') return 'Not sanctioned';
+    if (status === 'CANCELLED') return 'Cancelled';
+    return 'Pending';
+  }
+
+  remarksLabel(status: string): string {
+    return status === 'REJECTED'
+      ? 'Rejected — Admin / Program Director remarks'
+      : 'Admin / Program Director remarks';
+  }
+
   /** The form's "Date" cell: one day prints as one date, a span as a range. */
   dateSpan(row: { from_date: string; to_date: string }): string {
     return row.from_date === row.to_date ? row.from_date : `${row.from_date} — ${row.to_date}`;
   }
 
   startNew(): void {
+    this.resetDraft();
+    this.composing.set(true);
+    this.viewing.set(null);
+    this.formError.set(null);
+  }
+
+  /** Reopen the draft kept on this device. */
+  openDraft(): void {
+    const d = this.draft();
+    if (!d) return;
+    this.fKind.set(d.kind || 'CASUAL');
+    this.fFrom.set(d.from);
+    this.fTo.set(d.to);
+    this.fPurpose.set(d.purpose);
+    this.fCredit.set(d.credit);
+    this.fAltName.set(d.altName);
+    this.fAltRows.set(d.altRows.length ? d.altRows : [emptyAltRow(), emptyAltRow(), emptyAltRow()]);
+    this.composing.set(true);
+    this.viewing.set(null);
+    this.formError.set(null);
+  }
+
+  /** A rejected form, copied into a new one to correct and sign again. */
+  editAndResubmit(row: LeaveRow): void {
+    this.fKind.set(row.leave_kind ?? 'CASUAL');
+    this.fFrom.set(row.from_date);
+    this.fTo.set(row.to_date);
+    this.fPurpose.set(row.reason);
+    this.fCredit.set(row.credit ?? '');
+    this.fAltName.set(row.alt_name ?? '');
+    const rows = row.alt_rows.map((r) => ({ ...r }));
+    while (rows.length < 3) rows.push(emptyAltRow());
+    this.fAltRows.set(rows);
     this.composing.set(true);
     this.viewing.set(null);
     this.formError.set(null);
@@ -157,6 +247,7 @@ export class LeaveComponent {
   backToDash(): void {
     this.composing.set(false);
     this.viewing.set(null);
+    this.formError.set(null);
   }
 
   open(row: LeaveRow): void {
@@ -170,6 +261,40 @@ export class LeaveComponent {
 
   addAltRow(): void {
     this.fAltRows.update((rows) => [...rows, emptyAltRow()]);
+  }
+
+  /** Keep the unsigned form on this device. Nothing reaches the server. */
+  saveDraft(): void {
+    const d: LocalDraft = {
+      kind: this.fKind(),
+      from: this.fFrom(),
+      to: this.fTo(),
+      purpose: this.fPurpose(),
+      credit: this.fCredit(),
+      altName: this.fAltName(),
+      altRows: this.fAltRows(),
+      savedAt: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+      this.draft.set(d);
+      this.draftFlash.set(true);
+      setTimeout(() => this.draftFlash.set(false), 2500);
+      this.backToDash();
+    } catch {
+      this.formError.set('This browser would not keep the draft. Sign and submit, or copy the text.');
+    }
+  }
+
+  discardDraft(): void {
+    if (!window.confirm('Discard the draft saved on this device?')) return;
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // Nothing to do: the draft was never readable either.
+    }
+    this.draft.set(null);
+    this.resetDraft();
   }
 
   /**
@@ -207,6 +332,13 @@ export class LeaveComponent {
       }
       const created = (await res.json()) as LeaveRow;
       this.rows.update((list) => [created, ...(list ?? [])]);
+      // A signed form supersedes whatever draft was waiting on this device.
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // The draft card would then reappear; harmless, and rare.
+      }
+      this.draft.set(null);
       this.composing.set(false);
       this.viewing.set(created);
       this.resetDraft();

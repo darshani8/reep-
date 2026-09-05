@@ -102,6 +102,7 @@ type State = 'loading' | 'data' | 'error';
   standalone: true,
   imports: [DatePipe],
   templateUrl: './ledger.component.html',
+  styleUrl: './ledger.component.scss',
 })
 export class LedgerComponent {
   readonly state = signal<State>('loading');
@@ -109,6 +110,11 @@ export class LedgerComponent {
   readonly saving = signal(false);
   readonly ledger = signal<Ledger | null>(null);
   readonly day = signal<string>(todayIso());
+
+  /** The semester in the eyebrow — read from the student's record, never typed
+   *  into the template. Null until it arrives, and the eyebrow says "Daily log"
+   *  alone rather than inventing a number. */
+  readonly semester = signal<number | null>(null);
 
   /** What the student has typed, keyed `SLOT|ACTIVITY`. Cleared on every load
    *  so a stale edit cannot survive a date change. */
@@ -127,6 +133,20 @@ export class LedgerComponent {
   constructor() {
     void this.load();
     void this.loadWeekly();
+    void this.loadSemester();
+  }
+
+  private async loadSemester(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/student/dashboard`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const d = (await res.json()) as { current_semester?: number };
+      if (typeof d.current_semester === 'number') this.semester.set(d.current_semester);
+    } catch {
+      /* the eyebrow simply omits the semester */
+    }
   }
 
   // --- reads ---------------------------------------------------------------
@@ -215,6 +235,23 @@ export class LedgerComponent {
     const l = this.ledger();
     if (!l) return 0;
     return l.slots.reduce((sum, s) => sum + this.slotTotal(s), 0);
+  }
+
+  /** The footer chip beside the day total: what still separates the figures on
+   *  screen from a day that reconciles. Presentation of the student's own
+   *  unsaved input, like slotTotal — the server still decides on write. */
+  dayState(): { label: string; tone: Tone } {
+    const cap = this.ledger()?.day_capacity_hours ?? 24;
+    const diff = this.round(cap - this.dayTotal());
+    if (diff > 0) return { label: `${diff} h to reconcile`, tone: 'warn' };
+    if (diff < 0) return { label: `${this.round(-diff)} h over`, tone: 'risk' };
+    return { label: 'Reconciled', tone: 'good' };
+  }
+
+  /** Half-hour arithmetic on floats: 0.5 + 0.5 + 0.5 is exact, but a typed 0.3
+   *  is not, and the chip must not print 0.30000000000000004. */
+  private round(v: number): number {
+    return Math.round(v * 100) / 100;
   }
 
   // --- writes --------------------------------------------------------------

@@ -14,26 +14,59 @@
 
     <div class="body">
       <div class="card">
-        <h3>Send to an opportunity</h3>
-        <div class="desc">
-          Attaching a resume to an application shares it with that employer. Check what is going
-          before you send it.
-        </div>
+        <h3 class="versions-title">All Resumes</h3>
 
-        @if (!job()) {
+        @if (versionsError(); as err) {
+          <div class="state-note"><span class="icon">error</span>{{ err }}</div>
+        } @else if (versions() === null) {
+          <div class="state-note"><span class="icon">hourglass_empty</span>Loading your resumes…</div>
+        } @else if (versions()!.length === 0) {
           <div class="state-note">
             <span class="icon">info</span>
-            Pick a posting in <b>Selected opportunity</b> above to send a copy for it.
+            No resumes generated yet — generate one in <b>Preview</b> and it appears here.
           </div>
+          <button type="button" class="btn primary" (click)="navigate.emit('preview')">
+            <span class="icon">auto_awesome</span> Generate your first resume
+          </button>
         } @else {
+          @for (v of versions()!; track v.id) {
+            <div class="version" [class.version--on]="selectedId() === v.id">
+              <div class="version-body">
+                <div class="version-name">
+                  {{ v.title }}
+                  @if (selectedId() === v.id) {
+                    <span class="chip good"><span class="icon">check</span>Selected</span>
+                  }
+                </div>
+                <div class="version-meta">
+                  {{ versionLabel(v) }}
+                  @if (v.created_at) {
+                    · Updated {{ v.created_at | date: 'd MMM y' }}
+                  }
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn use-btn"
+                [class.primary]="selectedId() !== v.id"
+                [disabled]="selectedId() === v.id"
+                (click)="use(v)"
+              >
+                {{ selectedId() === v.id ? 'In use' : 'Use for application' }}
+              </button>
+            </div>
+          }
+        }
+
+        @if (job(); as j) {
           <div class="share-target">
             <span class="icon">work</span>
             <div>
-              <b>{{ job()!.title }}</b> · {{ job()!.company }}
-              @if (job()!.location) {
-                · {{ job()!.location }}
+              Sending for <b>{{ j.title }}</b> · {{ j.company }}
+              @if (j.location) {
+                · {{ j.location }}
               }
-              @if (!job()!.eligible) {
+              @if (!j.eligible) {
                 <div class="share-warn">
                   You are not yet eligible for this posting, so an application may not be
                   considered. You can still keep a tailored copy.
@@ -41,68 +74,73 @@
               }
             </div>
           </div>
+        }
 
-          <label class="opt-row">
-            <input
-              type="checkbox"
-              [checked]="proofAppendix()"
-              (change)="proofAppendix.set($any($event.target).checked)"
-            />
-            <span>
-              <b>Attach a proof appendix</b>
-              <small>
-                Adds the {{ proofCount() }} certificate(s) behind your included skills. Off by
-                default — the resume itself stays clean.
-              </small>
-            </span>
-          </label>
+        <label class="opt-row">
+          <input
+            type="checkbox"
+            [checked]="proofAppendix()"
+            (change)="proofAppendix.set($any($event.target).checked)"
+          />
+          <span>
+            Include an evidence appendix with proof links
+            <small>
+              Adds the {{ proofCount() }} certificate(s) behind your included skills. Off by
+              default — the resume itself stays clean.
+            </small>
+          </span>
+        </label>
 
-          <label class="opt-row">
-            <input
-              type="checkbox"
-              [checked]="consented()"
-              (change)="consented.set($any($event.target).checked)"
-            />
-            <span>
-              <b>I understand what is being shared</b>
-              <small>
-                Your resume — name, contact details, academic record and included verified skills —
-                will be shared with {{ job()!.company }}
-                @if (proofAppendix()) {
-                  , along with your certificate files
-                }
-                .
-              </small>
-            </span>
-          </label>
+        <label class="opt-row">
+          <input
+            type="checkbox"
+            [checked]="consented()"
+            (change)="consented.set($any($event.target).checked)"
+          />
+          <span>
+            I confirm this resume shares only what I intend recruiters to see.
+            <small>
+              Your name, contact details, academic record and included verified skills
+              @if (proofAppendix()) {
+                , along with your certificate files,
+              }
+              go with it.
+            </small>
+          </span>
+        </label>
 
-          @if (shared()) {
-            <div class="share-done">
-              <span class="icon">check_circle</span>
-              <div>
-                Marked for <b>{{ job()!.title }}</b
-                >. Sending is not wired to an endpoint yet, so nothing has left REEP — this records
-                the choice only.
-              </div>
-            </div>
-          } @else {
-            <button
-              type="button"
-              class="btn primary"
-              [disabled]="!canShare()"
-              (click)="useForApplication()"
-            >
-              <span class="icon">send</span> Use for this application
-            </button>
-            @if (!consented()) {
-              <div class="opt-hint">Tick the confirmation above to enable this.</div>
-            }
+        <div class="export-row">
+          <button
+            type="button"
+            class="btn primary export-btn"
+            [disabled]="!canExport()"
+            (click)="exportPdf()"
+          >
+            <span class="icon">download</span> Export &amp; share
+          </button>
+          @if (!consented()) {
+            <span class="opt-hint">Tick the confirmation above to enable this.</span>
+          } @else if (!selected()) {
+            <span class="opt-hint">Generate a resume first — there is nothing to export yet.</span>
           }
+        </div>
+
+        @if (exported()) {
+          <div class="share-done">
+            <span class="icon">check_circle</span>
+            <div>
+              Your PDF opened in a new tab.
+              @if (job(); as j) {
+                Attaching it to the <b>{{ j.title }}</b> application is not wired to an endpoint
+                yet, so send it through the posting's own link — nothing has left REEP on your
+                behalf.
+              } @else {
+                Nothing has left REEP on your behalf — you choose where it goes.
+              }
+            </div>
+          </div>
         }
       </div>
-
-      <!-- Versions. -->
-      <rb-all-resumes />
     </div>
   </section>
 </div>

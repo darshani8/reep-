@@ -1,61 +1,30 @@
+/* The jobs board — the handoff's filter row and six-column table. Header, card,
+ * chips, buttons and the match bar are the global reep-v2 classes; the framed
+ * table, its column weights and the ineligible tint are this screen's own. */
 :host {
   display: block;
 }
 
-/* UG / PG pill toggle — the mockup's inline overrides on a .tabs-row, kept here
-   so the markup stays clean. Global .tabs-row / .active still supply the rest. */
-.level-toggle {
-  border-bottom: none;
-  margin-bottom: 10px;
+/* the design's compact in-row buttons */
+.btn.sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  white-space: nowrap;
 }
-.level-toggle button {
-  border: 1px solid var(--hairline);
-  border-radius: 8px;
-  margin-right: 6px;
-}
-
-/* the mockup's compact in-table / in-card buttons (padding:5px 10px; 11.5px) */
-.dt-btn.sm {
-  padding: 5px 10px;
-  font-size: 11.5px;
-}
-.dt-btn[disabled] {
-  opacity: 0.5;
+.btn[disabled] {
+  opacity: 0.55;
   cursor: default;
 }
 
-/* --- Build-CV callout (routerLink -> Resume Builder) --- */
-.cv-callout {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  text-decoration: none;
-  color: inherit;
-  transition: box-shadow 0.15s ease;
+.card-line {
+  color: var(--muted);
+  font-size: 14px;
 }
-.cv-callout:hover {
-  box-shadow: var(--sh-card);
-}
-.cv-callout > .icon {
-  font-size: 24px;
-  color: var(--purple-mid);
-}
-.cv-callout .cv-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-.cv-callout .cv-copy b {
-  font-size: 13.5px;
-  font-weight: 700;
-}
-.cv-callout .go {
-  color: var(--faint);
+.card-line.center {
+  text-align: center;
 }
 
-/* --- filter row --- */
+/* --- filter row: three pill selects --- */
 .filter-row {
   display: flex;
   flex-wrap: wrap;
@@ -69,17 +38,17 @@
   gap: 4px;
 }
 .filt > span {
-  font-size: 10.8px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   color: var(--muted);
 }
 .filter-row select.ctrl {
   padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--hairline);
-  background: var(--tint-3);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hairline-42);
+  background: var(--tint-2);
   font-family: var(--font);
   font-size: 12.5px;
   color: var(--ink);
@@ -88,98 +57,151 @@
   margin-bottom: 1px;
 }
 
-/* --- opportunity card --- */
-.card.opp {
-  padding: 16px;
+/* --- the framed table --- */
+.jobs-frame {
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  overflow: hidden;
+  overflow-x: auto;
+  box-shadow: var(--sh-card);
+  margin-bottom: 16px;
+  background: var(--surface);
 }
-.card.opp.ineligible {
-  border-color: rgba(139, 58, 46, 0.28);
-  background: linear-gradient(180deg, var(--surface), rgba(139, 58, 46, 0.05));
+.jobs-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
 }
-.opp-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
+/* 1.6fr 1.2fr 1fr 1fr 1.2fr 1fr, as the design weights them. */
+.jobs-table th:nth-child(1),
+.jobs-table td:nth-child(1) {
+  width: 23%;
 }
-.opp-title {
-  font-size: 14.5px;
-  font-weight: 800;
+.jobs-table th:nth-child(2),
+.jobs-table td:nth-child(2) {
+  width: 17%;
 }
-.opp-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+.jobs-table th:nth-child(3),
+.jobs-table td:nth-child(3),
+.jobs-table th:nth-child(4),
+.jobs-table td:nth-child(4),
+.jobs-table th:nth-child(6),
+.jobs-table td:nth-child(6) {
+  width: 14%;
 }
-.opp-meta .meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
+.jobs-table th:nth-child(5),
+.jobs-table td:nth-child(5) {
+  width: 18%;
 }
-.opp-meta .meta .icon {
-  font-size: 15px;
+
+.jobs-table thead tr {
+  background: var(--tint-2);
 }
-.opp-match {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-.opp-match .match-bar {
-  width: 120px;
-}
-.opp-match .match-val {
+.jobs-table th {
+  padding: 11px 14px;
+  text-align: left;
+  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  color: var(--ink-nav);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
 }
-/* tint the fill by match band (scoped, higher specificity than global .match-fill) */
+.jobs-table td {
+  padding: 12px 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(160, 138, 178, 0.22);
+  background: var(--surface);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.jobs-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+/* Tint plus a named reason: the row reads as ineligible twice over. */
+.jobs-table tr.ineligible td {
+  background: rgba(173, 36, 82, 0.04);
+}
+.col-action {
+  text-align: right;
+}
+
+.role-title {
+  font-size: 14px;
+  font-weight: 800;
+}
+.loc {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+}
+.loc .icon {
+  font-size: 16px;
+}
+.closes {
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-top: 3px;
+}
+.closes.warn {
+  color: var(--warn);
+  font-weight: 700;
+}
+.closes.risk {
+  color: var(--risk);
+  font-weight: 700;
+}
+
+.match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.match .match-bar {
+  width: 64px;
+  height: 6px;
+  flex: none;
+  box-shadow: none;
+  background: rgba(58, 31, 82, 0.12);
+}
+.match-val {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-nav);
+  font-variant-numeric: tabular-nums;
+}
+/* tint the fill by match band */
 .match-fill.good {
   background: var(--good);
 }
 .match-fill.warn {
-  background: var(--warn);
+  background: var(--warn-dot);
 }
 .match-fill.risk {
   background: var(--risk);
 }
+
+/* The exact missing requirement, in the Status column of an ineligible row. */
 .why {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(139, 58, 46, 0.08);
-}
-.why li {
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
   color: var(--risk);
-  line-height: 1.5;
+  line-height: 1.4;
 }
-.why li + li {
-  margin-top: 4px;
-}
-.why li .icon {
+.why .icon {
   font-size: 15px;
-  margin-top: 1px;
-}
-.opp-cta {
-  margin-top: 14px;
+  flex: none;
 }
 
-/* One responsive board rather than a fixed two-column split. auto-fill at 280px
-   means a wide screen shows three or four postings and a narrow one shows a
-   single readable column, without a breakpoint per layout. */
-.opp-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  align-items: start;
+.empty-row td {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 18px 14px;
 }

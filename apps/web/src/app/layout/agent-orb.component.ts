@@ -31,6 +31,9 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 
+import { AuthService } from '../core/auth.service';
+import type { Role } from '../core/session';
+
 /** Pointer travel under this many px is a tap, not a drag. */
 const DRAG_THRESHOLD = 4;
 
@@ -43,6 +46,13 @@ const EDGE_MARGIN = 110;
  *  reshuffles per session reads as a rendering bug. */
 const WAVE_BARS = [26, 48, 74, 92, 78, 56, 88, 40, 66, 34, 82, 50, 70, 30, 60];
 const WAVE_DURATIONS = [1.05, 1.23, 1.41, 1.59, 1.77];
+
+/** Where "Type instead" goes: each role's own REEP Agent route. */
+function agentRouteFor(role: Role | undefined): string {
+  if (role === 'DIRECTOR' || role === 'ADMIN') return '/director/agent';
+  if (role === 'MENTOR') return '/mentor/agent';
+  return '/student/agent';
+}
 
 @Component({
   selector: 'app-agent-orb',
@@ -125,6 +135,7 @@ const WAVE_DURATIONS = [1.05, 1.23, 1.41, 1.59, 1.77];
 })
 export class AgentOrbComponent implements OnDestroy {
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
   private readonly orb = viewChild.required<ElementRef<HTMLButtonElement>>('orb');
 
   readonly voice = signal(false);
@@ -205,9 +216,20 @@ export class AgentOrbComponent implements OnDestroy {
     this.muted.update((m) => !m);
   }
 
+  /** The REEP Agent chat screen for whoever is signed in — the design's
+   *  "goAgentChat" from the voice overlay. The interviewer lives elsewhere
+   *  (/student/assistant, reached from the landing's Mock Interview module). */
   typeInstead(): void {
     this.voice.set(false);
-    void this.router.navigate(['/student/assistant']);
+    void this.router.navigate([agentRouteFor(this.auth.session()?.role)]);
+  }
+
+  /** The agent screen's "Start voice" button dispatches this on `window`
+   *  (features/agent/agent.component.ts) — the orb owns the overlay, the screen
+   *  does not, so a DOM event is the whole coupling. */
+  @HostListener('window:reep:open-voice')
+  onOpenVoiceRequested(): void {
+    this.open();
   }
 
   @HostListener('document:keydown.escape')

@@ -4,12 +4,19 @@
  * Left: the mentees this staff member may see (GET /mentor/mentees — a MENTOR
  * gets only their own group, DIRECTOR/ADMIN the whole programme, and a MENTOR
  * with no group gets an honest empty state, never everybody). Right: the
- * selected mentee's meeting notes (GET /mentor/students/{id}/notes) and a form
- * to add one (POST, NoteIn shape from routers/mentor.py — note_text required,
- * title/location optional so the student's log never shows an invented heading).
+ * selected mentee's meeting notes (GET /mentor/students/{id}/notes), a form to
+ * add one (POST, NoteIn shape from routers/mentor.py — note_text required,
+ * title optional so the student's log never shows an invented heading), and a
+ * delete per note (DELETE, which the server allows only to the note's author).
  *
- * Markup reuses the global reep-v2 classes; the scss only lays out the
- * two-column split.
+ * THE LINKED-ACTION VOCABULARY IS THE SERVER'S. The handoff's select lists
+ * programme actions ("Attendance follow-up", "Skilling plan", ...); the
+ * `mentor_action` enum the notes are stored in has NONE / FLAGGED / NUDGE_SENT /
+ * ONE_ON_ONE_SCHEDULED, and widening a Postgres enum is a migration. The
+ * options here are that enum, translated the same way the student's log
+ * translates it, so a note reads identically on both screens.
+ *
+ * Markup reuses the global reep-v2 classes; the scss only lays out the split.
  */
 
 import { Component, computed, signal } from '@angular/core';
@@ -38,7 +45,7 @@ interface Note {
 
 /** Server vocabulary -> what renders. Same translation the student log uses. */
 const ACTION_LABEL: Record<string, string> = {
-  NONE: 'No action',
+  NONE: 'None',
   FLAGGED: 'Flagged for follow-up',
   NUDGE_SENT: 'Nudge sent',
   ONE_ON_ONE_SCHEDULED: '1:1 scheduled',
@@ -78,11 +85,14 @@ export class MenteeLogComponent {
   // --- add-note form state ---
   noteText = '';
   noteTitle = '';
-  noteLocation = '';
   noteAction = 'NONE';
   readonly saving = signal(false);
+  /// The server's refusal, shown in full.
   readonly saveError = signal<string | null>(null);
+  /// The two transient chips the handoff draws beside Save note.
   readonly savedFlash = signal(false);
+  readonly emptyFlash = signal(false);
+  readonly removingId = signal<string | null>(null);
 
   readonly actionOptions = Object.entries(ACTION_LABEL).map(([value, label]) => ({ value, label }));
 
@@ -119,22 +129,23 @@ export class MenteeLogComponent {
       const res = await fetch(`${this.apiBase}/mentor/students/${studentId}/notes`, {
         credentials: 'include',
       });
+      if (this.selectedId() !== studentId) return; // stale response for a previous selection
       if (!res.ok) {
         this.notesError.set('Could not load the meeting log for this mentee.');
         return;
       }
-      if (this.selectedId() !== studentId) return; // stale response for a previous selection
       this.notes.set((await res.json()) as Note[]);
     } catch {
-      this.notesError.set('Could not reach the server.');
+      if (this.selectedId() === studentId) this.notesError.set('Could not reach the server.');
     }
   }
 
   async addNote(): Promise<void> {
     const studentId = this.selectedId();
     const text = this.noteText.trim();
-    if (!studentId || !text) {
-      this.saveError.set('Write the note first.');
+    if (!studentId) return;
+    if (!text) {
+      this.flash(this.emptyFlash);
       return;
     }
     this.saving.set(true);
@@ -148,7 +159,6 @@ export class MenteeLogComponent {
           note_text: text,
           linked_action: this.noteAction,
           title: this.noteTitle.trim() || null,
-          location: this.noteLocation.trim() || null,
         }),
       });
       if (!res.ok) {
@@ -158,10 +168,8 @@ export class MenteeLogComponent {
       }
       this.noteText = '';
       this.noteTitle = '';
-      this.noteLocation = '';
       this.noteAction = 'NONE';
-      this.savedFlash.set(true);
-      setTimeout(() => this.savedFlash.set(false), 2500);
+      this.flash(this.savedFlash);
       await this.loadNotes(studentId);
     } catch {
       this.saveError.set('Could not reach the server.');
@@ -170,14 +178,49 @@ export class MenteeLogComponent {
     }
   }
 
+  /** Take a note back. The student may already have read it, hence the confirm. */
+  async remove(n: Note): Promise<void> {
+    const studentId = this.selectedId();
+    if (!studentId) return;
+    const ok = window.confirm(
+      'Delete this note? It disappears from the student’s Mentor Meeting Log as well.',
+    );
+    if (!ok) return;
+    this.removingId.set(n.id);
+    this.notesError.set(null);
+    try {
+      const res = await fetch(`${this.apiBase}/mentor/students/${studentId}/notes/${n.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok && res.status !== 404) {
+        const detail = await res.json().catch(() => null);
+        this.notesError.set(detail?.detail ?? 'Could not delete the note.');
+        return;
+      }
+      await this.loadNotes(studentId);
+    } catch {
+      this.notesError.set('Could not reach the server.');
+    } finally {
+      this.removingId.set(null);
+    }
+  }
+
   actionLabel(action: string): string {
     return ACTION_LABEL[action] ?? action;
   }
 
-  /** "1:1 review · Cabin 3" heading, with the linked action as the fallback —
-   *  the same rule the student's log applies, so both screens agree. */
+  /** "1:1 review · Cabin 3" heading, with the linked action (or "Meeting note")
+   *  as the fallback — the same rule the student's log applies, so both screens
+   *  agree on what sits above each note. */
   heading(n: Note): string {
     const parts = [n.title, n.location].filter(Boolean);
-    return parts.length ? parts.join(' · ') : this.actionLabel(n.linked_action);
+    if (parts.length) return parts.join(' · ');
+    return n.linked_action !== 'NONE' ? this.actionLabel(n.linked_action) : 'Meeting note';
+  }
+
+  private flash(sig: ReturnType<typeof signal<boolean>>): void {
+    sig.set(true);
+    setTimeout(() => sig.set(false), 2500);
   }
 }

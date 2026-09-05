@@ -2,6 +2,60 @@
   display: block;
 }
 
+/* --- the ranked rows, as the handoff draws them: a lavender pill per row, the
+   viewer's own row in the primary gradient. The global .lb-row is the compact
+   list used elsewhere; these overrides are scoped to this screen. --- */
+.lb-row {
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  margin-bottom: 6px;
+  background: var(--tint-2);
+  border: 1px solid var(--hairline-42);
+  color: var(--ink);
+}
+.lb-row.me {
+  background: var(--primary-gradient);
+  border-color: transparent;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(58, 31, 82, 0.35);
+  box-shadow:
+    0 6px 16px rgba(85, 44, 126, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.lb-rank {
+  width: 22px;
+  color: inherit;
+  text-align: center;
+}
+.lb-avatar {
+  width: 30px;
+  height: 30px;
+  background: var(--warn);
+  color: #fff;
+  font-size: 12px;
+}
+.lb-row.me .lb-avatar {
+  text-shadow: none;
+}
+
+/* the design's tab strip: 14px/700 on a 6px gap, underlined when active */
+.lb-tabs {
+  gap: 6px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.lb-tabs button {
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  border-bottom-width: 2px;
+}
+.lb-tabs button.active {
+  color: var(--purple-mid);
+  border-bottom-color: var(--purple-mid);
+}
+
 /* --- ranked-row layout: name grows, cohort context + total sit right --- */
 .lb-name {
   flex: 1;
@@ -14,22 +68,22 @@
   white-space: nowrap;
 }
 .lb-you {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   padding: 2px 6px;
   border-radius: 6px;
-  background: rgba(255, 253, 248, 0.18);
+  background: rgba(255, 255, 255, 0.22);
 }
 .lb-of {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--faint);
+  color: var(--muted);
   white-space: nowrap;
 }
 .lb-row.me .lb-of {
-  color: rgba(255, 253, 248, 0.7);
+  color: rgba(255, 255, 255, 0.7);
 }
 /* The mockup's inline `font-weight:700` on the row total. */
 .lb-val {
@@ -44,15 +98,18 @@
   gap: 16px;
   padding: 16px 18px;
   margin-bottom: 14px;
-  border-radius: var(--r-alert);
-  background: linear-gradient(180deg, var(--ink), #2a2418);
-  color: var(--tint-3);
-  box-shadow: var(--sh-ctrl), var(--edge-hi);
+  border-radius: 22px;
+  background: var(--primary-gradient);
+  color: var(--tint-2);
+  box-shadow:
+    0 10px 26px rgba(58, 31, 82, 0.13),
+    inset 0 1px 0 #fff;
 }
 .lb-me-card--unranked {
-  background: linear-gradient(180deg, var(--surface), var(--tint-3));
+  background: var(--card-gradient);
   color: var(--ink);
   border: 1px solid var(--hairline);
+  box-shadow: var(--sh-card);
 }
 .lb-me-card__rank {
   flex: 0 0 auto;
@@ -63,20 +120,22 @@
   justify-content: center;
   padding: 8px 12px;
   border-radius: 12px;
-  background: rgba(255, 253, 248, 0.1);
+  background: rgba(255, 255, 255, 0.14);
 }
 .lb-me-card--unranked .lb-me-card__rank {
-  background: rgba(168, 117, 47, 0.12);
-  color: var(--brand-magenta);
+  background: var(--tint-1);
+  color: var(--brand-purple);
 }
 .lb-me-card__num {
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 .lb-me-card__of {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   opacity: 0.75;
 }
@@ -88,23 +147,28 @@
   min-width: 0;
 }
 .lb-me-card__headline {
-  font-size: 17px;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 .lb-me-card__hint {
   margin-top: 4px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
   opacity: 0.85;
 }
 .lb-me-card__val {
   flex: 0 0 auto;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   padding: 6px 12px;
-  border-radius: 10px;
-  background: rgba(255, 253, 248, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.16);
   white-space: nowrap;
+}
+.lb-me-card--unranked .lb-me-card__val {
+  background: var(--tint-1);
 }
 
 /* --- info / feedback notes --- */
@@ -114,20 +178,20 @@
   gap: 8px;
   margin-bottom: 14px;
   padding: 9px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--tint-3);
   border: 1px solid var(--hairline);
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 .lb-note .icon {
-  font-size: 17px;
-  color: var(--faint);
+  font-size: 18px;
+  color: var(--muted);
   flex-shrink: 0;
 }
 .lb-note--feedback {
-  background: rgba(92, 122, 58, 0.1);
-  border-color: rgba(92, 122, 58, 0.28);
+  background: var(--good-bg);
+  border-color: rgba(19, 122, 74, 0.28);
   color: var(--good);
 }
 .lb-note--feedback .icon {
@@ -147,7 +211,7 @@
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(168, 117, 47, 0.1);
+  background: var(--warn-bg);
   color: var(--warn);
   font-size: 12.5px;
   line-height: 1.4;

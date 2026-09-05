@@ -1,24 +1,74 @@
 <div class="panel" data-p="analytics">
   <div class="dt-header">
     <div>
-      <div class="eyebrow">Admin · programme-wide</div>
-      <div class="dt-title">Analytics</div>
+      <div class="eyebrow">Admin · cohort view</div>
+      <div class="dt-title">Programme analytics</div>
       <div class="dt-sub">
-        Every mentor and their assigned students, read by one metric at a time.
+        @if (summary(); as s) {
+          {{ s.students_total }} students · {{ s.mentors_total }} mentors
+          @if (s.semester !== null) {
+            · Semester {{ s.semester }}
+          }
+          · updated {{ s.generated_at | date: 'd MMM y' }}
+        } @else if (!error()) {
+          Loading the cohort figures…
+        } @else {
+          Cohort figures unavailable.
+        }
       </div>
     </div>
-    <label class="metric-pick">
-      <span class="metric-lbl">Metric</span>
-      <select [value]="metric()" (change)="setMetric($any($event.target).value)">
-        @for (m of metricKeys; track m) {
-          <option [value]="m">{{ metricLabel(m) }}</option>
-        }
-      </select>
-    </label>
+    @if (summary()?.semester !== null && summary()) {
+      <span class="chip neutral sem-chip">
+        <span class="icon">event</span> Semester {{ summary()!.semester }}
+      </span>
+    }
   </div>
 
   @if (error()) {
     <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+  }
+
+  @if (summary(); as s) {
+    <div class="stat-strip">
+      <div class="stat">
+        <div class="stat-lbl">Active students</div>
+        <div class="stat-val">{{ s.students_total }}</div>
+        @if (s.pending_registrations > 0) {
+          <a class="stat-sub stat-link" routerLink="/director/registrations">
+            {{ s.pending_registrations }} pending registration
+          </a>
+        } @else {
+          <div class="stat-sub">No registrations pending</div>
+        }
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Mentors</div>
+        <div class="stat-val">{{ s.mentors_total }}</div>
+        @if (s.mentees_per_mentor !== null) {
+          <div class="stat-sub">{{ s.mentees_per_mentor }} mentees on average</div>
+        } @else {
+          <div class="stat-sub">No mentors on the roster</div>
+        }
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Badges awarded</div>
+        <div class="stat-val">{{ s.badges_awarded }}</div>
+        @if (s.evidence_awaiting_verification > 0) {
+          <a class="stat-sub stat-link warn" routerLink="/mentor/badge-centre">
+            {{ s.evidence_awaiting_verification }} awaiting verification
+          </a>
+        } @else {
+          <div class="stat-sub">Nothing awaiting verification</div>
+        }
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Placed</div>
+        <div class="stat-val">{{ placedPercent() }}<span class="stat-unit"> %</span></div>
+        <a class="stat-sub stat-link" routerLink="/director/placement">
+          {{ s.approved_offers }} approved offer{{ s.approved_offers === 1 ? '' : 's' }}
+        </a>
+      </div>
+    </div>
   }
 
   @if (load() !== null && load()!.length === 0 && !error()) {
@@ -29,37 +79,82 @@
   }
 
   <div class="chart-grid" [class.chart-grid--hidden]="!load()?.length">
-    <div class="card chart-card chart-card--sun">
-      <h3>
-        Mentorship map
-        <span class="chart-sub">
-          {{ totals().mentors }} mentors · {{ totals().mentees }} assigned students
+    <div class="card chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Mentorship structure</div>
+          <div class="chart-hint">
+            Faculty mentor → assigned students@if (isSample()) {, showing a sample of
+            {{ sampled().length }} mentors}. Colour is each student's
+            {{ metricLabel(metric()).toLowerCase() }}. Click a mentor to load their students in
+            the chart alongside; click the same mentor again for all mentors.
+          </div>
+        </div>
+        <span class="chart-scope">
+          @if (isSample()) {
+            Sample: {{ sampled().length }} of {{ mentors().length }} mentors ·
+            {{ sampledStudents() }} of {{ allMentees().length }} students
+          } @else {
+            All {{ mentors().length }} mentors · {{ allMentees().length }} assigned students
+          }
         </span>
-      </h3>
-      <div class="chart-hint">
-        Inner ring is the mentor, outer ring their students, shaded by
-        {{ metricLabel(metric()) | lowercase }}. Click a mentor to load their students beside it.
       </div>
       <div #sun class="chart chart--sun"></div>
     </div>
 
     <div class="card chart-card">
-      <h3>
-        @if (focusName()) {
-          {{ focusName() }}'s students
-        } @else {
-          Mentor averages
-        }
-      </h3>
-      <div class="chart-hint">
-        @if (focusName()) {
-          {{ metricLabel(metric()) }} per student.
-          <button type="button" class="link-btn" (click)="clearFocus()">Show all mentors</button>
-        } @else {
-          Mean {{ metricLabel(metric()) | lowercase }} across each mentor's students. Click a mentor
-          in the map to see them individually.
-        }
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">{{ scope().title }}</div>
+          <div class="chart-hint">{{ scope().caption }}</div>
+        </div>
+        <div class="chart-actions">
+          @if (focusedStudent() && weekly()?.has_resume) {
+            <a class="btn" [href]="cvUrl()"><span class="icon">download</span> Download CV</a>
+          }
+          @if (focusMentor()) {
+            <button type="button" class="btn ghost" (click)="clearFocus()">All mentors</button>
+          }
+          <select
+            class="ctrl metric-select"
+            aria-label="Metric"
+            [value]="metric()"
+            (change)="setMetric($any($event.target).value)"
+          >
+            @for (m of metricKeys; track m) {
+              <option [value]="m">{{ metricLabel(m) }}</option>
+            }
+          </select>
+        </div>
       </div>
+
+      @if (focusedStudent(); as s) {
+        <div class="stu-strip">
+          <div class="stu-fig">
+            <span class="stu-lbl">Attendance</span>
+            <strong>{{ studentFigure('attendance') }}</strong>
+          </div>
+          <div class="stu-fig">
+            <span class="stu-lbl">Skill badges</span>
+            <strong>{{ studentFigure('skills') }}</strong>
+          </div>
+          <div class="stu-fig">
+            <span class="stu-lbl">Time sheet</span>
+            <strong>{{ studentFigure('hours') }}</strong>
+          </div>
+          @if (s.usn) {
+            <div class="stu-fig">
+              <span class="stu-lbl">USN</span>
+              <strong class="stu-usn">{{ s.usn }}</strong>
+            </div>
+          }
+        </div>
+        @if (weeklyBusy()) {
+          <div class="state-note">
+            <span class="icon">hourglass_empty</span>Loading the last six weeks…
+          </div>
+        }
+      }
       <div #bar class="chart chart--bar"></div>
     </div>
   </div>

@@ -8,6 +8,11 @@
  *   - ATTENDANCE       — GET /student/attendance (overall % + per-course)
  *   - ACADEMIC HISTORY — GET /student/academics  (qualifications + declared gap)
  *
+ * This is the merged Records screen of the v2 handoff: the separate Academics
+ * screen (and its qualification/gap entry form) is retired, so academic history
+ * is READ-ONLY here — the handoff draws no add form, and a student reads what
+ * the office has on file beside their VTU marks and attendance.
+ *
  * Interfaces are snake_case, verbatim from student.py's *Out models — no client
  * remapping. STATUS is always text + colour together (the .chip tones), never
  * colour alone. Visual language is the global reep-v2 classes; the scss only adds

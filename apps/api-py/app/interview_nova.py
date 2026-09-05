@@ -205,6 +205,29 @@ _CONNECTION_MARGIN_S: Final[float] = 20.0
 _WRAP_UP_RESERVE_S: Final[float] = 90.0
 
 
+def _boto3_credentials() -> Any | None:
+    """Frozen AWS credentials from boto3's default chain, or None. Never raises.
+
+    BLOCKING -- call it via asyncio.to_thread. boto3's chain is the one every
+    other AWS call in this process (S3, ECS metadata, Secrets Manager via the
+    task) already succeeds with, which on Fargate means the container
+    credentials endpoint. The preview Bedrock SDK carries its own chain; handing
+    it boto3's answer as a static identity takes that chain -- and whatever it
+    does when a provider stalls -- out of the interview's connect path.
+    None means "let the SDK's own chain try", so a machine with no AWS
+    configuration at all still gets the SDK's error rather than ours.
+    """
+    try:
+        import boto3  # noqa: PLC0415
+
+        credentials = boto3.session.Session().get_credentials()
+        if credentials is None:
+            return None
+        return credentials.get_frozen_credentials()
+    except Exception:  # noqa: BLE001 - a credential lookup failure is the SDK chain's to report
+        return None
+
+
 # ---------------------------------------------------------------------------
 # The upstream event vocabulary
 # ---------------------------------------------------------------------------
@@ -409,6 +432,7 @@ class _NovaUpstream:
         "_lock",
         "_attach_lock",
         "_closed",
+        "phase",
     )
 
     def __init__(self, model: str, region: str, conn_log: Any) -> None:
@@ -422,6 +446,11 @@ class _NovaUpstream:
         # TaskGroup and once lazily from the first receive() — and
         # await_output() must be awaited exactly once per stream.
         self._attach_lock = asyncio.Lock()
+        # Which sub-step of open() is in flight, for the timeout reason. Production
+        # said "(open timed out)" and that was not enough to act on: resolving
+        # credentials, building the client and opening the HTTP/2 stream are
+        # three different faults with three different owners.
+        self.phase = "not started"
         self._lock = asyncio.Lock()
         self._closed = False
 
@@ -436,6 +465,10 @@ class _NovaUpstream:
             )
             from aws_sdk_bedrock_runtime.models import (  # noqa: PLC0415
                 InvokeModelWithBidirectionalStreamOperationInput,
+            )
+            from smithy_aws_core.identity import (  # noqa: PLC0415
+                AWSCredentialsIdentity,
+                StaticCredentialsResolver,
             )
             from smithy_http.aio.crt import AWSCRTHTTPClient  # noqa: PLC0415
         except ImportError as exc:  # pragma: no cover - requirements.txt declares it
@@ -458,13 +491,42 @@ class _NovaUpstream:
         # region, every account, credentials or none. The bidirectional API is
         # HTTP/2 with both halves open at once, and awscrt is the only transport
         # in this stack that does that. The student sees close 4002.
-        config = await AsyncBedrockRuntimeConfig.resolve(
-            region=self._region, transport=AWSCRTHTTPClient()
-        )
+        # CREDENTIALS FROM BOTO3, HANDED TO THE SDK AS A STATIC IDENTITY.
+        # boto3 is already a runtime dependency and its chain is the one every
+        # other AWS call in this process succeeds with -- on Fargate that is the
+        # ECS container credentials endpoint. The preview SDK has its own chain
+        # (smithy_aws_core.identity.IdentityChain) which we leave to its own
+        # devices only when boto3 finds nothing, so a laptop with no AWS profile
+        # still gets the SDK's own error rather than ours. Run in a thread: boto3
+        # is blocking, and this is on the interview's connect path.
+        self.phase = "resolving credentials"
+        resolver = None
+        frozen = await asyncio.to_thread(_boto3_credentials)
+        if frozen is not None:
+            resolver = StaticCredentialsResolver(
+                AWSCredentialsIdentity(
+                    access_key_id=frozen.access_key,
+                    secret_access_key=frozen.secret_key,
+                    session_token=frozen.token,
+                )
+            )
+        self.phase = "resolving client config"
+        if resolver is not None:
+            config = await AsyncBedrockRuntimeConfig.resolve(
+                region=self._region,
+                transport=AWSCRTHTTPClient(),
+                aws_credentials_identity_resolver=resolver,
+            )
+        else:
+            config = await AsyncBedrockRuntimeConfig.resolve(
+                region=self._region, transport=AWSCRTHTTPClient()
+            )
         self._client = AsyncBedrockRuntimeClient(config=config)
+        self.phase = "opening the stream"
         self._stream = await self._client.invoke_model_with_bidirectional_stream(
             InvokeModelWithBidirectionalStreamOperationInput(model_id=self._model)
         )
+        self.phase = "open"
         # DELIBERATELY NOT `await self._stream.await_output()` HERE. That call
         # waits for Bedrock's response headers, and Bedrock does not send them
         # until it has received the first input event (sessionStart) — the AWS
@@ -764,7 +826,11 @@ class NovaSonicSession:
             # browser's close frame, which is how an operator with no log access
             # — a diagnostic probe, a staff screen — can tell "the connection
             # never opened" from "it opened and the service never answered".
-            return _CLOSE_UPSTREAM_UNAVAILABLE, "Interviewer service unavailable (open timed out)"
+            return (
+                _CLOSE_UPSTREAM_UNAVAILABLE,
+                "Interviewer service unavailable "
+                f"(open timed out while {getattr(upstream, 'phase', 'opening')})",
+            )
         except Exception as exc:  # noqa: BLE001 - every failure is the same to the student
             # Credentials, IAM, an unsupported region, a throttle at the door.
             # All of them are 4002 to the browser and all of them are named in

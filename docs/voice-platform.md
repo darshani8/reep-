@@ -26,7 +26,7 @@ app/voice_platform/
   monitoring/  cloudwatch.py    loggers, PutMetricData, handler_span
                sentry.py        transactions per socket, spans per external call
 infra/cdk/                      AWS CDK (Python): S3 x2, SQS x2 (+DLQs), Lambda, DynamoDB x2, OpenSearch Serverless, IAM, SSM
-infra/aws/voice_platform_bridge.tf  reads the CDK stack's SSM parameters into the api task env
+app/voice_platform/ssm_config.py  the api reads the stack's SSM parameters at boot (production only)
 ```
 
 ## How a call runs
@@ -88,13 +88,13 @@ and `GET /api/platform/admin/status` lists what is on. See `.env.example`.
 `infra/cdk/` (AWS CDK, Python) creates the AWS resources — the buckets, the
 queues and DLQs, the Lambda, the DynamoDB tables, the OpenSearch Serverless
 collection, the api task role's policy — and publishes the `PLATFORM_*` values
-as SSM parameters under `/reep/voice-platform/`. The core stack stays
-Terraform; `infra/aws/voice_platform_bridge.tf` reads those parameters into the
-api task definition when `voice_platform_enabled = true`. Deploy order: the
-`CDK deploy (voice platform)` workflow (`.github/workflows/cdk-deploy.yml`, after
-a one-time `cdk bootstrap` and a `terraform apply` that lets the deploy role
-assume the bootstrap roles), then `terraform apply` with the flag on, then the
-ordinary Deploy run; see `infra/cdk/README.md`.
+as SSM parameters under `/reep/voice-platform/`. **The api reads them at boot**
+(`ssm_config.py`: only on `ENV=prod` or with `PLATFORM_SSM_PREFIX` set; the
+environment always wins; any failure leaves the setting blank and is logged),
+so the Terraform-owned task definition never changes and Terraform is not part
+of the platform's deploy path. Deploy order: `cdk deploy` (first time by hand
+after `cdk bootstrap`, afterwards the `CDK deploy (voice platform)` workflow),
+then the ordinary Deploy run so the api restarts; see `infra/cdk/README.md`.
 The stack's template is pinned by `infra/cdk/tests/test_synth.py`, which
 synthesises it without AWS; it has not been deployed from this repository yet.
 

@@ -106,10 +106,6 @@ locals {
     { name = "LLM_ALLOW_REMOTE_STUDENT_DATA", value = var.allow_remote_student_data },
   ]
 
-  # api_environment plus the voice platform's PLATFORM_* variables when
-  # voice_platform_bridge.tf reads them from the CDK stack (an empty list otherwise).
-  api_environment_all = concat(local.api_environment, local.vp_environment)
-
   api_secrets = [
     { name = "AUTH_SECRET", valueFrom = "${aws_secretsmanager_secret.app.arn}:AUTH_SECRET::" },
     { name = "DATABASE_URL", valueFrom = "${aws_secretsmanager_secret.app.arn}:DATABASE_URL::" },
@@ -146,7 +142,7 @@ resource "aws_ecs_task_definition" "api" {
     image        = local.api_image
     essential    = true
     portMappings = [{ containerPort = 3300, protocol = "tcp" }]
-    environment  = local.api_environment_all
+    environment  = local.api_environment
     secrets      = local.api_secrets
     mountPoints  = [{ sourceVolume = "data", containerPath = "/data" }]
     logConfiguration = {

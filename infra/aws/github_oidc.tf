@@ -153,37 +153,3 @@ resource "aws_iam_role_policy" "github_deploy" {
     ]
   })
 }
-
-# --- Deploying the voice platform's CDK stack from GitHub Actions ----------------
-#
-# infra/cdk is deployed by .github/workflows/cdk-deploy.yml through the SAME
-# reep-github-deploy role, pinned to this repository and to main. The CDK CLI
-# does not need this role to hold the resource permissions itself: it assumes
-# the account's CDK bootstrap roles (cdk-hnb659fds-deploy-role, -file-publishing-
-# role, -lookup-role — created once by `cdk bootstrap`, run by a human with admin
-# credentials) and CloudFormation does the work under the bootstrap's cfn-exec
-# role. So the grant here is only "may assume those roles" plus reading the
-# bootstrap version parameter the CLI checks first. Nothing here is gated on
-# voice_platform_enabled: the stack must exist before the bridge can read its
-# parameters, so this door opens first.
-resource "aws_iam_role_policy" "github_deploy_cdk" {
-  name = "deploy-cdk-stacks"
-  role = aws_iam_role.github_deploy.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "AssumeTheCdkBootstrapRoles"
-        Effect   = "Allow"
-        Action   = ["sts:AssumeRole"]
-        Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/cdk-hnb659fds-*"
-      },
-      {
-        Sid      = "ReadTheBootstrapVersion"
-        Effect   = "Allow"
-        Action   = ["ssm:GetParameter"]
-        Resource = "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/cdk-bootstrap/*"
-      },
-    ]
-  })
-}

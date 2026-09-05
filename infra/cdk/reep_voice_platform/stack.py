@@ -11,9 +11,10 @@ WHAT THIS STACK DOES NOT OWN. The VPC, the ALB, the ECS service, the database
 and the api task role are the Terraform stack in infra/aws/ and stay there —
 they are live and this stack is additive. It imports the task role BY NAME
 (`<project>-api-task`, ecs.tf) and attaches a policy; it never redefines the
-role. The PLATFORM_* values reach the api task through SSM Parameter Store:
-this stack writes them, infra/aws/voice_platform_bridge.tf reads them into the
-task definition when `voice_platform_enabled = true`. One direction, no cycle.
+role. The PLATFORM_* values reach the api through SSM Parameter Store: this
+stack writes them and grants the task role the path, and the api reads them at
+boot (app/voice_platform/ssm_config.py). No task-definition change, so no
+Terraform apply: CDK owns the platform end to end.
 
 EVERY PIECE IS OPTIONAL TO THE API. A deployment without this stack runs the
 platform's Admin CRUD with in-memory session state and local recordings, and
@@ -63,6 +64,7 @@ class VoicePlatformStack(Stack):
         *,
         project: str = "reep",
         api_task_role_name: str | None = None,
+        github_deploy_role_name: str | None = None,
         recording_retention_days: int = 180,
         lambda_code_path: Path | None = None,
         **kwargs,
@@ -70,6 +72,8 @@ class VoicePlatformStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
         prefix = f"{project}-voice"
         role_name = api_task_role_name or f"{project}-api-task"
+        deploy_role_name = github_deploy_role_name or f"{project}-github-deploy"
+        parameter_path = f"/{project}/voice-platform"
 
         # --- S3 -------------------------------------------------------------
         uploads = s3.Bucket(
@@ -270,6 +274,43 @@ class VoicePlatformStack(Stack):
                     resources=["*"],
                     conditions={"StringEquals": {"cloudwatch:namespace": "REEP/VoicePlatform"}},
                 ),
+                # The api reads its PLATFORM_* settings from the parameters
+                # below at boot (app/voice_platform/ssm_config.py) — which is
+                # what keeps the task definition, and Terraform, out of the
+                # platform's deploy path.
+                iam.PolicyStatement(
+                    actions=["ssm:GetParametersByPath", "ssm:GetParameter", "ssm:GetParameters"],
+                    resources=[
+                        self.format_arn(service="ssm", resource="parameter", resource_name=parameter_path.lstrip("/")),
+                        self.format_arn(service="ssm", resource="parameter", resource_name=parameter_path.lstrip("/") + "/*"),
+                    ],
+                ),
+            ],
+        )
+
+        # --- The GitHub deploy role: may run this stack through the CDK CLI ------
+        # .github/workflows/cdk-deploy.yml assumes the Terraform-owned
+        # reep-github-deploy role (OIDC, pinned to this repo and main). The CDK
+        # CLI then assumes the account's bootstrap roles and CloudFormation does
+        # the work under the bootstrap execution role, so the grant is only "may
+        # assume those roles" plus reading the bootstrap version parameter.
+        # Attached here rather than in Terraform so the whole platform has one
+        # owner; the first deploy is run by a human with admin credentials.
+        deploy_role = iam.Role.from_role_name(self, "GithubDeployRole", deploy_role_name)
+        iam.Policy(
+            self,
+            "GithubDeployCdk",
+            policy_name="deploy-cdk-stacks",
+            roles=[deploy_role],
+            statements=[
+                iam.PolicyStatement(
+                    actions=["sts:AssumeRole"],
+                    resources=[self.format_arn(service="iam", region="", resource="role", resource_name="cdk-hnb659fds-*")],
+                ),
+                iam.PolicyStatement(
+                    actions=["ssm:GetParameter"],
+                    resources=[self.format_arn(service="ssm", resource="parameter", resource_name="cdk-bootstrap/*")],
+                ),
             ],
         )
 
@@ -289,9 +330,9 @@ class VoicePlatformStack(Stack):
             ssm.StringParameter(
                 self,
                 f"Param{name}",
-                parameter_name=f"/{project}/voice-platform/{name}",
+                parameter_name=f"{parameter_path}/{name}",
                 string_value=value,
-                description=f"voice platform: {name} (read by infra/aws/voice_platform_bridge.tf)",
+                description=f"voice platform: {name} (read by the api at boot, app/voice_platform/ssm_config.py)",
             )
             CfnOutput(self, name, value=value)
 

@@ -1,22 +1,27 @@
-<div class="dt-header">
+<div class="eb-head">
   <div>
     <p class="eyebrow">Reboot · Baseline assessment</p>
-    <h1 class="dt-title">English Proficiency Baseline</h1>
-    <p class="dt-sub">
+    <h1 class="eb-title">English Proficiency Baseline</h1>
+    <p class="eb-sub">
       AI-scored across reading, writing, listening and speaking · CEFR-aligned · one attempt per
       semester
     </p>
   </div>
 
   @if (data(); as d) {
-    <div class="dt-toolbar">
+    <div class="eb-actions">
       @if (d.exists) {
-        <button type="button" class="btn" [disabled]="busy()" (click)="downloadReport()">
+        <button type="button" class="btn eb-btn" [disabled]="busy()" (click)="downloadReport()">
           <span class="icon" aria-hidden="true">download</span>
           Download report
         </button>
       }
-      <button type="button" class="btn primary" [disabled]="busy()" (click)="startOrResume()">
+      <button
+        type="button"
+        class="btn primary eb-btn eb-btn--primary"
+        [disabled]="busy()"
+        (click)="startOrResume()"
+      >
         <span class="icon" aria-hidden="true">mic</span>
         {{ busy() ? 'Working…' : d.exists ? 'Resume assessment' : 'Start assessment' }}
       </button>
@@ -25,7 +30,7 @@
 </div>
 
 @if (notice(); as message) {
-  <div class="notice info" role="status">
+  <div class="notice info eb-notice" role="status">
     <span class="icon" aria-hidden="true">info</span>
     {{ message }}
   </div>
@@ -33,12 +38,11 @@
 
 @switch (state()) {
   @case ('loading') {
-    <p class="loading-line">Loading your English baseline…</p>
+    <div class="card eb-note">Loading your English baseline…</div>
   }
 
   @case ('error') {
-    <div class="notice" role="alert">
-      <span class="icon" aria-hidden="true">info</span>
+    <div class="card eb-note">
       We could not load your English baseline just now. Please refresh in a moment.
       <button type="button" class="btn ghost" (click)="load()">Retry</button>
     </div>
@@ -62,114 +66,171 @@
           </div>
         </div>
       } @else {
-        <!-- Hero: the band dial -->
-        <div class="card" style="margin-bottom: 16px">
-          <div class="band-dial">
-            <div
-              class="dial"
-              [style.background]="
-                'conic-gradient(var(--brand-magenta) ' +
-                (d.overall_score ?? 0) +
-                '%, var(--tint-1) 0)'
-              "
-            >
-              <div class="inner">
-                <div class="score">
-                  {{ d.overall_score ?? '--' }}<span class="unit">/ 100</span>
+        <!-- Hero: the overall score dial, the band, and how far along the attempt is -->
+        <div class="card eb-hero">
+          <div class="eb-hero__grid">
+            <div class="eb-dial-row">
+              <div
+                class="eb-dial"
+                role="img"
+                [attr.aria-label]="
+                  d.overall_score !== null
+                    ? 'Overall score ' + d.overall_score + ' out of 100'
+                    : 'Overall score not yet available'
+                "
+                [style.background]="
+                  'conic-gradient(var(--purple-mid) 0% ' +
+                  (d.overall_score ?? 0) +
+                  '%, rgba(58,31,82,.12) ' +
+                  (d.overall_score ?? 0) +
+                  '% 100%)'
+                "
+              >
+                <span class="eb-dial__inner">
+                  <!-- Branching on the value being null, never on it being falsy:
+                       a genuine 0 must print as 0. -->
+                  <span class="eb-dial__score" [class.eb-dial__score--pending]="d.overall_score === null">{{
+                    d.overall_score !== null ? d.overall_score : '--'
+                  }}</span>
+                  <span class="eb-dial__of">/ 100</span>
+                </span>
+              </div>
+              <div>
+                <p class="eyebrow eb-eyebrow">
+                  {{ d.provisional ? 'Provisional band' : 'Band' }}
+                </p>
+                <div class="eb-band">{{ d.band ?? '—' }}</div>
+                <div class="eb-band-label">
+                  {{ d.band_label ?? (d.band ? '' : 'Not yet banded') }}
                 </div>
               </div>
             </div>
 
-            <div>
-              <p class="eyebrow" style="margin-bottom: 4px">
-                {{ d.provisional ? 'Provisional band' : 'Band' }}
-              </p>
-              <div class="band">{{ d.band ?? '—' }}</div>
-              @if (d.band_label) {
-                <p class="dt-sub" style="margin-top: 2px">{{ d.band_label }}</p>
-              }
-
-              <p class="dt-sub" style="margin-top: 10px">
-                {{ d.sections_scored }} of {{ d.sections_total }} sections scored
-              </p>
-              @if (d.pending_label) {
-                <span class="chip warn">
-                  <span class="icon" aria-hidden="true">pending</span>
-                  {{ d.pending_label }}
-                </span>
-              }
-              @if (d.taken_on) {
-                <p class="dt-sub" style="margin-top: 8px">
-                  Taken {{ d.taken_on | date: 'd MMM y' }}
-                </p>
-              }
-            </div>
-
-            <div style="flex: 1; min-width: 180px">
-              <p class="eyebrow">Assessment progress</p>
-              <div class="meter-row">
-                <div class="meter" style="flex: 1">
-                  <span [style.width.%]="d.progress_percent"></span>
+            <div class="eb-hero__right">
+              <div class="eb-chips">
+                <span class="eb-chip">{{ d.sections_scored }} of {{ d.sections_total }} sections scored</span>
+                @if (d.pending_label) {
+                  <span class="eb-chip eb-chip--warn">{{ d.pending_label }}</span>
+                }
+                @if (d.taken_on) {
+                  <span class="eb-chip">Taken {{ d.taken_on | date: 'd MMM y' }}</span>
+                }
+              </div>
+              <div>
+                <div class="eb-meter-head">
+                  <span>Assessment progress</span><span class="eb-meter-val">{{ d.progress_percent }}%</span>
                 </div>
-                <b>{{ d.progress_percent }}%</b>
+                <div
+                  class="eb-meter eb-meter--hero"
+                  role="progressbar"
+                  [attr.aria-valuenow]="d.progress_percent"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-label="Assessment progress"
+                >
+                  <i [style.width.%]="d.progress_percent"></i>
+                </div>
+              </div>
+              <div class="eb-hero__note">
+                @if (d.provisional) {
+                  Your band is provisional until
+                  {{ firstPending(d) ? 'the ' + firstPending(d) + ' section is' : 'every section is' }}
+                  submitted. The final band is shared with your mentor and feeds the Reboot exit
+                  review.
+                } @else {
+                  Every section is scored. Your final band is shared with your mentor and feeds the
+                  Reboot exit review.
+                }
               </div>
             </div>
           </div>
         </div>
 
         <!-- Four skill cards -->
-        <div class="grid4" style="margin-bottom: 16px">
+        <div class="eb-sections">
           @for (s of d.sections; track s.skill) {
-            <div class="skill-card">
-              <header>
-                <span class="icon" aria-hidden="true">{{ s.icon }}</span>
-                <span class="name">{{ s.label }}</span>
+            <div class="card eb-skill">
+              <div class="eb-skill__head">
+                <div class="eb-skill__id">
+                  <span class="eb-skill__icon"><span class="icon" aria-hidden="true">{{ s.icon }}</span></span>
+                  <span>
+                    <span class="eb-skill__name">{{ s.label }}</span>
+                    <span class="eb-skill__meta">{{ s.minutes ? s.minutes + ' min · AI scored' : 'AI scored' }}</span>
+                  </span>
+                </div>
                 <!-- Status is text + colour together, never colour alone. -->
                 @if (s.status === 'SCORED') {
-                  <span class="chip good">Scored</span>
+                  <span class="eb-chip eb-chip--good">Scored</span>
                 } @else {
-                  <span class="chip warn">Pending</span>
+                  <span class="eb-chip eb-chip--warn">Pending</span>
                 }
-              </header>
-
-              <p class="dt-sub" style="margin: 0 0 8px">{{ s.minutes }} min · AI scored</p>
+              </div>
 
               <!-- Branching on STATUS, not on a falsy score: `score || '--'`
                    would also swallow a genuine 0. -->
+              <div class="eb-skill__score">
+                @if (s.status === 'SCORED') {
+                  <div class="eb-skill__big">{{ s.score }}</div>
+                  <div class="eb-skill__of">/ 100 · CEFR <strong>{{ s.band ?? '—' }}</strong></div>
+                } @else {
+                  <div class="eb-skill__big eb-skill__big--pending">--</div>
+                  <div class="eb-skill__of">/ 100 · CEFR <strong>—</strong></div>
+                }
+              </div>
+
+              @if (s.subscores.length) {
+                <div class="eb-subs">
+                  @for (sub of s.subscores; track sub.label) {
+                    <div>
+                      <div class="eb-meter-head eb-meter-head--sub">
+                        <span>{{ sub.label }}</span>
+                        <span class="eb-meter-val" [class.eb-meter-val--pending]="sub.value === null">{{
+                          sub.value !== null ? sub.value : '--'
+                        }}</span>
+                      </div>
+                      <div
+                        class="eb-meter"
+                        role="progressbar"
+                        [attr.aria-valuenow]="sub.value ?? 0"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        [attr.aria-label]="s.label + ' — ' + sub.label"
+                      >
+                        <i
+                          [class.eb-meter__none]="sub.value === null"
+                          [style.width.%]="sub.value ?? 0"
+                        ></i>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
               @if (s.status === 'SCORED') {
-                <div class="big">
-                  {{ s.score
-                  }}<span class="unit" style="font-size: 13px; color: var(--faint)">
-                    / 100 · CEFR</span
+                @if (s.has_report) {
+                  <button
+                    type="button"
+                    class="eb-report-btn"
+                    [attr.aria-expanded]="openReport() === s.skill"
+                    (click)="toggleReport(s.skill)"
                   >
-                  <span class="band" style="font-size: 16px">{{ s.band }}</span>
-                </div>
+                    <span class="icon" aria-hidden="true">description</span>
+                    {{ openReport() === s.skill ? 'Hide AI report' : 'View AI report' }}
+                  </button>
+                  @if (openReport() === s.skill && s.ai_report) {
+                    <p class="eb-report">{{ s.ai_report }}</p>
+                  }
+                } @else {
+                  <span class="eb-skill__noreport">No written report for this section.</span>
+                }
               } @else {
-                <div class="big pending">--</div>
-                <p class="dt-sub" style="margin: 2px 0 0">—</p>
-              }
-
-              @for (sub of s.subscores; track sub.label) {
-                <div class="subrow">
-                  <span>{{ sub.label }}</span>
-                  <b>{{ sub.value ?? '—' }}</b>
-                </div>
-              }
-
-              @if (s.status === 'SCORED' && s.has_report) {
                 <button
                   type="button"
-                  class="addlink"
-                  [attr.aria-expanded]="openReport() === s.skill"
-                  (click)="toggleReport(s.skill)"
+                  class="eb-start-btn"
+                  [disabled]="busy()"
+                  (click)="startOrResume()"
                 >
-                  {{ openReport() === s.skill ? 'Hide AI report' : 'View AI report' }}
-                </button>
-                @if (openReport() === s.skill && s.ai_report) {
-                  <p class="dt-sub" style="margin: 6px 0 0">{{ s.ai_report }}</p>
-                }
-              } @else if (s.status === 'PENDING') {
-                <button type="button" class="addlink" [disabled]="busy()" (click)="startOrResume()">
+                  <span class="icon" aria-hidden="true">play_arrow</span>
                   Start {{ s.label | lowercase }} test
                 </button>
               }
@@ -177,66 +238,61 @@
           }
         </div>
 
-        <!-- AI feedback -->
-        <div class="grid-2" style="margin-bottom: 16px">
-          <div class="card">
-            <h4>
-              <span class="icon" aria-hidden="true" style="font-size: 16px">auto_awesome</span>
-              AI feedback · Strengths
+        <!-- AI feedback + Recommended next -->
+        <div class="eb-bottom">
+          <div class="card eb-panel">
+            <h4 class="eb-h4">
+              <span class="icon" aria-hidden="true">auto_awesome</span>AI feedback
             </h4>
-            @for (item of d.strengths; track item) {
-              <div class="rowline">
-                <span class="icon" aria-hidden="true" style="color: var(--good); font-size: 16px"
-                  >check_circle</span
-                >
-                {{ item }}
+            <div class="eb-fb">
+              <div class="eb-fb__box eb-fb__box--good">
+                <div class="eb-fb__lbl">Strengths</div>
+                @for (item of d.strengths; track item) {
+                  <div class="eb-fb__row"><span class="eb-fb__dot" aria-hidden="true">·</span><span>{{ item }}</span></div>
+                } @empty {
+                  <div class="eb-fb__empty">No strengths recorded yet — they appear once a section is scored.</div>
+                }
               </div>
-            } @empty {
-              <p class="dt-sub">No strengths recorded yet.</p>
-            }
+              <div class="eb-fb__box eb-fb__box--risk">
+                <div class="eb-fb__lbl">Focus areas</div>
+                @for (item of d.focus_areas; track item) {
+                  <div class="eb-fb__row"><span class="eb-fb__dot" aria-hidden="true">·</span><span>{{ item }}</span></div>
+                } @empty {
+                  <div class="eb-fb__empty">No focus areas recorded yet — they appear once a section is scored.</div>
+                }
+              </div>
+            </div>
           </div>
 
-          <div class="card">
-            <h4>
-              <span class="icon" aria-hidden="true" style="font-size: 16px">target</span>
-              Focus areas
+          <div class="card eb-panel">
+            <h4 class="eb-h4">
+              <span class="icon" aria-hidden="true">trending_up</span>Recommended next
             </h4>
-            @for (item of d.focus_areas; track item) {
-              <div class="rowline">
-                <span class="icon" aria-hidden="true" style="color: var(--warn); font-size: 16px"
-                  >pending</span
-                >
-                {{ item }}
-              </div>
-            } @empty {
-              <p class="dt-sub">No focus areas recorded yet.</p>
-            }
-          </div>
-        </div>
-
-        <!-- Recommended next -->
-        @if (d.next_steps.length) {
-          <div class="card">
-            <h4>
-              <span class="icon" aria-hidden="true" style="font-size: 16px">trending_up</span>
-              Recommended next
-            </h4>
-            <div class="grid-3">
+            <div class="eb-next">
               @for (step of d.next_steps; track step.title) {
-                <div class="preview">
-                  <b>{{ step.title }}</b>
-                  <p class="dt-sub" style="margin: 4px 0 10px">{{ step.sub }}</p>
-                  @if (step.target) {
-                    <a class="btn" [routerLink]="step.target">
-                      Open
-                      <span class="icon" aria-hidden="true">arrow_forward</span>
-                    </a>
-                  }
-                </div>
+                @if (step.target) {
+                  <a class="eb-next__row" [routerLink]="step.target">
+                    <span class="eb-next__arrow"><span class="icon" aria-hidden="true">arrow_forward</span></span>
+                    <span class="eb-next__text">
+                      <span class="eb-next__title">{{ step.title }}</span>
+                      <span class="eb-next__sub">{{ step.sub }}</span>
+                    </span>
+                  </a>
+                } @else {
+                  <div class="eb-next__row eb-next__row--static">
+                    <span class="eb-next__arrow"><span class="icon" aria-hidden="true">arrow_forward</span></span>
+                    <span class="eb-next__text">
+                      <span class="eb-next__title">{{ step.title }}</span>
+                      <span class="eb-next__sub">{{ step.sub }}</span>
+                    </span>
+                  </div>
+                }
+              } @empty {
+                <p class="eb-fb__empty">Nothing recommended yet — suggestions appear once your sections are scored.</p>
               }
             </div>
           </div>
-        }
+        </div>
       }
     }
   }

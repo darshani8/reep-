@@ -107,6 +107,46 @@ The LiveKit voice stack (step 4 above, `voice_agent.py`, `/api/voice/*`) and the
 
 `apps/interview-realtime/`, the superseded standalone prototype of this relay (no authentication, no database), was **deleted in 2026-09** along with `ollama/` and `tools/cascade`; the in-process relay above is the only interviewer.
 
+## The voice-assistant platform (2026-09)
+
+`apps/api-py/app/voice_platform/` is the dual-path (Undergraduate / Postgraduate)
+interview platform from the system-architecture diagram — Admin CRUD for a
+per-degree catalogue (specializations, questions, time limits, recording
+policies, candidates), the `/ws/media-bridge` socket, S3 → Lambda → SQS
+candidate ingest, dual-channel call recordings uploaded to S3 with presigned
+`recording_s3_url`s, DynamoDB session state, OpenSearch session logs and
+question vectors, and CloudWatch/Sentry hooks. Full notes:
+`docs/voice-platform.md`; infrastructure: `infra/aws/voice_platform.tf`
+(behind `voice_platform_enabled`, default false).
+
+**It reuses the interviewer; it does not fork it.** The media bridge compiles
+catalogue rows into an `interview_matrix.Specialization` (which gained an
+optional `question_bank`) and runs `NovaSonicSession` (which gained an optional
+per-session `max_seconds`), calling the interview router's own `_open_records`
+and writers — so consent (4013), the caps (4012/4015), rule 1's containment and
+the `interview_sessions` record all apply unchanged. A platform call is a real
+interview with a `platform_call_sessions` row beside it. **Every AWS projection
+is optional and honest**: no bucket/queue/table/endpoint configured means that
+piece is off and `GET /api/platform/admin/status` says so; nothing pretends.
+Recording needs THREE switches — the degree's policy, `INTERVIEW_RECORDING_ENABLED`,
+and the student's live `scope_store_audio` grant.
+
+## The design-v4 screens (2026-09)
+
+The four UIs (student, mentor, admin, alumni) follow the Claude Design export
+at `docs/design-v4/reep-app-standalone.html`. The sidebars are the design's:
+students get Home, Jobs, Skilling, Leaderboards, Time Sheet, Mentor / TPO Log,
+Resume Builder — **no Badges screen and no agent link** (the badge grid lives on
+Skilling; the orb's "Type instead" opens `/student/agent`); admins get
+Analytics, Leave Approvals, Mentors & Students, Jobs Sheet, Exports, REEP Agent
+(Registrations, Catalogue and Placement stay routed and are reached from the
+Analytics tiles). The REEP Agent chat (`features/agent`, `POST /api/agent/ask`)
+is the design's assistant, so `AGENT_RUNS_COLLECTED` is `True` again. Deleted
+with this: the student Badges, Overview, Academics and Offers screens, the
+mentor Badge Centre and the placeholder component. **The mock interviewer is
+NOT in the design and was kept on purpose** — it is deployed and working, and
+it is the landing's Elevate "Mock Interview" module (`/student/assistant`).
+
 ## The two rules that must not be broken
 
 ### 1. Student data must not leave the machine unbidden

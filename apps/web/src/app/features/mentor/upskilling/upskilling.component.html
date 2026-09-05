@@ -1,122 +1,132 @@
-<div class="dt-header">
-  <div>
-    <div class="dt-title">Upskilling</div>
-    <div class="dt-sub">Certificates for courses you have completed — your own record.</div>
+<div class="panel" data-p="upskilling">
+  <div class="dt-header">
+    <div>
+      <div class="dt-title">Upskilling</div>
+      <div class="dt-sub">Certificates for courses you have completed — your own record.</div>
+    </div>
   </div>
-</div>
 
-<div class="card" style="margin-bottom: 14px; padding: 14px">
-  <h4 style="margin: 0 0 10px">Upload a certificate</h4>
-  <div style="display: flex; gap: 10px; flex-wrap: wrap">
-    <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; flex: 1; min-width: 200px">
-      Course / certificate name
-      <input type="text" placeholder="e.g. Business Analytics with Power BI" [(ngModel)]="title" />
-    </label>
-    <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; min-width: 160px">
-      Provider <span class="dt-sub">(optional)</span>
-      <input type="text" placeholder="Coursera, NPTEL…" [(ngModel)]="provider" />
-    </label>
-    <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px">
-      Completed on <span class="dt-sub">(optional)</span>
-      <input type="date" [(ngModel)]="completedOn" />
-    </label>
+  <div class="card up-form">
+    <div class="up-card-title">Upload a certificate</div>
+    <div class="up-grid">
+      <label class="up-field">
+        Course / certificate name
+        <input
+          type="text"
+          placeholder="e.g. Business Analytics with Power BI"
+          maxlength="200"
+          [(ngModel)]="title"
+        />
+      </label>
+      <label class="up-field">
+        Provider <span class="up-opt">(optional)</span>
+        <input type="text" placeholder="Coursera, NPTEL…" maxlength="200" [(ngModel)]="provider" />
+      </label>
+      <label class="up-field">
+        Completed on
+        <input type="date" [(ngModel)]="completedOn" />
+      </label>
+    </div>
+    <div class="up-actions">
+      <button type="button" class="btn primary" [disabled]="uploading()" (click)="choose(picker)">
+        <span class="icon">{{ uploading() ? 'progress_activity' : 'cloud_upload' }}</span>
+        {{ uploading() ? 'Uploading…' : 'Choose file & upload' }}
+      </button>
+      <span class="up-accepted">
+        Accepted: <strong>PDF, PNG, JPEG</strong> · up to <strong>10 MB</strong>
+      </span>
+      @if (uploadedFlash()) {
+        <span class="chip good"><span class="icon">check_circle</span> Uploaded</span>
+      }
+      @if (nameFlash()) {
+        <span class="chip risk" role="alert"><span class="icon">error</span> Name the certificate first</span>
+      }
+    </div>
+    <input
+      #picker
+      type="file"
+      accept="application/pdf,image/png,image/jpeg"
+      hidden
+      (change)="onPick($event)"
+    />
+    @if (uploadError()) {
+      <div class="notice up-notice" role="alert">
+        <span class="icon">error</span>
+        <div><strong>Upload failed.</strong> {{ uploadError() }}</div>
+      </div>
+    }
   </div>
-  <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap">
-    <button type="button" class="dt-btn primary" [disabled]="uploading()" (click)="picker.click()">
-      <span class="icon">{{ uploading() ? 'progress_activity' : 'cloud_upload' }}</span>
-      {{ uploading() ? 'Uploading…' : 'Choose file & upload' }}
-    </button>
-    <span class="dt-sub">Accepted: <strong>PDF, PNG, JPEG</strong> · up to <strong>10 MB</strong></span>
-  </div>
-  <input
-    #picker
-    type="file"
-    accept="application/pdf,image/png,image/jpeg"
-    hidden
-    (change)="onPick($event)"
-  />
 
-  @if (uploadError()) {
-    <div class="feedback feedback--err" role="alert" style="margin-top: 10px">
+  @if (actionError()) {
+    <div class="notice up-notice" role="alert">
       <span class="icon">error</span>
-      <div>
-        <div class="feedback__title">Upload failed</div>
-        <div class="feedback__body">{{ uploadError() }}</div>
-      </div>
+      <div>{{ actionError() }}</div>
     </div>
   }
-  @if (justUploaded(); as up) {
-    <div class="feedback feedback--ok" style="margin-top: 10px">
-      <span class="icon">check_circle</span>
-      <div class="feedback__body">
-        <strong>{{ up.title }}</strong> uploaded · {{ formatSize(up.size_bytes) }}.
+
+  <div class="up-section">
+    Your certificates
+    @if (rows(); as list) {
+      <span class="up-count">· {{ list.length }} on file</span>
+    }
+  </div>
+
+  <div class="card">
+    @if (error()) {
+      <div class="notice" role="alert">
+        <span class="icon">wifi_off</span>
+        <div>{{ error() }}</div>
       </div>
-    </div>
-  }
+    } @else {
+      <div class="up-scroll">
+        <table class="up-table">
+          <thead>
+            <tr>
+              <th>Certificate</th>
+              <th>Provider</th>
+              <th>Completed</th>
+              <th>File</th>
+              <th><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (rows(); as list) {
+              @for (c of list; track c.id) {
+                <tr>
+                  <td>
+                    <strong>{{ c.title }}</strong>
+                    <div class="up-sub">Uploaded {{ c.uploaded_at | date: 'd MMM y' }}</div>
+                  </td>
+                  <td>{{ c.provider || '—' }}</td>
+                  <td class="up-num">{{ c.completed_on ? (c.completed_on | date: 'd MMM y') : '—' }}</td>
+                  <td class="up-file">{{ c.original_name }} · {{ formatSize(c.size_bytes) }}</td>
+                  <td class="up-cell-actions">
+                    <div class="up-row-actions">
+                      <a class="btn up-btn" [href]="fileUrl(c.id)" target="_blank" rel="noopener">View</a>
+                      <button
+                        type="button"
+                        class="btn up-btn up-btn--remove"
+                        [disabled]="removingId() === c.id"
+                        (click)="remove(c)"
+                      >
+                        {{ removingId() === c.id ? 'Removing…' : 'Remove' }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="up-row-note">
+                    <strong>No certificates yet</strong> — upload the first course you have completed.
+                  </td>
+                </tr>
+              }
+            } @else {
+              <tr><td colspan="5" class="up-row-note">Loading your certificates…</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
 </div>
-
-@if (actionError()) {
-  <div class="feedback feedback--err" role="alert">
-    <span class="icon">error</span>
-    <div class="feedback__body">{{ actionError() }}</div>
-  </div>
-}
-
-<div class="dt-sub section-head">Your certificates</div>
-
-@if (error()) {
-  <div class="feedback feedback--err" role="alert">
-    <span class="icon">wifi_off</span>
-    <div class="feedback__body">{{ error() }}</div>
-  </div>
-} @else if (rows(); as list) {
-  @if (list.length === 0) {
-    <div class="card" style="padding: 16px; display: flex; gap: 10px; align-items: center">
-      <span class="icon">folder_open</span>
-      <div>
-        <strong>No certificates yet</strong>
-        <div class="dt-sub">Upload the first course you have completed — it will appear here.</div>
-      </div>
-    </div>
-  } @else {
-    <table class="dt-table">
-      <thead>
-        <tr>
-          <th>Certificate</th>
-          <th>Provider</th>
-          <th>Completed</th>
-          <th>File</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (c of list; track c.id) {
-          <tr>
-            <td>
-              <strong>{{ c.title }}</strong>
-              <div class="dt-sub">Uploaded {{ c.uploaded_at | date: 'd MMM y' }}</div>
-            </td>
-            <td>{{ c.provider || '—' }}</td>
-            <td>{{ c.completed_on ? (c.completed_on | date: 'd MMM y') : '—' }}</td>
-            <td>{{ c.original_name }} · {{ formatSize(c.size_bytes) }}</td>
-            <td style="white-space: nowrap">
-              <a class="dt-btn" [href]="fileUrl(c.id)" target="_blank" rel="noopener">
-                <span class="icon">open_in_new</span>View
-              </a>
-              <button
-                type="button"
-                class="dt-btn danger"
-                [disabled]="removingId() === c.id"
-                (click)="remove(c)"
-              >
-                <span class="icon">delete</span>{{ removingId() === c.id ? 'Removing…' : 'Remove' }}
-              </button>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  }
-} @else {
-  <div class="card" style="padding: 16px">Loading your certificates…</div>
-}

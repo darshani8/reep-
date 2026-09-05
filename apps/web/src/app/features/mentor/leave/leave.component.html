@@ -4,8 +4,8 @@
     <div class="dt-header">
       <div>
         <div class="dt-title">Leave requests</div>
-        <div class="dt-sub">
-          The official BGSCET leave form — sign and send to the Program Director.
+        <div class="dt-sub lv-lede">
+          The official BGSCET leave form — sign and send to Admin / Program Director.
         </div>
       </div>
       <button type="button" class="btn primary" (click)="startNew()">
@@ -16,17 +16,39 @@
     @if (error()) {
       <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
     }
+    @if (draftFlash()) {
+      <div class="state-note"><span class="icon">check_circle</span>Draft saved on this device.</div>
+    }
+
+    @if (draft(); as d) {
+      <div class="card req-card" (click)="openDraft()">
+        <div class="req-main">
+          <div class="req-top">
+            <strong>{{ kindLabel(d.kind) }}</strong>
+            <span class="req-kind">Draft · saved on this device</span>
+          </div>
+          <div class="req-dates">
+            {{ d.from && d.to ? dateSpan({ from_date: d.from, to_date: d.to }) : 'Dates not filled in yet' }}
+            · saved {{ d.savedAt | date: 'd MMM y, HH:mm' }}
+          </div>
+        </div>
+        <span class="chip neutral"><span class="icon">edit_note</span> Draft</span>
+      </div>
+    }
 
     @if (rows() === null) {
       <div class="state-note"><span class="icon">hourglass_empty</span>Loading your requests…</div>
-    } @else if (rows()!.length === 0) {
-      <div class="card">No leave requests yet.</div>
+    } @else if (rows()!.length === 0 && !draft()) {
+      <div class="card lv-empty">No leave requests yet.</div>
     } @else {
       @for (r of rows()!; track r.id) {
         <div class="card req-card" (click)="open(r)">
           <div class="req-main">
             <div class="req-top">
               <strong>{{ kindLabel(r.leave_kind) }}</strong>
+              @if (r.signed_at) {
+                <span class="req-kind">Applied {{ r.signed_at | date: 'd MMM y' }}</span>
+              }
             </div>
             <div class="req-dates">{{ dateSpan(r) }}</div>
           </div>
@@ -39,7 +61,7 @@
   } @else {
     <!-- THE FORM -->
     <div class="form-bar">
-      <button type="button" class="iconbtn" title="Back to requests" (click)="backToDash()">
+      <button type="button" class="iconbtn lv-back" title="Back to requests" (click)="backToDash()">
         <span class="icon">arrow_back</span>
       </button>
       <div class="form-bar-note">
@@ -51,7 +73,7 @@
       <div class="remarks">
         <span class="icon">flag</span>
         <div>
-          <strong>Program Director's remarks</strong>
+          <strong>{{ remarksLabel(viewing()!.status) }}</strong>
           <div>{{ viewing()!.director_note }}</div>
         </div>
       </div>
@@ -85,12 +107,17 @@
         (Strike-off, if not applicable)
       </div>
 
+      <div class="app-date">
+        Date:
+        <span class="app-date-val">{{ (v ? v.signed_at : null) || today | date: 'dd MMM y' }}</span>
+      </div>
+
       <table class="sheet-table">
         <tbody>
           <tr>
             <th scope="row">Name</th>
             <td>
-              {{ v ? v.requester_name : identity().name }}
+              {{ (v ? v.requester_name : identity().name) || 'Not on record' }}
               <span class="synced">(synced)</span>
             </td>
           </tr>
@@ -117,11 +144,17 @@
                 <span class="date-pair">
                   <input
                     type="date"
+                    aria-label="From date"
                     [value]="fFrom()"
                     (input)="fFrom.set($any($event.target).value)"
                   />
                   <span>to</span>
-                  <input type="date" [value]="fTo()" (input)="fTo.set($any($event.target).value)" />
+                  <input
+                    type="date"
+                    aria-label="To date"
+                    [value]="fTo()"
+                    (input)="fTo.set($any($event.target).value)"
+                  />
                 </span>
               }
             </td>
@@ -134,6 +167,7 @@
               } @else {
                 <textarea
                   rows="2"
+                  aria-label="Purpose"
                   [value]="fPurpose()"
                   (input)="fPurpose.set($any($event.target).value)"
                 ></textarea>
@@ -148,6 +182,8 @@
               } @else {
                 <input
                   type="text"
+                  aria-label="Credit"
+                  placeholder="e.g. 3 days"
                   [value]="fCredit()"
                   (input)="fCredit.set($any($event.target).value)"
                 />
@@ -156,7 +192,7 @@
           </tr>
           <tr>
             <th scope="row">Sanctioned</th>
-            <td>{{ v ? chip(v.status).label : '—' }}</td>
+            <td>{{ v ? sanctioned(v.status) : 'Pending' }}</td>
           </tr>
         </tbody>
       </table>
@@ -166,6 +202,15 @@
           @if (v?.signed_at) {
             <div class="sig-name">{{ v!.requester_name }}</div>
             <div class="sig-when">{{ v!.signed_at | date: 'd MMM y, HH:mm' }}</div>
+          } @else if (!v) {
+            <button
+              type="button"
+              class="btn primary sig-btn"
+              [disabled]="!canSubmit()"
+              (click)="signAndSubmit()"
+            >
+              <span class="icon">draw</span> Sign
+            </button>
           }
           <div class="sig-line">SIGNATURE OF STAFF</div>
         </div>
@@ -190,6 +235,7 @@
         } @else {
           <input
             type="text"
+            aria-label="Alternate arrangement name"
             [value]="fAltName()"
             (input)="fAltName.set($any($event.target).value)"
           />
@@ -227,6 +273,7 @@
                 <td>
                   <input
                     type="text"
+                    aria-label="Date"
                     [value]="r.date"
                     (input)="setAltCell($index, 'date', $any($event.target).value)"
                   />
@@ -234,6 +281,7 @@
                 <td>
                   <input
                     type="text"
+                    aria-label="Staff name"
                     [value]="r.staff_name"
                     (input)="setAltCell($index, 'staff_name', $any($event.target).value)"
                   />
@@ -241,6 +289,7 @@
                 <td>
                   <input
                     type="text"
+                    aria-label="Class"
                     [value]="r.cls"
                     (input)="setAltCell($index, 'cls', $any($event.target).value)"
                   />
@@ -248,6 +297,7 @@
                 <td>
                   <input
                     type="text"
+                    aria-label="Time"
                     [value]="r.time"
                     (input)="setAltCell($index, 'time', $any($event.target).value)"
                   />
@@ -255,6 +305,7 @@
                 <td>
                   <input
                     type="text"
+                    aria-label="Remarks"
                     [value]="r.remarks"
                     (input)="setAltCell($index, 'remarks', $any($event.target).value)"
                   />
@@ -278,11 +329,23 @@
       </div>
     </div>
 
+    @if (v?.status === 'REJECTED') {
+      <div class="form-actions">
+        <button type="button" class="btn" (click)="editAndResubmit(v!)">
+          <span class="icon">edit</span> Edit &amp; resubmit
+        </button>
+        <span class="form-hint">Opens a fresh form with these details; the rejected one stays on record.</span>
+      </div>
+    }
+
     @if (!viewing()) {
       @if (formError()) {
         <div class="state-note risk"><span class="icon">error</span>{{ formError() }}</div>
       }
       <div class="form-actions">
+        <button type="button" class="btn" (click)="saveDraft()">
+          <span class="icon">save</span> Save draft
+        </button>
         <button
           type="button"
           class="btn primary"
@@ -292,6 +355,9 @@
           <span class="icon">draw</span>
           {{ submitting() ? 'Submitting…' : 'Sign & submit to Program Director' }}
         </button>
+        @if (draft()) {
+          <button type="button" class="btn ghost" (click)="discardDraft()">Discard draft</button>
+        }
         @if (!canSubmit() && !submitting()) {
           <span class="form-hint">Dates and a purpose are needed before this can be signed.</span>
         }

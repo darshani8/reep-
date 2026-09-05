@@ -14,9 +14,18 @@
 # being possible; do not tidy this away until the interviewer has held up in
 # front of real students.
 #
+# 2026-09 UPDATE: /api/agent/ask HAS A UI CALLER AGAIN. The design handoff
+# added a "REEP Agent" text screen — the Knowledge-Base helper, distinct from
+# the mock interviewer — at apps/web/src/app/features/agent/. It calls /ask,
+# /history, /conversation and /feedback, so AGENT_RUNS_COLLECTED is True again
+# and the feedback tombstone below has retired itself. The interviewer is
+# unchanged and still writes no runs; only this text surface does.
+#
 # SUPERSEDED entry points — still mounted, still functional, no UI caller:
 #   POST   /api/agent/ask              was the primary path; replaced by the
-#                                      interview WebSocket
+#                                      interview WebSocket in 2026-08 and
+#                                      re-pointed at by the REEP Agent screen in
+#                                      2026-09 (see the update above)
 #   POST   /api/agent/chat             no UI caller before or after; still the
 #                                      subject of tests/test_conversations.py
 #   POST   /api/agent/chat/stream      no caller before or after (SSE, dead)
@@ -154,16 +163,21 @@ UNREACHABLE_NOTE = (
     "the server log."
 )
 
-# The AgentRun table is no longer fed by anything a student can reach: the
-# realtime mock interviewer replaced the /api/agent/ask assistant screen in
-# 2026-08, and the interview relay persists turns through app/conversations.py
-# without writing runs. Stated as a CONSTANT rather than derived from the row
+# Whether anything a user can reach still writes AgentRun rows. It was False
+# from 2026-08 (the realtime mock interviewer replaced the /api/agent/ask
+# assistant screen, and the interview relay persists turns through
+# app/conversations.py without writing runs) until 2026-09, when the REEP Agent
+# text screen (apps/web/src/app/features/agent/) re-pointed a client at /ask:
+# every question it sends lands in `ask()` below, which persists one run per
+# turn through `_persist_run` and hands the id back as AskOut.run_id for the
+# screen's thumbs-up/down. Stated as a CONSTANT rather than derived from the row
 # count on purpose — derive it and one developer exercising /ask in Swagger flips
-# the dashboard to "collecting" while every student-facing surface still writes
-# nothing. Flip this back to True in the same change that re-points the client at
-# /api/agent/ask (the rollback path this module exists for).
-AGENT_RUNS_COLLECTED = False
+# the dashboard to "collecting" while no real surface writes anything. If the
+# agent screen is ever removed again, flip this back to False in the same change:
+# the feedback tombstone and the metrics note key off it and need no second edit.
+AGENT_RUNS_COLLECTED = True
 
+# Only ever sent while AGENT_RUNS_COLLECTED is False.
 SUPERSEDED_RUNS_NOTE = (
     "AgentRun rows stopped being written when the realtime mock interviewer "
     "replaced the /api/agent/ask assistant screen (2026-08). These counters are a "

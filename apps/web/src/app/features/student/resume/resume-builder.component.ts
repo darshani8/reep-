@@ -21,7 +21,7 @@
  * academic edits route to a mentor (both paths call save() at this layer).
  */
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, type OnDestroy } from '@angular/core';
 
 import { ResumeBuilderService } from './resume-builder.service';
 
@@ -227,7 +227,7 @@ const STEP_GROUPS: StepGroup[] = [
   templateUrl: './resume-builder.component.html',
   styleUrl: './resume-builder.component.scss',
 })
-export class ResumeBuilderComponent {
+export class ResumeBuilderComponent implements OnDestroy {
   readonly svc = inject(ResumeBuilderService);
 
   readonly groups = STEP_GROUPS;
@@ -282,17 +282,30 @@ export class ResumeBuilderComponent {
     return this.svc.savedAt() ? 'saved' : 'clean';
   });
 
-  /** "Saved just now" within a minute of the last save, else "Saved at HH:MM". */
+  /** Re-evaluated every half minute so a relative label ("Saved 2 minutes
+   *  ago") keeps moving while the student reads without saving again. */
+  private readonly tick = signal(0);
+  private readonly ticker = setInterval(() => this.tick.update((n) => n + 1), 30_000);
+
+  /** "Saved just now" inside a minute, "Saved N minutes ago" inside the hour,
+   *  then the clock time — the design's chip, kept truthful as time passes. */
   readonly savedLabel = computed<string>(() => {
+    this.tick();
     const iso = this.svc.savedAt();
     if (!iso) return '';
     const then = new Date(iso);
     const secs = (Date.now() - then.getTime()) / 1000;
     if (secs < 60) return 'Saved just now';
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `Saved ${mins} minute${mins === 1 ? '' : 's'} ago`;
     const hh = String(then.getHours()).padStart(2, '0');
     const mm = String(then.getMinutes()).padStart(2, '0');
     return `Saved at ${hh}:${mm}`;
   });
+
+  ngOnDestroy(): void {
+    clearInterval(this.ticker);
+  }
 
   constructor() {
     void this.svc.load();

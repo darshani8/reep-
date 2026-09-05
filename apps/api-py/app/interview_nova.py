@@ -682,9 +682,15 @@ class NovaSonicSession:
         on_finalize: Callable[[_SessionOutcome], None] | None = None,
         on_heartbeat: Callable[[], None] | None = None,
         recorder: Any | None = None,
+        max_seconds: int | None = None,
     ) -> None:
         self._ws = websocket
         self._conn_id = conn_id
+        # A per-SESSION cap, set by the voice platform from its per-degree
+        # time-limit rows (app/voice_platform/engine). None means the global
+        # INTERVIEW_MAX_SECONDS, which is what /api/interview always passes.
+        # Either way Bedrock's 8-minute wall still wins in _effective_cap.
+        self._max_seconds = int(max_seconds) if max_seconds else None
         self._on_turn = on_turn
         self._on_report = on_report
         self._on_finalize = on_finalize
@@ -1748,8 +1754,9 @@ class NovaSonicSession:
         machine exists to prevent — an interview cut off mid-answer with no
         verdict and no scorecard — so the wall wins whenever it is nearer.
         """
+        ours = float(self._max_seconds or settings.interview_max_seconds)
         return min(
-            float(settings.interview_max_seconds),
+            ours,
             max(60.0, float(settings.nova_sonic_connection_seconds) - _CONNECTION_MARGIN_S),
         )
 

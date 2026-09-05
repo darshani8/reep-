@@ -1,12 +1,13 @@
 /**
  * Student Jobs — one board of opportunities, filtered.
  *
- * Rich cards over GET /student/jobs: title and company, location, the deadline
- * derived from closes_on and coloured as it nears, a match-% bar, the
- * eligibility verdict WITH its reasons, an application-status chip, and one
- * primary CTA (Apply opens apply_url and POSTs /jobs/{id}/apply). Three
- * client-side filters — eligibility, location, deadline — narrow the fetched
- * list.
+ * One TABLE over GET /student/jobs — Role · Location · Eligibility · Skill match
+ * · Status · Action, as the handoff draws it: title and company, location with
+ * the deadline (derived from closes_on and coloured as it nears) beneath it, the
+ * eligibility verdict, a match-% bar, an application-status chip that gives way
+ * to the server's own reason on an ineligible row, and one primary CTA (Apply
+ * opens apply_url and POSTs /jobs/{id}/apply). Three client-side filters —
+ * eligibility, location, deadline — narrow the fetched list.
  *
  * IT USED TO BE THREE TABS AND IS NOW ONE BOARD. Applications was a table of
  * rows already on this screen carrying an "Applied" chip, so it re-listed what
@@ -23,10 +24,12 @@
  * verdict, and the card prints them: "not eligible" with no cause reads as a
  * bug in the product rather than a gate the student could act on.
  *
- * Markup reuses the global reep-v2 classes (.card / .chip / .match-bar /
- * .dt-btn); the scss adds card layout and the deadline/match tints.
+ * Markup reuses the global reep-v2 classes (.card / .chip / .match-bar / .btn);
+ * the scss adds the framed table, its column weights and the deadline/match
+ * tints.
  */
 
+import { DecimalPipe } from '@angular/common';
 import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
@@ -67,7 +70,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 @Component({
   selector: 'app-student-jobs',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, DecimalPipe],
   templateUrl: './jobs.component.html',
   styleUrl: './jobs.component.scss',
 })

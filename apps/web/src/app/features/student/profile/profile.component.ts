@@ -9,11 +9,12 @@
  * and shown read-only. placement_eligible is admin-set and shown as a chip,
  * never editable.
  *
- * IDENTITY IS NOT A PREFERENCE. Name, USN and the signed-in Google address are
- * the student's identity, not fields they choose: the USN comes off the roster
- * row created before they ever signed in, and the email is the account Google
- * verified. They arrive ALREADY FILLED IN and are rendered as readonly inputs —
- * filled, selectable, copyable, impossible to type into. Nothing on this screen
+ * IDENTITY IS NOT A PREFERENCE. Name and USN are the student's identity, not
+ * fields they choose: the USN comes off the roster row created before they ever
+ * signed in. They arrive ALREADY FILLED IN and are rendered as readonly inputs —
+ * filled, selectable, copyable, impossible to type into. (The v2 handoff shows
+ * exactly these two; the Google address the session was signed in with is no
+ * longer repeated here — the shell's profile block already carries it.) Nothing on this screen
  * sends them anywhere: PUT /student/profile has no `usn` or `name` field, and
  * no route in the API lets a student set their own USN (it is written only by
  * the roster seed and the registration flow), so a client that tried would be
@@ -33,10 +34,9 @@
  *   - privacy and placement-preference controls split into separate groups.
  */
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { AuthService } from '../../../core/auth.service';
 import { environment } from '../../../../environments/environment';
 
 /** GET/PUT /student/profile — exact snake_case shape from ProfileOut. */
@@ -146,8 +146,6 @@ function validateHttpUrl(raw: string): string | null {
   styleUrl: './profile.component.scss',
 })
 export class ProfileComponent {
-  private readonly auth = inject(AuthService);
-
   readonly loaded = signal(false);
   readonly error = signal<string | null>(null);
   readonly saving = signal(false);
@@ -167,11 +165,6 @@ export class ProfileComponent {
    * student to the office over a network blip.
    */
   readonly identityState = signal<'loading' | 'ready' | 'error'>('loading');
-
-  /** The Google account this session was signed in with. Read from the session
-   *  the guard already resolved, not a fetch — the same source the resume's
-   *  locked contact-email field uses. */
-  readonly signedInEmail = computed(() => this.auth.session()?.email ?? '');
 
   /** What goes in the USN box, in every state. */
   readonly usnValue = computed(() => {

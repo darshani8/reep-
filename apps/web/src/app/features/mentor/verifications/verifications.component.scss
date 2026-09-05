@@ -139,35 +139,57 @@
   border-color: rgba(173, 36, 82, 0.35);
 }
 
-.decided {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: var(--good-bg);
-  color: var(--good);
-  font-size: 13px;
+.vq-lede {
+  max-width: 70ch;
+}
+.vq-notice {
   margin-bottom: 12px;
 }
-.decided .icon {
+
+/* The clear queue: one green line, the handoff's exact words. */
+.empty-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  color: var(--good);
+  font-size: 13px;
+  font-weight: 600;
+}
+.empty-card > .icon {
   font-size: 18px;
 }
 
-.empty-card {
+/* Recently reviewed: outcome chip, then skill · student · the note given. */
+.history {
+  margin-top: 18px;
+}
+.history-title {
+  margin: 0 0 10px 4px;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.history-row {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  color: var(--ink);
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+}
+.history-text {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
 }
-.empty-card > .icon {
-  font-size: 20px;
-  color: var(--good);
+.history-text strong {
+  font-weight: 700;
 }
-.empty-sub {
+.history-meta {
   color: var(--muted);
-  margin-top: 2px;
 }
 
 .state-note {

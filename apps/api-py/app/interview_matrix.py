@@ -114,6 +114,13 @@ class Specialization:
     # empty for any track with no mapped course - build_instructions omits the
     # block entirely rather than composing an empty heading.
     syllabus: tuple[str, ...] = ()
+    # The placement office's own question bank for this track, from the
+    # voice-platform catalogue (app/voice_platform) - "[phase] question" lines
+    # in the order they should be worked in. Empty for the four fixed MBA rows,
+    # whose single `sample_question` predates it; build_instructions omits the
+    # block entirely rather than composing an empty heading. Rule 1: this is
+    # staff-authored text, never a student's record.
+    question_bank: tuple[str, ...] = ()
 
 
 # VERBATIM from the product spec -- persona wording, framework lists and
@@ -682,6 +689,19 @@ def build_instructions(
             "commercial judgement the framework list implies.\n"
             f"{modules}\n"
         )
+    bank_block = ""
+    if spec.question_bank:
+        lines = "\n".join(f"- {line}" for line in spec.question_bank)
+        bank_block = (
+            "\n## Question bank for this track\n"
+            "Work these questions in, in this order, one at a time and only "
+            "when the arc reaches the phase in brackets. Rephrase each "
+            "naturally rather than reciting it, and never ask the next one "
+            "until the student has answered the current one. They are a "
+            "guide to coverage, not a script: follow up on what the student "
+            "actually says before moving on.\n"
+            f"{lines}\n"
+        )
     return (
         f"{base_persona}\n"
         "\n"
@@ -693,6 +713,7 @@ def build_instructions(
         f"frameworks and concepts over the course of the interview: "
         f"{frameworks}.\n"
         f"{syllabus_block}"
+        f"{bank_block}"
         "\n"
         f"## Current phase: {phase.value}\n"
         f"{_phase_directive(spec, phase)}"

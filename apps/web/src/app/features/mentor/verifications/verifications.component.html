@@ -3,9 +3,9 @@
     <div>
       <div class="eyebrow">Mentor · sole approver</div>
       <div class="dt-title">Skill verifications</div>
-      <div class="dt-sub">
+      <div class="dt-sub vq-lede">
         Evidence your assigned mentees submitted for a skill. Only you can verify, request changes,
-        or reject it — nothing here goes to an admin.
+        or reject it — nothing here goes to Admin.
       </div>
     </div>
     <span class="chip warn queue-chip">
@@ -14,25 +14,17 @@
   </div>
 
   @if (error()) {
-    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
-  }
-
-  <!-- Outcomes from this session, so a decision does not just make a card vanish. -->
-  @for (entry of done() | keyvalue; track entry.key) {
-    <div class="decided"><span class="icon">check_circle</span>{{ entry.value }}</div>
+    <div class="notice vq-notice" role="alert">
+      <span class="icon">error</span>
+      <div>{{ error() }}</div>
+    </div>
   }
 
   @if (claims() === null) {
     <div class="state-note"><span class="icon">hourglass_empty</span>Loading the queue…</div>
   } @else if (claims()!.length === 0) {
     <div class="card empty-card">
-      <span class="icon">task_alt</span>
-      <div>
-        <b>Nothing waiting.</b>
-        <div class="empty-sub">
-          When a mentee claims a skill with a certificate, it appears here for you to verify.
-        </div>
-      </div>
+      <span class="icon">check_circle</span> Nothing waiting for your review.
     </div>
   } @else {
     @for (c of claims()!; track c.id) {
@@ -40,12 +32,15 @@
         <div class="claim-head">
           <div>
             <strong>{{ c.skill_name }}</strong>
-            <span class="claim-lvl"> · claimed at {{ levelName(c.claimed_level) }}</span>
+            <span class="claim-lvl"> · {{ evidenceKind(c) }}</span>
             <div class="claim-who">
               {{ c.student_name }} · submitted {{ c.created_at | date: 'd MMM y' }}
             </div>
           </div>
-          <span class="chip warn"><span class="icon">hourglass_top</span> Under review</span>
+          <span class="chip warn">
+            <span class="icon">hourglass_top</span>
+            {{ openId() === c.id ? 'Under review' : 'Submitted' }}
+          </span>
         </div>
 
         @if (openId() !== c.id) {
@@ -62,6 +57,14 @@
                 <div class="val val--strong">{{ c.skill_name }}</div>
               </div>
               <div>
+                <div class="fld">Evidence type</div>
+                <div class="val">{{ evidenceKind(c) }}</div>
+              </div>
+              <div>
+                <div class="fld">Title</div>
+                <div class="val">{{ c.evidence_title || 'Untitled upload' }}</div>
+              </div>
+              <div>
                 <div class="fld">Level claimed</div>
                 <div class="val">{{ levelName(c.claimed_level) }}</div>
               </div>
@@ -75,20 +78,19 @@
               </div>
             </div>
 
-            @if (c.student_note) {
-              <div class="claim-note-block">
-                <div class="fld">What the student told you</div>
-                <div class="val">{{ c.student_note }}</div>
-              </div>
-            }
+            <div class="claim-note-block">
+              <div class="fld">What the student told you</div>
+              <div class="val">{{ c.student_note || 'No note was added with the claim.' }}</div>
+            </div>
 
             <div class="claim-file">
               @if (c.upload_id) {
                 <a class="btn" [href]="fileUrl(c.upload_id)" target="_blank" rel="noopener">
-                  <span class="icon">open_in_new</span> Open the certificate
+                  <span class="icon">open_in_new</span>
+                  {{ c.evidence_file_name || 'Open the certificate' }}
                 </a>
               } @else {
-                <span class="chip neutral">No file attached</span>
+                <span class="chip neutral">No file or link attached</span>
               }
             </div>
 
@@ -117,11 +119,11 @@
                 type="text"
                 [value]="note(c.id)"
                 (input)="setNote(c.id, $any($event.target).value)"
-                placeholder="e.g. Clear evidence of the dashboard build — verifying."
+                placeholder="e.g. Great dashboard — approving."
               />
             </label>
             @if (noteError()) {
-              <div class="note-error">{{ noteError() }}</div>
+              <div class="note-error" role="alert">{{ noteError() }}</div>
             }
 
             <div class="decide-row">
@@ -150,6 +152,32 @@
                 <span class="icon">cancel</span> Reject
               </button>
               <button type="button" class="btn ghost" (click)="toggle(c.id)">Close</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- Recently reviewed: the same scope, read back with the note the student was given. -->
+  @if (historyError()) {
+    <div class="state-note risk"><span class="icon">error</span>{{ historyError() }}</div>
+  } @else if (history(); as past) {
+    @if (past.length > 0) {
+      <div class="history">
+        <div class="eyebrow history-title">Recently reviewed</div>
+        @for (h of past; track h.id) {
+          <div class="card history-row">
+            <span class="chip {{ outcome(h.status).tone }}">
+              <span class="icon">{{ outcome(h.status).icon }}</span> {{ outcome(h.status).label }}
+            </span>
+            <div class="history-text">
+              <strong>{{ h.skill_name }}</strong>
+              <span class="history-meta">
+                · {{ h.student_name }}
+                @if (h.reviewed_at) { · {{ h.reviewed_at | date: 'd MMM y' }} }
+                @if (h.review_note) { · “{{ h.review_note }}” }
+              </span>
             </div>
           </div>
         }

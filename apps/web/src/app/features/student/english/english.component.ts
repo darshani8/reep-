@@ -67,6 +67,7 @@ interface Baseline {
   standalone: true,
   imports: [DatePipe, LowerCasePipe, RouterLink],
   templateUrl: './english.component.html',
+  styleUrl: './english.component.scss',
 })
 export class EnglishBaselineComponent {
   readonly state = signal<'loading' | 'data' | 'error'>('loading');
@@ -81,6 +82,14 @@ export class EnglishBaselineComponent {
 
   constructor() {
     void this.load();
+  }
+
+  /** The first section still to be sat, lower-cased for the hero's sentence
+   *  ("until the speaking section is submitted"). Read from the sections, not
+   *  parsed out of `pending_label`, so a relabelled chip cannot break it. */
+  firstPending(d: Baseline): string | null {
+    const s = d.sections.find((x) => x.status !== 'SCORED');
+    return s ? s.label.toLowerCase() : null;
   }
 
   toggleReport(skill: string): void {

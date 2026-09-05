@@ -336,7 +336,11 @@ class LocalSession:
         on_finalize: Callable[[_SessionOutcome], None] | None = None,
         on_heartbeat: Callable[[], None] | None = None,
         recorder: Any | None = None,
+        max_seconds: int | None = None,
     ) -> None:
+        # Same per-session cap the Nova engine takes (the voice platform's
+        # time-limit rows); None means INTERVIEW_MAX_SECONDS, as always.
+        self._max_seconds = int(max_seconds) if max_seconds else None
         self._ws = websocket
         self._conn_id = conn_id
         self._on_turn = on_turn
@@ -416,7 +420,7 @@ class LocalSession:
     # -- the loop ----------------------------------------------------------
 
     async def _loop(self) -> tuple[int, str]:
-        cap = settings.interview_max_seconds
+        cap = self._max_seconds or settings.interview_max_seconds
         idle = settings.interview_idle_seconds
         while True:
             if self._stop_code is not None:
@@ -771,7 +775,7 @@ class LocalSession:
                     "chunk_ms": _CHUNK_MS,
                 },
                 "limits": {
-                    "session_max_seconds": settings.interview_max_seconds,
+                    "session_max_seconds": self._max_seconds or settings.interview_max_seconds,
                     "idle_max_seconds": settings.interview_idle_seconds,
                 },
                 "specialization": spec.label if spec is not None else None,

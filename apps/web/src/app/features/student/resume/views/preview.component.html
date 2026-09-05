@@ -52,8 +52,39 @@
             </div>
           }
 
+          <!-- ATS view + page count, then the warnings — read before the document. -->
+          <div class="prev-controls">
+            <label class="ats-toggle">
+              <input
+                type="checkbox"
+                [checked]="atsOn()"
+                (change)="atsOn.set($any($event.target).checked)"
+              />
+              ATS-safe preview
+            </label>
+            <div class="page-count">
+              Page count:
+              @if (pageCount(); as n) {
+                <b>{{ n }}</b>
+                @if (n > 1) {
+                  — consider trimming to one page
+                }
+              } @else {
+                <b>—</b>
+              }
+            </div>
+          </div>
+          @if (warnings().length) {
+            <div class="warnings" role="note">
+              <div class="warnings-title">Warnings</div>
+              @for (w of warnings(); track w) {
+                <div class="warning-line">⚠ {{ w }}</div>
+              }
+            </div>
+          }
+
           @if (result(); as r) {
-            <div class="preview">
+            <div class="preview" [class.ats]="atsOn()">
               @for (b of blocks(); track $index) {
                 @switch (b.kind) {
                   @case ('title') {

@@ -1,0 +1,167 @@
+/* The Time Allocation Ledger. The metrics strip, the table's cells, chips and
+ * inputs are the global .ledger-* classes in reep-v2.scss; this file only does
+ * what the handoff draws differently from the global default — two cards
+ * instead of one, the slot label above its capacity, the state chip under the
+ * logged figure, the footnote, and the weekly skilling strip's frame. */
+:host {
+  display: block;
+}
+
+.ledger-head {
+  align-items: flex-end;
+}
+
+.ledger-notice,
+.metrics-card,
+.table-card,
+.ledger-footnote {
+  margin-bottom: 14px;
+}
+
+/* the metrics strip's own card, with the design's soft gradient */
+.metrics-card {
+  background: linear-gradient(180deg, #ffffff, rgba(248, 242, 252, 0.85));
+  padding: 18px 0;
+}
+.metrics-card .ledger-metrics {
+  margin-bottom: 0;
+}
+.metrics-card .ledger-metrics > div:first-child {
+  padding-left: 22px;
+}
+
+/* the table's own card; it scrolls sideways before it ever wraps a column */
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+.table-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.table-card .ledger-table {
+  min-width: 660px;
+}
+.table-card .ledger-table thead tr {
+  background: #f7f1fb;
+}
+.table-card .ledger-table th {
+  padding: 16px 6px 12px;
+}
+.table-card .ledger-table th.slot-col {
+  padding-left: 14px;
+}
+.table-card .ledger-table th.logged-col {
+  text-align: right;
+  padding-right: 14px;
+}
+.table-card .ledger-table td {
+  padding: 12px 6px;
+}
+.table-card .ledger-table td.slot-col {
+  padding-left: 14px;
+  white-space: nowrap;
+}
+.table-card .ledger-table td.logged-col {
+  text-align: right;
+  padding-right: 14px;
+  border-left: 1px solid var(--hairline-26);
+}
+
+/* slot label over its capacity, beside the slot icon */
+.slot-name {
+  gap: 9px;
+}
+.slot-name .icon {
+  font-size: 18px;
+  color: #a865c9;
+}
+.slot-label {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.table-card .ledger-table .slot-cap {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.05em;
+}
+
+/* the logged figure with its state chip beneath */
+.logged-val {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.logged-val .of {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.table-card .ledger-table .slot-chip {
+  margin-top: 5px;
+  padding: 3px 8px;
+}
+
+/* the total row: a heavier rule and the design's tinted gradient */
+.table-card .ledger-table tfoot .total-row td {
+  padding: 15px 6px;
+  border-top: 2px solid rgba(122, 47, 158, 0.32);
+  background: linear-gradient(180deg, #f7f1fb, #efe3f7);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.table-card .ledger-table tfoot .total-row td.slot-col .lbl {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+}
+.table-card .footbar {
+  margin: 0;
+  padding: 12px 14px;
+  border-top: 1px solid var(--hairline-26);
+}
+
+.ledger-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12px;
+  color: #8a739f;
+  line-height: 1.55;
+  padding: 0 4px;
+}
+.ledger-footnote .icon {
+  font-size: 16px;
+  color: var(--muted);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* the weekly skilling strip, framed like the cards above it */
+.weekly-card {
+  padding: 14px 18px;
+}
+.weekly-row {
+  padding: 0;
+  border-bottom: 0;
+}
+.weekly-row > .icon {
+  color: var(--brand-magenta);
+}
+.weekly-body {
+  flex: 1;
+  min-width: 0;
+}
+.weekly-body .meter {
+  margin-top: 6px;
+}

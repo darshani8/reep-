@@ -1,93 +1,127 @@
-/* Registrations queue. Panel / card / chip / btn / icon are global. */
+/* Registrations queue. Panel / card / chip / btn / ctrl / dt-table are global. */
 :host {
   display: block;
 }
 
-.reg {
-  margin-bottom: 12px;
-}
-.reg-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.reg-who {
-  min-width: 0;
-}
-.reg-who strong {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--ink);
-}
-.reg-contact {
-  color: var(--muted);
+.waiting-chip {
+  align-self: flex-end;
+  padding: 6px 12px;
   font-size: 13px;
-  margin-top: 2px;
-  overflow-wrap: anywhere;
 }
-.reg-facts {
+.waiting-chip .icon {
+  font-size: 15px;
+}
+
+/* Search · programme · bulk approve, on one white control strip. */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--hairline-42);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  box-shadow: var(--sh-ctrl);
+}
+.search {
+  flex: 1;
+  min-width: 200px;
+}
+.prog {
+  width: auto;
+  background: var(--tint-2);
+}
+
+.log {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: var(--good-bg);
+  border: 1px solid rgba(19, 122, 74, 0.2);
+  margin-bottom: 14px;
+  color: var(--good);
+  font-size: 13px;
+  font-weight: 600;
 }
-.reg-when {
-  font-size: 12px;
-  color: var(--faint);
+.log .icon {
+  font-size: 17px;
 }
 
-.reg-rule {
+.scroll {
+  overflow-x: auto;
+}
+.reg-table {
+  min-width: 720px;
+}
+.reg-table td {
+  color: var(--ink);
+  font-size: 13px;
+}
+.reg-table strong {
+  font-weight: 700;
+}
+.check-col {
+  width: 34px;
+  padding-left: 0;
+  text-align: center;
+}
+.check-col input {
+  accent-color: var(--purple-mid);
+  width: 15px;
+  height: 15px;
+}
+.meta {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.nowrap {
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.btn.sm {
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  box-shadow: none;
+}
+.btn-reject {
+  color: var(--risk);
+  border-color: rgba(173, 36, 82, 0.35);
+}
+.btn-confirm-reject {
+  background: var(--risk);
+  border-color: transparent;
+  color: #fff;
+}
+.btn-confirm-reject:hover {
+  background: var(--risk);
+  border-color: transparent;
+}
+
+/* The remarks row opens directly under the application it refuses. */
+.reject-row td {
+  background: var(--tint-3);
+}
+.reject-line {
   display: flex;
   gap: 8px;
-  align-items: flex-start;
-  margin: 12px 0;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: var(--tint-3);
-  border: 1px solid var(--hairline-26);
-  font-size: 12.5px;
-  color: var(--muted);
-  line-height: 1.5;
+  flex-wrap: wrap;
+  align-items: center;
 }
-.reg-rule .icon {
-  font-size: 17px;
-  color: var(--purple-mid);
-  flex: none;
-}
-.reg-rule em {
-  color: var(--ink);
-  font-style: normal;
-}
-
-.fld {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--faint);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.fld-hint {
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--muted);
-}
-.note-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.note-field input {
-  width: 100%;
-  padding: 9px 11px;
-  border-radius: 12px;
-  border: 1px solid var(--hairline-45);
-  background: var(--surface);
-  color: var(--ink);
-  font-family: var(--font);
-  font-size: 13px;
-  box-shadow: var(--sh-well);
+.remarks {
+  flex: 1;
+  min-width: 220px;
 }
 .note-error {
   color: var(--risk);
@@ -96,46 +130,10 @@
   margin-top: 6px;
 }
 
-.decide-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-.btn-reject {
-  color: var(--risk);
-  border-color: rgba(173, 36, 82, 0.35);
-}
-
-.decided {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: var(--good-bg);
-  color: var(--good);
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-.decided .icon {
-  font-size: 18px;
-}
-
-.empty-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  color: var(--ink);
-  font-size: 13px;
-}
-.empty-card > .icon {
-  font-size: 20px;
-  color: var(--good);
-}
-.empty-sub {
+.empty-cell {
+  padding: 16px 10px;
   color: var(--muted);
-  margin-top: 2px;
+  font-size: 13px;
 }
 
 .state-note {

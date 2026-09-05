@@ -18,6 +18,21 @@
 .claim-card {
   margin-bottom: 20px;
 }
+.claims-card {
+  margin-bottom: 20px;
+}
+.claim-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
+}
+.btn.submit {
+  padding: 13px 24px;
+  border-radius: 999px;
+}
 .claim-lede {
   font-size: 13px;
   color: var(--muted);
@@ -199,6 +214,10 @@
   font-weight: 700;
   color: var(--ink);
 }
+.legend-hint {
+  font-size: 12.5px;
+  color: var(--faint);
+}
 .dot {
   width: 13px;
   height: 13px;
@@ -243,23 +262,37 @@
   align-content: flex-start;
 }
 
-/* A badge is a STATE, not a control — it reports what the student holds and
-   nothing happens when you press it, so it is a span, not a button. */
+/* A pill is a state with a preview: tapping an unearned badge shows what it
+   will look like once verified (the handoff's "Tap badges to preview the earned
+   state"), and nothing about that tap is stored. An earned pill is already lit
+   and does not toggle. */
 .badge-pill {
   padding: 9px 15px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 500;
+  font-family: var(--font);
   background: var(--surface);
   border: 1px solid rgba(160, 138, 178, 0.4);
   color: var(--muted);
   overflow-wrap: anywhere;
+  cursor: pointer;
+  transition:
+    box-shadow 0.14s ease,
+    border-color 0.14s ease;
+}
+.badge-pill:hover {
+  border-color: rgba(122, 47, 158, 0.55);
 }
 .badge-pill--lit {
   border: 1.5px solid var(--purple-mid);
   color: var(--ink);
   font-weight: 700;
   box-shadow: 0 4px 12px rgba(122, 47, 158, 0.22);
+}
+/* A previewed glow is dashed so it cannot be mistaken for the real thing. */
+.badge-pill--preview {
+  border-style: dashed;
 }
 
 .board-foot {

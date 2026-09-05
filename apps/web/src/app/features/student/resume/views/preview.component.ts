@@ -23,6 +23,8 @@ import { FormsModule } from '@angular/forms';
 
 import { environment } from '../../../../../environments/environment';
 import { ResumeBuilderService } from '../resume-builder.service';
+import { ResumeEvidenceService } from '../resume-evidence.service';
+import { ResumeGoalService } from '../resume-goal.service';
 
 type ResumeView = 'builder' | 'resumes' | 'preview';
 
@@ -97,6 +99,10 @@ function isEmptySection(value: unknown): boolean {
   return false;
 }
 
+/** Roughly how many rendered lines fit one A4 page of the PDF renderer. The
+ *  count is an estimate for the "consider trimming" nudge, not a promise. */
+const LINES_PER_PAGE = 46;
+
 @Component({
   selector: 'rb-preview',
   standalone: true,
@@ -106,6 +112,44 @@ function isEmptySection(value: unknown): boolean {
 })
 export class PreviewView {
   readonly svc = inject(ResumeBuilderService);
+  private readonly goalSvc = inject(ResumeGoalService);
+  private readonly ev = inject(ResumeEvidenceService);
+
+  /** ATS-safe: a plain, single-column, system-font rendering of the same text —
+   *  what an applicant-tracking parser sees. On by default, as the design has it. */
+  readonly atsOn = signal(true);
+
+  /** Estimated page count of the generated document; null before a generation. */
+  readonly pageCount = computed<number | null>(() => {
+    const r = this.result();
+    if (!r) return null;
+    const lines = r.markdown.split('\n').filter((l) => l.trim().length > 0);
+    return Math.max(1, Math.ceil(lines.length / LINES_PER_PAGE));
+  });
+
+  /**
+   * Warnings a recruiter would raise before a student does: no projects, and
+   * the chosen posting's requirements that are still unverified. Both are
+   * derived from the builder state and the goal — nothing is invented.
+   */
+  readonly warnings = computed<string[]>(() => {
+    const out: string[] = [];
+    if (isEmptySection(this.svc.data()['projects'])) {
+      out.push('No projects added — recruiters for this role usually screen for at least one.');
+    }
+    const job = this.goalSvc.selectedJob();
+    if (job) {
+      const have = new Set(this.ev.includedNames().map((n) => n.toLowerCase()));
+      const missing = job.required_skills.filter((s) => !have.has(s.toLowerCase())).length;
+      if (missing > 0) {
+        const role = this.goalSvc.goal().role || job.title;
+        out.push(
+          `${missing} required skill${missing > 1 ? 's' : ''} for ${role} still unverified.`,
+        );
+      }
+    }
+    return out;
+  });
 
   /** Ask the shell to switch its top-level view. Inert until the shell binds it. */
   readonly navigate = output<ResumeView>();
@@ -133,6 +177,8 @@ export class PreviewView {
     // The shell loads the profile on init; load defensively if arrived cold so
     // completeness() and the suggestions are populated for the right column.
     if (!this.svc.loaded()) void this.svc.load();
+    void this.goalSvc.load();
+    void this.ev.load();
   }
 
   async generate(): Promise<void> {

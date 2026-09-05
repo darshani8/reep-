@@ -1,182 +1,226 @@
 <div class="panel" data-p="leave-approvals">
   <div class="dt-header">
     <div>
-      <div class="eyebrow">Admin · Program Director</div>
       <div class="dt-title">Leave approvals</div>
-      <div class="dt-sub">
-        Faculty leave forms awaiting a decision. Two distinct approvers are required, so a request
-        you have already signed does not appear here.
-      </div>
+      <div class="dt-sub">Signed leave forms sent to you for approval.</div>
     </div>
-    <span class="chip warn"
-      ><span class="icon">hourglass_top</span> Pending {{ pendingCount() }}</span
-    >
+  </div>
+
+  <div class="rb-tabs">
+    @for (t of tabs; track t.key) {
+      <button type="button" [class.active]="filter() === t.key" (click)="setFilter(t.key)">
+        {{ t.label }} <span class="tab-count">{{ counts()[t.key] }}</span>
+      </button>
+    }
   </div>
 
   @if (error()) {
     <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
   }
-
-  @for (entry of done() | keyvalue; track entry.key) {
-    <div class="decided"><span class="icon">check_circle</span>{{ entry.value }}</div>
+  @if (flash()) {
+    <div class="decided"><span class="icon">check_circle</span>{{ flash() }}</div>
   }
 
-  @if (rows() === null) {
+  @if (loading()) {
     <div class="state-note"><span class="icon">hourglass_empty</span>Loading the queue…</div>
-  } @else if (rows()!.length === 0) {
-    <div class="card empty-card">
-      <span class="icon">task_alt</span>
-      <div>
-        <b>Nothing waiting.</b>
-        <div class="empty-sub">Signed leave forms appear here for a decision.</div>
-      </div>
-    </div>
   } @else {
-    @for (r of rows()!; track r.id) {
-      <div class="card req">
-        <div class="req-head">
-          <div>
-            <strong>{{ r.requester_name }}</strong>
-            <span class="req-kind"> · {{ kindLabel(r.leave_kind) }}</span>
-            <div class="req-meta">
-              {{ r.requester_department || 'Department not on record' }} · {{ dateSpan(r) }}
+    @for (r of rows(); track r.id) {
+      <div class="req">
+        @if (r.director_note && !isPending(r)) {
+          <div class="remarks">
+            <span class="icon">flag</span>
+            <div>
+              <strong>{{ remarksLabel(r) }}</strong>
+              <div>{{ r.director_note }}</div>
             </div>
-          </div>
-          <span class="chip warn"><span class="icon">schedule</span> Awaiting decision</span>
-        </div>
-
-        @if (openId() !== r.id) {
-          <div class="req-actions-right">
-            <button type="button" class="btn primary" (click)="toggle(r.id)">
-              <span class="icon">description</span> Read the form
-            </button>
-          </div>
-        } @else {
-          <!-- The document as signed. -->
-          <div class="sheet">
-            <div class="sheet-invoke">|| Jai Sri Gurudev ||</div>
-            <div class="sheet-college">BGS COLLEGE OF ENGINEERING AND TECHNOLOGY,MBA</div>
-            <div class="sheet-addr">Mahalakshmipuram,Bengaluru-86.</div>
-            <div class="sheet-apply">
-              Application for <span class="kind-on">{{ kindLabel(r.leave_kind) }}</span>
-            </div>
-
-            <table class="sheet-table">
-              <tbody>
-                <tr>
-                  <th scope="row">Name</th>
-                  <td>{{ r.requester_name }}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Designation</th>
-                  <td>{{ r.requester_designation || 'Not on record' }}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Department</th>
-                  <td>{{ r.requester_department || 'Not on record' }}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Date</th>
-                  <td>{{ dateSpan(r) }}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Purpose</th>
-                  <td>{{ r.reason }}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Credit</th>
-                  <td>{{ r.credit || '—' }}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Sanctioned</th>
-                  <td>Pending your decision</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div class="sig-row">
-              <div class="sig">
-                @if (r.signed_at) {
-                  <div class="sig-name">{{ r.requester_name }}</div>
-                  <div class="sig-when">{{ r.signed_at | date: 'd MMM y, HH:mm' }}</div>
-                }
-                <div class="sig-line">SIGNATURE OF STAFF</div>
-              </div>
-              <div class="sig">
-                <div class="sig-await">Signs on approval</div>
-                <div class="sig-line">PROGRAM DIRECTOR</div>
-              </div>
-            </div>
-
-            <div class="sheet-rule"></div>
-            <div class="alt-head">Alternate Arrangements: (For Department purpose)</div>
-            <div class="alt-name">
-              Name: <span class="alt-name-val">{{ r.alt_name || '—' }}</span>
-            </div>
-            <table class="alt-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Staff Name (Alternative)</th>
-                  <th>Class</th>
-                  <th>Time</th>
-                  <th>Remarks</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (a of r.alt_rows; track $index) {
-                  <tr>
-                    <td>{{ a.date }}</td>
-                    <td>{{ a.staff_name }}</td>
-                    <td>{{ a.cls }}</td>
-                    <td>{{ a.time }}</td>
-                    <td>{{ a.remarks }}</td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="5" class="alt-empty">No alternate arrangements recorded.</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <label class="note-field">
-            <span class="fld">
-              Remarks
-              <span class="fld-hint">(required to reject, optional to approve)</span>
-            </span>
-            <input
-              type="text"
-              [value]="note(r.id)"
-              (input)="setNote(r.id, $any($event.target).value)"
-              placeholder="e.g. Cover arrangements confirmed with the department."
-            />
-          </label>
-          @if (noteError()) {
-            <div class="note-error">{{ noteError() }}</div>
-          }
-
-          <div class="decide-row">
-            <button
-              type="button"
-              class="btn primary"
-              [disabled]="deciding() === r.id"
-              (click)="decide(r, 'APPROVE')"
-            >
-              <span class="icon">draw</span> Sanction &amp; sign
-            </button>
-            <button
-              type="button"
-              class="btn btn-reject"
-              [disabled]="deciding() === r.id"
-              (click)="decide(r, 'REJECT')"
-            >
-              <span class="icon">cancel</span> Reject
-            </button>
-            <button type="button" class="btn ghost" (click)="toggle(r.id)">Close</button>
           </div>
         }
+
+        <!-- The document as signed. -->
+        <div class="sheet">
+          <div class="sheet-invoke">|| Jai Sri Gurudev ||</div>
+          <div class="sheet-college">BGS COLLEGE OF ENGINEERING AND TECHNOLOGY,MBA</div>
+          <div class="sheet-addr">Mahalakshmipuram,Bengaluru-86.</div>
+          <div class="sheet-apply">
+            Application for
+            @for (k of kinds; track k.id) {
+              <span class="kind" [class.kind--off]="r.leave_kind !== k.id">{{ k.label }}</span>
+              @if (!$last) {
+                <span class="kind-sep">/</span>
+              }
+            }
+            (Strike-off, if not applicable)
+          </div>
+          <div class="sheet-date">
+            Date:
+            <span class="sheet-fill">{{
+              r.signed_at ? (r.signed_at | date: 'd MMM y') : '—'
+            }}</span>
+          </div>
+
+          <table class="sheet-table">
+            <tbody>
+              <tr>
+                <th scope="row">Name</th>
+                <td>{{ r.requester_name }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Designation</th>
+                <td>{{ r.requester_designation || 'Not on record' }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Department</th>
+                <td>{{ r.requester_department || 'Not on record' }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Date</th>
+                <td>{{ dateSpan(r) }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Purpose</th>
+                <td>{{ r.reason }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Credit</th>
+                <td>{{ r.credit || '—' }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Sanctioned</th>
+                <td>{{ sanctioned(r) }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sig-row">
+            <div class="sig">
+              @if (r.signed_at) {
+                <div class="sig-name">{{ r.requester_name }}</div>
+                <div class="sig-when">{{ r.signed_at | date: 'd MMM y, HH:mm' }}</div>
+              } @else {
+                <div class="sig-await">Not signed</div>
+              }
+              <div class="sig-line">SIGNATURE OF STAFF</div>
+            </div>
+            <div class="sig">
+              @if (r.director_name && r.director_decided_at) {
+                <div class="sig-name">{{ r.director_name }}</div>
+                <div class="sig-when">{{ r.director_decided_at | date: 'd MMM y, HH:mm' }}</div>
+              } @else if (isPending(r) && uiFor(r.id).mode === 'idle') {
+                <button
+                  type="button"
+                  class="btn primary sign-btn"
+                  [disabled]="deciding() === r.id"
+                  (click)="openApprove(r.id)"
+                >
+                  <span class="icon">draw</span> Mark Sanctioned &amp; sign
+                </button>
+              } @else {
+                <div class="sig-await">Awaiting</div>
+              }
+              <div class="sig-line">PROGRAM DIRECTOR</div>
+            </div>
+          </div>
+
+          <div class="sheet-rule"></div>
+          <div class="alt-head">Alternate Arrangements: (For Department purpose)</div>
+          <div class="alt-name">
+            Name: <span class="alt-name-val">{{ r.alt_name || '—' }}</span>
+          </div>
+          <table class="alt-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Staff Name (Alternative)</th>
+                <th>Class</th>
+                <th>Time</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of r.alt_rows; track $index) {
+                <tr>
+                  <td>{{ a.date }}</td>
+                  <td>{{ a.staff_name }}</td>
+                  <td>{{ a.cls }}</td>
+                  <td>{{ a.time }}</td>
+                  <td>{{ a.remarks }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="alt-empty">No alternate arrangements recorded.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="sig-foot">
+            @if (r.signed_at) {
+              <div class="sig-name">{{ r.requester_name }}</div>
+            } @else {
+              <div class="sig-await">Not signed</div>
+            }
+            <div class="sig-line">Signature of staff.</div>
+          </div>
+        </div>
+
+        @if (isPending(r)) {
+          @switch (uiFor(r.id).mode) {
+            @case ('approve') {
+              <div class="confirm-row">
+                <span class="confirm-note">{{ signNote(r) }}</span>
+                <button
+                  type="button"
+                  class="btn primary"
+                  [disabled]="deciding() === r.id"
+                  (click)="confirmApprove(r)"
+                >
+                  <span class="icon">draw</span> Confirm sanction
+                </button>
+                <button type="button" class="btn" (click)="cancelUi(r.id)">Cancel</button>
+              </div>
+            }
+            @case ('reject') {
+              <div class="decide-row">
+                <input
+                  type="text"
+                  class="ctrl remarks-input"
+                  placeholder="Remarks — reason for rejection (required)"
+                  [value]="uiFor(r.id).remarks"
+                  (input)="setRemarks(r.id, $any($event.target).value)"
+                />
+                <button
+                  type="button"
+                  class="btn btn-confirm-reject"
+                  [disabled]="deciding() === r.id"
+                  (click)="confirmReject(r)"
+                >
+                  Confirm reject
+                </button>
+                <button type="button" class="btn" (click)="cancelUi(r.id)">Cancel</button>
+              </div>
+              @if (uiFor(r.id).err) {
+                <div class="note-error">Remarks are required.</div>
+              }
+            }
+            @default {
+              <div class="decide-row">
+                <button
+                  type="button"
+                  class="btn btn-reject"
+                  [disabled]="deciding() === r.id"
+                  (click)="openReject(r.id)"
+                >
+                  <span class="icon">cancel</span> Reject
+                </button>
+              </div>
+            }
+          }
+        }
+      </div>
+    } @empty {
+      <div class="card">
+        <strong class="empty-title">Nothing here.</strong>
+        <div class="empty-sub">{{ emptyNote() }}</div>
       </div>
     }
   }

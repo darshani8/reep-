@@ -6,7 +6,6 @@ REEP is a college placement-readiness dashboard. It is an **Angular front end** 
 apps/web      Angular 22 SPA (standalone components, signals, ReactiveForms)
 apps/api-py   FastAPI + SQLAlchemy 2.0 + Alembic + Pydantic v2 (psycopg 3, PyJWT)
 docker-compose.yml   Postgres 17 (container reep-postgres, host port 5433)
-ollama/       optional local model (loopback LLM — see the egress gate below)
 ```
 
 ## Running it
@@ -106,7 +105,7 @@ The interview now leaves a **record of its own**, in four tables (`app/models/in
 
 The LiveKit voice stack (step 4 above, `voice_agent.py`, `/api/voice/*`) and the text orchestrator (`POST /api/agent/ask`) are **retained and mounted but have no UI caller.** They are the rollback path, not dead code — do not run the voice worker expecting a button, and do not delete them until the interviewer has held up in front of real students. Two knock-on effects, and they are no longer silent: `POST /api/agent/feedback` 404s on every request because no `AgentRun` rows are written any more, and the `AgentRun`-derived counters in `GET /api/agent/metrics` read 0. Both now **say so** — `AGENT_RUNS_COLLECTED = False` in `app/routers/agent.py` gates a 404 detail naming the supersession and a `collected: false` on the metrics payload, so a frozen history is not read as a live zero. Flip that one constant back to `True` on rollback and both revert with no second edit. `voice_turns` (off `Message.channel`) keeps working.
 
-`apps/interview-realtime/` is the superseded standalone prototype of this relay. It has no authentication and no database — **do not deploy it**; see the banner at the top of its `app/server.py`.
+`apps/interview-realtime/`, the superseded standalone prototype of this relay (no authentication, no database), was **deleted in 2026-09** along with `ollama/` and `tools/cascade`; the in-process relay above is the only interviewer.
 
 ## The two rules that must not be broken
 

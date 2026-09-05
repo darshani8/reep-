@@ -68,7 +68,7 @@ Python — FastAPI
   Next.js/React app (root `src/`, `prisma/`, `next.config.mjs`, root
   `package.json`, tests, scripts, storage) **and** the NestJS `apps/api` were
   deleted (~359 tracked files). Kept: `apps/web` (Angular), `apps/api-py`
-  (FastAPI), `docker-compose.yml` (Postgres), `ollama/`. `apps/api-py` was NOT
+  (FastAPI), `docker-compose.yml` (Postgres). `apps/api-py` was NOT
   renamed to `apps/api` — the name is unambiguous and renaming buys only churn.
   AGENTS.md + README rewritten for the Angular + FastAPI stack. Backend 27 tests
   green and Angular build clean after the deletion.

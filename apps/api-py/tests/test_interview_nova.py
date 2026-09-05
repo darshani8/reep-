@@ -1185,7 +1185,7 @@ class TestTheOpenSequence:
         code, reason = run(session.run())
 
         assert code == nova._CLOSE_UPSTREAM_UNAVAILABLE
-        assert reason == "Interviewer service unavailable"
+        assert reason == "Interviewer service unavailable (handshake timed out)"
         # Never told to start talking to a service that never answered.
         assert not browser.of_type("reep.ready")
         # And the row was finalized: aclose ran, so the finally block did.
@@ -1210,7 +1210,51 @@ class TestTheOpenSequence:
 
         session = NovaSonicSession(_SilentBrowser(), "c0ffee123456")
         code, reason = run(session.run())
-        assert (code, reason) == (nova._CLOSE_UPSTREAM_UNAVAILABLE, "Interviewer service unavailable")
+        assert (code, reason) == (
+            nova._CLOSE_UPSTREAM_UNAVAILABLE,
+            "Interviewer service unavailable (open timed out)",
+        )
+
+    def test_a_send_that_blocks_until_the_connection_exists_is_still_greeted(
+        self, monkeypatch
+    ):
+        """THE MIRROR-IMAGE DEADLOCK, pinned after production showed it.
+
+        The first fix ordered handshake-then-attach and production still timed
+        out at exactly the bound. In the SDK, input send() can block until the
+        connection that the OUTPUT side establishes exists — so strictly
+        sequential in EITHER order deadlocks. Attach and handshake now run
+        concurrently, which is the AWS sample's shape; this fake makes send()
+        wait for attach and would hang the sequential version.
+        """
+        attach_started = asyncio.Event()
+
+        class _ConnectsOnAttach(_ScriptedUpstream):
+            async def send(self, event: dict) -> None:
+                await attach_started.wait()  # the connection exists only once attach ran
+                await super().send(event)
+
+            async def attach_output(self) -> None:
+                attach_started.set()
+
+        class _LeavesAfterReady(_FakeBrowser):
+            async def receive(self) -> dict:
+                while not self.of_type("reep.ready"):
+                    await asyncio.sleep(0.01)
+                raise WebSocketDisconnect(code=1001)
+
+        upstream = _ConnectsOnAttach(self._ready_script())
+        monkeypatch.setattr(nova, "_NovaUpstream", lambda *args, **kwargs: upstream)
+        monkeypatch.setattr(settings, "nova_sonic_region", "us-east-1")
+        monkeypatch.setattr(settings, "nova_sonic_open_timeout_seconds", 2)
+
+        browser = _LeavesAfterReady()
+        session = NovaSonicSession(browser, "c0ffee123456", specialization=SPECIALIZATIONS["hr"])
+        code, reason = run(session.run())
+
+        assert browser.of_type("reep.ready"), "sequential ordering would have deadlocked here"
+        assert next(iter(upstream.sent[0]["event"])) == "sessionStart"
+        assert (code, reason) == (_CLOSE_OK, "Client disconnected")
 
 
 class _RecordingUpstream(nova._NovaUpstream):

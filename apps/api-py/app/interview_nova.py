@@ -451,6 +451,27 @@ class _NovaUpstream:
         self._stream = await self._client.invoke_model_with_bidirectional_stream(
             InvokeModelWithBidirectionalStreamOperationInput(model_id=self._model)
         )
+        # DELIBERATELY NOT `await self._stream.await_output()` HERE. That call
+        # waits for Bedrock's response headers, and Bedrock does not send them
+        # until it has received the first input event (sessionStart) — the AWS
+        # Nova Sonic samples read output only after the session-start events
+        # have gone out. Awaiting it before the handshake is a deadlock: the
+        # engine waits for headers, the service waits for an event, and the
+        # student sits on an open socket that never speaks while the
+        # interview_sessions row stays `running` with no close code. That was
+        # production. The output half is attached lazily by the first
+        # receive(), which the upstream pump makes only after _handshake().
+
+    async def attach_output(self) -> None:
+        """Wait for the response half of the stream — AFTER sessionStart went out.
+
+        Public and duck-typed from run(): the test fakes reduce Bedrock to
+        send() and have no response half to attach, so run() calls this only
+        when the upstream offers it. Idempotent, and receive() calls it too, so
+        an upstream whose run() skipped it still attaches on first read.
+        """
+        if self._output is not None or self._stream is None:
+            return
         _initial, self._output = await self._stream.await_output()
 
     async def send(self, event: dict[str, Any]) -> None:
@@ -486,6 +507,12 @@ class _NovaUpstream:
         raised as a RuntimeError naming the member — a stream that is answering
         with a ValidationException must not present as a quiet hang.
         """
+        if self._stream is None:
+            return None
+        # First call attaches the response half. By now the handshake has sent
+        # sessionStart (run() orders it so), which is what Bedrock waits for
+        # before it answers — see the note in open().
+        await self.attach_output()
         if self._output is None:
             return None
         event = await self._output.receive()
@@ -701,8 +728,22 @@ class NovaSonicSession:
         upstream = _NovaUpstream(
             settings.nova_sonic_model.strip(), settings.nova_region, self._log
         )
+        open_timeout = float(settings.nova_sonic_open_timeout_seconds)
         try:
-            await upstream.open()
+            async with asyncio.timeout(open_timeout):
+                await upstream.open()
+        except TimeoutError:
+            # The one failure that used to be silent. Named as such, because the
+            # operator reading this log has a socket that never spoke and a
+            # `running` row with no close code, and "timed out" is the sentence
+            # that connects the two.
+            self._log.error(
+                "Nova Sonic stream did not open within %.0fs (region=%s model=%s)",
+                open_timeout,
+                settings.nova_region,
+                settings.nova_sonic_model,
+            )
+            return _CLOSE_UPSTREAM_UNAVAILABLE, "Interviewer service unavailable"
         except Exception as exc:  # noqa: BLE001 - every failure is the same to the student
             # Credentials, IAM, an unsupported region, a throttle at the door.
             # All of them are 4002 to the browser and all of them are named in
@@ -718,7 +759,20 @@ class NovaSonicSession:
         # by the failure it caused. First cause wins, later ones are logged.
         settled = False
         try:
-            await self._handshake()
+            # Handshake, THEN wait for Bedrock's response half, both under the
+            # same bound as open(). Ordering is the fix: sessionStart must be on
+            # the wire before anything waits for headers. The bound is the
+            # guarantee: a service that never answers becomes a TimeoutError,
+            # which the `except* Exception` below turns into 4002 — a sentence
+            # on the student's screen inside twenty seconds, and a finalized
+            # row, instead of a socket that is open and silent forever.
+            # `attach_output` is duck-typed because the test fakes reduce
+            # Bedrock to send(); only the real upstream has a response half.
+            attach_output = getattr(upstream, "attach_output", None)
+            async with asyncio.timeout(open_timeout):
+                await self._handshake()
+                if attach_output is not None:
+                    await attach_output()
             await self._send_ready()
             async with asyncio.TaskGroup() as group:
                 group.create_task(self._pump_upstream(), name=f"nova-up-{self._conn_id}")

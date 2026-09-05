@@ -297,6 +297,76 @@
   font-size: 0.92em;
 }
 
+/* --- email + password (only rendered when the server offers it) ----------- */
+/* Uses the --reep-* tokens the rest of this file does. This screen sits
+   OUTSIDE the app shell and never adopted the reep-v2 component classes, so
+   reaching for .card/.dt-table here would style against a system this page
+   does not load. */
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+  color: var(--reep-text-disabled);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.or::before,
+.or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--reep-divider);
+}
+
+.pw {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pw__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pw__label {
+  font-size: 0.8125rem;
+  color: var(--reep-text-secondary);
+}
+.pw__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--reep-divider);
+  border-radius: 8px;
+  background-color: var(--reep-bg-paper);
+  color: var(--reep-text-primary);
+  font-family: var(--reep-font-stack);
+  font-size: 0.9375rem;
+}
+.pw__input:focus {
+  outline: 2px solid var(--reep-primary-main);
+  outline-offset: 1px;
+  border-color: var(--reep-primary-main);
+}
+.pw__btn {
+  justify-content: center;
+  background-color: var(--reep-primary-main);
+  color: var(--reep-primary-contrast);
+  border: 1px solid transparent;
+}
+.pw__btn[disabled] {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.pw__note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--reep-text-disabled);
+}
+
 /* --- breakpoints (MUI lg 1200, sm 600) ----------------------------------- */
 @media (min-width: 600px) {
   .brand-strip {

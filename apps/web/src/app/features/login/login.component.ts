@@ -34,9 +34,12 @@
  */
 
 import { Component, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
+import { AuthService } from '../../core/auth.service';
+import { HOME_FOR_ROLE } from '../../core/session';
 
 /**
  * `GET /api/auth/sso/status` — the capability probe.
@@ -151,10 +154,42 @@ function messageFor(code: string, domain: string): string {
   }
 }
 
+/**
+ * What a failed password sign-in should say, by status code.
+ *
+ * The three codes mean genuinely different things and a single "sign-in
+ * failed" collapses them into one dead end. 429 in particular must not read as
+ * a wrong password: the person has typed the RIGHT one, possibly, and the
+ * useful sentence is that Google still works and this counter does not gate it.
+ */
+function passwordErrorFor(err: unknown): string {
+  const status = (err as { status?: number } | null)?.status;
+  switch (status) {
+    case 401:
+      return 'That email and password did not match an account. Check both, or use Continue with Google.';
+    case 403:
+      return (
+        'Password sign-in is switched off on this server, so this form cannot ' +
+        'work. Use Continue with Google.'
+      );
+    case 429:
+      return (
+        'Too many failed attempts for this account or from this network, so ' +
+        'password sign-in is paused for a few minutes. Continue with Google ' +
+        'still works and is not affected by this.'
+      );
+    case 0:
+    case undefined:
+      return 'Could not reach the server. Check your connection and try again.';
+    default:
+      return `Sign-in failed (error ${status}). Try again, and quote that number if you need to report it.`;
+  }
+}
+
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [],
+  imports: [ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
   // Coming BACK from Google with the browser's back button restores this page
@@ -165,6 +200,9 @@ function messageFor(code: string, domain: string): string {
 })
 export class LoginComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  private readonly fb = inject(FormBuilder);
 
   /** The refusal carried back on the callback redirect, if any. */
   readonly error = signal<string | null>(null);
@@ -178,6 +216,30 @@ export class LoginComponent {
   readonly available = signal(true);
   readonly unavailableReason = signal<string | null>(null);
   readonly domain = signal(DEFAULT_DOMAIN_LABEL);
+
+  /**
+   * Whether to render the email + password form at all.
+   *
+   * FAILS CLOSED, which is the opposite of `available` above and deliberately
+   * so. That one guards a button whose absence would strand everybody, so a
+   * broken probe leaves it enabled. This one guards a form that most
+   * deployments do not have: `PASSWORD_LOGIN` is blank unless an operator set
+   * it, so a probe that 404s, times out, or answers something unexpected must
+   * leave the form HIDDEN rather than show a box whose every submission would
+   * 403. A form that cannot work is worse than no form — it reads as "my
+   * password is wrong" rather than "this door is shut".
+   */
+  readonly passwordAvailable = signal(false);
+
+  /** The password form's own refusal, kept apart from the `?error=` one so a
+   *  stale Google refusal is not re-rendered above a fresh 401. */
+  readonly formError = signal<string | null>(null);
+  readonly submitting = signal(false);
+
+  readonly form = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required]],
+  });
 
   constructor() {
     const code = this.route.snapshot.queryParamMap.get('error');
@@ -250,8 +312,46 @@ export class LoginComponent {
               'way in yet. Tell whoever runs the dashboard.',
         );
       }
+      // `=== true`, not truthy: the field is optional on the interface, and an
+      // older API that does not send it must leave the form hidden rather than
+      // have `undefined` decide.
+      this.passwordAvailable.set(status.password_login_available === true);
     } catch {
-      // Fail open, deliberately. See the docstring above.
+      // Fail open for Google, closed for the password form. See both docstrings.
+    }
+  }
+
+  /**
+   * Email + password sign-in, when the server says it offers it.
+   *
+   * Unlike the Google path this is an ordinary XHR: the API sets the same
+   * httpOnly `reep_session` cookie on the response, so there is no redirect to
+   * ride and the SPA can route immediately. Routing is BY ROLE through the same
+   * HOME_FOR_ROLE map `homeRedirectGuard` uses — not a hardcoded '/student',
+   * which is how a director used to land on a screen they have no rows for.
+   */
+  async submitPassword(): Promise<void> {
+    if (this.form.invalid || this.submitting()) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.submitting.set(true);
+    this.formError.set(null);
+    // A fresh attempt supersedes whatever Google said last time; leaving both
+    // on screen reads as two simultaneous failures.
+    this.error.set(null);
+    const { email, password } = this.form.getRawValue();
+    try {
+      const session = await this.auth.login(email.trim(), password);
+      const next = this.safeNext;
+      await this.router.navigateByUrl(next ?? HOME_FOR_ROLE[session.role] ?? '/student');
+    } catch (err: unknown) {
+      this.formError.set(passwordErrorFor(err));
+      // Never leave a password in a field behind a failed attempt: the next
+      // person at a shared lab machine can read it out of the DOM.
+      this.form.patchValue({ password: '' });
+    } finally {
+      this.submitting.set(false);
     }
   }
 

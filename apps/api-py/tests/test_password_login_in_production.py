@@ -211,17 +211,30 @@ def test_the_endpoint_works_on_production_with_the_flag(client, monkeypatch) -> 
 
 
 @requires_db
-def test_the_probe_reports_the_same_door_the_endpoint_enforces(client, monkeypatch) -> None:
+@pytest.mark.parametrize("google_ready", [False, True], ids=["no-google", "google"])
+def test_the_probe_reports_the_same_door_the_endpoint_enforces(
+    client, monkeypatch, google_ready: bool
+) -> None:
     """The login screen renders its form from this field, and fails CLOSED.
 
     A server that refuses the password must not advertise the form, or every
     submission on it 403s and reads to a student as "my password is wrong". So
     the probe and /login must agree in every state — same function, one answer.
+
+    PARAMETRISED OVER BOTH GOOGLE BRANCHES, because /sso/status has two return
+    statements and this test once passed with one of them still reading the old
+    env-only value. Locally the run happened to take the "Google configured"
+    branch; CI, with no GOOGLE_CLIENT_ID, took the other and caught it. A test
+    that depends on which credentials the machine happens to hold is a test that
+    passes on the laptop and fails in CI — so the branch is pinned explicitly.
     """
     monkeypatch.setattr(settings, "env", "prod", raising=False)
+    monkeypatch.setattr(auth_router.google_auth, "sso_ready", lambda: google_ready)
 
     def probe() -> bool:
-        return client.get("/api/auth/sso/status").json()["password_login_available"]
+        body = client.get("/api/auth/sso/status").json()
+        assert body["google_available"] is google_ready  # we are on the branch we meant
+        return body["password_login_available"]
 
     # Blank flag, no keys: shut.
     monkeypatch.setattr(settings, "password_login", "", raising=False)

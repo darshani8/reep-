@@ -581,7 +581,7 @@ def sso_status(db: Session = Depends(get_db)) -> SsoStatus:
         log.error("GET /api/auth/sso/status -> 200 unavailable: ENV=prod and %s", reason)
     return SsoStatus(
         google_available=False,
-        password_login_available=settings.password_login_allowed,
+        password_login_available=available,
         domain=settings.roster_domain,
         reason=reason,
     )

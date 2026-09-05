@@ -40,6 +40,7 @@ person" without a second tool.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import uuid
 
@@ -48,7 +49,7 @@ from sqlalchemy.orm import Session
 
 from .db import SessionLocal
 from .models.student_profile import StudentProfile
-from .models.user import Role, Student, User
+from .models.user import Mentor, Role, Student, User
 from .seed_roster import db_target
 
 # The roles this tool may mint on its own. STUDENT is absent on purpose â see the
@@ -73,6 +74,40 @@ _GRANTABLE_ROLES = (Role.MENTOR, Role.DIRECTOR, Role.ADMIN, Role.ALUMNI)
 # its ordinary 401 and reveals nothing about which accounts are SSO-only.
 SSO_ONLY_PASSWORD_HASH = "google-only"
 
+# Exactly what app/security.py:hash_password emits: `scrypt:<salt>:<digest>`
+# with a 16-byte salt (32 hex chars) and dklen=64 (128 hex chars). Anchored and
+# exact, so the only thing this accepts is a hash `verify_password` can actually
+# check against — a truncated paste, a sentinel, or a hash from a different KDF
+# is refused here rather than written as a key nobody can use.
+_PASSWORD_HASH_RE = re.compile(r"^scrypt:[0-9a-f]{32}:[0-9a-f]{128}$")
+
+
+def _validate_password_hash(value: str) -> str:
+    """Accept a precomputed scrypt hash for `--password-hash`, or raise.
+
+    WHY A HASH IS ALLOWED IN ARGV WHEN A PASSWORD IS NOT. app.set_password
+    refuses a `--password` flag because argv lands in shell history, in `ps`,
+    and in the CloudTrail record of an ECS RunTask's overrides. A scrypt hash
+    with a random 16-byte salt is not a secret in that sense: recovering a
+    12+-character password from it is the attack scrypt with N=16384 exists to
+    make impractical, and the plaintext never leaves the machine that hashed it.
+    That is what lets the ops-task workflow provision a password-holding account
+    from the browser without the password crossing the RunTask API.
+
+    The length floor and the published-password denylist live where the
+    PLAINTEXT is — `python -m app.set_password --print-hash` applies both before
+    it prints anything. This path trusts that the operator hashed there; it
+    cannot check a password it never sees.
+    """
+    candidate = value.strip()
+    if not _PASSWORD_HASH_RE.fullmatch(candidate):
+        raise ValueError(
+            "--password-hash must be exactly what `python -m app.set_password "
+            "--print-hash` prints (scrypt:<32 hex>:<128 hex>); a password itself "
+            "is never accepted here"
+        )
+    return candidate
+
 
 def grant(
     db: Session,
@@ -81,6 +116,8 @@ def grant(
     role: Role,
     usn: str | None = None,
     with_group: bool = False,
+    password_hash: str | None = None,
+    mentor_email: str | None = None,
 ) -> tuple[User, bool]:
     """Create or update the user row that permits `email` to sign in.
 
@@ -119,6 +156,24 @@ def grant(
         raise ValueError(f"{role.value} cannot be granted here")
     if with_group and role is not Role.MENTOR:
         raise ValueError("--with-group applies to MENTOR only")
+    if password_hash is not None:
+        password_hash = _validate_password_hash(password_hash)
+    mentor_group: Mentor | None = None
+    if mentor_email is not None:
+        if role is not Role.STUDENT:
+            raise ValueError("--mentor applies to STUDENT only")
+        wanted = mentor_email.strip().lower()
+        mentor_user = db.scalar(select(User).where(func.lower(User.email) == wanted))
+        if mentor_user is None or mentor_user.role is not Role.MENTOR:
+            raise ValueError(f"{wanted} is not a MENTOR account; grant it first")
+        mentor_group = db.scalar(select(Mentor).where(Mentor.user_id == mentor_user.id))
+        if mentor_group is None:
+            # Rule 2: the `Mentor` row IS the group. Without it there is nothing
+            # to point the student at, and silently skipping would leave a
+            # mentor who "has" a student they cannot see.
+            raise ValueError(
+                f"{wanted} has no Mentor group yet; re-grant it with --with-group first"
+            )
 
     # Case-insensitive, matching the callback's lookup: granting a second row
     # that differs only in case would create an account nobody can sign into,
@@ -133,7 +188,9 @@ def grant(
             email=normalised,
             name=name,
             role=role,
-            password_hash=SSO_ONLY_PASSWORD_HASH,
+            # The sentinel unless the operator brought a key. Google sign-in
+            # works either way; the hash only adds a second door.
+            password_hash=password_hash or SSO_ONLY_PASSWORD_HASH,
         )
         db.add(user)
     else:
@@ -149,6 +206,11 @@ def grant(
         user.role = role
         if role_changed:
             user.token_version = (user.token_version or 0) + 1
+        if password_hash is not None:
+            # Re-running with a hash SETS or ROTATES the key; re-running without
+            # one leaves whatever key exists alone, so "promote this person"
+            # never silently revokes their password.
+            user.password_hash = password_hash
 
     if role is Role.STUDENT:
         # The trio, exactly as seed_roster builds it. flush() before each
@@ -173,14 +235,16 @@ def grant(
         db.flush()
         if db.scalar(select(StudentProfile).where(StudentProfile.student_id == stu.id)) is None:
             db.add(StudentProfile(student_id=stu.id))
+        if mentor_group is not None:
+            # Points the student at the mentor's group, which is the only thing
+            # that makes them visible to that mentor (rule 2). Idempotent.
+            stu.mentor_id = mentor_group.id
 
     if role is Role.MENTOR and with_group:
         # The `Mentor` row IS the group: `_assert_can_access_student` narrows a
         # MENTOR to the students whose `mentor_id` points at it, and
         # `_payload_for` only puts `mentorId` in the session when this row
         # exists. Idempotent -- a second run finds the existing row.
-        from .models.user import Mentor
-
         db.flush()
         if db.scalar(select(Mentor).where(Mentor.user_id == user.id)) is None:
             db.add(Mentor(user_id=user.id))
@@ -220,6 +284,25 @@ def main() -> int:
         "Use one no roster row will ever claim (e.g. TEST01) â it is UNIQUE, "
         "and a real USN granted here blocks that student's roster seed.",
     )
+    parser.add_argument(
+        "--password-hash",
+        default=None,
+        metavar="scrypt:SALT:DIGEST",
+        help="also give the account a password, as the HASH printed by "
+        "`python -m app.set_password --print-hash`. A password itself is never "
+        "accepted here (it would land in shell history and CloudTrail); the hash "
+        "is safe to pass, which is what lets the ops-task workflow do this from "
+        "the browser. Re-running with a hash rotates the key; without one, "
+        "leaves it alone.",
+    )
+    parser.add_argument(
+        "--mentor",
+        default=None,
+        metavar="EMAIL",
+        help="STUDENT only: put the student in this mentor's group (the mentor "
+        "must already be granted --with-group), so the mentor can actually see "
+        "them (AGENTS.md rule 2).",
+    )
     args = parser.parse_args()
 
     # Said out loud BEFORE writing, for the same reason app/seed_roster.py says
@@ -236,6 +319,8 @@ def main() -> int:
                 Role(args.role),
                 usn=args.usn,
                 with_group=args.with_group,
+                password_hash=args.password_hash,
+                mentor_email=args.mentor,
             )
         except ValueError as exc:
             # Reachable from a library caller; argparse's `choices` catches the
@@ -246,6 +331,12 @@ def main() -> int:
 
     verb = "created" if created else "updated"
     print(f"{verb}: {email}  role={role.value}  name={display_name}")
+    if args.password_hash:
+        print("  Password set from the supplied hash. This account can now sign in with")
+        print("  email + password as well as Google; the password door opens on its own")
+        print("  once any account holds a key (app/routers/auth.py:password_door_open).")
+    if args.mentor:
+        print(f"  Placed in the Mentor group of {args.mentor.strip().lower()}.")
     if not created:
         print("  (address already present â name and role were updated in place)")
     if role is Role.ALUMNI:

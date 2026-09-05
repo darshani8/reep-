@@ -972,17 +972,45 @@ class Settings(BaseSettings):
         rather than admits — a misconfiguration must fail towards "nobody can use
         a password", never "anyone can".
 
-        ANY OTHER ENVIRONMENT, production included, gets it only when an operator
-        sets PASSWORD_LOGIN=true. That is a deliberate, documented choice to run
-        two doors instead of one, and it is not free: a password is guessable
-        where a Google account behind the college's own 2FA is not, which is why
-        `login` rate-limits per account and per source address and why
-        `app.set_password` refuses a weak one. What it is NOT is a way back to
-        the seeded demo logins — `app.seed` still refuses when ENV=prod, so the
-        accounts whose passwords are published in AGENTS.md cannot be there for
-        this flag to admit.
+        ANY OTHER ENVIRONMENT, production included, gets it from THIS property
+        only when an operator sets PASSWORD_LOGIN=true. This is the ENV-LEVEL
+        answer; it is not the whole answer. When PASSWORD_LOGIN is blank the
+        router derives the door from the database instead — open exactly when at
+        least one account holds a real scrypt hash (see
+        app/routers/auth.py:password_door_open) — because on Fargate the
+        environment is a Terraform apply away and a key is one ops-task away, and
+        the person issuing the first key has already made the decision this flag
+        would ask them to make twice. PASSWORD_LOGIN=false is the hard off-switch
+        that overrides even an issued key (incident response: shut the door, keep
+        the hashes). See `password_login_forced` for the three states.
+
+        Running two doors is not free: a password is guessable where a Google
+        account behind the college's own 2FA is not, which is why `login`
+        rate-limits per account and why `app.set_password` refuses a weak one.
+        What it is NOT is a way back to the seeded demo logins — `app.seed` still
+        refuses when ENV=prod, so the accounts whose passwords are published in
+        AGENTS.md cannot be there for any of this to admit.
         """
-        return _is_dev_env(self.env) or self.password_login.strip().lower() == "true"
+        return _is_dev_env(self.env) or self.password_login_forced is True
+
+    @property
+    def password_login_forced(self) -> bool | None:
+        """PASSWORD_LOGIN as a three-state switch: True, False, or None (derive).
+
+        Only the exact words count. "true" forces the door open on any ENV,
+        "false" forces it shut on any non-dev ENV even if keys have been issued,
+        and anything else — blank, absent, a typo — is None, meaning "decide from
+        whether a key exists". A typo therefore degrades to the derived default,
+        never to open: an operator who meant "false" and typed "flase" gets a
+        door that is shut unless someone has deliberately issued a key, which is
+        the same state they were in before they touched the variable.
+        """
+        text = self.password_login.strip().lower()
+        if text == "true":
+            return True
+        if text == "false":
+            return False
+        return None
 
     @property
     def insecure_cookies_allowed(self) -> bool:

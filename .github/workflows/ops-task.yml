@@ -38,6 +38,16 @@ on:
       usn:
         description: "grant-access + STUDENT only: a USN no roster row will ever claim (e.g. TEST01)"
         required: false
+      password_hash:
+        description: "grant-access only: ALSO give the account a password, as the HASH from `python -m app.set_password --print-hash`. Never the password itself."
+        required: false
+      with_group:
+        description: "grant-access + MENTOR only: create the Mentor group, so the mentor can see students"
+        type: boolean
+        default: false
+      mentor_email:
+        description: "grant-access + STUDENT only: put the student in this (already granted, with_group) mentor's group"
+        required: false
       confirm:
         description: 'Type "run" to confirm this touches production data'
         required: true
@@ -68,6 +78,21 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
           role-session-name: reep-ops-${{ github.run_id }}
 
+      # Say WHICH deployment this touches before touching it — the same reason
+      # app.grant_access prints the database first. WEB_ORIGIN is read from the
+      # live task definition (ecs:DescribeTaskDefinition is in the role), so the
+      # log names the site the account is being created on. It is also how a
+      # browser-only operator learns the site's URL, which is otherwise only in
+      # Terraform state.
+      - name: Show the target
+        run: |
+          ORIGIN=$(aws ecs describe-task-definition \
+            --task-definition "${{ vars.ECS_TASK_FAMILY || 'reep-api' }}" \
+            --query "taskDefinition.containerDefinitions[0].environment[?name=='WEB_ORIGIN'].value | [0]" \
+            --output text)
+          echo "Target deployment: $ORIGIN"
+          echo "ORIGIN=$ORIGIN" >> "$GITHUB_ENV"
+
       # The command array is built with jq from the menu choice, so user-typed
       # values only ever become argv entries of the fixed module invocation.
       - name: Build the command
@@ -77,6 +102,9 @@ jobs:
           GRANT_NAME: ${{ inputs.display_name }}
           GRANT_ROLE: ${{ inputs.role }}
           GRANT_USN: ${{ inputs.usn }}
+          GRANT_HASH: ${{ inputs.password_hash }}
+          GRANT_WITH_GROUP: ${{ inputs.with_group }}
+          GRANT_MENTOR: ${{ inputs.mentor_email }}
         run: |
           case "$TASK" in
             seed-roster-dry-run)
@@ -90,8 +118,19 @@ jobs:
                 echo "::error::grant-access needs both email and display_name."
                 exit 1
               fi
-              CMD=$(jq -cn --arg e "$GRANT_EMAIL" --arg n "$GRANT_NAME" --arg r "$GRANT_ROLE" --arg u "$GRANT_USN" \
-                '["python","-m","app.grant_access",$e,"--name",$n,"--role",$r] + (if $u != "" then ["--usn",$u] else [] end)') ;;
+              # Every optional value is appended as its own argv entry, or not at
+              # all: an empty input never becomes an empty argument. The hash is
+              # the one credential-shaped value here and it is deliberately a
+              # HASH — app.grant_access refuses anything that is not exactly
+              # scrypt:<salt>:<digest>, so a password pasted into this box by
+              # mistake is rejected by the task rather than stored as a key.
+              CMD=$(jq -cn --arg e "$GRANT_EMAIL" --arg n "$GRANT_NAME" --arg r "$GRANT_ROLE" \
+                       --arg u "$GRANT_USN" --arg h "$GRANT_HASH" --arg g "$GRANT_WITH_GROUP" --arg m "$GRANT_MENTOR" \
+                '["python","-m","app.grant_access",$e,"--name",$n,"--role",$r]
+                 + (if $u != "" then ["--usn",$u] else [] end)
+                 + (if $h != "" then ["--password-hash",$h] else [] end)
+                 + (if $g == "true" then ["--with-group"] else [] end)
+                 + (if $m != "" then ["--mentor",$m] else [] end)') ;;
             *)
               echo "::error::Unknown task."; exit 1 ;;
           esac

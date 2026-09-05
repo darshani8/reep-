@@ -704,7 +704,6 @@
               <tr><td class="n">3</td><td class="k">Angular dev server</td><td class="k">Node 22, npm 11.16</td><td class="k">dev only</td><td class="d">production serves the built bundle statically behind the TLS proxy</td></tr>
               <tr><td class="n">4</td><td class="k">LiveKit voice worker</td><td class="k">Python 3.12, <code>.venv-voice</code></td><td class="k">optional</td><td class="d">a student pressing “Start voice” with no worker running is the single most common “why is it broken” report</td></tr>
               <tr><td class="n">—</td><td class="k">Ollama</td><td class="k">native</td><td class="k">optional</td><td class="d">loopback model; the one provider exempt from the egress gate by construction</td></tr>
-              <tr class="hot"><td class="n">✗</td><td class="k">apps/interview-realtime</td><td class="k">—</td><td class="k">never deploy</td><td class="d">superseded prototype: no authentication, no database. Anyone reaching the port opens a billed Realtime session and nothing is persisted.</td></tr>
             </tbody>
           </table>
         </div>
@@ -1664,9 +1663,9 @@ cd ../web &amp;&amp; npx ng build                              <span class="cm">
           <span class="chip gd">Prisma</span><span class="chip gd">server-only</span><span class="chip gd">apps/api</span>
         </div>
         <p>
-          That stack was fully migrated and deleted. <code>apps/interview-realtime/</code> still exists but is
-          the superseded standalone prototype of the relay — <b>no authentication, no database, do not
-          deploy it</b>. Nothing was deleted there either, so a rollback is re-pointing the client rather than
+          That stack was fully migrated and deleted. <code>apps/interview-realtime/</code>, the superseded
+          standalone prototype of the relay (<b>no authentication, no database</b>), was deleted in 2026-09
+          along with <code>ollama/</code> and <code>tools/cascade</code>. A rollback is re-pointing the client rather than
           restoring code from git.
         </p>
       </section>

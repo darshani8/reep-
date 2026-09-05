@@ -105,8 +105,6 @@ flowchart TB
 | 2 | FastAPI API (`uvicorn app.main:app --port 3300`) | Python **3.14**, `.venv` | **yes** | includes the interview relay |
 | 3 | Angular dev server (`npx ng serve`) | Node 22, npm 11.16 | dev only | prod serves the built bundle statically |
 | 4 | LiveKit voice worker (`voice_agent.py`) | Python **3.12**, `.venv-voice` | optional | `livekit-agents` requires `<3.15` |
-| — | Ollama | native | optional | loopback LLM, exempt from the egress gate |
-| ✗ | `apps/interview-realtime/` | — | **never deploy** | superseded prototype: no auth, no DB |
 
 The mock interviewer is **not** a fifth process. It runs inside process 2.
 
@@ -746,7 +744,6 @@ and turn a recoverable blip into an outage.
 ## 13. Migrated away — ignore any lingering reference
 
 Next.js · React · NestJS · Prisma · `server-only` · `apps/api`. That stack was fully
-migrated and deleted. `apps/interview-realtime/` still exists but is a **superseded
-prototype with no authentication and no database — do not deploy it**; the banner at
-the top of its `app/server.py` says why (anyone reaching the port opens a billed
-OpenAI Realtime session, and nothing is persisted).
+migrated and deleted. `apps/interview-realtime/` — the superseded standalone prototype
+with no authentication and no database — was deleted in 2026-09 along with `ollama/`
+and `tools/cascade`; the in-process relay is the only interviewer.

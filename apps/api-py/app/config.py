@@ -131,6 +131,24 @@ class Settings(BaseSettings):
     # every enum value, staff-only ones included — which is what turns "find an
     # endpoint" into "read the list".
     docs_enabled: bool = True
+    # Whether POST /api/auth/login answers on an environment that is NOT dev/CI
+    # — i.e. whether this deployment offers email + password alongside Google.
+    #
+    # A string, not a bool, and blank by default: the same idiom as
+    # llm_allow_remote_student_data, so a blank line in .env, an unset variable
+    # or a typo all mean OFF. Turning it on is one deliberate edit that has to
+    # spell "true"; nothing about upgrading gets a deployment this door.
+    #
+    # WHAT THIS DOES NOT DO, and must never be changed to do: it does not give
+    # anybody a password. Accounts minted by app.grant_access and
+    # app.seed_roster carry the unusable SSO_ONLY_PASSWORD_HASH sentinel, and
+    # they keep it until an operator runs `python -m app.set_password` for one
+    # named account. And app.seed still refuses to run when ENV=prod, so the
+    # published director123 / mentor123 / student123 logins cannot exist on a
+    # production host for this flag to let in. Those two facts are what make
+    # this a door rather than a hole: opening it admits exactly the accounts an
+    # operator has deliberately issued a password to, and no others.
+    password_login: str = ""
     # Sessions are stateless 12-hour HS256 JWTs, so `POST /api/auth/logout`
     # deleting the cookie does nothing to a token that was already copied (audit
     # M8). A revocation deny-list closes that; this is how long one decision may
@@ -944,15 +962,27 @@ class Settings(BaseSettings):
     def password_login_allowed(self) -> bool:
         """Whether POST /api/auth/login may answer at all.
 
-        Sign-in is Google-only for humans; that endpoint is a dev/CI affordance,
-        kept because tests/conftest.py's `login` fixture and the test modules
-        that use it cannot drive an OAuth round-trip from a TestClient. Keyed on
-        the environments it SERVES rather than on `not is_prod`, so an ENV nobody
-        anticipated ("staging", a typo, an empty string from a broken deploy)
-        refuses rather than admits: the failure mode of a misconfiguration here
-        must be "nobody can use a password", never "anyone can".
+        Two ways to be true, and they are different in kind.
+
+        DEV AND CI get it unconditionally, as they always have: tests/conftest.py's
+        `login` fixture and the test modules that use it cannot drive an OAuth
+        round-trip from a TestClient. That half is keyed on the environments it
+        SERVES rather than on `not is_prod`, so an ENV nobody anticipated
+        ("staging", a typo, an empty string from a broken deploy) still refuses
+        rather than admits — a misconfiguration must fail towards "nobody can use
+        a password", never "anyone can".
+
+        ANY OTHER ENVIRONMENT, production included, gets it only when an operator
+        sets PASSWORD_LOGIN=true. That is a deliberate, documented choice to run
+        two doors instead of one, and it is not free: a password is guessable
+        where a Google account behind the college's own 2FA is not, which is why
+        `login` rate-limits per account and per source address and why
+        `app.set_password` refuses a weak one. What it is NOT is a way back to
+        the seeded demo logins — `app.seed` still refuses when ENV=prod, so the
+        accounts whose passwords are published in AGENTS.md cannot be there for
+        this flag to admit.
         """
-        return _is_dev_env(self.env)
+        return _is_dev_env(self.env) or self.password_login.strip().lower() == "true"
 
     @property
     def insecure_cookies_allowed(self) -> bool:

@@ -75,6 +75,7 @@ first time these three lists were written independently.
 
 import logging
 import secrets
+import time
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
@@ -111,6 +112,93 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # import (one scrypt, tens of ms, at boot) rather than pasted as a literal that
 # silently rots if the hash format ever changes.
 _TIMING_EQUALIZER_HASH = hash_password(secrets.token_urlsafe(32))
+
+# ---------------------------------------------------------------------------
+# Brute-force limiting for POST /login.
+#
+# Google sign-in carries its own rate limiting, its own anomaly detection and
+# usually the college's 2FA. A password carries none of that, so the moment
+# PASSWORD_LOGIN=true puts this endpoint on the public internet it becomes the
+# one guessable way in — and a DIRECTOR password guessed here reads every
+# student's marks, attendance and USN. This is the compensating control, and it
+# is why that flag was not simply `not is_prod`.
+#
+# KEYED ON THE ACCOUNT, AND DELIBERATELY NOT ON THE SOURCE ADDRESS.
+# registration.py's limiter keys on request.client.host and says in its own
+# comment that behind a reverse proxy that is the PROXY. This deployment is
+# behind an ALB, so request.client.host is one value for the entire internet:
+# an address bucket there is not merely weak, it is a global outage waiting to
+# happen — ten wrong passwords from anyone would lock out every student at once
+# — and raising the limit until that stops hurting makes it stop working. It
+# was tried, and the test suite caught exactly that: every login in the run
+# shares the TestClient's single peer address, so the whole suite 429'd after
+# ten deliberate wrong-password assertions.
+#
+# Counting failures per EMAIL is what actually bounds guessing at one account,
+# and it holds however many source addresses the guesser has. What it does not
+# bound is SPRAYING — one guess each against a thousand accounts — and no
+# in-process counter can, behind a proxy that hides the caller. That control
+# belongs at the edge (a WAF rate rule on the ALB or CloudFront), and saying so
+# here is better than a bucket that pretends to cover it.
+#
+# ONLY FAILURES COUNT, and a success clears the bucket. Counting successes
+# would log a busy shared-lab account out of its own door; leaving the bucket
+# full after a correct password would punish the person who got in.
+#
+# Deliberately accepted limits, in the same spirit as registration.py's note:
+#   * In-process, so each ECS task holds its own counters and the effective
+#     limit is (tasks x _LOGIN_MAX_FAILURES). With autoscaling that is a real
+#     weakening; it is still a hard bound per task, and a shared-state limiter
+#     needs Redis or a table this endpoint does not have. Say so rather than
+#     implying a guarantee that is not there.
+#   * An attacker who knows an address can lock it out of PASSWORD sign-in for
+#     the window by burning its budget. That is why the refusal names Google as
+#     the way in that still works: Google is unaffected by this counter, so the
+#     denial-of-service costs a real user a redirect, not their access.
+_LOGIN_WINDOW_SECONDS = 900
+_LOGIN_MAX_FAILURES = 10
+_LOGIN_MAX_KEYS = 4096
+_login_failures: dict[str, tuple[float, int]] = {}
+
+
+def _login_retry_after(key: str) -> int | None:
+    """Seconds until `key`'s window resets, or None if it may still be tried.
+
+    Read-only: it counts nothing. `_record_login_failure` is what spends the
+    budget, so a correct password on the last remaining attempt is never itself
+    the thing that trips the limit.
+    """
+    now = time.monotonic()
+    window_start, count = _login_failures.get(key, (now, 0))
+    if now - window_start >= _LOGIN_WINDOW_SECONDS:
+        return None
+    if count >= _LOGIN_MAX_FAILURES:
+        return max(1, int(_LOGIN_WINDOW_SECONDS - (now - window_start)))
+    return None
+
+
+def _record_login_failure(key: str) -> None:
+    """Charge one failed attempt to `key`, bounding the table as it goes."""
+    now = time.monotonic()
+    window_start, count = _login_failures.get(key, (now, 0))
+    if now - window_start >= _LOGIN_WINDOW_SECONDS:
+        window_start, count = now, 0
+    if key not in _login_failures and len(_login_failures) >= _LOGIN_MAX_KEYS:
+        for other, (started, _n) in list(_login_failures.items()):
+            if now - started >= _LOGIN_WINDOW_SECONDS:
+                del _login_failures[other]
+        if len(_login_failures) >= _LOGIN_MAX_KEYS:
+            # Every window still live: start over rather than grow without
+            # bound. The limiter must not become the memory exhaustion it
+            # exists to prevent.
+            _login_failures.clear()
+    _login_failures[key] = (window_start, count + 1)
+
+
+def _clear_login_failures(*keys: str) -> None:
+    """Forget a key's failures. Called on success, never on a refusal."""
+    for key in keys:
+        _login_failures.pop(key, None)
 
 # Where a signed-in user lands when the flow carries no `?next=`. Mirrors
 # HOME_FOR_ROLE in apps/web/src/app/core/session.ts (the SPA's `''` route now
@@ -259,30 +347,45 @@ def _clear_flow_cookie(response: Response) -> None:
 
 
 @router.post("/login", response_model=SessionUser)
-def login(body: LoginRequest, response: Response, db: Session = Depends(get_db)) -> SessionUser:
-    """Email + password. A DEV AND CI AFFORDANCE THAT PRODUCTION REFUSES.
+def login(
+    body: LoginRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> SessionUser:
+    """Email + password. ALWAYS IN DEV/CI; ELSEWHERE ONLY IF PASSWORD_LOGIN=true.
 
-    Sign-in is Google-only for real users, for every role. This endpoint is kept
+    Google remains the door this codebase recommends, and on a default
+    deployment it is still the only one: PASSWORD_LOGIN is blank unless an
+    operator sets it. This endpoint is kept
     â not deleted â because tests/conftest.py's `login` fixture and the six test
     modules that use it (test_auth_rbac, test_conversations, test_feedback,
     test_knowledge, test_metrics, test_orchestrator) authenticate through it, and
-    an OAuth round-trip cannot be driven from a TestClient without either
-    stubbing Google or shipping a second, weaker door that exists in production.
-    Refusing outside dev/CI is that second door not existing where it matters,
-    and it is the same guard shape app/seed.py uses for the same kind of reason:
-    some things must not merely be discouraged in production, they must be
-    impossible there.
+    an OAuth round-trip cannot be driven from a TestClient without stubbing
+    Google. An operator who wants the same door for real people opens it
+    deliberately, with one .env value, having read what it costs.
 
-    `password_login_allowed`, NOT `not is_prod`: an allowlist of the environments
-    this endpoint serves, so an ENV nobody anticipated shuts the door rather than
-    opening it (see app/config.py). The guard fires BEFORE the database is
-    touched, so it cannot be probed for which accounts exist and cannot be
-    defeated by a timing difference.
+    `password_login_allowed`, NOT `not is_prod`: dev/CI are an allowlist, and
+    every other environment — production, `staging`, a typo, an empty string
+    from a broken deploy — stays shut unless positively opened (see
+    app/config.py). The guard fires BEFORE the database is touched, so it cannot
+    be probed for which accounts exist and cannot be defeated by a timing
+    difference.
+
+    WHAT OPENING IT TAKES ON. A password is guessable where a Google account
+    behind the college's 2FA is not, and a guessed DIRECTOR password reads every
+    student's marks, attendance and USN. So this endpoint carries its own
+    brute-force limiter, keyed on the ACCOUNT as well as the source address
+    because behind an ALB the source address is the ALB. Two things it does not
+    change: accounts have no usable password until `python -m app.set_password`
+    is run for one BY NAME (grant_access and seed_roster mint the unusable
+    SSO_ONLY_PASSWORD_HASH sentinel), and `app.seed` still refuses on ENV=prod,
+    so the demo logins published in AGENTS.md cannot be what this admits.
     """
     if not settings.password_login_allowed:
         log.warning(
             "POST /api/auth/login -> 403: password sign-in is disabled when ENV=%r "
-            "(Google sign-in only); this endpoint exists for dev and CI",
+            "(Google sign-in only); set PASSWORD_LOGIN=true to offer it here",
             settings.env,
         )
         raise HTTPException(
@@ -291,6 +394,35 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
         )
 
     email = body.email.strip().lower()
+
+    # Checked BEFORE the database is touched and before any scrypt work, so a
+    # flood costs neither a query nor a KDF. The source address is logged for
+    # the operator reading this later but is NOT a bucket — see the note above
+    # _login_retry_after for why an address bucket behind an ALB is an outage
+    # rather than a control.
+    client_ip = request.client.host if request.client else "unknown"
+    account_key = f"account:{email}"
+    retry_after = _login_retry_after(account_key)
+    if retry_after is not None:
+        log.warning(
+            "POST /api/auth/login -> 429: %d failed attempts within %ds for %s (last from %s)",
+            _LOGIN_MAX_FAILURES,
+            _LOGIN_WINDOW_SECONDS,
+            email,
+            client_ip,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            # Names Google deliberately. This counter does not touch the Google
+            # path, so someone locked out here — including a real user whose
+            # address an attacker burned the budget on — still has a way in.
+            detail=(
+                "Too many failed sign-in attempts. Wait and try again, "
+                "or use Continue with Google."
+            ),
+            headers={"Retry-After": str(retry_after)},
+        )
+
     user = db.scalar(select(User).where(User.email == email))
     # One message for both cases â never reveal which of email/password was wrong.
     # `not user.password_hash` covers a roster account that has no usable local
@@ -302,16 +434,25 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
         # this account exist" answerable with a stopwatch despite the uniform
         # 401. Burn the same work against a throwaway hash before refusing.
         verify_password(body.password, _TIMING_EQUALIZER_HASH)
+        # Charged even though no such account exists (or it is SSO-only): not
+        # charging here would make the limiter itself an account-existence
+        # oracle, answerable by watching which addresses can be tried forever.
+        _record_login_failure(account_key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
         )
     if not verify_password(body.password, user.password_hash):
+        _record_login_failure(account_key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
         )
 
+    # The password was right, so the budget is returned rather than spent down:
+    # a shared lab machine whose users fat-finger passwords all morning must not
+    # lock out the person who types theirs correctly.
+    _clear_login_failures(account_key)
     _record_login(db, user)
     payload = _payload_for(user)
     _issue_session(response, payload)

@@ -809,6 +809,65 @@ class TestTheTransport:
         assert transport is not None, "resolve() was left to pick the transport"
         assert type(transport).SUPPORTS_DUPLEX_STREAMING is True
 
+    def test_open_hands_boto3_credentials_to_the_sdk_as_a_static_identity(self, monkeypatch):
+        """Production timed out inside open() with the SDK's own credential chain.
+
+        boto3's chain is the one every other AWS call in the process succeeds
+        with (on Fargate, the container credentials endpoint), so its answer is
+        handed to the SDK as a static identity and the SDK's chain never runs.
+        When boto3 finds nothing, the SDK chain is left to report its own error.
+        Both branches pinned; and the sub-step names are what the timeout reason
+        carries, so they are pinned too.
+        """
+        from types import SimpleNamespace
+
+        from aws_sdk_bedrock_runtime import client as sdk_client
+        from aws_sdk_bedrock_runtime import config as sdk_config
+        from smithy_aws_core.identity import StaticCredentialsResolver
+
+        captured: dict[str, object] = {}
+        phases: list[str] = []
+
+        async def _fake_resolve(**kwargs):
+            captured.update(kwargs)
+            return object()
+
+        class _FakeStream:
+            async def await_output(self):
+                raise AssertionError("open() must not await the response half")
+
+        class _FakeClient:
+            def __init__(self, config):
+                pass
+
+            async def invoke_model_with_bidirectional_stream(self, _input):
+                return _FakeStream()
+
+        frozen = SimpleNamespace(access_key="AKIA-test", secret_key="s3cr3t", token="tok")
+        monkeypatch.setattr(nova, "_boto3_credentials", lambda: frozen)
+        monkeypatch.setattr(sdk_config.AsyncBedrockRuntimeConfig, "resolve", _fake_resolve)
+        monkeypatch.setattr(sdk_client, "AsyncBedrockRuntimeClient", _FakeClient)
+
+        upstream = nova._NovaUpstream("amazon.nova-2-sonic-v1:0", "ap-northeast-1", None)
+        run(upstream.open())
+
+        resolver = captured.get("aws_credentials_identity_resolver")
+        assert isinstance(resolver, StaticCredentialsResolver)
+        identity = run(resolver.get_identity(properties={}))
+        assert (identity.access_key_id, identity.secret_access_key, identity.session_token) == (
+            "AKIA-test", "s3cr3t", "tok"
+        )
+        assert upstream.phase == "open"
+        # The response half is attached later, never inside open().
+        assert upstream._output is None
+
+        # No boto3 credentials: the SDK's own chain, i.e. no resolver passed.
+        captured.clear()
+        monkeypatch.setattr(nova, "_boto3_credentials", lambda: None)
+        upstream = nova._NovaUpstream("amazon.nova-2-sonic-v1:0", "ap-northeast-1", None)
+        run(upstream.open())
+        assert "aws_credentials_identity_resolver" not in captured
+
 
 # ---------------------------------------------------------------------------
 # The 8-minute wall
@@ -1210,9 +1269,11 @@ class TestTheOpenSequence:
 
         session = NovaSonicSession(_SilentBrowser(), "c0ffee123456")
         code, reason = run(session.run())
+        # The fake has no `phase`, so the reason falls back to "opening"; the
+        # real upstream names the sub-step (credentials / client / stream).
         assert (code, reason) == (
             nova._CLOSE_UPSTREAM_UNAVAILABLE,
-            "Interviewer service unavailable (open timed out)",
+            "Interviewer service unavailable (open timed out while opening)",
         )
 
     def test_a_send_that_blocks_until_the_connection_exists_is_still_greeted(

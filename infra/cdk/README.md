@@ -11,39 +11,35 @@ One stack, `reep-voice-platform`, for everything the platform
 | Realtime session state | DynamoDB `reep-voice-sessions-ug` / `-pg` (TTL `expires_at`) |
 | Session logs + question vectors | OpenSearch Serverless `reep-voice` (VECTORSEARCH) |
 | What the api may do | an IAM policy attached to the **existing** task role `reep-api-task` |
-| The api's environment | SSM parameters `/reep/voice-platform/PLATFORM_*` |
+| The api's environment | SSM parameters `/reep/voice-platform/PLATFORM_*`, read by the api at boot |
+| Later deploys from CI | a policy on the **existing** OIDC role `reep-github-deploy` (assume the CDK bootstrap roles) |
 
 The rest of REEP (VPC, ALB, ECS, RDS, the task role itself) is the Terraform
-stack in `infra/aws/` and stays there: this stack is additive, imports the
-task role by name, and hands its outputs to Terraform through SSM.
+stack in `infra/aws/` and stays there: this stack is additive and imports the
+two roles it touches by name. **Terraform is not part of the platform's deploy
+path.** The api reads the `PLATFORM_*` parameters this stack publishes at boot
+(`app/voice_platform/ssm_config.py`, production only, environment wins), so no
+task-definition change is ever needed.
 
 ## Deploy
 
-Two one-time human steps, then a button.
-
-```
-# 1. once per account/region, with admin credentials: the CDK bootstrap roles
-cd infra/cdk && npm install -g aws-cdk && cdk bootstrap aws://<account>/ap-south-1
-# 2. once: let the GitHub deploy role assume them (infra/aws/github_oidc.tf)
-terraform -chdir=infra/aws apply
-```
-
-Then **Actions → "CDK deploy (voice platform)" → Run workflow** with
-`action = diff` to preview and `action = deploy` (confirm word `deploy`) to
-create the resources and the SSM parameters. Finally set
-`voice_platform_enabled = true` in `infra/aws`, `terraform apply` (reads the
-parameters into the api task definition), and run the ordinary Deploy workflow
-so the api picks them up. `GET /api/platform/admin/status` shows each piece
-switch from off to on.
-
-Locally, the same thing is:
+First time, with admin credentials (creates the CDK bootstrap roles, then the
+stack — including the grant that lets the GitHub deploy role run later deploys):
 
 ```
 cd infra/cdk
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/python -m pytest      # synth + template assertions, no AWS needed
-cdk diff && cdk deploy
+npm install -g aws-cdk
+.venv/bin/python -m pytest                          # synth + template assertions, no AWS
+cdk bootstrap aws://<account>/ap-south-1
+cdk --app ".venv/bin/python app.py" deploy
 ```
+
+Every time after that: **Actions → "CDK deploy (voice platform)" → Run
+workflow** with `action = diff` to preview and `action = deploy` (confirm word
+`deploy`). Then run the ordinary Deploy workflow so the api restarts and reads
+the parameters; `GET /api/platform/admin/status` shows `config_source`
+`ssm:/reep/voice-platform` and each piece switched on.
 
 Context values (`cdk.json`, or `-c key=value`): `project` (default `reep`),
 `apiTaskRoleName` (default `<project>-api-task`), `recordingRetentionDays`

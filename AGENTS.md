@@ -116,8 +116,9 @@ policies, candidates), the `/ws/media-bridge` socket, S3 → Lambda → SQS
 candidate ingest, dual-channel call recordings uploaded to S3 with presigned
 `recording_s3_url`s, DynamoDB session state, OpenSearch session logs and
 question vectors, and CloudWatch/Sentry hooks. Full notes:
-`docs/voice-platform.md`; infrastructure: `infra/aws/voice_platform.tf`
-(behind `voice_platform_enabled`, default false).
+`docs/voice-platform.md`; infrastructure: **AWS CDK** in `infra/cdk/` (the core
+stack stays Terraform in `infra/aws/`; the two meet at SSM parameters that
+`infra/aws/voice_platform_bridge.tf` reads when `voice_platform_enabled = true`).
 
 **It reuses the interviewer; it does not fork it.** The media bridge compiles
 catalogue rows into an `interview_matrix.Specialization` (which gained an

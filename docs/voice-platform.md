@@ -25,7 +25,8 @@ app/voice_platform/
                opensearch.py    session logs + question vectors (SigV4 via botocore, no new dependency)
   monitoring/  cloudwatch.py    loggers, PutMetricData, handler_span
                sentry.py        transactions per socket, spans per external call
-infra/aws/voice_platform.tf     S3 x2, SQS x2 (+DLQs), Lambda, DynamoDB x2, OpenSearch Serverless, IAM, env
+infra/cdk/                      AWS CDK (Python): S3 x2, SQS x2 (+DLQs), Lambda, DynamoDB x2, OpenSearch Serverless, IAM, SSM
+infra/aws/voice_platform_bridge.tf  reads the CDK stack's SSM parameters into the api task env
 ```
 
 ## How a call runs
@@ -84,11 +85,15 @@ configured and stores directly when none is — and says which in `mode`.
 
 Every `PLATFORM_*` variable is optional; blank means that projection is off,
 and `GET /api/platform/admin/status` lists what is on. See `.env.example`.
-`infra/aws/voice_platform.tf` creates the AWS resources and wires the
-variables into the api task when `voice_platform_enabled = true` (default
-false; it is an operator's `terraform apply`, like everything else in that
-directory — the Terraform is written against the provider's documented schema
-but has not been applied from this repository yet).
+`infra/cdk/` (AWS CDK, Python) creates the AWS resources — the buckets, the
+queues and DLQs, the Lambda, the DynamoDB tables, the OpenSearch Serverless
+collection, the api task role's policy — and publishes the `PLATFORM_*` values
+as SSM parameters under `/reep/voice-platform/`. The core stack stays
+Terraform; `infra/aws/voice_platform_bridge.tf` reads those parameters into the
+api task definition when `voice_platform_enabled = true`. `cdk deploy`, then
+`terraform apply`, then the next `deploy.yml` run; see `infra/cdk/README.md`.
+The stack's template is pinned by `infra/cdk/tests/test_synth.py`, which
+synthesises it without AWS; it has not been deployed from this repository yet.
 
 ## Tests
 

@@ -6,18 +6,14 @@ name: CDK deploy (voice platform)
 # same reep-github-deploy role deploy.yml uses (pinned to this repository and
 # to main). The role only assumes the account's CDK bootstrap roles; the
 # resources are created by CloudFormation under the bootstrap's own execution
-# role (infra/aws/github_oidc.tf, "deploy-cdk-stacks").
+# role. That grant is itself part of the stack (infra/cdk, "deploy-cdk-stacks"),
+# so the FIRST deploy is run by a human with admin credentials — `cdk bootstrap`
+# then `cdk deploy`, see infra/cdk/README.md — and every later one is this
+# button. No Terraform is involved anywhere in the platform's path: the api
+# reads the stack's SSM parameters at boot (app/voice_platform/ssm_config.py).
 #
-# One-time prerequisites, both human actions at a terminal:
-#   1. `cdk bootstrap aws://<account>/<region>` with admin credentials — creates
-#      the cdk-hnb659fds-* roles this workflow assumes.
-#   2. `terraform -chdir=infra/aws apply` — grants reep-github-deploy the right
-#      to assume them.
-# Afterwards: run this with action=deploy, then set voice_platform_enabled =
-# true in infra/aws and apply (reads the stack's SSM parameters into the api
-# task), then run the ordinary Deploy workflow so the api picks them up.
-#
-# `diff` is safe to run any time and changes nothing.
+# After a deploy that changes parameters, run the ordinary Deploy workflow so
+# the api restarts and re-reads them. `diff` is safe any time and changes nothing.
 
 on:
   workflow_dispatch:
@@ -99,4 +95,4 @@ jobs:
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
           cat outputs.json >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo "Next: set voice_platform_enabled = true in infra/aws, terraform apply, then run Deploy." >> "$GITHUB_STEP_SUMMARY"
+          echo "Next: run the Deploy workflow so the api restarts and reads these parameters." >> "$GITHUB_STEP_SUMMARY"

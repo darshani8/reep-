@@ -17,7 +17,6 @@
  */
 
 import { Component, computed, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../environments/environment';
 
@@ -69,8 +68,8 @@ function joinSwoc(items: SwocItem[]): string {
 @Component({
   selector: 'app-mentor-log',
   standalone: true,
-  imports: [DatePipe],
   templateUrl: './mentor-log.component.html',
+  styleUrl: './mentor-log.component.scss',
 })
 export class MentorLogComponent {
   readonly state = signal<'loading' | 'data' | 'error'>('loading');
@@ -98,30 +97,10 @@ export class MentorLogComponent {
     const s = this.swoc();
     if (!s) return null;
     return [
-      {
-        cls: 'swoc-box swoc-s',
-        title: 'Strength',
-        text: joinSwoc(s.strengths),
-        frame: 'Leverage this in your applications and interviews.',
-      },
-      {
-        cls: 'swoc-box swoc-w',
-        title: 'Weakness',
-        text: joinSwoc(s.weaknesses),
-        frame: 'Recommended activity — turn this into a skilling goal.',
-      },
-      {
-        cls: 'swoc-box swoc-o',
-        title: 'Opportunity',
-        text: joinSwoc(s.opportunities),
-        frame: 'Act before the window closes — check the jobs board and deadlines.',
-      },
-      {
-        cls: 'swoc-box swoc-c',
-        title: 'Challenge',
-        text: joinSwoc(s.challenges),
-        frame: 'Plan a prep task now to get ahead of this.',
-      },
+      { cls: 'swoc-box swoc-s', title: 'Strength', text: joinSwoc(s.strengths) },
+      { cls: 'swoc-box swoc-w', title: 'Weakness', text: joinSwoc(s.weaknesses) },
+      { cls: 'swoc-box swoc-o', title: 'Opportunity', text: joinSwoc(s.opportunities) },
+      { cls: 'swoc-box swoc-c', title: 'Challenge', text: joinSwoc(s.challenges) },
     ];
   });
 

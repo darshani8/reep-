@@ -1,101 +1,129 @@
-/* Catalogue. Panel / card / chip / icon are global. */
+/* Catalogue. Panel / card / chip / btn / ctrl / tabs-row / dt-table are global. */
 :host {
   display: block;
 }
 
-.cat-totals {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-self: center;
+.form-card {
+  margin-bottom: 16px;
 }
-
-.sem-head {
+.card-title {
   font-family: var(--font-display);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.3;
   letter-spacing: -0.01em;
   color: var(--ink);
-  margin: 18px 0 10px;
+  margin-bottom: 14px;
 }
-.sem-head:first-of-type {
-  margin-top: 0;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
 }
-
-.course {
-  margin-bottom: 10px;
-}
-.course-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.course-head strong {
-  font-variant-numeric: tabular-nums;
-}
-.course-meta {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.course-hours {
+.fld {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  gap: 5px;
   font-size: 12px;
-  color: var(--faint);
-  white-space: nowrap;
+  font-weight: 700;
+  color: var(--ink-soft);
 }
-
-.certs {
-  margin-top: 12px;
-  border-top: 1px solid var(--hairline-26);
-}
-.cert {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--hairline-26);
-}
-.cert:last-child {
-  border-bottom: none;
-}
-.cert > .icon {
-  font-size: 18px;
-  color: var(--purple-mid);
-  flex: none;
-}
-.cert-main {
-  flex: 1;
-  min-width: 0;
-}
-.cert-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.cert-meta {
-  font-size: 11.5px;
+.fld .opt {
+  font-weight: 400;
   color: var(--muted);
-  margin-top: 1px;
+}
+.form-foot {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.derived {
+  font-size: 12px;
+  color: var(--muted);
 }
 
-/* A course with no evidence path is the gap this screen is for, so it reads as
-   a note rather than an empty space. */
-.no-cert {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--hairline-26);
-  font-size: 12.5px;
-  color: var(--warn);
+.scroll {
+  overflow-x: auto;
 }
-.no-cert .icon {
+.cat-table {
+  min-width: 720px;
+}
+.cat-table td {
+  color: var(--ink);
+  font-size: 13px;
+}
+.cat-table strong {
+  font-weight: 700;
+}
+.meta {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.rm-col {
+  width: 44px;
+  text-align: center;
+}
+.inactive td {
+  color: var(--muted);
+}
+
+.rm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--hairline-42);
+  background: var(--surface);
+  color: var(--muted);
+}
+.rm-btn .icon {
   font-size: 16px;
+}
+.rm-btn:hover {
+  background: var(--risk-bg);
+  color: var(--risk);
+  border-color: rgba(173, 36, 82, 0.3);
+}
+.rm-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn.sm {
+  padding: 5px 10px;
+  font-size: 12px;
+  box-shadow: none;
+}
+
+.empty-cell {
+  padding: 16px 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.foot-note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--purple-mid);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 .state-note {

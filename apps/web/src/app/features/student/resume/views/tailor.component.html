@@ -20,18 +20,10 @@
     <div class="body">
       @if (goalSvc.jobsError()) {
         <div class="state-note"><span class="icon">error</span>{{ goalSvc.jobsError() }}</div>
-      } @else if (!goalSvc.selectedJob()) {
-        <div class="card">
-          <h3>Pick an opportunity first</h3>
-          <div class="desc">
-            Choose a posting in the <b>Selected opportunity</b> box above and this step will show
-            your match, the requirements you can already evidence, and the ones you cannot.
-          </div>
-        </div>
-      } @else {
-        @let job = goalSvc.selectedJob()!;
+      }
 
-        <!-- Verdict first, and separate from the score. -->
+      <!-- Verdict first, and separate from the score. -->
+      @if (goalSvc.selectedJob(); as job) {
         <div class="card verdict" [class.verdict--ok]="job.eligible">
           <div class="verdict-head">
             <span class="icon">{{ job.eligible ? 'task_alt' : 'info' }}</span>
@@ -63,60 +55,53 @@
             </div>
           }
         </div>
-
-        <div class="tailor-grid">
-          <div class="card">
-            <h3>
-              Covered by verified evidence <span class="t-count">{{ matched().length }}</span>
-            </h3>
-            <div class="desc">
-              Requirements your included, mentor-verified skills already answer.
-            </div>
-            @if (matched().length === 0) {
-              <div class="state-note">
-                <span class="icon">info</span>
-                None yet. Include a verified skill in <b>Build content</b> and it will count here.
-              </div>
-            } @else {
-              <div class="t-pills">
-                @for (s of matched(); track s) {
-                  <span class="t-pill t-pill--have">{{ s }}</span>
-                }
-              </div>
-            }
-          </div>
-
-          <div class="card">
-            <h3>
-              Not yet evidenced <span class="t-count">{{ missing().length }}</span>
-            </h3>
-            <div class="desc">
-              What this posting asks for that your resume cannot currently prove.
-            </div>
-            @if (missing().length === 0) {
-              <div class="state-note">
-                <span class="icon">check_circle</span>Every listed requirement is covered.
-              </div>
-            } @else {
-              <div class="t-pills">
-                @for (s of missing(); track s) {
-                  <span class="t-pill">{{ s }}</span>
-                }
-              </div>
-              @if (missingButHeld().length) {
-                <div class="t-hint">
-                  <span class="icon">toggle_on</span>
-                  <div>
-                    You already have <b>{{ missingButHeld().join(', ') }}</b> verified but switched
-                    off. Turn it on in <b>Build content</b> and this posting is better covered
-                    immediately.
-                  </div>
-                </div>
-              }
-            }
-          </div>
-        </div>
       }
+
+      <div class="card tailored">
+        <h3 class="tailored-title">
+          @if (role(); as r) {
+            Tailored for {{ r }}
+          } @else {
+            Tailored for your target role
+          }
+        </h3>
+        <div class="tailored-lede">
+          Guidance below reflects your current verified skills — nothing here overstates your
+          eligibility.
+        </div>
+
+        @if (!goalSvc.selectedJob()) {
+          <div class="state-note">
+            <span class="icon">info</span>
+            Choose a posting in <b>Selected opportunity</b> above to see which of its requirements
+            you can already evidence.
+          </div>
+        } @else if (missing().length) {
+          <div class="block block--risk">
+            <div class="block-title">Still missing for this role</div>
+            @for (ms of missing(); track ms.name) {
+              <div class="block-row">
+                <span>{{ ms.name }}</span>
+                <span class="block-status">{{ ms.status }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="state-note">
+            <span class="icon">check_circle</span>
+            Every requirement this posting lists is covered by a verified, included skill.
+          </div>
+        }
+
+        @if (missingEssentials().length) {
+          <div class="block block--tint">
+            <div class="block-title">Missing essentials</div>
+            @for (me of missingEssentials(); track me) {
+              <div class="block-line">• {{ me }}</div>
+            }
+          </div>
+        }
+      </div>
     </div>
   </section>
 </div>

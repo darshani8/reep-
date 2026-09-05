@@ -311,6 +311,11 @@ def overview(
         "next_actions": next_actions(session, db),
         "placement_readiness": placement_readiness(session, db),
         "recommendations": recommendations(session, db),
+        # The landing's Academic History block (10th / 12th / UG cards and the
+        # declared education gaps). Same reasoning as the ten above: the landing
+        # already needs this document, and a separate GET per view is the
+        # volley this endpoint exists to avoid.
+        "academics": my_academics(session, db),
     }
 
 
@@ -1124,6 +1129,9 @@ class ResumeOut(BaseModel):
     status: str
     generated_by: str
     model: str | None
+    # When this version was composed — the "Updated …" line on the Export &
+    # share step's version list. Additive; nothing else reads it.
+    created_at: datetime | None = None
 
 
 @router.get("/resume", response_model=list[ResumeOut])
@@ -1142,6 +1150,7 @@ def list_resumes(
             status=r.status.value,
             generated_by=r.generated_by,
             model=r.model,
+            created_at=r.created_at,
         )
         for r in rows
     ]

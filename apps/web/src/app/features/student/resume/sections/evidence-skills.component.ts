@@ -39,8 +39,7 @@ import { ResumeEvidenceService, type EvidenceStatus } from '../resume-evidence.s
       } @else if (ev.rows()!.length === 0) {
         <div class="state-note">
           <span class="icon">info</span>
-          No skills yet. Claim one with a certificate on the Skilling screen and it will appear here
-          once your mentor verifies it.
+          No evidence-backed skills yet — verify one in Skilling first.
         </div>
       } @else {
         @for (r of ev.rows()!; track r.slug) {
@@ -64,10 +63,15 @@ import { ResumeEvidenceService, type EvidenceStatus } from '../resume-evidence.s
               </div>
             </div>
             @if (r.includable) {
-              <label class="ev-toggle">
-                <input type="checkbox" [checked]="r.included" (change)="ev.toggle(r.slug)" />
-                {{ r.included ? 'Included' : 'Include' }}
-              </label>
+              <button
+                type="button"
+                class="ev-include"
+                [class.ev-include--on]="r.included"
+                [attr.aria-pressed]="r.included"
+                (click)="ev.toggle(r.slug)"
+              >
+                {{ r.included ? 'Included ✓' : 'Include' }}
+              </button>
             } @else {
               <span class="ev-locked" title="Only a mentor-verified skill can go on the resume">
                 <span class="icon">lock</span>

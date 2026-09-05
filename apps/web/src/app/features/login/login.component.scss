@@ -1,390 +1,513 @@
-/* Sign in — measurements are the MUI original: 8px spacing unit, lg 1200px,
-   sm 600px. Colours are ported tokens only; nothing is hard-coded.
-
-   The email/password field styles that used to live here are gone with the
-   form. Sign-in is Google only, so this file now dresses exactly three things:
-   the brand panel, one button, and the two ways sign-in can refuse. */
+/*
+ * The sign-in screen, to the design's login frame: a deep-purple brand panel on
+ * the left and a white card on the right. It sits OUTSIDE the shell, so it uses
+ * the global tokens directly (defined once in styles/reep-v2.scss) and owns its
+ * own layout classes here. Nothing in this file redefines a global class.
+ */
 
 :host {
   display: block;
+  min-height: 100vh;
 }
 
 .login {
-  min-height: 100dvh;
+  min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: stretch;
+  background: var(--page-bg, #f6f1fb);
 }
 
-/* --- compact brand strip (below lg) ------------------------------------- */
-.brand-strip {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 24px;
-  background-color: var(--reep-primary-main);
-  color: var(--reep-primary-contrast);
-}
-.brand-strip__name {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-.brand-strip__reep {
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-.brand-strip__sub {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  opacity: 0.72;
-}
-.brand-strip__tag {
-  display: none;
-  font-size: 0.75rem;
-  opacity: 0.72;
-}
+/* ---- brand panel ------------------------------------------------------- */
 
-.login__row {
-  flex: 1;
-  display: flex;
-}
-
-/* --- brand panel (lg and up) -------------------------------------------- */
 .panel {
-  display: none;
+  flex: 1 1 460px;
+  min-width: 320px;
+  background: linear-gradient(160deg, #3a1f52, var(--brand-purple, #552c7e) 45%, #7a2f9e 88%);
+  color: #fff;
+  padding: clamp(32px, 5vw, 64px);
+  display: flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 44%;
-  max-width: 620px;
-  padding: 56px;
-  background-color: var(--reep-primary-main);
-  color: var(--reep-primary-contrast);
-}
-.panel__reep {
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-.panel__sub {
-  margin-top: 4px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  opacity: 0.7;
-}
-.panel__pitch {
-  max-width: 420px;
-}
-.panel__headline {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-.panel__body {
-  margin: 16px 0 0;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  opacity: 0.78;
-}
-.panel__foot {
-  font-size: 0.75rem;
-  line-height: 1.5;
-  opacity: 0.55;
+  gap: 32px;
 }
 
-/* --- sign in ------------------------------------------------------------- */
-.signin {
-  flex: 1;
+.panel__brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.panel__logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 24px;
-  background-color: var(--reep-bg-default);
-}
-.signin__inner {
-  width: 100%;
-  max-width: 400px;
-}
-.reep-h1 {
-  margin: 0;
-  color: var(--reep-text-primary);
-}
-.signin__subtitle {
-  margin: 4px 0 0;
-  color: var(--reep-text-secondary);
+  flex-shrink: 0;
+  font-size: 23px;
 }
 
-/* --- alerts ---------------------------------------------------------------
-   A refusal is never colour alone: icon + heading + explanation together, so
-   it reads the same in greyscale and to a screen reader. */
+.panel__reep {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.panel__sub {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.68);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.panel__headline {
+  font-size: clamp(26px, 3.4vw, 38px);
+  font-weight: 800;
+  line-height: 1.18;
+  margin: clamp(32px, 6vh, 56px) 0 0;
+  letter-spacing: -0.02em;
+  text-wrap: pretty;
+  max-width: 22ch;
+}
+
+.panel__body {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.6;
+  margin: 14px 0 0;
+  max-width: 40ch;
+}
+
+.panel__points {
+  list-style: none;
+  padding: 0;
+  margin: clamp(28px, 5vh, 44px) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13.5px;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .icon {
+    font-size: 19px;
+    color: #e9c9f5;
+    flex-shrink: 0;
+  }
+}
+
+.panel__foot {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ---- sign-in card ------------------------------------------------------ */
+
+.signin {
+  flex: 1 1 480px;
+  min-width: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 4vw, 56px);
+}
+
+.card-login {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--hairline, rgba(160, 138, 178, 0.35));
+  border-radius: 24px;
+  padding: clamp(24px, 3vw, 34px);
+  box-shadow: 0 20px 50px rgba(58, 31, 82, 0.16);
+}
+
+.card-login__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink, #1e1b29);
+
+  .icon {
+    font-size: 19px;
+    color: #7a2f9e;
+  }
+}
+
+.card-login__title {
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--ink, #1e1b29);
+}
+
+.card-login__sub {
+  font-size: 13.5px;
+  color: var(--muted, #585566);
+  margin: 5px 0 20px;
+}
+
+.portal-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted, #585566);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 9px;
+}
+
+.portals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 22px;
+}
+
+.portal {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  padding: 13px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  font: inherit;
+  border: 1.5px solid rgba(160, 138, 178, 0.35);
+  background: #fff;
+  color: var(--ink, #1e1b29);
+
+  .icon {
+    font-size: 22px;
+    color: #7a2f9e;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #7a2f9e;
+    outline-offset: 2px;
+  }
+}
+
+.portal__label {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.portal__desc {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted, #585566);
+}
+
+.portal--on {
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--brand-purple, #552c7e), #7a2f9e 45%, var(--brand-magenta, #ba2185));
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(85, 44, 126, 0.35);
+
+  .icon,
+  .portal__desc {
+    color: rgba(255, 255, 255, 0.88);
+  }
+}
+
+/* ---- alerts ------------------------------------------------------------ */
+
 .alert {
-  margin-top: 20px;
-  border-radius: 8px;
-  border: 1px solid var(--reep-divider);
-  background-color: var(--reep-action-hover);
-  padding: 12px 14px;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  line-height: 1.5;
-}
-.alert__icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.alert__text {
-  margin: 0;
-  font-weight: 500;
-}
-.alert__meta {
-  margin: 4px 0 0;
-  font-size: 0.8125rem;
-  color: var(--reep-text-secondary);
-}
-.alert--error {
-  color: var(--reep-error-main);
-  border-color: var(--reep-error-main);
-}
-.alert--warn {
-  color: var(--reep-warning-main);
-  border-color: var(--reep-warning-main);
+  gap: 8px;
+  border-radius: 12px;
+  padding: 11px 13px;
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  line-height: 1.4;
+
+  .icon {
+    font-size: 17px;
+    flex-shrink: 0;
+  }
 }
 
-/* --- buttons ------------------------------------------------------------- */
-.btn {
-  display: inline-flex;
+.alert--error {
+  background: var(--risk-bg, rgba(173, 36, 82, 0.09));
+  color: var(--risk, #ad2452);
+}
+
+/* ---- Google ------------------------------------------------------------ */
+
+.google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px;
+  border-radius: 999px;
+  border: 1.5px solid var(--hairline-42, rgba(160, 138, 178, 0.42));
+  background: #fff;
+  color: var(--ink, #1e1b29);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
+
+  &:hover {
+    background: #faf6fd;
+    border-color: rgba(122, 47, 158, 0.4);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #7a2f9e;
+    outline-offset: 2px;
+  }
+
+  &[disabled],
+  &.google--pending {
+    opacity: 0.6;
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+.google__sub {
+  text-align: center;
+  font-size: 11px;
+  color: #a596b3;
+  margin: 6px 0 0;
+}
+
+/* ---- divider ----------------------------------------------------------- */
+
+.or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  font-size: 11.5px;
+  color: #a596b3;
+  white-space: nowrap;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(160, 138, 178, 0.3);
+  }
+}
+
+/* ---- form -------------------------------------------------------------- */
+
+.field {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.field__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted, #585566);
+  margin-bottom: 6px;
+}
+
+.field__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--hairline-45, rgba(160, 138, 178, 0.45));
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink, #1e1b29);
+
+  &:focus {
+    outline: none;
+    border-color: #7a2f9e;
+    box-shadow: 0 0 0 3px rgba(122, 47, 158, 0.15);
+  }
+}
+
+.field__input--err {
+  border-color: var(--risk, #ad2452);
+}
+
+.field__pw {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .field__input {
+    padding-right: 44px;
+  }
+}
+
+.field__eye {
+  position: absolute;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--muted, #585566);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+
+  &:hover {
+    background: rgba(122, 47, 158, 0.1);
+    color: #7a2f9e;
+  }
+}
+
+.field__err {
+  font-size: 11.5px;
+  color: var(--risk, #ad2452);
+  margin: 0 0 8px;
+}
+
+.field__help {
+  font-size: 11.5px;
+  color: #a596b3;
+  margin: 0 0 16px;
+
+  &.centered {
+    text-align: center;
+    margin-bottom: 0;
+  }
+}
+
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 20px;
+  flex-wrap: wrap;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink, #1e1b29);
+  cursor: pointer;
+
+  input {
+    width: 15px;
+    height: 15px;
+    accent-color: #7a2f9e;
+    margin: 0;
+  }
+}
+
+.linkish {
+  border: none;
+  background: none;
+  color: #7a2f9e;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.note {
+  font-size: 12px;
+  color: var(--muted, #585566);
+  background: #faf6fd;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 13px;
+  border-radius: 999px;
+  border: 1px solid var(--brand-purple, #552c7e);
+  background: linear-gradient(120deg, var(--brand-purple, #552c7e), #7a2f9e 55%, var(--brand-magenta, #ba2185));
+  color: #fff;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-family: var(--reep-font-stack);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  border: none;
-  border-radius: 7px;
-  padding-inline: 16px;
-  cursor: pointer;
+
+  &:hover {
+    box-shadow: 0 12px 26px rgba(85, 44, 126, 0.45);
+  }
+
+  &[disabled] {
+    opacity: 0.7;
+    cursor: default;
+  }
 }
-.btn:disabled {
-  opacity: 0.6;
-  cursor: default;
+
+.help-foot {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted, #585566);
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(160, 138, 178, 0.25);
+
+  a {
+    color: #7a2f9e;
+    font-weight: 700;
+  }
 }
+
+/* ---- spinner ----------------------------------------------------------- */
+
 .spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  animation: reep-spin 0.7s linear infinite;
+  border: 2px solid rgba(122, 47, 158, 0.25);
+  border-top-color: #7a2f9e;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
 }
-@keyframes reep-spin {
+
+.spinner--light {
+  border-color: rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+}
+
+@keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation: none;
-  }
-}
-
-/* --- the one sign-in control ---------------------------------------------
-   Declared AFTER .btn on purpose. Both selectors carry the same emulated
-   encapsulation attribute, so equal specificity is broken by source order —
-   which is what lets these borders survive `.btn { border: none }`. The old
-   shared `.btn--outlined` global lost that fight and rendered borderless. */
-.sso {
-  margin-top: 24px;
-}
-.sso__btn {
-  width: 100%;
-  min-height: 46px;
-  text-decoration: none;
-  border: 1px solid var(--reep-divider);
-  background-color: var(--reep-bg-paper);
-  color: var(--reep-text-primary);
-  box-sizing: border-box;
-}
-.sso__btn:hover {
-  background-color: var(--reep-action-hover);
-  border-color: var(--reep-text-secondary);
-}
-.sso__btn:focus-visible {
-  outline: 2px solid var(--reep-secondary-main);
-  outline-offset: 2px;
-}
-/* An <a> cannot be [disabled]; while the browser is on its way to Google the
-   control is inert and says so, and a second click cannot start a second
-   flow (which would mint a second state and invalidate the first). */
-.sso__btn--pending {
-  pointer-events: none;
-  opacity: 0.7;
-}
-.sso__btn[disabled] {
-  color: var(--reep-text-disabled);
-  background-color: transparent;
-}
-
-/* --- role entry descriptions --------------------------------------------- */
-.role-entry {
-  display: grid;
-  gap: 8px;
-  margin-top: 20px;
-}
-.role-entry div {
-  display: grid;
-  gap: 3px;
-  padding: 10px 12px;
-  border: 1px solid var(--reep-divider);
-  border-radius: 7px;
-  background: var(--reep-bg-paper);
-}
-.role-entry span {
-  color: var(--reep-text-secondary);
-  font-size: 0.75rem;
-}
-
-/* --- who can sign in ------------------------------------------------------ */
-.who {
-  margin-top: 28px;
-  background-color: var(--reep-bg-paper);
-  border-radius: 8px;
-  padding: 20px;
-}
-.who h2 {
-  margin: 0;
-  color: var(--reep-text-primary);
-}
-.who__body {
-  margin: 6px 0 0;
-  color: var(--reep-text-secondary);
-}
-.who__list {
-  margin: 10px 0 0;
-  padding-left: 18px;
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  color: var(--reep-text-secondary);
-}
-.who__list li + li {
-  margin-top: 4px;
-}
-.who__code {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background-color: var(--reep-bg-default);
-  font-weight: 600;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.85em;
-}
-
-/* --- tech note ----------------------------------------------------------- */
-.technote {
-  margin: 24px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--reep-divider);
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--reep-text-disabled);
-}
-.technote code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.92em;
-}
-
-/* --- email + password (only rendered when the server offers it) ----------- */
-/* Uses the --reep-* tokens the rest of this file does. This screen sits
-   OUTSIDE the app shell and never adopted the reep-v2 component classes, so
-   reaching for .card/.dt-table here would style against a system this page
-   does not load. */
-.or {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 24px 0;
-  color: var(--reep-text-disabled);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.or::before,
-.or::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background-color: var(--reep-divider);
-}
-
-.pw {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.pw__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.pw__label {
-  font-size: 0.8125rem;
-  color: var(--reep-text-secondary);
-}
-.pw__input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid var(--reep-divider);
-  border-radius: 8px;
-  background-color: var(--reep-bg-paper);
-  color: var(--reep-text-primary);
-  font-family: var(--reep-font-stack);
-  font-size: 0.9375rem;
-}
-.pw__input:focus {
-  outline: 2px solid var(--reep-primary-main);
-  outline-offset: 1px;
-  border-color: var(--reep-primary-main);
-}
-.pw__btn {
-  justify-content: center;
-  background-color: var(--reep-primary-main);
-  color: var(--reep-primary-contrast);
-  border: 1px solid transparent;
-}
-.pw__btn[disabled] {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-.pw__note {
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--reep-text-disabled);
-}
-
-/* --- breakpoints (MUI lg 1200, sm 600) ----------------------------------- */
-@media (min-width: 600px) {
-  .brand-strip {
-    padding: 16px 32px;
-  }
-  .brand-strip__tag {
-    display: block;
-  }
-  .signin {
-    padding: 64px 40px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .brand-strip {
-    display: none;
-  }
-  .panel {
-    display: flex;
   }
 }

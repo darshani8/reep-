@@ -22,10 +22,54 @@
 .req-main {
   min-width: 0;
 }
+.req-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .req-top strong {
   font-size: 14px;
   font-weight: 800;
   color: var(--ink);
+}
+.req-kind {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.lv-lede {
+  max-width: 70ch;
+}
+.lv-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+.lv-back {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--hairline-42);
+  background: var(--surface);
+  color: var(--brand-purple);
+}
+
+/* The application date under the strike-off line, and the in-slot Sign. */
+.app-date {
+  font-size: 13px;
+  margin-top: 10px;
+}
+.app-date-val {
+  display: inline-block;
+  min-width: 140px;
+  border-bottom: 1px solid #999;
+  padding: 1px 3px;
+}
+.sig-btn {
+  padding: 8px 13px;
+  font-size: 12.5px;
+}
+.sig-btn .icon {
+  font-size: 15px;
 }
 .req-dates {
   color: var(--muted);

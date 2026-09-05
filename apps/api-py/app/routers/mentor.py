@@ -8,7 +8,7 @@ session) sees NOBODY — never the whole programme.
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -191,6 +191,34 @@ def add_note(
     db.commit()
     db.refresh(note)
     return _note_out(note)
+
+
+@router.delete("/students/{student_id}/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_note(
+    student_id: str,
+    note_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Remove a meeting note. The student's Mentor Meeting Log reads these, so
+    this is the mentor taking back words the student may already have seen —
+    which is why it is narrower than the write: rule 2's gate first, then the
+    note must belong to THIS student (a note id from another mentee is a 404,
+    not a cross-student delete), and a MENTOR may only remove a note they
+    authored. DIRECTOR/ADMIN may remove any note in the programme.
+    """
+    _assert_can_access_student(session, student_id, db)
+    note = db.get(MentorNote, note_id)
+    if note is None or note.student_id != student_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found.")
+    if session["role"] == "MENTOR" and note.mentor_id != session.get("mentorId"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the mentor who wrote a note can remove it.",
+        )
+    db.delete(note)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 class AlertOut(BaseModel):
@@ -523,9 +551,18 @@ class SkillClaimReviewOut(BaseModel):
     reviewed_at: datetime | None
     review_note: str | None
     created_at: datetime
+    # What the evidence behind the claim actually IS, read off the Upload row so
+    # the reviewer's card can name it before they open the file. All three are
+    # optional because a claim can outlive its upload (ondelete=CASCADE on the
+    # FK makes that unlikely, but a response model should not 500 on the case).
+    evidence_kind: str | None = None
+    evidence_title: str | None = None
+    evidence_file_name: str | None = None
 
 
-def _claim_out(sc: SkillClaim, student_name: str, skill_name: str) -> SkillClaimReviewOut:
+def _claim_out(
+    sc: SkillClaim, student_name: str, skill_name: str, upload: Upload | None = None
+) -> SkillClaimReviewOut:
     return SkillClaimReviewOut(
         id=sc.id,
         student_id=sc.student_id,
@@ -540,7 +577,33 @@ def _claim_out(sc: SkillClaim, student_name: str, skill_name: str) -> SkillClaim
         reviewed_at=sc.reviewed_at,
         review_note=sc.review_note,
         created_at=sc.created_at,
+        evidence_kind=upload.kind.value if upload is not None else None,
+        evidence_title=upload.title if upload is not None else None,
+        evidence_file_name=upload.original_name if upload is not None else None,
     )
+
+
+def _claim_query(session: dict):
+    """The claim rows a staff member may see, with the names the card needs.
+
+    Rule 2 applied IN SQL: a MENTOR is narrowed to their own group and a MENTOR
+    with no group gets a query that can match nothing (`None` here, `[]` at the
+    call sites). DIRECTOR/ADMIN read the whole programme. Shared by the pending
+    queue and the reviewed history so the two lists cannot disagree about scope.
+    """
+    query = (
+        select(SkillClaim, User.name, Skill.name, Upload)
+        .join(Student, SkillClaim.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+        .join(Skill, SkillClaim.skill_id == Skill.id)
+        .outerjoin(Upload, SkillClaim.upload_id == Upload.id)
+    )
+    if session["role"] == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            return None
+        query = query.where(Student.mentor_id == mentor_id)
+    return query
 
 
 @router.get("/skill-claims/pending", response_model=list[SkillClaimReviewOut])
@@ -549,20 +612,41 @@ def pending_skill_claims(
 ) -> list[SkillClaimReviewOut]:
     """Skill claims awaiting review, scoped to the mentor's group."""
     require_mentor(session)
-    query = (
-        select(SkillClaim, User.name, Skill.name)
-        .join(Student, SkillClaim.student_id == Student.id)
-        .join(User, Student.user_id == User.id)
-        .join(Skill, SkillClaim.skill_id == Skill.id)
-        .where(SkillClaim.status == UploadStatus.PENDING_REVIEW)
-    )
-    if session["role"] == "MENTOR":
-        mentor_id = session.get("mentorId")
-        if not mentor_id:
-            return []
-        query = query.where(Student.mentor_id == mentor_id)
-    rows = db.execute(query.order_by(SkillClaim.created_at)).all()
-    return [_claim_out(sc, sname, skname) for sc, sname, skname in rows]
+    query = _claim_query(session)
+    if query is None:
+        return []
+    rows = db.execute(
+        query.where(SkillClaim.status == UploadStatus.PENDING_REVIEW).order_by(
+            SkillClaim.created_at
+        )
+    ).all()
+    return [_claim_out(sc, sname, skname, up) for sc, sname, skname, up in rows]
+
+
+@router.get("/skill-claims/reviewed", response_model=list[SkillClaimReviewOut])
+def reviewed_skill_claims(
+    limit: int = Query(default=10, ge=1, le=50),
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[SkillClaimReviewOut]:
+    """The queue's "Recently reviewed" strip: claims already decided, newest
+    decision first, under the SAME scope as the pending list.
+
+    A decision that vanishes from the screen the moment it is made is a decision
+    the mentor cannot check they made correctly. This is read-only and carries
+    the review note, so the strip shows the outcome AND the words the student
+    was given — the two things a mentor asks "did I really say that?" about.
+    """
+    require_mentor(session)
+    query = _claim_query(session)
+    if query is None:
+        return []
+    rows = db.execute(
+        query.where(SkillClaim.status != UploadStatus.PENDING_REVIEW)
+        .order_by(SkillClaim.reviewed_at.desc().nullslast(), SkillClaim.created_at.desc())
+        .limit(limit)
+    ).all()
+    return [_claim_out(sc, sname, skname, up) for sc, sname, skname, up in rows]
 
 
 @router.get("/uploads/{upload_id}/file")
@@ -683,4 +767,4 @@ def review_skill_claim(
         select(User.name).join(Student, Student.user_id == User.id).where(Student.id == sc.student_id)
     )
     skname = db.scalar(select(Skill.name).where(Skill.id == sc.skill_id))
-    return _claim_out(sc, sname or "", skname or "")
+    return _claim_out(sc, sname or "", skname or "", db.get(Upload, sc.upload_id))

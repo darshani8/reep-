@@ -1,14 +1,13 @@
-import { Routes, Route } from '@angular/router';
+import { Routes } from '@angular/router';
 
 import { AppShellComponent } from './layout/app-shell.component';
 import { authGuard, homeRedirectGuard, roleGuard } from './core/auth.guard';
 
 /**
  * Every nav destination in the shell needs a route, or clicking it goes nowhere
- * and navigation reads as broken. Built screens map to their component; the rest
- * map to a labelled PlaceholderComponent so each link navigates and highlights.
- * Migrating a screen is then a one-line swap: replace `placeholder(...)` with a
- * real `loadComponent`.
+ * and navigation reads as broken. Every route here is a built screen from the
+ * design (docs/design-v4/reep-app-standalone.html); there are no placeholders
+ * left to fill.
  *
  * ROUTES ARE LAZY (`loadComponent`, not `component`). A static `import` at the
  * top of this file pulls the component into the initial bundle no matter which
@@ -22,14 +21,6 @@ import { authGuard, homeRedirectGuard, roleGuard } from './core/auth.guard';
  * here means adding a `loadComponent` — a plain `component:` reference silently
  * un-splits the bundle again and only shows up as a budget failure later.
  */
-function placeholder(path: string, title: string): Route {
-  return {
-    path,
-    loadComponent: () =>
-      import('./features/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-    data: { title },
-  };
-}
 
 export const routes: Routes = [
   {
@@ -52,29 +43,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/student/home/home.component').then((m) => m.StudentHomeComponent),
       },
-      // The previous, much larger overview screen. Still routed rather than
-      // deleted: the v2 landing is a programme map, and everything the old
-      // screen showed (SWOC, attendance, VTU marks, readiness, recommendations)
-      // is real and still reachable while those blocks find their own homes.
-      {
-        path: 'student/overview',
-        loadComponent: () =>
-          import('./features/student/overview/student-overview.component').then(
-            (m) => m.StudentOverviewComponent,
-          ),
-      },
       {
         path: 'student/certifications',
         loadComponent: () =>
           import('./features/student/certifications/certifications.component').then(
             (m) => m.CertificationsComponent,
-          ),
-      },
-      {
-        path: 'student/academics',
-        loadComponent: () =>
-          import('./features/student/academics/academics.component').then(
-            (m) => m.AcademicsComponent,
           ),
       },
       {
@@ -103,11 +76,6 @@ export const routes: Routes = [
           import('./features/student/records/records.component').then((m) => m.RecordsComponent),
       },
       {
-        path: 'student/badges',
-        loadComponent: () =>
-          import('./features/student/badges/badges.component').then((m) => m.BadgesComponent),
-      },
-      {
         path: 'student/leaderboards',
         loadComponent: () =>
           import('./features/student/leaderboards/leaderboards.component').then(
@@ -131,14 +99,19 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/student/jobs/jobs.component').then((m) => m.JobsComponent),
       },
+      // The REEP Agent — the design's Knowledge-Base chat, one component for
+      // every role (three routes, ONE dynamic import, so the bundler emits a
+      // single chunk they all reuse). It answers on programme rules and never
+      // sees a student's record; the orb's "Type instead" lands here.
       {
-        path: 'student/offers',
+        path: 'student/agent',
         loadComponent: () =>
-          import('./features/student/offers/offers.component').then((m) => m.OffersComponent),
+          import('./features/agent/agent.component').then((m) => m.AgentComponent),
       },
-      // The three assistant routes share one dynamic import, so the bundler emits
-      // a SINGLE chunk that all three reuse — a student who has already opened the
-      // assistant does not re-download it under another role's path.
+      // The mock interviewer. NOT in the design's sidebar: it is the Elevate
+      // stage's "Mock Interview" module on the landing (app/models/milestone.py
+      // routes it here), and it stays because it is a working, deployed
+      // feature the placement office asked to keep — see AGENTS.md.
       {
         path: 'student/assistant',
         loadComponent: () =>
@@ -193,7 +166,6 @@ export const routes: Routes = [
             (m) => m.MentorNotebookComponent,
           ),
       },
-      placeholder('mentor/student', 'Students'),
       {
         path: 'mentor/mentees',
         loadComponent: () =>
@@ -211,17 +183,6 @@ export const routes: Routes = [
             (m) => m.MentorVerificationsComponent,
           ),
       },
-      // Badge Centre came out of the mentor navigation — the handoff replaced it
-      // with the verification queue above, which reviews the same evidence in
-      // terms of the claim it backs. The route stays so an existing link still
-      // resolves rather than falling through to the ** redirect.
-      {
-        path: 'mentor/badge-centre',
-        loadComponent: () =>
-          import('./features/mentor/badge-centre/badge-centre.component').then(
-            (m) => m.BadgeCentreComponent,
-          ),
-      },
       {
         path: 'mentor/upskilling',
         loadComponent: () =>
@@ -229,20 +190,19 @@ export const routes: Routes = [
             (m) => m.UpskillingComponent,
           ),
       },
-      placeholder('mentor/alerts', 'Alerts'),
-      placeholder('mentor/uploads', 'Verifications'),
-      placeholder('mentor/reports', 'Reports'),
       {
         path: 'mentor/leave',
         loadComponent: () =>
           import('./features/mentor/leave/leave.component').then((m) => m.LeaveComponent),
       },
       {
-        path: 'mentor/assistant',
+        path: 'mentor/agent',
         loadComponent: () =>
-          import('./features/assistant/assistant.component').then((m) => m.AssistantComponent),
+          import('./features/agent/agent.component').then((m) => m.AgentComponent),
       },
-      placeholder('mentor/settings', 'Thresholds'),
+      // The old staff path pointed at the interviewer, a student feature (the
+      // socket refuses non-students with 1008). Kept as a redirect.
+      { path: 'mentor/assistant', redirectTo: 'mentor/agent' },
 
       // --- admin (the DIRECTOR/ADMIN roles; the UI calls it Admin) ---
       {
@@ -307,10 +267,11 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'director/assistant',
+        path: 'director/agent',
         loadComponent: () =>
-          import('./features/assistant/assistant.component').then((m) => m.AssistantComponent),
+          import('./features/agent/agent.component').then((m) => m.AgentComponent),
       },
+      { path: 'director/assistant', redirectTo: 'director/agent' },
       {
         path: 'director/exports',
         canActivate: [roleGuard('DIRECTOR', 'ADMIN')],

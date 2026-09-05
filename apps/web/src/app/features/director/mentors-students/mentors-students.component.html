@@ -1,10 +1,17 @@
 <div class="panel" data-p="mentors-students">
   <div class="dt-header">
     <div>
-      <div class="eyebrow">Admin · assignment</div>
-      <div class="dt-title">Mentors &amp; Students</div>
+      <div class="dt-title">Mentors &amp; students</div>
       <div class="dt-sub">
-        Pick a mentor, then move students between their roster and the unassigned pool.
+        Pick a mentor, then add or remove their students.
+        @if (pool() !== null) {
+          @if (unassignedCount() > 0) {
+            {{ unassignedCount() }} student{{ unassignedCount() === 1 ? ' has' : 's have' }} no
+            mentor and cannot be reviewed until they do.
+          } @else {
+            Every student has a mentor.
+          }
+        }
       </div>
     </div>
   </div>
@@ -12,119 +19,111 @@
   @if (error()) {
     <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
   }
-  @if (lastAction()) {
-    <div class="decided"><span class="icon">check_circle</span>{{ lastAction() }}</div>
-  }
 
   @if (mentors() === null) {
     <div class="state-note"><span class="icon">hourglass_empty</span>Loading…</div>
   } @else if (mentors()!.length === 0) {
-    <div class="card">No mentors on the roster yet.</div>
+    <div class="card">No mentors on the roster yet, so there is nobody to assign students to.</div>
   } @else {
     <div class="assign-grid">
-      <!-- Mentors -->
-      <div class="card list-card">
-        <h3>Mentors</h3>
-        <div class="mentor-list">
-          @for (m of mentors()!; track m.mentor_id) {
-            <button
-              type="button"
-              class="mentor-row"
-              [class.active]="selectedMentor() === m.mentor_id"
-              (click)="pick(m.mentor_id)"
-            >
-              <span class="mentor-name">{{ m.name }}</span>
-              <span class="mentor-load">{{ m.mentee_count }}</span>
-            </button>
-          }
+      <!-- The mentor and their current mentees -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Mentor</div>
+          <select
+            class="ctrl mentor-select"
+            aria-label="Mentor"
+            [value]="selectedMentor()"
+            (change)="pick($any($event.target).value)"
+          >
+            @for (m of mentors()!; track m.mentor_id) {
+              <option [value]="m.mentor_id">{{ m.name }} · {{ freeOf(m) }}</option>
+            }
+          </select>
         </div>
-      </div>
 
-      <!-- Roster -->
-      <div class="card list-card">
-        <h3>
-          @if (current()) {
-            {{ current()!.name }}'s roster
-            <span class="count">{{ current()!.mentee_count }}</span>
-          } @else {
-            Roster
-          }
-        </h3>
-        @if (!current()) {
-          <div class="state-note"><span class="icon">info</span>Pick a mentor on the left.</div>
-        } @else if (current()!.mentees.length === 0) {
-          <div class="state-note">
-            <span class="icon">info</span>No students assigned to this mentor yet.
-          </div>
-        } @else {
-          @for (s of current()!.mentees; track s.student_id) {
-            <div class="student-row">
-              <div class="student-main">
-                <div class="student-name">{{ s.name }}</div>
-                <div class="student-meta">
-                  {{ s.usn || 'No USN' }}
-                  @if (s.stage) {
-                    · {{ s.stage }}
-                  }
-                </div>
-              </div>
-              <button
-                type="button"
-                class="btn ghost"
-                [disabled]="busy()"
-                (click)="release(s)"
-                title="Move back to the unassigned pool"
-              >
-                <span class="icon">person_remove</span> Release
-              </button>
+        @if (current(); as m) {
+          <div class="mentor-box">
+            <div class="mentor-name">{{ m.name }}</div>
+            <div class="mentor-focus">{{ focus(m) }}</div>
+            <div class="mentor-chips">
+              <span class="chip">{{ m.mentee_count }} of {{ m.capacity }} places used</span>
+              @if (atCapacity()) {
+                <span class="chip risk">At capacity</span>
+              } @else {
+                <span class="chip good">{{ free() }} free</span>
+              }
             </div>
-          }
+          </div>
+
+          <div class="list-lbl">Current mentees · {{ m.mentee_count }}</div>
+          <div class="list">
+            @for (s of m.mentees; track s.student_id) {
+              <div class="row">
+                <span class="row-name">{{ s.name }}</span>
+                <span class="row-meta">{{ meta(s) }}</span>
+                <button
+                  type="button"
+                  class="rm-btn"
+                  title="Remove from this mentor"
+                  [attr.aria-label]="'Remove ' + s.name + ' from this mentor'"
+                  [disabled]="busy()"
+                  (click)="release(s)"
+                >
+                  <span class="icon">person_remove</span>
+                </button>
+              </div>
+            } @empty {
+              <div class="list-empty">No mentees yet — add students from the pool.</div>
+            }
+          </div>
         }
       </div>
 
-      <!-- Pool -->
-      <div class="card list-card">
-        <h3>
-          Unassigned
-          <span class="count">{{ (pool() ?? []).length }}</span>
-        </h3>
-        @if ((pool() ?? []).length === 0) {
-          <div class="state-note">
-            <span class="icon">task_alt</span>Every student has a mentor.
-          </div>
-        } @else {
-          @for (s of pool()!; track s.student_id) {
-            <label class="student-row student-row--pick">
+      <!-- The pool -->
+      <div class="card">
+        <div class="card-head baseline">
+          <div class="card-title">Student pool</div>
+          @if (unassignedCount() > 0) {
+            <span class="pool-count">{{ unassignedCount() }} without a mentor</span>
+          }
+        </div>
+        <div class="list pool-list">
+          @for (s of pool() ?? []; track s.student_id) {
+            <label class="row row--pick">
               <input
                 type="checkbox"
                 [checked]="isChecked(s.student_id)"
                 (change)="toggleCheck(s.student_id)"
               />
-              <div class="student-main">
-                <div class="student-name">{{ s.name }}</div>
-                <div class="student-meta">
-                  {{ s.usn || 'No USN' }}
-                  @if (s.stage) {
-                    · {{ s.stage }}
-                  }
-                </div>
-              </div>
+              <span class="row-name">{{ s.name }}</span>
+              <span class="row-meta">{{ meta(s) }}</span>
             </label>
+          } @empty {
+            <div class="list-empty good">Every student has a mentor.</div>
           }
-          <div class="pool-actions">
-            <button
-              type="button"
-              class="btn primary"
-              [disabled]="!current() || checkedCount() === 0 || busy()"
-              (click)="assignChecked()"
-            >
-              <span class="icon">person_add</span>
-              @if (current()) {
-                Assign {{ checkedCount() }} to {{ current()!.name }}
-              } @else {
-                Pick a mentor first
-              }
-            </button>
+        </div>
+        <div class="pool-foot">
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="!current() || checkedCount() === 0 || busy()"
+            (click)="assignChecked()"
+          >
+            <span class="icon">person_add</span>
+            @if (checkedCount()) {
+              Add {{ checkedCount() }} to this mentor
+            } @else {
+              Add to this mentor
+            }
+          </button>
+          @if (current(); as m) {
+            <span class="goes-to">Goes to {{ m.name }}</span>
+          }
+        </div>
+        @if (flash()) {
+          <div class="flash">
+            <span class="chip good"><span class="icon">check_circle</span> {{ flash() }}</span>
           </div>
         }
       </div>

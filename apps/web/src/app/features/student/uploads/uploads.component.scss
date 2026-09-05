@@ -1,14 +1,17 @@
 /* Screen-specific tweaks only. Layout primitives (.card, .dropzone, .chip,
    .dt-btn, .dt-header) come from the global reep-v2.scss and are not redefined
    — these rules only add the uploads flow (stepper, checklist, dropzone states,
-   preview, document cards) and a local `neutral` chip tone. */
+   preview, document cards) at the handoff's sizes and tones. */
 
 :host {
   display: block;
 }
 
-/* --- 1. stepper ---------------------------------------------------------- */
-.stepper {
+/* --- 1. stepper ----------------------------------------------------------
+   Prefixed `up-`: `.stepper` and `.step-*` are GLOBAL names owned by the resume
+   builder (reep-v2-resume.scss), where they draw a vertical section list. A
+   bare `.stepper` here inherited that box and stacked the three steps. */
+.up-stepper {
   list-style: none;
   display: flex;
   align-items: center;
@@ -17,15 +20,15 @@
   padding: 0;
   flex-wrap: wrap;
 }
-.step {
+.up-step {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   color: var(--faint);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
 }
-.step:not(:last-child)::after {
+.up-step:not(:last-child)::after {
   content: '';
   width: clamp(18px, 4vw, 48px);
   height: 2px;
@@ -33,36 +36,36 @@
   background: var(--hairline);
   margin-left: 4px;
 }
-.step__num {
+.up-step__num {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--ground);
+  background: var(--tint-1);
   border: 1px solid var(--hairline);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--muted);
 }
-.step__num .icon {
-  font-size: 15px;
+.up-step__num .icon {
+  font-size: 16px;
 }
-.step.active {
+.up-step.active {
   color: var(--ink);
 }
-.step.active .step__num {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--tint-3);
+.up-step.active .up-step__num {
+  background: var(--primary-gradient);
+  border-color: rgba(255, 255, 255, 0.9);
+  color: var(--tint-2);
 }
-.step.done {
+.up-step.done {
   color: var(--good);
 }
-.step.done .step__num {
-  background: rgba(92, 122, 58, 0.14);
-  border-color: rgba(92, 122, 58, 0.4);
+.up-step.done .up-step__num {
+  background: rgba(19, 122, 74, 0.14);
+  border-color: rgba(19, 122, 74, 0.4);
   color: var(--good);
 }
 
@@ -74,9 +77,11 @@
   margin-bottom: 12px;
 }
 .checklist__head h4 {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   margin: 0;
+  padding: 0;
+  border: 0;
 }
 .checklist__items {
   list-style: none;
@@ -91,17 +96,17 @@
   align-items: flex-start;
   gap: 10px;
   padding: 11px 12px;
-  border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border: 1px solid var(--hairline-42);
+  border-radius: 16px;
   background: var(--surface);
 }
 .ck--done {
-  background: rgba(92, 122, 58, 0.07);
-  border-color: rgba(92, 122, 58, 0.28);
+  background: rgba(19, 122, 74, 0.07);
+  border-color: rgba(19, 122, 74, 0.28);
 }
 .ck__mark .icon {
-  font-size: 20px;
-  color: var(--faint);
+  font-size: 21px;
+  color: var(--muted);
 }
 .ck__mark.good .icon {
   color: var(--good);
@@ -114,15 +119,15 @@
 }
 .ck__label {
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 .ck__hint {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .checklist__prompt {
   margin: 12px 0 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--warn);
   font-weight: 600;
 }
@@ -137,7 +142,7 @@
   margin-bottom: 12px;
 }
 .dz-kind {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--muted);
   display: inline-flex;
@@ -146,10 +151,10 @@
 }
 .dz-kind select {
   font-family: var(--font);
-  font-size: 12.5px;
+  font-size: 13px;
   padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hairline-42);
   background: var(--surface);
   color: var(--ink);
 }
@@ -157,11 +162,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 .up-accepts .icon {
-  font-size: 16px;
+  font-size: 17px;
   color: var(--purple-mid);
 }
 .up-accepts strong {
@@ -184,16 +189,17 @@
 }
 .dz__title {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
 }
 .dz__hint {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
+.dz:hover:not(:disabled),
 .dz--over {
-  border-color: var(--brand-magenta);
-  background: rgba(168, 117, 47, 0.08);
+  border-color: var(--warn);
+  background: rgba(143, 97, 0, 0.08);
 }
 .dz--busy {
   cursor: default;
@@ -216,17 +222,17 @@
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  border-radius: 10px;
+  border-radius: 16px;
   padding: 12px 14px;
   margin-top: 14px;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 .feedback--err {
-  background: rgba(139, 58, 46, 0.1);
+  background: var(--risk-bg);
   color: var(--risk);
 }
 .feedback--ok {
-  background: rgba(92, 122, 58, 0.1);
+  background: rgba(19, 122, 74, 0.1);
   color: var(--good);
 }
 .feedback .icon {
@@ -251,8 +257,9 @@
   color: var(--risk);
 }
 
-/* success preview thumbnail */
-.preview {
+/* success preview thumbnail. Prefixed: `.preview` is a global name (the
+   resume builder's preview pane) and inherits that pane's layout otherwise. */
+.up-preview {
   flex: 0 0 auto;
   width: 46px;
   height: 46px;
@@ -264,12 +271,12 @@
   align-items: center;
   justify-content: center;
 }
-.preview__img {
+.up-preview__img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.preview__icon {
+.up-preview__icon {
   font-size: 24px;
   color: var(--risk);
 }
@@ -277,6 +284,7 @@
 /* --- 4. document cards --------------------------------------------------- */
 .section-head {
   font-weight: 700;
+  font-size: 14px;
   color: var(--ink);
   margin: 4px 0 12px;
 }
@@ -289,9 +297,9 @@
 .up-card {
   display: flex;
   gap: 14px;
-  background: linear-gradient(180deg, var(--surface), var(--tint-3));
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-alert);
+  background: var(--card-gradient);
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-card);
   padding: 14px;
 }
 .up-card--busy {
@@ -301,10 +309,10 @@
   flex: 0 0 auto;
   width: 56px;
   height: 56px;
-  border-radius: 10px;
+  border-radius: 16px;
   overflow: hidden;
-  background: var(--ground);
-  border: 1px solid var(--hairline);
+  background: var(--tint-1);
+  border: 1px solid var(--hairline-42);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -330,47 +338,49 @@
 }
 .up-title {
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: 14px;
   word-break: break-word;
 }
 .up-file {
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 12px;
   margin-top: 2px;
   word-break: break-all;
 }
 .up-meta {
-  color: var(--faint);
-  font-size: 11.5px;
+  color: var(--muted);
+  font-size: 12px;
   margin-top: 4px;
 }
+/* The reviewer's note is a capsule in the handoff — a pill radius even when
+   the comment wraps to a second line. */
 .up-note {
   display: flex;
   align-items: flex-start;
   gap: 6px;
   margin-top: 10px;
   padding: 9px 11px;
-  border-radius: 9px;
-  font-size: 12px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
   line-height: 1.4;
-  background: var(--ground);
+  background: var(--tint-1);
   color: var(--ink-nav);
 }
 .up-note .icon {
-  font-size: 15px;
+  font-size: 16px;
   flex: 0 0 auto;
   margin-top: 1px;
 }
 .up-note.risk {
-  background: rgba(139, 58, 46, 0.09);
+  background: rgba(173, 36, 82, 0.09);
   color: var(--risk);
 }
 .up-note.good {
-  background: rgba(92, 122, 58, 0.09);
+  background: rgba(19, 122, 74, 0.09);
   color: var(--good);
 }
 .up-note.warn {
-  background: rgba(168, 117, 47, 0.1);
+  background: var(--warn-bg);
   color: var(--warn);
 }
 .up-actions {
@@ -378,49 +388,54 @@
   gap: 8px;
   margin-top: 12px;
 }
-.dt-btn {
+/* Replace / Remove are pills on this screen, tinted like the card behind them. */
+.up-actions .dt-btn {
   cursor: pointer;
   font-family: var(--font);
+  padding: 9px 16px;
+  border-radius: var(--r-pill);
+  border-color: var(--hairline-42);
+  background: var(--tint-2);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--sh-card);
 }
-.dt-btn .icon {
-  font-size: 15px;
+.up-actions .dt-btn .icon {
+  font-size: 16px;
 }
-.dt-btn:disabled {
+.up-actions .dt-btn:disabled {
   opacity: 0.55;
   cursor: default;
 }
-.dt-btn.danger {
+.up-actions .dt-btn.danger {
   color: var(--risk);
-  border-color: rgba(139, 58, 46, 0.35);
+  border-color: rgba(173, 36, 82, 0.35);
 }
-.dt-btn.danger:hover:not(:disabled) {
-  background: rgba(139, 58, 46, 0.08);
-}
-
-/* local neutral chip tone (globals define good/warn/risk only) */
-.chip.neutral {
-  background: var(--ground);
-  color: var(--muted);
+.up-actions .dt-btn.danger:hover:not(:disabled) {
+  background: rgba(173, 36, 82, 0.08);
 }
 
-/* --- states -------------------------------------------------------------- */
-.empty {
+/* --- states --------------------------------------------------------------
+   Prefixed: `.empty` is the global centred empty-state block, whose
+   text-align/padding pushed this row's icon and copy apart. */
+.up-empty {
   display: flex;
   align-items: center;
   gap: 14px;
 }
-.empty .icon {
+.up-empty .icon {
   font-size: 30px;
-  color: var(--faint);
+  color: var(--muted);
   flex: 0 0 auto;
 }
-.empty__title {
+.up-empty__title {
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: 14px;
 }
-.empty__hint {
+.up-empty__hint {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 13px;
   margin-top: 3px;
 }
 
@@ -429,10 +444,10 @@
   align-items: center;
 }
 .sk {
-  background: linear-gradient(90deg, var(--ground), var(--surface), var(--ground));
+  background: linear-gradient(90deg, var(--tint-1), var(--surface), var(--tint-1));
   background-size: 200% 100%;
   animation: sk-shimmer 1.2s ease-in-out infinite;
-  border-radius: 8px;
+  border-radius: var(--r-pill);
 }
 .sk--thumb {
   width: 56px;

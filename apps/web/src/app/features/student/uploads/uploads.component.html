@@ -6,30 +6,30 @@
 </div>
 
 <!-- 1. STEPPER — makes the flow explicit and shows where the student is -->
-<ol class="stepper" aria-label="Upload steps">
-  <li class="step" [class.active]="currentStep() === 1" [class.done]="currentStep() > 1">
-    <span class="step__num">
+<ol class="up-stepper" aria-label="Upload steps">
+  <li class="up-step" [class.active]="currentStep() === 1" [class.done]="currentStep() > 1">
+    <span class="up-step__num">
       @if (currentStep() > 1) {
         <span class="icon">check</span>
       } @else {
         1
       }
     </span>
-    <span class="step__label">Choose document type</span>
+    <span class="up-step__label">Choose document type</span>
   </li>
-  <li class="step" [class.active]="currentStep() === 2" [class.done]="currentStep() > 2">
-    <span class="step__num">
+  <li class="up-step" [class.active]="currentStep() === 2" [class.done]="currentStep() > 2">
+    <span class="up-step__num">
       @if (currentStep() > 2) {
         <span class="icon">check</span>
       } @else {
         2
       }
     </span>
-    <span class="step__label">Upload file</span>
+    <span class="up-step__label">Upload file</span>
   </li>
-  <li class="step" [class.active]="currentStep() === 3">
-    <span class="step__num">3</span>
-    <span class="step__label">In review</span>
+  <li class="up-step" [class.active]="currentStep() === 3">
+    <span class="up-step__num">3</span>
+    <span class="up-step__label">In review</span>
   </li>
 </ol>
 
@@ -126,11 +126,11 @@
   <!-- SUCCESS feedback with a file PREVIEW -->
   @if (justUploaded(); as up) {
     <div class="feedback feedback--ok">
-      <div class="preview">
+      <div class="up-preview">
         @if (isImage(up.mime_type)) {
-          <img class="preview__img" [src]="fileUrl(up.id)" [alt]="up.title" />
+          <img class="up-preview__img" [src]="fileUrl(up.id)" [alt]="up.title" />
         } @else {
-          <span class="preview__icon icon">picture_as_pdf</span>
+          <span class="up-preview__icon icon">picture_as_pdf</span>
         }
       </div>
       <div class="feedback__main">
@@ -162,11 +162,11 @@
   </div>
 } @else if (rows(); as list) {
   @if (list.length === 0) {
-    <div class="card empty">
+    <div class="card up-empty">
       <span class="icon">folder_open</span>
       <div>
-        <div class="empty__title">Nothing on your record yet</div>
-        <div class="empty__hint">
+        <div class="up-empty__title">Nothing on your record yet</div>
+        <div class="up-empty__hint">
           Upload a certificate, your CV or a photo above — it will appear here with its review
           status.
         </div>

@@ -5,18 +5,31 @@
   display: block;
 }
 
-/* Locked identity: name, USN and the signed-in Google address. These are real
-   <input readonly> elements, not text — the value is already filled in, and
-   stays selectable and copyable (a student pastes their USN into other forms)
-   while being impossible to type into. */
+/* Locked identity: name and USN. These are real <input readonly> elements, not
+   text — the value is already filled in, and stays selectable and copyable (a
+   student pastes their USN into other forms) while being impossible to type
+   into. Drawn as the handoff's tinted pill rather than a field. */
 .locked-value {
   padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--hairline);
-  background: var(--ground);
-  font-size: 13.5px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hairline-42);
+  background: var(--tint-1);
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink-nav);
+}
+.identity-grid {
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 640px) {
+  .identity-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The explanatory line under a card's controls, at the handoff's 14px. */
+.card-note {
+  font-size: 14px;
 }
 
 /* The global `.field input` carries an inset "press" shadow — that shadow is
@@ -55,7 +68,7 @@ input.locked-value:focus-visible {
 .field--invalid input,
 .field--invalid textarea {
   border-color: var(--risk);
-  background: rgba(139, 58, 46, 0.05);
+  background: rgba(173, 36, 82, 0.05);
 }
 .field-error {
   display: flex;
@@ -81,33 +94,33 @@ input.locked-value:focus-visible {
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
   font-weight: 700;
-  background: rgba(28, 24, 16, 0.06);
+  background: rgba(58, 31, 82, 0.06);
   color: var(--muted);
 }
 .save-state .icon {
-  font-size: 15px;
+  font-size: 16px;
 }
 .save-state .save-time {
   font-weight: 600;
   opacity: 0.8;
 }
 .save-state[data-kind='unsaved'] {
-  background: rgba(168, 117, 47, 0.14);
+  background: var(--warn-bg);
   color: var(--warn);
 }
 .save-state[data-kind='saving'] {
-  background: rgba(28, 24, 16, 0.06);
+  background: rgba(58, 31, 82, 0.06);
   color: var(--ink-nav);
 }
 .save-state[data-kind='saved'] {
-  background: rgba(92, 122, 58, 0.12);
+  background: var(--good-bg);
   color: var(--good);
 }
 .save-state[data-kind='error'] {
-  background: rgba(139, 58, 46, 0.12);
+  background: var(--risk-bg);
   color: var(--risk);
 }
 .save-state .icon.spin {
@@ -136,8 +149,9 @@ input.locked-value:focus-visible {
   margin: 0;
 }
 .completion-pct {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 .completion-pct[data-band='full'] {
@@ -152,10 +166,11 @@ input.locked-value:focus-visible {
 .meter {
   height: 9px;
   border-radius: 999px;
-  background: var(--ground);
-  border: 1px solid var(--hairline);
+  background: var(--tint-1);
+  border: 1px solid var(--hairline-42);
   overflow: hidden;
   margin-bottom: 10px;
+  box-shadow: none;
 }
 .meter-fill {
   height: 100%;
@@ -177,12 +192,12 @@ input.locked-value:focus-visible {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  background: var(--ground);
-  border: 1px solid var(--hairline);
-  border-radius: 10px;
+  background: var(--tint-1);
+  border: 1px solid var(--hairline-42);
+  border-radius: 16px;
   padding: 10px 12px;
   margin-bottom: 12px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-nav);
   line-height: 1.45;
 }
@@ -199,8 +214,8 @@ input.locked-value:focus-visible {
   align-items: center;
   gap: 10px;
   padding: 9px 0;
-  font-size: 13px;
-  color: var(--ink-soft);
+  font-size: 14px;
+  color: var(--ink-nav);
   border-bottom: 1px solid var(--hairline);
   cursor: pointer;
 }
@@ -215,6 +230,21 @@ input.locked-value:focus-visible {
 
 .skills-wrap {
   gap: 6px;
+}
+
+/* Notices are icon + text side by side, not stacked. */
+.reg-approval {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  border-radius: 16px;
+  padding: 14px;
+}
+.reg-approval .icon {
+  font-size: 21px;
+  line-height: 1;
+  flex: 0 0 auto;
 }
 
 /* Visible keyboard focus for every interactive control on this screen. */

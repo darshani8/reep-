@@ -35,13 +35,13 @@
             <span class="icon" aria-hidden="true">event_available</span> Leave Requests
           </a>
           <a routerLink="/mentor/verifications" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">verified_user</span> Skill Verifications
+            <span class="icon" aria-hidden="true">verified</span> Skill Verifications
           </a>
           <a routerLink="/mentor/upskilling" routerLinkActive="active">
             <span class="icon" aria-hidden="true">workspace_premium</span> Upskilling
           </a>
           <div class="sec-label">More</div>
-          <a routerLink="/mentor/assistant" routerLinkActive="active">
+          <a routerLink="/mentor/agent" routerLinkActive="active">
             <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
           </a>
         }
@@ -53,32 +53,28 @@
           >
             <span class="icon" aria-hidden="true">insights</span> Analytics
           </a>
-          <a routerLink="/director/registrations" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">how_to_reg</span> Registrations
+          <a routerLink="/director/leave-approvals" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">event_available</span> Leave Approvals
           </a>
           <a routerLink="/director/mentors" routerLinkActive="active">
             <span class="icon" aria-hidden="true">groups</span> Mentors &amp; Students
           </a>
-          <a routerLink="/director/leave-approvals" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">event_available</span> Leave Approvals
-          </a>
-
-          <div class="sec-label">Programme</div>
-          <a routerLink="/director/catalogue" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">menu_book</span> Catalogue
-          </a>
-          <a routerLink="/director/placement" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">handshake</span> Placement
-          </a>
           <a routerLink="/director/jobs" routerLinkActive="active">
             <span class="icon" aria-hidden="true">work</span> Jobs Sheet
           </a>
+
+          <!--
+            SHORTER THAN THE ROUTE TABLE, like the student nav below. The design's
+            admin sidebar is these six links. Registrations, the Catalogue and
+            Placement are still routed — they are reached from the Analytics
+            tiles ("pending registration", "Placed") and by bookmark — but they
+            are not sidebar destinations.
+          -->
+          <div class="sec-label">More</div>
           <a routerLink="/director/exports" routerLinkActive="active">
             <span class="icon" aria-hidden="true">download</span> Exports
           </a>
-
-          <div class="sec-label">More</div>
-          <a routerLink="/director/assistant" routerLinkActive="active">
+          <a routerLink="/director/agent" routerLinkActive="active">
             <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
           </a>
         }
@@ -108,9 +104,6 @@
           <a routerLink="/student/skilling" routerLinkActive="active">
             <span class="icon" aria-hidden="true">verified</span> Skilling
           </a>
-          <a routerLink="/student/badges" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">military_tech</span> Badges
-          </a>
           <a routerLink="/student/leaderboards" routerLinkActive="active">
             <span class="icon" aria-hidden="true">leaderboard</span> Leaderboards
           </a>
@@ -136,11 +129,6 @@
           <a routerLink="/student/resume" routerLinkActive="active">
             <span class="icon" aria-hidden="true">description</span> Resume Builder
           </a>
-
-          <div class="sec-label">More</div>
-          <a routerLink="/student/assistant" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
-          </a>
         }
       }
     </nav>
@@ -151,6 +139,7 @@
   </div>
 </div>
 
-<!-- On every authenticated screen, per the handoff. Draggable; a tap opens
-     voice mode. -->
+<!-- On every authenticated screen, per the design. Draggable; a tap opens
+     voice mode, and "Type instead" opens the role's REEP Agent chat — which is
+     why the student sidebar carries no agent link of its own. -->
 <app-agent-orb />

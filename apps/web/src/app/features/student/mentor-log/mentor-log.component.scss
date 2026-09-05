@@ -1,0 +1,146 @@
+/* Mentor / TPO Log. Cards, chips, the meeting rows and the request form are the
+ * global reep-v2 classes; this file paints the SWOC boxes in the handoff's four
+ * tones (a tinted fill AND a heading, so tone is never the only signal), lays
+ * out the empty state and sizes the date column the way the design does. */
+:host {
+  display: block;
+}
+
+.swoc-card,
+.request-card,
+.log-notice {
+  margin-bottom: 16px;
+}
+
+.h-sub {
+  font-family: var(--font);
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  margin-left: 6px;
+}
+
+.card-line {
+  color: var(--muted);
+  font-size: 14px;
+}
+.card-line .retry {
+  margin-left: 10px;
+}
+
+.request-lede {
+  margin: 0 0 12px;
+}
+
+/* --- SWOC: the four tinted boxes --- */
+.swoc-grid {
+  gap: 10px;
+}
+.swoc-box {
+  border-radius: 16px;
+  padding: 12px;
+  font-size: 13px;
+  border: 0;
+}
+.swoc-box b {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+  color: inherit;
+}
+.swoc-text {
+  line-height: 1.45;
+}
+.swoc-s {
+  background: var(--good-bg);
+  color: var(--good);
+}
+.swoc-w {
+  background: var(--risk-bg);
+  color: var(--risk);
+}
+.swoc-o {
+  background: rgba(143, 97, 0, 0.1);
+  color: var(--warn);
+}
+.swoc-c {
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--hairline-42);
+}
+
+/* --- empty state: icon beside the words --- */
+.log-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.log-empty .icon {
+  font-size: 30px;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+.log-empty-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+.log-empty-text {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+/* --- meeting rows --- */
+.meeting {
+  gap: 12px;
+}
+.meeting .date {
+  width: 66px;
+}
+.meeting .date .d {
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.meeting .date .m {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.title-row .title {
+  font-size: 14px;
+}
+.title-row .loc {
+  font-weight: 400;
+  color: var(--muted);
+}
+.title-row .chip {
+  font-size: 13px;
+  padding: 5px 10px;
+}
+.title-row .chip .icon {
+  font-size: 15px;
+}
+.meeting .note {
+  color: var(--ink-nav);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+.meeting .by {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}

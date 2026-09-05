@@ -38,4 +38,5 @@ from . import time_ledger  # noqa: F401
 from . import timesheet  # noqa: F401
 from . import upload  # noqa: F401
 from . import user  # noqa: F401
+from . import voice_platform  # noqa: F401
 from . import voice_worker  # noqa: F401

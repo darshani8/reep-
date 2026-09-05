@@ -5,73 +5,92 @@
  * The screen is two things stacked. The CLAIM CARD takes a certificate and the
  * badge it proves; the BADGE BOARD shows every badge in the catalogue, grouped
  * by category, outlined when available and lit when the student holds it
- * verified. That pairing is the whole point: the form says what you can earn and
+ * EARNED. That pairing is the whole point: the form says what you can earn and
  * the board says what you have, so the two dropdowns and the board read from the
  * SAME catalogue rather than from two lists that could drift.
  *
+ * THE CATALOGUE IS THE 48-BADGE ONE (`GET /student/badges`, app/models/badge.py):
+ * Managerial · Sectoral · Platform / Technical · Thinking · Career Readiness —
+ * the categories the handoff's board is drawn with. A claim is a piece of
+ * evidence against a badge (`POST /student/badges/{code}/evidence`), and only a
+ * staff APPROVE on it mints the EARNED row that lights the pill: a certificate
+ * is evidence, a badge is the verified recognition. Readiness badges refuse
+ * evidence — they arrive on assessment thresholds — so they are on the board
+ * but never in the claim dropdowns.
+ *
  * THE TWO SELECTS ARE DEPENDENT, and deliberately. Picking a badge out of one
- * flat list of ~42 was the thing students got wrong most often — the categories
+ * flat list of ~48 was the thing students got wrong most often — the categories
  * are how the programme talks about skills, so choosing a category first turns
  * one long list into five short ones. Badge is disabled until a category is
  * chosen and clears when the category changes, so the pair can never submit a
  * badge from a category the student is no longer looking at.
  *
- * The claim form does NOT ask for a level. The student asserts the certificate;
- * the mentor sets the level when they grant it (`granted_level` on the review),
- * so asking the student to grade themselves first was a number nobody used.
- * `claimed_level` still goes up at the API's default.
- *
- * Three independent GETs (catalogue, skills, claims) so a failing one degrades
- * its own section rather than blanking the screen.
+ * The claim form does NOT ask for a level or an evidence type. The student
+ * asserts the certificate; the mentor judges it on review.
  */
 
 import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 
-interface CatalogueSkill {
+interface EvidenceRow {
   id: string;
-  slug: string;
-  name: string;
-  category: string;
-}
-
-interface StudentSkill {
-  slug: string;
-  name: string;
-  category: string;
-  level: number;
-  verified: boolean;
-}
-
-interface SkillClaim {
-  id: string;
-  skill_id: string;
-  skill_name: string;
-  upload_id: string;
-  claimed_level: number;
-  status: string; // UploadStatus: PENDING_REVIEW | VERIFIED | REJECTED
-  student_note: string | null;
+  evidence_type: string;
+  status: string; // PENDING_VERIFICATION | APPROVED | REJECTED | MORE_INFO_REQUIRED
+  title: string;
+  provider: string | null;
   review_note: string | null;
-  reviewed_at: string | null;
   created_at: string;
 }
 
-interface BoardBadge {
-  slug: string;
+interface Badge {
+  code: string;
   name: string;
+  category: string;
+  category_label: string;
+  track_label: string | null;
+  staff_awarded: boolean;
+  status: string; // NOT_STARTED | IN_PROGRESS | VERIFICATION_PENDING | EARNED
+  evidence: EvidenceRow[];
+}
+
+interface Category {
+  key: string;
+  label: string;
+  earned: number;
+  total: number;
+  badges: Badge[];
+}
+
+interface Dashboard {
+  stage: string;
+  points_total: number;
+  earned_total: number;
+  badge_total: number;
+  categories: Category[];
+}
+
+interface BoardBadge {
+  code: string;
+  name: string;
+  /** Held EARNED — the pill glows and nothing can dim it. */
   acquired: boolean;
+  /** Tapped for a preview of the earned state; purely visual, never stored. */
+  previewed: boolean;
+  /** The status a hover/tap explains: what this pill is waiting on. */
+  hint: string;
 }
 
 interface BoardCategory {
-  category: string;
+  key: string;
+  label: string;
   note: string;
   badges: BoardBadge[];
 }
 
 interface OpenClaim {
   id: string;
-  skillName: string;
+  badgeName: string;
   chipClass: string;
   chipIcon: string;
   chipLabel: string;
@@ -79,18 +98,35 @@ interface OpenClaim {
 }
 
 /** Anything the student still needs to see: in flight, or sent back. */
-function openClaimChip(status: string): Omit<OpenClaim, 'id' | 'skillName' | 'reviewNote'> | null {
-  // NEEDS_CHANGES and REJECTED look similar and mean different things: the first
-  // is an instruction to claim again with better evidence, the second is a no.
-  // The label has to carry that, because it is all the student gets.
-  if (status === 'NEEDS_CHANGES')
+function openClaimChip(status: string): Omit<OpenClaim, 'id' | 'badgeName' | 'reviewNote'> | null {
+  // MORE_INFO_REQUIRED and REJECTED look similar and mean different things: the
+  // first is an instruction to claim again with better evidence, the second is
+  // a no. The label has to carry that, because it is all the student gets.
+  if (status === 'MORE_INFO_REQUIRED')
     return { chipClass: 'warn', chipIcon: 'edit_note', chipLabel: 'Needs changes' };
   if (status === 'REJECTED')
     return { chipClass: 'risk', chipIcon: 'cancel', chipLabel: 'Not verified' };
-  if (status === 'PENDING_REVIEW')
+  if (status === 'PENDING_VERIFICATION')
     return { chipClass: 'warn', chipIcon: 'schedule', chipLabel: 'With your mentor' };
-  return null; // VERIFIED needs no row — the badge on the board is already lit.
+  return null; // APPROVED needs no row — the badge on the board is already lit.
 }
+
+const STATUS_HINT: Record<string, string> = {
+  EARNED: 'Verified and acquired',
+  VERIFICATION_PENDING: 'Verification pending — with your mentor',
+  IN_PROGRESS: 'In progress — not yet verified',
+  NOT_STARTED: 'Available — claim it with a certificate',
+};
+
+/** The design's per-category caption: "12 badges", "4 readiness badges". */
+function categoryNote(cat: Category): string {
+  const noun = cat.key === 'READINESS' ? 'readiness badges' : 'badges';
+  return cat.earned > 0
+    ? `${cat.total} ${noun} · ${cat.earned} earned`
+    : `${cat.total} ${noun}`;
+}
+
+const MAX_CERT_BYTES = 5 * 1024 * 1024;
 
 @Component({
   selector: 'app-student-skilling',
@@ -100,12 +136,9 @@ function openClaimChip(status: string): Omit<OpenClaim, 'id' | 'skillName' | 're
   styleUrl: './skilling.component.scss',
 })
 export class SkillingComponent {
-  /// null = still loading; [] = loaded but empty.
-  readonly catalogue = signal<CatalogueSkill[] | null>(null);
-  readonly skills = signal<StudentSkill[] | null>(null);
-  readonly claims = signal<SkillClaim[] | null>(null);
-  readonly skillsError = signal<string | null>(null);
-  readonly catalogueError = signal<string | null>(null);
+  /// null = still loading.
+  readonly dashboard = signal<Dashboard | null>(null);
+  readonly boardError = signal<string | null>(null);
 
   /// Claim form.
   readonly claimCategory = signal('');
@@ -117,18 +150,24 @@ export class SkillingComponent {
   readonly claimError = signal<string | null>(null);
   readonly claimSubmitted = signal(false);
 
-  readonly categories = computed<string[]>(() => {
-    const cat = this.catalogue();
-    if (!cat) return [];
-    return [...new Set(cat.map((s) => s.category))];
-  });
+  /// Badge codes the student has tapped to preview the earned state.
+  private readonly previewed = signal<Set<string>>(new Set());
 
-  /// Only the chosen category's badges — empty until one is chosen, which is
-  /// what disables and re-labels the second select.
-  readonly badgeOptions = computed<CatalogueSkill[]>(() => {
+  /// Categories a student can actually claim into — readiness badges are
+  /// staff-awarded, so a category made only of those never appears here.
+  readonly categories = computed(() =>
+    (this.dashboard()?.categories ?? [])
+      .filter((c) => c.badges.some((b) => !b.staff_awarded))
+      .map((c) => ({ key: c.key, label: c.label })),
+  );
+
+  /// Only the chosen category's claimable badges — empty until one is chosen,
+  /// which is what disables and re-labels the second select.
+  readonly badgeOptions = computed<Badge[]>(() => {
     const chosen = this.claimCategory();
     if (!chosen) return [];
-    return (this.catalogue() ?? []).filter((s) => s.category === chosen);
+    const cat = (this.dashboard()?.categories ?? []).find((c) => c.key === chosen);
+    return (cat?.badges ?? []).filter((b) => !b.staff_awarded);
   });
 
   readonly claimFileName = computed(() => this.claimFile()?.name ?? '');
@@ -136,32 +175,32 @@ export class SkillingComponent {
     () => !!this.claimFile() && !!this.claimCategory() && !!this.claimBadge() && !this.claiming(),
   );
 
-  /// Slugs the student holds VERIFIED — the board's lit set. An unverified
-  /// StudentSkill is a claim in progress, not an earned badge, so it stays dark.
-  private readonly verifiedSlugs = computed(
-    () => new Set((this.skills() ?? []).filter((s) => s.verified).map((s) => s.slug)),
-  );
-
   readonly board = computed<BoardCategory[] | null>(() => {
-    const cat = this.catalogue();
-    if (cat === null) return null;
-    const lit = this.verifiedSlugs();
-    const byCategory = new Map<string, BoardBadge[]>();
-    for (const s of cat) {
-      const arr = byCategory.get(s.category) ?? [];
-      arr.push({ slug: s.slug, name: s.name, acquired: lit.has(s.slug) });
-      byCategory.set(s.category, arr);
-    }
-    return [...byCategory.entries()].map(([category, badges]) => ({
-      category,
-      // The handoff hardcoded a per-category caption ("12 badges"). Counting the
-      // real rows says the same thing and cannot go stale.
-      note: `${badges.length} badges · ${badges.filter((b) => b.acquired).length} earned`,
-      badges,
+    const dash = this.dashboard();
+    if (dash === null) return null;
+    const previewed = this.previewed();
+    return dash.categories.map((cat) => ({
+      key: cat.key,
+      label: cat.label,
+      note: categoryNote(cat),
+      badges: cat.badges.map((b) => ({
+        code: b.code,
+        name: b.name,
+        acquired: b.status === 'EARNED',
+        previewed: b.status !== 'EARNED' && previewed.has(b.code),
+        hint: STATUS_HINT[b.status] ?? b.status,
+      })),
     }));
   });
 
-  readonly litCount = computed(() => this.verifiedSlugs().size);
+  /// "N skills currently illuminated" — earned pills plus the ones being
+  /// previewed, which is exactly what is glowing on screen right now.
+  readonly litCount = computed(() =>
+    (this.board() ?? []).reduce(
+      (n, cat) => n + cat.badges.filter((b) => b.acquired || b.previewed).length,
+      0,
+    ),
+  );
 
   /**
    * Claims the student still has something to do about. The handoff drops the
@@ -172,17 +211,21 @@ export class SkillingComponent {
    * exactly whenever there is not.
    */
   readonly openClaims = computed<OpenClaim[]>(() => {
-    return (this.claims() ?? []).flatMap((c) => {
-      const chip = openClaimChip(c.status);
-      if (!chip) return [];
-      return [{ id: c.id, skillName: c.skill_name, reviewNote: c.review_note, ...chip }];
-    });
+    const out: OpenClaim[] = [];
+    for (const cat of this.dashboard()?.categories ?? []) {
+      for (const b of cat.badges) {
+        if (b.status === 'EARNED') continue;
+        for (const e of b.evidence) {
+          const chip = openClaimChip(e.status);
+          if (chip) out.push({ id: e.id, badgeName: b.name, reviewNote: e.review_note, ...chip });
+        }
+      }
+    }
+    return out;
   });
 
   constructor() {
-    void this.loadCatalogue();
-    void this.loadSkills();
-    void this.loadClaims();
+    void this.loadBoard();
   }
 
   onCategoryChange(value: string): void {
@@ -193,10 +236,28 @@ export class SkillingComponent {
 
   onFilePicked(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.claimFile.set(input.files?.[0] ?? null);
-    this.claimError.set(null);
+    const file = input.files?.[0] ?? null;
     // Cleared so re-picking the SAME file still fires a change event.
     input.value = '';
+    this.claimError.set(null);
+    if (file && file.size > MAX_CERT_BYTES) {
+      this.claimFile.set(null);
+      this.claimError.set('That file is over 5 MB. Export a smaller PDF or JPEG and try again.');
+      return;
+    }
+    this.claimFile.set(file);
+  }
+
+  /** Tap a pill to preview the earned state. An EARNED pill is already lit and
+   *  does not toggle — nothing on this board can dim a verified badge. */
+  togglePreview(badge: BoardBadge): void {
+    if (badge.acquired) return;
+    this.previewed.update((set) => {
+      const next = new Set(set);
+      if (next.has(badge.code)) next.delete(badge.code);
+      else next.add(badge.code);
+      return next;
+    });
   }
 
   claimAnother(): void {
@@ -209,22 +270,20 @@ export class SkillingComponent {
     this.claimError.set(null);
   }
 
-  /// Store the certificate, then file the claim against it. Two calls, in that
-  /// order: the claim needs an upload id, so a failed upload must not leave a
-  /// claim pointing at nothing.
+  /// Store the certificate, then file the evidence against the badge. Two
+  /// calls, in that order: the claim needs an upload id, so a failed upload must
+  /// not leave a claim pointing at nothing.
   async submitClaim(): Promise<void> {
     const file = this.claimFile();
-    const skillId = this.claimBadge();
-    if (!file || !skillId) return;
-    const badge = this.badgeOptions().find((b) => b.id === skillId);
+    const code = this.claimBadge();
+    if (!file || !code) return;
+    const badge = this.badgeOptions().find((b) => b.code === code);
     this.claiming.set(true);
     this.claimError.set(null);
     try {
       const form = new FormData();
       form.append('file', file);
       form.append('kind', 'CERTIFICATE_PROOF');
-      // The issuer belongs on the artefact, not the claim — it describes the
-      // certificate, which is what a reviewer opens.
       const issuer = this.claimIssuer().trim();
       form.append(
         'title',
@@ -237,27 +296,34 @@ export class SkillingComponent {
       });
       if (!up.ok) {
         const d = await up.json().catch(() => null);
-        this.claimError.set(d?.detail ?? 'Certificate upload failed (PDF/PNG/JPEG, up to 10 MB).');
+        this.claimError.set(d?.detail ?? 'Certificate upload failed (PDF or JPEG, up to 5 MB).');
         return;
       }
       const uploadId = (await up.json()).id as string;
       const note = this.claimNote().trim();
-      const claim = await fetch(`${environment.apiBase}/student/skill-claims`, {
+      const claim = await fetch(`${environment.apiBase}/student/badges/${code}/evidence`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          skill_id: skillId,
+          evidence_type: 'EXTERNAL_VERIFIED',
           upload_id: uploadId,
-          student_note: note || null,
+          title: badge?.name ?? file.name,
+          // The issuer belongs on the evidence as its provider — it describes the
+          // certificate, which is what a reviewer opens.
+          provider: issuer || null,
+          note: note || null,
         }),
       });
       if (!claim.ok) {
-        this.claimError.set('Could not file the claim. Please try again.');
+        const d = await claim.json().catch(() => null);
+        this.claimError.set(d?.detail ?? 'Could not file the claim. Please try again.');
         return;
       }
+      // The response is the refreshed dashboard, so the board and the open
+      // claims update from the same document the write returned.
+      this.dashboard.set((await claim.json()) as Dashboard);
       this.claimSubmitted.set(true);
-      await this.loadClaims();
     } catch {
       this.claimError.set('Could not reach the server.');
     } finally {
@@ -265,42 +331,16 @@ export class SkillingComponent {
     }
   }
 
-  private async loadCatalogue(): Promise<void> {
+  private async loadBoard(): Promise<void> {
     try {
-      const res = await fetch(`${environment.apiBase}/student/skills/catalogue`, {
-        credentials: 'include',
-      });
+      const res = await fetch(`${environment.apiBase}/student/badges`, { credentials: 'include' });
       if (!res.ok) {
-        this.catalogueError.set('Could not load the skill catalogue.');
+        this.boardError.set('Could not load the badge catalogue.');
         return;
       }
-      this.catalogue.set((await res.json()) as CatalogueSkill[]);
+      this.dashboard.set((await res.json()) as Dashboard);
     } catch {
-      this.catalogueError.set('Could not reach the server.');
-    }
-  }
-
-  private async loadSkills(): Promise<void> {
-    try {
-      const res = await fetch(`${environment.apiBase}/student/skills`, { credentials: 'include' });
-      if (!res.ok) {
-        this.skillsError.set('Could not load your skills.');
-        return;
-      }
-      this.skills.set((await res.json()) as StudentSkill[]);
-    } catch {
-      this.skillsError.set('Could not reach the server.');
-    }
-  }
-
-  private async loadClaims(): Promise<void> {
-    try {
-      const res = await fetch(`${environment.apiBase}/student/skill-claims`, {
-        credentials: 'include',
-      });
-      if (res.ok) this.claims.set((await res.json()) as SkillClaim[]);
-    } catch {
-      /* The open-claims panel simply does not render. */
+      this.boardError.set('Could not reach the server.');
     }
   }
 }

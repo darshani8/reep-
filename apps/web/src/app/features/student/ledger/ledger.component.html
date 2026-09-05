@@ -1,6 +1,11 @@
-<div class="dt-header">
+<div class="dt-header ledger-head">
   <div>
-    <p class="eyebrow">Daily log · Semester {{ 2 }}</p>
+    <p class="eyebrow">
+      Daily log
+      @if (semester(); as sem) {
+        · Semester {{ sem }}
+      }
+    </p>
     <h1 class="dt-title">Time Allocation Ledger</h1>
     <p class="dt-sub">
       Six slots covering a 24-hour day · five activity heads · hours to the nearest half
@@ -38,7 +43,7 @@
 </div>
 
 @if (error(); as message) {
-  <div class="notice" role="alert">
+  <div class="notice ledger-notice" role="alert">
     <span class="icon" aria-hidden="true">info</span>
     {{ message }}
   </div>
@@ -50,7 +55,7 @@
   }
 
   @case ('error') {
-    <div class="notice" role="alert">
+    <div class="notice ledger-notice" role="alert">
       <span class="icon" aria-hidden="true">info</span>
       Could not load today’s time sheet.
       <button type="button" class="btn ghost" (click)="load()">Retry</button>
@@ -59,8 +64,8 @@
 
   @case ('data') {
     @if (ledger(); as l) {
-      <div class="ledger-card">
-        <!-- Metrics strip -->
+      <!-- Metrics strip: its own card, as the design draws it. -->
+      <div class="ledger-card metrics-card">
         <div class="ledger-metrics">
           @for (m of l.metrics; track m.key) {
             <div>
@@ -77,116 +82,107 @@
             </div>
           }
         </div>
+      </div>
 
-        <!-- The table: six slot rows × five activity columns. -->
-        <table class="ledger-table">
-          <thead>
-            <tr>
-              <th class="slot-col">
-                <span class="lbl">Slot</span>
-              </th>
-              @for (a of l.activities; track a.key) {
-                <th>
-                  <span class="rule" [style.background]="a.colour" aria-hidden="true"></span>
-                  <span class="lbl">{{ a.label }}</span>
-                </th>
-              }
-              <th><span class="lbl">Logged</span></th>
-            </tr>
-          </thead>
-
-          <tbody>
-            @for (s of l.slots; track s.key) {
+      <!-- The table: six slot rows × five activity columns, in its own card. -->
+      <div class="ledger-card table-card">
+        <div class="table-scroll">
+          <table class="ledger-table">
+            <thead>
               <tr>
-                <td class="slot-col">
-                  <div class="slot-name">
-                    @if (s.icon) {
-                      <span class="icon" aria-hidden="true">{{ s.icon }}</span>
-                    }
-                    {{ s.label }}
+                <th class="slot-col">
+                  <span class="lbl">Slot</span>
+                </th>
+                @for (a of l.activities; track a.key) {
+                  <th>
+                    <span class="rule" [style.background]="a.colour" aria-hidden="true"></span>
+                    <span class="lbl">{{ a.label }}</span>
+                  </th>
+                }
+                <th class="logged-col"><span class="lbl">Logged</span></th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (s of l.slots; track s.key) {
+                <tr>
+                  <td class="slot-col">
+                    <div class="slot-name">
+                      @if (s.icon) {
+                        <span class="icon" aria-hidden="true">{{ s.icon }}</span>
+                      }
+                      <span>
+                        <span class="slot-label">{{ s.label }}</span>
+                        <span class="slot-cap">{{ s.capacity_hours }} h capacity</span>
+                      </span>
+                    </div>
+                  </td>
+
+                  @for (a of l.activities; track a.key) {
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        [max]="s.capacity_hours"
+                        [disabled]="submitted()"
+                        [value]="cellValue(s, a.key) || ''"
+                        [attr.aria-label]="s.label + ' · ' + a.label + ' hours'"
+                        (input)="onCellInput(s, a.key, $any($event.target).value)"
+                      />
+                    </td>
+                  }
+
+                  <td class="logged logged-col">
+                    <div class="logged-val">
+                      {{ slotTotal(s) }}<span class="of"> /{{ s.capacity_hours }}</span>
+                    </div>
+                    <span
+                      class="slot-chip"
+                      [class.good]="slotTotal(s) === s.capacity_hours"
+                      [class.warn]="slotTotal(s) < s.capacity_hours && slotTotal(s) > 0"
+                      [class.risk]="slotTotal(s) > s.capacity_hours"
+                      [class.neutral]="slotTotal(s) === 0"
+                    >
+                      @if (slotTotal(s) === 0) {
+                        Empty
+                      } @else if (slotTotal(s) > s.capacity_hours) {
+                        {{ slotTotal(s) - s.capacity_hours }} h over
+                      } @else if (slotTotal(s) < s.capacity_hours) {
+                        {{ s.capacity_hours - slotTotal(s) }} h open
+                      } @else {
+                        Balanced
+                      }
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+
+            <tfoot>
+              <tr class="total-row">
+                <td class="slot-col"><span class="lbl">Day total</span></td>
+                @for (a of l.activities; track a.key) {
+                  <td class="logged">{{ columnTotal(a.key) }}</td>
+                }
+                <td class="logged logged-col">
+                  @let ds = dayState();
+                  <div class="logged-val">
+                    {{ dayTotal() }}<span class="of"> /{{ l.day_capacity_hours }}</span>
                   </div>
-                  <div class="slot-cap">{{ s.capacity_hours }} h capacity</div>
                   <span
                     class="slot-chip"
-                    [class.good]="slotTotal(s) === s.capacity_hours"
-                    [class.warn]="slotTotal(s) < s.capacity_hours && slotTotal(s) > 0"
-                    [class.risk]="slotTotal(s) > s.capacity_hours"
-                    [class.neutral]="slotTotal(s) === 0"
+                    [class.good]="ds.tone === 'good'"
+                    [class.warn]="ds.tone === 'warn'"
+                    [class.risk]="ds.tone === 'risk'"
                   >
-                    @if (slotTotal(s) === 0) {
-                      Empty
-                    } @else if (slotTotal(s) > s.capacity_hours) {
-                      {{ slotTotal(s) - s.capacity_hours }} h over
-                    } @else if (slotTotal(s) < s.capacity_hours) {
-                      {{ s.capacity_hours - slotTotal(s) }} h open
-                    } @else {
-                      Balanced
-                    }
+                    {{ ds.label }}
                   </span>
                 </td>
-
-                @for (a of l.activities; track a.key) {
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      [max]="s.capacity_hours"
-                      [disabled]="submitted()"
-                      [value]="cellValue(s, a.key) || ''"
-                      [attr.aria-label]="s.label + ' · ' + a.label + ' hours'"
-                      (input)="onCellInput(s, a.key, $any($event.target).value)"
-                    />
-                  </td>
-                }
-
-                <td class="logged">
-                  {{ slotTotal(s) }}<span class="of">/{{ s.capacity_hours }}</span>
-                </td>
               </tr>
-            }
-
-            <tr class="total-row">
-              <td class="slot-col">Day total</td>
-              @for (a of l.activities; track a.key) {
-                <td class="logged">
-                  {{ columnTotal(a.key) }}
-                </td>
-              }
-              <td class="logged">{{ dayTotal() }}<span class="of">/24</span></td>
-            </tr>
-          </tbody>
-        </table>
-
-        @if (weekly(); as w) {
-          <div
-            class="rowline"
-            style="
-              margin-top: 16px;
-              border-top: 1px solid var(--hairline-26);
-              border-bottom: 0;
-              padding-top: 14px;
-            "
-          >
-            <span class="icon" aria-hidden="true" style="color: var(--brand-magenta)">bolt</span>
-            <div style="flex: 1; min-width: 0">
-              <b>Skilling this week</b>
-              <span class="dt-sub">
-                · {{ w.skilling_hours }} h of a {{ w.weekly_hour_target }} h target
-              </span>
-              <div class="meter" style="margin-top: 6px">
-                <span [style.width.%]="weeklyPercent()"></span>
-              </div>
-            </div>
-            <span
-              class="chip"
-              [class.good]="weeklyPercent() >= 100"
-              [class.warn]="weeklyPercent() < 100"
-            >
-              {{ weeklyPercent() }}%
-            </span>
-          </div>
-        }
+            </tfoot>
+          </table>
+        </div>
 
         <div class="footbar">
           @if (submitted()) {
@@ -195,7 +191,7 @@
               Submitted — this day is closed
             </span>
           } @else {
-            @if (ledger()?.submit_blocked_reason; as reason) {
+            @if (l.submit_blocked_reason; as reason) {
               <span class="chip warn">
                 <span class="icon" aria-hidden="true">pending</span>
                 {{ reason }}
@@ -208,6 +204,41 @@
           }
         </div>
       </div>
+
+      <div class="ledger-footnote">
+        <span class="icon" aria-hidden="true">info</span>
+        <span>
+          Hours logged in a slot cannot exceed its capacity, and the six slots must reconcile to 24
+          h before the day can be submitted. Mentors review the weekly roll-up, not individual
+          entries.
+        </span>
+      </div>
+
+      <!-- The OTHER time table: SKILLING hours this week against the target. It
+           lost its own route and lives here, beside the days it is summed from. -->
+      @if (weekly(); as w) {
+        <div class="ledger-card weekly-card">
+          <div class="rowline weekly-row">
+            <span class="icon" aria-hidden="true">bolt</span>
+            <div class="weekly-body">
+              <b>Skilling this week</b>
+              <span class="dt-sub">
+                · {{ w.skilling_hours }} h of a {{ w.weekly_hour_target }} h target
+              </span>
+              <div class="meter">
+                <span [style.width.%]="weeklyPercent()"></span>
+              </div>
+            </div>
+            <span
+              class="chip"
+              [class.good]="weeklyPercent() >= 100"
+              [class.warn]="weeklyPercent() < 100"
+            >
+              {{ weeklyPercent() }}%
+            </span>
+          </div>
+        </div>
+      }
     }
   }
 }

@@ -1,31 +1,60 @@
 /**
- * Placement — the offers waiting to be recorded as real.
+ * Placement — the funnel, the offers, and the recruiters.
  *
- * A student self-reports an offer; until someone approves it, it is a claim.
- * Approving is what puts it in the placement figures, which is why this screen
- * shows the CTC and the role type on the row rather than behind a click: those
- * are the numbers the approval is actually about.
+ * FOUR FUNNEL STAGES, NOT FIVE. The design shows Eligible / Applied /
+ * Interviewed / Offers / Accepted. Nothing in the schema records who was
+ * interviewed, so that tile is not drawn — a permanent dash is a tile that lies
+ * about being a metric. And the last stage is "Approved", not "Accepted": an
+ * offer here is APPROVED by the placement office (which is what makes it count
+ * towards the placement figures), and whether the student accepted it is not
+ * something REEP records.
  *
- * The queue and the decision both live on /mentor/offers/*, gated by
+ * THE DECISION STILL LIVES HERE. A student self-reports an offer; until someone
+ * approves it, it is a claim. The Recent offers table shows every submitted
+ * offer with its status, and the pending rows carry Approve / Reject inline —
+ * the CTC and the role are on the row because those are the numbers the
+ * approval is actually about. Rejecting needs a reason: the student is shown
+ * it against their offer and nothing else.
+ *
+ * The decision endpoint is /mentor/offers/{id}/decision, gated by
  * `require_director` — the path says mentor, the guard says director, and the
- * guard is what governs. Kept there rather than duplicated under /director so
- * there is one implementation of "approve an offer".
+ * guard is what governs. Kept there so there is one implementation of "approve
+ * an offer".
  */
 
-import { KeyValuePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 
-interface PendingOffer {
+interface OfferRow {
   id: string;
   student_id: string;
   student_name: string;
-  job_title: string;
+  usn: string | null;
   organisation: string;
+  job_title: string;
   role_type: string;
   ctc_inr: number;
   status: string;
+  created_at: string;
+  decided_at: string | null;
+}
+
+interface Placement {
+  semester: number | null;
+  eligible: number;
+  applied: number;
+  offers: number;
+  approved: number;
+  approved_students: number;
+  recent: OfferRow[];
+  top_recruiters: { organisation: string; count: number }[];
+}
+
+interface RejectUi {
+  remarks: string;
+  err: boolean;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -37,19 +66,20 @@ const ROLE_LABEL: Record<string, string> = {
 @Component({
   selector: 'app-director-placement',
   standalone: true,
-  imports: [KeyValuePipe],
+  imports: [DatePipe],
   templateUrl: './placement.component.html',
   styleUrl: './placement.component.scss',
 })
 export class DirectorPlacementComponent {
-  readonly rows = signal<PendingOffer[] | null>(null);
+  readonly data = signal<Placement | null>(null);
   readonly error = signal<string | null>(null);
-  readonly notes = signal<Record<string, string>>({});
-  readonly noteError = signal<string | null>(null);
+  readonly rejecting = signal<Record<string, RejectUi>>({});
   readonly deciding = signal<string | null>(null);
-  readonly done = signal<Record<string, string>>({});
+  readonly flash = signal<string | null>(null);
 
-  readonly pendingCount = computed(() => (this.rows() ?? []).length);
+  readonly pendingCount = computed(
+    () => (this.data()?.recent ?? []).filter((r) => r.status === 'PENDING_APPROVAL').length,
+  );
 
   constructor() {
     void this.load();
@@ -59,26 +89,58 @@ export class DirectorPlacementComponent {
     return ROLE_LABEL[t] ?? t;
   }
 
-  /** Indian grouping, because that is how a CTC is read here. */
+  /** Lakhs per annum, because that is how a CTC is read here. */
   ctc(n: number): string {
-    return n ? `₹${n.toLocaleString('en-IN')}` : '—';
+    if (!n) return '—';
+    const lpa = n / 100_000;
+    return `₹ ${lpa >= 10 ? lpa.toFixed(1) : lpa.toFixed(2).replace(/0$/, '')} LPA`;
   }
 
-  note(id: string): string {
-    return this.notes()[id] ?? '';
+  chip(status: string): { tone: string; label: string } {
+    switch (status) {
+      case 'APPROVED':
+        return { tone: 'good', label: 'Approved' };
+      case 'REJECTED':
+        return { tone: 'risk', label: 'Not approved' };
+      default:
+        return { tone: 'warn', label: 'Awaiting approval' };
+    }
   }
 
-  setNote(id: string, v: string): void {
-    this.notes.update((m) => ({ ...m, [id]: v }));
-    this.noteError.set(null);
+  rejectUi(id: string): RejectUi | null {
+    return this.rejecting()[id] ?? null;
   }
 
-  async decide(row: PendingOffer, decision: 'APPROVE' | 'REJECT'): Promise<void> {
-    const note = this.note(row.id).trim();
-    if (decision === 'REJECT' && !note) {
-      this.noteError.set('Give a reason — the student is shown it against their offer.');
+  openReject(id: string): void {
+    this.rejecting.update((m) => ({ ...m, [id]: { remarks: '', err: false } }));
+  }
+
+  cancelReject(id: string): void {
+    this.rejecting.update((m) => {
+      const next = { ...m };
+      delete next[id];
+      return next;
+    });
+  }
+
+  setRemarks(id: string, v: string): void {
+    this.rejecting.update((m) => ({ ...m, [id]: { remarks: v, err: false } }));
+  }
+
+  async approve(r: OfferRow): Promise<void> {
+    await this.decide(r, 'APPROVE', null);
+  }
+
+  async confirmReject(r: OfferRow): Promise<void> {
+    const remarks = (this.rejectUi(r.id)?.remarks ?? '').trim();
+    if (!remarks) {
+      this.rejecting.update((m) => ({ ...m, [r.id]: { remarks, err: true } }));
       return;
     }
+    await this.decide(r, 'REJECT', remarks);
+  }
+
+  private async decide(row: OfferRow, decision: 'APPROVE' | 'REJECT', note: string | null): Promise<void> {
     this.deciding.set(row.id);
     this.error.set(null);
     try {
@@ -86,21 +148,21 @@ export class DirectorPlacementComponent {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision, note: note || null }),
+        body: JSON.stringify({ decision, note }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => null);
         this.error.set(d?.detail ?? 'Could not record that decision.');
         return;
       }
-      this.done.update((m) => ({
-        ...m,
-        [row.id]:
-          decision === 'APPROVE'
-            ? `${row.student_name}'s offer from ${row.organisation} is approved and counts towards placement.`
-            : `${row.student_name}'s offer was not approved; they have been given the reason.`,
-      }));
-      this.rows.update((list) => (list ?? []).filter((r) => r.id !== row.id));
+      this.flash.set(
+        decision === 'APPROVE'
+          ? `${row.student_name}'s offer from ${row.organisation} is approved and counts towards placement.`
+          : `${row.student_name}'s offer from ${row.organisation} was not approved; they have your remarks.`,
+      );
+      this.cancelReject(row.id);
+      // The funnel and the recruiters moved too; re-read rather than patch.
+      await this.load();
     } catch {
       this.error.set('Could not reach the server.');
     } finally {
@@ -110,18 +172,16 @@ export class DirectorPlacementComponent {
 
   private async load(): Promise<void> {
     try {
-      const res = await fetch(`${environment.apiBase}/mentor/offers/pending`, {
+      const res = await fetch(`${environment.apiBase}/director/placement`, {
         credentials: 'include',
       });
       if (!res.ok) {
-        this.error.set('Could not load the offer queue.');
-        this.rows.set([]);
+        this.error.set('Could not load the placement figures.');
         return;
       }
-      this.rows.set((await res.json()) as PendingOffer[]);
+      this.data.set((await res.json()) as Placement);
     } catch {
       this.error.set('Could not reach the server.');
-      this.rows.set([]);
     }
   }
 }

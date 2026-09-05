@@ -3,16 +3,16 @@
      named three places and left the student to guess the order. -->
 <div class="rb-steps">
   <button type="button" [class.active]="flowStep() === 'build'" (click)="go('build')">
-    <span class="n">1</span> Build content
+    1 · Build content
   </button>
   <button type="button" [class.active]="flowStep() === 'tailor'" (click)="go('tailor')">
-    <span class="n">2</span> Tailor to opportunity
+    2 · Tailor to opportunity
   </button>
   <button type="button" [class.active]="flowStep() === 'preview'" (click)="go('preview')">
-    <span class="n">3</span> Preview
+    3 · Preview
   </button>
   <button type="button" [class.active]="flowStep() === 'export'" (click)="go('export')">
-    <span class="n">4</span> Export &amp; share
+    4 · Export &amp; share
   </button>
 </div>
 

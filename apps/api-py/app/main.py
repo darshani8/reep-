@@ -36,6 +36,10 @@ from .routers import (
     student_programme,
     voice,
 )
+from .voice_platform.api import admin as platform_admin
+from .voice_platform.api import calls as platform_calls
+from .voice_platform.api import media_bridge as platform_bridge
+from .voice_platform.monitoring import cloudwatch as platform_cloudwatch
 
 log = logging.getLogger("reep.startup")
 
@@ -96,6 +100,9 @@ async def lifespan(_app: FastAPI):
     # Protocol.debug is evaluated per connection at connect time, i.e. after
     # this runs, and websockets.client/.server are NOTSET so they inherit it.
     logging.getLogger("websockets").setLevel(logging.INFO)
+    # The voice platform's direct CloudWatch Logs handler, only when
+    # PLATFORM_CLOUDWATCH_LOG_GROUP is set (stdout -> awslogs is the default).
+    platform_cloudwatch.configure()
 
     # 1) REFUSE to serve real people with the credentials published in this repo.
     #
@@ -280,6 +287,12 @@ app.include_router(health.router)
 app.include_router(agent.router)
 app.include_router(voice.router)
 app.include_router(interview.router)
+# The voice-assistant platform (app/voice_platform): Admin CRUD under
+# /api/platform/admin, call sessions under /api/platform/calls, and the media
+# bridge at both /ws/media-bridge and /api/platform/media-bridge.
+app.include_router(platform_admin.router)
+app.include_router(platform_calls.router)
+app.include_router(platform_bridge.router)
 # Domain routers mount under a single /api prefix, so the whole surface the
 # Angular client calls lives under /api — matching environment.apiBase and the
 # dev proxy (apps/web/proxy.conf.json), with no path rewriting.

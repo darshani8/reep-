@@ -90,8 +90,11 @@ queues and DLQs, the Lambda, the DynamoDB tables, the OpenSearch Serverless
 collection, the api task role's policy — and publishes the `PLATFORM_*` values
 as SSM parameters under `/reep/voice-platform/`. The core stack stays
 Terraform; `infra/aws/voice_platform_bridge.tf` reads those parameters into the
-api task definition when `voice_platform_enabled = true`. `cdk deploy`, then
-`terraform apply`, then the next `deploy.yml` run; see `infra/cdk/README.md`.
+api task definition when `voice_platform_enabled = true`. Deploy order: the
+`CDK deploy (voice platform)` workflow (`.github/workflows/cdk-deploy.yml`, after
+a one-time `cdk bootstrap` and a `terraform apply` that lets the deploy role
+assume the bootstrap roles), then `terraform apply` with the flag on, then the
+ordinary Deploy run; see `infra/cdk/README.md`.
 The stack's template is pinned by `infra/cdk/tests/test_synth.py`, which
 synthesises it without AWS; it has not been deployed from this repository yet.
 

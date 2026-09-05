@@ -200,6 +200,66 @@ def _clear_login_failures(*keys: str) -> None:
     for key in keys:
         _login_failures.pop(key, None)
 
+
+# ---------------------------------------------------------------------------
+# Is the password door open?
+#
+# DERIVED FROM THE DATABASE, NOT TOGGLED, unless an operator overrides it.
+#
+# The first cut of production password sign-in was a single env flag. On
+# Fargate that flag lives in the task definition, which is a `terraform apply`
+# away — a human at a terminal with AWS credentials, by this repo's own design
+# (deploy.yml ships code and never infrastructure). Meanwhile issuing a KEY is
+# one ops-task run away. So an operator who had just deliberately issued the
+# first password would then be asked to make the same decision a second time,
+# in a different tool, and until they did the login screen would show a form
+# that 403s on every submission.
+#
+# Two sources of truth for one door is how a door ends up saying "open" over a
+# lock nobody has a key to, or "shut" while keys are in circulation. So there is
+# one: the door is open exactly when at least one account holds a real
+# `scrypt:` hash. Nothing self-issues a key — grant_access and seed_roster write
+# the SSO-only sentinel, app.seed refuses on ENV=prod — so "a key exists" can
+# only mean "an operator ran set_password or grant_access --password-hash on
+# purpose". The act of issuing the first key IS the decision to open the door.
+#
+# The env variable survives as the OVERRIDE, not the switch: PASSWORD_LOGIN=true
+# forces open (a dev box with no keys yet), PASSWORD_LOGIN=false forces shut
+# even with keys issued (incident response: shut the door, keep the hashes for
+# later), and dev/CI are always open because the suite signs in through this
+# endpoint. Blank means derive.
+#
+# WHAT THIS QUERY DISCLOSES. It answers "does ANY account have a password" and
+# is independent of the request, so it cannot be used to learn which account
+# does. That one bit is already public: GET /api/auth/sso/status reports it so
+# the login screen can render the form only when it can work.
+
+
+def password_keys_exist(db: Session) -> bool:
+    """Whether at least one account holds a real password hash.
+
+    `LIKE 'scrypt:%'` and not `!= SSO_ONLY_PASSWORD_HASH`: the sentinel is one
+    value today, and any other non-scrypt string that ever lands in the column
+    (a NULL-avoiding placeholder, a legacy format) must also count as "no key",
+    because verify_password refuses everything that is not exactly
+    scrypt:<salt>:<digest>. Only a hash that CAN verify is a key.
+    """
+    return (
+        db.scalar(select(User.id).where(User.password_hash.like("scrypt:%")).limit(1))
+        is not None
+    )
+
+
+def password_door_open(db: Session) -> bool:
+    """The single answer both /login and /sso/status give. See the note above."""
+    if settings.password_login_allowed:
+        # dev/CI, or PASSWORD_LOGIN=true. Never consult the DB for these: the
+        # suite's login fixture must not depend on which rows happen to exist.
+        return True
+    if settings.password_login_forced is False:
+        return False
+    return password_keys_exist(db)
+
 # Where a signed-in user lands when the flow carries no `?next=`. Mirrors
 # HOME_FOR_ROLE in apps/web/src/app/core/session.ts (the SPA's `''` route now
 # routes by role too, via homeRedirectGuard) â keep the two maps in step.
@@ -365,12 +425,15 @@ def login(
     Google. An operator who wants the same door for real people opens it
     deliberately, with one .env value, having read what it costs.
 
-    `password_login_allowed`, NOT `not is_prod`: dev/CI are an allowlist, and
-    every other environment — production, `staging`, a typo, an empty string
-    from a broken deploy — stays shut unless positively opened (see
-    app/config.py). The guard fires BEFORE the database is touched, so it cannot
-    be probed for which accounts exist and cannot be defeated by a timing
-    difference.
+    THE DOOR IS `password_door_open(db)`, one answer shared with /sso/status:
+    dev/CI always; PASSWORD_LOGIN=true always; PASSWORD_LOGIN=false never; and
+    otherwise open exactly when some account holds a real scrypt hash — because
+    a key can only exist if an operator issued one on purpose, and that act is
+    the decision (see the note above password_keys_exist). Never `not is_prod`:
+    `staging`, a typo, an empty ENV from a broken deploy all stay shut until a
+    key is deliberately issued. The one query the guard runs is independent of
+    the request, so it cannot be probed for WHICH accounts exist — only for the
+    bit the login screen's probe already publishes.
 
     WHAT OPENING IT TAKES ON. A password is guessable where a Google account
     behind the college's 2FA is not, and a guessed DIRECTOR password reads every
@@ -382,11 +445,14 @@ def login(
     SSO_ONLY_PASSWORD_HASH sentinel), and `app.seed` still refuses on ENV=prod,
     so the demo logins published in AGENTS.md cannot be what this admits.
     """
-    if not settings.password_login_allowed:
+    if not password_door_open(db):
         log.warning(
-            "POST /api/auth/login -> 403: password sign-in is disabled when ENV=%r "
-            "(Google sign-in only); set PASSWORD_LOGIN=true to offer it here",
+            "POST /api/auth/login -> 403: password sign-in is shut when ENV=%r and "
+            "PASSWORD_LOGIN=%r (no account holds a password, or the door is forced "
+            "shut); issue a key with `python -m app.set_password`, or set "
+            "PASSWORD_LOGIN=true",
             settings.env,
+            settings.password_login,
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -491,7 +557,7 @@ class SsoStatus(BaseModel):
 # this stays for anything else that was written against the old one. Hidden from
 # the schema so /docs shows one status endpoint, not two.
 @router.get("/google/status", response_model=SsoStatus, include_in_schema=False)
-def sso_status() -> SsoStatus:
+def sso_status(db: Session = Depends(get_db)) -> SsoStatus:
     """What sign-in methods this server actually offers. Unauthenticated by design.
 
     The login screen probes this before rendering, the same way the assistant
@@ -501,10 +567,12 @@ def sso_status() -> SsoStatus:
     button looks fine, the click fails, and nothing anywhere says the feature was
     never configured. Discloses no account data â only which doors exist.
     """
+    # One answer, computed once, so both branches below say the same thing.
+    available = password_door_open(db)
     if google_auth.sso_ready():
         return SsoStatus(
             google_available=True,
-            password_login_available=settings.password_login_allowed,
+            password_login_available=available,
             domain=settings.roster_domain,
         )
     reason = "Google sign-in is not configured on this server yet."
@@ -513,7 +581,7 @@ def sso_status() -> SsoStatus:
         log.error("GET /api/auth/sso/status -> 200 unavailable: ENV=prod and %s", reason)
     return SsoStatus(
         google_available=False,
-        password_login_available=settings.password_login_allowed,
+        password_login_available=available,
         domain=settings.roster_domain,
         reason=reason,
     )

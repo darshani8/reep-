@@ -28,7 +28,7 @@ import uuid
 
 import pytest
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select, update
 
 from app import set_password as sp
 from app.config import Settings, settings
@@ -138,9 +138,16 @@ def test_only_the_exact_word_true_opens_it(value: str) -> None:
 
 
 @requires_db
-def test_the_endpoint_403s_on_production_without_the_flag(client, monkeypatch) -> None:
+def test_production_with_no_keys_issued_refuses_passwords(client, monkeypatch) -> None:
+    """A fresh deployment: blank flag, every account holds the sentinel.
+
+    The seeded dev accounts DO hold scrypt hashes, so "no keys" has to be
+    simulated here: `password_keys_exist` is the one query the door asks, and
+    patching it to False is exactly the state a new production database is in.
+    """
     monkeypatch.setattr(settings, "env", "prod", raising=False)
     monkeypatch.setattr(settings, "password_login", "", raising=False)
+    monkeypatch.setattr(auth_router, "password_keys_exist", lambda db: False)
     r = client.post(
         "/api/auth/login",
         json={"email": "student@bgscet.ac.in", "password": "student123"},
@@ -148,6 +155,43 @@ def test_the_endpoint_403s_on_production_without_the_flag(client, monkeypatch) -
     assert r.status_code == 403
     # Names the door that does work rather than stopping at "no".
     assert "Google" in r.json()["detail"]
+
+
+@requires_db
+def test_production_opens_on_its_own_once_a_key_exists(client, monkeypatch) -> None:
+    """THE DERIVED DOOR. Blank flag, a real hash in the table: open.
+
+    This is the state production is in the moment an operator issues the first
+    password, and it must work with no second switch flipped anywhere — on
+    Fargate that switch is a terraform apply away and the form would 403 until
+    somebody found it.
+    """
+    monkeypatch.setattr(settings, "env", "prod", raising=False)
+    monkeypatch.setattr(settings, "password_login", "", raising=False)
+    auth_router._login_failures.clear()
+    # Not patched: the seeded student really does hold a scrypt hash, so the
+    # real query is what answers here.
+    r = client.post(
+        "/api/auth/login",
+        json={"email": "student@bgscet.ac.in", "password": "student123"},
+    )
+    assert r.status_code == 200, r.text
+
+
+@requires_db
+def test_password_login_false_shuts_the_door_over_issued_keys(client, monkeypatch) -> None:
+    """The hard off-switch. Keys exist; the operator said no; nobody gets in.
+
+    Incident response needs this shape: shut the door NOW without destroying
+    every hash, so the same accounts work again when it is reopened.
+    """
+    monkeypatch.setattr(settings, "env", "prod", raising=False)
+    monkeypatch.setattr(settings, "password_login", "false", raising=False)
+    r = client.post(
+        "/api/auth/login",
+        json={"email": "student@bgscet.ac.in", "password": "student123"},
+    )
+    assert r.status_code == 403
 
 
 @requires_db
@@ -167,18 +211,35 @@ def test_the_endpoint_works_on_production_with_the_flag(client, monkeypatch) -> 
 
 
 @requires_db
-def test_the_refusal_is_reported_by_the_capability_probe(client, monkeypatch) -> None:
+def test_the_probe_reports_the_same_door_the_endpoint_enforces(client, monkeypatch) -> None:
     """The login screen renders its form from this field, and fails CLOSED.
 
     A server that refuses the password must not advertise the form, or every
-    submission on it 403s and reads to a student as "my password is wrong".
+    submission on it 403s and reads to a student as "my password is wrong". So
+    the probe and /login must agree in every state — same function, one answer.
     """
     monkeypatch.setattr(settings, "env", "prod", raising=False)
-    monkeypatch.setattr(settings, "password_login", "", raising=False)
-    assert client.get("/api/auth/sso/status").json()["password_login_available"] is False
 
+    def probe() -> bool:
+        return client.get("/api/auth/sso/status").json()["password_login_available"]
+
+    # Blank flag, no keys: shut.
+    monkeypatch.setattr(settings, "password_login", "", raising=False)
+    monkeypatch.setattr(auth_router, "password_keys_exist", lambda db: False)
+    assert probe() is False
+
+    # Blank flag, a key exists: open, with nothing else changed.
+    monkeypatch.setattr(auth_router, "password_keys_exist", lambda db: True)
+    assert probe() is True
+
+    # Forced shut beats an issued key.
+    monkeypatch.setattr(settings, "password_login", "false", raising=False)
+    assert probe() is False
+
+    # Forced open beats having no keys.
     monkeypatch.setattr(settings, "password_login", "true", raising=False)
-    assert client.get("/api/auth/sso/status").json()["password_login_available"] is True
+    monkeypatch.setattr(auth_router, "password_keys_exist", lambda db: False)
+    assert probe() is True
 
 
 # --------------------------------------------------------------------------
@@ -392,3 +453,190 @@ def test_a_weak_password_is_refused_before_it_is_written(sso_only_account) -> No
         row = db.query(User).filter(User.email == email).one()
         assert row.password_hash == SSO_ONLY_PASSWORD_HASH
         assert not verify_password("director123", row.password_hash)
+
+
+# --------------------------------------------------------------------------
+# The derived door, and the three-state switch behind it
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("true", True), (" TRUE ", True), ("false", False), ("False", False),
+     ("", None), ("  ", None), ("yes", None), ("1", None), ("flase", None)],
+)
+def test_password_login_is_a_three_state_switch(value: str, expected) -> None:
+    """A typo degrades to DERIVED, never to open: "flase" is None, not True."""
+    assert _settings("prod", value).password_login_forced is expected
+
+
+@requires_db
+def test_password_keys_exist_sees_a_real_hash() -> None:
+    """The one query the door asks, run for real: the seed holds scrypt hashes."""
+    with SessionLocal() as db:
+        assert auth_router.password_keys_exist(db) is True
+
+
+# --------------------------------------------------------------------------
+# Provisioning a key by hash, from the browser
+# --------------------------------------------------------------------------
+
+from app import grant_access as ga  # noqa: E402
+from app.models.student_profile import StudentProfile  # noqa: E402
+from app.models.user import Mentor, Student  # noqa: E402
+
+
+@pytest.fixture
+def granted():
+    """Track accounts made through grant_access and tear them down in FK order.
+
+    grant_access can create User + Student + StudentProfile, or User + Mentor,
+    and a login writes login_days. Deleting in the wrong order nulls FKs into
+    NOT NULL columns and surfaces as an IntegrityError in the NEXT test.
+    """
+    emails: list[str] = []
+
+    def _track(email: str) -> str:
+        emails.append(email.strip().lower())
+        return email
+
+    yield _track
+
+    # Core statements, not ORM deletes, ON PURPOSE. `Student.mentor_id` is a bare
+    # FK column with no relationship() behind it, so the unit-of-work has no
+    # dependency edge between the two mappers and is free to emit `DELETE
+    # mentors` before `UPDATE students SET mentor_id = NULL` — which it did, and
+    # Postgres refused. Core statements execute in the order written.
+    with SessionLocal() as db:
+        ids = [
+            uid
+            for uid in (db.scalar(select(User.id).where(User.email == e)) for e in emails)
+            if uid is not None
+        ]
+        for uid in ids:
+            db.execute(delete(LoginDay).where(LoginDay.user_id == uid))
+            stu_ids = db.scalars(select(Student.id).where(Student.user_id == uid)).all()
+            if stu_ids:
+                db.execute(delete(StudentProfile).where(StudentProfile.student_id.in_(stu_ids)))
+                db.execute(delete(Student).where(Student.id.in_(stu_ids)))
+        for uid in ids:
+            group_ids = db.scalars(select(Mentor.id).where(Mentor.user_id == uid)).all()
+            if group_ids:
+                db.execute(
+                    update(Student).where(Student.mentor_id.in_(group_ids)).values(mentor_id=None)
+                )
+                db.execute(delete(Mentor).where(Mentor.id.in_(group_ids)))
+        for uid in ids:
+            db.execute(delete(User).where(User.id == uid))
+        db.commit()
+
+
+def _fresh(label: str) -> str:
+    return f"grant-{label}-{uuid.uuid4().hex[:8]}@demo.reep.invalid"
+
+
+def test_hash_for_paste_applies_the_floor_and_the_denylist() -> None:
+    with pytest.raises(ValueError):
+        sp.hash_for_paste("short")
+    with pytest.raises(ValueError):
+        sp.hash_for_paste("director123")
+    h = sp.hash_for_paste("correct horse battery staple")
+    # Exactly the shape grant_access will accept, and it verifies.
+    assert ga._PASSWORD_HASH_RE.fullmatch(h)
+    assert verify_password("correct horse battery staple", h)
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "correct horse battery staple",  # a PASSWORD, not a hash
+        "director123",
+        "google-only",  # the sentinel
+        "scrypt:abc:def",  # right prefix, wrong lengths
+        "sha256:" + "0" * 32 + ":" + "0" * 128,  # wrong KDF
+        "scrypt:" + "0" * 32 + ":" + "0" * 127,  # one hex short
+        "",
+    ],
+)
+def test_grant_access_refuses_anything_that_is_not_a_scrypt_hash(bad: str) -> None:
+    """A password pasted into the hash box by mistake must be REJECTED, not
+    stored as a key nobody can use — or worse, stored as a key that works."""
+    with pytest.raises(ValueError):
+        ga._validate_password_hash(bad)
+
+
+@requires_db
+def test_grant_access_with_a_hash_yields_an_account_that_signs_in(client, granted) -> None:
+    """The end-to-end browser path: hash locally, grant with it, sign in."""
+    email = granted(_fresh("alumni"))
+    h = sp.hash_for_paste("correct horse battery staple")
+    with SessionLocal() as db:
+        user, created = ga.grant(db, email, "Hashed Alumnus", Role.ALUMNI, password_hash=h)
+    assert created is True
+    assert user.password_hash == h
+    auth_router._login_failures.clear()
+    r = client.post(
+        "/api/auth/login",
+        json={"email": email, "password": "correct horse battery staple"},
+    )
+    assert r.status_code == 200, r.text
+
+
+@requires_db
+def test_regranting_with_a_hash_rotates_and_without_one_leaves_it(granted) -> None:
+    """"Promote this person" must never silently revoke their password."""
+    email = granted(_fresh("rotate"))
+    first = sp.hash_for_paste("first passphrase here")
+    second = sp.hash_for_paste("second passphrase here")
+    with SessionLocal() as db:
+        ga.grant(db, email, "Rotate", Role.ALUMNI, password_hash=first)
+        user, created = ga.grant(db, email, "Rotate", Role.ALUMNI, password_hash=second)
+        assert created is False
+        assert user.password_hash == second
+        # Re-run with NO hash: name/role update only, key untouched.
+        user, _ = ga.grant(db, email, "Rotate Renamed", Role.ALUMNI)
+        assert user.password_hash == second
+        assert user.name == "Rotate Renamed"
+
+
+@requires_db
+def test_a_student_can_be_placed_in_a_mentors_group(granted) -> None:
+    """Rule 2 made usable for a demo: the mentor actually sees the student."""
+    mentor_email = granted(_fresh("mentor"))
+    student_email = granted(_fresh("student"))
+    with SessionLocal() as db:
+        ga.grant(db, mentor_email, "Demo Mentor", Role.MENTOR, with_group=True)
+        ga.grant(
+            db, student_email, "Demo Student", Role.STUDENT,
+            usn=f"DEMO{uuid.uuid4().hex[:6].upper()}", mentor_email=mentor_email,
+        )
+        mentor_user = db.scalar(select(User).where(User.email == mentor_email))
+        group = db.scalar(select(Mentor).where(Mentor.user_id == mentor_user.id))
+        stu_user = db.scalar(select(User).where(User.email == student_email))
+        stu = db.scalar(select(Student).where(Student.user_id == stu_user.id))
+        assert stu.mentor_id == group.id
+
+
+@requires_db
+def test_mentor_placement_refuses_the_cases_that_would_lie(granted) -> None:
+    """Each refusal is a state where the operator would believe something the
+    mentor screen would then contradict."""
+    groupless = granted(_fresh("groupless"))
+    not_a_mentor = granted(_fresh("alum"))
+    student_email = granted(_fresh("student"))
+    with SessionLocal() as db:
+        ga.grant(db, groupless, "No Group", Role.MENTOR)  # no with_group
+        ga.grant(db, not_a_mentor, "An Alumnus", Role.ALUMNI)
+
+        # --mentor on a non-student is meaningless.
+        with pytest.raises(ValueError, match="STUDENT only"):
+            ga.grant(db, _fresh("x"), "X", Role.ALUMNI, mentor_email=groupless)
+        # A mentor with no group has nothing to point the student at.
+        with pytest.raises(ValueError, match="no Mentor group"):
+            ga.grant(db, student_email, "S", Role.STUDENT, usn="DEMOX1", mentor_email=groupless)
+        # Not a mentor at all.
+        with pytest.raises(ValueError, match="not a MENTOR"):
+            ga.grant(db, student_email, "S", Role.STUDENT, usn="DEMOX2", mentor_email=not_a_mentor)
+        # Nobody by that address.
+        with pytest.raises(ValueError, match="not a MENTOR"):
+            ga.grant(db, student_email, "S", Role.STUDENT, usn="DEMOX3", mentor_email=_fresh("ghost"))

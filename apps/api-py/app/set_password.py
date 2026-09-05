@@ -133,6 +133,22 @@ def revoke_password(db, email: str) -> User:
     return user
 
 
+def hash_for_paste(password: str) -> str:
+    """The scrypt hash for `password`, after the same checks set_password applies.
+
+    This is the `--print-hash` path's library half: the plaintext is checked
+    against the length floor and the published-password denylist HERE, on the
+    operator's machine, and only the hash leaves it — pasted into the ops-task
+    workflow's `password_hash` input for `app.grant_access --password-hash`.
+    That is how a production account gets a password without the password ever
+    crossing the RunTask API, where CloudTrail would keep it for 90 days.
+    """
+    problem = password_problem(password)
+    if problem:
+        raise ValueError(problem)
+    return hash_password(password)
+
+
 def _prompt_for_password() -> str | None:
     """Ask twice, echo neither. None if they do not match."""
     first = getpass.getpass("New password (not echoed): ")
@@ -150,14 +166,42 @@ def main() -> int:
             "at a prompt and is never accepted as a command-line flag."
         ),
     )
-    parser.add_argument("email", help="the account's address, e.g. someone@bgscet.ac.in")
+    parser.add_argument(
+        "email",
+        nargs="?",
+        default=None,
+        help="the account's address, e.g. someone@bgscet.ac.in (not needed with --print-hash)",
+    )
     parser.add_argument(
         "--revoke",
         action="store_true",
         help="remove the password instead of setting one, restoring the "
         "SSO-only sentinel. Google sign-in for the account is unaffected.",
     )
+    parser.add_argument(
+        "--print-hash",
+        action="store_true",
+        help="touch no database: prompt for a password, apply the same checks, "
+        "and print its scrypt hash for `app.grant_access --password-hash` (or "
+        "the ops-task workflow's password_hash input). The password stays on "
+        "this machine; only the hash travels.",
+    )
     args = parser.parse_args()
+
+    if args.print_hash:
+        password = _prompt_for_password()
+        if password is None:
+            print("REFUSED: the two entries did not match.", file=sys.stderr)
+            return 2
+        try:
+            print(hash_for_paste(password))
+        except ValueError as exc:
+            print(f"REFUSED: {exc}", file=sys.stderr)
+            return 2
+        return 0
+
+    if not args.email:
+        parser.error("an email address is required (or use --print-hash)")
     address = args.email.strip().lower()
 
     # Named BEFORE the write, for the reason app.grant_access says it out loud:

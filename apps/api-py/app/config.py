@@ -495,6 +495,16 @@ class Settings(BaseSettings):
     # setting exists so a deployment that sees the stream cut sooner can say so
     # rather than discovering it one interview at a time.
     nova_sonic_connection_seconds: int = 480
+    # How long opening the stream AND completing the handshake may take before
+    # the student is told the interviewer is unavailable (close 4002) instead of
+    # left on an open socket that never speaks. Production hung exactly there:
+    # the engine awaited Bedrock's response headers before it had sent
+    # sessionStart, Bedrock does not answer until it has, and nothing bounded
+    # the wait — the interview_sessions row stayed `running` with no close code
+    # and the student saw a spinner. 20 s is several times a healthy handshake
+    # (~1-2 s from ap-south-1 to Tokyo) and short enough that the sentence
+    # arrives while the student is still looking at the screen.
+    nova_sonic_open_timeout_seconds: int = 20
 
     # The interviewer's model, SEPARATE from llm_model on purpose.
     #

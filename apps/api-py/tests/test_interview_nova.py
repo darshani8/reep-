@@ -21,6 +21,7 @@ import inspect
 import json
 
 import pytest
+from fastapi import WebSocketDisconnect
 from fastapi.websockets import WebSocketState
 
 from app import interview_nova as nova
@@ -1092,6 +1093,124 @@ class TestTheWholeLoop:
         session = NovaSonicSession(_SilentBrowser(), "c0ffee123456")
         code, _reason = run(session.run())
         assert code == nova._CLOSE_UPSTREAM_UNAVAILABLE
+
+
+class TestTheOpenSequence:
+    """The production hang, pinned.
+
+    Bedrock does not send the response half of a bidirectional stream until it
+    has received sessionStart. The engine used to await that response half
+    inside open(), BEFORE the handshake had sent anything, and nothing bounded
+    the wait — so a real interview was an open socket that never spoke and an
+    interview_sessions row left `running` with no close code. Two properties
+    close that, and each has a test that fails without it:
+
+      ORDER  — the response half is awaited only after sessionStart is sent;
+      BOUND  — open + handshake + attach cannot take longer than the setting,
+               after which the student gets 4002 and a sentence.
+    """
+
+    def _ready_script(self) -> list[dict]:
+        # Just enough upstream for run() to greet and then end on its own.
+        return [
+            {"event": {"completionStart": {"promptName": "p", "sessionId": "sess-1"}}},
+        ]
+
+    def test_bedrock_that_answers_only_after_session_start_is_greeted(self, monkeypatch):
+        """THE DEADLOCK. Bedrock, modelled honestly: headers after sessionStart.
+
+        With the old ordering run() awaits headers first and sessionStart is
+        never sent; this test would hang, so the open bound is set short and
+        the failure mode of a regression is a fast 4002, not a stuck suite.
+        """
+        session_started = asyncio.Event()
+
+        class _HonestBedrock(_ScriptedUpstream):
+            attached = False
+
+            async def send(self, event: dict) -> None:
+                await super().send(event)
+                if "sessionStart" in event.get("event", {}):
+                    session_started.set()
+
+            async def attach_output(self) -> None:
+                # Exactly what the service does: nothing until it has an event.
+                await session_started.wait()
+                self.attached = True
+
+        class _LeavesAfterReady(_FakeBrowser):
+            """A student who closes the tab the moment the interviewer is ready.
+
+            The scripted upstream has no scorecard to end the session with, and
+            waiting for the idle cap would make this test as slow as the cap.
+            A disconnect right after `reep.ready` ends run() with a clean
+            "Client disconnected", which is enough: the point is that ready was
+            reached at all.
+            """
+
+            async def receive(self) -> dict:
+                while not self.of_type("reep.ready"):
+                    await asyncio.sleep(0.01)
+                raise WebSocketDisconnect(code=1001)
+
+        upstream = _HonestBedrock(self._ready_script())
+        monkeypatch.setattr(nova, "_NovaUpstream", lambda *args, **kwargs: upstream)
+        monkeypatch.setattr(settings, "nova_sonic_region", "us-east-1")
+        monkeypatch.setattr(settings, "nova_sonic_open_timeout_seconds", 2)
+
+        browser = _LeavesAfterReady()
+        session = NovaSonicSession(browser, "c0ffee123456", specialization=SPECIALIZATIONS["hr"])
+        code, reason = run(session.run())
+
+        assert upstream.attached is True, "the response half was never attached"
+        assert browser.of_type("reep.ready"), "the student was never told to start"
+        # sessionStart went out BEFORE the response half was awaited.
+        assert next(iter(upstream.sent[0]["event"])) == "sessionStart"
+        assert (code, reason) == (_CLOSE_OK, "Client disconnected")
+
+    def test_a_response_half_that_never_arrives_is_4002_within_the_bound(self, monkeypatch):
+        """THE BOUND, on the attach. A silent Bedrock becomes a sentence."""
+
+        class _Mute(_ScriptedUpstream):
+            async def attach_output(self) -> None:
+                await asyncio.sleep(3600)
+
+        upstream = _Mute([])
+        monkeypatch.setattr(nova, "_NovaUpstream", lambda *args, **kwargs: upstream)
+        monkeypatch.setattr(settings, "nova_sonic_region", "us-east-1")
+        monkeypatch.setattr(settings, "nova_sonic_open_timeout_seconds", 0.3)
+
+        browser = _SilentBrowser()
+        session = NovaSonicSession(browser, "c0ffee123456", specialization=SPECIALIZATIONS["hr"])
+        code, reason = run(session.run())
+
+        assert code == nova._CLOSE_UPSTREAM_UNAVAILABLE
+        assert reason == "Interviewer service unavailable"
+        # Never told to start talking to a service that never answered.
+        assert not browser.of_type("reep.ready")
+        # And the row was finalized: aclose ran, so the finally block did.
+        assert upstream.closed is True
+
+    def test_an_open_that_never_returns_is_4002_within_the_bound(self, monkeypatch):
+        """THE BOUND, on open() itself — a black-holed TCP connect."""
+
+        class _Hanging(_FakeUpstream):
+            closed = False
+
+            async def open(self) -> None:
+                await asyncio.sleep(3600)
+
+            async def aclose(self, **kwargs) -> None:
+                self.closed = True
+
+        upstream = _Hanging()
+        monkeypatch.setattr(nova, "_NovaUpstream", lambda *args, **kwargs: upstream)
+        monkeypatch.setattr(settings, "nova_sonic_region", "us-east-1")
+        monkeypatch.setattr(settings, "nova_sonic_open_timeout_seconds", 0.3)
+
+        session = NovaSonicSession(_SilentBrowser(), "c0ffee123456")
+        code, reason = run(session.run())
+        assert (code, reason) == (nova._CLOSE_UPSTREAM_UNAVAILABLE, "Interviewer service unavailable")
 
 
 class _RecordingUpstream(nova._NovaUpstream):

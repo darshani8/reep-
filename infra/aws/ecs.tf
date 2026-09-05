@@ -107,7 +107,7 @@ locals {
   ]
 
   # api_environment plus the voice platform's PLATFORM_* variables when
-  # voice_platform.tf is switched on (an empty list otherwise).
+  # voice_platform_bridge.tf reads them from the CDK stack (an empty list otherwise).
   api_environment_all = concat(local.api_environment, local.vp_environment)
 
   api_secrets = [

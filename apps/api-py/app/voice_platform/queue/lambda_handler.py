@@ -2,12 +2,12 @@
 bucket → validate every row → push the accepted ones onto the Undergraduate or
 Postgraduate SQS queue → write a rejects report next to the file.
 
-Deployed by infra/aws/voice_platform.tf as a zip of this directory, so it
+Deployed by the CDK stack in infra/cdk as a zip of this directory, so it
 imports only the standard library, boto3 (in every Lambda Python runtime) and
 its siblings `validation.py` / `sqs.py` — by relative import when running
 inside the API package (tests) and by plain module name inside the zip.
 
-Environment (set by Terraform):
+Environment (set by the CDK stack):
     PLATFORM_UG_QUEUE_URL, PLATFORM_PG_QUEUE_URL   the two streams
     PLATFORM_REJECTS_PREFIX                        default "rejects/"
 

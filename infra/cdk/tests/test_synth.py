@@ -101,6 +101,22 @@ def test_the_api_task_role_is_imported_and_granted_not_redefined() -> None:
         "AWS::IAM::Policy",
         {"PolicyName": "voice-platform", "Roles": ["reep-api-task"]},
     )
+    t.has_resource_properties(
+        "AWS::IAM::Policy",
+        {"PolicyName": "deploy-cdk-stacks", "Roles": ["reep-github-deploy"]},
+    )
+
+
+def test_the_api_may_read_its_settings_path_and_the_deploy_role_the_bootstrap_roles() -> None:
+    t = _template()
+    policies = t.find_resources("AWS::IAM::Policy")
+    by_name = {p["Properties"]["PolicyName"]: p["Properties"]["PolicyDocument"]["Statement"] for p in policies.values()}
+    api = by_name["voice-platform"]
+    ssm_stmt = next(s for s in api if "ssm:GetParametersByPath" in s["Action"])
+    assert any("reep/voice-platform" in str(r) for r in ssm_stmt["Resource"])
+    deploy = by_name["deploy-cdk-stacks"]
+    assume = next(s for s in deploy if s["Action"] == "sts:AssumeRole")
+    assert "cdk-hnb659fds-*" in str(assume["Resource"])
 
 
 def test_every_platform_setting_is_published_to_ssm() -> None:

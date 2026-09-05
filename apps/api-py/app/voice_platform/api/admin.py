@@ -40,6 +40,7 @@ from ...models.voice_platform import (
     PlatformTimeLimit,
 )
 from ...routers.mentor import require_director
+from .. import ssm_config
 from ..engine import nova as engine
 from ..monitoring.cloudwatch import handler_span
 from ..queue import validation
@@ -71,6 +72,9 @@ def _422(exc: Exception) -> HTTPException:
 
 class StatusOut(BaseModel):
     engine_ready: bool
+    #: Where the PLATFORM_* settings came from: "env", "ssm:<path>" or
+    #: "unavailable: <why>" (see app/voice_platform/ssm_config.py).
+    config_source: str
     queues: dict[str, bool]
     recordings_bucket: bool
     dynamo_tables: dict[str, bool]
@@ -407,6 +411,7 @@ def platform_status(_: dict = Depends(_admin)) -> StatusOut:
         notes.append("ffmpeg is not on this host; an 'mp3' recording policy produces WAV.")
     return StatusOut(
         engine_ready=engine.engine_ready(),
+        config_source=ssm_config.source() or "env",
         queues=queues,
         recordings_bucket=bool(settings.platform_recordings_bucket.strip()),
         dynamo_tables=dynamo,

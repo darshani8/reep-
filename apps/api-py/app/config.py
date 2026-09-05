@@ -549,63 +549,6 @@ class Settings(BaseSettings):
     # 480 = Bedrock's own 8-minute stream wall (see nova_sonic_connection_seconds).
     platform_default_time_limit_seconds: int = 480
 
-    # ---- The voice-assistant platform (app/voice_platform) ---------------
-    #
-    # The dual-path (Undergraduate / Postgraduate) interview platform: Admin
-    # CRUD, the /ws/media-bridge socket, the S3 -> Lambda -> SQS candidate
-    # ingest, and dual-channel call recordings. EVERY variable here is
-    # optional and every projection degrades honestly when its variable is
-    # blank: no bucket means the stereo recording stays on the local audio
-    # volume and the API says so; no table means an in-memory session store;
-    # no endpoint means a no-op search index; no queue URL means the bulk
-    # ingest answers 503 rather than pretending to enqueue. A deployment that
-    # never sets any of them runs exactly as it did before the platform existed.
-    #
-    # Region: PLATFORM_AWS_REGION, then the ordinary AWS environment. Unlike
-    # Nova's endpoint this is passed to boto3 clients, so "" is "let the SDK
-    # decide" — see `platform_region`.
-    platform_aws_region: str = ""
-    # The two candidate streams. One queue per degree level, because the
-    # Undergraduate and Postgraduate workers are separate consumers with
-    # separate catalogues; a shared queue would need every consumer to filter.
-    platform_ug_queue_url: str = ""
-    platform_pg_queue_url: str = ""
-    # Where bulk CSV/JSON candidate files are dropped (the S3 trigger's source)
-    # and where the Lambda writes its per-file rejects report.
-    platform_bulk_upload_bucket: str = ""
-    # The Recording Bucket for the finished dual-channel files, and the prefix
-    # under which `storage.s3.RecordingStore.key_for` lays them out.
-    platform_recordings_bucket: str = ""
-    platform_recordings_prefix: str = "recordings"
-    # Default lifetime of the presigned `recording_s3_url`, in seconds. Bounded
-    # by S3 itself at 7 days; the per-degree recording policy may shorten it.
-    platform_presign_ttl_seconds: int = 3600
-    # Realtime session metadata: `Undergraduate Sessions` / `Postgraduate
-    # Sessions`. Postgres stays the source of truth; these are projections.
-    platform_dynamo_ug_table: str = ""
-    platform_dynamo_pg_table: str = ""
-    platform_dynamo_ttl_days: int = 180
-    # OpenSearch Serverless collection endpoint (https://....aoss.amazonaws.com)
-    # for searchable session logs and question vectors. Signed with SigV4 from
-    # the standard chain; no key is pasted anywhere.
-    platform_opensearch_endpoint: str = ""
-    platform_opensearch_sessions_index: str = "candidate-sessions"
-    platform_opensearch_questions_index: str = "question-vectors"
-    # CloudWatch: a log group to ship the platform's handler logs to directly
-    # (blank = stdout only, which the ECS awslogs driver already ships), and the
-    # namespace for its custom metrics.
-    platform_cloudwatch_log_group: str = ""
-    platform_cloudwatch_namespace: str = "REEP/VoicePlatform"
-    # The WAV buffer's hard cap per call, in bytes of raw PCM across both
-    # channels. 256 MB is ~45 minutes of 24 kHz stereo — three times the longest
-    # limit the catalogue may set — so a legitimate call never meets it and a
-    # runaway one cannot exhaust a worker.
-    platform_buffer_max_bytes: int = 256000000
-    # The call length used when the catalogue has no time-limit row for a
-    # degree level. 480 s is Bedrock's stream wall; anything longer is capped
-    # there anyway, with a log line naming the row that asked for more.
-    platform_default_time_limit_seconds: int = 480
-
     # The interviewer's model, SEPARATE from llm_model on purpose.
     #
     # llm_model serves the resume builder and the grounded assistant, where a
@@ -754,10 +697,6 @@ class Settings(BaseSettings):
         "interview_report_timeout_ms",
         "nova_sonic_input_rate_hz",
         "nova_sonic_connection_seconds",
-        "platform_presign_ttl_seconds",
-        "platform_dynamo_ttl_days",
-        "platform_buffer_max_bytes",
-        "platform_default_time_limit_seconds",
         "platform_presign_ttl_seconds",
         "platform_dynamo_ttl_days",
         "platform_buffer_max_bytes",
@@ -988,29 +927,6 @@ class Settings(BaseSettings):
 
     def platform_dynamo_table(self, degree_level: str) -> str:
         """The DynamoDB sessions table for one degree level, or ""."""
-        level = degree_level.strip().upper()
-        if level == "UG":
-            return self.platform_dynamo_ug_table.strip()
-        if level == "PG":
-            return self.platform_dynamo_pg_table.strip()
-        return ""
-
-    @property
-    def platform_region(self) -> str:
-        """The region the platform's AWS clients use: PLATFORM_AWS_REGION, else
-        the same chain the Nova engine resolves (so one region variable serves
-        a single-region deployment), else "" for "let boto3 decide"."""
-        return self.platform_aws_region.strip() or self.nova_region
-
-    def platform_queue_url(self, degree_level: str) -> str:
-        level = degree_level.strip().upper()
-        if level == "UG":
-            return self.platform_ug_queue_url.strip()
-        if level == "PG":
-            return self.platform_pg_queue_url.strip()
-        return ""
-
-    def platform_dynamo_table(self, degree_level: str) -> str:
         level = degree_level.strip().upper()
         if level == "UG":
             return self.platform_dynamo_ug_table.strip()

@@ -39,6 +39,7 @@ from .routers import (
 from .voice_platform.api import admin as platform_admin
 from .voice_platform.api import calls as platform_calls
 from .voice_platform.api import media_bridge as platform_bridge
+from .voice_platform import ssm_config as platform_ssm_config
 from .voice_platform.monitoring import cloudwatch as platform_cloudwatch
 
 log = logging.getLogger("reep.startup")
@@ -102,6 +103,10 @@ async def lifespan(_app: FastAPI):
     logging.getLogger("websockets").setLevel(logging.INFO)
     # The voice platform's direct CloudWatch Logs handler, only when
     # PLATFORM_CLOUDWATCH_LOG_GROUP is set (stdout -> awslogs is the default).
+    # The voice platform's PLATFORM_* settings, from the SSM parameters its CDK
+    # stack publishes (app/voice_platform/ssm_config.py). Environment wins; a
+    # blank is filled; any failure leaves the setting blank and is logged.
+    platform_ssm_config.load()
     platform_cloudwatch.configure()
 
     # 1) REFUSE to serve real people with the credentials published in this repo.

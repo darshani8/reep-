@@ -14,9 +14,8 @@ same event names, the same records, the same consent gate and the same client.
 
 There is **no fifth process**. The relay runs inside the FastAPI app that already
 serves the dashboard, so it shares that app's session cookie, its database and
-its deployment. (`apps/interview-realtime/` is the superseded standalone
-prototype — see the banner at the top of its `app/server.py`. It has no
-authentication and no database; do not run it.)
+its deployment. (`apps/interview-realtime/`, the superseded standalone prototype
+with no authentication and no database, was deleted in 2026-09.)
 
 | file | role |
 |---|---|

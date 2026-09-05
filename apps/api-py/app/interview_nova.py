@@ -399,7 +399,17 @@ class _NovaUpstream:
     a document that is not one.
     """
 
-    __slots__ = ("_model", "_region", "_log", "_client", "_stream", "_output", "_lock", "_closed")
+    __slots__ = (
+        "_model",
+        "_region",
+        "_log",
+        "_client",
+        "_stream",
+        "_output",
+        "_lock",
+        "_attach_lock",
+        "_closed",
+    )
 
     def __init__(self, model: str, region: str, conn_log: Any) -> None:
         self._model = model
@@ -408,6 +418,10 @@ class _NovaUpstream:
         self._client: Any = None
         self._stream: Any = None
         self._output: Any = None
+        # attach_output() may be entered twice — once from run()'s opening
+        # TaskGroup and once lazily from the first receive() — and
+        # await_output() must be awaited exactly once per stream.
+        self._attach_lock = asyncio.Lock()
         self._lock = asyncio.Lock()
         self._closed = False
 
@@ -470,9 +484,10 @@ class _NovaUpstream:
         when the upstream offers it. Idempotent, and receive() calls it too, so
         an upstream whose run() skipped it still attaches on first read.
         """
-        if self._output is not None or self._stream is None:
-            return
-        _initial, self._output = await self._stream.await_output()
+        async with self._attach_lock:
+            if self._output is not None or self._stream is None:
+                return
+            _initial, self._output = await self._stream.await_output()
 
     async def send(self, event: dict[str, Any]) -> None:
         """Send one event document. Silently a no-op once closed.
@@ -743,13 +758,22 @@ class NovaSonicSession:
                 settings.nova_region,
                 settings.nova_sonic_model,
             )
-            return _CLOSE_UPSTREAM_UNAVAILABLE, "Interviewer service unavailable"
+            # The PHASE rides in the close reason, in parentheses. The student's
+            # screen maps 4002 to its own sentence and never shows this text;
+            # the reason lands in interview_sessions.terminal_reason and in the
+            # browser's close frame, which is how an operator with no log access
+            # — a diagnostic probe, a staff screen — can tell "the connection
+            # never opened" from "it opened and the service never answered".
+            return _CLOSE_UPSTREAM_UNAVAILABLE, "Interviewer service unavailable (open timed out)"
         except Exception as exc:  # noqa: BLE001 - every failure is the same to the student
             # Credentials, IAM, an unsupported region, a throttle at the door.
             # All of them are 4002 to the browser and all of them are named in
             # the log, which is the only place the difference is actionable.
             self._log.error("Could not open the Nova Sonic stream: %s", exc)
-            return _CLOSE_UPSTREAM_UNAVAILABLE, "Interviewer service unavailable"
+            return (
+                _CLOSE_UPSTREAM_UNAVAILABLE,
+                f"Interviewer service unavailable ({type(exc).__name__})",
+            )
         self._upstream = upstream
 
         code, reason = _CLOSE_OK, "Interview complete"
@@ -768,11 +792,38 @@ class NovaSonicSession:
             # row, instead of a socket that is open and silent forever.
             # `attach_output` is duck-typed because the test fakes reduce
             # Bedrock to send(); only the real upstream has a response half.
+            # CONCURRENTLY, not in either order — this is the AWS sample's own
+            # shape (a receive task is started, then the session-start events
+            # are sent). Both sequential orders deadlock against a real
+            # Bedrock: attach-then-handshake waits for headers the service
+            # sends only after sessionStart; handshake-then-attach waits for a
+            # send() that can block until the connection the output side
+            # establishes exists. Production showed each in turn. Running both
+            # under one bound works whichever side the service is waiting on.
             attach_output = getattr(upstream, "attach_output", None)
-            async with asyncio.timeout(open_timeout):
-                await self._handshake()
-                if attach_output is not None:
-                    await attach_output()
+            try:
+                async with asyncio.timeout(open_timeout):
+                    async with asyncio.TaskGroup() as opening:
+                        if attach_output is not None:
+                            opening.create_task(
+                                attach_output(), name=f"nova-attach-{self._conn_id}"
+                            )
+                        opening.create_task(
+                            self._handshake(), name=f"nova-handshake-{self._conn_id}"
+                        )
+            except TimeoutError:
+                self._log.error(
+                    "Nova Sonic handshake did not complete within %.0fs "
+                    "(region=%s model=%s): the stream opened but the service "
+                    "never answered sessionStart",
+                    open_timeout,
+                    settings.nova_region,
+                    settings.nova_sonic_model,
+                )
+                raise _SessionEnded(
+                    _CLOSE_UPSTREAM_UNAVAILABLE,
+                    "Interviewer service unavailable (handshake timed out)",
+                )
             await self._send_ready()
             async with asyncio.TaskGroup() as group:
                 group.create_task(self._pump_upstream(), name=f"nova-up-{self._conn_id}")

@@ -191,7 +191,10 @@
   }
 </section>
 
-<!-- ============ ACADEMIC HISTORY ============ -->
+<!-- ============ ACADEMIC HISTORY ============
+     The 10th → PG chain and declared gaps, read-only. The editable Academics
+     screen this used to point at is retired with the v2 handoff: the record is
+     office-maintained and a student reads it here, beside their VTU marks. -->
 <section class="rec-section">
   <h2 class="rec-h"><span class="icon">history_edu</span> Academic History</h2>
 
@@ -202,8 +205,12 @@
       We could not load your academic history just now. Please refresh in a moment.
     </div>
   } @else if (!academics() || !academics()!.qualifications.length) {
+    <!-- Read-only by design: the handoff has no entry form for qualifications,
+         and the old Academics screen that carried one is retired, so this must
+         not send a student to a screen that no longer exists. -->
     <div class="card c-note">
-      No qualifications on record yet. Add them from the Academics screen and they appear here.
+      No qualifications on record yet. Your 10th, 12th and prior-degree record appears here once
+      the office adds it to your student record.
     </div>
   } @else {
     <div class="qual-grid">

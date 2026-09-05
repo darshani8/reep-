@@ -1,0 +1,447 @@
+/* The REEP Agent chat. The handoff draws this screen in its own quieter
+ * register — flat hairline surfaces, pill controls, no card gradients — so
+ * almost nothing here is a global class. Colours come from the reep-v2 tokens
+ * wherever the handoff's value has one; the three that do not (the user bubble,
+ * the muted lilac hint ink, the 4% purple wash) are declared once below. */
+
+:host {
+  display: block;
+}
+
+.agent {
+  --ag-bubble-user: #3a1f52;
+  --ag-hint: #8a739f;
+  --ag-wash: rgba(58, 31, 82, 0.04);
+  --ag-rule: rgba(58, 31, 82, 0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- header ------------------------------------------------------------- */
+.ag-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+.ag-title {
+  min-width: 0;
+}
+.ag-title h1 {
+  margin: 0;
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.021em;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.ag-title p {
+  margin: 6px 0 0;
+  max-width: 68ch;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.ag-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.ag-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  font-family: var(--font);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink);
+}
+.ag-ghost:hover:not(:disabled) {
+  background: var(--ag-wash);
+}
+.ag-ghost:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ag-hint);
+}
+
+/* --- disclaimer + error ------------------------------------------------- */
+.ag-disclaimer {
+  margin: 0 0 20px;
+  max-width: 68ch;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.ag-disclaimer a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ag-error {
+  color: var(--ink-nav);
+  margin: 0 0 16px;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+/* --- the frame ---------------------------------------------------------- */
+.ag-frame {
+  display: flex;
+  flex-direction: column;
+  /* Tall enough to read as a chat, bounded so the message pane — not the
+     page — is what scrolls. The shell's main column already scrolls; two
+     nested full-height scrollers would fight over the wheel. */
+  height: max(420px, calc(100vh - 330px));
+  border: 1px solid var(--hairline-42);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.ag-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ag-quiet {
+  margin: 0;
+  color: var(--ag-hint);
+  font-size: 0.8125rem;
+}
+
+/* --- turns -------------------------------------------------------------- */
+.ag-row {
+  display: flex;
+  justify-content: flex-start;
+}
+.ag-row--user {
+  justify-content: flex-end;
+}
+.ag-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 82%;
+  align-items: flex-start;
+}
+.ag-stack--user {
+  align-items: flex-end;
+}
+.ag-bubble {
+  padding: 10px 14px;
+  border-radius: 22px;
+  line-height: 1.5;
+  font-size: 0.925rem;
+  background: var(--ag-wash);
+  color: var(--ink);
+  border: 1px solid var(--hairline-42);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ag-bubble--user {
+  background: var(--ag-bubble-user);
+  color: #fff;
+  border-color: transparent;
+}
+.ag-turn-state {
+  font-size: 0.75rem;
+  color: var(--ag-hint);
+  padding: 0 6px;
+}
+
+/* actions: "→ label / reason" cards */
+.ag-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.ag-action {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--hairline-42);
+  background: var(--ag-wash);
+  text-decoration: none;
+  color: var(--ink);
+}
+.ag-action:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.ag-action__arrow {
+  font-weight: 700;
+  line-height: 1.4;
+}
+.ag-action__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ag-action__label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.ag-action__reason {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* sources */
+.ag-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ag-source {
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--hairline-42);
+  color: var(--muted);
+  background: var(--ag-wash);
+}
+.ag-source--policy {
+  border-color: var(--brand-purple);
+  color: var(--brand-purple);
+  background: rgba(143, 97, 0, 0.1);
+}
+
+/* limitations */
+.ag-limits {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--ag-rule);
+  color: var(--ag-hint);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.ag-limits p {
+  margin: 0;
+}
+.ag-limits p + p {
+  margin-top: 4px;
+}
+
+/* feedback row */
+.ag-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.ag-textbtn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  border-radius: var(--r-pill);
+}
+.ag-textbtn--muted {
+  color: var(--muted);
+}
+.ag-textbtn--on {
+  color: var(--risk);
+}
+.ag-votes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ag-vote {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.ag-vote:hover {
+  background: var(--ag-wash);
+}
+.ag-vote--on {
+  border-color: var(--ag-bubble-user);
+  background: var(--ag-wash);
+}
+.ag-thanks {
+  font-size: 0.75rem;
+  color: var(--purple-mid);
+  font-weight: 600;
+}
+
+/* typing indicator */
+.ag-typing {
+  padding: 10px 14px;
+  border-radius: 22px;
+  background: var(--ag-wash);
+  border: 1px solid var(--hairline-42);
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.ag-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ag-hint);
+  animation: ag-blink 1.2s infinite ease-in-out;
+}
+.ag-typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.ag-typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes ag-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* --- empty state + starters --------------------------------------------- */
+.ag-empty {
+  margin: auto;
+  max-width: 44ch;
+  text-align: center;
+  color: var(--ag-hint);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.ag-empty p {
+  margin: 0;
+}
+.ag-starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ag-starters--centred {
+  justify-content: center;
+  margin-top: 14px;
+}
+.ag-starters--row {
+  padding: 10px 12px 0;
+}
+.ag-starter {
+  padding: 7px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hairline-42);
+  background: var(--ag-wash);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.ag-starter:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+.ag-starter:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* --- composer ----------------------------------------------------------- */
+.ag-composer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  padding: 12px;
+  border-top: 1px solid var(--ag-rule);
+}
+.ag-composer textarea {
+  flex: 1;
+  resize: none;
+  max-height: 160px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline-42);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.ag-composer textarea:focus {
+  outline: none;
+  border-color: var(--purple-mid);
+  box-shadow: var(--focus-ring);
+}
+.ag-composer textarea::placeholder {
+  color: var(--ag-hint);
+}
+.ag-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  font-family: var(--font);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: var(--purple-mid);
+  color: var(--tint-2);
+  flex-shrink: 0;
+  min-width: 84px;
+}
+.ag-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.ag-send--stop {
+  border-color: var(--ink-nav);
+  background: transparent;
+  color: var(--ink-nav);
+}
+
+.ag-hint {
+  margin: 8px 12px 12px;
+  color: var(--ag-hint);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .ag-stack {
+    max-width: 94%;
+  }
+  .ag-frame {
+    height: max(420px, calc(100vh - 380px));
+  }
+}

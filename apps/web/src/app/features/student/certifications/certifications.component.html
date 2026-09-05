@@ -3,7 +3,9 @@
     <div>
       <div class="dt-title">Certification Tracker</div>
       @if (view(); as list) {
-        <div class="dt-sub">{{ list.length }} tracked · {{ completedCount() }} complete</div>
+        @if (list.length) {
+          <div class="dt-sub">{{ list.length }} tracked · {{ completedCount() }} complete</div>
+        }
       }
     </div>
   </div>

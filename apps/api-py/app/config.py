@@ -233,6 +233,15 @@ class Settings(BaseSettings):
         "", validation_alias=AliasChoices("ROSTER_EMAIL_DOMAIN", "COLLEGE_EMAIL_DOMAIN")
     )
 
+    # How many mentees one faculty mentor is expected to carry. The Mentor row
+    # has no capacity column and adding one is a migration for a number that is
+    # a programme POLICY, not a fact about any one mentor: every mentor shares
+    # it, and the admissions office changes it between intakes. The assignment
+    # screen derives "N free" and "at capacity" from this; it is advisory
+    # (nothing refuses an assignment past it), because a director who chooses
+    # to overload one mentor in a thin year should not have to edit .env first.
+    mentor_capacity: int = 20
+
     # Universal LLM adapter (see app/ai/llm.py). Same names as the Next.js app,
     # so one set of keys drives both stacks. Any OpenAI-compatible provider.
     llm_base_url: str = ""
@@ -506,6 +515,97 @@ class Settings(BaseSettings):
     # arrives while the student is still looking at the screen.
     nova_sonic_open_timeout_seconds: int = 20
 
+    # ---- The voice-assistant platform (app/voice_platform) -----------------
+    #
+    # The dual-path (Undergraduate / Postgraduate) interview platform: per-degree
+    # catalogue + Admin CRUD, the /ws/media-bridge socket on the Nova engine,
+    # S3 -> Lambda -> SQS candidate ingest, dual-channel call recordings, and
+    # the DynamoDB / OpenSearch projections. EVERY value here is optional and
+    # blank means "that projection is off, honestly": no bucket -> recordings
+    # stay on the local audio volume, no queue -> bulk uploads store straight
+    # into Postgres, no table -> in-memory session state, no endpoint -> no
+    # search index. GET /api/platform/admin/status says which are on.
+    platform_aws_region: str = ""
+    platform_ug_queue_url: str = ""
+    platform_pg_queue_url: str = ""
+    platform_bulk_upload_bucket: str = ""
+    platform_recordings_bucket: str = ""
+    platform_recordings_prefix: str = "recordings"
+    platform_presign_ttl_seconds: int = 3600
+    platform_dynamo_ug_table: str = ""
+    platform_dynamo_pg_table: str = ""
+    platform_dynamo_ttl_days: int = 180
+    platform_opensearch_endpoint: str = ""
+    platform_opensearch_sessions_index: str = "candidate-sessions"
+    platform_opensearch_questions_index: str = "question-vectors"
+    platform_cloudwatch_log_group: str = ""
+    platform_cloudwatch_namespace: str = "REEP/VoicePlatform"
+    # The WAV buffer's hard cap per call: 24 kHz PCM16 on two channels is
+    # 96 kB/s, so 256 MB is ~44 minutes -- far past any time limit, and still a
+    # bound, because an unbounded buffer on 100 concurrent sockets is how a
+    # worker dies at the busiest hour.
+    platform_buffer_max_bytes: int = 256_000_000
+    # What a call may run when no time-limit row exists for its degree/track.
+    # 480 = Bedrock's own 8-minute stream wall (see nova_sonic_connection_seconds).
+    platform_default_time_limit_seconds: int = 480
+
+    # ---- The voice-assistant platform (app/voice_platform) ---------------
+    #
+    # The dual-path (Undergraduate / Postgraduate) interview platform: Admin
+    # CRUD, the /ws/media-bridge socket, the S3 -> Lambda -> SQS candidate
+    # ingest, and dual-channel call recordings. EVERY variable here is
+    # optional and every projection degrades honestly when its variable is
+    # blank: no bucket means the stereo recording stays on the local audio
+    # volume and the API says so; no table means an in-memory session store;
+    # no endpoint means a no-op search index; no queue URL means the bulk
+    # ingest answers 503 rather than pretending to enqueue. A deployment that
+    # never sets any of them runs exactly as it did before the platform existed.
+    #
+    # Region: PLATFORM_AWS_REGION, then the ordinary AWS environment. Unlike
+    # Nova's endpoint this is passed to boto3 clients, so "" is "let the SDK
+    # decide" — see `platform_region`.
+    platform_aws_region: str = ""
+    # The two candidate streams. One queue per degree level, because the
+    # Undergraduate and Postgraduate workers are separate consumers with
+    # separate catalogues; a shared queue would need every consumer to filter.
+    platform_ug_queue_url: str = ""
+    platform_pg_queue_url: str = ""
+    # Where bulk CSV/JSON candidate files are dropped (the S3 trigger's source)
+    # and where the Lambda writes its per-file rejects report.
+    platform_bulk_upload_bucket: str = ""
+    # The Recording Bucket for the finished dual-channel files, and the prefix
+    # under which `storage.s3.RecordingStore.key_for` lays them out.
+    platform_recordings_bucket: str = ""
+    platform_recordings_prefix: str = "recordings"
+    # Default lifetime of the presigned `recording_s3_url`, in seconds. Bounded
+    # by S3 itself at 7 days; the per-degree recording policy may shorten it.
+    platform_presign_ttl_seconds: int = 3600
+    # Realtime session metadata: `Undergraduate Sessions` / `Postgraduate
+    # Sessions`. Postgres stays the source of truth; these are projections.
+    platform_dynamo_ug_table: str = ""
+    platform_dynamo_pg_table: str = ""
+    platform_dynamo_ttl_days: int = 180
+    # OpenSearch Serverless collection endpoint (https://....aoss.amazonaws.com)
+    # for searchable session logs and question vectors. Signed with SigV4 from
+    # the standard chain; no key is pasted anywhere.
+    platform_opensearch_endpoint: str = ""
+    platform_opensearch_sessions_index: str = "candidate-sessions"
+    platform_opensearch_questions_index: str = "question-vectors"
+    # CloudWatch: a log group to ship the platform's handler logs to directly
+    # (blank = stdout only, which the ECS awslogs driver already ships), and the
+    # namespace for its custom metrics.
+    platform_cloudwatch_log_group: str = ""
+    platform_cloudwatch_namespace: str = "REEP/VoicePlatform"
+    # The WAV buffer's hard cap per call, in bytes of raw PCM across both
+    # channels. 256 MB is ~45 minutes of 24 kHz stereo — three times the longest
+    # limit the catalogue may set — so a legitimate call never meets it and a
+    # runaway one cannot exhaust a worker.
+    platform_buffer_max_bytes: int = 256000000
+    # The call length used when the catalogue has no time-limit row for a
+    # degree level. 480 s is Bedrock's stream wall; anything longer is capped
+    # there anyway, with a log line naming the row that asked for more.
+    platform_default_time_limit_seconds: int = 480
+
     # The interviewer's model, SEPARATE from llm_model on purpose.
     #
     # llm_model serves the resume builder and the grounded assistant, where a
@@ -641,6 +741,7 @@ class Settings(BaseSettings):
         "db_pool_size",
         "db_max_overflow",
         "db_pool_timeout_s",
+        "mentor_capacity",
         "interview_max_seconds",
         "interview_idle_seconds",
         "interview_local_num_ctx",
@@ -653,6 +754,14 @@ class Settings(BaseSettings):
         "interview_report_timeout_ms",
         "nova_sonic_input_rate_hz",
         "nova_sonic_connection_seconds",
+        "platform_presign_ttl_seconds",
+        "platform_dynamo_ttl_days",
+        "platform_buffer_max_bytes",
+        "platform_default_time_limit_seconds",
+        "platform_presign_ttl_seconds",
+        "platform_dynamo_ttl_days",
+        "platform_buffer_max_bytes",
+        "platform_default_time_limit_seconds",
         "interview_recording_enabled",
         "interview_recording_max_bytes",
         "interview_retention_days",
@@ -850,6 +959,64 @@ class Settings(BaseSettings):
             or os.environ.get("AWS_REGION", "").strip()
             or os.environ.get("AWS_DEFAULT_REGION", "").strip()
         )
+
+    @property
+    def platform_region(self) -> str:
+        """The region the platform's boto3 clients are built for, or "".
+
+        Unlike `nova_region`, "" is a legitimate answer here: it is handed to
+        boto3, which then reads its own configuration (AWS_REGION, a profile,
+        the task metadata). It is resolved in one place so the S3, SQS,
+        DynamoDB, OpenSearch and CloudWatch clients cannot disagree.
+        """
+        import os
+
+        return (
+            self.platform_aws_region.strip()
+            or os.environ.get("AWS_REGION", "").strip()
+            or os.environ.get("AWS_DEFAULT_REGION", "").strip()
+        )
+
+    def platform_queue_url(self, degree_level: str) -> str:
+        """The SQS queue for one degree level, or "" when that stream is off."""
+        level = degree_level.strip().upper()
+        if level == "UG":
+            return self.platform_ug_queue_url.strip()
+        if level == "PG":
+            return self.platform_pg_queue_url.strip()
+        return ""
+
+    def platform_dynamo_table(self, degree_level: str) -> str:
+        """The DynamoDB sessions table for one degree level, or ""."""
+        level = degree_level.strip().upper()
+        if level == "UG":
+            return self.platform_dynamo_ug_table.strip()
+        if level == "PG":
+            return self.platform_dynamo_pg_table.strip()
+        return ""
+
+    @property
+    def platform_region(self) -> str:
+        """The region the platform's AWS clients use: PLATFORM_AWS_REGION, else
+        the same chain the Nova engine resolves (so one region variable serves
+        a single-region deployment), else "" for "let boto3 decide"."""
+        return self.platform_aws_region.strip() or self.nova_region
+
+    def platform_queue_url(self, degree_level: str) -> str:
+        level = degree_level.strip().upper()
+        if level == "UG":
+            return self.platform_ug_queue_url.strip()
+        if level == "PG":
+            return self.platform_pg_queue_url.strip()
+        return ""
+
+    def platform_dynamo_table(self, degree_level: str) -> str:
+        level = degree_level.strip().upper()
+        if level == "UG":
+            return self.platform_dynamo_ug_table.strip()
+        if level == "PG":
+            return self.platform_dynamo_pg_table.strip()
+        return ""
 
     @property
     def nova_sonic_ready(self) -> bool:

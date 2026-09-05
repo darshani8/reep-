@@ -65,6 +65,13 @@ interface BasicData {
         color: var(--risk);
         margin-top: 6px;
       }
+      /* the one-line "why we ask" under a field */
+      .field-note {
+        display: block;
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-top: 5px;
+      }
       /* "why we ask" line above a sensitive field */
       .sensitive-note {
         display: flex;

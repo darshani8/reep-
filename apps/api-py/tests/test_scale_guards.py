@@ -212,7 +212,7 @@ def test_open_records_refuses_when_live_sessions_exist_fleet_wide(
 
 
 # ---------------------------------------------------------------------------
-# The aggregate overview: one request, the ten keys the client destructures
+# The aggregate overview: one request, the eleven keys the client destructures
 # ---------------------------------------------------------------------------
 @requires_db
 def test_overview_composes_all_ten_reads(client, make_user):
@@ -231,8 +231,13 @@ def test_overview_composes_all_ten_reads(client, make_user):
         "next_actions",
         "placement_readiness",
         "recommendations",
+        "academics",
     }
     # A brand-new student still gets a whole document — the aggregate must not
     # turn "no data yet" into a missing key or a 500.
     assert body["dashboard"] is not None
     assert isinstance(body["results"], list)
+    # The Academic History block rides along: an empty chain and a zero gap,
+    # never a missing key, so the landing can render its "no gaps" state.
+    assert body["academics"]["qualifications"] == []
+    assert body["academics"]["gap"]["total_mo"] == 0

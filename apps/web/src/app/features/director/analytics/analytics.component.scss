@@ -1,41 +1,102 @@
-/* Admin analytics. Panel / card / chip / icon are global; the chart frames are
-   local because their heights are the layout. */
+/* Programme analytics. Panel / card / chip / btn / ctrl / icon are global; the
+   stat strip and the chart frames are local because their sizes are the
+   layout. */
 :host {
   display: block;
 }
 
-.metric-pick {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.sem-chip {
   align-self: flex-end;
+  padding: 6px 12px;
+  font-size: 12.5px;
 }
-.metric-lbl {
+
+/* Four figures separated by left hairlines rather than gaps — the design's
+   metrics strip, one card. The first cell carries no rule so the group reads as
+   one block. */
+.stat-strip {
+  background: var(--card-gradient);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  box-shadow: var(--sh-card);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+.stat {
+  padding: 18px 22px;
+  border-left: 1px solid var(--hairline-26);
+  min-width: 0;
+}
+.stat:first-child {
+  border-left: 0;
+}
+.stat-lbl {
+  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
-  color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  color: var(--ink-soft);
+  margin-bottom: 7px;
 }
-.metric-pick select {
-  padding: 7px 11px;
-  border-radius: 999px;
-  border: 1px solid var(--hairline-45);
-  background: var(--surface);
+.stat-val {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
+}
+.stat-unit {
   font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.stat-sub {
+  display: block;
+  color: var(--muted);
   font-size: 13px;
+  margin-top: 4px;
+}
+.stat-link {
+  color: var(--purple-mid);
+  font-weight: 600;
+}
+.stat-link:hover {
+  color: var(--brand-purple);
+  text-decoration: underline;
+}
+/* The one figure worth interrupting for: work someone has to do. */
+.stat-sub.warn {
+  color: var(--warn);
+  font-weight: 700;
+}
+@media (max-width: 900px) {
+  .stat-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stat:nth-child(3) {
+    border-left: 0;
+  }
+  .stat:nth-child(n + 3) {
+    border-top: 1px solid var(--hairline-26);
+  }
 }
 
 /* The sunburst carries the shape and gets the wider share; the bars are read
    as a list and stay legible narrower. */
 .chart-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+  margin-bottom: 16px;
 }
-@media (max-width: 980px) {
+@media (max-width: 1080px) {
   .chart-grid {
     grid-template-columns: 1fr;
   }
@@ -47,50 +108,97 @@
   visibility: hidden;
   height: 0;
   overflow: hidden;
+  margin: 0;
 }
 
-.chart-card h3 {
+.chart-head {
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  align-items: flex-end;
+  gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 8px;
 }
-.chart-sub {
-  font-family: var(--font);
-  font-size: 11.5px;
+.chart-title {
+  font-family: var(--font-display);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--muted);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 .chart-hint {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
-  margin-bottom: 10px;
+  margin-top: 3px;
   line-height: 1.45;
+}
+.chart-scope {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.chart-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.metric-select {
+  width: auto;
+  padding: 8px 11px;
+  background: var(--tint-2);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .chart {
   width: 100%;
 }
 .chart--sun {
-  height: min(72vh, 620px);
-  min-height: 460px;
+  height: min(78vh, 760px);
+  min-height: 560px;
 }
 .chart--bar {
-  height: min(72vh, 620px);
-  min-height: 460px;
+  height: min(58vh, 560px);
+  min-height: 380px;
 }
 
-.link-btn {
-  border: none;
-  background: none;
-  padding: 0;
-  color: var(--purple-mid);
-  font-family: var(--font);
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: underline;
+/* The selected student's three headline figures, above their bars. */
+.stu-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  margin-bottom: 12px;
+}
+.stu-fig {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+  flex: 1;
+}
+.stu-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--faint);
+}
+.stu-fig strong {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.stu-usn {
+  font-size: 14px !important;
+  letter-spacing: 0.04em;
 }
 
 .state-note {

@@ -33,7 +33,7 @@
  * is not one this page knows" and every honest message below was dead code.
  */
 
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -186,6 +186,68 @@ function passwordErrorFor(err: unknown): string {
   }
 }
 
+/**
+ * The four portals on the picker. DESCRIPTIVE ONLY: the role comes from the
+ * roster row behind the verified identity, never from this choice. What the
+ * choice changes is the ID field's wording — a student is asked for a USN, a
+ * mentor for a faculty email — and, for an ID typed without an "@", the
+ * institutional address it is completed to (a USN is a roster email's local
+ * part: see app.seed_roster). A wrong pick costs nothing: routing after
+ * sign-in follows the real role, not the portal.
+ */
+interface Portal {
+  key: 'student' | 'mentor' | 'admin' | 'alumni';
+  label: string;
+  icon: string;
+  desc: string;
+  fieldLabel: string;
+  placeholder: string;
+  helper: string;
+}
+
+const PORTALS: readonly Portal[] = [
+  {
+    key: 'student',
+    label: 'Student',
+    icon: 'school',
+    desc: 'Track skills, jobs & growth',
+    fieldLabel: 'Institutional email or USN',
+    placeholder: 'asha.rao@bgscet.ac.in or 1BG24MBA001',
+    helper: 'Use your BGSCET student email or University Seat Number.',
+  },
+  {
+    key: 'mentor',
+    label: 'Mentor',
+    icon: 'diversity_3',
+    desc: 'Guide mentees, verify skills',
+    fieldLabel: 'Institutional email',
+    placeholder: 'kavya.n@bgscet.ac.in',
+    helper: 'Use your faculty email.',
+  },
+  {
+    key: 'admin',
+    label: 'Admin',
+    icon: 'admin_panel_settings',
+    desc: 'Run placement operations',
+    fieldLabel: 'Institutional email',
+    placeholder: 'placement.admin@bgscet.ac.in',
+    helper: 'Use your admin email.',
+  },
+  {
+    key: 'alumni',
+    label: 'Alumni',
+    icon: 'workspace_premium',
+    desc: 'Explore roles, stay connected',
+    fieldLabel: 'Registered email',
+    placeholder: 'rohan.shetty@alumni.bgscet.ac.in',
+    helper: 'Use the email from your alumni registration.',
+  },
+];
+
+/** localStorage keys for "Remember me" — the ID only, never the password. */
+const REMEMBER_ID_KEY = 'reep.login.id';
+const REMEMBER_PORTAL_KEY = 'reep.login.portal';
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -204,6 +266,12 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
 
+  readonly portals = PORTALS;
+  readonly portal = signal<Portal['key']>('student');
+  readonly current = computed(
+    () => PORTALS.find((p) => p.key === this.portal()) ?? PORTALS[0],
+  );
+
   /** The refusal carried back on the callback redirect, if any. */
   readonly error = signal<string | null>(null);
   /** The raw `?error=` code, kept so the message can be rebuilt once the probe
@@ -218,16 +286,17 @@ export class LoginComponent {
   readonly domain = signal(DEFAULT_DOMAIN_LABEL);
 
   /**
-   * Whether to render the email + password form at all.
+   * Whether to render the ID + password form at all.
    *
    * FAILS CLOSED, which is the opposite of `available` above and deliberately
    * so. That one guards a button whose absence would strand everybody, so a
    * broken probe leaves it enabled. This one guards a form that most
-   * deployments do not have: `PASSWORD_LOGIN` is blank unless an operator set
-   * it, so a probe that 404s, times out, or answers something unexpected must
-   * leave the form HIDDEN rather than show a box whose every submission would
-   * 403. A form that cannot work is worse than no form — it reads as "my
-   * password is wrong" rather than "this door is shut".
+   * deployments do not have: the password door is derived server-side (see
+   * password_door_open in app/routers/auth.py), so a probe that 404s, times
+   * out, or answers something unexpected must leave the form HIDDEN rather
+   * than show a box whose every submission would 403. A form that cannot work
+   * is worse than no form — it reads as "my password is wrong" rather than
+   * "this door is shut".
    */
   readonly passwordAvailable = signal(false);
 
@@ -235,11 +304,20 @@ export class LoginComponent {
    *  stale Google refusal is not re-rendered above a fresh 401. */
   readonly formError = signal<string | null>(null);
   readonly submitting = signal(false);
+  readonly showPassword = signal(false);
+  readonly forgotOpen = signal(false);
+  /** Field errors render only after a submit attempt, as the design does. */
+  private readonly attempted = signal(false);
 
   readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    id: ['', [Validators.required]],
     password: ['', [Validators.required]],
+    remember: [false],
   });
+
+  readonly idErr = computed(() => this.attempted() && !this.form.controls.id.value.trim());
+  readonly pwErr = computed(() => this.attempted() && !this.form.controls.password.value);
+  readonly idErrMsg = computed(() => `Enter your ${this.current().fieldLabel.toLowerCase()}.`);
 
   constructor() {
     const code = this.route.snapshot.queryParamMap.get('error');
@@ -247,7 +325,21 @@ export class LoginComponent {
       this.errorCode.set(code);
       this.error.set(messageFor(code, this.domain()));
     }
+    this.restoreRemembered();
     void this.probe();
+  }
+
+  selectPortal(key: Portal['key']): void {
+    this.portal.set(key);
+    this.formError.set(null);
+  }
+
+  toggleShowPassword(): void {
+    this.showPassword.update((v) => !v);
+  }
+
+  toggleForgot(): void {
+    this.forgotOpen.update((v) => !v);
   }
 
   /// Same-origin paths only. This check is a courtesy — the server re-applies
@@ -275,7 +367,7 @@ export class LoginComponent {
   get subtitle(): string {
     return this.safeNext
       ? 'Sign in to carry on to the page you asked for.'
-      : 'Use the Google account the programme has on record for you.';
+      : 'Sign in to continue to your REEP workspace.';
   }
 
   /**
@@ -322,15 +414,30 @@ export class LoginComponent {
   }
 
   /**
-   * Email + password sign-in, when the server says it offers it.
+   * The address to send. An ID typed without an "@" is completed to the
+   * institutional domain the probe reported — a USN is exactly the local part
+   * `app.seed_roster` derives a student's address from, so `1BG24MBA001`
+   * becomes `1bg24mba001@<domain>`. Lower-cased because the roster is.
+   */
+  private resolveEmail(id: string): string {
+    const trimmed = id.trim();
+    if (trimmed.includes('@')) return trimmed.toLowerCase();
+    const domain = this.domain().replace(/^@/, '');
+    return `${trimmed.toLowerCase()}@${domain}`;
+  }
+
+  /**
+   * ID + password sign-in, when the server says it offers it.
    *
    * Unlike the Google path this is an ordinary XHR: the API sets the same
    * httpOnly `reep_session` cookie on the response, so there is no redirect to
    * ride and the SPA can route immediately. Routing is BY ROLE through the same
-   * HOME_FOR_ROLE map `homeRedirectGuard` uses — not a hardcoded '/student',
-   * which is how a director used to land on a screen they have no rows for.
+   * HOME_FOR_ROLE map `homeRedirectGuard` uses — not the portal picked above
+   * and not a hardcoded '/student', which is how a director used to land on a
+   * screen they have no rows for.
    */
   async submitPassword(): Promise<void> {
+    this.attempted.set(true);
     if (this.form.invalid || this.submitting()) {
       this.form.markAllAsTouched();
       return;
@@ -340,9 +447,10 @@ export class LoginComponent {
     // A fresh attempt supersedes whatever Google said last time; leaving both
     // on screen reads as two simultaneous failures.
     this.error.set(null);
-    const { email, password } = this.form.getRawValue();
+    const { id, password, remember } = this.form.getRawValue();
     try {
-      const session = await this.auth.login(email.trim(), password);
+      const session = await this.auth.login(this.resolveEmail(id), password);
+      this.remember(remember ? id.trim() : null);
       const next = this.safeNext;
       await this.router.navigateByUrl(next ?? HOME_FOR_ROLE[session.role] ?? '/student');
     } catch (err: unknown) {
@@ -352,6 +460,35 @@ export class LoginComponent {
       this.form.patchValue({ password: '' });
     } finally {
       this.submitting.set(false);
+    }
+  }
+
+  /** "Remember me" keeps the ID and the portal on THIS device — never the
+   *  password. Storage can be unavailable (private window, locked-down lab
+   *  browser), and that is not worth an error: it simply does not remember. */
+  private remember(id: string | null): void {
+    try {
+      if (id) {
+        localStorage.setItem(REMEMBER_ID_KEY, id);
+        localStorage.setItem(REMEMBER_PORTAL_KEY, this.portal());
+      } else {
+        localStorage.removeItem(REMEMBER_ID_KEY);
+        localStorage.removeItem(REMEMBER_PORTAL_KEY);
+      }
+    } catch {
+      // Nothing to do — see the docstring.
+    }
+  }
+
+  private restoreRemembered(): void {
+    try {
+      const id = localStorage.getItem(REMEMBER_ID_KEY);
+      if (!id) return;
+      const portal = localStorage.getItem(REMEMBER_PORTAL_KEY) as Portal['key'] | null;
+      if (portal && PORTALS.some((p) => p.key === portal)) this.portal.set(portal);
+      this.form.patchValue({ id, remember: true });
+    } catch {
+      // Same as above.
     }
   }
 

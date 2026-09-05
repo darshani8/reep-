@@ -2,9 +2,9 @@ add
 add_a_photo
 add_circle
 add_comment
+admin_panel_settings
 arrow_back
 arrow_forward
-arrow_right_alt
 auto_awesome
 bedtime
 bolt
@@ -19,6 +19,7 @@ close
 cloud_upload
 delete
 description
+diversity_3
 download
 draw
 edit
@@ -30,7 +31,6 @@ event_available
 event_busy
 event_note
 event_repeat
-filter_alt
 flag
 folder_open
 graphic_eq
@@ -74,7 +74,6 @@ radio_button_unchecked
 rate_review
 record_voice_over
 remove
-rule
 save
 schedule
 school
@@ -84,9 +83,7 @@ smart_toy
 star
 sync
 table_rows
-target
 task_alt
-toggle_on
 trending_up
 undo
 upload_file

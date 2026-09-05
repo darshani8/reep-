@@ -104,6 +104,62 @@ def staff(client, make_user):
 
 
 @requires_db
+def test_a_mentor_removes_only_the_notes_they_wrote(client, make_user, staff):
+    """DELETE on a meeting note is narrower than POST: rule 2's gate, then the
+    note must sit under the student in the path, then a MENTOR must be its
+    author. The student reads these notes, so taking one back is not something
+    a colleague does on your behalf."""
+    stu = make_user("note-del-student")
+    sid = _student_id(stu.user_id)
+    other = make_user("note-del-other")
+    other_sid = _student_id(other.user_id)
+
+    author = staff("note-del-author", mentees=[sid, other_sid])
+    r = client.post(
+        f"/api/mentor/students/{sid}/notes",
+        headers=author.headers,
+        json={"note_text": "Reviewed the ledger; next check-in in two weeks."},
+    )
+    assert r.status_code == 201, r.text
+    note_id = r.json()["id"]
+
+    # A note id under the WRONG student is a 404 — the path is the scope.
+    r = client.delete(f"/api/mentor/students/{other_sid}/notes/{note_id}", headers=author.headers)
+    assert r.status_code == 404, r.text
+
+    # A groupless mentor cannot reach the student at all: 404, never a delete.
+    loner = staff("note-del-loner")
+    r = client.delete(f"/api/mentor/students/{sid}/notes/{note_id}", headers=loner.headers)
+    assert r.status_code == 404, r.text
+
+    # The student is moved to a second mentor, who is now IN scope but did not
+    # write the note: 403, and the note is still there.
+    second = staff("note-del-second", mentees=[sid])
+    r = client.delete(f"/api/mentor/students/{sid}/notes/{note_id}", headers=second.headers)
+    assert r.status_code == 403, r.text
+    r = client.get(f"/api/mentor/students/{sid}/notes", headers=second.headers)
+    assert note_id in [n["id"] for n in r.json()]
+
+    # The second mentor's own note, however, is theirs to remove.
+    r = client.post(
+        f"/api/mentor/students/{sid}/notes",
+        headers=second.headers,
+        json={"note_text": "Handover meeting.", "title": "First 1:1"},
+    )
+    assert r.status_code == 201, r.text
+    own_id = r.json()["id"]
+    r = client.delete(f"/api/mentor/students/{sid}/notes/{own_id}", headers=second.headers)
+    assert r.status_code == 204, r.text
+    r = client.get(f"/api/mentor/students/{sid}/notes", headers=second.headers)
+    ids = [n["id"] for n in r.json()]
+    assert own_id not in ids and note_id in ids
+
+    # A student has no business here at all.
+    r = client.delete(f"/api/mentor/students/{sid}/notes/{note_id}", headers=stu.headers)
+    assert r.status_code == 403
+
+
+@requires_db
 def test_a_mentor_reads_their_own_mentees_ledger(client, make_user, staff):
     stu = make_user("staff-own-student")
     sid = _student_id(stu.user_id)

@@ -1,8 +1,10 @@
 /**
  * Tailor to opportunity — step 2 of the resume flow.
  *
- * Takes the posting chosen in the goal strip and says three things: how well the
- * student matches it, what is missing, and whether they can actually apply.
+ * Takes the posting chosen in the goal strip and says three things: whether the
+ * student can actually apply, which of the role's requirements are still
+ * missing (and where each claim stands), and which essential sections of the
+ * resume are still empty.
  *
  * THE ELIGIBILITY LINE IS THE POINT. A student with a 90% skill match on a
  * posting whose CGPA cut-off they miss is not eligible, and a screen that
@@ -12,15 +14,44 @@
  *
  * Both numbers come from GET /student/jobs. Nothing here recomputes a match; a
  * second opinion that disagreed with the Jobs screen would be worse than none.
+ * The guidance below it reflects the student's CURRENT verified skills, so
+ * nothing on this step overstates their eligibility.
  */
 
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, output } from '@angular/core';
 
+import { ResumeBuilderService } from '../resume-builder.service';
 import { ResumeEvidenceService } from '../resume-evidence.service';
 import { ResumeGoalService } from '../resume-goal.service';
 
 type ResumeStep = 'build' | 'tailor' | 'preview' | 'export';
+
+interface MissingSkill {
+  name: string;
+  /** Where the student's claim on it stands — "Not started" when there is none. */
+  status: string;
+}
+
+/**
+ * The sections a recruiter expects to find filled, keyed as the builder stores
+ * them. Education and certifications mirror other domains and are not held in
+ * the profile map, so they are not judged here.
+ */
+const ESSENTIALS: { keys: string[]; label: string }[] = [
+  { keys: ['basic'], label: 'Headline & basic details' },
+  { keys: ['contact'], label: 'Contact details' },
+  { keys: ['internship', 'experience'], label: 'Internship / experience' },
+  { keys: ['projects'], label: 'Projects' },
+];
+
+/** True when a builder section holds no real content (mirrors the API's rule). */
+function isEmptySection(value: unknown): boolean {
+  if (value == null || value === '') return true;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === 'object') return Object.values(value as object).every(isEmptySection);
+  return false;
+}
 
 @Component({
   selector: 'rb-tailor',
@@ -32,43 +63,48 @@ type ResumeStep = 'build' | 'tailor' | 'preview' | 'export';
 export class RbTailorComponent {
   readonly goalSvc = inject(ResumeGoalService);
   readonly ev = inject(ResumeEvidenceService);
+  private readonly svc = inject(ResumeBuilderService);
 
   readonly navigate = output<ResumeStep>();
 
+  /** The role the guidance is written for — the goal's, else the posting's. */
+  readonly role = computed<string>(
+    () => this.goalSvc.goal().role || this.goalSvc.selectedJob()?.title || '',
+  );
+
   /**
-   * Requirements of the chosen posting split into what the student can already
-   * evidence and what they cannot. Matched against INCLUDED verified skills —
-   * a skill that exists but is switched off does not strengthen this document.
+   * Requirements of the chosen posting the student cannot yet evidence, each
+   * with the state of their claim on it. Matched against INCLUDED verified
+   * skills — a skill that exists but is switched off does not strengthen this
+   * document, and the status says so ("Verified — not included") rather than
+   * hiding a one-toggle fix behind the same words as a term's work.
    */
-  readonly matched = computed<string[]>(() => {
+  readonly missing = computed<MissingSkill[]>(() => {
     const job = this.goalSvc.selectedJob();
     if (!job) return [];
     const have = new Set(this.ev.includedNames().map((n) => n.toLowerCase()));
-    return job.required_skills.filter((s) => have.has(s.toLowerCase()));
+    const rows = new Map((this.ev.rows() ?? []).map((r) => [r.name.toLowerCase(), r]));
+    return job.required_skills
+      .filter((s) => !have.has(s.toLowerCase()))
+      .map((name) => {
+        const row = rows.get(name.toLowerCase());
+        if (!row) return { name, status: 'Not started' };
+        if (row.includable) return { name, status: 'Verified — not included' };
+        return { name, status: this.ev.chip(row.status).label };
+      });
   });
 
-  readonly missing = computed<string[]>(() => {
-    const job = this.goalSvc.selectedJob();
-    if (!job) return [];
-    const have = new Set(this.ev.includedNames().map((n) => n.toLowerCase()));
-    return job.required_skills.filter((s) => !have.has(s.toLowerCase()));
-  });
-
-  /**
-   * A missing requirement the student HOLDS verified but has switched off is a
-   * different problem from one they have not earned: the first is one toggle
-   * away, the second is a term's work. Naming them apart is the whole value of
-   * this step.
-   */
-  readonly missingButHeld = computed<string[]>(() => {
-    const verified = new Set(
-      (this.ev.rows() ?? []).filter((r) => r.includable).map((r) => r.name.toLowerCase()),
+  /** Essential sections still empty in the builder. */
+  readonly missingEssentials = computed<string[]>(() => {
+    const data = this.svc.data();
+    return ESSENTIALS.filter((e) => e.keys.every((k) => isEmptySection(data[k]))).map(
+      (e) => e.label,
     );
-    return this.missing().filter((s) => verified.has(s.toLowerCase()));
   });
 
   constructor() {
     void this.goalSvc.load();
     void this.ev.load();
+    if (!this.svc.loaded()) void this.svc.load();
   }
 }

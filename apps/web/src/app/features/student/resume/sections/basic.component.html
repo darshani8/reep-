@@ -98,6 +98,9 @@
         ><span class="reqp">Required for placement profile</span></label
       >
       <input class="ctrl" type="date" [ngModel]="m.dob" (ngModelChange)="m.dob = $event; push()" />
+      <small class="field-note">
+        Used for placement eligibility only — not shown on your exported resume.
+      </small>
     </div>
     <div class="field">
       <label>Blood group</label>

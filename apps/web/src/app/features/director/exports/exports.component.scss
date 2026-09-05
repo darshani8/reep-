@@ -1,48 +1,55 @@
-/* Exports. Panel / card / btn / icon are global. */
+/* Exports. Panel / card / chip / btn / notice / icon are global. */
 :host {
   display: block;
 }
 
-/* The warning comes before the buttons, because it is about pressing them. */
-.note-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 13px;
+/* The warning comes before the cards, because it is about pressing them. */
+.data-note {
+  margin-bottom: 14px;
   line-height: 1.5;
-  color: var(--ink);
-  margin-bottom: 12px;
 }
-.note-card > .icon {
-  font-size: 20px;
+.data-note .icon {
+  font-size: 18px;
   color: var(--purple-mid);
-  flex: none;
 }
 
-.export-row {
-  display: flex;
-  align-items: center;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
 }
-.export-icon {
-  font-size: 24px;
-  color: var(--purple-mid);
-  flex: none;
-}
-.export-main {
-  flex: 1;
-  min-width: 220px;
+
+.export-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
 }
 .export-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--ink);
 }
-.export-detail {
-  font-size: 12.5px;
+.fmt {
+  padding: 4px 9px;
+  font-size: 12px;
+  background: rgba(58, 31, 82, 0.06);
+  color: var(--ink-nav);
+}
+.export-desc {
+  margin: 8px 0 14px;
   color: var(--muted);
-  margin-top: 3px;
+  font-size: 13px;
   line-height: 1.5;
+}
+.export-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.export-last {
+  color: var(--muted);
+  font-size: 12px;
 }

@@ -10,7 +10,7 @@
 
   <!-- Claim a skill with a certificate -->
   <div class="card claim-card">
-    <h4>Claim a skill with a certificate</h4>
+    <h3 class="claim-title">Claim a skill with a certificate</h3>
     <p class="claim-lede">
       Upload the certificate and pick the badge it proves. Your mentor verifies it before the badge
       lights up.
@@ -26,19 +26,19 @@
           Claim another skill
         </button>
       </div>
-    } @else if (catalogueError()) {
-      <div class="state-note"><span class="icon">error</span>{{ catalogueError() }}</div>
+    } @else if (boardError()) {
+      <div class="state-note"><span class="icon" aria-hidden="true">error</span>{{ boardError() }}</div>
     } @else {
       <div class="field-label">Certificate</div>
       @if (claimFile()) {
         <div class="cert-picked">
-          <span class="icon">check_circle</span>
+          <span class="icon" aria-hidden="true">check_circle</span>
           <span class="cert-name">{{ claimFileName() }}</span>
           <button type="button" class="link-btn" (click)="picker.click()">Replace</button>
         </div>
       } @else {
         <button type="button" class="cert-drop" (click)="picker.click()">
-          <span class="icon">upload_file</span>
+          <span class="icon" aria-hidden="true">upload_file</span>
           <span class="cert-drop-main">Click to upload or drop a file</span>
           <span class="cert-drop-sub">PDF or JPEG, up to 5 MB</span>
         </button>
@@ -46,7 +46,7 @@
       <input
         #picker
         type="file"
-        accept="application/pdf,image/png,image/jpeg"
+        accept="application/pdf,image/jpeg"
         hidden
         (change)="onFilePicked($event)"
       />
@@ -54,10 +54,16 @@
       <div class="claim-grid">
         <label class="claim-field">
           <span class="field-label">Skill category</span>
-          <select [value]="claimCategory()" (change)="onCategoryChange($any($event.target).value)">
-            <option value="">Select a category</option>
-            @for (c of categories(); track c) {
-              <option [value]="c">{{ c }}</option>
+          <select
+            [value]="claimCategory()"
+            [disabled]="dashboard() === null"
+            (change)="onCategoryChange($any($event.target).value)"
+          >
+            <option value="">
+              {{ dashboard() === null ? 'Loading categories…' : 'Select a category' }}
+            </option>
+            @for (c of categories(); track c.key) {
+              <option [value]="c.key">{{ c.label }}</option>
             }
           </select>
         </label>
@@ -71,8 +77,10 @@
             <option value="">
               {{ claimCategory() ? 'Select a badge' : 'Pick a category first' }}
             </option>
-            @for (b of badgeOptions(); track b.id) {
-              <option [value]="b.id">{{ b.name }}</option>
+            @for (b of badgeOptions(); track b.code) {
+              <option [value]="b.code">
+                {{ b.name }}{{ b.track_label ? ' · ' + b.track_label : '' }}
+              </option>
             }
           </select>
         </label>
@@ -97,13 +105,15 @@
       </label>
 
       @if (claimError()) {
-        <div class="state-note"><span class="icon">error</span>{{ claimError() }}</div>
+        <div class="state-note" role="alert">
+          <span class="icon" aria-hidden="true">error</span>{{ claimError() }}
+        </div>
       }
 
       <div class="claim-actions">
         <button
           type="button"
-          class="btn primary"
+          class="btn primary submit"
           [disabled]="!canSubmitClaim()"
           (click)="submitClaim()"
         >
@@ -119,18 +129,20 @@
     the screen matches the handoff whenever nothing is outstanding.
   -->
   @if (openClaims().length) {
-    <div class="card">
+    <div class="card claims-card">
       <h4>Claims in progress</h4>
       @for (c of openClaims(); track c.id) {
         <div class="reco-row">
-          {{ c.skillName }}
+          {{ c.badgeName }}
           <span class="chip {{ c.chipClass }}">
-            <span class="icon">{{ c.chipIcon }}</span
+            <span class="icon" aria-hidden="true">{{ c.chipIcon }}</span
             >{{ c.chipLabel }}
           </span>
         </div>
         @if (c.reviewNote) {
-          <div class="review-note"><span class="icon">chat_bubble</span>{{ c.reviewNote }}</div>
+          <div class="review-note">
+            <span class="icon" aria-hidden="true">chat_bubble</span>{{ c.reviewNote }}
+          </div>
         }
       }
     </div>
@@ -139,30 +151,43 @@
   <!-- The badge board -->
   <div class="card board">
     <div class="board-legend">
-      <span class="legend-item"> <span class="dot dot-open"></span>Skill available </span>
+      <span class="legend-item"><span class="dot dot-open"></span>Skill available</span>
       <span class="legend-item legend-item--lit">
         <span class="dot dot-lit"></span>Skill verified &amp; acquired
       </span>
+      <span class="legend-hint">Tap badges to preview the earned state.</span>
     </div>
 
-    @if (skillsError()) {
-      <div class="state-note"><span class="icon">error</span>{{ skillsError() }}</div>
+    @if (boardError()) {
+      <div class="state-note"><span class="icon" aria-hidden="true">error</span>{{ boardError() }}</div>
     } @else if (board() === null) {
-      <div class="state-note"><span class="icon">hourglass_empty</span>Loading your badges…</div>
+      <div class="state-note">
+        <span class="icon" aria-hidden="true">hourglass_empty</span>Loading your badges…
+      </div>
     } @else if (board()!.length === 0) {
-      <div class="state-note"><span class="icon">info</span>No badges in the catalogue yet.</div>
+      <div class="state-note">
+        <span class="icon" aria-hidden="true">info</span>No badges in the catalogue yet.
+      </div>
     } @else {
-      @for (cat of board()!; track cat.category) {
+      @for (cat of board()!; track cat.key) {
         <div class="board-row">
           <div class="board-cat">
-            <div class="board-cat-name">{{ cat.category }}</div>
+            <div class="board-cat-name">{{ cat.label }}</div>
             <div class="board-cat-note">{{ cat.note }}</div>
           </div>
           <div class="board-badges">
-            @for (b of cat.badges; track b.slug) {
-              <span class="badge-pill" [class.badge-pill--lit]="b.acquired">
+            @for (b of cat.badges; track b.code) {
+              <button
+                type="button"
+                class="badge-pill"
+                [class.badge-pill--lit]="b.acquired || b.previewed"
+                [class.badge-pill--preview]="b.previewed"
+                [attr.title]="b.previewed ? 'Preview — tap again to clear' : b.hint"
+                [attr.aria-pressed]="b.acquired ? null : b.previewed"
+                (click)="togglePreview(b)"
+              >
                 {{ b.name }}
-              </span>
+              </button>
             }
           </div>
         </div>

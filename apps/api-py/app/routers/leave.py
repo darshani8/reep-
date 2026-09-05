@@ -27,7 +27,7 @@ from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -230,6 +230,41 @@ def pending_leaves(
         for lr in rows
         if not (lr.status == LeaveStatus.FIRST_APPROVED and lr.first_approver_user_id == uid)
     ]
+
+
+@router.get("/history", response_model=list[LeaveOut])
+def decided_leaves(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> list[LeaveOut]:
+    """Requests that reached a final decision — the Approved and Rejected tabs of
+    the approvals screen. SAME SCOPE AS /pending, narrowed in SQL: a MENTOR sees
+    only their own group's, a MENTOR with no group sees nobody, DIRECTOR/ADMIN
+    see all. Own requests are excluded as they are from /pending — the applicant
+    reads those under /mine, and the approvals screen is the other chair."""
+    require_mentor(session)
+    uid = session["userId"]
+    query = (
+        select(LeaveRequest)
+        .where(
+            LeaveRequest.status.in_([LeaveStatus.APPROVED, LeaveStatus.REJECTED]),
+            LeaveRequest.requester_user_id != uid,
+        )
+        .order_by(
+            func.coalesce(LeaveRequest.second_decided_at, LeaveRequest.first_decided_at).desc(),
+            LeaveRequest.created_at.desc(),
+        )
+        .limit(200)
+    )
+    if session["role"] == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            return []  # no Mentor group => nobody (never the whole programme)
+        query = query.where(
+            LeaveRequest.requester_user_id.in_(
+                select(Student.user_id).where(Student.mentor_id == mentor_id)
+            )
+        )
+    return [_leave_out(lr, db) for lr in db.scalars(query).all()]
 
 
 class LeaveDecisionIn(BaseModel):

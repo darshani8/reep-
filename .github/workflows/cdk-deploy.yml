@@ -1,0 +1,102 @@
+name: CDK deploy (voice platform)
+
+# DEPLOY THE VOICE PLATFORM'S AWS RESOURCES FROM THE BROWSER. Actions → "CDK
+# deploy (voice platform)" → Run workflow. It synthesises infra/cdk and runs
+# `cdk diff` or `cdk deploy` for the reep-voice-platform stack, assuming the
+# same reep-github-deploy role deploy.yml uses (pinned to this repository and
+# to main). The role only assumes the account's CDK bootstrap roles; the
+# resources are created by CloudFormation under the bootstrap's own execution
+# role (infra/aws/github_oidc.tf, "deploy-cdk-stacks").
+#
+# One-time prerequisites, both human actions at a terminal:
+#   1. `cdk bootstrap aws://<account>/<region>` with admin credentials — creates
+#      the cdk-hnb659fds-* roles this workflow assumes.
+#   2. `terraform -chdir=infra/aws apply` — grants reep-github-deploy the right
+#      to assume them.
+# Afterwards: run this with action=deploy, then set voice_platform_enabled =
+# true in infra/aws and apply (reads the stack's SSM parameters into the api
+# task), then run the ordinary Deploy workflow so the api picks them up.
+#
+# `diff` is safe to run any time and changes nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to do"
+        type: choice
+        default: diff
+        options: [diff, deploy]
+      confirm:
+        description: 'For deploy: type "deploy" to confirm this creates resources in the production account'
+        required: false
+        default: ""
+
+concurrency:
+  group: cdk-voice-platform
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  cdk:
+    name: ${{ inputs.action }} reep-voice-platform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the confirmation word
+        if: inputs.action == 'deploy'
+        run: |
+          if [ "${{ inputs.confirm }}" != "deploy" ]; then
+            echo "::error::Type 'deploy' in the confirm box to deploy. Nothing was changed."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: infra/cdk/requirements-dev.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install the CDK library and CLI
+        working-directory: infra/cdk
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          npm install -g aws-cdk
+          cdk --version
+
+      # The template assertions run first, without AWS: a stack that does not
+      # synthesise or has drifted from what the api expects never reaches diff.
+      - name: Synthesise and check the template
+        working-directory: infra/cdk
+        run: python -m pytest -q
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN || 'arn:aws:iam::445363794125:role/reep-github-deploy' }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
+          role-session-name: reep-cdk-${{ github.run_id }}
+
+      - name: cdk diff
+        if: inputs.action == 'diff'
+        working-directory: infra/cdk
+        run: cdk diff --no-color
+
+      - name: cdk deploy
+        if: inputs.action == 'deploy'
+        working-directory: infra/cdk
+        run: |
+          cdk deploy --require-approval never --no-color --outputs-file outputs.json
+          echo "## reep-voice-platform outputs" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat outputs.json >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "Next: set voice_platform_enabled = true in infra/aws, terraform apply, then run Deploy." >> "$GITHUB_STEP_SUMMARY"

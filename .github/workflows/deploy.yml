@@ -10,8 +10,11 @@ name: Deploy
 # at a terminal where the plan can be read first — a button that can silently
 # recreate a database is not a button anyone should have.
 #
-# One-time setup (Terraform prints the exact commands):
-#     terraform -chdir=infra/aws output -raw github_actions_setup
+# One-time setup: the repository variables below. Terraform used to print
+# them (`terraform -chdir=infra/aws output -raw github_actions_setup`), but
+# infra/aws/ was deleted at the cutover (2026-09-07). They are now the
+# reep-core stack's outputs:
+#     aws cloudformation describe-stacks --stack-name reep-core \n#       --query 'Stacks[0].Outputs' --output table
 
 on:
   workflow_dispatch:

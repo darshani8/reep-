@@ -22,11 +22,18 @@ on:
         description: "Which stack"
         type: choice
         default: voice-platform
-        # `core` and `all` are deliberately ABSENT until the cutover in
-        # docs/cdk-cutover.md has run: a deploy of reep-core before its import
-        # would CreateStack a second VPC, NAT gateway and four security groups
-        # before colliding on the database name — and Retain keeps them through
-        # the rollback. Add `core` back in the commit that deletes infra/aws/.
+        # `core` and `all` are deliberately ABSENT, and the reason has changed
+        # now that the import has run (2026-09-07). It was: a deploy of
+        # reep-core before its import would CreateStack a second VPC, NAT
+        # gateway and four security groups before colliding on the database
+        # name. reep-core is now IMPORT_COMPLETE, so that is no longer the
+        # risk. THE RISK NOW IS THE OPPOSITE: this workflow runs a bare
+        # `cdk deploy reep-core`, which is the FULL harden — the Multi-AZ
+        # database conversion and the ECS roll in ONE update — and step 9 of
+        # docs/cdk-cutover.md splits those two on purpose, so that an ECS
+        # circuit-breaker rollback cannot undo a database conversion.
+        # Add `core` back in a commit AFTER step 9b, when a one-click
+        # reep-core deploy is a no-op against an already-hardened stack.
         options: [voice-platform, edge-waf, dr-vault]
       action:
         description: "What to do"

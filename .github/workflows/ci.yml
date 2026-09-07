@@ -203,11 +203,13 @@ jobs:
     name: Infra (CDK synth guards)
     runs-on: ubuntu-latest
     # No AWS credentials: `Template.from_stack` synthesises in-process. What this
-    # gates is the cutover's safety net (docs/cdk-cutover.md): every physical
-    # name in infra/cdk/reep_core/stack.py must still match infra/aws/*.tf, the
-    # import phase must add nothing CloudFormation cannot adopt, and no
-    # MasterUserPassword may ever appear in the template. A drift between the
-    # two IaC trees during the coexistence window fails here, not at import time.
+    # gates is what the cutover left behind (docs/cdk-cutover.md): the import
+    # phase must add nothing CloudFormation cannot adopt, no MasterUserPassword
+    # may ever appear, the ECS half of harden must stay separable from the
+    # database half, and no stack may carry stack-level tags. The guards that
+    # compared physical names against infra/aws/*.tf skip themselves now that
+    # those files are gone (`requires_terraform`); the mirror is proven instead
+    # by the import and by drift detection, both recorded in the runbook.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

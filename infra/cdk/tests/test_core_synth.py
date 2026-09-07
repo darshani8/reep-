@@ -21,6 +21,14 @@ from reep_core import DEREGISTRATION_DELAY_SECONDS, STOP_TIMEOUT_SECONDS, CoreSt
 
 TF_DIR = Path(__file__).resolve().parents[2] / "aws"
 
+#: The guards that read the .tf files are for the coexistence window. Step 7
+#: of docs/cdk-cutover.md deletes those files; from then on the mirror is the
+#: only record and these tests skip rather than fail the cutover commit.
+requires_terraform = pytest.mark.skipif(
+    not list(TF_DIR.glob("*.tf")),
+    reason="Terraform released (docs/cdk-cutover.md step 7); the mirror is now the only record",
+)
+
 
 CDK_JSON_CONTEXT = json.loads((Path(__file__).resolve().parents[1] / "cdk.json").read_text(encoding="utf-8"))["context"]
 
@@ -127,6 +135,7 @@ _TF_NAME_PATTERNS = [
 ]
 
 
+@requires_terraform
 @pytest.mark.parametrize("pattern, expected", _TF_NAME_PATTERNS, ids=[e for _, e in _TF_NAME_PATTERNS])
 def test_physical_names_match_terraform(imported: Template, pattern: str, expected: str) -> None:
     tf_text = "\n".join(p.read_text(encoding="utf-8") for p in TF_DIR.glob("*.tf"))
@@ -134,6 +143,7 @@ def test_physical_names_match_terraform(imported: Template, pattern: str, expect
     assert expected in json.dumps(imported.to_json()), f"{expected!r} is in Terraform but not in the import-phase template"
 
 
+@requires_terraform
 def test_alarm_names_match_terraform(imported: Template) -> None:
     tf_text = (TF_DIR / "observability.tf").read_text(encoding="utf-8")
     tf_alarms = {m.replace("${var.project}", "reep") for m in re.findall(r'alarm_name\s*=\s*"([^"]+)"', tf_text)}
@@ -392,6 +402,27 @@ def test_all_three_stacks_retain_everything() -> None:
 def test_three_backup_failure_alarms(hardened: Template) -> None:
     for name in ("reep-backup-job-failed", "reep-backup-copy-failed", "reep-backup-restore-test-failed"):
         hardened.has_resource_properties("AWS::CloudWatch::Alarm", {"AlarmName": name})
+
+
+@requires_terraform
+def test_the_tls_branch_synthesises_with_terraforms_listener_policy() -> None:
+    """The TLS branch is the LIVE branch — the ALB has a certificate — and no
+    guard had ever synthesised it: the first rehearsal (test_cutover_tools.py)
+    found `SslPolicy.TLS13_12`, a member the library does not have, so
+    `cdk synth` with the real context crashed before any import could start.
+    The policy is a mutable listener property, so a mismatch is a MODIFIED
+    drift at step 5 and a changed live policy at step 9; it is read from
+    alb.tf rather than typed twice."""
+    tf_text = (TF_DIR / "alb.tf").read_text(encoding="utf-8")
+    policy = re.search(r'ssl_policy\s*=\s*"([^"]+)"', tf_text).group(1)
+    t = _core("import", albAcmCertificateArn="arn:aws:acm:ap-south-1:123456789012:certificate/alb-cert")
+    listeners = [r["Properties"] for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::ElasticLoadBalancingV2::Listener"]
+    assert sorted(lst["Port"] for lst in listeners) == [80, 443]
+    https = next(lst for lst in listeners if lst["Port"] == 443)
+    assert https["Protocol"] == "HTTPS"
+    assert https["SslPolicy"] == policy, f"alb.tf says {policy!r}; the mirror renders {https.get('SslPolicy')!r}"
+    redirect = next(lst for lst in listeners if lst["Port"] == 80)
+    assert redirect["DefaultActions"][0]["Type"] == "redirect"
 
 
 def test_an_existing_oidc_provider_is_referenced_not_redeclared() -> None:

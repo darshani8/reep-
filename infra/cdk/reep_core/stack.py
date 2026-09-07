@@ -711,7 +711,13 @@ class CoreStack(Stack):
                     port=443,
                     protocol=elbv2.ApplicationProtocol.HTTPS,
                     certificates=[elbv2.ListenerCertificate.from_arn(alb_cert_arn)],
-                    ssl_policy=elbv2.SslPolicy.TLS13_12,
+                    # alb.tf: ELBSecurityPolicy-TLS13-1-2-2021-06. That string is
+                    # RECOMMENDED_TLS in the library; the first draft wrote
+                    # `TLS13_12`, a member that does not exist, and no guard had
+                    # synthesised this branch (none set a certificate), so the
+                    # crash waited for the live context. test_core_synth.py now
+                    # reads the policy out of alb.tf and synthesises this branch.
+                    ssl_policy=elbv2.SslPolicy.RECOMMENDED_TLS,
                     default_target_groups=[target_group],
                 )
             )

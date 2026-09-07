@@ -1,22 +1,30 @@
 #!/usr/bin/env python3
-"""Build the `cdk import` resource map and the import-time context from the
-Terraform state — so every identifier and every mirrored value is READ from
-what exists, never typed.
+"""Build the import-time context and the `cdk import` resource map from the
+Terraform state — so every mirrored value and every identifier is READ from
+what exists, never typed. Two passes, because the map needs a template that
+already has the live shape:
 
     cd infra/aws  && terraform show -json > ../cdk/tf-state.json
-    cd ../cdk     && cdk synth reep-core -c phase=import --quiet
-    python tools/import_map.py tf-state.json cdk.out/reep-core.template.json
+    cd ../cdk
+    python tools/import_map.py tf-state.json                   # 1. the context, from the state alone
+    cdk synth reep-core -c phase=import --quiet                # 2. the mirror, now with the live shape
+    python tools/import_map.py tf-state.json cdk.out/reep-core.template.json   # 3. the map, checked against it
 
-On success it writes two files next to cdk.json:
+Pass 1 writes `cdk.context.json` (merged): everything the stack must render
+identically — the random-suffix names, the secret ARNs, the AZs, the prefix
+list, the WAF ARN, AND the variable-driven values (certificates, domain,
+cpu/memory, task counts, instance class, the LIVE multi-AZ / retention /
+storage, the alert address, the container environment). Pass 3 writes
+`import-map.json` — {LogicalId: {IdentifierKey: value, ...}} for
+`cdk import --resource-mapping import-map.json` — and re-merges the context.
 
-    import-map.json      {LogicalId: {IdentifierKey: value, ...}} for
-                         `cdk import --resource-mapping import-map.json`
-    cdk.context.json     merged: everything the stack must render identically —
-                         the random-suffix names, the secret ARNs, the AZs, the
-                         prefix list, the WAF ARN, AND the variable-driven values
-                         (certificates, domain, cpu/memory, task counts, instance
-                         class, the LIVE multi-AZ / retention / storage, the
-                         alert address, the container environment)
+WHY THE CONTEXT COMES FIRST. A context-free synth renders the DEFAULT shape:
+one plain-HTTP listener, a declared OIDC provider. The live ALB has a
+certificate, so it has two listeners (80 → redirect, 443 → forward), and a map
+built against the wrong template has nothing to attach the 443 listener's ARN
+to. The first draft of the runbook synthesised before running this tool and
+would have been refused at step 2 with credentials in hand;
+tests/test_cutover_tools.py now rehearses the order above without an account.
 
 WHY A TOOL AND NOT A FORM. Two dozen identifiers, several of them random
 suffixes Terraform chose. One typo in a security-group name is a group
@@ -41,9 +49,10 @@ and docs/cdk-cutover.md runs it beside this tool.
 
 WHAT IT REFUSES. Any template resource with no identifier; any identifier
 whose value the state does not hold; any mirrored value it cannot source from
-the state. It writes NOTHING until every check passes — a partial map on disk
-is how an import adopts half a stack and the next deploy creates the other
-half twice.
+the state; a template whose shape is not the state's (synthesise with the
+context first). It writes NOTHING until every check passes — a partial map on
+disk is how an import adopts half a stack and the next deploy creates the
+other half twice.
 """
 
 from __future__ import annotations
@@ -138,15 +147,149 @@ def _one(resources: list[dict[str, Any]], tf_type: str, name: str, index: int | 
     return None
 
 
+def _trust_policy(role: dict[str, Any]) -> dict[str, Any]:
+    """An IAM role's assume-role policy, which the state holds as a JSON string."""
+    raw = role.get("assume_role_policy")
+    if isinstance(raw, dict):
+        return raw
+    try:
+        return json.loads(raw or "{}")
+    except ValueError:
+        return {}
+
+
+def _federated_principal(role: dict[str, Any]) -> str | None:
+    """The OIDC provider ARN a role trusts — github_oidc.tf names it whether
+    Terraform created the provider or another stack did."""
+    for st in _trust_policy(role).get("Statement", []):
+        fed = (st.get("Principal") or {}).get("Federated")
+        if isinstance(fed, str) and fed:
+            return fed
+    return None
+
+
+class _Lookup:
+    """The state's managed resources, the two accessors every rule uses, and
+    the problem list they report into."""
+
+    def __init__(self, state: dict[str, Any], problems: list[str]) -> None:
+        self.tf = _tf_resources(state)
+        self.problems = problems
+
+    def one(self, tf_type: str, name: str, index: int | None = None) -> dict[str, Any] | None:
+        return _one(self.tf, tf_type, name, index)
+
+    def need(self, tf_type: str, name: str, index: int | None = None) -> dict[str, Any]:
+        v = self.one(tf_type, name, index)
+        if v is None:
+            self.problems.append(f"{tf_type}.{name}{'' if index is None else f'[{index}]'} is not in the state")
+            return {}
+        return v
+
+
+def build_context(state: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Pass 1: the values the stack must render identically, from the state
+    alone. No template is needed — and none must be, because the template
+    that follows is synthesised FROM this."""
+    problems: list[str] = []
+    s = _Lookup(state, problems)
+    need, one = s.need, s.one
+    context: dict[str, Any] = {}
+
+    def ctx(key: str, value: Any, *, required: bool = True) -> None:
+        if value in (None, "", []):
+            if required:
+                problems.append(f"context {key}: not in the state")
+            return
+        context[key] = value
+
+    alb = need("aws_lb", "main")
+    db = need("aws_db_instance", "main")
+    taskdef = need("aws_ecs_task_definition", "api")
+    target = need("aws_appautoscaling_target", "api")
+    dist = need("aws_cloudfront_distribution", "main")
+
+    ctx("webBucketName", need("aws_s3_bucket", "web").get("bucket"))
+    ctx("albLogsBucketName", need("aws_s3_bucket", "alb_logs").get("bucket"))
+    ctx("appSecretArn", need("aws_secretsmanager_secret", "app").get("arn"))
+    ctx("externalSecretArn", need("aws_secretsmanager_secret", "external").get("arn"))
+    for key, tf_name in (
+        ("albSecurityGroupName", "alb"),
+        ("apiSecurityGroupName", "api"),
+        ("dbSecurityGroupName", "db"),
+        ("efsSecurityGroupName", "efs"),
+    ):
+        sg = one("aws_security_group", tf_name) or {}
+        ctx(key, sg.get("name"))
+        # GroupDescription is create-only. The stack renders Terraform's
+        # default; anything else is a permanent drift, so refuse to guess.
+        if sg and sg.get("description") != "Managed by Terraform":
+            problems.append(f"security group {tf_name}: description is {sg.get('description')!r}, the stack renders 'Managed by Terraform'")
+    pub = [one("aws_subnet", "public", i) or {} for i in range(2)]
+    ctx("availabilityZones", [sn.get("availability_zone") for sn in pub if sn.get("availability_zone")])
+    alb_sg = one("aws_security_group", "alb") or {}
+    prefix = next((r["prefix_list_ids"][0] for r in alb_sg.get("ingress", []) if r.get("prefix_list_ids")), None)
+    ctx("cloudfrontPrefixListId", prefix, required=False)
+    ctx("restrictAlbToCloudfront", bool(prefix))
+    waf = one("aws_wafv2_web_acl", "edge") or {}
+    ctx("wafWebAclArn", waf.get("arn"))
+    # TLS shape: read from the listeners that exist, never from a tfvars file.
+    https = one("aws_lb_listener", "https", index=0)
+    ctx("albAcmCertificateArn", https.get("certificate_arn") if https else "", required=False)
+    aliases = dist.get("aliases") or []
+    ctx("domainName", aliases[0] if aliases else "", required=False)
+    vc = (dist.get("viewer_certificate") or [{}])[0]
+    ctx("cloudfrontAcmCertificateArn", vc.get("acm_certificate_arn") or "", required=False)
+    api_origin = next((o for o in dist.get("origin", []) if o.get("origin_id") == "api-alb"), {})
+    origin_domain = api_origin.get("domain_name", "")
+    ctx("albOriginDomain", "" if origin_domain == alb.get("dns_name") else origin_domain, required=False)
+    ctx("apiCpu", int(taskdef["cpu"]) if taskdef.get("cpu") else None)
+    ctx("apiMemory", int(taskdef["memory"]) if taskdef.get("memory") else None)
+    ctx("apiMinTasks", target.get("min_capacity"))
+    ctx("apiMaxTasks", target.get("max_capacity"))
+    ctx("dbInstanceClass", db.get("instance_class"))
+    # THE LIVE VALUES the import mirror must carry, as opposed to the harden
+    # targets in cdk.json. See M1 in docs/cdk-cutover.md.
+    ctx("liveDbMultiAz", bool(db.get("multi_az")))
+    ctx("liveBackupRetentionDays", db.get("backup_retention_period"))
+    ctx("liveAllocatedStorage", db.get("allocated_storage"))
+    sub = one("aws_sns_topic_subscription", "email") or {}
+    ctx("alertEmail", sub.get("endpoint"), required=False)
+    # The OIDC provider: DECLARED and imported when Terraform created it (the
+    # default), REFERENCED by ARN when another stack owns it. The ARN is
+    # written only in the second case — writing it while the provider is in
+    # the state made the re-synth drop the very resource the map listed.
+    if one("aws_iam_openid_connect_provider", "github", index=0) is None:
+        ctx("githubOidcProviderArn", _federated_principal(need("aws_iam_role", "github_deploy")))
+    try:
+        cdefs = json.loads(taskdef.get("container_definitions") or "[]")
+        env = {e["name"]: e["value"] for e in (cdefs[0].get("environment") or [])}
+    except (ValueError, IndexError, KeyError, TypeError):
+        env = {}
+        problems.append("container_definitions could not be parsed from the state")
+    for env_name, key in _ENV_TO_CONTEXT.items():
+        ctx(key, env.get(env_name))
+    return context, problems
+
+
 def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
-    tf = _tf_resources(state)
+    """Pass 3: the resource map, checked against a template synthesised WITH
+    the pass-1 context. Returns (mapping, context, problems)."""
+    context, problems = build_context(state)
+    s = _Lookup(state, problems)
+    need, one = s.need, s.one
     resources: dict[str, Any] = template["Resources"]
     mapping: dict[str, dict[str, str]] = {}
-    problems: list[str] = []
 
     def put(logical: str, **keys: Any) -> None:
+        if logical not in resources:
+            problems.append(f"{logical}: not in the template — the stack renamed it, or the template was synthesised without the context (pass 1)")
+            return
         cfn_type = resources[logical]["Type"]
-        expected = IDENTIFIERS[cfn_type]
+        expected = IDENTIFIERS.get(cfn_type)
+        if expected is None:
+            problems.append(f"{logical}: type {cfn_type} is not in IDENTIFIERS")
+            return
         missing = [k for k in expected if keys.get(k) in (None, "")]
         if missing or set(keys) != set(expected):
             problems.append(f"{logical} ({cfn_type}): identifier needs {expected}, got {sorted(keys)} (empty: {missing})")
@@ -161,12 +304,17 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
             problems.append(f"{cfn_type}: expected one in the template, found {hits}")
         return None
 
-    def need(tf_type: str, name: str, index: int | None = None) -> dict[str, Any]:
-        v = _one(tf, tf_type, name, index)
-        if v is None:
-            problems.append(f"{tf_type}.{name}{'' if index is None else f'[{index}]'} is not in the state")
-            return {}
-        return v
+    def by_property(cfn_type: str, prop: str, value: Any) -> str | None:
+        """The logical id of the one resource of this type whose property has
+        this value. L2 constructs (the roles, the buckets) render logical ids
+        with a hash suffix — `BackupRoleF43CFD90` — so a rule that names
+        `BackupRole` matches nothing; the rehearsal found eight such rules.
+        The physical name is in the template as a property, so match on that."""
+        hits = [lid for lid, res in resources.items() if res["Type"] == cfn_type and res.get("Properties", {}).get(prop) == value]
+        if len(hits) == 1:
+            return hits[0]
+        problems.append(f"{cfn_type} with {prop}={value!r}: expected exactly one in the template, found {hits}")
+        return None
 
     vpc = need("aws_vpc", "main")
     igw = need("aws_internet_gateway", "main")
@@ -231,13 +379,16 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
         lid = only(cfn_type)
         if lid:
             put(lid, **keys)
-    oidc = _one(tf, "aws_iam_openid_connect_provider", "github", index=0)
+    oidc = one("aws_iam_openid_connect_provider", "github", index=0)
     lid = only("AWS::IAM::OIDCProvider")
     if lid:
         if oidc:
             put(lid, Arn=oidc.get("arn"))
         else:
-            problems.append(f"{lid}: no aws_iam_openid_connect_provider.github[0] in the state — set -c githubOidcProviderArn and drop the resource")
+            problems.append(
+                f"{lid}: the state has no aws_iam_openid_connect_provider.github[0], so the template must REFERENCE "
+                "the provider, not declare it — synthesise with the context this tool writes (pass 1) and run again"
+            )
 
     # --- indexed / named families -----------------------------------------
     for i in range(2):
@@ -261,21 +412,18 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
         sg = need("aws_security_group", tf_name)
         if sg:
             put(logical, Id=sg.get("id"))
-    for logical, tf_name in (
-        ("TaskExecutionRole", "task_execution"),
-        ("ApiTaskRole", "api_task"),
-        ("SchedulerRole", "scheduler"),
-        ("BackupRole", "backup"),
-        ("ClaudeObserverRole", "claude_observer"),
-        ("GithubDeployRole", "github_deploy"),
-    ):
+    for tf_name in ("task_execution", "api_task", "scheduler", "backup", "claude_observer", "github_deploy"):
         role = need("aws_iam_role", tf_name)
         if role:
-            put(logical, RoleName=role.get("name"))
-    buckets = {"WebBucket": need("aws_s3_bucket", "web"), "AlbLogsBucket": need("aws_s3_bucket", "alb_logs")}
-    for logical, b in buckets.items():
+            lid = by_property("AWS::IAM::Role", "RoleName", role.get("name"))
+            if lid:
+                put(lid, RoleName=role.get("name"))
+    for tf_name in ("web", "alb_logs"):
+        b = need("aws_s3_bucket", tf_name)
         if b:
-            put(logical, BucketName=b.get("bucket"))
+            lid = by_property("AWS::S3::Bucket", "BucketName", b.get("bucket"))
+            if lid:
+                put(lid, BucketName=b.get("bucket"))
     for lid, res in resources.items():
         t = res["Type"]
         p = res.get("Properties", {})
@@ -289,7 +437,7 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
             put(lid, AlarmName=p.get("AlarmName"))
         elif t == "AWS::ApplicationAutoScaling::ScalingPolicy":
             tf_name = {"cpu-target": "api_cpu", "memory-target": "api_memory"}.get(p.get("PolicyName"))
-            pol = _one(tf, "aws_appautoscaling_policy", tf_name) if tf_name else None
+            pol = one("aws_appautoscaling_policy", tf_name) if tf_name else None
             if pol:
                 put(lid, Arn=pol.get("arn"), ScalableDimension=_SCALABLE_DIMENSION)
             else:
@@ -302,14 +450,17 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
             wanted = "redirect" if action == "redirect" else "forward"
             found = None
             for name in ("http_redirect", "https", "http_origin"):
-                lst = _one(tf, "aws_lb_listener", name, index=0)
+                lst = one("aws_lb_listener", name, index=0)
                 if lst and lst.get("port") == port and (lst.get("default_action") or [{}])[0].get("type") == wanted:
                     found = lst
                     break
             if found:
                 put(lid, ListenerArn=found.get("arn"))
             else:
-                problems.append(f"{lid}: no listener on port {port} with a {wanted} action in the state")
+                problems.append(
+                    f"{lid}: no listener on port {port} with a {wanted} action in the state — the template has the "
+                    "default TLS shape, not the live one; synthesise with the context this tool writes (pass 1) and run again"
+                )
 
     # --- every import-phase resource must be mapped -------------------------
     for lid, res in resources.items():
@@ -318,101 +469,53 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
         elif lid not in mapping:
             problems.append(f"{lid} ({res['Type']}): no mapping rule")
 
-    # --- the values the stack must render identically -----------------------
-    context: dict[str, Any] = {}
-
-    def ctx(key: str, value: Any, *, required: bool = True) -> None:
-        if value in (None, "", []):
-            if required:
-                problems.append(f"context {key}: not in the state")
-            return
-        context[key] = value
-
-    ctx("webBucketName", buckets["WebBucket"].get("bucket") if buckets["WebBucket"] else None)
-    ctx("albLogsBucketName", buckets["AlbLogsBucket"].get("bucket") if buckets["AlbLogsBucket"] else None)
-    ctx("appSecretArn", need("aws_secretsmanager_secret", "app").get("arn"))
-    ctx("externalSecretArn", need("aws_secretsmanager_secret", "external").get("arn"))
-    for key, tf_name in (
-        ("albSecurityGroupName", "alb"),
-        ("apiSecurityGroupName", "api"),
-        ("dbSecurityGroupName", "db"),
-        ("efsSecurityGroupName", "efs"),
-    ):
-        sg = _one(tf, "aws_security_group", tf_name) or {}
-        ctx(key, sg.get("name"))
-        # GroupDescription is create-only. The stack renders Terraform's
-        # default; anything else is a permanent drift, so refuse to guess.
-        if sg and sg.get("description") != "Managed by Terraform":
-            problems.append(f"security group {tf_name}: description is {sg.get('description')!r}, the stack renders 'Managed by Terraform'")
-    pub = [_one(tf, "aws_subnet", "public", i) or {} for i in range(2)]
-    ctx("availabilityZones", [s.get("availability_zone") for s in pub if s.get("availability_zone")])
-    alb_sg = _one(tf, "aws_security_group", "alb") or {}
-    prefix = next((r["prefix_list_ids"][0] for r in alb_sg.get("ingress", []) if r.get("prefix_list_ids")), None)
-    ctx("cloudfrontPrefixListId", prefix, required=False)
-    ctx("restrictAlbToCloudfront", bool(prefix))
-    waf = _one(tf, "aws_wafv2_web_acl", "edge") or {}
-    ctx("wafWebAclArn", waf.get("arn"))
-    # TLS shape: read from the listeners that exist, never from a tfvars file.
-    https = _one(tf, "aws_lb_listener", "https", index=0)
-    ctx("albAcmCertificateArn", https.get("certificate_arn") if https else "", required=False)
-    aliases = dist.get("aliases") or []
-    ctx("domainName", aliases[0] if aliases else "", required=False)
-    vc = (dist.get("viewer_certificate") or [{}])[0]
-    ctx("cloudfrontAcmCertificateArn", vc.get("acm_certificate_arn") or "", required=False)
-    api_origin = next((o for o in dist.get("origin", []) if o.get("origin_id") == "api-alb"), {})
-    origin_domain = api_origin.get("domain_name", "")
-    ctx("albOriginDomain", "" if origin_domain == alb.get("dns_name") else origin_domain, required=False)
-    ctx("apiCpu", int(taskdef.get("cpu")) if taskdef.get("cpu") else None)
-    ctx("apiMemory", int(taskdef.get("memory")) if taskdef.get("memory") else None)
-    ctx("apiMinTasks", target.get("min_capacity"))
-    ctx("apiMaxTasks", target.get("max_capacity"))
-    ctx("dbInstanceClass", db.get("instance_class"))
-    # THE LIVE VALUES the import mirror must carry, as opposed to the harden
-    # targets in cdk.json. See M1 in docs/cdk-cutover.md.
-    ctx("liveDbMultiAz", bool(db.get("multi_az")))
-    ctx("liveBackupRetentionDays", db.get("backup_retention_period"))
-    ctx("liveAllocatedStorage", db.get("allocated_storage"))
-    sub = _one(tf, "aws_sns_topic_subscription", "email") or {}
-    ctx("alertEmail", sub.get("endpoint"), required=False)
-    ctx("githubOidcProviderArn", oidc.get("arn") if oidc else "", required=False)
-    try:
-        cdefs = json.loads(taskdef.get("container_definitions") or "[]")
-        env = {e["name"]: e["value"] for e in (cdefs[0].get("environment") or [])}
-    except (ValueError, IndexError, KeyError):
-        env = {}
-        problems.append("container_definitions could not be parsed from the state")
-    for env_name, key in _ENV_TO_CONTEXT.items():
-        ctx(key, env.get(env_name))
     return mapping, context, problems
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) != 3:
-        print(__doc__)
-        return 2
-    state = json.loads(Path(argv[1]).read_text(encoding="utf-8"))
-    template = json.loads(Path(argv[2]).read_text(encoding="utf-8"))
-    mapping, context, problems = build(state, template)
+def _refuse(problems: list[str]) -> int:
+    print("REFUSING — nothing written. Fix these first:")
+    for p in problems:
+        print("  -", p)
+    return 1
 
-    if problems:
-        print("REFUSING — nothing written. Fix these first:")
-        for p in problems:
-            print("  -", p)
-        return 1
 
-    here = Path(__file__).resolve().parents[1]
-    (here / "import-map.json").write_text(json.dumps(mapping, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+def _merge_context(here: Path, context: dict[str, Any]) -> None:
     ctx_path = here / "cdk.context.json"
     existing = json.loads(ctx_path.read_text(encoding="utf-8")) if ctx_path.exists() else {}
     existing.update(context)
     ctx_path.write_text(json.dumps(existing, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
+
+def main(argv: list[str]) -> int:
+    if len(argv) not in (2, 3):
+        print(__doc__)
+        return 2
+    state = json.loads(Path(argv[1]).read_text(encoding="utf-8"))
+    here = Path(__file__).resolve().parents[1]
+
+    if len(argv) == 2:  # pass 1: the context, from the state alone
+        context, problems = build_context(state)
+        if problems:
+            return _refuse(problems)
+        _merge_context(here, context)
+        print(f"context ({len(context)} keys) -> cdk.context.json")
+        print("\nNow synthesise the mirror with it, then build the map against that template:")
+        print("  cdk synth reep-core -c phase=import --quiet")
+        print(f"  python tools/import_map.py {argv[1]} cdk.out/reep-core.template.json")
+        return 0
+
+    template = json.loads(Path(argv[2]).read_text(encoding="utf-8"))
+    mapping, context, problems = build(state, template)
+    if problems:
+        return _refuse(problems)
+    (here / "import-map.json").write_text(json.dumps(mapping, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _merge_context(here, context)
     print(f"mapped {len(mapping)} resources -> import-map.json")
     print(f"context ({len(context)} keys) -> cdk.context.json")
     waf = next((r["values"] for r in _tf_resources(state) if r["type"] == "aws_wafv2_web_acl"), None)
     if waf:
         print(f"edge WAF identifier for `cdk import reep-edge-waf` (Name|Id|Scope): Name={waf.get('name')} Id={waf.get('id')} Scope=CLOUDFRONT")
-    print("\nNow re-synthesise with this context and cross-check the keys against")
+    print("\nCross-check the identifier keys against the only authoritative source:")
     print("  aws cloudformation get-template-summary --template-body file://cdk.out/reep-core.template.json --query ResourceIdentifierSummaries")
     return 0
 

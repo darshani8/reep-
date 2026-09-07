@@ -1513,6 +1513,88 @@ registry identifier; `DesiredCount` is never sent; the ECS half of harden can be
 retention above 35 is refused; descriptions and tags mirror Terraform; all three stacks retain
 everything; three backup alarms; an existing OIDC provider is referenced, not redeclared.
 
+## L4-08 · Step 0 as one command, and the rehearsal that needed no account
+
+**The ask:** "fix that blocker" — the cutover needing a human with credentials, an
+afternoon, and two attended hours. Only the credentials are the user's to supply; everything
+else about that blocker turned out to be fixable from here.
+
+**What this machine had, checked step by step:** no `aws`, no `terraform`, no `cdk` CLI, no
+credentials, no `backend.hcl`, no `prod.tfvars`, and a runbook written for a Unix shell
+(`.venv/bin/activate`). The GitHub deploy role was examined as an alternative path: it holds
+ECR, ECS, S3 and CloudFront rights only, nothing for CloudFormation, RDS or the state bucket,
+so a browser-run cutover is impossible by design and the laptop path is the only path.
+Terraform 1.15.8 (winget), aws-cdk 2.1140.0 (npm) and AWS CLI 2.36.40 (winget, after the user
+accepted the elevation prompt the first attempt had cancelled) are now installed for the
+user. A pip `awscli` briefly put in the venv was removed: with the venv active it shadows v2.
+
+**`prod.tfvars` never existed.** `docs/aws-deployment.md` §3 shows the first apply run with
+`-var` flags. Step 0 said `terraform plan -var-file=prod.tfvars` MUST exit 0 and nothing said
+where the file comes from; without the applied values the plan proposes to undo the
+certificate, the domain and the alert address, and the cutover stalls on its first check.
+The state does not store variable values, but every one lands in an attribute of a resource
+the state does hold — so `tools/tfvars_from_state.py` reads them back (the certificate from
+the 443 listener, the OIDC subjects from the deploy role's trust policy, the observer
+principal from its own, the container environment, the sizes, the retention) and refuses to
+write anything it cannot source. A test pins its key set to the `variable` blocks in
+`infra/aws/*.tf`, so a variable added without a rule fails CI rather than the plan.
+
+**`tools/cutover_preflight.sh`** is step 0 as one read-only command: tools → repository
+hygiene → synth guards and a full `cdk synth` → identity (account 445363794125) → the three
+bootstraps → the three stacks' existence → `terraform init` / `show` / tfvars / `plan
+-detailed-exitcode` → RDS deletion protection and the pre-cutover snapshot. It stops at the
+first thing only a human can provide and says exactly what. A test pins that every `aws`
+call in it is a describe/get/list/head and that terraform is never applied; the printed
+snapshot command is a message line, which the test excludes.
+
+**The rehearsal, `tests/test_cutover_tools.py`, found four blockers no guard had reached.**
+It builds a synthetic `terraform show -json` shaped like the account and runs the tools in
+the runbook's order, then re-synthesises from the merged context and demands a fixed point.
+Writing it surfaced, in order:
+
+1. **The runbook synthesised before running the tool.** A context-free synth renders one
+   plain-HTTP listener; the live ALB has two. The listener rule matches on port and action,
+   so the 80/forward template listener matched nothing in a TLS state and the tool refused —
+   at step 2, with credentials in hand. `import_map.py` is now two passes: the context from
+   the state alone, then the synth, then the map against that template. The runbook test
+   pins that order.
+2. **`githubOidcProviderArn` was written whenever the provider existed** — the default — and
+   the stack references instead of declares when that key is set, so the re-synth dropped
+   the resource the map had just listed. It is written only when the provider is NOT in the
+   state, read from the deploy role's `Federated` principal.
+3. **The TLS branch of `stack.py` did not synthesise.** `SslPolicy.TLS13_12` is not a member
+   of the library; Terraform's `ELBSecurityPolicy-TLS13-1-2-2021-06` is `RECOMMENDED_TLS`.
+   None of the 58 guards had ever set a certificate, so the crash waited for the live
+   context. A new guard reads the policy out of `alb.tf` and synthesises the branch.
+4. **Eight mapping rules named logical ids that are not in the template.** The roles and
+   the buckets are L2 constructs and render as `BackupRoleF43CFD90`; `put("BackupRole", …)`
+   was a `KeyError` waiting for step 2. The rules now resolve by the `RoleName` /
+   `BucketName` property, and `put` reports an unknown id instead of crashing.
+
+Also: the voice-platform stack is a warning, not a failure (only step 10 and CI deploys need
+its grant, not the import); the `.tf`-reading guards carry `requires_terraform` and skip once
+step 7 deletes the files, so the cutover commit stays green instead of failing the guards
+that proved it safe.
+
+**Mutation checks** — each original bug reintroduced, its guard red, the file restored:
+M1 `TLS13_12` → 1 failed; M2 a real but wrong policy (`TLS12`) → 1 failed; M3 the ARN written
+unconditionally → 2 failed; M4 a role by plain logical id → 3 failed; M5 a tfvars rule
+dropped → 1 failed; M6 a mutating `aws` call in the preflight → 1 failed. Suite after
+restore: 74 passed.
+
+## VERIFY
+
+**Still nothing run against AWS.** The preflight ran on this machine and stopped, by
+design, at the credentials check:
+
+| Check | Result |
+|---|---|
+| CDK suite: 58 synth guards + 1 TLS guard + 15 cutover-tool tests | 74 passed |
+| api guards (`tests/test_codebase_guards.py`, AGENTS.md paths included) | 15 passed |
+| `bash -n` on both shell scripts | clean |
+| `tools/cutover_preflight.sh` on this machine | 9 ok, 1 failure: "no usable AWS credentials", exit 1 |
+| mutation checks M1–M6 | all red, all restored |
+
 
 ---
 

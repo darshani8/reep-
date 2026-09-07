@@ -1776,3 +1776,40 @@ docstring that the registry can only be checked online.
 ---
 
 *Entries continue as each file is written.*
+
+## L4-11 · Step 3 ran, and failed in a way nothing offline could have found
+
+`cdk import reep-edge-waf` — the rehearsal, one resource, one region, chosen precisely so that
+whatever goes wrong goes wrong here — was refused by CloudFormation:
+
+    As part of the import operation, you cannot modify or add [RoleArn, Tags]
+
+**Nothing changed. The stack was not created.** That is the property the whole design leans on:
+CloudFormation validates an import change set before it adopts anything.
+
+**The cause is invisible in the template.** `Tags.of(stack).add(...)` tags the Stack itself as well
+as its resources, and CDK passes a tagged stack's tags to `CreateChangeSet` as **stack** tags, which
+an IMPORT change set refuses. The rendered template is byte-identical either way — the difference is
+in `cdk.out/manifest.json`, and therefore in the API call. No synth assertion could have seen it,
+and `reep-core` carried exactly the same stack tags: **all 65 resources would have failed the same
+way at step 4.**
+
+The fix is to apply the tag aspects to the stack's CHILDREN, last, once every construct exists. The
+stack goes untagged in the manifest; 42 of the 66 resources still carry their tags; the template is
+unchanged. `test_no_stack_level_tags_in_any_phase` asserts the stack is untagged in every phase for
+both stacks the cutover imports, *and* that resources still carry tags — a guard that only checked
+the first half would pass on a stack that had lost its tagging entirely.
+
+Found in the same pass and fixed with it: `edge.py` tagged the ACL `ManagedBy=cdk` unconditionally,
+the one place the core stack's import-mirror tag discipline was not applied, which would have put a
+property difference into the rehearsal diff whose only job is to be empty. The WAF's rule *array
+order* differs from the state export and is **not** a difference — the priorities (1 aws-common,
+2 aws-bad-inputs, 3 rate-limit) match exactly, and WAF evaluates by priority.
+
+Retried, the import succeeded: `reep-edge-waf` now owns the ACL. The session's AWS credentials
+expired moments later, before the post-import diff could be read.
+
+**State at this point.** Steps 0, 1, 2 and 3 complete. `reep-core` has NOT been imported, no
+Terraform state released, nothing deployed. The only changes to AWS all day are one EventBridge
+schedule target (revision 3 → 4) and the adoption of the WAF into a CloudFormation stack that
+changed no property of it.

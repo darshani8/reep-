@@ -265,7 +265,7 @@ class CoreStack(Stack):
         # step 9 for a label nobody reads, so it is excluded from both tags in
         # both phases and stays as it is.
         untagged = ["AWS::CloudFront::Function"]
-        Tags.of(self).add("Project", project, exclude_resource_types=untagged)
+        self._tag_plan: list[tuple[str, str, dict[str, Any]]] = [("Project", project, {"exclude_resource_types": untagged})]
         # The import mirror keeps Terraform's tag so nothing shows MODIFIED for
         # a label. Harden flips it — with two exceptions, both load-bearing.
         #
@@ -286,10 +286,10 @@ class CoreStack(Stack):
         ecs_roll_types = ["AWS::ECS::TaskDefinition", "AWS::ECS::Service", "AWS::ElasticLoadBalancingV2::TargetGroup"]
         if harden:
             keep_terraform = ["AWS::EC2::EIP"] + ([] if harden_ecs else ecs_roll_types)
-            Tags.of(self).add("ManagedBy", "cdk", exclude_resource_types=keep_terraform + untagged)
-            Tags.of(self).add("ManagedBy", "terraform", include_resource_types=keep_terraform)
+            self._tag_plan.append(("ManagedBy", "cdk", {"exclude_resource_types": keep_terraform + untagged}))
+            self._tag_plan.append(("ManagedBy", "terraform", {"include_resource_types": keep_terraform}))
         else:
-            Tags.of(self).add("ManagedBy", "terraform", exclude_resource_types=untagged)
+            self._tag_plan.append(("ManagedBy", "terraform", {"exclude_resource_types": untagged}))
         Aspects.of(self).add(RetainEverything())
 
         # ---------------------------------------------------------- network --
@@ -1192,6 +1192,25 @@ class CoreStack(Stack):
         CfnOutput(self, "DbEndpoint", value=db.attr_endpoint_address)
         CfnOutput(self, "GithubDeployRoleArn", value=deploy_role.role_arn)
         CfnOutput(self, "BackupVaultArn", value=vault.attr_backup_vault_arn)
+
+        # TAGS GO ON THE CHILDREN, NEVER ON THE STACK, AND THIS IS NOT A STYLE
+        # CHOICE. `Tags.of(stack).add(...)` tags the Stack itself as well as its
+        # resources, and CDK sends a tagged stack's tags to CreateChangeSet as
+        # *stack* tags — which CloudFormation refuses on an IMPORT change set:
+        #
+        #     As part of the import operation, you cannot modify or add
+        #     [RoleArn, Tags]
+        #
+        # That is exactly how the step-3 rehearsal failed on 2026-09-07, and
+        # the core import would have failed the same way on all 65 resources.
+        # Applying the aspects to each direct child instead leaves the stack
+        # untagged in the manifest while every resource still carries its tags,
+        # so the mirror is unchanged and the import is accepted. It runs LAST
+        # so that every construct exists to be visited.
+        # `test_no_stack_level_tags_in_the_import_phase` is the guard.
+        for key, value, kwargs in self._tag_plan:
+            for child in self.node.children:
+                Tags.of(child).add(key, value, **kwargs)
 
         self.distribution = distribution
         self.service = service

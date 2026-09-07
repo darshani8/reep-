@@ -19,3 +19,10 @@
 # whatever change happened to carry it. That migration may well be worth doing;
 # it is worth doing as its own commit, where the diff is the point rather than
 # the noise. Check the current state with `git ls-files --eol | grep i/crlf`.
+
+# Terraform heredocs are sent to AWS verbatim: the CloudFront function body in
+# infra/aws/cdn.tf, checked out CRLF on Windows, made `terraform plan` propose
+# to rewrite a live function that differed only by a carriage return per line.
+# The index already holds the .tf files LF, so this rule renormalises nothing;
+# it only stops autocrlf undoing that on checkout (docs/cdk-cutover.md step 0).
+*.tf   text eol=lf

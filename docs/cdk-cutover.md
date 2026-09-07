@@ -36,12 +36,42 @@ step is skipped and not one is reordered.
 | `aws_wafv2_web_acl.edge` | `reep-edge-waf` (`edge.py`) | us-east-1 |
 | *(new)* cross-region backup copy target | `reep-dr-vault` (`dr.py`) | ap-southeast-1 |
 
-Four Terraform resources have **no CloudFormation counterpart and are dropped
-on purpose**: `random_password.db`, `random_password.auth_secret`,
-`aws_secretsmanager_secret_version.app`, `.external`. Their *values* live in
-the two secrets already; the stack imports the secrets by ARN and never writes
-a version. Six more collapse into bucket properties or are the two bucket
-policies (imported as `AWS::S3::BucketPolicy`).
+**82 managed addresses, 65 imported, and every one of the other 17 is named.**
+The accounting is not prose any more — `UNMAPPED_ON_PURPOSE` in
+`tools/import_map.py` lists every Terraform type that has no resource of its
+own in the mirror, with its reason, and the tool **refuses** on any managed
+address that is neither mapped nor listed. Three template resources have no
+Terraform address of their own in the other direction: the two default routes
+(inline on `aws_route_table`) and the gateway attachment (a `vpc_id` argument
+on `aws_internet_gateway`).
+
+That check exists because it was briefly removed. The preflight's original
+"78 addresses" heuristic was replaced with a bare non-zero count on the
+grounds that `import_map.py` covered it — it did not, it only ever walked the
+template, so for a few hours nothing checked the state→template direction at
+all *(2026-09-07)*. After step 6 releases the state, a live resource that
+neither side claims is one nobody will manage again.
+
+### What is left unmanaged, on purpose
+
+**The two Secrets Manager secrets are NOT imported and never will be.**
+`reep/app-…` holds `AUTH_SECRET` and `DATABASE_URL`; `reep/external-…` holds
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SENTRY_DSN` and
+`VOICE_WORKER_SECRET`. The stack reads both **by ARN** and writes neither. A
+CloudFormation resource for a secret is a resource CloudFormation can rewrite,
+and rewriting `AUTH_SECRET` signs out every student while rewriting
+`DATABASE_URL` takes the api off its database. Their ARNs are in
+`cdk.context.json` as `appSecretArn` and `externalSecretArn`; the operator
+fills them (`docs/aws-deployment.md` §3). From step 7 onward this paragraph is
+the only record that they exist, which is why it is here rather than in a
+comment in a deleted file.
+
+Also deliberately not imported: `random_password.db` and
+`.auth_secret` (Terraform-only generators — the values they produced live in
+the secrets), the two `aws_secretsmanager_secret_version` resources, and the
+SNS **email subscription**, which cannot be imported at all and which the
+harden phase re-creates (SNS dedupes on topic + endpoint, so the existing one
+is reused and a confirmation mail may arrive once more).
 
 The `reep-core` stack has **two phases**, chosen by one context value:
 
@@ -122,6 +152,43 @@ alert address back to their defaults. If `plan` still proposes anything,
 resolve it first: importing a resource whose real state differs from its
 Terraform state means the mirror in CDK is wrong too.
 
+**Expect it not to be clean the first time, and resolve it in this order.** On
+2026-09-07 the state was stale three ways, all because the account is edited by
+things that are not Terraform — a console visit and CI:
+
+1. **Reality changed, the config did not.** The distribution had been given an
+   alias, an ACM certificate and a TLS policy in the console.
+   `terraform apply -refresh-only -var-file=prod.tfvars` records reality into
+   the state and **changes nothing in AWS** — it is the honest resolution, and
+   it is what makes the reconstructed `prod.tfvars` come out right, because the
+   tool reads the state. Re-run `tools/tfvars_from_state.py` after it (delete
+   the file first; the tool never overwrites).
+2. **A resource was replaced outside Terraform.** CI had registered ECS task
+   definition revision 4 and the service runs it; the state held revision 3.
+   `terraform state rm aws_ecs_task_definition.api` then
+   `terraform import aws_ecs_task_definition.api <arn>:4`. An imported task
+   definition then comes back with AWS's *populated* form — auto-named port
+   mappings, empty default lists, the volume's `configure_at_launch` — which
+   the source never spells out, so Terraform proposes to REPLACE it and roll
+   the service to "fix" defaults. `ecs.tf` carries a `lifecycle` block ignoring
+   exactly that noise; the values themselves are still the config's.
+3. **A value the provider cannot express.** The live minimum TLS version is
+   `TLSv1.3_2025` and **no aws provider 5.x accepts that string** — 5.100
+   validates against a list ending at `TLSv1.2_2021`, so the plan *errors*
+   rather than drifting. `cdn.tf` ignores
+   `viewer_certificate[0].minimum_protocol_version` and carries a placeholder
+   that is never sent. The CDK mirror renders the real value, because
+   CloudFormation has no such limitation.
+
+One change was genuinely applied, through a saved plan
+(`terraform plan -out=…` then `terraform apply <file>`, so that what was
+reviewed is what ran): the nightly retention schedule still targeted revision
+3. That one matters to the import — the mirror renders the schedule's target as
+a `Ref` to the task definition, so leaving it would have produced a drift row
+the runbook does not list.
+
+Only then does `terraform plan -detailed-exitcode` exit 0.
+
 **Remove the one script in the tree that deletes production by name** *(review)*:
 `infra/aws/cleanup-orphans.sh` targets cluster `reep`, service `api`, log group
 `/reep/api` and the five IAM roles — the production names — and after step 6
@@ -179,18 +246,35 @@ python tools/import_map.py tf-state.json cdk.out/reep-core.template.json
 
 It writes nothing unless every check passes, then writes `import-map.json`
 (the registry identifier, every part of a composite one, for each resource in
-the import template) and re-merges the context. What the rehearsal cannot
-check is the registry itself, so cross-check the identifier keys against the
-only authoritative source:
+the import template) and re-merges the context. It **skips `AWS::CDK::Metadata`**,
+which the CLI appends to every synth and which is a base64 analytics string
+rather than a resource: the synth tests build their template with
+`Template.from_stack()`, which does not add it, so the rehearsal never saw it
+and the tool refused the first real template *(2026-09-07)*.
+
+What the rehearsal cannot check is the registry itself. Do that with the tool,
+not by eye:
 
 ```bash
-aws cloudformation get-template-summary --template-body file://cdk.out/reep-core.template.json \
-  --query 'ResourceIdentifierSummaries[].{Type:ResourceType,Keys:ResourceIdentifiers}' --output table
+python tools/check_identifiers.py     # exit 0 = every identifier matches
 ```
 
-Every `Keys` entry must match the key set in `import-map.json` for that type.
-A mismatch is a bug in `tools/import_map.py`'s `IDENTIFIERS` table; fix the
-table, not the map.
+It asks `get-template-summary` what keys each type requires **for this exact
+template** and compares all of them. **Do not do this comparison by reading the
+table**, which is what this step used to say. CloudFormation returns a
+*composite* identifier as ONE comma-joined string —
+`["ResourceId,ScalableDimension,ServiceNamespace"]`, one element, not three —
+while the map correctly sends three separate keys. By eye, all seven composite
+types read as mismatches: the ECS service, both scaling policies, the scalable
+target, the metric filter, the IGW attachment, the EIP and both default routes.
+Following the old instruction, an operator would have "fixed" a table that was
+right and broken an import that was going to work. That happened here, to the
+person who wrote the table. A real mismatch is a bug in `IDENTIFIERS`; fix the
+table, never the map.
+
+The template is larger than CloudFormation's 51,200-byte inline limit, so the
+tool stages a copy in the CDK bootstrap assets bucket and summarises it by URL.
+That staged copy is the only thing it writes.
 
 Commit `cdk.context.json` and `import-map.json` — they are the audit record of
 what was adopted, and neither is secret. **Never commit `tf-state.json`.**
@@ -202,6 +286,20 @@ CDK_DEFAULT_REGION=us-east-1 cdk import reep-edge-waf
 # EdgeAcl's identifier is composite — Name | Id | Scope; the tool printed all three:
 #   Name: reep-edge   Id: <from the state>   Scope: CLOUDFRONT
 CDK_DEFAULT_REGION=us-east-1 cdk diff reep-edge-waf
+```
+
+**This step overwrites the import mirror. Re-synthesise before step 4.** Every
+`cdk` command runs the app, and the app synthesises *all four stacks* in
+whatever phase the context says — which for a bare `cdk import reep-edge-waf`
+is `harden`, the default in `cdk.json`. So `cdk.out/reep-core.template.json`
+comes back as a HARDEN template, and anything that reads it afterwards
+(`tools/check_identifiers.py`, an eyeball, a diff) is reading the wrong one.
+The import in step 4 passes `-c phase=import` and so re-synthesises correctly,
+but do not trust the file on disk in between:
+
+```bash
+cdk synth reep-core -c phase=import --quiet      # restore the mirror
+python tools/check_identifiers.py                # and re-prove it
 ```
 
 The diff will show `[+]` for the `CDKMetadata` resource and the `WebAclArn`
@@ -255,9 +353,29 @@ harmless differences — anything else is a mirror error to fix in `stack.py`:
 | `AlbLogsBucket` policy | `PolicyDocument` | the L2 writes three statements on `/AWSLogs/<account>/*`; Terraform wrote one on `/*` (a superset) |
 | `WebBucket` policy | `PolicyDocument.Statement[].Sid` | Terraform named it `CloudFrontRead`; the OAC origin does not set a Sid |
 | `ApiRepo` | `LifecyclePolicy.LifecyclePolicyText` | JSON whitespace |
-| `Db` | `EngineVersion` | template says `17`, the instance reports `17.x` — not re-sent |
+| `Db` | `EngineVersion` | template says `17`, the instance reports `17.9` — not re-sent |
+| `ApiTaskRole` | `Policies` | **`reep-voice-platform` owns the `voice-platform` inline policy on this role** |
+| `GithubDeployRole` | `Policies` | **`reep-voice-platform` owns `deploy-cdk-stacks` on this role** |
 
 Only when that table is the whole `MODIFIED` list is the mirror proven.
+
+**Do not "fix" the last two.** Adding `voice-platform` or `deploy-cdk-stacks`
+to `reep_core/stack.py` puts two CloudFormation stacks in charge of the same
+inline policy name, and the next deploy of either overwrites the other —
+removing them from the voice-platform stack then issues `DeleteRolePolicy` and
+takes away the api's S3/SQS/DynamoDB/OpenSearch grants, or CI's ability to
+assume the CDK bootstrap roles. They are safe as they are: CloudFormation
+diffs `Role.Policies` template-to-template, never against the live inline list,
+so a policy that was never in `reep-core`'s template is never touched by
+`reep-core`'s deploys — the same mechanism that lets CDK's own
+Role + DefaultPolicy pattern coexist. *(pre-import review, 2026-09-07)*
+
+Four rows were found and fixed in the mirror rather than tolerated here, and
+they are listed so a regression is recognisable: the ECS service's
+`MinimumHealthyPercent` (rendered 50, live 100), the HTTP redirect's
+`Host`/`Path`/`Query`, the web OAC's `Description`, and tags on the CloudFront
+function (live has none — the aws provider cannot set them). If any of those
+appears in a drift report, the mirror has regressed.
 Terraform still manages everything; nothing has been changed yet. **This is
 the last point at which nothing has happened.**
 
@@ -292,9 +410,14 @@ git rm infra/aws/*.tf infra/aws/backend.hcl.example infra/aws/dev-setup-terrafor
 git commit -m "infra: Terraform released; reep-core is CloudFormation via CDK"
 ```
 
-In the same commit, add `core` back to the `stack` choices in
-`.github/workflows/cdk-deploy.yml` — it was removed so a browser click could
-not create a second VPC before the import *(review)*.
+**Do NOT add `core` back to `.github/workflows/cdk-deploy.yml` in this
+commit.** It was removed so a browser click could not create a second VPC
+before the import *(review)*, and between here and step 9 it would be a worse
+hazard, not a smaller one: the workflow runs a bare `cdk deploy reep-core`,
+which is the FULL harden — both halves in one update, the Multi-AZ conversion
+and the API roll together, which is precisely what step 9 splits apart. Add it
+in a commit **after 9b**, when a one-click `reep-core` deploy is a no-op
+against a stack that is already hardened *(pre-import review, 2026-09-07)*.
 
 The synth guards that read `infra/aws/*.tf` (`requires_terraform` in
 `tests/test_core_synth.py` and `tests/test_cutover_tools.py`) skip themselves
@@ -324,11 +447,30 @@ builds a standby and dips performance while it syncs):
 cdk diff reep-core -c hardenEcs=false
 ```
 
-Expect: `Db` MultiAZ false→true and BackupRetentionPeriod 14→35; the vault's
+Expect: `Db` MultiAZ false→true and **BackupRetentionPeriod 1→35**; the vault's
 `LockConfiguration`; the plan's `CopyActions`; the restore-testing plan and
 selection; three backup alarms; `AWSBackupServiceRolePolicyForRestores` on the
-backup role; the `send-mail` policy on the task role; tags. **No `Replace` on
+backup role; the `send-mail` policy on the task role; the SNS email
+subscription; tags on everything except the ECS trio. **No `Replace` on
 anything.**
+
+**One, not fourteen.** The live database keeps **one day** of automated
+backups (`db_backup_retention_days` defaults to 14, but the instance was
+created with 1 and the refresh recorded it). So point-in-time recovery covers
+only the last 24 hours for the whole of this cutover, and the manual
+`reep-postgres-pre-cdk-*` snapshot from step 0 is the real safety net until
+this deploy lands. An earlier version of this line said 14→35, which would
+have made a correct diff look wrong at the one gate where an operator confirms
+a `ModifyDBInstance` against the live database *(2026-09-07)*.
+
+**And 9a does not touch the API.** It used to: the harden phase flips every
+resource's `ManagedBy` tag, and a task definition is immutable, so tagging it
+registers a **new revision** the service then rolls onto — in the same update
+as the Multi-AZ conversion, which is exactly what splitting the deploy was
+supposed to prevent. The tag flip on the task definition, the service and the
+target group is now held back with the rest of the ECS half, so 9a's diff
+shows those three as unchanged. `test_the_database_half_does_not_touch_the_ecs_trio`
+is the guard.
 
 ```bash
 cdk deploy reep-core -c hardenEcs=false
@@ -344,8 +486,16 @@ cdk diff reep-core
 Expect: a **new task-definition revision** (this *always* shows as a Replace
 of `AWS::ECS::TaskDefinition` — the old revision is retained, and it is the
 one Replace that is expected *(review)*), the target group's
-`deregistration_delay` 30→600, the service's `MinimumHealthyPercent` 50→100
-and the new task definition. Nothing else.
+`deregistration_delay` 30→600, and the new task definition. Nothing else.
+
+`MinimumHealthyPercent` is **not** in that list and must not appear in any
+diff. The live service is already at 100 — `ecs.tf` never sets it, so 100 is
+the ECS default — and the mirror renders 100 in both phases *(2026-09-07)*.
+It used to render 50 at import, which would have put an unlisted MODIFIED row
+in step 5's drift report and, because step 9a updates this service anyway to
+flip its tag, would have dropped the live service to a 50 % minimum for the
+length of the Multi-AZ conversion. If you see it in a diff, the mirror has
+regressed; `test_the_service_keeps_both_tasks_in_every_phase` is the guard.
 
 ```bash
 cdk deploy reep-core

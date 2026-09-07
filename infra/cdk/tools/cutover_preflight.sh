@@ -23,6 +23,13 @@
 # Bash on Windows.
 set -uo pipefail
 
+# Git Bash rewrites any argument that looks like a POSIX path (`/cdk-bootstrap/…`)
+# into a Windows path before a native executable sees it: the SSM parameter
+# name below arrived as C:/Program Files/Git/cdk-bootstrap/… and read back as
+# "not found" — three bootstrapped regions reported as three missing ones.
+# Off, for every command in this script. Unknown to every other shell.
+export MSYS_NO_PATHCONV=1
+
 ACCOUNT_EXPECTED="${REEP_ACCOUNT:-445363794125}"
 HOME_REGION="${REEP_REGION:-ap-south-1}"
 REGIONS=("$HOME_REGION" "us-east-1" "ap-southeast-1")
@@ -164,6 +171,15 @@ else
   exit 1
 fi
 export AWS_DEFAULT_REGION="$HOME_REGION" CDK_DEFAULT_REGION="$HOME_REGION" CDK_DEFAULT_ACCOUNT="$ACCOUNT"
+# Terraform and the CDK CLI resolve credentials through their own SDKs, which
+# do not all understand an `aws login` session yet. Hand them the same session
+# as plain environment variables — temporary, and only for this process.
+if creds="$(aws configure export-credentials --format env 2>/dev/null)" && [ -n "$creds" ]; then
+  eval "$creds"
+  pass "session exported to the environment for terraform and cdk"
+else
+  warn "aws configure export-credentials produced nothing; terraform and cdk fall back to their own credential chain"
+fi
 configured="$(aws configure get region 2>/dev/null || true)"
 if [ -n "$configured" ] && [ "$configured" != "$HOME_REGION" ]; then
   warn "the profile's region is $configured; every runbook command must run with CDK_DEFAULT_REGION=$HOME_REGION (exported for the rest of this script)"
@@ -180,6 +196,8 @@ for r in "${REGIONS[@]}"; do
   v="$(aws ssm get-parameter --name /cdk-bootstrap/hnb659fds/version --region "$r" --query Parameter.Value --output text 2>/dev/null || true)"
   if [ -n "$v" ]; then
     pass "cdk bootstrap present in $r (version $v)"
+  elif [ "$(stack_status CDKToolkit "$r")" != "MISSING" ]; then
+    fail "$r has a CDKToolkit stack but no /cdk-bootstrap/hnb659fds/version parameter — run cdk bootstrap aws://$ACCOUNT/$r again"
   else
     fail "$r is not bootstrapped: cdk bootstrap aws://$ACCOUNT/$r"
   fi
@@ -236,11 +254,12 @@ else
   summary
   exit 1
 fi
-count="$(cd "$TF_DIR" && terraform state list 2>/dev/null | wc -l | tr -d ' ')"
-if [ "$count" -eq 78 ] 2>/dev/null; then
-  pass "the state holds the 78 managed addresses the runbook moves"
-elif [ "$count" -gt 0 ] 2>/dev/null; then
-  warn "the state holds $count managed addresses, the runbook expects 78 — import_map.py refuses anything it cannot find, so read its output closely"
+# `terraform state list` includes data sources; only managed addresses count,
+# and the number itself is not the check — import_map.py refuses anything the
+# template needs that the state lacks, which is the check that matters.
+count="$(cd "$TF_DIR" && terraform state list 2>/dev/null | grep -vc '^data\.' | tr -d ' ')"
+if [ "$count" -gt 0 ] 2>/dev/null; then
+  pass "the state holds $count managed addresses (data sources excluded)"
 else
   fail "the state is empty — this is not the account the stack was applied to"
   summary

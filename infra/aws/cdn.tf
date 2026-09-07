@@ -91,7 +91,17 @@ resource "aws_cloudfront_distribution" "main" {
     cloudfront_default_certificate = var.domain_name == "" ? true : false
     acm_certificate_arn            = var.domain_name != "" ? var.cloudfront_acm_certificate_arn : null
     ssl_support_method             = var.domain_name != "" ? "sni-only" : null
+    # The live distribution carries TLSv1.3_2025: the alias, the certificate
+    # and that policy were set in the console on 2026-09-02, and the cutover's
+    # refresh recorded them (docs/cdk-cutover.md step 0). No 5.x provider
+    # accepts that value (5.100 still validates against a list ending at
+    # TLSv1.2_2021), so the attribute is ignored below and this placeholder is
+    # never sent. The CDK mirror (reep_core/stack.py) carries the real value.
     minimum_protocol_version       = var.domain_name != "" ? "TLSv1.2_2021" : "TLSv1"
+  }
+
+  lifecycle {
+    ignore_changes = [viewer_certificate[0].minimum_protocol_version]
   }
 }
 

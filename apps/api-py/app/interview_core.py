@@ -102,9 +102,8 @@ _INTERVIEWER_PERSONA: Final[str] = (
     # Nothing in this process puts a student record into this prompt, so there is
     # nothing personal here to leak -- but a model that is not TOLD it is blind
     # will cheerfully invent a CGPA and say it out loud, and the student has no
-    # way to know it was fiction. Same disclosure voice_agent.py's
-    # BASE_INSTRUCTIONS makes for the LiveKit worker, and it is the marker the
-    # next editor meets before adding a "personalise the interview" field.
+    # way to know it was fiction. It is the marker the next editor meets before
+    # adding a "personalise the interview" field.
     "You cannot see this student's marks, attendance, CGPA, USN, resume or any "
     "other record from their REEP dashboard - none of that is available to you, "
     "by design. If they ask what their own figures are, say plainly that you "

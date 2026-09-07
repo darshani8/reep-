@@ -51,7 +51,7 @@ class PlacementOffer(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))
     job_id: Mapped[str | None] = mapped_column(
-        ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     role_type: Mapped[OfferRoleType] = mapped_column(Enum(OfferRoleType, name="offer_role_type"))
@@ -80,7 +80,7 @@ class PlacementOffer(Base):
         Enum(OfferStatus, name="offer_status"), default=OfferStatus.DRAFT, server_default="DRAFT"
     )
     approved_by_id: Mapped[str | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     decision_note: Mapped[str | None] = mapped_column(String, nullable=True)

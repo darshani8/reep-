@@ -62,7 +62,7 @@ class RegistrationRule(Base):
     degree_level: Mapped[DegreeLevel | None] = mapped_column(_DEGREE_LEVEL, nullable=True)
 
     cohort_id: Mapped[str | None] = mapped_column(
-        ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True, index=True
     )
     # False means "matched, and still send it to a human" — a rule can route and
     # label an application without approving it.
@@ -88,7 +88,7 @@ class Registration(Base):
     # The cohort applied for. Nullable — an applicant may not know; a rule or a
     # reviewer assigns it.
     cohort_id: Mapped[str | None] = mapped_column(
-        ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True, index=True
     )
     status: Mapped[RegistrationStatus] = mapped_column(
         Enum(RegistrationStatus, name="registration_status"),
@@ -98,7 +98,7 @@ class Registration(Base):
 
     # Which rule decided this, when one did.
     matched_rule_id: Mapped[str | None] = mapped_column(
-        ForeignKey("registration_rules.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("registration_rules.id", ondelete="SET NULL"), nullable=True, index=True
     )
     decision_reason: Mapped[str | None] = mapped_column(String, nullable=True)
 

@@ -83,7 +83,7 @@ class SkillClaim(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))
     skill_id: Mapped[str] = mapped_column(ForeignKey("skills.id", ondelete="CASCADE"))
-    upload_id: Mapped[str] = mapped_column(ForeignKey("uploads.id", ondelete="CASCADE"))
+    upload_id: Mapped[str] = mapped_column(ForeignKey("uploads.id", ondelete="CASCADE"), index=True)
 
     # The level being claimed, which the reviewer may grant or reduce.
     claimed_level: Mapped[int] = mapped_column(Integer, default=3, server_default="3")

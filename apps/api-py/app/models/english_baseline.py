@@ -27,6 +27,7 @@ from datetime import date, datetime
 from typing import Final
 
 from sqlalchemy import (
+    CheckConstraint,
     Boolean,
     Date,
     DateTime,
@@ -111,6 +112,10 @@ class EnglishBaseline(Base):
     __table_args__ = (
         UniqueConstraint("student_id", "semester", name="uq_english_baseline_semester"),
         Index("ix_english_baseline_student", "student_id"),
+        CheckConstraint(
+            "overall_score IS NULL OR overall_score BETWEEN 0 AND 100",
+            name="ck_english_baseline_score",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
@@ -167,6 +172,10 @@ class EnglishBaselineSection(Base):
     __table_args__ = (
         UniqueConstraint("baseline_id", "skill", name="uq_english_section"),
         Index("ix_english_section_baseline", "baseline_id"),
+        CheckConstraint(
+            "(score IS NULL OR score BETWEEN 0 AND 100) AND minutes >= 0",
+            name="ck_english_section_score",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

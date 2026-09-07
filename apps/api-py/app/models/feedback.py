@@ -54,7 +54,7 @@ class AssistantFeedback(Base):
         ForeignKey("agent_runs.id", ondelete="CASCADE")
     )
     owner_user_id: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE")
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     rating: Mapped[FeedbackRating] = mapped_column(
         Enum(FeedbackRating, name="feedbackrating")

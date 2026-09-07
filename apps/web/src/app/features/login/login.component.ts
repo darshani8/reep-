@@ -306,6 +306,12 @@ export class LoginComponent {
   readonly submitting = signal(false);
   readonly showPassword = signal(false);
   readonly forgotOpen = signal(false);
+  readonly forgotEmail = signal('');
+  readonly forgotBusy = signal(false);
+  /** The server's one answer — the same words whether or not the address exists. */
+  readonly forgotAnswer = signal<string | null>(null);
+  /** `?verified=1|0` — the registration confirmation link lands here. */
+  readonly verified = signal<string | null>(this.route.snapshot.queryParamMap.get('verified'));
   /** Field errors render only after a submit attempt, as the design does. */
   private readonly attempted = signal(false);
 
@@ -339,6 +345,7 @@ export class LoginComponent {
   }
 
   toggleForgot(): void {
+    this.forgotAnswer.set(null);
     this.forgotOpen.update((v) => !v);
   }
 
@@ -436,6 +443,35 @@ export class LoginComponent {
    * and not a hardcoded '/student', which is how a director used to land on a
    * screen they have no rows for.
    */
+  /** POST /auth/forgot. Shows the server's words verbatim: they are written to
+   *  be identical for a real, a Google-only and an unknown address, and any
+   *  rephrasing here would be the place that difference crept back in. */
+  async sendReset(): Promise<void> {
+    const email = this.forgotEmail().trim().toLowerCase();
+    if (!email || this.forgotBusy()) return;
+    this.forgotBusy.set(true);
+    try {
+      const res = await fetch(`${environment.apiBase}/auth/forgot`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+      this.forgotAnswer.set(
+        typeof body.detail === 'string'
+          ? body.detail
+          : res.ok
+            ? 'If that address has a REEP password, a reset link has been sent.'
+            : 'Could not send a reset link just now. Try again in a moment.',
+      );
+    } catch {
+      this.forgotAnswer.set('Could not reach the server. Try again in a moment.');
+    } finally {
+      this.forgotBusy.set(false);
+    }
+  }
+
   async submitPassword(): Promise<void> {
     this.attempted.set(true);
     if (this.form.invalid || this.submitting()) {

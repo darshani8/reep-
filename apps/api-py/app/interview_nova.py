@@ -1863,12 +1863,12 @@ class NovaSonicSession:
     ) -> None:
         """Persist one FINAL turn. FIRE-AND-FORGET, by contract.
 
-        A failed write must never end an interview that is otherwise going fine
-        — the same choice AGENTS.md documents for the LiveKit transcript POSTs,
-        and for the same reason: the student is mid-sentence and cannot be
-        helped by an exception. The price is exactly the failure mode the voice
-        runbook exists to catch, so a failed write is logged WITH ITS CAUSE and
-        the (emitted, persisted) pair on the session row makes the gap visible.
+        A failed write must never end an interview that is otherwise going fine:
+        the student is mid-sentence and cannot be helped by an exception. The
+        price is the silent failure the AGENTS.md runbook exists to catch — a
+        call that sounds perfect and saves nothing — so a failed write is logged
+        WITH ITS CAUSE and the (emitted, persisted) pair on the session row
+        makes the gap visible.
 
         A BLANK transcript is still a turn. "The transcriber heard nothing" is a
         fact a mentor may need, and dropping it is how turns_emitted and

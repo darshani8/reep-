@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     ARRAY,
     Boolean,
     DateTime,
@@ -37,6 +38,9 @@ class DegreeLevel(str, enum.Enum):
 
 class Job(Base):
     __tablename__ = "jobs"
+    __table_args__ = (
+        CheckConstraint("min_cgpa IS NULL OR min_cgpa BETWEEN 0 AND 10", name="ck_job_min_cgpa"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     source_ref: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
@@ -53,7 +57,7 @@ class Job(Base):
     min_cgpa: Mapped[float | None] = mapped_column(Float, nullable=True)
     max_live_backlogs: Mapped[int | None] = mapped_column(Integer, nullable=True)
     import_run_id: Mapped[str | None] = mapped_column(
-        ForeignKey("job_import_runs.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("job_import_runs.id", ondelete="SET NULL"), nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

@@ -132,7 +132,7 @@ class AuditEvent(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     tenant_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="SET NULL"), nullable=True)
-    actor_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    actor_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     actor_type: Mapped[str] = mapped_column(String(30), nullable=False, default="USER", server_default="USER")
     request_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     correlation_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -150,10 +150,14 @@ class OutboxEvent(Base):
     __table_args__ = (
         Index("ix_redesign_outbox_delivery", "status", "available_at"),
         Index("ix_redesign_outbox_aggregate", "aggregate_type", "aggregate_id"),
+        # Created by d6a4e7f91b22 and undeclared here until 2026-09: `alembic check`
+        # reported them as "removed" on every run, which made real drift invisible.
+        Index("ix_redesign_outbox_lease", "lease_until"),
+        Index("ix_redesign_outbox_route", "routing_key", "status", "available_at"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
-    tenant_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="SET NULL"), nullable=True)
+    tenant_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="SET NULL"), nullable=True, index=True)
     event_type: Mapped[str] = mapped_column(String(120), nullable=False)
     aggregate_type: Mapped[str] = mapped_column(String(100), nullable=False)
     aggregate_id: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -178,10 +182,15 @@ class OutboxEvent(Base):
 
 class DomainJob(Base):
     __tablename__ = "redesign_domain_jobs"
-    __table_args__ = (Index("ix_redesign_job_queue", "status", "available_at"),)
+    __table_args__ = (
+        Index("ix_redesign_job_queue", "status", "available_at"),
+        # Created by d6a4e7f91b22; declared here since 2026-09 (see OutboxEvent).
+        Index("ix_redesign_job_lease", "lease_until"),
+        Index("ix_redesign_job_type_queue", "job_type", "status", "available_at"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
-    tenant_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="SET NULL"), nullable=True)
+    tenant_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_tenants.id", ondelete="SET NULL"), nullable=True, index=True)
     job_type: Mapped[str] = mapped_column(String(100), nullable=False)
     subject_type: Mapped[str] = mapped_column(String(100), nullable=False)
     subject_id: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -231,8 +240,8 @@ class MentorNotebookEntry(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
-    author_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
-    mentor_id: Mapped[str | None] = mapped_column(ForeignKey("mentors.id", ondelete="SET NULL"), nullable=True)
+    author_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    mentor_id: Mapped[str | None] = mapped_column(ForeignKey("mentors.id", ondelete="SET NULL"), nullable=True, index=True)
     entry_type: Mapped[NotebookEntryType] = mapped_column(Enum(NotebookEntryType, name="redesign_notebook_entry_type"), nullable=False, default=NotebookEntryType.MEETING, server_default="MEETING")
     template_key: Mapped[str] = mapped_column(String(80), nullable=False, default="meeting", server_default="meeting")
     template_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
@@ -255,9 +264,9 @@ class MentorNotebookAction(Base):
     __table_args__ = (Index("ix_redesign_notebook_action_student_due", "student_id", "status", "due_at"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
-    entry_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_mentor_notebook_entries.id", ondelete="SET NULL"), nullable=True)
+    entry_id: Mapped[str | None] = mapped_column(ForeignKey("redesign_mentor_notebook_entries.id", ondelete="SET NULL"), nullable=True, index=True)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
-    owner_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    owner_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[ActionStatus] = mapped_column(Enum(ActionStatus, name="redesign_action_status"), nullable=False, default=ActionStatus.OPEN, server_default="OPEN")
@@ -276,7 +285,7 @@ class MentorNotebookEntryRevision(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     entry_id: Mapped[str] = mapped_column(ForeignKey("redesign_mentor_notebook_entries.id", ondelete="CASCADE"), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
-    author_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    author_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
     snapshot_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -287,7 +296,7 @@ class MentorNotebookAttachment(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     entry_id: Mapped[str] = mapped_column(ForeignKey("redesign_mentor_notebook_entries.id", ondelete="CASCADE"), nullable=False)
-    uploaded_by_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    uploaded_by_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     content_type: Mapped[str] = mapped_column(String(120), nullable=False)
     byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -313,7 +322,7 @@ class KnowledgeDocumentVersion(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     document_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    namespace_id: Mapped[str] = mapped_column(ForeignKey("redesign_knowledge_namespaces.id", ondelete="CASCADE"), nullable=False)
+    namespace_id: Mapped[str] = mapped_column(ForeignKey("redesign_knowledge_namespaces.id", ondelete="CASCADE"), nullable=False, index=True)
     version_no: Mapped[int] = mapped_column(Integer, nullable=False)
     source_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     canonical_text_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -360,6 +369,8 @@ class KnowledgeChunkEmbedding(Base):
     __table_args__ = (
         UniqueConstraint("chunk_id", "embedding_model_id", name="uq_redesign_chunk_embedding_model"),
         Index("ix_redesign_embedding_status_model", "embedding_model_id", "status"),
+        # Created by d6a4e7f91b22; declared here since 2026-09 (see OutboxEvent).
+        Index("ix_redesign_embedding_queue", "status", "available_at"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

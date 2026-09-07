@@ -28,8 +28,8 @@ fixed directives app/interview_matrix.py composes, and the student's microphone.
 app.ai.llm, and no student field is ever placed on the uplink.
 
 PERSISTENCE, IN TWO PLACES THAT MUST NOT DISAGREE. Every turn still lands in the
-SAME conversations/messages tables the text agent and the LiveKit voice worker
-use, through app/conversations.py, so GET /api/agent/history returns them
+SAME conversations/messages tables the text agent uses, through
+app/conversations.py, so GET /api/agent/history returns them
 unchanged and the AGENTS.md runbook query
     select channel, count(*), max(created_at) from messages group by channel;
 grows an `interview` row. That contract does not bend.
@@ -134,7 +134,7 @@ _CLOSE_NOT_A_STUDENT = 1008
 # The channel this surface writes under. "interview", NOT "voice": both are
 # spoken, but they are different products with different retention questions, and
 # folding them together would leave the runbook unable to answer "did the
-# interviewer save anything" independently of LiveKit. Message.channel is a plain
+# interviewer save anything" independently of the text agent. Message.channel is a plain
 # String column (app/models/conversation.py), so this needs no migration, and
 # conversations.history() filters on is_final only — never on channel — so
 # GET /api/agent/history returns these turns like any other.

@@ -55,14 +55,14 @@ class LeaveRequest(Base):
     )
 
     first_approver_user_id: Mapped[str | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     first_decision: Mapped[LeaveDecision | None] = mapped_column(_LEAVE_DECISION, nullable=True)
     first_decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     first_note: Mapped[str | None] = mapped_column(String, nullable=True)
 
     second_approver_user_id: Mapped[str | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     second_decision: Mapped[LeaveDecision | None] = mapped_column(_LEAVE_DECISION, nullable=True)
     second_decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

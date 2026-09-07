@@ -365,6 +365,12 @@ class MenteeMetricsOut(BaseModel):
 
 class MentorLoadOut(BaseModel):
     mentor_id: str
+    # The USER id, beside the mentor id: department and designation below are
+    # columns on `users`, and the console edits them through
+    # PATCH /api/admin/users/{user_id}/institutional-identity. Without this the
+    # screen could read the two fields and had no way to address the row that
+    # holds them — which is how "(synced)" stayed a promise for a year.
+    user_id: str
     name: str
     # The mentor's institutional identity, as the roster holds it. Nullable for
     # the same reason it is on the leave form: the roster does not carry it for
@@ -387,7 +393,7 @@ def mentor_load(
     require_director(session)
 
     mentors = db.execute(
-        select(Mentor.id, User.name, User.department, User.designation)
+        select(Mentor.id, Mentor.user_id, User.name, User.department, User.designation)
         .join(User, Mentor.user_id == User.id)
         .order_by(User.name)
     ).all()
@@ -448,6 +454,7 @@ def mentor_load(
     return [
         MentorLoadOut(
             mentor_id=mid,
+            user_id=uid,
             name=name,
             department=department,
             designation=designation,
@@ -455,7 +462,7 @@ def mentor_load(
             mentee_count=len(by_mentor.get(mid, [])),
             mentees=by_mentor.get(mid, []),
         )
-        for mid, name, department, designation in mentors
+        for mid, uid, name, department, designation in mentors
     ]
 
 
@@ -931,7 +938,16 @@ def student_weekly(
         weekly_hour_target=student.weekly_hour_target,
         has_resume=has_resume,
         weeks=[
-            WeekOut(label=start.strftime("%-d %b"), start=start, end=start + timedelta(days=6))
+            # f"{d.day}" rather than strftime("%-d"): the %-d directive is a
+            # glibc extension. It renders "6 Sep" on Linux and raises
+            # ValueError("Invalid format string") on Windows, so this endpoint
+            # passed in CI and 500-ed on every developer machine. Guarded now by
+            # tests/test_codebase_guards.py::test_no_platform_specific_strftime.
+            WeekOut(
+                label=f"{start.day} {start:%b}",
+                start=start,
+                end=start + timedelta(days=6),
+            )
             for start in starts
         ],
         attendance_percent=[

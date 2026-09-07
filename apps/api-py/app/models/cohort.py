@@ -6,7 +6,7 @@ existing `degree_level` PG enum (create_type=False).
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -24,6 +24,48 @@ class Cohort(Base):
     code: Mapped[str] = mapped_column(String, unique=True)  # e.g. MBA-2026-B
     name: Mapped[str] = mapped_column(String)
     batch_label: Mapped[str] = mapped_column(String)  # e.g. 2024-26
+    # The department this batch belongs to, and through it the college — the two
+    # levels the student's locked profile card needs and the schema had no way
+    # to answer. NULLABLE because `cohorts` predates `departments`: existing
+    # rows have no department to point at, and a NOT NULL here would make the
+    # migration unrunnable on any database that already has cohorts. An admin
+    # sets it; until then the card shows a dash rather than a guess.
+    department_id: Mapped[str | None] = mapped_column(
+        ForeignKey("departments.id"), nullable=True, index=True
+    )
+    # ------------------------------------------------------------------ #
+    # THE TWO OPTIONAL LEVELS, denormalised as ancestor pointers.
+    #
+    # WHY BOTH AND NOT JUST THE DEEPEST. A batch legitimately attaches at ANY
+    # depth — department only, or course, or specialization — because the levels
+    # are individually optional. One `specialization_id` cannot express
+    # "attached at course level", and a polymorphic column cannot be a foreign
+    # key. So both exist, beside `department_id`.
+    #
+    # WHY THAT IS NOT THREE SOURCES OF TRUTH. There is exactly ONE writer:
+    # `_resolve_ancestry` in app/routers/admin.py. The client names only the
+    # DEEPEST level it knows; the API walks UP the real foreign keys to fill in
+    # the rest, and a shallower value the client also sent is CHECKED against
+    # the derived one rather than stored beside it. A contradiction is a 422
+    # naming both, never a silent pick — because the silent pick surfaces as a
+    # profile card printing the wrong department under the words "verified by
+    # Main Admin".
+    #
+    # WHY THIS IS NOT THE DENORMALISATION THE BUILD LOG FORBIDS. That rule is
+    # about copying college/department onto `students` — thousands of rows,
+    # where inserting a level becomes a backfill. Here `cohorts` numbers in the
+    # dozens, and `department_id` staying always-set and always-correct is what
+    # keeps every existing endpoint and its tests working untouched.
+    #
+    # NULLABLE PERMANENTLY. Requiredness lives in HIERARCHY_LEVELS
+    # (app/models/institution.py), never in the schema. See that constant.
+    # ------------------------------------------------------------------ #
+    course_id: Mapped[str | None] = mapped_column(
+        ForeignKey("academic_courses.id"), nullable=True, index=True
+    )
+    specialization_id: Mapped[str | None] = mapped_column(
+        ForeignKey("academic_specializations.id"), nullable=True, index=True
+    )
     degree_level: Mapped[DegreeLevel] = mapped_column(
         Enum(DegreeLevel, name="degree_level", create_type=False)
     )

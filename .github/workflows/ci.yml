@@ -160,42 +160,6 @@ jobs:
         working-directory: apps/api-py
         run: python ../../tools/ci/check_api_imports.py
 
-  worker-imports:
-    name: Voice worker (dependency completeness)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          # The worker's audio/ML stack wants 3.12, unlike the API.
-          python-version: "3.12"
-
-      # Catches the exact failure that shipped once: requirements-voice.txt
-      # declared only livekit-agents while voice_agent.py imported groq, silero,
-      # noise_cancellation and edge_tts, so a clean install raised ImportError at
-      # startup. It only worked locally because those had been pip-installed by
-      # hand. Importing the module from a FRESH environment proves the manifest
-      # is complete — no LiveKit or Groq credentials required to do it.
-      - name: Install declared worker dependencies only
-        working-directory: apps/api-py
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-voice.txt
-
-      - name: Import the worker from a clean environment
-        working-directory: apps/api-py
-        env:
-          REEP_API_URL: http://localhost:3300
-        run: |
-          python -c "
-          import importlib.util, sys
-          spec = importlib.util.spec_from_file_location('voice_agent', 'voice_agent.py')
-          module = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(module)
-          print('voice_agent imported OK; TTS =', module.VOICE_TTS)
-          "
-
   web:
     name: Web (Angular)
     runs-on: ubuntu-latest

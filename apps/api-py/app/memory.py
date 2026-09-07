@@ -5,10 +5,9 @@ That was the P0: whoever named the session owned the thread. Memory now lives in
 Postgres as Conversation/Message rows (app/conversations.py), keyed by a
 server-issued conversation_id that only the owning user's session can resolve.
 
-Its docstring then advertised itself as the voice worker's entry point, which is
-no longer true: the worker is DB-free and posts turns over HTTP to
-POST /api/voice/transcript. It has NO importers anywhere in app/, tests/ or
-voice_agent.py.
+Its docstring then advertised itself as the LiveKit voice worker's entry point.
+That worker, and the POST /api/voice/transcript door it wrote through, were both
+removed from the repo in 2026-09. It has NO importers anywhere in app/ or tests/.
 
 Why it is a hazard rather than merely dead code: save_message() opened its own
 SessionLocal and wrote straight into append_message, bypassing every rule the
@@ -17,9 +16,12 @@ final-only policy, provider dedup, and worker authentication. It was the obvious
 place a future out-of-request assistant turn would get written, silently
 skipping all of it.
 
-If you need to append a turn:
-  * inside a request  -> app.conversations.append_message(db, ...)
-  * from the worker   -> POST /api/voice/transcript (policy lives on the server)
+If you need to append a turn there is now exactly ONE door:
+  app.conversations.append_message(db, ...)
+
+The in-process interview relay uses it too (app/routers/interview.py), so the
+greeting, length limits, final-only policy and provider dedup are enforced in one
+place for typed and spoken turns alike.
 """
 
 from __future__ import annotations
@@ -27,10 +29,9 @@ from __future__ import annotations
 from typing import NoReturn
 
 _REPLACEMENT = (
-    "app.memory is deprecated. Use conversations.append_message(db, ...) inside a "
-    "request, or POST /api/voice/transcript from an out-of-process worker — those "
-    "paths enforce the greeting, length limits, final-only policy, dedup and "
-    "worker auth that this module bypassed."
+    "app.memory is deprecated. Use conversations.append_message(db, ...) — it "
+    "enforces the greeting, length limits, final-only policy and dedup that this "
+    "module bypassed."
 )
 
 

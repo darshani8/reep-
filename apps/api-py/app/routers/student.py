@@ -5,7 +5,7 @@ import time
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import bindparam, func, select
 from sqlalchemy.orm import Session
 
 from collections import defaultdict
@@ -31,6 +31,8 @@ from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
 from ..models.certification import Certification, CertificationProgress
+from ..models.cohort import Cohort
+from ..models.institution import AcademicCourse, AcademicSpecialization, College, Department
 from ..models.course import Course, Enrollment, ProgressStatus
 from ..models.job import Job, JobApplication
 from ..models.lab import ActivityType, CheckInSource, LabSession, LearningMode
@@ -55,6 +57,210 @@ from ..models.user import LoginDay, Student, User
 from ..ratelimit import llm_rate_limited
 
 router = APIRouter(prefix="/student", tags=["student"])
+
+
+class InstitutionLevelOut(BaseModel):
+    """One row of the locked card, with its STATE — because a blank means two
+    different things and the card must not confuse them.
+
+    `set`         the level has a value; render label + value.
+    `pending`     the level is expected and this student does not have it yet.
+                  Render a dash AND the words "Not yet recorded" — text and
+                  colour together, never colour alone. Something to chase.
+    `not_in_use`  the level is optional and this institution does not use it.
+                  Nothing is pending and nobody should chase it. The card HIDES
+                  the row and then SAYS what was hidden, once, in
+                  `not_in_use_note` — because a silently omitted row is the
+                  confident blank the English-baseline rule forbids, while a
+                  row omitted and counted in a sentence is stated, not blank.
+
+    Rendering a not-in-use level as a dash would tell the student their record
+    is incomplete when it is complete: a false pending, the mirror image of a
+    confident zero. Both lie about state. Only the server can tell them apart,
+    because only it knows the switch (HIERARCHY_LEVELS) and the chain.
+    """
+
+    key: str
+    label: str
+    value: str | None
+    state: str  # "set" | "pending" | "not_in_use"
+
+
+class InstitutionOut(BaseModel):
+    """The locked "Institutional assignment — verified by Main Admin" card.
+
+    EVERY FLAT FIELD IS NULLABLE, and that is the contract rather than laziness.
+    The card is read through `students.cohort_id -> cohorts -> ...`, and any
+    hop in that chain may legitimately be unset: a student is provisioned
+    before an admin seats them, `cohorts` predates `departments` so older
+    batches have no department, and the two optional levels are optional. A
+    missing value is never defaulted and never invented — the same rule the
+    English baseline follows for a pending score, and for the same reason: an
+    invented institution on a screen headed "verified by Main Admin" is worse
+    than an honest blank.
+
+    `levels` is what the card actually renders, in the server's order with the
+    server's labels (typed once, in HIERARCHY_LEVELS) — so the client never
+    names a level, and the next level insertion costs it nothing. The flat
+    fields stay for anything that reads them by name.
+
+    STUDENTS CANNOT WRITE THESE. `update_profile` refuses them; the card says
+    "Locked — not editable by students" and the API is what makes that true.
+    """
+
+    college_name: str | None
+    college_code: str | None
+    department_name: str | None
+    course_name: str | None
+    specialization_name: str | None
+    batch_label: str | None
+    entry_date: date | None
+    expected_completion: date | None
+    levels: list[InstitutionLevelOut]
+    not_in_use_note: str | None
+
+
+#: ONE round trip, not a chain of db.get() calls. The first version walked
+#: Cohort -> Department -> College as three sequential queries on
+#: GET /api/student/profile — the app's hottest endpoint — and extending that
+#: pattern to five levels would have made it five. Every join here is LEFT
+#: OUTER on a primary key: a level the admin never filled yields NULL for its
+#: columns and drops nothing, which is `_institution_for`'s promise ("walks as
+#: far as the data allows") written as SQL instead of as four early returns.
+#:
+#: The joins are FLAT, each hanging off `cohorts`, not chained through one
+#: another. That is what the ancestor pointers on `cohorts` buy: a batch
+#: attached at department level with no specialization still resolves its
+#: department and college, where a chain spec -> course -> department would
+#: have yielded NULL for all three.
+_INSTITUTION_Q = (
+    select(
+        College.name.label("college_name"),
+        College.code.label("college_code"),
+        Department.name.label("department_name"),
+        AcademicCourse.name.label("course_name"),
+        AcademicSpecialization.name.label("specialization_name"),
+        Cohort.batch_label.label("batch_label"),
+        Cohort.start_date.label("start_date"),
+        Cohort.end_date.label("end_date"),
+    )
+    .select_from(Cohort)
+    .join(Department, Department.id == Cohort.department_id, isouter=True)
+    .join(College, College.id == Department.college_id, isouter=True)
+    .join(AcademicCourse, AcademicCourse.id == Cohort.course_id, isouter=True)
+    .join(
+        AcademicSpecialization,
+        AcademicSpecialization.id == Cohort.specialization_id,
+        isouter=True,
+    )
+    .where(Cohort.id == bindparam("cohort_id"))
+)
+
+#: The fixed levels either side of the optional ones, in card order. These are
+#: not in HIERARCHY_LEVELS because they are not switchable: a batch always
+#: belongs to a department in a college. Their labels are the design's.
+_FIXED_UPPER = (("college", "College"), ("department", "Department"))
+_FIXED_LOWER = (("batch", "Batch"),)
+
+
+def _join_names(names: list[str]) -> str:
+    """"A", "A and B", "A, B and C". Grammar assembled here, once, rather than
+    in a template that ends up reading "Course, and ."."""
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def _compose_levels(values: dict[str, str | None], seated: bool) -> tuple[list[InstitutionLevelOut], str | None]:
+    """Turn a flat name-per-level dict into the card's rows and its footnote.
+
+    `seated` distinguishes "no cohort at all" (every level pending — the admin
+    has not seated this student) from "seated in a batch that does not use a
+    level" (that level is not in use). The switch decides the second case: a
+    level flipped to required is `pending` when blank, because the admin now
+    owes it; a level still optional is `not_in_use`.
+    """
+    from ..models import institution as institution_model
+
+    rows: list[InstitutionLevelOut] = []
+    not_in_use: list[str] = []
+
+    def add(key: str, label: str, value: str | None, optional: bool) -> None:
+        if value is not None:
+            state = "set"
+        elif not seated or not optional:
+            state = "pending"
+        else:
+            state = "not_in_use"
+            not_in_use.append(label)
+        rows.append(InstitutionLevelOut(key=key, label=label, value=value, state=state))
+
+    for key, label in _FIXED_UPPER:
+        add(key, label, values.get(key), optional=False)
+    for lv in institution_model.HIERARCHY_LEVELS:
+        add(lv.key, lv.label, values.get(lv.key), optional=not lv.required)
+    for key, label in _FIXED_LOWER:
+        add(key, label, values.get(key), optional=False)
+
+    note = None
+    if not_in_use:
+        where = values.get("college_code") or "this college"
+        verb = "is" if len(not_in_use) == 1 else "are"
+        note = f"{_join_names(not_in_use)} {verb} not used at {where}."
+    return rows, note
+
+
+def _empty_institution() -> InstitutionOut:
+    levels, _ = _compose_levels({}, seated=False)
+    return InstitutionOut(
+        college_name=None,
+        college_code=None,
+        department_name=None,
+        course_name=None,
+        specialization_name=None,
+        batch_label=None,
+        entry_date=None,
+        expected_completion=None,
+        levels=levels,
+        not_in_use_note=None,
+    )
+
+
+def _institution_for(db: Session, stu: Student | None) -> InstitutionOut:
+    """Resolve the student's institutional assignment through the cohort join.
+
+    Walks as far as the data allows and stops without complaint: an unseated
+    student, or a cohort whose department was never set, yields nulls rather
+    than a 404. The card is one block on a screen that has plenty else to show.
+    """
+    if stu is None or not stu.cohort_id:
+        return _empty_institution()
+    row = db.execute(_INSTITUTION_Q, {"cohort_id": stu.cohort_id}).mappings().first()
+    if row is None:  # cohort_id names a cohort that is gone
+        return _empty_institution()
+    values = {
+        "college": row["college_name"],
+        "college_code": row["college_code"],
+        "department": row["department_name"],
+        "course": row["course_name"],
+        "specialization": row["specialization_name"],
+        "batch": row["batch_label"],
+    }
+    levels, note = _compose_levels(values, seated=True)
+    return InstitutionOut(
+        college_name=row["college_name"],
+        college_code=row["college_code"],
+        department_name=row["department_name"],
+        course_name=row["course_name"],
+        specialization_name=row["specialization_name"],
+        batch_label=row["batch_label"],
+        # The two dates belong to the BATCH, not the student — which is what the
+        # design shows, and why they are not columns on `students`.
+        entry_date=row["start_date"].date() if row["start_date"] else None,
+        expected_completion=row["end_date"].date() if row["end_date"] else None,
+        levels=levels,
+        not_in_use_note=note,
+    )
 
 
 class ProfileOut(BaseModel):
@@ -86,6 +292,8 @@ class ProfileOut(BaseModel):
     skills: list
     achievements: list
     leaderboard_opt_out: bool
+    # Read-only, resolved through the cohort join. See InstitutionOut.
+    institution: InstitutionOut
 
 
 @router.get("/profile", response_model=ProfileOut)
@@ -100,31 +308,7 @@ def my_profile(
     prof = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
     if prof is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile yet.")
-    stu = db.get(Student, student_id)
-    owner = db.get(User, stu.user_id) if stu else None
-    return ProfileOut(
-        student_id=prof.student_id,
-        usn=stu.usn if stu else None,
-        full_name=owner.name if owner else None,
-        current_semester=stu.current_semester if stu else 1,
-        current_stage=stu.current_stage.value if stu else "EXCEL",
-        phone=prof.phone,
-        email=prof.email,
-        linkedin_url=prof.linkedin_url,
-        github_url=prof.github_url,
-        portfolio_url=prof.portfolio_url,
-        city=prof.city,
-        career_summary=prof.career_summary,
-        placement_eligible=prof.placement_eligible,
-        interested_in_jobs=prof.interested_in_jobs,
-        interested_in_internships=prof.interested_in_internships,
-        education=prof.education or [],
-        experience=prof.experience or [],
-        projects=prof.projects or [],
-        skills=prof.skills or [],
-        achievements=prof.achievements or [],
-        leaderboard_opt_out=prof.leaderboard_opt_out,
-    )
+    return _profile_out(db, prof)
 
 
 class SubjectMarkOut(BaseModel):
@@ -853,9 +1037,27 @@ def submit_offer(
     return _offer_out(offer)
 
 
-def _profile_out(prof: StudentProfile) -> ProfileOut:
+def _profile_out(db: Session, prof: StudentProfile) -> ProfileOut:
+    """The ONE place a ProfileOut is built.
+
+    It used to be two: `my_profile` composed the full response inline while this
+    helper composed a shorter one for `update_profile`. When usn / full_name /
+    current_semester / current_stage were added to ProfileOut only the inline
+    copy was updated, so PUT /api/student/profile raised a 4-field
+    ValidationError on every call — a break nothing caught, because no test
+    exercises the update path's response body.
+
+    Two constructions of one response is how that happens, so there is now one.
+    """
+    stu = db.get(Student, prof.student_id)
+    owner = db.get(User, stu.user_id) if stu else None
     return ProfileOut(
         student_id=prof.student_id,
+        usn=stu.usn if stu else None,
+        full_name=owner.name if owner else None,
+        current_semester=stu.current_semester if stu else 1,
+        current_stage=stu.current_stage.value if stu else "EXCEL",
+        institution=_institution_for(db, stu),
         phone=prof.phone,
         email=prof.email,
         linkedin_url=prof.linkedin_url,
@@ -909,7 +1111,7 @@ def update_profile(
         setattr(prof, field, value)
     db.commit()
     db.refresh(prof)
-    return _profile_out(prof)
+    return _profile_out(db, prof)
 
 
 class ScheduleItemOut(BaseModel):

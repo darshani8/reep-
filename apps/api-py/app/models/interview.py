@@ -35,6 +35,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    CheckConstraint,
     Boolean,
     DateTime,
     ForeignKey,
@@ -104,6 +105,16 @@ class InterviewSession(Base):
             "retention_until",
             postgresql_where=text("deleted_at IS NULL"),
         ),
+        # Counts can only be counts. NOT `turns_persisted <= turns_emitted`,
+        # even though the runbook reads the pair that way: this row is written
+        # by the relay's finalizer on a fire-and-forget path, and a constraint
+        # able to reject that write would turn a diagnostic counter into a
+        # `running` row that lies — the exact failure the three close layers
+        # exist to prevent.
+        CheckConstraint(
+            "turns_emitted >= 0 AND turns_persisted >= 0 AND answers_accepted >= 0",
+            name="ck_interview_session_counters",
+        ),
         # NO unique constraint beyond the PK, deliberately. "One running
         # interview per student" is enforced by the per-user cap in the router,
         # NOT by a partial unique index on (student_id) WHERE status='running' —
@@ -128,7 +139,7 @@ class InterviewSession(Base):
     # days and is the artefact a mentor reviews. A NULL here means "the chat
     # thread is gone", never "there was no interview".
     conversation_id: Mapped[str | None] = mapped_column(
-        ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True, index=True
     )
     # 'hr' | 'dm' | 'ba' | 'fa' — the keys of interview_matrix.SPECIALIZATIONS.
     # NULL is the generic interview, i.e. the no-`?specialization=` path, which
@@ -178,7 +189,7 @@ class InterviewSession(Base):
     # CASCADE: deleting a grant must not delete the interviews conducted under
     # it, because those interviews are the reason the grant mattered.
     consent_id: Mapped[str | None] = mapped_column(
-        ForeignKey("interview_consents.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("interview_consents.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     # --- Audio ---------------------------------------------------------------
@@ -376,7 +387,7 @@ class InterviewTurn(Base):
     # bypasses ORM cascades entirely, and without the database-level rule that
     # delete fails on this FK — taking the retention job down with it.
     message_id: Mapped[str | None] = mapped_column(
-        ForeignKey("messages.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("messages.id", ondelete="SET NULL"), nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, server_default=func.now()
@@ -405,6 +416,17 @@ class InterviewEvaluation(Base):
         # when the first one is wrong.
         UniqueConstraint(
             "interview_session_id", name="uq_interview_evaluation_session"
+        ),
+        # 0-100 or NULL — the range `_report_score` in interview_core already
+        # clamps to, so this can never reject a write the parser produced. NULL
+        # stays legal (see the column comments): this bounds a value, it never
+        # demands one.
+        CheckConstraint(
+            "(overall_score IS NULL OR overall_score BETWEEN 0 AND 100) AND "
+            "(communication_score IS NULL OR communication_score BETWEEN 0 AND 100) AND "
+            "(domain_score IS NULL OR domain_score BETWEEN 0 AND 100) AND "
+            "(structure_score IS NULL OR structure_score BETWEEN 0 AND 100)",
+            name="ck_interview_eval_scores",
         ),
     )
 

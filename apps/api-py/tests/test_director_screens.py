@@ -25,7 +25,7 @@ from app.db import SessionLocal
 from app.models.badge import ApprovedCertification
 from app.models.job import Job, JobApplication
 from app.models.resume import Resume
-from app.models.user import Role, Student
+from app.models.user import User, Role, Student
 
 
 def _student_id(user_id: str) -> str:
@@ -70,6 +70,14 @@ def test_mentor_load_carries_identity_and_capacity(client, make_user):
     for row in r.json():
         assert "department" in row and "designation" in row
         assert isinstance(row["capacity"], int) and row["capacity"] > 0
+        # The id the console PATCHes those two fields through. Without it the
+        # screen could show them and not change them. TRUTHINESS IS NOT ENOUGH:
+        # a mutation that sent the mentor id in this field passed a bare
+        # `assert row["user_id"]`, and a PATCH to /admin/users/{mentor_id} would
+        # 404 on every mentor. It must be a real users row, and not the mentor id.
+        assert row["user_id"] and row["user_id"] != row["mentor_id"]
+        with SessionLocal() as db:
+            assert db.get(User, row["user_id"]) is not None, "user_id must resolve to a users row"
 
 
 @requires_db

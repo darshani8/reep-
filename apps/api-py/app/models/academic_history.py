@@ -7,7 +7,7 @@ common placement disqualifier, modelled explicitly rather than inferred.
 import enum
 import uuid
 
-from sqlalchemy import Enum, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import CheckConstraint, Enum, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -27,7 +27,10 @@ class QualificationLevel(str, enum.Enum):
 
 class AcademicQualification(Base):
     __tablename__ = "academic_qualifications"
-    __table_args__ = (Index("ix_acadqual_student_level", "student_id", "level"),)
+    __table_args__ = (
+        Index("ix_acadqual_student_level", "student_id", "level"),
+        CheckConstraint("max_marks > 0 AND marks >= 0 AND marks <= max_marks", name="ck_acadqual_marks"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))

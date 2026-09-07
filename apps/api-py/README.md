@@ -12,7 +12,7 @@ Angular 22 (standalone components · signals · ReactiveForms)
         ▼
 FastAPI
   ├── /api/agent/*         grounded assistant (chat, ask, SSE stream, feedback)
-  ├── /api/voice/*         readiness, token minting, worker heartbeat/transcript
+  ├── /api/interview       WebSocket mock interviewer (Nova 2 Sonic, in-process)
   ├── /api/student/resume  ReportLab PDF (local — nothing leaves the machine)
   └── AI layer: app/ai/llm.py, an OpenAI-compatible universal adapter
                 (Sakana → Groq → Mistral → OpenRouter → Gemini → Cohere)
@@ -26,7 +26,7 @@ provider with no code change.
 ## Stack
 
 FastAPI · SQLAlchemy 2.0 · Alembic · Pydantic v2 · psycopg 3 · pgvector · PyJWT ·
-uvicorn. **Python 3.14.** (The voice worker is separate and wants 3.12 — below.)
+uvicorn. **Python 3.14.**
 
 ## Run it
 
@@ -65,64 +65,26 @@ taskkill /PID <pid> /F
 
 **Tests:** `.venv/Scripts/python -m pytest`
 
-## Voice worker
+## Runbook: the call sounded fine but saved nothing
 
-A **separate process in its own venv** — not part of the API. Optional: without
-it every other feature works normally.
-
-```bash
-py -3.12 -m venv .venv-voice                              # 3.12: livekit-agents requires <3.15
-.venv-voice/Scripts/pip install -r requirements-voice.txt
-.venv-voice/Scripts/python voice_agent.py dev             # `start` in production
-```
-
-`start`, not `dev`, in production: the SDK only drains on SIGTERM outside devmode,
-so `dev` kills live calls mid-sentence on every rolling deploy.
-
-It reads the **same** `apps/api-py/.env` and talks to the API over HTTP only
-(`REEP_API_URL`, default `http://localhost:3300`). It holds no database
-connection — that is what makes "no student record reaches the speech providers"
-an architectural property rather than a promise, and it is asserted in
-`tests/test_voice_worker_source.py`.
-
-### The 503-vs-409 contract
-
-| Condition | `/api/voice/token` |
-|---|---|
-| `LIVEKIT_*` or `GROQ_API_KEY` missing, or `VOICE_MAINTENANCE_MESSAGE` set | **503** |
-| Provider fine, but no worker heartbeat in the last 30s | **409** |
-
-409 means "start the worker". 503 means "fix the configuration". `GET
-/api/voice/status` returns the same verdict with a student-readable reason, and a
-test asserts the two can never disagree.
-
-### Runbook: the call sounded fine but saved nothing
-
-Transcript POSTs are deliberately fire-and-forget, so a failing write cannot kill
-a live call — which also means it is silent. After a test call:
+Interview turn writes are deliberately fire-and-forget, so a failing write cannot
+kill a live call — which also means it is silent. After a test interview:
 
 ```sql
 select channel, count(*), max(created_at) from messages group by channel;
 ```
 
-No `voice` rows (or a stale `max`) means turns are being dropped:
-
-1. **`VOICE_WORKER_SECRET` differs between the API and the worker** → every POST
-   401s while the call itself sounds perfect. Most likely cause.
-2. **`REEP_API_URL` is wrong** — usually `localhost` from inside a container.
-
-Both log as `ERROR POST /api/voice/transcript -> HTTP <code>` in the worker.
+No `interview` rows (or a stale `max`) means turns are being dropped. The cause is
+logged as `Dropped interview turn`, with its exception. `interview_sessions` also
+records `turns_emitted` against `turns_persisted`, so the same gap is visible on
+one row without a join.
 
 ## Production checklist
 
 - `ENV=prod` — marks the session cookie `Secure` (so **TLS is required**, or every
-  login silently behaves as logged-out), makes `require_voice_worker` fail closed,
-  and makes `python -m app.seed` refuse.
+  login silently behaves as logged-out) and makes `python -m app.seed` refuse.
 - `AUTH_SECRET` — ≥32 random bytes. The default in `config.py` is in this repo;
   shipping it lets anyone forge a session cookie for any user.
-- `VOICE_WORKER_SECRET` — the **same** value on the API and the worker. Blank
-  leaves both worker endpoints open; a mismatch makes voice report itself offline
-  forever while the worker looks healthy.
 - Mount a volume at `UPLOAD_DIR` — otherwise redeploys destroy student uploads.
 - Run the worker with `start` under a supervisor.
 - `VOICE_MAINTENANCE_MESSAGE` blank except during an incident.

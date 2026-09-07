@@ -32,11 +32,38 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/register/registration.component').then((m) => m.RegistrationComponent),
   },
+  // Set a password from an emailed link. One component, two modes — the API
+  // is POST /auth/activate and POST /auth/reset with the same body. Outside
+  // the shell: nobody on these screens has a session yet.
+  {
+    path: 'activate',
+    data: { mode: 'activate' },
+    loadComponent: () =>
+      import('./features/login/password-link/password-link.component').then(
+        (m) => m.PasswordLinkComponent,
+      ),
+  },
+  {
+    path: 'reset',
+    data: { mode: 'reset' },
+    loadComponent: () =>
+      import('./features/login/password-link/password-link.component').then(
+        (m) => m.PasswordLinkComponent,
+      ),
+  },
   {
     path: '',
     component: AppShellComponent,
     canActivate: [authGuard],
     children: [
+      // --- account (any signed-in role; the API answers 409 for Google-only) ---
+      {
+        path: 'account/password',
+        loadComponent: () =>
+          import('./features/account/change-password.component').then(
+            (m) => m.ChangePasswordComponent,
+          ),
+      },
       // --- student ---
       {
         path: 'student',
@@ -235,6 +262,18 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/director/mentors-students/mentors-students.component').then(
             (m) => m.DirectorMentorsStudentsComponent,
+          ),
+      },
+      // The institution console: College -> Department -> Course ->
+      // Specialization -> Batch, and seating. First and only caller of
+      // /api/admin/*. Lazy like every other route (AGENTS.md: one re-eager-ed
+      // route fails the bundle budget).
+      {
+        path: 'director/institution',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/institution/institution.component').then(
+            (m) => m.DirectorInstitutionComponent,
           ),
       },
       // Courses and certifications are ONE screen: a certification only means

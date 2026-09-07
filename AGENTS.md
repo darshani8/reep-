@@ -22,16 +22,6 @@ docker-compose.yml   Postgres 17 (container reep-postgres, host port 5433)
 
    **On `ENV=prod` this process now REFUSES TO BOOT on a bad secret, and that is not a bug in your deploy script.** `Settings.production_boot_failures()` (`app/config.py`) is raised from `app/main.py`'s lifespan, so uvicorn never binds a port, and the log names every problem it found. It fires on: an `AUTH_SECRET` that is blank, still the value published in this repo and `.env.example`, an obvious placeholder, or shorter than 32 characters; and a `DATABASE_URL` still carrying this repo's dev password. Set real values — the message includes the command to generate a secret. It is deliberately a refusal and not a warning: `AUTH_SECRET` signs the `reep_session` cookie, so a production host running on the repo default is one forged `{"role":"DIRECTOR"}` cookie away from every student's marks, attendance and USN, with no login and no database row involved. On every development `ENV` the check returns nothing at all, and `tests/test_boot_guard.py` pins that as hard as it pins the refusal — a guard that trips on a laptop gets deleted by whoever is trying to ship that afternoon.
 3. **Front end** — from `apps/web`: `npx ng serve` (port 4200). `proxy.conf.json` forwards `/api` → `http://localhost:3300`, so the app is same-origin and the httpOnly session cookie is carried. The whole API surface the client calls lives under `/api`.
-4. **Voice worker (optional)** — a **FOURTH process**, from `apps/api-py`, in its **own** venv:
-   ```
-   py -3.12 -m venv .venv-voice                              # once
-   .venv-voice/Scripts/pip install -r requirements-voice.txt # once
-   .venv-voice/Scripts/python voice_agent.py dev             # `start` in production
-   ```
-   Python 3.12, not 3.14: `livekit-agents` declares `Requires-Python: <3.15`. It reads the **same** `apps/api-py/.env` and POSTs to `REEP_API_URL` (default `http://localhost:3300`), so credentials are entered once.
-
-   Without it, `GET /api/voice/status` reports `worker_healthy: false` and `POST /api/voice/token` returns **409** — voice, and only voice, is unavailable. (A missing `LIVEKIT_*`/`GROQ_API_KEY`, or a non-blank `VOICE_MAINTENANCE_MESSAGE`, is a **503** instead.) Everything else works normally, which is why this step is optional — but a student pressing "Start voice" with no worker running is the single most common "why is it broken" report, and nothing in the UI says a fourth process exists.
-
 Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `mentor123`, `director@bgscet.ac.in` / `director123`, `alumni@bgscet.ac.in` / `alumni123` (no profile row — so the alumni first-login create-profile flow is what you see on a fresh database).
 
 ### Two requirements files, two seeds — the split is deliberate
@@ -42,17 +32,17 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 
 **Tests:** `cd apps/api-py && .venv/Scripts/python -m pytest` (the backend suite). Front end: `cd apps/web && npx ng build`.
 
-**CI has four jobs**, and two of them exist because a manifest shipped
-incomplete. `worker-imports` proves `requirements-voice.txt` covers everything
-`voice_agent.py` imports; `api-imports` does the same for `app/` against
-`requirements.txt` ALONE (`tools/ci/check_api_imports.py`). The API one was added
+**CI has four jobs** (`api`, `pii-gate`, `api-imports`, `web`), and one of them
+exists because a manifest shipped incomplete. `api-imports` proves
+`requirements.txt` ALONE covers every module under `app/`
+(`tools/ci/check_api_imports.py`). It was added
 after `app/interview_local.py` reached main importing numpy undeclared — the
 import is lazy, inside a request handler, so the API still booted and every test
 still passed, and the break surfaced only as a pytest COLLECTION failure on a
 clean machine. A lazy import does not make an undeclared dependency acceptable;
 it only moves the crash from boot to the first student who reaches that path.
 
-**Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and director screens, the resume builder, the LiveKit-backed assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. It is ~142 kB initial now, and the production bundle budget is set close enough to that number that one re-eager-ed route fails `ng build` in CI.
+**Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and director screens, the resume builder, the realtime assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. It is ~142 kB initial now, and the production bundle budget is set close enough to that number that one re-eager-ed route fails `ng build` in CI.
 
 ## Auth — Google-only sign-in over the session retained from the migration
 
@@ -66,22 +56,19 @@ What Google issues is **the same session as before, byte for byte**: passwords a
 
 **Issuing a key: the plaintext never travels, the hash does.** `python -m app.set_password <email>` types the password **at a prompt, never a flag**, because a `--password` option puts the secret in shell history, in `ps`, and in the CloudTrail record of ECS task overrides; it enforces a 12-character floor and refuses the demo passwords published in this file; `--revoke` restores the sentinel and leaves Google sign-in working. For a browser-only operator, `set_password --print-hash` applies the same checks locally and prints the scrypt hash, and `app.grant_access --password-hash <hash>` (exposed as the ops-task workflow's `password_hash` input) writes it — a hash with a random 16-byte salt is safe in argv and CloudTrail in a way a password is not, and `grant_access` refuses anything that is not exactly `scrypt:<32 hex>:<128 hex>` so a password pasted into that box by mistake is rejected rather than stored. `--mentor <email>` puts a granted STUDENT into a granted mentor's group, because a demo mentor with nobody in their group correctly sees nobody (rule 2). And `app.seed` **still refuses on `ENV=prod`**, so `director123` and friends cannot be what the open door admits — that refusal is the point of the whole arrangement and must not be relaxed.
 
+**Activation, forgot-password and change-password (2026-09) — option B: Google for students, passwords for staff.** A STUDENT never holds a password: provisioning (a director's APPROVE, or a confirmed auto-approve) sends an *enrolment notice* — "sign in with your college Google account" — and `account_links.issue_activation` refuses a STUDENT outright. STAFF get password accounts through an **activation link**: `python -m app.grant_access` prints one for any staff account created without `--password-hash`, and `POST /api/admin/users/{id}/activation-link` (DIRECTOR) mints or re-mints it on screen — **the on-screen link is permanent, not a stopgap**, because "the email never arrived" is a support call the admin should be able to close by reading out a link. Links are rows in `auth_tokens` (`app/models/auth_token.py`): stored as **sha256, never raw**; consumed by **one atomic `UPDATE … WHERE consumed_at IS NULL`** whose row count is the arbiter; issuing a new one **supersedes** every older live one; activation lives 7 days, reset 1 hour. The four endpoints are in `app/routers/passwords.py`, separate from sign-in: `/auth/activate` (policy checked **before** the link is spent, so a typo does not burn it — pinned textually, because `get_db` never commits and a swap would otherwise pass by accident), `/auth/forgot` (**the same 202 and the same words** whether the address is real, Google-only or unknown, with the mail work in a background task so the timing matches too; its own per-address and global throttle), `/auth/reset` (every device out via `token_version`, other pending links killed, signs in nobody), `/auth/change-password` (other devices out, **this cookie re-issued** so the person is not signed out by their own change). **A public application is not decided until its address is confirmed**: `POST /api/register` writes `PENDING_VERIFICATION` and emails a link; `GET /api/register/verify?token=` (a GET, opened from a mail client) confirms it, applies the rule, and redirects to `/login?verified=…`. An auto-approve that provisioning refuses lands in the director's queue with the refusal as its reason — never dropped, never forced — which is also what finally provisions `AUTO_APPROVED`. Mail leaves through `app/mail_transport.py`: **Amazon SES** when `SES_FROM_ADDRESS` is set (task-role auth, no key to paste; new accounts start in a sandbox that needs the domain verified), otherwise a console transport that logs the message and keeps it in a bounded `outbox` — which is how a developer and the test suite read the link. Screens: `/activate` and `/reset` (one component, two modes, outside the shell), `/account/password` inside it, and the login's inline "Forgot password?" form. Full record: `docs/institutional-spine-build-log.md`, round 4.
+
 The endpoint carries a brute-force limiter, and **it is keyed on the account, never on the source address**. Behind the ALB `request.client.host` is one value for the entire internet: an address bucket there is a global outage waiting to happen — ten wrong passwords from anyone locks out every student at once — and raising the limit until that stops hurting makes it stop working. This was written the wrong way first and the suite caught it immediately (24 failures became 134, because every `TestClient` request shares one peer address). Ten failures per email per fifteen minutes, only failures count, a success returns the budget, and the 429 names Google because that door is not gated by this counter — so an attacker who burns a known address's budget costs a real user a redirect, not their access. What no in-process counter can bound behind a proxy is **spraying** (one guess each against a thousand accounts); that control belongs at the edge, as a WAF rate rule.
 
-### Voice runbook: the call sounded fine but saved nothing
+### Runbook: the call sounded fine but saved nothing
 
-The worst failure mode in this stack is silent — the conversation is perfect in the room and empty in the database, because transcript POSTs are deliberately fire-and-forget so a bad write can never kill a live call. After a test call:
+The worst failure mode in this stack is silent — the conversation is perfect in the room and empty in the database, because transcript writes are deliberately fire-and-forget so a bad write can never kill a live call. After a test interview:
 
 ```sql
 select channel, count(*), max(created_at) from messages group by channel;
 ```
 
-No `voice` rows, or a stale `max(created_at)`, means turns are being dropped. Two causes, in order of likelihood:
-
-1. **`VOICE_WORKER_SECRET` differs between the API and the worker** → every POST 401s. The worker still connects to LiveKit and answers normally, so nothing looks wrong from the outside.
-2. **`REEP_API_URL` is wrong** (usually `localhost` from inside a container) → the POSTs never arrive.
-
-Both now appear as `ERROR POST /api/voice/transcript -> HTTP 401: …` in the worker's log, with the status code. They used to be a WARNING that folded every cause into one line.
+No `interview` rows, or a stale `max(created_at)`, means turns are being dropped. The cause is logged as `Dropped interview turn`, with its exception. The interview also keeps a record of its own (`interview_sessions`), where the `turns_emitted` vs `turns_persisted` pair makes the same gap visible without a join — if those two disagree, writes are failing.
 
 ### The assistant screen is the mock interviewer (2026-08)
 
@@ -103,7 +90,9 @@ The interview now leaves a **record of its own**, in four tables (`app/models/in
 
 **Audio: off, and "off" is two independent switches.** Nothing is captured unless `INTERVIEW_RECORDING_ENABLED=true` *and* the student holds a live grant whose `scope_store_audio` is true — a separate, unticked checkbox whose copy says plainly that staff can listen. Neither is true in a default deployment. When both are, `app/interview_audio.py` writes two WAV files per interview (one per speaker, never mixed — the two directions are not time-aligned), capped by `INTERVIEW_RECORDING_MAX_BYTES` with a truncation flag rather than a silent cut, retrievable only by DIRECTOR/ADMIN and deleted on the same 180-day clock. Branch on `interview_sessions.audio_recorded`, **never** on `audio_path IS NOT NULL` — a NULL path collapses four different facts into one. This overrides `docs/interview-engine-v3.md` §8.4, which argued against capture; read that section anyway, because it is why every guard above exists.
 
-The LiveKit voice stack (step 4 above, `voice_agent.py`, `/api/voice/*`) and the text orchestrator (`POST /api/agent/ask`) are **retained and mounted but have no UI caller.** They are the rollback path, not dead code — do not run the voice worker expecting a button, and do not delete them until the interviewer has held up in front of real students. Two knock-on effects, and they are no longer silent: `POST /api/agent/feedback` 404s on every request because no `AgentRun` rows are written any more, and the `AgentRun`-derived counters in `GET /api/agent/metrics` read 0. Both now **say so** — `AGENT_RUNS_COLLECTED = False` in `app/routers/agent.py` gates a 404 detail naming the supersession and a `collected: false` on the metrics payload, so a frozen history is not read as a live zero. Flip that one constant back to `True` on rollback and both revert with no second edit. `voice_turns` (off `Message.channel`) keeps working.
+**The LiveKit voice stack was REMOVED in 2026-09.** `voice_agent.py`, `app/routers/voice.py` (`/api/voice/*`), `requirements-voice.txt`, the `chat-voice.service.ts` client, the orb's voice overlay, the CI `worker-imports` job and both `livekit-*` dependencies are gone, along with the fourth process and its separate Python 3.12 venv. It was a four-stage cascade (Groq Whisper -> Groq Llama -> TTS) over LiveKit's WebRTC transport, and it was superseded by the mock interviewer, which is genuinely speech-to-speech. **The one voice experience now is `/student/assistant`** (Amazon Nova 2 Sonic, in-process, no extra venv). Three things survived the removal on purpose: `Message.channel` is still a plain String column, so historical `voice` rows read back unchanged and the runbook query above still groups by it; `conversations.append_message`'s `provider_turn_id` dedup is still the interview's first dedup layer, now pinned by `tests/test_conversation_dedup.py` instead of through the deleted endpoint; and `AgentHistoryService` (`apps/web/src/app/core/`) carries the three non-voice members the interview screen needs — `chatHistory`, `loadHistory()`, `clearConversation()` — out of the 840-line service that was deleted.
+
+The text orchestrator (`POST /api/agent/ask`) **has a UI caller**: the REEP Agent chat screen (`apps/web/src/app/features/agent/`) is routed at `/student/agent`, `/mentor/agent` and `/director/agent`, and the floating orb now taps straight through to it. So `AGENT_RUNS_COLLECTED` in `app/routers/agent.py` is **`True`**, `POST /api/agent/feedback` records thumbs against the run, and `GET /api/agent/metrics` reports real counters. Flip that one constant to `False` if the chat screen is ever unmounted, and both surfaces say so rather than reading a frozen history as a live zero.
 
 `apps/interview-realtime/`, the superseded standalone prototype of this relay (no authentication, no database), was **deleted in 2026-09** along with `ollama/` and `tools/cascade`; the in-process relay above is the only interviewer.
 
@@ -292,6 +281,47 @@ skills and marks, which an alumnus does not have). The shell's sidebar switches
 on role (`navKind` in `layout/app-shell.component.ts`), and the SPA's `''`
 route now routes by role through `homeRedirectGuard` instead of sending every
 role to `/student`.
+
+## The institutional spine and the Main Admin console (2026-09)
+
+    College -> Department -> Course -> Specialization -> Cohort("Batch") -> Student.cohort_id
+
+`app/models/institution.py` holds College, Department, `AcademicCourse` and
+`AcademicSpecialization`; `students.cohort_id` is a real FK. **The student's
+locked profile card is read THROUGH that join and stored on nothing** — one flat
+LEFT-JOIN query in `routers/student.py::_institution_for`. Do not copy any of
+it onto `students`: that is the backfill this shape exists to avoid.
+`AcademicCourse` is prefixed because `Course` (app/models/course.py) is a taught
+subject; `Specialization` is already three other things. The UI says "Course",
+"Specialization" and "Batch".
+
+**Course and Specialization are OPTIONAL, and the switch is one line.**
+`HIERARCHY_LEVELS` in `app/models/institution.py` says which must be named on a
+new batch; flip `required=False` to `True` and deploy — no migration, no second
+edit. `AdminCohortIn`'s validator reads it and `GET /api/admin/hierarchy/levels`
+serves it, so the Angular form (`features/director/institution/`) builds
+`Validators.required` from the same constant. **The columns stay nullable
+forever** (`test_hierarchy_columns_stay_nullable`): nullability is a promise
+about existing rows, `required` is a rule about new ones. The flip does NOT make
+old batches compliant — `GET /api/admin/cohorts/incomplete` lists them,
+`missing_levels` flags them, and PATCH refuses only an edit that *widens* the
+gap. Ship the switch without that escape hatch and the console refuses saves on
+rows nobody can fix.
+
+`cohorts` carries all three parent pointers, and **`_resolve_ancestry` in
+`app/routers/admin.py` is their only writer**: the client sends the deepest
+level, the API derives the rest, and a contradicting shallower value is a 422 —
+never a silent pick. `/api/admin/*` is DIRECTOR/ADMIN throughout and every
+operation is proven to refuse a STUDENT (`tests/test_admin_institution.py`).
+
+**Approval provisions, and two guards make that safe.** `POST
+/api/register/{id}/decision` APPROVE now mints the User + Student + profile.
+Because the roster IS the access control and the form is public, provisioning
+refuses an address off `settings.provisionable_email_domains` and refuses an
+address that already belongs to a non-STUDENT account (a MENTOR gaining a
+`studentId` is rule 2 edited by a form). That fence is on provisioning and
+deliberately NOT on sign-in — the two run in opposite directions, and the
+property's docstring says why.
 
 ## Backend conventions
 

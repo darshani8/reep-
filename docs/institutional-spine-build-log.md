@@ -1,0 +1,1321 @@
+# Institutional spine — build log
+
+Every file changed in this workstream is recorded here **before** it is written, with the reasoning
+that produced the change. The purpose is that a developer who has never seen this work can read one
+file, understand why each decision went the way it did, and — more importantly — see which
+alternatives were rejected and why, so they are not re-proposed six months from now.
+
+**Format for every entry:** the file, the layer, what changed, then a numbered chain of reasoning
+ending in the decision. Rejected alternatives are recorded, not omitted.
+
+---
+
+## Development layers
+
+Work is divided into four layers. A change belongs to exactly one, and the layer decides who reviews
+it, what breaks if it is wrong, and how it is verified.
+
+| Layer | Directory | What lives here | Verified by |
+|---|---|---|---|
+| **L1 · Data** | `apps/api-py/app/models/`, `apps/api-py/migrations/` | ORM models, columns, constraints, Alembic revisions | `alembic upgrade head` on a scratch database |
+| **L2 · Backend** | `apps/api-py/app/routers/`, `app/*.py` services | Endpoints, request/response schemas, business rules | `pytest` |
+| **L3 · Frontend** | `apps/web/src/app/` | Angular screens, services, routes | `npx ng build` (including the bundle budget) |
+| **L4 · Infrastructure** | `infra/cdk/`, `.github/workflows/` | AWS resources, deploy pipeline, backup and recovery | `cdk diff` |
+
+Layers are built bottom-up. A frontend screen is never built against an endpoint that does not exist,
+and an endpoint is never built against a column that does not exist. This is the whole reason the
+locked profile card in the design cannot be delivered today: it is an L3 screen resting on an L1 gap.
+
+---
+
+## Naming conventions
+
+These are **not new rules**. They are the conventions already in force in this repository, written
+down so the new code is indistinguishable from the old. Every example below is real code from the
+existing tree.
+
+### L1 · Data
+
+| Thing | Convention | Real example |
+|---|---|---|
+| Model class | `PascalCase`, **singular** | `Cohort`, `AlertRuleConfig`, `AlumniProfile` |
+| Table name | `snake_case`, **plural** | `cohorts`, `alert_rule_configs`, `alumni_profiles` |
+| Primary key | `id`, `String`, `default=_uuid` | every model |
+| Foreign key column | `<singular>_id` | `student.mentor_id`, `department.college_id` |
+| Enum-ish vocabulary | plain `String`, **never a PG enum**, unless one already exists | `voice_platform.degree_level: String(2)` |
+| Migration file | `<12-hex-revision>_<snake_slug>.py` | `fea4515cdba5_cohorts.py` |
+
+**On PG enums.** `app/models/voice_platform.py` states the rule and the reason: a new vocabulary value
+should be *"a data change, not a `CREATE TYPE` migration with all three of AGENTS.md's enum gotchas
+attached."* New status columns in this workstream are plain `String`.
+
+### L2 · Backend
+
+| Thing | Convention | Real example |
+|---|---|---|
+| Response schema | `<Thing>Out` | `MentorLoadOut`, `ProfileOut`, `CohortOut` |
+| Request schema | `<Thing>In` or `<Verb><Thing>In` | `AlertRuleIn`, `AssignMentorIn` |
+| Endpoint function | verb-first `snake_case` | `set_student_mentor`, `upsert_alert_rule`, `create_job` |
+| Router module | `app/routers/<area>.py` | `director.py`, `student_programme.py` |
+| Scope gate | reuse, never reimplement | `assert_student_scope` in `app/policies.py` |
+
+### L3 · Frontend
+
+| Thing | Convention | Real example |
+|---|---|---|
+| Directory | `features/<area>/<screen>/` | `features/director/mentors-students/` |
+| Files | `<screen>.component.{ts,html,scss}` | `mentors-students.component.ts` |
+| Component class | `<Area><Screen>Component` | `DirectorMentorsStudentsComponent` |
+| Selector | `app-<area>-<screen>` | `app-director-mentors-students` |
+| Service | `<name>.service.ts` → `<Name>Service` | `auth.service.ts` → `AuthService` |
+| API interface | **mirrors the API in `snake_case`, verbatim** | `interface MentorLoad { mentor_id: string; … }` |
+
+**On `snake_case` in TypeScript.** It looks wrong to a TypeScript eye and it is deliberate: the
+existing interfaces copy the FastAPI `*Out` model field-for-field with no remapping layer. Introducing
+camelCase remapping for new screens would mean two conventions in one codebase and a translation layer
+that exists only to be forgotten. New interfaces keep `snake_case`.
+
+---
+
+## One vocabulary decision, made once
+
+**The UI says "Batch". The database says `Cohort`. Both stay.**
+
+Chain of reasoning:
+
+1. The design's admin screens label this object **Batch** throughout (`BATCH-1`, "Add batch", "Batches").
+2. The database already has `Cohort` / `cohorts`, created in migration `fea4515cdba5`, carrying `code`,
+   `name`, `batch_label`, `degree_level`, `start_date`, `end_date`.
+3. `Student.cohort_id` already points at it, and is already indexed as one of the two hottest scope
+   columns (`b41c9e2d7f05`).
+4. Renaming the table would mean a migration, touching every reference, and re-pointing an index — for
+   a word.
+5. **Decision:** keep `Cohort` in code and `Batch` in the interface. `CohortOut` gains no `batch`
+   alias; the Angular label is the only place the word "Batch" appears.
+6. **Rejected:** renaming `Cohort` → `Batch`. The cost is real and the benefit is cosmetic. What is
+   *not* acceptable is silence — hence this section, so the next developer meets the mapping here
+   rather than discovering it from a confusing diff.
+
+---
+
+# Change log
+
+Entries are appended in build order. Nothing below is written before its reasoning is.
+
+---
+
+## L1-01 · `apps/api-py/app/models/user.py` — `Student.cohort_id` becomes a real foreign key
+
+**Layer:** L1 · Data
+**Change:** `cohort_id` moves from a bare indexed `String` to `ForeignKey("cohorts.id")`, still nullable.
+
+**Chain of reasoning**
+
+1. The design's student Profile shows a locked card of five institutional facts: College, Department,
+   Batch, Entry date, Expected completion.
+2. Four of those five have no data source today. Only Department exists, as free text on `users`, and
+   nothing writes it.
+3. All five are reachable through one join — `Student → Cohort → Department → College` — provided the
+   first hop is real.
+4. Today it is not. `app/models/user.py:97` declares
+   `cohort_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)` with the comment
+   `# FK to Cohort later`. Nothing in the database validates that the value names a cohort that exists.
+5. So the smallest change that makes the design's card truthful is to honour that comment.
+6. **Nullable is kept.** A student legitimately exists before an admin seats them — provisioning
+   creates the row, assignment happens after. Making it `NOT NULL` would force the two into one step
+   and break `seed_roster.py`, which creates students with no cohort.
+7. **The index is kept.** It is not redundant with the FK: PostgreSQL creates an index for a primary
+   key, not for the referencing side of a foreign key. Dropping it would silently undo the
+   `b41c9e2d7f05` audit fix that added it.
+8. **`ondelete` is deliberately omitted**, which means `NO ACTION` — deleting a cohort that still has
+   students will be refused by the database. That is the desired behaviour: the design archives
+   cohorts, it never deletes them, and a cascade here would silently delete student rows.
+9. **Rejected:** copying College / Department / Batch / the two dates onto `students` as columns. It is
+   faster to write and it is the trap — it creates two sources of truth, and it is precisely what makes
+   the deferred Academic year / Course / Specialization levels expensive later, because inserting a
+   level would mean backfilling every student row.
+
+**Risk:** existing rows may hold a `cohort_id` that matches no cohort. The migration must clean those
+to `NULL` *before* adding the constraint, or the `ALTER TABLE` fails on a live database. See L1-02.
+
+---
+
+## L1-02 · `apps/api-py/migrations/versions/<rev>_student_cohort_fk.py` — the migration
+
+**Layer:** L1 · Data
+**Change:** null out orphaned `cohort_id` values, then add the foreign key constraint.
+
+**Chain of reasoning**
+
+1. `students.cohort_id` has been an unconstrained string for its whole life, and two seeds write it.
+   Nothing has ever prevented a value that names no cohort.
+2. Adding a foreign key validates every existing row. One orphan and the migration aborts — on a
+   production database, mid-deploy.
+3. So the migration must be two statements, in order: `UPDATE students SET cohort_id = NULL WHERE
+   cohort_id IS NOT NULL AND cohort_id NOT IN (SELECT id FROM cohorts)`, then `ADD CONSTRAINT`.
+4. Nulling an orphan loses nothing real. The value already pointed at nothing; the only difference is
+   that the database now says so.
+5. **`lock_timeout` and `statement_timeout` are set at the top**, per the expand/contract discipline:
+   `ADD CONSTRAINT` takes a lock, and a migration that queues behind a long-running read takes the site
+   down. Five seconds of waiting, then fail and retry, is better than an outage.
+6. **This is an expand-phase change.** Old code that reads `cohort_id` as a string keeps working
+   unchanged, so it is safe to deploy before the code that uses the join.
+7. `downgrade()` drops the constraint only. It does **not** restore the nulled orphans — they are
+   unrecoverable by then, and pretending otherwise would be a lie in the migration.
+
+---
+
+## L1-03 · `apps/api-py/app/models/institution.py` — `College` and `Department` (new)
+
+**Layer:** L1 · Data
+**Change:** two new models, `College` → `colleges` and `Department` → `departments`.
+
+**Chain of reasoning**
+
+1. The locked profile card needs College and Department. There is no College column anywhere in the
+   schema, and `users.department` is free text with **no writer of any kind** — verified by grep: it is
+   read by `leave.py:120` and `director.py:390` and assigned nowhere.
+2. So both must become real entities before any screen can show them truthfully.
+3. **Department hangs off College, and Cohort hangs off Department** — not both off College. That is
+   what makes the deferred Academic year / Course / Specialization levels cheap to insert later: they
+   slot between Department and Cohort without touching anything above or below.
+4. **`status` is a plain `String`, not a PG enum.** `voice_platform.py` already argues this: a new
+   status value should be a data change, not a `CREATE TYPE` migration carrying AGENTS.md's three enum
+   gotchas. It also means archive/restore is an `UPDATE`, never a `DELETE`, which is exactly what the
+   design's console does.
+5. **The department code is unique per college, not globally.** Two colleges may each run a "CSE".
+   A global constraint would force the college name into the department code, and every screen inherits
+   that noise forever.
+6. **Almost every field is nullable.** An admin creates a college with a name and a code and fills in
+   campus and contact later. A required column here becomes a required field on the create form, and a
+   required form field is how invented data enters a database.
+7. **No `ondelete` on the department → college link.** The database will refuse to delete a college
+   that still has departments. A cascade would silently take cohorts, and through them student links.
+   The supported retirement path is archiving.
+
+---
+
+## L1-04 · `apps/api-py/app/models/cohort.py` — `Cohort.department_id`
+
+**Layer:** L1 · Data
+**Change:** new nullable FK to `departments.id`, indexed. Adds `ForeignKey` to the imports.
+
+**Chain of reasoning**
+
+1. The join the profile card needs is `Student → Cohort → Department → College`. L1-01 built the first
+   hop; this is the second.
+2. **Nullable, and this one is not a preference.** `cohorts` predates `departments` by many migrations.
+   Existing rows have no department to point at, so `NOT NULL` would make the migration unrunnable on
+   any database that already holds a cohort — including every developer's.
+3. Until an admin sets it, the card shows a dash. That follows the repo's existing rule that a missing
+   value renders as a dash rather than a confident zero or an invented default.
+4. Indexed because it will be filtered on — every "cohorts in this department" listing in the admin
+   console is that query.
+
+---
+
+## L1-05 · `apps/api-py/migrations/versions/e6b2d9c41a83_colleges_departments.py`
+
+**Layer:** L1 · Data
+**Change:** create `colleges`, create `departments`, add `cohorts.department_id`.
+
+**Chain of reasoning**
+
+1. Kept **separate from `d5a1c8b30f47`** (the student FK) rather than merged. Each is independently
+   deployable and independently revertible; merging them would mean a failure in either takes both back.
+2. Ordering inside the migration is forced: `colleges` before `departments` (the FK), and both before
+   `cohorts.department_id`.
+3. `lock_timeout` / `statement_timeout` at the top, same discipline as L1-02.
+4. **Pure expand phase.** Two new tables and one new nullable column; nothing existing reads any of
+   them. Safe to deploy well ahead of the code that will.
+5. `downgrade()` reverses cleanly in dependency order — index, constraint, column, then the two tables.
+   Unlike L1-02 there is nothing lossy here, so the downgrade is honest.
+
+**Verified:** `alembic heads` → `e6b2d9c41a83`; models import; the ORM resolves the full chain
+`students.cohort_id → cohorts.id`, `cohorts.department_id → departments.id`,
+`departments.college_id → colleges.id`.
+
+**NOT verified:** neither migration has been *run*. Docker Desktop is not running, so there is no
+Postgres to run them against. `alembic upgrade head` on a scratch database is the outstanding check,
+and L1-02's orphan-nulling `UPDATE` is the specific statement that needs it.
+
+---
+
+## L2-01 · `apps/api-py/app/routers/student.py` — `InstitutionOut`, `_institution_for`, and one `_profile_out`
+
+**Layer:** L2 · Backend
+
+**Chain of reasoning**
+
+1. The card needs five facts. They are reached by walking `students.cohort_id -> cohorts ->
+   departments -> colleges`, so the resolver walks as far as the data allows and stops without
+   complaint. An unseated student gets nulls, not a 404 — it is one block on a screen with plenty
+   else to show.
+2. **Every field nullable.** Any hop may legitimately be unset. A missing value renders as a dash,
+   never a default and never an invention — the rule the English baseline already follows for a
+   pending score, and doubly important on a card headed "verified by Main Admin".
+3. **A LIVE BUG WAS FOUND HERE.** `ProfileOut` was constructed in two places: inline in `my_profile`,
+   and in a shorter `_profile_out` used by `update_profile`. When `usn` / `full_name` /
+   `current_semester` / `current_stage` were added to the schema, only the inline copy was updated —
+   so **`PUT /api/student/profile` raised a 4-field ValidationError on every call**, and no test
+   exercised the update path's response body, so nothing caught it.
+4. Fixed by construction, not by patching: there is now **one** `_profile_out(db, prof)` and both
+   endpoints call it. Two constructions of one response is how the drift happened; one cannot drift.
+5. **Students cannot write these**, and it is enforced twice: `ProfileUpdateIn` is a closed allowlist
+   that does not name them, and `StudentProfile` has no such columns to set even if it did.
+
+---
+
+## L2-02 · `apps/api-py/app/routers/admin.py` (new) — the institutional write layer
+
+**Layer:** L2 · Backend · 8 paths, 11 operations, mounted at `/api/admin`
+
+**Chain of reasoning**
+
+1. Nothing in the running application could create a College, Department or Cohort, seat a student, or
+   write `users.department` / `users.designation`. All of it was CLI-and-seed only — and `app/seed.py`
+   refuses to run on `ENV=prod`, so on a production host **no cohort could exist at all**.
+2. **No DELETE endpoint exists in this file.** Status moves `ACTIVE <-> ARCHIVED`. That is what the
+   design's console does, and the foreign keys enforce it anyway: the database refuses to delete a
+   college that still has departments. A graduated student's record must still name their college.
+3. **`AdminCohortOut`, not `CohortOut`.** Two different `CohortOut` classes already exist with
+   different shapes (`director.py:116`, `badge_verification.py:429`) — the same collision this
+   codebase has for `LeaderboardOut`, where the payload depends on which URL you hit. A third would
+   deepen it, so this one is named for its surface.
+4. **`require_director`** (DIRECTOR + ADMIN), matching every other admin surface including
+   `voice_platform/api/admin.py`. A narrower Main-Admin-only gate belongs with the capability work;
+   inventing a second gate now means two answers to "who may administer", which is the exact shape of
+   bug rule 2 exists to prevent.
+5. **Department codes unique per college, not globally** — two colleges may each run a "CSE", and a
+   global constraint pushes the college name into the code.
+6. **Dates converted at the edge.** `cohorts.start_date` / `end_date` are `DateTime(timezone=True)`
+   and predate this surface. The API speaks `date`, because entry and completion are calendar facts,
+   and `_as_utc_midnight` does the conversion in one place rather than four call sites.
+
+---
+
+## L2-03 · `apps/api-py/app/routers/registration.py` — provision on approve
+
+**Layer:** L2 · Backend
+
+**Chain of reasoning**
+
+1. Approval stamped a status and three audit columns and **created nothing**. Its own docstring called
+   provisioning "a separate follow-up step" — and that step existed nowhere in the codebase.
+   `registrations.approved_student_id` was declared, returned by the API, and never written.
+2. `_provision_student` now creates the User, the Student seated in the rule's cohort, a
+   `StudentProfile`, and stamps `approved_student_id` — **in the same transaction as the status**, so
+   an application is never left approved with no account behind it.
+3. **Idempotent by lookup, not by flag.** A double-clicked Approve must not create two students. The
+   endpoint refuses a second decision with 409, and the provisioner finds existing rows rather than
+   inserting. Relying on the caller not to double-click is not a design.
+4. **No password is set.** The account carries the unusable `"google-only"` sentinel, which is not a
+   `scrypt:<salt>:<digest>` string and so can never match in `verify_password`. Sign-in is Google-only
+   in production; a password, where wanted, arrives through activation.
+5. A `StudentProfile` row is created because `GET /api/student/profile` **404s without one** — a
+   freshly provisioned account would otherwise look broken on first sign-in.
+
+**Two bugs the tests caught in this file, both mine, both real:**
+
+- `reg.full_name` — `Registration` has **`name`**. Would have crashed on every approval.
+- `db.get(StudentProfile, student.id)` — `StudentProfile`'s primary key is its own `id`; `student_id`
+  is a separate unique column. `db.get()` looks up by PK, so it always missed and inserted a duplicate
+  that the unique index then rejected. Fixed to query by `student_id`.
+
+---
+
+## L2-04 · `apps/api-py/tests/test_institutional_spine.py` (new) — 9 tests, all passing
+
+**Layer:** L2 · Backend
+
+Three pure tests (no database, run anywhere) and six against Postgres. The one worth naming is
+`test_moving_a_batch_moves_every_seated_students_card`: it edits the batch and asserts the student's
+card moved, **with no write to the student row**. If someone later denormalises those fields onto
+`students`, that test fails — which is the entire point, because the copy is the tempting shortcut
+that makes the deferred hierarchy levels expensive.
+
+---
+
+## Verification — actually run, not assumed
+
+The dev database `reep_py` **cannot be migrated**: it is stamped at `a9c3e5f70b21`, a revision whose
+file was destroyed in this session's `git clean`, and it carries five ghost `resume_*` tables from
+that deleted chain while lacking `users.designation`. It followed a migration history that no longer
+exists.
+
+So verification ran against a clean scratch database, `reep_py_verify`:
+
+| Check | Result |
+|---|---|
+| `alembic upgrade head` from empty | **all migrations applied**, head `e6b2d9c41a83` |
+| `d5a1c8b30f47` orphan sweep | ran, `cleared 0 orphaned students.cohort_id value(s)` |
+| Schema | `colleges` + `departments` created; `students -> cohorts`, `cohorts -> departments`, `departments -> colleges` FKs present; `uq_department_college_code` present |
+| `python -m app.seed` | succeeded |
+| `tests/test_institutional_spine.py` | **9 passed** |
+| Full suite | **1 failure, pre-existing and not ours** — `test_student_weekly_series_and_cv_download`, caused by `director.py:934` using `strftime("%-d %b")`, a glibc extension that fails on Windows and passes on Linux CI |
+
+**Outstanding for the operator:** `reep_py` needs recreating (drop, `alembic upgrade head`,
+`python -m app.seed`), or point `DATABASE_URL` at `reep_py_verify`, which is now fully migrated and
+seeded.
+
+---
+
+## G-01 · `apps/api-py/tests/test_codebase_guards.py` (new) — making the failures unrepeatable
+
+**Layer:** L2 · Backend (test) · 7 guards, no database, sub-second
+
+**Chain of reasoning**
+
+1. Every problem hit during this build was found by a human reading code, or by a test failing for an
+   unrelated reason. Neither scales. A rule written in a document is followed until the afternoon
+   someone is in a hurry; a rule that fails the build is followed always.
+2. So each incident became an assertion. Every guard names the incident it prevents in its docstring,
+   because a guard whose reason is forgotten gets deleted by whoever it inconveniences.
+3. These are plain pytest tests, so **CI already runs them** — the `api` job needs no change. And CI
+   sets `REEP_REQUIRE_DB=1`, so a suite that skipped every database test cannot read as green.
+
+**The seven guards, and the incident behind each**
+
+| Guard | Incident |
+|---|---|
+| `test_no_platform_specific_strftime` | `director.py:934` used `strftime("%-d %b")`. `%-d` is a **glibc extension**: it works on Linux and raises `ValueError("Invalid format string")` on Windows. `GET /api/director/students/{id}/weekly` was green in CI and dead on every developer machine. **Fixed** to `f"{start.day} {start:%b}"`. |
+| `test_no_new_duplicate_schema_names` | `LeaderboardOut` is defined twice with different shapes, so the payload depends on which URL you hit. Nine such names exist. While writing `admin.py` a third `CohortOut` was very nearly added. New duplicates now fail; the nine are an explicit allowlist so the debt is visible. |
+| `test_the_duplicate_schema_debt_list_is_accurate` | An allowlist that is never pruned becomes a licence. If a duplicate is cleaned up, its name must leave the list or this fails. |
+| `test_every_model_module_is_imported_in_models_init` | AGENTS.md's own rule. An unimported model is invisible to Alembic autogenerate, so its table is silently missing from the next migration and the failure surfaces much later, somewhere unrelated. |
+| `test_the_migration_chain_has_exactly_one_head` | Two heads means someone branched, and `alembic upgrade head` refuses — during a deploy, after the image is built. |
+| `test_every_down_revision_points_at_a_migration_that_exists` | The dev database was stamped at `a9c3e5f70b21`, a revision whose file had been deleted. Alembic could not compute a path and the database had to be rebuilt. A dangling `down_revision` in the files is the same fault one step earlier, and it is catchable. |
+| `test_agents_md_only_references_paths_that_exist` | AGENTS.md documented `app/domains/` and `app/core` in detail; neither has any source. Documentation describing code that does not exist is worse than none, because it is trusted. Paths described as *deleted / removed / retired* are skipped — that is the document doing its job. |
+
+**Two bugs found while writing the guards themselves, both worth recording**
+
+- The `strftime` guard flagged **the comment written to explain the fix**. Fixed by stripping trailing
+  comments before matching — a guard that cannot tell code from prose will be disabled by the first
+  person it annoys.
+- The AGENTS.md guard's `` word boundary was written into the file as a literal **backspace
+  character (0x08)** by a shell heredoc, so the regex silently never matched. It was invisible to
+  `grep` and to reading the file; only `repr()` of the line showed it. Worth knowing: a
+  pattern that "should obviously work" and does not is worth dumping as `repr` before assuming the
+  logic is wrong.
+
+---
+
+## OPS-01 · The development database, rebuilt
+
+**Layer:** L1 · Data (operational)
+
+`reep_py` was stamped at `a9c3e5f70b21` — a revision destroyed by this session's `git clean` — and
+carried five ghost `resume_*` tables from that dead chain while missing `users.designation`. It had
+followed a migration history that no longer exists, so no `alembic upgrade` could move it forward.
+
+Dropped and rebuilt: `CREATE DATABASE` -> `alembic upgrade head` -> `python -m app.seed`. The scratch
+database used for earlier verification (`reep_py_verify`) was dropped afterwards.
+
+**Verification, on the rebuilt database, with `REEP_REQUIRE_DB=1` so a skipped suite cannot read as
+green:**
+
+    729 passed · 2 skipped · 0 failed · 0 errors
+
+That includes `test_student_weekly_series_and_cv_download`, which had been failing on Windows for the
+`strftime` reason above and now passes on both platforms.
+
+---
+
+# Round 2 — three independent adversarial reviews, and the fixes
+
+The spine above was handed to three reviewers, each told to find faults rather than confirm
+correctness: **correctness & security**, **schema & migrations**, and **test quality**. Two of them
+built throwaway databases and ran the code rather than reading it; the third mutation-tested the
+tests. All three put the same item at the top: `app/routers/admin.py` had 11 operations and zero tests.
+
+What follows is one entry per fix, in the order the danger was ranked.
+
+---
+
+## SEC-01 · Approval had become a self-service door into the roster
+
+**Layer:** L2 · Backend · `app/routers/registration.py`, `app/config.py`
+**Severity:** the worst thing in the round, and it was introduced by the previous entry.
+
+**Chain of thought.**
+
+1. `app/google_auth.py` states the contract: a verified Google account with no `users` row is refused;
+   *nothing self-provisions*. AGENTS.md repeats it: **the roster IS the access control.**
+2. `PROV-01` made approval **insert a `users` row**.
+3. The row's email comes from `Registration.email`, written by `POST /api/register` — which is
+   **public, unauthenticated**, and validates the address no further than "contains an @".
+4. `EmailVerification` and `registrations.email_verified_at` exist in the model and have **no writer
+   and no reader anywhere**. Nobody has proved the applicant can even read that mailbox.
+5. Therefore: apply as "Priya Sharma / attacker@gmail.com", wait in the queue looking exactly like
+   every other application, and one Approve click grants a stranger a real Google sign-in to REEP —
+   with a `studentId`. **Before this feature that click created nothing.** The door was built here.
+
+**The fix, and why it is a fence here but not on sign-in.** `settings.provisionable_email_domains`
+gates provisioning on the college domain. `google_allowed_domain`'s own comment says the domain list
+is a label and *"nothing in the sign-in path refuses on it, and nothing should start to"* — that is
+still true and unchanged. The two run in opposite directions:
+
+| | question asked | what a domain test can do |
+|---|---|---|
+| sign-in | a verified Google account -> is it on the roster? | only lock out someone already enrolled |
+| provisioning | an unauthenticated form -> may it JOIN the roster? | only stop a stranger becoming a row |
+
+A fence before enrolment cannot lock anybody out of anything. That asymmetry is the whole
+justification, and it is written into the property's docstring so the next reader does not "fix" the
+inconsistency by deleting one of them. Staff are unaffected — `app/grant_access.py` exists precisely
+to admit an address off the student domain and does not come through this path.
+
+**Test:** `test_an_application_from_outside_the_college_domain_cannot_be_approved`. Asserts the 422,
+*and* that no account was left behind, *and* that the application is still decidable.
+
+---
+
+## SEC-02 · Approval could attach a Student row to a staff account
+
+**Layer:** L2 · Backend · `app/routers/registration.py`
+
+**Chain of thought.**
+
+1. `_provision_student` looked up the User **by email alone** and never read `user.role`.
+2. The duplicate check on submit is against `registrations.email`, **not** `users.email` — so an
+   application naming `mentor@bgscet.ac.in` is accepted by the public form and queues up looking
+   ordinary.
+3. `_payload_for` mints `studentId` into the session for **any** user who has a Student row.
+4. So approving it gives that mentor a session carrying `role: MENTOR` **and** a `studentId`.
+
+Rule 2 says staff scope is decided by role. This let an unauthenticated form edit it. Now a 409 that
+names the conflict and tells the director what to do instead.
+
+**Test:** `test_an_application_naming_a_staff_address_cannot_be_approved` — asserts the victim's role
+is untouched and that no Student row appeared.
+
+---
+
+## SEC-03 · The double-approval 409 was not race-safe
+
+`db.get(Registration, ...)` then check-then-write: two directors clicking Approve together both read
+`PENDING`, both pass, both provision, and the second dies on the unique email — a **500**, not the
+409 the endpoint promises. Now `SELECT ... FOR UPDATE`, so the second request waits, reads `APPROVED`,
+and gets its 409.
+
+---
+
+## FEAT-01 · `department_id` had no writer, so the feature was unreachable
+
+**Layer:** L2 · Backend · `app/routers/admin.py`
+**This is the one that made the headline claim untrue in practice.**
+
+**Chain of thought.**
+
+1. `cohorts.department_id` was written in exactly **one** place: cohort *creation*.
+2. `AdminCohortPatchIn` did not expose it. So an existing cohort could never be filed.
+3. `list_cohorts` is keyed on a `department_id` **path segment** — so a cohort with
+   `department_id IS NULL` matches no route at all. **Invisible, and therefore unfixable.**
+4. Every cohort predating this feature is in exactly that state, the seeded one included.
+5. My own migration comment said *"an admin sets it afterwards"*. No code path let them.
+6. And the spine tests hid it, because the fixture built the chain through `SessionLocal` rather than
+   through the API. **Green suite, broken feature.**
+
+**Fix:** `department_id` on the PATCH body (nullable — an explicit null un-seats, which is the only
+way to correct a mis-filed batch), the target validated so a bad id is a 404 rather than an
+IntegrityError 500, and a new `GET /admin/cohorts/unassigned` — the console's inbox for stranded
+batches. Without that endpoint the writer alone would not have been enough.
+
+**And the fixture lesson:** `tests/test_admin_institution.py` builds its College -> Department ->
+Batch chain **through the endpoints**, so the fixture itself fails if an admin could not do this.
+
+---
+
+## FEAT-02 · A cleared form field returned a 500 on all three PATCH endpoints
+
+**Layer:** L2 · Backend · `app/routers/admin.py` — new `PatchModel` base
+
+Every PATCH field is `X | None = None` so that omitting it means "leave alone", read back with
+`model_dump(exclude_unset=True)`. But **`exclude_unset` is not `exclude_none`**: `{"name": null}` is
+*sent*, survives into the dict, and `setattr(college, "name", None)` reaches a NOT NULL column as an
+unhandled IntegrityError — a 500 with a Postgres constraint name in the body.
+
+`{"name": null}` is exactly what a form emits when someone clears an input and saves.
+
+The wire needs a **three-way** distinction — omitted / a value / explicitly null — and only the third
+is an error. `PatchModel` subclasses declare `NON_NULLABLE`; genuinely nullable columns (`campus`,
+`contact`, `head`) stay off the list because nulling them **is** how they are cleared. A blanket
+refusal would have removed the only way to unset them, which is why there is a test for that too.
+
+---
+
+## SEED-01 · The card showed dashes on every fresh database
+
+`app/seed.py` created the Cohort with **no `department_id`** and no College or Department at all. So
+after `docker compose up` -> `alembic upgrade head` -> `python -m app.seed`, the card headed
+*"Institutional assignment — verified by Main Admin"* rendered College and Department as **dashes**.
+That is the state every developer and every demo starts from: the empty version of a working feature.
+
+Against AGENTS.md's own discipline — the ledger is seeded deliberately 0.5 h short so the interesting
+state is the default one. Now seeds College -> Department -> Cohort, and back-fills a cohort seeded
+before departments existed.
+
+    BGS College of Engineering and Technology | Department of Management Studies | 2024-26 | 2024-08-01 | 2026-07-31 | 1
+
+---
+
+## MIG-01 · `alembic upgrade --sql` crashed, and my migration broke it
+
+**Layer:** L1 · Data · `migrations/versions/d5a1c8b30f47_student_cohort_fk.py`
+
+`op.get_bind()` returns **`None`** in offline mode, so reading `.rowcount` off it raised
+`AttributeError`. `migrations/env.py` implements `run_migrations_offline()` in full, with
+`literal_binds=True` — someone deliberately made `--sql` work, because that is the DBA-review
+workflow: generate the script, have it read, run it in a change window. It is exactly the workflow a
+**locking** migration wants, and this was the migration that made it impossible.
+**Every migration before it was `--sql`-clean.**
+
+Fixed by dropping the rowcount entirely. The count now lives in a table, which is better than the
+`print()` it replaced for three separate reasons (MIG-03).
+
+---
+
+## MIG-02 · `SET` instead of `SET LOCAL` leaked timeouts into every future migration
+
+`env.py` wraps the whole `upgrade head` in **one transaction on one connection**, and `SET` is
+session-scoped. So `statement_timeout = '60s'` applied from this revision **to the end of the run, and
+to every migration added after it, forever**.
+
+The failure it sets up: the next person's backfill over `messages` runs 90 s on their laptop, passes,
+and aborts in production with `canceling statement due to statement timeout` — from a timeout set two
+revisions upstream that their own file never mentions and that a hand-run `psql` session will not
+reproduce. `SET LOCAL` costs one word.
+
+---
+
+## MIG-03 · The destructive branch had never actually been run
+
+The build log above records `cleared 0`. A reviewer ran it with real orphans — it worked, and three
+things about it were wrong:
+
+1. **`print()` goes to stdout; alembic logs to stderr.** In a deploy log that captures the streams
+   separately the count is orphaned from the migration it describes. No other migration in the
+   55-file tree prints anything.
+2. **It printed before the transaction committed** — so a later failure meant the operator had been
+   told "cleared 400" about an UPDATE that was rolled back. This repo has a whole runbook section
+   about logs that lie.
+3. **`downgrade()` called the orphans "unrecoverable by now" — that was a choice dressed as a fact.**
+   The column was free-form string for its entire life across a Prisma migration; assuming every
+   value in it was a UUID pointing nowhere is the over-confident reading.
+
+Now `students_orphaned_cohort_ids` is written **before** the UPDATE, the downgrade restores from it
+(only into rows still NULL, so a legitimately re-seated student is never overwritten), and the table
+is deliberately **not** dropped — deciding those rows are safe to lose is a judgement for a person
+looking at them, not for a downgrade running unattended.
+
+**And the trap that created:** autogenerate sees a table with no model and proposes `op.drop_table` —
+which would delete the only copy of the rows. `migrations/env.py` now carries `_PRESERVED_DATA_TABLES`
+and an `include_object` hook, so the contract is the prefix: a migration that stashes rows before a
+destructive statement names the table `*_orphaned_*` and it survives every future autogenerate.
+
+---
+
+## MIG-04 · `NOT IN` -> `NOT EXISTS`, and two naming faults
+
+- **`NOT IN (SELECT id FROM cohorts)`** evaluates to NULL — never true — the instant one NULL appears
+  in the subquery. The sweep would clear nothing and the ADD CONSTRAINT would then abort on exactly
+  the orphans the sweep exists to remove. Correct today only because `cohorts.id` is a NOT NULL
+  primary key; `NOT EXISTS` stays correct without depending on that.
+- **`College.code` was `unique=True` unnamed.** `create_all()` names it `colleges_code_key`; the
+  migration named it `uq_college_code`. The same declaration produces **two different constraint
+  names depending on how the database was built**, so a future `op.drop_constraint("uq_college_code")`
+  fails on half of them. Now a named `UniqueConstraint` in `__table_args__`, matching `Department`.
+- **`op.drop_table(..., if_exists=True)`** needs Alembic >= 1.16 and was the tree's first use of it —
+  an unrecorded version floor whose failure mode is a `TypeError` inside a migration during a deploy.
+  `DROP TABLE IF EXISTS` has no floor.
+
+---
+
+## MIG-05 · Two claims in the comments were false
+
+1. **"The database refuses to delete a college that still has departments"** — false through the ORM.
+   `College.departments` declared no cascade, so SQLAlchemy helpfully **nulls the children first**,
+   and because `college_id` is NOT NULL you get a `NotNullViolation` naming `departments.college_id`
+   while trying to delete a `College` — an error that reads like a bug in the wrong table. There is no
+   delete endpoint today, which is the only reason it has not bitten. `passive_deletes="all"` makes
+   the comment true.
+2. **`ix_departments_college_id` was redundant.** `uq_department_college_code` is
+   `(college_id, code)` and serves a predicate on its leading column — proven with `EXPLAIN`. The
+   build log reasoned carefully about *not* dropping `ix_students_cohort_id`; the symmetric question
+   about the new index was never asked. Dropped.
+
+---
+
+## TEST-01 · The tests were softer than their own docstrings
+
+The test reviewer's finding, and the hardest to read: **every one of the nine spine tests was
+defeatable by a plausible mutation**, and in four cases the docstring described a guarantee the
+assertions did not deliver. That is worse than a thin test, because the next reader believes the area
+is covered.
+
+| test | how it was defeated | fix |
+|---|---|---|
+| `..._cannot_write_their_own_institutional_assignment` | **structurally incapable of failing.** It forged `college_name` — *not a column anywhere in the codebase* — and `ProfileUpdateIn` is `extra="ignore"`, so pydantic dropped the keys before the handler ran. It asserted that nothing happened, which was guaranteed. The mutation that breaks it (`extra="allow"`) let a student set their own `placement_eligible` and stayed green. | forges the three fields that are **real, writable columns** deliberately absent from the schema, reads the **columns** back rather than the response, and sets the restrictive value first so the forge has to flip it |
+| `..._twice_provisions_one_student` | the 409 fires **before** provisioning, so all four idempotency lookups could be deleted and it passed — including the one whose comment records the duplicate-insert bug it was written to fix | split in two: one calls `_provision_student` **directly** twice; a second covers the endpoint 409. Plus assertions on `role`, `usn` and `cohort_id`, none of which were checked |
+| `test_updating_a_profile_returns_a_complete_body` | compared **key names only**, so a second builder returning the right keys with hardcoded wrong values passed | full value equality |
+| `test_moving_a_batch_...` | one GET **after** the mutation on a fresh cohort — any cache would be cold and pass while every real student saw stale data. `student.py` already has a `_leaderboard_cache`, so not hypothetical | reads **before and after**, and asserts the fields that did *not* move still resolve |
+| `test_every_institution_field_accepts_none` | tested nothing `_institution_for` does — it constructed the model directly | **deleted**, and replaced by end-to-end partial-chain coverage |
+| `T8`/`T9` cleanup | inline, **after** the assertions — any failure leaked a User, Student, Registration and StudentProfile permanently, and the leak then *masked* the very regression the test existed for on the next run | a yield fixture, whose finaliser runs on failure. It records whether the user pre-existed, so it never deletes a `make_user` account it did not create |
+
+**The gap with no coverage at all** was the partial chain — a cohort whose `department_id` is NULL,
+which is *every* cohort predating this work. Now `test_a_partly_built_chain_renders_what_exists_and_nulls_the_rest`.
+
+That test needed a trick worth recording: dropping the null guard **does not raise** —
+`db.get(Department, None)` quietly returns `None`. So a behavioural assertion could not tell guarded
+from unguarded code. SQLAlchemy *does* warn (`fully NULL primary key identity cannot load any object.
+This condition may raise an error in a future release`), so the test promotes `SAWarning` to an error.
+That makes the mutation visible **now** instead of on the upgrade that turns it into an exception.
+
+---
+
+## TEST-02 · `admin.py` — 11 operations, 0 tests -> 18 tests
+
+New `tests/test_admin_institution.py`, ordered by the reviewers' ranking:
+
+- **every one of the 11 operations refuses a STUDENT** — enumerated explicitly, not walked off the
+  router, so a new endpoint without a line here is a visible omission rather than silently covered
+- the cleared-field 422 across five field/endpoint pairs, **and** that a nullable field can still be
+  cleared
+- college code normalised and globally unique; department code unique **per college**, so two
+  colleges may each run a "CSE" — a mutation to global uniqueness breaks exactly that and nothing else
+- the unassigned-batch inbox: un-seat -> appears -> re-file -> disappears
+- seating a student populates **their** card and **nobody else's** (a resolver that scanned for "the
+  newest cohort" would pass a single-student test and put one batch on every card), plus the release path
+- archive **and restore**, and that an archived college stays in the list — a row that cannot be seen
+  cannot be restored
+- `designation` / `department` actually persist, `""` clears to `None`, and an omitted field is not touched
+
+---
+
+## TEST-03 · The guards were also softer than they claimed
+
+- **`_KNOWN_DUPLICATE_SCHEMAS` said "may SHRINK, never grow" — and nothing enforced it.** Adding a
+  name went green. A comment is not a mechanism; there is now a ceiling constant.
+- **`test_agents_md_only_references_paths_that_exist` did not catch its own incident.** The regex
+  required a `.py` suffix or an `apps/api-py/` prefix, so `app/domains/<context>/` (the `<` was not in
+  the character class) and `app/core` — *the two examples in its own docstring* — both evaded it
+  silently. Also: any line containing the word "removed" had **every** path on it skipped, so writing
+  "(the old X was removed)" laundered a whole paragraph. Now proximity-based within `_GONE_RADIUS`.
+- **The strftime guard split on `#` anywhere on the line**, including inside a string literal, and its
+  character class covered six letters of the dozen-plus glibc directives. Now quote-aware, `%[-#][a-zA-Z]`,
+  and scanning migrations and `tools/ci` — not just `app/`.
+- **The migration chain guard silently skipped any file whose `revision:` line it could not parse**,
+  and **silently overwrote duplicate revision ids** — the classic copy-paste merge artefact — so two
+  files claiming one revision collapsed to one entry and the head count came out right on a broken
+  chain. Both now fail loudly.
+
+---
+
+## VERIFY · Mutation-tested, because a passing test is not evidence
+
+Every fix above was broken on purpose to confirm the guarding test goes red. A test that passes both
+with and against the bug is not a guard.
+
+**Production fixes — 9/9 mutations caught:** domain guard removed · role guard removed · provisioning
+mints a DIRECTOR · `cohort_id` no longer copied from the rule · the User idempotency lookup deleted ·
+explicit-null refusal removed · `department_id` writer removed · `ProfileUpdateIn` opened to extra
+fields · the partial-chain null guard dropped.
+
+Two survived the first run and both were real gaps, not false alarms:
+
+- *the User idempotency lookup* survived because the `approved_student_id` short-circuit returns
+  first. The realistic path is not a double-click at all — it is an applicant **already on the roster
+  from `seed_roster`**, which is the normal state for an enrolled student. Added
+  `test_approving_an_applicant_who_is_already_on_the_roster_reuses_their_account`.
+- *the partial-chain guard* survived for the `SAWarning` reason in TEST-01.
+
+**Guards — 7/7 caught**, including one that exposed a scope hole: `MIGRATIONS` points at
+`migrations/versions`, so `env.py` — Python that runs on every deploy — was unscanned. Widened.
+
+**Suite, with `REEP_REQUIRE_DB=1` so a skipped suite cannot read as green:**
+
+    752 passed · 2 skipped · 0 failed        (was 729 — 23 new tests)
+
+`alembic upgrade --sql` generates the full 55-migration script cleanly. `alembic check` reports no
+drift on any table in this work; the five `redesign_*` index diffs predate it.
+
+---
+
+# Round 3 — the optional levels, and the one-line switch
+
+**The request.** *"create which not designed db in ui give this user to fill optional what way i
+can avoid more work and missing correct designing db / both side / when i feels its need i will
+make mandatory to fill this information / just simple code change."* With the sketch:
+
+    College → Department → [Academic year → Course → Specialization] → Batch → Student.batchId
+
+Three council reviews were commissioned — schema, UI contract, and a reading of an LMS-schema
+article the owner shared. They disagreed on two things, and both disagreements changed the build.
+
+---
+
+## DEC-01 · Academic year is NOT a table
+
+**Layer:** L1 · Data · decision
+**Who argued it:** the article reviewer, against the sketch and against the schema reviewer.
+
+**Chain of thought.**
+
+1. The article makes "year" an `int` column, not an entity.
+2. REEP already carries the fact **four ways**: `cohorts.batch_label` ("2024-26"),
+   `cohorts.start_date` / `end_date`, `students.current_semester`, `courses.semester`.
+3. A fifth representation of one idea is a fact that will eventually disagree with itself.
+4. If a year ever needs a record of its *own* — admission open/close dates, courses that run only in
+   certain years — it inserts then at exactly the cost it would today. That is the property this
+   whole shape was built for, so deferring costs nothing.
+
+Put to the owner as a decision, with a recommendation. **Chosen: drop it.** Two levels, not three.
+
+---
+
+## DEC-02 · `AcademicCourse` / `AcademicSpecialization`, not `Course` / `Specialization`, and not `Degree` / `Stream`
+
+**Layer:** L1 · Data · naming
+**Verified, not taken on trust:**
+
+| name | already means |
+|---|---|
+| `Course` | `app/models/course.py` — a taught subject a student enrols in (22MBA11) |
+| `CourseOut` | `student.py:1239` |
+| `Specialization` | **three things**: `interview_matrix.Specialization` (the four mock-interview tracks), `PlatformSpecialization`, `interview_sessions.specialization` |
+| `SpecializationOut` | `voice_platform/api/admin.py:108` |
+
+A bare `Course` or `Specialization` here would be the collision `test_no_new_duplicate_schema_names`
+exists to refuse — the build would fail, and the only way past it is the one edit that test forbids.
+
+The article reviewer proposed `Degree` / `Stream` (both free). Refused on the owner's own
+requirement — *"any developer who sees the code can understand easily"*: `AcademicCourse` → "Course"
+is a mapping a reader resolves instantly; `Degree` → "Course" needs a lookup table in the head.
+**The UI says "Course" and "Specialization"**, which is the Batch/Cohort precedent applied twice
+more. The label is typed once, in `HIERARCHY_LEVELS`, so the word cannot drift.
+
+---
+
+## L1-05 · Two tables, two nullable columns, `created_by` on all four
+
+**Files:** `app/models/institution.py`, `app/models/cohort.py`,
+`migrations/versions/f7c3a1d92e54_academic_courses_specializations.py`
+
+One shape, twice: `<parent>_id` + `code` + `name` + `status`, uniqueness **scoped to the parent**
+(two departments may each run an "MBA"), no `ondelete`, named constraints. `cohorts` gains
+`course_id` and `specialization_id`, nullable, beside `department_id`.
+
+**Why all three pointers and not just the deepest.** A batch legitimately attaches at *any* depth —
+department only, or course, or specialization — because the levels are individually optional. One
+`specialization_id` cannot express "attached at course level", and a polymorphic column cannot be a
+foreign key. So all three exist.
+
+**Why that is not three sources of truth.** There is exactly one writer (`_resolve_ancestry`, below).
+And the denormalisation rule the build log set in L1-01 §9 is about copying onto `students` —
+thousands of rows, where inserting a level becomes a backfill. `cohorts` numbers in the dozens, and
+`department_id` staying always-set is what keeps every existing endpoint and test untouched.
+
+**`created_by_user_id`** on all four institution tables, from the owner's PostgreSQL checklist. The
+design's Governance tab wants who/what/when and nothing recorded who. Nullable — the seed and the
+CLIs have no user. Folded into this migration rather than a fourth, because nothing is deployed and a
+schema that gains the same column in two revisions gains it a third time.
+
+**The migration honours every lesson from round 2**: `SET LOCAL`, `--sql`-clean (pure DDL, no
+`get_bind()`), named uniques byte-identical to `__table_args__`, no PG enum, no `if_exists`. And it
+records what it deliberately does *not* do — `CREATE INDEX CONCURRENTLY` cannot run inside env.py's
+single transaction, and `NOT VALID` buys nothing when the referenced tables were created empty three
+statements earlier. The escalation path is written next to the reason it is not taken.
+
+---
+
+## L2-04 · The switch
+
+**File:** `app/models/institution.py`
+
+```python
+HIERARCHY_LEVELS: Final[tuple[HierarchyLevel, ...]] = (
+    HierarchyLevel("course", "Course", "course_id", required=False),
+    HierarchyLevel("specialization", "Specialization", "specialization_id", required=False),
+)
+```
+
+**The owner's edit:** `required=False` → `required=True`, on one line, in one file. Deploy.
+
+**Why in the models module.** AGENTS.md says models are the schema's source of truth, and a developer
+reading these tables must meet the requiredness rule in the same file — not discover it in a router.
+It is `milestone.py`'s catalogue-is-code pattern, reused on purpose.
+
+**Why not an env var.** AGENTS.md already makes this argument for `password_door_open`: on Fargate the
+env lives in the task definition, so a second switch is a `terraform apply`, and `deploy.yml` ships
+code, never infrastructure. Two tools for one decision is how a form ends up 422-ing over a value
+nobody can change.
+
+**Why the columns stay nullable forever.** Nullability is what the database promises about rows that
+already exist; `required` is what this release asks of a new one. Conflating them turns "make it
+mandatory" back into a migration — one that aborts on the first legacy batch, halfway through a
+deploy. `test_hierarchy_columns_stay_nullable` is the argument the next person in a hurry meets
+instead of a blank column definition.
+
+**Two readers, one constant.** `AdminCohortIn._honour_required_levels` reads it; `GET
+/api/admin/hierarchy/levels` serves it; the Angular form builds `Validators.required` from the
+response. **Read through the module attribute at call time**, not an import-time binding — a mutation
+proved that a module-level `from ... import HIERARCHY_LEVELS` freezes a copy the flip never reaches.
+
+---
+
+## L2-05 · The single ancestry writer
+
+**File:** `app/routers/admin.py` — `_resolve_ancestry`
+
+The client names only the **deepest** level it knows; the API walks *up* the real foreign keys to fill
+the rest; a shallower value the client also sent is **checked against the derived one**, never stored
+beside it. A contradiction is a 422 naming both. An explicit null on a shallower level while a deeper
+one is set is a contradiction too — "no course" cannot coexist with a specialization that belongs to
+one.
+
+This is what makes three pointers one truth. The silent alternative surfaces as a profile card
+printing the wrong department under the words "verified by Main Admin".
+
+---
+
+## L2-06 · The escape hatch ships WITH the switch, not after it
+
+Flipping `required=True` cannot make forty pre-existing batches compliant, and no code change ever
+can. Ship the switch alone and the morning after, the console refuses saves on rows nobody can fix,
+and the fix will be to flip it back. So three things are one piece of work:
+
+| | rule |
+|---|---|
+| **CREATE** | enforced — the whole point |
+| **PATCH** | enforced only against **regression**: the gap is computed before and after, and the edit is refused only if it *widened*. A legacy batch missing a course can still have its name corrected; filling the gap is always allowed; emptying a compliant batch is refused |
+| **READ** | never enforced. No list, profile or export fails over compliance |
+| **seating** | not gated. Refusing to seat a student into a grandfathered batch turns a metadata rule into an admissions outage |
+
+`AdminCohortOut.missing_levels` flags each row (rendered as a `.chip warn` — text and colour); `GET
+/admin/cohorts/incomplete` is the inbox, for the reason `/cohorts/unassigned` exists: a row the
+console cannot reach is one it cannot fix. Its predicate is built from the same tuple, so it is honestly
+empty before the flip rather than pretending everything is compliant.
+
+---
+
+## L2-07 · The student's card: one query, and blanks that say why
+
+**File:** `app/routers/student.py`
+
+`_institution_for` was three sequential `db.get()` round trips on the app's hottest endpoint;
+extended to five levels it would have been five. Now **one flat LEFT-JOIN query**, every join on a
+primary key, each hanging directly off `cohorts` rather than chained — which is what the ancestor
+pointers buy: a batch attached at department level with no specialization still resolves its college.
+
+**A blank means two different things**, and the card must not confuse them:
+
+- `pending` — expected and not yet recorded. Dash + "Not yet recorded". Something to chase.
+- `not_in_use` — optional and this institution does not use it. **The row is hidden and the
+  omission is stated once** in `not_in_use_note` ("Course and Specialization are not used at
+  BGSCET."). A dash there would tell the student their record is incomplete when it is complete: a
+  false pending, the mirror image of the confident zero the English-baseline rule forbids.
+
+Only the server can tell them apart, because only it knows the switch. Flip a level to required and
+the same blank becomes `pending` — `test_flipping_a_level_to_required_turns_its_blank_into_pending`
+observes the switch from the student's side.
+
+---
+
+## L3-01 · The Angular console, and the card
+
+**Files:** `core/hierarchy-schema.service.ts`, `features/director/institution/*`, `app.routes.ts`,
+`app-shell.component.html`, `features/student/profile/*`
+
+`/api/admin/*` had **zero callers** — twenty operations and no screen, which made "optional to fill in
+the UI" true in the only sense that mattered: unfillable. `/director/institution` is the first
+caller: drill-down (college → department → course → specialization) in one column, batches in the
+other, one inline add-form per level, the batch form in ReactiveForms.
+
+**The batch form's validators come from the server.** `HierarchySchemaService` fetches
+`/admin/hierarchy/levels`; `buildBatchForm` attaches `Validators.required` from `lv.required`; the
+"Required" / "Optional" chip is the same flag. **The word "Course" is never typed in the component.**
+Flip the constant and the form follows.
+
+**Grandfathered rows stay editable in the UI too.** A required-now, blank-as-loaded control is marked
+(the admin should know) but excluded from the save gate (the row must not be bricked). A validator's
+job is to tell; the gate's job is to refuse.
+
+**The profile card renders `levels`**, hiding `not_in_use` rows and printing the footnote. It did not
+render `institution` at all before — the locked card existed only on the API.
+
+`npx ng build`: initial 176.56 kB; the console is a 32.79 kB lazy chunk.
+
+---
+
+## L1-06 · The owner's PostgreSQL checklist, classified honestly
+
+Applied now: `created_by` (L1-05); index on every FK; `SET LOCAL` timeouts; expand-phase migrations.
+Already true: snake_case plurals, 3NF (the whole point of not denormalising), `timestamptz`,
+JSONB, Alembic, archive-never-delete.
+
+Deliberately not applied, with the reason written where the next person will look:
+
+| item | why not |
+|---|---|
+| `is_deleted boolean` | REEP uses a `status` string — strictly more expressive than a boolean, and it is the design's archive/restore |
+| `CHECK` on `status` | alterable without `CREATE TYPE`, but adding a value is still a migration; the repo's rule is a new status is a **data** change. The allowlist is `_SETTABLE_STATUSES` |
+| UUIDv7 | a repo-wide convention change (every model uses `uuid4().hex`); noted for L4, not smuggled into one table |
+| column alignment ordering | tables in the dozens of rows |
+| `CONCURRENTLY` / `NOT VALID` | cannot run in env.py's single transaction; referenced tables created empty in the same migration |
+| private subnet, least-privilege roles, TLS, PgBouncer/RDS Proxy, PITR, restore drill, alerting | **L4 infrastructure** — belongs to the CDK work, with the backup/DR the owner already flagged |
+
+---
+
+## VERIFY · Round 3
+
+**Switch and escape hatch — 10/10 mutations caught:** validator stops reading the switch ·
+no-regression rule removed · incomplete inbox always empty · contradiction check removed · ancestors
+no longer derived · **import-time freeze** (a first attempt at this mutation was itself wrong — a
+function-local import still reads at call time; corrected to a module-level binding, and caught) ·
+required-but-blank rendered as `not_in_use` · required level below an optional one · switch column
+made NOT NULL · `created_by` not stamped.
+
+**Suite, `REEP_REQUIRE_DB=1`:**
+
+    764 passed · 2 skipped · 0 failed        (round 2: 752 — 12 new tests)
+
+`alembic upgrade --sql` clean across 56 migrations. `alembic check`: no drift on any table in this work.
+Seed on a fresh database: `BGSCET → MGMT → MBA → FIN → 2024-26 → 1 student` — every level populated. (First cut gave the department the code `MBA` too, so the chain read `MBA → MBA`; the department is the unit, the course is the programme it offers, and the seed now renames a legacy `MBA` department to `MGMT` in place.)
+
+---
+
+# Round 4 — Activation, forgot-password, change-password, confirmed registration
+
+The first item on the remaining-work list, built to the plan agreed earlier in the session
+(`docs/prototypes/admin-faculty-student/passwords.html`, "option B": **students sign in with
+Google and hold no password; staff get password accounts through activation**). One decision
+that plan called out is carried through unchanged: the password door stays
+`password_door_open` in auth.py — the first staff activation issues the first scrypt hash,
+and that act opens it, exactly as that function's comment says it should.
+
+What existed already, and was reused rather than rebuilt: the send-exactly-once mailer, scrypt
+hashing with the 12-character floor, `token_version` session revocation, the account-keyed
+login limiter, and the `EmailVerification` table — which had no writer. What was missing was
+small and is now here: a way for mail to leave the building, one table of hashed single-use
+links, and the four endpoints.
+
+---
+
+## L1-05 · `app/models/auth_token.py` + migration `a8e5c3f17b92`
+
+**Layer:** L1 · Data
+
+**Chain of thought.**
+
+1. Activation and reset are the same mechanism — a secret in an email, a hash of it here,
+   consumed exactly once — so they are **one table**, and `purpose` is a plain String so a
+   third kind of link is a row, not a `CREATE TYPE`.
+2. The link is stored **hashed, never raw**, for the reason passwords are: a leaked dump
+   yields hashes, not a working link into every account with a pending reset. **SHA-256, not
+   scrypt** — the token is 256 random bits, not a guessable phrase, so a slow KDF buys nothing
+   and only slows every click.
+3. Registration's own confirmation link is **not** in this table: it predates it and hangs off
+   `registrations`, which is not a user yet. Two tables, one shape.
+4. `ON DELETE CASCADE` on `user_id`, unlike the institution tables — a token for a user who no
+   longer exists cannot mean anything. `SET NULL` on `created_by_user_id`: losing the issuer
+   must not lose the record that a link was issued.
+5. `consumed_at` is **kept, not deleted**, so a second click can be told apart from an expired
+   link and given the right words.
+6. Named unique (`uq_auth_token_hash`), `SET LOCAL`, offline-clean — every lesson from round 2
+   applied on the first try rather than the second.
+
+---
+
+## L2-07 · `app/mail_transport.py` — Amazon SES, or the console
+
+**Chain of thought.**
+
+1. `app/mailer.py` left the hole: it takes a `send(recipient, subject)` driver and says the
+   transport is out of scope. This is the transport, and the provider choice lives in one
+   function — swapping SES for the college's relay later is this file, not a project.
+2. **Why SES:** not price (every option is effectively free at a college's volume) but that it
+   needs **no credential** — it authenticates through the task role that already reaches
+   Bedrock. Every other provider adds an API key to store and rotate, and puts student
+   addresses in a third party's systems.
+3. **The console transport is not a stub.** With `SES_FROM_ADDRESS` blank — every laptop, CI,
+   and a fresh deployment before IT has verified the domain — a message is logged in full and
+   kept in a **bounded** in-memory `outbox`. A developer reads the link out of the uvicorn log;
+   the suite reads it out of `outbox`. It is only ever filled when no real transport exists,
+   so it never becomes a copy of student mail sitting in a production process.
+4. **The SES sandbox** is called out in the module docstring: new accounts can only send to
+   verified addresses; leaving it means DKIM/SPF on `bgscet.ac.in` (an IT task) and a
+   production-access request that takes a day or two. Nothing is blocked on it.
+5. Rule 1 is not engaged and the docstring says why: these messages carry a name and a link,
+   never a mark, a USN or a transcript. Keep it that way.
+
+---
+
+## L2-08 · `app/account_links.py` — issue, consume, and the mail that carries them
+
+**Chain of thought.**
+
+1. The library half, HTTP-free, so `grant_access` can issue an activation link from the
+   command line with the **same function** the console uses.
+2. **Consume is one atomic UPDATE** — `WHERE consumed_at IS NULL AND expires_at > now()
+   RETURNING user_id` — and the row count is the arbiter. Two clicks race; exactly one wins.
+   The same trick interview finalisation uses for `status = 'running'`.
+3. **Issue supersedes.** Minting a new link revokes every earlier live one of the same
+   purpose — on issue, not only on use — so "resend" hands over exactly one working link and
+   a student who asks twice does not have two live links in two inboxes.
+4. `peek_user_token` exists so a password can be checked against policy **before** the link
+   is spent. A refusal for "12 characters minimum" must not burn the link.
+5. `issue_activation` **refuses a STUDENT**. Under option B a student never holds a password;
+   handing one a link would open a door the roster design does not want. They get
+   `send_enrolment_notice` from provisioning instead — "sign in with your college Google
+   account", no link, no password.
+6. Dedupe keys include the **token id** for activation and reset: every re-issued link is a
+   new message that must go out. Deduping on the user alone would make "resend" send nothing.
+   The enrolment notice has no token, so it dedupes on the user — once, ever.
+7. `issue_password_reset` is only ever called for an account that **holds** a password. A
+   Google-only account has nothing to reset, and mailing it a link would quietly turn it into
+   a password account.
+
+---
+
+## L2-09 · `app/routers/passwords.py` — the four endpoints
+
+**Chain of thought.**
+
+1. A separate module from auth.py (830 lines, owns sign-in). This owns credentials, and
+   **borrows** auth's `_issue_session` / `_payload_for` / `_record_login` rather than copying
+   them, so a change to the cookie is still one edit.
+2. **Three flows, one ending: the thing that let you in is destroyed.** Activation consumes
+   the link and signs in. Reset consumes the link, bumps `token_version` so **every** device is
+   out — this one included; the person signs in fresh — and kills every other pending reset
+   link. Change verifies the current password, bumps `token_version`, and **re-issues this
+   cookie with the new version before answering**, so the person who just changed their
+   password is not signed out by their own change and does not read it as a bug.
+3. **`forgot` never says whether an address exists.** Same words, same 202, whether the account
+   is real, Google-only or unknown — and the work that differs runs in a **`BackgroundTasks`**
+   task with its own session, so the response returns at the same moment in every case.
+   Otherwise the form is a free tool for discovering who is enrolled.
+4. **`forgot` has its own throttle** — per address and overall — or it is a way to send someone
+   a hundred emails. Same bounded in-process shape as auth.py's limiter, same honesty: per task,
+   not per fleet.
+5. Policy before consume, in both `activate` and `reset`. See VERIFY for what the mutation
+   run taught about that order.
+6. **410 Gone** for a dead link (with "already used" vs "expired" told apart), **422** for a
+   refused password (same link, try again). The screen says which.
+
+---
+
+## L2-10 · `app/routers/registration.py` — the address is confirmed before anything is decided
+
+**Chain of thought.**
+
+1. `EmailVerification` and `registrations.email_verified_at` existed and had **no writer**.
+   Round 2's domain fence stopped a stranger *joining the roster*; it did not stop someone
+   applying with a classmate's `@bgscet.ac.in` address and looking ordinary in the queue.
+2. So `submit` no longer applies the rule. It writes `PENDING_VERIFICATION`, issues a
+   confirmation link (24 h) and sends it. The director's queue lists only `PENDING_REVIEW`
+   (unchanged filter), so an unconfirmed application is invisible to it by construction.
+3. **`GET /api/register/verify?token=`** is public and a GET because it is opened from a mail
+   client. It consumes the link, stamps `email_verified_at`, applies the rule, and **redirects**
+   into the app — `/login?verified=1`, or `?verified=0&why=expired_or_used` — so the outcome is
+   shown in the app's own words rather than as bare JSON in a browser tab.
+4. **`_apply_rule` runs at confirmation, not submit**, so the rule engine only ever sees
+   addresses somebody has proved they own. An auto-approve that provisioning **refuses** — the
+   domain fence, a staff address — is not dropped and not force-approved: it lands in the queue
+   with the refusal as its reason. That also closes review finding #15: **`AUTO_APPROVED` rows
+   are now provisioned**, and told.
+5. A director's APPROVE now sends the enrolment notice after `_provision_student`.
+
+---
+
+## L2-11 · `app/config.py`, `app/main.py`, `app/grant_access.py`, `app/routers/admin.py`
+
+- **config:** `SES_FROM_ADDRESS` (blank = console), `SES_REGION`, the three lifetimes from the
+  plan (activation 168 h, reset 60 min, confirmation 24 h), the two forgot caps.
+  `mail_configured` is a property, read per call.
+- **main:** the router is mounted beside auth; at boot the mail state is **said out loud, not
+  refused** — mail is optional (the on-screen link works without it), but an operator wondering
+  why nobody gets their email should find the answer in the first screen of the log.
+- **grant_access:** a STAFF account created without `--password-hash` gets an activation link
+  **printed**, and emailed if a transport exists. The CLI was the only way staff were created;
+  now it is also the way they are activated.
+- **admin:** `POST /admin/users/{id}/activation-link`, DIRECTOR-gated. **The on-screen link is
+  permanent, not a stopgap** while SES is in its sandbox: when someone says "the email never
+  arrived", the admin reads them this instead of waiting on a mail queue. Refuses a STUDENT.
+
+---
+
+## L3-04 · The web side
+
+- **`features/login/password-link/`** — one component, two modes (`activate` / `reset`) from
+  route data, because the API is one shape twice. Outside the shell: nobody here has a session.
+  Confirm-password field; the API's 12-character floor mirrored only so the message appears
+  before the round trip. **410 and 422 are rendered differently on purpose**: a dead link says
+  "ask for a new one" and hides the form; a refused password keeps the form and the same link.
+  Activation reads the session back through `AuthService.refresh()` and routes by role; a reset
+  shows "every device signed out — sign in" and does not sign in.
+- **`features/account/change-password`** — inside the shell at `/account/password`; the link
+  sits in the titlebar beside Sign out and is shown only when `navKind() !== 'student'`,
+  because a student would only meet the 409. Refreshes the session after success so the
+  re-issued cookie is read back and the shell never flickers to signed-out.
+- **Login:** the two "resets are handled by your mentor" notes are gone; "Forgot password?"
+  opens an inline email form that POSTs `/auth/forgot` and shows **the server's words verbatim**
+  — they are written to be identical in every case, and rephrasing them client-side is where
+  that difference would creep back in. `?verified=1|0` from the confirmation redirect renders
+  a banner. `ng build`: initial 176.98 kB, unchanged.
+
+---
+
+## Two things worth recording that are not bugs
+
+- **`_PUBLISHED_PASSWORDS` is unreachable.** Every entry in `set_password.py`'s denylist is
+  under 12 characters, so the 12-character floor answers first and the denylist never fires.
+  Harmless — the floor is the stronger rule — but a comment that says "refuses the demo
+  passwords" is describing a check that cannot run. Left as is; noted so nobody adds a 12+
+  entry expecting it to have been working all along.
+- **"Corrections Requested" is deferred.** It is a new `RegistrationStatus` value on a **PG
+  enum column**, which is `ALTER TYPE … ADD VALUE` with all three of AGENTS.md's enum gotchas
+  attached. It deserves its own entry, not a footnote inside this one.
+
+## VERIFY
+
+**Suite, with `REEP_REQUIRE_DB=1` so a skipped suite cannot read as green:**
+
+    785 passed, 2 skipped in 42.60s        (was 764 before this round; +21 tests in tests/test_passwords.py)
+
+**Mutation-tested — 15/15 caught on a real run.** The first run caught 11. The four survivors
+were each a lesson, none a false alarm:
+
+- *raw token stored instead of its hash* — the guard test only READ existing rows and created
+  none, so every row it could see predated the mutation. A guard has to exercise the writer;
+  it now issues a link under whatever code is running and checks that row.
+- *consume no longer requires `consumed_at IS NULL`* and *consume ignores expiry* — through the
+  endpoints, `peek_user_token` answers first, so consume's own predicates were never the
+  deciding check. Under two racing clicks the peek is NOT the arbiter; the atomic UPDATE is.
+  Both predicates now have direct tests with no peek in front of them.
+- *policy checked after the link is spent* — an **equivalent mutant**, and the interesting one:
+  `get_db` never commits, so an HTTPException raised after a consume rolls the consume back
+  anyway. The behavioural test passed for a reason that is not the design, and one stray
+  `db.commit()` before the policy check would quietly start burning links on typos. The order
+  is now pinned textually in `test_policy_is_checked_before_the_link_is_spent_in_the_source`.
+
+**Two verification incidents, recorded because they could recur:**
+
+- **Docker Desktop's engine stopped mid-session** and a mutation run reported 15/15 — falsely.
+  Every pytest invocation had failed with the "Postgres not reachable" usage error, and the
+  script read any non-zero exit as "caught". The three mutation scripts now treat only exit
+  code 1 (tests failed) as a kill; 2–5 (interrupted / internal / usage / nothing collected)
+  abort the run with the reason. A green mutation report needs a reachable database, and the
+  harness now says so instead of lying.
+- **A parallel session is editing this tree.** `c2f7a9d41e63` (CHECK constraints for every
+  documented bound, an index behind every foreign key) landed on top of `a8e5c3f17b92` with
+  `index=True` on `auth_tokens.created_by_user_id`. I added the same index to my own
+  migration, which made the chain create one index twice and drop it twice — the downgrade
+  died on the second drop. Reverted: `c2f7a9d41e63` owns that index. The chain now round-trips
+  `head -> f7c3a1d92e54 -> head` cleanly, `alembic check` reports no drift on `auth_tokens`,
+  and `alembic upgrade --sql` generates the full script. Lesson for anyone in this tree:
+  **check `alembic heads` and `git status` before editing a migration you wrote earlier the
+  same day** — it may no longer be the head.
+
+`ng build`: initial 176.98 kB, unchanged by the two new lazy screens.
+
+
+---
+
+# Round 5 — The two console callers that were missing
+
+Item 2 on the remaining-work list. Both writes existed, were tested, and had no Angular
+caller: `PUT /api/admin/students/{id}/cohort` (seating a student in a batch) and
+`PATCH /api/admin/users/{id}/institutional-identity` (a faculty member's designation and
+department — the two columns the BGSCET leave form reads and labels "(synced)"). A tested
+write with no caller is a feature that works for `curl` and nobody else.
+
+**What "endpoints done" turned out to omit.** A screen cannot be built on a write alone. To
+seat a student the console must be able to list who is in a batch and who is in none, and
+neither read existed — the director's `/unassigned-students` is *mentor*-unassigned, a
+different fact (a student can have a mentor and no batch, or a batch and no mentor). And to
+PATCH a mentor's designation the screen needs the **user** id, which `MentorLoadOut` did not
+carry: it could read the two fields and had no way to address the row that holds them —
+which is how "(synced)" stayed a promise.
+
+---
+
+## L2-12 · `app/routers/admin.py` — two reads beside the seating write
+
+**Chain of thought.**
+
+1. `GET /admin/cohorts/{id}/students` and `GET /admin/students/unseated`, both DIRECTOR-gated,
+   both returning the same `AdminStudentRowOut` — a roster line (name, email, USN, stage,
+   cohort), not a record. The console does not need marks to seat someone, and rule 1 has no
+   reason to be near this.
+2. One `_student_rows(db, *where)` builds both, so the two lists cannot drift in shape, and the
+   invariant they exist for is a property of one query with two predicates: **a student is in
+   exactly one of them.**
+3. `/students/unseated` sits before `/students/{student_id}/cohort` in the file and is a GET
+   against a PUT, so there is no route shadowing — noted because the next endpoint someone
+   adds under `/students/` will be a GET with an id, and then there will be.
+4. The 403 enumeration in the tests gained both — a new endpoint without a line there is a
+   visible omission, which is why that list is written out and not walked off the router.
+
+## L2-13 · `app/routers/director.py` — `MentorLoadOut.user_id`
+
+Additive. The query already joined `users` to read `department` and `designation`; it now
+selects `Mentor.user_id` beside them. The existing mentor-load test asserts the id is present.
+
+## L3-05 · Institution console — the seating panel
+
+**Chain of thought.**
+
+1. Home: the batch table in `/director/institution`, because seating is an institutional act
+   and the batch row is already there with its `student_count`. A **Students** button beside
+   Edit opens a panel for that batch.
+2. The panel is two lists that must agree with the write: a picker over the unseated pool, and
+   the seated table with a Release button per row. Seat and Release are the **same PUT** with
+   a batch id or `null` — the API's "explicit null un-seats, absent means nothing" contract,
+   surfaced as two buttons rather than one dropdown with a blank option that could be chosen
+   by accident.
+3. After either write, **both lists and the batch table reload**, so `student_count` moves in
+   front of the admin and the student vanishes from one list as they appear in the other.
+4. The console's `write()` helper only knew POST and PATCH and always parsed a JSON body; the
+   seating PUT answers **204 with no body**. It now accepts PUT and returns `{}` on 204, so
+   "null means the write was refused" stays true for every caller.
+5. The pool's empty state says *"Every student is already seated in a batch"* in the select
+   itself, and the seated list's empty state says nobody is here yet — two different absences,
+   two different sentences.
+
+## L3-06 · Mentors & Students — the identity editor
+
+**Chain of thought.**
+
+1. Home: the selected mentor's card on `/director/mentors`, under the capacity chips, because
+   that is where designation and department already *render* — a screen that shows a value
+   and cannot change it is where the "(synced)" complaint would be raised.
+2. Read state: *"Associate Professor · Management Studies"*, or *"Designation not on record ·
+   Department not on record"* — words, never a blank, so a missing value reads as a fact about
+   the roster rather than a rendering gap.
+3. Edit state: two inputs and Save. The draft holds strings, never null: an empty input is
+   sent as `""` and the API clears the column itself, so "not on record" and "cleared" are one
+   state on both sides — the contract the identity test already pins.
+4. After Save the row is **updated in place** rather than re-fetching the whole load screen:
+   nothing else changed, and a full refresh would drop the mentor selection.
+
+## VERIFY
+
+**Suite, with `REEP_REQUIRE_DB=1` so a skipped suite cannot read as green:**
+
+    786 passed, 2 skipped in 43.40s        (785 before this round; +1 seating-reads test, and the mentor-load test gained an assertion)
+
+**Mutation-tested — 5/5 caught, after one survivor.** The first run caught 4: the unseated
+list no longer filtering on `cohort_id IS NULL`; the batch list ignoring the batch; the 404 on
+an unknown batch removed; the two reads admitting a STUDENT. The survivor was *`mentor-load`
+sending the MENTOR id in the `user_id` field* — the test asserted only that the field was
+truthy, and a mentor id is truthy. That mutation is not academic: the console would PATCH
+`/admin/users/{mentor_id}` and 404 on every mentor. The test now requires the value to differ
+from `mentor_id` and to resolve to a `users` row. (The harness refuses to score a run where
+pytest itself could not start, after round 4's Docker outage.)
+
+`ng build`: initial 176.98 kB, unchanged; the institution chunk grew to 36.87 kB with the
+seating panel, lazily loaded as before.
+
+
+---
+
+*Entries continue as each file is written.*

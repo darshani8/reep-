@@ -43,6 +43,7 @@ from .models.badge import (
 from .models.badge import StudentBadgeStatus as BadgeStatus
 from .models.certification import Certification, CertificationProgress
 from .models.cohort import Cohort
+from .models.institution import AcademicCourse, AcademicSpecialization, College, Department
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
 from .models.job_import_run import JobImportRun
@@ -464,6 +465,96 @@ def main() -> None:
             db.commit()
             print("added lab sessions (2)")
 
+        # Idempotently create the institution chain the student's locked profile
+        # card is read through: College -> Department -> Cohort -> Student.
+        #
+        # WITHOUT THESE TWO ROWS THE FEATURE IS INVISIBLE. The card is headed
+        # "Institutional assignment - verified by Main Admin" and reads College
+        # and Department through the join; a cohort with no department renders
+        # both as dashes. That would be the state on every fresh database --
+        # after docker compose up, alembic upgrade head and this seed -- so
+        # every developer and every demo would see the empty version of a
+        # feature that works. AGENTS.md's own discipline: the seed exists to
+        # make the interesting state the one you get by default.
+        if db.scalar(select(College)) is None:
+            db.add(
+                College(
+                    code="BGSCET",
+                    name="BGS College of Engineering and Technology",
+                    campus="Bengaluru",
+                )
+            )
+            db.commit()
+            print("added college (1)")
+        college = db.scalar(select(College).where(College.code == "BGSCET"))
+        # The DEPARTMENT is the organisational unit; the COURSE (below) is the
+        # programme it offers. They are different levels and must not share a
+        # code — an earlier seed gave both "MBA", which rendered as
+        # BGSCET -> MBA -> MBA -> FIN and read as a bug. MGMT offers the MBA.
+        if college and db.scalar(select(Department).where(Department.college_id == college.id)) is None:
+            db.add(
+                Department(
+                    college_id=college.id,
+                    code="MGMT",
+                    name="Department of Management Studies",
+                    head="Dr. Kavya N",
+                )
+            )
+            db.commit()
+            print("added department (1)")
+        department = (
+            db.scalar(
+                select(Department)
+                .where(Department.college_id == college.id)
+                .order_by(Department.created_at)
+            )
+            if college
+            else None
+        )
+        # Self-healing for a database seeded before the rename: the seed is
+        # idempotent, so correct the legacy code in place rather than creating
+        # a second department beside it.
+        if department is not None and department.code == "MBA":
+            department.code = "MGMT"
+            db.commit()
+            print("renamed department code MBA -> MGMT")
+
+        # The two optional levels, so the student's card shows all of Course and
+        # Specialization on a fresh database rather than the "not used here"
+        # footnote — the interesting state is the one you should meet by default.
+        course = None
+        if department is not None:
+            course = db.scalar(
+                select(AcademicCourse).where(
+                    AcademicCourse.department_id == department.id, AcademicCourse.code == "MBA"
+                )
+            )
+            if course is None:
+                course = AcademicCourse(
+                    department_id=department.id,
+                    code="MBA",
+                    name="Master of Business Administration",
+                    duration_months=24,
+                )
+                db.add(course)
+                db.commit()
+                print("added academic course (1)")
+        specialization = None
+        if course is not None:
+            specialization = db.scalar(
+                select(AcademicSpecialization).where(
+                    AcademicSpecialization.course_id == course.id,
+                    AcademicSpecialization.code == "FIN",
+                )
+            )
+            if specialization is None:
+                specialization = AcademicSpecialization(
+                    course_id=course.id, code="FIN", name="Finance"
+                )
+                db.add(specialization)
+                db.commit()
+                print("added academic specialization (1)")
+
         # Idempotently create a cohort and assign the student to it.
         if db.scalar(select(Cohort)) is None:
             db.add(
@@ -472,6 +563,9 @@ def main() -> None:
                     name="MBA Batch 2024-26 - Section B",
                     batch_label="2024-26",
                     degree_level=DegreeLevel.PG,
+                    department_id=department.id if department else None,
+                    course_id=course.id if course else None,
+                    specialization_id=specialization.id if specialization else None,
                     start_date=datetime(2024, 8, 1, tzinfo=timezone.utc),
                     end_date=datetime(2026, 7, 31, tzinfo=timezone.utc),
                 )
@@ -479,6 +573,17 @@ def main() -> None:
             db.commit()
             print("added cohort (1)")
         cohort = db.scalar(select(Cohort).where(Cohort.code == "MBA-2026-B"))
+        # Seats a cohort seeded before departments existed. Without this the
+        # backfill never happens on a database that already ran an older seed.
+        if cohort and department and cohort.department_id is None:
+            cohort.department_id = department.id
+            db.commit()
+            print("filed cohort under department")
+        if cohort and course and cohort.course_id is None:
+            cohort.course_id = course.id
+            cohort.specialization_id = specialization.id if specialization else None
+            db.commit()
+            print("filed cohort under course/specialization")
         if stu and cohort and stu.cohort_id != cohort.id:
             stu.cohort_id = cohort.id
             db.commit()

@@ -32,7 +32,7 @@ class MentorNote(Base):
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
-    mentor_id: Mapped[str] = mapped_column(ForeignKey("mentors.id", ondelete="CASCADE"))
+    mentor_id: Mapped[str] = mapped_column(ForeignKey("mentors.id", ondelete="CASCADE"), index=True)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))
     note_text: Mapped[str] = mapped_column(String)
     # The student-facing Mentor Meeting Log renders "1:1 review · Cabin 3" above

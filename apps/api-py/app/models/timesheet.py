@@ -8,6 +8,7 @@ import uuid
 from datetime import date, datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     Date,
     DateTime,
     Enum,
@@ -40,6 +41,7 @@ class TimeSheetEntry(Base):
     __table_args__ = (
         UniqueConstraint("student_id", "day", "activity", name="uq_timesheet"),
         Index("ix_timesheet_student_day", "student_id", "day"),
+        CheckConstraint("minutes >= 0 AND minutes <= 1440", name="ck_timesheet_minutes"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

@@ -145,6 +145,80 @@
       </div>
     </div>
 
+    <!-- Institutional assignment — the locked card.
+
+         Read THROUGH students.cohort_id -> cohorts -> departments -> colleges
+         (and the optional course / specialization), never stored on the
+         student. Rendered from `levels`, in the server's order with the
+         server's labels, so a new level costs this template nothing.
+
+         A blank means one of two things and the card must not confuse them:
+         `pending` is a value the office owes you (dash + "Not yet recorded",
+         text and colour together); `not_in_use` is a level this institution
+         does not use at all — the row is hidden and the omission is stated
+         once in the footnote, because a dash there would tell you your record
+         is incomplete when it is complete. -->
+    <div class="card">
+      <h4>
+        Institutional assignment
+        <span class="chip warn"><span class="icon">lock</span>Verified by Main Admin · read-only</span>
+      </h4>
+
+      @if (institution(); as inst) {
+        <div class="reg-grid identity-grid">
+          @for (lv of institutionRows(); track lv.key) {
+            <div class="field">
+              <label [attr.for]="'inst-' + lv.key">{{ lv.label }}</label>
+              @if (lv.state === 'set') {
+                <input
+                  [id]="'inst-' + lv.key"
+                  class="locked-value"
+                  type="text"
+                  readonly
+                  [value]="lv.value"
+                  aria-describedby="institution-note"
+                />
+              } @else {
+                <input
+                  [id]="'inst-' + lv.key"
+                  class="locked-value"
+                  type="text"
+                  readonly
+                  value="—"
+                  [attr.aria-describedby]="'inst-pending-' + lv.key"
+                />
+                <span class="chip warn" [id]="'inst-pending-' + lv.key">
+                  <span class="icon">warning</span>Not yet recorded
+                </span>
+              }
+            </div>
+          }
+          @if (institutionDates(); as d) {
+            <div class="field">
+              <label for="inst-entry">Entry date</label>
+              <input id="inst-entry" class="locked-value tabular" type="text" readonly [value]="d.entry ?? '—'" aria-describedby="institution-note" />
+            </div>
+            <div class="field">
+              <label for="inst-done">Expected completion</label>
+              <input id="inst-done" class="locked-value tabular" type="text" readonly [value]="d.done ?? '—'" aria-describedby="institution-note" />
+            </div>
+          }
+        </div>
+
+        @if (inst.not_in_use_note) {
+          <div class="dt-sub card-note">{{ inst.not_in_use_note }}</div>
+        }
+        <div class="dt-sub card-note" id="institution-note">
+          Locked — not editable by students. Your college, department and batch are set by the
+          Main Admin; ask the office if any of it is wrong.
+        </div>
+      } @else {
+        <div class="dt-sub card-note">
+          Your institutional assignment will appear here once your profile has been created.
+        </div>
+      }
+    </div>
+
     <!-- Contact & links — editable, with inline validation -->
     <div class="card">
       <h4>Contact &amp; links</h4>

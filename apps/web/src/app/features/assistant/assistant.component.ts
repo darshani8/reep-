@@ -14,7 +14,7 @@
  *    app/conversations.py into the SAME `conversations` / `messages` tables the
  *    text agent used, so GET /api/agent/history still returns them and the
  *    AGENTS.md runbook query still works. It is re-read after every session, and
- *    "Clear conversation" still deletes it. That is why ChatVoiceService is
+ *    "Clear conversation" still deletes it. That is why AgentHistoryService is
  *    still injected: for loadHistory() and clearConversation(), nothing else.
  *
  *  - Status as TEXT AND COLOUR, never colour alone (AGENTS.md, frontend
@@ -64,7 +64,7 @@ import {
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
-import { ChatVoiceService, ChatTurn } from '../../core/chat-voice.service';
+import { AgentHistoryService, ChatTurn } from '../../core/agent-history.service';
 import { InterviewService, InterviewState } from '../../core/interview.service';
 import { AuthService } from '../../core/auth.service';
 import { PageIntroComponent } from '../../shared/kit/kit.components';
@@ -229,7 +229,7 @@ const ORB_STATE: Record<InterviewState, VisualizerState> = {
 export class AssistantComponent implements AfterViewInit, OnDestroy {
   private readonly interview = inject(InterviewService);
   /** Only for the persisted conversation: loadHistory + clearConversation. */
-  private readonly chat = inject(ChatVoiceService);
+  private readonly chat = inject(AgentHistoryService);
   /** Only to know whether this is a student. Consent is no longer keyed here —
    *  it is a row on the server, fetched below. */
   private readonly auth = inject(AuthService);

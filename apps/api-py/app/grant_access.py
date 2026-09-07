@@ -50,6 +50,7 @@ from sqlalchemy.orm import Session
 from .db import SessionLocal
 from .models.student_profile import StudentProfile
 from .models.user import Mentor, Role, Student, User
+from .config import settings
 from .seed_roster import db_target
 
 # The roles this tool may mint on its own. STUDENT is absent on purpose â see the
@@ -328,9 +329,33 @@ def main() -> int:
             print(f"REFUSED: {exc}", file=sys.stderr)
             return 2
         email, role, display_name = user.email, user.role, user.name
+        # A STAFF account with no password yet gets an activation link, printed
+        # here and emailed if a transport is configured. Students never do —
+        # they sign in with Google (option B). --password-hash means the
+        # operator already issued a key, so no link.
+        activation_link = None
+        if role is not Role.STUDENT and not args.password_hash and not (
+            user.password_hash or ""
+        ).startswith("scrypt:"):
+            from . import account_links
+
+            activation_link, _emailed = account_links.issue_activation(
+                db, user, created_by_user_id=None
+            )
 
     verb = "created" if created else "updated"
     print(f"{verb}: {email}  role={role.value}  name={display_name}")
+    if activation_link:
+        print(
+            "  Activation link (works once, expires in "
+            f"{settings.activation_link_hours // 24} days):"
+        )
+        print(f"    {activation_link}")
+        if settings.mail_configured:
+            print(f"  Also emailed to {email}.")
+        else:
+            print("  No mail transport is configured (SES_FROM_ADDRESS is blank), so hand")
+            print("  this link to them directly.")
     if args.password_hash:
         print("  Password set from the supplied hash. This account can now sign in with")
         print("  email + password as well as Google; the password door opens on its own")

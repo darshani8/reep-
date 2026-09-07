@@ -54,6 +54,55 @@
                 <span class="chip good">{{ free() }} free</span>
               }
             </div>
+
+            <!-- Designation and department live on the User row; the leave
+                 form reads them as "(synced)". This is where they get written. -->
+            <div class="mentor-identity">
+              @if (identityOpen()) {
+                <form class="identity-form" (submit)="saveIdentity(); $event.preventDefault()" novalidate>
+                  <div class="field">
+                    <label for="id-designation">Designation</label>
+                    <input
+                      id="id-designation"
+                      class="ctrl"
+                      type="text"
+                      maxlength="120"
+                      placeholder="e.g. Associate Professor"
+                      [value]="identityDraft().designation"
+                      (input)="setIdentity('designation', $any($event.target).value)"
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="id-department">Department</label>
+                    <input
+                      id="id-department"
+                      class="ctrl"
+                      type="text"
+                      maxlength="120"
+                      placeholder="e.g. Management Studies"
+                      [value]="identityDraft().department"
+                      (input)="setIdentity('department', $any($event.target).value)"
+                    />
+                  </div>
+                  @if (identityError(); as e) {
+                    <span class="chip risk"><span class="icon">error</span>{{ e }}</span>
+                  }
+                  <div class="footbar">
+                    <button type="button" class="btn sm" (click)="identityOpen.set(false)" [disabled]="identityBusy()">Cancel</button>
+                    <button type="submit" class="btn primary sm" [disabled]="identityBusy()">
+                      <span class="icon">save</span>{{ identityBusy() ? 'Saving…' : 'Save' }}
+                    </button>
+                  </div>
+                </form>
+              } @else {
+                <span class="dt-sub">
+                  {{ m.designation ?? 'Designation not on record' }} · {{ m.department ?? 'Department not on record' }}
+                </span>
+                <button type="button" class="btn sm" (click)="openIdentity(m)">
+                  <span class="icon">edit</span>Edit
+                </button>
+              }
+            </div>
           </div>
 
           <div class="list-lbl">Current mentees · {{ m.mentee_count }}</div>

@@ -18,13 +18,12 @@
  * honestly for staff: personalised intents answer with a stated limitation and a
  * 200, never a 4xx, so the screen renders the limitation rather than an error.
  *
- * VOICE IS THE ORB'S JOB. "Start voice" does not open anything itself — it
- * dispatches `reep:open-voice` on `window` and the shell's agent orb
- * (layout/agent-orb.component.ts, owned elsewhere) is expected to listen for it
- * and open its overlay. A CustomEvent rather than a shared service so this lazy
- * chunk has no import edge to the shell, and so the orb can be swapped without
- * touching this screen. Until the orb subscribes, the button is a no-op — it
- * never errors.
+ * THIS SCREEN IS TYPED ONLY. It once carried a "Start voice" button that asked
+ * the shell's orb to open a LiveKit voice overlay; that stack was removed from
+ * the repo, along with the button and the `reep:open-voice` CustomEvent that
+ * was the whole coupling. The remaining voice experience is the mock
+ * interviewer at /student/assistant, which is its own route and does not go
+ * through here.
  *
  * RULE 1. Nothing here composes a student record into a request: the body of
  * /ask is the typed message and nothing else. What the server does with it is
@@ -336,18 +335,6 @@ export class AgentComponent {
 
   private setRating(id: number, rating: Rating | undefined): void {
     this.messages.update((list) => list.map((m) => (m.id === id ? { ...m, rating } : m)));
-  }
-
-  // --- voice ---------------------------------------------------------------
-
-  /**
-   * Hand off to the shell's agent orb. The orb owns the voice overlay; this
-   * screen only asks for it. Listen with
-   *   window.addEventListener('reep:open-voice', () => this.open())
-   * in layout/agent-orb.component.ts.
-   */
-  startVoice(): void {
-    window.dispatchEvent(new CustomEvent('reep:open-voice', { detail: { from: 'agent' } }));
   }
 
   /** The source chip tone: an approved policy document is the grounding the

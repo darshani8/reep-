@@ -5,6 +5,7 @@ from . import academics  # noqa: F401
 from . import agent_run  # noqa: F401
 from . import alert  # noqa: F401
 from . import alumni  # noqa: F401
+from . import auth_token  # noqa: F401
 from . import attendance  # noqa: F401
 from . import badge  # noqa: F401
 from . import certification  # noqa: F401
@@ -13,6 +14,7 @@ from . import conversation  # noqa: F401
 from . import course  # noqa: F401
 from . import english_baseline  # noqa: F401
 from . import feedback  # noqa: F401
+from . import institution  # noqa: F401
 from . import interview  # noqa: F401
 from . import job  # noqa: F401
 from . import job_import_run  # noqa: F401
@@ -39,4 +41,3 @@ from . import timesheet  # noqa: F401
 from . import upload  # noqa: F401
 from . import user  # noqa: F401
 from . import voice_platform  # noqa: F401
-from . import voice_worker  # noqa: F401

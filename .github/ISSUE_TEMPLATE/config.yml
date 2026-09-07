@@ -5,7 +5,7 @@
 #
 #   Risk taken:    a report that fits neither template is one click harder to file.
 #   Risk refused:  a reporter never sees the security steer below and pastes a live
-#                  AUTH_SECRET, VOICE_WORKER_SECRET or production DATABASE_URL into a
+#                  AUTH_SECRET or a production DATABASE_URL into a
 #                  public issue on a public repository.
 #
 # The second is unrecoverable. AUTH_SECRET signs the reep_session cookie, so its
@@ -34,7 +34,7 @@ contact_links:
     url: https://github.com/darshani8/reep-/security/advisories/new
     about: >-
       Do NOT open a public issue for anything touching AUTH_SECRET, the reep_session
-      cookie, VOICE_WORKER_SECRET, a database URL, or a way to read another student's
+      cookie, a database URL, or a way to read another student's
       marks, attendance or USN. This repository is public: an issue naming a live
       secret IS the disclosure, and the only remedy left is rotation, which signs
       every live session out.

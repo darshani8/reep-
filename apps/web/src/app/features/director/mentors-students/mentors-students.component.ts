@@ -36,6 +36,8 @@ interface Mentee {
 
 interface MentorLoad {
   mentor_id: string;
+  /** The users.id the identity PATCH addresses. */
+  user_id: string;
   name: string;
   department: string | null;
   designation: string | null;
@@ -66,6 +68,16 @@ export class DirectorMentorsStudentsComponent {
   readonly checked = signal<Set<string>>(new Set());
   readonly busy = signal(false);
   readonly flash = signal<string | null>(null);
+
+  // --- institutional identity: designation + department on the User row ----
+  // The leave form reads these and labels them "(synced)"; this is the only
+  // screen that writes them. Draft holds strings, never null: an empty input
+  // is sent as "" and the API clears the column to NULL itself, so "not on
+  // record" and "blank" mean the same thing on both sides.
+  readonly identityOpen = signal(false);
+  readonly identityBusy = signal(false);
+  readonly identityError = signal<string | null>(null);
+  readonly identityDraft = signal({ designation: '', department: '' });
 
   readonly current = computed(
     () => (this.mentors() ?? []).find((m) => m.mentor_id === this.selectedMentor()) ?? null,
@@ -141,6 +153,55 @@ export class DirectorMentorsStudentsComponent {
       null,
       `${student.name} released from ${mentor?.name ?? 'their mentor'}`,
     );
+  }
+
+  openIdentity(m: MentorLoad): void {
+    this.identityDraft.set({ designation: m.designation ?? '', department: m.department ?? '' });
+    this.identityError.set(null);
+    this.identityOpen.set(true);
+  }
+
+  setIdentity(field: 'designation' | 'department', value: string): void {
+    this.identityDraft.update((d) => ({ ...d, [field]: value }));
+  }
+
+  /** PATCH /admin/users/{user_id}/institutional-identity for the selected mentor. */
+  async saveIdentity(): Promise<void> {
+    const m = this.current();
+    if (!m || this.identityBusy()) return;
+    this.identityBusy.set(true);
+    this.identityError.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/admin/users/${m.user_id}/institutional-identity`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.identityDraft()),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+        this.identityError.set(
+          typeof body.detail === 'string' ? body.detail : `Could not save (${res.status}).`,
+        );
+        return;
+      }
+      const saved = (await res.json()) as { designation: string | null; department: string | null };
+      // Update the row in place rather than re-fetching the whole load screen:
+      // nothing else changed, and a full refresh would drop the selection.
+      this.mentors.update((rows) =>
+        (rows ?? []).map((r) =>
+          r.mentor_id === m.mentor_id
+            ? { ...r, designation: saved.designation, department: saved.department }
+            : r,
+        ),
+      );
+      this.identityOpen.set(false);
+      this.flash.set(`${m.name}'s designation and department saved.`);
+    } catch {
+      this.identityError.set('Could not reach the server.');
+    } finally {
+      this.identityBusy.set(false);
+    }
   }
 
   private async write(ids: string[], mentorId: string | null, message: string): Promise<void> {

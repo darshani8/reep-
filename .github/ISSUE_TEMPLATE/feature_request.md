@@ -62,8 +62,6 @@ Say which manifest, because the split is enforced by CI rather than by conventio
   only moves the crash from boot to the first student who reaches that path.
 - `apps/api-py/requirements-dev.txt` — test-only. A test runner has no business in a
   production image.
-- `apps/api-py/requirements-voice.txt` — the worker's, Python 3.12, checked the same way by
-  "Voice worker (dependency completeness)".
 - `apps/web/package.json` — the Angular build enforces a **bundle budget**. Initial is
   ~142 kB and the budget is set close to it, so a heavy library reaching an eager path
   fails `ng build` in CI rather than shipping quietly.

@@ -42,8 +42,8 @@
 #                                      conversations.history() filters on
 #                                      is_final only — never on channel — so
 #                                      this endpoint returns interview turns
-#                                      unchanged, exactly as it already did for
-#                                      LiveKit voice turns. One memory bank.
+#                                      unchanged, alongside typed ones.
+#                                      One memory bank.
 #   DELETE /api/agent/conversation     the only way a student clears the thread
 #                                      the interviewer writes into (204).
 #   POST   /api/agent/feedback         live, but CONDITIONAL: it 404s unless an

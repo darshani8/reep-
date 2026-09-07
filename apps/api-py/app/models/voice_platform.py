@@ -190,7 +190,7 @@ class PlatformTimeLimit(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     degree_level: Mapped[str] = mapped_column(String(2), nullable=False)
     specialization_id: Mapped[str | None] = mapped_column(
-        String, ForeignKey("platform_specializations.id", ondelete="CASCADE"), nullable=True
+        String, ForeignKey("platform_specializations.id", ondelete="CASCADE"), nullable=True, index=True
     )
     max_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
     #: Seconds before the cap at which the engine forces the wrap-up, so the
@@ -233,7 +233,7 @@ class PlatformCandidate(Base):
     #: back to the upload.
     source_ref: Mapped[str | None] = mapped_column(String(512), nullable=True)
     user_id: Mapped[str | None] = mapped_column(
-        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     validation_notes: Mapped[list] = mapped_column(
         JSONB, nullable=False, default=list, server_default=sql_text("'[]'::jsonb")
@@ -281,7 +281,7 @@ class PlatformRecordingPolicy(Base):
         Integer, nullable=False, default=3600, server_default=sql_text("3600")
     )
     updated_by: Mapped[str | None] = mapped_column(
-        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -315,13 +315,13 @@ class PlatformCallSession(Base):
         String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     candidate_id: Mapped[str | None] = mapped_column(
-        String, ForeignKey("platform_candidates.id", ondelete="SET NULL"), nullable=True
+        String, ForeignKey("platform_candidates.id", ondelete="SET NULL"), nullable=True, index=True
     )
     #: The ordinary interview record for this call, so the student's screen and
     #: rule 2's gate see it. SET NULL on delete: the platform row survives the
     #: 180-day interview retention sweep only as long as its own policy says.
     interview_session_id: Mapped[str | None] = mapped_column(
-        String, ForeignKey("interview_sessions.id", ondelete="SET NULL"), nullable=True
+        String, ForeignKey("interview_sessions.id", ondelete="SET NULL"), nullable=True, index=True
     )
     specialization_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[str] = mapped_column(

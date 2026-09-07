@@ -52,53 +52,91 @@ The `reep-core` stack has **two phases**, chosen by one context value:
   second switch, `hardenEcs`, so the database half and the ECS half deploy
   separately (step 9).
 
-The synth tests (`infra/cdk/tests/test_core_synth.py`, 58 of them, no AWS)
-prove: the import phase is a strict subset of harden; every physical name
-matches the `.tf` files; the import template contains nothing that does not
-exist (no generated ingress rules, no generated IAM policies); every type in it
-has a registry identifier the tool knows; no `MasterUserPassword` can appear;
-every resource in all three stacks is `Retain`.
+The synth tests (`infra/cdk/tests/test_core_synth.py`, no AWS) prove: the
+import phase is a strict subset of harden; every physical name matches the
+`.tf` files; the import template contains nothing that does not exist (no
+generated ingress rules, no generated IAM policies); every type in it has a
+registry identifier the tool knows; no `MasterUserPassword` can appear; every
+resource in all three stacks is `Retain`. `tests/test_cutover_tools.py`
+rehearses the two state-reading tools below against a synthetic state, in the
+runbook's order, so neither runs for the first time with credentials in hand
+*(rehearsal)*.
 
-## Step 0 — Preconditions (one afternoon, no risk)
+## Step 0 — Preconditions (one command, no risk)
 
-Admin credentials for account 445363794125, from a machine with `terraform`,
-`aws`, `node` 20+ and Python 3.12. **Every `cdk` command below runs with the
-venv active** (`cdk.json` is `"app": "python app.py"`), and with the region
-pinned — a profile pointed at another region imports nothing, confusingly.
+Admin credentials for account 445363794125, on a machine with `terraform`
+(>= 1.6), `aws`, `node` 20+ and Python 3.12. Installing them once:
+
+```bash
+# Windows, in Git Bash (the scripts are bash). Open a NEW shell afterwards: the
+# installers change the user PATH, and a shell opened before them cannot see it.
+winget install Hashicorp.Terraform
+winget install Amazon.AWSCLI            # raises an elevation prompt — accept it, or winget reports "cancelled"
+npm install -g aws-cdk
+cd infra/cdk && py -3.12 -m venv .venv && .venv/Scripts/pip install -r requirements-dev.txt
+# macOS / Linux: terraform and aws from their vendors' installers, then
+npm install -g aws-cdk
+cd infra/cdk && python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+```
+
+**Every `cdk` command below runs with the venv active** (`cdk.json` is
+`"app": "python app.py"`), and with the region pinned — a profile pointed at
+another region imports nothing, confusingly:
 
 ```bash
 export AWS_PROFILE=<admin>  CDK_DEFAULT_REGION=ap-south-1  CDK_DEFAULT_ACCOUNT=445363794125
-cd infra/cdk
-python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements-dev.txt
-npm install -g aws-cdk
-python -m pytest -q                       # the synth guards, no AWS needed
-cdk bootstrap aws://445363794125/ap-south-1 aws://445363794125/us-east-1 aws://445363794125/ap-southeast-1
+cd infra/cdk && source .venv/Scripts/activate      # Windows;  source .venv/bin/activate elsewhere
 ```
+
+Then the preflight — **read-only against AWS**, and safe to rerun until it
+exits 0:
+
+```bash
+tools/cutover_preflight.sh
+```
+
+It checks, in order, everything this step used to list by hand: the four tools
+and the venv; that `cleanup-orphans.sh` is gone and `tf-state.json` is
+untracked; the synth guards and a full `cdk synth` (a CLI/library mismatch
+fails here, not at import); that the credentials are for account
+445363794125; that all three regions are bootstrapped — for each one it names,
+run `cdk bootstrap aws://445363794125/<region>`; that `reep-core` and
+`reep-edge-waf` do not exist yet. Then Terraform: it writes `backend.hcl` from
+the account id if the file is missing, runs `terraform init`, exports the state
+to `infra/cdk/tf-state.json` (**contains secret values** — gitignored, deleted
+in step 6), **reconstructs `infra/aws/prod.tfvars` from that state** with
+`tools/tfvars_from_state.py`, and runs
+`terraform plan -var-file=prod.tfvars -detailed-exitcode`, which **must exit
+0**: no drift, no pending change.
+
+Why the tfvars are reconstructed rather than looked for: the first apply was
+given its values as `-var` flags (`docs/aws-deployment.md` §3) and they were
+recorded nowhere. Terraform's state does not store variable values, but every
+variable lands in an attribute of a resource the state does hold, so the tool
+reads each one back — the certificate from the 443 listener, the alias and
+certificate from the distribution, the alert address from the SNS
+subscription, the sizes from the task definition, the OIDC subjects from the
+deploy role's trust policy — and refuses to write anything it cannot source.
+Without them the plan proposes to "fix" the certificate, the domain and the
+alert address back to their defaults. If `plan` still proposes anything,
+resolve it first: importing a resource whose real state differs from its
+Terraform state means the mirror in CDK is wrong too.
 
 **Remove the one script in the tree that deletes production by name** *(review)*:
 `infra/aws/cleanup-orphans.sh` targets cluster `reep`, service `api`, log group
 `/reep/api` and the five IAM roles — the production names — and after step 6
 *everything* looks like an orphan to Terraform, which is exactly when someone
 would reach for it. It is deleted in this repository; if you are on an older
-checkout, `git rm` it before continuing.
+checkout, `git rm` it before continuing (the preflight fails while it exists).
 
-Then, the facts that must be true before anything is imported:
+The voice-platform stack (`infra/cdk/README.md`) is not needed for the import,
+but step 10's browser check and every later CDK deploy from CI do need it: it
+holds the grant that lets `reep-github-deploy` assume the CDK bootstrap roles.
+The preflight warns if it is missing.
 
-```bash
-cd infra/aws
-terraform init -backend-config=backend.hcl
-terraform plan -var-file=prod.tfvars -detailed-exitcode     # MUST exit 0: no drift, no pending change
-```
-
-(`alert_email` has no default, so `-var-file` is not optional.) If `plan`
-proposes anything, resolve it first: importing a resource whose real state
-differs from its Terraform state means the mirror in CDK is wrong too.
-
-The voice-platform stack must already be deployed: it holds the grant that
-lets `reep-github-deploy` assume the CDK bootstrap roles, which the browser
-workflow in step 10 depends on.
-
-Take one manual snapshot, by hand, that nothing automated will age out:
+Take one manual snapshot, by hand, that nothing automated will age out — the
+one action in this step the preflight will not do for you (it reports whether
+one exists):
 
 ```bash
 aws rds create-db-snapshot --db-instance-identifier reep-postgres \
@@ -106,16 +144,34 @@ aws rds create-db-snapshot --db-instance-identifier reep-postgres \
 aws rds wait db-snapshot-available --db-snapshot-identifier "reep-postgres-pre-cdk-$(date -u +%Y%m%d)"
 ```
 
-## Step 1 — Export the Terraform state and synthesise the mirror
+## Step 1 — The context from the state, then the mirror from the context
+
+The preflight already exported the state; re-exporting is harmless. **The
+tool runs before the synth**, because a context-free synth renders the
+*default* shape — one plain-HTTP listener, a declared OIDC provider — and a
+map built against that template has nothing to attach the live 443 listener's
+ARN to. The first draft of this runbook synthesised first and would have been
+refused at step 2 with credentials in hand *(rehearsal)*.
 
 ```bash
-cd infra/aws
-terraform show -json > ../cdk/tf-state.json     # CONTAINS SECRET VALUES. gitignored. Delete after step 6.
+cd infra/aws && terraform show -json > ../cdk/tf-state.json     # CONTAINS SECRET VALUES. gitignored. Delete after step 6.
 cd ../cdk
-cdk synth reep-core -c phase=import --quiet
+python tools/import_map.py tf-state.json                 # pass 1: cdk.context.json, from the state alone
+cdk synth reep-core -c phase=import --quiet              # the mirror, now with the live shape
 ```
 
-## Step 2 — Build the import map from the state, never by hand
+Pass 1 merges into `cdk.context.json` everything the stack must render
+identically: the random-suffix names, the secret ARNs, the AZs, the prefix
+list, the WAF ARN — **and the variable-driven values** *(review)*: the ALB
+certificate and origin domain, the CloudFront alias and certificate,
+cpu/memory, min/max tasks, the instance class, the live Multi-AZ / retention /
+storage size, the alert address, and the container environment. Without those
+the mirror has the wrong *shape* (one HTTP listener where there are two). It
+writes `githubOidcProviderArn` **only when the provider is not in the state**
+— written while it is, the re-synth would *reference* the provider and drop
+the very resource the map lists *(rehearsal)*.
+
+## Step 2 — Build the import map against that template, never by hand
 
 ```bash
 python tools/import_map.py tf-state.json cdk.out/reep-core.template.json
@@ -123,19 +179,11 @@ python tools/import_map.py tf-state.json cdk.out/reep-core.template.json
 
 It writes nothing unless every check passes, then writes `import-map.json`
 (the registry identifier, every part of a composite one, for each resource in
-the import template) and merges into `cdk.context.json` everything the stack
-must render identically: the random-suffix names, the secret ARNs, the AZs,
-the prefix list, the WAF ARN — **and the variable-driven values** *(review)*:
-the ALB certificate and origin domain, the CloudFront alias and certificate,
-cpu/memory, min/max tasks, the instance class, the live Multi-AZ / retention /
-storage size, the alert address, and the container environment. Without those
-the mirror has the wrong *shape* (one HTTP listener where there are two).
-
-Re-synthesise with the context now in place, then cross-check the identifier
-keys against the only authoritative source:
+the import template) and re-merges the context. What the rehearsal cannot
+check is the registry itself, so cross-check the identifier keys against the
+only authoritative source:
 
 ```bash
-cdk synth reep-core -c phase=import --quiet
 aws cloudformation get-template-summary --template-body file://cdk.out/reep-core.template.json \
   --query 'ResourceIdentifierSummaries[].{Type:ResourceType,Keys:ResourceIdentifiers}' --output table
 ```
@@ -247,6 +295,11 @@ git commit -m "infra: Terraform released; reep-core is CloudFormation via CDK"
 In the same commit, add `core` back to the `stack` choices in
 `.github/workflows/cdk-deploy.yml` — it was removed so a browser click could
 not create a second VPC before the import *(review)*.
+
+The synth guards that read `infra/aws/*.tf` (`requires_terraform` in
+`tests/test_core_synth.py` and `tests/test_cutover_tools.py`) skip themselves
+once the files are gone, so CI stays green on this commit; the state-reading
+tools stay in the tree, harmless without a state to read.
 
 From this commit on, `terraform apply` cannot destroy anything because there
 is nothing for it to read.

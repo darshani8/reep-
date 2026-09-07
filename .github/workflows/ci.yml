@@ -198,3 +198,31 @@ jobs:
       - name: Build (enforces the bundle budget)
         working-directory: apps/web
         run: npx ng build
+
+  cdk:
+    name: Infra (CDK synth guards)
+    runs-on: ubuntu-latest
+    # No AWS credentials: `Template.from_stack` synthesises in-process. What this
+    # gates is the cutover's safety net (docs/cdk-cutover.md): every physical
+    # name in infra/cdk/reep_core/stack.py must still match infra/aws/*.tf, the
+    # import phase must add nothing CloudFormation cannot adopt, and no
+    # MasterUserPassword may ever appear in the template. A drift between the
+    # two IaC trees during the coexistence window fails here, not at import time.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: infra/cdk/requirements-dev.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install the CDK library
+        working-directory: infra/cdk
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+      - name: Synthesise and check every stack
+        working-directory: infra/cdk
+        run: python -m pytest -q

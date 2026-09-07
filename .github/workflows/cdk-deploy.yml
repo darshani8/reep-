@@ -1,4 +1,4 @@
-name: CDK deploy (voice platform)
+name: CDK deploy
 
 # DEPLOY THE VOICE PLATFORM'S AWS RESOURCES FROM THE BROWSER. Actions → "CDK
 # deploy (voice platform)" → Run workflow. It synthesises infra/cdk and runs
@@ -18,6 +18,16 @@ name: CDK deploy (voice platform)
 on:
   workflow_dispatch:
     inputs:
+      stack:
+        description: "Which stack"
+        type: choice
+        default: voice-platform
+        # `core` and `all` are deliberately ABSENT until the cutover in
+        # docs/cdk-cutover.md has run: a deploy of reep-core before its import
+        # would CreateStack a second VPC, NAT gateway and four security groups
+        # before colliding on the database name — and Retain keeps them through
+        # the rollback. Add `core` back in the commit that deletes infra/aws/.
+        options: [voice-platform, edge-waf, dr-vault]
       action:
         description: "What to do"
         type: choice
@@ -29,7 +39,7 @@ on:
         default: ""
 
 concurrency:
-  group: cdk-voice-platform
+  group: cdk-${{ inputs.stack }}
   cancel-in-progress: false
 
 permissions:
@@ -38,7 +48,7 @@ permissions:
 
 jobs:
   cdk:
-    name: ${{ inputs.action }} reep-voice-platform
+    name: ${{ inputs.action }} ${{ inputs.stack }}
     runs-on: ubuntu-latest
     steps:
       - name: Check the confirmation word
@@ -81,17 +91,29 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
           role-session-name: reep-cdk-${{ github.run_id }}
 
+      # The stack name(s) for this run. `cdk import` is NOT here on purpose: it
+      # is a one-time, human-attended step (docs/cdk-cutover.md).
+      - name: Resolve the stack selector
+        id: sel
+        run: |
+          case "${{ inputs.stack }}" in
+            voice-platform) echo "stacks=reep-voice-platform" >> "$GITHUB_OUTPUT" ;;
+            core)           echo "stacks=reep-core" >> "$GITHUB_OUTPUT" ;;
+            edge-waf)       echo "stacks=reep-edge-waf" >> "$GITHUB_OUTPUT" ;;
+            dr-vault)       echo "stacks=reep-dr-vault" >> "$GITHUB_OUTPUT" ;;
+            all)            echo "stacks=--all" >> "$GITHUB_OUTPUT" ;;
+          esac
       - name: cdk diff
         if: inputs.action == 'diff'
         working-directory: infra/cdk
-        run: cdk diff --no-color
+        run: cdk diff ${{ steps.sel.outputs.stacks }} --no-color
 
       - name: cdk deploy
         if: inputs.action == 'deploy'
         working-directory: infra/cdk
         run: |
-          cdk deploy --require-approval never --no-color --outputs-file outputs.json
-          echo "## reep-voice-platform outputs" >> "$GITHUB_STEP_SUMMARY"
+          cdk deploy ${{ steps.sel.outputs.stacks }} --require-approval never --no-color --outputs-file outputs.json
+          echo "## ${{ inputs.stack }} outputs" >> "$GITHUB_STEP_SUMMARY"
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
           cat outputs.json >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

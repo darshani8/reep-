@@ -143,8 +143,24 @@ jobs:
           aws ecs update-service --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" \
             --service "${{ vars.ECS_SERVICE || 'api' }}" --force-new-deployment >/dev/null
           echo "Waiting for the new tasks to become healthy…"
-          aws ecs wait services-stable --cluster "${{ vars.ECS_CLUSTER || 'reep' }}" --services "${{ vars.ECS_SERVICE || 'api' }}"
-          echo "API deployed: ${{ github.sha }}"
+          # NOT `aws ecs wait services-stable`. That waiter gives up after
+          # 40 x 15 s = 600 s, and the target group's deregistration delay is
+          # 600 s (infra/cdk/reep_core/stack.py — it keeps a live interview's
+          # WebSocket open through a deploy). Every old task therefore lingers
+          # in `draining` for the whole of the waiter's budget, and the waiter
+          # exited 255 on a roll that had in fact succeeded. Poll the service's
+          # own view instead: one deployment left, running == desired.
+          CLUSTER="${{ vars.ECS_CLUSTER || 'reep' }}"; SERVICE="${{ vars.ECS_SERVICE || 'api' }}"
+          for i in $(seq 1 100); do   # 100 x 15 s = 25 min, comfortably past two drains
+            read -r DEPLOYMENTS RUNNING DESIRED ROLLOUT < <(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+              --query 'services[0].[length(deployments), runningCount, desiredCount, deployments[0].rolloutState]' --output text)
+            if [ "$ROLLOUT" = "FAILED" ]; then echo "::error::ECS rolled the deployment back (circuit breaker)."; exit 1; fi
+            if [ "$DEPLOYMENTS" = "1" ] && [ "$RUNNING" = "$DESIRED" ] && [ "$ROLLOUT" = "COMPLETED" ]; then
+              echo "API deployed: ${{ github.sha }} (running=$RUNNING desired=$DESIRED)"; exit 0
+            fi
+            echo "  deployments=$DEPLOYMENTS running=$RUNNING desired=$DESIRED rollout=$ROLLOUT"; sleep 15
+          done
+          echo "::error::The service did not settle within 25 minutes."; exit 1
 
   web:
     name: SPA → S3 + CloudFront

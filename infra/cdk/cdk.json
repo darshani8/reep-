@@ -1,8 +1,16 @@
 {
-  "app": "python3 app.py",
+  "app": "python app.py",
   "watch": {
-    "include": ["**"],
-    "exclude": ["README.md", "cdk*.json", "requirements*.txt", "**/__pycache__", "tests"]
+    "include": [
+      "**"
+    ],
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "requirements*.txt",
+      "**/__pycache__",
+      "tests"
+    ]
   },
   "context": {
     "project": "reep",
@@ -12,6 +20,12 @@
     "@aws-cdk/aws-iam:minimizePolicies": true,
     "@aws-cdk/core:enablePartitionLiterals": true,
     "@aws-cdk/aws-s3:createDefaultLoggingPolicy": true,
-    "@aws-cdk/aws-iam:standardizedServicePrincipals": true
+    "@aws-cdk/aws-iam:standardizedServicePrincipals": true,
+    "phase": "harden",
+    "backupRetentionDays": 35,
+    "dbMultiAz": true,
+    "vaultLockCompliance": false,
+    "@aws-cdk/aws-ecs:removeDefaultDesiredCount": true,
+    "@aws-cdk/aws-ecs:removeDefaultDeploymentAlarm": true
   }
 }

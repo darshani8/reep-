@@ -1318,4 +1318,202 @@ seating panel, lazily loaded as before.
 
 ---
 
+# Round 6 — L4 · The core stack in CDK, and the cutover that does not touch the database
+
+Item 3. The standing rule is *CDK, never Terraform*; the standing fear is the one AGENTS.md's
+plan recorded: **`terraform state rm` on all 78 resources before deleting the `.tf` files, or a
+later apply destroys the database.** This round builds the CDK side and the procedure, and
+stops exactly where a human with credentials has to take over. Nothing here was run against
+the account.
+
+**One assumption from the earlier plan was wrong and is corrected here.** The `stopTimeout` fix
+was going to be 500 s, above the 480 s interview. **Fargate caps `stopTimeout` at 120 s** and
+refuses a task definition above it. What actually keeps a live interview socket open through a
+deploy is the target group's **deregistration delay** — the ALB keeps a draining target's open
+connections until they close, and ECS waits for draining before SIGTERM — so that is 600 s,
+with `stopTimeout` at the ceiling and uvicorn's `--timeout-graceful-shutdown 110` inside it.
+
+---
+
+## L4-01 · `infra/cdk/reep_core/stack.py` — the mirror, in two phases
+
+**Chain of thought.**
+
+1. **These resources exist and hold student data.** So this is not a fresh build; it is a
+   description of what is running, precise enough for `cdk import` to adopt each resource into
+   CloudFormation without changing it. That one fact decided everything below.
+2. **Physical names are the Terraform names, literally**, and the synth tests read them out of
+   the `.tf` files rather than a copy: `reep-api-task`, `/reep/api`, `reep-postgres`,
+   `reep-vault`, the alarm names, the autoscaling policy names. An import matches on the
+   identifier and then compares properties; a mismatch on an *immutable* property (a security
+   group's name, a task family) is a **replacement** on the next deploy — an outage for the
+   database, a lost network for every task.
+3. **L1 wherever L2 would invent structure.** `ec2.Vpc` lays out its own subnets;
+   `iam.OpenIdConnectProvider` is a Lambda-backed custom resource; `rds.DatabaseInstance` mints
+   a new master password. None can be imported over what exists. Network, security groups,
+   EFS, RDS, backup, ECR, OIDC and the scheduler are L1; ECS, ALB, CloudFront, alarms, roles
+   and buckets are L2 where they map 1:1.
+4. **Two phases, one context key.** `phase=import` renders the mirror and nothing else,
+   because `cdk import` refuses a template whose diff adds resources it cannot adopt (and
+   custom resources are exactly that — which is also why the WAF's ARN and the DR vault's ARN
+   are plain context strings, not cross-region references). `phase=harden` is the same stack
+   plus the fixes. A test pins that the import phase is a strict subset under the same logical
+   ids, so the second deploy updates in place and replaces nothing.
+5. **`MasterUserPassword` never appears.** The instance keeps the password Terraform generated,
+   held inside the app secret's `DATABASE_URL`; writing one here would rotate it under the
+   running api. A synth test refuses the template if the property ever shows up, in either
+   phase. The two secrets are imported by ARN and never versioned — a CloudFormation deploy
+   must not be able to overwrite the operator's values.
+6. **`DeletionPolicy: Retain` on everything** (an aspect; the database is `Snapshot`). Import
+   *requires* it, and after the cutover a construct rename or a `cdk destroy` typed into the
+   wrong terminal must forget the data, never delete it.
+7. **What harden adds, and why each is a real change**: the deregistration delay above; the
+   service at 100/200 so the old task lives until the new one is healthy; **one retention
+   number** for RDS automated backups, the daily rule, the DR copy and the vault lock (they were
+   14 and 35 — two answers to "how far back can we go", and the honest one was the shorter);
+   the vault **locked in governance mode** (compliance mode is irreversible and opt-in); every
+   recovery point **copied to ap-southeast-1**; a **weekly restore test**, because a backup that
+   has never been restored is a hope; Multi-AZ on by default with the cost written down; the
+   task role allowed `ses:SendEmail` for the college's verified identity only, from the
+   configured sender only; a `reep-backup-job-failed` alarm.
+
+Four Terraform resources are dropped on purpose — the two `random_password`s and the two
+secret versions — because their values already live in the secrets and the generators are not
+infrastructure. Six collapse into bucket properties.
+
+## L4-02 · `edge.py`, `dr.py`, `app.py`
+
+The WAF must be in us-east-1 and the copy target must be in another region, and a
+CloudFormation stack is one region: three stacks, one app. The DR vault carries the same
+minimum retention lock as the primary, so the copy cannot be quietly shortened either.
+
+## L4-03 · `tests/test_core_synth.py` — the guards the cutover leans on
+
+Both phases synthesise; the import phase contains no custom resource, no Lambda, and is a
+subset of harden; no master password; every physical name in the `.tf` files is in the
+template; the alarm set is identical to Terraform's; the network is the Terraform layout down
+to the four `/20`s; `stopTimeout == 120`; deregistration ≥ 570; 100/200; one retention number
+in four places; governance lock by default; the DR copy action; the restore test; Multi-AZ on
+with the opt-out working; the SES statement scoped to identity and sender; secrets referenced
+never written; everything retained. 39 tests, no AWS.
+
+**And one on the api's side.** `tests/test_codebase_guards.py` now reads
+`DEREGISTRATION_DELAY_SECONDS` out of the CDK file and asserts it exceeds
+`settings.nova_sonic_connection_seconds + 90` — the two numbers live in different languages in
+different directories, and this is the one place they are compared. A second guard pins
+`stopTimeout ≤ 120`, so the next person who "fixes" it upward meets the Fargate ceiling in a
+test instead of at `RegisterTaskDefinition`.
+
+## L4-04 · `tools/import_map.py` and `tools/terraform_release.sh`
+
+**The identifiers are read from the Terraform state, never typed.** Two dozen of them, several
+random suffixes Terraform chose (`name_prefix`, `bucket_prefix`). One typo in a security-group
+name is a group CloudFormation cannot find; one typo in the database identifier is an import
+that adopts nothing and a first deploy that tries to create `reep-postgres` beside the real
+one. The tool refuses on any unmapped resource, because a half-imported stack is one whose
+next deploy creates the other half twice.
+
+The release script backs the state up first, removes every address in **one** `state rm` so
+a half-run cannot leave Terraform managing half a VPC, then runs `terraform plan` — which must
+propose to *create* everything, the proof Terraform has forgotten. It refuses to run without a
+flag whose name says what must already have happened.
+
+## L4-05 · `docs/cdk-cutover.md` — the runbook
+
+Ten steps, a rollback at each, and the two rules at the top. The order is **import → prove
+the diff is empty → release → delete the files → harden**, and step 5 — `cdk diff` printing
+"no differences" while Terraform still owns everything — is named as the last point at which
+nothing has happened. The WAF is imported first as a one-resource rehearsal. Multi-AZ
+conversion is the one harden change with a performance dip, so the runbook says to run it at
+night IST.
+
+## L4-06 · `cdk-deploy.yml`, `cdk.json`, `.gitignore`, README
+
+The workflow gains a `stack` selector (`voice-platform | core | edge-waf | dr-vault | all`).
+**`cdk import` is deliberately not in it**: it is a one-time, human-attended step. `cdk.json`
+carries the harden defaults in the open. `tf-state.json` is gitignored because
+`terraform show -json` includes secret values. The README no longer says the core stack "stays
+in Terraform".
+
+## L4-07 · The council's review, and what it changed before anyone ran anything
+
+The runbook and the stack went to an adversarial reviewer with one brief: find every way this
+destroys data, breaks the running service, or leaves the account half-owned. It resolved the
+CloudFormation registry schemas rather than trusting the docs. **Four blockers, eight must-fixes,
+and every one is now in the code or the runbook.** The ones that would have hurt:
+
+- **Eight of thirty import identifiers were wrong.** Composite keys collapsed to one part
+  (`AWS::EC2::Route` needs `RouteTableId|CidrBlock`; `ScalableTarget` needs three parts;
+  `ECS::Service` needs the cluster too), a name where an ARN was required (CloudFront
+  `Function`), and `BackupSelection`'s id, which the provider composes as `<plan>_<selection>`.
+  CloudFormation validates these before adopting anything, so the failure was a runbook that
+  stops at step 4 — not data loss — but a runbook that stops is not a runbook. The table is
+  now the registry's, every part of a composite is emitted, and the runbook cross-checks the
+  keys with `get-template-summary`, the only authoritative source.
+- **The L2 constructs added three resources that exist nowhere** — and one was a hole. The ALB
+  listener wrote a `0.0.0.0/0:80` ingress on the imported security group (the exact rule the
+  WAF exists to prevent); the service attachment wrote a duplicate `:3300` rule; the secrets
+  helper attached a generated IAM policy. The tool refused them, which was correct, but the
+  obvious "fix" — gate them out of the import phase — would have had harden *create* them: EC2
+  accepts the open rule and rejects the duplicate, so the stack rolls back mid-deploy while
+  converting RDS to Multi-AZ. Fix: imported groups are `mutable=False`, listeners are
+  `open=False`, the execution role is `without_policy_updates()`, and a test asserts the
+  import template contains no `SecurityGroupIngress` and no `IAM::Policy`.
+- **The database's `Snapshot` policy made the documented rollback a `DeleteDBInstance`.**
+  "Snapshot" means delete-after-snapshot; `delete-stack` would have called it, held off only by
+  `DeletionProtection` — one toggled property from a new endpoint and an invalid
+  `DATABASE_URL`. It is `Retain` now, and the test that pinned `Snapshot` pins `Retain`.
+- **`cleanup-orphans.sh` deleted the production cluster, service, log group and roles by
+  name**, and after the state release *everything* looks like an orphan to Terraform. Removed.
+- **`cdk.json`'s harden targets leaked into the import mirror.** The CLI always loads
+  `cdk.json`, so the import phase rendered `MultiAZ: true` against a single-AZ instance;
+  import does not compare properties, so it would have succeeded, and harden — carrying the
+  same value — would have sent no change. **Multi-AZ would silently never have happened**,
+  with `cdk diff` reporting nothing. The import phase now reads `live*` keys the tool writes
+  from the state, and the test fixture loads `cdk.json` the way the CLI does.
+- **Step 5 could not be satisfied as written.** `cdk import` strips outputs and metadata from
+  what it stores, so "no differences" never prints; and drift detection returns `NOT_CHECKED`
+  rows, so "only `[]`" was unattainable. The step now names the expected residue, filters to
+  `MODIFIED|DELETED`, and lists the four known-harmless differences — anything else is a mirror
+  error, fixed in the template, never by deploying.
+- **The harden deploy rolled the service itself** and sent `DesiredCount: 2` (autoscaling
+  owns it; a busy day would have scaled back down), and the `services-stable` waiter in
+  `deploy.yml` would have timed out on every future deploy — its cap is 600 s, which is
+  exactly one drain. `DesiredCount` is gone, harden is two deploys (`hardenEcs=false` first),
+  and the waiter is a `describe-services` poll capped at 25 minutes.
+- Smaller: security-group and subnet-group descriptions are Terraform's create-only default
+  ("Managed by Terraform"); CloudFront IPv6 stays off; the import mirror keeps
+  `ManagedBy=terraform` and the EIP keeps it forever (a tag update may reassociate the
+  address); the edge ACL is `Retain`; the tool derives the TLS shape, task sizes, instance
+  class and container environment from the state rather than from a `tfvars` nobody can read
+  in CI; `core` is removed from the browser workflow's choices until the cutover; the release
+  script checks `IMPORT_COMPLETE` before touching the state; three backup alarms instead of one.
+
+**What the review confirmed correct, in one line each:** 22 of the 30 identifiers; import has
+no side effects on ECS, CloudFront or the database; `stopTimeout` 120 is Fargate's maximum
+and the graceful-shutdown flag fits inside it; the ALB keeps in-flight WebSockets through the
+600 s delay and ECS waits for `UNUSED` before SIGTERM; no secret, version or master password
+anywhere; harden forces no replacement other than the task definition's expected revision.
+
+## VERIFY
+
+**Nothing was run against AWS.** There are no credentials here, and the runbook's first
+executable step is a human's. What is proven is the code and the procedure:
+
+| Check | Result |
+|---|---|
+| CDK synth guards, both phases, three stacks, no AWS | 58 passed |
+| api guards, including the two infra guards | 15 passed |
+| api suite, `REEP_REQUIRE_DB=1` | 788 passed, 2 skipped |
+| council review of runbook + stack + tools | 4 blockers, 8 must-fixes — all applied |
+
+The synth guards now also assert: the import phase carries the live database values with
+`cdk.json` loaded; no generated ingress or IAM policy exists in it; every type in it has a
+registry identifier; `DesiredCount` is never sent; the ECS half of harden can be held back;
+retention above 35 is refused; descriptions and tags mirror Terraform; all three stacks retain
+everything; three backup alarms; an existing OIDC provider is referenced, not redeclared.
+
+
+---
+
 *Entries continue as each file is written.*

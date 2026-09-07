@@ -1862,3 +1862,39 @@ default. What had to be empty was `DELETED`, and it is.
 
 **Terraform still owns everything.** Nothing has been released; no `.tf` file deleted; nothing
 deployed.
+
+## L4-13 · Steps 6 and 7: Terraform released, and the files deleted the same minute
+
+**Step 6.** `tools/terraform_release.sh --i-have-run-cdk-import` checked that `reep-core` was
+`IMPORT_COMPLETE`, pulled `infra/aws/terraform.tfstate.before-release.20260907T142149Z` (184 KB —
+**that file is the undo and must be kept**), and removed **82 managed addresses** in one
+invocation. Two edits went in first: data sources are now filtered out (`terraform state list`
+returns 87 here, five of them `data.*`, which are not resources and are re-read on every plan), and
+the interactive confirmation can come from `RELEASE_CONFIRM` so the step can be driven
+non-interactively — carrying the same word, so it is no easier to trip over.
+
+The proof is the plan that follows: **`Plan: 82 to add, 0 to change, 0 to destroy`**. Terraform no
+longer knows these resources exist. **That plan must never be applied** — it would build a second
+VPC, a second database and a second everything.
+
+**Which is why step 7 followed immediately.** The window between the release and the file deletion
+is the most dangerous in the whole procedure: the configuration still exists, the state is empty,
+and a single `terraform apply` duplicates production. `git rm` on the fifteen `.tf` files,
+`backend.hcl.example` and `dev-setup-terraform.sh` closes it. `bootstrap-state.sh` stays (the state
+bucket still holds the backup) and so does `grant.sh` (unrelated). `terraform plan` now answers
+"Backend initialization required" and can do nothing at all.
+
+The `.tf`-reading guards skip themselves as designed — **61 passed, 22 skipped** — and the mirror is
+proven from here on by the import and the drift report instead, both of which are recorded above.
+
+Three stale references were corrected in the same commit, because each was an instruction that would
+now mislead: `deploy.yml`'s one-time setup pointed at `terraform output`, which is replaced with the
+`reep-core` stack outputs; `ci.yml`'s `cdk` job described gating against `infra/aws/*.tf`, which is
+replaced with what it actually gates now; and `docs/aws-deployment.md` carries a banner marking its
+Terraform commands historical while keeping the account's design rationale, which is still accurate
+and still the best description of what each resource is for.
+
+**`cdk-deploy.yml` still does NOT offer `core`, and the reason has inverted.** It was excluded so a
+browser click could not create a second VPC before the import. That risk is gone. The risk now is
+that the workflow runs a bare `cdk deploy reep-core` — the FULL harden, the database conversion and
+the ECS roll in one update — which is exactly what step 9 splits apart. It goes back after 9b.

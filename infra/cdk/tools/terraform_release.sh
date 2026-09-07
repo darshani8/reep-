@@ -43,12 +43,21 @@ BACKUP="terraform.tfstate.before-release.${STAMP}"
 terraform state pull > "$BACKUP"
 echo "state backed up to infra/aws/${BACKUP} ($(wc -c < "$BACKUP") bytes) — keep this file"
 
-# Every managed address in the state. Read from the state, not typed.
-mapfile -t ADDRESSES < <(terraform state list)
-echo "releasing ${#ADDRESSES[@]} addresses from Terraform's state"
+# Every MANAGED address in the state. Read from the state, not typed — and
+# data sources filtered out: they are not resources, nothing owns them, and
+# they are re-read on every plan. `terraform state list` returns 87 addresses
+# here of which 5 are data sources; only the 82 managed ones are released.
+mapfile -t ADDRESSES < <(terraform state list | grep -v '^data\.')
+echo "releasing ${#ADDRESSES[@]} managed addresses from Terraform's state"
 printf '  %s\n' "${ADDRESSES[@]}"
 
-read -r -p "Type RELEASE to continue: " CONFIRM
+# The prompt is the default and stays. RELEASE_CONFIRM exists so the step can
+# be driven from a non-interactive session; it has to carry the same word, so
+# it is no easier to trip over than the prompt.
+CONFIRM="${RELEASE_CONFIRM:-}"
+if [ -z "$CONFIRM" ]; then
+  read -r -p "Type RELEASE to continue: " CONFIRM
+fi
 if [ "$CONFIRM" != "RELEASE" ]; then
   echo "nothing changed"
   exit 1

@@ -315,6 +315,54 @@ def test_edge_waf_has_the_three_terraform_rules() -> None:
     rules = next(r for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::WAFv2::WebACL")["Properties"]["Rules"]
     assert [r["Name"] for r in rules] == ["aws-common", "aws-bad-inputs", "rate-limit"]
     assert rules[2]["Statement"]["RateBasedStatement"]["Limit"] == 2000
+    # Priorities are what WAF evaluates by; the live ACL lists them in a
+    # different array order and that is not a difference.
+    assert sorted((r["Priority"], r["Name"]) for r in rules) == [(1, "aws-common"), (2, "aws-bad-inputs"), (3, "rate-limit")]
+
+
+def test_no_stack_level_tags_in_any_phase() -> None:
+    """INCIDENT (2026-09-07): the step-3 rehearsal import failed with
+
+        As part of the import operation, you cannot modify or add [RoleArn, Tags]
+
+    `Tags.of(stack).add(...)` tags the Stack itself, and CDK passes a tagged
+    stack's tags to CreateChangeSet as STACK tags, which CloudFormation refuses
+    on an import change set. Nothing offline could have caught it: the template
+    is identical either way — the difference is in the manifest, and so in the
+    API call. The core import would have failed the same way on all 65
+    resources.
+
+    Tags are applied to the stack's CHILDREN now. This asserts the stack itself
+    carries none, in every phase and for every stack the cutover imports, while
+    the resources still carry theirs.
+    """
+    for label, stack_factory in (
+        ("core/import", lambda app: CoreStack(app, "c", project="reep", env=cdk.Environment(account="123456789012", region="ap-south-1"))),
+        ("edge/import", lambda app: EdgeWafStack(app, "e", project="reep", env=cdk.Environment(account="123456789012", region="us-east-1"))),
+    ):
+        app = cdk.App(context={**CDK_JSON_CONTEXT, "phase": "import"})
+        stack = stack_factory(app)
+        assert not stack.tags.render_tags(), f"{label}: the STACK is tagged, which CloudFormation refuses on an import change set"
+        rendered = Template.from_stack(stack).to_json()["Resources"]
+        tagged = [r for r in rendered.values() if r.get("Properties", {}).get("Tags")]
+        assert tagged, f"{label}: no resource carries tags — the aspect stopped reaching the children"
+
+
+def test_the_edge_waf_is_adopted_with_terraforms_tag() -> None:
+    """INCIDENT (2026-09-07, the pre-import review): the core stack keeps
+    ManagedBy=terraform in the import phase so nothing shows MODIFIED for a
+    label. The edge stack was the one place that rule was not applied — it
+    tagged the ACL `cdk` unconditionally, which would have put a property
+    difference into step 3's diff. Step 3 is the REHEARSAL: its entire value is
+    that it comes back showing only CDKMetadata and the output, so an operator
+    who sees anything else knows the mirror is wrong."""
+    for phase, expected in (("import", "terraform"), ("harden", "cdk")):
+        app = cdk.App(context={"phase": phase})
+        t = Template.from_stack(EdgeWafStack(app, "test-edge", env=cdk.Environment(account="123456789012", region="us-east-1")))
+        acl = next(r for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::WAFv2::WebACL")
+        tags = {tag["Key"]: tag["Value"] for tag in acl["Properties"]["Tags"]}
+        assert tags["ManagedBy"] == expected, f"{phase} phase tags the adopted ACL {tags['ManagedBy']!r}"
+        assert acl.get("DeletionPolicy") == "Retain"
 
 
 def test_dr_vault_is_locked_with_the_same_minimum() -> None:

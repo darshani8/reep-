@@ -32,8 +32,16 @@ def _managed(name: str, priority: int, rule_name: str, metric: str) -> wafv2.Cfn
 class EdgeWafStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, *, project: str = "reep", **kwargs: Any) -> None:
         super().__init__(scope, construct_id, **kwargs)
-        Tags.of(self).add("Project", project)
-        Tags.of(self).add("ManagedBy", "cdk")
+        # The same phase discipline the core stack applies, and for the same
+        # reason: this ACL is ADOPTED from Terraform, which tagged it
+        # ManagedBy=terraform. A mirror that says `cdk` makes step 3's diff —
+        # the rehearsal, whose whole value is that it should come back showing
+        # only CDKMetadata and the output — carry a property difference, and
+        # invites the operator to "fix" edge.py when nothing is wrong with it.
+        # The core stack was written this way from the start; the edge stack
+        # was the one place the rule was not applied *(pre-import review,
+        # 2026-09-07)*. Harden flips it, as it does everywhere else.
+        phase = (self.node.try_get_context("phase") or "harden").strip().lower()
 
         acl = wafv2.CfnWebACL(
             self,
@@ -64,3 +72,12 @@ class EdgeWafStack(Stack):
         acl.apply_removal_policy(RemovalPolicy.RETAIN)
         self.acl = acl
         CfnOutput(self, "WebAclArn", value=acl.attr_arn, description="Pass to the core stack as -c wafWebAclArn=…")
+
+        # On the CHILDREN, never on the stack — see the long note at the end of
+        # stack.py. `Tags.of(stack)` makes CDK send stack-level tags, and
+        # CloudFormation refuses those on an import change set with
+        # "you cannot modify or add [RoleArn, Tags]". That is how this very
+        # stack's rehearsal import failed on 2026-09-07.
+        for child in self.node.children:
+            Tags.of(child).add("Project", project)
+            Tags.of(child).add("ManagedBy", "cdk" if phase == "harden" else "terraform")

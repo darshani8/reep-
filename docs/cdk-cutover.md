@@ -348,16 +348,26 @@ aws cloudformation describe-stack-resource-drifts --stack-name reep-core \
 `DELETED` must be empty. `MODIFIED` is acceptable **only** for these known,
 harmless differences — anything else is a mirror error to fix in `stack.py`:
 
+**This ran on 2026-09-07. The result is below, not a prediction.** 63 resources
+were checkable: **60 `IN_SYNC`, 3 `MODIFIED`, 0 `DELETED`.**
+
 | Resource | Property | Why it differs |
 |---|---|---|
-| `AlbLogsBucket` policy | `PolicyDocument` | the L2 writes three statements on `/AWSLogs/<account>/*`; Terraform wrote one on `/*` (a superset) |
-| `WebBucket` policy | `PolicyDocument.Statement[].Sid` | Terraform named it `CloudFrontRead`; the OAC origin does not set a Sid |
-| `ApiRepo` | `LifecyclePolicy.LifecyclePolicyText` | JSON whitespace |
-| `Db` | `EngineVersion` | template says `17`, the instance reports `17.9` — not re-sent |
-| `ApiTaskRole` | `Policies` | **`reep-voice-platform` owns the `voice-platform` inline policy on this role** |
-| `GithubDeployRole` | `Policies` | **`reep-voice-platform` owns `deploy-cdk-stacks` on this role** |
+| `ApiTaskRole` | `Policies/1` | **`reep-voice-platform` owns the `voice-platform` inline policy on this role** |
+| `GithubDeployRole` | `Policies/1` | **`reep-voice-platform` owns `deploy-cdk-stacks` on this role** |
+| `ApiTaskDef` | `ContainerDefinitions/0/MountPoints/0/ReadOnly` | the mirror renders `false`; the live definition omits it, which means the same thing. CDK's `MountPoint` requires the field, AWS defaults it. Self-resolves at 9b, which registers a new revision |
 
 Only when that table is the whole `MODIFIED` list is the mirror proven.
+
+Four rows this table used to predict came back `IN_SYNC` and have been removed:
+the ALB-logs and web bucket policies, the ECR lifecycle JSON whitespace, and
+`Db.EngineVersion`. Do not re-add them from memory — if one appears, something
+changed.
+
+`DriftedStackResourceCount` reports **3**, so the stack's own status reads
+`DRIFTED`. That is expected and is not a failure: two of the three are another
+CloudFormation stack's property and the third is a default. What must be empty
+is `DELETED`, and it is.
 
 **Do not "fix" the last two.** Adding `voice-platform` or `deploy-cdk-stacks`
 to `reep_core/stack.py` puts two CloudFormation stacks in charge of the same

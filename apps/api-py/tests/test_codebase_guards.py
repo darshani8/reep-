@@ -549,3 +549,49 @@ def test_ledger_cell_check_is_derived_from_slot_capacities() -> None:
         assert f"WHEN '{slot.value}' THEN {SLOT_CAPACITY_HALVES[slot]}" in LEDGER_CELL_HALF_HOURS_CHECK
     assert LEDGER_CELL_HALF_HOURS_CHECK.count("WHEN '") == len(LedgerSlot)
     assert "ELSE -1 END" in LEDGER_CELL_HALF_HOURS_CHECK
+
+
+# --------------------------------------------------------------------------- #
+# 6. The infrastructure's numbers agree with the api's
+# --------------------------------------------------------------------------- #
+
+CDK_CORE = REPO / "infra" / "cdk" / "reep_core" / "stack.py"
+
+
+def _cdk_constant(name: str) -> int:
+    text = CDK_CORE.read_text(encoding="utf-8")
+    m = re.search(rf"^{name}\s*=\s*(\d+)", text, re.MULTILINE)
+    assert m, f"{name} is not declared as a plain integer at module level in {CDK_CORE}"
+    return int(m.group(1))
+
+
+def test_the_alb_keeps_an_interview_socket_open_longer_than_the_interview() -> None:
+    """INCIDENT (found in review, before it happened in production): the ECS
+    task had no stopTimeout, so a deploy SIGKILLed a task 30 s after SIGTERM
+    while a 480 s interview was on its WebSocket. The first fix was going to
+    be stopTimeout=500 — which Fargate refuses; its ceiling is 120.
+
+    What actually keeps the socket alive through a deploy is the target
+    group's deregistration delay: the ALB keeps a draining target's open
+    connections until they close, and ECS waits for draining before SIGTERM.
+    So that number must exceed the longest interview the api holds on one
+    socket (nova_sonic_connection_seconds) plus the scorecard tail. The api's
+    setting and the CDK constant live in different languages in different
+    directories; this is the one place they are compared.
+    """
+    from app.config import settings
+
+    delay = _cdk_constant("DEREGISTRATION_DELAY_SECONDS")
+    longest = settings.nova_sonic_connection_seconds
+    assert delay >= longest + 90, (
+        f"infra/cdk DEREGISTRATION_DELAY_SECONDS={delay} but the api holds an interview "
+        f"socket for up to {longest}s (+90s for the scorecard). Raise the delay, or the "
+        f"next deploy cuts an interview off mid-verdict."
+    )
+
+
+def test_stop_timeout_is_within_fargates_ceiling() -> None:
+    """Fargate refuses a task definition with stopTimeout > 120. A larger
+    number here is not a longer grace period — it is a deploy that fails at
+    RegisterTaskDefinition with a message nobody expects."""
+    assert _cdk_constant("STOP_TIMEOUT_SECONDS") <= 120

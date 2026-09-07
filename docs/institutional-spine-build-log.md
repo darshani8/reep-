@@ -1813,3 +1813,52 @@ expired moments later, before the post-import diff could be read.
 Terraform state released, nothing deployed. The only changes to AWS all day are one EventBridge
 schedule target (revision 3 → 4) and the adoption of the WAF into a CloudFormation stack that
 changed no property of it.
+
+## L4-12 · Steps 3, 4 and 5 are done. The mirror is proven.
+
+**Step 3, the rehearsal, retried and complete.** `reep-edge-waf` is `IMPORT_COMPLETE`. The diff
+afterwards is the description, the bootstrap parameter and the `WebAclArn` output — the three things
+`cdk import` strips — and **no resource property difference at all**. The live ACL still reports
+capacity 902, its three rules in priority order and `DefaultAction: Allow`, and CloudFront is still
+associated with it.
+
+**Step 4, the core import, needed one retry for a reason worth writing down.** The first attempt
+died mid-flight on `getaddrinfo ENOTFOUND ap-south-1.signin.aws.amazon.com` — a DNS blip while the
+CLI refreshed its login token — and left the stack in `REVIEW_IN_PROGRESS` with **zero resources**
+and a change set already `CREATE_COMPLETE` / `AVAILABLE`. That intermediate state is worth knowing:
+CloudFormation had already **validated all 65 identifiers** and built the change set; only the
+execute step was lost. Inspecting it was the best pre-flight evidence available anywhere in this
+procedure:
+
+    Changes: 65     Actions: 65 x Import     Replacements: none
+
+So it was executed directly rather than rebuilt. `reep-core` is `IMPORT_COMPLETE` with **65
+resources adopted**, every one reporting `UPDATE_COMPLETE`. Throughout, the service stayed `ACTIVE`
+at 2/2 with `rolloutState: COMPLETED`, both target-group targets `healthy`, and the database
+`available`.
+
+**Step 5, the proof.** Two independent checks, and this is the step the whole design exists for.
+
+*The template diff*: `[+]` on the description, the `BootstrapVersion` parameter and the nine
+outputs, **and not one resource property change**. Exactly what the runbook predicted.
+
+*Drift detection*, which compares the template to reality rather than to the stored record:
+**60 `IN_SYNC`, 3 `MODIFIED`, 0 `DELETED`.** Two of the three are the rows the pre-import review
+predicted and the runbook now lists — `reep-voice-platform` owns an inline policy on `reep-api-task`
+and another on `reep-github-deploy`, confirmed by `list-role-policies` returning
+`invoke-nova, voice-platform` and `deploy-api-and-spa, deploy-cdk-stacks`. The third is
+`ApiTaskDef` `MountPoints/0/ReadOnly`: the mirror renders `false`, the live definition omits it, and
+those mean the same thing — CDK's `MountPoint` requires the field and AWS defaults it. It resolves
+itself at 9b, which registers a new revision regardless.
+
+**Four rows the runbook predicted came back `IN_SYNC`** — the two bucket policies, the ECR lifecycle
+JSON whitespace and `Db.EngineVersion` — so the table has been cut to what actually happened. The
+mirror is more faithful than its own author expected, which is the return on fixing four fidelity
+findings in the mirror rather than tolerating them as drift.
+
+The stack's headline status reads `DRIFTED` because `DriftedStackResourceCount` is 3. That is not a
+failure and the runbook now says so: two of the three belong to another stack and the third is a
+default. What had to be empty was `DELETED`, and it is.
+
+**Terraform still owns everything.** Nothing has been released; no `.tf` file deleted; nothing
+deployed.

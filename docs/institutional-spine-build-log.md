@@ -1596,6 +1596,183 @@ design, at the credentials check:
 | mutation checks M1–M6 | all red, all restored |
 
 
+## L4-09 · The cutover, actually run: step 0 through step 2 against the live account
+
+**The ask:** "if you can do without my intervention, go ahead and do it." Everything up to the
+credentials was already fixed in L4-08; the user then signed in as account root of 445363794125 and
+authorised the `terraform`/`cdk` commands. This entry is what the runbook met when it finally touched
+a real account — because every one of the four things it hit is a thing the offline rehearsal could
+not have contained.
+
+**The preflight was right to exist, and its first real run failed four checks.** Two were true (the
+`us-east-1` and `ap-southeast-1` bootstraps did not exist, and `cdk bootstrap` created them); one was
+the preflight's own bug; one was the real work.
+
+**M1 · Git Bash rewrote an SSM parameter name into a Windows path.** `ap-south-1` reported as *not
+bootstrapped* while its `CDKToolkit` stack sat at `CREATE_COMPLETE` with `BootstrapVersion: 32`. MSYS
+converts any argument that looks like a POSIX path before a native `.exe` sees it, so
+`/cdk-bootstrap/hnb659fds/version` arrived as `C:/Program Files/Git/cdk-bootstrap/hnb659fds/version`
+and read back `ParameterNotFound`. Three bootstrapped regions would have been reported as three
+missing ones, and the operator's fix — re-running `cdk bootstrap` — would have looked like it worked.
+`export MSYS_NO_PATHCONV=1` at the top of the preflight, and a second branch that says so explicitly
+when a `CDKToolkit` stack exists but its parameter does not.
+
+**M2 · The 78-resource count was never a check.** `terraform state list` returns 87 addresses, five of
+them **data sources**, which are not resources and cannot be imported. The count warned about a number
+that was never wrong. Replaced with a count of managed addresses only, and the comment now says what
+the real check is: `import_map.py` refuses anything the template needs and the state lacks.
+
+**M3 · The state was stale in three ways, and the three resolutions are different.** This is the part
+worth reading, because it will be true on any account that a human or a CI job also edits:
+
+- *Reality changed, the config did not.* On 2026-09-02 someone used the console to give the
+  distribution the alias `reep.sast-skills.com`, an ACM certificate and TLS policy `TLSv1.3_2025`.
+  `terraform apply -refresh-only` records that into the state and changes nothing in AWS. It also
+  fixes `prod.tfvars`, because `tfvars_from_state.py` reads the state: the first run produced
+  `domain_name = ""` — not a tool bug, a stale input.
+- *A resource was replaced outside Terraform.* CI had registered task definition revision 4 and the
+  service runs it; the state held revision 3. `state rm` + `import`. An imported task definition then
+  returns AWS's populated form (auto-named port mappings, empty default lists,
+  `configure_at_launch`), none of which the source spells out, so Terraform proposed to **replace it
+  and roll the service** to normalise defaults. `ecs.tf` now ignores exactly that noise.
+- *A value the provider cannot express.* No aws provider 5.x accepts `TLSv1.3_2025`; 5.100 validates
+  against a list ending at `TLSv1.2_2021`, so the plan **errored** rather than drifted. `cdn.tf`
+  ignores that one attribute. The CDK mirror renders `TLS_V1_3_2025`, which CloudFormation does
+  accept — so the mirror is the more truthful of the two records, and the ignore is what keeps
+  Terraform from lying about it in the meantime.
+
+**One change was applied on purpose, through a saved plan.** The nightly retention schedule still
+targeted revision 3. That is not cosmetic for this cutover: the mirror renders the schedule's target
+as a `Ref` to the imported task definition, so leaving it would have produced a fifth drift row at
+step 5 — one the runbook does not list, which is exactly how a real mirror error gets waved through.
+`terraform plan -out=` then `apply <file>`, so what was reviewed is what ran: one resource,
+in-place, `0 added, 1 changed, 0 destroyed`. `terraform plan -detailed-exitcode` then exited **0**
+for the first time.
+
+**M4 · `cdk synth` emits a resource the tests never produce.** `import_map.py` refused the first real
+template: `CDKMetadata: type AWS::CDK::Metadata is not in IDENTIFIERS`. The synth guards build their
+template with `Template.from_stack()`, which does not append the CLI's base64 analytics resource. So
+the rehearsal passed and the tool failed on the real thing — the very failure mode L4-08 was written
+to remove, one layer deeper. It is skipped now (`NON_RESOURCE_TYPES`), not suppressed at synth, so
+the tool is right however the template was produced; `cdk import` strips it too, which is why the
+runbook already predicted `[+] CDKMetadata` in the post-import diff.
+
+**M5 · The step-2 cross-check, as written, told the operator to break a correct table.** The runbook
+said to compare `get-template-summary`'s `Keys` against `import-map.json` **by eye**. CloudFormation
+returns a *composite* primaryIdentifier as ONE comma-joined string —
+`["ResourceId,ScalableDimension,ServiceNamespace"]`, one element, not three — while the map correctly
+sends three separate keys. Compared by eye, **all seven composite types read as mismatches**: the ECS
+service, both scaling policies, the scalable target, the metric filter, the IGW attachment, the EIP
+and both default routes. The first run of that comparison reported 16 problems, every one of them
+false, to the person who had written the table. `tools/check_identifiers.py` now does it — it fetches
+the summary for the exact template (staging it in the CDK assets bucket, since it exceeds the
+51,200-byte inline limit), splits composite keys, and checks coverage both ways. Against the live
+registry: **65 resources, 39 types, every identifier matches.**
+
+Both incidents became tests, per the standing rule that a problem faced once must not recur:
+`test_the_cli_analytics_resource_is_skipped_not_refused` (which also proves a genuinely unknown type
+is still refused — the skip is an exemption for CDK's bookkeeping, not a hole) and
+`test_a_composite_identifier_arrives_comma_joined_and_must_be_split`.
+
+**Where this stopped, and why.** At the gate before `cdk import`. Steps 0, 1 and 2 are complete and
+proven; nothing has been imported, no state released, nothing hardened. The last act before touching
+CloudFormation was to put the whole position — the mirror, the map, the reconciled state, today's
+diff and the unrun steps — through an adversarial review, because import is the first step that
+writes a stack over 66 live resources holding student records.
+
+## VERIFY · Round 6, second half
+
+| Check | Result |
+|---|---|
+| `terraform plan -var-file=prod.tfvars -detailed-exitcode` | **exit 0** — "No changes. Your infrastructure matches the configuration." |
+| Manual pre-cutover snapshot `reep-postgres-pre-cdk-20260907` | available, 100% |
+| CDK bootstrap, all three regions | present (two created today) |
+| `tools/import_map.py` passes 1 and 3 | context 31 keys; **65 resources mapped** |
+| `tools/check_identifiers.py` against the live registry | **every identifier matches**, 39 types |
+| CDK suite | 77 passed |
+| api guards | 15 passed |
+| Mutation: remove the `NON_RESOURCE_TYPES` skip | its guard goes red, restored |
+| Changed in AWS so far | one EventBridge schedule target, revision 3 → 4 |
+
+## L4-10 · The pre-import review, and the four things it stopped
+
+Before `cdk import` wrote a CloudFormation stack over 66 live resources holding student records,
+the whole position — the mirror, the map, the reconciled state, the day's diff and every unrun step
+— went through an adversarial review: six independent dimensions, each finding then put to three
+verifiers whose instruction was to REFUTE it. It raised **36 findings**. The session's usage limit
+killed 92 of the 114 agents mid-flight, so most findings came back *unverified* rather than
+refuted — and the scoring silently dropped those, which is itself worth recording: a finding whose
+verifiers all died is not a refuted finding. The raw journal had to be read by hand to recover them.
+
+**Four would have done real damage. Two would have failed the import outright.**
+
+**B1 · `AttachmentType: "internet"` — the import would have failed.** Almost every identifier value
+is READ from the state; two are *composed* by the tool, and both were composed wrong.
+`AWS::EC2::VPCGatewayAttachment.AttachmentType` is read-only and Terraform has nothing to read it
+from (it models the attachment as `vpc_id` on the gateway), so it was written by hand as
+`"internet"`. CloudFormation answers `Invalid Attachment Type 'internet'`. The live identifier is
+`IGW|vpc-…`.
+
+**B2 · The backup selection's composite was backwards.** `<BackupPlanId>_<SelectionId>`, when the
+registry wants `<SelectionId>_<BackupPlanId>`. CloudFormation answers `Cannot find Backup plan with
+ID`. **This one was not found by a reviewer** — it was found by the gate built to answer the
+reviewer's *other* finding, which is the point of building gates.
+
+**B3 · The mirror said `MinimumHealthyPercent: 50`; the live service is 100.** Written as
+`100 if harden_ecs else 50` on the assumption that 50 was live and 100 the improvement. `ecs.tf`
+never sets the property, so 100 is the ECS default and the refresh recorded it. It would have been
+an unlisted drift row at step 5 — the checkpoint whose entire job is to come back empty — and step
+9a would have pushed the live service *down* to 50 for the length of the Multi-AZ conversion.
+
+**B4 · Step 9a was not "the database half".** The split exists so an ECS circuit-breaker rollback
+cannot undo a Multi-AZ conversion in the same update. It did not work. The harden phase flips every
+resource's `ManagedBy` tag, and **a task definition is immutable** — tagging it registers a new
+revision, which the service rolls onto. Synthesising all three phases showed 9a modifying **46
+resources**, the task definition, service and target group among them: the API would have rolled in
+the same CloudFormation update as the database conversion. The tag flip on those three now waits for
+9b. 9a's diff shows them unchanged.
+
+**The gate that came out of it.** Finding 9 said `check_identifiers.py` validated identifier key
+NAMES and never VALUES, so no gate in the runbook could catch a wrong value. True — and the fix
+found B2 within a minute. It now resolves all 65 identifiers through Cloud Control
+`get-resource` before anything is adopted. Finding 29 said today's own preflight edit had removed
+the only state→template coverage check; also true, so `import_map.py` now tracks which addresses it
+read and **refuses** on any managed address that is neither mapped nor named in
+`UNMAPPED_ON_PURPOSE` — a table that, for the first time, writes down that the two Secrets Manager
+secrets are left unmanaged *on purpose* and why owning them would be worse.
+
+Four more were fixed in the mirror rather than tolerated as drift, because a short drift table is
+what makes step 5 provable: the HTTP redirect's `Host`/`Path`/`Query`, the web OAC's `Description`,
+tags on the CloudFront function (live has none — the provider cannot set them), and B3.
+
+**And one finding was about a comment I had written that afternoon.** `ecs.tf`'s new `lifecycle`
+block said "the values are this config's; only the noise is ignored". `ignore_changes` cannot reach
+inside a jsonencoded string: ignoring `container_definitions` ignores the environment and the
+secrets too. The block stays — step 7 deletes the file within the hour — but the comment now says
+what it actually costs.
+
+Every incident became a guard: `test_the_two_identifier_values_that_are_written_rather_than_read`,
+`test_the_service_keeps_both_tasks_in_every_phase`,
+`test_the_database_half_does_not_touch_the_ecs_trio`,
+`test_every_managed_address_has_a_home_or_a_written_reason`, and
+`test_a_composite_identifier_arrives_comma_joined_and_must_be_split`. The tautological assertion the
+review found in the registry cross-check test is gone; that test now pins detection, and says in its
+docstring that the registry can only be checked online.
+
+## VERIFY · Round 6, third pass
+
+| Check | Result |
+|---|---|
+| CDK suite | **81 passed** (was 58 this morning) |
+| api guards | 15 passed |
+| Mutations: B1–B4 and the coverage check each reintroduced | every guard went red, all restored |
+| `tools/check_identifiers.py` — names **and** all 65 values against the live account | every identifier matches the registry and resolves |
+| `tools/import_map.py` coverage | 82 managed addresses: 62 mapped, 20 named in `UNMAPPED_ON_PURPOSE`, 0 unaccounted |
+| Mirror vs the **live AWS API** (not the state) on the data plane | every property the mirror sets matches; the three it omits are AWS defaults |
+| Phase diff: does 9a touch the ECS trio? | no — byte-identical to the import mirror |
+| `terraform plan -detailed-exitcode` | 0 |
+| Changed in AWS | still only the one EventBridge schedule target |
+
 ---
 
 *Entries continue as each file is written.*

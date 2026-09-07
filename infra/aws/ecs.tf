@@ -154,6 +154,27 @@ resource "aws_ecs_task_definition" "api" {
       }
     }
   }])
+
+  # Imported as the revision the service actually runs (docs/cdk-cutover.md
+  # step 0; CI had registered it outside Terraform). An imported task
+  # definition carries AWS's populated form — auto-named port mappings, empty
+  # default lists, the volume's configure_at_launch flag — which the source
+  # above never spells out, so Terraform would REPLACE it, and roll the
+  # service, to "fix" defaults.
+  #
+  # BE CLEAR ABOUT WHAT THIS COSTS. `container_definitions` is one jsonencoded
+  # string, so ignoring it ignores ALL of it: while this block exists, no
+  # change to the container — `local.api_environment` and `local.api_secrets`
+  # included — can be applied through Terraform. It would be edited here and
+  # silently not deployed. That is tolerable only because step 7 of the
+  # cutover deletes this file within the hour; until then, the API's
+  # configuration is changed in infra/cdk/reep_core/stack.py, which is the
+  # record that survives. (An earlier version of this comment said "only the
+  # noise is ignored" — `ignore_changes` cannot reach inside an encoded
+  # string, and the pre-import review was right to call that out.)
+  lifecycle {
+    ignore_changes = [container_definitions, volume, skip_destroy, tags]
+  }
 }
 
 resource "aws_ecs_service" "api" {

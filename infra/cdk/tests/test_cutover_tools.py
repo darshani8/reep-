@@ -47,6 +47,7 @@ TF_DIR = CDK_DIR.parent / "aws"
 TOOLS = CDK_DIR / "tools"
 DOCS = CDK_DIR.parents[1] / "docs"
 sys.path.insert(0, str(TOOLS))
+import check_identifiers  # noqa: E402
 import import_map  # noqa: E402
 import tfvars_from_state  # noqa: E402
 
@@ -322,7 +323,8 @@ def test_context_then_template_then_map_is_a_fixed_point(with_provider: bool, pl
     mapping, context_again, problems = import_map.build(state, template)
     assert not problems, problems
     assert context_again == context
-    assert set(mapping) == set(template["Resources"]), "every import-phase resource has exactly one identifier"
+    real = {lid for lid, r in template["Resources"].items() if r["Type"] not in import_map.NON_RESOURCE_TYPES}
+    assert set(mapping) == real, "every import-phase resource has exactly one identifier"
     for lid, keys in mapping.items():
         cfn_type = template["Resources"][lid]["Type"]
         assert set(keys) == set(import_map.IDENTIFIERS[cfn_type]), f"{lid}: {sorted(keys)} is not the registry's key set for {cfn_type}"
@@ -340,6 +342,60 @@ def test_context_then_template_then_map_is_a_fixed_point(with_provider: bool, pl
     assert db["MultiAZ"] is False
     assert db["BackupRetentionPeriod"] == 14
     assert db["AllocatedStorage"] == "20"
+
+
+def test_the_two_identifier_values_that_are_written_rather_than_read() -> None:
+    """INCIDENT (2026-09-07, found by the pre-import review and confirmed
+    against the account before any import ran): almost every identifier value
+    is READ from the state, but two are composed by this tool, and both were
+    composed wrong.
+
+    `AWS::EC2::VPCGatewayAttachment.AttachmentType` is read-only and Terraform
+    models the attachment as `vpc_id` on the gateway, so there is nothing to
+    read; it was written `"internet"` and CloudFormation answers
+    `Invalid Attachment Type 'internet'`. The live identifier is `IGW|vpc-…`.
+
+    `AWS::Backup::BackupSelection.Id` is a composite, and it is
+    `<SelectionId>_<BackupPlanId>` — the SELECTION first. It was written the
+    other way round and CloudFormation answers `Cannot find Backup plan with
+    ID`.
+
+    Both would have failed `cdk import` partway through adopting a stack over
+    live student data. `tools/check_identifiers.py` now resolves every value
+    through Cloud Control, which is what caught the second one.
+    """
+    state = _fake_state()
+    context, _ = import_map.build_context(state)
+    mapping, _, problems = import_map.build(state, _import_template(**context))
+    assert not problems, problems
+
+    assert mapping["IgwAttach"]["AttachmentType"] == "IGW", "CloudFormation rejects anything else, 'internet' included"
+    # The synthetic state's selection is id 'sel-0aaa' in plan 'plan-0aaa'.
+    assert mapping["BackupSelection"]["Id"] == "sel-0aaa_plan-0aaa", "selection id first, then plan id"
+
+
+def test_the_cli_analytics_resource_is_skipped_not_refused() -> None:
+    """INCIDENT (2026-09-07, mid-cutover): `Template.from_stack()` — what every
+    test here builds — does not add the `AWS::CDK::Metadata` resource, but the
+    CLI's `cdk synth` does unless version reporting is off. So the rehearsal
+    passed and the tool refused the FIRST real template at step 2, with admin
+    credentials in hand. It is a base64 analytics string, not a cloud resource:
+    there is nothing to import and nothing to identify."""
+    state = _fake_state()
+    context, _ = import_map.build_context(state)
+    template = _import_template(**context)
+    template["Resources"]["CDKMetadata"] = {"Type": "AWS::CDK::Metadata", "Properties": {"Analytics": "v2:deflate64:H4sI"}}
+
+    mapping, _, problems = import_map.build(state, template)
+    assert not problems, problems
+    assert "CDKMetadata" not in mapping, "an analytics blob must never be handed to cdk import as a resource"
+    assert len(mapping) == len(template["Resources"]) - 1
+
+    # A type that is genuinely unknown must STILL be refused — the skip list is
+    # an exemption for CDK's own bookkeeping, not a hole for real resources.
+    template["Resources"]["Mystery"] = {"Type": "AWS::Nonexistent::Thing", "Properties": {}}
+    _, _, problems = import_map.build(state, template)
+    assert any("AWS::Nonexistent::Thing" in p for p in problems), problems
 
 
 def test_the_old_order_is_refused_with_a_pointer_to_pass_one() -> None:
@@ -393,6 +449,86 @@ def test_the_import_map_writes_both_files_and_merges_the_context(tmp_path: Path,
     mapping = json.loads((here / "import-map.json").read_text(encoding="utf-8"))
     assert mapping["Db"] == {"DBInstanceIdentifier": "reep-postgres"}
     assert "EdgeAcl" not in mapping, "the WAF is the edge stack's import, not this map's"
+
+
+# ------------------------------------------- the registry cross-check --
+
+
+def test_a_composite_identifier_arrives_comma_joined_and_must_be_split() -> None:
+    """INCIDENT (2026-09-07, mid-cutover): the runbook said to compare
+    `get-template-summary`'s Keys against import-map.json BY EYE. CloudFormation
+    returns a composite primaryIdentifier as ONE comma-joined string, so all
+    seven composite types read as mismatches against a table that was correct.
+    An operator following that instruction would have "fixed" the right answer.
+    """
+    assert check_identifiers.split_keys(["ResourceId,ScalableDimension,ServiceNamespace"]) == {
+        "ResourceId",
+        "ScalableDimension",
+        "ServiceNamespace",
+    }
+    assert check_identifiers.split_keys(["BucketName"]) == {"BucketName"}
+    assert check_identifiers.split_keys(["Name", "Id", "Scope"]) == {"Name", "Id", "Scope"}
+
+
+def test_the_cross_check_detects_a_wrong_key_set_and_an_unmapped_resource() -> None:
+    """What this pins is the DETECTION, not the registry.
+
+    The registry itself can only be checked online, by
+    `tools/check_identifiers.py` at step 2 — the summary built below is
+    constructed from `IDENTIFIERS`, so asserting that it agrees with
+    `IDENTIFIERS` would prove nothing (the pre-import review called that out,
+    correctly, as a tautology). These assertions are the two failure paths.
+    """
+    state = _fake_state()
+    context, _ = import_map.build_context(state)
+    template = _import_template(**context)
+    mapping, _, problems = import_map.build(state, template)
+    assert not problems, problems
+    resources = template["Resources"]
+
+    # A stand-in for the registry, comma-joining composites exactly as the real
+    # API returns them. Its only job is to be something to disagree WITH.
+    summary = [{"Type": t, "Keys": [",".join(keys)]} for t, keys in import_map.IDENTIFIERS.items() if any(r["Type"] == t for r in resources.values())]
+
+    wrong_keys = [{"Type": e["Type"], "Keys": ["SomethingElse"]} if e["Type"] == "AWS::RDS::DBInstance" else e for e in summary]
+    assert any("AWS::RDS::DBInstance" in p for p in check_identifiers.compare(wrong_keys, mapping, resources)), "a wrong key set was not detected"
+
+    short = {k: v for k, v in mapping.items() if k != "Db"}
+    assert any("no map entry" in p for p in check_identifiers.compare(summary, short, resources)), "an unmapped resource was not detected"
+
+    # And the composite ordering the Cloud Control identifier depends on.
+    assert check_identifiers.cc_identifier({"AttachmentType": "IGW", "VpcId": "vpc-1"}, ["AttachmentType", "VpcId"]) == "IGW|vpc-1"
+
+
+def test_every_managed_address_has_a_home_or_a_written_reason() -> None:
+    """INCIDENT (2026-09-07): today's preflight edit replaced the "78
+    addresses" check with a bare non-zero count, and the comment claimed
+    `import_map.py` covered it. It did not — the tool only ever walked the
+    TEMPLATE, so nothing in the repository checked the other direction. After
+    step 6 releases the state, a live resource that neither the mirror claims
+    nor `UNMAPPED_ON_PURPOSE` names is one nobody will ever manage again.
+    """
+    state = _fake_state()
+    context, _ = import_map.build_context(state)
+    _, _, problems = import_map.build(state, _import_template(**context))
+    assert not problems, problems
+
+    # Drop an exemption the synthetic state actually contains: the resources it
+    # covered must then be reported as orphans.
+    dropped = "aws_sns_topic_subscription"
+    assert any(r["type"] == dropped for r in import_map._tf_resources(state)), "the mutation target must be in the fixture"
+    original = import_map.UNMAPPED_ON_PURPOSE
+    try:
+        import_map.UNMAPPED_ON_PURPOSE = {k: v for k, v in original.items() if k != dropped}
+        _, _, problems = import_map.build(state, _import_template(**context))
+    finally:
+        import_map.UNMAPPED_ON_PURPOSE = original
+    assert any(dropped in p and "orphaned" in p for p in problems), problems
+
+    # The two secrets are left unmanaged ON PURPOSE, and the reason must say so
+    # — this is a decision, not a mechanism, and it must stay written down.
+    assert "aws_secretsmanager_secret" in import_map.UNMAPPED_ON_PURPOSE
+    assert "NOT owned by CloudFormation" in import_map.UNMAPPED_ON_PURPOSE["aws_secretsmanager_secret"]
 
 
 # ---------------------------------------------------------- the tfvars --
@@ -505,7 +641,7 @@ def test_the_tfvars_are_written_once_and_then_left_alone(tmp_path: Path, monkeyp
 def test_the_runbook_names_tools_that_exist() -> None:
     text = (DOCS / "cdk-cutover.md").read_text(encoding="utf-8")
     named = set(re.findall(r"tools/([A-Za-z0-9_]+\.(?:py|sh))", text))
-    assert {"cutover_preflight.sh", "import_map.py", "tfvars_from_state.py", "terraform_release.sh"} <= named, named
+    assert {"cutover_preflight.sh", "import_map.py", "tfvars_from_state.py", "check_identifiers.py", "terraform_release.sh"} <= named, named
     missing = sorted(n for n in named if not (TOOLS / n).exists())
     assert not missing, f"the runbook names tools that do not exist: {missing}"
     # Steps 1-2 keep the tool's order: context (pass 1), synth, map (pass 3).
@@ -541,6 +677,8 @@ def test_the_preflight_only_reads_from_aws_and_never_applies_terraform() -> None
     text = (TOOLS / "cutover_preflight.sh").read_text(encoding="utf-8")
     code = "\n".join(line for line in text.splitlines() if not re.match(r"\s*(#|info |warn |fail |pass )", line))
     for service, op in re.findall(r"\baws\s+([a-z0-9-]+)\s+([a-z0-9-]+)", code):
+        if service == "configure":
+            continue  # reads the LOCAL credential store; nothing in AWS is touched
         assert op == "get" or op.startswith(("describe-", "get-", "list-", "head-")), f"aws {service} {op} is not a read"
     for op in re.findall(r"\bterraform\s+([a-z-]+)", code):
         assert op in {"version", "init", "show", "state", "plan"}, f"terraform {op} in a read-only preflight"

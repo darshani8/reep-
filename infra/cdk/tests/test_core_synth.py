@@ -187,6 +187,31 @@ def test_old_task_survives_until_the_new_one_is_healthy(hardened: Template) -> N
     )
 
 
+def test_the_service_keeps_both_tasks_in_every_phase(imported: Template, hardened: Template) -> None:
+    """INCIDENT (2026-09-07, the pre-import review, before any import ran):
+    this property was written `100 if harden_ecs else 50`, on the assumption
+    that 50 was live and 100 the improvement. **Live is already 100** —
+    `ecs.tf` never sets it, so 100 is the ECS default. Rendering 50 in the
+    import mirror would have produced a drift row at step 5, the checkpoint
+    whose entire job is to be empty; and step 9a, which still updates this
+    service to flip its ManagedBy tag, would have sent 50 to the live service
+    for the length of the Multi-AZ conversion.
+
+    The database's live values are pinned by
+    `test_import_phase_carries_the_live_database_values_not_the_harden_targets`.
+    Nothing pinned the ECS half. This is that guard: the number is the same in
+    both phases, so it can never appear in a diff, a drift report, or a deploy.
+    """
+    for phase, t in (("import", imported), ("harden", hardened)):
+        service = next(r for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::ECS::Service")["Properties"]
+        assert service["DeploymentConfiguration"]["MinimumHealthyPercent"] == 100, f"{phase} phase renders a value that is not the live 100"
+    # And with the ECS half of harden held back — the step 9a template, the one
+    # that updates the service for its tag while hardenEcs is false.
+    held = _core("harden", hardenEcs="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    service = next(r for r in held.to_json()["Resources"].values() if r["Type"] == "AWS::ECS::Service")["Properties"]
+    assert service["DeploymentConfiguration"]["MinimumHealthyPercent"] == 100, "step 9a would send 50 to the live service mid-conversion"
+
+
 def test_one_retention_number_everywhere(hardened: Template) -> None:
     """RDS automated backups, the daily rule, the DR copy and the vault lock
     all read backupRetentionDays. They were 14 and 35."""
@@ -360,6 +385,39 @@ def test_the_ecs_half_of_harden_can_be_held_back(hardened: Template) -> None:
     )
     task = next(r for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::ECS::TaskDefinition")["Properties"]
     assert "StopTimeout" not in task["ContainerDefinitions"][0]
+
+
+def test_the_database_half_does_not_touch_the_ecs_trio(imported: Template) -> None:
+    """INCIDENT (2026-09-07, the pre-import review): step 9a exists so that an
+    ECS circuit-breaker rollback cannot undo a Multi-AZ conversion in the same
+    stack update. It did not do that. The harden phase flips every resource's
+    ManagedBy tag, and **a task definition is immutable** — changing its tags
+    registers a NEW REVISION, which the service then rolls onto. So 9a
+    modified 46 resources, the task definition, service and target group
+    among them, and would have rolled the API in the same update as the
+    database conversion. The split was a comment, not a property.
+
+    Now it is a property: at `hardenEcs=false` those three resources are
+    byte-identical to the import mirror, so CloudFormation has nothing to send
+    for them.
+    """
+    trio = ("AWS::ECS::TaskDefinition", "AWS::ECS::Service", "AWS::ElasticLoadBalancingV2::TargetGroup")
+    step_9a = _core("harden", hardenEcs="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    before, after = imported.to_json()["Resources"], step_9a.to_json()["Resources"]
+
+    for cfn_type in trio:
+        lid = next(l for l, r in before.items() if r["Type"] == cfn_type)
+        assert before[lid] == after[lid], f"step 9a would update {cfn_type} ({lid}) — that is an API roll during the Multi-AZ conversion"
+
+    # And 9b must still make the changes it is supposed to: the tag flip and
+    # the deregistration delay. A split that never converges is not a split.
+    step_9b = _core("harden", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    final = step_9b.to_json()["Resources"]
+    for cfn_type in trio:
+        lid = next(l for l, r in before.items() if r["Type"] == cfn_type)
+        assert final[lid] != after[lid], f"9b never hardens {cfn_type} — the ECS half would be held back forever"
+        tags = {t["Key"]: t["Value"] for t in final[lid]["Properties"].get("Tags", [])}
+        assert tags.get("ManagedBy") == "cdk", f"{cfn_type} never reaches ManagedBy=cdk"
 
 
 def test_retention_above_the_rds_maximum_is_refused() -> None:

@@ -110,6 +110,52 @@ IDENTIFIERS: dict[str, tuple[str, ...]] = {
 
 _SCALABLE_DIMENSION = "ecs:service:DesiredCount"
 
+#: Terraform resource TYPES that are managed in the state but deliberately have
+#: no resource of their own in the CloudFormation mirror, and WHY. Anything
+#: managed that is not mapped and not named here is reported: after step 6 the
+#: state is released, and a live resource that neither side claims is a
+#: resource nobody will ever manage again.
+#:
+#: This check exists because the preflight's "78 addresses" heuristic was
+#: replaced today with a bare non-zero count, which removed the only
+#: state-to-template coverage check in the repository. The pre-import review
+#: caught the regression. `import_map.py` is the right home: it is the one tool
+#: that reads both sides.
+UNMAPPED_ON_PURPOSE: dict[str, str] = {
+    # Collapse into a property of a resource that IS mapped.
+    "aws_ecr_lifecycle_policy": "rendered as ApiRepo.LifecyclePolicy",
+    "aws_iam_role_policy": "rendered as the role's inline Policies",
+    "aws_iam_role_policy_attachment": "rendered as the role's ManagedPolicyArns",
+    "aws_s3_bucket_lifecycle_configuration": "rendered as the bucket's LifecycleConfiguration",
+    "aws_s3_bucket_public_access_block": "rendered as the bucket's PublicAccessBlockConfiguration",
+    "aws_s3_bucket_versioning": "rendered as the bucket's VersioningConfiguration",
+    # No CloudFormation counterpart at all.
+    "random_password": "a Terraform-only generator; the value it produced lives in the secret",
+    "aws_secretsmanager_secret_version": "the stack references the secrets by ARN and never writes a version",
+    # Owned by a different stack, or created later, ON PURPOSE.
+    "aws_wafv2_web_acl": "imported by the reep-edge-waf stack, in us-east-1",
+    "aws_sns_topic_subscription": "an email subscription cannot be imported; harden re-creates it (SNS dedupes on topic+endpoint)",
+    # LEFT UNMANAGED, and this is the one entry that is a decision rather than
+    # a mechanism. The two secrets hold AUTH_SECRET, DATABASE_URL and the
+    # operator-owned external keys. The stack reads them by ARN and must never
+    # own them: a CloudFormation resource for a secret is a resource
+    # CloudFormation can rewrite, and rewriting AUTH_SECRET signs every student
+    # out and rewriting DATABASE_URL takes the api off its database. After step
+    # 7 no file in the repo declares them, so docs/cdk-cutover.md records their
+    # ARNs, their keys and who fills them.
+    "aws_secretsmanager_secret": "referenced by ARN and deliberately NOT owned by CloudFormation — see the runbook's 'What is left unmanaged'",
+}
+
+#: Template entries that are NOT cloud resources and therefore have no
+#: identifier to import: `AWS::CDK::Metadata` is a base64 analytics string the
+#: CLI appends unless version reporting is off. The synth tests build their
+#: template with `Template.from_stack()`, which does not add it, so the
+#: rehearsal never saw it and the tool refused the first real `cdk synth`
+#: output at step 2 — with credentials in hand, which is the failure the
+#: rehearsal exists to prevent. Skipped here rather than suppressed at synth,
+#: so the tool is correct however the template was produced.
+NON_RESOURCE_TYPES = frozenset({"AWS::CDK::Metadata"})
+
 #: Environment variables the stack renders from context; each is read from the
 #: live container definition so the mirror carries the running values.
 _ENV_TO_CONTEXT = {
@@ -175,12 +221,45 @@ class _Lookup:
     def __init__(self, state: dict[str, Any], problems: list[str]) -> None:
         self.tf = _tf_resources(state)
         self.problems = problems
+        #: Every (type, name, index) this build actually looked at. What is
+        #: never looked at is what nobody wrote a rule for.
+        self.consumed: set[tuple[str, str, Any]] = set()
 
     def one(self, tf_type: str, name: str, index: int | None = None) -> dict[str, Any] | None:
-        return _one(self.tf, tf_type, name, index)
+        found = _one(self.tf, tf_type, name, index)
+        if found is not None:
+            self.consumed.add((tf_type, name, index))
+        return found
+
+    def consume_by(self, tf_type: str, attr: str, value: Any) -> None:
+        """Mark the address of this type whose `attr` equals `value` as read.
+
+        Some resources are mapped by walking the TEMPLATE rather than the state
+        — the alarms by AlarmName, the bucket policies by their bucket — so
+        they are never looked up by Terraform name and would otherwise read as
+        orphans. This records them by the attribute that identifies them.
+        """
+        for r in self.tf:
+            if r["type"] == tf_type and r["values"].get(attr) == value:
+                self.consumed.add((tf_type, r["name"], r.get("index")))
+                return
+
+    def unconsumed(self) -> list[str]:
+        """Managed addresses this build never read and that are not exempt."""
+        missed: list[str] = []
+        for r in self.tf:
+            if r["type"] in UNMAPPED_ON_PURPOSE:
+                continue
+            key = (r["type"], r["name"], r.get("index"))
+            if key in self.consumed or (r["type"], r["name"], None) in self.consumed:
+                continue
+            suffix = "" if r.get("index") is None else f"[{r['index']}]"
+            missed.append(f"{r['type']}.{r['name']}{suffix}")
+        return sorted(missed)
 
     def need(self, tf_type: str, name: str, index: int | None = None) -> dict[str, Any]:
         v = self.one(tf_type, name, index)
+        self.consumed.add((tf_type, name, index))
         if v is None:
             self.problems.append(f"{tf_type}.{name}{'' if index is None else f'[{index}]'} is not in the state")
             return {}
@@ -346,7 +425,17 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
     singles: list[tuple[str, dict[str, Any]]] = [
         ("AWS::EC2::VPC", {"VpcId": vpc.get("id")}),
         ("AWS::EC2::InternetGateway", {"InternetGatewayId": igw.get("id")}),
-        ("AWS::EC2::VPCGatewayAttachment", {"AttachmentType": "internet", "VpcId": vpc.get("id")}),
+        # "IGW", not "internet". AttachmentType is READ-ONLY — Terraform has no
+        # resource to read it from (it models the attachment as `vpc_id` on the
+        # gateway), so it is the one identifier value in the whole map that is
+        # written rather than read, and it was written wrong. CloudFormation
+        # answers `Invalid Attachment Type 'internet'` and the import fails on
+        # this resource. Confirmed against the account, read-only:
+        #   aws cloudcontrol list-resources --type-name AWS::EC2::VPCGatewayAttachment
+        #   -> ["IGW|vpc-010669fa9293137e2", ...]
+        # `tools/check_identifiers.py` now resolves every identifier VALUE the
+        # same way, so an invented one cannot reach an import again.
+        ("AWS::EC2::VPCGatewayAttachment", {"AttachmentType": "IGW", "VpcId": vpc.get("id")}),
         ("AWS::EC2::EIP", {"PublicIp": eip.get("public_ip"), "AllocationId": eip.get("allocation_id") or eip.get("id")}),
         ("AWS::EC2::NatGateway", {"NatGatewayId": nat.get("id")}),
         ("AWS::EFS::FileSystem", {"FileSystemId": fs.get("id")}),
@@ -359,8 +448,14 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
         ("AWS::RDS::DBInstance", {"DBInstanceIdentifier": db.get("identifier")}),
         ("AWS::Backup::BackupVault", {"BackupVaultName": vault.get("name")}),
         ("AWS::Backup::BackupPlan", {"BackupPlanId": plan.get("id")}),
-        # The registry composes this one: <BackupPlanId>_<SelectionId>.
-        ("AWS::Backup::BackupSelection", {"Id": f"{sel.get('plan_id')}_{sel.get('id')}" if sel else None}),
+        # The registry composes this one <SelectionId>_<BackupPlanId> — the
+        # SELECTION first. This was written the other way round, on the same
+        # guess that produced `AttachmentType: "internet"`, and it fails the
+        # same way: `Cannot find Backup plan with ID`. Confirmed against the
+        # account, read-only:
+        #   aws cloudcontrol list-resources --type-name AWS::Backup::BackupSelection
+        #   -> ["f151d9af-…(selection)_86be484d-…(plan)"]
+        ("AWS::Backup::BackupSelection", {"Id": f"{sel.get('id')}_{sel.get('plan_id')}" if sel else None}),
         ("AWS::ElasticLoadBalancingV2::LoadBalancer", {"LoadBalancerArn": alb.get("arn")}),
         ("AWS::ElasticLoadBalancingV2::TargetGroup", {"TargetGroupArn": tg.get("arn")}),
         ("AWS::ECS::Cluster", {"ClusterName": cluster.get("name")}),
@@ -430,11 +525,14 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
         if t == "AWS::S3::BucketPolicy":
             ref = p["Bucket"].get("Ref") if isinstance(p.get("Bucket"), dict) else None
             if ref in mapping:
-                put(lid, Bucket=mapping[ref]["BucketName"])
+                bucket_name = mapping[ref]["BucketName"]
+                put(lid, Bucket=bucket_name)
+                s.consume_by("aws_s3_bucket_policy", "bucket", bucket_name)
             else:
                 problems.append(f"{lid}: bucket policy for an unmapped bucket ({ref})")
         elif t == "AWS::CloudWatch::Alarm":
             put(lid, AlarmName=p.get("AlarmName"))
+            s.consume_by("aws_cloudwatch_metric_alarm", "alarm_name", p.get("AlarmName"))
         elif t == "AWS::ApplicationAutoScaling::ScalingPolicy":
             tf_name = {"cpu-target": "api_cpu", "memory-target": "api_memory"}.get(p.get("PolicyName"))
             pol = one("aws_appautoscaling_policy", tf_name) if tf_name else None
@@ -462,8 +560,17 @@ def build(state: dict[str, Any], template: dict[str, Any]) -> tuple[dict[str, An
                     "default TLS shape, not the live one; synthesise with the context this tool writes (pass 1) and run again"
                 )
 
+    # --- and every managed address must have a home -------------------------
+    # The other direction, and the one that was missing: a live resource that
+    # neither the mirror claims nor UNMAPPED_ON_PURPOSE names is a resource
+    # that step 6 releases and nothing ever manages again.
+    for address in s.unconsumed():
+        problems.append(f"{address}: managed by Terraform, not in the mirror, and not named in UNMAPPED_ON_PURPOSE — it would be released and orphaned at step 6")
+
     # --- every import-phase resource must be mapped -------------------------
     for lid, res in resources.items():
+        if res["Type"] in NON_RESOURCE_TYPES:
+            continue
         if res["Type"] not in IDENTIFIERS:
             problems.append(f"{lid}: type {res['Type']} is not in IDENTIFIERS — it may not be importable at all")
         elif lid not in mapping:

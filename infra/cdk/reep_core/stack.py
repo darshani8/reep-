@@ -259,15 +259,37 @@ class CoreStack(Stack):
         }
         alb_tls = bool(alb_cert_arn.strip())
 
-        Tags.of(self).add("Project", project)
+        # The CloudFront function carries NO tags live — the aws provider has no
+        # tags argument for it, so there was never anything to record. Tagging
+        # it in the mirror is a drift row at step 5 and a TagResource write at
+        # step 9 for a label nobody reads, so it is excluded from both tags in
+        # both phases and stays as it is.
+        untagged = ["AWS::CloudFront::Function"]
+        Tags.of(self).add("Project", project, exclude_resource_types=untagged)
         # The import mirror keeps Terraform's tag so nothing shows MODIFIED for
-        # a label. Harden flips it — except on the EIP, whose tag update the
-        # EC2 docs warn may reassociate the address.
+        # a label. Harden flips it — with two exceptions, both load-bearing.
+        #
+        # 1. The EIP, whose tag update the EC2 docs warn may reassociate the
+        #    address. It keeps ManagedBy=terraform forever.
+        # 2. THE ECS TRIO, while the ECS half is held back. A task definition is
+        #    IMMUTABLE: changing its tags registers a NEW REVISION, and the
+        #    service then rolls onto it. So flipping this tag at step 9a — the
+        #    deploy whose entire purpose is to convert the database to Multi-AZ
+        #    *without* touching the API — would have rolled the service in the
+        #    same CloudFormation update as the conversion, which is the failure
+        #    the two-deploy split exists to prevent. Found by the pre-import
+        #    review, 2026-09-07: 9a modified 46 resources including the task
+        #    definition, the service and the target group. It now modifies
+        #    those three at 9b only, alongside the deregistration-delay change
+        #    and the new revision that step already expects.
+        #    `test_the_database_half_does_not_touch_the_ecs_trio` pins it.
+        ecs_roll_types = ["AWS::ECS::TaskDefinition", "AWS::ECS::Service", "AWS::ElasticLoadBalancingV2::TargetGroup"]
         if harden:
-            Tags.of(self).add("ManagedBy", "cdk", exclude_resource_types=["AWS::EC2::EIP"])
-            Tags.of(self).add("ManagedBy", "terraform", include_resource_types=["AWS::EC2::EIP"])
+            keep_terraform = ["AWS::EC2::EIP"] + ([] if harden_ecs else ecs_roll_types)
+            Tags.of(self).add("ManagedBy", "cdk", exclude_resource_types=keep_terraform + untagged)
+            Tags.of(self).add("ManagedBy", "terraform", include_resource_types=keep_terraform)
         else:
-            Tags.of(self).add("ManagedBy", "terraform")
+            Tags.of(self).add("ManagedBy", "terraform", exclude_resource_types=untagged)
         Aspects.of(self).add(RetainEverything())
 
         # ---------------------------------------------------------- network --
@@ -701,7 +723,15 @@ class CoreStack(Stack):
                     open=False,
                     port=80,
                     protocol=elbv2.ApplicationProtocol.HTTP,
-                    default_action=elbv2.ListenerAction.redirect(port="443", protocol="HTTPS", permanent=True),
+                    # host/path/query are ELB's own defaults and the redirect
+                    # behaves identically without them — but the LIVE listener
+                    # reports them, so a mirror that omits them is a MODIFIED
+                    # drift row at step 5 on a listener, which is the resource
+                    # an operator is most likely to misread as a real error.
+                    # Spelled out so the drift table stays short.
+                    default_action=elbv2.ListenerAction.redirect(
+                        host="#{host}", path="/#{path}", query="#{query}", port="443", protocol="HTTPS", permanent=True
+                    ),
                 )
             )
             listeners.append(
@@ -789,7 +819,24 @@ class CoreStack(Stack):
             health_check_grace_period=Duration.seconds(60),
             circuit_breaker=ecs.DeploymentCircuitBreaker(enable=True, rollback=True),
             # 100/200: the old task is not stopped until the new one is healthy.
-            min_healthy_percent=100 if harden_ecs else 50,
+            #
+            # NOT phase-conditional, and that is the fix for a real mirror
+            # error (2026-09-07, found by the pre-import review). This read
+            # `100 if harden_ecs else 50`, on the assumption that 50 was the
+            # live value and 100 the improvement. **The live service is already
+            # at 100** — `ecs.tf` never sets the property, so 100 is the ECS
+            # default and the refresh recorded it. Rendering 50 in the import
+            # phase would have produced a MODIFIED drift row the runbook does
+            # not list, at the one checkpoint whose whole job is to be empty.
+            # Worse: step 9a (`-c hardenEcs=false`) still flips this service's
+            # ManagedBy tag, so CloudFormation updates the service and sends
+            # the template's DeploymentConfiguration with it — lowering the
+            # live minimum from 100 to 50 for the length of the Multi-AZ
+            # conversion, which is exactly when losing a task hurts most.
+            # Live and target are the same number, so the property now falls
+            # out of every diff. `test_the_service_keeps_both_tasks_in_every_phase`
+            # pins it in BOTH phases.
+            min_healthy_percent=100,
             max_healthy_percent=200,
         )
         service.attach_to_application_target_group(target_group)
@@ -876,7 +923,14 @@ class CoreStack(Stack):
             auto_publish=True,
         )
         oac = cloudfront.S3OriginAccessControl(
-            self, "WebOac", origin_access_control_name=f"{project}-web", signing=cloudfront.Signing.SIGV4_ALWAYS
+            self,
+            "WebOac",
+            origin_access_control_name=f"{project}-web",
+            # The live OAC's description, which is the aws provider's default
+            # when the argument is unset. Omitting it is a drift row at step 5
+            # and a live write at step 9 that clears the field for nothing.
+            description="Managed by Terraform",
+            signing=cloudfront.Signing.SIGV4_ALWAYS,
         )
         api_origin_domain = alb_origin_domain or alb.load_balancer_dns_name
         distribution = cloudfront.Distribution(
@@ -896,7 +950,11 @@ class CoreStack(Stack):
                 else None
             ),
             minimum_protocol_version=(
-                cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021 if domain_name else cloudfront.SecurityPolicyProtocol.TLS_V1
+                # The live distribution was given its alias, certificate and this
+                # policy in the console on 2026-09-02, outside Terraform; the
+                # runbook's refresh recorded it and cdn.tf was edited to match.
+                # The mirror says what is there, not what the first apply chose.
+                cloudfront.SecurityPolicyProtocol.TLS_V1_3_2025 if domain_name else cloudfront.SecurityPolicyProtocol.TLS_V1
             ),
             default_behavior=cloudfront.BehaviorOptions(
                 origin=origins.S3BucketOrigin.with_origin_access_control(web_bucket, origin_access_control=oac, origin_id="web-s3"),

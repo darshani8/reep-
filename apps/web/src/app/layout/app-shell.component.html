@@ -70,13 +70,17 @@
           <a routerLink="/director/institution" routerLinkActive="active">
             <span class="icon" aria-hidden="true">school</span> Institution
           </a>
+          <a routerLink="/director/governance" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">admin_panel_settings</span> Governance
+          </a>
           <a routerLink="/director/jobs" routerLinkActive="active">
             <span class="icon" aria-hidden="true">work</span> Jobs Sheet
           </a>
 
           <!--
             SHORTER THAN THE ROUTE TABLE, like the student nav below. The design's
-            admin sidebar is these six links. Registrations, the Catalogue and
+            admin sidebar is these seven links — Governance joined them with the Main
+            Admin design. Registrations, the Catalogue and
             Placement are still routed — they are reached from the Analytics
             tiles ("pending registration", "Placed") and by bookmark — but they
             are not sidebar destinations.

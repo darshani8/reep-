@@ -276,6 +276,19 @@ export const routes: Routes = [
             (m) => m.DirectorInstitutionComponent,
           ),
       },
+      // Governance: capability grants for staff and student feature switches.
+      // Its own screen rather than a tab on Institution, because the two answer
+      // opposite questions — Institution says who EXISTS, Governance says who
+      // may SEE. Lazy like every other route (AGENTS.md: one re-eager-ed route
+      // fails the bundle budget).
+      {
+        path: 'director/governance',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/governance/governance.component').then(
+            (m) => m.GovernanceComponent,
+          ),
+      },
       // Courses and certifications are ONE screen: a certification only means
       // anything against the course it certifies, so they are read together.
       // Both paths resolve to it rather than leaving one a dead placeholder.

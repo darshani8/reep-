@@ -189,7 +189,9 @@ def main() -> None:
             db.commit()
             print("assigned student to mentor group")
         if stu and mentor and db.scalar(
-            select(MentorNote).where(MentorNote.student_id == stu.id)
+            # Idempotency guard: unfiltered, a soft-deleted note would convince
+            # the seed a note already exists and it would never re-create one.
+            select(MentorNote).where(MentorNote.student_id == stu.id, MentorNote.deleted_at.is_(None))
         ) is None:
             db.add(
                 MentorNote(
@@ -882,7 +884,11 @@ def seed_v2_screens(db, stu, mentor) -> None:
     if mentor is not None:
         titled = 0
         notes = db.scalars(
-            select(MentorNote).where(MentorNote.student_id == stu.id).order_by(MentorNote.meeting_at.desc())
+            # Headings are spent one per note, so a retracted row here would
+            # consume a heading and leave a live note untitled.
+            select(MentorNote)
+            .where(MentorNote.student_id == stu.id, MentorNote.deleted_at.is_(None))
+            .order_by(MentorNote.meeting_at.desc())
         ).all()
         headings = [
             ("1:1 review", "Cabin 3"),

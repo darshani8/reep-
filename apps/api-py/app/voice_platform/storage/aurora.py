@@ -543,14 +543,10 @@ def attach_recording(
     db.flush()
 
 
-def mark_synced(
-    db: Session, session_id: str, *, dynamo: bool | None = None, opensearch: bool | None = None
-) -> None:
+def mark_synced(db: Session, session_id: str, *, dynamo: bool | None = None) -> None:
     row = db.get(PlatformCallSession, session_id)
     if row is None:
         return
     if dynamo is not None:
         row.dynamo_synced = bool(dynamo)
-    if opensearch is not None:
-        row.opensearch_synced = bool(opensearch)
     db.flush()

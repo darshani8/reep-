@@ -4,7 +4,7 @@ WebSocket connections.
 `sentry_sdk` is initialised once in app/main.py when SENTRY_DSN is set; every
 call below is a no-op otherwise (the SDK's own contract), so a laptop and CI
 pay nothing. The FastAPI integration already traces HTTP requests; what it
-does NOT see is a WebSocket's lifetime or the S3/SQS/DynamoDB/OpenSearch/
+does NOT see is a WebSocket's lifetime or the S3/SQS/DynamoDB/
 Bedrock calls made inside it — those are what `transaction` and `span` wrap.
 """
 

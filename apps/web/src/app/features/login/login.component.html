@@ -130,6 +130,50 @@
            deployment renders the note below instead of a form whose every
            submission would 403. -->
       @if (passwordAvailable()) {
+        @if (codeStep(); as step) {
+          <!-- The second step. The password was right; the server withheld the
+               session and emailed a six-digit code instead. Same classes as
+               the form below — this is the same card, one beat later. -->
+          <form class="pw" (ngSubmit)="submitCode()" novalidate>
+            <p class="field__help">
+              We emailed a 6-digit code to <strong>{{ step.email }}</strong>. It expires in
+              {{ step.minutes }} minutes.
+            </p>
+
+            <label class="field">
+              <span class="field__label">Sign-in code</span>
+              <input
+                class="field__input"
+                [class.field__input--err]="!!codeError()"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                name="code"
+                placeholder="123456"
+                [ngModel]="code()"
+                (ngModelChange)="code.set($event)"
+                [attr.aria-invalid]="codeError() ? 'true' : null"
+              />
+            </label>
+            @if (codeError()) {
+              <p class="field__err" role="alert">{{ codeError() }}</p>
+            }
+
+            <button class="btn-primary" type="submit" [disabled]="codeBusy() || code().length !== 6">
+              @if (codeBusy()) {
+                <span class="spinner spinner--light" aria-hidden="true"></span>
+                Verifying…
+              } @else {
+                Verify
+              }
+            </button>
+
+            <div class="row-between">
+              <button type="button" class="linkish" (click)="cancelCode()">Use a different account</button>
+            </div>
+          </form>
+        } @else {
         <form class="pw" [formGroup]="form" (ngSubmit)="submitPassword()" novalidate>
           @if (formError()) {
             <div class="alert alert--error" role="alert">
@@ -206,6 +250,7 @@
             }
           </button>
         </form>
+        }
       } @else {
         <p class="field__help centered">
           This server signs in with Google only. A REEP password, when one is issued to you,

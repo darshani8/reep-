@@ -135,6 +135,11 @@ class Settings(BaseSettings):
     # may already be under attack); an application's confirmation 24 hours.
     activation_link_hours: int = 168
     password_reset_minutes: int = 60
+    # A sign-in one-time code (the second step on password sign-in, see
+    # otp_login_required) lives this long. Short on purpose: the code is six
+    # digits, so its safety is the pairing of a small window with the per-account
+    # attempt budget in app/routers/auth.py.
+    otp_code_minutes: int = 10
     email_verification_hours: int = 24
     # "Forgot password" gets its own caps, per address and overall, or it is a
     # way to send someone a hundred emails.
@@ -167,6 +172,12 @@ class Settings(BaseSettings):
     # this a door rather than a hole: opening it admits exactly the accounts an
     # operator has deliberately issued a password to, and no others.
     password_login: str = ""
+    # Whether a correct password is followed by a SECOND STEP: a six-digit code
+    # emailed to the account, which must be posted to /api/auth/login/code before
+    # a session is issued. Same idiom as password_login — a string that has to
+    # spell "true"; blank, absent or a typo all mean OFF. Read only through
+    # `otp_login_required` below, which also refuses to apply it on dev/CI.
+    otp_required: str = ""
     # Sessions are stateless 12-hour HS256 JWTs, so `POST /api/auth/logout`
     # deleting the cookie does nothing to a token that was already copied (audit
     # M8). A revocation deny-list closes that; this is how long one decision may
@@ -1106,6 +1117,25 @@ class Settings(BaseSettings):
         if text == "false":
             return False
         return None
+
+    @property
+    def otp_login_required(self) -> bool:
+        """Whether POST /api/auth/login answers a correct password with an emailed
+        one-time code instead of a session.
+
+        True ONLY when OTP_REQUIRED spells "true" AND the environment is not one
+        of the dev/CI names — the same allowlist `password_login_allowed` reads.
+        On dev and CI this is ALWAYS False, whatever the variable says:
+        tests/conftest.py's `login` fixture POSTs /api/auth/login and reads the
+        set-cookie header straight off the response, and the whole DB-backed
+        suite signs in through it. A second step there would take the suite
+        with it, and a guard that trips on a laptop gets deleted by whoever is
+        trying to ship that afternoon. Students are unaffected either way: they
+        sign in with Google, which never reaches the password endpoint.
+        """
+        if _is_dev_env(self.env):
+            return False
+        return self.otp_required.strip().lower() == "true"
 
     @property
     def insecure_cookies_allowed(self) -> bool:

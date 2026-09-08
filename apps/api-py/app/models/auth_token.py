@@ -23,6 +23,18 @@ THREE RULES THAT MAKE IT SAFE, from the agreed plan (docs/prototypes/.../passwor
 
 `consumed_at` is kept rather than the row deleted, so a second click can be
 told apart from an expired link and given the right words.
+
+THE SIGN-IN CODE BENDS TWO OF THESE, ON PURPOSE. `token_hash` is globally
+unique (`uq_auth_token_hash`) — right for a 256-bit link, and a 500 waiting
+to happen for a six-digit code, where two people dealt 482913 in the same
+minute, or anyone re-drawing a code consumed last year, would collide on a
+bare `sha256(code)`. So a code's hash is `sha256("login_code:<row id>:<code>")`
+(account_links._hash_code): unique by construction, and findable ONLY by
+(user, purpose), which is the scoping a shared code needs anyway. And a code's
+dead rows are DELETED — its predecessors on re-issue, the last one by
+`account_links.sweep_login_codes` — because /login/code answers one sentence
+for every refusal, so there are no "already used" words to preserve, and one
+permanent row per staff sign-in is a leak.
 """
 
 import uuid
@@ -35,6 +47,12 @@ from ..db import Base
 
 PURPOSE_ACTIVATION = "activation"
 PURPOSE_RESET = "reset"
+# A sign-in one-time code: six digits, minutes to live, hashed WITH its row id
+# (see the module docstring), and found by the user it was issued to, never by
+# hash — a six-digit value is not unique across users, so
+# `consume_user_token`'s hash-only lookup must never be used for one. See
+# account_links.consume_user_code.
+PURPOSE_LOGIN_CODE = "login_code"
 
 
 def _uuid() -> str:
@@ -56,7 +74,10 @@ class AuthToken(Base):
     # at nothing.
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     purpose: Mapped[str] = mapped_column(String)  # PURPOSE_ACTIVATION | PURPOSE_RESET
-    token_hash: Mapped[str] = mapped_column(String)  # sha256 hex, 64 chars — never the raw
+    # sha256 hex, 64 chars — never the raw. For a link, sha256(token); for a
+    # login code, sha256 over the row id AND the code, so the global unique
+    # below can never be tripped by six digits.
+    token_hash: Mapped[str] = mapped_column(String)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

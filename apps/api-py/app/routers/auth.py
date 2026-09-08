@@ -1,6 +1,7 @@
 """Auth endpoints â password sign-in (dev/CI) and Google sign-in (everywhere).
 
   POST /api/auth/login                 -> email + password. REFUSED when ENV=prod.
+  POST /api/auth/login/code            -> the emailed one-time code, when OTP_REQUIRED=true
   GET  /api/auth/sso/status            -> which sign-in doors this server offers
   GET  /api/auth/sso/google            -> begin Google sign-in (302 to Google)
   GET  /api/auth/sso/google/callback   -> finish it (302 back into the SPA)
@@ -76,7 +77,7 @@ first time these three lists were written independently.
 import logging
 import secrets
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
@@ -86,12 +87,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from .. import google_auth
+from ..account_links import consume_user_code, issue_user_token, new_login_code, send_login_code
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
+from ..models.auth_token import PURPOSE_LOGIN_CODE
 from ..models.user import LoginDay, User
 from ..governance import capabilities_for
-from ..schemas.auth import LoginRequest, SessionUser
+from ..schemas.auth import LoginChallenge, LoginCodeRequest, LoginRequest, SessionUser
 from ..security import (
     SESSION_COOKIE,
     SESSION_TTL_SECONDS,
@@ -113,6 +116,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # import (one scrypt, tens of ms, at boot) rather than pasted as a literal that
 # silently rots if the hash format ever changes.
 _TIMING_EQUALIZER_HASH = hash_password(secrets.token_urlsafe(32))
+
+# The same idea for /login/code: an id no `users` row will ever carry, handed
+# to `consume_user_code` when the address is unknown, so that path runs the
+# same SELECT and the same hash-and-compare as a known address with a wrong
+# code. Without it "does this account exist" is answerable with a stopwatch
+# despite the uniform 401 — the SELECT-only branch was ~1 ms quicker.
+_TIMING_EQUALIZER_USER_ID = f"no-such-user-{secrets.token_hex(16)}"
 
 # ---------------------------------------------------------------------------
 # Brute-force limiting for POST /login.
@@ -407,13 +417,13 @@ def _clear_flow_cookie(response: Response) -> None:
     )
 
 
-@router.post("/login", response_model=SessionUser)
+@router.post("/login", response_model=SessionUser | LoginChallenge)
 def login(
     body: LoginRequest,
     request: Request,
     response: Response,
     db: Session = Depends(get_db),
-) -> SessionUser:
+) -> SessionUser | LoginChallenge:
     """Email + password. ALWAYS IN DEV/CI; ELSEWHERE ONLY IF PASSWORD_LOGIN=true.
 
     Google remains the door this codebase recommends, and on a default
@@ -520,6 +530,103 @@ def login(
     # a shared lab machine whose users fat-finger passwords all morning must not
     # lock out the person who types theirs correctly.
     _clear_login_failures(account_key)
+    if settings.otp_login_required:
+        # THE SECOND STEP. The password was right, but no session yet: a
+        # six-digit code goes to the account's mailbox and /login/code is what
+        # turns it into a cookie. Never on dev/CI (the property says why), and
+        # never for a student, who has no password to reach this line with.
+        code, row = issue_user_token(
+            db,
+            user,
+            PURPOSE_LOGIN_CODE,
+            timedelta(minutes=settings.otp_code_minutes),
+            raw=new_login_code(),
+        )
+        # get_db never commits; the row must exist before the mail and before
+        # the client's next request.
+        db.commit()
+        send_login_code(db, user, code, row.id)
+        log.info("POST /api/auth/login -> 200 challenge: one-time code sent to %s", email)
+        return LoginChallenge(email=user.email, expires_in_minutes=settings.otp_code_minutes)
+    _record_login(db, user)
+    payload = _payload_for(user)
+    _issue_session(response, payload)
+    return SessionUser(**payload, capabilities=sorted(capabilities_for(db, payload)))
+
+
+@router.post("/login/code", response_model=SessionUser)
+def login_with_code(
+    body: LoginCodeRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> SessionUser:
+    """The second step: the emailed six-digit code, for the session /login withheld.
+
+    Deliberately does NOT re-check `password_door_open`: the password was
+    verified when the code was issued, and a code can only exist because it
+    was. With OTP_REQUIRED off no code is ever minted, so this endpoint has
+    nothing to spend and refuses everything — harmless, not a door.
+
+    ITS OWN BUDGET, keyed on the account like /login's and for the same reason
+    (see the note above _login_retry_after): behind the ALB every caller is
+    one address. Ten wrong codes in fifteen minutes lock THIS account's code
+    step, not the login screen — and the refusal names Google because that
+    door is not gated by this counter. Only failures count; a right code
+    returns the budget.
+
+    ONE MESSAGE FOR EVERY REFUSAL, AND ONE CLOCK. An unknown address, someone
+    else's code, an expired one and a replay all say "Invalid or expired
+    code." — the endpoint must not become the account-existence oracle /login
+    takes such care not to be — and an unknown address still runs
+    `consume_user_code` against a throwaway user id, so it costs the same
+    round-trips and the same hashing as a wrong code. The consume is
+    user-scoped (`consume_user_code`), because a six-digit code is not unique
+    across accounts.
+    """
+    email = body.email.strip().lower()
+    client_ip = request.client.host if request.client else "unknown"
+    account_key = f"otp:{email}"
+    retry_after = _login_retry_after(account_key)
+    if retry_after is not None:
+        log.warning(
+            "POST /api/auth/login/code -> 429: %d failed codes within %ds for %s (last from %s)",
+            _LOGIN_MAX_FAILURES,
+            _LOGIN_WINDOW_SECONDS,
+            email,
+            client_ip,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Too many failed sign-in attempts. Wait and try again, "
+                "or use Continue with Google."
+            ),
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    user = db.scalar(select(User).where(User.email == email))
+    # The consume runs for BOTH an unknown and a known address — against a user
+    # id nothing carries when unknown — so the two refusals do the same work.
+    # Both are charged, as /login charges an unknown address: an uncharged
+    # path is the one that can be tried forever, which is itself the oracle.
+    spent = consume_user_code(
+        db,
+        user.id if user is not None else _TIMING_EQUALIZER_USER_ID,
+        PURPOSE_LOGIN_CODE,
+        body.code.strip(),
+    )
+    if user is None or not spent:
+        _record_login_failure(account_key)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired code.",
+        )
+
+    _clear_login_failures(account_key)
+    # _record_login commits, which also lands the consumed_at write above: the
+    # spend and the sign-in are one transaction, so a failure here leaves the
+    # code unspent rather than spent-and-refused.
     _record_login(db, user)
     payload = _payload_for(user)
     _issue_session(response, payload)

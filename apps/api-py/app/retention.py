@@ -45,6 +45,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.orm import Session
 
+from .account_links import sweep_login_codes
 from .config import settings
 from .models.agent_run import AgentRun
 from .models.conversation import Conversation, Message
@@ -230,7 +231,16 @@ def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
         # stored audio could not be destroyed. Non-zero here means retention did
         # NOT complete and someone has to look — see _delete_interview_audio.
         "interviews_hard_delete_blocked": 0,
+        # Sign-in codes (auth_tokens, purpose='login_code') dead past their
+        # grace: consumed, or expired unused. Issue deletes a user's earlier
+        # codes, so this is the last code of anyone who stopped signing in.
+        "login_codes_deleted": 0,
     }
+
+    # --- 0) Dead sign-in codes. Not a subject with a lifecycle — a six-digit
+    # code is spent or expired within minutes and the row then says nothing
+    # /login/code will ever read — so a plain delete, on the same run.
+    summary["login_codes_deleted"] = sweep_login_codes(db, now=now)
 
     # --- 1) Soft-delete conversations whose retention window has closed. -------
     expired = db.scalars(

@@ -51,9 +51,17 @@ _SCOPED: Final[frozenset[str]] = frozenset(
 #: a deny-by-default rollout would have removed every mentor's own mentee log on
 #: the deploy that shipped it. A grant is how someone gets what their role does
 #: not already carry, which for a MENTOR is the programme-wide set.
+#: `admin.interview_audio` is the ONE programme-wide capability a DIRECTOR does
+#: not hold by baseline. interview_records.py's gate had been ADMIN-only on
+#: purpose — a recording is an operator's artefact that happens to contain a
+#: named student speaking, and widening it to every placement account was the
+#: exact thing its docstring refused. This keeps that asymmetry (DIRECTOR is 403
+#: by default) while making it GRANTABLE: one person, one reason, on the trail.
+_DIRECTOR: Final[frozenset[str]] = _ALL - {"admin.interview_audio"}
+
 ROLE_BASELINE: Final[dict[str, frozenset[str]]] = {
     "ADMIN": _ALL,
-    "DIRECTOR": _ALL,
+    "DIRECTOR": _DIRECTOR,
     "MENTOR": _SCOPED,
     "STUDENT": frozenset(),
     "ALUMNI": frozenset(),

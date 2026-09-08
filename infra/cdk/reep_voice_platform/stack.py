@@ -39,7 +39,6 @@ from aws_cdk import (
     aws_dynamodb as ddb,
     aws_iam as iam,
     aws_lambda as _lambda,
-    aws_opensearchserverless as aoss,
     aws_s3 as s3,
     aws_s3_notifications as s3n,
     aws_sqs as sqs,
@@ -83,6 +82,16 @@ class VoicePlatformStack(Stack):
             encryption=s3.BucketEncryption.S3_MANAGED,
             enforce_ssl=True,
             removal_policy=RemovalPolicy.RETAIN,
+            # Candidate ingest files are in NO backup plan — the plan's one
+            # selection covers the database and EFS, nothing in S3 — so before
+            # this, an overwritten or deleted roster was gone with no second
+            # copy anywhere. Versioning is the only thing standing behind them.
+            # Deliberately NOT set on `recordings` below: that bucket expires
+            # student voice on a clock, and a non-current version outlives the
+            # delete marker, so versioning there would quietly keep audio past
+            # the retention the student consented to. RETAIN keeps the bucket;
+            # versioning keeps its contents. They are different promises.
+            versioned=True,
         )
         recordings = s3.Bucket(
             self,
@@ -173,77 +182,6 @@ class VoicePlatformStack(Stack):
         # --- The api task role: imported, never redefined ----------------------
         api_role = iam.Role.from_role_name(self, "ApiTaskRole", role_name)
 
-        # --- OpenSearch Serverless: session logs + question vectors ------------
-        collection_name = prefix
-        encryption = aoss.CfnSecurityPolicy(
-            self,
-            "SearchEncryption",
-            name=f"{prefix}-enc",
-            type="encryption",
-            policy=json.dumps(
-                {
-                    "Rules": [{"ResourceType": "collection", "Resource": [f"collection/{collection_name}"]}],
-                    "AWSOwnedKey": True,
-                }
-            ),
-        )
-        network = aoss.CfnSecurityPolicy(
-            self,
-            "SearchNetwork",
-            name=f"{prefix}-net",
-            type="network",
-            # Reached from the api tasks inside the VPC. Public endpoint access is
-            # the simplest working default for Serverless; a VPC endpoint
-            # (CfnVpcEndpoint) tightens it later without a code change.
-            policy=json.dumps(
-                [
-                    {
-                        "Rules": [
-                            {"ResourceType": "collection", "Resource": [f"collection/{collection_name}"]},
-                            {"ResourceType": "dashboard", "Resource": [f"collection/{collection_name}"]},
-                        ],
-                        "AllowFromPublic": True,
-                    }
-                ]
-            ),
-        )
-        collection = aoss.CfnCollection(
-            self, "Search", name=collection_name, type="VECTORSEARCH"
-        )
-        collection.node.add_dependency(encryption)
-        collection.node.add_dependency(network)
-        aoss.CfnAccessPolicy(
-            self,
-            "SearchAccess",
-            name=f"{prefix}-access",
-            type="data",
-            policy=json.dumps(
-                [
-                    {
-                        "Rules": [
-                            {
-                                "ResourceType": "index",
-                                "Resource": [f"index/{collection_name}/*"],
-                                "Permission": [
-                                    "aoss:CreateIndex",
-                                    "aoss:DescribeIndex",
-                                    "aoss:UpdateIndex",
-                                    "aoss:ReadDocument",
-                                    "aoss:WriteDocument",
-                                ],
-                            },
-                            {
-                                "ResourceType": "collection",
-                                "Resource": [f"collection/{collection_name}"],
-                                "Permission": ["aoss:DescribeCollectionItems"],
-                            },
-                        ],
-                        "Principal": [api_role.role_arn],
-                    }
-                ]
-            ),
-        )
-
         # --- What the api task may do --------------------------------------------
         iam.Policy(
             self,
@@ -268,7 +206,6 @@ class VoicePlatformStack(Stack):
                     actions=["dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Query"],
                     resources=[t.table_arn for t in tables.values()],
                 ),
-                iam.PolicyStatement(actions=["aoss:APIAccessAll"], resources=[collection.attr_arn]),
                 iam.PolicyStatement(
                     actions=["cloudwatch:PutMetricData"],
                     resources=["*"],
@@ -323,7 +260,6 @@ class VoicePlatformStack(Stack):
             "PLATFORM_RECORDINGS_BUCKET": recordings.bucket_name,
             "PLATFORM_DYNAMO_UG_TABLE": tables["UG"].table_name,
             "PLATFORM_DYNAMO_PG_TABLE": tables["PG"].table_name,
-            "PLATFORM_OPENSEARCH_ENDPOINT": collection.attr_collection_endpoint,
             "PLATFORM_CLOUDWATCH_NAMESPACE": "REEP/VoicePlatform",
         }
         for name, value in env.items():
@@ -340,5 +276,4 @@ class VoicePlatformStack(Stack):
         self.recordings = recordings
         self.queues = queues
         self.tables = tables
-        self.collection = collection
         self.ingest = ingest

@@ -20,8 +20,13 @@ Module boundaries follow the architecture's `src/` layout one for one:
     storage/     Clients for Aurora PostgreSQL (the SQLAlchemy models in
                  app/models/voice_platform.py), Amazon S3 (recordings +
                  presigned `recording_s3_url`), Amazon DynamoDB (realtime
-                 session state) and Amazon OpenSearch Serverless (searchable
-                 session logs + question vectors).
+                 session state).
+
+                 An Amazon OpenSearch Serverless collection held searchable
+                 session logs and question vectors until 2026-09. Nothing ever
+                 read it — `search`/`knn` had no callers — and the session-log
+                 writer passed raw datetimes to `json.dumps`, so every write
+                 raised TypeError and was swallowed. It cost $361/month.
     monitoring/  CloudWatch loggers/metrics and Sentry spans across the handlers.
 
 WHY INSIDE `app/` AND NOT A SIBLING SERVICE. The engine the architecture names
@@ -30,8 +35,8 @@ close codes and the scorecard live in app/interview_core.py and
 app/interview_nova.py and are pinned by tests. A second service would have to
 copy them, and a copied phase machine drifts the first time either side gains
 a field. The platform therefore ADDS the pieces the diagram has and REEP did
-not — the per-degree catalogue, the queue-fed candidate roster, the S3/Dynamo/
-OpenSearch projections, the stereo recording — and reuses the interviewer.
+not — the per-degree catalogue, the queue-fed candidate roster, the S3 and
+DynamoDB projections, the stereo recording — and reuses the interviewer.
 
 THE TWO RULES STILL HOLD. Rule 1: nothing from a student's record enters the
 model session; the catalogue rows are the placement office's own question

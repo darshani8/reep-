@@ -513,7 +513,7 @@ class Settings(BaseSettings):
     # The dual-path (Undergraduate / Postgraduate) interview platform: per-degree
     # catalogue + Admin CRUD, the /ws/media-bridge socket on the Nova engine,
     # S3 -> Lambda -> SQS candidate ingest, dual-channel call recordings, and
-    # the DynamoDB / OpenSearch projections. EVERY value here is optional and
+    # and the DynamoDB projection. EVERY value here is optional and
     # blank means "that projection is off, honestly": no bucket -> recordings
     # stay on the local audio volume, no queue -> bulk uploads store straight
     # into Postgres, no table -> in-memory session state, no endpoint -> no
@@ -528,9 +528,6 @@ class Settings(BaseSettings):
     platform_dynamo_ug_table: str = ""
     platform_dynamo_pg_table: str = ""
     platform_dynamo_ttl_days: int = 180
-    platform_opensearch_endpoint: str = ""
-    platform_opensearch_sessions_index: str = "candidate-sessions"
-    platform_opensearch_questions_index: str = "question-vectors"
     platform_cloudwatch_log_group: str = ""
     platform_cloudwatch_namespace: str = "REEP/VoicePlatform"
     # The WAV buffer's hard cap per call: 24 kHz PCM16 on two channels is
@@ -928,7 +925,7 @@ class Settings(BaseSettings):
         Unlike `nova_region`, "" is a legitimate answer here: it is handed to
         boto3, which then reads its own configuration (AWS_REGION, a profile,
         the task metadata). It is resolved in one place so the S3, SQS,
-        DynamoDB, OpenSearch and CloudWatch clients cannot disagree.
+        DynamoDB and CloudWatch clients cannot disagree.
         """
         import os
 

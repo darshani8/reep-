@@ -297,10 +297,16 @@ class PlatformCallSession(Base):
     metadata the platform also keeps in DynamoDB (`Undergraduate Sessions` /
     `Postgraduate Sessions`).
 
-    Postgres is the SOURCE OF TRUTH and DynamoDB/OpenSearch are projections,
-    flagged by `dynamo_synced` / `opensearch_synced` — so a deployment with
-    neither configured loses nothing, and one where a projection write failed
-    can be re-synced from here rather than reconstructed from logs.
+    Postgres is the SOURCE OF TRUTH and DynamoDB is a projection, flagged by
+    `dynamo_synced` — so a deployment without it loses nothing, and one where
+    the projection write failed can be re-synced from here rather than
+    reconstructed from logs.
+
+    There was a second projection, OpenSearch, removed in 2026-09. It was
+    never read: its `search`/`knn` helpers had no callers, and the session-log
+    writer passed raw datetimes into `json.dumps`, so every write raised
+    TypeError, was swallowed by "a projection never fails the call", and left
+    `opensearch_synced` false for the life of the feature.
     """
 
     __tablename__ = "platform_call_sessions"
@@ -353,8 +359,5 @@ class PlatformCallSession(Base):
         JSONB, nullable=False, default=dict, server_default=sql_text("'{}'::jsonb")
     )
     dynamo_synced: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default=sql_text("false")
-    )
-    opensearch_synced: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=sql_text("false")
     )

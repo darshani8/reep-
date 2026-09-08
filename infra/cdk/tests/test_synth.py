@@ -62,6 +62,38 @@ def test_recordings_bucket_is_private_encrypted_and_expires_on_a_clock() -> None
     )
 
 
+def test_uploads_is_versioned_and_recordings_deliberately_is_not() -> None:
+    """Versioning is a data-loss guard on one bucket and a privacy leak on the other.
+
+    Neither bucket is in any backup plan — the plan's single selection covers
+    the database and EFS and nothing in S3 — so an overwritten candidate roster
+    in `uploads` had no second copy anywhere. Versioning fixes that.
+
+    `recordings` must NOT follow. It expires student voice on a clock the
+    student consented to, and on a versioned bucket a lifecycle expiration only
+    writes a delete marker: the audio survives as a non-current version. Turning
+    versioning on there would silently keep student voice past its retention,
+    which is the one thing the recording design promises it will not do. This
+    asserts the asymmetry so a later "make the buckets consistent" tidy-up has
+    to read this docstring first.
+    """
+    t = _template()
+    buckets = t.find_resources("AWS::S3::Bucket")
+    versioned = {
+        logical_id: body.get("Properties", {}).get("VersioningConfiguration", {}).get("Status")
+        for logical_id, body in buckets.items()
+    }
+    by_role = {
+        ("recordings" if "LifecycleConfiguration" in body.get("Properties", {}) else "uploads"): logical_id
+        for logical_id, body in buckets.items()
+    }
+    assert versioned[by_role["uploads"]] == "Enabled", "the uploads bucket is the only copy of a candidate roster"
+    assert versioned.get(by_role["recordings"]) is None, (
+        "the recordings bucket must stay unversioned — a non-current version outlives the "
+        "lifecycle delete marker, so versioning keeps student audio past its consented retention"
+    )
+
+
 def test_the_lambda_is_the_queue_package_with_both_queue_urls() -> None:
     t = _template()
     t.has_resource_properties(
@@ -81,11 +113,26 @@ def test_the_lambda_is_the_queue_package_with_both_queue_urls() -> None:
     t.resource_count_is("Custom::S3BucketNotifications", 1)
 
 
-def test_opensearch_collection_is_vectorsearch_with_its_three_policies() -> None:
+def test_no_opensearch_collection_comes_back() -> None:
+    """The collection was REMOVED in 2026-09 and must not return by accident.
+
+    It cost $361/month — 73% of the account's entire bill — and nothing read it.
+    `OpenSearchIndex.search` and `.knn` had zero callers, and the session-log
+    writer passed raw datetimes into `json.dumps`, so every write raised
+    TypeError, was swallowed by "a projection never fails the call", and left
+    `opensearch_synced` false for the life of the feature.
+
+    This is a cost guard, not a style guard: an AOSS collection bills a minimum
+    capacity floor whether or not a single document is ever indexed, so one
+    re-added construct is $361/month with no error message anywhere.
+    """
     t = _template()
-    t.has_resource_properties("AWS::OpenSearchServerless::Collection", {"Name": "reep-voice", "Type": "VECTORSEARCH"})
-    t.resource_count_is("AWS::OpenSearchServerless::SecurityPolicy", 2)
-    t.resource_count_is("AWS::OpenSearchServerless::AccessPolicy", 1)
+    for kind in (
+        "AWS::OpenSearchServerless::Collection",
+        "AWS::OpenSearchServerless::SecurityPolicy",
+        "AWS::OpenSearchServerless::AccessPolicy",
+    ):
+        t.resource_count_is(kind, 0)
 
 
 def test_the_api_task_role_is_imported_and_granted_not_redefined() -> None:
@@ -129,6 +176,6 @@ def test_every_platform_setting_is_published_to_ssm() -> None:
         for k in (
             "PLATFORM_AWS_REGION", "PLATFORM_UG_QUEUE_URL", "PLATFORM_PG_QUEUE_URL",
             "PLATFORM_BULK_UPLOAD_BUCKET", "PLATFORM_RECORDINGS_BUCKET", "PLATFORM_DYNAMO_UG_TABLE",
-            "PLATFORM_DYNAMO_PG_TABLE", "PLATFORM_OPENSEARCH_ENDPOINT", "PLATFORM_CLOUDWATCH_NAMESPACE",
+            "PLATFORM_DYNAMO_PG_TABLE", "PLATFORM_CLOUDWATCH_NAMESPACE",
         )
     }

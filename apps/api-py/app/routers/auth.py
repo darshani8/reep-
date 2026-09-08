@@ -90,6 +90,7 @@ from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.user import LoginDay, User
+from ..governance import capabilities_for
 from ..schemas.auth import LoginRequest, SessionUser
 from ..security import (
     SESSION_COOKIE,
@@ -522,7 +523,7 @@ def login(
     _record_login(db, user)
     payload = _payload_for(user)
     _issue_session(response, payload)
-    return SessionUser(**payload)
+    return SessionUser(**payload, capabilities=sorted(capabilities_for(db, payload)))
 
 
 class SsoStatus(BaseModel):
@@ -822,8 +823,14 @@ def google_callback(
 
 
 @router.get("/me", response_model=SessionUser)
-def me(session: dict = Depends(get_current_session)) -> SessionUser:
-    return SessionUser(**session)
+def me(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> SessionUser:
+    # Two indexed SELECTs per call, and worth it: this is what makes a grant
+    # or a revocation visible without a sign-out, because the claims in the
+    # cookie are deliberately not the place capabilities live.
+    return SessionUser(**session, capabilities=sorted(capabilities_for(db, session)))
 
 
 @router.post("/logout")

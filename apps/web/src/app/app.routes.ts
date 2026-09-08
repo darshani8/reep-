@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { AppShellComponent } from './layout/app-shell.component';
-import { authGuard, homeRedirectGuard, roleGuard } from './core/auth.guard';
+import { authGuard, capabilityGuard, homeRedirectGuard, roleGuard } from './core/auth.guard';
 
 /**
  * Every nav destination in the shell needs a route, or clicking it goes nowhere
@@ -234,7 +234,9 @@ export const routes: Routes = [
       // --- admin (the DIRECTOR/ADMIN roles; the UI calls it Admin) ---
       {
         path: 'director',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        // A capability, not a role: DIRECTOR/ADMIN hold admin.analytics through
+        // the baseline, and a MENTOR reaches this only when granted it.
+        canActivate: [capabilityGuard('admin.analytics')],
         loadComponent: () =>
           import('./features/director/analytics/analytics.component').then(
             (m) => m.DirectorAnalyticsComponent,

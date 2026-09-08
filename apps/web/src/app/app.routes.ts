@@ -278,6 +278,16 @@ export const routes: Routes = [
             (m) => m.DirectorInstitutionComponent,
           ),
       },
+      // Interview Records: every mock interview with the student named and a
+      // download for each recording. Lazy like the rest.
+      {
+        path: 'director/interviews',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/interviews/interviews.component').then(
+            (m) => m.InterviewRecordsComponent,
+          ),
+      },
       // Governance: capability grants for staff and student feature switches.
       // Its own screen rather than a tab on Institution, because the two answer
       // opposite questions — Institution says who EXISTS, Governance says who

@@ -87,6 +87,7 @@ from ..config import settings
 from ..db import SessionLocal, engine
 from ..identity import get_current_session, get_ws_session
 from ..interview_audio import recorder_for
+from .. import tracing
 from ..interview_matrix import Specialization, get_specialization
 from ..interview_core import (
     _CLOSE_CONSENT_REQUIRED,
@@ -1014,7 +1015,28 @@ async def interview(websocket: WebSocket) -> None:
     _LIVE_SESSIONS.add(relay)
     code, reason = _CLOSE_INTERNAL, "Internal error"
     try:
-        code, reason = await relay.run()
+        # ONE TRACE PER INTERVIEW. To the FastAPI integration this handler is a
+        # single upgrade request that never returns, so the eight minutes of
+        # audio, Bedrock turns and database writes inside it were invisible —
+        # the least observable path in the system and also the most complex.
+        # Starting it here rather than at the top of the handler is deliberate:
+        # everything above is the refusal path (auth, consent, the caps), which
+        # is HTTP-shaped and already traced, and a transaction spanning it would
+        # report a five-millisecond 4013 as an interview.
+        #
+        # The engine's spans attach to this without being passed anything: the
+        # SDK carries the active transaction in a context variable, and the
+        # TaskGroup children created inside relay.run() inherit that context.
+        #
+        # Tags only. Nothing here is a student's words.
+        with tracing.transaction(
+            f"interview {getattr(specialization, 'key', None) or 'generic'}",
+            op="websocket.server",
+            conn_id=conn_id,
+            interview_session_id=interview_session_id,
+            engine=engine_cls.__name__,
+        ):
+            code, reason = await relay.run()
     except asyncio.CancelledError:
         # App shutdown that outran the graceful drain. Reported honestly and
         # re-raised: swallowing CancelledError breaks the shutdown it belongs to.

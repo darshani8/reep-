@@ -330,3 +330,33 @@ def test_the_most_specific_feature_override_wins(make_user, cleanup) -> None:
             db.delete(c)
         db.commit()
     cleanup["overrides"].clear()
+
+
+@requires_db
+def test_a_granted_capability_opens_the_analytics_endpoints(client, director, mentor, cleanup) -> None:
+    """THE WIRING. Until this, a grant was recorded and nothing checked it — a
+    mentor granted Analytics was still stopped by role at the API, at the route
+    guard and in the nav. This pins the API half end to end, and the fact that
+    it takes effect WITHOUT a new sign-in: capabilities are resolved live, not
+    carried in the cookie, so the session minted before the grant sees it.
+    """
+    # Before: a mentor is refused, and /me says they hold no admin capability.
+    r = client.get("/api/director/analytics-summary", headers=mentor.headers)
+    assert r.status_code == 403, r.text
+    me = client.get("/api/auth/me", headers=mentor.headers).json()
+    assert "admin.analytics" not in me["capabilities"]
+    assert "mentor.mentees" in me["capabilities"], "the baseline must be reported too"
+
+    r = client.post(f"{GOV}/grants", headers=director.headers, json={
+        "capability": "admin.analytics", "user_ids": [mentor.user_id], "reason": REASON})
+    assert r.status_code == 201, r.text
+    cleanup["grants"] += [g["id"] for g in r.json()]
+
+    # After, on the SAME cookie: the endpoint opens and /me reports it.
+    r = client.get("/api/director/analytics-summary", headers=mentor.headers)
+    assert r.status_code == 200, r.text
+    me = client.get("/api/auth/me", headers=mentor.headers).json()
+    assert "admin.analytics" in me["capabilities"]
+
+    # A director never needed a grant — the baseline carries it.
+    assert client.get("/api/director/analytics-summary", headers=director.headers).status_code == 200

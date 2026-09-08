@@ -15,6 +15,10 @@ export interface SessionPayload {
   studentId?: string;
   mentorId?: string;
   tokenVersion?: number;
+  /// Resolved live by the API on every /login and /me — the role baseline
+  /// plus any grants. Drives the nav and the route guards; every endpoint
+  /// re-decides for itself.
+  capabilities?: string[];
 }
 
 /// Where each role lands after signing in — the port of HOME_FOR_ROLE.

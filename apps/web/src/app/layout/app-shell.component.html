@@ -52,6 +52,14 @@
           <a routerLink="/mentor/agent" routerLinkActive="active">
             <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
           </a>
+          @if (adminLinksHeld().length) {
+            <div class="sec-label">Admin</div>
+            @for (l of adminLinksHeld(); track l.path) {
+              <a [routerLink]="l.path" routerLinkActive="active">
+                <span class="icon" aria-hidden="true">{{ l.icon }}</span> {{ l.label }}
+              </a>
+            }
+          }
         }
         @case ('admin') {
           <a

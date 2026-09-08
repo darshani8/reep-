@@ -47,6 +47,18 @@ WHAT `harden` ADDS, and why each is here rather than in Terraform:
     instance cost, and that is a decision, so it is written down here).
   * The task role may send mail through SES for the college's verified
     identity (activation and reset links, app/mail_transport.py).
+  * BLUE/GREEN, behind `-c blueGreen=true` (default OFF, and only with the ECS
+    half): a second long-lived service `api-green` on target group
+    `reep-api-green`, two colour-pinned task families (`reep-api-blue` on
+    `:blue`, `reep-api-green` on `:green`), and a priority-10 listener RULE
+    whose weighted forward says which colour takes new connections. The
+    deploy workflow rolls the IDLE colour, proves it through header-routed
+    probe rules, then rewrites the rule's two weights; rollback is the same
+    call the other way, in seconds, onto tasks that are already warm. No
+    CodeDeploy and no deployment controller — switching an existing
+    service's controller is a REPLACE of the live service. The existing
+    `api` / `reep-api` pair is kept, name for name, as the blue colour.
+    docs/blue-green-cutover.md.
   * A `MasterUserPassword` NEVER appears in this template. The instance keeps
     the password Terraform generated, held inside the app secret's
     DATABASE_URL. Writing one here would rotate it under the running api. A
@@ -215,6 +227,27 @@ class CoreStack(Stack):
         # half, so an ECS circuit-breaker rollback cannot also undo a Multi-AZ
         # conversion in the same stack update. Step 9 runs them separately.
         harden_ecs = harden and flag("hardenEcs", True)
+        # blueGreen: a SECOND long-lived api service (`api-green`, target group
+        # `reep-api-green`) beside the existing one, and a listener RULE whose
+        # weighted forward decides which colour takes new connections. The
+        # deploy workflow moves traffic by rewriting the rule's two weights;
+        # rollback is the same call the other way. It sits behind hardenEcs
+        # (it relies on the 600 s drain) and DEFAULTS OFF in cdk.json, so an
+        # unintended `cdk deploy reep-core` after 9b cannot also create a second
+        # service, and the import mirror is byte-identical with the key absent.
+        # docs/blue-green-cutover.md is the runbook; every guard is in
+        # tests/test_core_synth.py under "blue/green".
+        blue_green = harden_ecs and flag("blueGreen", False)
+        # liveColour: which colour the RULE's template gives weight 100. It is
+        # co-owned: the workflow rewrites the live weights out of band, and any
+        # later CloudFormation update that touches the rule re-sends THESE. So
+        # this must always say what is live — tools/colour_preflight.sh refuses
+        # a core deploy when it does not.
+        live_colour = str(opt("liveColour", "blue")).strip().lower()
+        if live_colour not in ("blue", "green"):
+            raise ValueError(f"liveColour must be 'blue' or 'green', not {live_colour!r}")
+        self.blue_green = blue_green
+        self.live_colour = live_colour
         github_oidc_arn: str = opt("githubOidcProviderArn", "")
         alert_email: str = opt("alertEmail", "")
         observer_principal: str = opt("observerPrincipalArn", "")
@@ -501,7 +534,14 @@ class CoreStack(Stack):
             ),
         )
         api_repo.apply_removal_policy(RemovalPolicy.RETAIN)
-        api_image = f"{self.account}.dkr.ecr.{self.region}.amazonaws.com/{project}/api:latest"
+        api_image_repo = f"{self.account}.dkr.ecr.{self.region}.amazonaws.com/{project}/api"
+        # `:latest` is the family `reep-api` runs: the nightly retention job and
+        # ops-task.yml's one-offs. Under blue/green the workflow retags it only
+        # AFTER a flip has been proven, so it means "promoted", not "last
+        # pushed"; the two colour families pin `:blue` / `:green`, and a deploy
+        # only ever moves the IDLE colour's tag — which is what makes the live
+        # colour a rollback target made of known bytes.
+        api_image = f"{api_image_repo}:latest"
 
         # --------------------------------------------------------- database --
         db_subnets = rds.CfnDBSubnetGroup(
@@ -727,6 +767,35 @@ class CoreStack(Stack):
             ),
             deregistration_delay=Duration.seconds(DEREGISTRATION_DELAY_SECONDS if harden_ecs else 30),
         )
+        tg_green: elbv2.ApplicationTargetGroup | None = None
+        if blue_green:
+            # The GREEN colour's target group. Blue keeps `reep-api`, name for
+            # name: a target group's Name is create-only, and the live service's
+            # LoadBalancers binding must not move, so the asymmetry in names
+            # (`reep-api` / `reep-api-green`) is the price of never replacing
+            # the live one. Same port, same probe, and the SAME drain constant —
+            # a flip moves only new connections, so the sockets a colour holds
+            # when it goes idle are protected by this delay exactly as before.
+            # test_every_target_group_drains_for_the_whole_interview asserts it
+            # on EVERY target group, not just one.
+            tg_green = elbv2.ApplicationTargetGroup(
+                self,
+                "ApiTargetGroupGreen",
+                vpc=ivpc,
+                target_group_name=f"{project}-api-green",
+                port=3300,
+                protocol=elbv2.ApplicationProtocol.HTTP,
+                target_type=elbv2.TargetType.IP,
+                health_check=elbv2.HealthCheck(
+                    path="/ready",
+                    interval=Duration.seconds(15),
+                    timeout=Duration.seconds(5),
+                    healthy_threshold_count=2,
+                    unhealthy_threshold_count=3,
+                    healthy_http_codes="200",
+                ),
+                deregistration_delay=Duration.seconds(DEREGISTRATION_DELAY_SECONDS),
+            )
         listeners: list[elbv2.ApplicationListener] = []
         if alb_tls:
             listeners.append(
@@ -767,116 +836,235 @@ class CoreStack(Stack):
             listeners.append(
                 alb.add_listener("HttpOrigin", open=False, port=80, protocol=elbv2.ApplicationProtocol.HTTP, default_target_groups=[target_group])
             )
+        # The listener that carries traffic: Https when a certificate is set
+        # (the live shape), the plain-HTTP origin otherwise.
+        traffic_listener = listeners[-1]
+
+        colour_rule: elbv2.ApplicationListenerRule | None = None
+        if blue_green:
+            assert tg_green is not None
+            # THE WEIGHTS LIVE ON A RULE, NOT ON THE LISTENER'S DEFAULT ACTION.
+            # Two reasons. The deploy role then needs `ModifyRule` on this one
+            # rule's ARN rather than `ModifyListener` on the listener — and
+            # ModifyListener has no condition key that limits it to weights, so
+            # it would also let the role change the certificate and the TLS
+            # policy. And CloudFormation only re-sends a property when the
+            # resource's template changed: on the listener, a certificate
+            # rotation would have snapped traffic back to `liveColour`; on a
+            # rule nothing else ever changes, so the reset hazard shrinks to
+            # edits of this rule alone. The listener's default action stays the
+            # plain forward to `reep-api` it has always been, byte for byte —
+            # it is shadowed by this rule and never fires.
+            #
+            # No stickiness: with it, users flipped onto a bad colour would be
+            # pinned there through the rollback. Weights are per NEW connection,
+            # so a flip terminates nothing — an interview socket opened on one
+            # colour finishes on that colour.
+            colour_rule = elbv2.ApplicationListenerRule(
+                self,
+                "ColourRule",
+                listener=traffic_listener,
+                priority=10,
+                conditions=[elbv2.ListenerCondition.path_patterns(["/*"])],
+                action=elbv2.ListenerAction.weighted_forward(
+                    [
+                        elbv2.WeightedTargetGroup(target_group=target_group, weight=100 if live_colour == "blue" else 0),
+                        elbv2.WeightedTargetGroup(target_group=tg_green, weight=100 if live_colour == "green" else 0),
+                    ]
+                ),
+            )
+            # Probe rules, EVALUATED BEFORE the colour rule (lower number wins):
+            # `X-Reep-Colour: green` reaches green whatever the weights say, so
+            # the workflow can prove a candidate through CloudFront (the /api/*
+            # behaviour forwards all viewer headers) before a single weight
+            # moves. Static, CloudFormation-owned, never edited by the workflow.
+            # Anyone can send the header and reach the idle colour: same
+            # authentication, same database, same rule-1 and rule-2 gates, so
+            # the exposure is "a student may briefly use an unpromoted build".
+            for prio, colour, tg in ((1, "blue", target_group), (2, "green", tg_green)):
+                elbv2.ApplicationListenerRule(
+                    self,
+                    f"ProbeRule{colour.capitalize()}",
+                    listener=traffic_listener,
+                    priority=prio,
+                    conditions=[elbv2.ListenerCondition.http_header("X-Reep-Colour", [colour])],
+                    action=elbv2.ListenerAction.forward([tg]),
+                )
 
         # -------------------------------------------------------------- ecs --
         cluster = ecs.Cluster(self, "Cluster", cluster_name=project, vpc=ivpc, container_insights=True)
-        task_def = ecs.FargateTaskDefinition(
-            self,
-            "ApiTaskDef",
-            family=f"{project}-api",
-            cpu=api_cpu,
-            memory_limit_mib=api_memory,
-            # without_policy_updates: the secrets and log-driver helpers would
-            # otherwise attach a generated AWS::IAM::Policy that exists nowhere
-            # and cannot be imported. The inline read-app-secrets policy and the
-            # managed execution policy already cover both.
-            execution_role=task_execution_role.without_policy_updates(),
-            task_role=api_task_role,
-            volumes=[
-                ecs.Volume(
-                    name="data",
-                    efs_volume_configuration=ecs.EfsVolumeConfiguration(
-                        file_system_id=data_fs.ref,
-                        transit_encryption="ENABLED",
-                        authorization_config=ecs.AuthorizationConfig(access_point_id=data_ap.ref, iam="DISABLED"),
-                    ),
-                )
-            ],
-        )
-        secrets = {
-            "AUTH_SECRET": ecs.Secret.from_secrets_manager(app_secret, "AUTH_SECRET"),
-            "DATABASE_URL": ecs.Secret.from_secrets_manager(app_secret, "DATABASE_URL"),
-            "GOOGLE_CLIENT_ID": ecs.Secret.from_secrets_manager(external_secret, "GOOGLE_CLIENT_ID"),
-            "GOOGLE_CLIENT_SECRET": ecs.Secret.from_secrets_manager(external_secret, "GOOGLE_CLIENT_SECRET"),
-            "SENTRY_DSN": ecs.Secret.from_secrets_manager(external_secret, "SENTRY_DSN"),
-            "VOICE_WORKER_SECRET": ecs.Secret.from_secrets_manager(external_secret, "VOICE_WORKER_SECRET"),
-        }
         if harden_ecs and ses_from_address:
             api_environment["SES_FROM_ADDRESS"] = ses_from_address
-        container = task_def.add_container(
-            "api",
-            image=ecs.ContainerImage.from_registry(api_image),
-            essential=True,
-            port_mappings=[ecs.PortMapping(container_port=3300, protocol=ecs.Protocol.TCP)],
-            environment=api_environment,  # WEB_ORIGIN is added below, once the distribution exists
-            secrets=secrets,
-            logging=ecs.LogDrivers.aws_logs(log_group=log_group, stream_prefix="api"),
-            stop_timeout=Duration.seconds(STOP_TIMEOUT_SECONDS) if harden_ecs else None,
-        )
-        container.add_mount_points(ecs.MountPoint(source_volume="data", container_path="/data", read_only=False))
 
-        service = ecs.FargateService(
-            self,
-            "ApiService",
-            service_name="api",
-            cluster=cluster,
-            task_definition=task_def,
-            # No desired_count: Terraform ignores it after creation because
-            # autoscaling owns it. Sending DesiredCount=2 on the harden update
-            # would scale a busy day back to 2. cdk.json's
-            # removeDefaultDesiredCount flag keeps the property out.
-            security_groups=[ec2.SecurityGroup.from_security_group_id(self, "ApiSgRef", api_sg.ref, mutable=False)],
-            vpc_subnets=private_sel,
-            assign_public_ip=False,
-            health_check_grace_period=Duration.seconds(60),
-            circuit_breaker=ecs.DeploymentCircuitBreaker(enable=True, rollback=True),
-            # 100/200: the old task is not stopped until the new one is healthy.
-            #
-            # NOT phase-conditional, and that is the fix for a real mirror
-            # error (2026-09-07, found by the pre-import review). This read
-            # `100 if harden_ecs else 50`, on the assumption that 50 was the
-            # live value and 100 the improvement. **The live service is already
-            # at 100** — `ecs.tf` never sets the property, so 100 is the ECS
-            # default and the refresh recorded it. Rendering 50 in the import
-            # phase would have produced a MODIFIED drift row the runbook does
-            # not list, at the one checkpoint whose whole job is to be empty.
-            # Worse: step 9a (`-c hardenEcs=false`) still flips this service's
-            # ManagedBy tag, so CloudFormation updates the service and sends
-            # the template's DeploymentConfiguration with it — lowering the
-            # live minimum from 100 to 50 for the length of the Multi-AZ
-            # conversion, which is exactly when losing a task hurts most.
-            # Live and target are the same number, so the property now falls
-            # out of every diff. `test_the_service_keeps_both_tasks_in_every_phase`
-            # pins it in BOTH phases.
-            min_healthy_percent=100,
-            max_healthy_percent=200,
-        )
-        service.attach_to_application_target_group(target_group)
-        for lst in listeners:
-            service.node.add_dependency(lst)
-        scaling = service.auto_scale_task_count(min_capacity=api_min, max_capacity=api_max)
-        scaling.scale_on_cpu_utilization(
-            "CpuTarget", target_utilization_percent=60, scale_in_cooldown=Duration.seconds(300), scale_out_cooldown=Duration.seconds(60)
-        )
-        scaling.scale_on_memory_utilization(
-            "MemoryTarget", target_utilization_percent=75, scale_in_cooldown=Duration.seconds(300), scale_out_cooldown=Duration.seconds(60)
-        )
-        # Terraform named the policies; PolicyName is immutable, so the import
-        # must present the same names. scale_on_* returns nothing in this
-        # binding and parents the policy under the service's scaling target,
-        # so the L1s are found by walking the stack and matched on the metric
-        # each one tracks — unambiguous, and independent of CDK's tree layout.
-        def _cfn_policy(predefined_metric: str) -> appscaling.CfnScalingPolicy:
-            for child in self.node.find_all():
-                if isinstance(child, appscaling.CfnScalingPolicy):
-                    cfg = child.target_tracking_scaling_policy_configuration
-                    spec = getattr(cfg, "predefined_metric_specification", None) if cfg is not None else None
-                    if spec is not None and spec.predefined_metric_type == predefined_metric:
-                        return child
-            raise RuntimeError(f"no CfnScalingPolicy tracking {predefined_metric}")
+        def _api_task_def(cid: str, family: str, image_tag: str) -> tuple[ecs.FargateTaskDefinition, ecs.ContainerDefinition]:
+            """One api task definition. ONE helper for the three families
+            (`reep-api`, and under blue/green `reep-api-blue` / `reep-api-green`)
+            so that a colour cannot drift from the image everything else runs:
+            same roles, same EFS volume, same secrets, same environment, same
+            log group, same stopTimeout. Only the family and the tag differ."""
+            td = ecs.FargateTaskDefinition(
+                self,
+                cid,
+                family=family,
+                cpu=api_cpu,
+                memory_limit_mib=api_memory,
+                # without_policy_updates: the secrets and log-driver helpers would
+                # otherwise attach a generated AWS::IAM::Policy that exists nowhere
+                # and cannot be imported. The inline read-app-secrets policy and the
+                # managed execution policy already cover both.
+                execution_role=task_execution_role.without_policy_updates(),
+                task_role=api_task_role,
+                volumes=[
+                    ecs.Volume(
+                        name="data",
+                        efs_volume_configuration=ecs.EfsVolumeConfiguration(
+                            file_system_id=data_fs.ref,
+                            transit_encryption="ENABLED",
+                            authorization_config=ecs.AuthorizationConfig(access_point_id=data_ap.ref, iam="DISABLED"),
+                        ),
+                    )
+                ],
+            )
+            secrets = {
+                "AUTH_SECRET": ecs.Secret.from_secrets_manager(app_secret, "AUTH_SECRET"),
+                "DATABASE_URL": ecs.Secret.from_secrets_manager(app_secret, "DATABASE_URL"),
+                "GOOGLE_CLIENT_ID": ecs.Secret.from_secrets_manager(external_secret, "GOOGLE_CLIENT_ID"),
+                "GOOGLE_CLIENT_SECRET": ecs.Secret.from_secrets_manager(external_secret, "GOOGLE_CLIENT_SECRET"),
+                "SENTRY_DSN": ecs.Secret.from_secrets_manager(external_secret, "SENTRY_DSN"),
+                "VOICE_WORKER_SECRET": ecs.Secret.from_secrets_manager(external_secret, "VOICE_WORKER_SECRET"),
+            }
+            c = td.add_container(
+                "api",
+                image=ecs.ContainerImage.from_registry(f"{api_image_repo}:{image_tag}"),
+                essential=True,
+                port_mappings=[ecs.PortMapping(container_port=3300, protocol=ecs.Protocol.TCP)],
+                environment=dict(api_environment),  # WEB_ORIGIN is added below, once the distribution exists
+                secrets=secrets,
+                logging=ecs.LogDrivers.aws_logs(log_group=log_group, stream_prefix="api"),
+                stop_timeout=Duration.seconds(STOP_TIMEOUT_SECONDS) if harden_ecs else None,
+            )
+            c.add_mount_points(ecs.MountPoint(source_volume="data", container_path="/data", read_only=False))
+            return td, c
 
-        _cfn_policy("ECSServiceAverageCPUUtilization").add_property_override("PolicyName", "cpu-target")
-        _cfn_policy("ECSServiceAverageMemoryUtilization").add_property_override("PolicyName", "memory-target")
+        # `reep-api` on `:latest` is UNCHANGED under blue/green: it stays the
+        # target of the retention schedule and of ops-task.yml, and neither
+        # colour service runs it. The colour families are additions.
+        task_def, container = _api_task_def("ApiTaskDef", f"{project}-api", "latest")
+        containers = [container]
+        task_def_blue = task_def_green = None
+        if blue_green:
+            task_def_blue, c_blue = _api_task_def("ApiTaskDefBlue", f"{project}-api-blue", "blue")
+            task_def_green, c_green = _api_task_def("ApiTaskDefGreen", f"{project}-api-green", "green")
+            containers += [c_blue, c_green]
+
+        # Created ONCE and shared: a second from_security_group_id under the
+        # same construct id would collide, and both colours sit in one group.
+        api_sg_ref = ec2.SecurityGroup.from_security_group_id(self, "ApiSgRef", api_sg.ref, mutable=False)
+
+        # Per-colour deployment alarms (graft from the design review): a
+        # candidate that passes /ready but answers 5xx during its colour's roll
+        # is rolled back BY ECS, before any flip. The alarm objects are created
+        # in the observability section below; the names are deterministic, and
+        # the services take a dependency on the alarms once they exist so the
+        # service update cannot name an alarm that is not there yet.
+        def _deploy_alarm_name(colour: str) -> str:
+            return f"{project}-api-5xx-{colour}"
+
+        def _api_service(cid: str, name: str, td: ecs.FargateTaskDefinition, tg: elbv2.ApplicationTargetGroup, colour: str | None) -> ecs.FargateService:
+            """One api service. Factored so the two colours cannot drift: same
+            network, same grace period, same circuit breaker, same 100/200.
+            Both colours keep 100/200 rather than a cheaper minimum on the idle
+            one — the roles swap every deploy, and the idle colour IS the
+            rollback target, so it must never drop to zero."""
+            svc = ecs.FargateService(
+                self,
+                cid,
+                service_name=name,
+                cluster=cluster,
+                task_definition=td,
+                # No desired_count: Terraform ignores it after creation because
+                # autoscaling owns it. Sending DesiredCount=2 on the harden update
+                # would scale a busy day back to 2. cdk.json's
+                # removeDefaultDesiredCount flag keeps the property out.
+                security_groups=[api_sg_ref],
+                vpc_subnets=private_sel,
+                assign_public_ip=False,
+                health_check_grace_period=Duration.seconds(60),
+                circuit_breaker=ecs.DeploymentCircuitBreaker(enable=True, rollback=True),
+                # 100/200: the old task is not stopped until the new one is healthy.
+                #
+                # NOT phase-conditional, and that is the fix for a real mirror
+                # error (2026-09-07, found by the pre-import review). This read
+                # `100 if harden_ecs else 50`, on the assumption that 50 was the
+                # live value and 100 the improvement. **The live service is already
+                # at 100** — `ecs.tf` never sets the property, so 100 is the ECS
+                # default and the refresh recorded it. Rendering 50 in the import
+                # phase would have produced a MODIFIED drift row the runbook does
+                # not list, at the one checkpoint whose whole job is to be empty.
+                # Worse: step 9a (`-c hardenEcs=false`) still flips this service's
+                # ManagedBy tag, so CloudFormation updates the service and sends
+                # the template's DeploymentConfiguration with it — lowering the
+                # live minimum from 100 to 50 for the length of the Multi-AZ
+                # conversion, which is exactly when losing a task hurts most.
+                # Live and target are the same number, so the property now falls
+                # out of every diff. `test_the_service_keeps_both_tasks_in_every_phase`
+                # pins it in BOTH phases.
+                min_healthy_percent=100,
+                max_healthy_percent=200,
+                # NO deployment_controller. Switching an existing service to
+                # CODE_DEPLOY is a REPLACEMENT of AWS::ECS::Service, which is
+                # the one thing this design exists to avoid. The default (ECS)
+                # is rendered explicitly by the library and pinned by
+                # test_blue_green_never_replaces_the_existing_service.
+                deployment_alarms=(
+                    ecs.DeploymentAlarmConfig(alarm_names=[_deploy_alarm_name(colour)], behavior=ecs.AlarmBehavior.ROLLBACK_ON_ALARM)
+                    if colour
+                    else None
+                ),
+            )
+            svc.attach_to_application_target_group(tg)
+            for lst in listeners:
+                svc.node.add_dependency(lst)
+            scaling = svc.auto_scale_task_count(min_capacity=api_min, max_capacity=api_max)
+            scaling.scale_on_cpu_utilization(
+                "CpuTarget", target_utilization_percent=60, scale_in_cooldown=Duration.seconds(300), scale_out_cooldown=Duration.seconds(60)
+            )
+            scaling.scale_on_memory_utilization(
+                "MemoryTarget", target_utilization_percent=75, scale_in_cooldown=Duration.seconds(300), scale_out_cooldown=Duration.seconds(60)
+            )
+
+            # Terraform named the policies; PolicyName is immutable, so the import
+            # must present the same names. scale_on_* returns nothing in this
+            # binding and parents the policy under the service's scaling target,
+            # so the L1s are found by walking THIS SERVICE's subtree and matched
+            # on the metric each one tracks. Walking the whole stack — which is
+            # what this did with one service — returns the first match, so with
+            # two services it would rename blue's policy twice and green's never,
+            # and a PolicyName change is a REPLACE of the live scaling policy.
+            # Policy names are scoped per scalable target, so both services may
+            # call theirs `cpu-target`.
+            def _cfn_policy(predefined_metric: str) -> appscaling.CfnScalingPolicy:
+                for child in svc.node.find_all():
+                    if isinstance(child, appscaling.CfnScalingPolicy):
+                        cfg = child.target_tracking_scaling_policy_configuration
+                        spec = getattr(cfg, "predefined_metric_specification", None) if cfg is not None else None
+                        if spec is not None and spec.predefined_metric_type == predefined_metric:
+                            return child
+                raise RuntimeError(f"no CfnScalingPolicy tracking {predefined_metric} under {cid}")
+
+            _cfn_policy("ECSServiceAverageCPUUtilization").add_property_override("PolicyName", "cpu-target")
+            _cfn_policy("ECSServiceAverageMemoryUtilization").add_property_override("PolicyName", "memory-target")
+            return svc
+
+        # The existing service keeps its logical id, its name and its target
+        # group. Under blue/green it becomes the BLUE colour: the only property
+        # that changes is the task definition (`reep-api-blue`, the same image
+        # bytes retagged), which is one ordinary in-place roll at the cutover.
+        service = _api_service("ApiService", "api", task_def_blue if blue_green else task_def, target_group, "blue" if blue_green else None)
+        service_green: ecs.FargateService | None = None
+        if blue_green:
+            assert task_def_green is not None and tg_green is not None
+            service_green = _api_service("ApiServiceGreen", "api-green", task_def_green, tg_green, "green")
 
         # The nightly retention job: the api image, one-off, `app.retention_job`.
         scheduler_role = iam.Role(
@@ -1004,7 +1192,8 @@ class CoreStack(Stack):
             },
         )
         web_origin = f"https://{domain_name}" if domain_name else f"https://{distribution.distribution_domain_name}"
-        container.add_environment("WEB_ORIGIN", web_origin)
+        for c in containers:  # every family, or a colour would build links to the wrong origin
+            c.add_environment("WEB_ORIGIN", web_origin)
 
         # ----------------------------------------------------- observability --
         alarm_action = cw_actions.SnsAction(alerts)
@@ -1077,6 +1266,59 @@ class CoreStack(Stack):
                              dimensions_map={"ClusterName": project, "ServiceName": "api"}),
             threshold=85, periods=3, op=cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
         )
+        if blue_green:
+            assert tg_green is not None and service_green is not None
+            # Two colours means the alarms above see HALF the picture after
+            # every odd-numbered deploy: `reep-no-healthy-api` and
+            # `reep-api-cpu-at-max` are keyed on blue's target group and
+            # service. These are their green twins, plus the one alarm that
+            # neither per-colour alarm can express — the ALB's OWN 5xx, which
+            # is what "the live colour has no healthy target" looks like from
+            # the outside. Shipped in the same change as the second service,
+            # never later.
+            alarm(
+                "NoHealthyApiGreenAlarm",
+                name=f"{project}-no-healthy-api-green",
+                description="Fewer than one healthy api-green task. If green is live the dashboard is down; if idle, the rollback target is dead.",
+                metric=cw.Metric(namespace="AWS/ApplicationELB", metric_name="HealthyHostCount", statistic="Minimum",
+                                 period=Duration.minutes(1),
+                                 dimensions_map={"LoadBalancer": alb.load_balancer_full_name, "TargetGroup": tg_green.target_group_full_name}),
+                threshold=1, periods=3, op=cw.ComparisonOperator.LESS_THAN_THRESHOLD, missing=cw.TreatMissingData.BREACHING, ok=True,
+            )
+            alarm(
+                "AlbElb5xxAlarm",
+                name=f"{project}-alb-elb-5xx",
+                description="The ALB itself answered 5xx - the live colour has no healthy target, or the flip landed on an empty one. Rollback: Actions -> Rollback.",
+                metric=cw.Metric(namespace="AWS/ApplicationELB", metric_name="HTTPCode_ELB_5XX_Count", statistic="Sum",
+                                 period=Duration.minutes(1), dimensions_map={"LoadBalancer": alb.load_balancer_full_name}),
+                threshold=10, periods=1, op=cw.ComparisonOperator.GREATER_THAN_THRESHOLD, missing=cw.TreatMissingData.NOT_BREACHING,
+            )
+            alarm(
+                "ApiCpuPeggedGreenAlarm",
+                name=f"{project}-api-green-cpu-at-max",
+                description="CPU high on api-green while autoscaling should have absorbed it - likely at api_max_tasks.",
+                metric=cw.Metric(namespace="AWS/ECS", metric_name="CPUUtilization", statistic="Average", period=Duration.minutes(5),
+                                 dimensions_map={"ClusterName": project, "ServiceName": "api-green"}),
+                threshold=85, periods=3, op=cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
+            )
+            # The per-colour target 5xx alarms each service's DeploymentConfiguration
+            # names (ROLLBACK_ON_ALARM). A colour rolls only while it is idle, so
+            # the traffic that can trip this during a roll is the smoke task and
+            # the header-routed probes — which is the point: a candidate that
+            # 5xxs the probe is rolled back by ECS before any weight moves.
+            # Missing data is NOT breaching, so an idle colour with no traffic
+            # never blocks its own deployment.
+            for colour, tg, svc in (("blue", target_group, service), ("green", tg_green, service_green)):
+                a = alarm(
+                    f"Api5xx{colour.capitalize()}Alarm",
+                    name=_deploy_alarm_name(colour),
+                    description=f"Target 5xx on the {colour} colour. Named in api{'-green' if colour == 'green' else ''}'s deployment alarms: ECS rolls the deployment back on ALARM.",
+                    metric=cw.Metric(namespace="AWS/ApplicationELB", metric_name="HTTPCode_Target_5XX_Count", statistic="Sum",
+                                     period=Duration.minutes(1),
+                                     dimensions_map={"LoadBalancer": alb.load_balancer_full_name, "TargetGroup": tg.target_group_full_name}),
+                    threshold=5, periods=1, op=cw.ComparisonOperator.GREATER_THAN_THRESHOLD, missing=cw.TreatMissingData.NOT_BREACHING,
+                )
+                svc.node.add_dependency(a)
         if harden:
             # The backup that silently stopped happening is the one that hurts —
             # and a backup, a copy and a restore test are three different jobs
@@ -1142,6 +1384,43 @@ class CoreStack(Stack):
         subjects = [f"repo:{gh_repo}:ref:{gh_ref}"]
         if gh_repo_ids:
             subjects.insert(0, f"repo:{gh_repo_ids}:ref:{gh_ref}")
+        # What the deploy role may roll and run. Under blue/green: both colour
+        # services, and one-off tasks on all three families (migrations and
+        # the smoke task run on the IDLE colour's family, so they exercise the
+        # candidate image). The role still holds NO CodeDeploy, CloudFormation,
+        # RDS, Backup or IAM-write right; test_the_deploy_role_still_has_no_codedeploy_cloudformation_or_rds
+        # keeps it that way.
+        deploy_services = [service.service_arn] + ([service_green.service_arn] if service_green is not None else [])
+        deploy_families = [f"{project}-api"] + ([f"{project}-api-blue", f"{project}-api-green"] if blue_green else [])
+        in_this_cluster = {"ArnEquals": {"ecs:cluster": cluster.cluster_arn}}
+        blue_green_statements: list[iam.PolicyStatement] = []
+        if blue_green:
+            assert colour_rule is not None
+            blue_green_statements = [
+                # ELBv2's Describe* actions are not resource-scopable.
+                iam.PolicyStatement(
+                    sid="ReadTheColours",
+                    actions=[
+                        "elasticloadbalancing:DescribeListeners", "elasticloadbalancing:DescribeRules",
+                        "elasticloadbalancing:DescribeTargetGroups", "elasticloadbalancing:DescribeTargetHealth",
+                    ],
+                    resources=["*"],
+                ),
+                # THE FLIP. ModifyRule on this one rule's ARN — never
+                # ModifyListener, which would also let the role change the
+                # listener's certificate and TLS policy. This role can move
+                # production traffic between the two colours and nothing else
+                # on the ALB.
+                iam.PolicyStatement(sid="FlipTheColour", actions=["elasticloadbalancing:ModifyRule"], resources=[colour_rule.listener_rule_arn]),
+                # The rollback workflow reports what the idle colour is running
+                # before it moves anything; the smoke step stops a task that
+                # hangs past its budget. Both scoped to the cluster.
+                iam.PolicyStatement(sid="ListAndStopTasksInTheCluster", actions=["ecs:ListTasks", "ecs:StopTask"], resources=["*"], conditions=in_this_cluster),
+                # The post-flip watch reads the ALB alarms and flips back on
+                # ALARM; the smoke step prints the task's log lines.
+                iam.PolicyStatement(sid="WatchTheAlarms", actions=["cloudwatch:DescribeAlarms"], resources=["*"]),
+                iam.PolicyStatement(sid="ReadTheSmokeLog", actions=["logs:GetLogEvents", "logs:FilterLogEvents"], resources=[log_group.log_group_arn]),
+            ]
         deploy_role = iam.Role(
             self,
             "GithubDeployRole",
@@ -1168,14 +1447,15 @@ class CoreStack(Stack):
                             ],
                             resources=[api_repo.attr_arn],
                         ),
-                        iam.PolicyStatement(sid="RollTheService", actions=["ecs:UpdateService", "ecs:DescribeServices"], resources=[service.service_arn]),
+                        iam.PolicyStatement(sid="RollTheService", actions=["ecs:UpdateService", "ecs:DescribeServices"], resources=deploy_services),
                         iam.PolicyStatement(
                             sid="RunOneOffTasks",
                             actions=["ecs:RunTask"],
-                            resources=[f"arn:aws:ecs:{self.region}:{self.account}:task-definition/{project}-api:*"],
-                            conditions={"ArnEquals": {"ecs:cluster": cluster.cluster_arn}},
+                            resources=[f"arn:aws:ecs:{self.region}:{self.account}:task-definition/{family}:*" for family in deploy_families],
+                            conditions=in_this_cluster,
                         ),
                         iam.PolicyStatement(sid="WatchThoseTasks", actions=["ecs:DescribeTasks", "ecs:DescribeTaskDefinition"], resources=["*"]),
+                        *blue_green_statements,
                         iam.PolicyStatement(
                             sid="HandTheTaskItsRoles",
                             actions=["iam:PassRole"],
@@ -1204,6 +1484,15 @@ class CoreStack(Stack):
         CfnOutput(self, "DbEndpoint", value=db.attr_endpoint_address)
         CfnOutput(self, "GithubDeployRoleArn", value=deploy_role.role_arn)
         CfnOutput(self, "BackupVaultArn", value=vault.attr_backup_vault_arn)
+        if blue_green:
+            assert colour_rule is not None and tg_green is not None
+            # The workflow's repository variable ALB_COLOUR_RULE_ARN comes from
+            # here, like every other value deploy.yml needs — never typed.
+            CfnOutput(self, "ColourRuleArn", value=colour_rule.listener_rule_arn)
+            CfnOutput(self, "TrafficListenerArn", value=traffic_listener.listener_arn)
+            CfnOutput(self, "ApiTargetGroupArn", value=target_group.target_group_arn)
+            CfnOutput(self, "ApiTargetGroupGreenArn", value=tg_green.target_group_arn)
+            CfnOutput(self, "LiveColourInTemplate", value=live_colour)
 
         # TAGS GO ON THE CHILDREN, NEVER ON THE STACK, AND THIS IS NOT A STYLE
         # CHOICE. `Tags.of(stack).add(...)` tags the Stack itself as well as its
@@ -1226,5 +1515,7 @@ class CoreStack(Stack):
 
         self.distribution = distribution
         self.service = service
+        self.service_green = service_green
+        self.colour_rule = colour_rule
         self.db = db
         self.vault = vault

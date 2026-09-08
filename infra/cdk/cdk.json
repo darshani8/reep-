@@ -25,6 +25,8 @@
     "backupRetentionDays": 35,
     "dbMultiAz": true,
     "vaultLockCompliance": false,
+    "blueGreen": false,
+    "liveColour": "blue",
     "@aws-cdk/aws-ecs:removeDefaultDesiredCount": true,
     "@aws-cdk/aws-ecs:removeDefaultDeploymentAlarm": true
   }

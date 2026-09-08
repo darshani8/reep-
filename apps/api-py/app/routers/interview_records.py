@@ -69,6 +69,7 @@ from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 from ..document_store import content_disposition
+from ..governance import require_capability
 from ..interview_audio import (
     TRACK_MIXED,
     TRACKS,
@@ -842,11 +843,11 @@ def student_interview_report(
 
 
 # ---------------------------------------------------------------------------
-_DEVELOPERS = {"ADMIN"}
 
 
-def _require_developer(session: dict) -> dict:
-    """ADMIN only — deliberately NARROWER than require_director.
+def _require_developer(session: dict, db: Session) -> dict:
+    """The `admin.interview_audio` capability — ADMIN by baseline, a DIRECTOR only
+    when explicitly granted it. Still deliberately NARROWER than require_director.
 
     Every other staff read in this module is placement business: a DIRECTOR runs
     the programme and needs a student's scores, transcript and history to do it.
@@ -862,15 +863,17 @@ def _require_developer(session: dict) -> dict:
     placement account, for no question they cannot already answer from the
     transcript.
 
-    There is no DEVELOPER role in `Role` and this does not invent one. ADMIN is
-    the account that operates the deployment; if a DEVELOPER role is ever added,
-    add it to _DEVELOPERS here and nowhere else.
+    WHAT CHANGED (2026-09): the check is a CAPABILITY, not a role set. ADMIN
+    holds it through ROLE_BASELINE, so nothing an administrator could do moved.
+    DIRECTOR is the one role whose baseline EXCLUDES it (app/governance.py), so a
+    director still gets 403 here and 200 everywhere else in this file — the
+    asymmetry above survives intact. What is new is that an admin can now grant
+    it to a named director, with a reason, on the audit trail, for the one
+    placement officer who genuinely needs to hear a session — rather than the
+    only options being "every director" or "nobody". The 403 names the
+    capability and where to ask for it, instead of a dead end.
     """
-    if session.get("role") not in _DEVELOPERS:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Recordings are available to the system administrator only.",
-        )
+    require_capability(db, session, "admin.interview_audio")
     return session
 
 
@@ -922,8 +925,9 @@ def student_interview_audio(
     """Stream one track of a stored interview recording. Defaults to the MIX.
 
     BOTH gates and then some, in this order and for three different questions:
-    `_require_developer` says WHICH ROLE may hear a recording at all — ADMIN,
-    narrower than every other read in this module, see its docstring —
+    `_require_developer` says WHO may hear a recording at all — the
+    `admin.interview_audio` capability: ADMIN by baseline, a director only by
+    an explicit grant; narrower than every other read in this module —
     `_assert_can_access_student` says WHICH STUDENT this caller may read — an
     ADMIN still cannot reach a student who does not exist, and a DIRECTOR or a
     MENTOR in the right group still gets 403 — and `_session_of_student_or_404` says the
@@ -955,7 +959,7 @@ def student_interview_audio(
     admin cannot tell "this interview was not recorded" from "that is not a
     real id"; the same no-existence-leak rule the rest of this module follows.
     """
-    _require_developer(session)
+    _require_developer(session, db)
     _assert_can_access_student(session, student_id, db)
     row = _session_of_student_or_404(db, session_id, student_id)
 

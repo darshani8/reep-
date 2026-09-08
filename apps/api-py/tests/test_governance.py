@@ -360,3 +360,45 @@ def test_a_granted_capability_opens_the_analytics_endpoints(client, director, me
 
     # A director never needed a grant — the baseline carries it.
     assert client.get("/api/director/analytics-summary", headers=director.headers).status_code == 200
+
+
+@requires_db
+def test_interview_audio_is_a_capability_a_director_must_be_granted(client, director, make_user, cleanup) -> None:
+    """The recording gate: ADMIN by baseline, DIRECTOR only by explicit grant.
+
+    interview_records.py had `_DEVELOPERS = {"ADMIN"}` and a docstring refusing
+    to widen to require_director — every placement account would then hold the
+    most sensitive bytes REEP stores. That asymmetry must SURVIVE the move to a
+    capability, which is why DIRECTOR's baseline excludes exactly this one.
+
+    404, not 200, is the pass signal past the gate: the session id here is
+    invented, and the route answers 404 for "no such recording" identically to
+    "not a real id", by design. What matters is that 403 becomes 404 — the gate
+    opened — and that it does so for an ADMIN with no grant and for a DIRECTOR
+    only after one.
+    """
+    from app.models.user import Student
+
+    stu = make_user(f"gov-aud-{uuid.uuid4().hex[:4]}")
+    with SessionLocal() as db:
+        sid = db.query(Student).filter(Student.user_id == stu.user_id).one().id
+    url = f"/api/mentor/students/{sid}/interviews/{uuid.uuid4().hex}/audio"
+
+    # A director, ungranted: refused — and told what to ask for.
+    r = client.get(url, headers=director.headers)
+    assert r.status_code == 403, r.text
+    assert "Interview audio" in r.text and "Governance" in r.text
+
+    # An admin, no grant: through on the baseline.
+    admin = make_user(f"gov-adm-{uuid.uuid4().hex[:4]}", Role.ADMIN)
+    assert client.get(url, headers=admin.headers).status_code == 404
+
+    # Grant the director the capability — self-grant is allowed and audited.
+    r = client.post(f"{GOV}/grants", headers=director.headers, json={
+        "capability": "admin.interview_audio", "user_ids": [director.user_id], "reason": REASON})
+    assert r.status_code == 201, r.text
+    cleanup["grants"] += [g["id"] for g in r.json()]
+
+    # Same cookie, no re-login: the gate now opens for the director too.
+    assert client.get(url, headers=director.headers).status_code == 404
+    assert "admin.interview_audio" in client.get("/api/auth/me", headers=director.headers).json()["capabilities"]

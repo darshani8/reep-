@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 import httpx
 
 from ..config import settings
+from ..tracing import span
 
 _LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}
 
@@ -226,9 +227,21 @@ def complete_chat(
         )
 
     if cfg.provider == "bedrock":
-        return _bedrock_complete(
-            cfg, messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens
-        )
+        # `carries_student_data` is recorded as a span attribute deliberately:
+        # it makes rule 1 auditable in the trace — you can see WHICH model calls
+        # carried a student's record and where they went — without any of the
+        # content travelling. The messages themselves are never attached.
+        with span(
+            "llm.complete",
+            f"bedrock {cfg.model}",
+            provider=cfg.provider,
+            model=cfg.model,
+            messages=len(messages),
+            carries_student_data=carries_student_data,
+        ):
+            return _bedrock_complete(
+                cfg, messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens
+            )
 
     payload: dict = {"model": cfg.model, "messages": messages, "temperature": temperature}
     if json_mode:
@@ -240,12 +253,21 @@ def complete_chat(
     if cfg.api_key:
         headers["authorization"] = f"Bearer {cfg.api_key}"
 
-    resp = httpx.post(
-        f"{cfg.base_url}/chat/completions",
-        json=payload,
-        headers=headers,
-        timeout=cfg.timeout_s,
-    )
+    with span(
+        "llm.complete",
+        f"{cfg.provider} {cfg.model}",
+        provider=cfg.provider,
+        model=cfg.model,
+        messages=len(messages),
+        carries_student_data=carries_student_data,
+        timeout_s=cfg.timeout_s,
+    ):
+        resp = httpx.post(
+            f"{cfg.base_url}/chat/completions",
+            json=payload,
+            headers=headers,
+            timeout=cfg.timeout_s,
+        )
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
 

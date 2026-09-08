@@ -267,3 +267,71 @@ def test_recently_reviewed_is_scoped_and_carries_the_decision(client, pair, make
     assert r.status_code == 200 and r.json() == []
     r = client.get("/api/mentor/skill-claims/reviewed", headers=pair.student.headers)
     assert r.status_code == 403
+
+
+@requires_db
+def test_deleting_the_certificate_leaves_the_mentors_verdict_standing(client, pair):
+    """A student removing their own upload must not erase a mentor's assessment.
+
+    `skill_claims.upload_id` was `NOT NULL ... ON DELETE CASCADE`, so
+    `DELETE /api/student/uploads/{id}` took the whole claim with it — the level
+    granted, the reviewer's identity and timestamp, and the note they wrote —
+    silently, with a 204, and with nothing else in the system holding a copy.
+    Neither the student nor the mentor was told.
+
+    The student IS entitled to delete their own certificate; they are not
+    entitled to delete someone else's assessment of it, and one foreign key made
+    those the same act. `badge_evidence.upload_id` already had this right
+    (models/badge.py:355). The claim now survives with a NULL upload_id.
+    """
+    skill_id, _ = new_skill(pair, "outlives")
+
+    up = client.post(
+        "/api/student/uploads",
+        headers=pair.student.headers,
+        files={"file": ("cert.pdf", _PDF, "application/pdf")},
+        data={"kind": "CERTIFICATE_PROOF", "title": "Course certificate"},
+    )
+    assert up.status_code == 201, up.text
+    upload_id = up.json()["id"]
+
+    r = client.post(
+        "/api/student/skill-claims",
+        headers=pair.student.headers,
+        json={"skill_id": skill_id, "upload_id": upload_id, "student_note": "Covers the build."},
+    )
+    assert r.status_code == 201, r.text
+    claim_id = r.json()["id"]
+
+    r = client.post(
+        f"/api/mentor/skill-claims/{claim_id}/review",
+        headers=pair.mentor_headers,
+        json={"decision": "GRANT", "note": "Assessed course, matches the claim."},
+    )
+    assert r.status_code == 200, r.text
+    reviewer_id = r.json()["reviewed_by_id"]
+    assert reviewer_id, "the review must record who made it"
+
+    # The student removes their own certificate. Their right to do so.
+    r = client.delete(f"/api/student/uploads/{upload_id}", headers=pair.student.headers)
+    assert r.status_code == 204, r.text
+
+    # The verdict survives, in full.
+    with SessionLocal() as db:
+        claim = db.get(SkillClaim, claim_id)
+        assert claim is not None, "the mentor's assessment was destroyed with the upload"
+        assert claim.upload_id is None, "the pointer should be cleared, not dangling"
+        assert claim.status.value == "VERIFIED"
+        assert claim.reviewed_by_id == reviewer_id
+        assert claim.review_note == "Assessed course, matches the claim."
+        assert claim.reviewed_at is not None
+
+    # And it is still readable on the mentor's own screen, without a 500 from
+    # the now-absent Upload — the evidence_* fields degrade to None.
+    r = client.get("/api/mentor/skill-claims/reviewed", headers=pair.mentor_headers)
+    assert r.status_code == 200, r.text
+    row = next((c for c in r.json() if c["id"] == claim_id), None)
+    assert row is not None, "the reviewed claim vanished from the mentor's history"
+    assert row["upload_id"] is None
+    assert row["evidence_file_name"] is None
+    assert row["review_note"] == "Assessed course, matches the claim."

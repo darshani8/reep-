@@ -908,7 +908,11 @@ def read_mentor_meetings(
 
     rows = db.scalars(
         select(MentorNote)
-        .where(MentorNote.student_id == student_id)
+        # The student-facing read, and the one that matters most: a retracted
+        # note must leave this screen. Filtering here also fixes the three tiles
+        # derived from `rows` below — meetings_logged, last_meeting and
+        # open_actions — which otherwise keep counting a withdrawn note.
+        .where(MentorNote.student_id == student_id, MentorNote.deleted_at.is_(None))
         .order_by(MentorNote.meeting_at.desc())
     ).all()
 

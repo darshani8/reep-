@@ -1804,7 +1804,10 @@ class SkillClaimOut(BaseModel):
     id: str
     skill_id: str
     skill_name: str
-    upload_id: str
+    # NULL once the student has deleted the certificate this was filed against.
+    # The claim, its level and the mentor's verdict survive; only the pointer to
+    # the file goes. See models/skill.py's comment on the FK.
+    upload_id: str | None
     claimed_level: int
     status: str
     student_note: str | None

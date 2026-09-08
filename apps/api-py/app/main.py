@@ -20,6 +20,7 @@ from .traceability import RequestTraceMiddleware
 from .routers import (
     passwords,
     admin,
+    governance,
     agent,
     alumni,
     auth,
@@ -324,6 +325,11 @@ app.include_router(director.router, prefix="/api")
 # seating a student, and the users.designation/department columns that had no
 # writer at all). require_director inside, same as every other admin surface.
 app.include_router(admin.router, prefix="/api")
+# Governance: capability grants for staff (deny past the role baseline) and
+# student feature overrides (allow until switched off, at any rung of the
+# hierarchy). Two instruments with OPPOSITE defaults, which is why they are one
+# module and not merged into admin.py's institutional writes.
+app.include_router(governance.router, prefix="/api")
 app.include_router(leave.router, prefix="/api")
 # Faculty upskilling (own certificate uploads) and the alumni area (first-login
 # profile + jobs sheet). Both scope every row to the signed-in user; the staff

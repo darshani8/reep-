@@ -2,6 +2,14 @@
   <div class="desktop-titlebar">
     <span class="icon" style="font-size: 14px" aria-hidden="true">school</span>
     REEP · {{ roleLabel() | uppercase }}
+    @if (navKind() !== 'student') {
+      <!-- Staff hold passwords (option B); students sign in with Google and
+           would only meet a 409 here, so the link is not shown to them. -->
+      <a class="titlebar-logout" routerLink="/account/password">
+        <span class="icon" style="font-size: 14px" aria-hidden="true">lock</span>
+        Password
+      </a>
+    }
     <button type="button" class="titlebar-logout" (click)="signOut()">
       <span class="icon" style="font-size: 14px" aria-hidden="true">logout</span>
       Sign out
@@ -44,6 +52,14 @@
           <a routerLink="/mentor/agent" routerLinkActive="active">
             <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
           </a>
+          @if (adminLinksHeld().length) {
+            <div class="sec-label">Admin</div>
+            @for (l of adminLinksHeld(); track l.path) {
+              <a [routerLink]="l.path" routerLinkActive="active">
+                <span class="icon" aria-hidden="true">{{ l.icon }}</span> {{ l.label }}
+              </a>
+            }
+          }
         }
         @case ('admin') {
           <a
@@ -59,13 +75,23 @@
           <a routerLink="/director/mentors" routerLinkActive="active">
             <span class="icon" aria-hidden="true">groups</span> Mentors &amp; Students
           </a>
+          <a routerLink="/director/institution" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">school</span> Institution
+          </a>
+          <a routerLink="/director/governance" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">admin_panel_settings</span> Governance
+          </a>
           <a routerLink="/director/jobs" routerLinkActive="active">
             <span class="icon" aria-hidden="true">work</span> Jobs Sheet
+          </a>
+          <a routerLink="/director/interviews" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">mic</span> Interview Records
           </a>
 
           <!--
             SHORTER THAN THE ROUTE TABLE, like the student nav below. The design's
-            admin sidebar is these six links. Registrations, the Catalogue and
+            admin sidebar is these seven links — Governance joined them with the Main
+            Admin design. Registrations, the Catalogue and
             Placement are still routed — they are reached from the Analytics
             tiles ("pending registration", "Placed") and by bookmark — but they
             are not sidebar destinations.

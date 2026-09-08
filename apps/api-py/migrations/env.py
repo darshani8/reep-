@@ -18,6 +18,26 @@ config.set_main_option("sqlalchemy.url", settings.sqlalchemy_url)
 
 target_metadata = Base.metadata
 
+#: Tables a migration created to PRESERVE DATA it was about to destroy. They
+#: have no model by design — they are an operator's receipt, not part of the
+#: schema — so autogenerate sees them as tables to drop and helpfully proposes
+#: `op.drop_table(...)` in the next migration somebody generates. That would
+#: quietly delete the only copy of the rows, which is the exact opposite of why
+#: the table exists.
+#:
+#: The prefix is the contract: a migration that stashes rows before a
+#: destructive statement names the table `<something>_orphaned_*`, and it then
+#: survives every future autogenerate untouched. Dropping one is a deliberate
+#: act by a person who has looked at the rows.
+_PRESERVED_DATA_TABLES = ("students_orphaned_cohort_ids",)
+
+
+def _include_object(obj, name, type_, reflected, compare_to) -> bool:
+    """Keep data-preservation tables out of autogenerate's diff."""
+    if type_ == "table" and name in _PRESERVED_DATA_TABLES:
+        return False
+    return True
+
 
 def run_migrations_offline() -> None:
     context.configure(
@@ -26,6 +46,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        include_object=_include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -42,6 +63,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
+            include_object=_include_object,
         )
         with context.begin_transaction():
             context.run_migrations()

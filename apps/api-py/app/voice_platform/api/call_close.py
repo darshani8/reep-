@@ -1,6 +1,6 @@
 """The call-close handler: package the WAV buffer, upload the dual-channel
 recording, mint nothing (URLs are derived on read), and project the closed
-session to DynamoDB and OpenSearch.
+session to DynamoDB.
 
 Called from two places with the same arguments: the media bridge's `finally`
 (the normal path) and `POST /api/platform/calls/{id}/close` (the socket died
@@ -31,7 +31,6 @@ from ...models.interview import InterviewTurn
 from ..monitoring import sentry
 from ..monitoring.cloudwatch import get_logger, put_metric
 from ..storage import aurora
-from ..storage import opensearch as os_store
 from ..storage.dynamodb import session_store_for
 from ..storage.s3 import RecordingStoreError, recording_store
 from ..streaming import buffer as wav_buffer
@@ -57,7 +56,6 @@ class CloseReport:
     channels: str = "dual"
     extra_keys: list[str] = field(default_factory=list)
     dynamo_synced: bool = False
-    opensearch_synced: bool = False
     notes: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
@@ -135,7 +133,7 @@ def _persist_close(
     turns: int | None,
     mix: MixResult | None,
 ) -> None:
-    """Worker thread: Postgres, S3, DynamoDB, OpenSearch — in that order, each
+    """Worker thread: Postgres, S3, DynamoDB — in that order, each
     step recorded on the report whether or not it succeeded."""
     db = SessionLocal()
     try:
@@ -259,10 +257,7 @@ def _persist_close(
         with sentry.span("aws.dynamodb", "update_item"):
             store = session_store_for(degree_level)
             report.dynamo_synced = bool(store.update(row.id, doc)) and store.name != "memory"
-        with sentry.span("aws.opensearch", "index"):
-            index = os_store.search_index()
-            report.opensearch_synced = os_store.index_session_log(index, dict(doc, transcript=transcript))
-        aurora.mark_synced(db, row.id, dynamo=report.dynamo_synced, opensearch=report.opensearch_synced)
+        aurora.mark_synced(db, row.id, dynamo=report.dynamo_synced)
         db.commit()
     finally:
         db.close()

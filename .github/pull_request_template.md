@@ -136,7 +136,7 @@ way CI asks them, from a throwaway venv built from the manifest alone; without i
 run in your existing venvs, which is a weaker question and the script says so.
 
 - [ ] All four pass locally — **exit 0, not exit 2** — or all four are green on this PR.
-- [ ] If a dependency was added, it is in the right manifest: `requirements.txt` is runtime-only and pinned `==` (it is what the Dockerfile installs), `requirements-dev.txt` is test-only, `requirements-voice.txt` is the worker's. "API (dependency completeness)" installs `requirements.txt` ALONE, so a lazy import inside a request handler does not save you.
+- [ ] If a dependency was added, it is in the right manifest: `requirements.txt` is runtime-only and pinned `==` (it is what the Dockerfile installs), `requirements-dev.txt` is test-only. "API (dependency completeness)" installs `requirements.txt` ALONE, so a lazy import inside a request handler does not save you.
 - [ ] No route in `apps/web/src/app/app.routes.ts` was changed from `loadComponent` to a static `component:`. One re-eager-ed route fails `ng build` on the bundle budget.
 
 ## What a reviewer should look at twice

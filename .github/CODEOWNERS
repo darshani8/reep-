@@ -65,10 +65,10 @@ apps/api-py/app/ai/agents.py            @darshani8
 # the diff is three lines that look like dead-code removal.
 apps/api-py/app/routers/mentor.py       @darshani8
 
-# Rule 2's SECOND implementation: `assert_student_scope` at policies.py:73.
-# Two functions answering one question is how they drift apart, and nothing
-# currently asserts that they agree — listed here so a change to either is at
-# least visible as a change to the pair.
+# Rule 2's BODY: `assert_student_scope` at policies.py:73. It was once a second,
+# independent implementation beside mentor.py's `_assert_can_access_student`;
+# that name is now a pure delegate to this one, and tests/test_codebase_guards.py
+# pins it as a delegate — so a change to rule 2 is a change here, and only here.
 apps/api-py/app/policies.py             @darshani8
 
 # ---------------------------------------------------------------------------

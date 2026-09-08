@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     DateTime,
     Enum,
     Float,
@@ -50,7 +51,13 @@ class ProgressStatus(str, enum.Enum):
 
 class Course(Base):
     __tablename__ = "courses"
-    __table_args__ = (Index("ix_courses_stage", "stage"),)
+    __table_args__ = (
+        Index("ix_courses_stage", "stage"),
+        CheckConstraint(
+            "semester >= 1 AND teaching_hours >= 0 AND self_learning_hours_required >= 0",
+            name="ck_course_hours",
+        ),
+    )
 
     code: Mapped[str] = mapped_column(String, primary_key=True)  # e.g. 22MBA11
     name: Mapped[str] = mapped_column(String)
@@ -69,6 +76,11 @@ class Enrollment(Base):
     __table_args__ = (
         UniqueConstraint("student_id", "course_code", name="uq_enrollment"),
         Index("ix_enrollment_course", "course_code"),
+        CheckConstraint(
+            "lectures_attended >= 0 AND lectures_total >= 0 AND lectures_attended <= lectures_total "
+            "AND teaching_hours_attended >= 0 AND self_learning_hours_logged >= 0",
+            name="ck_enrollment_counts",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

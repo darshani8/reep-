@@ -15,7 +15,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import type { SessionPayload } from './session';
+import type { LoginChallenge, SessionPayload } from './session';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -27,12 +27,33 @@ export class AuthService {
 
   /// POST the credentials; the backend validates against the same scrypt hash
   /// and sets the session cookie. Returns the session so the caller can route
-  /// by role.
-  async login(email: string, password: string, next?: string): Promise<SessionPayload> {
-    const session = await firstValueFrom(
-      this.http.post<SessionPayload>(
+  /// by role — OR a `LoginChallenge` when the server requires an emailed code
+  /// as a second step, in which case NO cookie was set and nothing is signed
+  /// in until `loginWithCode` succeeds.
+  async login(
+    email: string,
+    password: string,
+    next?: string,
+  ): Promise<SessionPayload | LoginChallenge> {
+    const result = await firstValueFrom(
+      this.http.post<SessionPayload | LoginChallenge>(
         `${environment.apiBase}/auth/login`,
         { email, password, next },
+        { withCredentials: true },
+      ),
+    );
+    if ('otp_required' in result) return result;
+    this._session.set(result);
+    return result;
+  }
+
+  /// The second step: post the six-digit code the server emailed. On success
+  /// the backend sets the same session cookie `login` would have.
+  async loginWithCode(email: string, code: string): Promise<SessionPayload> {
+    const session = await firstValueFrom(
+      this.http.post<SessionPayload>(
+        `${environment.apiBase}/auth/login/code`,
+        { email, code },
         { withCredentials: true },
       ),
     );

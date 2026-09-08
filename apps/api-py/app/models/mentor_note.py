@@ -32,7 +32,7 @@ class MentorNote(Base):
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
-    mentor_id: Mapped[str] = mapped_column(ForeignKey("mentors.id", ondelete="CASCADE"))
+    mentor_id: Mapped[str] = mapped_column(ForeignKey("mentors.id", ondelete="CASCADE"), index=True)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))
     note_text: Mapped[str] = mapped_column(String)
     # The student-facing Mentor Meeting Log renders "1:1 review · Cabin 3" above
@@ -46,3 +46,21 @@ class MentorNote(Base):
     )
     meeting_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Retracting a note is a SOFT delete, because the student has very likely
+    # already read it: `/student/mentor-meetings` renders these, so removing one
+    # is a mentor taking back words that were on a student's screen. A hard
+    # DELETE made "what was said, and later withdrawn" unanswerable the moment
+    # it ran, and nothing else in the system held a copy — the row IS the
+    # record. Nullable, and NULL means live; every read filters on
+    # `deleted_at IS NULL`, and `db.get()` lookups must check the attribute
+    # explicitly because a primary-key get takes no WHERE clause.
+    #
+    # No partial unique index is needed here, unlike Conversation
+    # (models/conversation.py:56) and InterviewConsent (models/interview.py:502):
+    # `mentor_notes` has no natural key and no one-live-row-per-owner rule, so a
+    # retained row can never block a re-create. The two composite indexes stay
+    # as they are — a student's notes number in the handful, so the extra
+    # predicate is a cheap filter on an already-selective index scan.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

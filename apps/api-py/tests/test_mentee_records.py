@@ -160,6 +160,62 @@ def test_a_mentor_removes_only_the_notes_they_wrote(client, make_user, staff):
 
 
 @requires_db
+def test_retracting_a_note_hides_it_everywhere_but_keeps_the_row(client, make_user, staff):
+    """A retracted note leaves BOTH screens and survives in the database.
+
+    The student has very likely already read it — `/student/mentor-meetings`
+    renders these — so removing one is a mentor taking back words that were on a
+    student's screen. It used to be a hard DELETE, which made "what was said,
+    and later withdrawn" unanswerable the moment it ran; nothing else holds a
+    copy, because the row IS the record.
+
+    The two disappearances are asserted separately on purpose. Filtering the
+    staff list and forgetting the student's own log is the exact half-fix this
+    guards against: the mentor would see the note gone and believe it was
+    withdrawn, while it sat on the student's screen unchanged.
+    """
+    stu = make_user("note-retract-student")
+    sid = _student_id(stu.user_id)
+    author = staff("note-retract-author", mentees=[sid])
+
+    r = client.post(
+        f"/api/mentor/students/{sid}/notes",
+        headers=author.headers,
+        json={"note_text": "Said the offer was withdrawn.", "title": "1:1 review"},
+    )
+    assert r.status_code == 201, r.text
+    note_id = r.json()["id"]
+
+    # It starts out visible to the student, or the rest of this proves nothing.
+    log = client.get("/api/student/mentor-meetings", headers=stu.headers).json()
+    assert note_id in [m["id"] for m in log["meetings"]], log
+
+    r = client.delete(f"/api/mentor/students/{sid}/notes/{note_id}", headers=author.headers)
+    assert r.status_code == 204, r.text
+
+    # Gone from the mentor's Mentee Log...
+    r = client.get(f"/api/mentor/students/{sid}/notes", headers=author.headers)
+    assert note_id not in [n["id"] for n in r.json()], r.text
+
+    # ...and gone from the student's own Mentor Meeting Log.
+    log = client.get("/api/student/mentor-meetings", headers=stu.headers).json()
+    assert note_id not in [m["id"] for m in log["meetings"]], log
+
+    # But the row is still there, stamped — that is the whole point.
+    with SessionLocal() as db:
+        row = db.get(MentorNote, note_id)
+        assert row is not None, "the note was hard-deleted; the record is gone"
+        assert row.deleted_at is not None, "retracted but not stamped"
+        assert row.note_text == "Said the offer was withdrawn.", "the words must survive verbatim"
+
+    # A second DELETE is a 404, not another 204. `db.get` takes no WHERE clause,
+    # so without an explicit deleted_at check this would re-stamp the row and
+    # answer 204 — which reads as "there was something here and I removed it".
+    r = client.delete(f"/api/mentor/students/{sid}/notes/{note_id}", headers=author.headers)
+    assert r.status_code == 404, r.text
+
+
+@requires_db
 def test_a_mentor_reads_their_own_mentees_ledger(client, make_user, staff):
     stu = make_user("staff-own-student")
     sid = _student_id(stu.user_id)

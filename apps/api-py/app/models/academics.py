@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     Boolean,
     DateTime,
     Float,
@@ -26,7 +27,14 @@ def _uuid() -> str:
 
 class SemesterResult(Base):
     __tablename__ = "semester_results"
-    __table_args__ = (UniqueConstraint("student_id", "semester", name="uq_semester_result"),)
+    __table_args__ = (
+        UniqueConstraint("student_id", "semester", name="uq_semester_result"),
+        CheckConstraint(
+            "semester >= 1 AND (sgpa IS NULL OR sgpa BETWEEN 0 AND 10) "
+            "AND (cgpa IS NULL OR cgpa BETWEEN 0 AND 10)",
+            name="ck_semester_result_range",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     student_id: Mapped[str] = mapped_column(
@@ -55,6 +63,12 @@ class SubjectMark(Base):
     __tablename__ = "subject_marks"
     __table_args__ = (
         UniqueConstraint("semester_result_id", "subject_code", name="uq_subject_mark"),
+        # Non-negative only. The "out of 50" beside internal/external is one
+        # VTU scheme, and schemes change without a migration.
+        CheckConstraint(
+            "credits >= 0 AND internal >= 0 AND external >= 0 AND total >= 0",
+            name="ck_subject_mark_nonnegative",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

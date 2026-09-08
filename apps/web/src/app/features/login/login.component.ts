@@ -34,7 +34,7 @@
  */
 
 import { Component, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
@@ -187,6 +187,29 @@ function passwordErrorFor(err: unknown): string {
 }
 
 /**
+ * What a refused one-time code should say. 401 is the only refusal the server
+ * gives for a wrong, expired, replayed or misdirected code (one message, on
+ * purpose — see login_with_code in app/routers/auth.py); 429 carries its own
+ * words, which name Google because that door is not gated by the counter.
+ */
+function codeErrorFor(err: unknown): string {
+  const e = err as { status?: number; error?: { detail?: unknown } } | null;
+  switch (e?.status) {
+    case 401:
+      return 'That code is wrong or has expired.';
+    case 429:
+      return typeof e?.error?.detail === 'string'
+        ? e.error.detail
+        : 'Too many failed attempts. Wait and try again, or use Continue with Google.';
+    case 0:
+    case undefined:
+      return 'Could not reach the server. Check your connection and try again.';
+    default:
+      return `Sign-in failed (error ${e?.status}). Try again, and quote that number if you need to report it.`;
+  }
+}
+
+/**
  * The four portals on the picker. DESCRIPTIVE ONLY: the role comes from the
  * roster row behind the verified identity, never from this choice. What the
  * choice changes is the ID field's wording — a student is asked for a USN, a
@@ -251,7 +274,8 @@ const REMEMBER_PORTAL_KEY = 'reep.login.portal';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  // FormsModule for the code step's ngModel; the ID + password form is reactive.
+  imports: [ReactiveFormsModule, FormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
   // Coming BACK from Google with the browser's back button restores this page
@@ -306,6 +330,19 @@ export class LoginComponent {
   readonly submitting = signal(false);
   readonly showPassword = signal(false);
   readonly forgotOpen = signal(false);
+  readonly forgotEmail = signal('');
+  readonly forgotBusy = signal(false);
+  /** The server's one answer — the same words whether or not the address exists. */
+  readonly forgotAnswer = signal<string | null>(null);
+  /** `?verified=1|0` — the registration confirmation link lands here. */
+  readonly verified = signal<string | null>(this.route.snapshot.queryParamMap.get('verified'));
+  /** The second step, when the server answers a right password with a
+   *  challenge instead of a session: whose mailbox the code went to and how
+   *  long it lives. Non-null swaps the password form for the code form. */
+  readonly codeStep = signal<{ email: string; minutes: number } | null>(null);
+  readonly code = signal('');
+  readonly codeBusy = signal(false);
+  readonly codeError = signal<string | null>(null);
   /** Field errors render only after a submit attempt, as the design does. */
   private readonly attempted = signal(false);
 
@@ -339,6 +376,7 @@ export class LoginComponent {
   }
 
   toggleForgot(): void {
+    this.forgotAnswer.set(null);
     this.forgotOpen.update((v) => !v);
   }
 
@@ -436,6 +474,35 @@ export class LoginComponent {
    * and not a hardcoded '/student', which is how a director used to land on a
    * screen they have no rows for.
    */
+  /** POST /auth/forgot. Shows the server's words verbatim: they are written to
+   *  be identical for a real, a Google-only and an unknown address, and any
+   *  rephrasing here would be the place that difference crept back in. */
+  async sendReset(): Promise<void> {
+    const email = this.forgotEmail().trim().toLowerCase();
+    if (!email || this.forgotBusy()) return;
+    this.forgotBusy.set(true);
+    try {
+      const res = await fetch(`${environment.apiBase}/auth/forgot`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+      this.forgotAnswer.set(
+        typeof body.detail === 'string'
+          ? body.detail
+          : res.ok
+            ? 'If that address has a REEP password, a reset link has been sent.'
+            : 'Could not send a reset link just now. Try again in a moment.',
+      );
+    } catch {
+      this.forgotAnswer.set('Could not reach the server. Try again in a moment.');
+    } finally {
+      this.forgotBusy.set(false);
+    }
+  }
+
   async submitPassword(): Promise<void> {
     this.attempted.set(true);
     if (this.form.invalid || this.submitting()) {
@@ -449,10 +516,20 @@ export class LoginComponent {
     this.error.set(null);
     const { id, password, remember } = this.form.getRawValue();
     try {
-      const session = await this.auth.login(this.resolveEmail(id), password);
+      const result = await this.auth.login(this.resolveEmail(id), password);
+      if ('otp_required' in result) {
+        // The password was right and a code is on its way; nothing is signed
+        // in yet. Swap to the code form, and drop the password from the DOM
+        // for the same shared-lab reason as the catch branch below.
+        this.codeStep.set({ email: result.email, minutes: result.expires_in_minutes });
+        this.code.set('');
+        this.codeError.set(null);
+        this.form.patchValue({ password: '' });
+        return;
+      }
       this.remember(remember ? id.trim() : null);
       const next = this.safeNext;
-      await this.router.navigateByUrl(next ?? HOME_FOR_ROLE[session.role] ?? '/student');
+      await this.router.navigateByUrl(next ?? HOME_FOR_ROLE[result.role] ?? '/student');
     } catch (err: unknown) {
       this.formError.set(passwordErrorFor(err));
       // Never leave a password in a field behind a failed attempt: the next
@@ -461,6 +538,39 @@ export class LoginComponent {
     } finally {
       this.submitting.set(false);
     }
+  }
+
+  /**
+   * The second step: the six-digit code from the email. Success routes by
+   * role exactly as `submitPassword` would have; a refusal keeps the code
+   * form up with the server's reason, so the person can retype rather than
+   * start over with the password.
+   */
+  async submitCode(): Promise<void> {
+    const step = this.codeStep();
+    const code = this.code().trim();
+    if (!step || this.codeBusy() || !/^\d{6}$/.test(code)) return;
+    this.codeBusy.set(true);
+    this.codeError.set(null);
+    try {
+      const session = await this.auth.loginWithCode(step.email, code);
+      const { id, remember } = this.form.getRawValue();
+      this.remember(remember ? id.trim() : null);
+      const next = this.safeNext;
+      await this.router.navigateByUrl(next ?? HOME_FOR_ROLE[session.role] ?? '/student');
+    } catch (err: unknown) {
+      this.codeError.set(codeErrorFor(err));
+      this.code.set('');
+    } finally {
+      this.codeBusy.set(false);
+    }
+  }
+
+  /** Back to the ID + password form. The unspent code simply expires. */
+  cancelCode(): void {
+    this.codeStep.set(null);
+    this.code.set('');
+    this.codeError.set(null);
   }
 
   /** "Remember me" keeps the ID and the portal on THIS device — never the

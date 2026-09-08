@@ -18,6 +18,9 @@ from .config import settings
 from .db import SessionLocal
 from .traceability import RequestTraceMiddleware
 from .routers import (
+    passwords,
+    admin,
+    governance,
     agent,
     alumni,
     auth,
@@ -34,7 +37,6 @@ from .routers import (
     staff_upskilling,
     student,
     student_programme,
-    voice,
 )
 from .voice_platform.api import admin as platform_admin
 from .voice_platform.api import calls as platform_calls
@@ -62,6 +64,25 @@ if settings.sentry_dsn.strip():
         environment=settings.env.strip() or "development",
         traces_sample_rate=settings.sentry_traces_rate,
         send_default_pii=False,
+        # RULE 1, and send_default_pii=False DOES NOT COVER IT. That flag governs
+        # headers, cookies and IP; `include_local_variables` is a separate switch
+        # and it DEFAULTS TO TRUE, which attaches every stack frame's locals to
+        # every captured exception. On this codebase those locals are a student's
+        # words: `student_text` in app/conversations.py's writer, `raw` holding a
+        # scorecard, `payload` holding a Nova transcript event. One exception on
+        # the interview path and a student's transcript — marks, rejections, an
+        # employer named out loud — is on a third party's servers, from a process
+        # that is otherwise forbidden to send that text to a model.
+        #
+        # Demonstrated before this line was written: a RuntimeError raised in a
+        # function whose local was "My CGPA is 8.7 and I was rejected by Infosys
+        # last week" put that string verbatim into the event's frame vars.
+        include_local_variables=False,
+        # Same reasoning for bodies. POST /student/resume/generate carries a
+        # brief with a name, USN, marks and attendance; the default "medium"
+        # attaches it to errors. A stack trace is worth having, the payload that
+        # caused it is not.
+        max_request_body_size="never",
     )
     log.info("Sentry initialised (traces_sample_rate=%s)", settings.sentry_traces_rate)
 
@@ -125,6 +146,18 @@ async def lifespan(_app: FastAPI):
     # but easy to lose in a container log; the CRITICAL line is the one that
     # survives an aggregator and is worth grepping for. Neither carries the
     # secret or the URL itself — see production_boot_failures().
+    # Said out loud at boot, not refused: mail is optional (the on-screen
+    # activation link and the console transport both work without it), but an
+    # operator wondering why nobody gets their email should find the answer in
+    # the first screen of the log rather than in a MailLog row later.
+    if settings.mail_configured:
+        log.info("outbound mail: Amazon SES from %s", settings.ses_from_address.strip())
+    else:
+        log.info(
+            "outbound mail: NO TRANSPORT (SES_FROM_ADDRESS blank) — activation, reset and "
+            "confirmation emails are logged here and kept in app.mail_transport.outbox; "
+            "activation links can still be issued on screen"
+        )
     boot_failures = settings.production_boot_failures()
     if boot_failures:
         detail = "\n".join(f"  * {problem}" for problem in boot_failures)
@@ -135,37 +168,7 @@ async def lifespan(_app: FastAPI):
         log.critical(refusal)
         raise RuntimeError(refusal)
 
-    # 2) Say plainly, once, when voice is running unauthenticated.
-    #
-    # A blank VOICE_WORKER_SECRET leaves BOTH worker endpoints open to anyone who
-    # can reach this port. The reachable abuse is the forged HEARTBEAT: the body
-    # accepts any worker_id, so a stranger can make _worker_healthy() true and
-    # students are then handed tokens into rooms no agent ever joins — voice looks
-    # available and silently is not. (Forged TRANSCRIPTS are much harder: an
-    # unknown conversation id 404s, and ids are uuid4 hex.)
-    #
-    # A WARNING, not a hard failure. Most REEP deployments never enable voice, and
-    # refusing to boot over an unset optional secret would take the whole dashboard
-    # down over a feature the operator is not using. require_voice_worker already
-    # fails closed at request time — this exists so the operator learns at deploy
-    # rather than from a confused student.
-    #
-    # Keyed on worker_auth_optional, not is_prod (audit M1). The old test was a
-    # NAME test: a `staging` or `uat` box, or one whose ENV arrived blank from a
-    # half-written deploy template, was left with open worker endpoints AND no
-    # warning at all, because it was not spelled "prod". The same allowlist now
-    # decides both, so the warning fires exactly where the endpoint refuses.
-    if not settings.worker_auth_optional and not settings.voice_worker_secret.strip():
-        log.warning(
-            "VOICE_WORKER_SECRET is blank on a non-development environment "
-            "(ENV=%s): /api/voice/heartbeat and /api/voice/transcript are "
-            "unauthenticated. A forged heartbeat makes voice report itself "
-            "available with no worker behind it. Set the same value on the API "
-            "and the voice worker.",
-            settings.env.strip() or "(blank)",
-        )
-
-    # 3) Close the interview rows the PREVIOUS process died holding.
+    # 2) Close the interview rows the PREVIOUS process died holding.
     #
     # Interview finalization has three layers (docs/interview-engine-v3.md §6.7)
     # and the first two — the relay's own finalizer and the router's `finally:`
@@ -287,10 +290,9 @@ async def _security_headers(request: Request, call_next):  # type: ignore[no-unt
 
 # Health is infra liveness — unprefixed at /health.
 app.include_router(health.router)
-# agent + voice + interview already carry /api in their own prefix
-# (/api/agent, /api/voice, /api/interview).
+# agent + interview already carry /api in their own prefix
+# (/api/agent, /api/interview).
 app.include_router(agent.router)
-app.include_router(voice.router)
 app.include_router(interview.router)
 # The voice-assistant platform (app/voice_platform): Admin CRUD under
 # /api/platform/admin, call sessions under /api/platform/calls, and the media
@@ -302,6 +304,8 @@ app.include_router(platform_bridge.router)
 # Angular client calls lives under /api — matching environment.apiBase and the
 # dev proxy (apps/web/proxy.conf.json), with no path rewriting.
 app.include_router(auth.router, prefix="/api")
+# Credentials — activation, forgot, reset, change. Separate from sign-in.
+app.include_router(passwords.router, prefix="/api")
 # Canonical v1 surface. The legacy /api surface remains during the expand/contract window.
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(redesign.router, prefix="/api/v1")
@@ -317,6 +321,15 @@ app.include_router(mentor.router, prefix="/api")
 # and every endpoint in it goes through _assert_can_access_student (rule 2).
 app.include_router(mentee_records.router, prefix="/api")
 app.include_router(director.router, prefix="/api")
+# Main Admin: the institutional write layer (colleges, departments, batches,
+# seating a student, and the users.designation/department columns that had no
+# writer at all). require_director inside, same as every other admin surface.
+app.include_router(admin.router, prefix="/api")
+# Governance: capability grants for staff (deny past the role baseline) and
+# student feature overrides (allow until switched off, at any rung of the
+# hierarchy). Two instruments with OPPOSITE defaults, which is why they are one
+# module and not merged into admin.py's institutional writes.
+app.include_router(governance.router, prefix="/api")
 app.include_router(leave.router, prefix="/api")
 # Faculty upskilling (own certificate uploads) and the alumni area (first-login
 # profile + jobs sheet). Both scope every row to the signed-in user; the staff

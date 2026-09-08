@@ -14,10 +14,15 @@ One stack, `reep-voice-platform`, for everything the platform
 | The api's environment | SSM parameters `/reep/voice-platform/PLATFORM_*`, read by the api at boot |
 | Later deploys from CI | a policy on the **existing** OIDC role `reep-github-deploy` (assume the CDK bootstrap roles) |
 
-The rest of REEP (VPC, ALB, ECS, RDS, the task role itself) is the Terraform
-stack in `infra/aws/` and stays there: this stack is additive and imports the
-two roles it touches by name. **Terraform is not part of the platform's deploy
-path.** The api reads the `PLATFORM_*` parameters this stack publishes at boot
+The rest of REEP (VPC, ALB, ECS, RDS, the task role itself) is **`reep-core`**
+(`reep_core/stack.py`), with the CloudFront WAF in `reep-edge-waf` (us-east-1)
+and the cross-region backup copy target in `reep-dr-vault` (ap-southeast-1).
+Those three are the successor to the Terraform stack in `infra/aws/`; the
+cutover — adopting the live resources into CloudFormation without touching
+them — is `docs/cdk-cutover.md`, and until it has been run, Terraform still
+owns them and `infra/aws/` must not be deleted. This voice-platform stack is
+additive and imports the two roles it touches by name. **Terraform is not part
+of the platform's deploy path.** The api reads the `PLATFORM_*` parameters this stack publishes at boot
 (`app/voice_platform/ssm_config.py`, production only, environment wins), so no
 task-definition change is ever needed.
 

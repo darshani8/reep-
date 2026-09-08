@@ -16,7 +16,7 @@ Origin check, same 24 kHz PCM16 frames in and out, same downstream events
 with only the URL changed. What differs is where the interviewer's material
 comes from — the per-degree catalogue rows compiled by
 app/voice_platform/engine — and what happens at close: the dual-channel buffer
-is rendered and uploaded and the session is projected to DynamoDB/OpenSearch.
+is rendered and uploaded and the session is projected to DynamoDB.
 
 REUSE, NOT A FORK. The handshake below deliberately calls the interview
 router's own helpers — `_open_records` (consent gate + fleet caps + the

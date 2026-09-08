@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { AppShellComponent } from './layout/app-shell.component';
-import { authGuard, homeRedirectGuard, roleGuard } from './core/auth.guard';
+import { authGuard, capabilityGuard, homeRedirectGuard, roleGuard } from './core/auth.guard';
 
 /**
  * Every nav destination in the shell needs a route, or clicking it goes nowhere
@@ -32,11 +32,38 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/register/registration.component').then((m) => m.RegistrationComponent),
   },
+  // Set a password from an emailed link. One component, two modes — the API
+  // is POST /auth/activate and POST /auth/reset with the same body. Outside
+  // the shell: nobody on these screens has a session yet.
+  {
+    path: 'activate',
+    data: { mode: 'activate' },
+    loadComponent: () =>
+      import('./features/login/password-link/password-link.component').then(
+        (m) => m.PasswordLinkComponent,
+      ),
+  },
+  {
+    path: 'reset',
+    data: { mode: 'reset' },
+    loadComponent: () =>
+      import('./features/login/password-link/password-link.component').then(
+        (m) => m.PasswordLinkComponent,
+      ),
+  },
   {
     path: '',
     component: AppShellComponent,
     canActivate: [authGuard],
     children: [
+      // --- account (any signed-in role; the API answers 409 for Google-only) ---
+      {
+        path: 'account/password',
+        loadComponent: () =>
+          import('./features/account/change-password.component').then(
+            (m) => m.ChangePasswordComponent,
+          ),
+      },
       // --- student ---
       {
         path: 'student',
@@ -207,7 +234,9 @@ export const routes: Routes = [
       // --- admin (the DIRECTOR/ADMIN roles; the UI calls it Admin) ---
       {
         path: 'director',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        // A capability, not a role: DIRECTOR/ADMIN hold admin.analytics through
+        // the baseline, and a MENTOR reaches this only when granted it.
+        canActivate: [capabilityGuard('admin.analytics')],
         loadComponent: () =>
           import('./features/director/analytics/analytics.component').then(
             (m) => m.DirectorAnalyticsComponent,
@@ -235,6 +264,41 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/director/mentors-students/mentors-students.component').then(
             (m) => m.DirectorMentorsStudentsComponent,
+          ),
+      },
+      // The institution console: College -> Department -> Course ->
+      // Specialization -> Batch, and seating. First and only caller of
+      // /api/admin/*. Lazy like every other route (AGENTS.md: one re-eager-ed
+      // route fails the bundle budget).
+      {
+        path: 'director/institution',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/institution/institution.component').then(
+            (m) => m.DirectorInstitutionComponent,
+          ),
+      },
+      // Interview Records: every mock interview with the student named and a
+      // download for each recording. Lazy like the rest.
+      {
+        path: 'director/interviews',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/interviews/interviews.component').then(
+            (m) => m.InterviewRecordsComponent,
+          ),
+      },
+      // Governance: capability grants for staff and student feature switches.
+      // Its own screen rather than a tab on Institution, because the two answer
+      // opposite questions — Institution says who EXISTS, Governance says who
+      // may SEE. Lazy like every other route (AGENTS.md: one re-eager-ed route
+      // fails the bundle budget).
+      {
+        path: 'director/governance',
+        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        loadComponent: () =>
+          import('./features/director/governance/governance.component').then(
+            (m) => m.GovernanceComponent,
           ),
       },
       // Courses and certifications are ONE screen: a certification only means

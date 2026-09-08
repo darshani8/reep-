@@ -37,7 +37,7 @@ class Resume(Base):
     target_industry: Mapped[str | None] = mapped_column(String, nullable=True)
     job_description: Mapped[str | None] = mapped_column(String, nullable=True)
     job_id: Mapped[str | None] = mapped_column(
-        ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True, index=True
     )
     status: Mapped[ResumeStatus] = mapped_column(
         Enum(ResumeStatus, name="resume_status"), default=ResumeStatus.DRAFT, server_default="DRAFT"

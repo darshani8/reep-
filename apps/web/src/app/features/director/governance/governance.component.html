@@ -1,0 +1,315 @@
+<section class="gov">
+  <header class="gov-head">
+    <h1>Governance</h1>
+    <p>
+      Two instruments, deliberately separate. <strong>Faculty access</strong> grants a capability
+      to a person or a group — nobody holds one until you say so. <strong>Student features</strong>
+      are on for everyone by default and switched off down the hierarchy.
+    </p>
+  </header>
+
+  @if (state() === 'loading') {
+    <p class="gov-note">Loading…</p>
+  } @else if (state() === 'error') {
+    <p class="gov-error">{{ error() }}</p>
+  } @else {
+
+    @if (error()) { <p class="gov-error" role="alert">{{ error() }}</p> }
+    @if (flash()) { <p class="gov-flash" role="status">{{ flash() }}</p> }
+
+    <!-- ============ A. faculty access ============ -->
+    <div class="card gov-panel">
+      <header class="gov-panel-head">
+        <h2>Faculty access</h2>
+        <span class="chip neutral">Deny by default</span>
+      </header>
+      <p class="gov-hint">
+        Grant a capability to named individuals, or to an access group so every current and
+        future member inherits it.
+      </p>
+
+      <div class="gov-seg" role="radiogroup" aria-label="Grant to">
+        <button type="button" [class.on]="grantMode() === 'users'"
+                (click)="setGrantMode('users')">Individuals</button>
+        <button type="button" [class.on]="grantMode() === 'groups'"
+                (click)="setGrantMode('groups')">Access group</button>
+      </div>
+
+      <div class="gov-grid">
+        <div>
+          @if (grantMode() === 'users') {
+            <label class="gov-label" for="gov-user">Add a faculty member</label>
+            <div class="gov-row">
+              <select id="gov-user" [ngModel]="userToAdd()" (ngModelChange)="userToAdd.set($event)">
+                <option value="">Choose…</option>
+                @for (s of addableStaff(); track s.user_id) {
+                  <option [value]="s.user_id">{{ s.name }} — {{ s.role }}</option>
+                }
+              </select>
+              <button type="button" class="gov-btn ghost" (click)="addUser()"
+                      [disabled]="!userToAdd()">Add</button>
+            </div>
+            <div class="gov-chips">
+              @for (s of pickedStaff(); track s.user_id) {
+                <span class="chip good">
+                  {{ s.name }}
+                  <button type="button" (click)="removeUser(s.user_id)"
+                          [attr.aria-label]="'Remove ' + s.name">×</button>
+                </span>
+              } @empty {
+                <span class="gov-empty">Nobody added yet.</span>
+              }
+            </div>
+          } @else {
+            <label class="gov-label" for="gov-group">Add an access group</label>
+            <div class="gov-row">
+              <select id="gov-group" [ngModel]="groupToAdd()" (ngModelChange)="groupToAdd.set($event)">
+                <option value="">Choose…</option>
+                @for (g of addableGroups(); track g.id) {
+                  <option [value]="g.id">{{ g.name }} ({{ g.members.length }} faculty)</option>
+                }
+              </select>
+              <button type="button" class="gov-btn ghost" (click)="addGroup()"
+                      [disabled]="!groupToAdd()">Add</button>
+            </div>
+            <div class="gov-chips">
+              @for (g of pickedGroups(); track g.id) {
+                <span class="chip good">
+                  {{ g.name }}
+                  <button type="button" (click)="removeGroup(g.id)"
+                          [attr.aria-label]="'Remove ' + g.name">×</button>
+                </span>
+              } @empty {
+                <span class="gov-empty">No group added yet.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <div>
+          <label class="gov-label" for="gov-cap">Capability</label>
+          <select id="gov-cap" [ngModel]="capabilityKey()" (ngModelChange)="capabilityKey.set($event)">
+            <optgroup label="Scoped — narrowed to the holder's mentor group">
+              @for (c of scopedCapabilities(); track c.key) {
+                <option [value]="c.key">{{ c.label }}{{ c.carries_pii ? ' · personal record' : '' }}</option>
+              }
+            </optgroup>
+            <optgroup label="Programme-wide — cannot be narrowed">
+              @for (c of programmeCapabilities(); track c.key) {
+                <option [value]="c.key">{{ c.label }}{{ c.carries_pii ? ' · personal record' : '' }}</option>
+              }
+            </optgroup>
+          </select>
+
+          <label class="gov-label" for="gov-expiry">Expires <span class="gov-opt">optional</span></label>
+          <input id="gov-expiry" type="date" [ngModel]="grantExpiry()"
+                 (ngModelChange)="grantExpiry.set($event)">
+        </div>
+      </div>
+
+      @if (grantReach(); as reach) {
+        <p class="gov-reach" [class.wide]="reach.wide">{{ reach.text }}</p>
+      }
+
+      <label class="gov-label" for="gov-reason">
+        Reason <span class="gov-req">required — at least {{ minReason() }} characters</span>
+      </label>
+      <textarea id="gov-reason" rows="2" [ngModel]="grantReason()"
+                (ngModelChange)="grantReason.set($event)"
+                placeholder="Why these people need this, in a sentence someone can audit in a year."></textarea>
+
+      <div class="gov-actions">
+        <button type="button" class="gov-btn primary" [disabled]="!canGrant()" (click)="grant()">
+          {{ pickedCount() > 1 ? 'Grant access to ' + pickedCount() : 'Grant access' }}
+        </button>
+        @if (grantBlockedBecause(); as why) { <span class="gov-blocked">{{ why }}</span> }
+      </div>
+    </div>
+
+    <!-- ============ B. student features ============ -->
+    <div class="card gov-panel">
+      <header class="gov-panel-head">
+        <h2>Student feature availability</h2>
+        <span class="chip neutral">Allow by default</span>
+      </header>
+      <p class="gov-hint">
+        Switch a feature off for a whole specialization, a single batch, or one student. The most
+        specific rule wins — a batch-level switch overrides its specialization.
+      </p>
+
+      <div class="gov-grid">
+        <div>
+          <label class="gov-label" for="gov-feat">Feature</label>
+          <select id="gov-feat" [ngModel]="featureKey()" (ngModelChange)="featureKey.set($event)">
+            @for (f of features(); track f.key) {
+              <option [value]="f.key">{{ f.label }}</option>
+            }
+          </select>
+
+          <label class="gov-label" for="gov-level">Apply at</label>
+          <select id="gov-level" [ngModel]="levelScope()" (ngModelChange)="levelScope.set($event)">
+            @for (l of levels; track l.scope) {
+              <option [value]="l.scope">{{ l.label }}</option>
+            }
+          </select>
+
+          <label class="gov-label" for="gov-freason">
+            Reason <span class="gov-req">required — at least {{ minReason() }} characters</span>
+          </label>
+          <textarea id="gov-freason" rows="2" [ngModel]="featureReason()"
+                    (ngModelChange)="featureReason.set($event)"
+                    placeholder="Why this is being switched off, and when it should come back."></textarea>
+        </div>
+
+        <div>
+          <label class="gov-label" for="gov-col">College</label>
+          <select id="gov-col" [ngModel]="pickedCollege()"
+                  (ngModelChange)="pickedCollege.set($event); onCollegeChange()">
+            <option value="">Choose…</option>
+            @for (n of collegeOptions(); track n.id) {
+              <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
+            }
+          </select>
+
+          @if (levelScope() !== 'COLLEGE') {
+            <label class="gov-label" for="gov-dep">Department</label>
+            <select id="gov-dep" [ngModel]="pickedDepartment()"
+                    (ngModelChange)="pickedDepartment.set($event); onDepartmentChange()"
+                    [disabled]="!pickedCollege()">
+              <option value="">Choose…</option>
+              @for (n of departmentOptions(); track n.id) {
+                <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
+              }
+            </select>
+          }
+
+          @if (levelScope() === 'COURSE' || levelScope() === 'SPECIALIZATION' || levelScope() === 'COHORT') {
+            <label class="gov-label" for="gov-cou">Course</label>
+            <select id="gov-cou" [ngModel]="pickedCourse()"
+                    (ngModelChange)="pickedCourse.set($event); onCourseChange()"
+                    [disabled]="!pickedDepartment()">
+              <option value="">Choose…</option>
+              @for (n of courseOptions(); track n.id) {
+                <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
+              }
+            </select>
+          }
+
+          @if (levelScope() === 'SPECIALIZATION' || levelScope() === 'COHORT') {
+            <label class="gov-label" for="gov-spec">Specialization</label>
+            <select id="gov-spec" [ngModel]="pickedSpecialization()"
+                    (ngModelChange)="pickedSpecialization.set($event); onSpecializationChange()"
+                    [disabled]="!pickedCourse()">
+              <option value="">Choose…</option>
+              @for (n of specializationOptions(); track n.id) {
+                <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
+              }
+            </select>
+          }
+
+          @if (levelScope() === 'COHORT') {
+            <label class="gov-label" for="gov-coh">Batch</label>
+            <select id="gov-coh" [ngModel]="pickedCohort()" (ngModelChange)="pickedCohort.set($event)">
+              <option value="">Choose…</option>
+              @for (n of cohortOptions(); track n.id) {
+                <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
+              }
+            </select>
+          }
+        </div>
+      </div>
+
+      @if (featureReach(); as reach) {
+        <p class="gov-reach" [class.wide]="reach.wide">{{ reach.text }}</p>
+      }
+
+      <div class="gov-actions">
+        <button type="button" class="gov-btn danger" [disabled]="!canSwitch()" (click)="switchOff(false)">
+          @if (targetNode(); as n) { Switch off for {{ n.students }} } @else { Switch off }
+        </button>
+        <button type="button" class="gov-btn ghost" [disabled]="!canSwitch()" (click)="switchOff(true)">
+          Switch back on
+        </button>
+        @if (featureBlockedBecause(); as why) { <span class="gov-blocked">{{ why }}</span> }
+      </div>
+    </div>
+
+    <!-- ============ live state ============ -->
+    <div class="gov-cols">
+      <div class="card gov-panel">
+        <h2>Capabilities in force</h2>
+        <p class="gov-hint">Live grants only. Revoked and lapsed ones stay in the audit trail.</p>
+        <table class="dt-table">
+          <thead>
+            <tr><th>Capability</th><th>Held by</th><th>Reason</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (g of grants(); track g.id) {
+              <tr>
+                <td>
+                  {{ g.capability_label }}
+                  @if (g.scope === 'PROGRAMME') { <span class="chip risk">Programme-wide</span> }
+                </td>
+                <td>{{ g.subject_label }}<br><span class="gov-sub">{{ g.subject_kind === 'GROUP' ? 'group' : 'individual' }}</span></td>
+                <td class="gov-reasoncell">{{ g.reason }}</td>
+                <td><button type="button" class="gov-btn tiny" (click)="revoke(g)">Revoke</button></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="gov-empty">No grants yet — every role holds its baseline.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card gov-panel">
+        <h2>Features switched off</h2>
+        <p class="gov-hint">Active overrides. Removing a rule lets the level above decide again.</p>
+        <table class="dt-table">
+          <thead>
+            <tr><th>Feature</th><th>Applied to</th><th>Students</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (o of overrides(); track o.id) {
+              <tr>
+                <td>
+                  {{ o.feature_label }}
+                  <span class="chip" [class.risk]="!o.enabled" [class.good]="o.enabled">
+                    {{ o.enabled ? 'On' : 'Off' }}
+                  </span>
+                </td>
+                <td>{{ o.target_label }}<br><span class="gov-sub">{{ o.scope.toLowerCase() }}</span></td>
+                <td>{{ o.students_affected }}</td>
+                <td><button type="button" class="gov-btn tiny" (click)="clearOverride(o)">Remove</button></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="gov-empty">Every feature is on for every student.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card gov-panel">
+      <h2>Access groups</h2>
+      <p class="gov-hint">
+        A group issues the same capabilities to everyone in it, now and later.
+      </p>
+      <div class="gov-row">
+        <input type="text" [ngModel]="newGroupName()" (ngModelChange)="newGroupName.set($event)"
+               placeholder="New group name" aria-label="New group name">
+        <button type="button" class="gov-btn ghost" (click)="createGroup()"
+                [disabled]="newGroupName().trim().length < 2">Create group</button>
+      </div>
+      <ul class="gov-groups">
+        @for (g of groups(); track g.id) {
+          <li>
+            <strong>{{ g.name }}</strong>
+            <span class="gov-sub">{{ g.members.length }} faculty · {{ g.capabilities.length }} capabilities</span>
+          </li>
+        } @empty {
+          <li class="gov-empty">No access groups yet.</li>
+        }
+      </ul>
+    </div>
+  }
+</section>

@@ -37,6 +37,7 @@ from datetime import date, datetime
 from typing import Final, NamedTuple
 
 from sqlalchemy import (
+    CheckConstraint,
     Boolean,
     Date,
     DateTime,
@@ -356,11 +357,11 @@ class BadgeEvidence(Base):
     # uploads. SET NULL so deleting the upload leaves the claim (and its
     # verdict) as an honest audit line rather than vanishing history.
     upload_id: Mapped[str | None] = mapped_column(
-        ForeignKey("uploads.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("uploads.id", ondelete="SET NULL"), nullable=True, index=True
     )
     # Set when the student picked a catalogue row (§12's simpler path).
     approved_certification_id: Mapped[str | None] = mapped_column(
-        ForeignKey("approved_certifications.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("approved_certifications.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     title: Mapped[str] = mapped_column(String)  # what the evidence is
@@ -382,6 +383,7 @@ class StudentBadge(Base):
     __table_args__ = (
         UniqueConstraint("student_id", "badge_code", name="uq_student_badge"),
         Index("ix_studentbadge_student", "student_id"),
+        CheckConstraint("points_awarded >= 0", name="ck_student_badge_points"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
@@ -414,6 +416,8 @@ class CapabilityAssessment(Base):
             "student_id", "capability", "checkpoint", name="uq_capability_checkpoint"
         ),
         Index("ix_capassess_student", "student_id"),
+        # §9's 1–10, enforced where "validated at the edge" cannot be bypassed.
+        CheckConstraint("score >= 1 AND score <= 10", name="ck_capassess_score_range"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

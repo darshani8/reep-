@@ -83,7 +83,24 @@ class SkillClaim(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))
     skill_id: Mapped[str] = mapped_column(ForeignKey("skills.id", ondelete="CASCADE"))
-    upload_id: Mapped[str] = mapped_column(ForeignKey("uploads.id", ondelete="CASCADE"))
+    # SET NULL, not CASCADE, and NULLABLE — matching badge_evidence.upload_id
+    # (models/badge.py:355) and for its stated reason: "deleting the upload
+    # leaves the claim (and its verdict) as an honest audit line rather than
+    # vanishing history."
+    #
+    # It was CASCADE and NOT NULL, so a student tidying their own uploads screen
+    # silently destroyed the whole SkillClaim row — the level a mentor granted,
+    # the reviewer's identity and timestamp, and the review note they wrote.
+    # Neither party was told, and nothing else in the system held a copy. The
+    # student is entitled to delete their own certificate; they are not entitled
+    # to delete a mentor's assessment of it, and one FK made those the same act.
+    #
+    # The response models were already built for this: SkillClaimReviewOut's
+    # evidence_* fields are optional "because a claim can outlive its upload",
+    # and _claim_query has always used an OUTER join.
+    upload_id: Mapped[str | None] = mapped_column(
+        ForeignKey("uploads.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     # The level being claimed, which the reviewer may grant or reduce.
     claimed_level: Mapped[int] = mapped_column(Integer, default=3, server_default="3")

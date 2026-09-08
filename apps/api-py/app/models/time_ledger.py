@@ -29,6 +29,7 @@ from datetime import date, datetime
 from typing import Final
 
 from sqlalchemy import (
+    CheckConstraint,
     Date,
     DateTime,
     Enum,
@@ -88,6 +89,22 @@ SLOT_CAPACITY_HALVES: Final[dict[LedgerSlot, int]] = {
 #: failure here, not a mystery on the submit button months later.
 DAY_CAPACITY_HALVES: Final[int] = sum(SLOT_CAPACITY_HALVES.values())
 assert DAY_CAPACITY_HALVES == 48, "the six slots must cover exactly 24 hours"
+
+#: The per-cell bound as the DATABASE enforces it — the same table above,
+#: rendered as a CHECK, so the router is no longer the only thing standing
+#: between a cell and a value of 999. Derived rather than typed beside the
+#: dict: the two cannot disagree, and tests/test_codebase_guards.py pins it.
+#: `ELSE -1` is deliberate. A CASE with no matching arm yields NULL, a NULL
+#: comparison is not FALSE, and a CHECK that is not FALSE passes — so without
+#: it a slot this CASE does not know would be UNBOUNDED, silently. With it,
+#: every insert for an unknown slot fails, which is the loud failure a new
+#: slot deserves: adding one is an enum migration anyway, and this makes
+#: forgetting to widen the constraint part of the same afternoon.
+LEDGER_CELL_HALF_HOURS_CHECK: Final[str] = (
+    "half_hours >= 0 AND half_hours <= (CASE slot "
+    + " ".join(f"WHEN '{slot.value}' THEN {cap}" for slot, cap in SLOT_CAPACITY_HALVES.items())
+    + " ELSE -1 END)"
+)
 
 #: Slot display, in the order the ledger renders. Kept beside the capacities so
 #: a new slot cannot be added to one and forgotten in the other.
@@ -202,6 +219,7 @@ class TimeLedgerCell(Base):
     __table_args__ = (
         UniqueConstraint("ledger_day_id", "slot", "activity", name="uq_ledger_cell"),
         Index("ix_ledger_cell_day", "ledger_day_id"),
+        CheckConstraint(LEDGER_CELL_HALF_HOURS_CHECK, name="ck_ledger_cell_half_hours"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

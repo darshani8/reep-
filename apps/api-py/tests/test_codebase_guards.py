@@ -595,3 +595,37 @@ def test_stop_timeout_is_within_fargates_ceiling() -> None:
     number here is not a longer grace period — it is a deploy that fails at
     RegisterTaskDefinition with a message nobody expects."""
     assert _cdk_constant("STOP_TIMEOUT_SECONDS") <= 120
+
+
+def test_sentry_never_ships_local_variables_or_request_bodies() -> None:
+    """Sentry must not carry a student's words off the account.
+
+    THE INCIDENT: `sentry_sdk.init` set `send_default_pii=False` and stopped
+    there. That flag governs headers, cookies and IP address. It does NOT govern
+    `include_local_variables`, which is a separate option and DEFAULTS TO TRUE —
+    so every captured exception carried the local variables of every stack frame.
+
+    On this codebase those locals are a student speaking: `student_text` in the
+    interview turn writer, `raw` holding a scorecard, `payload` holding a Nova
+    transcript event. Demonstrated with the real SDK before the fix: a
+    RuntimeError raised in a function whose local was "My CGPA is 8.7 and I was
+    rejected by Infosys last week" put that string verbatim into the event's
+    frame vars.
+
+    That is rule 1 — student data leaving the machine unbidden — through a door
+    that no `carries_student_data=True` gate guards, in a process otherwise
+    forbidden to send that same text to a model.
+
+    Both flags are asserted because both leak: `max_request_body_size` defaults
+    to "medium", and POST /student/resume/generate carries a name, USN, marks
+    and attendance in its body. Dropping these costs nothing an operator needs —
+    the function, file and line number of every frame survive.
+    """
+    source = (APP / "main.py").read_text(encoding="utf-8")
+    assert "sentry_sdk.init(" in source, "the Sentry init moved; this guard needs updating"
+    for flag in ("include_local_variables=False", 'max_request_body_size="never"'):
+        assert flag in source, (
+            f"app/main.py's sentry_sdk.init must set {flag} — without it a single "
+            "exception on the interview path ships a student's transcript to a "
+            "third party. See this test's docstring."
+        )

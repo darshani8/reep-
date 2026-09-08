@@ -63,6 +63,25 @@ if settings.sentry_dsn.strip():
         environment=settings.env.strip() or "development",
         traces_sample_rate=settings.sentry_traces_rate,
         send_default_pii=False,
+        # RULE 1, and send_default_pii=False DOES NOT COVER IT. That flag governs
+        # headers, cookies and IP; `include_local_variables` is a separate switch
+        # and it DEFAULTS TO TRUE, which attaches every stack frame's locals to
+        # every captured exception. On this codebase those locals are a student's
+        # words: `student_text` in app/conversations.py's writer, `raw` holding a
+        # scorecard, `payload` holding a Nova transcript event. One exception on
+        # the interview path and a student's transcript — marks, rejections, an
+        # employer named out loud — is on a third party's servers, from a process
+        # that is otherwise forbidden to send that text to a model.
+        #
+        # Demonstrated before this line was written: a RuntimeError raised in a
+        # function whose local was "My CGPA is 8.7 and I was rejected by Infosys
+        # last week" put that string verbatim into the event's frame vars.
+        include_local_variables=False,
+        # Same reasoning for bodies. POST /student/resume/generate carries a
+        # brief with a name, USN, marks and attendance; the default "medium"
+        # attaches it to errors. A stack trace is worth having, the payload that
+        # caused it is not.
+        max_request_body_size="never",
     )
     log.info("Sentry initialised (traces_sample_rate=%s)", settings.sentry_traces_rate)
 

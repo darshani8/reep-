@@ -1,0 +1,98 @@
+<section class="ivr">
+  <header class="ivr-head">
+    <h1>Interview Records</h1>
+    <p>
+      Every mock interview, newest first, with the student and the time it was taken. Recorded
+      sessions can be downloaded to your machine — individually, or several at once as a zip.
+    </p>
+  </header>
+
+  @if (state() === 'loading') {
+    <p class="ivr-note">Loading…</p>
+  } @else if (state() === 'error') {
+    <p class="ivr-error">{{ error() }}</p>
+  } @else {
+
+    @if (error()) { <p class="ivr-error" role="alert">{{ error() }}</p> }
+    @if (flash()) { <p class="ivr-flash" role="status">{{ flash() }}</p> }
+
+    <div class="card ivr-toolbar">
+      <label class="ivr-check">
+        <input type="checkbox" [ngModel]="recordedOnly()"
+               (ngModelChange)="onRecordedOnlyChange($event)">
+        Recorded only
+      </label>
+      <span class="ivr-count">
+        {{ visibleRows().length }} interview{{ visibleRows().length === 1 ? '' : 's' }} ·
+        {{ recordedTotal() }} recorded
+      </span>
+      <span class="ivr-spacer"></span>
+      <button type="button" class="ivr-btn primary"
+              [disabled]="selectedCount() === 0 || downloading()"
+              (click)="downloadSelected()">
+        {{ downloading() ? 'Preparing…' :
+           (selectedCount() > 0 ? 'Download selected (' + selectedCount() + ')' : 'Download selected') }}
+      </button>
+    </div>
+
+    <div class="card ivr-tablewrap">
+      <table class="dt-table ivr-table">
+        <thead>
+          <tr>
+            <th class="ivr-selcol">
+              <input type="checkbox" [checked]="allSelected()" (change)="toggleAll()"
+                     [disabled]="recordedTotal() === 0" aria-label="Select all recorded">
+            </th>
+            <th>Student</th>
+            <th>When</th>
+            <th>Track</th>
+            <th>Status</th>
+            <th>Recording</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of visibleRows(); track r.session_id) {
+            <tr [class.ivr-sel]="isSelected(r.session_id)">
+              <td class="ivr-selcol">
+                @if (r.audio_recorded) {
+                  <input type="checkbox" [checked]="isSelected(r.session_id)"
+                         (change)="toggle(r.session_id)"
+                         [attr.aria-label]="'Select ' + r.student_name">
+                }
+              </td>
+              <td>
+                <span class="ivr-name">{{ r.student_name }}</span>
+                @if (r.usn) { <span class="ivr-usn">{{ r.usn }}</span> }
+              </td>
+              <td class="ivr-when">{{ when(r.started_at) }}</td>
+              <td>{{ trackLabel(r.specialization) }}</td>
+              <td>
+                <span class="chip {{ statusKind(r.status) }}">{{ r.status }}</span>
+              </td>
+              <td>
+                @if (r.audio_recorded) {
+                  <button type="button" class="ivr-btn tiny" (click)="downloadOne(r)">
+                    <span class="icon" aria-hidden="true">download</span> Download
+                  </button>
+                } @else {
+                  <span class="ivr-noaudio">no recording</span>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="ivr-empty">
+                No interviews {{ recordedOnly() ? 'with a recording ' : '' }}yet.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="ivr-foot">
+      Recordings are a student's voice, stored with their consent and deleted after 180 days.
+      Downloading one saves it to your machine — treat the file accordingly.
+    </p>
+  }
+</section>

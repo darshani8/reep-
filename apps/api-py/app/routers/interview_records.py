@@ -60,8 +60,9 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 from pydantic import BaseModel, Field
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -83,7 +84,7 @@ from ..models.interview import (
     InterviewSession,
     InterviewTurn,
 )
-from ..models.user import Role
+from ..models.user import Role, Student, User
 
 # _assert_can_access_student is private to mentor.py on purpose, and importing it
 # anyway is the lesser evil — the same call app/routers/leave.py makes, for the
@@ -91,7 +92,7 @@ from ..models.user import Role
 # report: require_director says WHICH ROLE may see `raw_response`,
 # _assert_can_access_student says WHICH STUDENT may be read, and neither answers
 # the other's question.
-from .mentor import _assert_can_access_student, require_director
+from .mentor import _assert_can_access_student, require_director, require_mentor
 
 log = logging.getLogger(__name__)
 
@@ -845,6 +846,147 @@ def student_interview_report(
 # ---------------------------------------------------------------------------
 
 
+class InterviewRecordRow(BaseModel):
+    """One interview across the whole programme, with the student named.
+
+    This is the admin RECORDS view — distinct from InterviewSessionOut (a single
+    student's own history), because it carries identity: a mentor or director
+    reviewing recordings needs to know WHOSE interview each row is, which the
+    per-student endpoints deliberately never repeat back.
+    """
+
+    session_id: str
+    student_id: str
+    student_name: str
+    usn: str | None
+    specialization: str | None
+    status: str
+    audio_recorded: bool
+    started_at: datetime
+    ended_at: datetime | None
+
+
+@staff_router.get("/interviews", response_model=list[InterviewRecordRow])
+def all_interviews(
+    recorded_only: bool = False,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[InterviewRecordRow]:
+    """Every interview, newest first, with the student named — the records grid.
+
+    Scope is rule 2, not a new rule: a MENTOR sees only interviews of students in
+    their own group, a MENTOR WITH NO GROUP sees nobody (never the whole
+    programme), and DIRECTOR/ADMIN see all. The narrowing is the same
+    `session["mentorId"]` predicate the mentees list uses, applied in SQL so an
+    out-of-group interview never leaves the database.
+
+    `?recorded_only=1` returns only rows with a stored file — what the download
+    grid filters to when an operator wants the recordings and not the failures.
+    """
+    require_mentor(session)
+    query = (
+        select(InterviewSession, User.name, Student.usn)
+        .join(Student, InterviewSession.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+        .where(InterviewSession.deleted_at.is_(None))
+    )
+    if session["role"] == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            return []  # no Mentor group => nobody
+        query = query.where(Student.mentor_id == mentor_id)
+    if recorded_only:
+        query = query.where(InterviewSession.audio_recorded.is_(True))
+    rows = db.execute(
+        query.order_by(InterviewSession.started_at.desc(), InterviewSession.id).limit(_MAX_SESSIONS_LISTED)
+    ).all()
+    return [
+        InterviewRecordRow(
+            session_id=iv.id,
+            student_id=iv.student_id,
+            student_name=name,
+            usn=usn,
+            specialization=iv.specialization,
+            status=iv.status,
+            audio_recorded=iv.audio_recorded,
+            started_at=iv.started_at,
+            ended_at=iv.ended_at,
+        )
+        for iv, name, usn in rows
+    ]
+
+
+class BulkAudioIn(BaseModel):
+    session_ids: list[str] = Field(min_length=1, max_length=200)
+    track: str = TRACK_MIXED
+
+
+@staff_router.post("/interviews/audio.zip")
+def download_selected_audio(
+    body: BulkAudioIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    """Bundle the selected recordings into one zip and hand it back as a download.
+
+    THE SAME GATE AS A SINGLE RECORDING — `admin.interview_audio` — because a zip
+    of forty students' voices is not a lesser act than one. Each id is
+    re-checked: the row must exist, must belong to a student this caller may
+    reach (rule 2, via `_assert_can_access_student`), and must actually have a
+    file; ids that fail any check are skipped, never guessed at, and the zip
+    carries only what the caller was entitled to and what exists.
+
+    The filename inside the zip is the interview id and the USN — identifiable on
+    purpose, because a folder of `interview-abc.wav` files nobody can attribute
+    is useless to the reviewer who asked for them. The zip name carries no
+    student data. Built to a temp file and deleted after the response is sent,
+    because a 40 x 43 MB zip does not belong in this process's memory.
+    """
+    _require_developer(session, db)
+    if body.track not in TRACKS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"track must be one of {sorted(TRACKS)}.",
+        )
+    import os
+    import tempfile
+    import zipfile
+
+    fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="reep-recordings-")
+    os.close(fd)
+    added = 0
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_STORED) as zf:
+        for sid in dict.fromkeys(body.session_ids):  # de-dup, preserve order
+            row = db.get(InterviewSession, sid)
+            if row is None or row.deleted_at is not None or not row.audio_recorded:
+                continue
+            try:
+                _assert_can_access_student(session, row.student_id, db)
+            except HTTPException:
+                continue  # out of this caller's scope; skip silently
+            stem = row.audio_path or row.id
+            try:
+                path = read_track(stem, body.track)
+            except FileNotFoundError:
+                continue
+            usn = db.scalar(select(Student.usn).where(Student.id == row.student_id)) or "unknown"
+            arcname = f"{usn}-{download_name(stem, body.track)}"
+            zf.write(path, arcname=arcname)
+            added += 1
+    if added == 0:
+        os.remove(zip_path)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="None of the selected interviews have a recording you can download.",
+        )
+    return FileResponse(
+        zip_path,
+        media_type="application/zip",
+        filename="reep-interview-recordings.zip",
+        background=BackgroundTask(os.remove, zip_path),
+    )
+
+
 def _require_developer(session: dict, db: Session) -> dict:
     """The `admin.interview_audio` capability — ADMIN by baseline, a DIRECTOR only
     when explicitly granted it. Still deliberately NARROWER than require_director.
@@ -919,6 +1061,7 @@ def student_interview_audio(
     student_id: str,
     session_id: str,
     track: str = TRACK_MIXED,
+    download: bool = False,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> FileResponse:
@@ -1018,11 +1161,15 @@ def student_interview_audio(
             # Nothing about the upload store is reused here (§8.4's third
             # objection: admitting audio to that store would loosen the magic-byte
             # rule that makes it trustworthy), and this module writes nothing into
-            # it. `inline` so the recording plays in the tab rather than landing
-            # in a downloads folder that syncs and backs up a student's voice by
-            # default; the filename carries the interview id and no student name.
+            # `inline` by DEFAULT so the recording plays in the tab rather than
+            # landing in a downloads folder that syncs and backs up a student's
+            # voice; the filename carries the interview id and no student name.
+            # `?download=1` flips it to attachment for an operator who has
+            # decided to keep a copy on their own machine — a deliberate act,
+            # not the default, which is why it is opt-in per request rather than
+            # a change to the header's safe default.
             "Content-Disposition": content_disposition(
-                download_name(stem, track), inline=True
+                download_name(stem, track), inline=not download
             )
         },
     )

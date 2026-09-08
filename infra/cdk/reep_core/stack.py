@@ -574,7 +574,19 @@ class CoreStack(Stack):
         rule = backup.CfnBackupPlan.BackupRuleResourceTypeProperty(
             rule_name=f"daily-{retention_days}d" if harden else "daily-35d",
             target_backup_vault=vault.attr_backup_vault_name,
-            schedule_expression="cron(30 21 * * ? *)",  # 03:00 IST
+            # 00:30 IST. It was 21:30 UTC, which is the exact minute
+            # `preferred_maintenance_window` opens on a Sunday (line ~535), and RDS
+            # refuses a snapshot taken "inside or too close to" that window — so EVERY
+            # Sunday's database backup job failed. It failed silently, because the
+            # alarm that would report it (BackupJobsFailedAlarm) ships in the harden
+            # phase, which had never been deployed; the EFS half of the same plan kept
+            # succeeding, so the vault looked healthy while the DATABASE recovery point
+            # quietly went stale. Found 2026-09-07 against the live account, where the
+            # 2026-09-06 RDS job was FAILED and the newest RDS point was two days old.
+            # Keep this at least an hour clear of BOTH RDS windows — the automated
+            # backup window (20:30-21:30) and the maintenance window — or the failure
+            # comes back. test_backup_schedule_clears_the_rds_windows is the guard.
+            schedule_expression="cron(0 19 * * ? *)",  # 00:30 IST
             lifecycle=backup.CfnBackupPlan.LifecycleResourceTypeProperty(delete_after_days=retention_days if harden else 35),
             copy_actions=(
                 [

@@ -21,6 +21,7 @@
   "dbInstanceClass": "db.t4g.micro",
   "dbSecurityGroupName": "reep-db-20260827213543888000000003",
   "domainName": "reep.sast-skills.com",
+  "drVaultArn": "arn:aws:backup:ap-southeast-1:445363794125:backup-vault:reep-vault-dr",
   "efsSecurityGroupName": "reep-efs-20260827213543888600000004",
   "externalSecretArn": "arn:aws:secretsmanager:ap-south-1:445363794125:secret:reep/external-20260827213147405600000001-GYlshP",
   "interviewConsentVersion": "2026-09",

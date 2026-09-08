@@ -246,6 +246,68 @@ def test_a_weekly_restore_test_exists_for_the_database(hardened: Template) -> No
     hardened.has_resource_properties("AWS::CloudWatch::Alarm", {"AlarmName": "reep-backup-job-failed"})
 
 
+#: How far a backup job must stay from an RDS window. RDS rejects a snapshot
+#: taken "inside or too close to" the maintenance window without saying how
+#: close is too close, so an hour is the margin we can defend.
+BACKUP_WINDOW_CLEARANCE_MINUTES = 60
+
+
+def _minutes_past_midnight(hhmm: str) -> int:
+    hour, minute = hhmm.split(":")
+    return int(hour) * 60 + int(minute)
+
+
+def _window_bounds(window: str) -> tuple[int, int]:
+    """`sun:21:30-sun:22:30` or `20:30-21:30` -> (start, end) in minutes UTC."""
+    start, end = window.split("-")
+    # The maintenance window carries a weekday prefix; the backup window does not.
+    strip_day = lambda part: part.split(":", 1)[1] if part.count(":") == 2 else part  # noqa: E731
+    return _minutes_past_midnight(strip_day(start)), _minutes_past_midnight(strip_day(end))
+
+
+def test_backup_schedule_clears_the_rds_windows(hardened: Template) -> None:
+    """The AWS Backup rule must not fire inside — or within an hour of — either
+    RDS window.
+
+    It fired at 21:30 UTC, which is the exact minute `PreferredMaintenanceWindow`
+    opens on a Sunday, and RDS refused the snapshot: "could not start because it
+    is either inside or too close to the weekly maintenance window". So every
+    Sunday's DATABASE backup failed while the EFS half of the same plan kept
+    succeeding — the vault looked healthy, and the newest RDS recovery point
+    quietly went stale. Nothing reported it, because the alarm that would
+    (`reep-backup-job-failed`) ships in this same harden phase, which had never
+    been deployed. Found against the live account on 2026-09-07, where the
+    2026-09-06 job was FAILED and the newest RDS point was two days old.
+
+    This asserts the relationship, not the literal time, because moving either
+    window is a legitimate fix and pinning one string would only pin the bug.
+    """
+    plan = next(iter(hardened.find_resources("AWS::Backup::BackupPlan").values()))
+    rules = plan["Properties"]["BackupPlan"]["BackupPlanRule"]
+    assert rules, "the harden phase must define at least one backup rule"
+
+    db = next(iter(hardened.find_resources("AWS::RDS::DBInstance").values()))["Properties"]
+    windows = {
+        "maintenance": _window_bounds(db["PreferredMaintenanceWindow"]),
+        "automated backup": _window_bounds(db["PreferredBackupWindow"]),
+    }
+
+    for rule in rules:
+        # cron(minute hour day-of-month month day-of-week year)
+        fields = re.fullmatch(r"cron\((\d{1,2}) (\d{1,2}) .*\)", rule["ScheduleExpression"])
+        assert fields, f"unparseable schedule expression {rule['ScheduleExpression']!r}"
+        fires_at = int(fields.group(2)) * 60 + int(fields.group(1))
+        for name, (start, end) in windows.items():
+            too_close = start - BACKUP_WINDOW_CLEARANCE_MINUTES <= fires_at <= end + BACKUP_WINDOW_CLEARANCE_MINUTES
+            assert not too_close, (
+                f"backup rule {rule['RuleName']!r} fires at "
+                f"{fires_at // 60:02d}:{fires_at % 60:02d} UTC, inside or within "
+                f"{BACKUP_WINDOW_CLEARANCE_MINUTES} min of the RDS {name} window "
+                f"{start // 60:02d}:{start % 60:02d}-{end // 60:02d}:{end % 60:02d} — "
+                "every job that lands there fails, and it fails silently"
+            )
+
+
 def test_multi_az_defaults_on_in_harden_and_can_be_opted_out(hardened: Template) -> None:
     hardened.has_resource_properties("AWS::RDS::DBInstance", {"MultiAZ": True})
     opted_out = _core("harden", dbMultiAz="false")

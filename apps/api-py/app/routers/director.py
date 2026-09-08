@@ -46,6 +46,7 @@ from ..models.registration import Registration, RegistrationStatus
 from ..models.resume import Resume
 from ..models.user import Mentor, Student, User
 from ..resume_pdf import render_resume_pdf
+from ..governance import require_capability
 from .mentor import require_director
 
 router = APIRouter(prefix="/director", tags=["director"])
@@ -157,10 +158,15 @@ class CriteriaOut(BaseModel):
 
 
 @router.get("/criteria", response_model=CriteriaOut)
+# THE ANALYTICS SURFACE CHECKS A CAPABILITY, NOT A ROLE. DIRECTOR/ADMIN hold
+# every capability through ROLE_BASELINE, so for them this is identical to
+# require_director; the difference is a MENTOR an admin has granted
+# admin.analytics to. It is PROGRAMME scope — no mentor group narrows it — which
+# is why the console paints that grant red and demands a reason.
 def criteria(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> CriteriaOut:
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
     c = db.scalar(
         select(PlacementCriteria)
         .where(PlacementCriteria.active.is_(True))
@@ -365,6 +371,12 @@ class MenteeMetricsOut(BaseModel):
 
 class MentorLoadOut(BaseModel):
     mentor_id: str
+    # The USER id, beside the mentor id: department and designation below are
+    # columns on `users`, and the console edits them through
+    # PATCH /api/admin/users/{user_id}/institutional-identity. Without this the
+    # screen could read the two fields and had no way to address the row that
+    # holds them — which is how "(synced)" stayed a promise for a year.
+    user_id: str
     name: str
     # The mentor's institutional identity, as the roster holds it. Nullable for
     # the same reason it is on the leave form: the roster does not carry it for
@@ -384,10 +396,10 @@ def mentor_load(
 ) -> list[MentorLoadOut]:
     """Every mentor with their assigned students and each student's three
     headline metrics. Programme-wide, so director/admin only."""
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
 
     mentors = db.execute(
-        select(Mentor.id, User.name, User.department, User.designation)
+        select(Mentor.id, Mentor.user_id, User.name, User.department, User.designation)
         .join(User, Mentor.user_id == User.id)
         .order_by(User.name)
     ).all()
@@ -448,6 +460,7 @@ def mentor_load(
     return [
         MentorLoadOut(
             mentor_id=mid,
+            user_id=uid,
             name=name,
             department=department,
             designation=designation,
@@ -455,7 +468,7 @@ def mentor_load(
             mentee_count=len(by_mentor.get(mid, [])),
             mentees=by_mentor.get(mid, []),
         )
-        for mid, name, department, designation in mentors
+        for mid, uid, name, department, designation in mentors
     ]
 
 
@@ -776,7 +789,7 @@ def analytics_summary(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> AnalyticsSummaryOut:
     """The four tiles across the top of Programme analytics, in one call."""
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
 
     def count(stmt) -> int:
         return db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
@@ -864,7 +877,7 @@ def student_weekly(
     what the analytics bar chart draws when a student arc is clicked. Director/
     admin only (rule 2: they see all); a mentor's view of a mentee lives under
     /mentor/students/{id}/... behind the scope gate."""
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
     row = db.execute(
         select(Student, User.name)
         .join(User, Student.user_id == User.id)
@@ -931,7 +944,16 @@ def student_weekly(
         weekly_hour_target=student.weekly_hour_target,
         has_resume=has_resume,
         weeks=[
-            WeekOut(label=start.strftime("%-d %b"), start=start, end=start + timedelta(days=6))
+            # f"{d.day}" rather than strftime("%-d"): the %-d directive is a
+            # glibc extension. It renders "6 Sep" on Linux and raises
+            # ValueError("Invalid format string") on Windows, so this endpoint
+            # passed in CI and 500-ed on every developer machine. Guarded now by
+            # tests/test_codebase_guards.py::test_no_platform_specific_strftime.
+            WeekOut(
+                label=f"{start.day} {start:%b}",
+                start=start,
+                end=start + timedelta(days=6),
+            )
             for start in starts
         ],
         attendance_percent=[
@@ -954,7 +976,7 @@ def student_resume_pdf(
     egress gate does not apply. Rule 2 does: director/admin only — a mentor
     reading a mentee's resume would need the scope gate, and that endpoint does
     not exist yet, so this one does not pretend to be it."""
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
     row = db.execute(
         select(Resume, Student.usn)
         .join(Student, Resume.student_id == Student.id)

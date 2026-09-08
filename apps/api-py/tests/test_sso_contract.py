@@ -128,15 +128,21 @@ def test_the_probe_field_names_match_on_both_sides(field: str) -> None:
 def test_the_login_screen_calls_paths_the_router_actually_serves() -> None:
     """Both the button and the probe, against the router's real route table."""
     from app.routers.auth import router
+    from app.routers.passwords import router as passwords_router
 
-    served = {r.path for r in router.routes}
+    # Two routers share the /auth prefix: auth.py owns sign-in, passwords.py
+    # owns credentials (activate / forgot / reset / change-password). The login
+    # screen's "Forgot password?" form calls the second, so the contract is
+    # against the union — the property being pinned is "no 404 that fails
+    # open", not "everything lives in one file".
+    served = {r.path for r in router.routes} | {r.path for r in passwords_router.routes}
     ts = _LOGIN_TS.read_text(encoding="utf-8")
     called = set(re.findall(r"environment\.apiBase\}(/auth/[a-z/]+)", ts))
 
     assert called, "no /auth/... URL found in login.component.ts — did it move?"
     missing = called - served
     assert not missing, (
-        f"login.component.ts calls {sorted(missing)}, which app/routers/auth.py "
+        f"login.component.ts calls {sorted(missing)}, which neither app/routers/auth.py nor passwords.py "
         f"does not serve. It serves {sorted(served)}. A 404 here fails OPEN: the "
         f"probe gives up and the Google button renders live regardless."
     )

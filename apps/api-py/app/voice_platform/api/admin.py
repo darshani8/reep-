@@ -46,7 +46,6 @@ from ..monitoring.cloudwatch import handler_span
 from ..queue import validation
 from ..queue.sqs import candidate_queue
 from ..storage import aurora
-from ..storage import opensearch as os_store
 from ..storage.s3 import recording_store
 from ..streaming import buffer as wav_buffer
 from ..streaming import mixer
@@ -78,7 +77,6 @@ class StatusOut(BaseModel):
     queues: dict[str, bool]
     recordings_bucket: bool
     dynamo_tables: dict[str, bool]
-    opensearch: bool
     ffmpeg: bool
     live_buffers: int
     interview_recording_enabled: bool
@@ -126,7 +124,6 @@ class QuestionIn(BaseModel):
     phase: str = "probing"
     order_index: int | None = None
     rubric: str | None = None
-    index_vector: bool = False
 
 
 class QuestionPatch(BaseModel):
@@ -146,7 +143,6 @@ class QuestionOut(BaseModel):
     text: str
     rubric: str | None
     active: bool
-    vector_indexed: bool | None = None
 
 
 class TimeLimitIn(BaseModel):
@@ -258,7 +254,6 @@ class CallOut(BaseModel):
     recording_truncated: bool
     recording_meta: dict[str, Any]
     dynamo_synced: bool
-    opensearch_synced: bool
 
 
 # ---------------------------------------------------------------------------
@@ -290,7 +285,7 @@ def _spec_out(db: Session, row: PlatformSpecialization) -> SpecializationOut:
     )
 
 
-def _question_out(row: PlatformQuestion, indexed: bool | None = None) -> QuestionOut:
+def _question_out(row: PlatformQuestion) -> QuestionOut:
     return QuestionOut(
         id=row.id,
         degree_level=row.degree_level,
@@ -300,7 +295,6 @@ def _question_out(row: PlatformQuestion, indexed: bool | None = None) -> Questio
         text=row.text,
         rubric=row.rubric,
         active=row.active,
-        vector_indexed=indexed,
     )
 
 
@@ -383,7 +377,6 @@ def call_out(row: PlatformCallSession) -> CallOut:
         recording_truncated=row.recording_truncated,
         recording_meta=dict(row.recording_meta or {}),
         dynamo_synced=row.dynamo_synced,
-        opensearch_synced=row.opensearch_synced,
     )
 
 
@@ -405,8 +398,6 @@ def platform_status(_: dict = Depends(_admin)) -> StatusOut:
     dynamo = {d: bool(settings.platform_dynamo_table(d)) for d in DEGREE_LEVELS}
     if not any(dynamo.values()):
         notes.append("No DynamoDB session tables; realtime session state is in-memory per worker.")
-    if not settings.platform_opensearch_endpoint.strip():
-        notes.append("No OpenSearch endpoint; session logs and question vectors are not indexed.")
     if not mixer.ffmpeg_available():
         notes.append("ffmpeg is not on this host; an 'mp3' recording policy produces WAV.")
     return StatusOut(
@@ -415,7 +406,6 @@ def platform_status(_: dict = Depends(_admin)) -> StatusOut:
         queues=queues,
         recordings_bucket=bool(settings.platform_recordings_bucket.strip()),
         dynamo_tables=dynamo,
-        opensearch=bool(settings.platform_opensearch_endpoint.strip()),
         ffmpeg=mixer.ffmpeg_available(),
         live_buffers=wav_buffer.live_count(),
         interview_recording_enabled=settings.interview_recording_enabled,
@@ -524,15 +514,7 @@ def create_question(
     except ValueError as exc:
         db.rollback()
         raise _422(exc) from exc
-    indexed: bool | None = None
-    if body.index_vector:
-        indexed = os_store.index_question_vector(
-            os_store.search_index(),
-            question_id=row.id,
-            text=row.text,
-            meta={"degree_level": spec.degree_level, "specialization": spec.key, "phase": row.phase},
-        )
-    return _question_out(row, indexed)
+    return _question_out(row)
 
 
 def _question_or_404(db: Session, question_id: str) -> PlatformQuestion:

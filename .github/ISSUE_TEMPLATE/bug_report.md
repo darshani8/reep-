@@ -19,10 +19,9 @@ assignees: ""
 - [ ] **Postgres** — `docker compose up -d` (container `reep-postgres`, host port **5433**, database `reep_py`)
 - [ ] **API** — from `apps/api-py`: `.venv/Scripts/python -m uvicorn app.main:app --port 3300`
 - [ ] **Web** — from `apps/web`: `npx ng serve` (port 4200, proxying `/api` to `http://localhost:3300`)
-- [ ] **Voice worker** — from `apps/api-py`: `.venv-voice/Scripts/python voice_agent.py dev`
-      (its **own** venv on **Python 3.12**, not the API's 3.14 — `livekit-agents` declares `Requires-Python: <3.15`)
-- [ ] **Interview relay** — *not a process.* It runs INSIDE the API and needs no extra venv;
-      what it needs is `OPENAI_API_KEY` in `apps/api-py/.env`. Blank means the socket closes **4001**.
+- [ ] **Interview engine** — *not a process.* It runs INSIDE the API and needs no extra venv.
+      On the default `INTERVIEW_ENGINE=nova` it needs AWS credentials that can reach Bedrock
+      and a `NOVA_SONIC_REGION` that serves Nova 2 Sonic. Unavailable means the socket closes **4001**.
 
 Anything **not** ticked above: was it deliberate, or had you forgotten it?
 
@@ -87,13 +86,10 @@ select channel, count(*), max(created_at) from messages group by channel;
 <paste here>
 ```
 
-No `voice` / `interview` rows, or a stale `max(created_at)`, means turns are being
-dropped. In order of likelihood: `VOICE_WORKER_SECRET` differs between the API and the
-worker (every POST 401s, and the worker still connects to LiveKit and answers normally,
-so nothing looks wrong from the outside), or `REEP_API_URL` is wrong (usually
-`localhost` from inside a container, so the POSTs never arrive). Both appear in the
-worker's log as `ERROR POST /api/voice/transcript -> HTTP 401: …`, with the status code;
-the interview side logs `Dropped interview turn`.
+No `interview` rows, or a stale `max(created_at)`, means turns are being dropped. The
+writes are deliberately fire-and-forget so a bad write can never kill a live call, which
+is exactly why the failure is silent: the conversation sounds perfect in the room and
+saves nothing. The cause is logged as `Dropped interview turn`.
 
 ## Environment
 

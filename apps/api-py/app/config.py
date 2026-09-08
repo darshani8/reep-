@@ -55,14 +55,14 @@ _PROD_ENV_NAMES = frozenset({"prod", "production", "prd", "live"})
 # the password door is shut", never "neither". ENV is "dev" by default and CI
 # sets nothing, so the suite and every laptop keep the doors they already have.
 #
-# Three guards read it, all through _is_dev_env below: password sign-in
-# (password_login_allowed), a session cookie without `Secure`
-# (insecure_cookies_allowed) and an unauthenticated voice worker
-# (worker_auth_optional). The 2026-08 audit found the last two keyed on
+# Two guards read it, both through _is_dev_env below: password sign-in
+# (password_login_allowed) and a session cookie without `Secure`
+# (insecure_cookies_allowed). The 2026-08 audit found the second keyed on
 # `is_prod` instead, which is a NAME TEST: a `staging`/`uat`/`demo` box — real
 # roster rows, real HTTPS, real students — is not one of the four prod
-# spellings, so it was handed a sniffable session cookie and an open
-# /api/voice/heartbeat because nobody had typed the magic word.
+# spellings, so it was handed a sniffable session cookie because nobody had
+# typed the magic word. (A third, worker_auth_optional, guarded the LiveKit
+# voice worker's endpoints; that stack was removed from the repo.)
 _DEV_ENV_NAMES = frozenset({"dev", "development", "test", "testing", "ci", "local"})
 
 # The committed development credentials. They are FIELD DEFAULTS AND GUARD
@@ -122,6 +122,29 @@ class Settings(BaseSettings):
     # and USN, and no login, no Google round-trip and no DB row is involved.
     auth_secret: str = _DEV_AUTH_SECRET
     web_origin: str = "http://localhost:4200"
+
+    # --- outbound mail: activation, password reset, registration confirmation ---
+    # Blank = no transport: messages are logged in full and kept in
+    # app/mail_transport.outbox (dev, CI, and a fresh deployment before IT has
+    # verified the domain). Set to a verified SES identity to send for real;
+    # SES authenticates through the task role, so there is no key to paste.
+    ses_from_address: str = ""
+    ses_region: str = ""  # falls back to AWS_REGION, then ap-south-1
+    # Link lifetimes, from the agreed plan: activation 7 days (a new staff
+    # member may not check mail today); reset 1 hour (the account exists and
+    # may already be under attack); an application's confirmation 24 hours.
+    activation_link_hours: int = 168
+    password_reset_minutes: int = 60
+    # A sign-in one-time code (the second step on password sign-in, see
+    # otp_login_required) lives this long. Short on purpose: the code is six
+    # digits, so its safety is the pairing of a small window with the per-account
+    # attempt budget in app/routers/auth.py.
+    otp_code_minutes: int = 10
+    email_verification_hours: int = 24
+    # "Forgot password" gets its own caps, per address and overall, or it is a
+    # way to send someone a hundred emails.
+    forgot_password_per_address_per_hour: int = 3
+    forgot_password_global_per_hour: int = 100
     env: str = "dev"
     # Whether /docs, /redoc and /openapi.json are mounted. True here, and OFF in
     # production unless the operator sets DOCS_ENABLED on purpose — `docs_exposed`
@@ -149,6 +172,12 @@ class Settings(BaseSettings):
     # this a door rather than a hole: opening it admits exactly the accounts an
     # operator has deliberately issued a password to, and no others.
     password_login: str = ""
+    # Whether a correct password is followed by a SECOND STEP: a six-digit code
+    # emailed to the account, which must be posted to /api/auth/login/code before
+    # a session is issued. Same idiom as password_login — a string that has to
+    # spell "true"; blank, absent or a typo all mean OFF. Read only through
+    # `otp_login_required` below, which also refuses to apply it on dev/CI.
+    otp_required: str = ""
     # Sessions are stateless 12-hour HS256 JWTs, so `POST /api/auth/logout`
     # deleting the cookie does nothing to a token that was already copied (audit
     # M8). A revocation deny-list closes that; this is how long one decision may
@@ -324,31 +353,6 @@ class Settings(BaseSettings):
     embedding_model: str = ""
     embedding_api_key: str = ""
 
-    # LiveKit (voice assistant) — a free LiveKit Cloud project. The /api/voice
-    # endpoints return 503 until all three are set.
-    livekit_url: str = ""
-    livekit_api_key: str = ""
-    livekit_api_secret: str = ""
-    # Optional shared secret the voice worker presents on POST /api/voice/heartbeat.
-    # Blank -> the heartbeat is open (dev). Set it in prod to authenticate the worker.
-    voice_worker_secret: str = ""
-    # Maintenance banner surfaced by GET /api/voice/status when non-empty (voice is
-    # forced unavailable while set — e.g. during an incident).
-    voice_maintenance_message: str = ""
-    # The voice twin of interview_max_sessions_per_user below (audit H2). Tokens
-    # were minted without limit, one fresh room each, and the token TTL bounds
-    # only how long a student has to JOIN — never how long the call runs. One
-    # scripted mint-and-join loop therefore costs unbounded worker memory and
-    # unbounded Groq spend from a single enrolled account. 2 (not 1) so a student
-    # whose browser died mid-call can start again without waiting out the old
-    # room; raising it multiplies what one account can spend.
-    voice_max_sessions_per_user: int = 2
-    # ...and the call itself gets a clock, which it has never had. Matched to
-    # interview_max_seconds on purpose: a student must not get a longer free
-    # session by taking the rollback path. Too low cuts a real conversation off
-    # mid-sentence, and there is deliberately no value meaning "unlimited".
-    voice_max_call_seconds: int = 900
-
     # Sampling temperature for the interviewer's responses, 0.0-2.0. UNSET by
     # default and sent only when explicitly configured: this codebase
     # deliberately omits unverified parameters (a rejected inference
@@ -520,7 +524,7 @@ class Settings(BaseSettings):
     # The dual-path (Undergraduate / Postgraduate) interview platform: per-degree
     # catalogue + Admin CRUD, the /ws/media-bridge socket on the Nova engine,
     # S3 -> Lambda -> SQS candidate ingest, dual-channel call recordings, and
-    # the DynamoDB / OpenSearch projections. EVERY value here is optional and
+    # and the DynamoDB projection. EVERY value here is optional and
     # blank means "that projection is off, honestly": no bucket -> recordings
     # stay on the local audio volume, no queue -> bulk uploads store straight
     # into Postgres, no table -> in-memory session state, no endpoint -> no
@@ -535,9 +539,6 @@ class Settings(BaseSettings):
     platform_dynamo_ug_table: str = ""
     platform_dynamo_pg_table: str = ""
     platform_dynamo_ttl_days: int = 180
-    platform_opensearch_endpoint: str = ""
-    platform_opensearch_sessions_index: str = "candidate-sessions"
-    platform_opensearch_questions_index: str = "question-vectors"
     platform_cloudwatch_log_group: str = ""
     platform_cloudwatch_namespace: str = "REEP/VoicePlatform"
     # The WAV buffer's hard cap per call: 24 kHz PCM16 on two channels is
@@ -707,8 +708,6 @@ class Settings(BaseSettings):
         "interview_orphan_grace_seconds",
         "interview_audio_min_free_bytes",
         "interview_temperature",
-        "voice_max_sessions_per_user",
-        "voice_max_call_seconds",
         "auth_revocation_cache_seconds",
         mode="before",
     )
@@ -762,8 +761,6 @@ class Settings(BaseSettings):
         "interview_retention_days",
         "interview_orphan_grace_seconds",
         "interview_audio_min_free_bytes",
-        "voice_max_sessions_per_user",
-        "voice_max_call_seconds",
     )
     @classmethod
     def _must_be_positive(cls, value: int, info: ValidationInfo) -> int:
@@ -878,6 +875,39 @@ class Settings(BaseSettings):
         return first or _DEFAULT_COLLEGE_DOMAIN
 
     @property
+    def mail_configured(self) -> bool:
+        """Is there a real outbound transport? Blank means log-and-keep."""
+        return bool(self.ses_from_address.strip())
+
+    @property
+    def provisionable_email_domains(self) -> frozenset[str]:
+        """Domains an application may be APPROVED INTO. A fence, deliberately.
+
+        Read this against `google_allowed_domain`'s comment, which says the
+        domain list is a label and "nothing in the sign-in path refuses on it,
+        and nothing should start to". That is still true and this does not
+        change it. The two run in opposite directions:
+
+          sign-in       a verified Google account -> is it on the roster?
+          provisioning  an UNAUTHENTICATED form   -> may it join the roster?
+
+        A domain test on sign-in can only lock out someone who is already
+        enrolled, which is why there isn't one. A domain test on provisioning
+        runs BEFORE enrolment, so it cannot lock anybody out of anything — it
+        can only stop a stranger's address from becoming a roster row. That is
+        the whole difference, and it is why the fence belongs here and nowhere
+        else.
+
+        Staff are unaffected: `app/grant_access.py` exists precisely to admit an
+        address that is not on the student domain, and it does not come through
+        this path.
+        """
+        raw = f"{self.google_allowed_domain},{self.roster_email_domain}"
+        return frozenset(
+            part.strip().lstrip("@").lower() for part in raw.split(",") if part.strip()
+        )
+
+    @property
     def nova_region(self) -> str:
         """The region the Nova Sonic stream is opened in, or "" if unknown.
 
@@ -906,7 +936,7 @@ class Settings(BaseSettings):
         Unlike `nova_region`, "" is a legitimate answer here: it is handed to
         boto3, which then reads its own configuration (AWS_REGION, a profile,
         the task metadata). It is resolved in one place so the S3, SQS,
-        DynamoDB, OpenSearch and CloudWatch clients cannot disagree.
+        DynamoDB and CloudWatch clients cannot disagree.
         """
         import os
 
@@ -1025,23 +1055,6 @@ class Settings(BaseSettings):
             or os.getenv("GOOGLE_API_KEY", "").strip()
         )
 
-    @property
-    def voice_model_key_present(self) -> bool:
-        """Whether the key the VOICE WORKER actually needs is configured.
-
-        Voice runs as a cascade (silero VAD -> Groq Whisper -> Groq Llama ->
-        TTS), so GROQ_API_KEY is what makes it work. This deliberately does NOT
-        check the Gemini key: that was the old native speech-to-speech path, and
-        gating on it would report voice "not configured" on a machine where it
-        runs perfectly — or, worse, report it ready on one where it cannot."""
-        import os
-
-        return bool(self.groq_api_key.strip() or os.getenv("GROQ_API_KEY", "").strip())
-
-    @property
-    def livekit_ready(self) -> bool:
-        return bool(self.livekit_url and self.livekit_api_key and self.livekit_api_secret)
-
     # Where uploaded files are stored on disk (only metadata lives in the DB).
     # Empty -> apps/api-py/var/uploads (gitignored). Object storage in production.
     upload_dir: str = ""
@@ -1106,6 +1119,25 @@ class Settings(BaseSettings):
         return None
 
     @property
+    def otp_login_required(self) -> bool:
+        """Whether POST /api/auth/login answers a correct password with an emailed
+        one-time code instead of a session.
+
+        True ONLY when OTP_REQUIRED spells "true" AND the environment is not one
+        of the dev/CI names — the same allowlist `password_login_allowed` reads.
+        On dev and CI this is ALWAYS False, whatever the variable says:
+        tests/conftest.py's `login` fixture POSTs /api/auth/login and reads the
+        set-cookie header straight off the response, and the whole DB-backed
+        suite signs in through it. A second step there would take the suite
+        with it, and a guard that trips on a laptop gets deleted by whoever is
+        trying to ship that afternoon. Students are unaffected either way: they
+        sign in with Google, which never reaches the password endpoint.
+        """
+        if _is_dev_env(self.env):
+            return False
+        return self.otp_required.strip().lower() == "true"
+
+    @property
     def insecure_cookies_allowed(self) -> bool:
         """Whether the session and OAuth-state cookies may be issued WITHOUT
         `Secure` — i.e. whether this box is allowed to be plain HTTP.
@@ -1124,27 +1156,6 @@ class Settings(BaseSettings):
         unrecognised gets the safe behaviour. The dev cost of getting this
         backwards is visible immediately (no cookie is stored on http://), which
         is the right direction for a mistake to fail in.
-        """
-        return _is_dev_env(self.env)
-
-    @property
-    def worker_auth_optional(self) -> bool:
-        """Whether a blank VOICE_WORKER_SECRET may leave the worker endpoints
-        open (POST /api/voice/heartbeat and /api/voice/transcript).
-
-        The same move as insecure_cookies_allowed, for the audit's M1. Those two
-        endpoints were open whenever the secret was blank AND ENV was not exactly
-        prod, so a `staging` box — or a deploy whose ENV arrived empty — let
-        anyone who could reach the port forge a heartbeat (voice then reports
-        itself available and students are handed tokens into rooms no agent ever
-        joins) and write assistant-labelled turns into any conversation whose
-        32-hex id they observed, where they render in the UI and replay into
-        later prompts.
-
-        Blank-is-open is a real dev convenience — the worker is a fourth process
-        in its own venv and making people copy a secret to try it once is how
-        "voice is broken" reports start — so it survives, narrowed to the
-        environments that are actually somebody's laptop.
         """
         return _is_dev_env(self.env)
 

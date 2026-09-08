@@ -150,7 +150,7 @@ def list_notes(
     _assert_can_access_student(session, student_id, db)
     rows = db.scalars(
         select(MentorNote)
-        .where(MentorNote.student_id == student_id)
+        .where(MentorNote.student_id == student_id, MentorNote.deleted_at.is_(None))
         .order_by(MentorNote.meeting_at.desc())
     ).all()
     return [_note_out(n) for n in rows]
@@ -209,14 +209,21 @@ def delete_note(
     """
     _assert_can_access_student(session, student_id, db)
     note = db.get(MentorNote, note_id)
-    if note is None or note.student_id != student_id:
+    # `db.get` is a primary-key lookup and takes no WHERE clause, so the
+    # already-retracted case has to be checked on the attribute. Without this a
+    # second DELETE re-stamps deleted_at and answers 204, which reads to the
+    # caller as "there was something here and I removed it" when there was not.
+    if note is None or note.student_id != student_id or note.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found.")
     if session["role"] == "MENTOR" and note.mentor_id != session.get("mentorId"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the mentor who wrote a note can remove it.",
         )
-    db.delete(note)
+    # Soft: the row stays, so "what was said and later withdrawn" is still
+    # answerable. See the column comment on MentorNote.deleted_at for why a
+    # note the student may already have read is not destroyed outright.
+    note.deleted_at = datetime.now(timezone.utc)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -543,7 +550,8 @@ class SkillClaimReviewOut(BaseModel):
     student_name: str
     skill_id: str
     skill_name: str
-    upload_id: str
+    # NULL once the student has deleted the certificate. The claim survives.
+    upload_id: str | None
     claimed_level: int
     status: str
     student_note: str | None
@@ -553,8 +561,10 @@ class SkillClaimReviewOut(BaseModel):
     created_at: datetime
     # What the evidence behind the claim actually IS, read off the Upload row so
     # the reviewer's card can name it before they open the file. All three are
-    # optional because a claim can outlive its upload (ondelete=CASCADE on the
-    # FK makes that unlikely, but a response model should not 500 on the case).
+    # optional because a claim can outlive its upload — which is now the ORDINARY
+    # case, not the unlikely one: the FK became ondelete=SET NULL so that a
+    # student deleting their certificate no longer destroys the mentor's review
+    # along with it (models/skill.py).
     evidence_kind: str | None = None
     evidence_title: str | None = None
     evidence_file_name: str | None = None
@@ -767,4 +777,8 @@ def review_skill_claim(
         select(User.name).join(Student, Student.user_id == User.id).where(Student.id == sc.student_id)
     )
     skname = db.scalar(select(Skill.name).where(Skill.id == sc.skill_id))
-    return _claim_out(sc, sname or "", skname or "", db.get(Upload, sc.upload_id))
+    # upload_id is NULL once the student deleted the certificate. `db.get` with
+    # a NULL primary key returns None today but warns it "may raise an error in
+    # a future release", so the case is decided here rather than in SQLAlchemy.
+    evidence = db.get(Upload, sc.upload_id) if sc.upload_id else None
+    return _claim_out(sc, sname or "", skname or "", evidence)

@@ -1,5 +1,16 @@
 # Hosting REEP on AWS
 
+> **HISTORICAL from 2026-09-07 onward, for the Terraform parts.** `infra/aws/`
+> was deleted at the cutover: CloudFormation now owns these resources through
+> the CDK stacks in `infra/cdk/` (`reep-core`, `reep-edge-waf`, `reep-dr-vault`,
+> `reep-voice-platform`). Every `terraform` command below is kept as the record
+> of how the account was built and what each resource is FOR — that part is
+> still accurate and still worth reading — but none of them can be run any
+> more. For deploying and operating today, read `docs/cdk-cutover.md` and
+> `infra/cdk/README.md`. The two Secrets Manager secrets described in section 3
+> are still filled exactly as written; they are deliberately not owned by
+> CloudFormation either.
+
 The stack `infra/aws/` provisions, and the runbook to stand it up, operate it,
 and diagnose it — with **Sentry as the one observability + traceability tool**
 and **Amazon Nova (Bedrock)** as the in-account model. `terraform validate`

@@ -198,3 +198,19 @@
 .state-note.risk .icon {
   color: var(--risk);
 }
+
+/* Designation / department line under the chips, and its inline editor. */
+.mentor-identity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.identity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}

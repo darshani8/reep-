@@ -6,7 +6,7 @@ posting override wins; otherwise these defaults apply.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -18,6 +18,14 @@ def _uuid() -> str:
 
 class PlacementCriteria(Base):
     __tablename__ = "placement_criteria"
+    __table_args__ = (
+        CheckConstraint(
+            "min_reep_completion_pct BETWEEN 0 AND 100 AND min_attendance_pct BETWEEN 0 AND 100 "
+            "AND min_cert_completion_pct BETWEEN 0 AND 100 AND min_cgpa BETWEEN 0 AND 10 "
+            "AND max_live_backlogs >= 0 AND max_gap_months >= 0",
+            name="ck_placement_criteria_range",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String, default="Default", server_default="Default")

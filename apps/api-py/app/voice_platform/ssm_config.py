@@ -3,7 +3,7 @@
 WHY. The api's task definition — and so its environment — is owned by the
 Terraform stack in infra/aws. The voice platform's resources are created by the
 CDK stack in infra/cdk, which knows the queue URLs, bucket names, table names
-and the OpenSearch endpoint only once it has deployed them. Putting those into
+and the queue URLs only once it has deployed them. Putting those into
 the task definition would mean a `terraform apply` for every platform change,
 which is exactly the two-tools-for-one-door problem AGENTS.md warns about. So
 the CDK stack publishes them as SSM parameters under
@@ -45,9 +45,6 @@ LOADABLE: dict[str, str] = {
     "PLATFORM_RECORDINGS_PREFIX": "platform_recordings_prefix",
     "PLATFORM_DYNAMO_UG_TABLE": "platform_dynamo_ug_table",
     "PLATFORM_DYNAMO_PG_TABLE": "platform_dynamo_pg_table",
-    "PLATFORM_OPENSEARCH_ENDPOINT": "platform_opensearch_endpoint",
-    "PLATFORM_OPENSEARCH_SESSIONS_INDEX": "platform_opensearch_sessions_index",
-    "PLATFORM_OPENSEARCH_QUESTIONS_INDEX": "platform_opensearch_questions_index",
     "PLATFORM_CLOUDWATCH_LOG_GROUP": "platform_cloudwatch_log_group",
     "PLATFORM_CLOUDWATCH_NAMESPACE": "platform_cloudwatch_namespace",
 }

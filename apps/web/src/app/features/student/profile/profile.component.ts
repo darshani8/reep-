@@ -58,6 +58,30 @@ interface ProfileOut {
   skills: unknown[];
   achievements: unknown[];
   leaderboard_opt_out: boolean;
+  institution: InstitutionOut;
+}
+
+/** One row of the locked institution card, with its state. See InstitutionLevelOut. */
+interface InstitutionLevel {
+  key: string;
+  label: string;
+  value: string | null;
+  state: 'set' | 'pending' | 'not_in_use';
+}
+
+/** The "verified by Main Admin" card. Every flat field nullable; `levels` is
+ *  what the card renders, in the server's order with the server's labels. */
+interface InstitutionOut {
+  college_name: string | null;
+  college_code: string | null;
+  department_name: string | null;
+  course_name: string | null;
+  specialization_name: string | null;
+  batch_label: string | null;
+  entry_date: string | null;
+  expected_completion: string | null;
+  levels: InstitutionLevel[];
+  not_in_use_note: string | null;
 }
 
 /** GET /student/dashboard — only name + usn are read here. */
@@ -165,6 +189,20 @@ export class ProfileComponent {
    * student to the office over a network blip.
    */
   readonly identityState = signal<'loading' | 'ready' | 'error'>('loading');
+
+  /** The locked institution card. Null until the profile loads; a 404 (no
+   *  profile row yet) leaves it null and the card says so. */
+  readonly institution = signal<InstitutionOut | null>(null);
+  /** Rows to draw: every level except the ones this institution does not use,
+   *  which are named once in the footnote instead of drawn as dashes. */
+  readonly institutionRows = computed(
+    () => (this.institution()?.levels ?? []).filter((lv) => lv.state !== 'not_in_use'),
+  );
+  readonly institutionDates = computed(() => {
+    const i = this.institution();
+    if (!i) return null;
+    return { entry: i.entry_date, done: i.expected_completion };
+  });
 
   /** What goes in the USN box, in every state. */
   readonly usnValue = computed(() => {
@@ -365,6 +403,7 @@ export class ProfileComponent {
   }
 
   private apply(p: ProfileOut): void {
+    this.institution.set(p.institution ?? null);
     this.phone.set(p.phone ?? '');
     this.email.set(p.email ?? '');
     this.linkedinUrl.set(p.linkedin_url ?? '');

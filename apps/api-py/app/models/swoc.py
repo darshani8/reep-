@@ -8,7 +8,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, func
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -36,6 +36,7 @@ class SwocEntry(Base):
     __table_args__ = (
         Index("ix_swoc_student_kind", "student_id", "kind"),
         Index("ix_swoc_student_source", "student_id", "source"),
+        CheckConstraint("weight >= 1 AND weight <= 5", name="ck_swoc_weight_range"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
@@ -46,6 +47,6 @@ class SwocEntry(Base):
     # 1-5, how strongly the author holds this; orders a quadrant.
     weight: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
     author_user_id: Mapped[str | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

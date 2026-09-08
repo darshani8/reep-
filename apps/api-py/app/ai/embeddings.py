@@ -27,6 +27,7 @@ from typing import NamedTuple
 import httpx
 
 from ..config import settings
+from ..tracing import span
 
 log = logging.getLogger(__name__)
 
@@ -83,12 +84,24 @@ def embed(texts: list[str]) -> list[list[float]] | None:
         headers["authorization"] = f"Bearer {key}"
 
     try:
-        resp = httpx.post(
-            f"{base}/embeddings",
-            json={"model": model, "input": texts},
-            headers=headers,
-            timeout=max(1.0, settings.llm_timeout_ms / 1000),
-        )
+        # Every embedding in the app goes through here, so one span covers the
+        # Knowledge Base's hybrid retrieval and anything added later. It is also
+        # the slowest hop in a KB search by an order of magnitude — a remote
+        # HTTPS round trip against two Postgres queries — which is exactly the
+        # thing a trace should show and a log line cannot. Count and model only;
+        # the texts are never attached.
+        with span(
+            "embeddings.embed",
+            f"{model} x{len(texts)}",
+            model=model,
+            texts=len(texts),
+        ):
+            resp = httpx.post(
+                f"{base}/embeddings",
+                json={"model": model, "input": texts},
+                headers=headers,
+                timeout=max(1.0, settings.llm_timeout_ms / 1000),
+            )
         resp.raise_for_status()
         data = resp.json()["data"]
         # OpenAI returns rows possibly out of order; sort by index to realign.

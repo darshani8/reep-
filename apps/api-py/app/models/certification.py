@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     Boolean,
     DateTime,
     Enum,
@@ -29,7 +30,10 @@ def _uuid() -> str:
 
 class Certification(Base):
     __tablename__ = "certifications"
-    __table_args__ = (Index("ix_cert_course", "course_code"),)
+    __table_args__ = (
+        Index("ix_cert_course", "course_code"),
+        CheckConstraint("required_hours >= 0", name="ck_certification_required_hours"),
+    )
 
     code: Mapped[str] = mapped_column(String, primary_key=True)  # e.g. CERT-22MBA11-LEAD
     course_code: Mapped[str] = mapped_column(ForeignKey("courses.code", ondelete="CASCADE"))
@@ -46,11 +50,15 @@ class CertificationProgress(Base):
     __table_args__ = (
         UniqueConstraint("student_id", "cert_code", name="uq_cert_progress"),
         Index("ix_certprog_student_status", "student_id", "status"),
+        CheckConstraint(
+            "progress_pct >= 0 AND progress_pct <= 100 AND hours_logged >= 0",
+            name="ck_cert_progress_range",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))
-    cert_code: Mapped[str] = mapped_column(ForeignKey("certifications.code", ondelete="CASCADE"))
+    cert_code: Mapped[str] = mapped_column(ForeignKey("certifications.code", ondelete="CASCADE"), index=True)
     status: Mapped[ProgressStatus] = mapped_column(
         Enum(ProgressStatus, name="progress_status", create_type=False),
         default=ProgressStatus.NOT_STARTED,

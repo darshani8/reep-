@@ -106,6 +106,7 @@ from fastapi.websockets import WebSocketState
 
 from .config import settings
 from .interview_audio import TRACK_INTERVIEWER, TRACK_STUDENT
+from .tracing import span
 from .interview_matrix import (
     REPORT_DIRECTIVE,
     InterviewPhase,
@@ -874,15 +875,28 @@ class NovaSonicSession:
             # under one bound works whichever side the service is waiting on.
             attach_output = getattr(upstream, "attach_output", None)
             try:
-                async with asyncio.timeout(open_timeout):
-                    async with asyncio.TaskGroup() as opening:
-                        if attach_output is not None:
+                # The span that earns its keep: this is where interviews fail.
+                # "did not open within 20s" is the most common failure on this
+                # path and the one a student experiences as the assistant simply
+                # not answering. Timing it separately from the rest of the
+                # session is what distinguishes a slow Bedrock handshake from a
+                # slow interview. Region and model, never a student's words.
+                with span(
+                    "bedrock.invoke_bidirectional_stream",
+                    "open + handshake",
+                    region=settings.nova_region,
+                    model=settings.nova_sonic_model,
+                    timeout_s=open_timeout,
+                ):
+                    async with asyncio.timeout(open_timeout):
+                        async with asyncio.TaskGroup() as opening:
+                            if attach_output is not None:
+                                opening.create_task(
+                                    attach_output(), name=f"nova-attach-{self._conn_id}"
+                                )
                             opening.create_task(
-                                attach_output(), name=f"nova-attach-{self._conn_id}"
+                                self._handshake(), name=f"nova-handshake-{self._conn_id}"
                             )
-                        opening.create_task(
-                            self._handshake(), name=f"nova-handshake-{self._conn_id}"
-                        )
             except TimeoutError:
                 self._log.error(
                     "Nova Sonic handshake did not complete within %.0fs "
@@ -1863,12 +1877,12 @@ class NovaSonicSession:
     ) -> None:
         """Persist one FINAL turn. FIRE-AND-FORGET, by contract.
 
-        A failed write must never end an interview that is otherwise going fine
-        — the same choice AGENTS.md documents for the LiveKit transcript POSTs,
-        and for the same reason: the student is mid-sentence and cannot be
-        helped by an exception. The price is exactly the failure mode the voice
-        runbook exists to catch, so a failed write is logged WITH ITS CAUSE and
-        the (emitted, persisted) pair on the session row makes the gap visible.
+        A failed write must never end an interview that is otherwise going fine:
+        the student is mid-sentence and cannot be helped by an exception. The
+        price is the silent failure the AGENTS.md runbook exists to catch — a
+        call that sounds perfect and saves nothing — so a failed write is logged
+        WITH ITS CAUSE and the (emitted, persisted) pair on the session row
+        makes the gap visible.
 
         A BLANK transcript is still a turn. "The transcriber heard nothing" is a
         fact a mentor may need, and dropping it is how turns_emitted and

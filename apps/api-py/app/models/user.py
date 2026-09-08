@@ -10,7 +10,18 @@ import enum
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, Float, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db import Base
@@ -86,6 +97,12 @@ class User(Base):
 
 class Student(Base):
     __tablename__ = "students"
+    __table_args__ = (
+        CheckConstraint(
+            "current_semester >= 1 AND weekly_hour_target >= 0",
+            name="ck_student_semester_target",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True)
@@ -94,7 +111,20 @@ class Student(Base):
     # Both indexed (b41c9e2d7f05): cohort_id is what leaderboards rank a cohort
     # by, mentor_id is what rule 2's staff-scope gate filters by — the two
     # hottest scope columns in the app, seq-scanned until the 2026-08 audit.
-    cohort_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)  # FK to Cohort later
+    # A REAL foreign key since d5a1c8b30f47. It was a bare String carrying the
+    # comment "FK to Cohort later" for its whole life, and "later" arrived when
+    # the student's locked profile card needed College / Batch / Entry date /
+    # Expected completion — all four of which are reached THROUGH this hop and
+    # none of which are stored on the student. Nullable because a student
+    # legitimately exists before an admin seats them (seed_roster.py creates
+    # exactly that), and `ondelete` is deliberately omitted so the database
+    # REFUSES to delete a cohort that still has students: the design archives a
+    # batch, it never deletes one, and a cascade here would take student rows
+    # with it. The index is kept — a foreign key does not create one on the
+    # referencing side, so dropping it would silently undo b41c9e2d7f05.
+    cohort_id: Mapped[str | None] = mapped_column(
+        ForeignKey("cohorts.id"), nullable=True, index=True
+    )
     mentor_id: Mapped[str | None] = mapped_column(ForeignKey("mentors.id"), nullable=True, index=True)
     current_stage: Mapped[Stage] = mapped_column(
         Enum(Stage, name="stage"), default=Stage.EXCEL, server_default="EXCEL"

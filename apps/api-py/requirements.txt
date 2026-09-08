@@ -40,7 +40,7 @@ pgvector==0.5.0
 # have cryptography installed?" — at CALLBACK time, in the image, on a path no
 # unit test exercises without a live Google. cryptography is pinned on the next
 # line as well because it reaches this environment today only as a TRANSITIVE
-# dependency of google-adk/livekit-api; the day one of those drops it, ID-token
+# dependency of google-adk; the day it drops it, ID-token
 # verification would break with nothing in this file having changed.
 pyjwt[crypto]==2.13.0
 cryptography==50.0.0
@@ -100,6 +100,3 @@ numpy==2.3.5
 google-adk==2.7.0
 # Lets ADK reach non-Gemini providers (Groq, Mistral, OpenRouter, …)
 litellm==1.96.2
-# LiveKit access-token minting for /api/voice/token (voice worker deps are in
-# requirements-voice.txt — a separate, heavier environment)
-livekit-api==1.2.0

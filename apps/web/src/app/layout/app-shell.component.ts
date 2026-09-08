@@ -19,6 +19,10 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { environment } from '../../environments/environment';
 import { AuthService } from '../core/auth.service';
 import type { Role } from '../core/session';
+
+const ADMIN_LINKS = [
+  { capability: 'admin.analytics', path: '/director', label: 'Analytics', icon: 'insights' },
+] as const;
 import { AgentOrbComponent } from './agent-orb.component';
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -47,6 +51,15 @@ export class AppShellComponent {
   /** Which of the three navigation sets to render. STUDENT is the fallback
    *  while /auth/me is in flight — the guard has already verified a session
    *  exists, so this only decides which links paint first. */
+  /** Admin screens a STAFF session has been GRANTED. Only entries whose API
+   *  endpoints actually check the capability belong here — a link to a screen
+   *  whose API still answers 403 by role is worse than no link. Analytics is
+   *  wired; the rest join as their endpoints do. */
+  readonly adminLinksHeld = computed(() => {
+    const caps = this.session()?.capabilities ?? [];
+    return ADMIN_LINKS.filter((l) => caps.includes(l.capability));
+  });
+
   readonly navKind = computed<'student' | 'staff' | 'admin' | 'alumni'>(() => {
     const role = this.session()?.role;
     // Admin is its own set, not staff-plus-extras. A DIRECTOR/ADMIN was getting

@@ -875,3 +875,52 @@ def test_the_routers_are_mounted_at_the_documented_paths():
         )
     assert expected <= served, sorted(expected - served)
     assert not any(path.startswith("/api/api/") for path in served)
+
+
+# --------------------------------------------------------------------------- #
+# The records grid: GET /api/mentor/interviews and the bulk zip
+# --------------------------------------------------------------------------- #
+
+@requires_db
+def test_the_records_grid_applies_rule_2_in_sql(api, world):
+    """Every interview WITH the student named — and scoped exactly like the
+    mentees list. A director sees both groups' interviews; a mentor in group A
+    sees only A's; a MENTOR WITH NO GROUP SEES NOBODY, never the whole
+    programme; a student is refused outright. The narrowing is SQL, so an
+    out-of-group row never leaves the database."""
+    r = api.get("/api/mentor/interviews", headers=world.as_director)
+    assert r.status_code == 200, r.text
+    ids = {row["session_id"] for row in r.json()}
+    assert {world.interview_id, world.other_interview_id} <= ids
+    row = next(x for x in r.json() if x["session_id"] == world.interview_id)
+    assert row["student_id"] == world.student_id
+    assert row["student_name"], "the grid must NAME the student"
+    assert "started_at" in row and "audio_recorded" in row
+
+    r = api.get("/api/mentor/interviews", headers=world.as_mentor_in_group)
+    assert r.status_code == 200, r.text
+    got = {row["session_id"] for row in r.json()}
+    assert world.interview_id in got
+    assert world.other_interview_id not in got, "group B's interview leaked to a group-A mentor"
+
+    r = api.get("/api/mentor/interviews", headers=world.as_mentor_no_group)
+    assert r.status_code == 200, r.text
+    assert r.json() == [], "a mentor with no group must see NOBODY"
+
+    r = api.get("/api/mentor/interviews", headers=world.as_student)
+    assert r.status_code in (401, 403), r.text
+
+
+@requires_db
+def test_the_bulk_zip_is_gated_like_a_single_recording(api, world):
+    """A zip of many students' voices is not a lesser act than one recording,
+    so it sits behind the same `admin.interview_audio` capability. A DIRECTOR
+    holds every capability EXCEPT this one by baseline, so a director is 403
+    here — the exact asymmetry interview_records.py's docstring defends."""
+    r = api.post(
+        "/api/mentor/interviews/audio.zip",
+        headers=world.as_director,
+        json={"session_ids": [world.interview_id]},
+    )
+    assert r.status_code == 403, r.text
+    assert "Interview audio" in r.text

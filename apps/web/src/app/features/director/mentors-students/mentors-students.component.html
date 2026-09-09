@@ -20,6 +20,66 @@
     <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
   }
 
+  <!-- Faculty accounts. The Main Admin creates one here and hands over the
+       activation link; the form below it is untouched by this. -->
+  @if (isMainAdmin()) {
+    <div class="card add-faculty">
+      <div class="add-faculty__head">
+        <div>
+          <div class="add-faculty__title">Faculty accounts</div>
+          <div class="dt-sub">Create a faculty login here. You get an activation link to send them; they set their own password from it and sign in on the Faculty portal.</div>
+        </div>
+        <button type="button" class="btn primary" (click)="addOpen.set(!addOpen()); created.set(null)" [attr.aria-expanded]="addOpen()">
+          <span class="icon">person_add</span> Add faculty member
+        </button>
+      </div>
+
+      @if (addOpen()) {
+        <form class="add-faculty__form" (submit)="createFaculty(); $event.preventDefault()" novalidate>
+          <div class="add-faculty__grid">
+            <div class="field">
+              <label for="fac-name">Full name</label>
+              <input id="fac-name" class="ctrl" type="text" required [value]="fName()" (input)="fName.set($any($event.target).value)" />
+            </div>
+            <div class="field">
+              <label for="fac-email">Email they will sign in with</label>
+              <input id="fac-email" class="ctrl" type="email" required placeholder="kavya.n@bgscet.ac.in" [value]="fEmail()" (input)="fEmail.set($any($event.target).value)" />
+            </div>
+            <div class="field">
+              <label for="fac-designation">Designation <span class="opt">(optional)</span></label>
+              <input id="fac-designation" class="ctrl" type="text" maxlength="120" placeholder="e.g. Assistant Professor" [value]="fDesignation()" (input)="fDesignation.set($any($event.target).value)" />
+            </div>
+            <div class="field">
+              <label for="fac-department">Department <span class="opt">(optional)</span></label>
+              <input id="fac-department" class="ctrl" type="text" maxlength="120" placeholder="e.g. MBA" [value]="fDepartment()" (input)="fDepartment.set($any($event.target).value)" />
+            </div>
+          </div>
+          @if (createError()) {
+            <div class="state-note risk"><span class="icon">error</span>{{ createError() }}</div>
+          }
+          <div class="add-faculty__foot">
+            <span class="dt-sub">No password is set here. They see nobody until you assign them students below.</span>
+            <div class="add-faculty__actions">
+              <button type="button" class="btn sm" (click)="addOpen.set(false)">Cancel</button>
+              <button type="submit" class="btn primary sm" [disabled]="creating()">{{ creating() ? 'Creating…' : 'Create account' }}</button>
+            </div>
+          </div>
+        </form>
+      }
+
+      @if (created(); as c) {
+        <div class="link-box" role="status">
+          <div class="link-box__title"><span class="icon">check_circle</span> {{ c.name }} created ({{ c.email }}). Send them this link — it is valid for {{ c.hours / 24 }} days:</div>
+          <div class="link-box__row">
+            <code class="link-box__link">{{ c.link }}</code>
+            <button type="button" class="btn sm" (click)="copy(c.link)">{{ copied() === c.link ? 'Copied' : 'Copy' }}</button>
+          </div>
+          <div class="dt-sub">They open it, choose a password, and sign in on the Faculty portal. Lost it? Pick them below and press "Activation link" for a fresh one.</div>
+        </div>
+      }
+    </div>
+  }
+
   @if (mentors() === null) {
     <div class="state-note"><span class="icon">hourglass_empty</span>Loading…</div>
   } @else if (mentors()!.length === 0) {
@@ -105,8 +165,24 @@
                 <button type="button" class="btn sm" (click)="openIdentity(m)">
                   <span class="icon">edit</span>Edit
                 </button>
+                @if (isMainAdmin()) {
+                  <button type="button" class="btn sm" (click)="reissueLink(m)" title="Mint a fresh activation link for this faculty member">
+                    <span class="icon">draw</span>Activation link
+                  </button>
+                }
               }
             </div>
+            @if (reissued(); as r) {
+              @if (r.user_id === m.user_id) {
+                <div class="link-box" role="status">
+                  <div class="link-box__title">Activation link for {{ m.name }} — valid for {{ r.hours / 24 }} days; any older link stops working:</div>
+                  <div class="link-box__row">
+                    <code class="link-box__link">{{ r.link }}</code>
+                    <button type="button" class="btn sm" (click)="copy(r.link)">{{ copied() === r.link ? 'Copied' : 'Copy' }}</button>
+                  </div>
+                </div>
+              }
+            }
           </div>
 
           <div class="list-lbl">Current mentees · {{ m.mentee_count }}</div>

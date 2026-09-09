@@ -23,9 +23,10 @@
  * wait.
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/auth.service';
 
 interface Mentee {
   student_id: string;
@@ -70,6 +71,24 @@ export class DirectorMentorsStudentsComponent {
   readonly busy = signal(false);
   readonly flash = signal<string | null>(null);
 
+  // --- faculty accounts: created here by the Main Admin, the activation link
+  // handed over on screen (POST /admin/faculty; POST /admin/users/{id}/activation-link).
+  private readonly auth = inject(AuthService);
+  /** The one account that may create faculty (the API is ADMIN-only too). */
+  readonly isMainAdmin = computed(() => this.auth.session()?.role === 'ADMIN');
+  readonly addOpen = signal(false);
+  readonly fName = signal('');
+  readonly fEmail = signal('');
+  readonly fDesignation = signal('');
+  readonly fDepartment = signal('');
+  readonly creating = signal(false);
+  readonly createError = signal<string | null>(null);
+  /** The account just made, with the link to hand over. */
+  readonly created = signal<{ name: string; email: string; link: string; hours: number } | null>(null);
+  /** A link re-issued for the selected faculty member. */
+  readonly reissued = signal<{ user_id: string; link: string; hours: number } | null>(null);
+  readonly copied = signal<string | null>(null);
+
   // --- institutional identity: designation + department on the User row ----
   // The leave form reads these and labels them "(synced)"; this is the only
   // screen that writes them. Draft holds strings, never null: an empty input
@@ -106,6 +125,79 @@ export class DirectorMentorsStudentsComponent {
     this.selectedMentor.set(id);
     this.checked.set(new Set());
     this.flash.set(null);
+  }
+
+  async createFaculty(): Promise<void> {
+    if (this.creating()) return;
+    const name = this.fName().trim();
+    const email = this.fEmail().trim();
+    if (!name || !email) {
+      this.createError.set('A name and the email address they will sign in with are both needed.');
+      return;
+    }
+    this.creating.set(true);
+    this.createError.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/admin/faculty`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          designation: this.fDesignation().trim() || null,
+          department: this.fDepartment().trim() || null,
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        detail?: unknown; name?: string; email?: string; activation_link?: string; expires_in_hours?: number; user_id?: string;
+      };
+      if (!res.ok) {
+        this.createError.set(typeof body.detail === 'string' ? body.detail : `Could not create the account (${res.status}).`);
+        return;
+      }
+      this.created.set({ name: body.name ?? name, email: body.email ?? email, link: body.activation_link ?? '', hours: body.expires_in_hours ?? 168 });
+      this.fName.set('');
+      this.fEmail.set('');
+      this.fDesignation.set('');
+      this.fDepartment.set('');
+      await this.refresh();
+      if (body.user_id) this.selectedMentor.set(body.user_id);
+    } catch {
+      this.createError.set('Could not reach the server.');
+    } finally {
+      this.creating.set(false);
+    }
+  }
+
+  /** Mint (or re-mint) the selected faculty member's activation link. Each
+   *  call supersedes the last, so what is shown is the one that works. */
+  async reissueLink(m: MentorLoad): Promise<void> {
+    this.reissued.set(null);
+    this.copied.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/admin/users/${m.user_id}/activation-link`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const body = (await res.json().catch(() => ({}))) as { detail?: unknown; link?: string; expires_in_hours?: number };
+      if (!res.ok) {
+        this.error.set(typeof body.detail === 'string' ? body.detail : `Could not issue a link (${res.status}).`);
+        return;
+      }
+      this.reissued.set({ user_id: m.user_id, link: body.link ?? '', hours: body.expires_in_hours ?? 168 });
+    } catch {
+      this.error.set('Could not reach the server.');
+    }
+  }
+
+  async copy(text: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copied.set(text);
+    } catch {
+      this.copied.set(null);
+    }
   }
 
   /** "Analytics · Assistant Professor", or what the roster actually holds. */

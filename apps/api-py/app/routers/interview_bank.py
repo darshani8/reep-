@@ -54,7 +54,7 @@ CAPABILITY = "admin.interview_questions"
 # ------------------------------------------------------------- schemas --
 
 
-class QuestionOut(BaseModel):
+class BankQuestionOut(BaseModel):
     id: str
     track: str
     phase: str
@@ -64,13 +64,13 @@ class QuestionOut(BaseModel):
     created_at: datetime
 
 
-class QuestionIn(BaseModel):
+class BankQuestionIn(BaseModel):
     track: str
     phase: str
     text: str = Field(min_length=8, max_length=MAX_QUESTION_CHARS)
 
 
-class QuestionPatch(BaseModel):
+class BankQuestionPatch(BaseModel):
     phase: str | None = None
     text: str | None = Field(default=None, min_length=8, max_length=MAX_QUESTION_CHARS)
     enabled: bool | None = None
@@ -85,7 +85,7 @@ class BulkIn(BaseModel):
 
 
 class BulkOut(BaseModel):
-    added: list[QuestionOut]
+    added: list[BankQuestionOut]
     skipped: list[str]
 
 
@@ -105,8 +105,8 @@ class TrackOut(BaseModel):
 # ------------------------------------------------------------- helpers --
 
 
-def _out(q: InterviewBankQuestion) -> QuestionOut:
-    return QuestionOut(
+def _out(q: InterviewBankQuestion) -> BankQuestionOut:
+    return BankQuestionOut(
         id=q.id, track=q.track, phase=q.phase, text=q.text,
         position=q.position, enabled=q.enabled, created_at=q.created_at,
     )
@@ -188,12 +188,12 @@ def tracks(
     ]
 
 
-@router.get("", response_model=list[QuestionOut])
+@router.get("", response_model=list[BankQuestionOut])
 def list_questions(
     track: str,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> list[QuestionOut]:
+) -> list[BankQuestionOut]:
     """Every question on the track, enabled or not, in the order it is worked."""
     require_capability(db, session, CAPABILITY)
     key = _check_track(track)
@@ -205,13 +205,13 @@ def list_questions(
     return [_out(q) for q in rows]
 
 
-@router.post("", response_model=QuestionOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=BankQuestionOut, status_code=status.HTTP_201_CREATED)
 def create_question(
-    body: QuestionIn,
+    body: BankQuestionIn,
     request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> QuestionOut:
+) -> BankQuestionOut:
     require_capability(db, session, CAPABILITY)
     track = _check_track(body.track)
     phase = _check_phase(body.phase)
@@ -264,14 +264,14 @@ def bulk_create(
     return BulkOut(added=[_out(q) for q in added], skipped=skipped)
 
 
-@router.patch("/{question_id}", response_model=QuestionOut)
+@router.patch("/{question_id}", response_model=BankQuestionOut)
 def patch_question(
     question_id: str,
-    body: QuestionPatch,
+    body: BankQuestionPatch,
     request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> QuestionOut:
+) -> BankQuestionOut:
     require_capability(db, session, CAPABILITY)
     q = _question_or_404(db, question_id)
     before = _snapshot(q)
@@ -301,13 +301,13 @@ def delete_question(
     db.commit()
 
 
-@router.post("/reorder", response_model=list[QuestionOut])
+@router.post("/reorder", response_model=list[BankQuestionOut])
 def reorder(
     body: ReorderIn,
     request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> list[QuestionOut]:
+) -> list[BankQuestionOut]:
     """The complete order for one track. Every id must belong to the track and
     every question on the track must be named: a partial order is a
     question silently moved to the end, which nobody asked for."""

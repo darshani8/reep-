@@ -523,3 +523,61 @@
   gap: 8px;
   margin: 10px 0 4px;
 }
+
+/* The design's dashed Main Admin door under the portal grid. */
+.main-admin {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 13px;
+  margin: -12px 0 20px;
+  border-radius: 14px;
+  border: 1.5px dashed rgba(122, 47, 158, 0.4);
+  background: transparent;
+  color: #552c7e;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+
+  .icon {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: rgba(122, 47, 158, 0.06);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #7a2f9e;
+    outline-offset: 2px;
+  }
+}
+
+/* The two doors under the card: register, or sign in once approved. */
+.doors {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(160, 138, 178, 0.25);
+  font-size: 12.5px;
+  font-weight: 700;
+
+  a,
+  .doors__approved {
+    color: #7a2f9e;
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+
+  a:hover,
+  .doors__approved:hover {
+    text-decoration: underline;
+  }
+}

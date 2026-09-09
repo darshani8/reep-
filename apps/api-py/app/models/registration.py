@@ -17,7 +17,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -134,4 +134,47 @@ class EmailVerification(Base):
     token_hash: Mapped[str] = mapped_column(String, unique=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+#: The two things an applicant may attach before anyone has decided on them.
+#: Plain strings, not a PG enum — the same choice `auth_tokens.purpose` made:
+#: adding a third kind is a deploy, not a type migration.
+DOCUMENT_KIND_CV = "CV"
+DOCUMENT_KIND_PHOTO = "PHOTO"
+DOCUMENT_KINDS: tuple[str, ...] = (DOCUMENT_KIND_CV, DOCUMENT_KIND_PHOTO)
+
+
+class RegistrationDocument(Base):
+    """A file attached to a public application BEFORE it is decided.
+
+    Why not `Upload`: an Upload is keyed on `students.id`, and an applicant has
+    no Student row until a director approves them — that is the whole point of
+    the queue. So the file lives here, owned by the application, and on
+    APPROVE it is MOVED into `uploads` (same stored_name, no second copy of the
+    bytes) as the student's first RESUME / PROFILE_PHOTO. On REJECT, or when a
+    never-verified application is swept, it is deleted with the row.
+
+    ONE OF EACH KIND, REPLACED IN PLACE — the unique constraint is what makes
+    "re-upload your CV" a replace and not a second file the reviewer has to
+    guess between. The bytes go through app/document_store like every other
+    upload: magic-sniffed (PDF / PNG / JPEG only), size-capped, no path from
+    the client ever reaches the disk.
+    """
+
+    __tablename__ = "registration_documents"
+    __table_args__ = (
+        Index("ix_regdoc_registration", "registration_id"),
+        UniqueConstraint("registration_id", "kind", name="uq_regdoc_registration_kind"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    registration_id: Mapped[str] = mapped_column(
+        ForeignKey("registrations.id", ondelete="CASCADE")
+    )
+    kind: Mapped[str] = mapped_column(String)  # DOCUMENT_KIND_CV | DOCUMENT_KIND_PHOTO
+    original_name: Mapped[str] = mapped_column(String)
+    stored_name: Mapped[str] = mapped_column(String, unique=True)
+    mime_type: Mapped[str] = mapped_column(String)
+    size_bytes: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

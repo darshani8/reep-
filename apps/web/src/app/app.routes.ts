@@ -313,7 +313,8 @@ export const routes: Routes = [
       // fails the bundle budget).
       {
         path: 'director/governance',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        // The Main Admin's alone: one account decides what faculty may see.
+        canActivate: [roleGuard('ADMIN')],
         loadComponent: () =>
           import('./features/director/governance/governance.component').then(
             (m) => m.GovernanceComponent,

@@ -78,9 +78,11 @@
           <a routerLink="/director/institution" routerLinkActive="active">
             <span class="icon" aria-hidden="true">school</span> Institution
           </a>
-          <a routerLink="/director/governance" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">admin_panel_settings</span> Governance
-          </a>
+          @if (isMainAdmin()) {
+            <a routerLink="/director/governance" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">admin_panel_settings</span> Governance
+            </a>
+          }
           <a routerLink="/director/jobs" routerLinkActive="active">
             <span class="icon" aria-hidden="true">work</span> Jobs Sheet
           </a>

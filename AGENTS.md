@@ -22,7 +22,7 @@ docker-compose.yml   Postgres 17 (container reep-postgres, host port 5433)
 
    **On `ENV=prod` this process now REFUSES TO BOOT on a bad secret, and that is not a bug in your deploy script.** `Settings.production_boot_failures()` (`app/config.py`) is raised from `app/main.py`'s lifespan, so uvicorn never binds a port, and the log names every problem it found. It fires on: an `AUTH_SECRET` that is blank, still the value published in this repo and `.env.example`, an obvious placeholder, or shorter than 32 characters; and a `DATABASE_URL` still carrying this repo's dev password. Set real values — the message includes the command to generate a secret. It is deliberately a refusal and not a warning: `AUTH_SECRET` signs the `reep_session` cookie, so a production host running on the repo default is one forged `{"role":"DIRECTOR"}` cookie away from every student's marks, attendance and USN, with no login and no database row involved. On every development `ENV` the check returns nothing at all, and `tests/test_boot_guard.py` pins that as hard as it pins the refusal — a guard that trips on a laptop gets deleted by whoever is trying to ship that afternoon.
 3. **Front end** — from `apps/web`: `npx ng serve` (port 4200). `proxy.conf.json` forwards `/api` → `http://localhost:3300`, so the app is same-origin and the httpOnly session cookie is carried. The whole API surface the client calls lives under `/api`.
-Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `mentor123`, `director@bgscet.ac.in` / `director123`, `alumni@bgscet.ac.in` / `alumni123` (no profile row — so the alumni first-login create-profile flow is what you see on a fresh database).
+Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `mentor123`, `director@bgscet.ac.in` / `director123`, `alumni@bgscet.ac.in` / `alumni123` (no profile row — so the alumni first-login create-profile flow is what you see on a fresh database). Plus `admin@bgscet.ac.in` / `admin123`: the **Main Admin**, the only role Governance admits (`require_admin` in `routers/mentor.py`) — the seeded director holds every console screen by baseline and still cannot grant one.
 
 ### Two requirements files, two seeds — the split is deliberate
 
@@ -317,6 +317,8 @@ rows nobody can fix.
 level, the API derives the rest, and a contradicting shallower value is a 422 —
 never a silent pick. `/api/admin/*` is DIRECTOR/ADMIN throughout and every
 operation is proven to refuse a STUDENT (`tests/test_admin_institution.py`).
+
+**One Main Admin (2026-09).** The placement office is ONE account, role ADMIN. `python -m app.grant_access` refuses a second ADMIN while an office account exists (the message says how a handover is done: demote the current one to MENTOR first) and refuses DIRECTOR outright — a DIRECTOR holds every console screen by baseline, which is a second admin under another name; the role survives for the dev seed and the tests only. Faculty are MENTOR, and a console screen reaches them ONLY as a grant the Main Admin makes in Governance, which is `require_admin` end to end (API and route guard) — so a granted mentor can use the screen they were given and never hand it on. The login's portal chooser is Student / Mentor / Alumni; the office comes in through the dashed "Main Admin" door.
 
 **Approval provisions, and two guards make that safe.** `POST
 /api/register/{id}/decision` APPROVE now mints the User + Student + profile.

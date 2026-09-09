@@ -48,19 +48,19 @@ def _q(text: str) -> str:
 
 
 @requires_db
-def test_the_bank_is_a_capability_a_director_holds_and_a_mentor_must_be_granted(client, make_user):
-    director = make_user("qb-dir", Role.DIRECTOR)
+def test_the_bank_is_a_capability_the_main_admin_holds_and_a_mentor_must_be_granted(client, make_user):
+    admin = make_user("qb-dir", Role.ADMIN)  # the Main Admin: the only account that may grant
     mentor = make_user("qb-men", Role.MENTOR)
     student = make_user("qb-stu")
 
-    assert client.get(f"{API}/tracks", headers=director.headers).status_code == 200
+    assert client.get(f"{API}/tracks", headers=admin.headers).status_code == 200
     assert client.get(f"{API}/tracks", headers=student.headers).status_code == 403
     r = client.get(f"{API}/tracks", headers=mentor.headers)
     assert r.status_code == 403 and "Interview questions" in r.text, "the 403 names what to ask for"
 
     r = client.post(
         f"{GOV}/grants",
-        headers=director.headers,
+        headers=admin.headers,
         json={
             "capability": "admin.interview_questions",
             "user_ids": [mentor.user_id],
@@ -79,7 +79,7 @@ def test_the_bank_is_a_capability_a_director_holds_and_a_mentor_must_be_granted(
         assert r.status_code == 201, r.text
     finally:
         for gid in grant_ids:
-            client.post(f"{GOV}/grants/{gid}/revoke", headers=director.headers,
+            client.post(f"{GOV}/grants/{gid}/revoke", headers=admin.headers,
                         json={"reason": "Test grant, removed at the end of the test."})
 
 

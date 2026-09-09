@@ -49,6 +49,8 @@ export class AppShellComponent {
 
   readonly session = this.auth.session;
   readonly roleLabel = computed(() => ROLE_LABEL[this.session()?.role ?? 'STUDENT'] ?? 'Student');
+  /** The one account that may open Governance (routers/governance.py is ADMIN-only). */
+  readonly isMainAdmin = computed(() => this.session()?.role === 'ADMIN');
 
   /** Which of the three navigation sets to render. STUDENT is the fallback
    *  while /auth/me is in flight — the guard has already verified a session

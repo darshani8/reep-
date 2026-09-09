@@ -29,7 +29,10 @@ from .routers import (
     director,
     health,
     interview,
+    admin_students,
     interview_bank,
+    leave_paper,
+    signature,
     swoc,
     leave,
     mentee_records,
@@ -327,6 +330,7 @@ app.include_router(director.router, prefix="/api")
 # seating a student, and the users.designation/department columns that had no
 # writer at all). require_director inside, same as every other admin surface.
 app.include_router(admin.router, prefix="/api")
+app.include_router(admin_students.router, prefix="/api")
 # Governance: capability grants for staff (deny past the role baseline) and
 # student feature overrides (allow until switched off, at any rung of the
 # hierarchy). Two instruments with OPPOSITE defaults, which is why they are one
@@ -337,6 +341,8 @@ app.include_router(leave.router, prefix="/api")
 # profile + jobs sheet). Both scope every row to the signed-in user; the staff
 # one gates on mentor.require_mentor, the alumni one on the ALUMNI role.
 app.include_router(staff_upskilling.router, prefix="/api")
+app.include_router(signature.router, prefix="/api")
+app.include_router(leave_paper.router, prefix="/api")
 app.include_router(alumni.router, prefix="/api")
 # The Skills & Badge dashboard: the student half shares the /student prefix
 # (badges, growth, leaderboards); badge_verification carries the staff review queue,

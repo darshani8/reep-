@@ -1,0 +1,301 @@
+/* Students. Colours from the reep-v2 tokens; `.card`, `.dt-table`, `.btn`,
+ * `.ctrl`, `.chip`, `.icon` are global. Everything scoped is prefixed `st-`. */
+
+.st {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.st-head {
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin: 0 0 6px;
+  }
+  p {
+    margin: 0;
+    max-width: 78ch;
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+}
+
+.st-error {
+  color: var(--risk);
+  background: var(--risk-bg);
+  border-radius: 10px;
+  padding: 10px 13px;
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.st-flash {
+  color: var(--good);
+  background: var(--good-bg);
+  border-radius: 10px;
+  padding: 10px 13px;
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.st-hint {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.st-pad {
+  padding: 14px 16px;
+}
+
+.st-warn {
+  font-size: 13px;
+  color: var(--risk);
+  font-weight: 600;
+}
+
+/* --- the bar ------------------------------------------------------------ */
+
+.st-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+}
+
+.st-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 160px;
+
+  .ctrl {
+    font-weight: 400;
+    color: var(--ink);
+  }
+
+  &--grow {
+    flex: 1;
+    min-width: 200px;
+  }
+}
+
+.st-count {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--muted);
+  padding-bottom: 8px;
+  white-space: nowrap;
+}
+
+/* --- the add form --------------------------------------------------------- */
+
+.st-form {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.st-form__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.st-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.st-form__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.st-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* --- the batch actions --------------------------------------------------- */
+
+.st-batch {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-left: 4px solid var(--brand-purple);
+}
+
+.st-batch__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.st-batch__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px 14px;
+}
+
+/* One control and its button, side by side, the button on the baseline. */
+.st-batch__item {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+
+  .st-field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btn {
+    height: 38px;
+    flex: none;
+  }
+}
+
+.st-batch__danger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px dashed var(--hairline);
+}
+
+/* --- the table ----------------------------------------------------------- */
+
+.st-list {
+  padding: 0;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.st-table {
+  width: 100%;
+  min-width: 960px;
+
+  th,
+  td {
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  th {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--hairline);
+    white-space: nowrap;
+  }
+
+  td {
+    border-bottom: 1px solid var(--hairline);
+    font-size: 13.5px;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  tr.st-editing td {
+    background: rgba(122, 47, 158, 0.05);
+  }
+}
+
+.st-name {
+  font-weight: 700;
+}
+
+.st-muted {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.st-usn {
+  width: 130px;
+}
+
+.st-act {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.st-empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 18px 12px;
+}
+
+.ctrl--sm {
+  padding: 5px 8px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+
+.btn--sm {
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+
+.btn.danger {
+  background: var(--risk-bg);
+  color: var(--risk);
+  border-color: transparent;
+}
+
+.st-mini {
+  width: 28px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  .icon {
+    font-size: 18px;
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(122, 47, 158, 0.08);
+    color: var(--brand-purple);
+  }
+
+  &--danger:hover:not(:disabled) {
+    background: var(--risk-bg);
+    color: var(--risk);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}

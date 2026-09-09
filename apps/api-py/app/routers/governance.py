@@ -1,7 +1,9 @@
 """Governance — the Main Admin console's access endpoints.
 
-DIRECTOR/ADMIN throughout, via `require_director` imported from mentor.py rather
-than reimplemented. Two instruments with opposite defaults, kept apart here as
+ADMIN ONLY throughout - the Main Admin - via `require_admin` imported from
+mentor.py rather than reimplemented. REEP has one Main Admin, and deciding what
+faculty may see is that account's instrument alone: a DIRECTOR holds every
+console screen by baseline and is still refused here, by name. Two instruments with opposite defaults, kept apart here as
 they are in the model:
 
     /grants    capability grants for staff. Deny past the role baseline.
@@ -57,7 +59,7 @@ from ..models.institution import (
     Department,
 )
 from ..models.user import Role, Student, User
-from .mentor import require_director
+from .mentor import require_admin
 
 router = APIRouter(prefix="/admin/governance", tags=["governance"])
 
@@ -117,7 +119,7 @@ def catalogue(
     a dropdown that no call site checks — the row that names a promise the API
     does not keep.
     """
-    require_director(session)
+    require_admin(session)
     return CatalogueOut(
         capabilities=[
             CapabilityOut(key=c.key, label=c.label, scope=c.scope.value, carries_pii=c.carries_pii)
@@ -149,7 +151,7 @@ def hierarchy(
     cohort may attach at department, course or specialization depth and only its
     own columns say which.
     """
-    require_director(session)
+    require_admin(session)
 
     def counts(column) -> dict[str, int]:
         rows = db.execute(
@@ -212,7 +214,7 @@ def staff(
     """The people a capability can be granted to. Staff only — a capability is
     a staff instrument, and offering a STUDENT in the picker would invite an
     admin to grant one and wonder why nothing changed."""
-    require_director(session)
+    require_admin(session)
     rows = db.scalars(
         select(User).where(User.role.in_([Role.MENTOR, Role.DIRECTOR, Role.ADMIN])).order_by(User.name)
     ).all()
@@ -290,7 +292,7 @@ def list_grants(
 ) -> list[GrantOut]:
     """Live grants only. Revoked and lapsed ones stay in the table and are read
     from the audit trail, which is where "who held this in March" belongs."""
-    require_director(session)
+    require_admin(session)
     now = _now()
     rows = db.scalars(
         select(CapabilityGrant)
@@ -320,7 +322,7 @@ def create_grants(
     Re-granting something already held is a no-op rather than a duplicate: two
     live rows for the same pair make revocation a question of which one.
     """
-    require_director(session)
+    require_admin(session)
     reason = _reason(body.reason)
     if not body.user_ids and not body.group_ids:
         raise HTTPException(
@@ -414,7 +416,7 @@ def revoke_grant(
 ) -> GrantOut:
     """Stamp, never delete. "Who held exports last March, and who signed it off"
     has to stay answerable after the answer stops being current."""
-    require_director(session)
+    require_admin(session)
     reason = _reason(body.reason)
     g = db.get(CapabilityGrant, grant_id)
     if g is None:
@@ -448,7 +450,7 @@ def effective_capabilities(
     thing: a mentor holds sixteen scoped capabilities with no grant at all, and an
     admin looking only at grants would conclude they hold nothing.
     """
-    require_director(session)
+    require_admin(session)
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
@@ -504,7 +506,7 @@ def list_groups(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[GroupOut]:
-    require_director(session)
+    require_admin(session)
     return [_group_out(db, g) for g in db.scalars(select(AccessGroup).order_by(AccessGroup.name)).all()]
 
 
@@ -515,7 +517,7 @@ def create_group(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> GroupOut:
-    require_director(session)
+    require_admin(session)
     if db.scalar(select(AccessGroup.id).where(AccessGroup.name == body.name.strip())):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A group with that name exists.")
     grp = AccessGroup(
@@ -550,7 +552,7 @@ def add_members(
 ) -> GroupOut:
     """Adding a member hands them every capability the group holds, so it is
     audited exactly like a grant and asks for the same reason."""
-    require_director(session)
+    require_admin(session)
     reason = _reason(body.reason)
     grp = db.get(AccessGroup, group_id)
     if grp is None:
@@ -586,7 +588,7 @@ def remove_member(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> GroupOut:
-    require_director(session)
+    require_admin(session)
     grp = db.get(AccessGroup, group_id)
     if grp is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
@@ -701,7 +703,7 @@ def list_overrides(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[OverrideOut]:
-    require_director(session)
+    require_admin(session)
     rows = db.scalars(select(FeatureOverride).order_by(FeatureOverride.set_at.desc())).all()
     return [_override_out(db, o) for o in rows]
 
@@ -720,7 +722,7 @@ def set_override(
     two rows, and deleting the broader one would turn it on for the other
     eighty-five. Use DELETE to remove a rule entirely.
     """
-    require_director(session)
+    require_admin(session)
     reason = _reason(body.reason)
     if _target_label(db, body.scope, body.target_id).startswith("(removed"):
         raise HTTPException(
@@ -774,7 +776,7 @@ def clear_override(
     db: Session = Depends(get_db),
 ):
     """Remove the rule entirely, so the next rung up decides again."""
-    require_director(session)
+    require_admin(session)
     row = db.get(FeatureOverride, override_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Override not found.")

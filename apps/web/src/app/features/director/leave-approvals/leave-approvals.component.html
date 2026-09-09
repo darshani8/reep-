@@ -163,6 +163,14 @@
           </div>
         </div>
 
+        <!-- The paper as a PDF: the sheet above, with the uploaded signatures
+             drawn in. A link, not a button: nothing here decides anything. -->
+        <div class="paper-row">
+          <a class="btn paper-link" [href]="paperUrl(r)" download>
+            <span class="icon" aria-hidden="true">picture_as_pdf</span> Download leave paper (PDF)
+          </a>
+        </div>
+
         @if (isPending(r)) {
           @switch (uiFor(r.id).mode) {
             @case ('approve') {

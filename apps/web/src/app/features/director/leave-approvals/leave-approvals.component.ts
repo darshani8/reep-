@@ -137,6 +137,11 @@ export class DirectorLeaveApprovalsComponent {
     return r.status === 'SUBMITTED' || r.status === 'FIRST_APPROVED';
   }
 
+  /** GET /api/leaves/{id}/paper.pdf - the sheet as a file, signatures drawn in. */
+  paperUrl(r: LeaveRow): string {
+    return `${environment.apiBase}/leaves/${r.id}/paper.pdf`;
+  }
+
   dateSpan(r: LeaveRow): string {
     return r.from_date === r.to_date ? r.from_date : `${r.from_date} — ${r.to_date}`;
   }

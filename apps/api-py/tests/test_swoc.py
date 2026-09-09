@@ -55,14 +55,14 @@ def swept(make_user):
 
 @requires_db
 def test_the_editor_is_a_capability_the_office_holds_and_faculty_are_granted(client, make_user, swept):
-    director = make_user("sw-dir", Role.DIRECTOR)
+    admin = make_user("sw-dir", Role.ADMIN)  # the Main Admin: the only account that may grant
     mentor = make_user("sw-men", Role.MENTOR)
     student = make_user("sw-stu")
     sid = _student_id(student.user_id)
     swept.append(sid)
     entry = {"kind": "strength", "text": "Quick learner, asks good questions."}
 
-    assert client.get(API, headers=director.headers).status_code == 200
+    assert client.get(API, headers=admin.headers).status_code == 200
     assert client.get(API, headers=student.headers).status_code == 403
     r = client.get(API, headers=mentor.headers)
     assert r.status_code == 403 and "SWOC notes" in r.text, "the 403 names what to ask for"
@@ -70,7 +70,7 @@ def test_the_editor_is_a_capability_the_office_holds_and_faculty_are_granted(cli
 
     r = client.post(
         f"{GOV}/grants",
-        headers=director.headers,
+        headers=admin.headers,
         json={
             "capability": "admin.swoc",
             "user_ids": [mentor.user_id],
@@ -88,7 +88,7 @@ def test_the_editor_is_a_capability_the_office_holds_and_faculty_are_granted(cli
         assert r.json()["author"] == _name(mentor.user_id)
     finally:
         for gid in grant_ids:
-            client.post(f"{GOV}/grants/{gid}/revoke", headers=director.headers,
+            client.post(f"{GOV}/grants/{gid}/revoke", headers=admin.headers,
                         json={"reason": "Test grant, removed at the end of the test."})
     assert client.get(API, headers=mentor.headers).status_code == 403, "revoked means gone, same second"
 

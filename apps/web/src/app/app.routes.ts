@@ -298,6 +298,14 @@ export const routes: Routes = [
             (m) => m.InterviewQuestionsComponent,
           ),
       },
+      // Students: the Main Admin's roster - create, edit, remove, and act on a
+      // whole batch. A capability, so it can be lent to faculty in Governance.
+      {
+        path: 'director/students',
+        canActivate: [capabilityGuard('admin.students')],
+        loadComponent: () =>
+          import('./features/director/students/students.component').then((m) => m.DirectorStudentsComponent),
+      },
       // SWOC Notes: the four lines on each student's landing. A capability, so
       // the office can lend it to faculty in Governance.
       {

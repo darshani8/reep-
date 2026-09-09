@@ -526,6 +526,26 @@ class AssignMentorIn(BaseModel):
     mentor_user_id: str | None = None
 
 
+def ensure_mentor_group(db: Session, faculty_user_id: str) -> str:
+    """The `Mentor` row for a faculty account, created on first use.
+
+    A faculty account with no group yet: the assignment is what makes them a
+    mentor. The row is created here, once, and never for anyone who is not a
+    MENTOR-role account - a student handed a group would be rule 2 edited by a
+    form. ONE IMPLEMENTATION: the single assignment above and the batch action
+    in admin_students.py both come through here.
+    """
+    faculty = db.get(User, faculty_user_id)
+    if faculty is None or faculty.role is not Role.MENTOR:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not a faculty account.")
+    group = db.scalar(select(Mentor).where(Mentor.user_id == faculty.id))
+    if group is None:
+        group = Mentor(user_id=faculty.id)
+        db.add(group)
+        db.flush()
+    return group.id
+
+
 @router.post("/students/{student_id}/mentor", status_code=status.HTTP_204_NO_CONTENT)
 def set_student_mentor(
     student_id: str,
@@ -546,19 +566,7 @@ def set_student_mentor(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
     mentor_id = body.mentor_id
     if mentor_id is None and body.mentor_user_id is not None:
-        # A faculty account with no group yet: the assignment is what makes
-        # them a mentor. The row is created here, once, and never for anyone
-        # who is not a MENTOR-role account - a student handed a group would be
-        # rule 2 edited by a form.
-        faculty = db.get(User, body.mentor_user_id)
-        if faculty is None or faculty.role is not Role.MENTOR:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not a faculty account.")
-        group = db.scalar(select(Mentor).where(Mentor.user_id == faculty.id))
-        if group is None:
-            group = Mentor(user_id=faculty.id)
-            db.add(group)
-            db.flush()
-        mentor_id = group.id
+        mentor_id = ensure_mentor_group(db, body.mentor_user_id)
     if mentor_id is not None and db.get(Mentor, mentor_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mentor not found.")
     student.mentor_id = mentor_id

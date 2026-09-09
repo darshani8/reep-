@@ -256,9 +256,9 @@ const PORTALS: readonly Portal[] = [
   },
   {
     key: 'mentor',
-    label: 'Mentor',
+    label: 'Faculty',
     icon: 'diversity_3',
-    desc: 'Guide mentees, verify skills',
+    desc: 'Guide students, verify skills',
     fieldLabel: 'Institutional email',
     placeholder: 'kavya.n@bgscet.ac.in',
     helper: 'Use your faculty email.',

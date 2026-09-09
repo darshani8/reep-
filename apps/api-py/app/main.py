@@ -31,6 +31,8 @@ from .routers import (
     interview,
     admin_students,
     interview_bank,
+    leave_paper,
+    signature,
     swoc,
     leave,
     mentee_records,
@@ -339,6 +341,8 @@ app.include_router(leave.router, prefix="/api")
 # profile + jobs sheet). Both scope every row to the signed-in user; the staff
 # one gates on mentor.require_mentor, the alumni one on the ALUMNI role.
 app.include_router(staff_upskilling.router, prefix="/api")
+app.include_router(signature.router, prefix="/api")
+app.include_router(leave_paper.router, prefix="/api")
 app.include_router(alumni.router, prefix="/api")
 # The Skills & Badge dashboard: the student half shares the /student prefix
 # (badges, growth, leaderboards); badge_verification carries the staff review queue,

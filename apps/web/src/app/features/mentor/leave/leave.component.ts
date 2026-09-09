@@ -137,6 +137,11 @@ export class LeaveComponent {
   readonly kinds = LEAVE_KINDS;
   readonly today = new Date();
 
+  /** GET /api/leaves/{id}/paper.pdf - this request as the printed paper, signatures drawn in. */
+  paperUrl(r: LeaveRow): string {
+    return `${environment.apiBase}/leaves/${r.id}/paper.pdf`;
+  }
+
   readonly rows = signal<LeaveRow[] | null>(null);
   readonly error = signal<string | null>(null);
 

@@ -67,6 +67,11 @@
       <div class="form-bar-note">
         Signatures are recorded as a name and a timestamp against your REEP account.
       </div>
+      @if (viewing()?.signed_at) {
+        <a class="btn paper-link" [href]="paperUrl(viewing()!)" download>
+          <span class="icon" aria-hidden="true">picture_as_pdf</span> Download PDF
+        </a>
+      }
     </div>
 
     @if (viewing()?.director_note) {

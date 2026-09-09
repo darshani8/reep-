@@ -217,6 +217,14 @@ export const routes: Routes = [
             (m) => m.UpskillingComponent,
           ),
       },
+      // Signature: the staff member's own uploaded signature image, drawn into
+      // the leave papers they apply on and sanction. Nothing about the leave
+      // form changes; this only holds the picture.
+      {
+        path: 'mentor/signature',
+        loadComponent: () =>
+          import('./features/mentor/signature/signature.component').then((m) => m.SignatureComponent),
+      },
       {
         path: 'mentor/leave',
         loadComponent: () =>

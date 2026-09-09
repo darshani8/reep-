@@ -42,7 +42,7 @@ on:
         description: "grant-access only: ALSO give the account a password, as the HASH from `python -m app.set_password --print-hash`. Never the password itself."
         required: false
       with_group:
-        description: "grant-access + MENTOR only: create the Mentor group, so the mentor can see students"
+        description: "grant-access + MENTOR only, OPTIONAL: create the Mentor group now. Not needed - the Main Admin assigning a student on Mentors & Students creates it, and until then the faculty member sees nobody."
         type: boolean
         default: false
       mentor_email:

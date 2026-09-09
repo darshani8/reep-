@@ -620,12 +620,212 @@ def test_sentry_never_ships_local_variables_or_request_bodies() -> None:
     to "medium", and POST /student/resume/generate carries a name, USN, marks
     and attendance in its body. Dropping these costs nothing an operator needs —
     the function, file and line number of every frame survive.
+
+    The init moved from app/main.py to app/observability.py (2026-09) so the
+    three reporting processes share ONE set of flags; this guard moved with it
+    and now also pins that every process reaches the SDK through that function
+    and never through a second `sentry_sdk.init` of its own.
     """
-    source = (APP / "main.py").read_text(encoding="utf-8")
+    source = (APP / "observability.py").read_text(encoding="utf-8")
     assert "sentry_sdk.init(" in source, "the Sentry init moved; this guard needs updating"
-    for flag in ("include_local_variables=False", 'max_request_body_size="never"'):
+    for flag in ("send_default_pii=False", "include_local_variables=False", 'max_request_body_size="never"'):
         assert flag in source, (
-            f"app/main.py's sentry_sdk.init must set {flag} — without it a single "
-            "exception on the interview path ships a student's transcript to a "
-            "third party. See this test's docstring."
+            f"app/observability.py's sentry_sdk.init must set {flag} — without it a "
+            "single exception on the interview path ships a student's transcript to "
+            "a third party. See this test's docstring."
         )
+    for module in ("main.py", "retention_job.py", "voice_platform/queue/worker.py"):
+        text = (APP / module).read_text(encoding="utf-8")
+        assert "sentry_sdk.init(" not in text, f"app/{module} must initialise Sentry through app.observability"
+        assert "init_sentry(" in text, f"app/{module} no longer initialises Sentry at all"
+
+
+def test_every_reporting_process_names_its_own_service_and_its_own_dsn() -> None:
+    """One process, one Sentry project, one DSN — and never the api's.
+
+    The retention job runs on the api's ECS task definition with only a command
+    override, so SENTRY_DSN (the api project's key) is in its environment. A
+    job that reads it files a nightly sweep under the api's issues, where nobody
+    looks for one, and a cron monitor under the wrong project. Each process
+    therefore names its service and reads the DSN setting for THAT service.
+    """
+    expectations = {
+        "main.py": ("SERVICE_API", "settings.sentry_dsn"),
+        "retention_job.py": ("SERVICE_JOBS", "settings.sentry_jobs_dsn"),
+        "voice_platform/queue/worker.py": ("SERVICE_INTERVIEW_WORKER", "settings.sentry_interview_worker_dsn"),
+    }
+    for module, (service, dsn_setting) in expectations.items():
+        text = (APP / module).read_text(encoding="utf-8")
+        assert f"init_sentry({service}, {dsn_setting})" in text, (
+            f"app/{module} must call init_sentry({service}, {dsn_setting}) — see this test's docstring"
+        )
+    for module in ("retention_job.py", "voice_platform/queue/worker.py"):
+        text = (APP / module).read_text(encoding="utf-8")
+        assert "settings.sentry_dsn)" not in text and "settings.sentry_dsn " not in text, (
+            f"app/{module} reads the api's DSN; it must read its own"
+        )
+
+
+def test_sentry_scrubs_before_the_event_leaves_the_process() -> None:
+    """The query string is NOT covered by any flag in the init.
+
+    THE INCIDENT: `send_default_pii=False`, `include_local_variables=False` and
+    `max_request_body_size="never"` were read as "Sentry gets no PII", and
+    app/config.py said so in a comment. In sentry-sdk 2.68.1 the ASGI
+    integration filters the query string ONLY when `_experiments["data_collection"]`
+    is set; nothing sets it, so the request data takes the raw branch.
+    `GET /api/register/verify?token=<raw>` therefore shipped a live, single-use,
+    account-provisioning token — and `GET /api/auth/sso/google/callback?code=&state=`
+    a Google authorization code — on error events AND on sampled transactions,
+    since request data is attached by an event processor and those run for
+    transactions too.
+
+    All four hooks are asserted together because the transaction hook is the
+    one that gets forgotten: a token does not need an exception to leak — and
+    the log hook because structured logs bypass before_breadcrumb entirely.
+    """
+    source = (APP / "observability.py").read_text(encoding="utf-8")
+    assert "sentry_sdk.init(" in source, "the Sentry init moved; this guard needs updating"
+    for hook in ("before_send=", "before_send_transaction=", "before_breadcrumb=", "before_send_log="):
+        assert hook in source, (
+            f"app/observability.py's options must set {hook} — the constructor "
+            "flags cover locals, bodies and cookies and cover NOTHING else. "
+            "See this test's docstring."
+        )
+
+
+def test_the_scrubber_drops_account_tokens_and_keeps_the_screen_selectors() -> None:
+    """Behavioural, not textual: the hook above can exist and do nothing.
+
+    Both halves are asserted, and `board` is asserted because the first draft
+    of the allowlist held five names and would have blanked it. A scrubber that
+    deletes the whole query string passes the first assert and makes
+    `interview hr` vs `interview generic`, or which leaderboard was slow,
+    unanswerable in a trace — which is the observability this instrumentation
+    was added for.
+    """
+    from app.telemetry_scrub import scrub_event, scrub_transaction
+
+    for hook in (scrub_event, scrub_transaction):
+        event = hook(
+            {"request": {"query_string": "token=deadbeefcafe&code=4/0Axyz&specialization=hr&board=cgpa"}},
+            {},
+        )
+        qs = event["request"]["query_string"]
+        assert "deadbeefcafe" not in qs
+        assert "4/0Axyz" not in qs and "4%2F0Axyz" not in qs
+        assert "specialization=hr" in qs
+        assert "board=cgpa" in qs
+
+
+def test_an_error_log_ships_its_arguments_too_not_only_the_formatted_string() -> None:
+    """LoggingIntegration's EventHandler writes THREE fields, not one:
+    `event["logentry"] = {"message": <raw template>, "formatted": record.getMessage(),
+    "params": record.args}`.
+
+    THE INCIDENT this anticipates: app/routers/auth.py has a `log.error` whose
+    arguments are `identity.email`, `user.google_sub` and `identity.sub`. ERROR
+    is at the integration's event level, so that record is a captured EVENT,
+    and on this deployment the email IS the USN. A hook that scrubs `formatted`
+    alone leaves it sitting one key over, uninterpolated.
+    """
+    from app.telemetry_scrub import scrub_event
+
+    event = scrub_event(
+        {
+            "logentry": {
+                "message": "%s is pinned to Google sub %s",
+                "formatted": "1mp25mdm01@bgscet.ac.in is pinned to Google sub 118…",
+                "params": ["1mp25mdm01@bgscet.ac.in", "118…"],
+            }
+        },
+        {},
+    )
+    logentry = event["logentry"]
+    assert "1mp25mdm01" not in logentry["formatted"]
+    assert "1mp25mdm01" not in logentry["params"][0]
+
+
+def test_the_mail_body_never_becomes_a_breadcrumb() -> None:
+    """app/mail_transport.py logs the ENTIRE outbound message at INFO when no
+    transport is configured — the raw activation link, the raw reset link, the
+    one-time code. Sentry's LoggingIntegration turns every INFO record into a
+    breadcrumb under `category = record.name`, attached to the next captured
+    event. It fires whenever SES_FROM_ADDRESS is blank, which no boot guard
+    requires.
+
+    The logger name is asserted too: mail_transport uses `logging.getLogger(__name__)`,
+    so moving or renaming that module silently unmutes it.
+    """
+    from app.telemetry_scrub import MUTED_LOGGERS, scrub_breadcrumb, scrub_log
+
+    assert "app.mail_transport" in MUTED_LOGGERS
+    assert (APP / "mail_transport.py").exists(), "module moved; MUTED_LOGGERS is now stale"
+    assert scrub_breadcrumb({"category": "app.mail_transport", "message": "MAIL ... /reset?token=deadbeef"}, {}) is None
+    # The structured-logs pipeline is a second door to the same body.
+    assert scrub_log({"body": "MAIL ... /reset?token=deadbeef", "attributes": {"logger.name": "app.mail_transport"}}, {}) is None
+
+
+def test_the_spa_scrubs_the_token_out_of_its_own_url() -> None:
+    """/activate?token= and /reset?token= are ANGULAR routes: the token is in
+    the browser's location.href before it is ever in a request body. The browser
+    SDK's httpContextIntegration is a DEFAULT integration — and an explicit
+    `integrations:` array MERGES with the defaults rather than replacing them —
+    so it sets event.request.url from location.href on every event, and the
+    navigation breadcrumb's `from` is path AND query. `sendDefaultPii: false`
+    governs IP and user identity, not the URL.
+
+    The api has a guard for its half of this and the web had none, which is why
+    this one reads across the app boundary.
+    """
+    source = (REPO / "apps" / "web" / "src" / "main.ts").read_text(encoding="utf-8")
+    assert "sentry.init(" in source, "the SPA Sentry init moved; this guard needs updating"
+    for hook in ("beforeSend:", "beforeSendTransaction:", "beforeBreadcrumb:"):
+        assert hook in source, f"apps/web/src/main.ts's sentry.init must set {hook} — see this test's docstring."
+
+
+def test_the_spa_keeps_replay_logs_and_metrics_off_and_imports_the_sdk_lazily() -> None:
+    """Four browser-side doors, each pinned as text because each is one line
+    from open.
+
+    Session Replay reconstructs the DOM, and 19 routes render marks, a USN, a
+    resume, an interview transcript or an admin console; it cannot be blocked
+    per route in this SDK and the students' consent covers the college's
+    server, not Sentry's. `enableLogs` and `enableMetrics` default to TRUE from
+    @sentry/angular 10.71.0 and bypass beforeSend. And the SDK must be reached
+    through ./app/core/sentry-lazy: a dynamic import of '@sentry/angular'
+    retains its whole namespace, which ships the Replay recorder to every
+    student to reach four symbols.
+    """
+    web = REPO / "apps" / "web" / "src"
+    main_ts = (web / "main.ts").read_text(encoding="utf-8")
+    lazy = (web / "app" / "core" / "sentry-lazy.ts").read_text(encoding="utf-8")
+    assert "replayIntegration" not in main_ts and "replayIntegration" not in lazy
+    assert "feedbackIntegration" not in main_ts and "feedbackIntegration" not in lazy
+    for line in ("sendDefaultPii: false", "enableLogs: false", "enableMetrics: false"):
+        assert line in main_ts, f"apps/web/src/main.ts must set {line}"
+    assert "import('./app/core/sentry-lazy')" in main_ts
+    assert "import('@sentry/angular')" not in main_ts
+    assert "from '@sentry/angular'" in lazy, "sentry-lazy.ts is the one place the package is named"
+
+
+def test_the_retention_monitor_keeps_the_same_clock_as_the_scheduler() -> None:
+    """Two sources of truth for one clock is a monitor that reports MISSED
+    every night against a job that ran fine. The Sentry monitor upserts its
+    schedule from app/retention_job.py; the EventBridge schedule lives in
+    infra/cdk/reep_core/stack.py. Both are read here and compared."""
+    from app.retention_job import MONITOR_CONFIG
+
+    stack = (REPO / "infra" / "cdk" / "reep_core" / "stack.py").read_text(encoding="utf-8")
+    # The AWS Backup rule and the restore test have crons of their own, so the
+    # search starts at the retention schedule's name and takes the first cron
+    # after it — not the first cron in the file.
+    anchor = stack.find("-retention-daily")
+    assert anchor > 0, "the retention schedule's name moved; update this guard"
+    match = re.search(r'schedule_expression="cron\((\d+) (\d+) \* \* \? \*\)"', stack[anchor:])
+    assert match, "the retention schedule moved or changed shape; update this guard"
+    minute, hour = match.group(1), match.group(2)
+    assert MONITOR_CONFIG["schedule"] == {"type": "crontab", "value": f"{minute} {hour} * * *"}
+    assert MONITOR_CONFIG["timezone"] == "Etc/UTC"
+    for key in ("checkin_margin", "max_runtime", "failure_issue_threshold", "recovery_threshold"):
+        assert key in MONITOR_CONFIG, f"{key} is missing — a camelCase key is accepted and ignored by the ingest"

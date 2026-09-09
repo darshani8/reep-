@@ -933,6 +933,18 @@ class CoreStack(Stack):
                 "SENTRY_DSN": ecs.Secret.from_secrets_manager(external_secret, "SENTRY_DSN"),
                 "VOICE_WORKER_SECRET": ecs.Secret.from_secrets_manager(external_secret, "VOICE_WORKER_SECRET"),
             }
+            # The retention schedule runs THIS task definition with only a
+            # command override, so the jobs project's DSN (app/retention_job.py
+            # reads SENTRY_JOBS_DSN and never SENTRY_DSN) has to arrive the same
+            # way the api's does. Gated on context and OFF by default, for two
+            # reasons that pull the same way: an ECS task that references a
+            # secret KEY the JSON does not hold fails to START — every task,
+            # the api included — and the import mirror must stay byte-identical
+            # until an operator has added the key. Set `sentryJobsDsn: true`
+            # in cdk.json AFTER `SENTRY_JOBS_DSN` exists in the reep/external
+            # secret, never before. The synth test pins both shapes.
+            if flag("sentryJobsDsn", False):
+                secrets["SENTRY_JOBS_DSN"] = ecs.Secret.from_secrets_manager(external_secret, "SENTRY_JOBS_DSN")
             c = td.add_container(
                 "api",
                 image=ecs.ContainerImage.from_registry(f"{api_image_repo}:{image_tag}"),

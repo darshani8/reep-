@@ -11,6 +11,7 @@ touched.
 
 from __future__ import annotations
 
+import io
 import os
 import struct
 import zlib
@@ -20,7 +21,7 @@ import pytest
 
 from conftest import requires_db
 
-from app import document_store
+from app import document_store, leave_paper
 from app.models.user import Role
 
 SIG = "/api/staff/signature"
@@ -152,3 +153,40 @@ def test_the_paper_downloads_for_the_applicant_and_the_office_and_carries_the_si
     assert client.delete(SIG, headers=faculty.headers).status_code == 204
     r = client.get(url, headers=faculty.headers)
     assert r.status_code == 200 and len(r.content) < with_director
+
+
+# --------------------------------------------------------- the template --
+
+
+def test_the_paper_is_the_official_form_itself():
+    """The download is the college's own PDF with the request written onto
+    it, never a redrawn likeness. The template is pinned by size: the field
+    coordinates in app/leave_paper.py were measured from this exact file, so
+    a replacement with a different layout must fail here, not print a name
+    into the wrong box."""
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+
+    from pypdf import PdfReader
+
+    assert leave_paper.TEMPLATE.is_file()
+    assert leave_paper.TEMPLATE.stat().st_size == leave_paper.TEMPLATE_BYTES
+
+    leave = SimpleNamespace(
+        requester_name="Asha Rao", requester_designation="Assistant Professor", requester_department="MBA",
+        from_date=date(2026, 9, 15), to_date=date(2026, 9, 16), reason="Family function.", status="APPROVED",
+        leave_kind="CASUAL", credit="2", alt_name="Kavya N",
+        alt_rows=[SimpleNamespace(date="2026-09-15", staff_name="Kavya N", cls="MBA-II", time="10:00", remarks="Swapped")],
+        signed_at=datetime(2026, 9, 9, 10, 0, tzinfo=timezone.utc), director_name="Director (seed)",
+        director_decided_at=datetime(2026, 9, 10, 9, 0, tzinfo=timezone.utc), director_note="Sanctioned.",
+    )
+    pdf = leave_paper.render_leave_paper_pdf(leave, staff_signature=(_png(), "image/png"))
+    reader = PdfReader(io.BytesIO(pdf))
+    assert len(reader.pages) == 1
+    box = reader.pages[0].mediabox
+    assert (round(float(box.width)), round(float(box.height))) == (612, 792), "Letter, like the form"
+    text = reader.pages[0].extract_text()
+    for printed in ("Jai Sri Gurudev", "BGS COLLEGE OF ENGINEERING AND TECHNOLOGY", "Alternate Arrangements", "PROGRAM"):
+        assert printed in text, f"the form's own text is there: {printed!r}"
+    for written in ("Asha Rao", "Assistant Professor", "Family function.", "Kavya N", "2026-09-15 to 2026-09-16"):
+        assert written in text, f"the request is written onto it: {written!r}"

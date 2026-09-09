@@ -81,6 +81,18 @@ EXPOSE 3300
 #                             hard kill mid-stream loses the turn.
 # NEVER --reload (AGENTS.md: it wedges a stale worker on this platform).
 ENV FORWARDED_ALLOW_IPS="10.42.0.0/16"
+
+# The commit this image was built from, and nothing else. Declared here, after
+# every COPY and RUN, so a changed value invalidates only these two trivial
+# layers and never the pip install. deploy.yml passes --build-arg GIT_SHA from
+# the workflow's commit, and app/observability.py hands it to Sentry as the
+# release — the same string the SPA reports and the same string source maps
+# are uploaded under, so "first seen in this release" reads across both halves.
+# Blank is a supported value: an empty SENTRY_RELEASE is falsy, no release is
+# reported, and nothing else changes. The task definition sets no
+# SENTRY_RELEASE of its own, so this ENV is what the container runs with.
+ARG GIT_SHA=""
+ENV SENTRY_RELEASE=$GIT_SHA
 CMD ["python", "-m", "uvicorn", "app.main:app", \
      "--host", "0.0.0.0", "--port", "3300", \
      "--proxy-headers", \

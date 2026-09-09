@@ -296,7 +296,7 @@ def decide_leave(
     decision = body.decision.upper()
     if decision not in ("APPROVE", "REJECT"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="decision must be APPROVE or REJECT.",
         )
     now = datetime.now(timezone.utc)

@@ -586,7 +586,7 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
             return
         if chain[key] is not None and chain[key] != value:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     f"The {_CLAIM_NOUN[key]} you chose contradicts the {because} you chose. "
                     f"Pick a {_CLAIM_NOUN[key]} under it, or clear the {because}."
@@ -600,7 +600,7 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
         row = db.get(model, ident)
         if row is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"That {noun} does not exist. Reload the form and choose again.",
             )
         return row
@@ -657,7 +657,7 @@ def submit(
     email = body.email.strip().lower()
     if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A valid email is required."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="A valid email is required."
         )
     existing = db.scalar(select(Registration).where(Registration.email == email))
     if existing is not None:
@@ -810,7 +810,7 @@ def _provision_student(db: Session, reg: Registration) -> Student:
     allowed = settings.provisionable_email_domains
     if not domain or domain not in allowed:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 "This application cannot be approved: its email address is not on a "
                 f"college domain ({', '.join(sorted(allowed))}). Approving it would "
@@ -988,7 +988,7 @@ def decide(
         reg.status = RegistrationStatus.REJECTED
     else:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="decision must be APPROVE or REJECT.",
         )
     reg.reviewed_by_id = session["userId"]

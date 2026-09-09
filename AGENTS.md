@@ -273,6 +273,8 @@ same hardened document_store as student uploads, applies its own per-user quota
 (document_store's contract for any second `save_bytes` writer), and has **no review
 workflow** — a staff certificate is a record, not evidence awaiting a verdict.
 
+**The leave paper and the signature (2026-09).** `GET /api/leaves/{id}/paper.pdf` (`app/routers/leave_paper.py`, rendered by `app/leave_paper.py` with ReportLab, locally) is the Leave Approvals sheet as a file — same words, same order — for the applicant and for exactly the staff `_assert_can_decide` admits, every refusal the same 404. A staff member uploads ONE signature image at `/mentor/signature` (`PUT /api/staff/signature`, PNG/JPEG under 2 MB, replaced in place, `app/models/staff_signature.py`); it is drawn ABOVE the name and time in the two staff blocks of every paper they apply on and in the PROGRAM DIRECTOR block of every paper they sanction. **A signature is still a name and a time**; the image never replaces either, and the leave form's submit/decide endpoints and buttons are untouched (the owner asked for that) — the paper router imports `_leave_out` and `_assert_can_decide` rather than restating them.
+
 **Alumni** are a real role: `Role.ALUMNI`, no Student/Mentor row, no staff
 scope, session claims carry neither `studentId` nor `mentorId`. Their surface
 is `app/routers/alumni.py`: `GET /api/alumni/profile` answers `created: false`

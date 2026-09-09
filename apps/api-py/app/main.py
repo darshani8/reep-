@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import retention
 from .config import settings
 from .db import SessionLocal
+from .observability import SERVICE_API, init_sentry
 from .traceability import RequestTraceMiddleware
 from .routers import (
     passwords,
@@ -58,38 +59,14 @@ log = logging.getLogger("reep.startup")
 # failures are captured. Blank SENTRY_DSN = not initialised = every downstream
 # sentry_sdk call is a no-op; a laptop and CI pay nothing.
 #
-# send_default_pii=False is load-bearing: with it off the SDK does not attach
-# cookies (the reep_session token!) or user context. Telemetry gets stack
-# traces, timings and tags — never a student's text or a signed credential.
-if settings.sentry_dsn.strip():
-    import sentry_sdk
-
-    sentry_sdk.init(
-        dsn=settings.sentry_dsn.strip(),
-        environment=settings.env.strip() or "development",
-        traces_sample_rate=settings.sentry_traces_rate,
-        send_default_pii=False,
-        # RULE 1, and send_default_pii=False DOES NOT COVER IT. That flag governs
-        # headers, cookies and IP; `include_local_variables` is a separate switch
-        # and it DEFAULTS TO TRUE, which attaches every stack frame's locals to
-        # every captured exception. On this codebase those locals are a student's
-        # words: `student_text` in app/conversations.py's writer, `raw` holding a
-        # scorecard, `payload` holding a Nova transcript event. One exception on
-        # the interview path and a student's transcript — marks, rejections, an
-        # employer named out loud — is on a third party's servers, from a process
-        # that is otherwise forbidden to send that text to a model.
-        #
-        # Demonstrated before this line was written: a RuntimeError raised in a
-        # function whose local was "My CGPA is 8.7 and I was rejected by Infosys
-        # last week" put that string verbatim into the event's frame vars.
-        include_local_variables=False,
-        # Same reasoning for bodies. POST /student/resume/generate carries a
-        # brief with a name, USN, marks and attendance; the default "medium"
-        # attaches it to errors. A stack trace is worth having, the payload that
-        # caused it is not.
-        max_request_body_size="never",
-    )
-    log.info("Sentry initialised (traces_sample_rate=%s)", settings.sentry_traces_rate)
+# The init itself — its three rule-1 flags (send_default_pii=False,
+# include_local_variables=False, max_request_body_size="never"), the sampler
+# and the scrubbing hooks — lives in app/observability.py: ONE function for the
+# three processes that report (this one, the retention job, the drain worker),
+# so the flags cannot drift between them. tests/test_codebase_guards.py reads
+# that file as text for the flags and this file as text for the call. The
+# service name is what separates the projects; the DSN is this project's own.
+init_sentry(SERVICE_API, settings.sentry_dsn)
 
 
 def _sweep_orphaned_interviews() -> int:

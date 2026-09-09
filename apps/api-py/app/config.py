@@ -108,6 +108,11 @@ def _is_dev_env(env: str) -> bool:
     return env.strip().lower() in _DEV_ENV_NAMES
 
 
+def _env_true(value: str) -> bool:
+    """A string flag read as a boolean: "1", "true", "yes", "on" (any case)."""
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
@@ -343,6 +348,57 @@ class Settings(BaseSettings):
         except ValueError:
             return 0.2
         return min(1.0, max(0.0, rate))
+
+    # --- the rest of the telemetry settings, read by app/observability.py ----
+    # Blank = the Sentry environment IS `ENV` (prod -> "prod", dev -> "dev"):
+    # one fact, one source. Set only to relabel telemetry without touching the
+    # five other things ENV decides — and read docs/sentry-playbook.md's
+    # environment table first, because an alert rule written for `production`
+    # matches nothing this deployment sends.
+    sentry_environment: str = ""
+    # The commit this process was built from. The Dockerfile bakes it in as
+    # SENTRY_RELEASE from a --build-arg; a blank stays blank (no release)
+    # rather than falling back to a git revision nobody chose.
+    sentry_release: str = ""
+    # Continuous-profiling session sample rate, 0.0-1.0. Nothing is profiled at
+    # 0.0. Named for the env var (SENTRY_PROFILES_SAMPLE_RATE); passed to the
+    # SDK as profile_session_sample_rate, the current API — the legacy
+    # transaction profiler stops at 30 s and cannot see an interview.
+    sentry_profiles_sample_rate: str = "0.0"
+    # RECOGNISED AND REFUSED. Rule 1: cookies, IPs and user context never leave
+    # this process. A truthy value here is logged as an error at init and
+    # changes nothing — it exists so the refusal is visible rather than silent.
+    sentry_send_default_pii: str = "false"
+    # Sentry structured logs (a separate pipeline from breadcrumbs and events).
+    # Off: stdout already reaches CloudWatch. When on, app/telemetry_scrub.py's
+    # before_send_log is the scrubber, because logs bypass before_breadcrumb.
+    sentry_logs_enabled: str = "false"
+    # One DSN per process, one project per DSN. The retention job runs on the
+    # api's task definition and could read SENTRY_DSN — it must not (see
+    # app/observability.py), so it has its own name, and blank means the job
+    # reports nowhere and says so at the top of its log.
+    sentry_jobs_dsn: str = ""
+    sentry_interview_worker_dsn: str = ""
+
+    @property
+    def sentry_environment_name(self) -> str:
+        return self.sentry_environment.strip() or self.env.strip() or "development"
+
+    @property
+    def sentry_profile_rate(self) -> float:
+        try:
+            rate = float(self.sentry_profiles_sample_rate.strip() or "0.0")
+        except ValueError:
+            return 0.0
+        return min(1.0, max(0.0, rate))
+
+    @property
+    def sentry_pii_requested(self) -> bool:
+        return _env_true(self.sentry_send_default_pii)
+
+    @property
+    def sentry_logs_on(self) -> bool:
+        return _env_true(self.sentry_logs_enabled)
 
     # Knowledge-Base embedder (app/ai/embeddings.py). OPTIONAL: leave the base URL
     # blank and retrieval falls back to Postgres full-text — no embeddings needed.

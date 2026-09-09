@@ -46,14 +46,74 @@ def enabled() -> bool:
 
 @contextmanager
 def transaction(name: str, *, op: str = "websocket.server", **tags: Any) -> Iterator[Any]:
-    """A root transaction for one WebSocket connection (or one worker cycle)."""
+    """A root transaction for one WebSocket connection (or one worker cycle).
+
+    REUSES an active transaction of the same op rather than nesting a second
+    one. On sentry-sdk 2.68.1 the Starlette integration already opens a
+    `websocket.server` transaction spanning the socket's whole life — the
+    "single upgrade request" premise in this module's docstring was true of an
+    older pin — so starting another inside it split every interview across two
+    transactions with two names and doubled the cost. The outer one keeps its
+    spans and gets THIS name and these tags; a different op (a `task` inside a
+    socket) still gets its own.
+    """
     if not enabled():
         yield None
+        return
+    current = None
+    try:
+        current = sentry_sdk.get_current_scope().transaction
+    except Exception:  # noqa: BLE001 - never let observability raise
+        current = None
+    if current is not None and getattr(current, "op", None) == op:
+        try:
+            current.name = name
+            current.source = "custom"
+            for key, value in tags.items():
+                current.set_tag(key, str(value))
+        except Exception:  # noqa: BLE001
+            pass
+        yield current
         return
     with sentry_sdk.start_transaction(name=name, op=op) as tx:
         for key, value in tags.items():
             tx.set_tag(key, str(value))
         yield tx
+
+
+@contextmanager
+def scoped(**tags: Any) -> Iterator[Any]:
+    """A scope for one unit of work — one queue message, one job step. Tags set
+    here apply to whatever Sentry captures inside the block and to nothing
+    after it. Yields the scope so a caller can set a fingerprint on it, or None
+    when Sentry is off. Tags must be low-cardinality: a degree level, a failure
+    kind — never a message, student or file id."""
+    if not enabled():
+        yield None
+        return
+    with sentry_sdk.new_scope() as scope:
+        for key, value in tags.items():
+            scope.set_tag(key, str(value))
+        yield scope
+
+
+def annotate(**data: Any) -> None:
+    """Attach data to whatever span is active — counts, sizes, identifiers.
+    No-op when Sentry is off or nothing is active, so a call site never has to
+    branch on the None that `span()` yields."""
+    if not enabled():
+        return
+    try:
+        current = sentry_sdk.get_current_span()
+    except Exception:  # noqa: BLE001
+        return
+    if current is None:
+        return
+    for key, value in data.items():
+        try:
+            current.set_data(key, value)
+        except Exception:  # noqa: BLE001
+            pass
 
 
 def span(op: str, description: str | None = None, **data: Any) -> Any:

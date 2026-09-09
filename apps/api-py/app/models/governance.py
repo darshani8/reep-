@@ -135,6 +135,15 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     Capability("admin.placement", "Placement", _P),
     Capability("admin.mentors", "Mentors & students", _P, carries_pii=True),
     Capability("admin.interview_audio", "Interview audio", _P, carries_pii=True),
+    # The admin-authored question bank the free-style interviewer weaves in
+    # (app/interview_bank.py). PROGRAMME: a question is asked of every student on
+    # the track, so no mentor group could narrow it.
+    Capability("admin.interview_questions", "Interview questions", _P),
+    # SWOC - the four lines on a student's landing (app/models/student_swoc.py).
+    # PROGRAMME and personal: it names a student and characterises them, and
+    # the office writes it for every student, so a grant is the decision to let
+    # a faculty member do the same.
+    Capability("admin.swoc", "SWOC notes", _P, carries_pii=True),
 )
 
 CAPABILITIES_BY_KEY: Final[dict[str, Capability]] = {c.key: c for c in CAPABILITIES}

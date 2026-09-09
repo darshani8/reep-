@@ -154,3 +154,30 @@
 .state-note.risk .icon {
   color: var(--risk);
 }
+
+/* The design's Undo, on the success log's right edge. */
+.log .undo {
+  margin-left: auto;
+  background: #fff;
+  color: #552c7e;
+  border: 1px solid rgba(160, 138, 178, 0.45);
+  padding: 5px 11px;
+}
+
+.chip.sm {
+  font-size: 11px;
+  padding: 2px 7px;
+}
+
+.meta.claim {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+
+  .icon {
+    font-size: 14px;
+    color: var(--brand-purple);
+  }
+}

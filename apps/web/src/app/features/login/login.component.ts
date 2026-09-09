@@ -35,7 +35,7 @@
 
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
@@ -275,7 +275,7 @@ const REMEMBER_PORTAL_KEY = 'reep.login.portal';
   selector: 'app-login',
   standalone: true,
   // FormsModule for the code step's ngModel; the ID + password form is reactive.
-  imports: [ReactiveFormsModule, FormsModule],
+  imports: [ReactiveFormsModule, FormsModule, RouterLink],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
   // Coming BACK from Google with the browser's back button restores this page
@@ -364,6 +364,25 @@ export class LoginComponent {
     }
     this.restoreRemembered();
     void this.probe();
+  }
+
+  /** The design's Main Admin door: pick the Admin portal and put the cursor in
+   *  the ID field. Descriptive, like every portal — the role is the roster's. */
+  openMainAdmin(): void {
+    this.selectPortal('admin');
+    queueMicrotask(() => document.querySelector<HTMLInputElement>('input[name="id"]')?.focus());
+  }
+
+  /** "Already approved? Sign in": an approved student holds no password, so
+   *  their door is Google. Select the Student portal and bring that button into
+   *  view and focus. */
+  approvedSignIn(): void {
+    this.selectPortal('student');
+    queueMicrotask(() => {
+      const g = document.querySelector<HTMLElement>('.google');
+      g?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      g?.focus();
+    });
   }
 
   selectPortal(key: Portal['key']): void {

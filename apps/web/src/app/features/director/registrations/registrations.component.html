@@ -46,7 +46,14 @@
     <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
   }
   @if (log()) {
-    <div class="log"><span class="icon">check_circle</span>{{ log() }}</div>
+    <div class="log">
+      <span class="icon">check_circle</span>{{ log() }}
+      @if (lastRejected().length) {
+        <button type="button" class="btn sm undo" [disabled]="undoing()" (click)="undoReject()">
+          {{ undoing() ? 'Reopening…' : 'Undo' }}
+        </button>
+      }
+    </div>
   }
 
   <div class="card">
@@ -69,7 +76,7 @@
               <th>Student</th>
               <th>Programme</th>
               <th>Registered</th>
-              <th>Intake rule</th>
+              <th>Documents</th>
               <th></th>
             </tr>
           </thead>
@@ -92,19 +99,27 @@
                     }
                     {{ r.email }}
                   </div>
+                  @if (r.college_name || r.department_name) {
+                    <div class="meta claim">
+                      <span class="icon">school</span>
+                      {{ r.college_name }}@if (r.department_name) { · {{ r.department_name }} }@if (r.specialization_name) { · {{ r.specialization_name }} } @else if (r.course_name) { · {{ r.course_name }} }
+                      @if (r.requested_batch) { <span class="chip neutral sm">Batch {{ r.requested_batch }}</span> }
+                    </div>
+                  }
                 </td>
-                <td>{{ programmeOf(r) }}</td>
+                <td>
+                  {{ programmeOf(r) }}
+                  <div class="meta">
+                    @if (r.matched_rule_id) {
+                      <span class="chip good sm" [title]="r.decision_reason || ''">Rule matched</span>
+                    } @else {
+                      <span class="chip warn sm" [title]="r.decision_reason || ''">Judgement call</span>
+                    }
+                  </div>
+                </td>
                 <td class="nowrap">{{ r.created_at | date: 'd MMM y' }}</td>
                 <td>
-                  @if (r.matched_rule_id) {
-                    <span class="chip good" [title]="r.decision_reason || ''">
-                      Rule matched
-                    </span>
-                  } @else {
-                    <span class="chip warn" [title]="r.decision_reason || ''">
-                      No rule · judgement call
-                    </span>
-                  }
+                  <span class="chip {{ docsKind(r) }}">{{ docsLabel(r) }}</span>
                 </td>
                 <td>
                   <div class="row-actions">

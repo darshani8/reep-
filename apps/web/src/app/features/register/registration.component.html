@@ -23,6 +23,24 @@
         </div>
       }
 
+      @if (r.college_name || r.department_name) {
+        <p class="reg-chain">
+          <span class="icon">school</span>
+          {{ r.college_name }}@if (r.department_name) { · {{ r.department_name }} }@if (r.course_name) { · {{ r.course_name }} }@if (r.specialization_name) { · {{ r.specialization_name }} }@if (r.requested_batch) { · Batch {{ r.requested_batch }} }
+        </p>
+      }
+
+      @if (docNotes().length) {
+        <ul class="doc-notes">
+          @for (n of docNotes(); track n) {
+            <li>
+              <span class="icon">{{ n.includes('could not') ? 'warning' : 'check_circle' }}</span>
+              {{ n }}
+            </li>
+          }
+        </ul>
+      }
+
       <div style="margin-top:20px; display:flex; gap:10px;">
         <a class="dt-btn primary" routerLink="/login">
           Continue to sign in <span class="icon" style="font-size:16px">arrow_forward</span>
@@ -32,12 +50,18 @@
     } @else {
       <!-- the application form -->
       <form (submit)="submit($event)">
-        <div class="dropzone">
-          <span class="icon">upload_file</span>Upload CV to auto-fill (PDF/DOCX)<br>
-          <button type="button" class="dt-btn" style="margin-top:10px" disabled>Choose file</button>
-        </div>
+        <label class="dropzone dropzone--live">
+          <span class="icon">upload_file</span>
+          @if (cvFile(); as f) {
+            <strong>{{ f.name }}</strong> · {{ (f.size / 1024) | number: '1.0-0' }} KB
+          } @else {
+            Attach your CV (PDF, up to 10 MB)
+          }
+          <input type="file" accept="application/pdf,.pdf" (change)="onCv($event)" hidden>
+          <span class="dt-btn dropzone__btn">{{ cvFile() ? 'Change file' : 'Choose file' }}</span>
+        </label>
         <div class="autofill-note">
-          <span class="icon">auto_awesome</span> CV auto-fill is coming soon — please fill the fields below yourself.
+          <span class="icon">info</span> Your CV goes to the placement office with your application, and becomes your first resume upload once you are admitted. The form below is still yours to fill.
         </div>
 
         <div class="reg-grid">
@@ -67,6 +91,55 @@
           </div>
         </div>
 
+        <div class="reg-section">Where you belong</div>
+        <div class="reg-grid">
+          <div class="field">
+            <label for="reg-college">College @if (required().has('college')) { <span class="req">*</span> }</label>
+            <select id="reg-college" name="college" [value]="collegeId()" (change)="setCollege($any($event.target).value)">
+              <option value="">Choose your college</option>
+              @for (c of hier()?.colleges ?? []; track c.id) {
+                <option [value]="c.id">{{ c.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="reg-dept">Department @if (required().has('department')) { <span class="req">*</span> }</label>
+            <select id="reg-dept" name="department" [value]="departmentId()" [disabled]="!collegeId()" (change)="setDepartment($any($event.target).value)">
+              <option value="">{{ collegeId() ? 'Choose your department' : 'Choose a college first' }}</option>
+              @for (d of departments(); track d.id) {
+                <option [value]="d.id">{{ d.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="reg-course">Course @if (required().has('course')) { <span class="req">*</span> }</label>
+            <select id="reg-course" name="course" [value]="courseId()" [disabled]="!departmentId() || !courses().length" (change)="setCourse($any($event.target).value)">
+              <option value="">{{ !departmentId() ? 'Choose a department first' : (courses().length ? 'Choose your course' : 'No courses listed') }}</option>
+              @for (c of courses(); track c.id) {
+                <option [value]="c.id">{{ c.code }} · {{ c.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="reg-spec">Specialization @if (required().has('specialization')) { <span class="req">*</span> }</label>
+            <select id="reg-spec" name="specialization" [value]="specializationId()" [disabled]="!courseId() || !specializations().length" (change)="setSpecialization($any($event.target).value)">
+              <option value="">{{ !courseId() ? 'Choose a course first' : (specializations().length ? 'Choose your specialization' : 'No specializations listed') }}</option>
+              @for (sp of specializations(); track sp.id) {
+                <option [value]="sp.id">{{ sp.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="reg-batch">Batch</label>
+            <select id="reg-batch" name="batch" [value]="batchId()" [disabled]="!departmentId() || !batches().length" (change)="setBatch($any($event.target).value)">
+              <option value="">{{ !departmentId() ? 'Choose a department first' : (batches().length ? 'Choose your batch (optional)' : 'No batches listed') }}</option>
+              @for (b of batches(); track b.id) {
+                <option [value]="b.id">{{ b.name }} · {{ b.batch_label }}{{ b.current ? '' : ' (ended)' }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
         <div class="field">
           <label for="reg-degree">Degree level</label>
           <select id="reg-degree" name="degreeLevel" [(ngModel)]="degreeLevel">
@@ -77,9 +150,15 @@
 
         <div class="field">
           <label>Professional photo</label>
-          <div class="dropzone" style="padding:16px;">
-            <span class="icon" style="font-size:20px; margin-bottom:0">photo_camera</span> Upload a headshot
-          </div>
+          <label class="dropzone dropzone--live" style="padding:16px;">
+            <span class="icon" style="font-size:20px; margin-bottom:0">photo_camera</span>
+            @if (photoFile(); as f) {
+              <strong>{{ f.name }}</strong>
+            } @else {
+              Upload a headshot (PNG or JPG)
+            }
+            <input type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" (change)="onPhoto($event)" hidden>
+          </label>
         </div>
 
         @if (error(); as e) {

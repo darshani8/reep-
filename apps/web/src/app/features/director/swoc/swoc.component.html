@@ -1,0 +1,112 @@
+<section class="sw">
+  <header class="sw-head">
+    <h1>SWOC Notes</h1>
+    <p>
+      Strengths, Weaknesses, Opportunities, Challenges — the lines each student reads on their
+      landing and their Mentor / TPO Log. Pick a student and write into any quadrant; every line
+      keeps who wrote it, and the heaviest lines show first.
+    </p>
+  </header>
+
+  @if (error()) { <p class="sw-error" role="alert">{{ error() }}</p> }
+  @if (flash()) { <p class="sw-flash" role="status">{{ flash() }}</p> }
+
+  <div class="sw-grid">
+    <!-- The students -->
+    <div class="card sw-list">
+      <div class="sw-list__head">
+        <div class="sw-list__title">Students</div>
+        <div class="sw-hint">{{ writtenCount() }} of {{ (rows() ?? []).length }} written</div>
+      </div>
+      <label class="sw-search">
+        <span class="sr-only">Search students</span>
+        <input class="ctrl" type="search" placeholder="Name, USN or batch" [value]="q()" (input)="q.set($any($event.target).value)" />
+      </label>
+
+      @if (rows() === null) {
+        <p class="sw-hint sw-pad">Loading…</p>
+      } @else {
+        <div class="sw-rows" role="listbox" aria-label="Students">
+          @for (r of filtered(); track r.student_id) {
+            <button type="button" class="sw-row" role="option" [attr.aria-selected]="r.student_id === selectedId()" [class.sw-row--on]="r.student_id === selectedId()" (click)="select(r)">
+              <span class="sw-dot" [class.sw-dot--written]="r.entries.length > 0" [attr.title]="r.entries.length ? r.entries.length + ' lines' : 'Nothing written yet'"></span>
+              <span class="sw-row__main">
+                <span class="sw-row__name">{{ r.name }}</span>
+                <span class="sw-row__meta">{{ r.usn ?? 'No USN' }}@if (r.batch) { · {{ r.batch }} }</span>
+              </span>
+              @if (r.entries.length) { <span class="sw-row__count">{{ r.entries.length }}</span> }
+            </button>
+          } @empty {
+            <p class="sw-hint sw-pad">
+              @if (q()) { No student matches “{{ q() }}”. } @else { No students yet. }
+            </p>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- The editor -->
+    <div class="card sw-editor">
+      @if (selected(); as s) {
+        <div class="sw-editor__head">
+          <div>
+            <div class="sw-editor__name">{{ s.name }}</div>
+            <div class="sw-hint">{{ s.usn ?? 'No USN' }}@if (s.batch) { · {{ s.batch }} }</div>
+          </div>
+          <div class="sw-hint sw-editor__by">
+            @if (s.entries.length) { {{ s.entries.length }} line{{ s.entries.length === 1 ? '' : 's' }} on their landing } @else { Nothing written yet }
+          </div>
+        </div>
+
+        <div class="sw-tiles">
+          @for (t of tiles; track t.key) {
+            <div class="sw-tile" [attr.data-tone]="t.tone">
+              <b>{{ t.label }}</b>
+
+              @for (e of buckets()[t.key]; track e.id) {
+                <div class="sw-entry">
+                  <textarea class="sw-entry__text" rows="2" [attr.maxlength]="maxChars" [value]="e.text" [disabled]="busy()"
+                            (change)="saveText(e, $any($event.target).value)" aria-label="Line"></textarea>
+                  <div class="sw-entry__meta">
+                    <span class="sw-chip">{{ sourceLabel(e.source) }}</span>
+                    @if (e.author) { <span class="sw-entry__by">{{ e.author }} · {{ when(e.recorded_at) }}</span> }
+                    <label class="sw-weight">
+                      <span class="sr-only">Weight</span>
+                      <select class="ctrl ctrl--sm" [value]="e.weight" [disabled]="busy()" (change)="setWeight(e, $any($event.target).value)" title="Weight - heavier lines show first">
+                        @for (w of weights; track w) { <option [value]="w" [selected]="w === e.weight">{{ w }}</option> }
+                      </select>
+                    </label>
+                    <button type="button" class="sw-mini" [disabled]="busy()" (click)="remove(e)" aria-label="Remove line" title="Remove"><span class="icon">delete</span></button>
+                  </div>
+                </div>
+              } @empty {
+                <div class="sw-none">Not added yet</div>
+              }
+
+              <div class="sw-add">
+                <textarea rows="2" [attr.maxlength]="maxChars" [placeholder]="t.hint" [value]="drafts()[t.key]" [disabled]="busy()"
+                          (input)="setDraft(t.key, $any($event.target).value)" (keydown.control.enter)="add(t.key)"
+                          [attr.aria-label]="'Add to ' + t.label"></textarea>
+                <div class="sw-add__foot">
+                  <span class="sw-count">{{ drafts()[t.key].trim().length }}/{{ maxChars }}</span>
+                  <button type="button" class="btn primary" [disabled]="busy() || !drafts()[t.key].trim()" (click)="add(t.key)">
+                    <span class="icon" aria-hidden="true">add</span> Add
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <p class="sw-hint">
+          Edits save when you click away from a line. Ctrl+Enter adds. The student sees changes immediately.
+        </p>
+      } @else {
+        <div class="sw-empty">
+          <div class="sw-empty__title">Pick a student</div>
+          <p class="sw-hint">Choose someone on the left to write or update their lines.</p>
+        </div>
+      }
+    </div>
+  </div>
+</section>

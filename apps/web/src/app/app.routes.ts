@@ -288,6 +288,24 @@ export const routes: Routes = [
             (m) => m.InterviewRecordsComponent,
           ),
       },
+      // Interview Questions: the admin's question bank for the free-style
+      // interviewer. A capability, so it can be granted to faculty.
+      {
+        path: 'director/interview-questions',
+        canActivate: [capabilityGuard('admin.interview_questions')],
+        loadComponent: () =>
+          import('./features/director/interview-questions/interview-questions.component').then(
+            (m) => m.InterviewQuestionsComponent,
+          ),
+      },
+      // SWOC Notes: the four lines on each student's landing. A capability, so
+      // the office can lend it to faculty in Governance.
+      {
+        path: 'director/swoc',
+        canActivate: [capabilityGuard('admin.swoc')],
+        loadComponent: () =>
+          import('./features/director/swoc/swoc.component').then((m) => m.DirectorSwocComponent),
+      },
       // Governance: capability grants for staff and student feature switches.
       // Its own screen rather than a tab on Institution, because the two answer
       // opposite questions — Institution says who EXISTS, Governance says who

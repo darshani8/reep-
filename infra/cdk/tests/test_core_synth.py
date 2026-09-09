@@ -362,6 +362,42 @@ def test_secrets_are_referenced_never_written(imported: Template, hardened: Temp
     )
 
 
+def _container_secret_names(template: Template) -> set[str]:
+    names: set[str] = set()
+    for resource in template.to_json()["Resources"].values():
+        if resource["Type"] != "AWS::ECS::TaskDefinition":
+            continue
+        for container in resource["Properties"].get("ContainerDefinitions", []):
+            names.update(s["Name"] for s in container.get("Secrets", []))
+    return names
+
+
+def test_the_jobs_dsn_secret_is_opt_in_and_off_by_default(imported: Template, hardened: Template) -> None:
+    """An ECS task that references a secret KEY the JSON does not hold fails to
+    START — every task on that definition, the api included — so the
+    reep-scheduled-jobs DSN (read by app/retention_job.py as SENTRY_JOBS_DSN)
+    must not be referenced until an operator has added the key to the
+    reep/external secret. Off by default in BOTH phases, so the import mirror
+    stays byte-identical; on only through the `sentryJobsDsn` context flag."""
+    assert "SENTRY_DSN" in _container_secret_names(hardened)
+    for template in (imported, hardened):
+        assert "SENTRY_JOBS_DSN" not in _container_secret_names(template)
+    opted = _core(
+        "harden",
+        sentryJobsDsn="true",
+        wafWebAclArn="arn:aws:wafv2:us-east-1:123456789012:global/webacl/reep-edge/abc",
+        drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr",
+        sesIdentityDomain="bgscet.ac.in",
+        sesFromAddress="reep@bgscet.ac.in",
+        alertEmail="ops@bgscet.ac.in",
+    )
+    assert "SENTRY_JOBS_DSN" in _container_secret_names(opted)
+    opted.has_resource_properties(
+        "AWS::ECS::TaskDefinition",
+        {"ContainerDefinitions": Match.array_with([Match.object_like({"Secrets": Match.array_with([Match.object_like({"Name": "SENTRY_JOBS_DSN", "ValueFrom": Match.string_like_regexp(":SENTRY_JOBS_DSN::$")})])})])},
+    )
+
+
 def test_invalid_phase_is_refused() -> None:
     with pytest.raises(ValueError):
         _core("production")

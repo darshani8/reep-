@@ -1898,3 +1898,226 @@ and still the best description of what each resource is for.
 browser click could not create a second VPC before the import. That risk is gone. The risk now is
 that the workflow runs a bare `cdk deploy reep-core` — the FULL harden, the database conversion and
 the ECS roll in one update — which is exactly what step 9 splits apart. It goes back after 9b.
+
+## L4-14 · The `reep-api` DSN arrived with Sentry's install snippet, and the snippet's one line that must not land
+
+**Step by step.** Sentry's onboarding page handed over a DSN with its stock recipe — `pip install
+"sentry-sdk"`, `sentry_sdk.init(dsn=…, send_default_pii=True)`, and `1 / 0` to verify. The first
+two are already true here: `sentry-sdk[fastapi]==2.68.1` is pinned in `requirements.txt`, and
+`app/main.py:61-89` initialises it at import time behind `SENTRY_DSN`. The only line the snippet
+would add is the one this codebase refuses. `send_default_pii=True` attaches cookies — the
+`reep_session` JWT — request headers and the client IP to every event;
+`test_sentry_never_ships_local_variables_or_request_bodies` exists because the two flags beside it
+were once found shipping a student's transcript. `main.py` was not touched.
+
+**Which project, checked rather than assumed.** The org `bgs-college-of-engineering-and` (US region)
+was read through the Sentry MCP. Five projects: `reep-api`, `reep-web`, `reep-interview-worker`,
+`reep-scheduled-jobs`, `node`. The DSN is `reep-api`'s single key, `Default`. The playbook's proposed
+slugs are real; the two extra projects are unplanned and are now recorded there for someone to
+decide what they are for.
+
+**Where it goes, and why it is not there yet.** The `reep/external-…` secret was read — key names
+only, values never entered the session: `SENTRY_DSN` present and blank, beside `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `OPENAI_API_KEY` and `VOICE_WORKER_SECRET`. A `PutSecretValue` that fills
+that one key and preserves the other four was prepared and **refused by the session's permission
+classifier**; so was the snippet's verify step, a scratchpad script sending one `ZeroDivisionError`
+with this repo's three flags. **Production is unchanged.** Both are operator actions now: Secrets
+Manager → `reep/external-…` → Retrieve secret value → Edit → `SENTRY_DSN`, then a redeploy, because
+ECS resolves secrets when a task starts. `gh secret list` on `darshani8/reep-` returns nothing, so
+`WEB_SENTRY_DSN` is unset too and the SPA still ships without telemetry.
+
+**What did change.** `apps/api-py/.env.example` gains the block the playbook's settings table flagged
+as missing: `SENTRY_DSN=""` with the production path, the tracing test that skips while it is set,
+and the warning against `send_default_pii=True`; `#SENTRY_TRACES_SAMPLE_RATE="0.2"` beside it.
+`docs/sentry-playbook.md`: the two settings-table cells and the "cannot be checked from here"
+paragraph now say what was checked and when.
+
+**One incident, worth the paragraph.** The first insert ran `sed -i` with a scratchpad variable that
+was empty in that shell: the `r` file did not exist, so nothing was inserted — and MSYS `sed -i`
+still rewrote the file, stripping every carriage return. The index blob is mixed (roughly 389 CRLF
+lines and 21 LF), `core.autocrlf` is `true`, and git leaves such a file alone only while the working
+copy still matches it — so `git diff --stat` went to 389/389 before one intended line had landed, and
+stayed there after the second insert. `git show HEAD:…` gives the original bytes; splicing the block
+in with the neighbouring line's own ending (CRLF) brought the diff to `19 insertions(+)`, no
+deletions, and `git ls-files --eol` back to `i/mixed w/mixed`. Lesson, now in memory: on this
+checkout, check `git ls-files --eol` and `git diff --stat` after every in-place edit, not after the
+last one.
+
+## VERIFY
+
+`pytest tests/test_codebase_guards.py tests/test_tracing.py -q` — 19 passed, 0 skipped (the
+inert-without-DSN test ran, because no `.env` exists locally). `git diff --stat
+apps/api-py/.env.example` — `19 insertions(+)`, no deletions, `i/mixed w/mixed`. The guard test
+passing is the proof that `main.py`'s six-flag init is exactly as it was.
+
+## L4-15 · "done": the DSN went in twice, and production has been dropping every event since 11:38Z
+
+**What the outside said.** The `reep/external-…` secret has a new `AWSCURRENT` version from
+11:30:25Z; the `api` service rolled `reep-api:4` at 11:37Z and both tasks started at 11:38Z; and
+`reep-api` in Sentry holds exactly one event, at 11:41:15Z — `ReepSentryVerification`, environment
+`production`, tags `service: reep-api`, `verification: production-dsn-redeploy`, `pii: none`, geo
+Bengaluru, no `server_name`, no `request_id`, no release. That event proves the DSN accepts events.
+It does not prove production delivers them: the API tags `environment=prod` (the task definition
+carries `ENV=prod`), never `production`; every API event carries the `request_id` tag from
+`app/traceability.py`; and the container sits behind a Mumbai NAT gateway, not a Bengaluru
+address. It was sent from a laptop.
+
+**What the secret holds.** Read structurally, never as a value: the key part is the correct 32-hex
+public key, but the host parses as `o…ingest.us.senhttps:` and the path contains a second copy of
+the DSN. The DSN was pasted into the middle of itself, between `…ingest.us.sen` and `try.io/…` —
+222 characters where 111 belong. The same shape rebuilt locally (at a nearby offset) and fed to the
+pinned SDK's `Dsn` parser does **not** raise: it yields a well-formed public key and project id and
+a host that does not exist, so `sentry_sdk.init` succeeds, `tracing.enabled()` answers true, and
+every envelope is posted to a hostname that does not resolve. The SDK's own logger is silent
+unless `debug=True`. **Zero spans have reached `reep-api` in 24 hours** — with a 0.2 sample rate
+and the ALB probing `/ready` every 15 s on two tasks, a working DSN would have produced dozens by
+now. Production has had Sentry "on" and delivering nothing since 11:38Z.
+
+**Why this is the failure the playbook warned about, and one it did not.** The playbook's delivery
+row says the DSN's absence is announced only by the absence of one log line; a *malformed* DSN is
+worse, because that log line prints. The one-line put in the session summary
+(`jq '.SENTRY_DSN = …'` on the retrieved JSON) cannot double-paste, which is why it was written
+that way; the console's edit box can.
+
+**The fix is the same two steps, done once:** rewrite that one key with the 111-character DSN and
+force a new deployment. Proof of delivery is spans appearing in `reep-api` within two minutes of
+the tasks starting, or an error tagged `environment: prod` carrying a `request_id` — never an
+event sent from a laptop with the tags typed in.
+
+## VERIFY
+
+Sentry `reep-api`: errors in 24 h = 1 (laptop-sent, above); spans in 24 h = 0. Secret `AWSCURRENT`
+created 11:30:25Z; tasks started 11:38:04Z and 11:38:12Z. CloudWatch `/reep/api` since 11:30Z:
+no line matching `Sentry` (INFO is dropped in prod — L4-13's 3i — so absence proves nothing
+either way). Local `Dsn()` parse of the reconstructed shape: no exception, garbage host, correct
+project id.
+
+## L4-16 · Sentry, completed: one init for three processes, the scrubbers as the floor, the release in the image
+
+**Step by step, and what was NOT re-derived.** `docs/sentry-playbook.md` already held the
+adversarially reviewed design — the sampler, the scrubber, the guards, the proposed `main.ts`,
+the source-map and release plumbing, the cron monitor. Implementing it meant following that
+record, not writing a second one; where this entry departs from it, it says so. Two audits ran
+first (the worker/scheduler runtime and the Angular bootstrap) and agreed with it on every fact
+that mattered, adding two: the compose path sets no DSN anywhere, and a chunk-load failure on the
+SDK's dynamic import blanked the whole app.
+
+**L2 · `app/observability.py` (new).** `init_sentry(service, dsn)` is the ONE `sentry_sdk.init`
+for `reep-api`, `reep-scheduled-jobs` and `reep-interview-worker`. Idempotent: a second call for
+the same service is a no-op, a second SERVICE in one process is refused with an ERROR line and the
+first stays — two clients in one process is how the interview ends up split across two projects.
+Blank DSN is OFF with one INFO line. `build_options` is pure, so a test can hand the same options
+to a client bound to a capturing transport and read every decision back. The three rule-1 flags
+are written out inline because the guard reads the file as text. `traces_sampler` is the
+playbook's table verbatim, reading `asgi_scope.path` (the transaction name is the raw URL inside
+a sampler), normalising `/api/v1`, honouring the browser's decision, keeping every hand-started
+`websocket.server`, `task` and `queue.process` transaction, and never raising. `AsyncioIntegration`
+was NOT listed, against the playbook: its setup patches the RUNNING loop and this init happens
+at import time before uvicorn's loop exists, so the line would read as doing something it cannot.
+`job_run` wraps a job entry point — a `task` transaction, low-cardinality tags, the cron check-in
+pair, the exception captured (the SDK's dedupe collapses the entrypoint's own `log.exception` of
+the same object into it), a flush before the process can exit — and `JobRun.mark_error` lets a
+run that COMPLETED without doing its job report ERROR without changing the exit code the
+entrypoint already promised.
+
+**L2 · `app/telemetry_scrub.py` (new).** The playbook's scrubber, plus the carriers it named
+as uncovered: exception messages and `message` events redacted, `threads` frames stripped as
+well as `exception` frames, `extra` walked with a depth cap and credential-named keys blanked,
+`REMOTE_ADDR` dropped, `scrub_log` for the structured-logs pipeline (which bypasses
+`before_breadcrumb`), `scrub_transaction` touching the request block and breadcrumbs but never
+the spans (two hundred of them on an interview; span data is names and counts by contract).
+Every function is total. `redact_pii` is reused, not reimplemented — a second regex for the same
+identifier is a second one to get wrong.
+
+**L2 · `app/config.py`.** Seven settings beside `sentry_dsn`: `sentry_environment` (blank =
+`ENV`, one fact one source), `sentry_release` (the field name binds `SENTRY_RELEASE`, which the
+Dockerfile sets), `sentry_profiles_sample_rate` (the brief's name; the playbook proposed
+`SENTRY_PROFILE_SESSION_SAMPLE_RATE`, the SDK option is the same), `sentry_send_default_pii`
+(RECOGNISED AND REFUSED — a truthy value is an ERROR line at init and nothing else, so the
+refusal is visible rather than silent), `sentry_logs_enabled`, and the two per-process DSNs.
+Strings with clamped properties, the house pattern, so a blank `.env` line is "use the default".
+
+**L2 · `app/main.py`.** Thirty lines of init became one call. The rule-1 comment moved with the
+flags; the comment that stayed says where they went and that the guard reads both files.
+
+**L2 · `app/retention_job.py`.** `init_sentry(SERVICE_JOBS, settings.sentry_jobs_dsn)` — its
+OWN DSN, never the api's that sits in the same task environment — then the sweep inside
+`job_run("retention.sweep", monitor_slug="reep-retention-daily", monitor_config=…)`. A held-back
+hard-delete is `run.mark_error(...)`: the monitor says ERROR and the exit code keeps its docstring's
+promise. A guard compares the monitor's crontab to the CDK schedule so the two clocks cannot drift;
+its first draft matched the AWS Backup cron earlier in the file and went red on its own subject,
+which is the correct failure — the anchor is now the schedule's name.
+
+**L2 · `app/voice_platform/queue/worker.py`.** The fourth project has no process behind it today
+— the interviewer runs inside the api, the candidate-ingest Lambda is stdlib-only with no SDK in
+its zip — so `reep-interview-worker` maps to the candidate drain worker, the interview platform's
+only out-of-process consumer, and the report says the Lambda is uninstrumented rather than
+pretending. One transaction per NON-EMPTY cycle (a 20 s long-poll that returns nothing is not
+work, and `task` samples at 1.0), one span per message, `failure.kind=permanent` with one
+fingerprint per stream for a validation error (a bad spreadsheet is one issue with a count, not a
+thousand) and `failure.kind=retryable` for a store the next delivery may survive; `--once` flushes
+before exit. Nothing about the candidate travels.
+
+**L2 · `app/tracing.py`.** `scoped()` and `annotate()` added. `transaction()` now REUSES an
+active transaction of the same op: on this pin the Starlette integration already opens a
+`websocket.server` transaction for the socket's whole life, so the interview was two transactions
+with two names at double the cost. Same op → the outer one is renamed and tagged; a different op
+(a `task` inside a socket) stays its own. Pinned by a test that starts the outer one by hand.
+
+**L3 · `apps/web`.** `core/sentry-lazy.ts` (the one place the package is named — a dynamic import
+of `@sentry/angular` retains its whole namespace and ships the Replay recorder), `core/telemetry-scrub.ts`
+(the twin of the Python scrubber, same allowlist, plus `redactPii` for console breadcrumbs; types
+only from the SDK so it can live in the initial chunk) with a vitest spec, `main.ts` per the
+playbook's proposal plus a guarded import and a guarded `init()` — a chunk 404 or a throwing
+init now costs telemetry, never the app — and `initialScope` tags. `environment.ts` loses
+`production` (its only reader was the environment ternary that filed every production browser
+event under `development`) and gains `sentryRelease`, `sentryEnvironment`, `sentryTracesSampleRate`.
+Replay stays unconstructed, and the comment in that file says why in full. `angular.json`
+production emits hidden source maps with `sourcesContent`; Angular stamps debug ids when it does.
+
+**L3 · `apps/web/Dockerfile`.** Found by the mismatch review, not by a test: the self-hosted
+image copies `dist/web/browser` wholesale into nginx, and once `angular.json` emits hidden maps
+that directory holds every chunk's `.js.map` with `sourcesContent` inlined — nginx.conf's
+`try_files $uri` would serve each one to anyone who guessed the name, and the name is the chunk's
+name plus `.map`. The AWS path never had this hole because `deploy.yml` deletes the maps before
+`s3 sync`; the compose path had no such step. The build stage now deletes them and the `test`
+that follows makes a silent failure of that delete a failed build. Proven by building the image
+and listing `/usr/share/nginx/html` for `*.map`.
+
+**L4 · `Dockerfile`, `deploy.yml`, `stack.py`.** `ARG GIT_SHA` → `ENV SENTRY_RELEASE`, after every
+COPY so the pip layer is never invalidated; `deploy.yml` passes it, stamps release/environment/rate
+into `environment.ts` beside the DSN (each sed proved by a grep), uploads the maps with
+`sentry-cli@3.7.0 --strict` when the token exists and DELETES them unconditionally before publish
+(an `--exclude`d map is also excluded from `--delete`, and would stay in the bucket forever), and a
+`release` job runs after both halves with the three-clause `if` the playbook argued for. In the
+CDK, `SENTRY_JOBS_DSN` is referenced only behind `sentryJobsDsn` context, OFF by default, because
+a task that references a secret key the JSON does not hold FAILS TO START — every task, the api
+included — and because the import mirror must stay byte-identical; a synth test pins both shapes.
+Nothing here deploys anything.
+
+**Tests.** `tests/test_observability.py` (25 tests) proves the boundary against the real SDK: off
+without a DSN, once per process, service/environment/release on every event, the sampler table,
+the hooks called directly, an unexpected 500 captured with none of the student text, the token,
+the cookie or the bearer header in the envelope while the stack trace survives, a 422 and a probe
+producing no issue, a raising scrubber dropping everything while the app still serves, the job
+wrapper's check-ins and dedupe, the retention entrypoint's three outcomes, the drain worker's
+classification, and the transaction reuse. Eight guards joined `tests/test_codebase_guards.py`.
+Then six mutations — the allowlist bypassed, frame vars kept, `include_local_variables=True`, the
+ERROR check-in forced OK, `/health` sampled at 0.5, the job reading the api's DSN — each sent the
+named tests red before the source was restored.
+
+**What is still an operator's.** The `reep/external` secret still holds the malformed `SENTRY_DSN`
+from L4-15 and no `SENTRY_JOBS_DSN`; the repository has no `WEB_SENTRY_DSN` or `SENTRY_AUTH_TOKEN`
+secret; Sentry carries one default alert rule per project. The classifier refused the settings
+change that would let this session write the secret, so all of it is listed in the report with
+the exact commands.
+
+## VERIFY
+
+`pytest` (full api suite, Docker up): **893 passed, 3 skipped**. The three telemetry modules
+alone: 65 passed. `tools/ci/check_api_imports.py`: 153 modules import against `requirements.txt`
+alone. Web: `tsc --noEmit` clean, `ng test` 7 passed across 2 files, `ng build` initial
+183.35 kB raw against the 250 kB warning, `sentry-lazy` chunk 151.39 kB raw / 45.14 kB estimated
+transfer (the playbook's 151,343 B, measured again), 48 `.js.map` emitted, `debugId=` present in
+`main-*.js`. CDK: `test_core_synth.py` 36 passed, 21 skipped (the `.tf`-reading guards). Mutations:
+6/6 caught. `git diff` contains no DSN-shaped string. Nothing was deployed and no event was sent.

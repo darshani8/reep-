@@ -1,0 +1,97 @@
+"""Faculty accounts created by the Main Admin on screen.
+
+Pinned: only the Main Admin may create one (DIRECTOR, MENTOR and STUDENT are
+refused by name); the account is a MENTOR with no password and no group; an
+address already in use is refused; and the activation link the screen shows
+really works - redeemed with a password, the new faculty member signs in on
+the password door and holds their own account.
+"""
+
+from __future__ import annotations
+
+import uuid
+
+import pytest
+from sqlalchemy import delete, select
+
+from conftest import requires_db
+
+from app.db import SessionLocal
+from app.models.auth_token import AuthToken
+from app.models.redesign import AuditEvent
+from app.models.user import LoginDay, Mentor, Role, User
+
+API = "/api/admin/faculty"
+
+
+@pytest.fixture
+def swept():
+    """Accounts created THROUGH the API are new users make_user knows nothing
+    about; every address created here is removed afterwards whatever happened."""
+    emails: list[str] = []
+    yield emails
+    with SessionLocal() as db:
+        for email in emails:
+            user = db.scalar(select(User).where(User.email == email))
+            if user is not None:
+                db.execute(delete(AuditEvent).where(AuditEvent.entity_type == "faculty", AuditEvent.entity_id == user.id))
+                db.execute(delete(AuthToken).where(AuthToken.user_id == user.id))
+                db.execute(delete(LoginDay).where(LoginDay.user_id == user.id))  # the sign-in at the end writes one
+                db.execute(delete(Mentor).where(Mentor.user_id == user.id))
+                db.execute(delete(User).where(User.id == user.id))
+        db.commit()
+
+
+def _email(label: str) -> str:
+    return f"faculty-{label}-{uuid.uuid4().hex[:6]}@bgscet.ac.in"
+
+
+@requires_db
+def test_only_the_main_admin_creates_faculty_and_the_link_it_shows_works(client, make_user, swept):
+    admin = make_user("fac-adm", Role.ADMIN)
+    director = make_user("fac-dir", Role.DIRECTOR)
+    mentor = make_user("fac-men", Role.MENTOR)
+    student = make_user("fac-stu")
+    email = _email("new")
+    swept.append(email)
+    body = {"name": "  Kavya   N ", "email": email.upper(), "designation": "Assistant Professor", "department": "MBA"}
+
+    for who in (director, mentor, student):
+        r = client.post(API, headers=who.headers, json=body)
+        assert r.status_code == 403 and "Main Admin" in r.text, r.text
+
+    r = client.post(API, headers=admin.headers, json=body)
+    assert r.status_code == 201, r.text
+    out = r.json()
+    assert out["name"] == "Kavya N" and out["email"] == email
+    assert out["designation"] == "Assistant Professor" and out["department"] == "MBA"
+    assert "/activate?token=" in out["activation_link"] and out["expires_in_hours"] == 168
+    assert out["emailed"] is False, "no transport in the suite: the screen hands the link over"
+
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == email))
+        assert user.role is Role.MENTOR and user.password_hash == "google-only", "no password until the link is redeemed"
+        assert db.scalar(select(Mentor).where(Mentor.user_id == user.id)) is None, "a group comes with the first assignment"
+        ev = db.scalar(select(AuditEvent).where(AuditEvent.entity_type == "faculty", AuditEvent.entity_id == user.id))
+        assert ev.action == "CREATE" and ev.after_json["email"] == email and ev.actor_user_id == admin.user_id
+
+    # The same address again, or anyone's address: refused.
+    assert client.post(API, headers=admin.headers, json=body).status_code == 409
+    r = client.post(API, headers=admin.headers, json={"name": "X", "email": student.email})
+    assert r.status_code == 409 and "STUDENT account" in r.text
+    assert client.post(API, headers=admin.headers, json={"name": "X", "email": "not-an-address"}).status_code == 422
+    assert client.post(API, headers=admin.headers, json={"name": "   ", "email": _email("blank")}).status_code == 422
+
+    # They appear where the Main Admin assigns students, with no group yet.
+    row = next(m for m in client.get("/api/director/mentor-load", headers=admin.headers).json() if m["user_id"] == user.id)
+    assert row["mentor_id"] is None and row["name"] == "Kavya N"
+
+    # The link works: a password is set from it and the account signs in.
+    token = out["activation_link"].split("token=", 1)[1]
+    r = client.post("/api/auth/activate", json={"token": token, "password": "correct horse battery"})
+    assert r.status_code == 200, r.text
+    assert r.json()["role"] == "MENTOR"
+    client.cookies.clear()
+    r = client.post("/api/auth/login", json={"email": email, "password": "correct horse battery"})
+    assert r.status_code == 200 and r.json()["email"] == email
+    client.cookies.clear()

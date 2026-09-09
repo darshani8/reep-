@@ -90,6 +90,29 @@ class Registration(Base):
     cohort_id: Mapped[str | None] = mapped_column(
         ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # THE APPLICANT'S OWN CLAIM of where they belong - College -> Department ->
+    # (Course) -> (Specialization) -> (Batch) - picked on the public form from
+    # what the admin built. Kept SEPARATE from `cohort_id`, which the rule engine
+    # stamps: the rule is policy and wins; the applicant's batch fills the gap
+    # when no rule seats them. The client sends the deepest level it knows and
+    # the API derives the ancestors (the _resolve_ancestry discipline), so these
+    # five never disagree with each other. SET NULL: an application must survive
+    # the admin renaming or removing a department.
+    college_id: Mapped[str | None] = mapped_column(
+        ForeignKey("colleges.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    department_id: Mapped[str | None] = mapped_column(
+        ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    course_id: Mapped[str | None] = mapped_column(
+        ForeignKey("academic_courses.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    specialization_id: Mapped[str | None] = mapped_column(
+        ForeignKey("academic_specializations.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    requested_cohort_id: Mapped[str | None] = mapped_column(
+        ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     status: Mapped[RegistrationStatus] = mapped_column(
         Enum(RegistrationStatus, name="registration_status"),
         default=RegistrationStatus.DRAFT,

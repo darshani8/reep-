@@ -39,6 +39,11 @@ interface Registration {
   created_at: string;
   /// Kinds attached with the application: "CV", "PHOTO".
   documents: string[];
+  college_name: string | null;
+  department_name: string | null;
+  course_name: string | null;
+  specialization_name: string | null;
+  requested_batch: string | null;
 }
 
 interface Cohort {

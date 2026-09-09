@@ -228,6 +228,22 @@ interface Portal {
   helper: string;
 }
 
+/** The admin entrance is NOT a portal card. The chooser offers the three kinds
+ *  of person the college has — students, faculty, alumni — and the placement
+ *  office comes in through the design's dashed "Main Admin" door below it,
+ *  which selects this. Same form, same roster lookup, same role-based routing;
+ *  only the card is gone, so an office account is not one of four equal
+ *  choices a first-year student has to read past. */
+const ADMIN_DOOR: Portal = {
+  key: 'admin',
+  label: 'Admin',
+  icon: 'admin_panel_settings',
+  desc: 'Run placement operations',
+  fieldLabel: 'Institutional email',
+  placeholder: 'placement.admin@bgscet.ac.in',
+  helper: 'Use your admin email.',
+};
+
 const PORTALS: readonly Portal[] = [
   {
     key: 'student',
@@ -246,15 +262,6 @@ const PORTALS: readonly Portal[] = [
     fieldLabel: 'Institutional email',
     placeholder: 'kavya.n@bgscet.ac.in',
     helper: 'Use your faculty email.',
-  },
-  {
-    key: 'admin',
-    label: 'Admin',
-    icon: 'admin_panel_settings',
-    desc: 'Run placement operations',
-    fieldLabel: 'Institutional email',
-    placeholder: 'placement.admin@bgscet.ac.in',
-    helper: 'Use your admin email.',
   },
   {
     key: 'alumni',
@@ -293,7 +300,7 @@ export class LoginComponent {
   readonly portals = PORTALS;
   readonly portal = signal<Portal['key']>('student');
   readonly current = computed(
-    () => PORTALS.find((p) => p.key === this.portal()) ?? PORTALS[0],
+    () => PORTALS.find((p) => p.key === this.portal()) ?? (this.portal() === 'admin' ? ADMIN_DOOR : PORTALS[0]),
   );
 
   /** The refusal carried back on the callback redirect, if any. */
@@ -369,6 +376,7 @@ export class LoginComponent {
   /** The design's Main Admin door: pick the Admin portal and put the cursor in
    *  the ID field. Descriptive, like every portal — the role is the roster's. */
   openMainAdmin(): void {
+    // 'admin' is no card in PORTALS (see ADMIN_DOOR); this door is how it is picked.
     this.selectPortal('admin');
     queueMicrotask(() => document.querySelector<HTMLInputElement>('input[name="id"]')?.focus());
   }

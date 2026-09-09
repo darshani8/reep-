@@ -171,7 +171,7 @@
 
 .portals {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 9px;
   margin-bottom: 22px;
 }
@@ -548,6 +548,13 @@
 
   &:hover {
     background: rgba(122, 47, 158, 0.06);
+  }
+
+  /* Chosen: the door reads as the selected portal, since no card can. */
+  &--on {
+    border-style: solid;
+    border-color: #7a2f9e;
+    background: rgba(122, 47, 158, 0.08);
   }
 
   &:focus-visible {

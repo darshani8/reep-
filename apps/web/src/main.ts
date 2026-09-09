@@ -1,40 +1,145 @@
-import { ErrorHandler } from '@angular/core';
+import { ErrorHandler, inject, provideAppInitializer } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
+import { scrubBreadcrumb, scrubEvent } from './app/core/telemetry-scrub';
 import { environment } from './environments/environment';
 
 /**
  * Sentry is initialized before Angular bootstraps so framework errors are
  * captured through Angular's ErrorHandler, not only uncaught browser errors.
  * The SDK remains a dynamic import when no DSN is configured.
+ *
+ * THROUGH ./app/core/sentry-lazy, NOT '@sentry/angular' DIRECTLY. A dynamic
+ * import retains the imported module's entire namespace, and @sentry/angular is
+ * `export * from '@sentry/browser'` — so importing the package here ships
+ * rrweb, the feedback widget and the profiler to reach four symbols. Measured
+ * 2026-09-08 with ng build: 460,113 B raw / 152,367 B gz that way, 151,343 B /
+ * 51,235 B gz through the re-export module. Destructuring in a .then() does NOT
+ * fix it (the bundler cannot use a runtime property access). The chunk is lazy
+ * either way and never counts against the initial budget, but it IS awaited
+ * before bootstrapApplication, so it is a round trip the student waits through.
+ *
+ * Both the import and init() are guarded: a chunk that fails to load (a stale
+ * index.html after a deploy) or an init that throws must cost telemetry, never
+ * the app. Before this, a 404 on the SDK chunk rejected bootstrap() and the
+ * student got a blank page.
+ *
+ * Rule 1 applied to telemetry, browser half: sendDefaultPii off, logs and
+ * metrics off (they default to ON from 10.71.0 and bypass beforeSend), no
+ * Session Replay (see environment.ts for why), and the three hooks from
+ * telemetry-scrub as the last stop before anything leaves the machine.
+ * tests/test_codebase_guards.py (apps/api-py) reads this file as text.
  */
 async function bootstrap(): Promise<void> {
-    const sentry = environment.sentryDsn
-      ? await import('@sentry/angular')
-          : null;
+  const sentry = environment.sentryDsn
+    ? await import('./app/core/sentry-lazy').catch((err: unknown) => {
+        console.error('Sentry SDK failed to load; continuing without telemetry', err);
+        return null;
+      })
+    : null;
 
   if (sentry) {
-        sentry.init({
-                dsn: environment.sentryDsn,
-                environment: environment.production ? 'production' : 'development',
-                integrations: [sentry.browserTracingIntegration()],
-                // Restrict distributed-trace headers to this app's API surface.
-                tracePropagationTargets: [/^\/api(?:\/|$)/],
-                tracesSampleRate: 0.2,
-                sendDefaultPii: false,
-        });
+    try {
+      sentry.init({
+        dsn: environment.sentryDsn,
+        // Both rewritten by deploy.yml. `environment` must equal the API's ENV
+        // (`prod`, not `production`) or one trace splits across two Sentry
+        // environments; `release` must equal what sentry-cli uploads the
+        // source maps under, or every production frame stays minified.
+        environment: environment.sentryEnvironment,
+        release: environment.sentryRelease || undefined,
+        // Low-cardinality identity on every event. Never a user, a USN or an
+        // email: identity is not sent from this app.
+        initialScope: { tags: { service: 'reep-web', application: 'reep' } },
+
+        // MUST be @sentry/angular's wrapper, not @sentry/browser's: it forces
+        // instrumentNavigation:false and hands navigation spans to TraceService.
+        integrations: [sentry.browserTracingIntegration()],
+
+        // ONE pattern, matched against the PATHNAME and only for same-origin
+        // requests — which is what CloudFront gives us (the /api/* behaviour
+        // and the SPA share one distribution; infra/cdk/reep_core/stack.py).
+        // Do NOT add a wildcard-origin regex "for the future": it would attach
+        // sentry-trace to any host serving a /api path. The day apiBase
+        // becomes an absolute cross-origin URL, add THAT host literally,
+        // together with `Access-Control-Allow-Headers: sentry-trace, baggage`
+        // on the API's preflight — without it the browser blocks the REQUEST.
+        tracePropagationTargets: [/^\/api(?:\/|$)/],
+
+        // Root spans are named with a pathname here (pageload, navigation and
+        // TraceService alike), so match paths, never route templates. This
+        // decision is what the API inherits for /api/* FETCHES. It does not
+        // reach the interview WebSocket — the browser SDK does not instrument
+        // WebSocket, so that transaction is sampled by the API's own
+        // SENTRY_TRACES_SAMPLE_RATE and must be raised there.
+        tracesSampler: (ctx) => {
+          if (ctx.name.startsWith('/student/assistant')) return 1.0;
+          if (ctx.name.startsWith('/student/interviews')) return 1.0;
+          if (ctx.name === '/login') return Math.min(0.05, environment.sentryTracesSampleRate);
+          return environment.sentryTracesSampleRate;
+        },
+
+        sendDefaultPii: false, // deprecated in 10.71.0; do NOT swap for a bare
+        //                        `dataCollection`, whose base defaults are
+        //                        permissive the moment the key is present
+        enableLogs: false, //    defaults to TRUE from 10.71.0
+        enableMetrics: false, // same, one line down in the same resolver
+
+        ignoreErrors: [
+          // Native dynamic import(), so these are the BROWSER's words, one per
+          // engine: Chrome/Edge, Firefox, Safari. 'ChunkLoadError' and
+          // /Loading chunk \S+ failed/ are webpack names and are deliberately
+          // absent — @angular/build is esbuild and can never produce them.
+          // Filtered so one deploy does not bury a week of genuine issues; the
+          // real fix is a reload handler, not silence.
+          /Failed to fetch dynamically imported module/,
+          /error loading dynamically imported module/,
+          /Importing a module script failed/,
+          // The LEGACY ResizeObserver message. The modern one is in the SDK's
+          // own default list; this one is not.
+          'ResizeObserver loop limit exceeded',
+        ],
+        denyUrls: [
+          /extensions\//i,
+          /^chrome:\/\//i,
+          /^chrome-extension:\/\//i,
+          /^moz-extension:\/\//i,
+          /^safari-(web-)?extension:\/\//i,
+        ],
+
+        // Last stop before anything leaves the machine. The flags above are
+        // the defence; these are the backstop for the path nobody has written
+        // yet — and for the one that exists today: /reset?token= and
+        // /activate?token= are in location.href, which httpContextIntegration
+        // (a DEFAULT integration; the array above merges with the defaults)
+        // writes into request.url on every event.
+        beforeSend: (event) => scrubEvent(event),
+        beforeSendTransaction: (event) => scrubEvent(event),
+        beforeBreadcrumb: (crumb) => scrubBreadcrumb(crumb),
+      });
+    } catch (err) {
+      console.error('Sentry init failed; continuing without telemetry', err);
+    }
   }
 
   const config = sentry
-      ? {
-                ...appConfig,
-                providers: [
-                            ...appConfig.providers,
-                  { provide: ErrorHandler, useValue: sentry.createErrorHandler() },
-                          ],
+    ? {
+        ...appConfig,
+        providers: [
+          ...appConfig.providers,
+          { provide: ErrorHandler, useValue: sentry.createErrorHandler() },
+          // Without this there are no navigation spans at all, and the SDK
+          // logs nothing: its own warning is gated on a flag that
+          // browserTracingIntegration() has already set true. TraceService is
+          // providedIn:'root' with Router in its own factory, so forcing
+          // construction is the entire fix — no extra provider needed.
+          provideAppInitializer(() => {
+            inject(sentry.TraceService);
+          }),
+        ],
       }
-        : appConfig;
+    : appConfig;
 
   await bootstrapApplication(App, config);
 }

@@ -1,19 +1,25 @@
-"""Render a leave request as the printed BGSCET leave paper, with ReportLab.
+"""The leave paper: the official BGSCET form, with the request written onto it.
+
+THE FORM IS THE COLLEGE'S OWN PDF, unchanged. `assets/leave_form_template.pdf`
+is the file the office hands out ("Leave Form.pdf", 84 718 bytes, Letter, one
+page). This module never redraws it: it renders a transparent overlay with
+ReportLab - the values in the table cells, the date in its gap, the options
+that do not apply struck through, the signatures above their labels, the
+director's mark beside "Sanctioned", the alternate arrangements in their
+rows - and pypdf merges that overlay onto the template page. What comes out
+is the form, filled in. The coordinates below are MEASURED from this file
+(pymupdf, top-left origin, points) and the file's size is pinned in tests, so
+a swapped template with a different layout fails loudly rather than printing
+values into the wrong boxes.
 
 Runs entirely on this machine - no network, no model - like app/english_report.py
-and app/resume_pdf.py; keep it that way. The layout is the sheet the Leave
-Approvals screen draws (features/director/leave-approvals): the invocation, the
-college header, "Application for" with the printed options and the rest struck
-off, the seven-row table, the two signature blocks, the rule, and the
-Alternate Arrangements section with its own staff signature. Same words, same
-order, so what the admin downloads is what they saw.
+and app/resume_pdf.py; keep it that way.
 
-A SIGNATURE IS STILL A NAME AND A TIME. The image, where the signer has
-uploaded one (app/models/staff_signature.py), is drawn ABOVE the name, never
-instead of it: an image alone says nothing about when, and a paper with an
-image and no timestamp is exactly the ambiguity the timestamp exists to
-remove. No image on file prints the name and time alone, which is what the
-screen shows; "Not signed" / "Awaiting" print where the screen prints them.
+A SIGNATURE IS STILL A NAME AND A TIME. The uploaded image (app/models/staff_signature.py)
+is drawn ABOVE the printed label, and the name and time are printed in small
+type beneath it, so an image never stands without the record of who and when.
+No image on file prints the name and time alone; nothing signed prints
+"Not signed" / "Awaiting", as the screen does.
 """
 
 from __future__ import annotations
@@ -21,78 +27,86 @@ from __future__ import annotations
 import html
 import io
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any
 
+from pypdf import PdfReader, PdfWriter
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import mm
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
-from reportlab.platypus import (
-    HRFlowable,
-    Image,
-    Paragraph,
-    SimpleDocTemplate,
-    Spacer,
-    Table,
-    TableStyle,
-)
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Paragraph
 
-_INK = colors.HexColor("#1E1B29")
-_MUTED = colors.HexColor("#585566")
-_HAIRLINE = colors.HexColor("#B9AFC6")
+TEMPLATE = Path(__file__).resolve().parent / "assets" / "leave_form_template.pdf"
+TEMPLATE_BYTES = 84718  # pinned in tests: the layout below is measured from this exact file
 
-#: The printed options, in the order the form lists them (leave.py's LeaveIn
-#: pattern and the screen's KINDS agree on the ids).
-KINDS: tuple[tuple[str, str], ...] = (
-    ("CASUAL", "Casual Leave"),
-    ("PERMISSION", "Permission"),
-    ("OOD", "OOD"),
-    ("RH", "RH"),
-    ("LOP", "LOP"),
-)
+PAGE_W, PAGE_H = 612.0, 792.0  # Letter
 
-#: The "Sanctioned" cell, in the words the screen uses.
-SANCTIONED: dict[str, str] = {
-    "APPROVED": "Sanctioned",
+# --- measured geometry, top-left origin -----------------------------------
+# The main table's value column, and each row's top/bottom.
+VALUE_X0, VALUE_X1 = 181.4, 553.4
+ROWS: dict[str, tuple[float, float]] = {
+    "name": (188.7, 219.1),
+    "designation": (219.6, 250.0),
+    "department": (250.5, 281.0),
+    "date": (281.5, 311.8),
+    "purpose": (312.3, 342.8),
+    "credit": (343.2, 373.6),
+}
+# "Date:" ends at 440.4 and the pre-printed "2026" starts at 489.3, baseline ~177.
+DATE_GAP_X, DATE_BASELINE = 446.0, 177.0
+YEAR_BOX = (488.0, 163.5, 520.0, 181.8)  # whited out only when the year is not 2026
+# The five printed options on the "Application for" line, and where to strike.
+OPTIONS: dict[str, tuple[float, float]] = {
+    "CASUAL": (158.3, 231.4),
+    "PERMISSION": (235.2, 295.2),
+    "OOD": (298.8, 328.1),
+    "RH": (491.4, 510.0),
+    "LOP": (513.8, 539.3),
+}
+OPTIONS_STRIKE_Y = 149.8
+# "Sanctioned", the director's mark, right of centre below the table.
+SANCTIONED = (445.5, 393.1, 512.2, 409.8)
+# The two signature labels: images go above them, attestations beneath.
+STAFF_LABEL_TOP, STAFF_X0 = 442.6, 72.0
+DIRECTOR_LABEL_TOP, DIRECTOR_LABEL_BOTTOM, DIRECTOR_X0, DIRECTOR_X1 = 442.6, 474.2, 444.5, 553.0
+# Alternate arrangements: the dotted name line, and the table.
+ALT_NAME_DOTS = (112.9, 556.0, 361.5, 571.0)
+ALT_NAME_X, ALT_NAME_BASELINE = 116.0, 567.0
+ALT_COLS: list[tuple[float, float]] = [(66.9, 152.8), (153.3, 278.8), (279.3, 368.8), (369.3, 449.5), (450.0, 545.3)]
+ALT_GRID_X = (66.4, 152.8, 278.8, 368.8, 449.5, 545.3)
+ALT_ROW_TOPS = (620.1, 644.7)  # the two printed rows
+ALT_ROW_PITCH = 24.6
+ALT_TABLE_BOTTOM = 669.3
+# "Signature of staff" at the foot, right.
+FOOT_LABEL_TOP, FOOT_LABEL_BOTTOM, FOOT_X0, FOOT_X1 = 718.3, 733.8, 415.0, 553.0
+
+INK = colors.HexColor("#111111")
+MUTED = colors.HexColor("#555555")
+BODY_FONT = "Times-Roman"
+
+SANCTIONED_WORDS: dict[str, str] = {
     "REJECTED": "Not sanctioned",
-    "FIRST_APPROVED": "Pending - first signature given",
+    "FIRST_APPROVED": "Pending",
     "SUBMITTED": "Pending",
     "CANCELLED": "Cancelled",
 }
 
-SIGNATURE_HEIGHT = 14 * mm
-SIGNATURE_MAX_WIDTH = 55 * mm
+
+# ------------------------------------------------------------ helpers --
+
+
+def _y(top_left_y: float) -> float:
+    """Measured (top-left) y -> ReportLab (bottom-left) y."""
+    return PAGE_H - top_left_y
 
 
 def _esc(value: Any) -> str:
     return html.escape("" if value is None else str(value))
 
 
-def _styles() -> dict[str, ParagraphStyle]:
-    base = getSampleStyleSheet()
-    return {
-        "invoke": ParagraphStyle("LvInvoke", parent=base["Normal"], fontSize=9, leading=11, alignment=TA_CENTER, textColor=_MUTED),
-        "college": ParagraphStyle("LvCollege", parent=base["Normal"], fontName="Helvetica-Bold", fontSize=12.5, leading=15, alignment=TA_CENTER, textColor=_INK),
-        "addr": ParagraphStyle("LvAddr", parent=base["Normal"], fontSize=9.5, leading=12, alignment=TA_CENTER, textColor=_INK, spaceAfter=8),
-        "apply": ParagraphStyle("LvApply", parent=base["Normal"], fontSize=10, leading=14, alignment=TA_LEFT, textColor=_INK),
-        "body": ParagraphStyle("LvBody", parent=base["Normal"], fontSize=10, leading=13.5, textColor=_INK),
-        "label": ParagraphStyle("LvLabel", parent=base["Normal"], fontName="Helvetica-Bold", fontSize=9.5, leading=13, textColor=_INK),
-        "cell": ParagraphStyle("LvCell", parent=base["Normal"], fontSize=9.5, leading=13, textColor=_INK),
-        "h": ParagraphStyle("LvH", parent=base["Normal"], fontName="Helvetica-Bold", fontSize=10, leading=13, textColor=_INK, spaceBefore=6, spaceAfter=3),
-        "sigline": ParagraphStyle("LvSigLine", parent=base["Normal"], fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=_MUTED),
-        "signame": ParagraphStyle("LvSigName", parent=base["Normal"], fontName="Helvetica-Bold", fontSize=10, leading=12.5, textColor=_INK),
-        "sigwhen": ParagraphStyle("LvSigWhen", parent=base["Normal"], fontSize=8.5, leading=11, textColor=_MUTED),
-        "await": ParagraphStyle("LvAwait", parent=base["Normal"], fontName="Helvetica-Oblique", fontSize=9, leading=12, textColor=_MUTED),
-        "foot": ParagraphStyle("LvFoot", parent=base["Normal"], fontSize=7.5, leading=10, textColor=_MUTED, spaceBefore=10),
-    }
-
-
 def _when(value: datetime | None, with_time: bool = True) -> str:
-    """"9 Sep 2026, 14:05" - the screen's date pipe. Only portable strftime
-    codes, then the leading zero is stripped: the day-without-padding code is
-    glibc-only and raises on Windows."""
+    """"9 Sep 2026, 21:20" - portable strftime codes only, leading zero stripped."""
     if value is None:
         return "-"
     local = value.astimezone(timezone.utc) if value.tzinfo else value
@@ -101,47 +115,199 @@ def _when(value: datetime | None, with_time: bool = True) -> str:
 
 
 def _date_span(a: date, b: date) -> str:
-    return a.isoformat() if a == b else f"{a.isoformat()} - {b.isoformat()}"
+    return a.isoformat() if a == b else f"{a.isoformat()} to {b.isoformat()}"
 
 
-def _signature_image(sig: tuple[bytes, str] | None) -> Image | None:
-    """The uploaded image, scaled to the block: a fixed height, width to
-    aspect, capped so a wide scan does not push the block off the column."""
-    if sig is None:
-        return None
+def _fit(c: canvas.Canvas, text: str, x0: float, top: float, x1: float, bottom: float,
+         *, size: float = 12.0, min_size: float = 8.0, pad: float = 4.0) -> None:
+    """Write `text` inside a measured box, wrapping, and shrinking the type
+    until it fits; vertically centred. A cell never overflows its lines."""
+    if not text:
+        return
+    width = (x1 - x0) - 2 * pad
+    height = (bottom - top) - 2
+    s = size
+    while True:
+        style = ParagraphStyle("cell", fontName=BODY_FONT, fontSize=s, leading=s * 1.15, textColor=INK)
+        p = Paragraph(_esc(text), style)
+        _w, h = p.wrap(width, height)
+        if h <= height or s <= min_size:
+            break
+        s -= 1
+    p.drawOn(c, x0 + pad, _y(bottom) + (height - h) / 2 + 1)
+
+
+def _text(c: canvas.Canvas, x: float, baseline: float, text: str, *, size: float = 12.0,
+          font: str = BODY_FONT, color=INK, right: bool = False) -> None:
+    c.setFont(font, size)
+    c.setFillColor(color)
+    if right:
+        c.drawRightString(x, _y(baseline), text)
+    else:
+        c.drawString(x, _y(baseline), text)
+
+
+def _image(c: canvas.Canvas, sig: tuple[bytes, str] | None, x: float, bottom: float,
+           *, max_h: float, max_w: float) -> None:
+    """The uploaded signature, its bottom edge on `bottom`, scaled to fit."""
+    if sig is None or max_h <= 6:
+        return
     content, _mime = sig
     try:
-        w, h = ImageReader(io.BytesIO(content)).getSize()
+        reader = ImageReader(io.BytesIO(content))
+        w, h = reader.getSize()
     except Exception:  # noqa: BLE001 - an unreadable image prints nothing, never breaks the paper
-        return None
+        return
     if not w or not h:
-        return None
-    height = SIGNATURE_HEIGHT
+        return
+    height = max_h
     width = height * (w / h)
-    if width > SIGNATURE_MAX_WIDTH:
-        width = SIGNATURE_MAX_WIDTH
+    if width > max_w:
+        width = max_w
         height = width * (h / w)
-    img = Image(io.BytesIO(content), width=width, height=height)
-    img.hAlign = "LEFT"
-    return img
+    c.drawImage(reader, x, _y(bottom), width=width, height=height, mask="auto")
 
 
-def _signature_block(styles, *, image: Image | None, name: str | None, when: datetime | None,
-                     awaiting: str, line: str) -> list:
-    """Image (if any) over name over time, then the printed line under it.
-    Name and time print together or not at all."""
-    block: list = []
-    if name and when is not None:
-        if image is not None:
-            block.append(image)
-        block.append(Paragraph(_esc(name), styles["signame"]))
-        block.append(Paragraph(_esc(_when(when)), styles["sigwhen"]))
+def _white(c: canvas.Canvas, box: tuple[float, float, float, float]) -> None:
+    x0, top, x1, bottom = box
+    c.setFillColor(colors.white)
+    c.setStrokeColor(colors.white)
+    c.rect(x0, _y(bottom), x1 - x0, bottom - top, stroke=0, fill=1)
+
+
+def _line(c: canvas.Canvas, x0: float, y: float, x1: float, *, width: float = 1.0) -> None:
+    c.setStrokeColor(INK)
+    c.setLineWidth(width)
+    c.line(x0, _y(y), x1, _y(y))
+
+
+def _alt_cells(a: Any) -> list[str]:
+    return [str(getattr(a, k, "") or "") for k in ("date", "staff_name", "cls", "time", "remarks")]
+
+
+# ------------------------------------------------------------- render --
+
+
+def _overlay(leave: Any, staff_signature, director_signature) -> bytes:
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H))
+    c.setTitle(f"Leave application - {leave.requester_name}")
+    c.setAuthor("REEP")
+
+    # -- "Application for": strike what does not apply -----------------------
+    if leave.leave_kind in OPTIONS:
+        for key, (x0, x1) in OPTIONS.items():
+            if key != leave.leave_kind:
+                _line(c, x0, OPTIONS_STRIKE_Y, x1, width=1.1)
+
+    # -- Date: the day and month go in the gap before the printed 2026 ---------
+    signed = leave.signed_at
+    if signed is not None:
+        local = signed.astimezone(timezone.utc) if signed.tzinfo else signed
+        if local.year == 2026:
+            _text(c, DATE_GAP_X, DATE_BASELINE, local.strftime("%d %b").lstrip("0"), size=13)
+        else:
+            _white(c, YEAR_BOX)
+            _text(c, DATE_GAP_X, DATE_BASELINE, _when(signed, with_time=False), size=13)
+
+    # -- the six rows -----------------------------------------------------------
+    values = {
+        "name": leave.requester_name,
+        "designation": leave.requester_designation or "",
+        "department": leave.requester_department or "",
+        "date": _date_span(leave.from_date, leave.to_date),
+        "purpose": leave.reason,
+        "credit": leave.credit or "",
+    }
+    for key, (top, bottom) in ROWS.items():
+        _fit(c, values[key], VALUE_X0, top, VALUE_X1, bottom)
+
+    # -- "Sanctioned": the director's mark ------------------------------------
+    sx0, stop, sx1, sbottom = SANCTIONED
+    mid_y = (stop + sbottom) / 2
+    if leave.status == "APPROVED":
+        # A tick just left of the printed word.
+        c.setStrokeColor(INK)
+        c.setLineWidth(1.6)
+        p = c.beginPath()
+        p.moveTo(sx0 - 16, _y(mid_y + 1))
+        p.lineTo(sx0 - 11, _y(mid_y + 6))
+        p.lineTo(sx0 - 3, _y(stop - 1))
+        c.drawPath(p, stroke=1, fill=0)
+    elif leave.status == "REJECTED":
+        _line(c, sx0, mid_y + 0.5, sx1, width=1.1)
+        _text(c, sx0 - 8, sbottom - 3.5, SANCTIONED_WORDS["REJECTED"], size=12, right=True)
     else:
-        block.append(Spacer(1, SIGNATURE_HEIGHT))
-        block.append(Paragraph(_esc(awaiting), styles["await"]))
-    block.append(Spacer(1, 2))
-    block.append(Paragraph(_esc(line), styles["sigline"]))
-    return block
+        _text(c, sx0 - 8, sbottom - 3.5, SANCTIONED_WORDS.get(leave.status, str(leave.status).title()),
+              size=11, color=MUTED, right=True)
+
+    # -- SIGNATURE OF STAFF: image above the label, name and time beneath ------
+    if leave.signed_at is not None:
+        _image(c, staff_signature, STAFF_X0, STAFF_LABEL_TOP - 3, max_h=40, max_w=150)
+        _text(c, STAFF_X0, STAFF_LABEL_TOP + 27, f"{leave.requester_name} · {_when(leave.signed_at)}",
+              size=8.5, color=MUTED)
+    else:
+        _text(c, STAFF_X0, STAFF_LABEL_TOP + 27, "Not signed", size=8.5, color=MUTED)
+
+    # -- PROGRAM DIRECTOR: image above, attestation beneath ---------------------
+    if leave.director_name and leave.director_decided_at is not None:
+        _image(c, director_signature, DIRECTOR_X0, DIRECTOR_LABEL_TOP - 3,
+               max_h=DIRECTOR_LABEL_TOP - 3 - (sbottom + 2), max_w=DIRECTOR_X1 - DIRECTOR_X0)
+        _text(c, DIRECTOR_X0, DIRECTOR_LABEL_BOTTOM + 10.5,
+              f"{leave.director_name} · {_when(leave.director_decided_at)}", size=8, color=MUTED)
+    else:
+        _text(c, DIRECTOR_X0, DIRECTOR_LABEL_BOTTOM + 10.5, "Awaiting", size=8, color=MUTED)
+
+    # -- Alternate arrangements --------------------------------------------------
+    if leave.alt_name:
+        _white(c, ALT_NAME_DOTS)
+        _text(c, ALT_NAME_X, ALT_NAME_BASELINE, str(leave.alt_name), size=12)
+    alt_rows = list(getattr(leave, "alt_rows", []) or [])
+    table_bottom = ALT_TABLE_BOTTOM
+    # The two printed rows, then at most one drawn row: the foot signature
+    # needs the space below. Anything past that is counted, not squeezed.
+    max_rows = 3
+    for i, a in enumerate(alt_rows[:max_rows]):
+        if i < len(ALT_ROW_TOPS):
+            top = ALT_ROW_TOPS[i]
+        else:
+            top = ALT_ROW_TOPS[-1] + ALT_ROW_PITCH * (i - len(ALT_ROW_TOPS) + 1)
+        bottom = top + ALT_ROW_PITCH - 0.4
+        if i >= len(ALT_ROW_TOPS):
+            # Draw the extra row's grid exactly like the printed ones (0.5 pt).
+            c.setFillColor(INK)
+            for gx in ALT_GRID_X:
+                c.rect(gx, _y(bottom + 0.4), 0.5, bottom + 0.4 - top, stroke=0, fill=1)
+            c.rect(ALT_GRID_X[0], _y(bottom + 0.4), ALT_GRID_X[-1] - ALT_GRID_X[0] + 0.5, 0.4, stroke=0, fill=1)
+            table_bottom = bottom + 0.4
+        for (x0, x1), text in zip(ALT_COLS, _alt_cells(a)):
+            _fit(c, text, x0, top, x1, bottom, size=10.5, min_size=7, pad=3)
+    if len(alt_rows) > max_rows:
+        _text(c, ALT_GRID_X[0], table_bottom + 10,
+              f"+ {len(alt_rows) - max_rows} more arrangement(s) recorded on REEP", size=8, color=MUTED)
+        table_bottom += 12
+
+    # -- Signature of staff (foot): image above the label, attestation beneath --
+    if leave.signed_at is not None:
+        _image(c, staff_signature, FOOT_X0, FOOT_LABEL_TOP - 3,
+               max_h=min(34.0, FOOT_LABEL_TOP - 3 - table_bottom - 3), max_w=FOOT_X1 - FOOT_X0)
+        _text(c, FOOT_X0, FOOT_LABEL_BOTTOM + 10.5, f"{leave.requester_name} · {_when(leave.signed_at)}",
+              size=8, color=MUTED)
+    else:
+        _text(c, FOOT_X0, FOOT_LABEL_BOTTOM + 10.5, "Not signed", size=8, color=MUTED)
+
+    # -- The director's remarks have no cell on the form: the bottom margin ----
+    if leave.director_note:
+        label = "Rejected - remarks" if leave.status == "REJECTED" else "Sanctioned - remarks"
+        _fit(c, f"{label}: {leave.director_note}", 66.0, 752.0, 546.0, 772.0, size=8.5, min_size=7, pad=0)
+    _text(c, 66.0, 782.0,
+          f"Generated by REEP on {_when(datetime.now(timezone.utc))} UTC. A signature on this form is a name "
+          "and a time recorded against the signer's REEP account; an image is that person's uploaded signature.",
+          size=6.5, color=MUTED)
+
+    c.showPage()
+    c.save()
+    return buf.getvalue()
 
 
 def render_leave_paper_pdf(
@@ -150,129 +316,15 @@ def render_leave_paper_pdf(
     staff_signature: tuple[bytes, str] | None = None,
     director_signature: tuple[bytes, str] | None = None,
 ) -> bytes:
-    """`leave` is routers/leave.py's LeaveOut (or anything with its fields)."""
-    styles = _styles()
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm, bottomMargin=16 * mm,
-        title=f"Leave application - {leave.requester_name}", author="REEP",
-    )
-    width = A4[0] - 36 * mm
-
-    # -- header, as printed ----------------------------------------------------
-    flow: list = [
-        Paragraph("|| Jai Sri Gurudev ||", styles["invoke"]),
-        Paragraph("BGS COLLEGE OF ENGINEERING AND TECHNOLOGY, MBA", styles["college"]),
-        Paragraph("Mahalakshmipuram, Bengaluru-86.", styles["addr"]),
-    ]
-    options = []
-    for key, label in KINDS:
-        if leave.leave_kind is None:
-            options.append(_esc(label))
-        elif key == leave.leave_kind:
-            options.append(f"<b><u>{_esc(label)}</u></b>")
-        else:
-            options.append(f"<strike>{_esc(label)}</strike>")
-    flow.append(Paragraph(
-        "Application for &nbsp;" + " / ".join(options) + " &nbsp;<font size='8' color='#585566'>(Strike-off, if not applicable)</font>",
-        styles["apply"],
-    ))
-    flow.append(Paragraph(
-        f"Date: <b>{_esc(_when(leave.signed_at, with_time=False)) if leave.signed_at else '-'}</b>", styles["apply"],
-    ))
-    flow.append(Spacer(1, 6))
-
-    # -- the seven rows ----------------------------------------------------------
-    rows = [
-        ("Name", leave.requester_name),
-        ("Designation", leave.requester_designation or "Not on record"),
-        ("Department", leave.requester_department or "Not on record"),
-        ("Date", _date_span(leave.from_date, leave.to_date)),
-        ("Purpose", leave.reason),
-        ("Credit", leave.credit or "-"),
-        ("Sanctioned", SANCTIONED.get(leave.status, leave.status)),
-    ]
-    table = Table(
-        [[Paragraph(_esc(k), styles["label"]), Paragraph(_esc(v), styles["cell"])] for k, v in rows],
-        colWidths=[34 * mm, width - 34 * mm], hAlign="LEFT",
-    )
-    table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.6, _HAIRLINE),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F4EFF8")),
-    ]))
-    flow.append(table)
-    flow.append(Spacer(1, 10))
-
-    # -- the two signature blocks ------------------------------------------------
-    staff_block = _signature_block(
-        styles, image=_signature_image(staff_signature), name=leave.requester_name,
-        when=leave.signed_at, awaiting="Not signed", line="SIGNATURE OF STAFF",
-    )
-    director_block = _signature_block(
-        styles, image=_signature_image(director_signature), name=leave.director_name,
-        when=leave.director_decided_at, awaiting="Awaiting", line="PROGRAM DIRECTOR",
-    )
-    sig = Table([[staff_block, director_block]], colWidths=[width / 2, width / 2], hAlign="LEFT")
-    sig.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-    ]))
-    flow.append(sig)
-    if leave.director_note:
-        label = "Rejected - remarks" if leave.status == "REJECTED" else "Sanctioned - remarks"
-        flow.append(Spacer(1, 4))
-        flow.append(Paragraph(f"<b>{_esc(label)}:</b> {_esc(leave.director_note)}", styles["body"]))
-    flow.append(Spacer(1, 8))
-    flow.append(HRFlowable(width="100%", thickness=0.8, color=_HAIRLINE))
-
-    # -- alternate arrangements ---------------------------------------------------
-    flow.append(Paragraph("Alternate Arrangements: (For Department purpose)", styles["h"]))
-    flow.append(Paragraph(f"Name: <b>{_esc(leave.alt_name or '-')}</b>", styles["body"]))
-    flow.append(Spacer(1, 4))
-    head = [Paragraph(f"<b>{h}</b>", styles["cell"]) for h in ("Date", "Staff Name (Alternative)", "Class", "Time", "Remarks")]
-    alt_rows = list(getattr(leave, "alt_rows", []) or [])
-    if alt_rows:
-        body_rows = [
-            [Paragraph(_esc(getattr(a, "date", "")), styles["cell"]),
-             Paragraph(_esc(getattr(a, "staff_name", "")), styles["cell"]),
-             Paragraph(_esc(getattr(a, "cls", "")), styles["cell"]),
-             Paragraph(_esc(getattr(a, "time", "")), styles["cell"]),
-             Paragraph(_esc(getattr(a, "remarks", "")), styles["cell"])]
-            for a in alt_rows
-        ]
-    else:
-        body_rows = [[Paragraph("No alternate arrangements recorded.", styles["await"]), "", "", "", ""]]
-    alt = Table([head] + body_rows, colWidths=[26 * mm, 52 * mm, 24 * mm, 24 * mm, width - 126 * mm], hAlign="LEFT")
-    alt_style = [
-        ("GRID", (0, 0), (-1, -1), 0.6, _HAIRLINE),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F4EFF8")),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-    ]
-    if not alt_rows:
-        alt_style.append(("SPAN", (0, 1), (-1, 1)))
-    alt.setStyle(TableStyle(alt_style))
-    flow.append(alt)
-    flow.append(Spacer(1, 10))
-    foot = _signature_block(
-        styles, image=_signature_image(staff_signature), name=leave.requester_name,
-        when=leave.signed_at, awaiting="Not signed", line="Signature of staff.",
-    )
-    flow.append(Table([[foot]], colWidths=[width / 2], hAlign="LEFT",
-                      style=TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0)])))
-
-    generated = datetime.now(timezone.utc)
-    flow.append(Paragraph(
-        f"Generated by REEP on {_esc(_when(generated))} UTC. A signature on this form is a name and a "
-        "timestamp recorded against the signer's REEP account; an image, where present, is that "
-        "person's uploaded signature.",
-        styles["foot"],
-    ))
-
-    doc.build(flow)
-    return buf.getvalue()
+    """`leave` is routers/leave.py's LeaveOut (or anything with its fields).
+    The official form, with this request written onto it."""
+    overlay = PdfReader(io.BytesIO(_overlay(leave, staff_signature, director_signature)))
+    template = PdfReader(str(TEMPLATE))
+    page = template.pages[0]
+    page.merge_page(overlay.pages[0])
+    writer = PdfWriter()
+    writer.add_page(page)
+    writer.add_metadata({"/Title": f"Leave application - {leave.requester_name}", "/Producer": "REEP"})
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()

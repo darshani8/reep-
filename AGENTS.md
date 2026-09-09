@@ -154,6 +154,37 @@ it is the landing's Elevate "Mock Interview" module (`/student/assistant`).
 
 `require_mentor(session)` admits **MENTOR, DIRECTOR and ADMIN**; `require_director` admits DIRECTOR/ADMIN. To narrow to students, use `_assert_can_access_student(...)` in **`apps/api-py/app/routers/mentor.py`**: a MENTOR sees only students in their own `Mentor` group; DIRECTOR/ADMIN see all. **A MENTOR with no `Mentor` group sees NOBODY** — never the whole programme. Never read "no mentor group" as "whole programme".
 
+### Rule 1 applies to telemetry too: Sentry is one init per process, and the scrubbers are the floor
+
+Sentry is a second HTTP transport out of the process, carrying whatever the SDK
+attaches, and `student_data_egress_allowed` does not guard it. Three processes
+report, each to its own Sentry project through its own DSN, each through
+**`init_sentry(service, dsn)` in `apps/api-py/app/observability.py`** and
+nothing else: `reep-api` (`app/main.py`, `SENTRY_DSN`), `reep-scheduled-jobs`
+(`app/retention_job.py`, `SENTRY_JOBS_DSN`) and `reep-interview-worker`
+(`app/voice_platform/queue/worker.py`, `SENTRY_INTERVIEW_WORKER_DSN`). A blank
+DSN is OFF and says so once; a process never borrows another's DSN — the
+retention job runs on the api's task definition with `SENTRY_DSN` in its
+environment and must not read it, because a nightly sweep filed under the api's
+issues is a job nobody watches. Three constructor flags are rule 1 —
+`send_default_pii=False`, `include_local_variables=False`,
+`max_request_body_size="never"` — and `tests/test_codebase_guards.py` reads
+that file as text to pin them, plus the four hooks (`before_send`,
+`before_send_transaction`, `before_breadcrumb`, `before_send_log`) that route
+every payload through **`app/telemetry_scrub.py`**: the query string is
+allowlisted (a `?token=` never travels, a `?board=` does), log arguments are
+redacted as well as the formatted line, the mail transport's body log is muted,
+and a scrubber that raises drops the event rather than shipping it.
+`tests/test_observability.py` proves it against the real SDK with a capturing
+transport. The browser twin is `apps/web/src/app/core/telemetry-scrub.ts`, the
+SDK is reached only through `apps/web/src/app/core/sentry-lazy.ts` (a direct
+dynamic import of the package ships the Session Replay recorder to reach four
+symbols), and **Session Replay stays unconstructed** — it cannot be blocked per
+route and nineteen routes render a student's records. The environment tag is
+`ENV` verbatim (`prod`, not `production`), the release is the commit sha baked
+into the image and stamped into the SPA by `deploy.yml`, and the whole design
+record is `docs/sentry-playbook.md`.
+
 ## The v2 student screens (2026-08)
 
 Three screens the handoff adds, with their own tables and endpoints in
@@ -273,7 +304,7 @@ same hardened document_store as student uploads, applies its own per-user quota
 (document_store's contract for any second `save_bytes` writer), and has **no review
 workflow** — a staff certificate is a record, not evidence awaiting a verdict.
 
-**The leave paper and the signature (2026-09).** `GET /api/leaves/{id}/paper.pdf` (`app/routers/leave_paper.py`, rendered by `app/leave_paper.py` with ReportLab, locally) is the Leave Approvals sheet as a file — same words, same order — for the applicant and for exactly the staff `_assert_can_decide` admits, every refusal the same 404. A staff member uploads ONE signature image at `/mentor/signature` (`PUT /api/staff/signature`, PNG/JPEG under 2 MB, replaced in place, `app/models/staff_signature.py`); it is drawn ABOVE the name and time in the two staff blocks of every paper they apply on and in the PROGRAM DIRECTOR block of every paper they sanction. **A signature is still a name and a time**; the image never replaces either, and the leave form's submit/decide endpoints and buttons are untouched (the owner asked for that) — the paper router imports `_leave_out` and `_assert_can_decide` rather than restating them.
+**The leave paper and the signature (2026-09).** `GET /api/leaves/{id}/paper.pdf` (`app/routers/leave_paper.py`, rendered by `app/leave_paper.py` with ReportLab, locally) is the college's OWN form PDF (`app/assets/leave_form_template.pdf`, the office's "Leave Form.pdf", pinned by size) with the request written onto it as a ReportLab overlay merged by pypdf — the form is never redrawn, and the field coordinates are measured from that exact file — for the applicant and for exactly the staff `_assert_can_decide` admits, every refusal the same 404. A staff member uploads ONE signature image at `/mentor/signature` (`PUT /api/staff/signature`, PNG/JPEG under 2 MB, replaced in place, `app/models/staff_signature.py`); it is drawn ABOVE the name and time in the two staff blocks of every paper they apply on and in the PROGRAM DIRECTOR block of every paper they sanction. **A signature is still a name and a time**; the image never replaces either, and the leave form's submit/decide endpoints and buttons are untouched (the owner asked for that) — the paper router imports `_leave_out` and `_assert_can_decide` rather than restating them.
 
 **Alumni** are a real role: `Role.ALUMNI`, no Student/Mentor row, no staff
 scope, session claims carry neither `studentId` nor `mentorId`. Their surface

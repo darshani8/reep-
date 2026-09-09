@@ -83,6 +83,8 @@ sentry-sdk[fastapi]==2.68.1
 reportlab==5.0.0
 # ReportLab reads PNG signatures (app/leave_paper.py) through Pillow; JPEG alone needs nothing.
 pillow==12.3.0
+# The leave paper is the official form PDF with the fields written onto it (app/leave_paper.py): pypdf merges the overlay.
+pypdf==6.18.0
 
 # Audio maths for the LOCAL interview engine (app/interview_local.py): RMS for
 # the voice-activity gate, and linear resampling between the browser's 24 kHz

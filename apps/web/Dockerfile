@@ -33,6 +33,17 @@ COPY src ./src
 # output is dist/web/browser.
 RUN npx ng build
 
+# angular.json's production configuration emits HIDDEN source maps beside every
+# script — no sourceMappingURL comment, but a predictable `<chunk>.js.map` next
+# to each chunk, with `sourcesContent` inlined — so that deploy.yml can upload
+# them to Sentry and then DELETE them before publishing to S3. This image is
+# the self-hosted path and has no upload step, so the maps must not survive the
+# build stage: nginx.conf's `try_files $uri` would serve every one, and with
+# sourcesContent they ARE the application's source. The `test` turns a silent
+# failure of the delete into a failed build rather than a served map.
+RUN find dist/web/browser -name '*.map' -delete \
+ && test "$(find dist/web/browser -name '*.map' | wc -l)" = "0"
+
 # ---- Stage 2: serve ----------------------------------------------------------
 # Stock nginx:alpine rather than the nginxinc/nginx-unprivileged variant: the
 # master process keeps root only to bind :80/:443 and supervise, while every

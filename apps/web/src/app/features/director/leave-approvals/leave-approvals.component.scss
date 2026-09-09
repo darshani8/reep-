@@ -143,3 +143,16 @@
 .state-note.risk .icon {
   color: var(--risk);
 }
+
+/* The download link under the sheet, apart from the decision buttons. */
+.paper-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.paper-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}

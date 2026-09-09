@@ -35,7 +35,8 @@ interface Mentee {
 }
 
 interface MentorLoad {
-  mentor_id: string;
+  /** Null until the first student is assigned: the assignment creates the group. */
+  mentor_id: string | null;
   /** The users.id the identity PATCH addresses. */
   user_id: string;
   name: string;
@@ -80,7 +81,7 @@ export class DirectorMentorsStudentsComponent {
   readonly identityDraft = signal({ designation: '', department: '' });
 
   readonly current = computed(
-    () => (this.mentors() ?? []).find((m) => m.mentor_id === this.selectedMentor()) ?? null,
+    () => (this.mentors() ?? []).find((m) => m.user_id === this.selectedMentor()) ?? null,
   );
 
   readonly checkedCount = computed(() => this.checked().size);
@@ -114,6 +115,7 @@ export class DirectorMentorsStudentsComponent {
   }
 
   freeOf(m: MentorLoad): string {
+    if (!m.mentor_id) return 'not a mentor yet';
     const free = m.capacity - m.mentee_count;
     return free > 0 ? `${free} free` : 'at capacity';
   }
@@ -142,7 +144,7 @@ export class DirectorMentorsStudentsComponent {
     const mentor = this.current();
     const ids = [...this.checked()];
     if (!mentor || ids.length === 0) return;
-    await this.write(ids, mentor.mentor_id, `${ids.length} added to ${mentor.name}`);
+    await this.write(ids, mentor, `${ids.length} added to ${mentor.name}`);
   }
 
   /** Release one student back to the pool. */
@@ -190,7 +192,7 @@ export class DirectorMentorsStudentsComponent {
       // nothing else changed, and a full refresh would drop the selection.
       this.mentors.update((rows) =>
         (rows ?? []).map((r) =>
-          r.mentor_id === m.mentor_id
+          r.user_id === m.user_id
             ? { ...r, designation: saved.designation, department: saved.department }
             : r,
         ),
@@ -204,7 +206,15 @@ export class DirectorMentorsStudentsComponent {
     }
   }
 
-  private async write(ids: string[], mentorId: string | null, message: string): Promise<void> {
+  /** Null target releases. A target with no group yet is sent by USER id: the
+   *  API creates the group on that first assignment, which is how a faculty
+   *  account becomes a mentor - by this act, not by a flag at creation. */
+  private async write(ids: string[], target: MentorLoad | null, message: string): Promise<void> {
+    const body = !target
+      ? { mentor_id: null }
+      : target.mentor_id
+        ? { mentor_id: target.mentor_id }
+        : { mentor_user_id: target.user_id };
     this.busy.set(true);
     this.error.set(null);
     try {
@@ -213,7 +223,7 @@ export class DirectorMentorsStudentsComponent {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mentor_id: mentorId }),
+          body: JSON.stringify(body),
         });
         if (!res.ok) {
           this.error.set('Could not save that assignment.');
@@ -247,7 +257,7 @@ export class DirectorMentorsStudentsComponent {
       this.pool.set((await pRes.json()) as Mentee[]);
       // Keep a selection across a refresh, and make one on first load so the
       // two cards are never an empty prompt when there is a mentor.
-      if (!this.selectedMentor() && mentors.length) this.selectedMentor.set(mentors[0].mentor_id);
+      if (!this.selectedMentor() && mentors.length) this.selectedMentor.set(mentors[0].user_id);
     } catch {
       this.error.set('Could not reach the server.');
       this.mentors.set([]);

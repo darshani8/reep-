@@ -19,13 +19,13 @@ import uuid
 from datetime import datetime, timezone
 
 from conftest import requires_db
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from app.db import SessionLocal
 from app.models.badge import ApprovedCertification
 from app.models.job import Job, JobApplication
 from app.models.resume import Resume
-from app.models.user import User, Role, Student
+from app.models.user import Mentor, User, Role, Student
 
 
 def _student_id(user_id: str) -> str:
@@ -316,3 +316,60 @@ def test_leave_history_follows_the_pending_scope_rule(client, make_user):
         assert row["status"] in {"APPROVED", "REJECTED"}
         # A final decision carries the time it was made.
         assert row["director_decided_at"]
+
+
+@requires_db
+def test_a_faculty_account_becomes_a_mentor_the_moment_the_admin_assigns_a_student(client, make_user):
+    """FACULTY ONLY: a MENTOR-role account has no group and sees nobody until
+    the Main Admin assigns it a student on Mentors & Students, and that act is
+    the whole of it - it creates the group, and rule 2 opens for exactly the
+    students assigned. No flag at account creation, no second step."""
+    admin = make_user("fa-adm", Role.ADMIN)
+    faculty = make_user("fa-fac", Role.MENTOR)  # make_user creates no Mentor row
+    stu = make_user("fa-stu", Role.STUDENT)
+    sid = _student_id(stu.user_id)
+    load = "/api/director/mentor-load"
+    assign = f"/api/director/students/{sid}/mentor"
+    try:
+        # Listed for the admin, with no group and nobody assigned.
+        row = next(r for r in client.get(load, headers=admin.headers).json() if r["user_id"] == faculty.user_id)
+        assert row["mentor_id"] is None and row["mentee_count"] == 0 and row["mentees"] == []
+        # Rule 2 before: nobody.
+        assert client.get("/api/mentor/mentees", headers=faculty.headers).json() == []
+
+        # The faculty member cannot assign themselves (the write is the scope key).
+        assert client.post(assign, headers=faculty.headers, json={"mentor_user_id": faculty.user_id}).status_code == 403
+        # A student account is not a faculty account.
+        r = client.post(assign, headers=admin.headers, json={"mentor_user_id": stu.user_id})
+        assert r.status_code == 404 and "Not a faculty account" in r.text
+
+        # The Main Admin assigns: the group now exists and the student is in it.
+        r = client.post(assign, headers=admin.headers, json={"mentor_user_id": faculty.user_id})
+        assert r.status_code == 204, r.text
+        with SessionLocal() as db:
+            group = db.scalar(select(Mentor).where(Mentor.user_id == faculty.user_id))
+            assert group is not None, "the assignment created the group"
+            assert db.get(Student, sid).mentor_id == group.id
+        row = next(r for r in client.get(load, headers=admin.headers).json() if r["user_id"] == faculty.user_id)
+        assert row["mentor_id"] == group.id and row["mentee_count"] == 1
+        assert [m["student_id"] for m in row["mentees"]] == [sid]
+        # And the faculty member now sees exactly that student.
+        assert [m["student_id"] for m in client.get("/api/mentor/mentees", headers=faculty.headers).json()] == [sid]
+
+        # A second assignment reuses the group rather than minting another.
+        stu2 = make_user("fa-stu2", Role.STUDENT)
+        sid2 = _student_id(stu2.user_id)
+        assert client.post(f"/api/director/students/{sid2}/mentor", headers=admin.headers,
+                           json={"mentor_user_id": faculty.user_id}).status_code == 204
+        with SessionLocal() as db:
+            assert db.scalar(select(func.count()).select_from(Mentor).where(Mentor.user_id == faculty.user_id)) == 1
+        assert len(client.get("/api/mentor/mentees", headers=faculty.headers).json()) == 2
+    finally:
+        with SessionLocal() as db:
+            group = db.scalar(select(Mentor).where(Mentor.user_id == faculty.user_id))
+            if group is not None:
+                for st in db.scalars(select(Student).where(Student.mentor_id == group.id)).all():
+                    st.mentor_id = None
+                db.flush()
+                db.delete(group)
+            db.commit()

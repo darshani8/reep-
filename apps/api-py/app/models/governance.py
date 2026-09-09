@@ -144,6 +144,10 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # the office writes it for every student, so a grant is the decision to let
     # a faculty member do the same.
     Capability("admin.swoc", "SWOC notes", _P, carries_pii=True),
+    # The Main Admin's CRUD over students, one at a time and a whole batch at a
+    # time (app/routers/admin_students.py). PROGRAMME and personal: it creates,
+    # edits and deletes roster rows - the access control itself.
+    Capability("admin.students", "Students", _P, carries_pii=True),
 )
 
 CAPABILITIES_BY_KEY: Final[dict[str, Capability]] = {c.key: c for c in CAPABILITIES}

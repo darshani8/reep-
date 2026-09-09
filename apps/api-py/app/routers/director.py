@@ -44,7 +44,7 @@ from ..models.offer import OfferStatus, PlacementOffer
 from ..models.placement_criteria import PlacementCriteria
 from ..models.registration import Registration, RegistrationStatus
 from ..models.resume import Resume
-from ..models.user import Mentor, Student, User
+from ..models.user import Mentor, Role, Student, User
 from ..resume_pdf import render_resume_pdf
 from ..governance import require_capability
 from .mentor import require_director
@@ -370,7 +370,12 @@ class MenteeMetricsOut(BaseModel):
 
 
 class MentorLoadOut(BaseModel):
-    mentor_id: str
+    # NULL until the Main Admin assigns this faculty member their first
+    # student: every MENTOR-role account is listed here, and the assignment is
+    # what creates the `Mentor` row (the group rule 2 filters on). Consumers
+    # that key on mentor_id skip the null rows; the assignment screen keys on
+    # user_id and sends mentor_user_id instead.
+    mentor_id: str | None
     # The USER id, beside the mentor id: department and designation below are
     # columns on `users`, and the console edits them through
     # PATCH /api/admin/users/{user_id}/institutional-identity. Without this the
@@ -394,13 +399,21 @@ class MentorLoadOut(BaseModel):
 def mentor_load(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[MentorLoadOut]:
-    """Every mentor with their assigned students and each student's three
-    headline metrics. Programme-wide, so director/admin only."""
+    """Every FACULTY account with their assigned students and each student's
+    three headline metrics. Programme-wide, so director/admin only.
+
+    Every MENTOR-role user is a row, including one who has never been assigned
+    a student: that is the account the Main Admin needs to see in order to
+    assign one, and until then `mentor_id` is null and rule 2 shows them
+    nobody. A faculty account is not a mentor by existing; it becomes one when
+    the office hands it a student."""
     require_capability(db, session, "admin.analytics")
 
     mentors = db.execute(
-        select(Mentor.id, Mentor.user_id, User.name, User.department, User.designation)
-        .join(User, Mentor.user_id == User.id)
+        select(Mentor.id, User.id, User.name, User.department, User.designation)
+        .select_from(User)
+        .outerjoin(Mentor, Mentor.user_id == User.id)
+        .where(User.role == Role.MENTOR)
         .order_by(User.name)
     ).all()
 
@@ -506,6 +519,31 @@ class AssignMentorIn(BaseModel):
     # Null releases the student back to the unassigned pool. An explicit null is
     # the un-assign action, so this is Optional rather than absent-means-keep.
     mentor_id: str | None = None
+    # The faculty member's USER id, for one who has no `Mentor` row yet: the
+    # assignment creates it. This is how a faculty account becomes a mentor -
+    # by the Main Admin's act on the assignment screen, not by a flag at
+    # account creation.
+    mentor_user_id: str | None = None
+
+
+def ensure_mentor_group(db: Session, faculty_user_id: str) -> str:
+    """The `Mentor` row for a faculty account, created on first use.
+
+    A faculty account with no group yet: the assignment is what makes them a
+    mentor. The row is created here, once, and never for anyone who is not a
+    MENTOR-role account - a student handed a group would be rule 2 edited by a
+    form. ONE IMPLEMENTATION: the single assignment above and the batch action
+    in admin_students.py both come through here.
+    """
+    faculty = db.get(User, faculty_user_id)
+    if faculty is None or faculty.role is not Role.MENTOR:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not a faculty account.")
+    group = db.scalar(select(Mentor).where(Mentor.user_id == faculty.id))
+    if group is None:
+        group = Mentor(user_id=faculty.id)
+        db.add(group)
+        db.flush()
+    return group.id
 
 
 @router.post("/students/{student_id}/mentor", status_code=status.HTTP_204_NO_CONTENT)
@@ -526,9 +564,12 @@ def set_student_mentor(
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
-    if body.mentor_id is not None and db.get(Mentor, body.mentor_id) is None:
+    mentor_id = body.mentor_id
+    if mentor_id is None and body.mentor_user_id is not None:
+        mentor_id = ensure_mentor_group(db, body.mentor_user_id)
+    if mentor_id is not None and db.get(Mentor, mentor_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mentor not found.")
-    student.mentor_id = body.mentor_id
+    student.mentor_id = mentor_id
     db.commit()
 
 

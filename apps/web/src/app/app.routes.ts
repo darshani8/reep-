@@ -217,6 +217,14 @@ export const routes: Routes = [
             (m) => m.UpskillingComponent,
           ),
       },
+      // Signature: the staff member's own uploaded signature image, drawn into
+      // the leave papers they apply on and sanction. Nothing about the leave
+      // form changes; this only holds the picture.
+      {
+        path: 'mentor/signature',
+        loadComponent: () =>
+          import('./features/mentor/signature/signature.component').then((m) => m.SignatureComponent),
+      },
       {
         path: 'mentor/leave',
         loadComponent: () =>
@@ -298,6 +306,14 @@ export const routes: Routes = [
             (m) => m.InterviewQuestionsComponent,
           ),
       },
+      // Students: the Main Admin's roster - create, edit, remove, and act on a
+      // whole batch. A capability, so it can be lent to faculty in Governance.
+      {
+        path: 'director/students',
+        canActivate: [capabilityGuard('admin.students')],
+        loadComponent: () =>
+          import('./features/director/students/students.component').then((m) => m.DirectorStudentsComponent),
+      },
       // SWOC Notes: the four lines on each student's landing. A capability, so
       // the office can lend it to faculty in Governance.
       {
@@ -313,7 +329,8 @@ export const routes: Routes = [
       // fails the bundle budget).
       {
         path: 'director/governance',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        // The Main Admin's alone: one account decides what faculty may see.
+        canActivate: [roleGuard('ADMIN')],
         loadComponent: () =>
           import('./features/director/governance/governance.component').then(
             (m) => m.GovernanceComponent,

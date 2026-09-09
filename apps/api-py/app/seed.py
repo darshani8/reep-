@@ -116,6 +116,26 @@ def main() -> None:
         else:
             print(f"{director} already exists")
 
+        # The Main Admin - the one account that may open Governance and decide
+        # what faculty see (routers/governance.py is ADMIN-only; the seeded
+        # director above holds every console screen and still cannot grant one).
+        # Dev only, like the rest: production's Main Admin is minted once by
+        # `python -m app.grant_access`, which then refuses a second.
+        admin_email = "admin@bgscet.ac.in"
+        if db.scalar(select(User).where(User.email == admin_email)) is None:
+            db.add(
+                User(
+                    email=admin_email,
+                    name="Main Admin (seed)",
+                    role=Role.ADMIN,
+                    password_hash=hash_password("admin123"),
+                )
+            )
+            db.commit()
+            print(f"created {admin_email} / admin123")
+        else:
+            print(f"{admin_email} already exists")
+
         student_email = "student@bgscet.ac.in"
         if db.scalar(select(User).where(User.email == student_email)) is None:
             user = User(

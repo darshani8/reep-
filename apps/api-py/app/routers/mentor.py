@@ -308,6 +308,24 @@ def require_director(session: dict) -> dict:
     return session
 
 
+def require_admin(session: dict) -> dict:
+    """The Main Admin, and nobody else.
+
+    REEP has ONE Main Admin. DIRECTOR is a role the code still knows (the dev
+    seed uses it; its baseline is every console screen) but it is not the
+    office, and what this gate protects is the office's one exclusive
+    instrument: Governance, which decides what faculty may see.
+    `require_director` admits DIRECTOR/ADMIN to the console's screens; this
+    admits ADMIN only, so the console can never grow a second hand that
+    widens access.
+    """
+    if session.get("role") != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Main Admin access required."
+        )
+    return session
+
+
 class PendingOfferOut(BaseModel):
     id: str
     student_id: str

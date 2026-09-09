@@ -5,12 +5,35 @@ from fastapi import HTTPException, Request, WebSocket, WebSocketException, statu
 from .security import SESSION_COOKIE, verify_session_token
 
 
+def _with_live_mentor_id(payload: dict) -> dict:
+    """A faculty member becomes a mentor when the Main Admin assigns them their
+    first student (routers/director.py::set_student_mentor creates the group),
+    and that can happen while they are signed in. Their cookie was minted
+    before the group existed, so it carries no `mentorId` - and every rule-2
+    reader keys on that claim, which would show them nobody until they signed
+    out and back in. So, in that ONE case (role MENTOR, claim absent), the
+    group is looked up live: one indexed read, and the claim is filled for
+    this request. A mentor with no group still gets nothing - the lookup finds
+    no row and the claim stays absent, which is rule 2 exactly as before."""
+    if payload.get("role") == "MENTOR" and not payload.get("mentorId") and payload.get("userId"):
+        from sqlalchemy import select
+
+        from .db import SessionLocal
+        from .models.user import Mentor
+
+        with SessionLocal() as db:
+            mentor_id = db.scalar(select(Mentor.id).where(Mentor.user_id == payload["userId"]))
+        if mentor_id:
+            payload["mentorId"] = mentor_id
+    return payload
+
+
 def get_current_session(request: Request) -> dict:
     token = request.cookies.get(SESSION_COOKIE)
     payload = verify_session_token(token) if token else None
     if not payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in required.")
-    return payload
+    return _with_live_mentor_id(payload)
 
 
 def get_ws_session(websocket: WebSocket) -> dict:

@@ -29,6 +29,7 @@ from .routers import (
     director,
     health,
     interview,
+    interview_bank,
     leave,
     mentee_records,
     mentor,
@@ -343,6 +344,7 @@ app.include_router(alumni.router, prefix="/api")
 app.include_router(badges.router, prefix="/api")
 app.include_router(badge_verification.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")
+app.include_router(interview_bank.router, prefix="/api")
 
 
 # --- The interview record endpoints (Interview Engine v3 §7) -----------------

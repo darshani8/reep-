@@ -1,0 +1,153 @@
+<section class="iq">
+  <header class="iq-head">
+    <h1>Interview Questions</h1>
+    <p>
+      What the mock interviewer covers on each track. It stays free-style — these are worked in,
+      in this order, at the phase you pin them to, rephrased naturally, with follow-ups on what the
+      student actually says. You decide what is covered; the interviewer decides how it is asked.
+    </p>
+  </header>
+
+  @if (error()) { <p class="iq-error" role="alert">{{ error() }}</p> }
+  @if (flash()) { <p class="iq-flash" role="status">{{ flash() }}</p> }
+
+  <!-- Track tabs, from the matrix that runs the interviews. -->
+  <div class="tabs-row" role="tablist">
+    @for (t of tracks() ?? []; track t.key) {
+      <button type="button" role="tab" [class.active]="track() === t.key" [attr.aria-selected]="track() === t.key" (click)="setTrack(t.key)">
+        {{ t.label }}
+        <span class="iq-count">{{ t.enabled_count }}<span class="iq-count__of">/{{ t.count }}</span></span>
+      </button>
+    }
+  </div>
+
+  <div class="iq-grid">
+    <!-- Add one -->
+    <div class="card iq-form">
+      <div class="iq-form__title">Add a question</div>
+      <label class="fld">
+        Phase
+        <select class="ctrl" [value]="fPhase()" (change)="fPhase.set($any($event.target).value)">
+          @for (p of phases(); track p) {
+            <option [value]="p">{{ phaseLabel(p) }}</option>
+          }
+        </select>
+      </label>
+      <label class="fld">
+        Question
+        <textarea class="ctrl" rows="3" maxlength="600"
+                  placeholder="e.g. Tell me about a time you had to deliver difficult feedback."
+                  [value]="fText()" (input)="fText.set($any($event.target).value)"></textarea>
+      </label>
+      <div class="iq-form__foot">
+        <span class="iq-hint">{{ fText().trim().length }}/600</span>
+        <button type="button" class="btn primary" [disabled]="busy() || fText().trim().length < 8" (click)="add()">
+          <span class="icon" aria-hidden="true">add</span> Add to {{ current()?.label ?? 'track' }}
+        </button>
+      </div>
+
+      <button type="button" class="iq-bulk-toggle" (click)="bulkOpen.set(!bulkOpen())" [attr.aria-expanded]="bulkOpen()">
+        <span class="icon iq-disclose" [class.iq-disclose--open]="bulkOpen()" aria-hidden="true">chevron_right</span>
+        Add many at once
+      </button>
+
+      @if (bulkOpen()) {
+        <div class="iq-bulk">
+          <p class="iq-hint">
+            One question per line. Pin a phase with <code>[probing]</code> at the start, or
+            <code>probing | …</code>; a line with no phase goes to Probing. Blank lines and lines
+            starting with <code>#</code> are ignored. Or pick a <strong>.txt / .csv</strong> file.
+          </p>
+          <textarea class="ctrl iq-bulk__text" rows="8"
+                    placeholder="[opening] Walk me through your background.&#10;[probing] Describe a conflict you resolved at work.&#10;Why this track, and why now?"
+                    [value]="bulkText()" (input)="bulkText.set($any($event.target).value)"></textarea>
+          <div class="iq-form__foot">
+            <label class="btn iq-file">
+              <span class="icon" aria-hidden="true">upload_file</span> Choose file
+              <input type="file" accept=".txt,.csv,text/plain,text/csv" (change)="onBulkFile($event)" hidden>
+            </label>
+            <button type="button" class="btn primary" [disabled]="busy() || !bulkText().trim()" (click)="bulkAdd()">
+              <span class="icon" aria-hidden="true">add_circle</span> Add all
+            </button>
+          </div>
+          @if (bulkSkipped().length) {
+            <div class="iq-skipped" role="alert">
+              <strong>Not added — fix and paste these again:</strong>
+              <ul>
+                @for (s of bulkSkipped(); track s) { <li>{{ s }}</li> }
+              </ul>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- The bank for this track -->
+    <div class="card iq-list">
+      <div class="iq-list__head">
+        <div class="iq-list__title">{{ current()?.label ?? 'Track' }}</div>
+        <div class="iq-hint">{{ enabledCount() }} asked · {{ (questions() ?? []).length - enabledCount() }} paused</div>
+      </div>
+
+      @if (questions() === null) {
+        <p class="iq-hint">Loading…</p>
+      } @else {
+        <div class="scroll">
+          <table class="dt-table iq-table">
+            <thead>
+              <tr>
+                <th class="iq-ord">#</th>
+                <th class="iq-phase">Phase</th>
+                <th>Question</th>
+                <th class="iq-on">Asked</th>
+                <th class="iq-act"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (q of questions(); track q.id; let i = $index; let first = $first; let last = $last) {
+                <tr [class.iq-off]="!q.enabled">
+                  <td class="iq-ord">
+                    <span class="iq-num">{{ i + 1 }}</span>
+                    <span class="iq-move">
+                      <button type="button" class="iq-mini" [disabled]="busy() || first" (click)="move(q, -1)" aria-label="Move up"><span class="icon iq-rot">chevron_left</span></button>
+                      <button type="button" class="iq-mini" [disabled]="busy() || last" (click)="move(q, 1)" aria-label="Move down"><span class="icon iq-rot">chevron_right</span></button>
+                    </span>
+                  </td>
+                  <td class="iq-phase">
+                    <select class="ctrl ctrl--sm" [value]="q.phase" [disabled]="busy()" (change)="setPhase(q, $any($event.target).value)" aria-label="Phase">
+                      @for (p of phases(); track p) { <option [value]="p">{{ phaseLabel(p) }}</option> }
+                    </select>
+                  </td>
+                  <td>
+                    <textarea class="iq-text" rows="2" maxlength="600" [value]="q.text" [disabled]="busy()"
+                              (change)="saveText(q, $any($event.target).value)"
+                              aria-label="Question text"></textarea>
+                  </td>
+                  <td class="iq-on">
+                    <label class="iq-switch">
+                      <input type="checkbox" [checked]="q.enabled" [disabled]="busy()" (change)="toggleEnabled(q)">
+                      <span>{{ q.enabled ? 'Yes' : 'Paused' }}</span>
+                    </label>
+                  </td>
+                  <td class="iq-act">
+                    <button type="button" class="iq-mini iq-mini--danger" [disabled]="busy()" (click)="remove(q)" aria-label="Remove"><span class="icon">delete</span></button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="empty-cell">
+                    No questions on this track yet — the interviewer improvises entirely. Add one on the left, or paste a list.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      <p class="iq-foot">
+        Order matters: the interviewer works these in from the top, one at a time, and never asks the next until
+        the student has answered. Pausing a question keeps it here but leaves it out of interviews.
+      </p>
+    </div>
+  </div>
+</section>

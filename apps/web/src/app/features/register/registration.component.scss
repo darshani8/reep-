@@ -29,3 +29,36 @@
     text-decoration: underline;
   }
 }
+
+/* The live upload zones are <label>s so a click anywhere opens the picker —
+ * but a label is inline by default, which lets the global .dropzone's dashed
+ * border wrap only the inline boxes. Make it the centred block column the
+ * global rule assumes. A modifier, not a redefinition of the global. */
+.dropzone--live {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  cursor: pointer;
+  text-align: center;
+
+  .icon {
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  strong {
+    overflow-wrap: anywhere;
+  }
+}
+
+.dropzone__btn {
+  margin-top: 4px;
+}
+
+/* Breathing room between the CV note and the first field label. */
+.autofill-note {
+  margin-bottom: 14px;
+}

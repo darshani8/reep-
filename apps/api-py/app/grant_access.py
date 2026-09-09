@@ -65,7 +65,36 @@ from .seed_roster import db_target
 # `created: false` until they save one, and that flag is what makes the client
 # show the first-login create form. Minting a blank profile would skip the only
 # screen a new alumnus is meant to land on.
-_GRANTABLE_ROLES = (Role.MENTOR, Role.DIRECTOR, Role.ADMIN, Role.ALUMNI)
+#
+# DIRECTOR IS NOT GRANTED, and ADMIN is granted ONCE. REEP has one Main Admin:
+# the office account that opens Governance and decides what faculty may see.
+# Faculty are MENTOR - a mentor with a grant reaches exactly the console screens
+# the Main Admin chose, and nothing widens on its own. A DIRECTOR would hold
+# every console screen by baseline, which is a second admin under another name,
+# so the role stays for the dev seed and the tests and is never minted here.
+_GRANTABLE_ROLES = (Role.MENTOR, Role.ADMIN, Role.ALUMNI)
+_OFFICE_ROLES = (Role.ADMIN, Role.DIRECTOR)
+
+
+def _refuse_second_main_admin(db: Session, email: str) -> None:
+    """One Main Admin. Re-running for the SAME address is the idempotent update
+    the module promises; a DIFFERENT address while an office account exists is
+    refused, and the message says how a handover is done instead: demote the
+    current one first (re-run it as MENTOR), then grant the new."""
+    current = db.scalar(select(User).where(func.lower(User.email) == email))
+    if current is not None and current.role is Role.ADMIN:
+        return  # the Main Admin's own address: the idempotent update, never a refusal
+    others = db.scalars(
+        select(User).where(User.role.in_(_OFFICE_ROLES), func.lower(User.email) != email)
+    ).all()
+    if others:
+        held = ", ".join(sorted(u.email for u in others))
+        raise ValueError(
+            f"REEP has one Main Admin, and that account exists: {held}. Faculty are "
+            "granted as MENTOR and given screens by the Main Admin in Governance. To "
+            f"hand the console to {email}, first re-run this for the current Main Admin "
+            "with --role MENTOR (or ALUMNI), then grant ADMIN."
+        )
 
 # Unusable-password sentinel, identical to seed_roster.SSO_ONLY_PASSWORD_HASH and
 # for the same reason: `users.password_hash` is NOT NULL, but these accounts must
@@ -153,8 +182,15 @@ def grant(
             "/api/student/* route 403s without it) â or use `python -m "
             "app.seed_roster` for the real batch"
         )
+    if role is Role.DIRECTOR:
+        raise ValueError(
+            "DIRECTOR is not granted: REEP has one Main Admin (ADMIN), and faculty are "
+            "MENTOR - the Main Admin gives them console screens in Governance"
+        )
     if role is not Role.STUDENT and role not in _GRANTABLE_ROLES:
         raise ValueError(f"{role.value} cannot be granted here")
+    if role is Role.ADMIN:
+        _refuse_second_main_admin(db, normalised)
     if with_group and role is not Role.MENTOR:
         raise ValueError("--with-group applies to MENTOR only")
     if password_hash is not None:

@@ -46,8 +46,9 @@ REASON = "Needed for the December placement review; presenting cohort readiness.
 
 
 @pytest.fixture
-def director(make_user):
-    return make_user(f"gov-dir-{uuid.uuid4().hex[:4]}", Role.DIRECTOR)
+def admin(make_user):
+    """The Main Admin - the only account Governance admits."""
+    return make_user(f"gov-adm-{uuid.uuid4().hex[:4]}", Role.ADMIN)
 
 
 @pytest.fixture
@@ -125,28 +126,28 @@ def test_a_student_reaches_none_of_it(client, make_user) -> None:
 
 
 @requires_db
-def test_a_reason_below_the_floor_is_refused_by_the_api(client, director, mentor, cleanup) -> None:
+def test_a_reason_below_the_floor_is_refused_by_the_api(client, admin, mentor, cleanup) -> None:
     """The floor is in the API, not only the form. A second client, a script or a
     curl must not be able to write an unauditable grant."""
-    r = client.post(f"{GOV}/grants", headers=director.headers,
+    r = client.post(f"{GOV}/grants", headers=admin.headers,
                     json={"capability": "admin.analytics", "user_ids": [mentor.user_id], "reason": "ok"})
     assert r.status_code == 422, r.text
     assert "20 characters" in r.text
 
-    r = client.post(f"{GOV}/grants", headers=director.headers,
+    r = client.post(f"{GOV}/grants", headers=admin.headers,
                     json={"capability": "admin.analytics", "user_ids": [mentor.user_id], "reason": REASON})
     assert r.status_code == 201, r.text
     cleanup["grants"] += [g["id"] for g in r.json()]
 
 
 @requires_db
-def test_one_request_grants_to_several_people(client, director, make_user, cleanup) -> None:
+def test_one_request_grants_to_several_people(client, admin, make_user, cleanup) -> None:
     """The console's multi-select, and one audit row per person rather than one
     for the batch — "why does Dr. Rao hold this" must be answerable from a row
     she is named in."""
     a = make_user(f"gov-a-{uuid.uuid4().hex[:4]}", Role.MENTOR)
     b = make_user(f"gov-b-{uuid.uuid4().hex[:4]}", Role.MENTOR)
-    r = client.post(f"{GOV}/grants", headers=director.headers, json={
+    r = client.post(f"{GOV}/grants", headers=admin.headers, json={
         "capability": "admin.analytics", "user_ids": [a.user_id, b.user_id], "reason": REASON})
     assert r.status_code == 201, r.text
     rows = r.json()
@@ -158,19 +159,19 @@ def test_one_request_grants_to_several_people(client, director, make_user, clean
 
     # Re-granting is a no-op, not a duplicate: two live rows for one pair make
     # revocation a question of which one.
-    again = client.post(f"{GOV}/grants", headers=director.headers, json={
+    again = client.post(f"{GOV}/grants", headers=admin.headers, json={
         "capability": "admin.analytics", "user_ids": [a.user_id], "reason": REASON})
     assert again.status_code == 201 and again.json() == []
 
 
 @requires_db
 def test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members(
-    client, director, mentor, make_user, cleanup
+    client, admin, mentor, make_user, cleanup
 ) -> None:
     with SessionLocal() as db:
         assert "admin.analytics" not in granted_capabilities(db, mentor.user_id)
 
-    r = client.post(f"{GOV}/grants", headers=director.headers, json={
+    r = client.post(f"{GOV}/grants", headers=admin.headers, json={
         "capability": "admin.analytics", "user_ids": [mentor.user_id], "reason": REASON})
     cleanup["grants"] += [g["id"] for g in r.json()]
 
@@ -181,13 +182,13 @@ def test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members(
 
     # Now the group path: a second mentor inherits by joining, with no grant of
     # their own. That is the reason groups exist.
-    grp = client.post(f"{GOV}/groups", headers=director.headers,
+    grp = client.post(f"{GOV}/groups", headers=admin.headers,
                       json={"name": f"Coordinators {uuid.uuid4().hex[:6]}"})
     assert grp.status_code == 201, grp.text
     gid = grp.json()["id"]
     cleanup["groups"].append(gid)
 
-    r = client.post(f"{GOV}/grants", headers=director.headers, json={
+    r = client.post(f"{GOV}/grants", headers=admin.headers, json={
         "capability": "admin.exports", "group_ids": [gid], "reason": REASON})
     cleanup["grants"] += [g["id"] for g in r.json()]
 
@@ -195,7 +196,7 @@ def test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members(
     with SessionLocal() as db:
         assert "admin.exports" not in granted_capabilities(db, joiner.user_id)
 
-    add = client.post(f"{GOV}/groups/{gid}/members", headers=director.headers,
+    add = client.post(f"{GOV}/groups/{gid}/members", headers=admin.headers,
                       json={"user_ids": [joiner.user_id], "reason": REASON})
     assert add.status_code == 200, add.text
 
@@ -206,7 +207,7 @@ def test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members(
 
 @requires_db
 def test_a_grant_never_widens_which_students_a_mentor_reaches(
-    client, director, mentor, make_user, cleanup
+    client, admin, mentor, make_user, cleanup
 ) -> None:
     """THE SAFETY PROPERTY. A capability decides which SCREENS; rule 2 decides
     which STUDENTS. `mentor` here has no Mentor group at all — the account rule 2
@@ -214,7 +215,7 @@ def test_a_grant_never_widens_which_students_a_mentor_reaches(
     them a single student.
     """
     stu = make_user(f"gov-out-{uuid.uuid4().hex[:4]}")
-    r = client.post(f"{GOV}/grants", headers=director.headers, json={
+    r = client.post(f"{GOV}/grants", headers=admin.headers, json={
         "capability": "student.records", "user_ids": [mentor.user_id], "reason": REASON})
     cleanup["grants"] += [g["id"] for g in r.json()]
 
@@ -239,9 +240,9 @@ def test_a_grant_never_widens_which_students_a_mentor_reaches(
 
 @requires_db
 def test_a_revoked_grant_stops_working_and_the_row_survives(
-    client, director, mentor, cleanup
+    client, admin, mentor, cleanup
 ) -> None:
-    r = client.post(f"{GOV}/grants", headers=director.headers, json={
+    r = client.post(f"{GOV}/grants", headers=admin.headers, json={
         "capability": "admin.placement", "user_ids": [mentor.user_id], "reason": REASON})
     gid = r.json()[0]["id"]
     cleanup["grants"].append(gid)
@@ -249,7 +250,7 @@ def test_a_revoked_grant_stops_working_and_the_row_survives(
     with SessionLocal() as db:
         assert "admin.placement" in granted_capabilities(db, mentor.user_id)
 
-    rev = client.post(f"{GOV}/grants/{gid}/revoke", headers=director.headers,
+    rev = client.post(f"{GOV}/grants/{gid}/revoke", headers=admin.headers,
                       json={"reason": "Moved off the placement cell to full-time teaching."})
     assert rev.status_code == 200, rev.text
 
@@ -260,7 +261,7 @@ def test_a_revoked_grant_stops_working_and_the_row_survives(
         assert row.revoked_at is not None and row.revoke_reason
 
     # Revoking twice is a conflict, not a second silent success.
-    again = client.post(f"{GOV}/grants/{gid}/revoke", headers=director.headers,
+    again = client.post(f"{GOV}/grants/{gid}/revoke", headers=admin.headers,
                         json={"reason": "Moved off the placement cell to full-time teaching."})
     assert again.status_code == 409
 
@@ -333,7 +334,7 @@ def test_the_most_specific_feature_override_wins(make_user, cleanup) -> None:
 
 
 @requires_db
-def test_a_granted_capability_opens_the_analytics_endpoints(client, director, mentor, cleanup) -> None:
+def test_a_granted_capability_opens_the_analytics_endpoints(client, admin, mentor, cleanup) -> None:
     """THE WIRING. Until this, a grant was recorded and nothing checked it — a
     mentor granted Analytics was still stopped by role at the API, at the route
     guard and in the nav. This pins the API half end to end, and the fact that
@@ -347,7 +348,7 @@ def test_a_granted_capability_opens_the_analytics_endpoints(client, director, me
     assert "admin.analytics" not in me["capabilities"]
     assert "mentor.mentees" in me["capabilities"], "the baseline must be reported too"
 
-    r = client.post(f"{GOV}/grants", headers=director.headers, json={
+    r = client.post(f"{GOV}/grants", headers=admin.headers, json={
         "capability": "admin.analytics", "user_ids": [mentor.user_id], "reason": REASON})
     assert r.status_code == 201, r.text
     cleanup["grants"] += [g["id"] for g in r.json()]
@@ -358,47 +359,66 @@ def test_a_granted_capability_opens_the_analytics_endpoints(client, director, me
     me = client.get("/api/auth/me", headers=mentor.headers).json()
     assert "admin.analytics" in me["capabilities"]
 
-    # A director never needed a grant — the baseline carries it.
-    assert client.get("/api/director/analytics-summary", headers=director.headers).status_code == 200
+    # An admin never needed a grant — the baseline carries it.
+    assert client.get("/api/director/analytics-summary", headers=admin.headers).status_code == 200
 
 
 @requires_db
-def test_interview_audio_is_a_capability_a_director_must_be_granted(client, director, make_user, cleanup) -> None:
+def test_interview_audio_is_a_capability_a_director_must_be_granted(client, admin, make_user, cleanup) -> None:
     """The recording gate: ADMIN by baseline, DIRECTOR only by explicit grant.
 
     interview_records.py had `_DEVELOPERS = {"ADMIN"}` and a docstring refusing
-    to widen to require_director — every placement account would then hold the
+    to widen to require_director - every placement account would then hold the
     most sensitive bytes REEP stores. That asymmetry must SURVIVE the move to a
     capability, which is why DIRECTOR's baseline excludes exactly this one.
 
     404, not 200, is the pass signal past the gate: the session id here is
     invented, and the route answers 404 for "no such recording" identically to
-    "not a real id", by design. What matters is that 403 becomes 404 — the gate
-    opened — and that it does so for an ADMIN with no grant and for a DIRECTOR
-    only after one.
+    "not a real id", by design. What matters is that 403 becomes 404 - the gate
+    opened - and that it does so for the Main Admin with no grant and for a
+    DIRECTOR only after one, which only the Main Admin can give.
     """
     from app.models.user import Student
 
+    director = make_user(f"gov-dir-{uuid.uuid4().hex[:4]}", Role.DIRECTOR)
     stu = make_user(f"gov-aud-{uuid.uuid4().hex[:4]}")
     with SessionLocal() as db:
         sid = db.query(Student).filter(Student.user_id == stu.user_id).one().id
     url = f"/api/mentor/students/{sid}/interviews/{uuid.uuid4().hex}/audio"
 
-    # A director, ungranted: refused — and told what to ask for.
+    # A director, ungranted: refused - and told what to ask for.
     r = client.get(url, headers=director.headers)
     assert r.status_code == 403, r.text
     assert "Interview audio" in r.text and "Governance" in r.text
 
-    # An admin, no grant: through on the baseline.
-    admin = make_user(f"gov-adm-{uuid.uuid4().hex[:4]}", Role.ADMIN)
+    # The Main Admin, no grant: through on the baseline.
     assert client.get(url, headers=admin.headers).status_code == 404
 
-    # Grant the director the capability — self-grant is allowed and audited.
-    r = client.post(f"{GOV}/grants", headers=director.headers, json={
-        "capability": "admin.interview_audio", "user_ids": [director.user_id], "reason": REASON})
+    # A director cannot grant it to themselves - Governance is the Main Admin's.
+    body = {"capability": "admin.interview_audio", "user_ids": [director.user_id], "reason": REASON}
+    r = client.post(f"{GOV}/grants", headers=director.headers, json=body)
+    assert r.status_code == 403 and "Main Admin" in r.text, r.text
+    r = client.post(f"{GOV}/grants", headers=admin.headers, json=body)
     assert r.status_code == 201, r.text
     cleanup["grants"] += [g["id"] for g in r.json()]
 
     # Same cookie, no re-login: the gate now opens for the director too.
     assert client.get(url, headers=director.headers).status_code == 404
     assert "admin.interview_audio" in client.get("/api/auth/me", headers=director.headers).json()["capabilities"]
+
+
+@requires_db
+def test_governance_is_the_main_admins_alone(client, admin, mentor, make_user, cleanup) -> None:
+    """REEP has one Main Admin, and deciding what faculty may see is that
+    account's instrument alone. A DIRECTOR holds every console screen by
+    baseline and is still refused here, by name - so the console never grows a
+    second hand that can widen access."""
+    director = make_user(f"gov-dir-{uuid.uuid4().hex[:4]}", Role.DIRECTOR)
+    body = {"capability": "admin.analytics", "user_ids": [mentor.user_id], "reason": REASON}
+    for who in (director, mentor):
+        r = client.post(f"{GOV}/grants", headers=who.headers, json=body)
+        assert r.status_code == 403 and "Main Admin" in r.text, r.text
+        assert client.get(f"{GOV}/catalogue", headers=who.headers).status_code == 403
+    r = client.post(f"{GOV}/grants", headers=admin.headers, json=body)
+    assert r.status_code == 201, r.text
+    cleanup["grants"] += [g["id"] for g in r.json()]

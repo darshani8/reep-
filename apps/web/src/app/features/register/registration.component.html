@@ -23,6 +23,17 @@
         </div>
       }
 
+      @if (docNotes().length) {
+        <ul class="doc-notes">
+          @for (n of docNotes(); track n) {
+            <li>
+              <span class="icon">{{ n.includes('could not') ? 'warning' : 'check_circle' }}</span>
+              {{ n }}
+            </li>
+          }
+        </ul>
+      }
+
       <div style="margin-top:20px; display:flex; gap:10px;">
         <a class="dt-btn primary" routerLink="/login">
           Continue to sign in <span class="icon" style="font-size:16px">arrow_forward</span>
@@ -32,12 +43,18 @@
     } @else {
       <!-- the application form -->
       <form (submit)="submit($event)">
-        <div class="dropzone">
-          <span class="icon">upload_file</span>Upload CV to auto-fill (PDF/DOCX)<br>
-          <button type="button" class="dt-btn" style="margin-top:10px" disabled>Choose file</button>
-        </div>
+        <label class="dropzone dropzone--live">
+          <span class="icon">upload_file</span>
+          @if (cvFile(); as f) {
+            <strong>{{ f.name }}</strong> · {{ (f.size / 1024) | number: '1.0-0' }} KB
+          } @else {
+            Attach your CV (PDF, up to 10 MB)
+          }
+          <input type="file" accept="application/pdf,.pdf" (change)="onCv($event)" hidden>
+          <span class="dt-btn dropzone__btn">{{ cvFile() ? 'Change file' : 'Choose file' }}</span>
+        </label>
         <div class="autofill-note">
-          <span class="icon">auto_awesome</span> CV auto-fill is coming soon — please fill the fields below yourself.
+          <span class="icon">info</span> Your CV goes to the placement office with your application, and becomes your first resume upload once you are admitted. The form below is still yours to fill.
         </div>
 
         <div class="reg-grid">
@@ -77,9 +94,15 @@
 
         <div class="field">
           <label>Professional photo</label>
-          <div class="dropzone" style="padding:16px;">
-            <span class="icon" style="font-size:20px; margin-bottom:0">photo_camera</span> Upload a headshot
-          </div>
+          <label class="dropzone dropzone--live" style="padding:16px;">
+            <span class="icon" style="font-size:20px; margin-bottom:0">photo_camera</span>
+            @if (photoFile(); as f) {
+              <strong>{{ f.name }}</strong>
+            } @else {
+              Upload a headshot (PNG or JPG)
+            }
+            <input type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" (change)="onPhoto($event)" hidden>
+          </label>
         </div>
 
         @if (error(); as e) {

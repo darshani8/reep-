@@ -71,6 +71,14 @@
         }
       </div>
 
+      <!-- The design's Main Admin door. It is a HINT, not a bypass: it selects
+           the Admin portal so the ID field reads "admin email", and the role
+           still comes from the roster row behind the verified identity. -->
+      <button type="button" class="main-admin" (click)="openMainAdmin()">
+        <span class="icon" aria-hidden="true">admin_panel_settings</span>
+        Main Admin — open the REEP Admin Console
+      </button>
+
       <!-- A refusal handed back on the Google callback redirect. Text + icon +
            colour together, never colour alone. -->
       @if (error()) {
@@ -295,6 +303,17 @@
           }
         </form>
       }
+
+      <!-- The design's two doors under the card. "New student" is the public
+           application; "Already approved" is a student whose application a
+           director approved — they hold no password (option B), so their door
+           is Google, which the link brings into focus. -->
+      <div class="doors">
+        <a routerLink="/register">New student? Register →</a>
+        <button type="button" class="linkish doors__approved" (click)="approvedSignIn()">
+          Already approved? Sign in →
+        </button>
+      </div>
 
       <p class="help-foot">
         Need help signing in?

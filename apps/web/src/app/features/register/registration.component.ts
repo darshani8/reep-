@@ -16,6 +16,7 @@
  */
 
 import { Component, computed, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
@@ -38,13 +39,15 @@ interface RegistrationResult {
   reviewed_at: string | null;
   review_note: string | null;
   approved_student_id: string | null;
+  /// Kinds attached so far: "CV", "PHOTO". Filled by the uploads after the 201.
+  documents: string[];
   created_at: string;
 }
 
 @Component({
   selector: 'app-registration',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DecimalPipe],
   templateUrl: './registration.component.html',
   styleUrl: './registration.component.scss',
 })
@@ -61,6 +64,24 @@ export class RegistrationComponent {
   readonly pending = signal(false);
   readonly error = signal<string | null>(null);
   readonly result = signal<RegistrationResult | null>(null);
+
+  /// Files staged on the form. Uploaded AFTER the application is created — the
+  /// upload endpoint is keyed on the application id, which does not exist until
+  /// the 201 — so a picked file is held here until then.
+  readonly cvFile = signal<File | null>(null);
+  readonly photoFile = signal<File | null>(null);
+  /// What happened to each attachment, shown on the result card. The
+  /// application itself is already in; a failed attachment is a warning, not a
+  /// reason to make the applicant start over.
+  readonly docNotes = signal<string[]>([]);
+
+  onCv(ev: Event): void {
+    this.cvFile.set((ev.target as HTMLInputElement).files?.[0] ?? null);
+  }
+
+  onPhoto(ev: Event): void {
+    this.photoFile.set((ev.target as HTMLInputElement).files?.[0] ?? null);
+  }
 
   /// Auto-approved is the only "account is active immediately" branch; every
   /// other terminal state on submission is a human-review hold.
@@ -94,7 +115,32 @@ export class RegistrationComponent {
         this.error.set(await this.detailOf(res));
         return;
       }
-      this.result.set((await res.json()) as RegistrationResult);
+      const created = (await res.json()) as RegistrationResult;
+      // Attach what was picked, one request per file, each reporting for
+      // itself. The application is already created whatever happens here.
+      const notes: string[] = [];
+      for (const [kind, file, label] of [
+        ['cv', this.cvFile(), 'CV'],
+        ['photo', this.photoFile(), 'photo'],
+      ] as const) {
+        if (!file) continue;
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        const up = await fetch(`${environment.apiBase}/register/${created.id}/documents/${kind}`, {
+          method: 'POST',
+          credentials: 'include',
+          body: fd,
+        });
+        if (up.ok) {
+          const updated = (await up.json()) as RegistrationResult;
+          created.documents = updated.documents;
+          notes.push(`${label} attached.`);
+        } else {
+          notes.push(`${label} could not be attached: ${await this.detailOf(up)}`);
+        }
+      }
+      this.docNotes.set(notes);
+      this.result.set(created);
     } catch {
       this.error.set('Could not reach the registration service. Is the API running on :3300?');
     } finally {
@@ -118,6 +164,9 @@ export class RegistrationComponent {
   /// Start over after a hold so a mistyped email can be corrected in place.
   reset(): void {
     this.result.set(null);
+    this.cvFile.set(null);
+    this.photoFile.set(null);
+    this.docNotes.set([]);
     this.error.set(null);
   }
 }

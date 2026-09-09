@@ -663,7 +663,9 @@ export class DirectorAnalyticsComponent implements AfterViewInit, OnDestroy {
         this.error.set('Could not load the mentorship map.');
         this.load.set([]);
       } else {
-        this.load.set((await loadRes.json()) as MentorLoad[]);
+        // A faculty account with no group yet has a null mentor_id and no
+        // mentees; the rings key on mentor_id, so those rows are not drawn.
+        this.load.set(((await loadRes.json()) as MentorLoad[]).filter((m) => m.mentor_id !== null));
       }
       if (sumRes.ok) {
         this.summary.set((await sumRes.json()) as Summary);

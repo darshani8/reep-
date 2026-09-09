@@ -36,8 +36,8 @@
             [value]="selectedMentor()"
             (change)="pick($any($event.target).value)"
           >
-            @for (m of mentors()!; track m.mentor_id) {
-              <option [value]="m.mentor_id">{{ m.name }} · {{ freeOf(m) }}</option>
+            @for (m of mentors()!; track m.user_id) {
+              <option [value]="m.user_id">{{ m.name }} · {{ freeOf(m) }}</option>
             }
           </select>
         </div>
@@ -47,11 +47,15 @@
             <div class="mentor-name">{{ m.name }}</div>
             <div class="mentor-focus">{{ focus(m) }}</div>
             <div class="mentor-chips">
-              <span class="chip">{{ m.mentee_count }} of {{ m.capacity }} places used</span>
-              @if (atCapacity()) {
-                <span class="chip risk">At capacity</span>
+              @if (!m.mentor_id) {
+                <span class="chip neutral">Not a mentor yet — assigning a student makes them one</span>
               } @else {
-                <span class="chip good">{{ free() }} free</span>
+                <span class="chip">{{ m.mentee_count }} of {{ m.capacity }} places used</span>
+                @if (atCapacity()) {
+                  <span class="chip risk">At capacity</span>
+                } @else {
+                  <span class="chip good">{{ free() }} free</span>
+                }
               }
             </div>
 

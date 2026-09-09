@@ -122,6 +122,30 @@
       </div>
     }
 
+    <!-- SWOC: the four lines the placement office and mentors write for this
+         student. Null means "not written yet" and the tile says so. -->
+    <div class="card swoc">
+      <h4 class="swoc-title">
+        <span>SWOC — Strengths, Weaknesses, Opportunities, Challenges</span>
+        <span class="swoc-from">from TPO and mentor inputs</span>
+      </h4>
+      <div class="swoc-grid">
+        @for (t of swocTiles(); track t.key) {
+          <div class="swoc-tile" [attr.data-tone]="t.tone">
+            <b>{{ t.label }}</b>
+            @if (t.text) {
+              <div>{{ t.text }}</div>
+            } @else {
+              <div class="swoc-empty">Not added yet</div>
+            }
+          </div>
+        }
+      </div>
+      @if (!swocWritten()) {
+        <div class="card-empty swoc-note">Your mentor or the placement cell will fill these in after your reviews.</div>
+      }
+    </div>
+
     <!-- Attendance by course, beside the VTU marks line. -->
     <div class="grid-charts">
       <div class="card">

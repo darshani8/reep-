@@ -23,6 +23,7 @@ import type { Role } from '../core/session';
 const ADMIN_LINKS = [
   { capability: 'admin.analytics', path: '/director', label: 'Analytics', icon: 'insights' },
   { capability: 'admin.interview_questions', path: '/director/interview-questions', label: 'Interview Questions', icon: 'edit_note' },
+  { capability: 'admin.swoc', path: '/director/swoc', label: 'SWOC Notes', icon: 'rate_review' },
 ] as const;
 import { AgentOrbComponent } from './agent-orb.component';
 

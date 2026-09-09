@@ -298,6 +298,14 @@ export const routes: Routes = [
             (m) => m.InterviewQuestionsComponent,
           ),
       },
+      // SWOC Notes: the four lines on each student's landing. A capability, so
+      // the office can lend it to faculty in Governance.
+      {
+        path: 'director/swoc',
+        canActivate: [capabilityGuard('admin.swoc')],
+        loadComponent: () =>
+          import('./features/director/swoc/swoc.component').then((m) => m.DirectorSwocComponent),
+      },
       // Governance: capability grants for staff and student feature switches.
       // Its own screen rather than a tab on Institution, because the two answer
       // opposite questions — Institution says who EXISTS, Governance says who

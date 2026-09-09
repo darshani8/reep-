@@ -135,6 +135,10 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     Capability("admin.placement", "Placement", _P),
     Capability("admin.mentors", "Mentors & students", _P, carries_pii=True),
     Capability("admin.interview_audio", "Interview audio", _P, carries_pii=True),
+    # The admin-authored question bank the free-style interviewer weaves in
+    # (app/interview_bank.py). PROGRAMME: a question is asked of every student on
+    # the track, so no mentor group could narrow it.
+    Capability("admin.interview_questions", "Interview questions", _P),
 )
 
 CAPABILITIES_BY_KEY: Final[dict[str, Capability]] = {c.key: c for c in CAPABILITIES}

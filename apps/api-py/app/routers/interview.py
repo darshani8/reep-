@@ -89,6 +89,7 @@ from ..identity import get_current_session, get_ws_session
 from ..interview_audio import recorder_for
 from .. import tracing
 from ..interview_matrix import Specialization, get_specialization
+from ..interview_bank import with_question_bank
 from ..interview_core import (
     _CLOSE_CONSENT_REQUIRED,
     _CLOSE_CONSENT_REVOKED,
@@ -819,6 +820,13 @@ async def interview(websocket: WebSocket) -> None:
     # Checked AFTER the limiter so a bad param never holds a slot.
     spec_key = websocket.query_params.get("specialization")
     specialization = get_specialization(spec_key)
+    if specialization is not None:
+        # The admin's question bank for this track, if any - resolved LIVE so a
+        # question added this morning is asked this afternoon, and read OFF the
+        # loop: it is a SELECT, and the handshake deadline is no place for one.
+        # The engine, the caps, the recorder and the writers never learn
+        # whether the bank was empty; they get a Specialization either way.
+        specialization = await asyncio.to_thread(with_question_bank, specialization)
     if spec_key and specialization is None:
         log.warning(
             "[conn=%s] WS /api/interview -> %d: unknown specialization %r",

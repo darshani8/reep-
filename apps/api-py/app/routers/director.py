@@ -285,13 +285,13 @@ def upsert_alert_rule(
         rule_key = AlertRuleKey(body.rule_key)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown rule_key."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Unknown rule_key."
         )
     try:
         severity = AlertSeverity(body.severity)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown severity."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Unknown severity."
         )
 
     row = db.scalar(
@@ -730,12 +730,12 @@ def create_job(
         level = DegreeLevel(body.degree_level.upper())
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Level must be PG or UG."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Level must be PG or UG."
         )
     apply_url = (body.apply_url or "").strip() or None
     if apply_url and not apply_url.lower().startswith(("http://", "https://")):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="The apply link must start with http:// or https://.",
         )
     now = datetime.now(timezone.utc)

@@ -37,6 +37,13 @@ interface Registration {
   matched_rule_id: string | null;
   decision_reason: string | null;
   created_at: string;
+  /// Kinds attached with the application: "CV", "PHOTO".
+  documents: string[];
+  college_name: string | null;
+  department_name: string | null;
+  course_name: string | null;
+  specialization_name: string | null;
+  requested_batch: string | null;
 }
 
 interface Cohort {
@@ -71,6 +78,11 @@ export class DirectorRegistrationsComponent {
   readonly rejecting = signal<Record<string, RejectUi>>({});
   readonly deciding = signal(false);
   readonly log = signal<string | null>(null);
+  /// The rejections the last action made, for the design's Undo. A rejection
+  /// only stamps a row, so reopening it is safe and exact; an APPROVE
+  /// provisions a real User + Student and is deliberately NOT undoable here.
+  readonly lastRejected = signal<Registration[]>([]);
+  readonly undoing = signal(false);
 
   readonly allLabel = ALL;
   readonly waiting = computed(() => (this.rows() ?? []).length);
@@ -213,9 +225,60 @@ export class DirectorRegistrationsComponent {
     const names = done.length <= 3 ? done.map((r) => r.name).join(', ') : `${done.length} applicants`;
     this.log.set(
       decision === 'APPROVE'
-        ? `${names} approved · student records are provisioned separately, then they appear in the mentor pool.`
+        ? `${names} approved — account created and the student told to sign in with Google.`
         : `${names} rejected, with your remarks recorded.`,
     );
+    this.lastRejected.set(decision === 'REJECT' ? done : []);
+  }
+
+  /** Reopen the rejections the last action made. One request per row, each
+   *  reported for itself; rows that reopen return to the queue in place. */
+  async undoReject(): Promise<void> {
+    const rows = this.lastRejected();
+    if (!rows.length || this.undoing()) return;
+    this.undoing.set(true);
+    this.error.set(null);
+    const back: Registration[] = [];
+    try {
+      for (const r of rows) {
+        const res = await fetch(`${environment.apiBase}/register/${r.id}/reopen`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => null);
+          this.error.set(d?.detail ?? `Could not reopen ${r.name}.`);
+          break;
+        }
+        back.push((await res.json()) as Registration);
+      }
+    } catch {
+      this.error.set('Could not reach the server.');
+    } finally {
+      this.undoing.set(false);
+    }
+    if (!back.length) return;
+    this.rows.update((list) => [...back, ...(list ?? [])]);
+    this.lastRejected.set([]);
+    this.log.set(
+      back.length === 1 ? `${back[0].name} is back in the queue.` : `${back.length} applications are back in the queue.`,
+    );
+  }
+
+  /** The Documents chip: what the applicant attached. Text + colour together. */
+  docsLabel(r: Registration): string {
+    const has = new Set(r.documents ?? []);
+    if (has.has('CV') && has.has('PHOTO')) return 'CV + photo';
+    if (has.has('CV')) return 'CV only';
+    if (has.has('PHOTO')) return 'Photo only';
+    return 'None';
+  }
+
+  docsKind(r: Registration): 'good' | 'warn' | 'neutral' {
+    const has = new Set(r.documents ?? []);
+    if (has.has('CV') && has.has('PHOTO')) return 'good';
+    if (has.size) return 'warn';
+    return 'neutral';
   }
 
   private async load(): Promise<void> {

@@ -16,6 +16,7 @@
  */
 
 import { Component, computed, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
@@ -24,6 +25,20 @@ import { environment } from '../../../environments/environment';
 type DegreeLevel = 'UG' | 'PG';
 
 /** Snake_case exactly as `RegistrationOut` returns it. */
+/// The hierarchy the admin built, as the public form may see it: names and
+/// codes only (see GET /api/register/hierarchy).
+interface HierSpec { id: string; code: string; name: string }
+interface HierCourse { id: string; code: string; name: string; specializations: HierSpec[] }
+interface HierBatch {
+  id: string; code: string; name: string; batch_label: string;
+  department_id: string | null; course_id: string | null; specialization_id: string | null;
+  degree_level: string; current: boolean;
+}
+interface HierDept { id: string; code: string; name: string; courses: HierCourse[]; batches: HierBatch[] }
+interface HierCollege { id: string; code: string; name: string; departments: HierDept[] }
+interface HierLevel { key: string; label: string; required: boolean }
+interface Hierarchy { levels: HierLevel[]; colleges: HierCollege[] }
+
 interface RegistrationResult {
   id: string;
   name: string;
@@ -38,13 +53,26 @@ interface RegistrationResult {
   reviewed_at: string | null;
   review_note: string | null;
   approved_student_id: string | null;
+  /// Kinds attached so far: "CV", "PHOTO". Filled by the uploads after the 201.
+  documents: string[];
+  /// The applicant's claim of where they belong, ids and resolved names.
+  college_id: string | null;
+  department_id: string | null;
+  course_id: string | null;
+  specialization_id: string | null;
+  requested_cohort_id: string | null;
+  college_name: string | null;
+  department_name: string | null;
+  course_name: string | null;
+  specialization_name: string | null;
+  requested_batch: string | null;
   created_at: string;
 }
 
 @Component({
   selector: 'app-registration',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DecimalPipe],
   templateUrl: './registration.component.html',
   styleUrl: './registration.component.scss',
 })
@@ -62,6 +90,114 @@ export class RegistrationComponent {
   readonly error = signal<string | null>(null);
   readonly result = signal<RegistrationResult | null>(null);
 
+  /// Files staged on the form. Uploaded AFTER the application is created — the
+  /// upload endpoint is keyed on the application id, which does not exist until
+  /// the 201 — so a picked file is held here until then.
+  readonly cvFile = signal<File | null>(null);
+  readonly photoFile = signal<File | null>(null);
+  /// What happened to each attachment, shown on the result card. The
+  /// application itself is already in; a failed attachment is a warning, not a
+  /// reason to make the applicant start over.
+  readonly docNotes = signal<string[]>([]);
+
+  // -- where the applicant belongs: cascading pickers over the admin's hierarchy --
+  readonly hier = signal<Hierarchy | null>(null);
+  readonly collegeId = signal('');
+  readonly departmentId = signal('');
+  readonly courseId = signal('');
+  readonly specializationId = signal('');
+  readonly batchId = signal('');
+
+  readonly college = computed(() => (this.hier()?.colleges ?? []).find((c) => c.id === this.collegeId()) ?? null);
+  readonly departments = computed(() => this.college()?.departments ?? []);
+  readonly department = computed(() => this.departments().find((d) => d.id === this.departmentId()) ?? null);
+  readonly courses = computed(() => this.department()?.courses ?? []);
+  readonly course = computed(() => this.courses().find((c) => c.id === this.courseId()) ?? null);
+  readonly specializations = computed(() => this.course()?.specializations ?? []);
+  /// Batches of the chosen department, narrowed by course/specialization when
+  /// chosen (a batch with no course sits under the whole department), current
+  /// ones first. Ended batches stay listed but marked - a late applicant is a
+  /// director's call, not the form's.
+  readonly batches = computed(() => {
+    const d = this.department();
+    if (!d) return [];
+    let list = d.batches;
+    if (this.courseId()) list = list.filter((b) => !b.course_id || b.course_id === this.courseId());
+    if (this.specializationId()) list = list.filter((b) => !b.specialization_id || b.specialization_id === this.specializationId());
+    return [...list].sort((a, z) => Number(z.current) - Number(a.current));
+  });
+  readonly required = computed(() => new Set((this.hier()?.levels ?? []).filter((l) => l.required).map((l) => l.key)));
+  readonly hierarchyOk = computed(() => {
+    const req = this.required();
+    return (
+      (!req.has('college') || !!this.collegeId()) &&
+      (!req.has('department') || !!this.departmentId()) &&
+      (!req.has('course') || !!this.courseId()) &&
+      (!req.has('specialization') || !!this.specializationId())
+    );
+  });
+
+  constructor() {
+    void this.loadHierarchy();
+  }
+
+  setCollege(id: string): void {
+    this.collegeId.set(id);
+    this.departmentId.set('');
+    this.courseId.set('');
+    this.specializationId.set('');
+    this.batchId.set('');
+  }
+
+  setDepartment(id: string): void {
+    this.departmentId.set(id);
+    this.courseId.set('');
+    this.specializationId.set('');
+    this.batchId.set('');
+  }
+
+  setCourse(id: string): void {
+    this.courseId.set(id);
+    this.specializationId.set('');
+    this.batchId.set('');
+  }
+
+  setSpecialization(id: string): void {
+    this.specializationId.set(id);
+    this.batchId.set('');
+  }
+
+  /// A batch pins what it knows: its course and specialization fill the
+  /// pickers above if they were left blank, and its degree level sets the
+  /// degree field - the API derives the same ancestors, so the two agree.
+  setBatch(id: string): void {
+    this.batchId.set(id);
+    const b = this.batches().find((x) => x.id === id);
+    if (!b) return;
+    if (b.course_id && !this.courseId()) this.courseId.set(b.course_id);
+    if (b.specialization_id && !this.specializationId()) this.specializationId.set(b.specialization_id);
+    this.degreeLevel = b.degree_level as typeof this.degreeLevel;
+  }
+
+  private async loadHierarchy(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/register/hierarchy`);
+      if (!res.ok) throw new Error(String(res.status));
+      this.hier.set((await res.json()) as Hierarchy);
+    } catch {
+      // The form still works without the pickers; the office can seat them.
+      this.hier.set({ levels: [], colleges: [] });
+    }
+  }
+
+  onCv(ev: Event): void {
+    this.cvFile.set((ev.target as HTMLInputElement).files?.[0] ?? null);
+  }
+
+  onPhoto(ev: Event): void {
+    this.photoFile.set((ev.target as HTMLInputElement).files?.[0] ?? null);
+  }
+
   /// Auto-approved is the only "account is active immediately" branch; every
   /// other terminal state on submission is a human-review hold.
   readonly approved = computed(() => this.result()?.status === 'AUTO_APPROVED');
@@ -73,6 +209,10 @@ export class RegistrationComponent {
     this.error.set(null);
     if (!this.fullName.trim() || !this.collegeEmail.trim()) {
       this.error.set('Your full name and college email are both required.');
+      return;
+    }
+    if (!this.hierarchyOk()) {
+      this.error.set('Choose your college and department (and any level marked required).');
       return;
     }
 
@@ -88,13 +228,43 @@ export class RegistrationComponent {
           usn: this.usn.trim() || null,
           phone: this.phone.trim() || null,
           degree_level: this.degreeLevel,
+          college_id: this.collegeId() || null,
+          department_id: this.departmentId() || null,
+          course_id: this.courseId() || null,
+          specialization_id: this.specializationId() || null,
+          requested_cohort_id: this.batchId() || null,
         }),
       });
       if (!res.ok) {
         this.error.set(await this.detailOf(res));
         return;
       }
-      this.result.set((await res.json()) as RegistrationResult);
+      const created = (await res.json()) as RegistrationResult;
+      // Attach what was picked, one request per file, each reporting for
+      // itself. The application is already created whatever happens here.
+      const notes: string[] = [];
+      for (const [kind, file, label] of [
+        ['cv', this.cvFile(), 'CV'],
+        ['photo', this.photoFile(), 'photo'],
+      ] as const) {
+        if (!file) continue;
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        const up = await fetch(`${environment.apiBase}/register/${created.id}/documents/${kind}`, {
+          method: 'POST',
+          credentials: 'include',
+          body: fd,
+        });
+        if (up.ok) {
+          const updated = (await up.json()) as RegistrationResult;
+          created.documents = updated.documents;
+          notes.push(`${label} attached.`);
+        } else {
+          notes.push(`${label} could not be attached: ${await this.detailOf(up)}`);
+        }
+      }
+      this.docNotes.set(notes);
+      this.result.set(created);
     } catch {
       this.error.set('Could not reach the registration service. Is the API running on :3300?');
     } finally {
@@ -118,6 +288,10 @@ export class RegistrationComponent {
   /// Start over after a hold so a mistyped email can be corrected in place.
   reset(): void {
     this.result.set(null);
+    this.cvFile.set(null);
+    this.photoFile.set(null);
+    this.docNotes.set([]);
+    this.setCollege('');
     this.error.set(null);
   }
 }

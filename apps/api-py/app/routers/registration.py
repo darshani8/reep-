@@ -17,8 +17,9 @@ import re
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
+from typing import Sequence
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -30,10 +31,30 @@ from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.job import DegreeLevel
-from ..models.registration import Registration, RegistrationRule, RegistrationStatus
+from ..models.cohort import Cohort
+from ..models.institution import (
+    HIERARCHY_LEVELS,
+    STATUS_ACTIVE,
+    AcademicCourse,
+    AcademicSpecialization,
+    College,
+    Department,
+)
+from ..models.registration import (
+    DOCUMENT_KIND_CV,
+    DOCUMENT_KIND_PHOTO,
+    Registration,
+    RegistrationDocument,
+    RegistrationRule,
+    RegistrationStatus,
+)
 from ..models.student_profile import StudentProfile
 from ..models.user import Role, Student, User
 from .mentor import require_director
+from ..architecture_events import record_change
+from ..document_store import MAX_BYTES, QuotaRejected, VolumeQuota, save_bytes
+from ..document_store import delete as delete_stored
+from ..models.upload import Upload, UploadKind
 
 router = APIRouter(prefix="/register", tags=["registration"])
 
@@ -242,6 +263,15 @@ class RegisterIn(BaseModel):
     usn: str | None = Field(default=None, max_length=32)
     phone: str | None = Field(default=None, max_length=32)
     degree_level: DegreeLevel = DegreeLevel.PG
+    # WHERE THE APPLICANT SAYS THEY BELONG, from the hierarchy the admin built.
+    # Send the DEEPEST level known; the API derives the ancestors and refuses a
+    # contradiction. All optional at the API - the form requires College and
+    # Department, but an older client, a rule or a reviewer may still fill them.
+    college_id: str | None = None
+    department_id: str | None = None
+    course_id: str | None = None
+    specialization_id: str | None = None
+    requested_cohort_id: str | None = None
 
 
 class RegistrationOut(BaseModel):
@@ -259,10 +289,136 @@ class RegistrationOut(BaseModel):
     review_note: str | None
     approved_student_id: str | None
     created_at: datetime
+    # The applicant's claim, ids and resolved names (names for the queue and the
+    # result card; ids so a client can re-select). requested_cohort_id is the
+    # batch THEY picked; cohort_id above is the rule's, and wins.
+    college_id: str | None = None
+    department_id: str | None = None
+    course_id: str | None = None
+    specialization_id: str | None = None
+    requested_cohort_id: str | None = None
+    college_name: str | None = None
+    department_name: str | None = None
+    course_name: str | None = None
+    specialization_name: str | None = None
+    requested_batch: str | None = None
+    #: Kinds attached with the application - "CV", "PHOTO" - so the queue can
+    #: show a reviewer what is there before they open anything.
+    documents: list[str] = []
 
 
-def _out(r: Registration) -> RegistrationOut:
+def _doc_kinds(db: Session, registration_ids: Sequence[str]) -> dict[str, list[str]]:
+    """Which document kinds each application holds - one query for a whole list,
+    so the queue does not fire a SELECT per row."""
+    if not registration_ids:
+        return {}
+    out: dict[str, list[str]] = {}
+    for reg_id, kind in db.execute(
+        select(RegistrationDocument.registration_id, RegistrationDocument.kind).where(
+            RegistrationDocument.registration_id.in_(list(registration_ids))
+        )
+    ).all():
+        out.setdefault(reg_id, []).append(kind)
+    return out
+
+
+#: URL segment -> stored kind -> the mime types that kind may be. The store
+#: sniffs magic bytes and hands back the real mime; this table is what turns a
+#: PNG posted as a "cv" into a 415 instead of a CV nobody can open.
+_DOCUMENT_ROUTES: dict[str, tuple[str, frozenset[str], str]] = {
+    "cv": (DOCUMENT_KIND_CV, frozenset({"application/pdf"}), "a PDF"),
+    "photo": (DOCUMENT_KIND_PHOTO, frozenset({"image/png", "image/jpeg"}), "a PNG or JPG"),
+}
+
+#: Where a moved document lands in the student's own uploads on approval.
+_DOCUMENT_TO_UPLOAD_KIND: dict[str, tuple[UploadKind, str]] = {
+    DOCUMENT_KIND_CV: (UploadKind.RESUME, "CV from application"),
+    DOCUMENT_KIND_PHOTO: (UploadKind.PROFILE_PHOTO, "Photo from application"),
+}
+
+
+def _move_documents_to_uploads(db: Session, reg: Registration, student: Student) -> int:
+    """On APPROVE: the application's files become the student's first uploads.
+
+    A MOVE, not a copy - the Upload row takes the same stored_name, so the bytes
+    are never duplicated and the RegistrationDocument row is simply deleted
+    (rows only: the file now belongs to the Upload). `uploads.stored_name` is
+    unique, and so is ours, so a name can never end up owned twice.
+    """
+    docs = db.scalars(
+        select(RegistrationDocument).where(RegistrationDocument.registration_id == reg.id)
+    ).all()
+    for d in docs:
+        kind, title = _DOCUMENT_TO_UPLOAD_KIND.get(d.kind, (UploadKind.DOCUMENT, "From application"))
+        db.add(
+            Upload(
+                student_id=student.id,
+                kind=kind,
+                cert_code=None,
+                title=title,
+                original_name=d.original_name,
+                stored_name=d.stored_name,
+                mime_type=d.mime_type,
+                size_bytes=d.size_bytes,
+            )
+        )
+        db.delete(d)
+    db.flush()
+    return len(docs)
+
+
+_CLAIM_KEYS = ("college_id", "department_id", "course_id", "specialization_id", "requested_cohort_id")
+_CLAIM_NOUN = {
+    "college_id": "college",
+    "department_id": "department",
+    "course_id": "course",
+    "specialization_id": "specialization",
+    "requested_cohort_id": "batch",
+}
+
+
+def _claim_names(db: Session, rows: Sequence[Registration]) -> dict[str, dict[str, str | None]]:
+    """Resolved names for every application's claim - five IN queries for a
+    whole page, never one per row."""
+    def ids(attr: str) -> list[str]:
+        return list({getattr(r, attr) for r in rows if getattr(r, attr)})
+
+    colleges = {c.id: c.name for c in db.scalars(select(College).where(College.id.in_(ids("college_id")))).all()} if ids("college_id") else {}
+    departments = {d.id: d.name for d in db.scalars(select(Department).where(Department.id.in_(ids("department_id")))).all()} if ids("department_id") else {}
+    courses = {c.id: c.name for c in db.scalars(select(AcademicCourse).where(AcademicCourse.id.in_(ids("course_id")))).all()} if ids("course_id") else {}
+    specs = {x.id: x.name for x in db.scalars(select(AcademicSpecialization).where(AcademicSpecialization.id.in_(ids("specialization_id")))).all()} if ids("specialization_id") else {}
+    batches = {b.id: f"{b.name} \u00b7 {b.batch_label}" for b in db.scalars(select(Cohort).where(Cohort.id.in_(ids("requested_cohort_id")))).all()} if ids("requested_cohort_id") else {}
+    return {
+        r.id: {
+            "college_name": colleges.get(r.college_id) if r.college_id else None,
+            "department_name": departments.get(r.department_id) if r.department_id else None,
+            "course_name": courses.get(r.course_id) if r.course_id else None,
+            "specialization_name": specs.get(r.specialization_id) if r.specialization_id else None,
+            "requested_batch": batches.get(r.requested_cohort_id) if r.requested_cohort_id else None,
+        }
+        for r in rows
+    }
+
+
+def _out_one(db: Session, r: Registration) -> RegistrationOut:
+    """One row with everything the client needs: documents and claim names."""
+    return _out(r, _doc_kinds(db, [r.id]).get(r.id, ()), _claim_names(db, [r]).get(r.id))
+
+
+def _out(r: Registration, docs: Sequence[str] = (), names: dict[str, str | None] | None = None) -> RegistrationOut:
+    names = names or {}
     return RegistrationOut(
+        documents=sorted(docs),
+        college_id=r.college_id,
+        department_id=r.department_id,
+        course_id=r.course_id,
+        specialization_id=r.specialization_id,
+        requested_cohort_id=r.requested_cohort_id,
+        college_name=names.get("college_name"),
+        department_name=names.get("department_name"),
+        course_name=names.get("course_name"),
+        specialization_name=names.get("specialization_name"),
+        requested_batch=names.get("requested_batch"),
         id=r.id,
         name=r.name,
         email=r.email,
@@ -278,6 +434,202 @@ def _out(r: Registration) -> RegistrationOut:
         approved_student_id=r.approved_student_id,
         created_at=r.created_at,
     )
+
+
+class PublicSpecializationOut(BaseModel):
+    id: str
+    code: str
+    name: str
+
+
+class PublicCourseOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    specializations: list[PublicSpecializationOut]
+
+
+class PublicBatchOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    batch_label: str
+    department_id: str | None
+    course_id: str | None
+    specialization_id: str | None
+    degree_level: str
+    #: Still running (end date ahead). The form lists current batches first and
+    #: greys the rest; it does not hide them - a late applicant to a batch that
+    #: ended last month is a director's call, not the form's.
+    current: bool
+
+
+class PublicDepartmentOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    courses: list[PublicCourseOut]
+    batches: list[PublicBatchOut]
+
+
+class PublicCollegeOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    departments: list[PublicDepartmentOut]
+
+
+class PublicLevelOut(BaseModel):
+    key: str
+    label: str
+    required: bool
+
+
+class PublicHierarchyOut(BaseModel):
+    levels: list[PublicLevelOut]
+    colleges: list[PublicCollegeOut]
+
+
+@router.get("/hierarchy", response_model=PublicHierarchyOut)
+def hierarchy(db: Session = Depends(get_db)) -> PublicHierarchyOut:
+    """What the register form's pickers offer - the hierarchy the admin built.
+
+    PUBLIC, like the form. It carries institutional STRUCTURE only: ids, codes
+    and names of ACTIVE colleges, departments, courses and specializations, and
+    every batch's label - never a student, a count of students, a head of
+    department or a contact. Rule 1 is about student data; a college's own
+    prospectus is not that. `levels` says which pickers the form must require:
+    College and Department always (every batch sits under a department), then
+    Course and Specialization per HIERARCHY_LEVELS - the same one-line switch
+    the admin console reads - and Batch never, because an applicant may not
+    know theirs and a director can seat them.
+    """
+    now = datetime.now(timezone.utc)
+    colleges = db.scalars(
+        select(College).where(College.status == STATUS_ACTIVE).order_by(College.name)
+    ).all()
+    departments = db.scalars(
+        select(Department).where(Department.status == STATUS_ACTIVE).order_by(Department.name)
+    ).all()
+    courses = db.scalars(
+        select(AcademicCourse).where(AcademicCourse.status == STATUS_ACTIVE).order_by(AcademicCourse.name)
+    ).all()
+    specs = db.scalars(
+        select(AcademicSpecialization)
+        .where(AcademicSpecialization.status == STATUS_ACTIVE)
+        .order_by(AcademicSpecialization.name)
+    ).all()
+    batches = db.scalars(select(Cohort).order_by(Cohort.start_date.desc(), Cohort.name)).all()
+
+    specs_by_course: dict[str, list[PublicSpecializationOut]] = {}
+    for sp in specs:
+        specs_by_course.setdefault(sp.course_id, []).append(
+            PublicSpecializationOut(id=sp.id, code=sp.code, name=sp.name)
+        )
+    courses_by_dept: dict[str, list[PublicCourseOut]] = {}
+    for co in courses:
+        courses_by_dept.setdefault(co.department_id, []).append(
+            PublicCourseOut(id=co.id, code=co.code, name=co.name, specializations=specs_by_course.get(co.id, []))
+        )
+    batches_by_dept: dict[str, list[PublicBatchOut]] = {}
+    for b in batches:
+        if b.department_id is None:
+            continue  # unseated in the hierarchy; the admin console lists these to fix
+        batches_by_dept.setdefault(b.department_id, []).append(
+            PublicBatchOut(
+                id=b.id, code=b.code, name=b.name, batch_label=b.batch_label,
+                department_id=b.department_id, course_id=b.course_id,
+                specialization_id=b.specialization_id,
+                degree_level=b.degree_level.value, current=b.end_date >= now,
+            )
+        )
+    depts_by_college: dict[str, list[PublicDepartmentOut]] = {}
+    for d in departments:
+        depts_by_college.setdefault(d.college_id, []).append(
+            PublicDepartmentOut(
+                id=d.id, code=d.code, name=d.name,
+                courses=courses_by_dept.get(d.id, []), batches=batches_by_dept.get(d.id, []),
+            )
+        )
+    levels = [
+        PublicLevelOut(key="college", label="College", required=True),
+        PublicLevelOut(key="department", label="Department", required=True),
+        *[PublicLevelOut(key=lvl.key, label=lvl.label, required=lvl.required) for lvl in HIERARCHY_LEVELS],
+        PublicLevelOut(key="batch", label="Batch", required=False),
+    ]
+    return PublicHierarchyOut(
+        levels=levels,
+        colleges=[
+            PublicCollegeOut(id=c.id, code=c.code, name=c.name, departments=depts_by_college.get(c.id, []))
+            for c in colleges
+        ],
+    )
+
+
+def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
+    """The applicant's claim, walked UP from the deepest level they named.
+
+    The same discipline as routers/admin.py::_resolve_ancestry, for the same
+    reason: five columns that can be set independently are five chances to
+    disagree, and the disagreement surfaces as a director seating a student in
+    a department their batch is not in. So the batch pins its specialization,
+    course and department; a specialization pins its course; a course its
+    department; a department its college - and any level the applicant ALSO
+    named that differs from what was derived is a 422 naming the deeper choice,
+    never a silent pick. An id that does not exist is a 422 too: this is a
+    public form, and "unknown college" is input validation, not a missing page.
+    """
+    chain: dict[str, str | None] = {k: None for k in _CLAIM_KEYS}
+
+    def settle(key: str, value: str | None, because: str) -> None:
+        if value is None:
+            return
+        if chain[key] is not None and chain[key] != value:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"The {_CLAIM_NOUN[key]} you chose contradicts the {because} you chose. "
+                    f"Pick a {_CLAIM_NOUN[key]} under it, or clear the {because}."
+                ),
+            )
+        chain[key] = value
+
+    def load(model, ident: str | None, noun: str):
+        if ident is None:
+            return None
+        row = db.get(model, ident)
+        if row is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"That {noun} does not exist. Reload the form and choose again.",
+            )
+        return row
+
+    batch = load(Cohort, body.requested_cohort_id, "batch")
+    if batch is not None:
+        chain["requested_cohort_id"] = batch.id
+        settle("specialization_id", batch.specialization_id, "batch")
+        settle("course_id", batch.course_id, "batch")
+        settle("department_id", batch.department_id, "batch")
+
+    settle("specialization_id", body.specialization_id, "batch")
+    spec = load(AcademicSpecialization, chain["specialization_id"], "specialization")
+    if spec is not None:
+        settle("course_id", spec.course_id, "specialization")
+
+    settle("course_id", body.course_id, "specialization or batch")
+    course = load(AcademicCourse, chain["course_id"], "course")
+    if course is not None:
+        settle("department_id", course.department_id, "course")
+
+    settle("department_id", body.department_id, "course or batch")
+    department = load(Department, chain["department_id"], "department")
+    if department is not None:
+        settle("college_id", department.college_id, "department")
+
+    settle("college_id", body.college_id, "department")
+    load(College, chain["college_id"], "college")
+    return chain
 
 
 @router.post("", response_model=RegistrationOut, status_code=status.HTTP_201_CREATED)
@@ -349,6 +701,7 @@ def submit(
         degree_level=body.degree_level,
         status=RegistrationStatus.PENDING_VERIFICATION,
         cohort_id=None,
+        **_resolve_claim(db, body),
         matched_rule_id=None,
         decision_reason="Awaiting email confirmation.",
     )
@@ -359,7 +712,7 @@ def submit(
     db.commit()
     account_links.send_email_verification(db, reg, raw)
     log.info("application %s from %s awaiting email confirmation", reg.id, email)
-    return _out(reg)
+    return _out_one(db, reg)
 
 
 @router.get("/pending", response_model=list[RegistrationOut])
@@ -373,7 +726,9 @@ def pending(
         .where(Registration.status == RegistrationStatus.PENDING_REVIEW)
         .order_by(Registration.created_at)
     ).all()
-    return [_out(r) for r in rows]
+    kinds = _doc_kinds(db, [r.id for r in rows])
+    names = _claim_names(db, rows)
+    return [_out(r, kinds.get(r.id, ()), names.get(r.id)) for r in rows]
 
 
 class DecisionIn(BaseModel):
@@ -502,7 +857,9 @@ def _provision_student(db: Session, reg: Registration) -> Student:
         student = Student(
             user_id=user.id,
             usn=(reg.usn or "").strip() or None,
-            cohort_id=reg.cohort_id,
+            # The rule's cohort wins - it is policy. When no rule seated them, the
+            # batch the applicant picked on the form is what the director approved.
+            cohort_id=reg.cohort_id or reg.requested_cohort_id,
         )
         db.add(student)
         db.flush()
@@ -618,6 +975,10 @@ def decide(
         # account behind it.
         student = _provision_student(db, reg)
         db.flush()
+        # The CV and photo the applicant attached become the student's first
+        # uploads - moved, not copied, so nothing is left behind on the
+        # application and the bytes exist once.
+        _move_documents_to_uploads(db, reg, student)
         user = db.get(User, student.user_id)
         if user is not None:
             # Option B: a student gets an enrolment notice (sign in with
@@ -635,7 +996,172 @@ def decide(
     reg.review_note = body.note
     db.commit()
     db.refresh(reg)
-    return _out(reg)
+    return _out_one(db, reg)
+
+
+@router.post(
+    "/{registration_id}/documents/{kind}",
+    response_model=RegistrationOut,
+    status_code=status.HTTP_200_OK,
+)
+async def attach_document(
+    registration_id: str,
+    kind: str,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> RegistrationOut:
+    """Attach the CV or the photo to an application that nobody has decided yet.
+
+    PUBLIC, like the form that created the application - there is no account to
+    sign in with yet. The application id is the bearer: a uuid4 the client was
+    handed on the 201, unguessable, and the same trust the emailed confirmation
+    link carries. It is accepted only while the application is undecided
+    (PENDING_VERIFICATION or PENDING_REVIEW), so a file can never be slipped
+    onto a record a director has already ruled on.
+
+    The bytes go through app/document_store exactly as a student's own uploads
+    do - magic-sniffed, size-capped, no client path near the disk - and THEN
+    the sniffed mime is checked against what this kind may be, so a PNG posted
+    as a CV is a 415 and its bytes are removed, not a CV nobody can open. One
+    of each kind: a second CV replaces the first, old bytes deleted first.
+
+    Rate-limited per source address like POST /register: with no account on
+    the request there is nothing else to key on, and the limiter's own note
+    says why that is acceptable for this form and not for sign-in.
+    """
+    route = _DOCUMENT_ROUTES.get(kind)
+    if route is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown document kind.")
+    doc_kind, allowed_mimes, wanted = route
+
+    client_ip = request.client.host if request.client else "unknown"
+    retry_after = _rate_limit_retry_after(client_ip)
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many uploads from this connection. Wait a few minutes and try again.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    reg = db.scalar(
+        select(Registration).where(Registration.id == registration_id).with_for_update()
+    )
+    if reg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+    if reg.status not in (RegistrationStatus.PENDING_VERIFICATION, RegistrationStatus.PENDING_REVIEW):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This application has already been decided; documents can no longer be added.",
+        )
+
+    content = await file.read()
+    if len(content) > MAX_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="That file is larger than " + str(MAX_BYTES // (1024 * 1024)) + " MB.",
+        )
+    quota = VolumeQuota.single_slot(noun=kind)
+    try:
+        stored_name, mime, size = save_bytes(content, quota=quota)
+    except QuotaRejected as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+    except ValueError as exc:
+        # The store could not recognise the bytes at all (not PDF/PNG/JPEG).
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(exc))
+    if mime not in allowed_mimes:
+        delete_stored(stored_name)
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="The " + kind + " must be " + wanted + ".",
+        )
+
+    existing = db.scalar(
+        select(RegistrationDocument).where(
+            RegistrationDocument.registration_id == reg.id,
+            RegistrationDocument.kind == doc_kind,
+        )
+    )
+    if existing is not None:
+        # Replace in place: old bytes go first, so a failure between the two
+        # writes leaves the row pointing at the NEW file, never at nothing.
+        try:
+            delete_stored(existing.stored_name)
+        except FileNotFoundError:
+            pass
+        existing.original_name = file.filename or stored_name
+        existing.stored_name = stored_name
+        existing.mime_type = mime
+        existing.size_bytes = size
+    else:
+        db.add(
+            RegistrationDocument(
+                registration_id=reg.id,
+                kind=doc_kind,
+                original_name=file.filename or stored_name,
+                stored_name=stored_name,
+                mime_type=mime,
+                size_bytes=size,
+            )
+        )
+    db.commit()
+    db.refresh(reg)
+    return _out_one(db, reg)
+
+
+@router.post("/{registration_id}/reopen", response_model=RegistrationOut)
+def reopen(
+    registration_id: str,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> RegistrationOut:
+    """Put a REJECTED application back in the queue - the design's Undo.
+
+    Rejection only stamped the row, so reopening is exact: status back to
+    PENDING_REVIEW, the reviewer stamp and remarks cleared, the attached
+    documents untouched (they were never deleted on rejection, precisely so
+    this is lossless). An APPROVED application is refused with 409: approval
+    PROVISIONED a User and a Student and sent them an enrolment notice, and
+    quietly deleting an account someone was just told to sign in to is not an
+    undo - it is a second, destructive decision that deserves its own tooling.
+
+    Audited through record_change with the stamp it clears, so "who reopened
+    this and what did the rejection say" stays answerable.
+    """
+    require_director(session)
+    reg = db.scalar(
+        select(Registration).where(Registration.id == registration_id).with_for_update()
+    )
+    if reg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+    if reg.status is not RegistrationStatus.REJECTED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Only a rejected application can be reopened. An approved one already has "
+                "an account behind it."
+            ),
+        )
+    before = {
+        "status": reg.status.value,
+        "reviewed_by_id": reg.reviewed_by_id,
+        "reviewed_at": reg.reviewed_at.isoformat() if reg.reviewed_at else None,
+        "review_note": reg.review_note,
+    }
+    reg.status = RegistrationStatus.PENDING_REVIEW
+    reg.reviewed_by_id = None
+    reg.reviewed_at = None
+    reg.review_note = None
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="registration", entity_id=reg.id, action="REOPENED",
+        before=before, after={"status": reg.status.value},
+        event_type="registration.reopened", payload={"email": reg.email},
+    )
+    db.commit()
+    db.refresh(reg)
+    return _out_one(db, reg)
 
 
 class RuleOut(BaseModel):

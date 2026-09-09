@@ -162,7 +162,41 @@ interface Overview {
   skills: StudentSkill[] | null;
   placement_readiness: PlacementReadiness | null;
   recommendations: { items: Recommendation[] } | null;
+  swoc: SwocBoard | null;
   academics: Academics | null;
+}
+
+// ---- overview.swoc -----------------------------------------------------------
+
+/** One SWOC line as /student/overview returns it: text, the viewpoint that
+ *  wrote it (PLACEMENT / MENTOR / PM) and a 1-5 weight the API sorts by. */
+interface SwocItem {
+  source: string;
+  text: string;
+  weight: number;
+}
+
+/** The board: four lists, heaviest first. Written by the placement cell and
+ *  mentors in the admin's SWOC Notes; the student only reads. */
+interface SwocBoard {
+  strengths: SwocItem[];
+  weaknesses: SwocItem[];
+  opportunities: SwocItem[];
+  challenges: SwocItem[];
+}
+
+/** The card's four tiles in the design's order, each with its tint. */
+const SWOC_TILES: { key: keyof SwocBoard; label: string; tone: 'good' | 'risk' | 'warn' | 'neutral' }[] = [
+  { key: 'strengths', label: 'Strength', tone: 'good' },
+  { key: 'weaknesses', label: 'Weakness', tone: 'risk' },
+  { key: 'opportunities', label: 'Opportunity', tone: 'warn' },
+  { key: 'challenges', label: 'Challenge', tone: 'neutral' },
+];
+
+/** Several lines arrive per quadrant; the tile shows them as one sentence,
+ *  the same join the Mentor / TPO Log uses, so the two never disagree. */
+function joinSwoc(items: SwocItem[]): string | null {
+  return items.length ? items.map((i) => i.text).join(' · ') : null;
 }
 
 // ---- view models -------------------------------------------------------------
@@ -296,6 +330,14 @@ export class StudentHomeComponent {
   });
 
   readonly streak = computed(() => this.overview()?.streak ?? null);
+
+  // ---- SWOC ------------------------------------------------------------------
+
+  readonly swocTiles = computed(() => {
+    const board = this.overview()?.swoc ?? null;
+    return SWOC_TILES.map((t) => ({ ...t, text: board ? joinSwoc(board[t.key]) : null }));
+  });
+  readonly swocWritten = computed(() => this.swocTiles().some((t) => !!t.text));
 
   // ---- attendance --------------------------------------------------------------
 

@@ -1,0 +1,361 @@
+/* Interview Questions. Colours from the reep-v2 tokens; `.tabs-row`, `.card`,
+ * `.dt-table`, `.btn`, `.ctrl`, `.icon` are global. Everything scoped is
+ * prefixed `iq-`; `.fld`, `.scroll` and `.empty-cell` are the same
+ * component-local helpers the catalogue screen defines for itself. */
+
+.iq {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.iq-head {
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin: 0 0 6px;
+  }
+  p {
+    margin: 0;
+    max-width: 78ch;
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+}
+
+.iq-error {
+  color: var(--risk);
+  background: var(--risk-bg);
+  border-radius: 10px;
+  padding: 10px 13px;
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.iq-flash {
+  color: var(--good);
+  background: var(--good-bg);
+  border-radius: 10px;
+  padding: 10px 13px;
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.iq-count {
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  opacity: 0.85;
+}
+
+.iq-count__of {
+  opacity: 0.6;
+}
+
+.iq-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- the add form ------------------------------------------------------ */
+
+.iq-form {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.iq-form__title,
+.iq-list__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.fld {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+
+  .ctrl {
+    font-weight: 400;
+    color: var(--ink);
+  }
+
+  textarea.ctrl {
+    resize: vertical;
+    line-height: 1.45;
+  }
+}
+
+.iq-form__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.iq-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+
+  code {
+    font-size: 11.5px;
+    background: var(--tint-3);
+    padding: 1px 5px;
+    border-radius: 5px;
+  }
+}
+
+.iq-bulk-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--brand-purple);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.iq-bulk {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.iq-bulk__text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.iq-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.iq-skipped {
+  background: var(--warn-bg, rgba(217, 154, 0, 0.12));
+  color: var(--warn, #8f6100);
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 12.5px;
+
+  ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+  }
+}
+
+/* --- the list ---------------------------------------------------------- */
+
+.iq-list {
+  padding: 0;
+}
+
+.iq-list__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px 10px;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.iq-table {
+  width: 100%;
+  min-width: 640px;
+
+  th,
+  td {
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--hairline);
+    white-space: nowrap;
+  }
+
+  td {
+    border-bottom: 1px solid var(--hairline);
+    font-size: 13.5px;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  tr.iq-off td {
+    opacity: 0.6;
+  }
+}
+
+.iq-ord {
+  width: 64px;
+  white-space: nowrap;
+}
+
+.iq-num {
+  display: inline-block;
+  min-width: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.iq-move {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.iq-phase {
+  width: 132px;
+}
+
+.iq-on {
+  width: 96px;
+  white-space: nowrap;
+}
+
+.iq-act {
+  width: 44px;
+}
+
+.ctrl--sm {
+  padding: 5px 8px;
+  font-size: 12.5px;
+}
+
+.iq-text {
+  width: 100%;
+  min-height: 44px;
+  resize: vertical;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.45;
+  background: transparent;
+  color: var(--ink);
+
+  &:hover {
+    border-color: var(--hairline);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--brand-purple);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(122, 47, 158, 0.12);
+  }
+}
+
+.iq-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+
+  input {
+    accent-color: var(--brand-purple);
+  }
+}
+
+.iq-mini {
+  width: 26px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  .icon {
+    font-size: 18px;
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(122, 47, 158, 0.08);
+    color: var(--brand-purple);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  &--danger:hover:not(:disabled) {
+    background: var(--risk-bg);
+    color: var(--risk);
+  }
+}
+
+.empty-cell {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 18px 12px;
+}
+
+.iq-foot {
+  margin: 0;
+  padding: 10px 16px 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* The icon subset carries no vertical chevrons; a quarter turn makes "<" point
+ * up and ">" point down without rebuilding the font. */
+.iq-rot {
+  display: inline-block;
+  transform: rotate(90deg);
+}
+
+.iq-disclose {
+  display: inline-block;
+  transition: transform 120ms ease;
+
+  &--open {
+    transform: rotate(90deg);
+  }
+}

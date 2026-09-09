@@ -31,6 +31,15 @@ from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.job import DegreeLevel
+from ..models.cohort import Cohort
+from ..models.institution import (
+    HIERARCHY_LEVELS,
+    STATUS_ACTIVE,
+    AcademicCourse,
+    AcademicSpecialization,
+    College,
+    Department,
+)
 from ..models.registration import (
     DOCUMENT_KIND_CV,
     DOCUMENT_KIND_PHOTO,
@@ -254,6 +263,15 @@ class RegisterIn(BaseModel):
     usn: str | None = Field(default=None, max_length=32)
     phone: str | None = Field(default=None, max_length=32)
     degree_level: DegreeLevel = DegreeLevel.PG
+    # WHERE THE APPLICANT SAYS THEY BELONG, from the hierarchy the admin built.
+    # Send the DEEPEST level known; the API derives the ancestors and refuses a
+    # contradiction. All optional at the API - the form requires College and
+    # Department, but an older client, a rule or a reviewer may still fill them.
+    college_id: str | None = None
+    department_id: str | None = None
+    course_id: str | None = None
+    specialization_id: str | None = None
+    requested_cohort_id: str | None = None
 
 
 class RegistrationOut(BaseModel):
@@ -271,6 +289,19 @@ class RegistrationOut(BaseModel):
     review_note: str | None
     approved_student_id: str | None
     created_at: datetime
+    # The applicant's claim, ids and resolved names (names for the queue and the
+    # result card; ids so a client can re-select). requested_cohort_id is the
+    # batch THEY picked; cohort_id above is the rule's, and wins.
+    college_id: str | None = None
+    department_id: str | None = None
+    course_id: str | None = None
+    specialization_id: str | None = None
+    requested_cohort_id: str | None = None
+    college_name: str | None = None
+    department_name: str | None = None
+    course_name: str | None = None
+    specialization_name: str | None = None
+    requested_batch: str | None = None
     #: Kinds attached with the application - "CV", "PHOTO" - so the queue can
     #: show a reviewer what is there before they open anything.
     documents: list[str] = []
@@ -336,9 +367,58 @@ def _move_documents_to_uploads(db: Session, reg: Registration, student: Student)
     return len(docs)
 
 
-def _out(r: Registration, docs: Sequence[str] = ()) -> RegistrationOut:
+_CLAIM_KEYS = ("college_id", "department_id", "course_id", "specialization_id", "requested_cohort_id")
+_CLAIM_NOUN = {
+    "college_id": "college",
+    "department_id": "department",
+    "course_id": "course",
+    "specialization_id": "specialization",
+    "requested_cohort_id": "batch",
+}
+
+
+def _claim_names(db: Session, rows: Sequence[Registration]) -> dict[str, dict[str, str | None]]:
+    """Resolved names for every application's claim - five IN queries for a
+    whole page, never one per row."""
+    def ids(attr: str) -> list[str]:
+        return list({getattr(r, attr) for r in rows if getattr(r, attr)})
+
+    colleges = {c.id: c.name for c in db.scalars(select(College).where(College.id.in_(ids("college_id")))).all()} if ids("college_id") else {}
+    departments = {d.id: d.name for d in db.scalars(select(Department).where(Department.id.in_(ids("department_id")))).all()} if ids("department_id") else {}
+    courses = {c.id: c.name for c in db.scalars(select(AcademicCourse).where(AcademicCourse.id.in_(ids("course_id")))).all()} if ids("course_id") else {}
+    specs = {x.id: x.name for x in db.scalars(select(AcademicSpecialization).where(AcademicSpecialization.id.in_(ids("specialization_id")))).all()} if ids("specialization_id") else {}
+    batches = {b.id: f"{b.name} \u00b7 {b.batch_label}" for b in db.scalars(select(Cohort).where(Cohort.id.in_(ids("requested_cohort_id")))).all()} if ids("requested_cohort_id") else {}
+    return {
+        r.id: {
+            "college_name": colleges.get(r.college_id) if r.college_id else None,
+            "department_name": departments.get(r.department_id) if r.department_id else None,
+            "course_name": courses.get(r.course_id) if r.course_id else None,
+            "specialization_name": specs.get(r.specialization_id) if r.specialization_id else None,
+            "requested_batch": batches.get(r.requested_cohort_id) if r.requested_cohort_id else None,
+        }
+        for r in rows
+    }
+
+
+def _out_one(db: Session, r: Registration) -> RegistrationOut:
+    """One row with everything the client needs: documents and claim names."""
+    return _out(r, _doc_kinds(db, [r.id]).get(r.id, ()), _claim_names(db, [r]).get(r.id))
+
+
+def _out(r: Registration, docs: Sequence[str] = (), names: dict[str, str | None] | None = None) -> RegistrationOut:
+    names = names or {}
     return RegistrationOut(
         documents=sorted(docs),
+        college_id=r.college_id,
+        department_id=r.department_id,
+        course_id=r.course_id,
+        specialization_id=r.specialization_id,
+        requested_cohort_id=r.requested_cohort_id,
+        college_name=names.get("college_name"),
+        department_name=names.get("department_name"),
+        course_name=names.get("course_name"),
+        specialization_name=names.get("specialization_name"),
+        requested_batch=names.get("requested_batch"),
         id=r.id,
         name=r.name,
         email=r.email,
@@ -354,6 +434,202 @@ def _out(r: Registration, docs: Sequence[str] = ()) -> RegistrationOut:
         approved_student_id=r.approved_student_id,
         created_at=r.created_at,
     )
+
+
+class PublicSpecializationOut(BaseModel):
+    id: str
+    code: str
+    name: str
+
+
+class PublicCourseOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    specializations: list[PublicSpecializationOut]
+
+
+class PublicBatchOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    batch_label: str
+    department_id: str | None
+    course_id: str | None
+    specialization_id: str | None
+    degree_level: str
+    #: Still running (end date ahead). The form lists current batches first and
+    #: greys the rest; it does not hide them - a late applicant to a batch that
+    #: ended last month is a director's call, not the form's.
+    current: bool
+
+
+class PublicDepartmentOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    courses: list[PublicCourseOut]
+    batches: list[PublicBatchOut]
+
+
+class PublicCollegeOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    departments: list[PublicDepartmentOut]
+
+
+class PublicLevelOut(BaseModel):
+    key: str
+    label: str
+    required: bool
+
+
+class PublicHierarchyOut(BaseModel):
+    levels: list[PublicLevelOut]
+    colleges: list[PublicCollegeOut]
+
+
+@router.get("/hierarchy", response_model=PublicHierarchyOut)
+def hierarchy(db: Session = Depends(get_db)) -> PublicHierarchyOut:
+    """What the register form's pickers offer - the hierarchy the admin built.
+
+    PUBLIC, like the form. It carries institutional STRUCTURE only: ids, codes
+    and names of ACTIVE colleges, departments, courses and specializations, and
+    every batch's label - never a student, a count of students, a head of
+    department or a contact. Rule 1 is about student data; a college's own
+    prospectus is not that. `levels` says which pickers the form must require:
+    College and Department always (every batch sits under a department), then
+    Course and Specialization per HIERARCHY_LEVELS - the same one-line switch
+    the admin console reads - and Batch never, because an applicant may not
+    know theirs and a director can seat them.
+    """
+    now = datetime.now(timezone.utc)
+    colleges = db.scalars(
+        select(College).where(College.status == STATUS_ACTIVE).order_by(College.name)
+    ).all()
+    departments = db.scalars(
+        select(Department).where(Department.status == STATUS_ACTIVE).order_by(Department.name)
+    ).all()
+    courses = db.scalars(
+        select(AcademicCourse).where(AcademicCourse.status == STATUS_ACTIVE).order_by(AcademicCourse.name)
+    ).all()
+    specs = db.scalars(
+        select(AcademicSpecialization)
+        .where(AcademicSpecialization.status == STATUS_ACTIVE)
+        .order_by(AcademicSpecialization.name)
+    ).all()
+    batches = db.scalars(select(Cohort).order_by(Cohort.start_date.desc(), Cohort.name)).all()
+
+    specs_by_course: dict[str, list[PublicSpecializationOut]] = {}
+    for sp in specs:
+        specs_by_course.setdefault(sp.course_id, []).append(
+            PublicSpecializationOut(id=sp.id, code=sp.code, name=sp.name)
+        )
+    courses_by_dept: dict[str, list[PublicCourseOut]] = {}
+    for co in courses:
+        courses_by_dept.setdefault(co.department_id, []).append(
+            PublicCourseOut(id=co.id, code=co.code, name=co.name, specializations=specs_by_course.get(co.id, []))
+        )
+    batches_by_dept: dict[str, list[PublicBatchOut]] = {}
+    for b in batches:
+        if b.department_id is None:
+            continue  # unseated in the hierarchy; the admin console lists these to fix
+        batches_by_dept.setdefault(b.department_id, []).append(
+            PublicBatchOut(
+                id=b.id, code=b.code, name=b.name, batch_label=b.batch_label,
+                department_id=b.department_id, course_id=b.course_id,
+                specialization_id=b.specialization_id,
+                degree_level=b.degree_level.value, current=b.end_date >= now,
+            )
+        )
+    depts_by_college: dict[str, list[PublicDepartmentOut]] = {}
+    for d in departments:
+        depts_by_college.setdefault(d.college_id, []).append(
+            PublicDepartmentOut(
+                id=d.id, code=d.code, name=d.name,
+                courses=courses_by_dept.get(d.id, []), batches=batches_by_dept.get(d.id, []),
+            )
+        )
+    levels = [
+        PublicLevelOut(key="college", label="College", required=True),
+        PublicLevelOut(key="department", label="Department", required=True),
+        *[PublicLevelOut(key=lvl.key, label=lvl.label, required=lvl.required) for lvl in HIERARCHY_LEVELS],
+        PublicLevelOut(key="batch", label="Batch", required=False),
+    ]
+    return PublicHierarchyOut(
+        levels=levels,
+        colleges=[
+            PublicCollegeOut(id=c.id, code=c.code, name=c.name, departments=depts_by_college.get(c.id, []))
+            for c in colleges
+        ],
+    )
+
+
+def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
+    """The applicant's claim, walked UP from the deepest level they named.
+
+    The same discipline as routers/admin.py::_resolve_ancestry, for the same
+    reason: five columns that can be set independently are five chances to
+    disagree, and the disagreement surfaces as a director seating a student in
+    a department their batch is not in. So the batch pins its specialization,
+    course and department; a specialization pins its course; a course its
+    department; a department its college - and any level the applicant ALSO
+    named that differs from what was derived is a 422 naming the deeper choice,
+    never a silent pick. An id that does not exist is a 422 too: this is a
+    public form, and "unknown college" is input validation, not a missing page.
+    """
+    chain: dict[str, str | None] = {k: None for k in _CLAIM_KEYS}
+
+    def settle(key: str, value: str | None, because: str) -> None:
+        if value is None:
+            return
+        if chain[key] is not None and chain[key] != value:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"The {_CLAIM_NOUN[key]} you chose contradicts the {because} you chose. "
+                    f"Pick a {_CLAIM_NOUN[key]} under it, or clear the {because}."
+                ),
+            )
+        chain[key] = value
+
+    def load(model, ident: str | None, noun: str):
+        if ident is None:
+            return None
+        row = db.get(model, ident)
+        if row is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"That {noun} does not exist. Reload the form and choose again.",
+            )
+        return row
+
+    batch = load(Cohort, body.requested_cohort_id, "batch")
+    if batch is not None:
+        chain["requested_cohort_id"] = batch.id
+        settle("specialization_id", batch.specialization_id, "batch")
+        settle("course_id", batch.course_id, "batch")
+        settle("department_id", batch.department_id, "batch")
+
+    settle("specialization_id", body.specialization_id, "batch")
+    spec = load(AcademicSpecialization, chain["specialization_id"], "specialization")
+    if spec is not None:
+        settle("course_id", spec.course_id, "specialization")
+
+    settle("course_id", body.course_id, "specialization or batch")
+    course = load(AcademicCourse, chain["course_id"], "course")
+    if course is not None:
+        settle("department_id", course.department_id, "course")
+
+    settle("department_id", body.department_id, "course or batch")
+    department = load(Department, chain["department_id"], "department")
+    if department is not None:
+        settle("college_id", department.college_id, "department")
+
+    settle("college_id", body.college_id, "department")
+    load(College, chain["college_id"], "college")
+    return chain
 
 
 @router.post("", response_model=RegistrationOut, status_code=status.HTTP_201_CREATED)
@@ -425,6 +701,7 @@ def submit(
         degree_level=body.degree_level,
         status=RegistrationStatus.PENDING_VERIFICATION,
         cohort_id=None,
+        **_resolve_claim(db, body),
         matched_rule_id=None,
         decision_reason="Awaiting email confirmation.",
     )
@@ -435,7 +712,7 @@ def submit(
     db.commit()
     account_links.send_email_verification(db, reg, raw)
     log.info("application %s from %s awaiting email confirmation", reg.id, email)
-    return _out(reg)
+    return _out_one(db, reg)
 
 
 @router.get("/pending", response_model=list[RegistrationOut])
@@ -450,7 +727,8 @@ def pending(
         .order_by(Registration.created_at)
     ).all()
     kinds = _doc_kinds(db, [r.id for r in rows])
-    return [_out(r, kinds.get(r.id, ())) for r in rows]
+    names = _claim_names(db, rows)
+    return [_out(r, kinds.get(r.id, ()), names.get(r.id)) for r in rows]
 
 
 class DecisionIn(BaseModel):
@@ -579,7 +857,9 @@ def _provision_student(db: Session, reg: Registration) -> Student:
         student = Student(
             user_id=user.id,
             usn=(reg.usn or "").strip() or None,
-            cohort_id=reg.cohort_id,
+            # The rule's cohort wins - it is policy. When no rule seated them, the
+            # batch the applicant picked on the form is what the director approved.
+            cohort_id=reg.cohort_id or reg.requested_cohort_id,
         )
         db.add(student)
         db.flush()
@@ -716,7 +996,7 @@ def decide(
     reg.review_note = body.note
     db.commit()
     db.refresh(reg)
-    return _out(reg)
+    return _out_one(db, reg)
 
 
 @router.post(
@@ -826,7 +1106,7 @@ async def attach_document(
         )
     db.commit()
     db.refresh(reg)
-    return _out(reg, _doc_kinds(db, [reg.id]).get(reg.id, ()))
+    return _out_one(db, reg)
 
 
 @router.post("/{registration_id}/reopen", response_model=RegistrationOut)
@@ -881,7 +1161,7 @@ def reopen(
     )
     db.commit()
     db.refresh(reg)
-    return _out(reg, _doc_kinds(db, [reg.id]).get(reg.id, ()))
+    return _out_one(db, reg)
 
 
 class RuleOut(BaseModel):

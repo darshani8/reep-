@@ -168,3 +168,16 @@
   font-size: 11px;
   padding: 2px 7px;
 }
+
+.meta.claim {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+
+  .icon {
+    font-size: 14px;
+    color: var(--brand-purple);
+  }
+}

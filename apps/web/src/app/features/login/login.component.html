@@ -74,7 +74,7 @@
       <!-- The design's Main Admin door. It is a HINT, not a bypass: it selects
            the Admin portal so the ID field reads "admin email", and the role
            still comes from the roster row behind the verified identity. -->
-      <button type="button" class="main-admin" (click)="openMainAdmin()">
+      <button type="button" class="main-admin" [class.main-admin--on]="portal() === 'admin'" [attr.aria-pressed]="portal() === 'admin'" (click)="openMainAdmin()">
         <span class="icon" aria-hidden="true">admin_panel_settings</span>
         Main Admin — open the REEP Admin Console
       </button>

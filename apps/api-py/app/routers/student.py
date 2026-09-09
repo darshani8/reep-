@@ -973,7 +973,7 @@ def create_offer(
         mode = OfferWorkMode(body.work_mode)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Invalid role_type / channel / work_mode.",
         )
     # job_id is an optional FK the client fills in when the offer came from a
@@ -1165,7 +1165,7 @@ def log_timesheet(
         activity = DayActivity(body.activity)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid activity."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid activity."
         )
     entry = db.scalar(
         select(TimeSheetEntry).where(
@@ -1550,7 +1550,7 @@ def check_in(
         mode = LearningMode(body.mode)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid activity or mode."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid activity or mode."
         )
     ls = LabSession(
         student_id=student_id,
@@ -1695,7 +1695,7 @@ def create_upload(
         upload_kind = UploadKind(kind)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown upload kind."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Unknown upload kind."
         )
 
     # Quota before the body is buffered. document_store.MAX_BYTES caps ONE file at
@@ -1736,7 +1736,7 @@ def create_upload(
     except QuotaRejected as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc))
     except UploadRejected as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
 
     upload = Upload(
         student_id=student_id,
@@ -2147,7 +2147,7 @@ def leaderboards(
     student_id = _require_student(session)
     if board not in _BOARDS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Unknown board. One of: {', '.join(_BOARDS)}.",
         )
     me = db.get(Student, student_id)

@@ -182,7 +182,7 @@ def _domain_fence(email: str) -> None:
     allowed = settings.provisionable_email_domains
     if not domain or domain not in allowed:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"{email} is not on a college domain ({', '.join(sorted(allowed))}). "
                 "A student account is a sign-in, and only a college address gets one."
@@ -421,9 +421,9 @@ def batch_action(
 
     if body.action == "move":
         if body.cohort_id is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="move needs cohort_id, the destination batch.")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="move needs cohort_id, the destination batch.")
         if body.cohort_id == cohort.id:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="That is the same batch.")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="That is the same batch.")
         _cohort_or_404(db, body.cohort_id)
         for s in students:
             s.cohort_id = body.cohort_id
@@ -433,12 +433,12 @@ def batch_action(
             s.mentor_id = mentor_id
     elif body.action == "stage":
         if body.current_stage is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="stage needs current_stage.")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="stage needs current_stage.")
         for s in students:
             s.current_stage = Stage(body.current_stage)
     elif body.action == "semester":
         if body.current_semester is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="semester needs current_semester.")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="semester needs current_semester.")
         for s in students:
             s.current_semester = body.current_semester
     elif body.action == "delete":

@@ -116,7 +116,7 @@ def _check_track(track: str) -> str:
     key = (track or "").strip().lower()
     if key not in TRACK_KEYS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"track must be one of {', '.join(TRACK_KEYS)}.",
         )
     return key
@@ -126,7 +126,7 @@ def _check_phase(phase: str) -> str:
     key = (phase or "").strip().lower()
     if key not in BANK_PHASES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"phase must be one of {', '.join(BANK_PHASES)}.",
         )
     return key
@@ -319,7 +319,7 @@ def reorder(
     by_id = {q.id: q for q in rows}
     if set(body.ids) != set(by_id) or len(body.ids) != len(set(body.ids)):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="ids must name every question on the track exactly once.",
         )
     for pos, qid in enumerate(body.ids, start=1):

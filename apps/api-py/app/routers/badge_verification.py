@@ -202,7 +202,7 @@ def review_evidence(
     decision = body.decision.upper()
     if decision not in ("APPROVE", "REJECT", "MORE_INFO"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="decision must be APPROVE, REJECT or MORE_INFO.",
         )
     if ev.status == EvidenceStatus.APPROVED:
@@ -310,23 +310,23 @@ def record_assessments(
         checkpoint = AssessmentCheckpoint(body.checkpoint)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="checkpoint must be T0–T4."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="checkpoint must be T0–T4."
         )
     if not body.scores:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No scores given."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="No scores given."
         )
     for cap_key, score in body.scores.items():
         try:
             cap = CapabilityKind(cap_key)
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Unknown capability {cap_key!r}.",
             )
         if not (1 <= score <= 10):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Scores are on a 1–10 scale.",
             )
         row = db.scalar(
@@ -600,13 +600,13 @@ def _approved_certification_row(
 
 def _validated_certification_fields(body: ApprovedCertificationIn) -> tuple[EvidenceType, Stage]:
     if body.badge_code not in BADGE_BY_CODE:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No such badge.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="No such badge.")
     try:
         ev_type = EvidenceType(body.evidence_type)
         stage = Stage(body.stage)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Bad evidence_type or stage.",
         )
     return ev_type, stage

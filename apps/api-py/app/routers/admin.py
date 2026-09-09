@@ -226,7 +226,7 @@ def update_college(
     fields = body.model_dump(exclude_unset=True)
     if "status" in fields and fields["status"] not in _SETTABLE_STATUSES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"status must be one of {sorted(_SETTABLE_STATUSES)}.",
         )
     if "code" in fields and fields["code"]:
@@ -357,7 +357,7 @@ def update_department(
     fields = body.model_dump(exclude_unset=True)
     if "status" in fields and fields["status"] not in _SETTABLE_STATUSES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"status must be one of {sorted(_SETTABLE_STATUSES)}.",
         )
     if "code" in fields and fields["code"]:
@@ -540,7 +540,7 @@ def update_academic_course(
     fields = body.model_dump(exclude_unset=True)
     if "status" in fields and fields["status"] not in _SETTABLE_STATUSES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"status must be one of {sorted(_SETTABLE_STATUSES)}.",
         )
     if "code" in fields and fields["code"]:
@@ -684,7 +684,7 @@ def update_academic_specialization(
     fields = body.model_dump(exclude_unset=True)
     if "status" in fields and fields["status"] not in _SETTABLE_STATUSES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"status must be one of {sorted(_SETTABLE_STATUSES)}.",
         )
     if "code" in fields and fields["code"]:
@@ -765,7 +765,7 @@ def _resolve_ancestry(db: Session, intended: dict, sent: set[str]) -> _Ancestry:
         if field in sent and intended.get(field) != getattr(derived, field):
             deeper = "specialization" if field == "course_id" else "course"
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     f"{field} contradicts the {deeper} you chose, which sits under "
                     f"{field} {getattr(derived, field)}. Clear the {deeper} first, or pick "
@@ -971,7 +971,7 @@ def create_cohort(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found.")
     if body.expected_completion <= body.entry_date:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Expected completion must be after the entry date.",
         )
     code = body.code.strip().upper()
@@ -1031,7 +1031,7 @@ def update_cohort(
     new_completion = completion or cohort.end_date.date()
     if new_completion <= new_entry:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Expected completion must be after the entry date.",
         )
     sent_ancestry = {f for f in _ANCESTRY_FIELDS if f in fields}
@@ -1059,7 +1059,7 @@ def update_cohort(
                 lv.label for lv in institution_model.HIERARCHY_LEVELS if lv.key in widened
             ]
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     "This edit would remove " + ", ".join(labels)
                     + ", which is required. Choose a value or leave the field unchanged."
@@ -1215,7 +1215,7 @@ def issue_activation_link(
             db, user, created_by_user_id=session["userId"]
         )
     except ValueError as why:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(why))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(why))
     return ActivationLinkOut(
         link=link, emailed=emailed, expires_in_hours=settings.activation_link_hours
     )

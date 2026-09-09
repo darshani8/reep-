@@ -114,18 +114,18 @@ def save_profile(
     company = company.strip()
     if not company:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Company is required."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Company is required."
         )
     if graduation_year is not None and not (1990 <= graduation_year <= datetime.now().year + 1):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Graduation year looks wrong.",
         )
 
     prof = _own_profile(session, db)
     if prof is None and (resume is None or not resume.filename):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Upload your current resume to create your profile.",
         )
 
@@ -151,7 +151,7 @@ def save_profile(
             raise HTTPException(status_code=exc.status_code, detail=str(exc))
         except UploadRejected as exc:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
             )
 
     if prof is None:
@@ -167,7 +167,7 @@ def save_profile(
             prof.joined_on = date.fromisoformat(joined_on.strip())
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Date of joining must be a valid date.",
             )
     else:

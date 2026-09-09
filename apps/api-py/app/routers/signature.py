@@ -87,7 +87,7 @@ def upload_signature(
     content = file.file.read(MAX_SIGNATURE_BYTES + 1)
     if len(content) > MAX_SIGNATURE_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Keep the signature image under 2 MB.",
         )
     try:
@@ -95,11 +95,11 @@ def upload_signature(
     except QuotaRejected as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc))
     except UploadRejected as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
     if mime not in IMAGE_TYPES:
         delete_stored(stored_name)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="A signature is an image: upload a PNG or a JPEG.",
         )
 

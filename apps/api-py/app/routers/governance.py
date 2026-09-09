@@ -72,7 +72,7 @@ def _reason(value: str) -> str:
     text = (value or "").strip()
     if len(text) < MIN_REASON_CHARS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"A reason of at least {MIN_REASON_CHARS} characters is required. "
                 "It is written onto the audit trail and read by whoever reviews "
@@ -326,7 +326,7 @@ def create_grants(
     reason = _reason(body.reason)
     if not body.user_ids and not body.group_ids:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Name at least one person or access group to grant this to.",
         )
 
@@ -353,7 +353,7 @@ def create_grants(
         user = db.get(User, uid)
         if user is None or user.role not in (Role.MENTOR, Role.DIRECTOR, Role.ADMIN):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Capabilities are granted to staff. One of the ids is not a staff account.",
             )
         if already_live(SubjectKind.USER, uid):
@@ -366,7 +366,7 @@ def create_grants(
     for gid in body.group_ids:
         if db.get(AccessGroup, gid) is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No such access group."
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="No such access group."
             )
         if already_live(SubjectKind.GROUP, gid):
             continue
@@ -561,7 +561,7 @@ def add_members(
         user = db.get(User, uid)
         if user is None or user.role not in (Role.MENTOR, Role.DIRECTOR, Role.ADMIN):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Access groups hold staff accounts.",
             )
         exists = db.scalar(select(AccessGroupMember.id).where(
@@ -726,7 +726,7 @@ def set_override(
     reason = _reason(body.reason)
     if _target_label(db, body.scope, body.target_id).startswith("(removed"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="That target does not exist at the level given.",
         )
     existing = db.scalar(select(FeatureOverride).where(

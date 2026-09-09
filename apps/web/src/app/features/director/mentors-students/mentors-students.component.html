@@ -1,9 +1,9 @@
 <div class="panel" data-p="mentors-students">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Mentors &amp; students</div>
+      <div class="dt-title">Faculty &amp; students</div>
       <div class="dt-sub">
-        Pick a mentor, then add or remove their students.
+        Pick a faculty member, then add or remove their students.
         @if (pool() !== null) {
           @if (unassignedCount() > 0) {
             {{ unassignedCount() }} student{{ unassignedCount() === 1 ? ' has' : 's have' }} no
@@ -23,16 +23,16 @@
   @if (mentors() === null) {
     <div class="state-note"><span class="icon">hourglass_empty</span>Loading…</div>
   } @else if (mentors()!.length === 0) {
-    <div class="card">No mentors on the roster yet, so there is nobody to assign students to.</div>
+    <div class="card">No faculty on the roster yet, so there is nobody to assign students to.</div>
   } @else {
     <div class="assign-grid">
       <!-- The mentor and their current mentees -->
       <div class="card">
         <div class="card-head">
-          <div class="card-title">Mentor</div>
+          <div class="card-title">Faculty member</div>
           <select
             class="ctrl mentor-select"
-            aria-label="Mentor"
+            aria-label="Faculty member"
             [value]="selectedMentor()"
             (change)="pick($any($event.target).value)"
           >

@@ -29,6 +29,7 @@ from .routers import (
     director,
     health,
     interview,
+    admin_students,
     interview_bank,
     swoc,
     leave,
@@ -327,6 +328,7 @@ app.include_router(director.router, prefix="/api")
 # seating a student, and the users.designation/department columns that had no
 # writer at all). require_director inside, same as every other admin surface.
 app.include_router(admin.router, prefix="/api")
+app.include_router(admin_students.router, prefix="/api")
 # Governance: capability grants for staff (deny past the role baseline) and
 # student feature overrides (allow until switched off, at any rung of the
 # hierarchy). Two instruments with OPPOSITE defaults, which is why they are one

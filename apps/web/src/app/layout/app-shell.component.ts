@@ -24,15 +24,17 @@ const ADMIN_LINKS = [
   { capability: 'admin.analytics', path: '/director', label: 'Analytics', icon: 'insights' },
   { capability: 'admin.interview_questions', path: '/director/interview-questions', label: 'Interview Questions', icon: 'edit_note' },
   { capability: 'admin.swoc', path: '/director/swoc', label: 'SWOC Notes', icon: 'rate_review' },
+  { capability: 'admin.students', path: '/director/students', label: 'Students', icon: 'how_to_reg' },
 ] as const;
 import { AgentOrbComponent } from './agent-orb.component';
 
+// The vocabulary the college uses: a MENTOR-role account is a faculty member,
+// and the one ADMIN is the Main Admin. DIRECTOR survives for the dev seed only.
 const ROLE_LABEL: Record<Role, string> = {
   STUDENT: 'Student',
-  MENTOR: 'Mentor',
-  // The UI calls this role Admin throughout; DIRECTOR is the stored value.
-  DIRECTOR: 'Admin',
-  ADMIN: 'Admin',
+  MENTOR: 'Faculty',
+  DIRECTOR: 'Director',
+  ADMIN: 'Main Admin',
   ALUMNI: 'Alumni',
 };
 

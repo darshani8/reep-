@@ -449,3 +449,66 @@
 .streak-sub {
   margin-top: 10px;
 }
+
+/* SWOC - the design's 2x2 tinted tiles under the stage cards. */
+.swoc-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.swoc-from {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 14px;
+}
+.swoc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 640px) {
+  .swoc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.swoc-tile {
+  border-radius: 16px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+
+  b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  &[data-tone='good'] {
+    background: var(--good-bg, rgba(19, 122, 74, 0.1));
+    color: var(--good, #137a4a);
+  }
+  &[data-tone='risk'] {
+    background: var(--risk-bg, rgba(173, 36, 82, 0.1));
+    color: var(--risk, #ad2452);
+  }
+  &[data-tone='warn'] {
+    background: var(--warn-bg, rgba(143, 97, 0, 0.1));
+    color: var(--warn, #8f6100);
+  }
+  &[data-tone='neutral'] {
+    background: #fff;
+    color: var(--muted, #585566);
+    border: 1px solid var(--hairline, rgba(160, 138, 178, 0.42));
+  }
+}
+.swoc-empty {
+  opacity: 0.7;
+  font-style: italic;
+}
+.swoc-note {
+  margin-top: 10px;
+}

@@ -1,6 +1,6 @@
 """Leave requests — submit and the two-approver decision flow.
 
-Any signed-in user submits. Staff (MENTOR/DIRECTOR/ADMIN) approve, and two
+Any signed-in user submits. Staff (MENTOR/ADMIN) approve, and two
 DISTINCT approvers are required: the first moves SUBMITTED -> FIRST_APPROVED, a
 different second moves FIRST_APPROVED -> APPROVED. A rejection at either stage
 ends it as REJECTED. You cannot approve your own request or sign twice.
@@ -12,13 +12,13 @@ audit — meant a MENTOR with no Mentor group, the account the rule exists to
 exclude, listed every pending request programme-wide with the reason attached and
 could approve or reject any of them. So: a MENTOR sees only requests from
 students in their own group; a MENTOR with NO group sees NOBODY (never the whole
-programme); DIRECTOR/ADMIN see all. The group test itself lives in mentor.py and
+programme); the Main Admin sees all. The group test itself lives in mentor.py and
 is imported rather than re-implemented — two copies of a scope rule is how one of
 them quietly stops matching the other.
 
 One consequence to know before you "fix" it: a request from a user who is not a
 student (a mentor's own leave) has no group to belong to, so it is decidable by
-DIRECTOR/ADMIN only. That is the deliberate reading of "no group => nobody" —
+the Main Admin only. That is the deliberate reading of "no group => nobody" —
 the alternative, letting group-less mentors keep the staff queue, hands the queue
 straight back to the account this rule is here to keep out.
 """
@@ -202,12 +202,12 @@ def _assert_can_decide(session: dict, lr: LeaveRequest, db: Session) -> None:
     whole programme: guess ids, read the error, learn who has leave pending.
     """
     require_mentor(session)
-    if session["role"] in ("DIRECTOR", "ADMIN"):
+    if session["role"] == "ADMIN":
         return
     student = db.scalar(select(Student).where(Student.user_id == lr.requester_user_id))
     if student is None:
         # Not a student's request (staff leave). A MENTOR has no group claim over
-        # it, so it belongs to DIRECTOR/ADMIN — see the module docstring.
+        # it, so it belongs to the Main Admin — see the module docstring.
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found."
         )
@@ -244,7 +244,7 @@ def pending_leaves(
                 select(Student.user_id).where(Student.mentor_id == mentor_id)
             )
         )
-    # DIRECTOR / ADMIN: no narrowing — the whole programme, staff leave included.
+    # the Main Admin: no narrowing — the whole programme, staff leave included.
 
     rows = db.scalars(query).all()
     # Not decidable by me if I already gave the first signature.
@@ -261,7 +261,7 @@ def decided_leaves(
 ) -> list[LeaveOut]:
     """Requests that reached a final decision — the Approved and Rejected tabs of
     the approvals screen. SAME SCOPE AS /pending, narrowed in SQL: a MENTOR sees
-    only their own group's, a MENTOR with no group sees nobody, DIRECTOR/ADMIN
+    only their own group's, a MENTOR with no group sees nobody, the Main Admin
     see all. Own requests are excluded as they are from /pending — the applicant
     reads those under /mine, and the approvals screen is the other chair."""
     require_mentor(session)

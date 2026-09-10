@@ -248,13 +248,14 @@ def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
     # /login/code will ever read — so a plain delete, on the same run.
     summary["login_codes_deleted"] = sweep_login_codes(db, now=now)
 
-    # --- 0b) Never-verified applications. A public form is a disk-fill vector
-    # the moment it accepts files, and an address that never clicked its link
-    # is not an applicant — it may not be a person. The confirmation link lives
-    # settings.email_verification_hours; the row lives a week past that so a
-    # slow inbox is never mistaken for spam. The FILES must be unlinked before
-    # the rows go: ON DELETE CASCADE removes the document rows, not the bytes.
-    summary["registrations_purged"] = sweep_unverified_registrations(db, now=now)
+    # --- 0b) REMOVED (2026-09-10). This swept PENDING_VERIFICATION applications
+    # — ones that never clicked their confirmation link — a week past the link's
+    # life. Submission no longer writes that status (the mailbox proof moved
+    # past approval), and migration 9b2d47f0ce15 moved the rows that were
+    # already stuck into the review queue, so this could only ever have deleted
+    # nothing. `registrations_purged` stays in the summary at 0 rather than
+    # disappearing: a key that vanishes from a nightly job's output reads as a
+    # job that stopped running.
 
     # --- 1) Soft-delete conversations whose retention window has closed. -------
     expired = db.scalars(
@@ -516,40 +517,3 @@ def redact_expired_runs(
     return len(stale)
 
 
-#: Days a PENDING_VERIFICATION application outlives its own confirmation link
-#: before it is swept. The link is settings.email_verification_hours (24 by
-#: default); a week past that is generous to a slow inbox and short enough that
-#: an abandoned form does not hold disk indefinitely.
-UNVERIFIED_REGISTRATION_GRACE_DAYS = 7
-
-
-def sweep_unverified_registrations(db: Session, *, now: datetime) -> int:
-    """Delete applications that never confirmed their address, files first.
-
-    Only PENDING_VERIFICATION rows: a confirmed application is a real person in
-    a director's queue, and a decided one is history. The document files are
-    unlinked one by one BEFORE the rows are deleted, because the FK cascade
-    removes the rows and knows nothing of the disk; a delete that skipped this
-    would leave orphan bytes nothing can ever find again.
-    """
-    cutoff = now - timedelta(days=UNVERIFIED_REGISTRATION_GRACE_DAYS)
-    stale = db.scalars(
-        select(Registration).where(
-            Registration.status == RegistrationStatus.PENDING_VERIFICATION,
-            Registration.created_at < cutoff,
-        )
-    ).all()
-    if not stale:
-        return 0
-    ids = [r.id for r in stale]
-    docs = db.scalars(
-        select(RegistrationDocument).where(RegistrationDocument.registration_id.in_(ids))
-    ).all()
-    for d in docs:
-        try:
-            document_store.delete(d.stored_name)
-        except FileNotFoundError:
-            pass
-    db.execute(delete(Registration).where(Registration.id.in_(ids)))
-    db.commit()
-    return len(ids)

@@ -397,7 +397,7 @@ def track_path(stem: str, track: str) -> Path:
 def download_name(stem: str, track: str) -> str:
     """The filename a reviewer's browser should see. Contains no student name.
 
-    A recording is served to DIRECTOR/ADMIN only, but it still lands in a
+    A recording is served to the Main Admin only, but it still lands in a
     downloads folder that syncs, backs up and gets searched. Naming it after the
     interview id keeps the association in the database, where access control
     lives, instead of in a filename.

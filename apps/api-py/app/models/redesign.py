@@ -336,7 +336,6 @@ class KnowledgeChunkV2(Base):
     __tablename__ = "redesign_knowledge_chunks"
     __table_args__ = (
         UniqueConstraint("document_version_id", "ordinal", name="uq_redesign_knowledge_chunk_ordinal"),
-        Index("ix_redesign_knowledge_chunk_version", "document_version_id"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

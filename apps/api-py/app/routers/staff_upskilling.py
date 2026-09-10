@@ -1,6 +1,6 @@
 """Staff upskilling — a faculty member's own certificate uploads.
 
-Any staff role (MENTOR / DIRECTOR / ADMIN, via mentor.require_mentor — imported,
+Any staff role (MENTOR / ADMIN, via mentor.require_mentor — imported,
 never reimplemented) may upload certificates for courses THEY have completed,
 list them, download them and delete them. Everything here is scoped to
 session["userId"]; there is no cross-staff read, and rule 2 is untouched because
@@ -34,6 +34,7 @@ from ..document_store import (
     save_bytes,
 )
 from ..models.staff_upskilling import StaffUpskillingCertificate
+from ..governance import require_capability
 from .mentor import require_mentor
 
 router = APIRouter(prefix="/staff/upskilling", tags=["staff-upskilling"])
@@ -71,7 +72,10 @@ def _certificate_row(c: StaffUpskillingCertificate) -> CertificateOut:
 def my_certificates(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[CertificateOut]:
-    require_mentor(session)
+    # mentor.upskilling: a staff member's OWN course certificates. The Main
+    # Admin is the office, not a teacher, so it does not hold this by role -
+    # it grants it in Governance if it ever wants a shelf of its own.
+    require_capability(db, session, "mentor.upskilling")
     rows = db.scalars(
         select(StaffUpskillingCertificate)
         .where(StaffUpskillingCertificate.user_id == session["userId"])
@@ -91,7 +95,10 @@ def upload_certificate(
 ) -> CertificateOut:
     """Sync `def` on purpose, like student create_upload: a 10 MB write belongs
     in the threadpool, not on the event loop the live interviews share."""
-    require_mentor(session)
+    # mentor.upskilling: a staff member's OWN course certificates. The Main
+    # Admin is the office, not a teacher, so it does not hold this by role -
+    # it grants it in Governance if it ever wants a shelf of its own.
+    require_capability(db, session, "mentor.upskilling")
     user_id = session["userId"]
 
     # Quota before the body is buffered (see module docstring).
@@ -146,7 +153,10 @@ def download_certificate(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> Response:
-    require_mentor(session)
+    # mentor.upskilling: a staff member's OWN course certificates. The Main
+    # Admin is the office, not a teacher, so it does not hold this by role -
+    # it grants it in Governance if it ever wants a shelf of its own.
+    require_capability(db, session, "mentor.upskilling")
     cert = db.get(StaffUpskillingCertificate, cert_id)
     if cert is None or cert.user_id != session["userId"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")
@@ -167,7 +177,10 @@ def delete_certificate(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> Response:
-    require_mentor(session)
+    # mentor.upskilling: a staff member's OWN course certificates. The Main
+    # Admin is the office, not a teacher, so it does not hold this by role -
+    # it grants it in Governance if it ever wants a shelf of its own.
+    require_capability(db, session, "mentor.upskilling")
     cert = db.get(StaffUpskillingCertificate, cert_id)
     if cert is None or cert.user_id != session["userId"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")

@@ -20,7 +20,7 @@
     <nav class="desktop-nav" aria-label="Main">
       <!-- Profile card. The avatar is a glyph placeholder until a photo upload
            is wired through; name and USN come from the session, so a mentor or
-           director signing in sees their own name rather than a hardcoded one. -->
+           admin signing in sees their own name rather than a hardcoded one. -->
       <div class="nav-profile">
         <div class="avatar">
           <span class="icon" aria-hidden="true">person</span>
@@ -80,22 +80,22 @@
         }
         @case ('admin') {
           <a
-            routerLink="/director"
+            routerLink="/admin"
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: true }"
           >
             <span class="icon" aria-hidden="true">insights</span> Analytics
           </a>
-          <a routerLink="/director/leave-approvals" routerLinkActive="active">
+          <a routerLink="/admin/leave-approvals" routerLinkActive="active">
             <span class="icon" aria-hidden="true">event_available</span> Leave Approvals
           </a>
-          <a routerLink="/director/mentors" routerLinkActive="active">
+          <a routerLink="/admin/mentors" routerLinkActive="active">
             <span class="icon" aria-hidden="true">groups</span> Faculty &amp; Students
           </a>
-          <a routerLink="/director/students" routerLinkActive="active">
+          <a routerLink="/admin/students" routerLinkActive="active">
             <span class="icon" aria-hidden="true">how_to_reg</span> Students
           </a>
-          <a routerLink="/director/institution" routerLinkActive="active">
+          <a routerLink="/admin/institution" routerLinkActive="active">
             <span class="icon" aria-hidden="true">school</span> Institution
           </a>
           <!-- Catalogue sits beside Institution because they are the two
@@ -106,24 +106,24 @@
                offers"), but no tile has ever pointed here, so the one account
                that maintains the course and approved-certification lists could
                not open the screen that holds them. Found in a browser audit. -->
-          <a routerLink="/director/catalogue" routerLinkActive="active">
+          <a routerLink="/admin/catalogue" routerLinkActive="active">
             <span class="icon" aria-hidden="true">menu_book</span> Catalogue
           </a>
           @if (isMainAdmin()) {
-            <a routerLink="/director/governance" routerLinkActive="active">
+            <a routerLink="/admin/governance" routerLinkActive="active">
               <span class="icon" aria-hidden="true">admin_panel_settings</span> Governance
             </a>
           }
-          <a routerLink="/director/jobs" routerLinkActive="active">
+          <a routerLink="/admin/jobs" routerLinkActive="active">
             <span class="icon" aria-hidden="true">work</span> Jobs Sheet
           </a>
-          <a routerLink="/director/interviews" routerLinkActive="active">
+          <a routerLink="/admin/interviews" routerLinkActive="active">
             <span class="icon" aria-hidden="true">mic</span> Interview Records
           </a>
-          <a routerLink="/director/interview-questions" routerLinkActive="active">
+          <a routerLink="/admin/interview-questions" routerLinkActive="active">
             <span class="icon" aria-hidden="true">edit_note</span> Interview Questions
           </a>
-          <a routerLink="/director/swoc" routerLinkActive="active">
+          <a routerLink="/admin/swoc" routerLinkActive="active">
             <span class="icon" aria-hidden="true">rate_review</span> SWOC Notes
           </a>
           <a routerLink="/mentor/signature" routerLinkActive="active">
@@ -141,10 +141,10 @@
             tiles" was true of two of the three and the third was unreachable.
           -->
           <div class="sec-label">More</div>
-          <a routerLink="/director/exports" routerLinkActive="active">
+          <a routerLink="/admin/exports" routerLinkActive="active">
             <span class="icon" aria-hidden="true">download</span> Exports
           </a>
-          <a routerLink="/director/agent" routerLinkActive="active">
+          <a routerLink="/admin/agent" routerLinkActive="active">
             <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
           </a>
         }

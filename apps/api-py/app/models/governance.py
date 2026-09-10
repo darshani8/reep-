@@ -325,7 +325,6 @@ class FeatureOverride(Base):
     __tablename__ = "feature_overrides"
     __table_args__ = (
         UniqueConstraint("feature", "scope", "target_id", name="uq_feature_override_target"),
-        Index("ix_feature_override_lookup", "feature", "scope", "target_id"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

@@ -25,10 +25,12 @@ def test_login_wrong_password_401(client):
 
 @requires_db
 def test_me_reflects_session(client, login):
-    h = login("director@bgscet.ac.in", "director123")
+    h = login("admin@bgscet.ac.in", "admin123")
     r = client.get("/api/auth/me", headers=h)
     assert r.status_code == 200
-    assert r.json()["role"] == "DIRECTOR"
+    # The seeded office account is the Main Admin. There is no DIRECTOR any more
+    # — see tests/test_no_director_privilege.py.
+    assert r.json()["role"] == "ADMIN"
 
 
 @requires_db
@@ -46,7 +48,7 @@ def test_student_forbidden_from_mentor_area(client, login):
 @requires_db
 def test_student_forbidden_from_director_area(client, login):
     h = login("student@bgscet.ac.in", "student123")
-    assert client.get("/api/director/overview", headers=h).status_code == 403
+    assert client.get("/api/admin/overview", headers=h).status_code == 403
 
 
 @requires_db
@@ -54,13 +56,13 @@ def test_mentor_forbidden_from_director_only(client, login):
     # A MENTOR is staff but not a director: reads mentees, blocked from director config.
     h = login("mentor@bgscet.ac.in", "mentor123")
     assert client.get("/api/mentor/mentees", headers=h).status_code == 200
-    assert client.get("/api/director/alert-rules", headers=h).status_code == 403
+    assert client.get("/api/admin/alert-rules", headers=h).status_code == 403
 
 
 @requires_db
 def test_director_can_read_overview(client, login):
-    h = login("director@bgscet.ac.in", "director123")
-    assert client.get("/api/director/overview", headers=h).status_code == 200
+    h = login("admin@bgscet.ac.in", "admin123")
+    assert client.get("/api/admin/overview", headers=h).status_code == 200
 
 
 @requires_db

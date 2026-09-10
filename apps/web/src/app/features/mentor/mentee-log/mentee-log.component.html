@@ -27,7 +27,7 @@
           @if (mentees(); as list) {
             @if (list.length === 0) {
               <div class="ml-empty">
-                No mentees are assigned to you yet. Mentee groups are assigned by the director.
+                No mentees are assigned to you yet. Mentee groups are assigned by the Main Admin.
               </div>
             } @else {
               @for (m of filtered(); track m.student_id) {

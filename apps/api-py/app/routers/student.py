@@ -156,6 +156,28 @@ _INSTITUTION_Q = (
     .where(Cohort.id == bindparam("cohort_id"))
 )
 
+#: The same two top levels reached WITHOUT a batch (31f7a4c60b12).
+#:
+#: College and Department are required at registration while Course,
+#: Specialization and Batch are not, so "named a department, seated in nothing"
+#: is the normal state of a college that has not built its batches yet. Before
+#: `students.department_id` existed there was no query that could answer it and
+#: the card came back blank.
+#:
+#: INNER on college, because `departments.college_id` is NOT NULL — a department
+#: without a college cannot exist, so an outer join here would only invent a
+#: half-resolved row that no caller knows how to render.
+_DEPARTMENT_Q = (
+    select(
+        College.name.label("college_name"),
+        College.code.label("college_code"),
+        Department.name.label("department_name"),
+    )
+    .select_from(Department)
+    .join(College, College.id == Department.college_id)
+    .where(Department.id == bindparam("department_id"))
+)
+
 #: The fixed levels either side of the optional ones, in card order. These are
 #: not in HIERARCHY_LEVELS because they are not switchable: a batch always
 #: belongs to a department in a college. Their labels are the design's.
@@ -226,18 +248,75 @@ def _empty_institution() -> InstitutionOut:
     )
 
 
-def _institution_for(db: Session, stu: Student | None) -> InstitutionOut:
-    """Resolve the student's institutional assignment through the cohort join.
+def _department_only(db: Session, department_id: str | None) -> InstitutionOut | None:
+    """The card for a student placed by department alone, or None if unplaced.
 
-    Walks as far as the data allows and stops without complaint: an unseated
-    student, or a cohort whose department was never set, yields nulls rather
+    Two levels resolve (College, Department) and the rest read `pending`, which
+    is the honest word: the admin owes this student a batch. `seated=False` is
+    what produces that — a level left blank on a student with no batch is work
+    outstanding, never "not in use at this college".
+    """
+    if not department_id:
+        return None
+    row = db.execute(_DEPARTMENT_Q, {"department_id": department_id}).mappings().first()
+    if row is None:  # department_id names a department that is gone
+        return None
+    values = {
+        "college": row["college_name"],
+        "college_code": row["college_code"],
+        "department": row["department_name"],
+    }
+    levels, note = _compose_levels(values, seated=False)
+    return InstitutionOut(
+        college_name=row["college_name"],
+        college_code=row["college_code"],
+        department_name=row["department_name"],
+        course_name=None,
+        specialization_name=None,
+        batch_label=None,
+        # The two dates belong to the BATCH, and there is no batch.
+        entry_date=None,
+        expected_completion=None,
+        levels=levels,
+        not_in_use_note=note,
+    )
+
+
+def _institution_for(db: Session, stu: Student | None) -> InstitutionOut:
+    """Resolve the student's institutional assignment.
+
+    TWO POINTERS, tried deepest first. `cohort_id` resolves all five levels; if
+    there is no batch — or the batch is gone, or the batch was never filed under
+    a department — `students.department_id` still places the student in a
+    college and a department (31f7a4c60b12). Before that column existed this
+    returned an empty card for every unseated student, which is every student at
+    a college that has not built its batches, even though the registration form
+    had REQUIRED them to name a department.
+
+    Walks as far as the data allows and stops without complaint: nulls rather
     than a 404. The card is one block on a screen that has plenty else to show.
     """
-    if stu is None or not stu.cohort_id:
+    if stu is None:
         return _empty_institution()
-    row = db.execute(_INSTITUTION_Q, {"cohort_id": stu.cohort_id}).mappings().first()
-    if row is None:  # cohort_id names a cohort that is gone
-        return _empty_institution()
+    row = (
+        db.execute(_INSTITUTION_Q, {"cohort_id": stu.cohort_id}).mappings().first()
+        if stu.cohort_id
+        else None
+    )
+    if row is None:  # no batch, or cohort_id names a cohort that is gone
+        return _department_only(db, stu.department_id) or _empty_institution()
+    if row["department_name"] is None:
+        # A batch nobody filed under a department. The student's own pointer is
+        # allowed to stand alone in exactly this case (see
+        # `student_placement.resolve_student_department`), so prefer the fuller
+        # card over printing a blank Department beside a real batch.
+        by_department = _department_only(db, stu.department_id)
+        if by_department is not None:
+            row = dict(row) | {
+                "college_name": by_department.college_name,
+                "college_code": by_department.college_code,
+                "department_name": by_department.department_name,
+            }
     values = {
         "college": row["college_name"],
         "college_code": row["college_code"],
@@ -2904,7 +2983,7 @@ def placement_readiness(
         .order_by(PlacementCriteria.updated_at.desc())
         .limit(1)
     )
-    # Defaults when the director has set no active criteria.
+    # Defaults when the Main Admin has set no active criteria.
     min_cgpa = crit.min_cgpa if crit else 6.0
     max_backlogs = crit.max_live_backlogs if crit else 0
     min_att = crit.min_attendance_pct if crit else 75.0

@@ -37,9 +37,8 @@ class SemesterResult(Base):
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
-    student_id: Mapped[str] = mapped_column(
-        ForeignKey("students.id", ondelete="CASCADE"), index=True
-    )
+    # No index= here: `uq_semester_result` leads with student_id already.
+    student_id: Mapped[str] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"))
     semester: Mapped[int] = mapped_column(Integer)
 
     sgpa: Mapped[float | None] = mapped_column(Float, nullable=True)

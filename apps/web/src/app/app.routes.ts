@@ -13,7 +13,7 @@ import { authGuard, capabilityGuard, homeRedirectGuard, roleGuard } from './core
  * top of this file pulls the component into the initial bundle no matter which
  * route the user visits — which is how every screen in the app ended up in one
  * 1.23 MB `main` chunk with no lazy chunks at all. A student on a phone was
- * downloading the mentor and director UIs, plus the resume builder and the
+ * downloading the mentor and admin UIs, plus the resume builder and the
  * assistant, before the login form could paint.
  *
  * Only the two things needed to render the first frame stay eager: the shell
@@ -50,6 +50,16 @@ export const routes: Routes = [
       import('./features/login/password-link/password-link.component').then(
         (m) => m.PasswordLinkComponent,
       ),
+  },
+  // An approved student setting their account up: address -> emailed code ->
+  // password. THREE STEPS, ONE URL — each step's proof is spent by the next,
+  // so a route that could land on step 2 or 3 would be a route that skips one.
+  // Outside the shell: nobody here has a session yet, and it ends at /login
+  // rather than signing anybody in.
+  {
+    path: 'onboard',
+    loadComponent: () =>
+      import('./features/login/onboard/onboard.component').then((m) => m.OnboardComponent),
   },
   {
     path: '',
@@ -193,7 +203,7 @@ export const routes: Routes = [
       { path: 'mentor', pathMatch: 'full', redirectTo: 'mentor/notebook' },
       {
         path: 'mentor/notebook',
-        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
+        canActivate: [roleGuard('MENTOR', 'ADMIN')],
         loadComponent: () =>
           import('./features/mentor/notebook/mentor-notebook.component').then(
             (m) => m.MentorNotebookComponent,
@@ -210,7 +220,7 @@ export const routes: Routes = [
       // verified, and mentor-scoped on the server as well as here.
       {
         path: 'mentor/verifications',
-        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
+        canActivate: [roleGuard('MENTOR', 'ADMIN')],
         loadComponent: () =>
           import('./features/mentor/verifications/verifications.component').then(
             (m) => m.MentorVerificationsComponent,
@@ -245,39 +255,39 @@ export const routes: Routes = [
       // socket refuses non-students with 1008). Kept as a redirect.
       { path: 'mentor/assistant', redirectTo: 'mentor/agent' },
 
-      // --- admin (the DIRECTOR/ADMIN roles; the UI calls it Admin) ---
+      // --- admin (the Main Admin; the console the placement office runs on) ---
       {
-        path: 'director',
-        // A capability, not a role: DIRECTOR/ADMIN hold admin.analytics through
+        path: 'admin',
+        // A capability, not a role: the Main Admin holds admin.analytics through
         // the baseline, and a MENTOR reaches this only when granted it.
         canActivate: [capabilityGuard('admin.analytics')],
         loadComponent: () =>
-          import('./features/director/analytics/analytics.component').then(
-            (m) => m.DirectorAnalyticsComponent,
+          import('./features/admin/analytics/analytics.component').then(
+            (m) => m.AdminAnalyticsComponent,
           ),
       },
       {
-        path: 'director/leave-approvals',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        path: 'admin/leave-approvals',
+        canActivate: [roleGuard('ADMIN')],
         loadComponent: () =>
-          import('./features/director/leave-approvals/leave-approvals.component').then(
-            (m) => m.DirectorLeaveApprovalsComponent,
+          import('./features/admin/leave-approvals/leave-approvals.component').then(
+            (m) => m.AdminLeaveApprovalsComponent,
           ),
       },
       {
-        path: 'director/registrations',
+        path: 'admin/registrations',
         canActivate: [capabilityGuard('admin.registrations')],
         loadComponent: () =>
-          import('./features/director/registrations/registrations.component').then(
-            (m) => m.DirectorRegistrationsComponent,
+          import('./features/admin/registrations/registrations.component').then(
+            (m) => m.AdminRegistrationsComponent,
           ),
       },
       {
-        path: 'director/mentors',
+        path: 'admin/mentors',
         canActivate: [capabilityGuard('admin.mentors')],
         loadComponent: () =>
-          import('./features/director/mentors-students/mentors-students.component').then(
-            (m) => m.DirectorMentorsStudentsComponent,
+          import('./features/admin/mentors-students/mentors-students.component').then(
+            (m) => m.AdminMentorsStudentsComponent,
           ),
       },
       // The institution console: College -> Department -> Course ->
@@ -285,48 +295,48 @@ export const routes: Routes = [
       // /api/admin/*. Lazy like every other route (AGENTS.md: one re-eager-ed
       // route fails the bundle budget).
       {
-        path: 'director/institution',
+        path: 'admin/institution',
         canActivate: [capabilityGuard('admin.institution')],
         loadComponent: () =>
-          import('./features/director/institution/institution.component').then(
-            (m) => m.DirectorInstitutionComponent,
+          import('./features/admin/institution/institution.component').then(
+            (m) => m.AdminInstitutionComponent,
           ),
       },
       // Interview Records: every mock interview with the student named and a
       // download for each recording. Lazy like the rest.
       {
-        path: 'director/interviews',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        path: 'admin/interviews',
+        canActivate: [roleGuard('ADMIN')],
         loadComponent: () =>
-          import('./features/director/interviews/interviews.component').then(
+          import('./features/admin/interviews/interviews.component').then(
             (m) => m.InterviewRecordsComponent,
           ),
       },
       // Interview Questions: the admin's question bank for the free-style
       // interviewer. A capability, so it can be granted to faculty.
       {
-        path: 'director/interview-questions',
+        path: 'admin/interview-questions',
         canActivate: [capabilityGuard('admin.interview_questions')],
         loadComponent: () =>
-          import('./features/director/interview-questions/interview-questions.component').then(
+          import('./features/admin/interview-questions/interview-questions.component').then(
             (m) => m.InterviewQuestionsComponent,
           ),
       },
       // Students: the Main Admin's roster - create, edit, remove, and act on a
       // whole batch. A capability, so it can be lent to faculty in Governance.
       {
-        path: 'director/students',
+        path: 'admin/students',
         canActivate: [capabilityGuard('admin.students')],
         loadComponent: () =>
-          import('./features/director/students/students.component').then((m) => m.DirectorStudentsComponent),
+          import('./features/admin/students/students.component').then((m) => m.AdminStudentsComponent),
       },
       // SWOC Notes: the four lines on each student's landing. A capability, so
       // the office can lend it to faculty in Governance.
       {
-        path: 'director/swoc',
+        path: 'admin/swoc',
         canActivate: [capabilityGuard('admin.swoc')],
         loadComponent: () =>
-          import('./features/director/swoc/swoc.component').then((m) => m.DirectorSwocComponent),
+          import('./features/admin/swoc/swoc.component').then((m) => m.AdminSwocComponent),
       },
       // Governance: capability grants for staff and student feature switches.
       // Its own screen rather than a tab on Institution, because the two answer
@@ -334,11 +344,11 @@ export const routes: Routes = [
       // may SEE. Lazy like every other route (AGENTS.md: one re-eager-ed route
       // fails the bundle budget).
       {
-        path: 'director/governance',
+        path: 'admin/governance',
         // The Main Admin's alone: one account decides what faculty may see.
         canActivate: [roleGuard('ADMIN')],
         loadComponent: () =>
-          import('./features/director/governance/governance.component').then(
+          import('./features/admin/governance/governance.component').then(
             (m) => m.GovernanceComponent,
           ),
       },
@@ -346,43 +356,43 @@ export const routes: Routes = [
       // anything against the course it certifies, so they are read together.
       // Both paths resolve to it rather than leaving one a dead placeholder.
       {
-        path: 'director/catalogue',
+        path: 'admin/catalogue',
         canActivate: [capabilityGuard('admin.catalogue')],
         loadComponent: () =>
-          import('./features/director/catalogue/catalogue.component').then(
-            (m) => m.DirectorCatalogueComponent,
+          import('./features/admin/catalogue/catalogue.component').then(
+            (m) => m.AdminCatalogueComponent,
           ),
       },
-      { path: 'director/courses', redirectTo: 'director/catalogue' },
-      { path: 'director/certifications', redirectTo: 'director/catalogue' },
+      { path: 'admin/courses', redirectTo: 'admin/catalogue' },
+      { path: 'admin/certifications', redirectTo: 'admin/catalogue' },
       {
-        path: 'director/placement',
+        path: 'admin/placement',
         canActivate: [capabilityGuard('admin.placement')],
         loadComponent: () =>
-          import('./features/director/placement/placement.component').then(
-            (m) => m.DirectorPlacementComponent,
+          import('./features/admin/placement/placement.component').then(
+            (m) => m.AdminPlacementComponent,
           ),
       },
       {
-        path: 'director/jobs',
+        path: 'admin/jobs',
         canActivate: [capabilityGuard('admin.jobs')],
         loadComponent: () =>
-          import('./features/director/jobs-sheet/jobs-sheet.component').then(
-            (m) => m.DirectorJobsSheetComponent,
+          import('./features/admin/jobs-sheet/jobs-sheet.component').then(
+            (m) => m.AdminJobsSheetComponent,
           ),
       },
       {
-        path: 'director/agent',
+        path: 'admin/agent',
         loadComponent: () =>
           import('./features/agent/agent.component').then((m) => m.AgentComponent),
       },
-      { path: 'director/assistant', redirectTo: 'director/agent' },
+      { path: 'admin/assistant', redirectTo: 'admin/agent' },
       {
-        path: 'director/exports',
+        path: 'admin/exports',
         canActivate: [capabilityGuard('admin.exports')],
         loadComponent: () =>
-          import('./features/director/exports/exports.component').then(
-            (m) => m.DirectorExportsComponent,
+          import('./features/admin/exports/exports.component').then(
+            (m) => m.AdminExportsComponent,
           ),
       },
 

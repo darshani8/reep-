@@ -5,7 +5,7 @@ frontend caller. Three independent reviews of the institutional spine put the
 same item at the top of all three lists, and one of them found a live 500 in
 three of the endpoints just by reading them — a cleared form field sends
 `{"name": null}`, which `exclude_unset` keeps and `setattr` then writes to a NOT
-NULL column. Eleven `require_director` calls, none of them proven to run before
+NULL column. Eleven `require_admin` calls, none of them proven to run before
 the work happens, is not a surface anyone should deploy.
 
 WHAT IT PINS, in the order the reviewers ranked the danger:
@@ -51,7 +51,7 @@ def _code(prefix: str) -> str:
 
 @pytest.fixture
 def director(make_user):
-    return make_user("admin-dir", Role.DIRECTOR)
+    return make_user("admin-dir", Role.ADMIN)
 
 
 @pytest.fixture
@@ -81,6 +81,18 @@ def tracker():
         for cid in made["courses"]:
             db.execute(delete(AcademicCourse).where(AcademicCourse.id == cid))
         for did in made["departments"]:
+            # Both department pointers are released first, for the same reason
+            # `cohort_id` is above: neither FK has an ondelete, so the database
+            # refuses to drop a department anyone is still filed under. Students
+            # gained theirs in 31f7a4c60b12 and staff in 31ca99852acd — a
+            # teardown that knows about only one of them fails the moment a test
+            # provisions a student, which is exactly how this surfaced.
+            db.execute(
+                Student.__table__.update().where(Student.department_id == did).values(department_id=None)
+            )
+            db.execute(
+                User.__table__.update().where(User.department_id == did).values(department_id=None)
+            )
             db.execute(delete(Department).where(Department.id == did))
         for cid in made["colleges"]:
             db.execute(delete(College).where(College.id == cid))
@@ -136,7 +148,7 @@ def test_every_admin_operation_refuses_a_student(client, make_user, chain):
     """Every operation, one test, because the failure is identical in each.
 
     A per-endpoint test would be eleven near-copies; what matters is that NO
-    path reaches its work without `require_director`, and that is a property of
+    path reaches its work without `require_admin`, and that is a property of
     the set. Enumerated explicitly rather than walked off the router, so adding
     an endpoint without a line here is a visible omission rather than silently
     covered by a loop.
@@ -152,6 +164,9 @@ def test_every_admin_operation_refuses_a_student(client, make_user, chain):
         ("post", "/api/admin/colleges", {"code": "X", "name": "X"}),
         ("patch", f"/api/admin/colleges/{college_id}", {"name": "X"}),
         ("get", f"/api/admin/colleges/{college_id}/departments", None),
+        # The flat picker: every department with its college, for filing a
+        # faculty member without asking them to pick a college first.
+        ("get", "/api/admin/departments", None),
         ("post", f"/api/admin/colleges/{college_id}/departments", {"code": "X", "name": "X"}),
         ("patch", f"/api/admin/departments/{dept_id}", {"name": "X"}),
         ("get", f"/api/admin/departments/{dept_id}/cohorts", None),

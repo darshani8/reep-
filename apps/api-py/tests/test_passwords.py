@@ -29,12 +29,13 @@ from sqlalchemy import delete, select
 from conftest import TEST_PASSWORD, requires_db
 
 from app import mail_transport
+from app.config import settings
 from app.db import SessionLocal
 from app.models.auth_token import AuthToken
 from app.models.job import DegreeLevel
 from app.models.registration import EmailVerification, Registration, RegistrationRule, RegistrationStatus
 from app.models.student_profile import StudentProfile
-from app.models.user import Role, Student, User
+from app.models.user import LoginDay, Role, Student, User
 from app.routers import passwords as passwords_router
 from app.routers.registration import SSO_ONLY_PASSWORD_HASH
 
@@ -63,6 +64,13 @@ def _mail_to(address: str, subject_contains: str) -> mail_transport.OutboxEntry:
     return hits[-1]
 
 
+def _reg_id(email: str) -> str:
+    with SessionLocal() as db:
+        rid = db.scalar(select(Registration.id).where(Registration.email == email))
+    assert rid, f"no application for {email}"
+    return rid
+
+
 def _make_google_only(user_id: str) -> None:
     """make_user issues a real password; activation is for accounts without one."""
     with SessionLocal() as db:
@@ -75,7 +83,7 @@ def _make_google_only(user_id: str) -> None:
 
 @requires_db
 def test_activation_sets_a_first_password_and_signs_in(client, make_user):
-    director = make_user("pw-dir", Role.DIRECTOR)
+    director = make_user("pw-dir", Role.ADMIN)
     mentor = make_user("pw-new-mentor", Role.MENTOR)
     _make_google_only(mentor.user_id)
 
@@ -106,18 +114,24 @@ def test_activation_sets_a_first_password_and_signs_in(client, make_user):
 
 @requires_db
 def test_activation_refuses_a_student(client, make_user):
-    """Option B: students sign in with Google and hold no password."""
-    director = make_user("pw-dir2", Role.DIRECTOR)
+    """Still refused, and NOT because option B survives — it does not.
+
+    A student's equivalent is the onboarding walk, which makes them confirm the
+    address with an emailed CODE before any password is set. An activation link
+    is a staff first-password link and skips that step, so handing one to a
+    student would trade the mailbox proof for nothing.
+    """
+    director = make_user("pw-dir2", Role.ADMIN)
     student = make_user("pw-stu", Role.STUDENT)
     r = client.post(f"/api/admin/users/{student.user_id}/activation-link", headers=director.headers)
     assert r.status_code == 422, r.text
-    assert "Google" in r.json()["detail"]
+    assert "setup link" in r.json()["detail"], "the refusal must name what a student uses instead"
     assert not any(e.to == student.email for e in mail_transport.outbox)
 
 
 @requires_db
 def test_a_bad_password_does_not_burn_the_activation_link(client, make_user):
-    director = make_user("pw-dir3", Role.DIRECTOR)
+    director = make_user("pw-dir3", Role.ADMIN)
     mentor = make_user("pw-typo", Role.MENTOR)
     _make_google_only(mentor.user_id)
     client.post(f"/api/admin/users/{mentor.user_id}/activation-link", headers=director.headers)
@@ -139,7 +153,7 @@ def test_a_bad_password_does_not_burn_the_activation_link(client, make_user):
 
 @requires_db
 def test_an_expired_activation_link_is_refused_with_the_right_words(client, make_user):
-    director = make_user("pw-dir4", Role.DIRECTOR)
+    director = make_user("pw-dir4", Role.ADMIN)
     mentor = make_user("pw-late", Role.MENTOR)
     _make_google_only(mentor.user_id)
     client.post(f"/api/admin/users/{mentor.user_id}/activation-link", headers=director.headers)
@@ -156,7 +170,7 @@ def test_an_expired_activation_link_is_refused_with_the_right_words(client, make
 @requires_db
 def test_reissuing_an_activation_link_supersedes_the_old_one(client, make_user):
     """"Resend" must hand over ONE working link, not two."""
-    director = make_user("pw-dir5", Role.DIRECTOR)
+    director = make_user("pw-dir5", Role.ADMIN)
     mentor = make_user("pw-resend", Role.MENTOR)
     _make_google_only(mentor.user_id)
     client.post(f"/api/admin/users/{mentor.user_id}/activation-link", headers=director.headers)
@@ -337,56 +351,133 @@ def application():
                 for stu in db.scalars(select(Student).where(Student.user_id == user.id)).all():
                     db.execute(delete(StudentProfile).where(StudentProfile.student_id == stu.id))
                     db.execute(delete(Student).where(Student.id == stu.id))
+                # login_days.user_id carries no ON DELETE, so it goes by hand -
+                # an onboarded applicant now SIGNS IN during these tests, which
+                # the fixture never had to survive while students held no
+                # password.
+                db.execute(delete(LoginDay).where(LoginDay.user_id == user.id))
+                db.execute(delete(AuthToken).where(AuthToken.user_id == user.id))
                 db.execute(delete(User).where(User.id == user.id))
             db.execute(delete(Registration).where(Registration.email == email))
         db.commit()
 
 
 @requires_db
-def test_an_application_waits_for_its_address_to_be_confirmed(client, application):
+def test_an_application_reaches_the_queue_without_any_email(client, make_user, application):
+    """THE INCIDENT, inverted into a test.
+
+    Submission used to write PENDING_VERIFICATION and wait for a confirmation
+    link. On a deployment whose SES account is sandboxed that mail cannot be
+    delivered to a student address at all, so every applicant sat invisible:
+    the student saw a 201, the admin saw an empty queue, and the retry hit the
+    duplicate guard's opaque 409. The mailbox proof moved AFTER approval; what
+    must never come back is a submission that no human can see.
+    """
+    admin = make_user("pw-queue", Role.ADMIN)
     submit, _ = application
     email = "pw.applicant@bgscet.ac.in"
     r = submit(client, email, usn="1BG26PWD01")
     assert r.status_code == 201, r.text
-    assert r.json()["status"] == "PENDING_VERIFICATION"
-    assert r.json()["cohort_id"] is None, "no rule is applied to an unconfirmed address"
+    assert r.json()["status"] == "PENDING_REVIEW"
 
-    token = _token_from(_mail_to(email, "Confirm your email"))
-    with SessionLocal() as db:
-        assert db.scalar(select(EmailVerification).join(Registration).where(Registration.email == email)) is not None, (
-            "EmailVerification finally has a writer"
-        )
-
-    done = client.get(f"/api/register/verify?token={token}", follow_redirects=False)
-    assert done.status_code == 302
-    assert done.headers["location"].endswith("/login?verified=1"), done.headers["location"]
-    with SessionLocal() as db:
-        reg = db.scalar(select(Registration).where(Registration.email == email))
-        assert reg.status is RegistrationStatus.PENDING_REVIEW, "confirmed, no rule -> the queue"
-        assert reg.email_verified_at is not None
-
-    again = client.get(f"/api/register/verify?token={token}", follow_redirects=False)
-    assert again.status_code == 302 and "verified=0" in again.headers["location"]
+    queue = client.get("/api/register/pending", headers=admin.headers).json()
+    assert any(row["email"] == email for row in queue), (
+        "an application must reach the review queue on its own, with no mail in between"
+    )
 
 
 @requires_db
-def test_a_confirmed_application_that_auto_approves_is_provisioned_and_told(client, application):
-    submit, rule = application
-    email = "pw.auto@bgscet.ac.in"
-    rule(name="pw-test-auto", email_domain="bgscet.ac.in", auto_approve=True, priority=0, enabled=True)
-    submit(client, email, usn="1BG26PWD02", name="Auto Approved")
-    token = _token_from(_mail_to(email, "Confirm your email"))
-    client.get(f"/api/register/verify?token={token}", follow_redirects=False)
-
+def test_approval_emails_a_setup_link_and_the_walk_ends_at_a_password(client, make_user, application):
+    """Approve -> link -> address -> code -> password. And no session at the end."""
+    admin = make_user("pw-walk", Role.ADMIN)
+    submit, _ = application
+    email = "pw.walk@bgscet.ac.in"
+    submit(client, email, usn="1BG26PWD03", name="Walk Student")
     with SessionLocal() as db:
-        reg = db.scalar(select(Registration).where(Registration.email == email))
-        assert reg.status is RegistrationStatus.AUTO_APPROVED, reg.decision_reason
-        assert reg.approved_student_id is not None, "AUTO_APPROVED used to provision nothing"
-        user = db.scalar(select(User).where(User.email == email))
-        assert user is not None and user.role is Role.STUDENT
-        assert user.password_hash == SSO_ONLY_PASSWORD_HASH
-    notice = _mail_to(email, "Your REEP account is ready")
-    assert "Google" in notice.text and "token=" not in notice.text, "students get a notice, never a link"
+        reg_id = db.scalar(select(Registration.id).where(Registration.email == email))
+    mail_transport.outbox.clear()
+
+    r = client.post(
+        f"/api/register/{reg_id}/decision", headers=admin.headers, json={"decision": "APPROVE"}
+    )
+    assert r.status_code == 200, r.text
+    invite = _mail_to(email, "approved")
+    assert "Google" not in invite.text, "option B is over; the mail carries the way in"
+    token = _token_from(invite)
+
+    # Step 1 - the address typed back. A wrong one must not burn the link.
+    wrong = client.post(
+        "/api/auth/onboard/start", json={"token": token, "email": "someone.else@bgscet.ac.in"}
+    )
+    assert wrong.status_code == 410
+    started = client.post("/api/auth/onboard/start", json={"token": token, "email": email})
+    assert started.status_code == 200, started.text
+
+    # Step 2 - the emailed code.
+    code = re.search(r"\b(\d{6})\b", _mail_to(email, "verification code").text).group(1)
+    bad = client.post("/api/auth/onboard/verify", json={"token": token, "code": "000000"})
+    assert bad.status_code == 401
+    ok = client.post("/api/auth/onboard/verify", json={"token": token, "code": code})
+    assert ok.status_code == 200, ok.text
+    ticket = ok.json()["ticket"]
+
+    # Step 3 - the password, and NO session.
+    short = client.post("/api/auth/onboard/password", json={"ticket": ticket, "password": "short"})
+    assert short.status_code == 422 and "12" in short.json()["detail"]
+    done = client.post("/api/auth/onboard/password", json={"ticket": ticket, "password": GOOD})
+    assert done.status_code == 200, done.text
+    assert "set-cookie" not in {k.lower() for k in done.headers}, (
+        "onboarding ends at the login screen; it must not mint a session"
+    )
+
+    # And the password works at the ordinary front door.
+    signed_in = client.post("/api/auth/login", json={"email": email, "password": GOOD})
+    assert signed_in.status_code == 200, signed_in.text
+
+
+@requires_db
+def test_the_code_cannot_be_skipped_by_holding_the_link(client, make_user, application):
+    """The invite alone must not reach the password step.
+
+    This is the whole reason `onboard/password` takes a TICKET and not the
+    link: a forwarded invite survives step 1, and if the password step trusted
+    it, the mailbox proof would be decorative.
+    """
+    admin = make_user("pw-skip", Role.ADMIN)
+    submit, _ = application
+    email = "pw.skip@bgscet.ac.in"
+    submit(client, email, usn="1BG26PWD04")
+    with SessionLocal() as db:
+        reg_id = db.scalar(select(Registration.id).where(Registration.email == email))
+    client.post(f"/api/register/{reg_id}/decision", headers=admin.headers, json={"decision": "APPROVE"})
+    token = _token_from(_mail_to(email, "approved"))
+
+    straight = client.post("/api/auth/onboard/password", json={"ticket": token, "password": GOOD})
+    assert straight.status_code == 410, "the invite is not a ticket"
+
+
+@requires_db
+def test_a_rejection_tells_the_applicant_why(client, make_user, application):
+    admin = make_user("pw-reject", Role.ADMIN)
+    submit, _ = application
+    email = "pw.reject@bgscet.ac.in"
+    submit(client, email, usn="1BG26PWD05")
+    with SessionLocal() as db:
+        reg_id = db.scalar(select(Registration.id).where(Registration.email == email))
+    mail_transport.outbox.clear()
+
+    bare = client.post(
+        f"/api/register/{reg_id}/decision", headers=admin.headers, json={"decision": "REJECT"}
+    )
+    assert bare.status_code == 422, "a refusal the applicant cannot answer is not a refusal"
+
+    r = client.post(
+        f"/api/register/{reg_id}/decision",
+        headers=admin.headers,
+        json={"decision": "REJECT", "note": "USN does not match any 2026 intake."},
+    )
+    assert r.status_code == 200, r.text
+    assert "USN does not match any 2026 intake." in _mail_to(email, "About your REEP registration").text
 
 
 @requires_db
@@ -396,8 +487,6 @@ def test_an_auto_approve_that_provisioning_refuses_lands_in_the_queue(client, ap
     email = "pw.attacker@gmail.com"
     rule(name="pw-test-bad-rule", email_domain="gmail.com", auto_approve=True, priority=0, enabled=True)
     submit(client, email, name="Priya Sharma")
-    token = _token_from(_mail_to(email, "Confirm your email"))
-    client.get(f"/api/register/verify?token={token}", follow_redirects=False)
 
     with SessionLocal() as db:
         reg = db.scalar(select(Registration).where(Registration.email == email))
@@ -407,20 +496,45 @@ def test_an_auto_approve_that_provisioning_refuses_lands_in_the_queue(client, ap
 
 
 @requires_db
-def test_a_director_approval_tells_the_student(client, make_user, application):
-    submit, _ = application
-    director = make_user("pw-dir6", Role.DIRECTOR)
-    email = "pw.manual@bgscet.ac.in"
-    submit(client, email, usn="1BG26PWD03")
-    token = _token_from(_mail_to(email, "Confirm your email"))
-    client.get(f"/api/register/verify?token={token}", follow_redirects=False)
-    with SessionLocal() as db:
-        reg_id = db.scalar(select(Registration.id).where(Registration.email == email))
+def test_a_student_can_change_their_password_with_an_emailed_code(client, make_user, login):
+    """Option B refused a student here with a 409. They set passwords now."""
+    student = make_user("pw-otpchange", Role.STUDENT)
+    headers = login(student.email, TEST_PASSWORD)
     mail_transport.outbox.clear()
 
-    r = client.post(f"/api/register/{reg_id}/decision", headers=director.headers, json={"decision": "APPROVE"})
+    asked = client.post("/api/auth/change-password/code", headers=headers)
+    assert asked.status_code == 200, asked.text
+    code = re.search(r"\b(\d{6})\b", _mail_to(student.email, "password-change code").text).group(1)
+
+    wrong = client.post(
+        "/api/auth/change-password", headers=headers, json={"code": "000000", "new_password": GOOD}
+    )
+    assert wrong.status_code == 403
+
+    r = client.post(
+        "/api/auth/change-password", headers=headers, json={"code": code, "new_password": GOOD}
+    )
     assert r.status_code == 200, r.text
-    assert "Google" in _mail_to(email, "Your REEP account is ready").text
+    assert client.post("/api/auth/login", json={"email": student.email, "password": GOOD}).status_code == 200
+
+    replay = client.post(
+        "/api/auth/change-password", headers=headers, json={"code": code, "new_password": GOOD + "x"}
+    )
+    assert replay.status_code in (401, 403), "a spent code must not authorise a second change"
+
+
+@requires_db
+def test_change_password_needs_exactly_one_proof(client, make_user, login):
+    staff = make_user("pw-oneproof", Role.MENTOR)
+    headers = login(staff.email, TEST_PASSWORD)
+    neither = client.post("/api/auth/change-password", headers=headers, json={"new_password": GOOD})
+    assert neither.status_code == 403
+    both = client.post(
+        "/api/auth/change-password",
+        headers=headers,
+        json={"new_password": GOOD, "current_password": TEST_PASSWORD, "code": "123456"},
+    )
+    assert both.status_code == 403, "one proof, not two - otherwise a guessed code rides a known password"
 
 
 # ------------------------------------------------------------------ guard --

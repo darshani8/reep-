@@ -51,17 +51,40 @@ _SCOPED: Final[frozenset[str]] = frozenset(
 #: a deny-by-default rollout would have removed every mentor's own mentee log on
 #: the deploy that shipped it. A grant is how someone gets what their role does
 #: not already carry, which for a MENTOR is the programme-wide set.
-#: `admin.interview_audio` is the ONE programme-wide capability a DIRECTOR does
-#: not hold by baseline. interview_records.py's gate had been ADMIN-only on
-#: purpose — a recording is an operator's artefact that happens to contain a
-#: named student speaking, and widening it to every placement account was the
-#: exact thing its docstring refused. This keeps that asymmetry (DIRECTOR is 403
-#: by default) while making it GRANTABLE: one person, one reason, on the trail.
-_DIRECTOR: Final[frozenset[str]] = _ALL - {"admin.interview_audio"}
+#: DIRECTOR HOLDS NOTHING (2026-09-10), and this line is the one that decides it.
+#:
+#: The role removal touched the role gates first — `require_mentor`,
+#: `require_admin`, `policies.STAFF_ROLES` — and for a few hours THIS map still
+#: read `"DIRECTOR": _ALL - {"admin.interview_audio"}`. The result was worse than
+#: leaving it alone: a DIRECTOR session was refused by every `require_*` gate and
+#: still passed every `require_capability` one, which is roughly fifty endpoints
+#: and the whole console — `admin.py`, `console.py`, the roster's
+#: DELETE /api/admin/students/{id}, the exports CSV. Half a removal is a role
+#: that cannot read its own mentee log but can delete the programme.
+#:
+#: An empty baseline is what makes "DIRECTOR grants nothing" true rather than
+#: intended. The migration converts the rows; this closes the door for any row
+#: that predates it, on a checkout where it has not run, or minted from an older
+#: image. `tests/test_no_director_privilege.py` asserts both halves together.
+#:
+#: `admin.interview_audio` is still the one capability ADMIN alone holds nothing
+#: extra to be said about — the asymmetry it recorded (a recording is an
+#: operator's artefact containing a named student's voice, not placement
+#: business) now lives entirely in MENTOR needing an explicit grant for it.
+#: Faculty instruments. The Main Admin is not a faculty member: it has no
+#: mentees, no private notebook, nobody's evidence to verify and no upskilling
+#: shelf. These stay in the catalogue and stay SCOPED, so the Main Admin can
+#: GRANT any of them in Governance -- to a faculty member, or to itself when a
+#: student's evidence is stuck and nobody else will look -- and revoke them
+#: again. `mentor.leave_approve` is NOT here: the Main Admin is the Program
+#: Director, the second of the two approvers, and removing it breaks sanctioning.
+_FACULTY_ONLY: Final[frozenset[str]] = frozenset(
+    {"mentor.mentees", "mentor.notebook", "mentor.verifications", "mentor.upskilling"}
+)
 
 ROLE_BASELINE: Final[dict[str, frozenset[str]]] = {
-    "ADMIN": _ALL,
-    "DIRECTOR": _DIRECTOR,
+    "ADMIN": _ALL - _FACULTY_ONLY,
+    "DIRECTOR": frozenset(),
     "MENTOR": _SCOPED,
     "STUDENT": frozenset(),
     "ALUMNI": frozenset(),

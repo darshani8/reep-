@@ -19,6 +19,7 @@ from .db import SessionLocal
 from .observability import SERVICE_API, init_sentry
 from .traceability import RequestTraceMiddleware
 from .routers import (
+    onboarding,
     passwords,
     admin,
     governance,
@@ -27,7 +28,7 @@ from .routers import (
     auth,
     badge_verification,
     badges,
-    director,
+    console,
     health,
     interview,
     admin_faculty,
@@ -105,6 +106,37 @@ async def lifespan(_app: FastAPI):
     # Protocol.debug is evaluated per connection at connect time, i.e. after
     # this runs, and websockets.client/.server are NOTSET so they inherit it.
     logging.getLogger("websockets").setLevel(logging.INFO)
+
+    # THE APP'S OWN LOG LINES HAD NOWHERE TO GO (2026-09-10). Nothing in this
+    # process ever called basicConfig, so the root logger carried no handler and
+    # sat at WARNING: every `log.info` in `app/` was discarded, in development
+    # AND in production. What that cost is concrete — the console mail
+    # transport writes the activation and confirmation LINKS at INFO and calls
+    # itself "not a stub" for exactly that reason, so a developer following
+    # AGENTS.md to read a link out of the uvicorn log found nothing; and the
+    # 30-day production log contained not one mail line while real applicants
+    # were being silently dropped. `logging.lastResort` masks it, because
+    # WARNING and above still reach stderr, so the log looks alive.
+    #
+    # uvicorn configures its OWN loggers (uvicorn.access, uvicorn.error) and
+    # deliberately leaves the root alone, so this is ours to set.
+    #
+    # NOT `force=True`, which was the first attempt and is wrong: it REMOVES
+    # every handler already on the root logger, which in a container is
+    # whatever the operator configured and under pytest is caplog's capturing
+    # handler — test_boot_guard's "raised AND logged at CRITICAL" assertion
+    # went from passing to failing while the message was still plainly on
+    # stderr. Configure a bare process; adjust the level on one that is already
+    # configured; never take somebody else's handler away.
+    _root = logging.getLogger()
+    _level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    if _root.handlers:
+        _root.setLevel(_level)
+    else:
+        logging.basicConfig(
+            level=_level,
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        )
     # The voice platform's direct CloudWatch Logs handler, only when
     # PLATFORM_CLOUDWATCH_LOG_GROUP is set (stdout -> awslogs is the default).
     # The voice platform's PLATFORM_* settings, from the SSM parameters its CDK
@@ -289,6 +321,7 @@ app.include_router(platform_bridge.router)
 app.include_router(auth.router, prefix="/api")
 # Credentials — activation, forgot, reset, change. Separate from sign-in.
 app.include_router(passwords.router, prefix="/api")
+app.include_router(onboarding.router, prefix="/api")
 # Canonical v1 surface. The legacy /api surface remains during the expand/contract window.
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(redesign.router, prefix="/api/v1")
@@ -299,14 +332,14 @@ app.include_router(student.router, prefix="/api")
 # shares the /student prefix, so the client sees one flat surface.
 app.include_router(student_programme.router, prefix="/api")
 app.include_router(mentor.router, prefix="/api")
-# The staff side of the v2 screens — a mentor or director reading a student's
+# The staff side of the v2 screens — a mentor or the Main Admin reading a student's
 # ledger and English baseline. Separate from mentor.py so that file is untouched,
 # and every endpoint in it goes through _assert_can_access_student (rule 2).
 app.include_router(mentee_records.router, prefix="/api")
-app.include_router(director.router, prefix="/api")
+app.include_router(console.router, prefix="/api")
 # Main Admin: the institutional write layer (colleges, departments, batches,
 # seating a student, and the users.designation/department columns that had no
-# writer at all). require_director inside, same as every other admin surface.
+# writer at all). require_admin inside, same as every other admin surface.
 app.include_router(admin.router, prefix="/api")
 app.include_router(admin_students.router, prefix="/api")
 app.include_router(admin_faculty.router, prefix="/api")
@@ -326,7 +359,7 @@ app.include_router(alumni.router, prefix="/api")
 # The Skills & Badge dashboard: the student half shares the /student prefix
 # (badges, growth, leaderboards); badge_verification carries the staff review queue,
 # manual awards, assessment entry, cohort views and the certification
-# catalogue, under /mentor and /director as rule 2 dictates.
+# catalogue, under /mentor and /admin as rule 2 dictates.
 app.include_router(badges.router, prefix="/api")
 app.include_router(badge_verification.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")

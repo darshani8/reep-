@@ -41,7 +41,7 @@ DynamoDB projections, the stereo recording — and reuses the interviewer.
 THE TWO RULES STILL HOLD. Rule 1: nothing from a student's record enters the
 model session; the catalogue rows are the placement office's own question
 bank, and the uplink is the candidate's microphone. Rule 2: every admin route
-is behind `require_director`, and the call sessions a mentor may read go
+is behind `require_admin`, and the call sessions a mentor may read go
 through `_assert_can_access_student` via the linked `interview_sessions` row.
 
 EVERY AWS PROJECTION IS OPTIONAL AND HONEST. A deployment that sets no

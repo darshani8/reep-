@@ -67,6 +67,36 @@ def test_the_created_by_columns_are_all_on_kept_tables():
         assert column in Base.metadata.tables[name].c
 
 
+def _plan_with_one_admin(db):
+    """Plan the purge with EXACTLY ONE ADMIN, whatever else the suite has left
+    lying around.
+
+    `find_survivor` refuses more than one office account, on purpose — picking
+    between two would be the module deciding which colleague keeps their
+    account. But other modules in this suite mint their own ADMIN rows
+    (`test_main_admin.py`, `test_admin_faculty.py`), so whether this test saw
+    one admin or three depended on what had run before it: it passed alone and
+    failed in the full suite, which is the least useful kind of red.
+
+    So the condition is CREATED here rather than borrowed from the ambient
+    database. The demotion rides inside the caller's transaction and dies with
+    the same `rollback()` the delete does, so nothing outside this test ever
+    sees it.
+    """
+    admins = db.execute(
+        select(Base.metadata.tables["users"].c.id).where(
+            Base.metadata.tables["users"].c.role.in_((Role.ADMIN, "ADMIN"))
+        )
+    ).scalars().all()
+    assert admins, "the dev seed's Main Admin is missing; run python -m app.seed"
+    if len(admins) > 1:
+        # Keep admins[0]; the rest become faculty for the life of this
+        # transaction. Which one survives does not matter to the delete order.
+        users = Base.metadata.tables["users"]
+        db.execute(users.update().where(users.c.id.in_(admins[1:])).values(role="MENTOR"))
+    return purge_people.build_plan(db)
+
+
 @requires_db
 def test_the_delete_order_survives_every_foreign_key():
     """THE REAL DELETE, ROLLED BACK. If any table is deleted before something
@@ -75,7 +105,7 @@ def test_the_delete_order_survives_every_foreign_key():
     users = Base.metadata.tables["users"]
     kept_before = {}
     with SessionLocal() as db:
-        plan = purge_people.build_plan(db)
+        plan = _plan_with_one_admin(db)
         for name, verdict in purge_people.VERDICTS.items():
             if verdict == purge_people.KEEP:
                 kept_before[name] = db.scalar(
@@ -112,7 +142,7 @@ def test_the_plan_counts_what_the_delete_deletes():
     """A dry run an operator reads and then acts on is only useful if the two
     passes agree. Same session, same transaction: plan, delete, compare."""
     with SessionLocal() as db:
-        plan = purge_people.build_plan(db)
+        plan = _plan_with_one_admin(db)
         before = {
             name: db.scalar(select(func.count()).select_from(Base.metadata.tables[name]))
             for name in plan.rows
@@ -172,14 +202,30 @@ def test_it_refuses_when_the_main_admin_is_not_exactly_one(make_user):
 @requires_db
 def test_a_dry_run_changes_nothing(make_user):
     """`main()` with no flags must be readable by an operator who is not yet
-    sure, and must leave the deployment exactly as it found it."""
-    with SessionLocal() as db:
-        before = db.scalar(select(func.count()).select_from(Base.metadata.tables["users"]))
+    sure, and must leave the deployment exactly as it found it.
 
-    assert purge_people.main([]) == 0
+    `main()` opens its OWN session, so unlike the tests above this one cannot
+    stage a single-admin database inside a transaction it rolls back. It
+    therefore accepts either exit code, and the reason is the point being made:
+    0 is a dry run that planned, 2 is `find_survivor` refusing because another
+    module in this suite has an ADMIN row live — and BOTH must leave the
+    deployment untouched. The refusal path is the one more likely to be got
+    wrong, because it aborts half way through `build_plan`.
+    """
+    users = Base.metadata.tables["users"]
+    with SessionLocal() as db:
+        before = db.scalar(select(func.count()).select_from(users))
+        admins_before = db.scalar(
+            select(func.count()).select_from(users).where(users.c.role.in_((Role.ADMIN, "ADMIN")))
+        )
+
+    code = purge_people.main([])
+    assert code in (0, 2), code
+    if admins_before == 1:
+        assert code == 0, "one Main Admin: the dry run should plan, not refuse"
 
     with SessionLocal() as db:
-        after = db.scalar(select(func.count()).select_from(Base.metadata.tables["users"]))
+        after = db.scalar(select(func.count()).select_from(users))
     assert after == before
 
 
@@ -192,7 +238,7 @@ def test_the_receipt_actually_writes():
     for real here, read back, and removed."""
     audit = Base.metadata.tables["redesign_audit_events"]
     with SessionLocal() as db:
-        plan = purge_people.build_plan(db)
+        plan = _plan_with_one_admin(db)
         plan.rows = {"users": 11}
         purge_people._stamp(db, plan)  # commits its own row
 

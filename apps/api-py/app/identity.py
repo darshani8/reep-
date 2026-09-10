@@ -2,7 +2,13 @@
 
 from fastapi import HTTPException, Request, WebSocket, WebSocketException, status
 
-from .security import SESSION_COOKIE, verify_session_token
+from .security import (
+    SESSION_COOKIE,
+    SESSION_RETIRED_HEADER,
+    SESSION_RETIRED_VALUE,
+    session_was_retired,
+    verify_session_token,
+)
 
 
 def _with_live_mentor_id(payload: dict) -> dict:
@@ -32,7 +38,23 @@ def get_current_session(request: Request) -> dict:
     token = request.cookies.get(SESSION_COOKIE)
     payload = verify_session_token(token) if token else None
     if not payload:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in required.")
+        # WHY, when the answer is knowable. Under one device at a time a student
+        # is signed out by their own second sign-in, and a 401 that says only
+        # "Sign in required" leaves the login screen unable to tell them that.
+        # A HEADER rather than a richer `detail`, because `detail` is a string
+        # every existing client renders as prose: widening it to an object here
+        # would change a contract shared by every authenticated route in the
+        # app, to serve one screen.
+        headers = (
+            {SESSION_RETIRED_HEADER: SESSION_RETIRED_VALUE}
+            if session_was_retired(token)
+            else None
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sign in required.",
+            headers=headers,
+        )
     return _with_live_mentor_id(payload)
 
 

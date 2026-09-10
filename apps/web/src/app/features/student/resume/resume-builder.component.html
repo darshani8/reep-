@@ -89,7 +89,7 @@
         <!-- One click brings in everything REEP already holds verified, so the
              student never retypes what a mentor has already confirmed. -->
         <button type="button" class="import-btn" (click)="importVerified()">
-          <span class="icon">sync</span> Import verified record
+          <span class="icon" aria-hidden="true">sync</span> Import verified record
         </button>
         @if (importedCount() !== null) {
           <div class="import-done">
@@ -104,18 +104,12 @@
         @for (group of groups; track group.name) {
           <div class="step-group">{{ group.name }}</div>
           @for (s of group.steps; track s.key) {
-            <div class="step-item" [class.active]="step() === s.key" (click)="step.set(s.key)">
+            <div class="step-item" [class.active]="step() === s.key" (click)="goToStep(s.key)">
               <span
                 class="step-dot"
                 [class.done]="stepStates()[s.key] === 'done'"
                 [class.partial]="stepStates()[s.key] === 'partial'"
-                [attr.title]="
-                  stepStates()[s.key] === 'done'
-                    ? 'Complete'
-                    : stepStates()[s.key] === 'partial'
-                      ? 'Partly filled'
-                      : 'Not started'
-                "
+                [attr.title]="stepHint(s.key)"
               ></span>
               {{ s.label }}
             </div>
@@ -131,10 +125,10 @@
           </div>
           <div class="head-actions">
             <button type="button" class="btn" (click)="go('export')">
-              <span class="icon">folder_open</span> All Resumes
+              <span class="icon" aria-hidden="true">folder_open</span> All Resumes
             </button>
             <button type="button" class="btn primary" (click)="go('preview')">
-              <span class="icon">auto_awesome</span> Generate Resume
+              <span class="icon" aria-hidden="true">auto_awesome</span> Generate Resume
             </button>
           </div>
         </div>
@@ -198,36 +192,40 @@
             @switch (saveState()) {
               @case ('saving') {
                 <span class="chip neutral save-chip">
-                  <span class="icon spin">progress_activity</span> Saving…
+                  <span class="icon spin" aria-hidden="true">progress_activity</span> Saving…
                 </span>
               }
               @case ('unsaved') {
                 <span class="chip warn save-chip">
-                  <span class="icon">edit</span> Unsaved changes
+                  <span class="icon" aria-hidden="true">edit</span> Unsaved changes
                 </span>
               }
               @case ('saved') {
                 <span class="chip good save-chip">
-                  <span class="icon">check_circle</span> {{ savedLabel() }}
+                  <span class="icon" aria-hidden="true">check_circle</span> {{ savedLabel() }}
                 </span>
               }
               @default {
                 <span class="chip neutral save-chip">
-                  <span class="icon">history</span> Not saved yet
+                  <span class="icon" aria-hidden="true">history</span> Not saved yet
                 </span>
               }
             }
             <span class="foot-note">Changes are versioned &amp; autosaved</span>
           </div>
           <div class="foot-actions">
-            @if (step() === 'education') {
-              <button type="button" class="btn accent" [disabled]="svc.saving()" (click)="save()">
-                <span class="icon">send</span>
-                {{ svc.saving() ? 'Sending…' : 'Update & request approval' }}
-              </button>
+            <!-- READ-ONLY MIRRORS GET NO SAVE BUTTON. Education's said "Update &
+                 request approval" and called the ordinary save: one PUT of the
+                 resume draft, no approval, nobody told. The request it promised
+                 now lives inside the section, next to the figures it is about. -->
+            @if (readOnlyStep()) {
+              <span class="foot-note">
+                <span class="icon" aria-hidden="true">lock</span>
+                Imported from your university record — nothing to save here.
+              </span>
             } @else {
               <button type="button" class="btn primary" [disabled]="svc.saving()" (click)="save()">
-                <span class="icon">save</span>
+                <span class="icon" aria-hidden="true">save</span>
                 {{ svc.saving() ? 'Saving…' : 'Save section' }}
               </button>
             }

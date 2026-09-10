@@ -233,41 +233,56 @@ def test_reset_signs_out_every_device_and_kills_other_links(client, make_user, l
 
 @requires_db
 def test_change_password_keeps_this_device_and_drops_the_others(client, make_user, login):
+    """Two rules in one path, and they used to be tested with two live devices.
+
+    An account can no longer HOLD two live devices: one-device-at-a-time means
+    the second sign-in retires the first, which this test now asserts on its way
+    to the change-password flow rather than assuming otherwise. What remains
+    specific to change-password is the half that is not automatic — the cookie in
+    the hand of the person making the change is re-issued, so they are not signed
+    out by their own action, while the token they arrived with stops working.
+    """
     mentor = make_user("pw-change", Role.MENTOR)
     device_a = login(mentor.email, TEST_PASSWORD)
     device_b = login(mentor.email, TEST_PASSWORD)
+    # The second sign-in already retired the first — no password change needed.
+    assert client.get("/api/auth/me", headers=device_a).status_code == 401, (
+        "signing in on a second device must retire the first"
+    )
+    assert client.get("/api/auth/me", headers=device_b).status_code == 200
 
     wrong = client.post(
         "/api/auth/change-password",
-        headers=device_a,
+        headers=device_b,
         json={"current_password": "not it at all", "new_password": GOOD},
     )
     assert wrong.status_code == 403
     same = client.post(
         "/api/auth/change-password",
-        headers=device_a,
+        headers=device_b,
         json={"current_password": TEST_PASSWORD, "new_password": TEST_PASSWORD},
     )
     assert same.status_code == 422
     short = client.post(
         "/api/auth/change-password",
-        headers=device_a,
+        headers=device_b,
         json={"current_password": TEST_PASSWORD, "new_password": "short"},
     )
     assert short.status_code == 422
 
     ok = client.post(
         "/api/auth/change-password",
-        headers=device_a,
+        headers=device_b,
         json={"current_password": TEST_PASSWORD, "new_password": GOOD},
     )
     assert ok.status_code == 200, ok.text
-    device_a_new = {"Cookie": ok.headers.get("set-cookie", "")}
+    device_b_new = {"Cookie": ok.headers.get("set-cookie", "")}
     client.cookies.clear()
 
-    assert client.get("/api/auth/me", headers=device_a_new).status_code == 200, "this device stays"
-    assert client.get("/api/auth/me", headers=device_b).status_code == 401, "the other device is out"
-    assert client.get("/api/auth/me", headers=device_a).status_code == 401, "the OLD cookie on this device is out too"
+    assert client.get("/api/auth/me", headers=device_b_new).status_code == 200, "this device stays"
+    assert client.get("/api/auth/me", headers=device_b).status_code == 401, (
+        "the OLD cookie on this device is out"
+    )
 
 
 @requires_db

@@ -114,11 +114,21 @@ export class RbExportComponent {
     return `v${v.version} · ${status}`;
   }
 
-  /** Open the server-rendered PDF of the chosen version. */
+  /**
+   * Open the server-rendered PDF of the chosen version.
+   *
+   * `?appendix=true` is what the evidence checkbox now does. It used to do
+   * nothing: this method opened the same URL either way, so the box changed one
+   * sentence of consent copy and no bytes — and a student who ticked it stopped
+   * attaching their certificates by hand, believing they were already in there.
+   */
   exportPdf(): void {
     const v = this.selected();
     if (!v || !this.canExport()) return;
-    window.open(`${environment.apiBase}/student/resume/${v.id}/pdf`, '_blank', 'noopener');
+    const url =
+      `${environment.apiBase}/student/resume/${v.id}/pdf` +
+      (this.proofAppendix() ? '?appendix=true' : '');
+    window.open(url, '_blank', 'noopener');
     this.exported.set(true);
   }
 }

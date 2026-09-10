@@ -20,8 +20,9 @@ login screen carries (apps/web .../login/login.component.ts:signInUrl), and
 canonical, neither an alias, because a login screen pointed at a hidden
 back-compat path becomes collateral damage the day the alias is tidied away.
 
-ONE SESSION, TWO DOORS. Both sign-in paths end in the same three lines:
-`_record_login`, `_payload_for`, `_issue_session`. The cookie is the same
+ONE SESSION, TWO DOORS. Both sign-in paths end in the same four steps:
+retire the account's other sessions, `_record_login`, `_payload_for`,
+`_issue_session`. The cookie is the same
 httpOnly `reep_session`, signed the same way, carrying the same camelCase claims
 (userId/email/name/role/studentId?/mentorId?) that the Next.js app minted and
 that every consumer still reads â app/identity.py, require_mentor,
@@ -45,6 +46,12 @@ previous student's marks, uploads and mentor notes. `users.google_sub` is set on
 the first Google sign-in and compared on every one after; a mismatch is refused
 (`sso_identity_mismatch`) and logged rather than reconciled, because only a
 human can tell a legitimate re-issue from someone who arranged one.
+
+ONE DEVICE AT A TIME. An account holds exactly one live session: every sign-in
+advances `users.token_version`, which retires the tokens minted before it, so
+signing in on a phone drops the laptop on its next request. The newest sign-in
+wins, deliberately -- refusing the new device instead would lock out the student
+whose browser crashed until a row expired. See _retire_other_sessions.
 
 A SESSION CAN NOW BE REVOKED, within the limits app/security.py states plainly.
 `users.token_version` rides in the token and logout bumps it, so signing out on
@@ -326,7 +333,11 @@ def _payload_for(user: User) -> dict:
     # `tokenVersion: 0` would say exactly nothing at the cost of putting a new
     # key in the claim set that app/identity.py, the interview WebSocket, the Angular
     # `SessionPayload` and tests/test_google_callback.py all describe as the
-    # contract. The claim appears the moment it means something.
+    # contract.
+    #
+    # In practice every session minted by a sign-in now carries it, because
+    # _retire_other_sessions advances the column first (one device at a time).
+    # The branch stays for the rows still sitting at zero.
     if user.token_version:
         payload[SESSION_VERSION_CLAIM] = user.token_version
     return payload
@@ -350,6 +361,55 @@ def _record_login(db: Session, user: User) -> None:
     if already is None:
         db.add(LoginDay(user_id=user.id, day=today))
     db.commit()
+
+
+# --------------------------------------------------------------------------- #
+# One device at a time
+# --------------------------------------------------------------------------- #
+#
+# A REEP account may hold exactly ONE live session. Signing in anywhere signs
+# the account out everywhere else; the newest sign-in wins and the older device
+# is dropped on its next request.
+#
+# The mechanism is the one that already existed for logout: `users.token_version`
+# rides in the token, and app/security.py refuses any token whose version is
+# BEHIND the row. Advancing the row at sign-in therefore retires every session
+# minted before it, without a sessions table, a device list, or any new state to
+# keep consistent. The alternative — recording devices and refusing the second —
+# would need a store, an eviction policy, and an answer for the student whose
+# browser crashed and who now cannot get back in until a row expires.
+#
+# TWO HALVES, DELIBERATELY, because they belong at different moments:
+#
+#   `_retire_other_sessions` is the in-memory half. It advances the column and
+#   nothing else; THE CALLER'S COMMIT IS WHAT PERSISTS IT. It is called before
+#   `_payload_for` so the token carries the new version, and the commit it rides
+#   on is the one the sign-in path was already making (`_record_login`). Folding
+#   it into that commit is not tidiness: on the code-login path the same
+#   transaction also lands the one-time code's `consumed_at`, and a separate
+#   earlier commit would make "code spent, session refused" reachable.
+#
+#   `_confirm_exclusive_session` is the cache half, and MUST run after the
+#   commit. It seeds this worker so the retired tokens stop working here at once
+#   rather than at the end of the revocation cache window.
+#
+# THE HONEST CONSEQUENCE, in the same terms app/security.py already uses for
+# logout: if the commit fails, the new session is still issued and the older
+# devices stay signed in until their tokens expire. That is fail-open on the
+# exclusivity, not on authentication, and it is logged where it happens. Making
+# it fail-closed would mean refusing a correct password because a streak row
+# could not be written.
+
+
+def _retire_other_sessions(user: User) -> None:
+    """Advance the token version so the session about to be minted is the only
+    valid one. In-memory; the caller's commit persists it."""
+    user.token_version = (user.token_version or 0) + 1
+
+
+def _confirm_exclusive_session(user: User) -> None:
+    """Seed this worker's revocation cache. Call AFTER the commit."""
+    note_revocation(user.id, user.token_version)
 
 
 def _issue_session(response: Response, payload: dict) -> None:
@@ -548,7 +608,10 @@ def login(
         send_login_code(db, user, code, row.id)
         log.info("POST /api/auth/login -> 200 challenge: one-time code sent to %s", email)
         return LoginChallenge(email=user.email, expires_in_minutes=settings.otp_code_minutes)
-    _record_login(db, user)
+    # One device at a time: this sign-in retires every session the account holds.
+    _retire_other_sessions(user)
+    _record_login(db, user)  # the commit that persists the retirement
+    _confirm_exclusive_session(user)
     payload = _payload_for(user)
     _issue_session(response, payload)
     return SessionUser(**payload, capabilities=sorted(capabilities_for(db, payload)))
@@ -624,10 +687,16 @@ def login_with_code(
         )
 
     _clear_login_failures(account_key)
+    # One device at a time. The bump rides on the SAME commit as the code's
+    # consumed_at, which is why _retire_other_sessions does not commit for
+    # itself: an extra commit here would make "code spent, session refused"
+    # reachable, which is precisely what the note below is about.
+    _retire_other_sessions(user)
     # _record_login commits, which also lands the consumed_at write above: the
     # spend and the sign-in are one transaction, so a failure here leaves the
     # code unspent rather than spent-and-refused.
     _record_login(db, user)
+    _confirm_exclusive_session(user)
     payload = _payload_for(user)
     _issue_session(response, payload)
     return SessionUser(**payload, capabilities=sorted(capabilities_for(db, payload)))
@@ -875,6 +944,12 @@ def google_callback(
     # Built BEFORE the write, not after: `_record_login` commits, a commit
     # expires every loaded attribute, and reading them back on a database that
     # has just failed would raise from inside the recovery path.
+    # One device at a time, before the payload is built so the token carries the
+    # new version. It rides on `_record_login`'s commit like the google_sub pin
+    # below, and like the pin it is simply lost if that commit fails — the
+    # session is still issued and the older devices stay signed in until their
+    # tokens expire, which is logged in the handler below.
+    _retire_other_sessions(user)
     payload = _payload_for(user)
     # Pinned on the first Google sign-in, and folded into the commit
     # `_record_login` already makes rather than given one of its own: two writes
@@ -887,6 +962,7 @@ def google_callback(
         user.google_sub = identity.sub
     try:
         _record_login(db, user)
+        _confirm_exclusive_session(user)
     except SQLAlchemyError:
         # The streak row is telemetry; the session is the product. A verified
         # identity has already been established at this point, and letting a
@@ -900,8 +976,10 @@ def google_callback(
         db.rollback()
         log.exception(
             "GET /api/auth/sso/google/callback: could not record the login for %s "
-            "(session still issued; the streak will under-count and users.google_sub "
-            "is unchanged â a UniqueViolation here means this Google account is "
+            "(session still issued; the streak will under-count, users.google_sub "
+            "is unchanged, and THIS ACCOUNT'S OTHER DEVICES WERE NOT SIGNED "
+            "OUT because the token_version bump rode on this same commit "
+            "â a UniqueViolation here means this Google account is "
             "already pinned to a different roster row)",
             payload["email"],
         )

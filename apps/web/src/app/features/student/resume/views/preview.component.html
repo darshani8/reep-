@@ -12,10 +12,10 @@
       </div>
       <div class="head-actions">
         <button type="button" class="btn" (click)="navigate.emit('builder')">
-          <span class="icon">edit</span> Edit profile
+          <span class="icon" aria-hidden="true">edit</span> Edit profile
         </button>
         <button type="button" class="btn" [disabled]="!result()" (click)="download()">
-          <span class="icon">download</span> Download PDF
+          <span class="icon" aria-hidden="true">download</span> Download PDF
         </button>
         <button
           type="button"
@@ -23,7 +23,7 @@
           disabled
           title="Submitting a resume for approval isn't available yet — there is no backend endpoint for it."
         >
-          <span class="icon">send</span> Submit for approval
+          <span class="icon" aria-hidden="true">send</span> Submit for approval
         </button>
       </div>
     </div>
@@ -40,14 +40,14 @@
               [disabled]="generating()"
             />
             <button type="button" class="btn accent" [disabled]="generating()" (click)="generate()">
-              <span class="icon">auto_awesome</span>
+              <span class="icon" aria-hidden="true">auto_awesome</span>
               {{ generating() ? 'Generating…' : result() ? 'Regenerate' : 'Generate Resume' }}
             </button>
           </div>
 
           @if (error()) {
             <div class="notice info">
-              <span class="icon">error</span>
+              <span class="icon" aria-hidden="true">error</span>
               <div>{{ error() }}</div>
             </div>
           }
@@ -77,7 +77,10 @@
           @if (warnings().length) {
             <div class="warnings" role="note">
               <div class="warnings-title">Warnings</div>
-              @for (w of warnings(); track w) {
+              <!-- track by position: these are computed strings, so tracking by
+                   value re-creates the whole list (and its DOM) every time one
+                   of them changes — Angular NG0956. -->
+              @for (w of warnings(); track $index) {
                 <div class="warning-line">⚠ {{ w }}</div>
               }
             </div>
@@ -140,7 +143,7 @@
           } @else if (!generating()) {
             <div class="preview">
               <div class="empty">
-                <span class="icon">auto_awesome</span>
+                <span class="icon" aria-hidden="true">auto_awesome</span>
                 <p>
                   No resume generated yet. Press <b>Generate Resume</b> to compose one from your
                   saved REEP records.
@@ -162,7 +165,7 @@
               <div class="trace">
                 <div>
                   <span class="chip neutral">
-                    <span class="icon">bolt</span>
+                    <span class="icon" aria-hidden="true">bolt</span>
                     {{ r.used_ai ? (r.model ?? r.generated_by) : 'Deterministic draft' }}
                   </span>
                   {{ r.used_ai ? 'polished by a model' : 'composed on this machine' }}
@@ -188,19 +191,19 @@
             <h3>Evidence pack</h3>
             <div class="evi">
               <div>
-                <span class="chip good"><span class="icon">check</span></span> Composed only from
+                <span class="chip good"><span class="icon" aria-hidden="true">check</span></span> Composed only from
                 your saved REEP records
               </div>
               <div>
-                <span class="chip good"><span class="icon">check</span></span> Academic &amp;
+                <span class="chip good"><span class="icon" aria-hidden="true">check</span></span> Academic &amp;
                 certification data pulled from source
               </div>
               <div>
-                <span class="chip good"><span class="icon">check</span></span> Nothing invented —
+                <span class="chip good"><span class="icon" aria-hidden="true">check</span></span> Nothing invented —
                 every claim is grounded
               </div>
               <div>
-                <span class="chip warn"><span class="icon">remove</span></span> Self-reported items
+                <span class="chip warn"><span class="icon" aria-hidden="true">remove</span></span> Self-reported items
                 awaiting verification are excluded
               </div>
             </div>
@@ -227,7 +230,7 @@
                   style="margin-top: 12px; padding: 7px 12px; font-size: 12px"
                   (click)="navigate.emit('builder')"
                 >
-                  <span class="icon">arrow_forward</span> Complete those sections
+                  <span class="icon" aria-hidden="true">arrow_forward</span> Complete those sections
                 </button>
               }
             </div>
@@ -238,7 +241,7 @@
 
     <div class="footbar">
       <div class="hint">
-        <span class="icon" style="font-size: 16px">lock</span>
+        <span class="icon" style="font-size: 16px" aria-hidden="true">lock</span>
         Generated on-device · evidence stored for mentor audit
       </div>
     </div>

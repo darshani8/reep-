@@ -133,7 +133,7 @@
   <h3>
     Guardian / siblings
     <button type="button" class="addlink right" (click)="addGuardian()">
-      <span class="icon" style="font-size: 15px">add</span> Add
+      <span class="icon" style="font-size: 15px" aria-hidden="true">add</span> Add
     </button>
   </h3>
   <div class="desc">
@@ -142,8 +142,8 @@
   @for (g of m.guardians; track $index) {
     <div class="entry">
       <div class="tools">
-        <button type="button" (click)="removeGuardian($index)">
-          <span class="icon" style="font-size: 17px">delete</span>
+        <button type="button" (click)="removeGuardian($index)" aria-label="Remove this guardian">
+          <span class="icon" style="font-size: 17px" aria-hidden="true">delete</span>
         </button>
       </div>
       <div class="grid3">

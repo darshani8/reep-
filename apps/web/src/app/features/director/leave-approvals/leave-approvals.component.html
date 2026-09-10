@@ -1,7 +1,7 @@
 <div class="panel" data-p="leave-approvals">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Leave approvals</div>
+      <h1 class="dt-title">Leave approvals</h1>
       <div class="dt-sub">Signed leave forms sent to you for approval.</div>
     </div>
   </div>
@@ -15,20 +15,20 @@
   </div>
 
   @if (error()) {
-    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
   }
   @if (flash()) {
-    <div class="decided"><span class="icon">check_circle</span>{{ flash() }}</div>
+    <div class="decided"><span class="icon" aria-hidden="true">check_circle</span>{{ flash() }}</div>
   }
 
   @if (loading()) {
-    <div class="state-note"><span class="icon">hourglass_empty</span>Loading the queue…</div>
+    <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading the queue…</div>
   } @else {
     @for (r of rows(); track r.id) {
       <div class="req">
         @if (r.director_note && !isPending(r)) {
           <div class="remarks">
-            <span class="icon">flag</span>
+            <span class="icon" aria-hidden="true">flag</span>
             <div>
               <strong>{{ remarksLabel(r) }}</strong>
               <div>{{ r.director_note }}</div>
@@ -112,7 +112,7 @@
                   [disabled]="deciding() === r.id"
                   (click)="openApprove(r.id)"
                 >
-                  <span class="icon">draw</span> Mark Sanctioned &amp; sign
+                  <span class="icon" aria-hidden="true">draw</span> Mark Sanctioned &amp; sign
                 </button>
               } @else {
                 <div class="sig-await">Awaiting</div>
@@ -182,7 +182,7 @@
                   [disabled]="deciding() === r.id"
                   (click)="confirmApprove(r)"
                 >
-                  <span class="icon">draw</span> Confirm sanction
+                  <span class="icon" aria-hidden="true">draw</span> Confirm sanction
                 </button>
                 <button type="button" class="btn" (click)="cancelUi(r.id)">Cancel</button>
               </div>
@@ -218,7 +218,7 @@
                   [disabled]="deciding() === r.id"
                   (click)="openReject(r.id)"
                 >
-                  <span class="icon">cancel</span> Reject
+                  <span class="icon" aria-hidden="true">cancel</span> Reject
                 </button>
               </div>
             }

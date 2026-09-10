@@ -1,13 +1,13 @@
 <div class="dt-header">
   <div>
-    <div class="dt-title">My Profile</div>
+    <h1 class="dt-title">My Profile</h1>
     <div class="dt-sub">Where you work now, and the resume the placement office can share.</div>
   </div>
 </div>
 
 @if (error()) {
   <div class="feedback feedback--err" role="alert">
-    <span class="icon">wifi_off</span>
+    <span class="icon" aria-hidden="true">wifi_off</span>
     <div class="feedback__body">{{ error() }}</div>
   </div>
 } @else if (profile(); as prof) {
@@ -47,12 +47,12 @@
 
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
           <button type="button" class="dt-btn" (click)="picker.click()">
-            <span class="icon">upload_file</span>
+            <span class="icon" aria-hidden="true">upload_file</span>
             {{ prof.created ? 'Replace resume' : 'Upload current resume *' }}
           </button>
           @if (pickedFile) {
             <span class="chip good"
-              ><span class="icon">description</span>{{ pickedFile.name }}</span
+              ><span class="icon" aria-hidden="true">description</span>{{ pickedFile.name }}</span
             >
           } @else if (prof.resume) {
             <span class="dt-sub">Keeping: {{ prof.resume.original_name }}</span>
@@ -69,14 +69,14 @@
 
         @if (saveError()) {
           <div class="feedback feedback--err" role="alert">
-            <span class="icon">error</span>
+            <span class="icon" aria-hidden="true">error</span>
             <div class="feedback__body">{{ saveError() }}</div>
           </div>
         }
 
         <div style="display: flex; gap: 10px">
           <button type="button" class="dt-btn primary" [disabled]="saving()" (click)="save()">
-            <span class="icon">check</span>
+            <span class="icon" aria-hidden="true">check</span>
             {{ saving() ? 'Saving…' : prof.created ? 'Save changes' : 'Create my profile' }}
           </button>
           @if (prof.created) {
@@ -95,7 +95,7 @@
           <div class="dt-sub">{{ prof.email }}</div>
         </div>
         @if (savedFlash()) {
-          <span class="chip good"><span class="icon">check_circle</span>Saved</span>
+          <span class="chip good"><span class="icon" aria-hidden="true">check_circle</span>Saved</span>
         }
       </div>
 
@@ -119,11 +119,11 @@
         <dd style="margin: 0">
           @if (prof.resume; as r) {
             <a class="dt-btn" [href]="resumeUrl()" target="_blank" rel="noopener">
-              <span class="icon">description</span>{{ r.original_name }} ·
+              <span class="icon" aria-hidden="true">description</span>{{ r.original_name }} ·
               {{ formatSize(r.size_bytes) }}
             </a>
           } @else {
-            <span class="chip warn"><span class="icon">warning</span>No resume on file</span>
+            <span class="chip warn"><span class="icon" aria-hidden="true">warning</span>No resume on file</span>
           }
         </dd>
         <dt class="dt-sub">Last updated</dt>
@@ -133,7 +133,7 @@
       </dl>
 
       <button type="button" class="dt-btn" (click)="startEdit()">
-        <span class="icon">edit</span>Edit profile
+        <span class="icon" aria-hidden="true">edit</span>Edit profile
       </button>
     </div>
   }

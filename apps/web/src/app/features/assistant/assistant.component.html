@@ -191,7 +191,7 @@
 -->
 @if (isStudent() && consent(); as grant) {
   <p class="terms reep-body2">
-    <span class="chip good"><span class="icon">verified_user</span>Terms accepted</span>
+    <span class="chip good"><span class="icon" aria-hidden="true">verified_user</span>Terms accepted</span>
     <span class="terms__text">
       Accepted {{ consentGrantedLabel() }}. Voice recording is
       <strong>{{ grant.scope_store_audio ? 'on' : 'off' }}</strong

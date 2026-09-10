@@ -68,7 +68,7 @@
                         [class.neutral]="item.tone === 'neutral'"
                         [attr.title]="item.title"
                         [attr.aria-label]="item.title"
-                        >{{ item.glyph }}</span
+                         aria-hidden="true">{{ item.glyph }}</span
                       >
                     </a>
                   } @else {
@@ -82,7 +82,7 @@
                         [class.neutral]="item.tone === 'neutral'"
                         [attr.title]="item.title"
                         [attr.aria-label]="item.title"
-                        >{{ item.glyph }}</span
+                         aria-hidden="true">{{ item.glyph }}</span
                       >
                     </div>
                   }

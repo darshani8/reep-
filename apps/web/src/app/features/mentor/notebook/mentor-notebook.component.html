@@ -2,17 +2,17 @@
   <div class="dt-header">
     <div>
       <div class="eyebrow">Staff · private notebook</div>
-      <div class="dt-title">Mentor notebook</div>
+      <h1 class="dt-title">Faculty notebook</h1>
       <div class="dt-sub nb-lede">
         Capture the meeting while it is fresh. Drafts stay staff-private until you publish.
       </div>
     </div>
-    <span class="chip nb-private"><span class="icon">lock</span> Private by default</span>
+    <span class="chip nb-private"><span class="icon" aria-hidden="true">lock</span> Private by default</span>
   </div>
 
   @if (error()) {
     <div class="notice nb-notice" role="alert">
-      <span class="icon">error</span>
+      <span class="icon" aria-hidden="true">error</span>
       <div>{{ error() }}</div>
     </div>
   }
@@ -46,7 +46,7 @@
           [disabled]="!selected()"
           (click)="toggleForm()"
         >
-          <span class="icon">{{ formOpen() ? 'close' : 'add' }}</span>
+          <span class="icon" aria-hidden="true">{{ formOpen() ? 'close' : 'add' }}</span>
           {{ formOpen() ? 'Close' : 'Add entry' }}
         </button>
       </div>
@@ -82,7 +82,7 @@
           </label>
           <div class="nb-form__actions">
             <button type="button" class="btn primary" [disabled]="saving()" (click)="saveEntry()">
-              <span class="icon">send</span> {{ saving() ? 'Saving…' : 'Save entry' }}
+              <span class="icon" aria-hidden="true">send</span> {{ saving() ? 'Saving…' : 'Save entry' }}
             </button>
           </div>
           @if (formError()) {
@@ -115,7 +115,7 @@
                   <td class="nb-date">
                     {{ (row.meeting_at || row.created_at) | date: 'dd MMM y' }}
                     @if (isPublished(row)) {
-                      <span class="nb-pub"><span class="icon">visibility</span>Published</span>
+                      <span class="nb-pub"><span class="icon" aria-hidden="true">visibility</span>Published</span>
                     }
                   </td>
                   <td class="nb-text">
@@ -139,7 +139,7 @@
                         [disabled]="busyId() === row.id"
                         (click)="publish(row)"
                       >
-                        <span class="icon">send</span>
+                        <span class="icon" aria-hidden="true">send</span>
                       </button>
                     }
                     <button
@@ -149,7 +149,7 @@
                       [disabled]="busyId() === row.id"
                       (click)="remove(row)"
                     >
-                      <span class="icon">close</span>
+                      <span class="icon" aria-hidden="true">close</span>
                     </button>
                   </td>
                 </tr>
@@ -162,7 +162,7 @@
       </div>
 
       <div class="nb-foot">
-        <span class="icon">lock</span>
+        <span class="icon" aria-hidden="true">lock</span>
         Entries stay staff-private until you publish them to the student's Mentor Meeting Log.
       </div>
     </section>

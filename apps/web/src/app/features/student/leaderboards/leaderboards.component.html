@@ -1,7 +1,7 @@
 <div class="panel" data-p="leaderboards">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Leaderboards</div>
+      <h1 class="dt-title">Leaderboards</h1>
       <div class="dt-sub">
         Ranked within your cohort — everyone sees the same name, position and total.
       </div>
@@ -10,7 +10,7 @@
 
   @if (visibilityMsg(); as msg) {
     <div class="lb-note lb-note--feedback" role="status">
-      <span class="icon">{{ savingVisibility() ? 'hourglass_top' : 'check_circle' }}</span>
+      <span class="icon" aria-hidden="true">{{ savingVisibility() ? 'hourglass_top' : 'check_circle' }}</span>
       <span>{{ msg }}</span>
     </div>
   }
@@ -31,14 +31,14 @@
 
   @if (loading()) {
     <div class="card lb-empty">
-      <span class="icon">hourglass_top</span>
+      <span class="icon" aria-hidden="true">hourglass_top</span>
       <div>
         <div class="lb-empty__title">Loading the {{ activeLabel() }} board…</div>
       </div>
     </div>
   } @else if (optedOut()) {
     <div class="card lb-empty">
-      <span class="icon">visibility_off</span>
+      <span class="icon" aria-hidden="true">visibility_off</span>
       <div>
         <div class="lb-empty__title">You’re hidden from the leaderboards</div>
         <div class="dt-sub">
@@ -50,11 +50,11 @@
           [disabled]="savingVisibility()"
           (click)="setHidden(false)"
         >
-          <span class="icon">visibility</span>
+          <span class="icon" aria-hidden="true">visibility</span>
           {{ savingVisibility() ? 'Updating…' : 'Take part again' }}
         </button>
         <div class="lb-privacy-note">
-          <span class="icon">shield_person</span>
+          <span class="icon" aria-hidden="true">shield_person</span>
           <span>
             Your mentors and placement staff can always see your records — the opt-out only hides
             you from classmates on these boards.
@@ -64,7 +64,7 @@
     </div>
   } @else if (error()) {
     <div class="card lb-empty">
-      <span class="icon">error</span>
+      <span class="icon" aria-hidden="true">error</span>
       <div>
         <div class="lb-empty__title">{{ error() }}</div>
       </div>
@@ -77,7 +77,7 @@
           <span class="lb-me-card__num">{{ myRow()!.rank }}</span>
           <span class="lb-me-card__of">of {{ cohortSize() }}</span>
         } @else {
-          <span class="icon">emoji_events</span>
+          <span class="icon" aria-hidden="true">emoji_events</span>
         }
       </div>
       <div class="lb-me-card__body">
@@ -91,13 +91,13 @@
 
     <!-- SCORING + REFRESH explainer -->
     <div class="lb-note" role="note">
-      <span class="icon">info</span>
+      <span class="icon" aria-hidden="true">info</span>
       <span>{{ explainer() }}</span>
     </div>
 
     @if (rows().length === 0) {
       <div class="card lb-empty">
-        <span class="icon">leaderboard</span>
+        <span class="icon" aria-hidden="true">leaderboard</span>
         <div>
           <div class="lb-empty__title">No ranking yet</div>
           <div class="dt-sub">

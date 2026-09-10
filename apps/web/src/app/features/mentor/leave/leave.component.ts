@@ -331,8 +331,7 @@ export class LeaveComponent {
         }),
       });
       if (!res.ok) {
-        const d = await res.json().catch(() => null);
-        this.formError.set(d?.detail ?? 'Could not submit the form.');
+        this.formError.set(await detailOf(res));
         return;
       }
       const created = (await res.json()) as LeaveRow;
@@ -378,4 +377,29 @@ export class LeaveComponent {
       this.rows.set([]);
     }
   }
+}
+
+/** The server's own sentence, whichever shape it arrives in.
+ *
+ * A FastAPI schema validator answers 422 with `detail` as a LIST of error
+ * objects, not a string — so `d?.detail` rendered as "[object Object]" the
+ * moment `LeaveIn` grew a date-ordering check. The refusals worth reading are
+ * exactly the ones that name specifics ("cannot fall before the first day.
+ * You asked for 2026-12-20 to 2026-12-10"), and a generic message throws that
+ * away. Same helper as governance.component.ts's `detailOf`.
+ */
+async function detailOf(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    const detail = body?.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail) && detail.length && typeof detail[0]?.msg === 'string') {
+      // Pydantic prefixes its own errors with "Value error, "; the sentence
+      // after it is the one written for a person.
+      return String(detail[0].msg).replace(/^Value error,\s*/, '');
+    }
+  } catch {
+    /* fall through to the status */
+  }
+  return `Could not submit the form (${res.status}).`;
 }

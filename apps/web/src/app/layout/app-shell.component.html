@@ -29,6 +29,20 @@
         @if (usn(); as u) {
           <div class="usn">{{ u }}</div>
         }
+        @if (navKind() === 'student') {
+          <!-- The ONE entry point to /student/profile. The sidebar list below
+               deliberately leaves Profile out as "a record rather than a task",
+               and that is fine — but nothing else linked it either, so a fully
+               built screen was reachable only by typing the URL. The identity
+               card is where a person looks for their own details, so the link
+               belongs here rather than as a nav row that the handoff removed. -->
+          <a class="nav-profile__link" routerLink="/student/profile" routerLinkActive="active">
+            <!-- `person`, not `badge`: the icon font is SUBSET to
+                 tools/fonts/icon-names.txt and `badge` is not in it, so it
+                 would have rendered as nothing at all. -->
+            <span class="icon" aria-hidden="true">person</span> View profile
+          </a>
+        }
       </div>
 
       @switch (navKind()) {
@@ -56,7 +70,7 @@
             <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
           </a>
           @if (adminLinksHeld().length) {
-            <div class="sec-label">Admin</div>
+            <div class="sec-label">Granted access</div>
             @for (l of adminLinksHeld(); track l.path) {
               <a [routerLink]="l.path" routerLinkActive="active">
                 <span class="icon" aria-hidden="true">{{ l.icon }}</span> {{ l.label }}
@@ -84,6 +98,17 @@
           <a routerLink="/director/institution" routerLinkActive="active">
             <span class="icon" aria-hidden="true">school</span> Institution
           </a>
+          <!-- Catalogue sits beside Institution because they are the two
+               structure screens, and because it was reachable from NOWHERE.
+               The note below used to say the Catalogue is "reached from the
+               Analytics tiles"; it never was. Registrations has a tile
+               ("3 pending registration") and Placement has one ("0 approved
+               offers"), but no tile has ever pointed here, so the one account
+               that maintains the course and approved-certification lists could
+               not open the screen that holds them. Found in a browser audit. -->
+          <a routerLink="/director/catalogue" routerLinkActive="active">
+            <span class="icon" aria-hidden="true">menu_book</span> Catalogue
+          </a>
           @if (isMainAdmin()) {
             <a routerLink="/director/governance" routerLinkActive="active">
               <span class="icon" aria-hidden="true">admin_panel_settings</span> Governance
@@ -108,10 +133,12 @@
           <!--
             SHORTER THAN THE ROUTE TABLE, like the student nav below. The design's
             admin sidebar is these seven links — Governance joined them with the Main
-            Admin design. Registrations, the Catalogue and
-            Placement are still routed — they are reached from the Analytics
-            tiles ("pending registration", "Placed") and by bookmark — but they
-            are not sidebar destinations.
+            Admin design. Registrations and Placement are still routed and are
+            reached from the Analytics tiles ("3 pending registration",
+            "0 approved offers") and by bookmark, so they are not sidebar
+            destinations. The Catalogue WAS in that sentence and is now a link
+            above: no tile ever pointed at it, so "reached from the Analytics
+            tiles" was true of two of the three and the third was unreachable.
           -->
           <div class="sec-label">More</div>
           <a routerLink="/director/exports" routerLinkActive="active">

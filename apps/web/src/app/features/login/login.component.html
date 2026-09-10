@@ -317,7 +317,14 @@
 
       <p class="help-foot">
         Need help signing in?
-        <a href="#" (click)="toggleForgot(); $event.preventDefault()">Contact the placement cell</a>
+        <!-- A BUTTON, and named for what it does. This was an `<a href="#">`
+             labelled "Contact the placement cell" that actually opened the
+             forgot-password form: the words promised contact details and the
+             control did something else, and as an anchor-with-preventDefault it
+             announced itself to assistive tech as a link to nowhere. -->
+        <button type="button" class="help-foot__link" (click)="toggleForgot()">
+          Reset your password
+        </button>
       </p>
     </div>
   </main>

@@ -122,7 +122,7 @@ def upload_certificate(
     except QuotaRejected as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc))
     except UploadRejected as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
 
     cert = StaffUpskillingCertificate(
         user_id=user_id,

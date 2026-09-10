@@ -1,7 +1,7 @@
 <div class="panel" data-p="certs">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Certification Tracker</div>
+      <h1 class="dt-title">Certification Tracker</h1>
       @if (view(); as list) {
         @if (list.length) {
           <div class="dt-sub">{{ list.length }} tracked · {{ completedCount() }} complete</div>
@@ -27,7 +27,7 @@
                 <div class="dt-sub">{{ row.provider }}</div>
               </div>
               <span class="chip {{ row.chip.cls }}">
-                <span class="icon">{{ row.chip.icon }}</span
+                <span class="icon" aria-hidden="true">{{ row.chip.icon }}</span
                 >{{ row.chip.label }}
               </span>
             </div>
@@ -49,21 +49,21 @@
 
             <!-- next task -->
             <div class="cert-next">
-              <span class="icon">arrow_forward</span>
+              <span class="icon" aria-hidden="true">arrow_forward</span>
               <span><strong>Next:</strong> {{ row.next_task }}</span>
             </div>
 
             <!-- meta: due + hours remaining -->
             <div class="cert-meta">
               <span class="meta-item {{ row.dueCls }}">
-                <span class="icon">event</span>{{ row.dueText }}
+                <span class="icon" aria-hidden="true">event</span>{{ row.dueText }}
                 @if (row.due_date && row.status !== 'COMPLETED') {
                   <span class="meta-date">({{ row.due_date | date: 'd MMM y' }})</span>
                 }
               </span>
               @if (row.est_hours_remaining > 0 && row.status !== 'COMPLETED') {
                 <span class="meta-item">
-                  <span class="icon">hourglass_top</span
+                  <span class="icon" aria-hidden="true">hourglass_top</span
                   >{{ row.est_hours_remaining | number: '1.0-1' }}h left
                 </span>
               }
@@ -72,10 +72,10 @@
             <!-- footer: continue CTA, then full-width unlocks -->
             <div class="cert-foot">
               <a class="dt-btn primary sm" routerLink="/student/uploads">
-                <span class="icon">play_arrow</span>Continue
+                <span class="icon" aria-hidden="true">play_arrow</span>Continue
               </a>
               <span class="chip warn unlocks" [attr.title]="row.unlocks">
-                <span class="icon">lock_open</span>Unlocks: {{ row.unlocks }}
+                <span class="icon" aria-hidden="true">lock_open</span>Unlocks: {{ row.unlocks }}
               </span>
             </div>
           </div>

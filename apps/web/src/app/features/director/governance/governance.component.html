@@ -252,7 +252,43 @@
                 </td>
                 <td>{{ g.subject_label }}<br><span class="gov-sub">{{ g.subject_kind === 'GROUP' ? 'group' : 'individual' }}</span></td>
                 <td class="gov-reasoncell">{{ g.reason }}</td>
-                <td><button type="button" class="gov-btn tiny" (click)="revoke(g)">Revoke</button></td>
+                <td class="gov-revokecell">
+                  @if (revokingId() === g.id) {
+                    <!-- Inline, like the grant and switch-off reasons above.
+                         The confirm stays disabled until the reason clears the
+                         server's own floor, so a short reason can no longer be
+                         discovered as a 422. -->
+                    <textarea
+                      class="gov-revoke__reason"
+                      rows="2"
+                      [attr.maxlength]="400"
+                      [attr.aria-label]="'Why ' + g.capability_label + ' is being revoked from ' + g.subject_label"
+                      [placeholder]="'Why this is being taken away, in a sentence someone can audit in a year.'"
+                      [value]="revokeReason()"
+                      (input)="revokeReason.set($any($event.target).value)"
+                    ></textarea>
+                    <div class="gov-revoke__actions">
+                      <button type="button" class="gov-btn tiny" (click)="cancelRevoke()">Keep it</button>
+                      <button
+                        type="button"
+                        class="gov-btn tiny danger"
+                        [disabled]="revokeReasonShort() || revokeBusy()"
+                        [attr.title]="revokeReasonShort() ? 'A reason of at least ' + minReason() + ' characters is required' : null"
+                        (click)="revoke(g)"
+                      >
+                        {{ revokeBusy() ? 'Revoking\u2026' : 'Revoke' }}
+                      </button>
+                    </div>
+                    @if (revokeReasonShort()) {
+                      <div class="gov-revoke__hint">
+                        A reason of at least {{ minReason() }} characters is required. It is written
+                        onto the audit trail.
+                      </div>
+                    }
+                  } @else {
+                    <button type="button" class="gov-btn tiny" (click)="startRevoke(g)">Revoke</button>
+                  }
+                </td>
               </tr>
             } @empty {
               <tr><td colspan="4" class="gov-empty">No grants yet — every role holds its baseline.</td></tr>

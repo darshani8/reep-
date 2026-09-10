@@ -1,30 +1,30 @@
 <div class="panel" data-p="verifications">
   <div class="dt-header">
     <div>
-      <div class="eyebrow">Mentor · sole approver</div>
-      <div class="dt-title">Skill verifications</div>
+      <div class="eyebrow">Faculty · sole approver</div>
+      <h1 class="dt-title">Skill verifications</h1>
       <div class="dt-sub vq-lede">
         Evidence your assigned mentees submitted for a skill. Only you can verify, request changes,
         or reject it — nothing here goes to Admin.
       </div>
     </div>
     <span class="chip warn queue-chip">
-      <span class="icon">hourglass_top</span> Pending {{ pendingCount() }}
+      <span class="icon" aria-hidden="true">hourglass_top</span> Pending {{ pendingCount() }}
     </span>
   </div>
 
   @if (error()) {
     <div class="notice vq-notice" role="alert">
-      <span class="icon">error</span>
+      <span class="icon" aria-hidden="true">error</span>
       <div>{{ error() }}</div>
     </div>
   }
 
   @if (claims() === null) {
-    <div class="state-note"><span class="icon">hourglass_empty</span>Loading the queue…</div>
+    <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading the queue…</div>
   } @else if (claims()!.length === 0) {
     <div class="card empty-card">
-      <span class="icon">check_circle</span> Nothing waiting for your review.
+      <span class="icon" aria-hidden="true">check_circle</span> Nothing waiting for your review.
     </div>
   } @else {
     @for (c of claims()!; track c.id) {
@@ -38,7 +38,7 @@
             </div>
           </div>
           <span class="chip warn">
-            <span class="icon">hourglass_top</span>
+            <span class="icon" aria-hidden="true">hourglass_top</span>
             {{ openId() === c.id ? 'Under review' : 'Submitted' }}
           </span>
         </div>
@@ -46,7 +46,7 @@
         @if (openId() !== c.id) {
           <div class="claim-actions-right">
             <button type="button" class="btn primary" (click)="toggle(c.id)">
-              <span class="icon">visibility</span> Review evidence
+              <span class="icon" aria-hidden="true">visibility</span> Review evidence
             </button>
           </div>
         } @else {
@@ -86,7 +86,7 @@
             <div class="claim-file">
               @if (c.upload_id) {
                 <a class="btn" [href]="fileUrl(c.upload_id)" target="_blank" rel="noopener">
-                  <span class="icon">open_in_new</span>
+                  <span class="icon" aria-hidden="true">open_in_new</span>
                   {{ c.evidence_file_name || 'Open the certificate' }}
                 </a>
               } @else {
@@ -133,7 +133,7 @@
                 [disabled]="deciding() === c.id"
                 (click)="decide(c, 'GRANT')"
               >
-                <span class="icon">check_circle</span> Verify
+                <span class="icon" aria-hidden="true">check_circle</span> Verify
               </button>
               <button
                 type="button"
@@ -141,7 +141,7 @@
                 [disabled]="deciding() === c.id"
                 (click)="decide(c, 'CHANGES')"
               >
-                <span class="icon">undo</span> Request changes
+                <span class="icon" aria-hidden="true">undo</span> Request changes
               </button>
               <button
                 type="button"
@@ -149,7 +149,7 @@
                 [disabled]="deciding() === c.id"
                 (click)="decide(c, 'REJECT')"
               >
-                <span class="icon">cancel</span> Reject
+                <span class="icon" aria-hidden="true">cancel</span> Reject
               </button>
               <button type="button" class="btn ghost" (click)="toggle(c.id)">Close</button>
             </div>
@@ -161,7 +161,7 @@
 
   <!-- Recently reviewed: the same scope, read back with the note the student was given. -->
   @if (historyError()) {
-    <div class="state-note risk"><span class="icon">error</span>{{ historyError() }}</div>
+    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ historyError() }}</div>
   } @else if (history(); as past) {
     @if (past.length > 0) {
       <div class="history">
@@ -169,7 +169,7 @@
         @for (h of past; track h.id) {
           <div class="card history-row">
             <span class="chip {{ outcome(h.status).tone }}">
-              <span class="icon">{{ outcome(h.status).icon }}</span> {{ outcome(h.status).label }}
+              <span class="icon" aria-hidden="true">{{ outcome(h.status).icon }}</span> {{ outcome(h.status).label }}
             </span>
             <div class="history-text">
               <strong>{{ h.skill_name }}</strong>

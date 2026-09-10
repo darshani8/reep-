@@ -176,7 +176,7 @@ def add_note(
         action = MentorAction(body.linked_action)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid linked_action."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid linked_action."
         )
     note = MentorNote(
         mentor_id=mentor_id,
@@ -392,7 +392,7 @@ def decide_offer(
         offer.status = OfferStatus.REJECTED
     else:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="decision must be APPROVE or REJECT.",
         )
     offer.approved_by_id = session["userId"]
@@ -548,7 +548,7 @@ def review_upload(
         up.status = UploadStatus.REJECTED
     else:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="decision must be VERIFY or REJECT.",
         )
     up.reviewed_by_id = session["userId"]
@@ -768,7 +768,7 @@ def review_skill_claim(
         # Back to the student to redo, not refused.
         if not (body.note or "").strip():
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Say what needs changing — the student only sees this note.",
             )
         sc.status = UploadStatus.NEEDS_CHANGES
@@ -777,13 +777,13 @@ def review_skill_claim(
         # their side of the screen, so a reason is required here too.
         if not (body.note or "").strip():
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="A rejection needs a reason — the student is shown it.",
             )
         sc.status = UploadStatus.REJECTED
     else:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="decision must be GRANT, CHANGES or REJECT.",
         )
     sc.reviewed_by_id = session["userId"]

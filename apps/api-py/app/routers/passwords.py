@@ -120,7 +120,7 @@ def activate(
         )
     problem = password_problem(body.password)
     if problem:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=problem)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=problem)
 
     user = account_links.consume_user_token(db, PURPOSE_ACTIVATION, token)
     if user is None:  # lost the race to a second click
@@ -132,7 +132,7 @@ def activate(
         # Cannot happen through issue_activation, which refuses students; this
         # is the second lock on the same door.
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Students sign in with their college Google account.",
         )
     user.password_hash = hash_password(body.password)
@@ -202,7 +202,7 @@ def reset(body: LinkPasswordIn, db: Session = Depends(get_db)) -> MessageOut:
         )
     problem = password_problem(body.password)
     if problem:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=problem)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=problem)
 
     user = account_links.consume_user_token(db, PURPOSE_RESET, token)
     if user is None:
@@ -257,10 +257,10 @@ def change_password(
         )
     problem = password_problem(body.new_password)
     if problem:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=problem)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=problem)
     if body.new_password == body.current_password:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="The new password is the same as the current one.",
         )
 

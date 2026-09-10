@@ -211,8 +211,8 @@
                       </div>
                     } @else {
                       <div class="st-actions">
-                        <button type="button" class="st-mini" [disabled]="busy()" (click)="startEdit(r)" aria-label="Edit" title="Edit"><span class="icon">edit</span></button>
-                        <button type="button" class="st-mini st-mini--danger" [disabled]="busy()" (click)="askDelete(r)" aria-label="Remove" title="Remove"><span class="icon">delete</span></button>
+                        <button type="button" class="st-mini" [disabled]="busy()" (click)="startEdit(r)" aria-label="Edit" title="Edit"><span class="icon" aria-hidden="true">edit</span></button>
+                        <button type="button" class="st-mini st-mini--danger" [disabled]="busy()" (click)="askDelete(r)" aria-label="Remove" title="Remove"><span class="icon" aria-hidden="true">delete</span></button>
                       </div>
                     }
                   </td>

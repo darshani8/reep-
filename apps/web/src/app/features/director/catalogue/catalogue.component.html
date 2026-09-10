@@ -1,14 +1,14 @@
 <div class="panel" data-p="catalogue">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Catalogue</div>
+      <h1 class="dt-title">Catalogue</h1>
       <div class="dt-sub">
         What students may enrol in, and which certifications count towards a badge.
       </div>
     </div>
     @if (tab() === 'certs') {
       <button type="button" class="btn primary" (click)="toggleForm()">
-        <span class="icon">{{ formOpen() ? 'close' : 'add' }}</span>
+        <span class="icon" aria-hidden="true">{{ formOpen() ? 'close' : 'add' }}</span>
         {{ formOpen() ? 'Close' : 'Add certification' }}
       </button>
     }
@@ -24,7 +24,7 @@
   </div>
 
   @if (error()) {
-    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
   }
 
   @if (tab() === 'certs' && formOpen()) {
@@ -72,7 +72,7 @@
       </div>
       <div class="form-foot">
         <button type="button" class="btn primary" [disabled]="saving()" (click)="addCert()">
-          <span class="icon">add</span> Add to catalogue
+          <span class="icon" aria-hidden="true">add</span> Add to catalogue
         </button>
         @if (formBadge(); as b) {
           <span class="derived">
@@ -80,7 +80,7 @@
           </span>
         }
         @if (formErr()) {
-          <span class="chip risk"><span class="icon">error</span> {{ formErr() }}</span>
+          <span class="chip risk"><span class="icon" aria-hidden="true">error</span> {{ formErr() }}</span>
         }
       </div>
     </div>
@@ -91,7 +91,7 @@
       @case ('courses') {
         @if (courses() === null) {
           <div class="state-note">
-            <span class="icon">hourglass_empty</span>Loading the catalogue…
+            <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the catalogue…
           </div>
         } @else {
           <div class="scroll">
@@ -155,7 +155,7 @@
       @case ('certs') {
         @if (certs() === null) {
           <div class="state-note">
-            <span class="icon">hourglass_empty</span>Loading the catalogue…
+            <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the catalogue…
           </div>
         } @else {
           <div class="scroll">
@@ -202,7 +202,7 @@
                           [disabled]="busyId() === c.id"
                           (click)="setActive(c, false)"
                         >
-                          <span class="icon">close</span>
+                          <span class="icon" aria-hidden="true">close</span>
                         </button>
                       } @else {
                         <button

@@ -291,6 +291,84 @@ director cohort CSV at `/api/director/badges/export.csv`). Staff reads reuse
 screen. Rule 1 untouched (nothing here calls a model); rule 2 via
 `_assert_can_access_student`, with the pending queue narrowed in SQL.
 
+## Reachability and keyboard access — what a full browser audit found (2026-09-10)
+
+All 38 routes were driven in a real browser as all four roles. **The business
+logic held: five cross-role write chains passed end to end** (leave → approval →
+official PDF with both signatures; jobs → student feed with match % and alumni
+feed correctly without it; SWOC → student home + Faculty/TPO Log with the
+viewpoint derived from role; governance grant → faculty sidebar → revoke;
+student create → roster + batch + SWOC + analytics counters → delete with no
+orphan rows). Eleven defects were found and every one was about **reachability
+or accessibility**, not business rules — with a single exception. The lessons
+worth keeping:
+
+**A leave request whose dates ran backwards was accepted, approvable and
+printable.** `from_date` and `to_date` were two independently declared `date`
+fields with nothing relating them, so 20 Dec → 10 Dec stored a span of MINUS
+TEN days, reached the approver's queue with a live "Mark Sanctioned" button, and
+rendered onto the college's own form. The refusal is `LeaveIn`'s
+`dates_run_forwards` validator — **on the schema, because the leave form and its
+buttons must not change**, so the request has to die before it is built.
+`from == to` stays legal: a PERMISSION slip and a one-day CASUAL leave are both
+written that way on the paper form. It needed a SECOND fix to be usable at all:
+FastAPI answers a schema error with `detail` as a **list**, so the form rendered
+`[object Object]` — `leave.component.ts` now uses the same `detailOf` helper
+`governance.component.ts` already had.
+
+**A screen that is routed is not a screen anyone can reach.** Four fully working
+screens — `/student/profile`, `/student/uploads`, `/student/courses` and
+`/director/catalogue` — were reachable only by typing the URL. The sidebar
+comments *said* they were "reached from the screen that owns the work" and "from
+the Analytics tiles", and for the others that was true; for these four nobody
+ever added the link. **A route with no `routerLink` anywhere is dead**, so grep
+for the path, not for the component. Two further traps live here: `routerLink`
+in a standalone component with `imports: []` is **inert markup that renders and
+does nothing**, and `/mentor` loading the notebook component *as well as*
+`/mentor/notebook` meant `routerLinkActive` matched nothing, so every faculty
+member landed at every sign-in on a screen with no nav item lit. One screen, one
+URL — `/mentor` is a `redirectTo` now, deliberately **without** a `canActivate`,
+because Angular resolves redirects while matching the URL, before guards, so a
+guard there would be dead config that reads as protection.
+
+**`hidden` on a file input makes the picker mouse-only.** `hidden` is
+`display:none`, which removes the input from the focus order, and a `<label>`
+wrapper is not tabbable either — so on `/mentor/signature` the only
+keyboard-reachable control was **"Remove…"**: you could delete your signature
+but never upload one, and on the public `/register` an applicant could not
+attach a CV or headshot at all. Hide these with geometry
+(`position:absolute; width:1px; clip`), never `display:none`, and give the label
+a `:focus-within` ring or the focusable invisible input is a trap. Five other
+screens already used the correct `<button (click)="picker.click()">` pattern.
+
+**`.icon` renders from ligatures, so an unlabelled icon is read aloud.** A
+screen reader announced "hourglass top" and "add circle". 286 spans across 38
+templates now carry `aria-hidden="true"` — but **blanket `aria-hidden` is not
+safe on its own**: it silently unnames any control whose only content is the
+icon. Five such buttons had to be given `aria-label`s, and the sweep script
+reports them rather than guessing a name.
+
+**A message inserted by `@if` is announced to nobody unless it is a live
+region.** `/register` — the most public form in the product — showed "Your full
+name and college email are both required." in a plain `<div>`: no `role="alert"`,
+no `aria-invalid`, no focus move. 21 other templates already did this correctly.
+Page titles had the same shape of problem: they were `<div class="dt-title">`,
+so 29 of 38 screens had **no heading element at all**. Converting to `<h1>` is
+visually free because `.dt-title` sets `margin: 0`. `/student/assistant` is the
+screen to copy — real `<h1>`, `role="status"`, `role="log"`, named regions.
+
+**And a warning about testing this stack in a browser harness.** Five findings
+in that audit were false alarms produced by the harness, each of which looked
+exactly like an app bug: a synthetic `.click()` does not drive the agent orb's
+pointer-threshold gesture; `window.prompt` is auto-dismissed, so the code path
+posts an empty value and the server's 422 looks like a broken button;
+`element.textContent` does not include a `<textarea>`'s value, so a saved SWOC
+line looked unrendered; a DOM read taken before a post-write refetch shows the
+old list; and slicing an options list to the first 16 produced the conclusion
+"Governance offers no `admin.*` capabilities" when it offers all 28. Restart the
+API after touching a `.py` — there is no `--reload` here, and a stale worker
+silently accepted a request the new validator refuses.
+
 ## The faculty & alumni pages (2026-08)
 
 **Faculty** (any staff role, in the shell's staff nav): **Mentee Log**

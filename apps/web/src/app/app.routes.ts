@@ -177,14 +177,20 @@ export const routes: Routes = [
       },
 
       // --- mentor / faculty ---
-      {
-        path: 'mentor',
-        canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
-        loadComponent: () =>
-          import('./features/mentor/notebook/mentor-notebook.component').then(
-            (m) => m.MentorNotebookComponent,
-          ),
-      },
+      // `/mentor` REDIRECTS; it does not render. It used to load the notebook
+      // component itself, which meant two URLs for one screen — and because
+      // `routerLinkActive` compares URLs, a faculty member arriving at
+      // `/mentor` (which is where HOME_FOR_ROLE sends them at every sign-in)
+      // saw the notebook with NOTHING highlighted in the sidebar. Measured:
+      // zero active links on `/mentor`, correct highlighting on
+      // `/mentor/notebook`. One screen, one URL, and the nav agrees with it.
+      //
+      // No `canActivate` here on purpose: Angular resolves `redirectTo` while
+      // matching the URL, BEFORE guards run, so a guard on this entry would be
+      // dead configuration that reads as protection. The protection is real and
+      // lives on the target below — a STUDENT following this redirect meets
+      // `roleGuard` there and is refused, exactly as before.
+      { path: 'mentor', pathMatch: 'full', redirectTo: 'mentor/notebook' },
       {
         path: 'mentor/notebook',
         canActivate: [roleGuard('MENTOR', 'DIRECTOR', 'ADMIN')],
@@ -260,7 +266,7 @@ export const routes: Routes = [
       },
       {
         path: 'director/registrations',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        canActivate: [capabilityGuard('admin.registrations')],
         loadComponent: () =>
           import('./features/director/registrations/registrations.component').then(
             (m) => m.DirectorRegistrationsComponent,
@@ -268,7 +274,7 @@ export const routes: Routes = [
       },
       {
         path: 'director/mentors',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        canActivate: [capabilityGuard('admin.mentors')],
         loadComponent: () =>
           import('./features/director/mentors-students/mentors-students.component').then(
             (m) => m.DirectorMentorsStudentsComponent,
@@ -280,7 +286,7 @@ export const routes: Routes = [
       // route fails the bundle budget).
       {
         path: 'director/institution',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        canActivate: [capabilityGuard('admin.institution')],
         loadComponent: () =>
           import('./features/director/institution/institution.component').then(
             (m) => m.DirectorInstitutionComponent,
@@ -341,7 +347,7 @@ export const routes: Routes = [
       // Both paths resolve to it rather than leaving one a dead placeholder.
       {
         path: 'director/catalogue',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        canActivate: [capabilityGuard('admin.catalogue')],
         loadComponent: () =>
           import('./features/director/catalogue/catalogue.component').then(
             (m) => m.DirectorCatalogueComponent,
@@ -351,7 +357,7 @@ export const routes: Routes = [
       { path: 'director/certifications', redirectTo: 'director/catalogue' },
       {
         path: 'director/placement',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        canActivate: [capabilityGuard('admin.placement')],
         loadComponent: () =>
           import('./features/director/placement/placement.component').then(
             (m) => m.DirectorPlacementComponent,
@@ -359,7 +365,7 @@ export const routes: Routes = [
       },
       {
         path: 'director/jobs',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        canActivate: [capabilityGuard('admin.jobs')],
         loadComponent: () =>
           import('./features/director/jobs-sheet/jobs-sheet.component').then(
             (m) => m.DirectorJobsSheetComponent,
@@ -373,7 +379,7 @@ export const routes: Routes = [
       { path: 'director/assistant', redirectTo: 'director/agent' },
       {
         path: 'director/exports',
-        canActivate: [roleGuard('DIRECTOR', 'ADMIN')],
+        canActivate: [capabilityGuard('admin.exports')],
         loadComponent: () =>
           import('./features/director/exports/exports.component').then(
             (m) => m.DirectorExportsComponent,

@@ -115,7 +115,7 @@ def world():
         # A MENTOR with NO Mentor row: the session carries no mentorId, which is
         # exactly the "no group" state rule 2 is written about.
         groupless_user = _user("mentor-none", Role.MENTOR)
-        director_user = _user("director", Role.DIRECTOR)
+        director_user = _user("director", Role.ADMIN)
         student_user = _user("student", Role.STUDENT)
         other_user = _user("other-student", Role.STUDENT)
         # A STUDENT whose user row has no Student row behind it, so their
@@ -287,7 +287,7 @@ def world():
         userId=w.director_user_id,
         email="d@bgscet.ac.in",
         name="D",
-        role="DIRECTOR",
+        role="ADMIN",
     )
 
     yield w
@@ -914,12 +914,18 @@ def test_the_records_grid_applies_rule_2_in_sql(api, world):
 @requires_db
 def test_the_bulk_zip_is_gated_like_a_single_recording(api, world):
     """A zip of many students' voices is not a lesser act than one recording,
-    so it sits behind the same `admin.interview_audio` capability. A DIRECTOR
-    holds every capability EXCEPT this one by baseline, so a director is 403
-    here — the exact asymmetry interview_records.py's docstring defends."""
+    so it sits behind the same `admin.interview_audio` capability.
+
+    The subject is a MENTOR WHO HOLDS THIS STUDENT — every other gate on this
+    route passes for them, so the 403 can only be the audio capability. It used
+    to be a DIRECTOR, the role whose baseline excluded exactly this one
+    capability; DIRECTOR no longer exists (tests/test_no_director_privilege.py)
+    and ADMIN carries the capability by baseline, so a mentor is now the only
+    account that demonstrates the asymmetry interview_records.py defends.
+    """
     r = api.post(
         "/api/mentor/interviews/audio.zip",
-        headers=world.as_director,
+        headers=world.as_mentor_in_group,
         json={"session_ids": [world.interview_id]},
     )
     assert r.status_code == 403, r.text

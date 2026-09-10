@@ -36,6 +36,12 @@ def test_grant_access_mints_one_main_admin_and_never_a_director(make_user):
             db.rollback()
             assert db.scalar(select(User).where(User.email == second)) is None, "a refused grant writes nothing"
 
+            # Role.DIRECTOR ON PURPOSE, and it must stay. The role grants
+            # nothing anywhere now (tests/test_no_director_privilege.py), but
+            # `grant_access` is the code that REFUSES to mint one, so this is
+            # the one place the name is still load-bearing. A bulk rename turned
+            # this into Role.ADMIN once and the assertion silently started
+            # testing the one-admin rule twice instead.
             with pytest.raises(ValueError) as why:
                 grant(db, second, "Would-be Director", Role.DIRECTOR)
             assert "DIRECTOR is not granted" in str(why.value)

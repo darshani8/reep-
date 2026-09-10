@@ -260,7 +260,7 @@ def seed_knowledge(db) -> int:
             status=KnowledgeStatus.APPROVED,
             audience="student",
             published_at=now,
-            owner_role="DIRECTOR",
+            owner_role="ADMIN",
         )
         doc.chunks = [
             KnowledgeChunk(

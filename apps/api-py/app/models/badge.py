@@ -382,7 +382,6 @@ class StudentBadge(Base):
     __tablename__ = "student_badges"
     __table_args__ = (
         UniqueConstraint("student_id", "badge_code", name="uq_student_badge"),
-        Index("ix_studentbadge_student", "student_id"),
         CheckConstraint("points_awarded >= 0", name="ck_student_badge_points"),
     )
 
@@ -415,7 +414,6 @@ class CapabilityAssessment(Base):
         UniqueConstraint(
             "student_id", "capability", "checkpoint", name="uq_capability_checkpoint"
         ),
-        Index("ix_capassess_student", "student_id"),
         # §9's 1–10, enforced where "validated at the edge" cannot be bypassed.
         CheckConstraint("score >= 1 AND score <= 10", name="ck_capassess_score_range"),
     )

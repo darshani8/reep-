@@ -1,0 +1,341 @@
+<div class="panel" data-p="mentors-students">
+  <div class="dt-header">
+    <div>
+      <h1 class="dt-title">Faculty &amp; students</h1>
+      <div class="dt-sub">
+        Pick a faculty member, then add or remove their students.
+        @if (pool() !== null) {
+          @if (unassignedCount() > 0) {
+            {{ unassignedCount() }} student{{ unassignedCount() === 1 ? ' has' : 's have' }} no
+            mentor and cannot be reviewed until they do.
+          } @else {
+            Every student has a mentor.
+          }
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
+  }
+
+  <!-- Faculty accounts. The Main Admin creates one here and hands over the
+       activation link; the form below it is untouched by this. -->
+  @if (isMainAdmin()) {
+    <div class="card add-faculty">
+      <div class="add-faculty__head">
+        <div>
+          <div class="add-faculty__title">Faculty accounts</div>
+          <div class="dt-sub">Create a faculty login here. You get an activation link to send them; they set their own password from it and sign in on the Faculty portal.</div>
+        </div>
+        <button type="button" class="btn primary" (click)="addOpen.set(!addOpen()); created.set(null)" [attr.aria-expanded]="addOpen()">
+          <span class="icon" aria-hidden="true">person_add</span> Add faculty member
+        </button>
+      </div>
+
+      @if (addOpen()) {
+        <form class="add-faculty__form" (submit)="createFaculty(); $event.preventDefault()" novalidate>
+          <div class="add-faculty__grid">
+            <div class="field">
+              <label for="fac-name">Full name</label>
+              <input id="fac-name" class="ctrl" type="text" required [value]="fName()" (input)="fName.set($any($event.target).value)" />
+            </div>
+            <div class="field">
+              <label for="fac-email">Email they will sign in with</label>
+              <input id="fac-email" class="ctrl" type="email" required placeholder="kavya.n@bgscet.ac.in" [value]="fEmail()" (input)="fEmail.set($any($event.target).value)" />
+            </div>
+            <div class="field">
+              <label for="fac-designation">Designation <span class="opt">(optional)</span></label>
+              <input id="fac-designation" class="ctrl" type="text" maxlength="120" placeholder="e.g. Assistant Professor" [value]="fDesignation()" (input)="fDesignation.set($any($event.target).value)" />
+            </div>
+            <!-- THE REAL POINTER. The free-text line below is what the leave
+                 form prints; this is what the institution is grouped by. When
+                 one is chosen the API writes its name into the line too, so the
+                 paper and the console cannot disagree. -->
+            <div class="field">
+              <label for="fac-department-id">Department</label>
+              @if (departments().length) {
+                <select
+                  id="fac-department-id"
+                  class="ctrl"
+                  [value]="fDepartmentId()"
+                  (change)="fDepartmentId.set($any($event.target).value)"
+                >
+                  <option value="">Not filed yet</option>
+                  @for (d of departments(); track d.id) {
+                    <option [value]="d.id">{{ d.label }}</option>
+                  }
+                </select>
+              } @else {
+                <input
+                  id="fac-department-id"
+                  class="ctrl"
+                  type="text"
+                  maxlength="120"
+                  placeholder="e.g. MBA"
+                  [value]="fDepartment()"
+                  (input)="fDepartment.set($any($event.target).value)"
+                />
+                <small class="dt-sub">
+                  {{ departmentsError() ?? 'No departments exist yet — add one under Institution first.' }}
+                </small>
+              }
+            </div>
+          </div>
+          @if (createError()) {
+            <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ createError() }}</div>
+          }
+          <div class="add-faculty__foot">
+            <span class="dt-sub">No password is set here. They see nobody until you assign them students below.</span>
+            <div class="add-faculty__actions">
+              <button type="button" class="btn sm" (click)="addOpen.set(false)">Cancel</button>
+              <button type="submit" class="btn primary sm" [disabled]="creating()">{{ creating() ? 'Creating…' : 'Create account' }}</button>
+            </div>
+          </div>
+        </form>
+      }
+
+      @if (created(); as c) {
+        <div class="link-box" role="status">
+          <div class="link-box__title"><span class="icon" aria-hidden="true">check_circle</span> {{ c.name }} created ({{ c.email }}). Send them this link — it is valid for {{ c.hours / 24 }} days:</div>
+          <div class="link-box__row">
+            <code class="link-box__link">{{ c.link }}</code>
+            <button type="button" class="btn sm" (click)="copy(c.link)">{{ copied() === c.link ? 'Copied' : 'Copy' }}</button>
+          </div>
+          <div class="dt-sub">They open it, choose a password, and sign in on the Faculty portal. Lost it? Pick them below and press "Activation link" for a fresh one.</div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (mentors() === null) {
+    <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading…</div>
+  } @else if (mentors()!.length === 0) {
+    <div class="card">No faculty on the roster yet, so there is nobody to assign students to.</div>
+  } @else {
+    <div class="assign-grid">
+      <!-- The mentor and their current mentees -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Faculty member</div>
+          <select
+            class="ctrl mentor-select"
+            aria-label="Faculty member"
+            [value]="selectedMentor()"
+            (change)="pick($any($event.target).value)"
+          >
+            @for (m of mentors()!; track m.user_id) {
+              <option [value]="m.user_id">{{ m.name }} · {{ freeOf(m) }}</option>
+            }
+          </select>
+        </div>
+
+        @if (current(); as m) {
+          <div class="mentor-box">
+            <div class="mentor-name">{{ m.name }}</div>
+            <div class="mentor-focus">{{ focus(m) }}</div>
+            <div class="mentor-chips">
+              @if (!m.mentor_id) {
+                <span class="chip neutral">Not a mentor yet — assigning a student makes them one</span>
+              } @else {
+                <span class="chip">{{ m.mentee_count }} of {{ m.capacity }} places used</span>
+                @if (atCapacity()) {
+                  <span class="chip risk">At capacity</span>
+                } @else {
+                  <span class="chip good">{{ free() }} free</span>
+                }
+              }
+            </div>
+
+            <!-- Designation and department live on the User row; the leave
+                 form reads them as "(synced)". This is where they get written. -->
+            <div class="mentor-identity">
+              @if (identityOpen()) {
+                <form class="identity-form" (submit)="saveIdentity(); $event.preventDefault()" novalidate>
+                  <div class="field">
+                    <label for="id-designation">Designation</label>
+                    <input
+                      id="id-designation"
+                      class="ctrl"
+                      type="text"
+                      maxlength="120"
+                      placeholder="e.g. Associate Professor"
+                      [value]="identityDraft().designation"
+                      (input)="setIdentity('designation', $any($event.target).value)"
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="id-department">Department</label>
+                    <input
+                      id="id-department"
+                      class="ctrl"
+                      type="text"
+                      maxlength="120"
+                      placeholder="e.g. Management Studies"
+                      [value]="identityDraft().department"
+                      (input)="setIdentity('department', $any($event.target).value)"
+                    />
+                  </div>
+                  @if (identityError(); as e) {
+                    <span class="chip risk"><span class="icon" aria-hidden="true">error</span>{{ e }}</span>
+                  }
+                  <div class="footbar">
+                    <button type="button" class="btn sm" (click)="identityOpen.set(false)" [disabled]="identityBusy()">Cancel</button>
+                    <button type="submit" class="btn primary sm" [disabled]="identityBusy()">
+                      <span class="icon" aria-hidden="true">save</span>{{ identityBusy() ? 'Saving…' : 'Save' }}
+                    </button>
+                  </div>
+                </form>
+              } @else {
+                <span class="dt-sub">
+                  {{ m.designation ?? 'Designation not on record' }} · {{ m.department ?? 'Department not on record' }}
+                </span>
+                <!-- WHERE THEY ARE FILED. Status as text and colour together:
+                     an unfiled faculty member is invisible to every question
+                     that begins "who teaches in...", so it is named, not
+                     signalled by an absence. -->
+                @if (m.placement?.filed) {
+                  <span class="chip good">
+                    <span class="icon" aria-hidden="true">apartment</span>
+                    {{ m.placement.department_name }} · {{ m.placement.college_code || m.placement.college_name }}
+                  </span>
+                } @else {
+                  <span class="chip warn">
+                    <span class="icon" aria-hidden="true">help</span>Not filed under a department
+                  </span>
+                }
+                @if (isMainAdmin()) {
+                  <button type="button" class="btn sm" (click)="startFiling(m)">
+                    <span class="icon" aria-hidden="true">apartment</span>
+                    {{ m.placement?.filed ? 'Move' : 'File' }}
+                  </button>
+                }
+                <button type="button" class="btn sm" (click)="openIdentity(m)">
+                  <span class="icon" aria-hidden="true">edit</span>Edit
+                </button>
+                @if (isMainAdmin()) {
+                  <button type="button" class="btn sm" (click)="reissueLink(m)" title="Mint a fresh activation link for this faculty member">
+                    <span class="icon" aria-hidden="true">draw</span>Activation link
+                  </button>
+                }
+              }
+              @if (filingUserId() === m.user_id) {
+                <!-- Native (submit), NOT (ngSubmit): this component declares
+                     `imports: []`, so there is no FormsModule and no NgForm —
+                     `(ngSubmit)` would bind to a DOM event of that name, which
+                     nothing ever raises. It renders, it looks wired, and the
+                     button does nothing. The two forms above use this same
+                     pattern for the same reason. -->
+                <form class="file-faculty" (submit)="fileFaculty(m.user_id); $event.preventDefault()" novalidate>
+                  <label class="sr-only" [attr.for]="'file-' + m.user_id">Department</label>
+                  <select
+                    [id]="'file-' + m.user_id"
+                    class="ctrl"
+                    [value]="filingChoice()"
+                    (change)="filingChoice.set($any($event.target).value)"
+                  >
+                    <option value="">Choose a department…</option>
+                    @for (d of departments(); track d.id) {
+                      <option [value]="d.id">{{ d.label }}</option>
+                    }
+                  </select>
+                  <button type="submit" class="btn sm primary" [disabled]="filingBusy()">
+                    {{ filingBusy() ? 'Saving…' : 'Save' }}
+                  </button>
+                  <button type="button" class="btn sm" (click)="filingUserId.set(null)">Cancel</button>
+                </form>
+                @if (filingError()) {
+                  <div class="state-note risk" role="alert">
+                    <span class="icon" aria-hidden="true">error</span>{{ filingError() }}
+                  </div>
+                }
+              }
+            </div>
+            @if (reissued(); as r) {
+              @if (r.user_id === m.user_id) {
+                <div class="link-box" role="status">
+                  <div class="link-box__title">Activation link for {{ m.name }} — valid for {{ r.hours / 24 }} days; any older link stops working:</div>
+                  <div class="link-box__row">
+                    <code class="link-box__link">{{ r.link }}</code>
+                    <button type="button" class="btn sm" (click)="copy(r.link)">{{ copied() === r.link ? 'Copied' : 'Copy' }}</button>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+
+          <div class="list-lbl">Current mentees · {{ m.mentee_count }}</div>
+          <div class="list">
+            @for (s of m.mentees; track s.student_id) {
+              <div class="row">
+                <span class="row-name">{{ s.name }}</span>
+                <span class="row-meta">{{ meta(s) }}</span>
+                <button
+                  type="button"
+                  class="rm-btn"
+                  title="Remove from this mentor"
+                  [attr.aria-label]="'Remove ' + s.name + ' from this mentor'"
+                  [disabled]="busy()"
+                  (click)="release(s)"
+                >
+                  <span class="icon" aria-hidden="true">person_remove</span>
+                </button>
+              </div>
+            } @empty {
+              <div class="list-empty">No mentees yet — add students from the pool.</div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- The pool -->
+      <div class="card">
+        <div class="card-head baseline">
+          <div class="card-title">Student pool</div>
+          @if (unassignedCount() > 0) {
+            <span class="pool-count">{{ unassignedCount() }} without a mentor</span>
+          }
+        </div>
+        <div class="list pool-list">
+          @for (s of pool() ?? []; track s.student_id) {
+            <label class="row row--pick">
+              <input
+                type="checkbox"
+                [checked]="isChecked(s.student_id)"
+                (change)="toggleCheck(s.student_id)"
+              />
+              <span class="row-name">{{ s.name }}</span>
+              <span class="row-meta">{{ meta(s) }}</span>
+            </label>
+          } @empty {
+            <div class="list-empty good">Every student has a mentor.</div>
+          }
+        </div>
+        <div class="pool-foot">
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="!current() || checkedCount() === 0 || busy()"
+            (click)="assignChecked()"
+          >
+            <span class="icon" aria-hidden="true">person_add</span>
+            @if (checkedCount()) {
+              Add {{ checkedCount() }} to this mentor
+            } @else {
+              Add to this mentor
+            }
+          </button>
+          @if (current(); as m) {
+            <span class="goes-to">Goes to {{ m.name }}</span>
+          }
+        </div>
+        @if (flash()) {
+          <div class="flash">
+            <span class="chip good"><span class="icon" aria-hidden="true">check_circle</span> {{ flash() }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

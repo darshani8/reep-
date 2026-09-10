@@ -54,6 +54,44 @@ PURPOSE_RESET = "reset"
 # account_links.consume_user_code.
 PURPOSE_LOGIN_CODE = "login_code"
 
+# --- student onboarding (2026-09-10) ---------------------------------------
+# The three secrets a newly approved student spends, in order. They are three
+# purposes and not one because each proves a DIFFERENT thing, and collapsing
+# them would let one proof stand in for another:
+#
+#   PURPOSE_ONBOARD       the link in the approval email. Proves only that the
+#                         person opened mail sent to the address on the
+#                         application. Long-lived (activation_link_hours).
+#   PURPOSE_ONBOARD_CODE  the six-digit code, sent after they type their
+#                         address back. Proves they can read that mailbox NOW,
+#                         which the link alone does not — a forwarded link is
+#                         still a valid link.
+#   PURPOSE_ONBOARD_SET   a short-lived ticket minted only once the code is
+#                         spent, and the only thing `onboard/password` accepts.
+#                         Without it the password step would have to re-accept
+#                         the code (already consumed) or trust the link alone,
+#                         which would skip the mailbox proof entirely.
+PURPOSE_ONBOARD = "onboard"
+PURPOSE_ONBOARD_CODE = "onboard_code"
+PURPOSE_ONBOARD_SET = "onboard_set"
+
+# The code that authorises a password CHANGE on an account already in use.
+# Separate from PURPOSE_ONBOARD_CODE so a code mailed to someone midway through
+# setting their account up cannot be replayed against a live account, and vice
+# versa — `consume_user_code` finds rows by (user, purpose), so distinct
+# purposes are what actually enforces that.
+PURPOSE_CHANGE_CODE = "change_code"
+
+#: Purposes whose secret is SIX DIGITS, not a 256-bit link. Everything the
+#: module docstring says about the sign-in code — the row-bound hash, the
+#: lookup by (user, purpose), the DELETE of predecessors rather than a kept
+#: "already used" row — applies to every member, and `issue_user_token` and
+#: `sweep_login_codes` both branch on this set rather than on one name. A code
+#: purpose left out of it would be minted with a bare sha256 and could collide
+#: on `uq_auth_token_hash` with somebody else's identical six digits: a 500 in
+#: the face of a person who typed the right code.
+CODE_PURPOSES = frozenset({PURPOSE_LOGIN_CODE, PURPOSE_ONBOARD_CODE, PURPOSE_CHANGE_CODE})
+
 
 def _uuid() -> str:
     return uuid.uuid4().hex
@@ -81,7 +119,7 @@ class AuthToken(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    # Who issued it — a director from the console, or nobody (a CLI, or the
+    # Who issued it — the Main Admin from the console, or nobody (a CLI, or the
     # student themself via forgot-password). SET NULL: losing the issuer must
     # not lose the record that a link was issued.
     created_by_user_id: Mapped[str | None] = mapped_column(

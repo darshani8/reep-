@@ -5,7 +5,7 @@ Public submission runs the data-driven rule engine: among enabled rules, every
 lowest `priority` among the matches decides. A matching auto-approve rule waves
 the application through (AUTO_APPROVED) and assigns its cohort; a matching
 non-auto rule routes it to a human (PENDING_REVIEW) with a label; no match falls
-to manual review. Directors then approve/reject the queue.
+to manual review. The Main Admin then approves/rejects the queue.
 
 Provisioning the actual Student (User row, cohort seat) is a deliberate
 follow-up step, not done here — approval only stamps the decision, mirroring the
@@ -50,6 +50,7 @@ from ..models.registration import (
 )
 from ..models.student_profile import StudentProfile
 from ..models.user import Role, Student, User
+from ..student_placement import resolve_student_department
 from ..governance import require_capability
 from ..architecture_events import record_change
 from ..document_store import MAX_BYTES, QuotaRejected, VolumeQuota, save_bytes
@@ -74,12 +75,12 @@ log = logging.getLogger(__name__)
 #   * a catastrophic pattern ("(a+)+$") backtracks exponentially: a ReDoS an
 #     anonymous caller can fire at will, one HTTP request at a time.
 #
-# Planting either needs a director/DB write, so this is a blast-radius problem
+# Planting either needs an admin/DB write, so this is a blast-radius problem
 # rather than an entry point. It is defended twice anyway, because a rule row can
 # always be edited straight in psql and skip whatever the write path checks:
 #
 #   1. validate_usn_pattern() at rule-WRITE time. app/seed.py is the only writer
-#      today (the RegistrationRule(...) block); any future director-facing rule
+#      today (the RegistrationRule(...) block); any future admin-facing rule
 #      editor MUST call it before commit and hand the ValueError back to the
 #      author, who is the only person able to fix the pattern.
 #   2. _usn_matcher() at MATCH time, which refuses to run a pattern that fails
@@ -307,6 +308,60 @@ class RegistrationOut(BaseModel):
     documents: list[str] = []
 
 
+class PublicRegistrationOut(BaseModel):
+    """What an APPLICANT is told about their own application.
+
+    The two public endpoints on this router — the form itself and the two
+    document uploads that follow it — answer with THIS, not with
+    `RegistrationOut`. Neither caller is signed in: the bearer is the
+    application id, an unguessable uuid4 handed back on the 201, and the same
+    trust the emailed confirmation link carries. That is enough to let someone
+    finish their own application; it is not enough to be shown the reviewer's
+    side of it.
+
+    So five fields are absent, and their absence is the point:
+    `review_note` and `reviewed_by_id` / `reviewed_at` are the Main Admin writing
+    ABOUT this person for colleagues, and `matched_rule_id` /
+    `approved_student_id` are internal plumbing the result card never renders.
+
+    `cohort_id` IS here, unlike those: it is the batch this applicant was
+    actually placed in, which is their own fact about themselves and no more
+    private than the `requested_cohort_id` they typed on the form.
+
+    Today none of them could travel anyway — the upload endpoint refuses an
+    application that has been decided, and `reopen` clears the reviewer's stamp
+    on the way back into the queue. That is exactly why this is a SHAPE and not
+    a filter: both of those are one small edit away from being untrue, and the
+    edit that breaks them will not look like it touches a public response. A
+    schema that never carried the field cannot start carrying it by accident.
+
+    `decision_reason` IS here, and deliberately: it is the rule engine's verdict
+    written FOR the applicant, and the result card is the only place it is ever
+    shown ("Domain matched — auto-approved", "Held for review").
+    """
+
+    id: str
+    name: str
+    email: str
+    usn: str | None
+    degree_level: str
+    status: str
+    cohort_id: str | None
+    decision_reason: str | None
+    created_at: datetime
+    college_id: str | None = None
+    department_id: str | None = None
+    course_id: str | None = None
+    specialization_id: str | None = None
+    requested_cohort_id: str | None = None
+    college_name: str | None = None
+    department_name: str | None = None
+    course_name: str | None = None
+    specialization_name: str | None = None
+    requested_batch: str | None = None
+    documents: list[str] = []
+
+
 def _doc_kinds(db: Session, registration_ids: Sequence[str]) -> dict[str, list[str]]:
     """Which document kinds each application holds - one query for a whole list,
     so the queue does not fire a SELECT per row."""
@@ -405,6 +460,20 @@ def _out_one(db: Session, r: Registration) -> RegistrationOut:
     return _out(r, _doc_kinds(db, [r.id]).get(r.id, ()), _claim_names(db, [r]).get(r.id))
 
 
+def _public_out_one(db: Session, r: Registration) -> PublicRegistrationOut:
+    """The applicant's own view, built by NARROWING the full one.
+
+    Reusing `_out` rather than assembling a second dict keeps one writer for the
+    claim names and the document kinds; `model_dump` then drops whatever
+    `PublicRegistrationOut` does not declare. A field added to the staff model
+    tomorrow is therefore private by default, which is the direction the mistake
+    should fall in.
+    """
+    full = _out_one(db, r)
+    fields = PublicRegistrationOut.model_fields.keys()
+    return PublicRegistrationOut(**{k: v for k, v in full.model_dump().items() if k in fields})
+
+
 def _out(r: Registration, docs: Sequence[str] = (), names: dict[str, str | None] | None = None) -> RegistrationOut:
     names = names or {}
     return RegistrationOut(
@@ -460,7 +529,7 @@ class PublicBatchOut(BaseModel):
     degree_level: str
     #: Still running (end date ahead). The form lists current batches first and
     #: greys the rest; it does not hide them - a late applicant to a batch that
-    #: ended last month is a director's call, not the form's.
+    #: ended last month is the Main Admin's call, not the form's.
     current: bool
 
 
@@ -502,7 +571,7 @@ def hierarchy(db: Session = Depends(get_db)) -> PublicHierarchyOut:
     College and Department always (every batch sits under a department), then
     Course and Specialization per HIERARCHY_LEVELS - the same one-line switch
     the admin console reads - and Batch never, because an applicant may not
-    know theirs and a director can seat them.
+    know theirs and the Main Admin can seat them.
     """
     now = datetime.now(timezone.utc)
     colleges = db.scalars(
@@ -571,7 +640,7 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
 
     The same discipline as routers/admin.py::_resolve_ancestry, for the same
     reason: five columns that can be set independently are five chances to
-    disagree, and the disagreement surfaces as a director seating a student in
+    disagree, and the disagreement surfaces as the Main Admin seating a student in
     a department their batch is not in. So the batch pins its specialization,
     course and department; a specialization pins its course; a course its
     department; a department its college - and any level the applicant ALSO
@@ -632,10 +701,10 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
     return chain
 
 
-@router.post("", response_model=RegistrationOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PublicRegistrationOut, status_code=status.HTTP_201_CREATED)
 def submit(
     body: RegisterIn, request: Request, db: Session = Depends(get_db)
-) -> RegistrationOut:
+) -> PublicRegistrationOut:
     """Public: submit an application. No auth — the applicant is not a user yet."""
     # Limit BEFORE the database is touched: the point is that a flood never
     # reaches Postgres, not that Postgres survives it.
@@ -686,40 +755,53 @@ def submit(
             ),
         )
 
-    # THE RULE IS NOT APPLIED HERE ANY MORE. It is applied when the address is
-    # CONFIRMED (`verify` below), because until then nobody has shown they can
-    # read this mailbox — and approval now mints a users row, so an application
-    # that auto-approves off an unconfirmed address would be a self-service door
-    # onto the roster. `EmailVerification` existed for exactly this and had no
-    # writer; this is the writer. An unconfirmed application sits in
-    # PENDING_VERIFICATION, which the director's queue does not list.
+    # THE RULE IS APPLIED HERE, and the application reaches the review queue
+    # immediately (2026-09-10).
+    #
+    # It briefly was not. Round 4 moved the rule behind an emailed confirmation
+    # link so that no address could auto-approve itself onto the roster, and the
+    # reasoning was sound — but the mail is the half that fails. On a deployment
+    # whose SES account is still sandboxed NOTHING can be delivered to a student
+    # address, so every applicant sat in PENDING_VERIFICATION: the student saw a
+    # successful submission, the admin saw an empty queue, and the retry hit the
+    # duplicate guard's deliberately opaque 409, which reads as a broken form.
+    # A gate nobody can pass is not a gate, it is an outage.
+    #
+    # THE MAILBOX PROOF DID NOT GO AWAY — IT MOVED PAST THE DECISION. An
+    # approved applicant is emailed a setup link and must then confirm the
+    # address with a one-time code before they can set a password
+    # (routers/onboarding.py). So an application still cannot become a usable
+    # account without somebody reading that mailbox; what changed is that a
+    # HUMAN now sees the application first, and a provisioned-but-unconfirmed
+    # row is inert — its password hash is the unusable sentinel, and Google
+    # sign-in needs the Google account itself.
     reg = Registration(
         name=body.name.strip(),
         email=email,
         usn=body.usn,
         phone=body.phone,
         degree_level=body.degree_level,
-        status=RegistrationStatus.PENDING_VERIFICATION,
+        status=RegistrationStatus.PENDING_REVIEW,
         cohort_id=None,
         **_resolve_claim(db, body),
         matched_rule_id=None,
-        decision_reason="Awaiting email confirmation.",
+        decision_reason=None,
     )
     db.add(reg)
     db.commit()
     db.refresh(reg)
-    raw = account_links.issue_email_verification(db, reg)
+    _apply_rule(db, reg)
     db.commit()
-    account_links.send_email_verification(db, reg, raw)
-    log.info("application %s from %s awaiting email confirmation", reg.id, email)
-    return _out_one(db, reg)
+    db.refresh(reg)
+    log.info("application %s from %s is %s", reg.id, email, reg.status.value)
+    return _public_out_one(db, reg)
 
 
 @router.get("/pending", response_model=list[RegistrationOut])
 def pending(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[RegistrationOut]:
-    """Director review queue — applications a human still needs to decide."""
+    """The review queue — applications a human still needs to decide."""
     require_capability(db, session, "admin.registrations")
     rows = db.scalars(
         select(Registration)
@@ -742,6 +824,25 @@ class DecisionIn(BaseModel):
 #: signed into with a password until one is deliberately set — which is the
 #: activation flow's job, not this endpoint's.
 SSO_ONLY_PASSWORD_HASH = "google-only"
+
+
+def _provisioned_department(db: Session, cohort_id: str | None, department_id: str | None) -> str | None:
+    """The department to file a newly provisioned student under.
+
+    TOLERANT OF A DEPARTMENT THAT IS GONE, and that is the difference between
+    this and the console's version. `resolve_student_department` raises for an
+    id it cannot find so an admin who mistypes gets a 422 instead of a silent
+    null — right there, wrong here: the id in an application was valid when the
+    form was submitted, and a department archived in the meantime must not make
+    an APPROVAL fail. An unfiled student the Main Admin can file is a far better
+    outcome than an approval that cannot be completed at all.
+    """
+    try:
+        return resolve_student_department(
+            db, cohort_id=cohort_id, department_id=department_id, department_sent=False
+        )
+    except LookupError:
+        return None
 
 
 def _provision_student(db: Session, reg: Registration) -> Student:
@@ -798,7 +899,7 @@ def _provision_student(db: Session, reg: Registration) -> Student:
     # applicant can even read that mailbox.
     #
     # Without this check, "Approve" on an application from any address on the
-    # internet grants that address a real Google sign-in to REEP. The director
+    # internet grants that address a real Google sign-in to REEP. The Main Admin
     # clicking it sees a form that looks like every other application. That
     # made approval a self-service door into the roster, which is the one
     # thing google_auth.py's whole design exists to prevent.
@@ -833,7 +934,7 @@ def _provision_student(db: Session, reg: Registration) -> Student:
         # ------------------------------------------------------------------ #
         # GUARD 2: the role. The lookup above is by EMAIL ALONE, and the
         # duplicate check on submit is against registrations.email, not
-        # users.email — so an application naming a mentor's or director's
+        # users.email — so an application naming a mentor's or the admin's
         # address is accepted by the public form and lands in this queue
         # looking ordinary.
         #
@@ -854,12 +955,24 @@ def _provision_student(db: Session, reg: Registration) -> Student:
 
     student = db.scalar(select(Student).where(Student.user_id == user.id))
     if student is None:
+        cohort_id = reg.cohort_id or reg.requested_cohort_id
         student = Student(
             user_id=user.id,
             usn=(reg.usn or "").strip() or None,
             # The rule's cohort wins - it is policy. When no rule seated them, the
-            # batch the applicant picked on the form is what the director approved.
-            cohort_id=reg.cohort_id or reg.requested_cohort_id,
+            # batch the applicant picked on the form is what the Main Admin approved.
+            cohort_id=cohort_id,
+            # THE DEPARTMENT THE APPLICANT WAS REQUIRED TO NAME (31f7a4c60b12).
+            # This was dropped on the floor for the whole life of the form:
+            # College and Department are REQUIRED while Course, Specialization
+            # and Batch are optional, so an applicant to a college that has not
+            # built its batches yet — every college on day one — was provisioned
+            # with `cohort_id` NULL and nothing else, which resolved to an empty
+            # profile card and made them invisible to every department-scoped
+            # read. The batch still wins where it has a department; `sent=False`
+            # because a stored application is not a human contradicting
+            # themselves, so this derives and never refuses an approval.
+            department_id=_provisioned_department(db, cohort_id, reg.department_id),
         )
         db.add(student)
         db.flush()
@@ -887,7 +1000,7 @@ def _apply_rule(db: Session, reg: Registration) -> None:
     sees addresses somebody has proved they own. If the rule says approve but
     provisioning refuses — the domain fence, or an address that already belongs
     to a staff account — the application is NOT dropped and NOT force-approved:
-    it lands in the director's queue with the refusal as its reason, which is
+    it lands in the review queue with the refusal as its reason, which is
     where a human decision belongs. That also closes the old gap where
     AUTO_APPROVED rows were never provisioned by anything.
     """
@@ -913,30 +1026,20 @@ def _apply_rule(db: Session, reg: Registration) -> None:
     reg.decision_reason = f"Auto-approved by rule '{rule.name}'."
     reg.reviewed_at = datetime.now(timezone.utc)
     db.flush()
+    db.commit()
     user = db.get(User, student.user_id)
     if user is not None:
-        account_links.send_enrolment_notice(db, user)
+        # The same invite the Main Admin's APPROVE sends. One way in, however
+        # the decision was reached.
+        account_links.issue_onboarding(db, user)
 
 
-@router.get("/verify")
-def verify(token: str, db: Session = Depends(get_db)) -> RedirectResponse:
-    """Public: the link in the confirmation email. Consumes it, marks the
-    address confirmed, applies the rule, and sends the browser into the app.
-
-    A GET, because it is opened from a mail client. It redirects rather than
-    rendering, so the outcome is shown by the login screen in the app's own
-    words: `?verified=1`, or `?verified=0` with why.
-    """
-    web = settings.web_origin.rstrip("/")
-    reg = account_links.consume_email_verification(db, token.strip())
-    if reg is None:
-        return RedirectResponse(f"{web}/login?verified=0&why=expired_or_used", status_code=302)
-    if reg.status is not RegistrationStatus.PENDING_VERIFICATION:
-        return RedirectResponse(f"{web}/login?verified=1", status_code=302)
-    reg.email_verified_at = datetime.now(timezone.utc)
-    _apply_rule(db, reg)
-    db.commit()
-    return RedirectResponse(f"{web}/login?verified=1", status_code=302)
+# GET /register/verify IS GONE (2026-09-10). It consumed a confirmation token
+# and applied the rule; both moved. Nothing writes PENDING_VERIFICATION any
+# more and migration 9b2d47f0ce15 emptied `email_verifications`, so the route
+# could only ever have answered "expired or used" — while still being a live
+# endpoint that spends secrets, which is not a thing to leave lying around for
+# a flow that no longer exists.
 
 
 @router.post("/{registration_id}/decision", response_model=RegistrationOut)
@@ -946,14 +1049,14 @@ def decide(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> RegistrationOut:
-    """Director: approve or reject a pending application.
+    """Main Admin: approve or reject a pending application.
 
     APPROVE stamps the reviewer AND provisions the account — the User row, the
     Student row seated in the rule's cohort, a profile row, and
     approved_student_id — all in one transaction. REJECT stamps only."""
     require_capability(db, session, "admin.registrations")
     # SELECT ... FOR UPDATE, not db.get(). The already-decided check below is a
-    # read followed by a write, and two directors clicking Approve at the same
+    # read followed by a write, and two admins clicking Approve at the same
     # moment both read PENDING, both pass the check, and both provision — the
     # second failing on the unique email with a 500 rather than the 409 this
     # endpoint promises. The row lock makes the second request wait for the
@@ -968,6 +1071,7 @@ def decide(
             status_code=status.HTTP_409_CONFLICT, detail="Application already decided."
         )
     decision = body.decision.upper()
+    user: User | None = None
     if decision == "APPROVE":
         reg.status = RegistrationStatus.APPROVED
         # Approval now PROVISIONS. See _provision_student: same transaction as
@@ -980,11 +1084,16 @@ def decide(
         # application and the bytes exist once.
         _move_documents_to_uploads(db, reg, student)
         user = db.get(User, student.user_id)
-        if user is not None:
-            # Option B: a student gets an enrolment notice (sign in with
-            # Google), never a password link.
-            account_links.send_enrolment_notice(db, user)
     elif decision == "REJECT":
+        # THE REASON TRAVELS WITH THE REFUSAL. A rejected applicant is not a
+        # user and never becomes one, so this mail is the only channel the
+        # product has to them; a decision sent without the note the admin was
+        # already made to type is a refusal they cannot answer.
+        if not (body.note or "").strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="A reason is required when rejecting an application.",
+            )
         reg.status = RegistrationStatus.REJECTED
     else:
         raise HTTPException(
@@ -996,12 +1105,21 @@ def decide(
     reg.review_note = body.note
     db.commit()
     db.refresh(reg)
+    # MAIL AFTER THE COMMIT, and never inside it. Both issuers commit their own
+    # token, so calling them above would split this decision across two
+    # transactions and leave "approved, no account" reachable if the second
+    # failed. A send that fails now is a decision that stands with a mail
+    # nobody got — recoverable by re-sending, which is the right way round.
+    if reg.status is RegistrationStatus.APPROVED and user is not None:
+        account_links.issue_onboarding(db, user)
+    elif reg.status is RegistrationStatus.REJECTED:
+        account_links.send_registration_rejected(db, reg, (body.note or "").strip())
     return _out_one(db, reg)
 
 
 @router.post(
     "/{registration_id}/documents/{kind}",
-    response_model=RegistrationOut,
+    response_model=PublicRegistrationOut,
     status_code=status.HTTP_200_OK,
 )
 async def attach_document(
@@ -1010,7 +1128,7 @@ async def attach_document(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-) -> RegistrationOut:
+) -> PublicRegistrationOut:
     """Attach the CV or the photo to an application that nobody has decided yet.
 
     PUBLIC, like the form that created the application - there is no account to
@@ -1018,7 +1136,7 @@ async def attach_document(
     handed on the 201, unguessable, and the same trust the emailed confirmation
     link carries. It is accepted only while the application is undecided
     (PENDING_VERIFICATION or PENDING_REVIEW), so a file can never be slipped
-    onto a record a director has already ruled on.
+    onto a record the Main Admin has already ruled on.
 
     The bytes go through app/document_store exactly as a student's own uploads
     do - magic-sniffed, size-capped, no client path near the disk - and THEN
@@ -1106,7 +1224,7 @@ async def attach_document(
         )
     db.commit()
     db.refresh(reg)
-    return _out_one(db, reg)
+    return _public_out_one(db, reg)
 
 
 @router.post("/{registration_id}/reopen", response_model=RegistrationOut)
@@ -1180,7 +1298,7 @@ class RuleOut(BaseModel):
 def rules(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[RuleOut]:
-    """Director: the active rule set, in the order the engine evaluates it."""
+    """Main Admin: the active rule set, in the order the engine evaluates it."""
     require_capability(db, session, "admin.registrations")
     rows = db.scalars(
         select(RegistrationRule).order_by(RegistrationRule.priority, RegistrationRule.created_at)

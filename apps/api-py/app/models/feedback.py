@@ -46,7 +46,6 @@ class AssistantFeedback(Base):
     __table_args__ = (
         # One feedback row per (run, owner) — a re-vote UPSERTs onto this row.
         UniqueConstraint("run_id", "owner_user_id", name="uq_feedback_run_owner"),
-        Index("ix_feedback_run", "run_id"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

@@ -34,7 +34,7 @@ door a session came through, which is exactly the point.
 THE ROSTER IS THE ALLOWLIST. A verified Google identity whose email matches no
 `User` row is refused. There is no just-in-time provisioning: a provisioned
 account would need a role invented for it, and AGENTS.md rule 2 makes guessing a
-role a data-exposure bug rather than a UX one (a wrong MENTOR/DIRECTOR reads
+role a data-exposure bug rather than a UX one (a wrong MENTOR/ADMIN reads
 every student's marks, attendance and USN). Accounts are created from the roster
 by `python -m app.seed_roster`, which is also where the USN comes from â so a
 student's profile shows it already filled in and they never type it.
@@ -137,7 +137,7 @@ _TIMING_EQUALIZER_USER_ID = f"no-such-user-{secrets.token_hex(16)}"
 # Google sign-in carries its own rate limiting, its own anomaly detection and
 # usually the college's 2FA. A password carries none of that, so the moment
 # PASSWORD_LOGIN=true puts this endpoint on the public internet it becomes the
-# one guessable way in — and a DIRECTOR password guessed here reads every
+# one guessable way in — and the Main Admin's password guessed here reads every
 # student's marks, attendance and USN. This is the compensating control, and it
 # is why that flag was not simply `not is_prod`.
 #
@@ -284,11 +284,20 @@ def password_door_open(db: Session) -> bool:
 _HOME_FOR_ROLE = {
     "STUDENT": "/student",
     "MENTOR": "/mentor",
-    "DIRECTOR": "/director",
-    "ADMIN": "/director",
+    "ADMIN": "/admin",
     "ALUMNI": "/alumni",
 }
-_DEFAULT_HOME = "/student"
+#: An unknown role lands on the LOGIN screen, not on a student dashboard.
+#
+# This used to be "/student", and it was wrong in the one case it existed for.
+# The roles here are the roles the app HAS; anything else is a claim the server
+# no longer recognises — a retired DIRECTOR cookie, a row an un-migrated
+# checkout carries — and such an account holds no capability and passes no role
+# gate, so every screen behind /student answers 403 to it. Sending it to a
+# workspace it cannot use turns "you have no access" into "the app is broken".
+# `homeForRole` in apps/web/src/app/core/session.ts is the same decision on the
+# client, and tests/test_codebase_guards.py pins the two together.
+_DEFAULT_HOME = "/login"
 
 
 def _cookie_secure() -> bool:
@@ -507,7 +516,7 @@ def login(
     bit the login screen's probe already publishes.
 
     WHAT OPENING IT TAKES ON. A password is guessable where a Google account
-    behind the college's 2FA is not, and a guessed DIRECTOR password reads every
+    behind the college's 2FA is not, and a guessed Main Admin password reads every
     student's marks, attendance and USN. So this endpoint carries its own
     brute-force limiter, keyed on the ACCOUNT as well as the source address
     because behind an ALB the source address is the ALB. Two things it does not

@@ -5,12 +5,12 @@ Rule 2 everywhere a student is named: every per-student endpoint goes through
 reimplemented), and the pending-evidence queue narrows to the mentor's own
 group IN SQL — an out-of-group claim is never read out of the database, the
 leave-queue lesson. Cohort views, exports and the certification catalogue are
-DIRECTOR/ADMIN (§15's "cohort-level administrative view", §18).
+the Main Admin (§15's "cohort-level administrative view", §18).
 
 What approving means (§10): the reviewer's APPROVE on an evidence row is the
 act that mints the EARNED badge row — points stamped from the catalogue at that
 moment, reviewer recorded. REJECT and MORE_INFO_REQUIRED write the verdict and
-the note and mint nothing. Revoking (§18, director-only) deletes the award row
+the note and mint nothing. Revoking (§18, Main Admin only) deletes the award row
 — the badge tile falls back to whatever the remaining rows honestly say — and
 never touches the evidence history.
 
@@ -53,7 +53,7 @@ from ..document_store import content_disposition, read_bytes
 from ..models.upload import Upload
 from ..models.user import Student, User
 from .badges import BadgeDashboardOut, GrowthOut, compose_badges, compose_growth
-from .mentor import _assert_can_access_student, require_director, require_mentor
+from .mentor import _assert_can_access_student, require_admin, require_mentor
 
 router = APIRouter(tags=["badge-admin"])
 
@@ -106,7 +106,12 @@ def _pending_row(ev: BadgeEvidence, name: str, usn: str | None) -> PendingEviden
 def pending_evidence(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[PendingEvidenceOut]:
-    require_mentor(session)
+    # mentor.verifications: verifying a student's evidence is a faculty act.
+    # The Main Admin no longer holds it by role - but it stays GRANTABLE, which
+    # matters here specifically: when a student's assigned faculty never reviews
+    # their evidence, the admin can grant itself this, clear the queue, and
+    # revoke it again. Without that the evidence would simply sit.
+    require_capability(db, session, "mentor.verifications")
     query = (
         select(BadgeEvidence, User.name, Student.usn)
         .join(Student, BadgeEvidence.student_id == Student.id)
@@ -131,7 +136,12 @@ def evidence_file(
     """Stream the certificate behind a claim so the reviewer can actually read
     what they are approving. Same scope, and the same flattened 404, as the
     review endpoint."""
-    require_mentor(session)
+    # mentor.verifications: verifying a student's evidence is a faculty act.
+    # The Main Admin no longer holds it by role - but it stays GRANTABLE, which
+    # matters here specifically: when a student's assigned faculty never reviews
+    # their evidence, the admin can grant itself this, clear the queue, and
+    # revoke it again. Without that the evidence would simply sit.
+    require_capability(db, session, "mentor.verifications")
     ev = db.get(BadgeEvidence, evidence_id)
     if ev is None or ev.upload_id is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found.")
@@ -187,7 +197,12 @@ def review_evidence(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> PendingEvidenceOut:
-    require_mentor(session)
+    # mentor.verifications: verifying a student's evidence is a faculty act.
+    # The Main Admin no longer holds it by role - but it stays GRANTABLE, which
+    # matters here specifically: when a student's assigned faculty never reviews
+    # their evidence, the admin can grant itself this, clear the queue, and
+    # revoke it again. Without that the evidence would simply sit.
+    require_capability(db, session, "mentor.verifications")
     ev = db.get(BadgeEvidence, evidence_id)
     if ev is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found.")
@@ -255,10 +270,10 @@ def manual_award(
     if BADGE_BY_CODE[code].staff_awarded:
         # Readiness badges certify that assessment THRESHOLDS were met — a call
         # nothing in this handler verifies, so it stays with the role that can
-        # also undo it. Revoke below is require_director; an award any MENTOR
-        # could mint but only a DIRECTOR could unwind is an asymmetry that only
+        # also undo it. Revoke below is require_admin; an award any MENTOR
+        # could mint but only the Main Admin could unwind is an asymmetry that only
         # ever accumulates points.
-        require_director(session)
+        require_admin(session)
     _award(db, student_id, code, session["userId"], (body.note or "").strip() or "Manually awarded")
     db.commit()
     return compose_badges(db.get(Student, student_id), db)
@@ -272,7 +287,7 @@ def revoke_badge(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> BadgeDashboardOut:
-    require_director(session)
+    require_admin(session)
     if db.get(Student, student_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
     row = db.scalar(
@@ -433,11 +448,11 @@ class CohortOut(BaseModel):
     capabilities: list[CohortCapabilityRow]
 
 
-@router.get("/director/badges/cohort", response_model=CohortOut)
+@router.get("/admin/badges/cohort", response_model=CohortOut)
 def cohort_view(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> CohortOut:
-    require_director(session)
+    require_admin(session)
     total_students = len(db.scalars(select(Student.id)).all())
 
     by_cat = {c.value: 0 for c in BadgeCategory}
@@ -473,14 +488,27 @@ def cohort_view(
     )
 
 
-@router.get("/director/badges/export.csv")
+@router.get("/admin/badges/export.csv")
 def export_cohort_csv(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> Response:
     """§18's cohort report: one row per student — points, earned count per
     category, mean growth from baseline. A spreadsheet, because that is what a
-    placement office actually forwards."""
-    require_capability(db, session, "admin.exports")
+    placement office actually forwards.
+
+    THE SAME GATE AS THE SCREEN, and it was not. `cohort_view` above renders this
+    data and is `require_admin`; this endpoint answered to `admin.exports`, a
+    GRANTABLE capability. So a faculty member granted Exports could download the
+    whole cohort's badge and growth record — one row per student — while being
+    refused the screen that shows exactly the same thing.
+
+    Narrowed rather than widened deliberately: the screen is the authority on who
+    may see cohort-wide student data, and when two gates disagree the safe
+    reconciliation is the tighter one. If the placement office genuinely needs a
+    granted non-admin to pull this, widen BOTH together — the fix is not to give
+    the file a weaker lock than the window.
+    """
+    require_admin(session)
     students = db.execute(
         select(Student, User.name).join(User, Student.user_id == User.id).order_by(User.name)
     ).all()
@@ -613,11 +641,11 @@ def _validated_certification_fields(body: ApprovedCertificationIn) -> tuple[Evid
     return ev_type, stage
 
 
-@router.get("/director/approved-certifications", response_model=list[ApprovedCertificationOut])
+@router.get("/admin/approved-certifications", response_model=list[ApprovedCertificationOut])
 def list_approved_certifications(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[ApprovedCertificationOut]:
-    require_director(session)
+    require_admin(session)
     claims = {
         cert_id: n
         for cert_id, n in db.execute(
@@ -633,14 +661,14 @@ def list_approved_certifications(
 
 
 @router.post(
-    "/director/approved-certifications",
+    "/admin/approved-certifications",
     response_model=ApprovedCertificationOut,
     status_code=status.HTTP_201_CREATED,
 )
 def add_approved_certification(
     body: ApprovedCertificationIn, session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> ApprovedCertificationOut:
-    require_director(session)
+    require_admin(session)
     ev_type, stage = _validated_certification_fields(body)
     cert = ApprovedCertification(
         name=body.name.strip(),
@@ -659,14 +687,14 @@ def add_approved_certification(
     return _approved_certification_row(cert)
 
 
-@router.patch("/director/approved-certifications/{cert_id}", response_model=ApprovedCertificationOut)
+@router.patch("/admin/approved-certifications/{cert_id}", response_model=ApprovedCertificationOut)
 def edit_approved_certification(
     cert_id: str,
     body: ApprovedCertificationIn,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> ApprovedCertificationOut:
-    require_director(session)
+    require_admin(session)
     cert = db.get(ApprovedCertification, cert_id)
     if cert is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certification not found.")

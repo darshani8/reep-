@@ -61,11 +61,15 @@ def test_dashboard_defaults_and_start(client, make_user):
 
 
 @requires_db
-def test_evidence_review_mints_the_badge(client, make_user):
+def test_evidence_review_mints_the_badge(client, make_user, granted):
     """§10/§12: upload → pending; APPROVE mints EARNED with catalogue points;
     a certificate alone never awards anything."""
     student = make_user("bdg-flow", Role.STUDENT)
-    director = make_user("bdg-dir", Role.DIRECTOR)
+    verifier = make_user("bdg-dir", Role.ADMIN)
+    # The office account holds no verification queue by role — it is a faculty
+    # instrument. It grants itself one, which is the design's own answer for
+    # "a student's evidence is stuck and nobody else will look".
+    granted(verifier, "mentor.verifications")
 
     r = client.post(
         "/api/student/badges/MGR-NEGOTIATION/evidence",
@@ -79,14 +83,17 @@ def test_evidence_review_mints_the_badge(client, make_user):
     assert badge["status"] == "VERIFICATION_PENDING"
     assert badge["points_earned"] == 0  # uploaded, not earned
 
-    queue = client.get("/api/mentor/badge-evidence/pending", headers=director.headers).json()
-    mine = [q for q in queue if q["student_id"] == student.user_id or q["title"] == "Negotiation certificate"]
+    queue = client.get("/api/mentor/badge-evidence/pending", headers=verifier.headers).json()
+    mine = [
+        q for q in queue
+        if q["student_id"] == student.user_id or q["title"] == "Negotiation certificate"
+    ]
     ev = next(q for q in queue if q["title"] == "Negotiation certificate")
     assert ev["badge_name"] == "Negotiation"
 
     r = client.post(
         f"/api/mentor/badge-evidence/{ev['id']}/review",
-        headers=director.headers,
+        headers=verifier.headers,
         json={"decision": "APPROVE", "note": "Verified against provider"},
     )
     assert r.status_code == 200
@@ -104,20 +111,21 @@ def test_evidence_review_mints_the_badge(client, make_user):
 
 
 @requires_db
-def test_reject_and_more_info_mint_nothing(client, make_user):
+def test_reject_and_more_info_mint_nothing(client, make_user, granted):
     student = make_user("bdg-rej", Role.STUDENT)
-    director = make_user("bdg-rej-dir", Role.DIRECTOR)
+    verifier = make_user("bdg-rej-dir", Role.ADMIN)
+    granted(verifier, "mentor.verifications")
     for decision, expected in (("REJECT", "REJECTED"), ("MORE_INFO", "MORE_INFO_REQUIRED")):
         client.post(
             "/api/student/badges/THK-DESIGN-THINKING/evidence",
             headers=student.headers,
             json={"evidence_type": "APPLIED", "title": f"attempt {decision}"},
         )
-        queue = client.get("/api/mentor/badge-evidence/pending", headers=director.headers).json()
+        queue = client.get("/api/mentor/badge-evidence/pending", headers=verifier.headers).json()
         ev = next(q for q in queue if q["title"] == f"attempt {decision}")
         r = client.post(
             f"/api/mentor/badge-evidence/{ev['id']}/review",
-            headers=director.headers,
+            headers=verifier.headers,
             json={"decision": decision, "note": "see note"},
         )
         assert r.json()["status"] == expected
@@ -139,14 +147,14 @@ def test_groupless_mentor_sees_no_queue_and_students_see_no_admin(client, make_u
         client.get("/api/mentor/badge-evidence/pending", headers=student.headers).status_code == 403
     )
     # Cohort views and the export are DIRECTOR/ADMIN, not any staff.
-    assert client.get("/api/director/badges/cohort", headers=mentor.headers).status_code == 403
-    assert client.get("/api/director/badges/export.csv", headers=mentor.headers).status_code == 403
+    assert client.get("/api/admin/badges/cohort", headers=mentor.headers).status_code == 403
+    assert client.get("/api/admin/badges/export.csv", headers=mentor.headers).status_code == 403
 
 
 @requires_db
 def test_manual_award_and_revoke(client, make_user):
     student = make_user("bdg-award", Role.STUDENT)
-    director = make_user("bdg-award-dir", Role.DIRECTOR)
+    director = make_user("bdg-award-dir", Role.ADMIN)
 
     r = client.post(
         f"/api/mentor/students/{_student_id(client, student)}/badges/RDY-APTITUDE/award",
@@ -177,7 +185,7 @@ def test_growth_derivation_and_assessment_upsert(client, make_user):
     """§9/§15: dashes until assessed, growth only once T0 AND a later score
     exist, and re-entering a score corrects in place."""
     student = make_user("bdg-growth", Role.STUDENT)
-    director = make_user("bdg-growth-dir", Role.DIRECTOR)
+    director = make_user("bdg-growth-dir", Role.ADMIN)
     sid = _student_id(client, student)
 
     g = client.get("/api/student/growth", headers=student.headers).json()
@@ -242,10 +250,10 @@ def test_approved_certification_catalogue_and_the_simpler_path(client, make_user
     """§12: directors curate the catalogue; a student picking a row gets
     title/provider/type from it, and a wrong-badge pick is refused."""
     student = make_user("bdg-cat", Role.STUDENT)
-    director = make_user("bdg-cat-dir", Role.DIRECTOR)
+    director = make_user("bdg-cat-dir", Role.ADMIN)
 
     r = client.post(
-        "/api/director/approved-certifications",
+        "/api/admin/approved-certifications",
         headers=director.headers,
         json={
             "name": "Test Catalogue Cert",
@@ -287,7 +295,7 @@ def test_approved_certification_catalogue_and_the_simpler_path(client, make_user
         # Mentors cannot curate the catalogue.
         mentor = make_user("bdg-cat-mentor", Role.MENTOR)
         assert (
-            client.get("/api/director/approved-certifications", headers=mentor.headers).status_code
+            client.get("/api/admin/approved-certifications", headers=mentor.headers).status_code
             == 403
         )
     finally:

@@ -88,11 +88,11 @@ from ..models.user import Role, Student, User
 
 # _assert_can_access_student is private to mentor.py on purpose, and importing it
 # anyway is the lesser evil — the same call app/routers/leave.py makes, for the
-# same reason. require_director rides along because §7.2 needs BOTH gates on the
-# report: require_director says WHICH ROLE may see `raw_response`,
+# same reason. require_admin rides along because §7.2 needs BOTH gates on the
+# report: require_admin says WHICH ROLE may see `raw_response`,
 # _assert_can_access_student says WHICH STUDENT may be read, and neither answers
 # the other's question.
-from .mentor import _assert_can_access_student, require_director, require_mentor
+from .mentor import _assert_can_access_student, require_admin, require_mentor
 
 log = logging.getLogger(__name__)
 
@@ -199,13 +199,13 @@ class InterviewReportOut(BaseModel):
 
 
 class StaffInterviewReportOut(InterviewReportOut):
-    """DIRECTOR/ADMIN only, and the one field is the whole reason this subclass
+    """The Main Admin only, and the one field is the whole reason this subclass
     exists.
 
     `raw_response` is the model's exact output, kept for debugging a bad parse.
     It routinely contains the model's private reasoning ABOUT the student, which
     is why it does not travel to the student and why a MENTOR does not get it
-    either — `require_director` decides, on top of the group gate that already
+    either — `require_admin` decides, on top of the group gate that already
     decided which student may be read at all.
     """
 
@@ -445,7 +445,7 @@ def _report_out(evaluation: InterviewEvaluation) -> InterviewReportOut:
 
 
 def _may_see_raw_response(session: dict) -> bool:
-    """DIRECTOR/ADMIN, decided by mentor.py's own `require_director`.
+    """The Main Admin, decided by mentor.py's own `require_admin`.
 
     It raises 403 and we need a boolean, so it is called and caught rather than
     re-expressed as `role in {...}` here. That looks roundabout and is
@@ -454,7 +454,7 @@ def _may_see_raw_response(session: dict) -> bool:
     handing a new role the model's private reasoning about a student.
     """
     try:
-        require_director(session)
+        require_admin(session)
     except HTTPException:
         return False
     return True
@@ -817,12 +817,12 @@ def student_interview_report(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> InterviewReportOut | StaffInterviewReportOut:
-    """The scorecard, with `raw_response` for DIRECTOR/ADMIN only.
+    """The scorecard, with `raw_response` for the Main Admin only.
 
     BOTH gates, not either (§7.2): `_assert_can_access_student` decides which
-    student may be read, `require_director` (through `_may_see_raw_response`)
+    student may be read, `require_admin` (through `_may_see_raw_response`)
     decides who may see the model's private reasoning about them. Neither
-    answers the other's question — a DIRECTOR still cannot read a student who
+    answers the other's question — the Main Admin still cannot read a student who
     does not exist, and a MENTOR in the right group still does not get
     `raw_response`.
 
@@ -850,7 +850,7 @@ class InterviewRecordRow(BaseModel):
     """One interview across the whole programme, with the student named.
 
     This is the admin RECORDS view — distinct from InterviewSessionOut (a single
-    student's own history), because it carries identity: a mentor or director
+    student's own history), because it carries identity: a mentor or the admin
     reviewing recordings needs to know WHOSE interview each row is, which the
     per-student endpoints deliberately never repeat back.
     """
@@ -876,7 +876,7 @@ def all_interviews(
 
     Scope is rule 2, not a new rule: a MENTOR sees only interviews of students in
     their own group, a MENTOR WITH NO GROUP sees nobody (never the whole
-    programme), and DIRECTOR/ADMIN see all. The narrowing is the same
+    programme), and the Main Admin sees all. The narrowing is the same
     `session["mentorId"]` predicate the mentees list uses, applied in SQL so an
     out-of-group interview never leaves the database.
 
@@ -988,32 +988,39 @@ def download_selected_audio(
 
 
 def _require_developer(session: dict, db: Session) -> dict:
-    """The `admin.interview_audio` capability — ADMIN by baseline, a DIRECTOR only
-    when explicitly granted it. Still deliberately NARROWER than require_director.
+    """The `admin.interview_audio` capability — ADMIN by baseline, a MENTOR only
+    when explicitly granted it. Still deliberately NARROWER than require_mentor.
 
-    Every other staff read in this module is placement business: a DIRECTOR runs
-    the programme and needs a student's scores, transcript and history to do it.
-    A voice recording is not placement business. It exists so whoever operates
-    this system can hear what the ENGINE did — a mis-transcribed turn, the
+    Every other staff read in this module is placement business: a mentor needs
+    their mentees' scores, transcript and history to do the job. A voice
+    recording is not placement business. It exists so whoever operates this
+    system can hear what the ENGINE did — a mis-transcribed turn, the
     interviewer talking over an answer — and that is an operator's artefact that
     happens to contain a named student speaking.
 
-    So the role that reads it is the operator's role, not the programme's. A
-    DIRECTOR gets 403 here and 200 everywhere else in this file, which is the
-    intended asymmetry and not an oversight: widening this back to
-    require_director would hand the most sensitive bytes REEP stores to every
-    placement account, for no question they cannot already answer from the
-    transcript.
+    So what reads it is the operator's capability, not the programme's role. A
+    MENTOR gets 403 here and 200 everywhere else in this file, which is the
+    intended asymmetry and not an oversight: widening this to require_mentor
+    would hand the most sensitive bytes REEP stores to every faculty account,
+    for no question they cannot already answer from the transcript.
 
     WHAT CHANGED (2026-09): the check is a CAPABILITY, not a role set. ADMIN
-    holds it through ROLE_BASELINE, so nothing an administrator could do moved.
-    DIRECTOR is the one role whose baseline EXCLUDES it (app/governance.py), so a
-    director still gets 403 here and 200 everywhere else in this file — the
-    asymmetry above survives intact. What is new is that an admin can now grant
-    it to a named director, with a reason, on the audit trail, for the one
-    placement officer who genuinely needs to hear a session — rather than the
-    only options being "every director" or "nobody". The 403 names the
-    capability and where to ask for it, instead of a dead end.
+    holds it through ROLE_BASELINE, so nothing the office could do moved. It is
+    the one capability a MENTOR does not get with the rest of the scoped set
+    (app/governance.py), so the asymmetry above survives intact. What is new is
+    that the Main Admin can grant it to a NAMED faculty member, with a reason,
+    on the audit trail, for the one person who genuinely needs to hear a
+    session — rather than the only options being "every mentor" or "nobody".
+    The 403 names the capability and where to ask for it, instead of being a
+    dead end.
+
+    THE ROLE THIS PARAGRAPH USED TO BE ABOUT IS GONE (2026-09-10). It argued
+    the same asymmetry for DIRECTOR, which held every other capability by
+    baseline and this one only by grant. DIRECTOR now holds NOTHING at all, so
+    that reading is not merely stale, it is false in the direction that matters:
+    it would tell you a DIRECTOR reads transcripts here, and it does not read
+    anything. The argument was always about operator-versus-programme, never
+    about that particular role, so it transfers to MENTOR unchanged.
     """
     require_capability(db, session, "admin.interview_audio")
     return session
@@ -1051,7 +1058,7 @@ def _require_developer(session: dict, db: Session) -> dict:
 #
 # The gate order below is `student_interview_report`'s, with the role check
 # promoted from "which fields" to "whether at all" -- and tightened from
-# require_director to _require_developer, because "whether at all" is a
+# require_admin to _require_developer, because "whether at all" is a
 # different question from "how much".
 # ---------------------------------------------------------------------------
 
@@ -1069,11 +1076,11 @@ def student_interview_audio(
 
     BOTH gates and then some, in this order and for three different questions:
     `_require_developer` says WHO may hear a recording at all — the
-    `admin.interview_audio` capability: ADMIN by baseline, a director only by
+    `admin.interview_audio` capability: ADMIN by baseline, a MENTOR only by
     an explicit grant; narrower than every other read in this module —
     `_assert_can_access_student` says WHICH STUDENT this caller may read — an
-    ADMIN still cannot reach a student who does not exist, and a DIRECTOR or a
-    MENTOR in the right group still gets 403 — and `_session_of_student_or_404` says the
+    ADMIN still cannot reach a student who does not exist, and a MENTOR in the
+    wrong group still gets 403 — and `_session_of_student_or_404` says the
     row's own subject really is the student in the path (§7.3: gating on the
     path and then loading a row by an id from somewhere else is a
     horizontal-privilege bug wearing a correct-looking first line).

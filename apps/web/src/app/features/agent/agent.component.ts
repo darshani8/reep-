@@ -11,7 +11,7 @@
  * retained for, and it is what flipped AGENT_RUNS_COLLECTED back to True.
  *
  * ROLE-AGNOSTIC BY CONSTRUCTION. The coordinator routes this component at
- * /student/agent, /mentor/agent and /director/agent. Nothing here reads the URL:
+ * /student/agent, /mentor/agent and /admin/agent. Nothing here reads the URL:
  * the copy that differs per role (the "your records" link is a student screen)
  * is decided from the session's role, and everything else — the conversation,
  * the starters, feedback — is the same surface. The server already degrades

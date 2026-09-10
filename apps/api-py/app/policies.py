@@ -7,9 +7,22 @@ from sqlalchemy.orm import Session
 from .models.redesign import MembershipRole, TenantMembership
 from .models.user import Student
 
-STAFF_ROLES = frozenset({"MENTOR", "DIRECTOR", "ADMIN"})
-PROGRAMME_ROLES = frozenset({"DIRECTOR", "ADMIN"})
-NOTEBOOK_ROLES = frozenset({"MENTOR", "DIRECTOR"})
+# DIRECTOR IS NOT HERE, AND THAT IS THE POINT (2026-09-10).
+#
+# REEP has one office account: the Main Admin (ADMIN). DIRECTOR was a second
+# admin under another name — its baseline was every console screen — and nothing
+# has been able to create one since `app.grant_access` began refusing it. It
+# survived only in the dev seed and in these role sets, which meant a row that
+# could no longer be minted still opened every door if one existed.
+#
+# The enum value stays on `users.role` (dropping a Postgres enum value with any
+# historical row is a destructive migration for no gain), but it now grants
+# NOTHING anywhere: the migration that came with this change converted every
+# DIRECTOR row to MENTOR and bumped its `token_version`, so no live session
+# carries the claim either. `tests/test_no_director_privilege.py` pins it.
+STAFF_ROLES = frozenset({"MENTOR", "ADMIN"})
+PROGRAMME_ROLES = frozenset({"ADMIN"})
+NOTEBOOK_ROLES = frozenset({"MENTOR"})
 
 
 def require_role(session: dict, *roles: str) -> dict:
@@ -31,7 +44,14 @@ def require_programme_admin(session: dict) -> dict:
 
 
 def require_notebook_staff(session: dict) -> dict:
-    """Allow notebook work to mentors/directors, never platform admins."""
+    """The private notebook is a FACULTY instrument: MENTOR only.
+
+    Not the Main Admin, and not because it is trusted less — a notebook is a
+    mentor's own working record of their own mentees, and the office account has
+    neither. It can still be GRANTED `mentor.notebook` in Governance when it has
+    to stand in for a faculty member; that grant is the audited way in, and this
+    role gate is deliberately not it.
+    """
     return require_role(session, *sorted(NOTEBOOK_ROLES))
 
 

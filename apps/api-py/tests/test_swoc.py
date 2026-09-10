@@ -19,7 +19,7 @@ from app.models.redesign import AuditEvent
 from app.models.swoc import SwocEntry
 from app.models.user import Role, Student, User
 
-API = "/api/director/swoc"
+API = "/api/admin/swoc"
 MINE = "/api/student/swoc"
 GOV = "/api/admin/governance"
 
@@ -98,7 +98,7 @@ def test_the_editor_is_a_capability_the_office_holds_and_faculty_are_granted(cli
 
 @requires_db
 def test_the_office_writes_the_student_reads_their_own_and_the_trail_keeps_what_changed(client, make_user, swept):
-    director = make_user("sw-dir2", Role.DIRECTOR)
+    director = make_user("sw-dir2", Role.ADMIN)
     student = make_user("sw-stu2")
     other = make_user("sw-stu3")
     sid = _student_id(student.user_id)
@@ -159,7 +159,7 @@ def test_the_office_writes_the_student_reads_their_own_and_the_trail_keeps_what_
 
 @requires_db
 def test_bounds_and_unknowns(client, make_user, swept):
-    director = make_user("sw-dir3", Role.DIRECTOR)
+    director = make_user("sw-dir3", Role.ADMIN)
     student = make_user("sw-stu4")
     sid = _student_id(student.user_id)
     swept.append(sid)

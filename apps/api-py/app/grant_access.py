@@ -142,7 +142,7 @@ def _validate_password_hash(value: str) -> str:
 def grant(
     db: Session,
     email: str,
-    name: str,
+    name: str | None,
     role: Role,
     usn: str | None = None,
     with_group: bool = False,
@@ -219,6 +219,18 @@ def grant(
     user = db.scalar(select(User).where(func.lower(User.email) == normalised))
     created = user is None
 
+    # A NEW account cannot have a blank name; an EXISTING one keeps the name it
+    # has. `--name` is therefore required here and only here. `user.name = name`
+    # used to be unconditional, so the only way to change a role was to
+    # overwrite the name -- and on production, demoting a second Main Admin to
+    # faculty meant either retyping a colleague's name from memory or renaming
+    # them. Neither is a thing a role change should ask for.
+    if created and not (name or "").strip():
+        raise ValueError(
+            f"{normalised} does not exist yet, so --name is needed to create it. "
+            "Omit --name only to update an account that is already there."
+        )
+
     if user is None:
         user = User(
             id=uuid.uuid4().hex,
@@ -239,7 +251,10 @@ def grant(
         # once the other workers' revocation caches converge. Repeating the
         # same grant remains idempotent.
         role_changed = user.role is not role
-        user.name = name
+        # Only when the operator actually supplied one. Omitting --name is how a
+        # role is changed without touching the person's name.
+        if (name or "").strip():
+            user.name = name
         user.role = role
         if role_changed:
             user.token_version = (user.token_version or 0) + 1
@@ -297,7 +312,15 @@ def main() -> int:
         description="Grant one person Google sign-in access (the allowlist is the users table).",
     )
     parser.add_argument("email", help="the Google address, e.g. someone@bgscet.ac.in")
-    parser.add_argument("--name", required=True, help='display name, e.g. "Darshan B"')
+    parser.add_argument(
+        "--name",
+        default=None,
+        help=(
+            'display name, e.g. "Darshan B". Required only when the account does not '
+            "exist yet. OMIT IT to change an existing account's role without "
+            "rewriting their name - which is what a demotion is."
+        ),
+    )
     parser.add_argument(
         "--role",
         # REQUIRED, never defaulted. This used to default to ADMIN â the highest

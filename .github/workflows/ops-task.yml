@@ -30,13 +30,13 @@ on:
         description: "grant-access only: the Google email to allow"
         required: false
       display_name:
-        description: "grant-access only: the person's name"
+        description: "grant-access only: the person's name. Needed ONLY to create an account that does not exist yet. LEAVE IT BLANK to change an existing account's role - whatever you type here is written onto their row, so a placeholder renames them."
         required: false
       role:
-        description: "grant-access only: role (STUDENT also needs usn). Faculty are MENTOR; the Main Admin grants them screens in Governance. ADMIN is accepted only while no Main Admin exists yet, or to update the current one."
+        description: "grant-access only: the role. FACULTY is stored as MENTOR - there is no separate mentor role, and mentoring is what the Main Admin confers by assigning a faculty member students. STUDENT also needs usn. ADMIN is accepted only while no Main Admin exists yet, or to update the current one - demote the other first."
         type: choice
-        options: [MENTOR, ALUMNI, STUDENT, ADMIN]
-        default: MENTOR
+        options: [FACULTY, ALUMNI, STUDENT, ADMIN]
+        default: FACULTY
       usn:
         description: "grant-access + STUDENT only: a USN no roster row will ever claim (e.g. TEST01)"
         required: false
@@ -134,10 +134,18 @@ jobs:
               fi
               CMD=$(jq -cn '["python","-m","app.purge_people","--apply","--i-understand-this-is-permanent"]') ;;
             grant-access)
-              if [ -z "$GRANT_EMAIL" ] || [ -z "$GRANT_NAME" ]; then
-                echo "::error::grant-access needs both email and display_name."
+              if [ -z "$GRANT_EMAIL" ]; then
+                echo "::error::grant-access needs an email."
                 exit 1
               fi
+              # FACULTY is the word the college uses; MENTOR is what the enum
+              # stores. Mapped here so the menu never asks an operator to know
+              # the difference -- picking MENTOR by name is how a demotion got
+              # described as "making them a mentor", which it is not.
+              if [ "$GRANT_ROLE" = "FACULTY" ]; then GRANT_ROLE=MENTOR; fi
+              # display_name is NOT required. app.grant_access needs it only for
+              # an account that does not exist yet, and appending it blindly
+              # would overwrite the name of an account being demoted.
               # Every optional value is appended as its own argv entry, or not at
               # all: an empty input never becomes an empty argument. The hash is
               # the one credential-shaped value here and it is deliberately a
@@ -146,7 +154,8 @@ jobs:
               # mistake is rejected by the task rather than stored as a key.
               CMD=$(jq -cn --arg e "$GRANT_EMAIL" --arg n "$GRANT_NAME" --arg r "$GRANT_ROLE" \
                        --arg u "$GRANT_USN" --arg h "$GRANT_HASH" --arg g "$GRANT_WITH_GROUP" --arg m "$GRANT_MENTOR" \
-                '["python","-m","app.grant_access",$e,"--name",$n,"--role",$r]
+                '["python","-m","app.grant_access",$e,"--role",$r]
+                 + (if $n != "" then ["--name",$n] else [] end)
                  + (if $u != "" then ["--usn",$u] else [] end)
                  + (if $h != "" then ["--password-hash",$h] else [] end)
                  + (if $g == "true" then ["--with-group"] else [] end)

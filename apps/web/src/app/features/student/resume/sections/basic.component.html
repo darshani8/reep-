@@ -1,6 +1,6 @@
 <!-- data-p="basic" — Identity + Personal. Global reep-v2 classes only. -->
 <div class="notice info">
-  <span class="icon">lock</span>
+  <span class="icon" aria-hidden="true">lock</span>
   <div>
     <b>Locked fields come from the university student record.</b> USN, name, course and
     specialization cannot be edited here — raise a correction request with the registrar if any are
@@ -23,7 +23,7 @@
           [disabled]="uploadingPhoto()"
           (click)="photoPicker.click()"
         >
-          <span class="icon">add_a_photo</span>
+          <span class="icon" aria-hidden="true">add_a_photo</span>
           {{ uploadingPhoto() ? 'Uploading…' : photoUrl() ? 'Replace photo' : 'Click to upload' }}
           <small>PNG or JPEG</small>
         </button>
@@ -68,11 +68,11 @@
   <div class="grid2">
     <div class="field">
       <label>Course<span class="lock">SYNCED</span></label>
-      <input class="ctrl" placeholder="—" disabled />
+      <input class="ctrl" [value]="courseName()" placeholder="—" disabled />
     </div>
     <div class="field">
       <label>Primary specialization<span class="lock">SYNCED</span></label>
-      <input class="ctrl" placeholder="—" disabled />
+      <input class="ctrl" [value]="specializationName()" placeholder="—" disabled />
     </div>
   </div>
 </div>
@@ -138,7 +138,7 @@
     <div class="taginput">
       @for (lang of m.languages; track $index) {
         <span class="chipx"
-          >{{ lang }} <span class="icon" (click)="removeLanguage($index)">close</span></span
+          >{{ lang }} <span class="icon" (click)="removeLanguage($index)" aria-hidden="true">close</span></span
         >
       }
       <input
@@ -161,7 +161,7 @@
     <div class="field">
       <label>Medical history</label>
       <small class="sensitive-note">
-        <span class="icon">info</span>
+        <span class="icon" aria-hidden="true">info</span>
         Optional. Collected only so the placement office can arrange reasonable accommodations;
         visible to your mentor and the placement office, never to recruiters.
       </small>

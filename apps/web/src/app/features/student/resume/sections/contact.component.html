@@ -11,7 +11,7 @@
         <select class="ctrl code" disabled>
           <option>+91</option>
         </select>
-        <input class="ctrl" placeholder="Synced from record" disabled />
+        <input class="ctrl" [value]="syncedPhone()" placeholder="Not on your record yet" disabled />
       </div>
     </div>
     <div class="field">
@@ -36,13 +36,13 @@
             [ngModel]="p.number"
             (ngModelChange)="p.number = $event; push()"
           />
-          <button type="button" class="iconbtn" (click)="removePhone($index)">
-            <span class="icon">delete</span>
+          <button type="button" class="iconbtn" (click)="removePhone($index)" aria-label="Remove this phone number">
+            <span class="icon" aria-hidden="true">delete</span>
           </button>
         </div>
       }
       <button type="button" class="addlink" (click)="addPhone()">
-        <span class="icon" style="font-size: 15px">add</span> Add another number
+        <span class="icon" style="font-size: 15px" aria-hidden="true">add</span> Add another number
       </button>
     </div>
     <div class="field">
@@ -55,13 +55,13 @@
             [ngModel]="e"
             (ngModelChange)="setEmail($index, $event)"
           />
-          <button type="button" class="iconbtn" (click)="removeEmail($index)">
-            <span class="icon">delete</span>
+          <button type="button" class="iconbtn" (click)="removeEmail($index)" aria-label="Remove this email address">
+            <span class="icon" aria-hidden="true">delete</span>
           </button>
         </div>
       }
       <button type="button" class="addlink" (click)="addEmail()">
-        <span class="icon" style="font-size: 15px">add</span> Add another email
+        <span class="icon" style="font-size: 15px" aria-hidden="true">add</span> Add another email
       </button>
     </div>
   </div>
@@ -85,13 +85,13 @@
           [ngModel]="l.url"
           (ngModelChange)="l.url = $event; push()"
         />
-        <button type="button" class="iconbtn" (click)="removeLink($index)">
-          <span class="icon">delete</span>
+        <button type="button" class="iconbtn" (click)="removeLink($index)" aria-label="Remove this link">
+          <span class="icon" aria-hidden="true">delete</span>
         </button>
       </div>
     }
     <button type="button" class="addlink" (click)="addLink()">
-      <span class="icon" style="font-size: 15px">add</span> Add link
+      <span class="icon" style="font-size: 15px" aria-hidden="true">add</span> Add link
     </button>
   </div>
 </div>

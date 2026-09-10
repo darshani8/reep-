@@ -21,7 +21,7 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, output } from '@angular/core';
 
-import { ResumeBuilderService } from '../resume-builder.service';
+import { ResumeBuilderService, sectionHasContent } from '../resume-builder.service';
 import { ResumeEvidenceService } from '../resume-evidence.service';
 import { ResumeGoalService } from '../resume-goal.service';
 
@@ -45,12 +45,9 @@ const ESSENTIALS: { keys: string[]; label: string }[] = [
   { keys: ['projects'], label: 'Projects' },
 ];
 
-/** True when a builder section holds no real content (mirrors the API's rule). */
+/** True when a builder section holds no real content (one shared rule). */
 function isEmptySection(value: unknown): boolean {
-  if (value == null || value === '') return true;
-  if (Array.isArray(value)) return value.length === 0;
-  if (typeof value === 'object') return Object.values(value as object).every(isEmptySection);
-  return false;
+  return !sectionHasContent(value);
 }
 
 @Component({
@@ -82,12 +79,18 @@ export class RbTailorComponent {
   readonly missing = computed<MissingSkill[]>(() => {
     const job = this.goalSvc.selectedJob();
     if (!job) return [];
-    const have = new Set(this.ev.includedNames().map((n) => n.toLowerCase()));
-    const rows = new Map((this.ev.rows() ?? []).map((r) => [r.name.toLowerCase(), r]));
+    // SLUGS ON BOTH SIDES. `required_skills` is what the posting asks for in
+    // the catalogue's own vocabulary (`excel`, `financial-modeling`); the old
+    // comparison put those against display names ("MS Excel") and so reported
+    // every requirement missing, directly under a verdict card saying the
+    // student matched 100% of them.
+    const have = new Set(this.ev.includedSlugs().map((s) => s.toLowerCase()));
+    const rows = new Map((this.ev.rows() ?? []).map((r) => [r.slug.toLowerCase(), r]));
     return job.required_skills
       .filter((s) => !have.has(s.toLowerCase()))
-      .map((name) => {
-        const row = rows.get(name.toLowerCase());
+      .map((slug) => {
+        const row = rows.get(slug.toLowerCase());
+        const name = this.ev.label(slug);
         if (!row) return { name, status: 'Not started' };
         if (row.includable) return { name, status: 'Verified — not included' };
         return { name, status: this.ev.chip(row.status).label };

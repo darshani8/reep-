@@ -11,7 +11,7 @@
  */
 
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';
@@ -61,6 +61,19 @@ export class AuthService {
     return session;
   }
 
+  /**
+   * True when the last `refresh()` failed because this session had been
+   * RETIRED — signed out by a newer sign-in on another device, or by a logout —
+   * rather than merely expiring.
+   *
+   * One device at a time makes that a routine event: opening REEP on a phone
+   * drops the laptop. Bouncing to /login with no explanation reads as an app
+   * that signs you out at random, so the guard turns this into a sentence on
+   * the login screen. The server is the only party that can tell the two apart
+   * (app/security.py::session_was_retired) and says so in a response header.
+   */
+  readonly retiredElsewhere = signal(false);
+
   /// Reads the current session from the cookie, or null. Used by the guard on
   /// first load and after a hard refresh. FastAPI exposes this as /auth/me.
   async refresh(): Promise<SessionPayload | null> {
@@ -71,9 +84,13 @@ export class AuthService {
         }),
       );
       this._session.set(session);
+      this.retiredElsewhere.set(false);
       return session;
-    } catch {
+    } catch (err) {
       this._session.set(null);
+      this.retiredElsewhere.set(
+        err instanceof HttpErrorResponse && err.headers.get('X-Reep-Session') === 'retired',
+      );
       return null;
     }
   }

@@ -234,3 +234,48 @@ def verify_session_token(token: str) -> dict | None:
     if current is not None and _claimed_version(claims) < current:
         return None
     return claims
+
+
+#: The value of the `X-Reep-Session` header on a 401 whose cookie was RETIRED
+#: rather than merely expired or absent. See session_was_retired.
+SESSION_RETIRED_HEADER = "X-Reep-Session"
+SESSION_RETIRED_VALUE = "retired"
+
+
+def session_was_retired(token: str | None) -> bool:
+    """Was this cookie well-formed and unexpired, but superseded?
+
+    True only when the token verifies cryptographically, is inside its `exp`,
+    carries a real identity, and its version is BEHIND the row — which happens
+    for exactly two reasons: the account signed out, or the account signed in
+    somewhere else and one-device-at-a-time retired this one.
+
+    WHY THE DISTINCTION IS WORTH A FUNCTION. Under one device at a time this is
+    no longer an incident, it is a Tuesday: a student who opens REEP on their
+    phone drops their laptop, mid-form. A screen that simply reappears at
+    /login, saying nothing, reads as an app that logs you out at random — so
+    they sign in on the laptop, drop the phone, and learn not to trust it. The
+    server is the only party that knows which of the two happened, so it says.
+
+    Deliberately NOT part of `verify_session_token`'s return: that function
+    answers one question for every caller in the codebase, and widening it into
+    a reason-carrying result would touch the HTTP dependency, the WebSocket
+    dependency and every test that reads a session. This is a second, narrow
+    question asked only on the failure path.
+    """
+    if not token:
+        return False
+    try:
+        claims = jwt.decode(token, settings.auth_secret, algorithms=["HS256"])
+    except jwt.PyJWTError:
+        # Forged, tampered, signed with another secret — or simply expired,
+        # which is the ordinary end of a session and needs no explanation.
+        return False
+    if not isinstance(claims, dict) or not claims.get("userId") or not claims.get("role"):
+        return False
+    current = current_token_version(str(claims["userId"]))
+    # A negative sentinel means the lookup FAILED. "We could not check" must not
+    # be reported to the student as "someone else signed in".
+    if current is None or current < 0:
+        return False
+    return _claimed_version(claims) < current

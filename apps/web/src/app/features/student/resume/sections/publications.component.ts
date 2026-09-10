@@ -52,12 +52,25 @@ function blank(): PublicationEntry {
         } @else {
           <div class="entry">
             <div class="tools">
-              <button (click)="startEdit($index)" title="Edit">
-                <span class="icon" style="font-size:17px">edit</span>
-              </button>
-              <button (click)="remove($index)" title="Delete">
-                <span class="icon" style="font-size:17px">delete</span>
-              </button>
+              <!-- Two-step delete: one click asks, the second removes. The card
+                   can hold a paragraph the student typed, and the builder
+                   autosaves, so a single-click delete was unrecoverable. -->
+              @if (pendingDelete() === $index) {
+                <span style="font-size:11.5px; color:var(--risk); margin-right:2px;">Delete?</span>
+                <button (click)="remove($index)" title="Yes, delete this entry">
+                  <span class="icon" style="font-size:17px; color:var(--risk)">check</span>
+                </button>
+                <button (click)="cancelRemove()" title="Keep it">
+                  <span class="icon" style="font-size:17px">close</span>
+                </button>
+              } @else {
+                <button (click)="startEdit($index)" title="Edit">
+                  <span class="icon" style="font-size:17px">edit</span>
+                </button>
+                <button (click)="askRemove($index)" title="Delete">
+                  <span class="icon" style="font-size:17px">delete</span>
+                </button>
+              }
             </div>
             <h4>{{ e.title || 'Untitled publication' }}</h4>
             @if (e.publisher) {
@@ -124,6 +137,8 @@ export class PublicationsSection {
 
   readonly entries = computed(() => this.svc.section(KEY, []) as PublicationEntry[]);
   readonly editing = signal<number | null>(null);
+  /** The entry whose delete is awaiting confirmation; null when none is. */
+  readonly pendingDelete = signal<number | null>(null);
 
   draft: PublicationEntry = blank();
 
@@ -155,7 +170,17 @@ export class PublicationsSection {
     this.editing.set(null);
   }
 
+  /** First click on the trash: ask. */
+  askRemove(i: number): void {
+    this.pendingDelete.set(i);
+  }
+
+  cancelRemove(): void {
+    this.pendingDelete.set(null);
+  }
+
   remove(i: number): void {
+    this.pendingDelete.set(null);
     const arr = this.entries().filter((_, idx) => idx !== i);
     this.svc.patch(KEY, arr);
     if (this.editing() === i) this.editing.set(null);

@@ -7,7 +7,7 @@ catalogues, the assistant's Knowledge Base) are left standing.
 
 It exists because there is no other way to do this. `app.grant_access` creates
 and updates accounts and cannot remove one; the Main Admin console deletes
-students one batch at a time and has no screen at all for a faculty or director
+students one batch at a time and has no screen at all for a faculty
 account; and the Ops task menu is deliberately a FIXED LIST, because a
 free-text command input there is remote code execution on the production
 cluster. So a purge that has to happen on production has to be a named task on

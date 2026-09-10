@@ -15,9 +15,11 @@
  * reusing the global reep-v2 classes (.notice/.card/.tbl/.entry/.empty/.field).
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 
 import { environment } from '../../../../../environments/environment';
+import { ResumeBuilderService } from '../resume-builder.service';
 
 type Level = 'TENTH' | 'TWELFTH' | 'DIPLOMA' | 'UNDERGRAD' | 'POSTGRAD';
 
@@ -70,6 +72,7 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
 @Component({
   selector: 'rb-education',
   standalone: true,
+  imports: [FormsModule],
   template: `
     @if (error()) {
       <div class="notice info">
@@ -154,11 +157,6 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
         } @else {
           @for (q of degrees(); track $index) {
             <div class="entry">
-              <div class="tools">
-                <button type="button">
-                  <span class="icon" style="font-size:17px">visibility</span>
-                </button>
-              </div>
               <h4>
                 {{ levelLabel(q.level) }}
                 @if (q.subjects) {
@@ -195,11 +193,6 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
           } @else {
             @for (q of twelfth(); track $index) {
               <div class="entry">
-                <div class="tools">
-                  <button type="button">
-                    <span class="icon" style="font-size:17px">visibility</span>
-                  </button>
-                </div>
                 <h4>{{ q.institution }}</h4>
                 <div class="meta">
                   {{ q.board ? q.board + ' — ' : '' }}{{ q.year }} · {{ q.marks }} /
@@ -226,11 +219,6 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
           } @else {
             @for (q of tenth(); track $index) {
               <div class="entry">
-                <div class="tools">
-                  <button type="button">
-                    <span class="icon" style="font-size:17px">visibility</span>
-                  </button>
-                </div>
                 <h4>{{ q.institution }}</h4>
                 <div class="meta">
                   {{ q.board ? q.board + ' — ' : '' }}{{ q.year }} · {{ q.marks }} /
@@ -256,11 +244,6 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
         } @else {
           @for (q of diploma(); track $index) {
             <div class="entry">
-              <div class="tools">
-                <button type="button">
-                  <span class="icon" style="font-size:17px">visibility</span>
-                </button>
-              </div>
               <h4>{{ q.institution }}</h4>
               <div class="meta">
                 {{ q.board ? q.board + ' — ' : '' }}{{ q.year }} · {{ q.marks }} / {{ q.max_marks }}
@@ -302,12 +285,66 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
           Total declared gap: <b>{{ gap().total_mo }}</b> months.
         </div>
       </div>
+
+      <!-- The action the "edits need approval" notice promises. It used to be a
+           footbar button labelled "Update & request approval" that called the
+           builder's ordinary save: one PUT of the resume draft, no mentor told
+           anything, and a green "Saved" chip. -->
+      <div class="card">
+        <h3>Request a correction</h3>
+        <div class="desc">
+          These figures are imported by the office and cannot be edited here. Describe what is
+          wrong and it goes to your mentor as a dated note on your record.
+        </div>
+
+        @if (correctionSent()) {
+          <div class="notice info">
+            <span class="icon">check_circle</span>
+            <div>{{ correctionResult() }}</div>
+          </div>
+        } @else {
+          <div class="field">
+            <label>What is wrong with your academic record?</label>
+            <textarea
+              class="ctrl"
+              rows="3"
+              maxlength="1000"
+              placeholder="e.g. Semester II CGPA reads 7.4 but my marksheet says 8.4."
+              [disabled]="sending()"
+              [(ngModel)]="correction"
+            ></textarea>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button
+              type="button"
+              class="btn accent"
+              [disabled]="sending() || !correction.trim()"
+              (click)="requestCorrection()"
+            >
+              <span class="icon">send</span>
+              {{ sending() ? 'Sending…' : 'Send to my mentor' }}
+            </button>
+            @if (correctionError(); as err) {
+              <span class="desc" style="margin:0; color:var(--risk);">{{ err }}</span>
+            }
+          </div>
+        }
+      </div>
     }
   `,
 })
 export class RbEducationComponent {
+  private readonly svc = inject(ResumeBuilderService);
+
   readonly loaded = signal(false);
   readonly error = signal<string | null>(null);
+
+  /** The correction request — see the card at the bottom of the template. */
+  correction = '';
+  readonly sending = signal(false);
+  readonly correctionSent = signal(false);
+  readonly correctionResult = signal('');
+  readonly correctionError = signal<string | null>(null);
 
   readonly quals = signal<Qualification[]>([]);
   readonly gap = signal<Gap>({
@@ -354,6 +391,50 @@ export class RbEducationComponent {
     return ROMAN[semester] ?? String(semester);
   }
 
+  /**
+   * Send the correction to the mentor, on the endpoint that already exists for
+   * "a student needs their mentor to do something": it writes a MENTOR NOTE,
+   * which is the mentor's own instrument for this student and already on their
+   * screen. No parallel corrections table, and no button that only pretends.
+   *
+   * A student with no mentor assigned gets the API's own truthful 409 rather
+   * than a success message for a request nobody can receive.
+   */
+  async requestCorrection(): Promise<void> {
+    const reason = this.correction.trim();
+    if (!reason || this.sending()) return;
+    this.sending.set(true);
+    this.correctionError.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/student/mentor-meetings/request`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: `Academic record correction: ${reason}` }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        detail?: string;
+        sent?: boolean;
+        mentor_name?: string | null;
+      };
+      if (!res.ok) {
+        this.correctionError.set(body.detail ?? 'Could not send that to your mentor.');
+        return;
+      }
+      this.correctionSent.set(true);
+      this.correctionResult.set(
+        body.mentor_name
+          ? `Sent to ${body.mentor_name}. It appears on your Faculty / TPO Log.`
+          : (body.detail ?? 'Sent to your mentor.'),
+      );
+      this.correction = '';
+    } catch {
+      this.correctionError.set('Could not reach the server.');
+    } finally {
+      this.sending.set(false);
+    }
+  }
+
   private async load(): Promise<void> {
     this.error.set(null);
     try {
@@ -371,6 +452,13 @@ export class RbEducationComponent {
       this.quals.set(academics.qualifications ?? []);
       if (academics.gap) this.gap.set(academics.gap);
       this.loaded.set(true);
+      // This section writes nothing into the builder map, so the shell cannot
+      // derive its stepper dot — it read "Not started" beside a full semester
+      // record. Only this component knows, so it says.
+      this.svc.reportMirrorState(
+        'education',
+        results.length || (academics.qualifications ?? []).length ? 'done' : 'empty',
+      );
     } catch {
       this.error.set('Could not reach the server.');
     }

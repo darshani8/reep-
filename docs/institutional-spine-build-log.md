@@ -2121,3 +2121,363 @@ alone. Web: `tsc --noEmit` clean, `ng test` 7 passed across 2 files, `ng build` 
 transfer (the playbook's 151,343 B, measured again), 48 `.js.map` emitted, `debugId=` present in
 `main-*.js`. CDK: `test_core_synth.py` 36 passed, 21 skipped (the `.tf`-reading guards). Mutations:
 6/6 caught. `git diff` contains no DSN-shaped string. Nothing was deployed and no event was sent.
+
+---
+
+# Round 7 — The Resume Builder, after an end-to-end test of every input box
+
+**Where this came from.** Not a feature request. On 2026-09-09 the whole builder was
+driven through a browser as the seeded student — 108 controls across 15 sections and
+4 flow steps, every one filled, saved, reloaded and read back through the API. The form
+layer passed: autosave, manual save, add/edit/delete, tag inputs, validation, photo
+upload with content sniffing, all cross-step navigation, and a full reload that
+re-hydrated fourteen section keys at 100% completeness. What failed was everything the
+form was *for*. Seventeen findings, three of them high, and the three high ones share
+one shape: **a control that reports success and changes nothing.** That is worse than a
+missing control, because it spends the student's belief that they have acted.
+
+The findings and the evidence are in the postmortem published with the test. This round
+is the fix.
+
+## L2-01 · `app/routers/student.py` — the document is made of the builder now
+
+**The bug, stated exactly.** `_compose_resume_markdown` read the `student_profiles` row,
+the verified skills and the academic record. The builder writes `resume_profiles.data`.
+No reader existed. A student filled all fifteen sections, watched the sidebar climb to
+100%, pressed Generate and received a five-line page carrying none of their experience,
+internships, projects, publications, certifications, positions, objective, achievements
+or referees — under a card reading "this resume is drawing on your full record".
+
+**Why an allowlist and not "just render the map".** The Resume Builder is *also* the
+placement office's intake form. The same map holds next-of-kin details, a date of birth,
+medical history, gender, blood group and marital status — each collected under an
+on-screen promise that it stays off the exported resume ("Used for placement eligibility
+only — not shown on your exported resume"; "visible to your mentor and the placement
+office, never to recruiters"). A denylist would publish the NEXT section someone adds to
+the builder by default, and the first person to find out would be the student, in front
+of an employer. So `_PRIVATE_BUILDER_SECTIONS` names what is private, every public
+section is emitted by a named function, and two tests hold it from both sides: one fills
+every section with a marker and fails if any goes missing, the other fails if a private
+one appears.
+
+**Shape decisions that are not arbitrary.** `app/resume_pdf.py` understands `# `, `## `,
+`- ` and paragraphs — it has no nested bullets — so an entry with a description is a bold
+headline paragraph plus a plain one, not a bullet with a child (which renders as two
+sibling bullets and reads as two separate claims). Empty sections are omitted entirely:
+"Publications — none" is a question a resume should not invite. A row with no title is
+skipped, because a row someone opened and left unnamed is not a claim. Every leaf is
+read through `_rt`/`_rrows`/`_rstrs`/`_rmap`, because the map is client-owned and a 500
+here is a student who cannot produce a resume the day applications open.
+
+**Verified vs self-reported stay apart.** `skill_names` is already filtered to
+mentor-verified skills; `key_expertise` and `external_certs` are the student's own word,
+so they travel under headings that say so. One undifferentiated "Skills" line would
+present work in review as work confirmed — the thing the verification flow exists to
+prevent. Testing this found a second gap: *nothing* pinned "only verified skills reach
+the document". Deleting that filter left all 895 tests green. It has a test now.
+
+**`max_tokens` 1500 → 3000.** A one-page budget written for a five-line draft. A
+truncated AI polish silently returns less than the deterministic draft the student would
+have got for free.
+
+**`_section_filled` — completeness stops counting furniture.** Adding one empty phone row
+and unticking one checkbox moved a fresh profile 8% → 17%, because the contact section
+seeds `{code: "+91"}` and `country: "India"` the moment a row exists, and the old rule
+counted any non-empty leaf of any type. Now only a non-blank string counts, booleans and
+numbers are structure, and `_STRUCTURAL_LEAF_KEYS` names the two the form supplies. A
+percentage reachable by clicking Add is not a measure of anything — and the sidebar
+advertises 70% as the point where the document gets materially stronger.
+
+**`ProfileOut.mentor_name`.** Additive, and it exists to turn a UI card OFF. See L3-04.
+
+**The generation note.** "No model configured" and "the configured model is remote" were
+one sentence, sending the reader to look for a setting that was not the reason.
+
+## L2-02 · `app/resume_pdf.py` — the evidence appendix, which was a checkbox and nothing else
+
+"Include an evidence appendix with proof links" flipped a signal that changed one
+sentence of consent copy. `exportPdf()` opened the same URL either way. A student who
+ticked it believed their certificates were attached and stopped attaching them by hand.
+
+"Proof **links**" could never have worked as written: an upload URL needs the student's
+own session cookie, so a recruiter following one reaches a login page. The proof has to
+be the file, embedded. `append_evidence` binds the resume, an index page, and then each
+proof — PDFs merged page-for-page, images drawn onto a page scaled to fit (never
+enlarged), and anything the parser rejects becomes a page that SAYS the file could not be
+included. A missing page is silent; a page saying so is not, and the student sees the gap
+before an employer does. No proofs at all returns the resume byte-for-byte, so a student
+with nothing to attach does not get a lone page announcing that.
+
+`_evidence_proofs` applies two rules that are really one decision: **verified**, because a
+claim still with a mentor is not evidence; and **included**, because the student curates
+which verified skills this copy presents and an appendix carrying proofs the resume never
+mentions hands an employer answers to questions nobody asked. Mutation testing caught the
+first version of that test being blind to the verified half — the fixture had no
+unverified-but-included skill, so deleting the filter changed nothing. It has one now.
+
+## L2-03 · `app/seed.py` — rows that pointed at files nobody had written
+
+The seeded uploads carried a `stored_name` the file store had never been asked to write,
+so every "View proof" link on the seeded certificate — the one the builder's
+Evidence-backed Skills step renders — answered 404 "Stored file is missing" on a
+completely fresh database. A broken link in seed data reads as a bug in the download
+path, and the first thing anyone does is debug a path that was working perfectly.
+
+`_seed_upload_files` writes real bytes: the PDFs through the app's own renderer (so a
+mentor opens a document, not four bytes that merely start with `%PDF`), and the photo as
+a PNG built from `zlib` and `struct` — Pillow is not a dependency and must not become one
+for dev data, because `requirements.txt` is what the production image installs. The photo
+row became PNG to match its bytes: metadata that disagrees with content is how a preview
+breaks in the browser while every check on the server passes. `size_bytes` is now
+`len(content)` rather than a plausible-looking number the ledger would repeat as fact.
+The files are written on every run and a legacy `.jpg` row is repointed, because telling
+a developer to drop their database is not what "idempotent" is supposed to mean.
+
+## L3-01 · `resume-evidence.service.ts`, `tailor`, `preview` — two vocabularies for one thing
+
+`GET /student/jobs` returns `required_skills` as **slugs** (`excel`, `financial-modeling`).
+The evidence service holds **display names** ("MS Excel"). Both screens compared them
+directly, so nothing ever matched, and one screen said two contradictory things at once:
+
+> **You are eligible to apply · 100% skill match**
+> Still missing for this role: excel — Not started · financial-modeling — Not started
+
+Whichever line the student believed, the screen had lied to them. `includedSlugs` is the
+slug twin of `includedNames`, `label(slug)` resolves a name for display (prettifying a
+slug the student has never claimed, so a "missing" list does not read like a database
+leak), and the pre-existing private `includedSlugs` — which meant "what STORAGE says",
+not "what reaches the document" — was renamed `storedIncludedSlugs`. Verified after the
+fix: the same posting now reports exactly one missing requirement, correctly labelled
+"Financial Modeling — Student-added".
+
+## L3-02 · `policy.component.ts` — three controls writing to a map nobody reads
+
+Eligibility and both interest flags were stored in `resume_profiles.data.policy`. The
+flags that decide which postings a student appears against live on `student_profiles`.
+So "Eligible for placements: No" — under copy promising this "removes you from all
+recruiter shortlists immediately" and that "your mentor is notified" — left the student
+on every shortlist with no mentor told anything, behind a green Saved chip.
+
+Split by ownership, which is the only division that holds:
+
+- **Eligibility is read-only**, because it is not the student's to set. The model says so
+  and `update_profile` deliberately omits it. A student who has been made ineligible must
+  still SEE it, so it stays on screen as a chip (text + colour together); what goes is the
+  radio the API was always going to ignore. The "mentor is notified" sentence is deleted.
+- **The two interest flags** are the student's own, so they are written where they are
+  read — `PUT /api/student/profile`, optimistic with rollback on failure. Verified against
+  the server after the fix.
+- **The acceptance timestamp** stays in the builder map, because it genuinely has no home
+  elsewhere — and it can now be **withdrawn**. A one-way switch on a screen that says "a
+  fresh acceptance is required at the start of every placement season" is a trap with no
+  way out of it.
+
+## L3-03 · `resume-identity.service.ts` (new) — the locked fields that were locked and empty
+
+Basic Details showed Course and Primary specialization as a dash behind a SYNCED badge,
+and Contact showed the primary phone as the placeholder "Synced from record" — for a
+student whose record holds all three. `GET /api/student/profile` has returned
+`institution.course_name`, `institution.specialization_name` and `phone` the whole time;
+nothing asked. A required-looking field the student may not fill and the system declines
+to fill reads as a system that has lost their enrolment.
+
+One owner, because four sections need the same answer and four independent fetches of one
+endpoint is four chances to disagree. Two endpoints, and the second is not redundant:
+`/student/profile` 404s for a student with no profile row — a real state — and the USN
+lives on the `students` row either way, so `/student/dashboard` supplies it. Without that
+fallback a brand-new student would watch their own USN vanish from a field labelled
+SYNCED.
+
+## L3-04 · `references.component.ts` — a referee who does not work here
+
+The suggestion card offered a hard-coded person, with a one-click "Add as reference"
+button, to every student. One click put them on a document a recruiter may ring, as a
+referee the student would then have had to explain. It is now the real assigned mentor
+from `mentor_name`, and **the card does not render at all when nobody is assigned** — no
+card is the honest state, because a faculty account is not a mentor until the Main Admin
+assigns them a student. Email and phone are left blank deliberately: the mentor's contact
+details are not on this student's record, and inventing them is the whole problem.
+
+## L3-05 · The rest, briefly, with the reasoning that is not obvious
+
+- **`education.component.ts`** — "Update & request approval" called the ordinary save: one
+  PUT of the resume draft, no approval, nobody told. The request now lives *in* the
+  section, next to the figures it is about, and goes to `POST /mentor-meetings/request`,
+  which writes a **mentor note** — the mentor's own instrument for this student, already
+  on their screen. No parallel corrections table, and a student with no mentor gets the
+  API's truthful 409 rather than a success message for a request nobody can receive. The
+  footbar shows no save button on the read-only mirrors.
+- **Stepper dots** — Education, Attachments and Certifications derived their dot from
+  `data[key]`, which those sections never write, so all three read "Not started" forever:
+  Education beside a full semester record, Certifications beside a certificate just added
+  (it stores under `external_certs`). Each now reports its own state once loaded. Before
+  it has, the tooltip says "Imported from your record — open to see" rather than accusing
+  the student of neglect. Deliberately not solved by pre-fetching all three on mount: four
+  round-trips on every visit to colour three dots.
+- **Goal strip** — picking a posting and then changing the role left the posting selected,
+  so Tailor headed its advice "Tailored for Junior Accountant" above a verdict card
+  reading "BI Developer · DataWorks". The posting is the strongest statement of intent, so
+  editing either of the weaker two now abandons it rather than quietly keeping an answer
+  the student has just contradicted.
+- **Two-step delete** on the six repeatable entry sections. One click deleted a card
+  holding a paragraph of typed description, and the builder autosaves 1.5 s later, so it
+  was unrecoverable. Applied by script rather than typed six times: doing it by hand is
+  how five get the guard and the sixth keeps the old behaviour.
+- **`sectionHasContent`** — `isEmptySection` was written twice, in tailor and preview, and
+  both copies counted a boolean or a form default as content. One exported function now,
+  matching the API's rule.
+- Dead `views/all-resumes.component.*` deleted (~300 lines, referenced only by a comment);
+  the no-op `visibility` buttons removed; the import receipt cleared on step change; string
+  `@for` loops tracked by `$index` (NG0956).
+
+## VERIFY
+
+- `pytest` — **916 passed, 3 skipped** (was 895), including `tests/test_resume_document.py`
+  (18 new) and three new guards in `tests/test_codebase_guards.py`.
+- `npx ng build` — clean, initial bundle within budget.
+- **Mutation-verified, per the standing rule.** Nine mutations, each reverted after: the
+  composer stops passing the builder map; a private section starts reaching the page;
+  completeness counts furniture again; the mentor name goes back to a constant; the
+  appendix flag is ignored; the appendix stops honouring the included list; an empty
+  appendix page is emitted; unverified skills reach the appendix; unverified skills reach
+  the document. All nine turned the relevant test **red**. Two earlier attempts came back
+  **green** and both were real blind spots — one anchor had hit a duplicate string in the
+  wrong query, and one fixture had no unverified-but-included skill. The three guards were
+  mutated too (composer reads a private section; the two completeness rules drift apart;
+  an invented referee returns) and all three went red. One of them caught its own author:
+  the referee guard failed on the explanatory comment naming the person, which is exactly
+  what it is for.
+- **Driven in the browser afterwards**, as the seeded student: course and specialization
+  populate; Tailor reports one missing requirement instead of contradicting itself;
+  Generate produces a full document carrying every section; the interest flag round-trips
+  to the server; the appendix export goes from 2 pages to 4 with the certificate merged in
+  and an index page naming it; the seeded "View proof" link returns 200 instead of 404.
+
+**A note for whoever reads this next.** An external process rewrote `app/routers/student.py`
+mid-session from a stale buffer (a bulk rename of a deprecated Starlette constant across
+`app/routers/`) and silently reverted this round's first set of edits. They were re-applied
+on top. If work disappears here, check `git diff` before assuming you imagined it.
+
+---
+
+# Round 8 — One device at a time
+
+**The ask, and what it did not say.** "make it one device at a time." Before this
+round a REEP account could be signed in on unlimited devices at once: the session
+is a stateless 12-hour JWT in `reep_session`, there is no sessions table and no
+device tracking anywhere in the codebase, and the only revocation lever —
+`users.token_version` — was per-user and only ever pulled by a logout, a password
+reset or a password change.
+
+**The decision the ask leaves open: which device wins.** Two readings of "one
+device at a time" are possible, and they behave very differently for a student.
+Refusing the SECOND sign-in keeps whoever got there first, and needs a store, an
+eviction policy and an answer for the student whose browser crashed and who now
+cannot get back in until a row ages out. Retiring the FIRST needs none of that
+and matches what every consumer product does. **Newest wins**, and the login
+screen says so.
+
+## L2-01 · `app/routers/auth.py` — four doors, one rule
+
+The mechanism already existed. `users.token_version` rides in the token and
+`app/security.py` refuses any token whose version is BEHIND the row; logout has
+bumped it since the revocation work. Advancing it at SIGN-IN retires every
+session minted before it — no sessions table, no device list, no new state to
+keep consistent, and nothing downstream to teach.
+
+**Two halves, because they belong at different moments.**
+`_retire_other_sessions` is the in-memory half: it advances the column and
+nothing else, and THE CALLER'S COMMIT IS WHAT PERSISTS IT. That is not
+tidiness. On the emailed-code door the same transaction lands the one-time
+code's `consumed_at`, and the call site's existing comment explains why: a
+separate earlier commit makes "code spent, session refused" reachable.
+`_confirm_exclusive_session` is the cache half and must run AFTER the commit; it
+seeds this worker so the retired tokens stop working here at once rather than at
+the end of the revocation cache window.
+
+**All four doors, or none.** Password (`/auth/login`), emailed code
+(`/auth/login/code`), Google (`/sso/google/callback`) and the activation link
+(`/auth/activate`, which lives in `routers/passwords.py` and is the easiest to
+forget). A student who wants two devices only has to find the one door that did
+not get the call.
+
+**Ordering on the Google door is load-bearing.** Its payload is built BEFORE
+`_record_login` for a reason its own comment gives — that commit can fail, and
+reading expired attributes back off a database that has just failed would raise
+from inside the recovery path. So the bump goes before `_payload_for` and rides
+on the same commit as the `google_sub` pin. If that commit fails, the session is
+still issued and the older devices survive; the handler's log line now says so in
+those words. **Fail-open on exclusivity, never on authentication** — the
+alternative is refusing a correct password because a streak row could not be
+written.
+
+**A claim that used to be conditional is now almost always present.**
+`_payload_for` omits `tokenVersion` while it is zero, so that the deploy which
+added the column did not sign the whole college out. Every session a sign-in
+mints now carries it, because the bump happens first. `test_google_callback.py`
+asserts the exact claim key set, so that test names it explicitly rather than
+tolerating it loosely — that assertion IS the contract app/identity.py, the
+interview WebSocket and the Angular `SessionPayload` all read.
+
+## L2-02 · `app/security.py`, `app/identity.py` — saying WHY
+
+Being signed out stops being an incident and becomes a Tuesday: open REEP on a
+phone and the laptop drops, mid-form. A screen that simply reappears at `/login`
+saying nothing reads as an app that logs you out at random — so the student signs
+in on the laptop, drops the phone, and learns not to trust it.
+
+`session_was_retired(token)` answers the one question the server alone can
+answer: was this cookie well-formed and unexpired but SUPERSEDED, as opposed to
+expired, forged or absent? It is a second, narrow function rather than a wider
+return from `verify_session_token`, because that function answers one question
+for every caller in the codebase and widening it would touch the HTTP dependency,
+the WebSocket dependency and every test that reads a session. A failed
+`token_version` lookup returns False: "we could not check" must never be
+reported to a student as "someone else signed in".
+
+The 401 carries it as the header `X-Reep-Session: retired`. **A header rather
+than a richer `detail`**: `detail` is a string every existing client renders as
+prose, and widening it to an object would change a contract shared by every
+authenticated route in the app to serve one screen.
+
+## L3-01 · `auth.service.ts`, `auth.guard.ts`, the login screen
+
+`AuthService.refresh()` records the header as `retiredElsewhere`; the guard
+redirects to `/login?signedOut=elsewhere`; the login screen renders one sentence
+that also tells the student what will happen if they sign in again. Verified in
+the browser: a second sign-in elsewhere put the open tab on that URL with that
+message.
+
+## VERIFY
+
+- `pytest` — **935 passed, 3 skipped**, including `tests/test_single_device_session.py`
+  (8 tests) and a Google-door case added to `tests/test_google_callback.py`.
+- `npx ng build` — clean.
+- **Two existing tests failed first, and both were right to.**
+  `test_change_password_keeps_this_device_and_drops_the_others` built its premise
+  from two simultaneous logins, which the new rule forbids; it now asserts the
+  retirement on its way through and keeps testing the half that is not automatic
+  (the acting device's cookie is re-issued). `test_google_issues_the_same_session_as_the_password_door`
+  pins the exact claim key set, and `tokenVersion` had joined it.
+- **Mutation-verified.** Six mutations, each reverted: each of the four doors
+  stops retiring; the helper becomes a no-op; and the payload is built BEFORE the
+  bump. All six went red. The last is the one worth having — it mints a token one
+  version behind the row, which is a 200 from `/login` followed by a 401 on the
+  very next request, for every user.
+- **Driven against the running API and the browser.** Device A signs in (200),
+  device B signs in (200), device A's next request answers 401 with
+  `x-reep-session: retired`; the open browser tab lands on
+  `/login?next=…&signedOut=elsewhere` showing the explanation.
+- **A performance scare that was not one.** One suite run took 874 s against a
+  normal 78 s. It was measurement contention — an `ng build` and the `ng serve`
+  watcher rebuilding after twenty frontend edits, on the same machine. A clean
+  run is 118 s and `--durations=20` shows the slowest test at 3.1 s, with nothing
+  from this round in the list. The added work is one cached `token_version` read
+  on the 401 path only.
+
+**What this costs the student, stated plainly.** Two REEP tabs on two machines no
+longer coexist. Someone reviewing a resume on a laptop while checking a job on a
+phone will be signed out of one of them. That is the feature, not a defect, but it
+is worth knowing before it is reported as a bug — and it is exactly why the
+"signed out elsewhere" message was built in the same round rather than left for
+later.

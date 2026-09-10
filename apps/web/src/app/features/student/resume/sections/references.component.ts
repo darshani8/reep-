@@ -10,14 +10,16 @@
  * patch('references', …) on every change. Markup reuses the global reep-v2
  * classes (.card / .entry / .tools / .field / .empty); nothing redefined here.
  *
- * The mentor shown in the suggestion card is static (matches the mockup); it is
- * a suggestion only — the real referee list lives in the shared model.
+ * The mentor in the suggestion card is the student's REAL assigned mentor, read
+ * from the shared identity cache; the card is absent when nobody is assigned.
+ * See the class body for what it used to be and why that mattered.
  */
 
-import { Component, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { ResumeBuilderService } from '../resume-builder.service';
+import { ResumeIdentityService } from '../resume-identity.service';
 
 interface Reference {
   name: string;
@@ -47,23 +49,28 @@ type RefField = keyof Reference;
         added with one click.
       </div>
 
-      <div class="entry" style="border-style:dashed;">
-        <h4>
-          {{ mentor.name }}
-          <span class="tag evi"
-            ><span class="icon" style="font-size:12px">bolt</span>Your mentor</span
+      <!-- Only ever the REAL assigned mentor. No mentor, no card. -->
+      @if (mentorName(); as mentor) {
+        <div class="entry" style="border-style:dashed;">
+          <h4>
+            {{ mentor }}
+            <span class="tag evi"
+              ><span class="icon" style="font-size:12px">bolt</span>Your mentor</span
+            >
+          </h4>
+          <div class="org">{{ mentorOrg() }}</div>
+          <div class="meta">Suggested — add with one click</div>
+          <button
+            class="btn primary"
+            style="margin-top:10px; padding:6px 12px; font-size:12px;"
+            [disabled]="mentorAlreadyListed()"
+            (click)="addMentor()"
           >
-        </h4>
-        <div class="org">{{ mentor.org }}</div>
-        <div class="meta">Suggested — add with one click</div>
-        <button
-          class="btn primary"
-          style="margin-top:10px; padding:6px 12px; font-size:12px;"
-          (click)="addMentor()"
-        >
-          <span class="icon">add</span> Add as reference
-        </button>
-      </div>
+            <span class="icon">{{ mentorAlreadyListed() ? 'check' : 'add' }}</span>
+            {{ mentorAlreadyListed() ? 'Already a referee' : 'Add as reference' }}
+          </button>
+        </div>
+      }
 
       @for (ref of model; track $index) {
         <div class="entry">
@@ -143,12 +150,30 @@ type RefField = keyof Reference;
 })
 export class RbReferencesComponent {
   private readonly svc = inject(ResumeBuilderService);
+  private readonly identity = inject(ResumeIdentityService);
 
-  /** Static suggestion (matches the mockup); not part of the saved model. */
-  readonly mentor = {
-    name: 'Rakesh Iyer',
-    org: 'Faculty Mentor · BGSCET · MBA-2026-B',
-  };
+  /**
+   * THE SUGGESTION USED TO BE A HARD-CODED PERSON — a name, a title and a batch
+   * carried over from the mockup and offered to every student with a one-click
+   * "Add as reference" button. That person does not work here. One click put
+   * them on a document a recruiter may ring, as a referee the student would
+   * then have had to explain.
+   *
+   * It is now the student's actual assigned mentor, from `mentor_name` on
+   * `GET /api/student/profile`, and the card does not render at all when nobody
+   * is assigned. No card is the honest state: a faculty account is not a mentor
+   * until the Main Admin assigns them a student.
+   */
+  readonly mentorName = this.identity.mentorName;
+  readonly mentorOrg = computed(() => {
+    const inst = this.identity.profile()?.institution;
+    return ['Faculty Mentor', inst?.college_code, inst?.batch_label].filter(Boolean).join(' · ');
+  });
+  /** A referee added twice is a referee printed twice on the page. */
+  readonly mentorAlreadyListed = computed(() => {
+    const name = this.mentorName().trim();
+    return !!name && this.model.some((r) => r.name.trim() === name);
+  });
 
   model: Reference[] = [];
 
@@ -162,6 +187,7 @@ export class RbReferencesComponent {
         this.seed();
       }
     });
+    void this.identity.load();
   }
 
   private blank(): Reference {
@@ -191,13 +217,21 @@ export class RbReferencesComponent {
   }
 
   addMentor(): void {
+    const name = this.mentorName().trim();
+    // No mentor, nothing to add. The button is hidden in that state; this is
+    // the guard that survives someone re-rendering the card unconditionally.
+    if (!name || this.mentorAlreadyListed()) return;
     this.model = [
       ...this.model,
       {
-        name: 'Rakesh Iyer',
+        name,
         designation: 'Faculty Mentor',
-        org: 'BGSCET',
+        org: this.identity.profile()?.institution?.college_name ?? '',
         relationship: 'Faculty Mentor',
+        // Left blank deliberately: the mentor's own email and phone are not on
+        // this student's record, and inventing them is what this whole change
+        // exists to stop. The student fills them in, or the referee is listed
+        // without contact details.
         email: '',
         phone: '',
       },

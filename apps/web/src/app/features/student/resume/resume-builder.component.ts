@@ -70,6 +70,19 @@ interface StepGroup {
 }
 
 /**
+ * Leaf keys the FORM fills in, not the student. Mirrors `_STRUCTURAL_LEAF_KEYS`
+ * in apps/api-py/app/routers/student.py — the server computes the percentage
+ * and the client colours the dots, and the two have to mean the same thing.
+ */
+const STRUCTURAL_LEAF_KEYS = new Set(['country', 'code']);
+
+/**
+ * Sections that mirror another domain: they hold none of the student's typing,
+ * so "Not started" is the wrong word for them. See stepHint().
+ */
+const MIRROR_SECTIONS = new Set(['education', 'attachments', 'certifications']);
+
+/**
  * The 15 steps in their 5 groups. `title`/`sub` are the mockup's meta map (they
  * differ from the shorter stepper `label` for publications and seminars).
  */
@@ -241,6 +254,13 @@ export class ResumeBuilderComponent implements OnDestroy {
   /** Set by "Import verified record" so the sidebar can report what it did. */
   readonly importedCount = signal<number | null>(null);
 
+  /**
+   * Steps that MIRROR another domain and own no editable field, so the footbar
+   * offers no save. Education's button used to read "Update & request approval"
+   * and do neither.
+   */
+  readonly readOnlyStep = computed(() => this.step() === 'education' || this.step() === 'attachments');
+
   /** The active step's meta (title/sub for the .main-head). */
   readonly current = computed<Step>(() => {
     const key = this.step();
@@ -261,15 +281,46 @@ export class ResumeBuilderComponent implements OnDestroy {
   readonly stepStates = computed<Record<string, 'done' | 'partial' | 'empty'>>(() => {
     // touch the map so this recomputes on every patch/load
     this.svc.data();
+    const mirrors = this.svc.mirrorStates();
     const out: Record<string, 'done' | 'partial' | 'empty'> = {};
     for (const g of STEP_GROUPS) {
       for (const s of g.steps) {
+        // Education / Attachments / Certifications mirror other domains and
+        // write nothing into `data`, so their own components report their state
+        // (ResumeBuilderService.mirrorStates). Reading `data` for them returned
+        // "Not started" forever, whatever the record held.
+        if (s.key in mirrors) {
+          out[s.key] = mirrors[s.key];
+          continue;
+        }
         const { filled, total } = this.countLeaves(this.svc.section(s.key, null));
         out[s.key] = filled === 0 ? 'empty' : total > 0 && filled >= total ? 'done' : 'partial';
       }
     }
     return out;
   });
+
+  /**
+   * The stepper dot's tooltip.
+   *
+   * "Not started" is a judgement about the STUDENT'S work, and it was being
+   * applied to three sections that hold no work of theirs: Education,
+   * Attachments and Certifications mirror the university record, the document
+   * ledger and the programme's certifications. Each reports its real state once
+   * it has been opened (ResumeBuilderService.mirrorStates); until then the
+   * honest answer is what the section is, not an accusation that the student
+   * has neglected it.
+   *
+   * Deliberately NOT solved by having the shell pre-fetch all three on mount:
+   * that is four network round-trips on every visit to colour three dots.
+   */
+  stepHint(key: string): string {
+    const state = this.stepStates()[key];
+    if (state === 'done') return 'Complete';
+    if (state === 'partial') return 'Partly filled';
+    if (MIRROR_SECTIONS.has(key)) return 'Imported from your record — open to see';
+    return 'Not started';
+  }
 
   /**
    * Save-bar state, in priority order: a save in flight, then unsaved local
@@ -321,17 +372,35 @@ export class ResumeBuilderComponent implements OnDestroy {
     this.flowStep.set(step);
   }
 
+  /**
+   * Move to a section and retire the import receipt.
+   *
+   * "1 verified skill(s) added ✓" sat in the sidebar for the rest of the
+   * session, under every subsequent section, long after the student had stopped
+   * caring — a confirmation that outlives its action reads as a status.
+   */
+  goToStep(key: string): void {
+    this.step.set(key);
+    this.importedCount.set(null);
+  }
+
   /** Pull every mentor-verified skill into the resume in one action. */
   importVerified(): void {
     this.importedCount.set(this.ev.importVerified());
   }
 
   /**
-   * Count filled vs total primitive leaves in a stored section slice.
-   * Strings count as filled when non-blank; booleans and numbers always count
-   * as filled (a deliberate choice); empty arrays/objects contribute nothing.
+   * Count filled vs total CONTENT leaves in a stored section slice.
+   *
+   * Only strings are content. Booleans and numbers used to count as filled
+   * "(a deliberate choice)", and with the form's own defaults they made a dot
+   * go amber for nothing typed: adding an empty phone row writes
+   * `{code: "+91", number: ""}` and unticking a checkbox writes
+   * `permanent_same: false`. The API applies the same rule when it computes
+   * completeness (`_section_filled` in routers/student.py), and the two must
+   * agree or the sidebar's percentage and its dots describe different profiles.
    */
-  private countLeaves(v: unknown): { filled: number; total: number } {
+  private countLeaves(v: unknown, key?: string): { filled: number; total: number } {
     if (v === null || v === undefined) return { filled: 0, total: 0 };
     if (Array.isArray(v)) {
       return v.reduce(
@@ -343,16 +412,23 @@ export class ResumeBuilderComponent implements OnDestroy {
       );
     }
     if (typeof v === 'object') {
-      return Object.values(v as Record<string, unknown>).reduce<{ filled: number; total: number }>(
-        (acc, item) => {
-          const c = this.countLeaves(item);
+      return Object.entries(v as Record<string, unknown>).reduce<{
+        filled: number;
+        total: number;
+      }>(
+        (acc, [k, item]) => {
+          const c = this.countLeaves(item, k);
           return { filled: acc.filled + c.filled, total: acc.total + c.total };
         },
         { filled: 0, total: 0 },
       );
     }
-    if (typeof v === 'string') return { filled: v.trim() ? 1 : 0, total: 1 };
-    // number | boolean | other primitive
-    return { filled: 1, total: 1 };
+    if (typeof v === 'string') {
+      // The dial code and the country are supplied by the form, not the student.
+      if (STRUCTURAL_LEAF_KEYS.has(key ?? '')) return { filled: 0, total: 0 };
+      return { filled: v.trim() ? 1 : 0, total: 1 };
+    }
+    // Booleans and numbers are structure, not content.
+    return { filled: 0, total: 0 };
   }
 }

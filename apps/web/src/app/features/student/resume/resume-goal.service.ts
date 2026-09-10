@@ -99,11 +99,38 @@ export class ResumeGoalService {
     return job.eligible ? 'good' : 'warn';
   });
 
+  /**
+   * Changing the role or the location ABANDONS a posting that no longer matches.
+   *
+   * The three controls could disagree: picking "DataWorks — BI Developer ·
+   * Remote" and then changing the role to "Junior Accountant" left the posting
+   * selected, so the Tailor step headed its advice "Tailored for Junior
+   * Accountant" directly above a verdict card reading "BI Developer ·
+   * DataWorks". A goal that contradicts itself gives advice for a job the
+   * student is not looking at.
+   *
+   * The posting is the strongest statement of intent (it fills the other two in
+   * `setOpportunity`), so editing one of the weaker two means the student has
+   * moved on from it — and the strip says "Not chosen" rather than quietly
+   * keeping an answer they have just contradicted.
+   */
   setRole(role: string): void {
-    this.svc.patch('goal', { ...this.goal(), role });
+    const job = this.selectedJob();
+    const keeps = !job || job.title === role;
+    this.svc.patch('goal', {
+      ...this.goal(),
+      role,
+      opportunityId: keeps ? this.goal().opportunityId : '',
+    });
   }
   setLocation(location: string): void {
-    this.svc.patch('goal', { ...this.goal(), location });
+    const job = this.selectedJob();
+    const keeps = !job || (job.location ?? '') === location;
+    this.svc.patch('goal', {
+      ...this.goal(),
+      location,
+      opportunityId: keeps ? this.goal().opportunityId : '',
+    });
   }
   setOpportunity(opportunityId: string): void {
     const job = (this.jobs() ?? []).find((j) => j.id === opportunityId);

@@ -18,6 +18,7 @@ import { FormsModule } from '@angular/forms';
 
 import { AuthService } from '../../../../core/auth.service';
 import { ResumeBuilderService } from '../resume-builder.service';
+import { ResumeIdentityService } from '../resume-identity.service';
 
 interface Phone {
   code: string;
@@ -72,11 +73,22 @@ const LINK_TYPES = ['LinkedIn', 'GitHub', 'Portfolio', 'Other'] as const;
 export class RbContactComponent {
   private readonly svc = inject(ResumeBuilderService);
   private readonly auth = inject(AuthService);
+  private readonly identity = inject(ResumeIdentityService);
 
   readonly linkTypes = LINK_TYPES;
 
   /** Locked college / official email from the signed-in session. */
   readonly email = computed(() => this.auth.session()?.email ?? '');
+
+  /**
+   * The primary phone on the student's record.
+   *
+   * This field showed the placeholder "Synced from record" and nothing else,
+   * for a record that holds the number: `GET /api/student/profile` returns
+   * `phone` and this screen never read it. Marked required with an asterisk and
+   * disabled, it was a field the student could neither fill nor get filled.
+   */
+  readonly syncedPhone = this.identity.phone;
 
   m: ContactData = this.normalize(this.svc.section('contact', {}));
 
@@ -89,6 +101,7 @@ export class RbContactComponent {
         this.m = untracked(() => this.normalize(this.svc.section('contact', {})));
       }
     });
+    void this.identity.load();
   }
 
   private address(raw: Partial<Address> | undefined): Address {

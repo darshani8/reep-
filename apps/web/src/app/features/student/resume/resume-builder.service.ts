@@ -20,6 +20,36 @@ import { Injectable, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 
+/**
+ * Leaf keys the FORM supplies. Mirrors `_STRUCTURAL_LEAF_KEYS` in
+ * apps/api-py/app/routers/student.py.
+ */
+const STRUCTURAL_LEAF_KEYS = new Set(['country', 'code']);
+
+/**
+ * Does a stored section hold anything the student actually typed?
+ *
+ * ONE definition, imported by everything that asks. It was written twice —
+ * `isEmptySection` in tailor.component.ts and again in preview.component.ts —
+ * and both copies counted a boolean or a form-supplied default as content, so
+ * "Missing essentials" stopped listing Contact Details the moment a student
+ * added an empty phone row. Two copies of a rule the API also implements is
+ * three places for one answer to drift.
+ */
+export function sectionHasContent(value: unknown, key?: string): boolean {
+  if (value === null || value === undefined) return false;
+  if (Array.isArray(value)) return value.some((v) => sectionHasContent(v));
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).some(([k, v]) =>
+      sectionHasContent(v, k),
+    );
+  }
+  if (typeof value === 'string') {
+    return !!value.trim() && !STRUCTURAL_LEAF_KEYS.has(key ?? '');
+  }
+  return false;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ResumeBuilderService {
   /** section-key -> value (object or array). The full resume profile. */
@@ -40,6 +70,27 @@ export class ResumeBuilderService {
    * sticky save bar's "Unsaved changes" state.
    */
   readonly dirty = signal(false);
+
+  /**
+   * Fill state for the sections that MIRROR another domain and so write nothing
+   * into `data`: Education, Attachments and Certifications.
+   *
+   * Their stepper dots were derived from `data[key]`, which those sections never
+   * touch, so all three read "Not started" permanently — Education beside a full
+   * semester record, Attachments beside four uploaded documents, Certifications
+   * beside a certificate the student had just added (it stores under
+   * `external_certs`). Three dots that cannot change are three dots a student
+   * learns to ignore, which is most of what the stepper is for.
+   *
+   * Each section reports its own state once it has loaded, because each one is
+   * the only thing that knows: the shell would otherwise have to repeat their
+   * three fetches to colour three dots.
+   */
+  readonly mirrorStates = signal<Record<string, 'done' | 'partial' | 'empty'>>({});
+
+  reportMirrorState(key: string, state: 'done' | 'partial' | 'empty'): void {
+    this.mirrorStates.update((m) => (m[key] === state ? m : { ...m, [key]: state }));
+  }
 
   /** Pending autosave timer (debounced flush after patch()). */
   private autosaveTimer: ReturnType<typeof setTimeout> | null = null;

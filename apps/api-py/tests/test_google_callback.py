@@ -161,7 +161,27 @@ def test_google_issues_the_same_session_as_the_password_door(client, google, ros
     claims = verify_session_token(raw)
     assert claims is not None, "the cookie Google's door sets does not verify as a session"
     # The claim KEYS are the contract every downstream consumer reads.
-    assert set(claims) == {"userId", "email", "name", "role", "studentId", "iat", "exp"}
+    #
+    # `tokenVersion` is now among them for every session a sign-in mints, because
+    # one-device-at-a-time advances `users.token_version` before the token is
+    # built (see _retire_other_sessions in routers/auth.py). It was previously
+    # absent until the account's first logout. It is listed here rather than
+    # tolerated loosely, because this assertion IS the contract: app/identity.py,
+    # the interview WebSocket and the Angular SessionPayload all read this set.
+    assert set(claims) == {
+        "userId",
+        "email",
+        "name",
+        "role",
+        "studentId",
+        "tokenVersion",
+        "iat",
+        "exp",
+    }
+    assert claims["tokenVersion"] >= 1, (
+        "a sign-in must mint into a fresh token version — without it the "
+        "account's other devices are not retired"
+    )
     assert claims["email"] == email
     assert claims["role"] == "STUDENT"
     assert claims["studentId"], "no studentId — every /api/student/* route would 403"
@@ -170,6 +190,55 @@ def test_google_issues_the_same_session_as_the_password_door(client, google, ros
     me = client.get("/api/auth/me", headers={"Cookie": f"{SESSION_COOKIE}={raw}"})
     assert me.status_code == 200, me.text
     assert me.json()["email"] == email
+
+
+@requires_db
+def test_the_google_door_retires_the_account_s_other_device(client, google, roster_user):
+    """One device at a time holds on Google's door too.
+
+    Tested through two real Google sign-ins rather than a password one, because
+    a roster account carries the unusable-password sentinel and Google is the
+    only door it has. The second sign-in must retire the first.
+
+    This is the door most likely to drift: `_retire_other_sessions` sits before
+    `_payload_for` here for a reason the callback's own comment gives — the
+    payload is built before `_record_login` commits — so a later edit that moves
+    the payload construction would silently issue a token at the old version.
+    """
+    email = f"ssotest-{uuid.uuid4().hex[:8]}@bgscet.ac.in"
+    roster_user(email)
+
+    def sign_in() -> str:
+        state, nonce, cookie = _start(client)
+        tok = google(email=email, nonce=nonce)
+        google_auth.exchange_code = lambda code: tok  # noqa: E731 — seam, restored below
+        try:
+            r = _callback(client, cookie, code="good-code", state=state)
+        finally:
+            del google_auth.exchange_code
+        assert r.status_code == 302, r.text
+        assert "error=" not in r.headers["location"], r.headers["location"]
+        raw = r.cookies.get(SESSION_COOKIE)
+        assert raw, "the Google door issued no session"
+        return raw
+
+    first = sign_in()
+    assert client.get("/api/auth/me", headers={"Cookie": f"{SESSION_COOKIE}={first}"}).status_code == 200
+    client.cookies.clear()
+    # Read the version now, while the token still verifies: once it is retired,
+    # `verify_session_token` returns None — which is itself the mechanism.
+    first_version = verify_session_token(first)["tokenVersion"]
+
+    second = sign_in()
+    assert client.get("/api/auth/me", headers={"Cookie": f"{SESSION_COOKIE}={second}"}).status_code == 200
+    client.cookies.clear()
+    assert verify_session_token(second)["tokenVersion"] > first_version
+
+    assert (
+        client.get("/api/auth/me", headers={"Cookie": f"{SESSION_COOKIE}={first}"}).status_code
+        == 401
+    ), "the first Google session survived a second sign-in — one device at a time is not enforced here"
+    assert verify_session_token(first) is None, "the retired token still verifies"
 
 
 @requires_db

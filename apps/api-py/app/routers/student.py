@@ -26,7 +26,7 @@ from ..document_store import (
     QuotaRejected,
     save_bytes,
 )
-from ..resume_pdf import render_resume_pdf
+from ..resume_pdf import EvidenceProof, append_evidence, render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
@@ -53,7 +53,7 @@ from ..models.swoc import SwocEntry
 from ..models.resume_profile import ResumeProfile
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload, UploadKind, UploadStatus
-from ..models.user import LoginDay, Student, User
+from ..models.user import LoginDay, Mentor, Student, User
 from ..ratelimit import llm_rate_limited
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -294,6 +294,15 @@ class ProfileOut(BaseModel):
     leaderboard_opt_out: bool
     # Read-only, resolved through the cohort join. See InstitutionOut.
     institution: InstitutionOut
+    # The assigned faculty mentor's name, or None when nobody is assigned yet.
+    #
+    # The Resume Builder's References step offers "add your mentor as a referee"
+    # in one click, and it used to offer a HARD-CODED name — a person who does
+    # not work here — which a student could put on a document a recruiter then
+    # calls. A referee has to be the real one or there must be no button, and
+    # the client cannot know which without being told. None here is what turns
+    # that card off.
+    mentor_name: str | None = None
 
 
 @router.get("/profile", response_model=ProfileOut)
@@ -1051,6 +1060,14 @@ def _profile_out(db: Session, prof: StudentProfile) -> ProfileOut:
     """
     stu = db.get(Student, prof.student_id)
     owner = db.get(User, stu.user_id) if stu else None
+    # A faculty account is not a mentor by existing: `students.mentor_id` is null
+    # until the Main Admin assigns one, and a student with no mentor gets None
+    # rather than a placeholder.
+    mentor_name = None
+    if stu is not None and stu.mentor_id:
+        mentor = db.get(Mentor, stu.mentor_id)
+        mentor_owner = db.get(User, mentor.user_id) if mentor is not None else None
+        mentor_name = mentor_owner.name if mentor_owner is not None else None
     return ProfileOut(
         student_id=prof.student_id,
         usn=stu.usn if stu else None,
@@ -1058,6 +1075,7 @@ def _profile_out(db: Session, prof: StudentProfile) -> ProfileOut:
         current_semester=stu.current_semester if stu else 1,
         current_stage=stu.current_stage.value if stu else "EXCEL",
         institution=_institution_for(db, stu),
+        mentor_name=mentor_name,
         phone=prof.phone,
         email=prof.email,
         linkedin_url=prof.linkedin_url,
@@ -1185,24 +1203,290 @@ def log_timesheet(
     return {"day": str(body.day), "activity": activity.value, "minutes": body.minutes}
 
 
-def _compose_resume_markdown(name, profile, skill_names, cgpa, quals) -> str:
+# --------------------------------------------------------------------------- #
+# The resume document
+# --------------------------------------------------------------------------- #
+#
+# THE BUILDER'S CONTENT IS WHAT THE DOCUMENT IS MADE OF, and until this was
+# written it was not. The composer read the `student_profiles` row, the verified
+# skills and the academic record — and nothing else. So a student could fill all
+# fifteen sections of the builder, watch the sidebar climb to 100%, press
+# Generate, and receive a five-line page carrying none of their experience,
+# internships, projects, publications, certifications, positions, objective,
+# achievements or referees, printed under a card that told them the resume was
+# "drawing on your full record". The builder wrote `resume_profiles.data`; no
+# reader existed. The screen said the work had landed and the document said it
+# had not, which is the worse of the two ways to be wrong.
+
+#: What a builder section contributes is decided HERE, by name, and that is the
+#: point: the resume builder is also the placement office's intake form, so
+#: `resume_profiles.data` holds material an employer must never see and that the
+#: screens have already promised will not travel — `family` (next-of-kin,
+#: "only used where the placement office requires next-of-kin details"),
+#: `basic.dob` ("Used for placement eligibility only — not shown on your
+#: exported resume"), `basic.medical_history` ("visible to your mentor and the
+#: placement office, never to recruiters"), gender / blood group / marital
+#: status, `basic.dream_company` (an aspiration addressed to the office),
+#: `policy` (the student's acceptance of the placement terms) and `goal` (which
+#: posting this copy is aimed at). The street lines and postal code of an
+#: address are the office's delivery detail; a resume carries a city.
+#:
+#: A denylist would publish the NEXT section someone adds to the builder by
+#: default, and the first person to find out would be the student, in front of
+#: an employer. So nothing reaches the page unless a function below puts it
+#: there, and `tests/test_resume_document.py` fills every section with a marker
+#: and asserts the private ones are absent.
+_PRIVATE_BUILDER_SECTIONS = ("family", "policy", "goal")
+
+
+def _rt(value) -> str:
+    """A trimmed string from an untrusted JSON leaf; "" for anything else.
+
+    `resume_profiles.data` is an opaque map the client owns, so every leaf here
+    is whatever the browser last sent — a number, a null, a nested object. The
+    composer must never raise on one.
+    """
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _rrows(value) -> list[dict]:
+    """The dict rows of a builder list, ignoring anything else it holds."""
+    return [r for r in value if isinstance(r, dict)] if isinstance(value, list) else []
+
+
+def _rstrs(value) -> list[str]:
+    """The non-blank strings of a builder list."""
+    return [s for s in (_rt(v) for v in value) if s] if isinstance(value, list) else []
+
+
+def _rmap(value) -> dict:
+    """A builder sub-object, or an empty one."""
+    return value if isinstance(value, dict) else {}
+
+
+def _entry(title: str, org: str, meta: str, body: str) -> list[str]:
+    """One entry, in the only shapes `app/resume_pdf.py` can actually draw.
+
+    The renderer understands `# `, `## `, `- ` and paragraphs. It has NO nested
+    bullets, so an entry with a description is a bold headline paragraph
+    followed by a plain one rather than a bullet with a child — which would
+    render as two sibling bullets and read as two separate claims.
+    """
+    head = f"**{title}**"
+    if org:
+        head += f", {org}"
+    if meta:
+        head += f" ({meta})"
+    return [head] + ([body] if body else []) + [""]
+
+
+def _section(heading: str, body: list[str]) -> list[str]:
+    """A heading and its body, or nothing at all when the body is empty.
+
+    An empty section on a resume is a question the reader answers unkindly
+    ("Publications — none"), so a section the student has not filled does not
+    appear rather than appearing bare.
+    """
+    return [f"## {heading}", ""] + body if body else []
+
+
+def _roles_block(rows: list[dict]) -> list[str]:
+    """Experience and internships share one shape: title, org · sector, dates,
+    location, description."""
+    out: list[str] = []
+    for e in rows:
+        title = _rt(e.get("title"))
+        if not title:
+            # A row the student opened and left unnamed is not a claim. The
+            # builder itself refuses to save one (its Save button is disabled
+            # without a title); a row that predates that rule stays off the page.
+            continue
+        org = " · ".join(x for x in (_rt(e.get("org")), _rt(e.get("sector"))) if x)
+        span = " — ".join(x for x in (_rt(e.get("start")), _rt(e.get("end"))) if x)
+        meta = " · ".join(x for x in (span, _rt(e.get("location"))) if x)
+        out += _entry(title, org, meta, _rt(e.get("description")))
+    return out
+
+
+def _projects_block(rows: list[dict]) -> list[str]:
+    out: list[str] = []
+    for p in rows:
+        title = _rt(p.get("title"))
+        if not title:
+            continue
+        meta = " · ".join(
+            x for x in (" · ".join(_rstrs(p.get("tech"))), _rt(p.get("link"))) if x
+        )
+        out += _entry(title, "", meta, _rt(p.get("description")))
+    return out
+
+
+def _publications_block(rows: list[dict]) -> list[str]:
+    out: list[str] = []
+    for p in rows:
+        title = _rt(p.get("title"))
+        if not title:
+            continue
+        meta = " · ".join(x for x in (_rt(p.get("date")), _rt(p.get("coauthors"))) if x)
+        out += _entry(title, _rt(p.get("publisher")), meta, _rt(p.get("doi")))
+    return out
+
+
+def _seminars_block(rows: list[dict]) -> list[str]:
+    out: list[str] = []
+    for s in rows:
+        title = _rt(s.get("title"))
+        if not title:
+            continue
+        out += _entry(title, _rt(s.get("provider")), _rt(s.get("date")), "")
+    return out
+
+
+def _positions_block(rows: list[dict]) -> list[str]:
+    out: list[str] = []
+    for p in rows:
+        title = _rt(p.get("title"))
+        if not title:
+            continue
+        out += _entry(title, _rt(p.get("org")), _rt(p.get("duration")), _rt(p.get("description")))
+    return out
+
+
+def _external_certs_block(rows: list[dict]) -> list[str]:
+    out: list[str] = []
+    for c in rows:
+        title = _rt(c.get("name"))
+        if not title:
+            continue
+        meta = " · ".join(x for x in (_rt(c.get("year")), _rt(c.get("link"))) if x)
+        out += _entry(title, _rt(c.get("provider")), meta, "")
+    return out
+
+
+def _references_block(rows: list[dict]) -> list[str]:
+    out: list[str] = []
+    for r in rows:
+        name = _rt(r.get("name"))
+        if not name:
+            continue
+        org = ", ".join(x for x in (_rt(r.get("designation")), _rt(r.get("org"))) if x)
+        reach = " · ".join(x for x in (_rt(r.get("email")), _rt(r.get("phone"))) if x)
+        out += _entry(name, org, _rt(r.get("relationship")), reach)
+    return out
+
+
+def _bullets(items: list[str]) -> list[str]:
+    return [f"- {i}" for i in items] + ([""] if items else [])
+
+
+def _contact_line(profile, contact: dict) -> str:
+    """One line of ways to reach the student, deduplicated, office detail dropped.
+
+    The profile row and the builder's contact section overlap (both hold an
+    email, a phone and links), and a resume that prints the same address twice
+    reads as carelessness. `add` is case-insensitive because "Test@x.ac.in" and
+    "test@x.ac.in" are one address to a reader and two to a set.
+    """
+    parts: list[str] = []
+    seen: set[str] = set()
+
+    def add(value) -> None:
+        v = _rt(value)
+        if v and v.lower() not in seen:
+            seen.add(v.lower())
+            parts.append(v)
+
+    if profile is not None:
+        add(profile.email)
+        add(profile.phone)
+    for email in _rstrs(contact.get("personal_emails")):
+        add(email)
+    for row in _rrows(contact.get("other_phones")):
+        number = _rt(row.get("number"))
+        if number:
+            add(f"{_rt(row.get('code'))} {number}".strip())
+    if profile is not None:
+        add(profile.linkedin_url)
+        add(profile.github_url)
+        add(profile.portfolio_url)
+    for row in _rrows(contact.get("web_links")):
+        add(row.get("url"))
+
+    # A city, never the street. See _PRIVATE_BUILDER_SECTIONS.
+    address = _rmap(contact.get("current_address"))
+    where = ", ".join(x for x in (_rt(address.get("city")), _rt(address.get("state"))) if x)
+    add(where or (profile.city if profile is not None else ""))
+    return " · ".join(parts)
+
+
+def _compose_resume_markdown(name, profile, skill_names, cgpa, quals, builder=None) -> str:
+    """The deterministic resume, composed on this machine from what REEP holds.
+
+    `builder` is `resume_profiles.data` — the fifteen-section map the Resume
+    Builder writes. It is optional so the signature stays callable with the
+    older five arguments, but a caller that omits it publishes a document
+    missing everything the student typed, which is the bug this parameter fixed.
+    """
+    b = builder if isinstance(builder, dict) else {}
+    other = _rmap(b.get("other"))
+
     lines = [f"# {name or 'REEP Student'}", ""]
-    if profile and profile.career_summary:
-        lines += [profile.career_summary, ""]
-    contact = []
-    if profile:
-        contact = [x for x in (profile.email, profile.phone, profile.linkedin_url, profile.city) if x]
+
+    # The objective the student wrote for THIS document outranks the one-line
+    # career summary on their profile row: it is the more recent statement of
+    # intent, and it is the paragraph the builder's own copy promises "the
+    # generated resume opens with".
+    objective = _rt(other.get("career_objective")) or _rt(
+        profile.career_summary if profile is not None else ""
+    )
+    if objective:
+        lines += [objective, ""]
+
+    contact = _contact_line(profile, _rmap(b.get("contact")))
     if contact:
-        lines += ["**Contact:** " + " · ".join(contact), ""]
-    lines += [
-        "## Verified Skills",
-        ", ".join(skill_names) if skill_names else "— none verified yet",
-        "",
-    ]
-    lines += ["## Academics", f"- Latest CGPA: {cgpa}" if cgpa is not None else "- CGPA: not yet assessed"]
+        lines += [f"**Contact:** {contact}", ""]
+
+    lines += _section("Professional Experience", _roles_block(_rrows(b.get("experience"))))
+    lines += _section("Internships", _roles_block(_rrows(b.get("internship"))))
+    lines += _section("Projects", _projects_block(_rrows(b.get("projects"))))
+
+    # VERIFIED means a mentor checked the evidence. `skill_names` is already
+    # filtered to those; `key_expertise` is the student's own word for what they
+    # can do, so it travels under its own heading saying exactly that. One
+    # undifferentiated "Skills" line would present work in review as work
+    # confirmed, which is the thing the whole verification flow exists to stop.
+    expertise = _rstrs(other.get("key_expertise"))
+    lines += _section("Verified Skills", [", ".join(skill_names), ""] if skill_names else [])
+    lines += _section(
+        "Key Expertise (self-reported)", [", ".join(expertise), ""] if expertise else []
+    )
+    lines += _section(
+        "Certifications (self-reported)", _external_certs_block(_rrows(b.get("external_certs")))
+    )
+
+    lines += _section("Publications & Research", _publications_block(_rrows(b.get("publications"))))
+    lines += _section("Seminars & Trainings", _seminars_block(_rrows(b.get("seminars"))))
+    lines += _section("Positions of Responsibility", _positions_block(_rrows(b.get("por"))))
+    lines += _section("Achievements", _bullets(_rstrs(other.get("achievements"))))
+    lines += _section("Awards & Scholarships", _bullets(_rstrs(other.get("awards"))))
+    lines += _section(
+        "Activities",
+        _bullets(_rstrs(other.get("co_curricular")) + _rstrs(other.get("extra_curricular"))),
+    )
+
+    academics = [f"- Latest CGPA: {cgpa}" if cgpa is not None else "- CGPA: not yet assessed"]
     for q in quals:
         pct = round(100 * q.marks / q.max_marks) if q.max_marks else 0
-        lines.append(f"- {q.level.value.title()}: {q.institution} ({q.year}) — {pct}%")
+        academics.append(f"- {q.level.value.title()}: {q.institution} ({q.year}) — {pct}%")
+    lines += _section("Academics", academics + [""])
+
+    languages = _rstrs(_rmap(b.get("basic")).get("languages"))
+    lines += _section("Languages", [", ".join(languages), ""] if languages else [])
+    lines += _section("References", _references_block(_rrows(b.get("references"))))
+
+    # Trailing blanks are free in markdown and cost a page break in the PDF.
+    while lines and not lines[-1].strip():
+        lines.pop()
     return "\n".join(lines)
 
 
@@ -1258,7 +1542,10 @@ def generate_resume(
         .order_by(AcademicQualification.year)
     ).all()
 
-    markdown = _compose_resume_markdown(name, profile, skill_names, cgpa, quals)
+    # `resume_state` — the builder's fifteen sections — was already read above
+    # for the curated skill list. It is the same map the document is composed
+    # from, so it is passed rather than re-queried.
+    markdown = _compose_resume_markdown(name, profile, skill_names, cgpa, quals, resume_state)
     generated_by, model, used_ai, note = "fallback", None, False, None
 
     # Release the pooled connection BEFORE the model call. The SELECTs above
@@ -1284,11 +1571,24 @@ def generate_resume(
                     {"role": "user", "content": prompt},
                 ],
                 carries_student_data=True,
-                max_tokens=1500,
+                # Was 1500, which was a one-page budget for a five-line draft.
+                # Now that the document carries every builder section, a full
+                # profile can exceed that — and a truncated polish silently
+                # returns LESS than the deterministic draft the student would
+                # have got for free.
+                max_tokens=3000,
             )
             generated_by, model, used_ai = cfg.provider, cfg.model, True
         except Exception as exc:  # keep the deterministic draft on any failure
             note = f"AI polish failed ({exc}); kept the deterministic draft."
+    elif cfg is None:
+        # Two different facts used to share one sentence: "no model configured"
+        # was reported as "the configured model runs off this machine", which
+        # sends the reader looking for a setting that is not the reason.
+        note = (
+            "No language model is configured, so the resume was composed on this "
+            "machine from your saved REEP records."
+        )
     else:
         note = (
             "AI generation skipped: the resume carries student data and the configured "
@@ -1358,20 +1658,93 @@ def list_resumes(
     ]
 
 
+def _evidence_proofs(db: Session, student_id: str) -> list[EvidenceProof]:
+    """The files behind the verified skills this resume actually claims.
+
+    Only VERIFIED and INCLUDED skills, in that order of authority:
+
+      * verified, because an appendix is the evidence half of the document and a
+        claim still with a mentor is not evidence of anything yet;
+      * included, because the student curates which verified skills this copy
+        presents, and an appendix that carries proofs the resume never mentions
+        hands an employer answers to questions nobody asked.
+
+    A skill whose upload row is gone, or whose bytes are missing from the store,
+    is skipped rather than raising: the export of a resume must not fail because
+    one certificate was deleted.
+    """
+    state = db.scalar(select(ResumeProfile.data).where(ResumeProfile.student_id == student_id))
+    included = {s for s in (((state or {}).get("evidence_skills") or {}).get("included") or []) if s}
+    if not included:
+        return []
+
+    rows = db.execute(
+        select(Skill.slug, Skill.name, StudentSkill.evidence_upload_id, Skill.id)
+        .join(StudentSkill, StudentSkill.skill_id == Skill.id)
+        .where(StudentSkill.student_id == student_id, StudentSkill.verified.is_(True))
+        .order_by(Skill.name)
+    ).all()
+
+    proofs: list[EvidenceProof] = []
+    for slug, name, upload_id, skill_id in rows:
+        if slug not in included:
+            continue
+        # The skill row points at its evidence; where it does not, the claim the
+        # mentor reviewed does. Same fallback the student's own screen uses.
+        if not upload_id:
+            upload_id = db.scalar(
+                select(SkillClaim.upload_id)
+                .where(SkillClaim.student_id == student_id, SkillClaim.skill_id == skill_id)
+                .order_by(SkillClaim.created_at.desc())
+                .limit(1)
+            )
+        if not upload_id:
+            continue
+        upload = db.get(Upload, upload_id)
+        if upload is None or upload.student_id != student_id:
+            continue
+        try:
+            content = read_bytes(upload.stored_name)
+        except FileNotFoundError:
+            continue
+        proofs.append(
+            EvidenceProof(
+                skill=name,
+                title=upload.title or "",
+                original_name=upload.original_name or "",
+                mime_type=upload.mime_type or "",
+                content=content,
+                verified_on=upload.reviewed_at.strftime("%d %b %Y") if upload.reviewed_at else None,
+            )
+        )
+    return proofs
+
+
 @router.get("/resume/{resume_id}/pdf")
 def resume_pdf(
     resume_id: str,
+    appendix: bool = False,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> Response:
     """Render one of the student's own resumes to a PDF. Local render (no model,
     no network), so the egress gate does not apply — but ownership does: a
-    student can only export their own resume."""
+    student can only export their own resume.
+
+    `appendix=true` binds the proof files of the included verified skills onto
+    the end. The Export step's "Include an evidence appendix with proof links"
+    checkbox used to change nothing at all — see app/resume_pdf.py — and a
+    student who ticked it sent a document without the certificates they believed
+    were attached. Links could never have served: an upload URL needs the
+    student's own cookie, so a recruiter following one reaches a login page.
+    """
     student_id = _require_student(session)
     resume = db.get(Resume, resume_id)
     if resume is None or resume.student_id != student_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
     pdf = render_resume_pdf(resume.markdown or "", fallback_title=resume.title or "REEP Resume")
+    if appendix:
+        pdf = append_evidence(pdf, _evidence_proofs(db, student_id))
     filename = f"resume-v{resume.version}.pdf"
     return Response(
         content=pdf,
@@ -1905,15 +2278,34 @@ _RESUME_SECTIONS = [
 ]
 
 
-def _section_filled(value) -> bool:
-    """A section counts as filled if it holds any real content."""
-    if value in (None, "", [], {}):
-        return False
+#: Leaf keys whose value is FURNITURE THE FORM SUPPLIES, not content a student
+#: entered. The contact section seeds `country: "India"` and a `+91` dial `code`
+#: into every address and phone row the moment one is added, so pressing "Add
+#: another number" and typing nothing used to mark the whole section filled.
+#:
+#: Observed: a fresh profile went from 8% to 17% — a twelfth of the bar — for one
+#: empty phone row and one unticked checkbox, with nothing typed. The sidebar
+#: advertises 70% as the point where the document gets materially stronger, and
+#: a percentage reachable by clicking Add is not a measure of anything.
+_STRUCTURAL_LEAF_KEYS = {"country", "code"}
+
+
+def _section_filled(value, *, key: str | None = None) -> bool:
+    """Does this section hold content the student actually put there?
+
+    Only a non-blank string counts. Booleans and numbers are STRUCTURE — a
+    checkbox has a value whether or not anyone has looked at it, and
+    `permanent_same: false` says nothing about whether an address was written.
+    The old rule returned True for any list with a row in it and for any
+    non-empty leaf of any type, so an empty row counted the same as a filled one.
+    """
     if isinstance(value, dict):
-        return any(_section_filled(v) for v in value.values())
+        return any(_section_filled(v, key=k) for k, v in value.items())
     if isinstance(value, list):
-        return len(value) > 0
-    return True
+        return any(_section_filled(v) for v in value)
+    if isinstance(value, str):
+        return bool(value.strip()) and key not in _STRUCTURAL_LEAF_KEYS
+    return False
 
 
 def _resume_completeness(data: dict) -> int:

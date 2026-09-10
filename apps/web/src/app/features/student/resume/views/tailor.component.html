@@ -9,24 +9,24 @@
       </div>
       <div class="head-actions">
         <button type="button" class="btn" (click)="navigate.emit('build')">
-          <span class="icon">edit</span> Back to content
+          <span class="icon" aria-hidden="true">edit</span> Back to content
         </button>
         <button type="button" class="btn primary" (click)="navigate.emit('preview')">
-          <span class="icon">visibility</span> Preview
+          <span class="icon" aria-hidden="true">visibility</span> Preview
         </button>
       </div>
     </div>
 
     <div class="body">
       @if (goalSvc.jobsError()) {
-        <div class="state-note"><span class="icon">error</span>{{ goalSvc.jobsError() }}</div>
+        <div class="state-note"><span class="icon" aria-hidden="true">error</span>{{ goalSvc.jobsError() }}</div>
       }
 
       <!-- Verdict first, and separate from the score. -->
       @if (goalSvc.selectedJob(); as job) {
         <div class="card verdict" [class.verdict--ok]="job.eligible">
           <div class="verdict-head">
-            <span class="icon">{{ job.eligible ? 'task_alt' : 'info' }}</span>
+            <span class="icon" aria-hidden="true">{{ job.eligible ? 'task_alt' : 'info' }}</span>
             <div>
               <div class="verdict-title">
                 {{
@@ -46,7 +46,7 @@
           </div>
           @if (!job.eligible && job.reasons.length) {
             <ul class="verdict-reasons">
-              @for (r of job.reasons; track r) {
+              @for (r of job.reasons; track $index) {
                 <li>{{ r }}</li>
               }
             </ul>
@@ -72,7 +72,7 @@
 
         @if (!goalSvc.selectedJob()) {
           <div class="state-note">
-            <span class="icon">info</span>
+            <span class="icon" aria-hidden="true">info</span>
             Choose a posting in <b>Selected opportunity</b> above to see which of its requirements
             you can already evidence.
           </div>
@@ -88,7 +88,7 @@
           </div>
         } @else {
           <div class="state-note">
-            <span class="icon">check_circle</span>
+            <span class="icon" aria-hidden="true">check_circle</span>
             Every requirement this posting lists is covered by a verified, included skill.
           </div>
         }
@@ -96,7 +96,7 @@
         @if (missingEssentials().length) {
           <div class="block block--tint">
             <div class="block-title">Missing essentials</div>
-            @for (me of missingEssentials(); track me) {
+            @for (me of missingEssentials(); track $index) {
               <div class="block-line">• {{ me }}</div>
             }
           </div>

@@ -266,6 +266,14 @@
         </p>
       }
 
+      @if (signedOutElsewhere()) {
+        <p class="note" role="status">
+          You were signed out because this account was signed in on another device. REEP allows
+          one device at a time — sign in again here to carry on, and the other device will be
+          signed out.
+        </p>
+      }
+
       @if (verified() === '1') {
         <p class="note note--good" role="status">
           Email confirmed — thank you. The placement office will review your application and

@@ -39,6 +39,13 @@ class MailLog(Base):
     __table_args__ = (
         Index("ix_maillog_kind_sent", "kind", "sent_at"),
         Index("ix_maillog_recipient_sent", "recipient", "sent_at"),
+        # The ops mail screen with NO `kind` filter: ORDER BY sent_at DESC
+        # LIMIT 100 over the whole table. Neither composite above can serve it
+        # — `sent_at` is their SECOND column, and Postgres will only walk an
+        # index in sort order from the first — so the unfiltered view was a
+        # sequential scan plus a sort of every row ever mailed, to show a
+        # hundred. This table is append-only and grows with the roster.
+        Index("ix_maillog_sent_at", "sent_at"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

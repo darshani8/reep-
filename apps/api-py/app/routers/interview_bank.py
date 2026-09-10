@@ -1,4 +1,4 @@
-"""The admin's interview question bank: /api/director/interview-questions.
+"""The admin's interview question bank: /api/admin/interview-questions.
 
     GET    /tracks             the four live tracks, their phases, and how many
                                questions each holds
@@ -9,7 +9,7 @@
     DELETE /{id}               remove
     POST   /reorder            the order the interviewer works them in
 
-GATED BY A CAPABILITY, NOT A ROLE - `admin.interview_questions`. DIRECTOR/ADMIN
+GATED BY A CAPABILITY, NOT A ROLE - `admin.interview_questions`. The Main Admin
 hold it through the baseline; a MENTOR holds it only when granted, which is the
 point: the owner asked for "analytics to multiple faculty", and question
 authoring is the same shape. PROGRAMME scope, because a question is asked of
@@ -46,7 +46,7 @@ from ..interview_bank import BANK_PHASES, MAX_QUESTION_CHARS, TRACK_KEYS, parse_
 from ..interview_matrix import SPECIALIZATIONS
 from ..models.interview_bank import InterviewBankQuestion
 
-router = APIRouter(prefix="/director/interview-questions", tags=["interview-bank"])
+router = APIRouter(prefix="/admin/interview-questions", tags=["interview-bank"])
 
 CAPABILITY = "admin.interview_questions"
 

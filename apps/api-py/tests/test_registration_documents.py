@@ -2,7 +2,7 @@
 register form and approval screen.
 
 An applicant attaches a CV (PDF) and a photo (PNG/JPG) BEFORE anyone decides;
-the director's queue shows what is attached; APPROVE moves the files into the
+the review queue shows what is attached; APPROVE moves the files into the
 student's own uploads; a rejection can be reopened (the design's Undo) and an
 approval cannot; a never-verified application is swept with its files.
 
@@ -35,7 +35,6 @@ from app.db import SessionLocal
 from app.models.registration import Registration, RegistrationDocument, RegistrationStatus
 from app.models.upload import Upload, UploadKind
 from app.models.user import Role, Student, User
-from app.retention import sweep_unverified_registrations
 
 # The store recognises files by magic bytes, nothing more — enough to be a PDF,
 # a PNG, a JPEG, or nothing at all.
@@ -56,14 +55,13 @@ def _tmp_store(tmp_path, monkeypatch):
     return tmp_path
 
 
-def _submit(client, submit, email, usn, *, verify: bool):
+def _submit(client, submit, email, usn, *, verify: bool = False):
+    """`verify` is vestigial (2026-09-10) and kept only so call sites read the
+    same: submission now reaches the review queue with no email hop at all, so
+    there is nothing left to confirm before a document may be attached."""
     r = submit(client, email, usn=usn)
     assert r.status_code == 201, r.text
-    reg_id = r.json()["id"]
-    if verify:
-        token = _token_from(_mail_to(email, "Confirm your email"))
-        client.get(f"/api/register/verify?token={token}", follow_redirects=False)
-    return reg_id
+    return r.json()["id"]
 
 
 def _attach(client, reg_id: str, kind: str, name: str, content: bytes):
@@ -132,7 +130,7 @@ def test_a_cv_must_be_a_pdf_and_a_photo_an_image(client, application, _tmp_store
 @requires_db
 def test_no_document_can_be_added_after_a_decision(client, make_user, application):
     submit, _ = application
-    director = make_user("rd-dir1", Role.DIRECTOR)
+    director = make_user("rd-dir1", Role.ADMIN)
     reg_id = _submit(client, submit, "rd.decided@bgscet.ac.in", "1BG26RD03", verify=True)
     r = client.post(
         f"/api/register/{reg_id}/decision",
@@ -150,7 +148,7 @@ def test_no_document_can_be_added_after_a_decision(client, make_user, applicatio
 @requires_db
 def test_the_queue_reports_what_is_attached(client, make_user, application):
     submit, _ = application
-    director = make_user("rd-dir2", Role.DIRECTOR)
+    director = make_user("rd-dir2", Role.ADMIN)
     reg_id = _submit(client, submit, "rd.queue@bgscet.ac.in", "1BG26RD04", verify=True)
     assert _attach(client, reg_id, "cv", "cv.pdf", PDF).status_code == 200
 
@@ -166,7 +164,7 @@ def test_the_queue_reports_what_is_attached(client, make_user, application):
 @requires_db
 def test_documents_move_into_the_students_uploads_on_approve(client, make_user, application, _tmp_store):
     submit, _ = application
-    director = make_user("rd-dir3", Role.DIRECTOR)
+    director = make_user("rd-dir3", Role.ADMIN)
     email = "rd.approve@bgscet.ac.in"
     reg_id = _submit(client, submit, email, "1BG26RD05", verify=True)
     assert _attach(client, reg_id, "cv", "cv.pdf", PDF).status_code == 200
@@ -196,7 +194,7 @@ def test_documents_move_into_the_students_uploads_on_approve(client, make_user, 
 @requires_db
 def test_a_rejection_can_be_reopened_and_an_approval_cannot(client, make_user, application):
     submit, _ = application
-    director = make_user("rd-dir4", Role.DIRECTOR)
+    director = make_user("rd-dir4", Role.ADMIN)
     student = make_user("rd-stu4")  # STUDENT: must be refused
     a = _submit(client, submit, "rd.reopen.a@bgscet.ac.in", "1BG26RD06", verify=True)
     b = _submit(client, submit, "rd.reopen.b@bgscet.ac.in", "1BG26RD07", verify=True)
@@ -234,28 +232,101 @@ def test_a_rejection_can_be_reopened_and_an_approval_cannot(client, make_user, a
 # ------------------------------------------------------------- sweep --
 
 
+# --------------------------------------------------------------------------- #
+# The public endpoints answer with the APPLICANT's view, not the reviewer's
+# --------------------------------------------------------------------------- #
+
+#: Written by staff, ABOUT the applicant, FOR colleagues. None of it may leave
+#: an endpoint that nobody had to sign in to reach.
+REVIEWER_FIELDS = ("review_note", "reviewed_by_id", "reviewed_at")
+#: Internal plumbing the applicant's result card never renders.
+INTERNAL_FIELDS = ("matched_rule_id", "approved_student_id")
+
+
 @requires_db
-def test_never_verified_applications_are_swept_with_their_files(client, application, _tmp_store):
+def test_the_public_endpoints_never_carry_the_reviewers_side(client, application, _tmp_store):
+    """Both public endpoints on this router answer with `PublicRegistrationOut`.
+
+    Neither caller is signed in. The bearer is the application id — an
+    unguessable uuid4 handed back on the 201 — which is enough to let someone
+    finish their own application and is not enough to be shown what a reviewer
+    wrote about them.
+
+    THIS IS A SHAPE, NOT A FILTER, and that distinction is the whole point.
+    Today the reviewer's stamp could not travel anyway: uploads are refused once
+    an application is decided, and `reopen` clears the note on the way back into
+    the queue. Both of those are one small edit away from being untrue, and the
+    edit that breaks them will not look like it touches a public response. A
+    schema that never declared the field cannot start carrying it by accident.
+    """
     submit, _ = application
-    stale = _submit(client, submit, "rd.stale@bgscet.ac.in", "1BG26RD08", verify=False)
-    live = _submit(client, submit, "rd.live@bgscet.ac.in", "1BG26RD09", verify=True)
-    assert _attach(client, stale, "cv", "old.pdf", PDF).status_code == 200
-    assert _attach(client, live, "cv", "new.pdf", PDF).status_code == 200
-    (stale_doc,) = _docs(stale)
-    (live_doc,) = _docs(live)
+    email = f"public-view-{uuid.uuid4().hex[:6]}@bgscet.ac.in"
+    created = submit(client, email)
+    assert created.status_code == 201, created.text
+    body = created.json()
 
-    long_ago = datetime.now(timezone.utc) - timedelta(days=8)
-    with SessionLocal() as db:
-        db.execute(update(Registration).where(Registration.id.in_([stale, live])).values(created_at=long_ago))
-        db.commit()
-        swept = sweep_unverified_registrations(db, now=datetime.now(timezone.utc))
-    assert swept == 1
+    for field in REVIEWER_FIELDS + INTERNAL_FIELDS:
+        assert field not in body, f"POST /register leaked {field} to an unauthenticated caller"
 
+    # ...and the applicant's own facts ARE there, so this cannot pass by
+    # answering with an empty object.
+    assert body["email"] == email
+    assert body["status"] in {"PENDING_REVIEW", "AUTO_APPROVED"}
+    assert "documents" in body and "decision_reason" in body
+
+    # The upload endpoint answers with the same narrow view.
+    up = _attach(client, body["id"], "cv", "my-cv.pdf", PDF)
+    assert up.status_code == 200, up.text
+    for field in REVIEWER_FIELDS + INTERNAL_FIELDS:
+        assert field not in up.json(), f"the upload endpoint leaked {field}"
+    assert up.json()["documents"] == ["CV"]
+
+
+@requires_db
+def test_a_note_a_reviewer_wrote_stays_on_the_reviewers_side(
+    client, make_user, application, _tmp_store
+):
+    """The other half: the STAFF view still carries the note.
+
+    A guard that only proves a field is absent can be satisfied by deleting that
+    field everywhere, which would take the reviewer's own screen with it. So this
+    writes a real note through a real decision, reads it back where it belongs,
+    and then proves it does not come out of the public door — on a REOPENED
+    application, which is the one state where an undecided row can have been
+    through a reviewer's hands at all.
+    """
+    submit, _ = application
+    admin = make_user(f"pubview-adm-{uuid.uuid4().hex[:4]}", Role.ADMIN)
+
+    email = f"public-note-{uuid.uuid4().hex[:6]}@bgscet.ac.in"
+    created = submit(client, email)
+    assert created.status_code == 201, created.text
+    reg_id = created.json()["id"]
+
+    # Into the queue, then rejected with a note a colleague would really write.
     with SessionLocal() as db:
-        assert db.get(Registration, stale) is None, "never confirmed, past the grace: gone"
-        kept = db.get(Registration, live)
-        assert kept is not None and kept.status is RegistrationStatus.PENDING_REVIEW, (
-            "a confirmed application is a person in the queue, however old"
+        db.execute(
+            update(Registration)
+            .where(Registration.id == reg_id)
+            .values(status=RegistrationStatus.PENDING_REVIEW)
         )
-    assert not (_tmp_store / stale_doc.stored_name).exists(), "its bytes went with it"
-    assert (_tmp_store / live_doc.stored_name).exists()
+        db.commit()
+    note = "Marks look inflated against the transcript - check with the department first."
+    decided = client.post(
+        f"/api/register/{reg_id}/decision",
+        headers=admin.headers,
+        json={"decision": "REJECT", "note": note},
+    )
+    assert decided.status_code == 200, decided.text
+    assert decided.json()["review_note"] == note, "the staff view lost the note"
+
+    # Reopened, the application accepts uploads again - and the public answer
+    # still does not carry the note, whatever the row holds.
+    reopened = client.post(f"/api/register/{reg_id}/reopen", headers=admin.headers)
+    assert reopened.status_code == 200, reopened.text
+
+    up = _attach(client, reg_id, "cv", "my-cv.pdf", PDF)
+    assert up.status_code == 200, up.text
+    assert note not in up.text, "a reviewer's note reached an unauthenticated caller"
+    for field in REVIEWER_FIELDS:
+        assert field not in up.json()

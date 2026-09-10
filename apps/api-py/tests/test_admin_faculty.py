@@ -49,14 +49,18 @@ def _email(label: str) -> str:
 @requires_db
 def test_only_the_main_admin_creates_faculty_and_the_link_it_shows_works(client, make_user, swept):
     admin = make_user("fac-adm", Role.ADMIN)
-    director = make_user("fac-dir", Role.DIRECTOR)
     mentor = make_user("fac-men", Role.MENTOR)
+    alumni = make_user("fac-alum", Role.ALUMNI)
     student = make_user("fac-stu")
     email = _email("new")
     swept.append(email)
     body = {"name": "  Kavya   N ", "email": email.upper(), "designation": "Assistant Professor", "department": "MBA"}
 
-    for who in (director, mentor, student):
+    # A DIRECTOR used to be the interesting case here — the role with the most
+    # access that still could not mint an account. There is no DIRECTOR any
+    # more (tests/test_no_director_privilege.py), so the set is every other role
+    # the product actually has.
+    for who in (mentor, alumni, student):
         r = client.post(API, headers=who.headers, json=body)
         assert r.status_code == 403 and "Main Admin" in r.text, r.text
 
@@ -83,7 +87,7 @@ def test_only_the_main_admin_creates_faculty_and_the_link_it_shows_works(client,
     assert client.post(API, headers=admin.headers, json={"name": "   ", "email": _email("blank")}).status_code == 422
 
     # They appear where the Main Admin assigns students, with no group yet.
-    row = next(m for m in client.get("/api/director/mentor-load", headers=admin.headers).json() if m["user_id"] == user.id)
+    row = next(m for m in client.get("/api/admin/mentor-load", headers=admin.headers).json() if m["user_id"] == user.id)
     assert row["mentor_id"] is None and row["name"] == "Kavya N"
 
     # The link works: a password is set from it and the account signs in.

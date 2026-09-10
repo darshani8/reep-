@@ -24,7 +24,7 @@ from app.interview_matrix import build_instructions, get_specialization
 from app.models.interview_bank import InterviewBankQuestion
 from app.models.user import Role
 
-API = "/api/director/interview-questions"
+API = "/api/admin/interview-questions"
 GOV = "/api/admin/governance"
 TAG = "qbank-" + uuid.uuid4().hex[:6]
 
@@ -88,7 +88,7 @@ def test_the_bank_is_a_capability_the_main_admin_holds_and_a_mentor_must_be_gran
 
 @requires_db
 def test_tracks_are_the_matrix_and_questions_are_ordered_edited_and_removed(client, make_user):
-    director = make_user("qb-dir2", Role.DIRECTOR)
+    director = make_user("qb-dir2", Role.ADMIN)
     h = director.headers
 
     tracks = client.get(f"{API}/tracks", headers=h).json()
@@ -165,7 +165,7 @@ def test_the_bulk_parser_reads_every_shape_and_reports_what_it_cannot():
 
 @requires_db
 def test_bulk_appends_in_order_and_reports_skips(client, make_user):
-    director = make_user("qb-dir3", Role.DIRECTOR)
+    director = make_user("qb-dir3", Role.ADMIN)
     h = director.headers
     first = client.post(API, headers=h, json={"track": "dm", "phase": "opening", "text": _q("What drew you to marketing")}).json()
     r = client.post(
@@ -186,7 +186,7 @@ def test_bulk_appends_in_order_and_reports_skips(client, make_user):
 
 @requires_db
 def test_the_engine_gets_the_enabled_questions_in_order_and_nothing_else_changes(client, make_user):
-    director = make_user("qb-dir4", Role.DIRECTOR)
+    director = make_user("qb-dir4", Role.ADMIN)
     h = director.headers
     q1 = client.post(API, headers=h, json={"track": "fa", "phase": "probing", "text": _q("Walk me through a DCF you have built")}).json()
     q2 = client.post(API, headers=h, json={"track": "fa", "phase": "deep_dive", "text": _q("Rates rise 200bps overnight; what breaks first")}).json()

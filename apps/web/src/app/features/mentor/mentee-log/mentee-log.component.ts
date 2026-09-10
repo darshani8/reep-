@@ -2,7 +2,7 @@
  * Faculty Mentee Log — the staff side of the student's Mentor Meeting Log.
  *
  * Left: the mentees this staff member may see (GET /mentor/mentees — a MENTOR
- * gets only their own group, DIRECTOR/ADMIN the whole programme, and a MENTOR
+ * gets only their own group, the Main Admin the whole programme, and a MENTOR
  * with no group gets an honest empty state, never everybody). Right: the
  * selected mentee's meeting notes (GET /mentor/students/{id}/notes), a form to
  * add one (POST, NoteIn shape from routers/mentor.py — note_text required,

@@ -123,7 +123,7 @@ class Settings(BaseSettings):
     database_url: str = _DEV_DATABASE_URL
     # Signs the HS256 `reep_session` cookie (app/security.py) AND derives the
     # OAuth flow-cookie key (app/google_auth.py). Whoever knows it IS every user:
-    # a forged {"role":"DIRECTOR"} claim reads every student's marks, attendance
+    # a forged {"role":"ADMIN"} claim reads every student's marks, attendance
     # and USN, and no login, no Google round-trip and no DB row is involved.
     auth_secret: str = _DEV_AUTH_SECRET
     web_origin: str = "http://localhost:4200"
@@ -145,6 +145,11 @@ class Settings(BaseSettings):
     # digits, so its safety is the pairing of a small window with the per-account
     # attempt budget in app/routers/auth.py.
     otp_code_minutes: int = 10
+    # What the ROOT logger emits, so `app/` log lines are visible at all. See
+    # app/main.py's basicConfig for what their absence cost. DEBUG is refused
+    # a hard floor there for the `websockets` library specifically; this
+    # setting does not lift it.
+    log_level: str = "INFO"
     email_verification_hours: int = 24
     # "Forgot password" gets its own caps, per address and overall, or it is a
     # way to send someone a hundred emails.
@@ -172,7 +177,7 @@ class Settings(BaseSettings):
     # app.seed_roster carry the unusable SSO_ONLY_PASSWORD_HASH sentinel, and
     # they keep it until an operator runs `python -m app.set_password` for one
     # named account. And app.seed still refuses to run when ENV=prod, so the
-    # published director123 / mentor123 / student123 logins cannot exist on a
+    # published admin123 / mentor123 / student123 logins cannot exist on a
     # production host for this flag to let in. Those two facts are what make
     # this a door rather than a hole: opening it admits exactly the accounts an
     # operator has deliberately issued a password to, and no others.
@@ -272,7 +277,7 @@ class Settings(BaseSettings):
     # a programme POLICY, not a fact about any one mentor: every mentor shares
     # it, and the admissions office changes it between intakes. The assignment
     # screen derives "N free" and "at capacity" from this; it is advisory
-    # (nothing refuses an assignment past it), because a director who chooses
+    # (nothing refuses an assignment past it), because an admin who chooses
     # to overload one mentor in a thin year should not have to edit .env first.
     mentor_capacity: int = 20
 
@@ -668,7 +673,7 @@ class Settings(BaseSettings):
     # Audio capture, OFF and deliberately awkward to turn on. Recording a
     # student's voice requires their recorded consent (interview_consent_version
     # below) AND this flag AND a retention deadline, and the audio is retrievable
-    # by DIRECTOR/ADMIN only. Flipping this true without the consent row in place
+    # by the Main Admin only. Flipping this true without the consent row in place
     # is the failure that matters here: it is the one that cannot be undone after
     # the fact.
     interview_recording_enabled: bool = False
@@ -1272,7 +1277,7 @@ class Settings(BaseSettings):
                 "AUTH_SECRET is still the development value published in this "
                 "repository (.env.example). It signs the reep_session cookie and "
                 "derives the OAuth flow-cookie key, so anyone who has read the repo "
-                'can sign {"role":"DIRECTOR"} for themselves and read every '
+                'can sign {"role":"ADMIN"} for themselves and read every '
                 "student's marks, attendance and USN — no login, no Google, no DB "
                 f"row involved. {_NEW_SECRET_HINT}"
             )

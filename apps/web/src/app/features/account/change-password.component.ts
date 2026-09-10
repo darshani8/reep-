@@ -1,15 +1,25 @@
 /**
- * Change password — signed in, knows the current one.
+ * Change password — signed in, proves it with a code emailed to the account.
  *
- * The simplest of the three password flows: no email, no token. Current
- * password checked, new one through the same policy activation uses, and
- * then OTHER devices are signed out while this one stays — the API re-issues
- * this cookie with the new token_version before answering, and the service's
+ * THE CODE, NOT THE CURRENT PASSWORD (2026-09-10). A student who set their
+ * first password last week does not reliably remember it, and "I forgot it
+ * already" reaching the placement office as a support call is the failure this
+ * screen exists to avoid. Being signed in is not the proof — the code is; the
+ * mail says plainly what to do if you did not ask for one, because a signed-in
+ * session on a shared lab machine is exactly the case this guards.
+ *
+ * The API still accepts `current_password` instead (`_authorised_to_change`
+ * takes one proof or the other, never both), which is what six older test
+ * modules use and what works when mail does not. This screen offers the code
+ * because it is the one a student can always complete.
+ *
+ * OTHER devices are signed out while this one stays — the API re-issues this
+ * cookie with the new token_version before answering, and the service's
  * `refresh()` reads it back so the shell never flickers to signed-out.
  *
- * Staff only in practice. Students sign in with Google and hold no password
- * (option B); the API answers 409 for them and the screen says so instead of
- * showing a form that can never succeed.
+ * An account holding no password at all (the unusable sentinel — Google-only,
+ * or onboarding unfinished) gets a 409 and a sentence, not a form that cannot
+ * succeed.
  */
 
 import { Component, inject, signal } from '@angular/core';
@@ -44,15 +54,23 @@ export class ChangePasswordComponent {
   private readonly auth = inject(AuthService);
 
   readonly submitting = signal(false);
+  readonly sending = signal(false);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
+  /** What the server said when it mailed the code ("we emailed a code to …"). */
+  readonly note = signal<string | null>(null);
   /** 409 from the API: this account has no password to change. */
   readonly noPassword = signal(false);
+  /** The code has been sent, so the form is worth showing. */
+  readonly codeSent = signal(false);
   readonly minLength = MIN_LENGTH;
 
   readonly form = new FormGroup(
     {
-      current_password: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+      code: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required, Validators.pattern(/^\d{6}$/)],
+      }),
       new_password: new FormControl('', {
         nonNullable: true,
         validators: [Validators.required, Validators.minLength(MIN_LENGTH)],
@@ -62,6 +80,41 @@ export class ChangePasswordComponent {
     { validators: [matching] },
   );
 
+  /** Ask for the code. Re-asking supersedes the previous one server-side, so
+   *  there is never more than one live code in the mailbox. */
+  async sendCode(): Promise<void> {
+    if (this.sending()) return;
+    this.sending.set(true);
+    this.error.set(null);
+    this.flash.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/auth/change-password/code`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const body = (await res.json().catch(() => ({}))) as { detail?: unknown; message?: string };
+      if (res.status === 409) {
+        this.noPassword.set(true);
+        return;
+      }
+      if (!res.ok) {
+        this.error.set(
+          typeof body.detail === 'string'
+            ? body.detail
+            : `Could not send the code (${res.status}).`,
+        );
+        return;
+      }
+      this.note.set(body.message ?? null);
+      this.codeSent.set(true);
+      this.form.controls.code.reset('');
+    } catch {
+      this.error.set('Could not reach the server. Try again in a moment.');
+    } finally {
+      this.sending.set(false);
+    }
+  }
+
   async submit(): Promise<void> {
     if (this.form.invalid || this.submitting()) {
       this.form.markAllAsTouched();
@@ -70,13 +123,13 @@ export class ChangePasswordComponent {
     this.submitting.set(true);
     this.error.set(null);
     this.flash.set(null);
-    const { current_password, new_password } = this.form.getRawValue();
+    const { code, new_password } = this.form.getRawValue();
     try {
       const res = await fetch(`${environment.apiBase}/auth/change-password`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ current_password, new_password }),
+        body: JSON.stringify({ code, new_password }),
       });
       const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
       const detail = typeof body.detail === 'string' ? body.detail : null;
@@ -86,12 +139,19 @@ export class ChangePasswordComponent {
       }
       if (!res.ok) {
         this.error.set(detail ?? `Could not change the password (${res.status}).`);
-        // Never leave the current password sitting in the DOM behind a refusal.
-        this.form.patchValue({ current_password: '' });
+        // A refused code is SPENT server-side, so leaving it in the field
+        // invites a second submit that cannot work. Clear it and say so.
+        this.form.patchValue({ code: '' });
+        if (res.status === 403) {
+          this.codeSent.set(false);
+          this.note.set(null);
+        }
         return;
       }
       await this.auth.refresh(); // the re-issued cookie, read back
       this.form.reset();
+      this.codeSent.set(false);
+      this.note.set(null);
       this.flash.set('Password changed. Your other devices have been signed out; this one stays.');
     } catch {
       this.error.set('Could not reach the server. Try again in a moment.');

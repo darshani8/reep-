@@ -22,7 +22,7 @@ record must still name the college they attended.
 
 SCHEMA NAMING. Cohort responses here are `AdminCohortOut`, not `CohortOut`.
 Two different `CohortOut` classes already exist with different shapes
-(`director.py:116` and `badge_verification.py:429`) — the same collision this
+(`console.py:116` and `badge_verification.py:429`) — the same collision this
 codebase already has for `LeaderboardOut`, where the payload depends on which
 URL you happened to hit. A third would make it worse, so this one is named for
 its surface.
@@ -61,7 +61,7 @@ from ..models.institution import (
 from ..models.job import DegreeLevel
 from ..models.user import Student, User
 from ..governance import require_capability
-from .mentor import require_director
+from .mentor import require_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -291,6 +291,53 @@ def _department_out(db: Session, department: Department) -> DepartmentOut:
         status=department.status,
         cohort_count=int(count or 0),
     )
+
+
+class DepartmentPickerOut(BaseModel):
+    """A department with the college it belongs to, for a one-control picker.
+
+    The per-college list below answers "what is inside this college", which is
+    what the institution tree needs. Filing a faculty member is the other
+    question — "which department, anywhere" — and answering it from the tree
+    would mean the form asked for a college first, purely because of how the API
+    happened to be shaped. The college still travels, because two colleges may
+    each have a CSE and the label has to say which one.
+    """
+
+    id: str
+    code: str
+    name: str
+    college_id: str
+    college_code: str
+    college_name: str
+    #: "Computer Science · BGSCET" — one line, already disambiguated.
+    label: str
+
+
+@router.get("/departments", response_model=list[DepartmentPickerOut])
+def list_all_departments(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[DepartmentPickerOut]:
+    """Every department in every college, ordered college-then-department."""
+    require_capability(db, session, "admin.institution")
+    rows = db.execute(
+        select(Department.id, Department.code, Department.name, College.id, College.code, College.name)
+        .join(College, College.id == Department.college_id)
+        .order_by(College.name, Department.name)
+    ).all()
+    return [
+        DepartmentPickerOut(
+            id=did,
+            code=dcode,
+            name=dname,
+            college_id=cid,
+            college_code=ccode,
+            college_name=cname,
+            label=f"{dname} · {ccode or cname}",
+        )
+        for did, dcode, dname, cid, ccode, cname in rows
+    ]
 
 
 @router.get("/colleges/{college_id}/departments", response_model=list[DepartmentOut])
@@ -786,7 +833,7 @@ def _resolve_ancestry(db: Session, intended: dict, sent: set[str]) -> _Ancestry:
 class AdminCohortOut(BaseModel):
     """Named for its surface, NOT `CohortOut`.
 
-    `CohortOut` already exists twice with different shapes — `director.py:116`
+    `CohortOut` already exists twice with different shapes — `console.py:116`
     and `badge_verification.py:429`. A third would deepen a collision this
     codebase already suffers from.
     """
@@ -1088,7 +1135,7 @@ class SetStudentCohortIn(BaseModel):
     """Null releases the student from their batch.
 
     Explicitly Optional rather than absent-means-keep, mirroring
-    `AssignMentorIn` in director.py: an explicit null is the un-seat action, and
+    `AssignMentorIn` in console.py: an explicit null is the un-seat action, and
     a field that cannot express it forces a second endpoint.
     """
 
@@ -1156,7 +1203,7 @@ def list_unseated_students(
 ) -> list[AdminStudentRowOut]:
     """Students in no batch at all — the pool the seating panel picks from.
 
-    NOT the same as director.py's /unassigned-students, which is students with
+    NOT the same as console.py's /unassigned-students, which is students with
     no MENTOR. Two different facts, two different lists; a student can have a
     mentor and no batch, or a batch and no mentor. An empty response is the
     healthy steady state, exactly like /cohorts/unassigned.
@@ -1211,7 +1258,7 @@ def issue_activation_link(
     call supersedes the previous link, so "resend" hands over exactly one that
     works. Refuses a STUDENT: they sign in with Google and hold no password.
     """
-    require_director(session)
+    require_admin(session)
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
@@ -1233,7 +1280,7 @@ class InstitutionalIdentityIn(BaseModel):
     """`users.designation` and `users.department`.
 
     Both columns have existed since c4e91b5d2e70 and are READ in two places —
-    the BGSCET leave form, which labels them "(synced)", and the director's
+    the BGSCET leave form, which labels them "(synced)", and the Main Admin's
     mentor-load screen. Neither had a writer anywhere in the codebase: not an
     endpoint, not a CLI, not even a seed. They rendered null forever, and the
     leave form's "(synced)" was a promise nothing kept. This is the writer.

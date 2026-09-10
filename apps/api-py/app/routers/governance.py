@@ -2,7 +2,7 @@
 
 ADMIN ONLY throughout - the Main Admin - via `require_admin` imported from
 mentor.py rather than reimplemented. REEP has one Main Admin, and deciding what
-faculty may see is that account's instrument alone: a DIRECTOR holds every
+faculty may see is that account's instrument alone: the Main Admin holds every
 console screen by baseline and is still refused here, by name. Two instruments with opposite defaults, kept apart here as
 they are in the model:
 
@@ -216,7 +216,7 @@ def staff(
     admin to grant one and wonder why nothing changed."""
     require_admin(session)
     rows = db.scalars(
-        select(User).where(User.role.in_([Role.MENTOR, Role.DIRECTOR, Role.ADMIN])).order_by(User.name)
+        select(User).where(User.role.in_([Role.MENTOR, Role.ADMIN])).order_by(User.name)
     ).all()
     return [
         StaffOut(user_id=u.id, name=u.name or u.email, email=u.email, role=u.role.value)
@@ -351,7 +351,7 @@ def create_grants(
 
     for uid in body.user_ids:
         user = db.get(User, uid)
-        if user is None or user.role not in (Role.MENTOR, Role.DIRECTOR, Role.ADMIN):
+        if user is None or user.role not in (Role.MENTOR, Role.ADMIN):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Capabilities are granted to staff. One of the ids is not a staff account.",
@@ -559,7 +559,7 @@ def add_members(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
     for uid in body.user_ids:
         user = db.get(User, uid)
-        if user is None or user.role not in (Role.MENTOR, Role.DIRECTOR, Role.ADMIN):
+        if user is None or user.role not in (Role.MENTOR, Role.ADMIN):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Access groups hold staff accounts.",

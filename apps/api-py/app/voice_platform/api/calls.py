@@ -1,11 +1,11 @@
 """Call sessions as their participants and reviewers see them, plus the
 call-close endpoint.
 
-    GET  /api/platform/calls                 mine (STUDENT) / all (DIRECTOR)
+    GET  /api/platform/calls                 mine (STUDENT) / all (Main Admin)
     GET  /api/platform/calls/{id}            + a fresh presigned recording_s3_url
     POST /api/platform/calls/{id}/close      package whatever the buffer holds
 
-Who may read a call: its owner; DIRECTOR/ADMIN; and a MENTOR only through
+Who may read a call: its owner; the Main Admin; and a MENTOR only through
 rule 2's gate on the linked interview record's student
 (`_assert_can_access_student`, imported and never reimplemented).
 """
@@ -59,7 +59,7 @@ class CloseOut(BaseModel):
 
 def _can_read(session: dict, row: PlatformCallSession, db: Session) -> None:
     role = session.get("role")
-    if row.user_id == session.get("userId") or role in (Role.DIRECTOR.value, Role.ADMIN.value):
+    if row.user_id == session.get("userId") or role == Role.ADMIN.value:
         return
     if role == Role.MENTOR.value and row.interview_session_id:
         interview = db.get(InterviewSession, row.interview_session_id)
@@ -119,7 +119,7 @@ def list_calls(
 ) -> list[CallOut]:
     role = session.get("role")
     try:
-        if role in (Role.DIRECTOR.value, Role.ADMIN.value):
+        if role == Role.ADMIN.value:
             rows = aurora.list_call_sessions(db, degree_level=degree, limit=limit)
         else:
             rows = aurora.list_call_sessions(db, degree_level=degree, user_id=session["userId"], limit=limit)
@@ -142,13 +142,13 @@ async def close_call(
 ) -> CloseOut:
     """WAV Buffer Upload for a call whose socket did not close cleanly.
 
-    Owner or DIRECTOR/ADMIN. If the buffer is still live in this worker, it is
+    Owner or the Main Admin. If the buffer is still live in this worker, it is
     rendered and uploaded now; if the row was already closed, the current state
     is returned; a row that is `running` on another worker with no buffer here
     is 409 — the honest answer is "ask that worker", not a fake close.
     """
     row = _row_or_404(db, session_id)
-    if row.user_id != session.get("userId") and session.get("role") not in (Role.DIRECTOR.value, Role.ADMIN.value):
+    if row.user_id != session.get("userId") and session.get("role") != Role.ADMIN.value:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your call session.")
     live = wav_buffer.live(session_id)
     if row.status != "running" and live is None:

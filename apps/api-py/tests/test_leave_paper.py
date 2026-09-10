@@ -115,7 +115,7 @@ def test_the_paper_downloads_for_the_applicant_and_the_office_and_carries_the_si
     other_faculty = make_user("lp-other", Role.MENTOR)  # no group: sees nobody
     student = make_user("lp-stu")
     first_approver = make_user("lp-adm", Role.ADMIN)
-    second_approver = make_user("lp-dir", Role.DIRECTOR)
+    second_approver = make_user("lp-dir", Role.ADMIN)
 
     leave = _leave(client, faculty.headers)
     url = f"{LEAVES}/{leave['id']}/paper.pdf"

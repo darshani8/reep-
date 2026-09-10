@@ -40,7 +40,6 @@ class TimeSheetEntry(Base):
     __tablename__ = "time_sheet_entries"
     __table_args__ = (
         UniqueConstraint("student_id", "day", "activity", name="uq_timesheet"),
-        Index("ix_timesheet_student_day", "student_id", "day"),
         CheckConstraint("minutes >= 0 AND minutes <= 1440", name="ck_timesheet_minutes"),
     )
 

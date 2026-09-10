@@ -13,7 +13,7 @@ from .security import (
 
 def _with_live_mentor_id(payload: dict) -> dict:
     """A faculty member becomes a mentor when the Main Admin assigns them their
-    first student (routers/director.py::set_student_mentor creates the group),
+    first student (routers/console.py::set_student_mentor creates the group),
     and that can happen while they are signed in. Their cookie was minted
     before the group existed, so it carries no `mentorId` - and every rule-2
     reader keys on that claim, which would show them nobody until they signed

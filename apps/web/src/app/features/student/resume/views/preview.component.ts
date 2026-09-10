@@ -15,14 +15,14 @@
  * The right-column cards read shared builder state through ResumeBuilderService:
  * "What would strengthen this" names the still-empty value-add sections and shows
  * the live completeness. Edit-profile requests a view change via the `navigate`
- * output (inert until the shell binds it — see all-resumes.component for why).
+ * output, which the shell binds to its flow-step signal.
  */
 
 import { Component, computed, inject, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { environment } from '../../../../../environments/environment';
-import { ResumeBuilderService } from '../resume-builder.service';
+import { ResumeBuilderService, sectionHasContent } from '../resume-builder.service';
 import { ResumeEvidenceService } from '../resume-evidence.service';
 import { ResumeGoalService } from '../resume-goal.service';
 
@@ -91,12 +91,9 @@ function parseMarkdown(md: string): Block[] {
   return blocks;
 }
 
-/** True when a builder section holds no real content (mirrors the API's rule). */
+/** True when a builder section holds no real content (one shared rule). */
 function isEmptySection(value: unknown): boolean {
-  if (value == null || value === '') return true;
-  if (Array.isArray(value)) return value.length === 0;
-  if (typeof value === 'object') return Object.values(value as object).every(isEmptySection);
-  return false;
+  return !sectionHasContent(value);
 }
 
 /** Roughly how many rendered lines fit one A4 page of the PDF renderer. The
@@ -139,7 +136,11 @@ export class PreviewView {
     }
     const job = this.goalSvc.selectedJob();
     if (job) {
-      const have = new Set(this.ev.includedNames().map((n) => n.toLowerCase()));
+      // Slugs on both sides — see ResumeEvidenceService.includedSlugs. Comparing
+      // a posting's `excel` against the display name "MS Excel" warned every
+      // student that every requirement was unverified, including the ones they
+      // had verified and included.
+      const have = new Set(this.ev.includedSlugs().map((s) => s.toLowerCase()));
       const missing = job.required_skills.filter((s) => !have.has(s.toLowerCase())).length;
       if (missing > 0) {
         const role = this.goalSvc.goal().role || job.title;

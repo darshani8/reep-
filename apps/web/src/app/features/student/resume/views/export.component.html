@@ -7,7 +7,7 @@
       </div>
       <div class="head-actions">
         <button type="button" class="btn" (click)="navigate.emit('preview')">
-          <span class="icon">visibility</span> Back to preview
+          <span class="icon" aria-hidden="true">visibility</span> Back to preview
         </button>
       </div>
     </div>
@@ -17,16 +17,16 @@
         <h3 class="versions-title">All Resumes</h3>
 
         @if (versionsError(); as err) {
-          <div class="state-note"><span class="icon">error</span>{{ err }}</div>
+          <div class="state-note"><span class="icon" aria-hidden="true">error</span>{{ err }}</div>
         } @else if (versions() === null) {
-          <div class="state-note"><span class="icon">hourglass_empty</span>Loading your resumes…</div>
+          <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading your resumes…</div>
         } @else if (versions()!.length === 0) {
           <div class="state-note">
-            <span class="icon">info</span>
+            <span class="icon" aria-hidden="true">info</span>
             No resumes generated yet — generate one in <b>Preview</b> and it appears here.
           </div>
           <button type="button" class="btn primary" (click)="navigate.emit('preview')">
-            <span class="icon">auto_awesome</span> Generate your first resume
+            <span class="icon" aria-hidden="true">auto_awesome</span> Generate your first resume
           </button>
         } @else {
           @for (v of versions()!; track v.id) {
@@ -35,7 +35,7 @@
                 <div class="version-name">
                   {{ v.title }}
                   @if (selectedId() === v.id) {
-                    <span class="chip good"><span class="icon">check</span>Selected</span>
+                    <span class="chip good"><span class="icon" aria-hidden="true">check</span>Selected</span>
                   }
                 </div>
                 <div class="version-meta">
@@ -60,7 +60,7 @@
 
         @if (job(); as j) {
           <div class="share-target">
-            <span class="icon">work</span>
+            <span class="icon" aria-hidden="true">work</span>
             <div>
               Sending for <b>{{ j.title }}</b> · {{ j.company }}
               @if (j.location) {
@@ -83,10 +83,10 @@
             (change)="proofAppendix.set($any($event.target).checked)"
           />
           <span>
-            Include an evidence appendix with proof links
+            Include an evidence appendix
             <small>
-              Adds the {{ proofCount() }} certificate(s) behind your included skills. Off by
-              default — the resume itself stays clean.
+              Binds the {{ proofCount() }} certificate(s) behind your included verified skills onto
+              the end of the PDF. Off by default — the resume itself stays clean.
             </small>
           </span>
         </label>
@@ -116,7 +116,7 @@
             [disabled]="!canExport()"
             (click)="exportPdf()"
           >
-            <span class="icon">download</span> Export &amp; share
+            <span class="icon" aria-hidden="true">download</span> Export &amp; share
           </button>
           @if (!consented()) {
             <span class="opt-hint">Tick the confirmation above to enable this.</span>
@@ -127,7 +127,7 @@
 
         @if (exported()) {
           <div class="share-done">
-            <span class="icon">check_circle</span>
+            <span class="icon" aria-hidden="true">check_circle</span>
             <div>
               Your PDF opened in a new tab.
               @if (job(); as j) {

@@ -343,6 +343,19 @@ export class LoginComponent {
   readonly forgotAnswer = signal<string | null>(null);
   /** `?verified=1|0` — the registration confirmation link lands here. */
   readonly verified = signal<string | null>(this.route.snapshot.queryParamMap.get('verified'));
+  /**
+   * `?signedOut=elsewhere` — the auth guard sets it when the session was
+   * RETIRED rather than expired.
+   *
+   * A REEP account holds one live session, so signing in on a second device
+   * ends the first. Without this the student simply finds themselves back at
+   * the login screen mid-task, which reads as a fault in the app rather than as
+   * the rule working — and the natural response is to sign in again, dropping
+   * the other device, in a loop.
+   */
+  readonly signedOutElsewhere = signal<boolean>(
+    this.route.snapshot.queryParamMap.get('signedOut') === 'elsewhere',
+  );
   /** The second step, when the server answers a right password with a
    *  challenge instead of a session: whose mailbox the code went to and how
    *  long it lives. Non-null swaps the password form for the code form. */

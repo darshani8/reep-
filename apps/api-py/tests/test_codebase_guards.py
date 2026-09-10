@@ -829,3 +829,85 @@ def test_the_retention_monitor_keeps_the_same_clock_as_the_scheduler() -> None:
     assert MONITOR_CONFIG["timezone"] == "Etc/UTC"
     for key in ("checkin_margin", "max_runtime", "failure_issue_threshold", "recovery_threshold"):
         assert key in MONITOR_CONFIG, f"{key} is missing — a camelCase key is accepted and ignored by the ingest"
+
+
+# --------------------------------------------------------------------------- #
+# The resume document: what it publishes, and what it must not
+# --------------------------------------------------------------------------- #
+
+
+def test_the_resume_composer_reads_no_private_builder_section() -> None:
+    """INCIDENT (2026-09-09): the Resume Builder is also the placement office's
+    intake form, and `resume_profiles.data` therefore holds next-of-kin details,
+    a date of birth, medical history and demographics — each collected under an
+    on-screen promise that it would not reach an employer.
+
+    `_compose_resume_markdown` publishes by name, from an allowlist, so nothing
+    travels unless a function puts it there. This guard is the textual half:
+    if a section named in `_PRIVATE_BUILDER_SECTIONS` is ever read out of the
+    builder map inside the composer, the promise is broken in one line and the
+    behavioural test in tests/test_resume_document.py is one edit from being
+    edited to match.
+    """
+    from app.routers.student import _PRIVATE_BUILDER_SECTIONS
+
+    source = (APP / "routers" / "student.py").read_text(encoding="utf-8")
+    start = source.index("def _compose_resume_markdown(")
+    body = source[start : source.index("\nclass ResumeGenerateIn", start)]
+    for section in _PRIVATE_BUILDER_SECTIONS:
+        for reader in (f'b.get("{section}")', f"b.get('{section}')"):
+            assert reader not in body, (
+                f"_compose_resume_markdown reads the private builder section "
+                f"'{section}'. That section is collected for the placement "
+                f"office under a promise that it stays off the exported resume."
+            )
+
+
+def test_the_completeness_rule_is_the_same_on_both_sides() -> None:
+    """The API computes the percentage; the client colours the dots beside it.
+
+    Both decide what counts as "filled", and they used to disagree in the same
+    direction: a form-supplied dial code and country made a section count as
+    content, so a fresh profile jumped 8% -> 17% for one empty row. If the two
+    lists drift, the sidebar's number and its dots describe different profiles
+    and neither is wrong on its own terms.
+    """
+    from app.routers.student import _STRUCTURAL_LEAF_KEYS
+
+    resume = REPO / "apps" / "web" / "src" / "app" / "features" / "student" / "resume"
+    pattern = re.compile(r"STRUCTURAL_LEAF_KEYS\s*=\s*new Set\(\[([^\]]*)\]\)")
+    seen = 0
+    for name in ("resume-builder.component.ts", "resume-builder.service.ts"):
+        text = (resume / name).read_text(encoding="utf-8")
+        match = pattern.search(text)
+        assert match, f"{name} no longer declares STRUCTURAL_LEAF_KEYS"
+        keys = set(re.findall(r"'([^']+)'", match.group(1)))
+        assert keys == _STRUCTURAL_LEAF_KEYS, (
+            f"{name} has {sorted(keys)}; app/routers/student.py has "
+            f"{sorted(_STRUCTURAL_LEAF_KEYS)}. One rule, two implementations — "
+            "they have to name the same keys."
+        )
+        seen += 1
+    assert seen == 2
+
+
+def test_no_invented_person_is_offered_as_a_referee() -> None:
+    """INCIDENT: the References step offered "Rakesh Iyer · Faculty Mentor ·
+    BGSCET · MBA-2026-B" to every student, with a one-click "Add as reference"
+    button. He does not work here. A student could put him on a document a
+    recruiter then rings.
+
+    The referee is now the real assigned mentor from the API, or the card is
+    absent. The name is pinned here because the failure is invisible in review:
+    a plausible Indian name in a mockup-derived component reads as data.
+    """
+    web = REPO / "apps" / "web" / "src"
+    offenders = [
+        str(p.relative_to(REPO))
+        for p in web.rglob("*.ts")
+        if "Rakesh Iyer" in p.read_text(encoding="utf-8")
+    ]
+    assert not offenders, (
+        "A hard-coded person is being offered as a resume referee in: "
+        + ", ".join(offenders)
+    )

@@ -19,13 +19,16 @@ Data only — Alembic owns the schema. Requires the DB reachable and the reep_py
 database created (see .env.example).
 """
 
+import struct
 import sys
+import zlib
 from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
 
 from .config import settings
 from .db import SessionLocal
+from .resume_pdf import render_resume_pdf
 from .models.academic_history import AcademicGap, AcademicQualification, QualificationLevel
 from .models.academics import SemesterResult, SubjectMark
 from .models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
@@ -83,6 +86,74 @@ from .routers.registration import validate_usn_pattern
 from .security import hash_password
 # Single copy of the KB, shared with the production-safe `python -m app.seed_kb`.
 from .seed_kb import seed_knowledge
+
+
+def _solid_png(width: int, height: int, rgb: tuple[int, int, int]) -> bytes:
+    """A valid single-colour PNG, built from the two stdlib modules that can.
+
+    Pillow is not a dependency and must not become one for the sake of a seed
+    placeholder — `requirements.txt` is what the production image installs
+    (AGENTS.md), and a runtime dependency added for dev data would ship. zlib and
+    struct are enough: PNG is a length-prefixed chunk format over a zlib stream.
+    """
+    raw = b"".join(b"\x00" + bytes(rgb) * width for _ in range(height))
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + kind
+            + data
+            + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+        )
+
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+
+
+def _seed_upload_files() -> dict[str, bytes]:
+    """Write the placeholder files the seeded `uploads` rows point at.
+
+    Returns stored_name -> content so the caller can record the true size.
+
+    Written on EVERY run, not only when the rows are created: a developer whose
+    database was seeded before this existed has three rows and no files, and
+    telling them to drop the database to fix a broken link is not what
+    "idempotent" is supposed to mean. Overwriting a placeholder with an
+    identical placeholder costs nothing.
+
+    The PDFs come from the app's own renderer, so what a mentor opens is a real
+    document rather than four bytes that merely start with %PDF — the store
+    sniffs magic bytes, but a human opens the file.
+    """
+    files = {
+        # A profile photo has to be an image, and PNG is the one image format
+        # the standard library can honestly produce. The row says PNG too: bytes
+        # and metadata that disagree are how a preview breaks in the browser
+        # while every check on the server passes.
+        "up_photo_0001.png": _solid_png(240, 240, (124, 92, 176)),
+        "up_cert_0002.pdf": render_resume_pdf(
+            "# Leadership Foundations\n\n"
+            "Certificate of completion — SAMPLE SEED DOCUMENT, not a real credential.\n\n"
+            "## Awarded to\nTest Student (1BG24MBA001)\n\n"
+            "## Provider\nCoursera\n",
+            fallback_title="Leadership certificate",
+        ),
+        "up_resume_0003.pdf": render_resume_pdf(
+            "# Test Student\n\n"
+            "SAMPLE SEED DOCUMENT — the CV a student had before REEP composed one.\n\n"
+            "## Contact\nstudent@bgscet.ac.in\n",
+            fallback_title="Existing CV",
+        ),
+    }
+    store = settings.uploads_path
+    store.mkdir(parents=True, exist_ok=True)
+    for stored_name, content in files.items():
+        (store / stored_name).write_bytes(content)
+    return files
 
 
 def main() -> None:
@@ -620,17 +691,47 @@ def main() -> None:
         # Idempotently seed sample uploads awaiting mentor review: a profile
         # photo, a certificate proof (tied to the seeded certification), and a
         # resume — one already VERIFIED so the review states are visible.
+        #
+        # THE BYTES ARE WRITTEN TOO, and they were not before. These rows named a
+        # `stored_name` the file store had never been asked to write, so every
+        # "View proof" link on the seeded certificate — the one the Resume
+        # Builder's Evidence-backed Skills step renders — answered 404 "Stored
+        # file is missing" on a completely fresh database. A broken link on seed
+        # data reads as a bug in the download path, and the first thing anyone
+        # does is go and debug a path that was working perfectly.
+        seed_files = _seed_upload_files()
         if stu and db.scalar(select(Upload).where(Upload.student_id == stu.id)) is None:
             base = datetime.now(timezone.utc)
             db.add_all(
                 [
-                    Upload(student_id=stu.id, kind=UploadKind.PROFILE_PHOTO, title="Profile photo", original_name="me.jpg", stored_name="up_photo_0001.jpg", mime_type="image/jpeg", size_bytes=184_320, status=UploadStatus.PENDING_REVIEW, uploaded_at=base - timedelta(days=2)),
-                    Upload(student_id=stu.id, kind=UploadKind.CERTIFICATE_PROOF, cert_code="CERT-22MBA11-LEAD", title="Leadership certificate", original_name="leadership_completion.pdf", stored_name="up_cert_0002.pdf", mime_type="application/pdf", size_bytes=524_288, status=UploadStatus.PENDING_REVIEW, uploaded_at=base - timedelta(days=1)),
-                    Upload(student_id=stu.id, kind=UploadKind.RESUME, title="Existing CV", original_name="resume_v1.pdf", stored_name="up_resume_0003.pdf", mime_type="application/pdf", size_bytes=98_304, status=UploadStatus.VERIFIED, reviewed_at=base - timedelta(hours=6), review_note="Looks good.", uploaded_at=base - timedelta(days=3)),
+                    # size_bytes is len(content), not a plausible-looking number:
+                    # the ledger prints this figure next to a file a mentor can
+                    # open, and a row claiming 512 KB over a 2 KB file is a lie
+                    # the UI repeats.
+                    Upload(student_id=stu.id, kind=UploadKind.PROFILE_PHOTO, title="Profile photo", original_name="me.png", stored_name="up_photo_0001.png", mime_type="image/png", size_bytes=len(seed_files["up_photo_0001.png"]), status=UploadStatus.PENDING_REVIEW, uploaded_at=base - timedelta(days=2)),
+                    Upload(student_id=stu.id, kind=UploadKind.CERTIFICATE_PROOF, cert_code="CERT-22MBA11-LEAD", title="Leadership certificate", original_name="leadership_completion.pdf", stored_name="up_cert_0002.pdf", mime_type="application/pdf", size_bytes=len(seed_files["up_cert_0002.pdf"]), status=UploadStatus.PENDING_REVIEW, uploaded_at=base - timedelta(days=1)),
+                    Upload(student_id=stu.id, kind=UploadKind.RESUME, title="Existing CV", original_name="resume_v1.pdf", stored_name="up_resume_0003.pdf", mime_type="application/pdf", size_bytes=len(seed_files["up_resume_0003.pdf"]), status=UploadStatus.VERIFIED, reviewed_at=base - timedelta(hours=6), review_note="Looks good.", uploaded_at=base - timedelta(days=3)),
                 ]
             )
             db.commit()
             print("added uploads (3: 2 pending, 1 verified)")
+
+        # Repair a database seeded before the files existed, rather than asking
+        # for a rebuild: the rows are already there and idempotent means the
+        # second run leaves the developer with a working link, not the same 404.
+        if stu:
+            legacy = db.scalar(
+                select(Upload).where(
+                    Upload.student_id == stu.id, Upload.stored_name == "up_photo_0001.jpg"
+                )
+            )
+            if legacy is not None:
+                legacy.original_name = "me.png"
+                legacy.stored_name = "up_photo_0001.png"
+                legacy.mime_type = "image/png"
+                legacy.size_bytes = len(seed_files["up_photo_0001.png"])
+                db.commit()
+                print("repaired seeded photo upload (jpg row -> stored png)")
 
         # Idempotently seed one pending skill claim: the student claims a level
         # on a catalogue skill, backed by their certificate-proof upload.

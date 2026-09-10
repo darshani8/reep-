@@ -12,10 +12,11 @@
  * the global reep-v2 classes (.notice/.card/.tbl/.chip/.empty/.dropzone).
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../../environments/environment';
+import { ResumeBuilderService } from '../resume-builder.service';
 
 /** One row of GET /student/uploads (UploadRowOut, snake_case verbatim). */
 interface UploadRow {
@@ -130,6 +131,8 @@ const KIND_LABEL: Record<string, string> = {
   `,
 })
 export class RbAttachmentsComponent {
+  private readonly svc = inject(ResumeBuilderService);
+
   /** null while loading; an array (possibly empty) once the fetch resolves. */
   readonly rows = signal<UploadRow[] | null>(null);
   readonly error = signal<string | null>(null);
@@ -158,7 +161,12 @@ export class RbAttachmentsComponent {
         this.error.set('Could not load your documents.');
         return;
       }
-      this.rows.set((await res.json()) as UploadRow[]);
+      const rows = (await res.json()) as UploadRow[];
+      this.rows.set(rows);
+      // A read-only mirror writes nothing into the builder map, so it reports
+      // its own stepper state; deriving it from `data` left the dot on "Not
+      // started" beside a ledger of four documents.
+      this.svc.reportMirrorState('attachments', rows.length ? 'done' : 'empty');
     } catch {
       this.error.set('Could not reach the server.');
     }

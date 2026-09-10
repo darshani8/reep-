@@ -73,8 +73,15 @@ export class ResumeEvidenceService {
   readonly claims = signal<ClaimRow[]>([]);
   readonly error = signal<string | null>(null);
 
-  /** Slugs the student has chosen to include, as stored in the profile map. */
-  private readonly includedSlugs = computed<string[]>(
+  /**
+   * Slugs the student has chosen to include, AS STORED in the profile map.
+   *
+   * Not the same thing as `includedSlugs` below, and the difference is the
+   * point of this service: storage can still name a skill that has since been
+   * un-verified, and that stale id must not smuggle it back into the document.
+   * This is the raw list; the public accessors are filtered through `rows`.
+   */
+  private readonly storedIncludedSlugs = computed<string[]>(
     () =>
       (this.svc.section('evidence_skills', { included: [] }) as { included?: string[] }).included ??
       [],
@@ -84,7 +91,7 @@ export class ResumeEvidenceService {
     const held = this.skills();
     if (held === null) return null;
     const claimByName = new Map(this.claims().map((c) => [c.skill_name, c]));
-    const included = new Set(this.includedSlugs());
+    const included = new Set(this.storedIncludedSlugs());
 
     return held.map((s) => {
       const claim = claimByName.get(s.name);
@@ -137,6 +144,43 @@ export class ResumeEvidenceService {
     (this.rows() ?? []).filter((r) => r.included).map((r) => r.name),
   );
 
+  /**
+   * The SLUGS that reach the document — the identifier a JOB POSTING speaks.
+   *
+   * `GET /student/jobs` returns `required_skills` as slugs (`excel`,
+   * `power-bi`, `financial-modeling`); this service's rows are display names
+   * ("MS Excel"). The Tailor and Preview steps compared the two directly, so
+   * nothing ever matched and a student holding exactly the skill a posting
+   * asked for was told, on one screen: "100% match · eligible" in the verdict
+   * card and "Still missing for this role: excel — Not started" immediately
+   * beneath it. Whichever line they believed, the screen had lied to them.
+   *
+   * Two vocabularies for one thing is the bug; one accessor per vocabulary,
+   * named for which one it speaks, is the fix.
+   */
+  readonly includedSlugs = computed(() =>
+    (this.rows() ?? []).filter((r) => r.included).map((r) => r.slug),
+  );
+
+  /**
+   * The human name for a posting's slug: the student's own row when they hold
+   * the skill, otherwise the slug made readable.
+   *
+   * A requirement the student has never claimed has no row and therefore no
+   * name anywhere in the client — and printing the raw `financial-modeling` in
+   * a list headed "Still missing for this role" reads like a database leak
+   * rather than a piece of advice.
+   */
+  label(slug: string): string {
+    const row = (this.rows() ?? []).find((r) => r.slug === slug);
+    if (row) return row.name;
+    return slug
+      .split(/[-_]/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
   chip(status: EvidenceStatus): { cls: string; label: string } {
     return CHIP[status];
   }
@@ -148,7 +192,7 @@ export class ResumeEvidenceService {
   toggle(slug: string): void {
     const row = (this.rows() ?? []).find((r) => r.slug === slug);
     if (!row?.includable) return; // guarded here as well as in the template
-    const next = new Set(this.includedSlugs());
+    const next = new Set(this.storedIncludedSlugs());
     if (next.has(slug)) next.delete(slug);
     else next.add(slug);
     this.svc.patch('evidence_skills', { included: [...next] });
@@ -161,7 +205,7 @@ export class ResumeEvidenceService {
    */
   importVerified(): number {
     const verified = (this.rows() ?? []).filter((r) => r.includable);
-    const before = new Set(this.includedSlugs());
+    const before = new Set(this.storedIncludedSlugs());
     const added = verified.filter((r) => !before.has(r.slug)).length;
     this.svc.patch('evidence_skills', {
       included: [...new Set([...before, ...verified.map((r) => r.slug)])],

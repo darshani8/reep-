@@ -44,7 +44,13 @@ from ..models.user import Role, User
 from ..schemas.auth import SessionUser
 from ..security import hash_password, note_revocation, verify_password
 from ..set_password import password_problem
-from .auth import _issue_session, _payload_for, _record_login
+from .auth import (
+    _confirm_exclusive_session,
+    _issue_session,
+    _payload_for,
+    _record_login,
+    _retire_other_sessions,
+)
 
 log = logging.getLogger(__name__)
 
@@ -139,7 +145,11 @@ def activate(
     db.commit()
     log.info("activated %s (%s) via link", user.email, user.role.value)
 
-    _record_login(db, user)
+    # One device at a time, same as every other sign-in door: activating an
+    # account signs it in, so it retires anything that account already holds.
+    _retire_other_sessions(user)
+    _record_login(db, user)  # the commit that persists the retirement
+    _confirm_exclusive_session(user)
     payload = _payload_for(user)
     _issue_session(response, payload)
     return SessionUser(**payload)

@@ -13,7 +13,7 @@
  * reusing the global reep-v2 classes (.notice.evi/.card/.entry/.tag/.chip).
  */
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -139,11 +139,6 @@ const STATUS_LABEL: Record<string, string> = {
         <!-- REEP programme certs (locked, provider-verified) -->
         @for (c of rows()!; track c.code) {
           <div class="entry">
-            <div class="tools">
-              <button type="button">
-                <span class="icon" style="font-size:17px">visibility</span>
-              </button>
-            </div>
             @if (c.self_reported) {
               <h4>
                 {{ c.name }}
@@ -300,4 +295,21 @@ export class RbCertificationsComponent {
       this.error.set('Could not reach the server.');
     }
   }
+
+  /**
+   * The stepper dot for this section.
+   *
+   * HALF of it lives in the builder map (`external_certs`) and half comes from
+   * `GET /student/certifications`, and the shell only reads the map — under the
+   * key `certifications`, which nothing ever writes. So the dot said "Not
+   * started" even with a programme certification synced and a certificate the
+   * student had just added by hand. Reported here, where both halves are known,
+   * and re-reported whenever either changes.
+   */
+  private readonly _reportState = effect(() => {
+    const programme = this.rows();
+    if (programme === null) return; // still loading; say nothing yet
+    const total = programme.length + this.externals().length;
+    this.svc.reportMirrorState('certifications', total ? 'done' : 'empty');
+  });
 }

@@ -21,6 +21,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/auth.service';
 import { environment } from '../../../../../environments/environment';
 import { ResumeBuilderService } from '../resume-builder.service';
+import { ResumeIdentityService } from '../resume-identity.service';
 
 interface BasicData {
   middle_name: string;
@@ -106,11 +107,23 @@ interface BasicData {
 export class RbBasicComponent {
   private readonly svc = inject(ResumeBuilderService);
   private readonly auth = inject(AuthService);
+  private readonly identity = inject(ResumeIdentityService);
 
   /** Locked identity, synced from the student record (best-effort). */
-  readonly usn = signal<string>('');
+  readonly usn = this.identity.usn;
   readonly firstName = computed(() => this.splitName().first);
   readonly lastName = computed(() => this.splitName().last);
+
+  /**
+   * Course and specialization, resolved through the cohort join.
+   *
+   * These two rendered as a dash behind a SYNCED badge for a student whose
+   * record holds both — the endpoint has always returned them and this screen
+   * never asked. A locked, empty, required-looking field tells a student the
+   * university has lost their enrolment.
+   */
+  readonly courseName = this.identity.courseName;
+  readonly specializationName = this.identity.specializationName;
 
   /** Draft text in the languages tag input (not persisted until Enter). */
   langDraft = '';
@@ -130,7 +143,7 @@ export class RbBasicComponent {
       }
     });
     this.photoId.set(this.m.photo_upload_id);
-    void this.loadIdentity();
+    void this.identity.load();
   }
 
   /** Coerce an opaque stored slice into a fully-populated model. */
@@ -220,17 +233,4 @@ export class RbBasicComponent {
     return { first: parts[0], last: parts.slice(1).join(' ') };
   }
 
-  private async loadIdentity(): Promise<void> {
-    try {
-      const res = await fetch(`${environment.apiBase}/student/dashboard`, {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const d = (await res.json()) as { usn?: string | null };
-        this.usn.set(d.usn ?? '');
-      }
-    } catch {
-      // Best-effort: the locked field simply stays blank.
-    }
-  }
 }

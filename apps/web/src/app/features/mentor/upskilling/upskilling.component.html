@@ -1,7 +1,7 @@
 <div class="panel" data-p="upskilling">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Upskilling</div>
+      <h1 class="dt-title">Upskilling</h1>
       <div class="dt-sub">Certificates for courses you have completed — your own record.</div>
     </div>
   </div>
@@ -29,17 +29,17 @@
     </div>
     <div class="up-actions">
       <button type="button" class="btn primary" [disabled]="uploading()" (click)="choose(picker)">
-        <span class="icon">{{ uploading() ? 'progress_activity' : 'cloud_upload' }}</span>
+        <span class="icon" aria-hidden="true">{{ uploading() ? 'progress_activity' : 'cloud_upload' }}</span>
         {{ uploading() ? 'Uploading…' : 'Choose file & upload' }}
       </button>
       <span class="up-accepted">
         Accepted: <strong>PDF, PNG, JPEG</strong> · up to <strong>10 MB</strong>
       </span>
       @if (uploadedFlash()) {
-        <span class="chip good"><span class="icon">check_circle</span> Uploaded</span>
+        <span class="chip good"><span class="icon" aria-hidden="true">check_circle</span> Uploaded</span>
       }
       @if (nameFlash()) {
-        <span class="chip risk" role="alert"><span class="icon">error</span> Name the certificate first</span>
+        <span class="chip risk" role="alert"><span class="icon" aria-hidden="true">error</span> Name the certificate first</span>
       }
     </div>
     <input
@@ -51,7 +51,7 @@
     />
     @if (uploadError()) {
       <div class="notice up-notice" role="alert">
-        <span class="icon">error</span>
+        <span class="icon" aria-hidden="true">error</span>
         <div><strong>Upload failed.</strong> {{ uploadError() }}</div>
       </div>
     }
@@ -59,7 +59,7 @@
 
   @if (actionError()) {
     <div class="notice up-notice" role="alert">
-      <span class="icon">error</span>
+      <span class="icon" aria-hidden="true">error</span>
       <div>{{ actionError() }}</div>
     </div>
   }
@@ -74,7 +74,7 @@
   <div class="card">
     @if (error()) {
       <div class="notice" role="alert">
-        <span class="icon">wifi_off</span>
+        <span class="icon" aria-hidden="true">wifi_off</span>
         <div>{{ error() }}</div>
       </div>
     } @else {

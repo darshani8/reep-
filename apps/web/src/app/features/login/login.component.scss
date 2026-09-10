@@ -481,6 +481,20 @@
     color: #7a2f9e;
     font-weight: 700;
   }
+
+  /* The reset-password control is a <button> now, not an anchor, so it needs
+     the anchor's look put back: a bare button inherits none of it. */
+  .help-foot__link {
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    color: #7a2f9e;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+  }
 }
 
 /* ---- spinner ----------------------------------------------------------- */

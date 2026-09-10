@@ -1,7 +1,7 @@
 <div class="panel">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Profile</div>
+      <h1 class="dt-title">Profile</h1>
       <div class="dt-sub">
         The details your resume and job matches are built from. Some fields are synced from your
         student record and locked.
@@ -16,7 +16,7 @@
           role="status"
           aria-live="polite"
         >
-          <span class="icon" [class.spin]="saveStatus().kind === 'saving'">{{
+          <span class="icon" [class.spin]="saveStatus().kind === 'saving'" aria-hidden="true">{{
             saveStatus().icon
           }}</span>
           <span>{{ saveStatus().text }}</span>
@@ -26,7 +26,7 @@
         </span>
       }
       <button type="button" class="dt-btn primary" [disabled]="!canSave()" (click)="save()">
-        <span class="icon" style="font-size: 15px">save</span>
+        <span class="icon" style="font-size: 15px" aria-hidden="true">save</span>
         {{ saving() ? 'Saving…' : 'Save changes' }}
       </button>
     </div>
@@ -35,7 +35,7 @@
   @if (error()) {
     <div class="card">
       <div class="reg-approval flag">
-        <span class="icon">error</span>
+        <span class="icon" aria-hidden="true">error</span>
         <div>{{ error() }}</div>
       </div>
     </div>
@@ -44,7 +44,7 @@
   } @else {
     @if (anyError()) {
       <div class="reg-approval flag validation-summary">
-        <span class="icon">error</span>
+        <span class="icon" aria-hidden="true">error</span>
         <div>Some fields need fixing before you can save. Corrections are marked in red below.</div>
       </div>
     }
@@ -94,7 +94,7 @@
     <div class="card">
       <h4>
         Identity
-        <span class="chip warn"><span class="icon">lock</span>Synced · read-only</span>
+        <span class="chip warn"><span class="icon" aria-hidden="true">lock</span>Synced · read-only</span>
       </h4>
       <div class="reg-grid identity-grid">
         <div class="field">
@@ -123,7 +123,7 @@
 
       @if (identityUnreadable()) {
         <div class="reg-approval flag">
-          <span class="icon">error</span>
+          <span class="icon" aria-hidden="true">error</span>
           <div>
             Your student record could not be read just now, so your name and USN are not shown. They
             are still on file — reload the page to try again.
@@ -131,7 +131,7 @@
         </div>
       } @else if (usnMissing()) {
         <div class="reg-approval flag">
-          <span class="icon">warning</span>
+          <span class="icon" aria-hidden="true">warning</span>
           <div>
             No USN is on your student record yet. Ask the placement office to add it — it cannot be
             entered here.
@@ -161,7 +161,7 @@
     <div class="card">
       <h4>
         Institutional assignment
-        <span class="chip warn"><span class="icon">lock</span>Verified by Main Admin · read-only</span>
+        <span class="chip warn"><span class="icon" aria-hidden="true">lock</span>Verified by Main Admin · read-only</span>
       </h4>
 
       @if (institution(); as inst) {
@@ -188,7 +188,7 @@
                   [attr.aria-describedby]="'inst-pending-' + lv.key"
                 />
                 <span class="chip warn" [id]="'inst-pending-' + lv.key">
-                  <span class="icon">warning</span>Not yet recorded
+                  <span class="icon" aria-hidden="true">warning</span>Not yet recorded
                 </span>
               }
             </div>
@@ -236,7 +236,7 @@
             [attr.aria-invalid]="showError('phone')"
           />
           @if (showError('phone')) {
-            <div class="field-error"><span class="icon">error</span>{{ errorText('phone') }}</div>
+            <div class="field-error"><span class="icon" aria-hidden="true">error</span>{{ errorText('phone') }}</div>
           }
         </div>
         <div class="field" [class.field--invalid]="showError('email')">
@@ -251,7 +251,7 @@
             [attr.aria-invalid]="showError('email')"
           />
           @if (showError('email')) {
-            <div class="field-error"><span class="icon">error</span>{{ errorText('email') }}</div>
+            <div class="field-error"><span class="icon" aria-hidden="true">error</span>{{ errorText('email') }}</div>
           }
         </div>
         <div class="field" [class.field--invalid]="showError('linkedinUrl')">
@@ -266,7 +266,7 @@
           />
           @if (showError('linkedinUrl')) {
             <div class="field-error">
-              <span class="icon">error</span>{{ errorText('linkedinUrl') }}
+              <span class="icon" aria-hidden="true">error</span>{{ errorText('linkedinUrl') }}
             </div>
           }
         </div>
@@ -282,7 +282,7 @@
           />
           @if (showError('githubUrl')) {
             <div class="field-error">
-              <span class="icon">error</span>{{ errorText('githubUrl') }}
+              <span class="icon" aria-hidden="true">error</span>{{ errorText('githubUrl') }}
             </div>
           }
         </div>
@@ -298,7 +298,7 @@
           />
           @if (showError('portfolioUrl')) {
             <div class="field-error">
-              <span class="icon">error</span>{{ errorText('portfolioUrl') }}
+              <span class="icon" aria-hidden="true">error</span>{{ errorText('portfolioUrl') }}
             </div>
           }
         </div>
@@ -334,13 +334,13 @@
       <h4>
         Placement preferences
         @if (placementEligible()) {
-          <span class="chip good"><span class="icon">verified</span>Cleared for placements</span>
+          <span class="chip good"><span class="icon" aria-hidden="true">verified</span>Cleared for placements</span>
         } @else {
-          <span class="chip risk"><span class="icon">block</span>Not cleared</span>
+          <span class="chip risk"><span class="icon" aria-hidden="true">block</span>Not cleared</span>
         }
       </h4>
       <div class="group-note">
-        <span class="icon">info</span>
+        <span class="icon" aria-hidden="true">info</span>
         <div>
           These settings gate which opportunities you appear against — turn one off and you drop out
           of matching for that kind of role.
@@ -373,7 +373,7 @@
     <div class="card">
       <h4>Privacy</h4>
       <div class="group-note">
-        <span class="icon">visibility_off</span>
+        <span class="icon" aria-hidden="true">visibility_off</span>
         <div>
           Controls who can see you here. It does not change which jobs or internships you are
           matched against.
@@ -393,7 +393,7 @@
     <!-- Skills — synced from the Skilling page, read-only -->
     <div class="card">
       <h4>
-        Skills <span class="chip warn"><span class="icon">lock</span>From Skilling</span>
+        Skills <span class="chip warn"><span class="icon" aria-hidden="true">lock</span>From Skilling</span>
       </h4>
       @if (skills().length > 0) {
         <div class="badge-row skills-wrap">
@@ -403,7 +403,7 @@
         </div>
       } @else {
         <div class="dropzone">
-          <span class="icon">workspace_premium</span>
+          <span class="icon" aria-hidden="true">workspace_premium</span>
           No skills yet — claim skills on the Skilling page and they appear here.
         </div>
       }
@@ -411,7 +411,7 @@
 
     @if (saveError()) {
       <div class="reg-approval flag">
-        <span class="icon">error</span>
+        <span class="icon" aria-hidden="true">error</span>
         <div>{{ saveError() }}</div>
       </div>
     }

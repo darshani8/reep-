@@ -1,8 +1,8 @@
 <div class="panel" data-p="analytics">
   <div class="dt-header">
     <div>
-      <div class="eyebrow">Admin · cohort view</div>
-      <div class="dt-title">Programme analytics</div>
+      <div class="eyebrow">Main Admin · cohort view</div>
+      <h1 class="dt-title">Programme analytics</h1>
       <div class="dt-sub">
         @if (summary(); as s) {
           {{ s.students_total }} students · {{ s.mentors_total }} mentors
@@ -19,13 +19,13 @@
     </div>
     @if (summary()?.semester !== null && summary()) {
       <span class="chip neutral sem-chip">
-        <span class="icon">event</span> Semester {{ summary()!.semester }}
+        <span class="icon" aria-hidden="true">event</span> Semester {{ summary()!.semester }}
       </span>
     }
   </div>
 
   @if (error()) {
-    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
   }
 
   @if (summary(); as s) {
@@ -54,9 +54,13 @@
         <div class="stat-lbl">Badges awarded</div>
         <div class="stat-val">{{ s.badges_awarded }}</div>
         @if (s.evidence_awaiting_verification > 0) {
-          <a class="stat-sub stat-link warn" routerLink="/mentor/badge-centre">
+          <!-- A COUNT, NOT A LINK. The Badge Centre was removed with design-v4
+               and nothing replaced it, so this had been pointing at a route that
+               does not exist: the click did nothing at all. The number is still
+               worth showing; inventing a destination for it is not. -->
+          <div class="stat-sub warn">
             {{ s.evidence_awaiting_verification }} awaiting verification
-          </a>
+          </div>
         } @else {
           <div class="stat-sub">Nothing awaiting verification</div>
         }
@@ -73,7 +77,7 @@
 
   @if (load() !== null && load()!.length === 0 && !error()) {
     <div class="card">
-      <span class="icon">info</span>
+      <span class="icon" aria-hidden="true">info</span>
       No mentors on the roster yet, so there is nothing to map.
     </div>
   }
@@ -110,7 +114,7 @@
         </div>
         <div class="chart-actions">
           @if (focusedStudent() && weekly()?.has_resume) {
-            <a class="btn" [href]="cvUrl()"><span class="icon">download</span> Download CV</a>
+            <a class="btn" [href]="cvUrl()"><span class="icon" aria-hidden="true">download</span> Download CV</a>
           }
           @if (focusMentor()) {
             <button type="button" class="btn ghost" (click)="clearFocus()">All mentors</button>
@@ -151,7 +155,7 @@
         </div>
         @if (weeklyBusy()) {
           <div class="state-note">
-            <span class="icon">hourglass_empty</span>Loading the last six weeks…
+            <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the last six weeks…
           </div>
         }
       }

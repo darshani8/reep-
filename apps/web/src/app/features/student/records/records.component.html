@@ -1,8 +1,17 @@
 <div class="dt-header">
   <div>
-    <div class="dt-title">Records</div>
+    <h1 class="dt-title">Records</h1>
     <div class="dt-sub">
       Your academic record — VTU results, attendance and history in one place.
+      <!-- The ONE entry point to /student/courses. The shell's sidebar groups
+           Courses with the records it leaves out, but nothing linked it: the
+           only routerLink to /student/courses was on the Courses page itself,
+           so it linked to nowhere but itself. Records is the sibling screen —
+           results and attendance here, subject-by-subject progress there. -->
+      <a class="rec-courses-link" routerLink="/student/courses">
+        <span class="icon" aria-hidden="true">menu_book</span>
+        Subject-by-subject progress
+      </a>
     </div>
   </div>
 </div>
@@ -36,7 +45,7 @@
 <!-- ============ SEMESTER RESULTS ============ -->
 <section class="rec-section">
   <h2 class="rec-h">
-    <span class="icon">school</span> Semester Results
+    <span class="icon" aria-hidden="true">school</span> Semester Results
     <span class="rec-h-sub">VTU marks</span>
   </h2>
 
@@ -65,7 +74,7 @@
           </div>
           @let bchip = backlogChip(r.live_backlogs);
           <span class="chip {{ bchip.cls }}">
-            <span class="icon">{{ bchip.icon }}</span
+            <span class="icon" aria-hidden="true">{{ bchip.icon }}</span
             >{{ bchip.label }}
           </span>
         </div>
@@ -95,7 +104,7 @@
                   <td>{{ s.total }}</td>
                   <td>
                     <span class="chip {{ schip.cls }}">
-                      <span class="icon">{{ schip.icon }}</span
+                      <span class="icon" aria-hidden="true">{{ schip.icon }}</span
                       >{{ schip.label }}
                     </span>
                   </td>
@@ -115,7 +124,7 @@
 
 <!-- ============ ATTENDANCE ============ -->
 <section class="rec-section">
-  <h2 class="rec-h"><span class="icon">event_available</span> Attendance</h2>
+  <h2 class="rec-h"><span class="icon" aria-hidden="true">event_available</span> Attendance</h2>
 
   @if (attendanceState() === 'loading') {
     <div class="card c-note">Loading your attendance…</div>
@@ -139,7 +148,7 @@
             <div class="att-fine">{{ att.present }} of {{ att.total }} classes attended</div>
           </div>
           <span class="chip {{ chip.cls }}">
-            <span class="icon">{{ chip.icon }}</span
+            <span class="icon" aria-hidden="true">{{ chip.icon }}</span
             >{{ chip.label }}
           </span>
         </div>
@@ -180,7 +189,7 @@
               </div>
               <div class="att-course-fig">{{ c.present }}/{{ c.total }}</div>
               <span class="chip {{ cchip.cls }} att-course-chip">
-                <span class="icon">{{ cchip.icon }}</span
+                <span class="icon" aria-hidden="true">{{ cchip.icon }}</span
                 >{{ c.percent }}%
               </span>
             </div>
@@ -196,7 +205,7 @@
      screen this used to point at is retired with the v2 handoff: the record is
      office-maintained and a student reads it here, beside their VTU marks. -->
 <section class="rec-section">
-  <h2 class="rec-h"><span class="icon">history_edu</span> Academic History</h2>
+  <h2 class="rec-h"><span class="icon" aria-hidden="true">history_edu</span> Academic History</h2>
 
   @if (academicsState() === 'loading') {
     <div class="card c-note">Loading your academic history…</div>
@@ -251,10 +260,10 @@
         <div class="gap-title">Declared education gaps</div>
         @if (hasGap()) {
           <span class="chip warn">
-            <span class="icon">schedule</span>{{ academics()!.gap.total_mo }} months total
+            <span class="icon" aria-hidden="true">schedule</span>{{ academics()!.gap.total_mo }} months total
           </span>
         } @else {
-          <span class="chip good"> <span class="icon">check_circle</span>No gaps declared </span>
+          <span class="chip good"> <span class="icon" aria-hidden="true">check_circle</span>No gaps declared </span>
         }
       </div>
       @if (hasGap()) {

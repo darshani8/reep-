@@ -76,7 +76,7 @@
                         @for (w of weights; track w) { <option [value]="w" [selected]="w === e.weight">{{ w }}</option> }
                       </select>
                     </label>
-                    <button type="button" class="sw-mini" [disabled]="busy()" (click)="remove(e)" aria-label="Remove line" title="Remove"><span class="icon">delete</span></button>
+                    <button type="button" class="sw-mini" [disabled]="busy()" (click)="remove(e)" aria-label="Remove line" title="Remove"><span class="icon" aria-hidden="true">delete</span></button>
                   </div>
                 </div>
               } @empty {

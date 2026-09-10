@@ -1,7 +1,7 @@
 <div class="panel" data-p="skilling">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Skilling</div>
+      <h1 class="dt-title">Skilling</h1>
       <div class="dt-sub">
         Upload a certificate to claim a skill, then track your verified badges
       </div>
@@ -43,6 +43,16 @@
           <span class="cert-drop-sub">PDF or JPEG, up to 5 MB</span>
         </button>
       }
+      <!-- The ONE entry point to /student/uploads. The shell's sidebar leaves
+           Uploads out on the grounds that documents are "reached from the screen
+           that owns the work" — but no screen linked it, so a working document
+           shelf was reachable only by typing the URL. Skilling is where a
+           certificate is uploaded, so it is where "everything I have uploaded"
+           belongs. -->
+      <a class="link-btn skl-all-docs" routerLink="/student/uploads">
+        <span class="icon" aria-hidden="true">folder_open</span>
+        All my documents and their review status
+      </a>
       <input
         #picker
         type="file"

@@ -1,11 +1,11 @@
 <div class="panel" data-p="jobs-sheet">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Jobs sheet</div>
+      <h1 class="dt-title">Jobs sheet</h1>
       <div class="dt-sub">Openings the placement office publishes to students and alumni.</div>
     </div>
     <button type="button" class="btn primary" (click)="toggleForm()">
-      <span class="icon">{{ formOpen() ? 'close' : 'add' }}</span>
+      <span class="icon" aria-hidden="true">{{ formOpen() ? 'close' : 'add' }}</span>
       {{ formOpen() ? 'Close' : 'Add opening' }}
     </button>
   </div>
@@ -73,25 +73,25 @@
       </div>
       <div class="form-foot">
         <button type="button" class="btn primary" [disabled]="saving()" (click)="publish()">
-          <span class="icon">send</span> Publish to sheet
+          <span class="icon" aria-hidden="true">send</span> Publish to sheet
         </button>
         @if (formErr()) {
-          <span class="chip risk"><span class="icon">error</span> {{ formErr() }}</span>
+          <span class="chip risk"><span class="icon" aria-hidden="true">error</span> {{ formErr() }}</span>
         }
         @if (published()) {
-          <span class="chip good"><span class="icon">check_circle</span> Published</span>
+          <span class="chip good"><span class="icon" aria-hidden="true">check_circle</span> Published</span>
         }
       </div>
     </div>
   }
 
   @if (error()) {
-    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
   }
 
   <div class="card">
     @if (rows() === null) {
-      <div class="state-note"><span class="icon">hourglass_empty</span>Loading the sheet…</div>
+      <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading the sheet…</div>
     } @else {
       <div class="scroll">
         <table class="dt-table js-table">
@@ -148,7 +148,7 @@
                     [disabled]="removing() === r.id || r.applicants > 0"
                     (click)="remove(r)"
                   >
-                    <span class="icon">close</span>
+                    <span class="icon" aria-hidden="true">close</span>
                   </button>
                 </td>
               </tr>

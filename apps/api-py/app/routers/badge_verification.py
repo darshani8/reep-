@@ -30,6 +30,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..governance import require_capability
 from ..identity import get_current_session
 from ..models.badge import (
     BADGE_BY_CODE,
@@ -479,7 +480,7 @@ def export_cohort_csv(
     """§18's cohort report: one row per student — points, earned count per
     category, mean growth from baseline. A spreadsheet, because that is what a
     placement office actually forwards."""
-    require_director(session)
+    require_capability(db, session, "admin.exports")
     students = db.execute(
         select(Student, User.name).join(User, Student.user_id == User.id).order_by(User.name)
     ).all()

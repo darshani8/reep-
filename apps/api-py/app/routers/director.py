@@ -1,5 +1,5 @@
 """Director dashboard — programme-wide aggregates. Director/admin only; reuses
-the mentor router's require_director guard. Compute-only over existing data.
+an admin.* capability per screen (Governance). Compute-only over existing data.
 """
 
 import csv
@@ -47,7 +47,6 @@ from ..models.resume import Resume
 from ..models.user import Mentor, Role, Student, User
 from ..resume_pdf import render_resume_pdf
 from ..governance import require_capability
-from .mentor import require_director
 
 router = APIRouter(prefix="/director", tags=["director"])
 
@@ -66,7 +65,7 @@ class OverviewOut(BaseModel):
 def overview(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> OverviewOut:
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
 
     total = db.scalar(select(func.count()).select_from(Student)) or 0
     by_stage = {
@@ -127,7 +126,7 @@ class CohortOut(BaseModel):
 def cohorts(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[CohortOut]:
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
     counts = dict(
         db.execute(select(Student.cohort_id, func.count()).group_by(Student.cohort_id)).all()
     )
@@ -208,7 +207,7 @@ def mail_log(
 ) -> list[MailLogOut]:
     """Ops audit view: what the mailer was asked to send, most recent first.
     Optionally filter by `kind` (e.g. 'job-alert')."""
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
     query = select(MailLog)
     if kind:
         query = query.where(MailLog.kind == kind)
@@ -254,7 +253,7 @@ def alert_rules(
     db: Session = Depends(get_db),
 ) -> list[AlertRuleOut]:
     """The admin-configurable alert thresholds, optionally scoped to a cohort."""
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
     query = select(AlertRuleConfig)
     if cohort_id:
         query = query.where(AlertRuleConfig.cohort_id == cohort_id)
@@ -278,7 +277,7 @@ def upsert_alert_rule(
 ) -> AlertRuleOut:
     """Create or update the threshold for one (cohort, rule) — the config lives
     in data, so tuning it never needs a deploy."""
-    require_director(session)
+    require_capability(db, session, "admin.analytics")
     if db.get(Cohort, body.cohort_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cohort not found.")
     try:
@@ -329,7 +328,7 @@ def job_imports(
 ) -> list[JobImportRunOut]:
     """Audit view of bulk job-vacancy imports — counts and per-run error totals,
     most recent first."""
-    require_director(session)
+    require_capability(db, session, "admin.jobs")
     rows = db.scalars(select(JobImportRun).order_by(JobImportRun.started_at.desc()).limit(50)).all()
     return [
         JobImportRunOut(
@@ -497,7 +496,7 @@ def unassigned_students(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[UnassignedStudentOut]:
     """Students with no mentor yet — the pool the assignment screen draws from."""
-    require_director(session)
+    require_capability(db, session, "admin.mentors")
     rows = db.execute(
         select(Student.id, User.name, Student.usn, Student.current_stage)
         .join(User, Student.user_id == User.id)
@@ -560,7 +559,7 @@ def set_student_mentor(
     assign themselves any student in the programme and then read everything about
     them. Who mentors whom is an administrative decision, not a mentoring one.
     """
-    require_director(session)
+    require_capability(db, session, "admin.mentors")
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
@@ -609,7 +608,7 @@ def catalogue(
     it. Nested rather than two flat lists, because a certification only means
     anything against the course it certifies — the screen's whole question is
     which courses have evidence attached and which do not."""
-    require_director(session)
+    require_capability(db, session, "admin.catalogue")
     courses = db.scalars(select(Course).order_by(Course.semester, Course.code)).all()
     enrolled = {
         code: n
@@ -673,7 +672,7 @@ def jobs_sheet(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[JobSheetOut]:
     """Every posting on the board, newest first, with its application count."""
-    require_director(session)
+    require_capability(db, session, "admin.jobs")
     counts = {
         jid: n
         for jid, n in db.execute(
@@ -725,7 +724,7 @@ def create_job(
 ) -> JobSheetOut:
     """Publish an opening to the sheet. Visible to students and alumni at once —
     both boards read the same `jobs` table, which is what "publish" means here."""
-    require_director(session)
+    require_capability(db, session, "admin.jobs")
     try:
         level = DegreeLevel(body.degree_level.upper())
     except ValueError:
@@ -770,7 +769,7 @@ def delete_job(
     cascade on delete, and a student's application is part of their record —
     the row a mentor reads when the student says "I applied to TCS". A posting
     that has done its job stays on the sheet as history."""
-    require_director(session)
+    require_capability(db, session, "admin.jobs")
     job = db.get(Job, job_id)
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Posting not found.")
@@ -1082,7 +1081,7 @@ RECENT_OFFERS = 25
 def placement(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> PlacementOut:
-    require_director(session)
+    require_capability(db, session, "admin.placement")
     submitted = PlacementOffer.status != OfferStatus.DRAFT
 
     eligible = db.scalar(select(func.count()).select_from(Student)) or 0
@@ -1159,12 +1158,12 @@ class BadgeCatalogueOut(BaseModel):
 
 
 @router.get("/badge-catalogue", response_model=list[BadgeCatalogueOut])
-def badge_catalogue(session: dict = Depends(get_current_session)) -> list[BadgeCatalogueOut]:
+def badge_catalogue(session: dict = Depends(get_current_session), db: Session = Depends(get_db)) -> list[BadgeCatalogueOut]:
     """The 48-badge catalogue (code, not rows — see models/badge.py), so the
     Approved Certification form can offer the badge a certification maps to.
     No database read; the gate is here because the catalogue's points are what
     the Certifications table shows and that table is a director screen."""
-    require_director(session)
+    require_capability(db, session, "admin.catalogue")
     return [
         BadgeCatalogueOut(
             code=b.code,
@@ -1209,7 +1208,7 @@ def export_students_csv(
 ) -> Response:
     """Admitted students with their stage, semester, cohort and mentor — the
     "registrations & mentor map" a placement office forwards."""
-    require_director(session)
+    require_capability(db, session, "admin.exports")
     mentor_name = {
         mid: name
         for mid, name in db.execute(
@@ -1242,7 +1241,7 @@ def export_placement_csv(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> Response:
     """Every submitted offer: student, company, role, CTC and the decision."""
-    require_director(session)
+    require_capability(db, session, "admin.exports")
     rows = db.execute(
         select(PlacementOffer, User.name, Student.usn)
         .join(Student, PlacementOffer.student_id == Student.id)
@@ -1277,7 +1276,7 @@ def export_ledger_csv(
     """Time Allocation Ledger compliance per student: days logged, days
     submitted, hours entered and the productive share (lectures, coursework,
     skilling — the same three heads the student's own metrics strip counts)."""
-    require_director(session)
+    require_capability(db, session, "admin.exports")
     days: dict[str, tuple[int, int]] = {
         sid: (int(logged or 0), int(submitted or 0))
         for sid, logged, submitted in db.execute(

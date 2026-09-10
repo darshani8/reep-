@@ -114,3 +114,22 @@
   color: var(--risk);
   border-color: transparent;
 }
+
+/* INVISIBLE BUT FOCUSABLE. With `hidden` (display:none) the input left the
+   focus order, and a <label> is not tabbable, so the only keyboard-reachable
+   control on this screen was "Remove…" — a keyboard user could DELETE their
+   signature but never upload one. Geometry, not display:none. */
+.sg-file__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Focus has to be visible, or the focusable input is a trap. */
+.sg-file:focus-within {
+  outline: 2px solid var(--brand-purple);
+  outline-offset: 2px;
+}

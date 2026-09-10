@@ -27,7 +27,8 @@ codebase already has for `LeaderboardOut`, where the payload depends on which
 URL you happened to hit. A third would make it worse, so this one is named for
 its surface.
 
-ROLE. `require_director` (DIRECTOR + ADMIN), matching every other admin surface
+CAPABILITY. `admin.institution` (the Main Admin by baseline, a faculty member
+only when granted in Governance), matching every other admin surface
 including `voice_platform/api/admin.py`. A narrower Main-Admin-only gate belongs
 with the capability work, not here — inventing a second gate now would mean two
 answers to "who may administer", which is exactly the shape of bug rule 2 exists
@@ -59,6 +60,7 @@ from ..models.institution import (
 )
 from ..models.job import DegreeLevel
 from ..models.user import Student, User
+from ..governance import require_capability
 from .mentor import require_director
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -181,7 +183,7 @@ def list_colleges(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[CollegeOut]:
     """Every college, archived ones included — the console shows and un-archives them."""
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     rows = db.scalars(select(College).order_by(College.name)).all()
     return [_college_out(db, c) for c in rows]
 
@@ -192,7 +194,7 @@ def create_college(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> CollegeOut:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     code = body.code.strip().upper()
     if db.scalar(select(College).where(College.code == code)) is not None:
         raise HTTPException(
@@ -219,7 +221,7 @@ def update_college(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> CollegeOut:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     college = db.get(College, college_id)
     if college is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="College not found.")
@@ -297,7 +299,7 @@ def list_departments(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[DepartmentOut]:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     if db.get(College, college_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="College not found.")
     rows = db.scalars(
@@ -317,7 +319,7 @@ def create_department(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> DepartmentOut:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     if db.get(College, college_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="College not found.")
     code = body.code.strip().upper()
@@ -350,7 +352,7 @@ def update_department(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> DepartmentOut:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     department = db.get(Department, department_id)
     if department is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found.")
@@ -409,7 +411,10 @@ class HierarchyLevelOut(BaseModel):
 
 
 @router.get("/hierarchy/levels", response_model=list[HierarchyLevelOut])
-def hierarchy_levels(session: dict = Depends(get_current_session)) -> list[HierarchyLevelOut]:
+def hierarchy_levels(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[HierarchyLevelOut]:
     """What the batch form must ask for, and which of it is mandatory.
 
     The console does NOT hardcode `Validators.required`; it builds the
@@ -418,7 +423,7 @@ def hierarchy_levels(session: dict = Depends(get_current_session)) -> list[Hiera
     of the call graph rather than a promise in a comment. Flip `required` in
     HIERARCHY_LEVELS and the form grows a required validator on its own.
     """
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     return [HierarchyLevelOut(**lv._asdict()) for lv in institution_model.HIERARCHY_LEVELS]
 
 
@@ -476,7 +481,7 @@ def list_academic_courses(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[AcademicCourseOut]:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     if db.get(Department, department_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found.")
     rows = db.scalars(
@@ -498,7 +503,7 @@ def create_academic_course(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AcademicCourseOut:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     if db.get(Department, department_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found.")
     code = body.code.strip().upper()
@@ -533,7 +538,7 @@ def update_academic_course(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AcademicCourseOut:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     course = db.get(AcademicCourse, course_id)
     if course is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
@@ -620,7 +625,7 @@ def list_academic_specializations(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[AcademicSpecializationOut]:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     if db.get(AcademicCourse, course_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
     rows = db.scalars(
@@ -642,7 +647,7 @@ def create_academic_specialization(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AcademicSpecializationOut:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     if db.get(AcademicCourse, course_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
     code = body.code.strip().upper()
@@ -677,7 +682,7 @@ def update_academic_specialization(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AcademicSpecializationOut:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     spec = db.get(AcademicSpecialization, specialization_id)
     if spec is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialization not found.")
@@ -889,7 +894,7 @@ def list_cohorts(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[AdminCohortOut]:
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     if db.get(Department, department_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found.")
     rows = db.scalars(
@@ -915,7 +920,7 @@ def list_unassigned_cohorts(
     onto each. Once seated a cohort leaves this list, so an empty response is
     the healthy steady state rather than an error.
     """
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     rows = db.scalars(
         select(Cohort).where(Cohort.department_id.is_(None)).order_by(Cohort.batch_label)
     ).all()
@@ -937,7 +942,7 @@ def list_incomplete_cohorts(
     predicate is built from the same tuple — it is honestly empty before the
     flip too, rather than pretending everything is compliant.
     """
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     required = _required_levels()
     if not required:
         return []
@@ -966,7 +971,7 @@ def create_cohort(
     student. That is what the design shows, and it is why adding an academic
     year level later costs one table rather than a backfill of every student.
     """
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     if db.get(Department, department_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found.")
     if body.expected_completion <= body.entry_date:
@@ -1020,7 +1025,7 @@ def update_cohort(
     """Edit a batch. Every seated student's locked profile card moves with it —
     which is the point of reading those facts through the join rather than
     copying them onto the student."""
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     cohort = db.get(Cohort, cohort_id)
     if cohort is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found.")
@@ -1138,7 +1143,7 @@ def list_cohort_students(
     db: Session = Depends(get_db),
 ) -> list[AdminStudentRowOut]:
     """Who is seated in this batch. The read half of the seating panel."""
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     if db.get(Cohort, cohort_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found.")
     return _student_rows(db, Student.cohort_id == cohort_id)
@@ -1156,7 +1161,7 @@ def list_unseated_students(
     mentor and no batch, or a batch and no mentor. An empty response is the
     healthy steady state, exactly like /cohorts/unassigned.
     """
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     return _student_rows(db, Student.cohort_id.is_(None))
 
 
@@ -1173,7 +1178,7 @@ def set_student_cohort(
     `students.cohort_id` was set only by `app/seed.py` and
     `python -m app.seed_roster` — neither of which runs on a production host.
     """
-    require_director(session)
+    require_capability(db, session, "admin.institution")
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
@@ -1253,7 +1258,7 @@ def set_institutional_identity(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> InstitutionalIdentityOut:
-    require_director(session)
+    require_capability(db, session, "admin.mentors")
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")

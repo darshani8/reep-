@@ -386,7 +386,7 @@ def submit_evidence(
         catalogue_row = db.get(ApprovedCertification, body.approved_certification_id)
         if catalogue_row is None or not catalogue_row.active or catalogue_row.badge_code != code:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="That approved certification does not belong to this badge.",
             )
         ev_type = catalogue_row.evidence_type
@@ -397,13 +397,13 @@ def submit_evidence(
             ev_type = EvidenceType(body.evidence_type or "")
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="evidence_type must be EXTERNAL_VERIFIED, BGSCET_ASSESSED or APPLIED.",
             )
         title = (body.title or "").strip()
         if not title:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Describe the evidence — a title is required off the catalogue.",
             )
         provider = (body.provider or "").strip() or None
@@ -500,7 +500,7 @@ def badge_leaderboards(
     points board would rank their starting line, not their work."""
     student_id = _require_student(session)
     if view not in _LB_LABEL:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown view.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Unknown view.")
 
     opted_out = set(
         db.scalars(
@@ -549,7 +549,7 @@ def badge_leaderboards(
             }
             if not codes:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown track."
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Unknown track."
                 )
         for sb in db.scalars(
             select(StudentBadge).where(StudentBadge.status == StudentBadgeStatus.EARNED)

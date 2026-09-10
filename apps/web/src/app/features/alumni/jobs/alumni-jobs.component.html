@@ -1,13 +1,13 @@
 <div class="dt-header">
   <div>
-    <div class="dt-title">Jobs Sheet</div>
+    <h1 class="dt-title">Jobs Sheet</h1>
     <div class="dt-sub">Openings shared by the placement office — updated weekly.</div>
   </div>
 </div>
 
 @if (error()) {
   <div class="feedback feedback--err" role="alert">
-    <span class="icon">wifi_off</span>
+    <span class="icon" aria-hidden="true">wifi_off</span>
     <div class="feedback__body">{{ error() }}</div>
   </div>
 } @else if (jobs(); as list) {
@@ -63,7 +63,7 @@
             <td>
               @if (j.apply_url && !closed(j)) {
                 <a class="dt-btn primary" [href]="j.apply_url" target="_blank" rel="noopener">
-                  <span class="icon">open_in_new</span>Apply
+                  <span class="icon" aria-hidden="true">open_in_new</span>Apply
                 </a>
               }
             </td>

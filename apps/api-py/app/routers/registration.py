@@ -50,7 +50,7 @@ from ..models.registration import (
 )
 from ..models.student_profile import StudentProfile
 from ..models.user import Role, Student, User
-from .mentor import require_director
+from ..governance import require_capability
 from ..architecture_events import record_change
 from ..document_store import MAX_BYTES, QuotaRejected, VolumeQuota, save_bytes
 from ..document_store import delete as delete_stored
@@ -586,7 +586,7 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
             return
         if chain[key] is not None and chain[key] != value:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     f"The {_CLAIM_NOUN[key]} you chose contradicts the {because} you chose. "
                     f"Pick a {_CLAIM_NOUN[key]} under it, or clear the {because}."
@@ -600,7 +600,7 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
         row = db.get(model, ident)
         if row is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"That {noun} does not exist. Reload the form and choose again.",
             )
         return row
@@ -657,7 +657,7 @@ def submit(
     email = body.email.strip().lower()
     if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A valid email is required."
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="A valid email is required."
         )
     existing = db.scalar(select(Registration).where(Registration.email == email))
     if existing is not None:
@@ -720,7 +720,7 @@ def pending(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[RegistrationOut]:
     """Director review queue — applications a human still needs to decide."""
-    require_director(session)
+    require_capability(db, session, "admin.registrations")
     rows = db.scalars(
         select(Registration)
         .where(Registration.status == RegistrationStatus.PENDING_REVIEW)
@@ -810,7 +810,7 @@ def _provision_student(db: Session, reg: Registration) -> Student:
     allowed = settings.provisionable_email_domains
     if not domain or domain not in allowed:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 "This application cannot be approved: its email address is not on a "
                 f"college domain ({', '.join(sorted(allowed))}). Approving it would "
@@ -951,7 +951,7 @@ def decide(
     APPROVE stamps the reviewer AND provisions the account — the User row, the
     Student row seated in the rule's cohort, a profile row, and
     approved_student_id — all in one transaction. REJECT stamps only."""
-    require_director(session)
+    require_capability(db, session, "admin.registrations")
     # SELECT ... FOR UPDATE, not db.get(). The already-decided check below is a
     # read followed by a write, and two directors clicking Approve at the same
     # moment both read PENDING, both pass the check, and both provision — the
@@ -988,7 +988,7 @@ def decide(
         reg.status = RegistrationStatus.REJECTED
     else:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="decision must be APPROVE or REJECT.",
         )
     reg.reviewed_by_id = session["userId"]
@@ -1129,7 +1129,7 @@ def reopen(
     Audited through record_change with the stamp it clears, so "who reopened
     this and what did the rejection say" stays answerable.
     """
-    require_director(session)
+    require_capability(db, session, "admin.registrations")
     reg = db.scalar(
         select(Registration).where(Registration.id == registration_id).with_for_update()
     )
@@ -1181,7 +1181,7 @@ def rules(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[RuleOut]:
     """Director: the active rule set, in the order the engine evaluates it."""
-    require_director(session)
+    require_capability(db, session, "admin.registrations")
     rows = db.scalars(
         select(RegistrationRule).order_by(RegistrationRule.priority, RegistrationRule.created_at)
     ).all()

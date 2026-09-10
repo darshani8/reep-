@@ -643,7 +643,7 @@ def grant_consent(
     current = settings.interview_consent_version
     if body.version != current:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"Consent terms have changed (this server is asking for "
                 f"'{current}'). Reload the page and read them again."
@@ -945,7 +945,7 @@ def download_selected_audio(
     _require_developer(session, db)
     if body.track not in TRACKS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"track must be one of {sorted(TRACKS)}.",
         )
     import os
@@ -1111,7 +1111,7 @@ def student_interview_audio(
         # asked for the interviewer and got the mix would have a reviewer
         # listening to the wrong voice with nothing on screen saying so.
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Unknown audio track. Choose one of: {', '.join(TRACKS)}.",
         )
 

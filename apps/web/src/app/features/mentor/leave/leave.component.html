@@ -3,25 +3,40 @@
     <!-- DASHBOARD -->
     <div class="dt-header">
       <div>
-        <div class="dt-title">Leave requests</div>
+        <h1 class="dt-title">Leave requests</h1>
         <div class="dt-sub lv-lede">
           The official BGSCET leave form — sign and send to Admin / Program Director.
         </div>
       </div>
       <button type="button" class="btn primary" (click)="startNew()">
-        <span class="icon">add_circle</span> New leave request
+        <span class="icon" aria-hidden="true">add_circle</span> New leave request
       </button>
     </div>
 
     @if (error()) {
-      <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+      <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
     }
     @if (draftFlash()) {
-      <div class="state-note"><span class="icon">check_circle</span>Draft saved on this device.</div>
+      <div class="state-note"><span class="icon" aria-hidden="true">check_circle</span>Draft saved on this device.</div>
     }
 
     @if (draft(); as d) {
-      <div class="card req-card" (click)="openDraft()">
+      <!-- KEYBOARD-REACHABLE, and nothing else about this card changed.
+           It was a plain <div (click)>: no role, no tabindex, no key
+           handler. Since the detail view is the ONLY place the "Download
+           PDF" link exists, a keyboard user could not reach their own leave
+           paper at all, and a screen reader never announced the row as
+           something you could open. Same handler, two more ways in. The
+           form, its Sign button and the submit/decide endpoints are
+           untouched. -->
+      <div
+        class="card req-card"
+        role="button"
+        tabindex="0"
+        (click)="openDraft()"
+        (keydown.enter)="openDraft()"
+        (keydown.space)="openDraft(); $event.preventDefault()"
+      >
         <div class="req-main">
           <div class="req-top">
             <strong>{{ kindLabel(d.kind) }}</strong>
@@ -32,17 +47,25 @@
             · saved {{ d.savedAt | date: 'd MMM y, HH:mm' }}
           </div>
         </div>
-        <span class="chip neutral"><span class="icon">edit_note</span> Draft</span>
+        <span class="chip neutral"><span class="icon" aria-hidden="true">edit_note</span> Draft</span>
       </div>
     }
 
     @if (rows() === null) {
-      <div class="state-note"><span class="icon">hourglass_empty</span>Loading your requests…</div>
+      <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading your requests…</div>
     } @else if (rows()!.length === 0 && !draft()) {
       <div class="card lv-empty">No leave requests yet.</div>
     } @else {
       @for (r of rows()!; track r.id) {
-        <div class="card req-card" (click)="open(r)">
+        <div
+          class="card req-card"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="'Open the ' + kindLabel(r.leave_kind) + ' request'"
+          (click)="open(r)"
+          (keydown.enter)="open(r)"
+          (keydown.space)="open(r); $event.preventDefault()"
+        >
           <div class="req-main">
             <div class="req-top">
               <strong>{{ kindLabel(r.leave_kind) }}</strong>
@@ -53,7 +76,7 @@
             <div class="req-dates">{{ dateSpan(r) }}</div>
           </div>
           <span class="chip {{ chip(r.status).tone }}">
-            <span class="icon">{{ chip(r.status).icon }}</span> {{ chip(r.status).label }}
+            <span class="icon" aria-hidden="true">{{ chip(r.status).icon }}</span> {{ chip(r.status).label }}
           </span>
         </div>
       }
@@ -62,7 +85,7 @@
     <!-- THE FORM -->
     <div class="form-bar">
       <button type="button" class="iconbtn lv-back" title="Back to requests" (click)="backToDash()">
-        <span class="icon">arrow_back</span>
+        <span class="icon" aria-hidden="true">arrow_back</span>
       </button>
       <div class="form-bar-note">
         Signatures are recorded as a name and a timestamp against your REEP account.
@@ -76,7 +99,7 @@
 
     @if (viewing()?.director_note) {
       <div class="remarks">
-        <span class="icon">flag</span>
+        <span class="icon" aria-hidden="true">flag</span>
         <div>
           <strong>{{ remarksLabel(viewing()!.status) }}</strong>
           <div>{{ viewing()!.director_note }}</div>
@@ -214,7 +237,7 @@
               [disabled]="!canSubmit()"
               (click)="signAndSubmit()"
             >
-              <span class="icon">draw</span> Sign
+              <span class="icon" aria-hidden="true">draw</span> Sign
             </button>
           }
           <div class="sig-line">SIGNATURE OF STAFF</div>
@@ -322,7 +345,7 @@
       </table>
       @if (!v) {
         <button type="button" class="btn ghost add-row" (click)="addAltRow()">
-          <span class="icon">add</span> Add a row
+          <span class="icon" aria-hidden="true">add</span> Add a row
         </button>
       }
 
@@ -337,7 +360,7 @@
     @if (v?.status === 'REJECTED') {
       <div class="form-actions">
         <button type="button" class="btn" (click)="editAndResubmit(v!)">
-          <span class="icon">edit</span> Edit &amp; resubmit
+          <span class="icon" aria-hidden="true">edit</span> Edit &amp; resubmit
         </button>
         <span class="form-hint">Opens a fresh form with these details; the rejected one stays on record.</span>
       </div>
@@ -345,11 +368,17 @@
 
     @if (!viewing()) {
       @if (formError()) {
-        <div class="state-note risk"><span class="icon">error</span>{{ formError() }}</div>
+        <!-- role="alert": this is inserted by @if after the click, so without a
+             live region the applicant is told nothing when the server refuses
+             the form. Display only — the Sign button and the submit call are
+             untouched. -->
+        <div class="state-note risk" role="alert">
+          <span class="icon" aria-hidden="true">error</span>{{ formError() }}
+        </div>
       }
       <div class="form-actions">
         <button type="button" class="btn" (click)="saveDraft()">
-          <span class="icon">save</span> Save draft
+          <span class="icon" aria-hidden="true">save</span> Save draft
         </button>
         <button
           type="button"
@@ -357,7 +386,7 @@
           [disabled]="!canSubmit()"
           (click)="signAndSubmit()"
         >
-          <span class="icon">draw</span>
+          <span class="icon" aria-hidden="true">draw</span>
           {{ submitting() ? 'Submitting…' : 'Sign & submit to Program Director' }}
         </button>
         @if (draft()) {

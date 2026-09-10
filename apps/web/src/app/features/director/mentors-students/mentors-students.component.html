@@ -1,7 +1,7 @@
 <div class="panel" data-p="mentors-students">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Faculty &amp; students</div>
+      <h1 class="dt-title">Faculty &amp; students</h1>
       <div class="dt-sub">
         Pick a faculty member, then add or remove their students.
         @if (pool() !== null) {
@@ -17,7 +17,7 @@
   </div>
 
   @if (error()) {
-    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
   }
 
   <!-- Faculty accounts. The Main Admin creates one here and hands over the
@@ -30,7 +30,7 @@
           <div class="dt-sub">Create a faculty login here. You get an activation link to send them; they set their own password from it and sign in on the Faculty portal.</div>
         </div>
         <button type="button" class="btn primary" (click)="addOpen.set(!addOpen()); created.set(null)" [attr.aria-expanded]="addOpen()">
-          <span class="icon">person_add</span> Add faculty member
+          <span class="icon" aria-hidden="true">person_add</span> Add faculty member
         </button>
       </div>
 
@@ -55,7 +55,7 @@
             </div>
           </div>
           @if (createError()) {
-            <div class="state-note risk"><span class="icon">error</span>{{ createError() }}</div>
+            <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ createError() }}</div>
           }
           <div class="add-faculty__foot">
             <span class="dt-sub">No password is set here. They see nobody until you assign them students below.</span>
@@ -69,7 +69,7 @@
 
       @if (created(); as c) {
         <div class="link-box" role="status">
-          <div class="link-box__title"><span class="icon">check_circle</span> {{ c.name }} created ({{ c.email }}). Send them this link — it is valid for {{ c.hours / 24 }} days:</div>
+          <div class="link-box__title"><span class="icon" aria-hidden="true">check_circle</span> {{ c.name }} created ({{ c.email }}). Send them this link — it is valid for {{ c.hours / 24 }} days:</div>
           <div class="link-box__row">
             <code class="link-box__link">{{ c.link }}</code>
             <button type="button" class="btn sm" (click)="copy(c.link)">{{ copied() === c.link ? 'Copied' : 'Copy' }}</button>
@@ -81,7 +81,7 @@
   }
 
   @if (mentors() === null) {
-    <div class="state-note"><span class="icon">hourglass_empty</span>Loading…</div>
+    <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading…</div>
   } @else if (mentors()!.length === 0) {
     <div class="card">No faculty on the roster yet, so there is nobody to assign students to.</div>
   } @else {
@@ -149,12 +149,12 @@
                     />
                   </div>
                   @if (identityError(); as e) {
-                    <span class="chip risk"><span class="icon">error</span>{{ e }}</span>
+                    <span class="chip risk"><span class="icon" aria-hidden="true">error</span>{{ e }}</span>
                   }
                   <div class="footbar">
                     <button type="button" class="btn sm" (click)="identityOpen.set(false)" [disabled]="identityBusy()">Cancel</button>
                     <button type="submit" class="btn primary sm" [disabled]="identityBusy()">
-                      <span class="icon">save</span>{{ identityBusy() ? 'Saving…' : 'Save' }}
+                      <span class="icon" aria-hidden="true">save</span>{{ identityBusy() ? 'Saving…' : 'Save' }}
                     </button>
                   </div>
                 </form>
@@ -163,11 +163,11 @@
                   {{ m.designation ?? 'Designation not on record' }} · {{ m.department ?? 'Department not on record' }}
                 </span>
                 <button type="button" class="btn sm" (click)="openIdentity(m)">
-                  <span class="icon">edit</span>Edit
+                  <span class="icon" aria-hidden="true">edit</span>Edit
                 </button>
                 @if (isMainAdmin()) {
                   <button type="button" class="btn sm" (click)="reissueLink(m)" title="Mint a fresh activation link for this faculty member">
-                    <span class="icon">draw</span>Activation link
+                    <span class="icon" aria-hidden="true">draw</span>Activation link
                   </button>
                 }
               }
@@ -199,7 +199,7 @@
                   [disabled]="busy()"
                   (click)="release(s)"
                 >
-                  <span class="icon">person_remove</span>
+                  <span class="icon" aria-hidden="true">person_remove</span>
                 </button>
               </div>
             } @empty {
@@ -239,7 +239,7 @@
             [disabled]="!current() || checkedCount() === 0 || busy()"
             (click)="assignChecked()"
           >
-            <span class="icon">person_add</span>
+            <span class="icon" aria-hidden="true">person_add</span>
             @if (checkedCount()) {
               Add {{ checkedCount() }} to this mentor
             } @else {
@@ -252,7 +252,7 @@
         </div>
         @if (flash()) {
           <div class="flash">
-            <span class="chip good"><span class="icon">check_circle</span> {{ flash() }}</span>
+            <span class="chip good"><span class="icon" aria-hidden="true">check_circle</span> {{ flash() }}</span>
           </div>
         }
       </div>

@@ -1,7 +1,7 @@
 <div class="panel" data-p="placement">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Placement</div>
+      <h1 class="dt-title">Placement</h1>
       <div class="dt-sub">
         @if (data(); as d) {
           @if (d.semester !== null) {
@@ -20,16 +20,16 @@
     </div>
     @if (pendingCount() > 0) {
       <span class="chip warn pending-chip">
-        <span class="icon">hourglass_top</span> {{ pendingCount() }} awaiting approval
+        <span class="icon" aria-hidden="true">hourglass_top</span> {{ pendingCount() }} awaiting approval
       </span>
     }
   </div>
 
   @if (error()) {
-    <div class="state-note risk"><span class="icon">error</span>{{ error() }}</div>
+    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
   }
   @if (flash()) {
-    <div class="decided"><span class="icon">check_circle</span>{{ flash() }}</div>
+    <div class="decided"><span class="icon" aria-hidden="true">check_circle</span>{{ flash() }}</div>
   }
 
   @if (data(); as d) {
@@ -163,6 +163,6 @@
       </div>
     </div>
   } @else if (!error()) {
-    <div class="state-note"><span class="icon">hourglass_empty</span>Loading offers…</div>
+    <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading offers…</div>
   }
 </div>

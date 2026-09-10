@@ -26,7 +26,7 @@ straight back to the account this rule is here to keep out.
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -66,6 +66,29 @@ class LeaveIn(BaseModel):
     credit: str | None = Field(default=None, max_length=200)
     alt_name: str | None = Field(default=None, max_length=200)
     alt_rows: list[AltRow] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def dates_run_forwards(self) -> "LeaveIn":
+        """A leave that ends before it starts is not a leave, and it was
+        reaching the official form.
+
+        The two dates were declared independently and nothing related them, so
+        20 Dec -> 10 Dec was accepted, stored with a span of MINUS TEN days,
+        listed in the approver's queue with a live "Mark Sanctioned" button, and
+        rendered onto the college's own PDF. Found in the browser, not by a test.
+
+        The check lives HERE, on the schema, deliberately: the owner's standing
+        instruction is that the leave form and its buttons do not change, so the
+        one safe place to refuse it is before the request is ever built. A
+        single day is legal — `from == to` is how PERMISSION and a one-day
+        CASUAL leave are both written on the paper form.
+        """
+        if self.to_date < self.from_date:
+            raise ValueError(
+                "The last day of leave cannot fall before the first day. "
+                f"You asked for {self.from_date.isoformat()} to {self.to_date.isoformat()}."
+            )
+        return self
 
 
 class LeaveOut(BaseModel):
@@ -296,7 +319,7 @@ def decide_leave(
     decision = body.decision.upper()
     if decision not in ("APPROVE", "REJECT"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="decision must be APPROVE or REJECT.",
         )
     now = datetime.now(timezone.utc)

@@ -12,19 +12,31 @@
  * owns only the frame's behaviour: who is signed in, and signing out.
  */
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
+import { Title } from '@angular/platform-browser';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { environment } from '../../environments/environment';
 import { AuthService } from '../core/auth.service';
 import type { Role } from '../core/session';
 
+/// Every admin.* capability the Main Admin can grant, and the screen it opens.
+/// A capability with no row here is a grant that changes nothing on screen, so
+/// this list and the catalogue in app/models/governance.py are kept in step;
+/// each route below carries the SAME key as a capabilityGuard.
 const ADMIN_LINKS = [
   { capability: 'admin.analytics', path: '/director', label: 'Analytics', icon: 'insights' },
+  { capability: 'admin.registrations', path: '/director/registrations', label: 'Registrations', icon: 'pending_actions' },
+  { capability: 'admin.mentors', path: '/director/mentors', label: 'Faculty & Students', icon: 'groups' },
+  { capability: 'admin.students', path: '/director/students', label: 'Students', icon: 'how_to_reg' },
+  { capability: 'admin.institution', path: '/director/institution', label: 'Institution', icon: 'school' },
+  { capability: 'admin.catalogue', path: '/director/catalogue', label: 'Catalogue', icon: 'menu_book' },
+  { capability: 'admin.jobs', path: '/director/jobs', label: 'Jobs Sheet', icon: 'work' },
+  { capability: 'admin.placement', path: '/director/placement', label: 'Placement', icon: 'verified' },
   { capability: 'admin.interview_questions', path: '/director/interview-questions', label: 'Interview Questions', icon: 'edit_note' },
   { capability: 'admin.swoc', path: '/director/swoc', label: 'SWOC Notes', icon: 'rate_review' },
-  { capability: 'admin.students', path: '/director/students', label: 'Students', icon: 'how_to_reg' },
+  { capability: 'admin.exports', path: '/director/exports', label: 'Exports', icon: 'download' },
 ] as const;
 import { AgentOrbComponent } from './agent-orb.component';
 
@@ -93,8 +105,21 @@ export class AppShellComponent {
   private readonly _usn = signal<string | null>(null);
   readonly usn = this._usn.asReadonly();
 
+  private readonly title = inject(Title);
+
   constructor() {
     if (this.session()?.role === 'STUDENT') void this.loadUsn();
+
+    // The browser tab said "REEP · Student" on EVERY screen for every role,
+    // because index.html hardcodes it and nothing ever set it again. A Main
+    // Admin with six REEP tabs open could not tell them apart, and the tab
+    // contradicted the title bar two pixels away. The role is the useful
+    // distinction (the shell is one workspace per role), so it is what the tab
+    // carries. `effect`, not a one-shot read: `session()` resolves
+    // asynchronously from /auth/me, so the first paint has no role yet.
+    effect(() => {
+      this.title.setTitle(`REEP · ${this.roleLabel()}`);
+    });
   }
 
   private async loadUsn(): Promise<void> {

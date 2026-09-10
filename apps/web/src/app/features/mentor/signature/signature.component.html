@@ -24,7 +24,7 @@
       <div class="sg-actions">
         <label class="btn primary sg-file">
           <span class="icon" aria-hidden="true">draw</span> Replace
-          <input type="file" accept="image/png,image/jpeg" hidden (change)="onFile($event)" [disabled]="busy()" />
+          <input type="file" class="sg-file__input" accept="image/png,image/jpeg" (change)="onFile($event)" [disabled]="busy()" />
         </label>
         @if (confirmRemove()) {
           <span class="sg-warn">Your papers will show your name and the time only.</span>
@@ -43,7 +43,7 @@
         </p>
         <label class="btn primary sg-file">
           <span class="icon" aria-hidden="true">draw</span> Upload signature
-          <input type="file" accept="image/png,image/jpeg" hidden (change)="onFile($event)" [disabled]="busy()" />
+          <input type="file" class="sg-file__input" accept="image/png,image/jpeg" (change)="onFile($event)" [disabled]="busy()" />
         </label>
       </div>
     }

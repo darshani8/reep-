@@ -92,3 +92,24 @@
     color: var(--brand-purple);
   }
 }
+
+/* A file input that is INVISIBLE BUT FOCUSABLE. `hidden` (display:none) took
+   these two pickers out of the focus order, and since a <label> is not tabbable
+   either, the CV and headshot dropzones were mouse-only on the one form the
+   public uses. Geometry rather than display:none keeps the input in the tab
+   order; the label below shows where focus is. */
+.reg-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Keyboard focus has to be VISIBLE or the focusable input above is a trap:
+   the caret is inside a 1px box nobody can see. */
+.dropzone:focus-within {
+  outline: 2px solid var(--brand-purple);
+  outline-offset: 2px;
+}

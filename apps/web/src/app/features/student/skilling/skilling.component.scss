@@ -143,6 +143,24 @@
   color: var(--ink);
   overflow-wrap: anywhere;
 }
+/* The "All my documents" link. `.link-btn` below is shaped for a <button>, so
+   the anchor needs the row layout and the underline reset it does not carry. */
+.skl-all-docs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  text-decoration: none;
+
+  .icon {
+    font-size: 16px;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .link-btn {
   border: none;
   background: none;

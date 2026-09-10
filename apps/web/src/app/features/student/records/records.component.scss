@@ -359,3 +359,25 @@
     grid-area: fig;
   }
 }
+
+/* The "Subject-by-subject progress" link to /student/courses, inline in the
+   subtitle. Inline-flex so the icon sits on the text baseline rather than
+   pushing the line height. */
+.rec-courses-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  color: var(--brand-purple);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+
+  .icon {
+    font-size: 15px;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

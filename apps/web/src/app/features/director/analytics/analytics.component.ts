@@ -518,6 +518,12 @@ export class DirectorAnalyticsComponent implements AfterViewInit, OnDestroy {
           itemStyle: { borderColor: '#fff', borderWidth: 2 },
           label: {
             rotate: 'radial',
+            // A real faculty name is longer than the arc it is drawn on, and
+            // ECharts draws it anyway: the inner-ring names overprinted each
+            // other in the middle of the chart. A slice too thin to hold text
+            // drops its label; the rest truncate, which needs a width and so
+            // is set per level below (truncate with no width renders nothing).
+            minAngle: 8,
             color: '#fff',
             fontSize: 11,
             fontWeight: 600,
@@ -526,11 +532,31 @@ export class DirectorAnalyticsComponent implements AfterViewInit, OnDestroy {
           },
           levels: [
             {},
-            { r0: '18%', r: '62%', label: { rotate: 'tangential', fontSize: 12.5, fontWeight: 700 } },
+            {
+              r0: '18%',
+              r: '62%',
+              label: {
+                rotate: 'tangential',
+                fontSize: 12.5,
+                fontWeight: 700,
+                width: 96,
+                overflow: 'truncate',
+                ellipsis: '…',
+              },
+            },
             {
               r0: '64%',
               r: '94%',
-              label: { align: 'right', fontSize: 10.5, fontWeight: 600, color: INK, textShadowBlur: 0 },
+              label: {
+                align: 'right',
+                fontSize: 10.5,
+                fontWeight: 600,
+                color: INK,
+                textShadowBlur: 0,
+                width: 104,
+                overflow: 'truncate',
+                ellipsis: '…',
+              },
             },
           ],
           data: sampled.map((m) => {
@@ -597,7 +623,17 @@ export class DirectorAnalyticsComponent implements AfterViewInit, OnDestroy {
           data: b.rows.map((r) => r.label),
           axisTick: { show: false },
           axisLine: { show: false },
-          axisLabel: { color: '#585566', fontSize: 11.5, interval: 0 },
+          // containLabel alone gives a long name whatever width is left and then
+          // clips it from the LEFT, so "Voice Test…" rendered as "ice Test…".
+          // Bounding it truncates at the end instead, where the ellipsis says so.
+          axisLabel: {
+            color: '#585566',
+            fontSize: 11.5,
+            interval: 0,
+            width: 112,
+            overflow: 'truncate',
+            ellipsis: '…',
+          },
         },
         xAxis: {
           type: 'value',

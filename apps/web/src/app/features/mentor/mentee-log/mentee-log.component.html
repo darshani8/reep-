@@ -1,14 +1,14 @@
 <div class="panel" data-p="mentee-log">
   <div class="dt-header">
     <div>
-      <div class="dt-title">Mentee Log</div>
+      <h1 class="dt-title">Mentee Log</h1>
       <div class="dt-sub">Your mentees and the 1:1 meeting notes they can read.</div>
     </div>
   </div>
 
   @if (error()) {
     <div class="notice" role="alert">
-      <span class="icon">wifi_off</span>
+      <span class="icon" aria-hidden="true">wifi_off</span>
       <div>{{ error() }}</div>
     </div>
   } @else {
@@ -80,18 +80,18 @@
             </label>
             <div class="ml-actions">
               <button type="button" class="btn primary" [disabled]="saving()" (click)="addNote()">
-                <span class="icon">send</span>{{ saving() ? 'Saving…' : 'Save note' }}
+                <span class="icon" aria-hidden="true">send</span>{{ saving() ? 'Saving…' : 'Save note' }}
               </button>
               @if (savedFlash()) {
-                <span class="chip good"><span class="icon">check_circle</span> Saved</span>
+                <span class="chip good"><span class="icon" aria-hidden="true">check_circle</span> Saved</span>
               }
               @if (emptyFlash()) {
-                <span class="chip risk" role="alert"><span class="icon">error</span> Write the note first</span>
+                <span class="chip risk" role="alert"><span class="icon" aria-hidden="true">error</span> Write the note first</span>
               }
             </div>
             @if (saveError()) {
               <div class="notice ml-notice" role="alert">
-                <span class="icon">error</span>
+                <span class="icon" aria-hidden="true">error</span>
                 <div>{{ saveError() }}</div>
               </div>
             }
@@ -99,7 +99,7 @@
 
           @if (notesError()) {
             <div class="notice ml-notice" role="alert">
-              <span class="icon">error</span>
+              <span class="icon" aria-hidden="true">error</span>
               <div>{{ notesError() }}</div>
             </div>
           }
@@ -117,14 +117,14 @@
                       [disabled]="removingId() === n.id"
                       (click)="remove(n)"
                     >
-                      <span class="icon">close</span>
+                      <span class="icon" aria-hidden="true">close</span>
                     </button>
                   </div>
                 </div>
                 <p class="ml-note__text">{{ n.note_text }}</p>
                 @if (n.linked_action !== 'NONE') {
                   <div class="ml-note__flag">
-                    <span class="chip warn"><span class="icon">flag</span> {{ actionLabel(n.linked_action) }}</span>
+                    <span class="chip warn"><span class="icon" aria-hidden="true">flag</span> {{ actionLabel(n.linked_action) }}</span>
                   </div>
                 }
               </div>

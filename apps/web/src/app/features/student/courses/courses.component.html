@@ -1,6 +1,6 @@
 <div class="dt-header">
   <div>
-    <div class="dt-title">Courses</div>
+    <h1 class="dt-title">Courses</h1>
     @if (state() === 'ready' && courses().length) {
       <div class="dt-sub">
         {{ courses().length }} enrolled · {{ inProgressCount() }} in progress ·
@@ -34,7 +34,7 @@
             </div>
           </div>
           <span class="chip {{ chip.cls }}">
-            <span class="icon">{{ chip.icon }}</span
+            <span class="icon" aria-hidden="true">{{ chip.icon }}</span
             >{{ chip.label }}
           </span>
         </div>
@@ -54,18 +54,18 @@
         </div>
 
         <div class="plan-next">
-          <span class="icon">arrow_forward</span>
+          <span class="icon" aria-hidden="true">arrow_forward</span>
           <span class="plan-next-label">Next:</span> {{ c.next_task }}
         </div>
 
         <div class="plan-facts">
           <span class="fact">
-            <span class="icon">menu_book</span>
+            <span class="icon" aria-hidden="true">menu_book</span>
             {{ c.lectures_attended }}/{{ c.lectures_total }} lectures
           </span>
           @if (c.status !== 'COMPLETED' && lecturesLeft(c) > 0) {
             <span class="fact">
-              <span class="icon">schedule</span>
+              <span class="icon" aria-hidden="true">schedule</span>
               {{ lecturesLeft(c) }} {{ lecturesLeft(c) === 1 ? 'lecture' : 'lectures' }} left
             </span>
           }
@@ -77,10 +77,10 @@
             routerLink="/student/courses"
             [attr.aria-label]="'Continue ' + c.name"
           >
-            <span class="icon">play_arrow</span>Continue
+            <span class="icon" aria-hidden="true">play_arrow</span>Continue
           </a>
           <span class="chip neutral unlocks">
-            <span class="icon">lock_open</span>Unlocks: {{ c.unlocks }}
+            <span class="icon" aria-hidden="true">lock_open</span>Unlocks: {{ c.unlocks }}
           </span>
         </div>
       </div>

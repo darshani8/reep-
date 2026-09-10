@@ -1,6 +1,6 @@
 <div class="dt-header">
   <div>
-    <div class="dt-title">Mock interviews</div>
+    <h1 class="dt-title">Mock interviews</h1>
     <div class="dt-sub">
       Every practice interview you have taken, with its transcript and its practice report.
     </div>
@@ -76,7 +76,7 @@
           <td>
             @if (statusChip(row.status); as chip) {
               <span class="chip {{ chip.tone }}"
-                ><span class="icon">{{ chip.icon }}</span
+                ><span class="icon" aria-hidden="true">{{ chip.icon }}</span
                 >{{ chip.label }}</span
               >
             }
@@ -87,7 +87,7 @@
                  flattens them into one. -->
             @if (row.audio_recorded) {
               <span class="chip neutral iv-chip2"
-                ><span class="icon">graphic_eq</span>Audio saved</span
+                ><span class="icon" aria-hidden="true">graphic_eq</span>Audio saved</span
               >
             }
           </td>
@@ -96,7 +96,7 @@
           <td>
             @if (reportChip(row.report_status); as chip) {
               <span class="chip {{ chip.tone }}"
-                ><span class="icon">{{ chip.icon }}</span
+                ><span class="icon" aria-hidden="true">{{ chip.icon }}</span
                 >{{ chip.label }}</span
               >
             } @else {
@@ -131,7 +131,7 @@
       @if (detail(); as row) {
         <div class="iv-detail__head">
           <div>
-            <div class="dt-title">{{ trackLabel(row.specialization) }}</div>
+            <h2 class="dt-title">{{ trackLabel(row.specialization) }}</h2>
             <div class="dt-sub">
               {{ fmtDate(row.started_at) }} at {{ fmtTime(row.started_at) }}
               @if (durationLabel(row); as len) {
@@ -144,7 +144,7 @@
           </div>
           @if (statusChip(row.status); as chip) {
             <span class="chip {{ chip.tone }}"
-              ><span class="icon">{{ chip.icon }}</span
+              ><span class="icon" aria-hidden="true">{{ chip.icon }}</span
               >{{ chip.label }}</span
             >
           }

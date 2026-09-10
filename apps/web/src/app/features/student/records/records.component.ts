@@ -20,6 +20,7 @@
  */
 
 import { Component, computed, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 
@@ -109,7 +110,8 @@ const GAP_LABEL: { key: keyof AcademicGap; label: string }[] = [
 @Component({
   selector: 'app-student-records',
   standalone: true,
-  imports: [],
+  // RouterLink: the "Subject-by-subject progress" link to /student/courses.
+  imports: [RouterLink],
   templateUrl: './records.component.html',
   styleUrl: './records.component.scss',
 })

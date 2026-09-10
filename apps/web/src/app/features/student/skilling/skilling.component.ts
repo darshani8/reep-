@@ -30,6 +30,7 @@
  */
 
 import { Component, computed, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 
@@ -131,7 +132,10 @@ const MAX_CERT_BYTES = 5 * 1024 * 1024;
 @Component({
   selector: 'app-student-skilling',
   standalone: true,
-  imports: [],
+  // RouterLink: the "All my documents" link to /student/uploads. Without it the
+  // `routerLink` attribute is inert markup — it renders, it looks like a link,
+  // and clicking it does nothing at all.
+  imports: [RouterLink],
   templateUrl: './skilling.component.html',
   styleUrl: './skilling.component.scss',
 })

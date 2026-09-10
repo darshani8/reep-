@@ -7,7 +7,7 @@
       <!-- decided: surface the rule engine's verdict -->
       @if (approved()) {
         <div class="reg-approval ok">
-          <span class="icon">check_circle</span>
+          <span class="icon" aria-hidden="true">check_circle</span>
           <div>
             <b>Domain matched — auto-approved.</b>
             {{ r.decision_reason ?? (r.email + ' is within an approved domain. Your account is active immediately.') }}
@@ -15,7 +15,7 @@
         </div>
       } @else {
         <div class="reg-approval flag">
-          <span class="icon">flag</span>
+          <span class="icon" aria-hidden="true">flag</span>
           <div>
             <b>Held for review.</b>
             {{ r.decision_reason ?? 'Your registration was routed to a director for manual approval before the account activates.' }}
@@ -25,7 +25,7 @@
 
       @if (r.college_name || r.department_name) {
         <p class="reg-chain">
-          <span class="icon">school</span>
+          <span class="icon" aria-hidden="true">school</span>
           {{ r.college_name }}@if (r.department_name) { · {{ r.department_name }} }@if (r.course_name) { · {{ r.course_name }} }@if (r.specialization_name) { · {{ r.specialization_name }} }@if (r.requested_batch) { · Batch {{ r.requested_batch }} }
         </p>
       }
@@ -34,7 +34,7 @@
         <ul class="doc-notes">
           @for (n of docNotes(); track n) {
             <li>
-              <span class="icon">{{ n.includes('could not') ? 'warning' : 'check_circle' }}</span>
+              <span class="icon" aria-hidden="true">{{ n.includes('could not') ? 'warning' : 'check_circle' }}</span>
               {{ n }}
             </li>
           }
@@ -43,7 +43,7 @@
 
       <div style="margin-top:20px; display:flex; gap:10px;">
         <a class="dt-btn primary" routerLink="/login">
-          Continue to sign in <span class="icon" style="font-size:16px">arrow_forward</span>
+          Continue to sign in <span class="icon" style="font-size:16px" aria-hidden="true">arrow_forward</span>
         </a>
         <button type="button" class="dt-btn" (click)="reset()">Submit another</button>
       </div>
@@ -51,17 +51,24 @@
       <!-- the application form -->
       <form (submit)="submit($event)">
         <label class="dropzone dropzone--live">
-          <span class="icon">upload_file</span>
+          <span class="icon" aria-hidden="true">upload_file</span>
           @if (cvFile(); as f) {
             <strong>{{ f.name }}</strong> · {{ (f.size / 1024) | number: '1.0-0' }} KB
           } @else {
             Attach your CV (PDF, up to 10 MB)
           }
-          <input type="file" accept="application/pdf,.pdf" (change)="onCv($event)" hidden>
+          <!-- `class="reg-file"`, NOT `hidden`. `hidden` is `display:none`,
+               which takes the input out of the focus order — and a <label> is
+               not tabbable either, so this dropzone was reachable by mouse
+               ONLY. On the public registration form that meant a keyboard-only
+               applicant could not attach their CV at all. The class hides it
+               visually while leaving it focusable; the label paints a focus
+               ring via :focus-within. -->
+          <input type="file" class="reg-file" accept="application/pdf,.pdf" (change)="onCv($event)">
           <span class="dt-btn dropzone__btn">{{ cvFile() ? 'Change file' : 'Choose file' }}</span>
         </label>
         <div class="autofill-note">
-          <span class="icon">info</span> Your CV goes to the placement office with your application, and becomes your first resume upload once you are admitted. The form below is still yours to fill.
+          <span class="icon" aria-hidden="true">info</span> Your CV goes to the placement office with your application, and becomes your first resume upload once you are admitted. The form below is still yours to fill.
         </div>
 
         <div class="reg-grid">
@@ -151,19 +158,26 @@
         <div class="field">
           <label>Professional photo</label>
           <label class="dropzone dropzone--live" style="padding:16px;">
-            <span class="icon" style="font-size:20px; margin-bottom:0">photo_camera</span>
+            <span class="icon" style="font-size:20px; margin-bottom:0" aria-hidden="true">photo_camera</span>
             @if (photoFile(); as f) {
               <strong>{{ f.name }}</strong>
             } @else {
               Upload a headshot (PNG or JPG)
             }
-            <input type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" (change)="onPhoto($event)" hidden>
+            <!-- focusable, like the CV picker above -->
+            <input type="file" class="reg-file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" (change)="onPhoto($event)">
           </label>
         </div>
 
         @if (error(); as e) {
-          <div class="reg-approval flag" style="margin-top:10px;">
-            <span class="icon">error</span>
+          <!-- role="alert" because @if INSERTS this after load: without a live
+               region a screen reader announces nothing at all when submission
+               fails, so the applicant presses Submit and hears silence. 21 other
+               templates in this app already do this; the most public form in the
+               product was the one that did not. aria-hidden on the icon keeps the
+               ligature word "error" out of the announced text. -->
+          <div class="reg-approval flag" role="alert" style="margin-top:10px;">
+            <span class="icon" aria-hidden="true">error</span>
             <div>{{ e }}</div>
           </div>
         }
@@ -171,7 +185,7 @@
         <div style="margin-top:20px; display:flex; gap:10px; align-items:center;">
           <button type="submit" class="dt-btn primary" [disabled]="pending()">
             {{ pending() ? 'Submitting…' : 'Submit registration' }}
-            <span class="icon" style="font-size:16px">arrow_forward</span>
+            <span class="icon" style="font-size:16px" aria-hidden="true">arrow_forward</span>
           </button>
           <a class="reg-signin-link" routerLink="/login">Already registered? Sign in</a>
         </div>

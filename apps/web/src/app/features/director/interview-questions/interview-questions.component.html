@@ -64,7 +64,7 @@
           <div class="iq-form__foot">
             <label class="btn iq-file">
               <span class="icon" aria-hidden="true">upload_file</span> Choose file
-              <input type="file" accept=".txt,.csv,text/plain,text/csv" (change)="onBulkFile($event)" hidden>
+              <input type="file" class="iq-file__input" accept=".txt,.csv,text/plain,text/csv" (change)="onBulkFile($event)">
             </label>
             <button type="button" class="btn primary" [disabled]="busy() || !bulkText().trim()" (click)="bulkAdd()">
               <span class="icon" aria-hidden="true">add_circle</span> Add all
@@ -109,8 +109,8 @@
                   <td class="iq-ord">
                     <span class="iq-num">{{ i + 1 }}</span>
                     <span class="iq-move">
-                      <button type="button" class="iq-mini" [disabled]="busy() || first" (click)="move(q, -1)" aria-label="Move up"><span class="icon iq-rot">chevron_left</span></button>
-                      <button type="button" class="iq-mini" [disabled]="busy() || last" (click)="move(q, 1)" aria-label="Move down"><span class="icon iq-rot">chevron_right</span></button>
+                      <button type="button" class="iq-mini" [disabled]="busy() || first" (click)="move(q, -1)" aria-label="Move up"><span class="icon iq-rot" aria-hidden="true">chevron_left</span></button>
+                      <button type="button" class="iq-mini" [disabled]="busy() || last" (click)="move(q, 1)" aria-label="Move down"><span class="icon iq-rot" aria-hidden="true">chevron_right</span></button>
                     </span>
                   </td>
                   <td class="iq-phase">
@@ -130,7 +130,7 @@
                     </label>
                   </td>
                   <td class="iq-act">
-                    <button type="button" class="iq-mini iq-mini--danger" [disabled]="busy()" (click)="remove(q)" aria-label="Remove"><span class="icon">delete</span></button>
+                    <button type="button" class="iq-mini iq-mini--danger" [disabled]="busy()" (click)="remove(q)" aria-label="Remove"><span class="icon" aria-hidden="true">delete</span></button>
                   </td>
                 </tr>
               } @empty {

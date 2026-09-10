@@ -399,20 +399,48 @@ export class GovernanceComponent {
     await this.refreshGrants();
   }
 
+  // ---- revoking a grant ---------------------------------------------------
+  /** The grant whose reason box is open, by id. One at a time. */
+  readonly revokingId = signal<string | null>(null);
+  readonly revokeReason = signal('');
+  readonly revokeBusy = signal(false);
+  readonly revokeReasonShort = computed(
+    () => this.revokeReason().trim().length < this.minReason(),
+  );
+
+  /** Arm the row. Opening a second one closes the first, so there is never
+   *  more than one reason box on screen to mistake for another. */
+  startRevoke(g: GrantOut): void {
+    this.revokingId.set(g.id);
+    this.revokeReason.set('');
+  }
+
+  cancelRevoke(): void {
+    this.revokingId.set(null);
+    this.revokeReason.set('');
+  }
+
+  /** Was a `window.prompt`. The reason is mandatory and >= `minReason` on the
+   *  server, and a native prompt cannot enforce that before sending — so a
+   *  short reason came back as a 422 the operator had to interpret. Inline, the
+   *  confirm button simply stays disabled and says why, which is how the grant
+   *  and switch-off controls on this same screen already behave. */
   async revoke(g: GrantOut): Promise<void> {
-    const reason = window.prompt(
-      `Why is “${g.capability_label}” being revoked from ${g.subject_label}?\n` +
-        `At least ${this.minReason()} characters — it goes on the audit trail.`,
-    );
-    if (reason === null) return;
-    const done = await this.write<GrantOut>(
-      'POST',
-      `/admin/governance/grants/${g.id}/revoke`,
-      { reason },
-    );
-    if (done === null) return;
-    this.flash.set(`Revoked “${g.capability_label}” from ${g.subject_label}.`);
-    await this.refreshGrants();
+    if (this.revokeReasonShort() || this.revokeBusy()) return;
+    this.revokeBusy.set(true);
+    try {
+      const done = await this.write<GrantOut>(
+        'POST',
+        `/admin/governance/grants/${g.id}/revoke`,
+        { reason: this.revokeReason().trim() },
+      );
+      if (done === null) return;
+      this.flash.set(`Revoked “${g.capability_label}” from ${g.subject_label}.`);
+      this.cancelRevoke();
+      await this.refreshGrants();
+    } finally {
+      this.revokeBusy.set(false);
+    }
   }
 
   async switchOff(enabled: boolean): Promise<void> {

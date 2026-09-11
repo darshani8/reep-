@@ -436,7 +436,7 @@ def send_onboarding_invite(db: Session, user: User, raw: str, token_id: str) -> 
         f"Set up your account here:\n\n    {link}\n\n"
         f"You will be asked to confirm your email address with a one-time code, "
         f"and then to choose a password. The link expires in "
-        f"{settings.activation_link_hours} hours.\n"
+        f"{_human_hours(settings.activation_link_hours)}.\n"
     )
     deliver_once(
         db,

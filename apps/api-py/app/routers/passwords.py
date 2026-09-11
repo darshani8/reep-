@@ -335,14 +335,23 @@ def change_password(
                 "finish setting up your account from the link you were emailed."
             ),
         )
+    # THE POLICY IS CHECKED BEFORE THE PROOF IS SPENT, and the order is the
+    # whole point. `_authorised_to_change` CONSUMES the one-time code and
+    # commits it, so validating afterwards burns a code on a password that was
+    # never going to be accepted: the person fixes their typo and is told to
+    # request another code, which reads as the form having eaten it. `reset`
+    # peeks its token, validates, then consumes, and the onboarding password
+    # step does the same; this was the one door with it the other way round.
+    problem = password_problem(body.new_password)
+    if problem:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=problem)
     if not _authorised_to_change(db, user, body):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="That is not right. Check the code, or the current password.",
         )
-    problem = password_problem(body.new_password)
-    if problem:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=problem)
+    # This one stays AFTER the proof: it can only fire on the current-password
+    # path, where nothing has been consumed and there is no code to protect.
     if body.current_password and body.new_password == body.current_password:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

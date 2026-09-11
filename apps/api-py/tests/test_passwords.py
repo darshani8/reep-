@@ -524,6 +524,42 @@ def test_a_student_can_change_their_password_with_an_emailed_code(client, make_u
 
 
 @requires_db
+def test_a_rejected_new_password_does_not_burn_the_code(client, make_user, login):
+    """A typo must not cost the code.
+
+    The endpoint used to prove authorisation FIRST — which consumes the
+    one-time code and commits it — and check the password policy afterwards.
+    So "abc" came back 422, the code was already spent, and the next attempt
+    with a perfectly good password was refused: the person had to ask for
+    another code to fix a typo, and the form looked like it had eaten the one
+    they were sent. `reset` and the onboarding password step have always
+    peeked, validated, then consumed. This pins the same order here.
+    """
+    student = make_user("pw-typo", Role.STUDENT)
+    headers = login(student.email, TEST_PASSWORD)
+    mail_transport.outbox.clear()
+
+    assert client.post("/api/auth/change-password/code", headers=headers).status_code == 200
+    code = re.search(r"\b(\d{6})\b", _mail_to(student.email, "password-change code").text).group(1)
+
+    rejected = client.post(
+        "/api/auth/change-password", headers=headers, json={"code": code, "new_password": "abc"}
+    )
+    assert rejected.status_code == 422, rejected.text
+
+    # THE ASSERTION THAT FAILS IF THE ORDER IS EVER PUT BACK: the same code,
+    # unspent, still authorises the change.
+    retry = client.post(
+        "/api/auth/change-password", headers=headers, json={"code": code, "new_password": GOOD}
+    )
+    assert retry.status_code == 200, retry.text
+    assert (
+        client.post("/api/auth/login", json={"email": student.email, "password": GOOD}).status_code
+        == 200
+    )
+
+
+@requires_db
 def test_change_password_needs_exactly_one_proof(client, make_user, login):
     staff = make_user("pw-oneproof", Role.MENTOR)
     headers = login(staff.email, TEST_PASSWORD)

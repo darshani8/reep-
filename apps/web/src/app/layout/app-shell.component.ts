@@ -3,7 +3,7 @@
  *
  * A title bar, a 220px sidebar (profile card + grouped nav) and a scrolling main
  * area the child route renders into. The nav switches on the session's role:
- * students get the full student navigation, staff (MENTOR/DIRECTOR/ADMIN) get
+ * students get the full student navigation, staff (MENTOR/ADMIN) get
  * the faculty pages (mentee log, leave, upskilling), alumni get profile + jobs.
  *
  * Every visual token for .desktop-frame, .desktop-nav, .nav-profile and the rest
@@ -26,26 +26,25 @@ import type { Role } from '../core/session';
 /// this list and the catalogue in app/models/governance.py are kept in step;
 /// each route below carries the SAME key as a capabilityGuard.
 const ADMIN_LINKS = [
-  { capability: 'admin.analytics', path: '/director', label: 'Analytics', icon: 'insights' },
-  { capability: 'admin.registrations', path: '/director/registrations', label: 'Registrations', icon: 'pending_actions' },
-  { capability: 'admin.mentors', path: '/director/mentors', label: 'Faculty & Students', icon: 'groups' },
-  { capability: 'admin.students', path: '/director/students', label: 'Students', icon: 'how_to_reg' },
-  { capability: 'admin.institution', path: '/director/institution', label: 'Institution', icon: 'school' },
-  { capability: 'admin.catalogue', path: '/director/catalogue', label: 'Catalogue', icon: 'menu_book' },
-  { capability: 'admin.jobs', path: '/director/jobs', label: 'Jobs Sheet', icon: 'work' },
-  { capability: 'admin.placement', path: '/director/placement', label: 'Placement', icon: 'verified' },
-  { capability: 'admin.interview_questions', path: '/director/interview-questions', label: 'Interview Questions', icon: 'edit_note' },
-  { capability: 'admin.swoc', path: '/director/swoc', label: 'SWOC Notes', icon: 'rate_review' },
-  { capability: 'admin.exports', path: '/director/exports', label: 'Exports', icon: 'download' },
+  { capability: 'admin.analytics', path: '/admin', label: 'Analytics', icon: 'insights' },
+  { capability: 'admin.registrations', path: '/admin/registrations', label: 'Registrations', icon: 'pending_actions' },
+  { capability: 'admin.mentors', path: '/admin/mentors', label: 'Faculty & Students', icon: 'groups' },
+  { capability: 'admin.students', path: '/admin/students', label: 'Students', icon: 'how_to_reg' },
+  { capability: 'admin.institution', path: '/admin/institution', label: 'Institution', icon: 'school' },
+  { capability: 'admin.catalogue', path: '/admin/catalogue', label: 'Catalogue', icon: 'menu_book' },
+  { capability: 'admin.jobs', path: '/admin/jobs', label: 'Jobs Sheet', icon: 'work' },
+  { capability: 'admin.placement', path: '/admin/placement', label: 'Placement', icon: 'verified' },
+  { capability: 'admin.interview_questions', path: '/admin/interview-questions', label: 'Interview Questions', icon: 'edit_note' },
+  { capability: 'admin.swoc', path: '/admin/swoc', label: 'SWOC Notes', icon: 'rate_review' },
+  { capability: 'admin.exports', path: '/admin/exports', label: 'Exports', icon: 'download' },
 ] as const;
 import { AgentOrbComponent } from './agent-orb.component';
 
 // The vocabulary the college uses: a MENTOR-role account is a faculty member,
-// and the one ADMIN is the Main Admin. DIRECTOR survives for the dev seed only.
+// and the one ADMIN is the Main Admin. There is no DIRECTOR — see core/session.ts.
 const ROLE_LABEL: Record<Role, string> = {
   STUDENT: 'Student',
   MENTOR: 'Faculty',
-  DIRECTOR: 'Director',
   ADMIN: 'Main Admin',
   ALUMNI: 'Alumni',
 };
@@ -62,7 +61,7 @@ export class AppShellComponent {
   private readonly router = inject(Router);
 
   readonly session = this.auth.session;
-  readonly roleLabel = computed(() => ROLE_LABEL[this.session()?.role ?? 'STUDENT'] ?? 'Student');
+  readonly roleLabel = computed(() => ROLE_LABEL[this.session()?.role as Role] ?? 'Student');
   /** The one account that may open Governance (routers/governance.py is ADMIN-only). */
   readonly isMainAdmin = computed(() => this.session()?.role === 'ADMIN');
 
@@ -80,10 +79,14 @@ export class AppShellComponent {
 
   readonly navKind = computed<'student' | 'staff' | 'admin' | 'alumni'>(() => {
     const role = this.session()?.role;
-    // Admin is its own set, not staff-plus-extras. A DIRECTOR/ADMIN was getting
-    // the mentor navigation, so every screen built for them — analytics,
+    // Admin is its own set, not staff-plus-extras. The office account was
+    // getting the mentor navigation, so every screen built for it — analytics,
     // approvals, registrations, assignment — was routed and unreachable.
-    if (role === 'DIRECTOR' || role === 'ADMIN') return 'admin';
+    //
+    // ONLY 'ADMIN' reaches this set. A retired DIRECTOR cookie used to as well,
+    // which painted the whole console for an account the API refuses on every
+    // request: a sidebar of fifteen links that all answer 403.
+    if (role === 'ADMIN') return 'admin';
     if (role === 'MENTOR') return 'staff';
     if (role === 'ALUMNI') return 'alumni';
     return 'student';

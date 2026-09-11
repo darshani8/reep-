@@ -65,7 +65,7 @@ class KnowledgeDocument(Base):
         default=KnowledgeStatus.DRAFT,
         server_default="DRAFT",
     )
-    # 'student' | 'mentor' | 'director' | 'all'
+    # 'student' | 'mentor' | 'admin' | 'all'
     audience: Mapped[str] = mapped_column(String, default="student", server_default="student")
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     owner_role: Mapped[str | None] = mapped_column(String, nullable=True)

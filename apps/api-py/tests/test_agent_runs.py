@@ -123,7 +123,7 @@ def test_feedback_tombstone_is_retired(client, login):
 
 @requires_db
 def test_metrics_report_a_live_collector(client, login):
-    headers = login("director@bgscet.ac.in", "director123")
+    headers = login("admin@bgscet.ac.in", "admin123")
     r = client.get("/api/agent/metrics", headers=headers)
     assert r.status_code == 200, r.text
     agent_runs = r.json()["agent_runs"]

@@ -10,7 +10,7 @@ path parameter naming a student anywhere, so there is nothing for a crafted id
 to reach. These endpoints DO name a student in the path, which makes them the
 exact shape rule 2 exists to govern, and every one of them goes through
 `_assert_can_access_student` before it touches a row: a MENTOR sees only students
-in their own group, a MENTOR with no group sees NOBODY, and DIRECTOR/ADMIN see
+in their own group, a MENTOR with no group sees NOBODY, and the Main Admin sees
 all. That helper lives in `routers/mentor.py` and is imported rather than
 reimplemented — a second copy of a scope check is a second place for it to be
 subtly wrong.
@@ -37,6 +37,7 @@ from sqlalchemy.orm import Session, selectinload
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.time_ledger import DAY_CAPACITY_HALVES, LedgerDayStatus, TimeLedgerDay
+from ..governance import require_capability
 from .mentor import _assert_can_access_student
 from .student_programme import (
     EnglishBaselineOut,
@@ -57,6 +58,11 @@ def read_student_ledger(
     db: Session = Depends(get_db),
 ) -> LedgerOut:
     """One day of a student's Time Allocation Ledger, exactly as they see it."""
+    # mentor.mentees, not require_mentor alone: the Main Admin is not a faculty
+    # member and has no mentees. It GRANTS itself this in Governance when it needs
+    # to look, which is the rule - the admin decides who holds faculty powers,
+    # itself included. Additive over the baseline, so faculty are unaffected.
+    require_capability(db, session, "mentor.mentees")
     _assert_can_access_student(session, student_id, db)
     target = day or date.today()
     return compose_ledger(target, load_day(db, student_id, target))
@@ -95,6 +101,11 @@ def read_student_ledger_summary(
     """The last `days` of ledger activity — the shape a mentor actually opens
     this screen for, which is "are they keeping it up", not "what did Tuesday
     look like"."""
+    # mentor.mentees, not require_mentor alone: the Main Admin is not a faculty
+    # member and has no mentees. It GRANTS itself this in Governance when it needs
+    # to look, which is the rule - the admin decides who holds faculty powers,
+    # itself included. Additive over the baseline, so faculty are unaffected.
+    require_capability(db, session, "mentor.mentees")
     _assert_can_access_student(session, student_id, db)
 
     since = date.today() - timedelta(days=days - 1)
@@ -141,5 +152,10 @@ def read_student_english_baseline(
     "Speaking has not been sat" and "Speaking scored 0" to look different, which
     is the same reason the columns are nullable in the first place.
     """
+    # mentor.mentees, not require_mentor alone: the Main Admin is not a faculty
+    # member and has no mentees. It GRANTS itself this in Governance when it needs
+    # to look, which is the rule - the admin decides who holds faculty powers,
+    # itself included. Additive over the baseline, so faculty are unaffected.
+    require_capability(db, session, "mentor.mentees")
     _assert_can_access_student(session, student_id, db)
     return compose_english_baseline(db, student_id)

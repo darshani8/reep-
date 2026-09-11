@@ -20,11 +20,12 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-from conftest import requires_db
+from conftest import TEST_PASSWORD, requires_db
 
 from app.db import SessionLocal
 from app.governance import (
     ROLE_BASELINE,
+    _FACULTY_ONLY,
     capabilities_for,
     feature_enabled,
     granted_capabilities,
@@ -103,7 +104,32 @@ def test_the_baseline_takes_nothing_away_from_a_mentor() -> None:
     # ...and the programme-wide set is NOT inherited: that is what a grant is for.
     assert "admin.analytics" not in mentor_caps
     assert "admin.exports" not in mentor_caps
-    assert ROLE_BASELINE["DIRECTOR"] >= mentor_caps
+    # Was ROLE_BASELINE["DIRECTOR"]. DIRECTOR holds nothing now
+    # (tests/test_no_director_privilege.py), and the office account is ADMIN.
+    #
+    # THE MAIN ADMIN IS NOT A SUPERSET OF A MENTOR, AND THAT IS DELIBERATE.
+    # `ROLE_BASELINE["ADMIN"] >= mentor_caps` is the assertion this used to make,
+    # and `_FACULTY_ONLY` in app/governance.py is what makes it false on purpose:
+    # a mentee log, a private notebook, an evidence queue and an upskilling shelf
+    # are a FACULTY MEMBER's instruments, and the Main Admin has no mentees,
+    # nobody's evidence to verify and no shelf. Those four screens would render
+    # empty for it, which is not access, it is a broken page.
+    #
+    # What must still hold is the thing the original assertion was protecting:
+    # the office account holds every PROGRAMME capability, so introducing grants
+    # took nothing away from it either. And the four exceptions stay GRANTABLE,
+    # so "the Main Admin can never look" is not what this arrangement says —
+    # it says the Main Admin has to be given the instrument, with a reason, on
+    # the audit trail.
+    admin_caps = ROLE_BASELINE["ADMIN"]
+    assert admin_caps >= (mentor_caps - _FACULTY_ONLY)
+    assert _FACULTY_ONLY and not (admin_caps & _FACULTY_ONLY), (
+        "the Main Admin picked up a faculty instrument by baseline; a grant is the way in"
+    )
+    assert _FACULTY_ONLY <= mentor_caps, "a faculty instrument a MENTOR does not hold"
+    assert _FACULTY_ONLY <= {c.key for c in CAPABILITIES}, (
+        "a faculty instrument left the catalogue, so it can no longer be granted at all"
+    )
     assert ROLE_BASELINE["STUDENT"] == frozenset()
 
 
@@ -342,7 +368,7 @@ def test_a_granted_capability_opens_the_analytics_endpoints(client, admin, mento
     carried in the cookie, so the session minted before the grant sees it.
     """
     # Before: a mentor is refused, and /me says they hold no admin capability.
-    r = client.get("/api/director/analytics-summary", headers=mentor.headers)
+    r = client.get("/api/admin/analytics-summary", headers=mentor.headers)
     assert r.status_code == 403, r.text
     me = client.get("/api/auth/me", headers=mentor.headers).json()
     assert "admin.analytics" not in me["capabilities"]
@@ -354,57 +380,100 @@ def test_a_granted_capability_opens_the_analytics_endpoints(client, admin, mento
     cleanup["grants"] += [g["id"] for g in r.json()]
 
     # After, on the SAME cookie: the endpoint opens and /me reports it.
-    r = client.get("/api/director/analytics-summary", headers=mentor.headers)
+    r = client.get("/api/admin/analytics-summary", headers=mentor.headers)
     assert r.status_code == 200, r.text
     me = client.get("/api/auth/me", headers=mentor.headers).json()
     assert "admin.analytics" in me["capabilities"]
 
     # An admin never needed a grant — the baseline carries it.
-    assert client.get("/api/director/analytics-summary", headers=admin.headers).status_code == 200
+    assert client.get("/api/admin/analytics-summary", headers=admin.headers).status_code == 200
 
 
 @requires_db
-def test_interview_audio_is_a_capability_a_director_must_be_granted(client, admin, make_user, cleanup) -> None:
-    """The recording gate: ADMIN by baseline, DIRECTOR only by explicit grant.
+def test_interview_audio_is_a_capability_faculty_must_be_granted(client, admin, make_user, cleanup) -> None:
+    """The recording gate: ADMIN by baseline, everyone else only by grant.
 
     interview_records.py had `_DEVELOPERS = {"ADMIN"}` and a docstring refusing
-    to widen to require_director - every placement account would then hold the
+    to widen to require_admin - every placement account would then hold the
     most sensitive bytes REEP stores. That asymmetry must SURVIVE the move to a
-    capability, which is why DIRECTOR's baseline excludes exactly this one.
+    capability, and the capability is what makes it grantable to one person, for
+    one reason, on the trail.
+
+    WRITTEN AGAINST A FACULTY MEMBER because DIRECTOR no longer exists
+    (tests/test_no_director_privilege.py). It used to be the subject here, as
+    the role whose baseline excluded exactly this one capability; now no role
+    but ADMIN carries it by baseline and MENTOR is the account that has to ask.
 
     404, not 200, is the pass signal past the gate: the session id here is
     invented, and the route answers 404 for "no such recording" identically to
     "not a real id", by design. What matters is that 403 becomes 404 - the gate
-    opened - and that it does so for the Main Admin with no grant and for a
-    DIRECTOR only after one, which only the Main Admin can give.
-    """
-    from app.models.user import Student
+    opened.
 
-    director = make_user(f"gov-dir-{uuid.uuid4().hex[:4]}", Role.DIRECTOR)
+    THE STUDENT IS IN THIS MENTOR'S GROUP DELIBERATELY. Without that, rule 2
+    would 404 them for scope and the test would pass on the wrong 404 - green
+    whether or not the capability gate ever opened.
+    """
+    from app.models.user import Mentor, Student
+
+    faculty = make_user(f"gov-fac-{uuid.uuid4().hex[:4]}", Role.MENTOR)
     stu = make_user(f"gov-aud-{uuid.uuid4().hex[:4]}")
     with SessionLocal() as db:
-        sid = db.query(Student).filter(Student.user_id == stu.user_id).one().id
+        group = Mentor(user_id=faculty.user_id)
+        db.add(group)
+        db.flush()
+        student = db.query(Student).filter(Student.user_id == stu.user_id).one()
+        student.mentor_id = group.id
+        sid = student.id
+        db.commit()
+        mentor_row_id = group.id
+
+    # Re-authenticate: the session is a signed snapshot, so the mentorId claim
+    # only appears in a cookie minted after the group existed.
+    login = client.post(
+        "/api/auth/login", json={"email": faculty.email, "password": TEST_PASSWORD}
+    )
+    assert login.status_code == 200, login.text
+    headers = {"Cookie": login.headers.get("set-cookie", "")}
+    client.cookies.clear()
+
     url = f"/api/mentor/students/{sid}/interviews/{uuid.uuid4().hex}/audio"
+    try:
+        # Faculty, ungranted: refused - and told what to ask for.
+        r = client.get(url, headers=headers)
+        assert r.status_code == 403, r.text
+        assert "Interview audio" in r.text and "Governance" in r.text
 
-    # A director, ungranted: refused - and told what to ask for.
-    r = client.get(url, headers=director.headers)
-    assert r.status_code == 403, r.text
-    assert "Interview audio" in r.text and "Governance" in r.text
+        # The Main Admin, no grant: through on the baseline.
+        assert client.get(url, headers=admin.headers).status_code == 404
 
-    # The Main Admin, no grant: through on the baseline.
-    assert client.get(url, headers=admin.headers).status_code == 404
+        # Faculty cannot grant it to themselves - Governance is the Main Admin's.
+        body = {
+            "capability": "admin.interview_audio",
+            "user_ids": [faculty.user_id],
+            "reason": REASON,
+        }
+        r = client.post(f"{GOV}/grants", headers=headers, json=body)
+        assert r.status_code == 403 and "Main Admin" in r.text, r.text
+        r = client.post(f"{GOV}/grants", headers=admin.headers, json=body)
+        assert r.status_code == 201, r.text
+        cleanup["grants"] += [g["id"] for g in r.json()]
 
-    # A director cannot grant it to themselves - Governance is the Main Admin's.
-    body = {"capability": "admin.interview_audio", "user_ids": [director.user_id], "reason": REASON}
-    r = client.post(f"{GOV}/grants", headers=director.headers, json=body)
-    assert r.status_code == 403 and "Main Admin" in r.text, r.text
-    r = client.post(f"{GOV}/grants", headers=admin.headers, json=body)
-    assert r.status_code == 201, r.text
-    cleanup["grants"] += [g["id"] for g in r.json()]
-
-    # Same cookie, no re-login: the gate now opens for the director too.
-    assert client.get(url, headers=director.headers).status_code == 404
-    assert "admin.interview_audio" in client.get("/api/auth/me", headers=director.headers).json()["capabilities"]
+        # Same cookie, no re-login: the gate now opens for them too.
+        assert client.get(url, headers=headers).status_code == 404
+        assert (
+            "admin.interview_audio"
+            in client.get("/api/auth/me", headers=headers).json()["capabilities"]
+        )
+    finally:
+        with SessionLocal() as db:
+            student = db.query(Student).filter(Student.user_id == stu.user_id).one_or_none()
+            if student is not None:
+                student.mentor_id = None
+            db.commit()
+            row = db.get(Mentor, mentor_row_id)
+            if row is not None:
+                db.delete(row)
+                db.commit()
 
 
 @requires_db

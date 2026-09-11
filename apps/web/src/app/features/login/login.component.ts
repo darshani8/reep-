@@ -511,7 +511,7 @@ export class LoginComponent {
    * httpOnly `reep_session` cookie on the response, so there is no redirect to
    * ride and the SPA can route immediately. Routing is BY ROLE through the same
    * HOME_FOR_ROLE map `homeRedirectGuard` uses — not the portal picked above
-   * and not a hardcoded '/student', which is how a director used to land on a
+   * and not a hardcoded '/student', which is how the office account used to land on a
    * screen they have no rows for.
    */
   /** POST /auth/forgot. Shows the server's words verbatim: they are written to

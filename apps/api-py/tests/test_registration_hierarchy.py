@@ -90,8 +90,8 @@ def applicant():
 
 
 def _verify(client, email: str) -> str:
-    token = _token_from(_mail_to(email, "Confirm your email"))
-    client.get(f"/api/register/verify?token={token}", follow_redirects=False)
+    """Just the application id now. The confirmation hop this used to walk is
+    gone — submission reaches the review queue directly (2026-09-10)."""
     with SessionLocal() as db:
         return db.scalar(select(Registration.id).where(Registration.email == email))
 
@@ -222,6 +222,28 @@ def test_approval_seats_the_student_in_the_requested_batch_unless_a_rule_says_ot
         user = db.scalar(select(User).where(User.email == email_a))
         student = db.scalar(select(Student).where(Student.user_id == user.id))
         assert student.cohort_id == chain["cohort"]["id"], "seated where they asked"
+
+    # (a2) The department they named survives even with no batch to seat them
+    # in. This is the ordinary case at a college that has not built its batches:
+    # the form REQUIRES College and Department and makes Batch optional, and
+    # provisioning used to keep only the batch — so the one fact the applicant
+    # was forced to give was the one fact thrown away, and they were admitted
+    # with no institution at all (31f7a4c60b12).
+    email_d = f"hc.dept.{TAG}@bgscet.ac.in"
+    assert post(
+        client, email_d, usn=f"1BG26HSD{TAG[:2].upper()}1",
+        college_id=chain["college"]["id"], department_id=chain["department"]["id"],
+    ).status_code == 201
+    reg_d = _verify(client, email_d)
+    r = client.post(f"/api/register/{reg_d}/decision", headers=h, json={"decision": "APPROVE"})
+    assert r.status_code == 200, r.text
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == email_d))
+        student = db.scalar(select(Student).where(Student.user_id == user.id))
+        assert student.cohort_id is None, "they asked for no batch, and there need not be one"
+        assert student.department_id == chain["department"]["id"], (
+            "the department the form REQUIRED is what approval keeps"
+        )
 
     # (b) A rule seats them somewhere else: policy wins over the claim.
     other_batch = client.post(

@@ -26,5 +26,9 @@ def test_student_identity_requires_session_owned_student():
 
 
 def test_role_sets_are_explicit():
-    assert STAFF_ROLES == {"MENTOR", "DIRECTOR", "ADMIN"}
+    # DIRECTOR is deliberately absent (2026-09-10). It was a second Main Admin
+    # under another name and now grants nothing; see app/policies.py and
+    # tests/test_no_director_privilege.py.
+    assert STAFF_ROLES == {"MENTOR", "ADMIN"}
     assert "STUDENT" not in STAFF_ROLES
+    assert "DIRECTOR" not in STAFF_ROLES

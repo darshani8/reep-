@@ -18,7 +18,7 @@ WHO THE MAIL GOES TO, BY ROLE — the decision recorded as "option B" in the
 agreed plan: STUDENTS SIGN IN WITH GOOGLE AND NEVER HOLD A PASSWORD, so a
 provisioned student gets an ENROLMENT NOTICE ("your account is ready, sign in
 with your college Google account") and never an activation link. STAFF
-(mentor, director, admin, alumni) get password accounts through activation.
+(mentor, admin, alumni) get password accounts through activation.
 `issue_activation` refuses a STUDENT for that reason.
 """
 
@@ -37,13 +37,18 @@ from . import mail_transport
 from .config import settings
 from .mailer import deliver_once
 from .models.auth_token import (
+    CODE_PURPOSES,
     PURPOSE_ACTIVATION,
+    PURPOSE_CHANGE_CODE,
     PURPOSE_LOGIN_CODE,
+    PURPOSE_ONBOARD,
+    PURPOSE_ONBOARD_CODE,
+    PURPOSE_ONBOARD_SET,
     PURPOSE_RESET,
     AuthToken,
     _uuid,
 )
-from .models.registration import EmailVerification, Registration
+from .models.registration import Registration
 from .models.user import Role, User
 
 log = logging.getLogger(__name__)
@@ -106,6 +111,15 @@ def _now() -> datetime:
 LOGIN_CODE_SWEEP_GRACE = timedelta(days=1)
 
 
+def _human_hours(hours: int) -> str:
+    """"7 days", not "168 hours". A lifetime is written into a mail a student
+    reads once, and the number that matters to them is the one they can hold
+    in their head. Falls back to hours whenever days would round."""
+    if hours >= 48 and hours % 24 == 0:
+        return f"{hours // 24} days"
+    return f"{hours} hour" + ("" if hours == 1 else "s")
+
+
 def _link(path: str, raw: str) -> str:
     return f"{settings.web_origin.rstrip('/')}{path}?token={raw}"
 
@@ -153,10 +167,10 @@ def issue_user_token(
     never trip `uq_auth_token_hash` — the id is drawn here, before the row
     exists, because the hash needs it.
     """
-    if purpose == PURPOSE_LOGIN_CODE:
+    if purpose in CODE_PURPOSES:
         db.execute(
             delete(AuthToken).where(
-                AuthToken.user_id == user.id, AuthToken.purpose == PURPOSE_LOGIN_CODE
+                AuthToken.user_id == user.id, AuthToken.purpose == purpose
             )
         )
         raw = raw or new_login_code()
@@ -292,7 +306,7 @@ def sweep_login_codes(db: Session, now: datetime | None = None) -> int:
     cutoff = (now or _now()) - LOGIN_CODE_SWEEP_GRACE
     result = db.execute(
         delete(AuthToken).where(
-            AuthToken.purpose == PURPOSE_LOGIN_CODE,
+            AuthToken.purpose.in_(CODE_PURPOSES),
             (AuthToken.consumed_at < cutoff) | (AuthToken.expires_at < cutoff),
         )
     )
@@ -302,37 +316,12 @@ def sweep_login_codes(db: Session, now: datetime | None = None) -> int:
 # ---------------------------------------------- registration confirmation --
 
 
-def issue_email_verification(db: Session, registration: Registration) -> str:
-    """A confirmation link for a fresh application. Returns the raw token."""
-    raw = _new_raw()
-    db.add(
-        EmailVerification(
-            registration_id=registration.id,
-            token_hash=_hash(raw),
-            expires_at=_now() + timedelta(hours=settings.email_verification_hours),
-        )
-    )
-    db.flush()
-    return raw
-
-
-def consume_email_verification(db: Session, raw: str) -> Registration | None:
-    """Spend a confirmation link atomically; the application, or None."""
-    now = _now()
-    result = db.execute(
-        update(EmailVerification)
-        .where(
-            EmailVerification.token_hash == _hash(raw),
-            EmailVerification.consumed_at.is_(None),
-            EmailVerification.expires_at > now,
-        )
-        .values(consumed_at=now)
-        .returning(EmailVerification.registration_id)
-    )
-    registration_id = result.scalar_one_or_none()
-    if registration_id is None:
-        return None
-    return db.get(Registration, registration_id)
+# THE REGISTRATION CONFIRMATION LINK IS GONE (2026-09-10). issue/reissue/
+# consume_email_verification and their route lived here; the mailbox proof
+# moved past the decision and is now three purposes on `auth_tokens`
+# (PURPOSE_ONBOARD, _CODE, _SET) rather than a row on `email_verifications`.
+# The MODEL and its table stay: `purge_people` classifies all 93 tables and a
+# table nobody classified aborts its run, and retention still names it.
 
 
 # ---------------------------------------------------------------- the mail --
@@ -374,27 +363,11 @@ def send_activation(db: Session, user: User, raw: str, token_id: str) -> str:
     return link
 
 
-def send_enrolment_notice(db: Session, user: User) -> None:
-    """Tell a newly provisioned STUDENT their account exists. No link, no
-    password: students sign in with Google (option B). Sent once per user —
-    the dedupe key has no token because there is no token."""
-    login = f"{settings.web_origin.rstrip('/')}/login"
-    subject = "Your REEP account is ready"
-    text = (
-        f"Hello {user.name},\n\n"
-        f"Your application has been approved and your REEP account is ready.\n\n"
-        f"Sign in with your college Google account ({user.email}) here:\n\n"
-        f"    {login}\n\n"
-        f"There is no password to set — your college Google account is your sign-in.\n"
-    )
-    deliver_once(
-        db,
-        kind="enrolment",
-        recipient=user.email,
-        dedupe_key=f"enrolment:{user.id}",
-        subject=subject,
-        send=_driver(text),
-    )
+# `send_enrolment_notice` IS GONE (2026-09-10). It told a provisioned student
+# "sign in with your college Google account — there is no password to set",
+# which was the whole of option B. Students set a password now, so provisioning
+# sends `send_onboarding_invite` instead: the same moment, a mail that carries
+# the way in rather than a sentence about a button.
 
 
 def send_password_reset(db: Session, user: User, raw: str, token_id: str) -> str:
@@ -444,27 +417,113 @@ def send_login_code(db: Session, user: User, code: str, token_id: str) -> None:
     )
 
 
-def send_email_verification(db: Session, registration: Registration, raw: str) -> str:
-    """The confirmation link for an application. Goes to the API directly (it
-    is a GET the mail client can follow), which then redirects into the app."""
-    link = f"{settings.web_origin.rstrip('/')}/api/register/verify?token={raw}"
-    subject = "Confirm your email for your REEP application"
+def send_onboarding_invite(db: Session, user: User, raw: str, token_id: str) -> str:
+    """The mail an APPROVED applicant gets: one link, and nothing else to do.
+
+    This replaced `send_enrolment_notice` (2026-09-10). That notice said "sign
+    in with your college Google account" and was the whole of option B, under
+    which a student never held a password. Students now set one, so the mail
+    has to carry the way in rather than a sentence about a button.
+
+    It carries a LINK and not a code, because it is opened in a browser: the
+    screen it lands on is what then asks for the address and mails the code.
+    """
+    link = f"{settings.web_origin.rstrip('/')}/onboard?token={raw}"
+    subject = "Your REEP account is approved - set it up"
     text = (
-        f"Hello {registration.name},\n\n"
-        f"Confirm this is your address so the placement office can review your "
-        f"application:\n\n    {link}\n\n"
-        f"The link expires in {settings.email_verification_hours} hours. If you "
-        f"did not apply, ignore this email and nothing will happen.\n"
+        f"Hello {user.name},\n\n"
+        f"Your REEP registration has been approved by the placement office.\n\n"
+        f"Set up your account here:\n\n    {link}\n\n"
+        f"You will be asked to confirm your email address with a one-time code, "
+        f"and then to choose a password. The link expires in "
+        f"{_human_hours(settings.activation_link_hours)}.\n"
     )
     deliver_once(
         db,
-        kind="email-verification",
-        recipient=registration.email,
-        dedupe_key=f"verify:{registration.id}:{_hash(raw)[:16]}",
+        kind="onboarding-invite",
+        recipient=user.email,
+        dedupe_key=f"onboard:{user.id}:{token_id}",
         subject=subject,
         send=_driver(text),
     )
     return link
+
+
+def send_onboarding_code(db: Session, user: User, code: str, token_id: str) -> None:
+    """The six digits that prove the mailbox is READABLE, not merely that a
+    link reached it. A forwarded invite is still a valid invite; this is the
+    step that a forward does not survive."""
+    subject = "Your REEP verification code"
+    text = (
+        f"Hello {user.name},\n\n"
+        f"Your code to confirm this email address is:\n\n    {code}\n\n"
+        f"It expires in {settings.otp_code_minutes} minutes. Enter it on the "
+        f"page you have open. If you were not setting up a REEP account, "
+        f"ignore this email.\n"
+    )
+    deliver_once(
+        db,
+        kind="onboarding-code",
+        recipient=user.email,
+        dedupe_key=f"onboard-code:{user.id}:{token_id}",
+        subject=subject,
+        send=_driver(text),
+    )
+
+
+def send_change_code(db: Session, user: User, code: str, token_id: str) -> None:
+    """The code that authorises changing the password on a LIVE account.
+
+    Its own purpose and its own words. A person reading "confirm this email
+    address" when they asked to change a password cannot tell whether they are
+    looking at their own action or somebody else's attempt on their account -
+    and that sentence is the only warning they will get.
+    """
+    subject = "Your REEP password-change code"
+    text = (
+        f"Hello {user.name},\n\n"
+        f"Your code to change your REEP password is:\n\n    {code}\n\n"
+        f"It expires in {settings.otp_code_minutes} minutes.\n\n"
+        f"If you did NOT ask to change your password, do not enter this code - "
+        f"somebody else may know your password. Tell the placement office.\n"
+    )
+    deliver_once(
+        db,
+        kind="change-code",
+        recipient=user.email,
+        dedupe_key=f"change-code:{user.id}:{token_id}",
+        subject=subject,
+        send=_driver(text),
+    )
+
+
+def send_registration_rejected(db: Session, registration: Registration, reason: str) -> None:
+    """Tell an applicant their registration was not accepted, and why.
+
+    THE REASON IS THE POINT. A rejected applicant is not a user and never will
+    be one, so this mail is the only channel the product has to them - and the
+    admin was already required to type a reason before the Reject button would
+    confirm. Sending the decision without it would waste the one thing that
+    makes the refusal answerable ("my USN was mistyped") rather than final.
+
+    Dedupe is on the application, not on a token: a decision happens once.
+    """
+    subject = "About your REEP registration"
+    text = (
+        f"Hello {registration.name},\n\n"
+        f"Your REEP registration could not be accepted.\n\n"
+        f"Reason given by the placement office:\n\n    {reason}\n\n"
+        f"If you believe this is a mistake, reply to the placement office with "
+        f"your name and USN.\n"
+    )
+    deliver_once(
+        db,
+        kind="registration-rejected",
+        recipient=registration.email,
+        dedupe_key=f"rejected:{registration.id}",
+        subject=subject,
+        send=_driver(text),
+    )
 
 
 # ---------------------------------------------------------- the two flows --
@@ -480,14 +539,19 @@ def issue_activation(
     plan keeps PERMANENTLY: when a student says "the email never arrived", the
     admin reads them the link instead of waiting on a mail queue.
 
-    Refuses a STUDENT. Under option B students never hold a password; giving
-    one a link here would open a password door the roster design does not
-    want. They get `send_enrolment_notice` from provisioning instead.
+    STILL REFUSES A STUDENT, and not because option B survives — it does not,
+    students set passwords now. It refuses because a student's equivalent is
+    `issue_onboarding`, whose walk makes them confirm the address with an
+    emailed CODE before any password is set. An activation link skips that: it
+    is a staff first-password link, and staff accounts are created by a named
+    admin who already knows who they are. Handing one to a student would trade
+    the mailbox proof for nothing.
     """
     if user.role is Role.STUDENT:
         raise ValueError(
-            "Students sign in with their college Google account and do not set a "
-            "password. Activation links are for staff accounts."
+            "Students set their password from the setup link they are emailed "
+            "when their registration is approved. Activation links are for "
+            "staff accounts."
         )
     raw, row = issue_user_token(
         db,
@@ -499,6 +563,71 @@ def issue_activation(
     db.commit()
     link = send_activation(db, user, raw, row.id)
     return link, mail_transport.configured()
+
+
+def issue_onboarding(db: Session, user: User) -> tuple[str, bool]:
+    """Mint the setup link an approved student is emailed. Returns (link, emailed).
+
+    Called from provisioning — the Main Admin's APPROVE and a rule's
+    auto-approve alike — so there is exactly one way an account comes into
+    existence with a way in attached. It does NOT refuse a STUDENT the way
+    `issue_activation` does: that refusal WAS option B, and option B is what
+    this replaces.
+
+    Superseding is `issue_user_token`'s, so re-approving or re-sending hands
+    over one live link. The commit lands the token before the mail goes out; a
+    send that fails leaves a link that still works rather than a row promising
+    a mail nobody has.
+    """
+    raw, row = issue_user_token(
+        db, user, PURPOSE_ONBOARD, timedelta(hours=settings.activation_link_hours)
+    )
+    db.commit()
+    link = send_onboarding_invite(db, user, raw, row.id)
+    return link, mail_transport.configured()
+
+
+def issue_onboarding_code(db: Session, user: User) -> None:
+    """Mail the six digits that confirm the address. Minutes, not hours."""
+    _, row = issue_user_token(
+        db,
+        user,
+        PURPOSE_ONBOARD_CODE,
+        timedelta(minutes=settings.otp_code_minutes),
+        raw=(code := new_login_code()),
+    )
+    db.commit()
+    send_onboarding_code(db, user, code, row.id)
+
+
+def issue_onboarding_ticket(db: Session, user: User) -> str:
+    """The short-lived proof that THIS person just spent the emailed code.
+
+    Minted only by `onboard/verify`, accepted only by `onboard/password`. It
+    exists because the code is single-use and already consumed by the time the
+    password screen renders: without a ticket that step would have to trust the
+    invite link alone, and the mailbox proof — the entire reason the code is in
+    the flow — would be skippable by anyone holding a forwarded link.
+
+    Fifteen minutes: long enough to choose a password, short enough that a
+    ticket left on a lab machine is dead before the next class.
+    """
+    raw, _ = issue_user_token(db, user, PURPOSE_ONBOARD_SET, timedelta(minutes=15))
+    db.commit()
+    return raw
+
+
+def issue_change_code(db: Session, user: User) -> None:
+    """Mail the code that authorises a password change on a live account."""
+    _, row = issue_user_token(
+        db,
+        user,
+        PURPOSE_CHANGE_CODE,
+        timedelta(minutes=settings.otp_code_minutes),
+        raw=(code := new_login_code()),
+    )
+    db.commit()
+    send_change_code(db, user, code, row.id)
 
 
 def issue_password_reset(db: Session, user: User) -> None:

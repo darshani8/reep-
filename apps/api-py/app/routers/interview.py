@@ -157,7 +157,7 @@ _LIMITER = _ConnectionLimiter(
     settings.interview_max_sessions, settings.interview_max_sessions_per_user
 )
 
-# The model's raw scorecard text kept on the evaluation row for a DIRECTOR to
+# The model's raw scorecard text kept on the evaluation row for the Main Admin to
 # read when a parse goes wrong. Truncated because it is unbounded model output
 # on a row nobody paginates; 8000 characters is an order of magnitude past the
 # 800-token response the relay asks for, so a healthy report is never clipped and
@@ -717,7 +717,7 @@ async def interview(websocket: WebSocket) -> None:
     # Role scoping is the ROUTER's job in this repo (require_mentor +
     # _assert_can_access_student, and voice.py's own STUDENT check), so
     # get_ws_session authenticates and this authorises. Hiding the Start button
-    # in the Angular component is not a gate: a MENTOR or DIRECTOR holding a
+    # in the Angular component is not a gate: a MENTOR or the Main Admin holding a
     # valid cookie can open this socket from devtools in one line, and each open
     # costs a billed upstream Realtime session.
     if session.get("role") != Role.STUDENT.value:

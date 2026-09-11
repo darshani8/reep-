@@ -1,8 +1,8 @@
-"""Mentor area — staff (MENTOR / DIRECTOR / ADMIN) views of their mentees.
+"""Mentor area — staff (MENTOR / ADMIN) views of their mentees.
 
 Scope rule (mirrors mentorScope()/menteeWhere() in the Next.js app, and the
 AGENTS.md guidance): a MENTOR sees only students in their Mentor group;
-DIRECTOR/ADMIN see all. A MENTOR with NO Mentor group (no mentorId in the
+the Main Admin sees all. A MENTOR with NO Mentor group (no mentorId in the
 session) sees NOBODY — never the whole programme.
 """
 
@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..governance import require_capability
 from ..document_store import content_disposition, read_bytes
 from ..identity import get_current_session
 from ..models.alert import Alert
@@ -27,7 +28,8 @@ from ..policies import assert_student_scope
 
 router = APIRouter(prefix="/mentor", tags=["mentor"])
 
-_STAFF = {"MENTOR", "DIRECTOR", "ADMIN"}
+# DIRECTOR is not staff any more — it grants nothing. See app/policies.py.
+_STAFF = {"MENTOR", "ADMIN"}
 
 
 def require_mentor(session: dict) -> dict:
@@ -48,7 +50,11 @@ class MenteeOut(BaseModel):
 def mentees(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[MenteeOut]:
-    require_mentor(session)
+    # mentor.mentees: the mentee log and the meeting notes are a faculty
+    # member's instruments. The Main Admin holds neither by role - it has no
+    # mentees - and grants itself the capability in Governance if it needs to
+    # look. Additive over the baseline, so faculty access is unchanged.
+    require_capability(db, session, "mentor.mentees")
     query = select(Student, User.name).join(User, Student.user_id == User.id)
 
     if session["role"] == "MENTOR":
@@ -56,7 +62,7 @@ def mentees(
         if not mentor_id:
             return []  # no Mentor group => nobody (never the whole programme)
         query = query.where(Student.mentor_id == mentor_id)
-    # DIRECTOR / ADMIN: no narrowing — the whole programme.
+    # the Main Admin: no narrowing — the whole programme.
 
     rows = db.execute(query.order_by(User.name)).all()
     return [
@@ -147,6 +153,11 @@ def list_notes(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[NoteOut]:
+    # mentor.mentees: the mentee log and the meeting notes are a faculty
+    # member's instruments. The Main Admin holds neither by role - it has no
+    # mentees - and grants itself the capability in Governance if it needs to
+    # look. Additive over the baseline, so faculty access is unchanged.
+    require_capability(db, session, "mentor.mentees")
     _assert_can_access_student(session, student_id, db)
     rows = db.scalars(
         select(MentorNote)
@@ -165,6 +176,11 @@ def add_note(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NoteOut:
+    # mentor.mentees: the mentee log and the meeting notes are a faculty
+    # member's instruments. The Main Admin holds neither by role - it has no
+    # mentees - and grants itself the capability in Governance if it needs to
+    # look. Additive over the baseline, so faculty access is unchanged.
+    require_capability(db, session, "mentor.mentees")
     _assert_can_access_student(session, student_id, db)
     mentor_id = session.get("mentorId")
     if not mentor_id:
@@ -205,8 +221,13 @@ def delete_note(
     which is why it is narrower than the write: rule 2's gate first, then the
     note must belong to THIS student (a note id from another mentee is a 404,
     not a cross-student delete), and a MENTOR may only remove a note they
-    authored. DIRECTOR/ADMIN may remove any note in the programme.
+    authored. the Main Admin may remove any note in the programme.
     """
+    # mentor.mentees: the mentee log and the meeting notes are a faculty
+    # member's instruments. The Main Admin holds neither by role - it has no
+    # mentees - and grants itself the capability in Governance if it needs to
+    # look. Additive over the baseline, so faculty access is unchanged.
+    require_capability(db, session, "mentor.mentees")
     _assert_can_access_student(session, student_id, db)
     note = db.get(MentorNote, note_id)
     # `db.get` is a primary-key lookup and takes no WHERE clause, so the
@@ -252,6 +273,17 @@ def _alert_out(alert: Alert, student_name: str) -> AlertOut:
     )
 
 
+#: The alert feed is newest-first and BOUNDED. It had no limit at all, and the
+#: two callers pull in opposite directions: a MENTOR's query is narrowed to
+#: their own group, but the Main Admin's is not narrowed at all, so `open_only`
+#: off asked for every alert ever raised for every student in the programme,
+#: sorted, in one response. The screen shows a feed; nobody scrolls to row nine
+#: thousand. `Alert.id` is the tiebreak, because two alerts raised in the same
+#: transaction share a `triggered_at` and an unstable sort silently drops and
+#: repeats rows across a paged read.
+_MAX_ALERTS_LISTED = 200
+
+
 @router.get("/alerts", response_model=list[AlertOut])
 def alerts(
     open_only: bool = True,
@@ -271,7 +303,9 @@ def alerts(
         if not mentor_id:
             return []
         query = query.where(Student.mentor_id == mentor_id)
-    rows = db.execute(query.order_by(Alert.triggered_at.desc())).all()
+    rows = db.execute(
+        query.order_by(Alert.triggered_at.desc(), Alert.id).limit(_MAX_ALERTS_LISTED)
+    ).all()
     return [_alert_out(a, name) for a, name in rows]
 
 
@@ -297,27 +331,23 @@ def resolve_alert(
     return _alert_out(alert, name or "")
 
 
-_DIRECTORS = {"DIRECTOR", "ADMIN"}
-
-
-def require_director(session: dict) -> dict:
-    if session.get("role") not in _DIRECTORS:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Director access required."
-        )
-    return session
-
-
 def require_admin(session: dict) -> dict:
-    """The Main Admin, and nobody else.
+    """The Main Admin, and nobody else. THE ONE console gate.
 
-    REEP has ONE Main Admin. DIRECTOR is a role the code still knows (the dev
-    seed uses it; its baseline is every console screen) but it is not the
-    office, and what this gate protects is the office's one exclusive
-    instrument: Governance, which decides what faculty may see.
-    `require_director` admits DIRECTOR/ADMIN to the console's screens; this
-    admits ADMIN only, so the console can never grow a second hand that
-    widens access.
+    THERE USED TO BE TWO. `require_admin` admitted {DIRECTOR, ADMIN} to the
+    console's screens and this admitted ADMIN alone, and the difference between
+    them was the whole of what DIRECTOR meant. With DIRECTOR granting nothing
+    (see app/policies.py), the two gates became the same test written twice —
+    and two names for one rule is how a screen ends up guarded by the weaker one
+    because that was the import already at the top of the file.
+
+    So `require_admin` is gone and its 29 call sites now name this. The name
+    is also the honest one: what they were protecting was never a director, it
+    was the office.
+
+    Faculty do not reach console screens through a role at all. They reach the
+    screens the Main Admin grants them, through `require_capability` — which is
+    a different question with a different answer, and stays separate.
     """
     if session.get("role") != "ADMIN":
         raise HTTPException(
@@ -354,7 +384,7 @@ def _offer_row(offer: PlacementOffer, student_name: str) -> PendingOfferOut:
 def pending_offers(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[PendingOfferOut]:
-    require_director(session)
+    require_admin(session)
     rows = db.execute(
         select(PlacementOffer, User.name)
         .join(Student, PlacementOffer.student_id == Student.id)
@@ -377,7 +407,7 @@ def decide_offer(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> PendingOfferOut:
-    require_director(session)
+    require_admin(session)
     offer = db.get(PlacementOffer, offer_id)
     if offer is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
@@ -501,7 +531,7 @@ def pending_uploads(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[UploadOut]:
     """Documents awaiting review — profile photos, certificate proofs, offer
-    letters — scoped to the mentor's own group (DIRECTOR/ADMIN see all)."""
+    letters — scoped to the mentor's own group (the Main Admin sees all)."""
     require_mentor(session)
     query = (
         select(Upload, User.name)
@@ -616,7 +646,7 @@ def _claim_query(session: dict):
 
     Rule 2 applied IN SQL: a MENTOR is narrowed to their own group and a MENTOR
     with no group gets a query that can match nothing (`None` here, `[]` at the
-    call sites). DIRECTOR/ADMIN read the whole programme. Shared by the pending
+    call sites). the Main Admin read the whole programme. Shared by the pending
     queue and the reviewed history so the two lists cannot disagree about scope.
     """
     query = (

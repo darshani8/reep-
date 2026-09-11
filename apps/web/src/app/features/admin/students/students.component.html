@@ -1,0 +1,201 @@
+<section class="st">
+  <header class="st-head">
+    <h1>Students</h1>
+    <p>
+      The roster. Add a student, edit any of them, remove one — or pick a batch and act on every
+      student in it at once. A student signs in with their college Google account; nothing here sets a password.
+    </p>
+  </header>
+
+  @if (error()) { <p class="st-error" role="alert">{{ error() }}</p> }
+  @if (flash()) { <p class="st-flash" role="status">{{ flash() }}</p> }
+
+  <!-- Filter + search + add -->
+  <div class="card st-bar">
+    <label class="st-field">
+      <span>Batch</span>
+      <select class="ctrl" [value]="filter()" (change)="setFilter($any($event.target).value)">
+        <option value="" [selected]="filter() === ''">Every student</option>
+        <option value="unseated" [selected]="filter() === 'unseated'">No batch yet</option>
+        @for (b of batches(); track b.id) {
+          <option [value]="b.id" [selected]="b.id === filter()">{{ b.label }}{{ b.current ? '' : ' (ended)' }}</option>
+        }
+      </select>
+    </label>
+    <label class="st-field st-field--grow">
+      <span>Search</span>
+      <input class="ctrl" type="search" placeholder="Name, email or USN" [value]="q()" (input)="setQuery($any($event.target).value)" />
+    </label>
+    <div class="st-count">{{ count() }} student{{ count() === 1 ? '' : 's' }}</div>
+    <!--
+      NO "Add student" (2026-09-10). A student account is minted by approving a
+      registration and nothing else, so the button here is a link to the queue
+      where that happens rather than a second way in.
+    -->
+    <a class="btn" routerLink="/admin/registrations">
+      <span class="icon" aria-hidden="true">how_to_reg</span> Registrations
+    </a>
+  </div>
+
+  <!-- Batch actions: only when one batch is in view -->
+  @if (selectedBatch(); as batch) {
+    <div class="card st-batch">
+      <div class="st-batch__head">
+        <div class="st-form__title">Whole batch · {{ batch.label }}</div>
+        <div class="st-hint">Every action below touches all {{ count() }} student{{ count() === 1 ? '' : 's' }} in this batch.</div>
+      </div>
+      <div class="st-batch__row">
+        <div class="st-batch__item">
+          <label class="st-field"><span>Move all to</span>
+            <select class="ctrl" [value]="moveTo()" (change)="moveTo.set($any($event.target).value)">
+              <option value="">Choose a batch</option>
+              @for (b of otherBatches(); track b.id) { <option [value]="b.id">{{ b.label }}</option> }
+            </select></label>
+          <button type="button" class="btn" [disabled]="busy() || !moveTo() || !count()" (click)="bulk('move')">Move</button>
+        </div>
+        <div class="st-batch__item">
+          <label class="st-field"><span>Assign all to</span>
+            <select class="ctrl" [value]="facultyTo()" (change)="facultyTo.set($any($event.target).value)">
+              <option value="">Nobody (release)</option>
+              @for (f of faculty(); track f.user_id) { <option [value]="f.user_id">{{ f.name }}</option> }
+            </select></label>
+          <button type="button" class="btn" [disabled]="busy() || !count()" (click)="bulk('mentor')">Assign</button>
+        </div>
+        <div class="st-batch__item">
+          <label class="st-field"><span>Set stage</span>
+            <select class="ctrl" [value]="stageTo()" (change)="stageTo.set($any($event.target).value)">
+              @for (s of stages; track s.key) { <option [value]="s.key">{{ s.label }}</option> }
+            </select></label>
+          <button type="button" class="btn" [disabled]="busy() || !count()" (click)="bulk('stage')">Set</button>
+        </div>
+        <div class="st-batch__item">
+          <label class="st-field"><span>Set semester</span>
+            <select class="ctrl" [value]="semesterTo()" (change)="semesterTo.set(+$any($event.target).value)">
+              @for (n of semesters; track n) { <option [value]="n" [selected]="n === semesterTo()">{{ n }}</option> }
+            </select></label>
+          <button type="button" class="btn" [disabled]="busy() || !count()" (click)="bulk('semester')">Set</button>
+        </div>
+      </div>
+      <div class="st-batch__danger">
+        @if (count()) {
+          <!--
+            NO bulk delete (2026-09-10). It erased N students - marks,
+            attendance, uploads, interviews, mentor notes - from a control
+            sitting beside "set semester". Empty a batch by MOVING its students
+            out; emptying a deployment of people is `app.purge_people`.
+          -->
+          <span class="st-hint">Move these {{ count() }} students to another batch to empty this one.</span>
+        } @else {
+          @if (confirmBatch() === 'batch') {
+            <span class="st-warn">This removes the batch itself. It is empty, so nothing else goes with it.</span>
+            <button type="button" class="btn danger" [disabled]="busy()" (click)="deleteBatch()">Yes, remove the batch</button>
+            <button type="button" class="btn" (click)="confirmBatch.set(null)">Keep it</button>
+          } @else {
+            <button type="button" class="btn danger" [disabled]="busy()" (click)="confirmBatch.set('batch')">Remove this empty batch…</button>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <!-- The table -->
+  <div class="card st-list">
+    @if (rows() === null) {
+      <p class="st-hint st-pad">Loading…</p>
+    } @else {
+      <div class="scroll">
+        <table class="dt-table st-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>USN</th>
+              <th>Batch</th>
+              <th>Department</th>
+              <th>Faculty</th>
+              <th>Stage</th>
+              <th>Sem</th>
+              <th>Last sign-in</th>
+              <th class="st-act"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of rows(); track r.student_id) {
+              @if (editingId() === r.student_id) {
+                <tr class="st-editing">
+                  <td><input class="ctrl ctrl--sm" type="text" [value]="edit().name" (input)="setEdit('name', $any($event.target).value)" aria-label="Name" /></td>
+                  <td><input class="ctrl ctrl--sm" type="email" [value]="edit().email" (input)="setEdit('email', $any($event.target).value)" aria-label="Email" /></td>
+                  <td><input class="ctrl ctrl--sm st-usn" type="text" [value]="edit().usn" (input)="setEdit('usn', $any($event.target).value)" aria-label="USN" /></td>
+                  <td>
+                    <select class="ctrl ctrl--sm" [value]="edit().cohort_id" (change)="setEdit('cohort_id', $any($event.target).value)" aria-label="Batch">
+                      <option value="">No batch</option>
+                      @for (b of batches(); track b.id) { <option [value]="b.id" [selected]="b.id === edit().cohort_id">{{ b.label }}</option> }
+                    </select>
+                  </td>
+                  <td>
+                    <select class="ctrl ctrl--sm" [value]="edit().department_id" (change)="setEdit('department_id', $any($event.target).value)" aria-label="Department">
+                      <option value="">Not filed</option>
+                      @for (d of departments(); track d.id) { <option [value]="d.id" [selected]="d.id === edit().department_id">{{ d.label }}</option> }
+                    </select>
+                  </td>
+                  <td>
+                    <select class="ctrl ctrl--sm" [value]="edit().mentor_user_id" (change)="setEdit('mentor_user_id', $any($event.target).value)" aria-label="Faculty member">
+                      <option value="">Not assigned</option>
+                      @for (f of faculty(); track f.user_id) { <option [value]="f.user_id" [selected]="f.user_id === edit().mentor_user_id">{{ f.name }}</option> }
+                    </select>
+                  </td>
+                  <td>
+                    <select class="ctrl ctrl--sm" [value]="edit().current_stage" (change)="setEdit('current_stage', $any($event.target).value)" aria-label="Stage">
+                      @for (s of stages; track s.key) { <option [value]="s.key" [selected]="s.key === edit().current_stage">{{ s.label }}</option> }
+                    </select>
+                  </td>
+                  <td>
+                    <select class="ctrl ctrl--sm" [value]="edit().current_semester" (change)="setEdit('current_semester', +$any($event.target).value)" aria-label="Semester">
+                      @for (n of semesters; track n) { <option [value]="n" [selected]="n === edit().current_semester">{{ n }}</option> }
+                    </select>
+                  </td>
+                  <td class="st-muted">{{ when(r.last_login_at) }}</td>
+                  <td class="st-act">
+                    <div class="st-actions">
+                      <button type="button" class="btn primary btn--sm" [disabled]="busy()" (click)="saveEdit()">Save</button>
+                      <button type="button" class="btn btn--sm" (click)="cancelEdit()">Cancel</button>
+                    </div>
+                  </td>
+                </tr>
+              } @else {
+                <tr>
+                  <td class="st-name">{{ r.name }}</td>
+                  <td class="st-muted">{{ r.email }}</td>
+                  <td>{{ r.usn ?? '—' }}</td>
+                  <td>
+                    @if (r.batch) { {{ r.batch }} } @else { <span class="chip warn">No batch</span> }
+                  </td>
+                  <td>
+                    @if (r.department) { {{ r.department }} } @else { <span class="chip warn">Not filed</span> }
+                  </td>
+                  <td>
+                    @if (r.mentor_name) { {{ r.mentor_name }} } @else { <span class="chip neutral">Not assigned</span> }
+                  </td>
+                  <td>{{ stageLabel(r.current_stage) }}</td>
+                  <td>{{ r.current_semester }}</td>
+                  <td class="st-muted">{{ when(r.last_login_at) }}</td>
+                  <td class="st-act">
+                    <div class="st-actions">
+                      <button type="button" class="st-mini" [disabled]="busy()" (click)="startEdit(r)" aria-label="Edit" title="Edit"><span class="icon" aria-hidden="true">edit</span></button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            } @empty {
+              <tr>
+                <td colspan="10" class="st-empty">
+                  @if (q()) { No student matches “{{ q() }}”. } @else if (filter() === 'unseated') { Every student is in a batch. } @else if (filter()) { Nobody is in this batch. } @else { No students yet. They arrive by approving a registration. }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</section>

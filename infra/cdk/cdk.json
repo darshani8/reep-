@@ -22,6 +22,8 @@
     "@aws-cdk/aws-s3:createDefaultLoggingPolicy": true,
     "@aws-cdk/aws-iam:standardizedServicePrincipals": true,
     "phase": "harden",
+    "sesIdentityDomain": "sast-skills.com",
+    "sesFromAddress": "no-reply@sast-skills.com",
     "backupRetentionDays": 35,
     "dbMultiAz": true,
     "vaultLockCompliance": false,

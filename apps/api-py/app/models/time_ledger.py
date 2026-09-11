@@ -182,7 +182,6 @@ class TimeLedgerDay(Base):
     __tablename__ = "time_ledger_days"
     __table_args__ = (
         UniqueConstraint("student_id", "day", name="uq_ledger_day"),
-        Index("ix_ledger_day_student_day", "student_id", "day"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
@@ -218,7 +217,6 @@ class TimeLedgerCell(Base):
     __tablename__ = "time_ledger_cells"
     __table_args__ = (
         UniqueConstraint("ledger_day_id", "slot", "activity", name="uq_ledger_cell"),
-        Index("ix_ledger_cell_day", "ledger_day_id"),
         CheckConstraint(LEDGER_CELL_HALF_HOURS_CHECK, name="ck_ledger_cell_half_hours"),
     )
 

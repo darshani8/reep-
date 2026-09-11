@@ -1,11 +1,11 @@
-"""The Main Admin's CRUD over students - one at a time and a batch at a time.
+"""The Main Admin's EDITS to students - one at a time and a batch at a time.
 
-Pinned: the gate is the `admin.students` capability; creating a student
-applies registration's three guards in admin wording and sets no password;
-edits seat, unseat, assign faculty (creating their group), and refuse a
-taken USN or address; delete takes the student and everything under them
-and leaves the fact on the audit trail; a batch action is the single action
-repeated; and a batch is deleted only once it is empty.
+Pinned: the gate is the `admin.students` capability; CREATE AND DELETE ARE
+GONE and stay gone (2026-09-10 - a student account is minted only by approving
+a registration, and removing people is `app.purge_people`); edits seat, unseat,
+assign faculty (creating their group), and refuse a taken USN or address; a
+batch action is the single action repeated; and a batch is deleted only once
+it is empty.
 
 Fixtures borrowed by name from test_admin_institution: `chain` (a College ->
 Department -> Batch built through the API), `tracker`, `director`, `_code`.
@@ -67,6 +67,29 @@ def _email(label: str) -> str:
     return f"adm-stu-{label}-{TAG}@bgscet.ac.in"
 
 
+def _seed_student(emails: list[str], email: str, *, cohort_id: str | None = None,
+                  usn: str | None = None, name: str = "Seeded Student") -> str:
+    """A student row to EDIT, written directly.
+
+    There is no POST /admin/students any more, so these tests cannot mint their
+    subject through the API. Writing the three rows here mirrors exactly what
+    registration's `_provision_student` writes - User with the unusable
+    password sentinel, Student, StudentProfile - which is the only path that
+    creates a student in the product.
+    """
+    emails.append(email)
+    with SessionLocal() as db:
+        user = User(email=email, name=name, role=Role.STUDENT, password_hash="google-only")
+        db.add(user)
+        db.flush()
+        student = Student(user_id=user.id, usn=usn, cohort_id=cohort_id)
+        db.add(student)
+        db.flush()
+        db.add(StudentProfile(student_id=student.id, email=email))
+        db.commit()
+        return student.id
+
+
 # ------------------------------------------------------------ the gate --
 
 
@@ -78,126 +101,90 @@ def test_the_roster_is_a_capability(client, make_user, chain):
     assert client.get(API, headers=student.headers).status_code == 403
     r = client.get(API, headers=mentor.headers)
     assert r.status_code == 403 and "Students" in r.text, "the 403 names what to ask for"
-    assert client.post(API, headers=mentor.headers, json={"name": "X", "email": _email("gate")}).status_code == 403
+    # POST is gone entirely, so the capability cannot be what refuses it: 405
+    # is the honest answer and `test_there_is_no_way_to_mint_or_erase_a_student`
+    # below is what pins the absence.
+    assert client.post(API, headers=mentor.headers, json={"name": "X", "email": _email("gate")}).status_code == 405
     assert client.delete(f"/api/admin/cohorts/{chain['cohort']['id']}", headers=student.headers).status_code == 403
 
 
-# --------------------------------------------------------- create + edit --
+# ---------------------------------------------------------------- edit --
 
 
 @requires_db
-def test_create_edit_and_the_three_guards(client, make_user, chain, swept):
+def test_edit_seats_reseats_and_applies_the_guards(client, make_user, chain, swept):
     emails, faculty_ids = swept
     h = chain["headers"]
     cohort_id = chain["cohort"]["id"]
+    sid = _seed_student(emails, _email("edit"), usn="1BG26EDT01")
 
-    # Off the college domain: refused, and nothing is minted.
-    r = client.post(API, headers=h, json={"name": "Outsider", "email": "someone@gmail.com"})
-    assert r.status_code == 422 and "college domain" in r.text
+    # Seat them in the batch.
+    r = client.patch(f"{API}/{sid}", headers=h, json={"cohort_id": cohort_id})
+    assert r.status_code == 200, r.text
+    assert r.json()["cohort_id"] == cohort_id
+
+    # Off the college domain: refused on an EDIT too, and the row is untouched.
+    bad = client.patch(f"{API}/{sid}", headers=h, json={"email": "someone@gmail.com"})
+    assert bad.status_code == 422 and "college domain" in bad.text
     with SessionLocal() as db:
         assert db.scalar(select(User).where(User.email == "someone@gmail.com")) is None
 
-    # A staff address: refused.
-    mentor = make_user("as-fac", Role.MENTOR)
-    r = client.post(API, headers=h, json={"name": "Not A Student", "email": mentor.email})
-    assert r.status_code == 409 and "MENTOR account" in r.text
+    # An address belonging to a STAFF account: refused. Rule 2 edited by a form.
+    staff = make_user("as-staff-edit", Role.MENTOR)
+    clash = client.patch(f"{API}/{sid}", headers=h, json={"email": staff.email})
+    assert clash.status_code == 409, clash.text
 
-    # Created: seated, no password, a profile row, on the trail.
-    email = _email("one")
-    emails.append(email)
-    r = client.post(API, headers=h, json={
-        "name": "  Asha   Rao ", "email": email.upper(), "usn": "1bg26adm01", "cohort_id": cohort_id,
-        "current_stage": "excel", "current_semester": 2,
-    })
-    assert r.status_code == 201, r.text
-    row = r.json()
-    assert row["name"] == "Asha Rao" and row["email"] == email and row["usn"] == "1BG26ADM01"
-    assert row["cohort_id"] == cohort_id and "Chain Batch" in row["batch"] and row["department"] == "Chain Department"
-    assert row["current_stage"] == "EXCEL" and row["current_semester"] == 2
-    assert row["mentor_user_id"] is None and row["last_login_at"] is None
-    sid = row["student_id"]
-    with SessionLocal() as db:
-        user = db.scalar(select(User).where(User.email == email))
-        assert user.role is Role.STUDENT and user.password_hash == "google-only", "no password: Google, like an approved applicant"
-        assert db.scalar(select(StudentProfile).where(StudentProfile.student_id == sid)) is not None
-        ev = db.scalar(select(AuditEvent).where(AuditEvent.entity_type == "student", AuditEvent.entity_id == sid))
-        assert ev.action == "CREATE" and ev.after_json["usn"] == "1BG26ADM01"
+    # A USN already held by somebody else: refused.
+    other = _seed_student(emails, _email("edit2"), usn="1BG26EDT02")
+    dup = client.patch(f"{API}/{sid}", headers=h, json={"usn": "1BG26EDT02"})
+    assert dup.status_code == 409, dup.text
+    assert other  # the other student is why
 
-    # The same address or USN again: refused.
-    assert client.post(API, headers=h, json={"name": "Again", "email": email}).status_code == 409
-    other = _email("two")
-    emails.append(other)
-    r = client.post(API, headers=h, json={"name": "Other", "email": other, "usn": "1BG26ADM01"})
-    assert r.status_code == 409 and "USN" in r.text
-    assert client.post(API, headers=h, json={"name": "Other", "email": other, "current_stage": "graduated"}).status_code == 422
-
-    # Listed and searchable.
-    assert any(x["student_id"] == sid for x in client.get(f"{API}?cohort_id={cohort_id}", headers=h).json())
-    assert [x["student_id"] for x in client.get(f"{API}?q=1bg26adm", headers=h).json()] == [sid]
-    assert not any(x["student_id"] == sid for x in client.get(f"{API}?unseated=true", headers=h).json())
-
-    # Edit: rename, semester, unseat, faculty assignment creates the group.
-    faculty_ids.append(mentor.user_id)
-    r = client.patch(f"{API}/{sid}", headers=h, json={
-        "name": "Asha R", "current_semester": 3, "cohort_id": None, "mentor_user_id": mentor.user_id,
-    })
+    # Assigning faculty creates their group on first assignment.
+    faculty = make_user("as-fac-edit", Role.MENTOR)
+    faculty_ids.append(faculty.user_id)
+    r = client.patch(f"{API}/{sid}", headers=h, json={"mentor_user_id": faculty.user_id})
     assert r.status_code == 200, r.text
-    row = r.json()
-    assert row["name"] == "Asha R" and row["current_semester"] == 3 and row["cohort_id"] is None
-    assert row["mentor_user_id"] == mentor.user_id and row["mentor_name"] == mentor_name(mentor.user_id)
-    assert any(x["student_id"] == sid for x in client.get(f"{API}?unseated=true", headers=h).json())
-    # The faculty member now sees exactly this student (rule 2 opened by the assignment).
-    assert [m["student_id"] for m in client.get("/api/mentor/mentees", headers=mentor.headers).json()] == [sid]
-
-    # Seat again, release the faculty member, change the address (profile follows).
-    new_email = _email("renamed")
-    emails.append(new_email)
-    r = client.patch(f"{API}/{sid}", headers=h, json={"cohort_id": cohort_id, "mentor_user_id": None, "email": new_email})
-    assert r.status_code == 200, r.text
-    assert r.json()["cohort_id"] == cohort_id and r.json()["mentor_user_id"] is None and r.json()["email"] == new_email
     with SessionLocal() as db:
-        assert db.scalar(select(StudentProfile.email).where(StudentProfile.student_id == sid)) == new_email
-    assert client.get("/api/mentor/mentees", headers=mentor.headers).json() == []
+        group = db.scalar(select(Mentor).where(Mentor.user_id == faculty.user_id))
+        assert group is not None, "the group is created on the first assignment"
+        assert db.get(Student, sid).mentor_id == group.id
 
-    # Guards on edit: a taken address, a taken USN, an off-domain address, a bad stage.
-    assert client.patch(f"{API}/{sid}", headers=h, json={"email": mentor.email}).status_code == 409
-    assert client.patch(f"{API}/{sid}", headers=h, json={"email": "x@gmail.com"}).status_code == 422
-    assert client.patch(f"{API}/{sid}", headers=h, json={"current_stage": "nope"}).status_code == 422
-    assert client.patch(f"{API}/no-such-student", headers=h, json={"name": "X"}).status_code == 404
-    assert client.patch(f"{API}/{sid}", headers=h, json={"mentor_user_id": "no-such-user"}).status_code == 404
+    # Unseating is a real edit, not a delete.
+    r = client.patch(f"{API}/{sid}", headers=h, json={"cohort_id": None})
+    assert r.status_code == 200 and r.json()["cohort_id"] is None
 
 
-def mentor_name(user_id: str) -> str:
-    with SessionLocal() as db:
-        return db.scalar(select(User.name).where(User.id == user_id))
-
-
-# --------------------------------------------------------------- delete --
+# ------------------------------------------------- the two absent doors --
 
 
 @requires_db
-def test_delete_takes_the_student_and_everything_under_them(client, chain, swept):
+def test_there_is_no_way_to_mint_or_erase_a_student(client, chain, swept):
+    """CREATE AND DELETE ARE GONE, and this is the guard that keeps them gone.
+
+    A student account is minted by exactly one path - approving a registration,
+    which provisions the row and emails the applicant a setup link they must
+    walk before the account is usable. An admin-side create was a second way
+    onto a roster that IS the access control, with no application to read, no
+    reason recorded and no mailbox proof. An admin-side delete erased marks,
+    attendance, uploads, interviews and mentor notes behind a browser confirm,
+    from a screen whose other buttons only move somebody between batches.
+
+    Asserted as 405 (the route does not exist), never as 403 - a capability
+    refusal would mean the endpoint is still there waiting for a grant.
+    """
     emails, _ = swept
     h = chain["headers"]
-    email = _email("gone")
-    emails.append(email)
-    sid = client.post(API, headers=h, json={"name": "Going Away", "email": email}).json()["student_id"]
-    with SessionLocal() as db:
-        uid = db.scalar(select(User.id).where(User.email == email))
-        db.add(LoginDay(user_id=uid, day=__import__("datetime").date(2026, 9, 1)))
-        db.commit()
+    sid = _seed_student(emails, _email("absent"))
 
-    assert client.delete(f"{API}/{sid}", headers=h).status_code == 204
-    assert client.delete(f"{API}/{sid}", headers=h).status_code == 404
+    minted = client.post(API, headers=h, json={"name": "New", "email": _email("new")})
+    assert minted.status_code == 405, "POST /admin/students must not exist"
+
+    erased = client.delete(f"{API}/{sid}", headers=h)
+    assert erased.status_code == 405, "DELETE /admin/students/{id} must not exist"
+
     with SessionLocal() as db:
-        assert db.get(Student, sid) is None
-        assert db.scalar(select(User).where(User.email == email)) is None
-        assert db.scalar(select(StudentProfile).where(StudentProfile.student_id == sid)) is None
-        assert db.scalar(select(LoginDay).where(LoginDay.user_id == uid)) is None
-        ev = db.scalars(select(AuditEvent).where(AuditEvent.entity_type == "student", AuditEvent.entity_id == sid)).all()
-        assert {e.action for e in ev} == {"CREATE", "DELETE"}
-        gone = next(e for e in ev if e.action == "DELETE")
-        assert gone.before_json["email"] == email and gone.after_json is None, "the trail still reads the row that is gone"
+        assert db.get(Student, sid) is not None, "and the student is still there"
 
 
 # ---------------------------------------------------------- batch level --
@@ -217,11 +204,10 @@ def test_a_batch_action_is_the_single_action_repeated_and_a_batch_deletes_only_e
     faculty = make_user("as-bulk-fac", Role.MENTOR)
     faculty_ids.append(faculty.user_id)
 
-    sids = []
-    for i in range(2):
-        email = _email(f"bulk{i}")
-        emails.append(email)
-        sids.append(client.post(API, headers=h, json={"name": f"Bulk {i}", "email": email, "cohort_id": a}).json()["student_id"])
+    sids = [
+        _seed_student(emails, _email(f"bulk{i}"), cohort_id=a, name=f"Bulk {i}")
+        for i in range(2)
+    ]
     bulk_a = f"/api/admin/cohorts/{a}/students/bulk"
 
     # Semester, stage and faculty for the whole batch.
@@ -245,13 +231,18 @@ def test_a_batch_action_is_the_single_action_repeated_and_a_batch_deletes_only_e
     assert client.get(f"{API}?cohort_id={a}", headers=h).json() == []
     assert sorted(x["student_id"] for x in client.get(f"{API}?cohort_id={b}", headers=h).json()) == sorted(sids)
 
-    # Delete every student in the new batch, then the batch itself.
-    r = client.post(f"/api/admin/cohorts/{b}/students/bulk", headers=h, json={"action": "delete"})
-    assert r.json() == {"action": "delete", "affected": 2}
+    # THE BULK "delete" ACTION IS GONE TOO (2026-09-10). It erased N students -
+    # marks, attendance, uploads, interviews, mentor notes - from a dropdown
+    # sitting between "set semester" and "move". Refused as 422 by the action
+    # Literal, never quietly ignored, so a client still sending it is told.
+    dead = client.post(f"/api/admin/cohorts/{b}/students/bulk", headers=h, json={"action": "delete"})
+    assert dead.status_code == 422, "bulk delete must not exist"
     with SessionLocal() as db:
-        assert all(db.get(Student, s) is None for s in sids)
-        assert db.scalar(select(AuditEvent).where(AuditEvent.entity_type == "cohort", AuditEvent.entity_id == b, AuditEvent.action == "STUDENTS_DELETE")) is not None
-    assert client.get("/api/mentor/mentees", headers=faculty.headers).json() == []
+        assert all(db.get(Student, sid) is not None for sid in sids), "and nobody was erased"
+
+    # A batch is emptied by MOVING its students out, and only then deleted.
+    assert client.post(f"/api/admin/cohorts/{b}/students/bulk", headers=h,
+                       json={"action": "move", "cohort_id": a}).json()["affected"] == 2
     assert client.delete(f"/api/admin/cohorts/{b}", headers=h).status_code == 204
     tracker["cohorts"].remove(b)
     assert client.delete(f"/api/admin/cohorts/{b}", headers=h).status_code == 404

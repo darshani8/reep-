@@ -1,6 +1,6 @@
 """Placement offers (ported from Prisma `PlacementOffer`). A student records an
 offer as a DRAFT; submitting locks it (PENDING_APPROVAL) and routes to a
-director, who APPROVES or REJECTS — the same single-decision shape as leave.
+Main Admin, who APPROVES or REJECTS — the same single-decision shape as leave.
 """
 
 import enum

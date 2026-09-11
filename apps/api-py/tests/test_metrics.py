@@ -63,7 +63,7 @@ def test_metrics_forbidden_for_student(client, login):
 
 @requires_db
 def test_metrics_shape_for_director(client, login):
-    headers = login("director@bgscet.ac.in", "director123")
+    headers = login("admin@bgscet.ac.in", "admin123")
     r = client.get("/api/agent/metrics", headers=headers)
     assert r.status_code == 200, r.text
     body = r.json()
@@ -88,7 +88,7 @@ def test_metrics_shape_for_director(client, login):
 
 @requires_db
 def test_resolved_and_refused_runs_move_resolution_rate(client, login):
-    headers = login("director@bgscet.ac.in", "director123")
+    headers = login("admin@bgscet.ac.in", "admin123")
     actor = _a_user_id()
 
     m1 = client.get("/api/agent/metrics", headers=headers).json()

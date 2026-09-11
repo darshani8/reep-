@@ -1,5 +1,5 @@
 """Admin Dashboard CRUD — Undergraduate/Postgraduate management and Recording
-Policies. Every route is DIRECTOR/ADMIN (rule 2's `require_director`).
+Policies. Every route is Main Admin only (rule 2's `require_admin`).
 
     /api/platform/admin/status                      what is configured
     /api/platform/admin/specializations[/{id}]      per-degree tracks
@@ -39,7 +39,7 @@ from ...models.voice_platform import (
     PlatformSpecialization,
     PlatformTimeLimit,
 )
-from ...routers.mentor import require_director
+from ...routers.mentor import require_admin
 from .. import ssm_config
 from ..engine import nova as engine
 from ..monitoring.cloudwatch import handler_span
@@ -56,7 +56,7 @@ router = APIRouter(prefix="/api/platform/admin", tags=["voice-platform-admin"])
 
 
 def _admin(session: dict = Depends(get_current_session)) -> dict:
-    require_director(session)
+    require_admin(session)
     return session
 
 

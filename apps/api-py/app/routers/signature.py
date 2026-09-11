@@ -5,7 +5,7 @@
     GET    /image       the image itself, inline, for the preview
     DELETE /            remove it
 
-Staff only (`require_mentor`: MENTOR / DIRECTOR / ADMIN), and always the
+Staff only (`require_mentor`: MENTOR / ADMIN), and always the
 caller's OWN: there is no path that reads another account's image here.
 Where another person's signature is shown is the leave paper, which reads
 the row by user id at render time (routers/leave_paper.py) - so a replaced

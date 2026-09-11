@@ -24,6 +24,7 @@ from sqlalchemy.engine.url import make_url
 
 from app.db import SessionLocal
 from app.models.conversation import Conversation
+from app.models.governance import CapabilityGrant
 from app.models.user import LoginDay, Role, Student, User
 from app.security import hash_password
 
@@ -171,3 +172,51 @@ def make_user(client):
             db.execute(delete(Student).where(Student.user_id == uid))
             db.execute(delete(User).where(User.id == uid))
         db.commit()
+
+
+@pytest.fixture
+def granted(client):
+    """Give an account a capability its ROLE BASELINE does not carry, and clean up.
+
+        cap = granted(admin, "mentor.verifications")
+
+    THE MAIN ADMIN IS NOT A FACULTY MEMBER (2026-09-10). Four capabilities
+    — `mentor.mentees`, `mentor.notebook`, `mentor.verifications` and
+    `mentor.upskilling` — are a mentor's own instruments, and `_FACULTY_ONLY` in
+    app/governance.py keeps them OUT of the office account's baseline: it has no
+    mentees, no private notebook, nobody's evidence to verify and no upskilling
+    shelf, so those screens would render empty for it. When the Main Admin does
+    have to look — a student's evidence is stuck and nobody else will — the way
+    in is a GRANT it makes in Governance, to itself, carrying a reason, on the
+    audit trail. A test that needs that access takes the same path.
+
+    It goes through the real endpoint rather than an INSERT, so the reason floor,
+    the audit write and the capability catalogue are all exercised on the way.
+
+    The row is removed afterwards and that is not tidiness: a grant is keyed on a
+    user id and OUTLIVES the `make_user` account that named it, so a leaked row
+    would silently widen whatever ran next.
+    """
+    made: list[str] = []
+
+    def _grant(account, capability: str, reason: str | None = None) -> str:
+        r = client.post(
+            "/api/admin/governance/grants",
+            headers=account.headers,
+            json={
+                "capability": capability,
+                "user_ids": [account.user_id],
+                "reason": reason or f"Test suite needs {capability} for this scenario.",
+            },
+        )
+        assert r.status_code == 201, r.text
+        grant_id = r.json()[0]["id"]
+        made.append(grant_id)
+        return grant_id
+
+    yield _grant
+
+    if made:
+        with SessionLocal() as db:
+            db.execute(delete(CapabilityGrant).where(CapabilityGrant.id.in_(made)))
+            db.commit()

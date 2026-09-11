@@ -6,7 +6,7 @@
  * The form POSTs to the FastAPI `POST /register` (apps/api-py/app/routers/
  * registration.py). That endpoint runs the data-driven rule engine and answers
  * with a `status`: AUTO_APPROVED (a rule waved it through) or PENDING_REVIEW
- * (routed to a director, or no rule matched). We surface that verdict through the
+ * (held for review, or no rule matched). We surface that verdict through the
  * global `.reg-approval` ok / flag banner and, on success, offer a link to
  * `/login`.
  *
@@ -39,6 +39,12 @@ interface HierCollege { id: string; code: string; name: string; departments: Hie
 interface HierLevel { key: string; label: string; required: boolean }
 interface Hierarchy { levels: HierLevel[]; colleges: HierCollege[] }
 
+/// The applicant's own view of their application — the server's
+/// `PublicRegistrationOut`, not the Main Admin queue's `RegistrationOut`. The
+/// reviewer's stamp and remarks (`review_note`, `reviewed_by_id`,
+/// `reviewed_at`) and the internal ids (`cohort_id`, `matched_rule_id`,
+/// `approved_student_id`) are NOT sent to this screen: nobody here is signed
+/// in, and the application id is the only thing standing in for an account.
 interface RegistrationResult {
   id: string;
   name: string;
@@ -46,13 +52,9 @@ interface RegistrationResult {
   usn: string | null;
   degree_level: string;
   status: string; // AUTO_APPROVED | PENDING_REVIEW | APPROVED | REJECTED
-  cohort_id: string | null;
-  matched_rule_id: string | null;
+  /// The rule engine's verdict, written FOR the applicant — the result card
+  /// renders it verbatim.
   decision_reason: string | null;
-  reviewed_by_id: string | null;
-  reviewed_at: string | null;
-  review_note: string | null;
-  approved_student_id: string | null;
   /// Kinds attached so far: "CV", "PHOTO". Filled by the uploads after the 201.
   documents: string[];
   /// The applicant's claim of where they belong, ids and resolved names.
@@ -117,7 +119,7 @@ export class RegistrationComponent {
   /// Batches of the chosen department, narrowed by course/specialization when
   /// chosen (a batch with no course sits under the whole department), current
   /// ones first. Ended batches stay listed but marked - a late applicant is a
-  /// director's call, not the form's.
+  /// Main Admin's call, not the form's.
   readonly batches = computed(() => {
     const d = this.department();
     if (!d) return [];

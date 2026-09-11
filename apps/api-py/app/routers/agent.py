@@ -61,7 +61,7 @@
 #                                      reads as a retirement, not a fault. Still
 #                                      404, still indistinguishable from
 #                                      "not yours" — see the handler.
-#   GET    /api/agent/metrics          live (DIRECTOR/ADMIN, 403 otherwise). It
+#   GET    /api/agent/metrics          live (the Main Admin, 403 otherwise). It
 #                                      never errors, but every AgentRun-derived
 #                                      counter froze when runs stopped being
 #                                      written. The payload now SAYS so
@@ -742,7 +742,7 @@ def feedback(
     return FeedbackOut(ok=True)
 
 
-# --- Metrics (DIRECTOR/ADMIN) ------------------------------------------------
+# --- Metrics (the Main Admin) ------------------------------------------------
 
 
 @router.get("/metrics")
@@ -750,7 +750,7 @@ def metrics(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Assistant health for staff — DIRECTOR/ADMIN only (403 otherwise).
+    """Assistant health for staff — the Main Admin only (403 otherwise).
 
     Aggregates over AgentRun (+ AssistantFeedback + Messages): resolution/refusal
     rates from the `resolved` grounding signal, latency, and breakdowns by
@@ -772,10 +772,10 @@ def metrics(
     request duration), not TTFT.
     """
     role = session.get("role")
-    if role not in (Role.DIRECTOR.value, Role.ADMIN.value):
+    if role != Role.ADMIN.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Assistant metrics are available to directors and admins.",
+            detail="Assistant metrics are available to the Main Admin.",
         )
 
     total_runs = db.scalar(select(func.count()).select_from(AgentRun)) or 0

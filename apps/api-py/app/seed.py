@@ -5,10 +5,10 @@
 
 ⚠️ REFUSES TO RUN WHEN ENV=prod, and that is the point of the guard below.
 
-This module creates three accounts whose passwords are published in AGENTS.md —
-including director@bgscet.ac.in / director123. A DIRECTOR sees EVERY student's
-marks, attendance and USN (AGENTS.md rule 2), so this account existing on a
-production host is a full-cohort data breach behind a password anyone who has
+This module creates demo accounts whose passwords are published in AGENTS.md —
+including admin@bgscet.ac.in / admin123, the Main Admin, who reads EVERY
+student's marks, attendance and USN (AGENTS.md rule 2). That account existing on
+a production host is a full-cohort data breach behind a password anyone who has
 read the repo already knows. It is not a "weak default" to be rotated later; it
 is a credential that must never be created there at all.
 
@@ -158,12 +158,12 @@ def _seed_upload_files() -> dict[str, bytes]:
 
 def main() -> None:
     # Fail closed. There is no override flag on purpose: an escape hatch here
-    # would be found and used, and every path through it ends with director123
+    # would be found and used, and every path through it ends with admin123
     # live on the internet.
     if settings.is_prod:
         print(
             "REFUSED: app.seed creates demo accounts with published passwords "
-            "(including a DIRECTOR, who can read every student's records) and "
+            "(including the Main Admin, who reads every student's records) and "
             "ENV=prod. For the Knowledge Base — the only seed data production "
             "needs — run: python -m app.seed_kb",
             file=sys.stderr,
@@ -172,20 +172,21 @@ def main() -> None:
 
     db = SessionLocal()
     try:
-        director = "director@bgscet.ac.in"
-        if db.scalar(select(User).where(User.email == director)) is None:
-            db.add(
-                User(
-                    email=director,
-                    name="Director (seed)",
-                    role=Role.DIRECTOR,
-                    password_hash=hash_password("director123"),
-                )
-            )
-            db.commit()
-            print(f"created {director} / director123")
-        else:
-            print(f"{director} already exists")
+        # NO DIRECTOR ACCOUNT (2026-09-10). This block used to create
+        # director@bgscet.ac.in / director123 with Role.DIRECTOR.
+        #
+        # DIRECTOR was a second Main Admin under another name — its baseline was
+        # every console screen — and `app.grant_access` has refused to mint one
+        # for months. The dev seed was the last thing still creating them, which
+        # meant every developer database, every test run and every reviewer's
+        # mental model carried a privileged role the product does not have. It
+        # now grants nothing anywhere (app/policies.py), so seeding one would
+        # create an account that can sign in and reach nothing at all.
+        #
+        # The Main Admin below is the office. Faculty are MENTOR, and reach a
+        # console screen only as a grant the Main Admin makes in Governance.
+        # An existing dev database is converted by the migration that came with
+        # this change; nothing here has to clean up after it.
 
         # The Main Admin - the one account that may open Governance and decide
         # what faculty see (routers/governance.py is ADMIN-only; the seeded
@@ -681,6 +682,13 @@ def main() -> None:
             stu.cohort_id = cohort.id
             db.commit()
             print("assigned student to cohort")
+        # BOTH POINTERS, because setting only the batch is the legacy shape that
+        # made "un-seat" read as "un-file" (31f7a4c60b12). A dev database that
+        # seeds the inconsistent row teaches the bug back in.
+        if stu and cohort and cohort.department_id and stu.department_id != cohort.department_id:
+            stu.department_id = cohort.department_id
+            db.commit()
+            print("filed student under the cohort's department")
 
         # Idempotently create the default active placement criteria.
         if db.scalar(select(PlacementCriteria)) is None:
@@ -771,7 +779,7 @@ def main() -> None:
             # committed, so a rejected pattern leaves the table empty and the
             # next run seeds again rather than leaving a half-written rule set.
             #
-            # ANY future writer (a director-facing rule editor) must call this
+            # ANY future writer (an admin-facing rule editor) must call this
             # too, for the same reason: a rule row can also be edited straight in
             # psql, which is why defence #2 exists at all.
             for rule in registration_rules:
@@ -800,11 +808,11 @@ def main() -> None:
         # jobs to it — the audit row that says "these three came from that sheet".
         if db.scalar(select(JobImportRun)) is None:
             base = datetime(2026, 8, 1, tzinfo=timezone.utc)
-            director = db.scalar(select(User).where(User.email == "director@bgscet.ac.in"))
+            admin_user = db.scalar(select(User).where(User.email == "admin@bgscet.ac.in"))
             jobs = db.scalars(select(Job)).all()
             run = JobImportRun(
                 file_name="vacancies_2026_aug.csv",
-                uploaded_by_id=director.id if director else None,
+                uploaded_by_id=admin_user.id if admin_user else None,
                 started_at=base,
                 finished_at=base + timedelta(minutes=1),
                 rows_seen=4,
@@ -1063,8 +1071,8 @@ def seed_v2_screens(db, stu, mentor) -> None:
         print("added approved certification catalogue (3)")
 
     if db.scalar(select(StudentBadge).where(StudentBadge.student_id == stu.id)) is None:
-        director_user = db.scalar(select(User).where(User.email == "director@bgscet.ac.in"))
-        reviewer_id = director_user.id if director_user else None
+        admin_user = db.scalar(select(User).where(User.email == "admin@bgscet.ac.in"))
+        reviewer_id = admin_user.id if admin_user else None
         now = datetime.now(timezone.utc)
         db.add_all(
             [
@@ -1143,8 +1151,8 @@ def seed_v2_screens(db, stu, mentor) -> None:
     if db.scalar(
         select(CapabilityAssessment).where(CapabilityAssessment.student_id == stu.id)
     ) is None:
-        director_user = db.scalar(select(User).where(User.email == "director@bgscet.ac.in"))
-        recorder = director_user.id if director_user else None
+        admin_user = db.scalar(select(User).where(User.email == "admin@bgscet.ac.in"))
+        recorder = admin_user.id if admin_user else None
         scores = {
             # capability: (T0, T1, T2) — visible growth, one flat line, and
             # speaking assessed only twice so a dash renders somewhere.

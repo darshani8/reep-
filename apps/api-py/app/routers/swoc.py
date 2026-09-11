@@ -1,9 +1,9 @@
 """SWOC — Strengths, Weaknesses, Opportunities, Challenges: the editor.
 
-    GET    /director/swoc                        every student with their entries
-    POST   /director/swoc/{student_id}           add an entry (kind, text, weight)
-    PATCH  /director/swoc/entries/{entry_id}     edit text / weight
-    DELETE /director/swoc/entries/{entry_id}     remove
+    GET    /admin/swoc                        every student with their entries
+    POST   /admin/swoc/{student_id}           add an entry (kind, text, weight)
+    PATCH  /admin/swoc/entries/{entry_id}     edit text / weight
+    DELETE /admin/swoc/entries/{entry_id}     remove
 
 The MODEL IS NOT NEW. `swoc_entries` (app/models/swoc.py) has carried the
 board since the Prisma port — one row per observation, attributed to a
@@ -20,7 +20,7 @@ like the other admin screens: the grant is the decision to let that person
 write for every student.
 
 THE VIEWPOINT IS DERIVED, NOT TYPED. A MENTOR's entry is a MENTOR entry; a
-DIRECTOR's or ADMIN's is the PLACEMENT cell's. The board is deliberately
+the Main Admin's is the PLACEMENT cell's. The board is deliberately
 un-averaged — disagreement between viewpoints is itself the finding — and a
 select box that lets a mentor file an opinion as the office's would erase the
 one thing the source column exists to keep.
@@ -47,7 +47,7 @@ from ..models.cohort import Cohort
 from ..models.swoc import SwocEntry, SwocKind, SwocSource
 from ..models.user import Student, User
 
-router = APIRouter(prefix="/director/swoc", tags=["swoc"])
+router = APIRouter(prefix="/admin/swoc", tags=["swoc"])
 
 CAPABILITY = "admin.swoc"
 
@@ -59,7 +59,7 @@ KINDS: tuple[str, ...] = tuple(k.value for k in SwocKind)
 
 
 def _source_for(session: dict) -> SwocSource:
-    """A mentor speaks as MENTOR; the office (DIRECTOR / ADMIN) as PLACEMENT."""
+    """A mentor speaks as MENTOR; the office (the Main Admin) as PLACEMENT."""
     return SwocSource.MENTOR if session.get("role") == "MENTOR" else SwocSource.PLACEMENT
 
 

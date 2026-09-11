@@ -586,7 +586,7 @@ def test_approving_an_applicant_who_is_already_on_the_roster_reuses_their_accoun
 @requires_db
 def test_a_second_approval_through_the_endpoint_is_refused(client, make_user, applicant):
     """The 409 — a different claim from the idempotency above, so a separate test."""
-    director = make_user("spine-dir", Role.DIRECTOR)
+    director = make_user("spine-dir", Role.ADMIN)
     reg_id = applicant("spine.twice@bgscet.ac.in", "Twice Applicant")
     first = client.post(
         f"/api/register/{reg_id}/decision", headers=director.headers, json={"decision": "APPROVE"}
@@ -612,7 +612,7 @@ def test_an_application_from_outside_the_college_domain_cannot_be_approved(
     application looks entirely ordinary in the director's queue, which is what
     makes it dangerous.
     """
-    director = make_user("spine-dir-dom", Role.DIRECTOR)
+    director = make_user("spine-dir-dom", Role.ADMIN)
     reg_id = applicant("attacker@gmail.com", "Priya Sharma")
     r = client.post(
         f"/api/register/{reg_id}/decision", headers=director.headers, json={"decision": "APPROVE"}
@@ -639,7 +639,7 @@ def test_an_application_naming_a_staff_address_cannot_be_approved(client, make_u
     mentor's next session would carry role=MENTOR *and* a studentId. Rule 2 says
     scope is decided by role; this would let an unauthenticated form edit it.
     """
-    director = make_user("spine-dir-role", Role.DIRECTOR)
+    director = make_user("spine-dir-role", Role.ADMIN)
     mentor = make_user("spine-victim", Role.MENTOR)
     reg_id = applicant(mentor.email, "Impersonator")
     r = client.post(
@@ -665,7 +665,7 @@ def test_a_provisioned_account_has_no_usable_password(client, make_user, applica
     """
     from app.routers.registration import SSO_ONLY_PASSWORD_HASH
 
-    director = make_user("spine-dir2", Role.DIRECTOR)
+    director = make_user("spine-dir2", Role.ADMIN)
     email = "spine.nopw@bgscet.ac.in"
     reg_id = applicant(email, "No Password")
 

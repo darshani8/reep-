@@ -60,9 +60,9 @@ def _strip_comment(line: str) -> str:
 
 
 def test_no_platform_specific_strftime() -> None:
-    """INCIDENT: `director.py` used `strftime("%-d %b")` to label a week.
+    """INCIDENT: the console router (then `director.py`) used `strftime("%-d %b")` to label a week.
 
-    `GET /api/director/students/{id}/weekly` returned 200 in CI and raised
+    `GET /api/admin/students/{id}/weekly` returned 200 in CI and raised
     ValueError on every Windows developer machine — a whole endpoint that was
     green on the pipeline and dead locally. Portable form: f"{d.day} {d:%b}".
     """
@@ -910,4 +910,251 @@ def test_no_invented_person_is_offered_as_a_referee() -> None:
     assert not offenders, (
         "A hard-coded person is being offered as a resume referee in: "
         + ", ".join(offenders)
+    )
+
+
+def test_ngsubmit_is_never_used_without_a_forms_module() -> None:
+    """INCIDENT (2026-09-10): a Save button that rendered and did nothing.
+
+    `(ngSubmit)` is an output of Angular's `NgForm` DIRECTIVE, which arrives with
+    FormsModule. In a standalone component whose `imports` lack it, there is no
+    NgForm on the `<form>`, so `(ngSubmit)` is parsed as a listener for a DOM
+    event literally named "ngSubmit" — an event nothing ever raises. The
+    template compiles, the build passes, the button looks wired, and clicking it
+    runs nothing at all. No error appears anywhere.
+
+    It cost a full browser round-trip to find, on a form whose two neighbours in
+    the same template used the native `(submit)` pattern correctly. It is the
+    same family as the `routerLink`-in-a-component-with-empty-imports trap the
+    2026-09-10 reachability audit found: inert markup that reads as working.
+
+    HTML comments are stripped first, because the fix for that incident explains
+    itself in a comment that names `(ngSubmit)` — and a guard that trips on the
+    prose describing it is a guard someone deletes.
+    """
+    web = REPO / "apps" / "web" / "src" / "app"
+    comment = re.compile(r"<!--.*?-->", re.S)
+    offenders: list[str] = []
+    for template in web.rglob("*.html"):
+        body = comment.sub("", template.read_text(encoding="utf-8"))
+        if "(ngSubmit)" not in body:
+            continue
+        component = template.with_suffix(".ts")
+        if not component.exists():
+            offenders.append(f"{template.relative_to(REPO)} (no component beside it)")
+            continue
+        source = component.read_text(encoding="utf-8")
+        if "FormsModule" not in source:
+            offenders.append(str(template.relative_to(REPO)))
+    assert not offenders, (
+        "(ngSubmit) used where no FormsModule/ReactiveFormsModule is imported — "
+        "the handler will never run and nothing will say so. Either import the "
+        "module or use the native (submit) with $event.preventDefault():\n  "
+        + "\n  ".join(offenders)
+    )
+
+
+# --------------------------------------------------------------------------- #
+# The role that was removed does not come back by name
+# --------------------------------------------------------------------------- #
+
+#: Where the word may still legitimately appear, and why.
+#:
+#:  * PROGRAM DIRECTOR is a job title PRINTED ON THE COLLEGE'S OWN LEAVE FORM.
+#:    The second approver signs that block, `leave.py` fills `director_name` /
+#:    `director_decided_at` / `director_note` for it, and `leave_paper.py` draws
+#:    it at coordinates measured from the office's PDF. Renaming any of that
+#:    would change a paper form nobody in this repo owns.
+#:  * `Role.DIRECTOR` survives as an ENUM VALUE. A Postgres enum value cannot be
+#:    dropped without recreating the type, the migration converts the rows, and
+#:    `test_no_director_privilege.py` needs to be able to MINT one to prove it
+#:    reaches nothing.
+#:  * The removal's own record — governance.py, policies.py, grant_access.py,
+#:    seed.py — has to say the word to explain what was removed and why.
+#:
+#: What this guard is actually for is the OTHER kind: a new `/api/director/*`
+#: route, a `features/director/` folder, a `require_director`, an OpenAPI tag.
+#: Those all existed on 2026-09-10 and were renamed; nothing stops them being
+#: typed again, and the last time half of them survived a removal the result was
+#: a role that passed fifty capability gates while failing every role gate.
+
+WEB_SRC = REPO / "apps" / "web" / "src"
+
+
+def test_no_route_or_module_is_named_for_the_removed_role() -> None:
+    """The paths, not the prose. A `/api/director/*` route or a `director/`
+    folder is the naming that actually reaches a user."""
+    offenders: list[str] = []
+
+    # 1. No API route may live under /director.
+    for path in _python_files(APP):
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if re.search(r'["\']/(api/)?director(/|["\'])', line):
+                offenders.append(f"{path.relative_to(APP.parent)}:{n}: {line.strip()}")
+
+    # 2. No module or Angular folder may be named for it.
+    for path in list(APP.rglob("*.py")) + list(WEB_SRC.rglob("*.ts")) + list(WEB_SRC.rglob("*.html")):
+        if "__pycache__" in path.parts:
+            continue
+        if any(part == "director" for part in path.parts) or path.stem == "director":
+            offenders.append(f"{path}: named for the removed role")
+
+    # 3. No OpenAPI tag may advertise it — the tag is what /docs groups by.
+    for path in _python_files(APP):
+        text = path.read_text(encoding="utf-8")
+        if re.search(r'tags=\[[^]]*["\']director["\'][^]]*\]', text, re.I):
+            offenders.append(f"{path.relative_to(APP.parent)}: OpenAPI tag 'director'")
+
+    # 4. No dependency named for it.
+    for path in _python_files(APP):
+        text = path.read_text(encoding="utf-8")
+        if re.search(r"\bdef require_director\b|\brequire_director\(", text):
+            offenders.append(f"{path.relative_to(APP.parent)}: require_director")
+
+    assert not offenders, (
+        "DIRECTOR is not a role in REEP (2026-09-10) and nothing may be routed or "
+        "named for it. The word is still allowed in prose that explains the removal, "
+        "and PROGRAM DIRECTOR is the leave form's own job title — see this guard's "
+        "note. Offenders:\n  " + "\n  ".join(offenders)
+    )
+
+
+def test_the_client_does_not_know_the_removed_role_as_a_role() -> None:
+    """`roleGuard('DIRECTOR', ...)` is the frontend half of a half-done removal.
+
+    It let a retired DIRECTOR cookie into the console shell — fifteen sidebar
+    links, every one of which the API answers 403 to. The `Role` union in
+    core/session.ts is what makes the compiler find these, so this pins that the
+    union has not quietly grown the value back.
+    """
+    session_ts = (WEB_SRC / "app" / "core" / "session.ts").read_text(encoding="utf-8")
+    union = re.search(r"export type Role = ([^;]+);", session_ts)
+    assert union, "core/session.ts no longer declares `export type Role`"
+    assert "DIRECTOR" not in union.group(1), (
+        "the client's Role union carries DIRECTOR again; every `role === 'DIRECTOR'` "
+        "branch it used to guard compiles silently once it is back"
+    )
+
+    routes = (WEB_SRC / "app" / "app.routes.ts").read_text(encoding="utf-8")
+    assert "'DIRECTOR'" not in routes, "app.routes.ts guards a route on DIRECTOR again"
+
+
+def test_the_two_post_login_home_maps_agree() -> None:
+    """The server and the client each decide where a sign-in lands, and they must
+    not disagree.
+
+    INCIDENT (2026-09-10): the SPA's `/director/*` routes were renamed to
+    `/admin/*`, and `_HOME_FOR_ROLE` in app/routers/auth.py was not. It still
+    read `"ADMIN": "/director"`, so a Main Admin signing in THROUGH GOOGLE —
+    the only door that uses that map — was redirected to a route that no longer
+    existed. The password door was fine, which is exactly why nobody saw it: the
+    seeded logins in AGENTS.md never take that path.
+
+    The comment above the map already asked for the two to be kept in step. A
+    comment is not a guard.
+    """
+    auth_py = (APP / "routers" / "auth.py").read_text(encoding="utf-8")
+    session_ts = (WEB_SRC / "app" / "core" / "session.ts").read_text(encoding="utf-8")
+
+    server = dict(re.findall(r'"([A-Z]+)": "(/[a-z]+)"', auth_py.split("_HOME_FOR_ROLE")[1].split("}")[0]))
+    client = dict(re.findall(r"([A-Z]+): '(/[a-z]+)'", session_ts.split("HOME_FOR_ROLE")[2].split("}")[0]))
+
+    assert server, "could not read _HOME_FOR_ROLE out of app/routers/auth.py"
+    assert client, "could not read HOME_FOR_ROLE out of core/session.ts"
+    assert server == client, (
+        "the post-login destinations disagree.\n"
+        f"  app/routers/auth.py : {sorted(server.items())}\n"
+        f"  core/session.ts     : {sorted(client.items())}"
+    )
+
+    # And neither may name a route the SPA no longer has.
+    routes = (WEB_SRC / "app" / "app.routes.ts").read_text(encoding="utf-8")
+    for role, home in server.items():
+        assert f"'{home.lstrip('/')}'" in routes or home == "/login", (
+            f"{role} is sent to {home}, which app.routes.ts does not declare"
+        )
+
+
+# --------------------------------------------------------------------------- #
+# An index that is a prefix of another index
+# --------------------------------------------------------------------------- #
+
+
+def _index_key(idx) -> tuple[str, ...] | None:
+    """The column names of `idx`, in order, or None if it is not that simple.
+
+    A PARTIAL index (`postgresql_where`) and a FUNCTIONAL one are excluded on
+    purpose: `uq_interview_consent_active (user_id, version) WHERE revoked_at IS
+    NULL` looks like a prefix of nothing and covers nothing in general, and
+    `ix_users_email_lower (lower(email))` has no plain column at all. Comparing
+    those by column name is how a guard starts recommending the deletion of an
+    index the planner needs.
+    """
+    if idx.dialect_options.get("postgresql", {}).get("where") is not None:
+        return None
+    names = []
+    for col in idx.expressions:
+        name = getattr(col, "name", None)
+        if name is None:
+            return None  # an expression, not a column
+        names.append(name)
+    return tuple(names) or None
+
+
+def test_no_index_duplicates_the_prefix_of_another() -> None:
+    """INCIDENT (2026-09-10, found by reading `pg_indexes`, not the models):
+    THIRTEEN indexes were a strict prefix of — or identical to — a UNIQUE index
+    on the same table.
+
+    `ix_studentbadge_student (student_id)` beside
+    `uq_student_badge (student_id, badge_code)`; `ix_ledger_day_student_day`
+    and `uq_ledger_day` with the SAME two columns in the same order. Postgres
+    answers those lookups from the unique index, so the duplicate only bought a
+    write on every insert and update to the row, plus another candidate for the
+    planner to price.
+
+    They accumulate because each one is individually reasonable: somebody adds a
+    unique constraint to a table that already had an index on its lead column,
+    or adds `index=True` to a foreign key whose unique constraint already leads
+    with it. Nothing complains, and it is invisible from the model file — both
+    declarations look necessary on their own line.
+
+    Migration `a91f3c5d80e4` dropped them. This is what stops the fourteenth.
+    """
+    import app.models  # noqa: F401 — registers every table on Base.metadata
+    from app.db import Base
+    from sqlalchemy import UniqueConstraint
+
+    offenders: list[str] = []
+    for table in Base.metadata.sorted_tables:
+        keyed: list[tuple[str, tuple[str, ...]]] = []
+        for idx in table.indexes:
+            key = _index_key(idx)
+            if key:
+                keyed.append((idx.name, key))
+        for con in table.constraints:
+            if isinstance(con, UniqueConstraint) and con.columns:
+                name = con.name or f"<unnamed unique on {table.name}>"
+                keyed.append((name, tuple(c.name for c in con.columns)))
+        # The primary key covers its own lead column too.
+        if table.primary_key is not None and table.primary_key.columns:
+            keyed.append((f"{table.name}_pkey", tuple(c.name for c in table.primary_key.columns)))
+
+        for name, key in keyed:
+            for other_name, other_key in keyed:
+                if other_name == name:
+                    continue
+                if len(other_key) >= len(key) and other_key[: len(key)] == key:
+                    # `name` buys nothing that `other_name` does not already give.
+                    offenders.append(
+                        f"{table.name}.{name} {list(key)} is covered by "
+                        f"{other_name} {list(other_key)}"
+                    )
+                    break
+
+    assert not offenders, (
+        "Index(es) that duplicate the prefix of another index on the same table. "
+        "Postgres serves the lookup from the wider one; the narrower only costs a "
+        "write on every row change. Drop it in the model AND in a migration:\n  "
+        + "\n  ".join(sorted(set(offenders)))
     )

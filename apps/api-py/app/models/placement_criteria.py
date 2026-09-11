@@ -1,4 +1,4 @@
-"""Placement criteria (ported from Prisma `PlacementCriteria`). Director-set
+"""Placement criteria (ported from Prisma `PlacementCriteria`). Admin-set
 academic gates the placement funnel reads; one set is `active`. A job's per-
 posting override wins; otherwise these defaults apply.
 """

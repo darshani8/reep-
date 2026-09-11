@@ -261,14 +261,39 @@ def test_a_mentor_with_no_group_sees_nobody(client, make_user, staff):
 
 
 @requires_db
-def test_a_director_reads_any_student(client, make_user):
+def test_the_main_admin_reads_any_student_ONLY_once_it_holds_the_capability(
+    client, make_user, granted
+):
+    """These endpoints are gated on `mentor.mentees`, and the office account does
+    not hold it by role.
+
+    This test used to be `test_a_director_reads_any_student` and asserted a plain
+    200. Both halves of that changed on 2026-09-10: DIRECTOR is not a role any
+    more, and `_FACULTY_ONLY` (app/governance.py) took the four faculty
+    instruments out of the Main Admin's baseline — a mentee log belongs to a
+    mentor, and the office has no mentees.
+
+    So the 403 comes FIRST, and it is the more important assertion: it is what
+    would fail if somebody quietly widened the baseline back to make a screen
+    work. The grant is then the documented way in, and the 200 after it proves
+    the door still opens for the account that decides who holds what.
+    """
     stu = make_user("staff-director-student")
     sid = _student_id(stu.user_id)
-    director = make_user("staff-director", role=Role.DIRECTOR)
+    admin = make_user("staff-director", role=Role.ADMIN)
 
-    assert client.get(f"/api/mentor/students/{sid}/ledger", headers=director.headers).status_code == 200
+    for path in ("ledger", "english-baseline"):
+        r = client.get(f"/api/mentor/students/{sid}/{path}", headers=admin.headers)
+        assert r.status_code == 403, (
+            f"the Main Admin reached {path} with no grant ({r.status_code}); "
+            "a faculty instrument is in its baseline again"
+        )
+
+    granted(admin, "mentor.mentees", "Standing in for faculty to read a mentee record.")
+
+    assert client.get(f"/api/mentor/students/{sid}/ledger", headers=admin.headers).status_code == 200
     assert (
-        client.get(f"/api/mentor/students/{sid}/english-baseline", headers=director.headers).status_code
+        client.get(f"/api/mentor/students/{sid}/english-baseline", headers=admin.headers).status_code
         == 200
     )
 

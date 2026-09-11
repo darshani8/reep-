@@ -138,7 +138,6 @@ class StudentMilestone(Base):
     __tablename__ = "student_milestones"
     __table_args__ = (
         UniqueConstraint("student_id", "key", name="uq_student_milestone"),
-        Index("ix_student_milestone_student", "student_id"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

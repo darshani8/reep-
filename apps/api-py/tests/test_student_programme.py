@@ -337,7 +337,7 @@ def test_stored_milestones_and_the_derived_english_row(client, make_user):
 
 @requires_db
 def test_programme_is_student_only(client, make_user):
-    director = make_user("prog-director", role=Role.DIRECTOR)
+    director = make_user("prog-director", role=Role.ADMIN)
     assert client.get("/api/student/programme", headers=director.headers).status_code == 403
 
 

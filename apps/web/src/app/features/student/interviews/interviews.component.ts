@@ -11,7 +11,7 @@
  *
  * WHY THIS SCREEN HAD TO EXIST THE DAY THE TABLES DID. The consent panel now
  * tells the student, in as many words, that their transcript is kept on the
- * college's server and that their mentor and the placement director can read
+ * college's server and that their mentor and the placement office can read
  * it. A promise like that with no way for the student to see the same record is
  * not a disclosure, it is a notice. This is where they read what was kept.
  *
@@ -61,7 +61,7 @@ interface TurnRow {
 }
 
 /** Row shape of .../report, verbatim from InterviewReportOut. No
- *  `raw_response` — that field exists only on the DIRECTOR/ADMIN model, and its
+ *  `raw_response` — that field exists only on the Main Admin's model, and its
  *  ABSENCE is how the server says "not yours to read" rather than "the model
  *  returned nothing". Do not add it here hoping it will arrive. */
 interface ReportRow {

@@ -6,14 +6,17 @@ out; a change keeps this device and signs out the rest. Logging the other
 devices out after a reset matters because the commonest reason for a reset is
 that somebody else got in.
 
-WHAT THIS DOES NOT DO — decided, not forgotten. Students never come here.
-Option B in the agreed plan: students sign in with their college Google
-account and hold no password; staff get password accounts through activation.
-So `activate` refuses a link for a STUDENT (none is ever issued), `forgot`
-quietly does nothing for one, and `change-password` answers 409. The
-password door itself is still `password_door_open` in auth.py — the first
-staff activation issues the first scrypt hash, and that act opens it, exactly
-as that function's comment says it should.
+STUDENTS COME HERE NOW (2026-09-10). Option B — students sign in with Google
+and hold no password — was reversed: a student sets a password at the end of
+`routers/onboarding.py`, so `forgot` and `change-password` serve them like
+anyone else. Two refusals survive the reversal and are NOT vestigial:
+`activate` still refuses a STUDENT, because an activation link is a STAFF
+first-password link and a student's equivalent is the onboarding walk, which
+proves the mailbox with a code first; and both flows still refuse an account
+holding the unusable sentinel, which is an account that has not finished
+onboarding rather than one with a forgotten password. The password door itself
+is still `password_door_open` in auth.py — the first real scrypt hash opens it,
+and the first one is now usually a student's.
 
 WHY A SEPARATE MODULE. auth.py is 830 lines and owns sign-in; this owns
 credentials. It borrows auth's session issuance rather than copying it, so a
@@ -39,7 +42,7 @@ from .. import account_links
 from ..config import settings
 from ..db import SessionLocal, get_db
 from ..identity import get_current_session
-from ..models.auth_token import PURPOSE_ACTIVATION, PURPOSE_RESET
+from ..models.auth_token import PURPOSE_ACTIVATION, PURPOSE_CHANGE_CODE, PURPOSE_RESET
 from ..models.user import Role, User
 from ..schemas.auth import SessionUser
 from ..security import hash_password, note_revocation, verify_password
@@ -174,8 +177,13 @@ def _issue_reset_in_background(email: str) -> None:
     ran in the request. Own session: this runs after the response is gone."""
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == email))
-        if user is None or user.role is Role.STUDENT:
+        if user is None:
             return
+        # STUDENTS ARE NO LONGER SKIPPED (2026-09-10). Under option B they held
+        # no password, so a reset link would have quietly created one; they set
+        # a password during onboarding now, and a student who forgets it has
+        # the same claim on this flow as anyone else. The sentinel check below
+        # still covers the account that has not finished onboarding.
         if not user.password_hash.startswith("scrypt:"):
             # Google-only account: nothing to reset, and mailing a link would
             # quietly turn it into a password account.
@@ -236,8 +244,66 @@ def reset(body: LinkPasswordIn, db: Session = Depends(get_db)) -> MessageOut:
 
 
 class ChangePasswordIn(BaseModel):
-    current_password: str = Field(min_length=1, max_length=256)
+    """TWO WAYS TO PROVE IT IS YOU, and exactly one must be supplied.
+
+    `code` is what the screens use: a student who has just set their first
+    password does not reliably remember it, and asking for it is how "I forgot
+    it already" becomes a support call instead of a code. `current_password`
+    stays because it is what staff have always typed and what six test modules
+    already exercise, and because it needs no mailbox — the door that still
+    works when SES does not.
+    """
+
     new_password: str = Field(min_length=1, max_length=256)
+    current_password: str | None = Field(default=None, max_length=256)
+    code: str | None = Field(default=None, max_length=12)
+
+
+def _authorised_to_change(db: Session, user: User, body: "ChangePasswordIn") -> bool:
+    """Whichever proof was offered, checked. Never both, never neither."""
+    code = (body.code or "").strip()
+    current = body.current_password or ""
+    if bool(code) == bool(current):
+        return False
+    if code:
+        ok = account_links.consume_user_code(db, user.id, PURPOSE_CHANGE_CODE, code)
+        if ok:
+            db.commit()
+        return ok
+    return verify_password(current, user.password_hash)
+
+
+class ChangeCodeOut(BaseModel):
+    message: str
+
+
+@router.post("/change-password/code", response_model=ChangeCodeOut)
+def change_password_code(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> ChangeCodeOut:
+    """Mail the signed-in account a code authorising a password change.
+
+    It goes to the address ON THE ACCOUNT and is never taken from the request:
+    a caller who could name the recipient could mail themselves somebody
+    else's authorisation. Being signed in is not enough on its own — that is
+    the point of the code, which is why the mail says plainly what to do if you
+    did not ask for it.
+    """
+    user = db.get(User, session["userId"])
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in again.")
+    if not user.password_hash.startswith("scrypt:"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This account has no password yet.",
+        )
+    account_links.issue_change_code(db, user)
+    log.info("password-change code sent for %s", user.email)
+    return ChangeCodeOut(
+        message=f"We have emailed a code to {user.email}. It expires in "
+        f"{settings.otp_code_minutes} minutes."
+    )
 
 
 @router.post("/change-password", response_model=SessionUser)
@@ -256,19 +322,28 @@ def change_password(
     user = db.get(User, session["userId"])
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in again.")
-    if user.role is Role.STUDENT or not user.password_hash.startswith("scrypt:"):
+    # NO LONGER REFUSES A STUDENT (2026-09-10). Option B is over; students set
+    # a password during onboarding. What is still refused is an account that
+    # holds no password at all — the unusable sentinel — because there is
+    # nothing to change and `verify_password` can never match it. Such an
+    # account gets in through Google, or finishes onboarding first.
+    if not user.password_hash.startswith("scrypt:"):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This account signs in with Google and has no password to change.",
+            detail=(
+                "This account has no password yet. Sign in with Google, or "
+                "finish setting up your account from the link you were emailed."
+            ),
         )
-    if not verify_password(body.current_password, user.password_hash):
+    if not _authorised_to_change(db, user, body):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="The current password is not right."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="That is not right. Check the code, or the current password.",
         )
     problem = password_problem(body.new_password)
     if problem:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=problem)
-    if body.new_password == body.current_password:
+    if body.current_password and body.new_password == body.current_password:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="The new password is the same as the current one.",

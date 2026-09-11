@@ -2482,6 +2482,414 @@ is worth knowing before it is reported as a bug — and it is exactly why the
 "signed out elsewhere" message was built in the same round rather than left for
 later.
 
+---
+
+# Round 8 — Faculty belong to an institution too
+
+**Where this came from.** The owner, reading the student hierarchy: *"students are
+only comes under institution but adding faculty is not done yet... if we do not
+add this how can we manage all other institution faculty, it will be mess."*
+Correct, and the audit that followed found the gap is wider than faculty alone.
+
+## The gap, measured before touching anything
+
+A student's institution is reachable through ONE pointer: `students.cohort_id`,
+with college / department / course / batch read through the join and stored on
+nothing (`routers/student.py::_institution_for`). Staff had no pointer at all.
+
+- `Mentor` carries exactly two columns: `id` and `user_id`.
+- The only institutional field on a staff row was `users.department` — **free
+  text typed into a form**. "Dept of Management Studies", "DMS" and "Management"
+  are one department to a reader and three to a `GROUP BY`, and no staff row
+  could name its college at all. Every staff row in the dev database had it
+  `NULL` anyway, so even the free-text field was unused.
+- `colleges` already holds five rows. The multi-college shape is live in the
+  data, not hypothetical.
+
+**And the correlated problem the owner asked me to look for is real.** There IS
+a tenancy layer — `redesign_tenants`, `redesign_tenant_memberships`, wired into
+rule 2's gate through `policies.assert_student_scope` — and it is **completely
+inert**: zero rows, and *nothing in the application ever constructs a
+TenantMembership*. `tenant_id_for_session` returns None in that case by design
+("preserving the pre-tenant path"), so the narrowing never fires. College is
+therefore **not an access boundary anywhere**: a DIRECTOR or ADMIN reads every
+student in every college, and mentor-group narrowing is the only scoping that
+actually works. That is recorded here and NOT fixed in this round — see the
+closing note.
+
+## L1 · `models/user.py`, `migrations/…_31ca99852acd` — one pointer, on `users`
+
+`users.department_id` -> `departments.id`, nullable, indexed.
+
+**On `users` and not on `mentors`, and the placement is forced.** A faculty
+account deliberately has NO `Mentor` row until the Main Admin assigns it a
+student (AGENTS.md, and `routers/director.py`). Hanging the department off
+`mentors` would mean the newly created faculty member — the exact row an admin
+is trying to file — had nowhere to record where they work.
+
+Nullable for the same reason `cohort_id` is: staff exist before anyone files
+them, and every account predating the column keeps working. The free-text
+`department` is kept beside it because the leave form prints that line; the
+column is the source of truth wherever it is set, and both write paths keep the
+two in step by writing the department's NAME into the text line.
+
+**Two things autogenerate got wrong, both caught before they shipped.** The
+column closes a cycle in the FK graph (`users -> departments -> colleges ->
+users`, the last hop being `colleges.created_by_user_id`), and
+`Base.metadata.create_all` — which the dev seed uses — cannot topologically sort
+a cycle, so it silently drops the constraints it cannot order. Hence
+`use_alter=True`. And autogenerate emitted `op.create_foreign_key(None, …)` with
+a matching `op.drop_constraint(None, …)`: a downgrade that cannot run, because
+there is no constraint named None. Both fixed, and the migration was
+round-tripped down and up against the real database to prove it.
+
+## L2 · `staff_placement.py` (new) — resolved, never stored
+
+`placements_for(db, user_ids)` answers "where does this staff member sit" in ONE
+query for a whole list, because the faculty screen renders every account at
+once and a per-row resolve is the N+1 that makes the console slow the week a
+college finishes onboarding. `placement_for` is the single-row convenience.
+
+`StaffPlacement.filed` is the boolean a screen branches on. A falsy
+`department_name` cannot distinguish "nobody has filed this person" from "a
+department whose name is blank", and those mean opposite things on a screen
+whose entire job is to get everyone placed — the same reasoning as the English
+Baseline's nullable scores.
+
+`resolve_department` raises `LookupError` for an id that does not exist, and the
+router turns that into a 422. **A write that reports success and stores null is
+the exact failure this whole round exists to remove**, so an unknown department
+must never fall through to "filed under nothing".
+
+## L2 · `routers/admin_faculty.py`, `routers/admin.py`, `routers/director.py`
+
+- `POST /api/admin/faculty` accepts `department_id` and files on creation.
+- `PATCH /api/admin/faculty/{user_id}` files an EXISTING faculty member, or
+  moves them. This is not a nicety: the column arrived after the accounts did,
+  so without it every faculty member created before this change is permanently
+  unfiled and the only remedy is a hand-written UPDATE. It refuses any id that
+  is not a MENTOR — this endpoint writes institutional fields and must never
+  become a route to another kind of account.
+- `GET /api/admin/faculty` lists faculty **unfiled first**, then by name. A list
+  that buries six unfiled accounts alphabetically among two hundred filed ones
+  is a list nobody finishes.
+- `GET /api/admin/departments` is a flat picker — every department with its
+  college, pre-labelled "Computer Science · BGSCET". The existing endpoint is
+  per-college, and filing a faculty member would otherwise force the form to ask
+  for a college first purely because of how the API happened to be shaped. The
+  college still travels, because two colleges may each have a CSE.
+- `GET /api/director/mentor-load` carries the placement, batched, because
+  Mentors & Students is where faculty are actually managed.
+
+`test_admin_institution.py`'s route-count guard caught the new endpoint
+immediately and made me prove it refuses a STUDENT. That guard works.
+
+## L3 · `mentors-students.component.*`
+
+A department select on the add-faculty form (falling back to the free-text input
+when no departments exist or the reader lacks `admin.institution`), a
+filed/not-filed chip on each faculty row as **text and colour together**, and an
+inline File/Move control. `unfiledCount` is the number that has to reach zero.
+
+**A bug of my own, found only by driving the browser.** I wrote the inline form
+with `(ngSubmit)`. This component declares `imports: []`, so there is no
+FormsModule, no NgForm, and `(ngSubmit)` binds to a DOM event of that name that
+nothing ever raises. The template compiled, the build passed, the button
+rendered, and clicking it ran nothing — no error anywhere. Its two neighbours in
+the same template already used the native `(submit)` + `preventDefault` pattern.
+It is the same family as the `routerLink`-with-empty-imports trap Round 7's
+audit found: inert markup that reads as working. Fixed, and turned into
+`test_ngsubmit_is_never_used_without_a_forms_module`, which strips HTML comments
+first so the comment explaining the fix does not trip it.
+
+## VERIFY
+
+- `pytest` — **949 passed, 3 skipped** (was 942), including
+  `tests/test_staff_placement.py` (6 new).
+- `npx ng build` — clean.
+- **Mutation-verified.** Six mutations, each reverted: create ignores the
+  department; an unknown department is silently filed as null; the edit endpoint
+  reaches any account; unfiled faculty are buried in the list; mentor-load drops
+  the placement; and the `(ngSubmit)` bug reintroduced verbatim. All six turned
+  the relevant test **red**.
+- **Driven in the browser** as the Main Admin: the picker lists five departments
+  across five colleges, filing a faculty member resolves department AND college
+  through the join, the free-text line follows the pointer, a bogus department id
+  answers 422, and `unfiledCount` went 1 -> 0 with the server agreeing.
+- Dev database cleaned of test accounts leaked by earlier runs (including one
+  created by this round's own mutation testing, which is what a mutation that
+  disables a refusal does).
+
+**What is NOT fixed, and is the owner's call.** Filing faculty makes the
+institution *legible*; it does not make it *enforced*. College is still not an
+access boundary, because the tenancy layer that would enforce it has no rows and
+no writer. Making it one means provisioning memberships and then narrowing every
+director/admin query by college — a project, not a patch, and one that changes
+who can see what on a live deployment. The pointer added here is the
+prerequisite either way: nothing can be scoped by an institution that staff rows
+cannot name.
+
+
+# Round 9 — DIRECTOR is not a role
+
+The ask: *"remove director there no director fuinctionality if any code exist as
+director any name as director fix that also check api indexing and its anming
+and security of that fix thos iisue and also fix rious ossues"* — and then, on
+seeing the folder tree, *"change name also from file named as dictor"*.
+
+## The gap, measured before touching anything
+
+REEP has one office account, the Main Admin (ADMIN). DIRECTOR was a second one
+under a different name: it held **every console screen by baseline**, which is
+what an administrator is, while being labelled as something else.
+`app.grant_access` had refused to mint one for months, so nothing new could
+become a DIRECTOR — but the role was still wired into `policies.STAFF_ROLES`,
+`require_mentor`, a `require_director` gate with 29 call sites, the dev seed's
+`director@bgscet.ac.in / director123`, 28 `/api/director/*` routes, a
+`routers/director.py`, an Angular `features/director/` folder of 14 screens, and
+`ROLE_BASELINE`.
+
+Two Explore agents were sent over the API first — one on indexing and naming, one
+on authorisation — because "remove a role" is exactly the change where the thing
+you forget is the thing that matters.
+
+## L1 · `app/governance.py` — the half that was nearly missed
+
+The role gates went first: `policies.STAFF_ROLES`, `require_mentor`,
+`require_admin`. For a few hours `ROLE_BASELINE["DIRECTOR"]` still read
+`_ALL - {"admin.interview_audio"}`, and **that state is worse than not having
+started**:
+
+> a DIRECTOR session was refused by every `require_*` gate — it could not open
+> its own mentee log — and passed every `require_capability` gate, which is
+> roughly fifty endpoints and the whole console, `DELETE /api/admin/students/{id}`
+> and the full-roster exports CSV included.
+
+Two systems decide access in this app and they are checked separately **on
+purpose** — `governance.py`'s own words: *"a capability can never relax the
+student filter"*. The corollary nobody had written down is that a role removal
+which reaches one system and not the other **opens the other one**. No test that
+looked at either half alone would have noticed; the authorisation audit did,
+which is the entire argument for having run it.
+
+`ROLE_BASELINE["DIRECTOR"]` is now `frozenset()`, and
+`tests/test_no_director_privilege.py` asserts **both halves for one session** —
+the only assertion that would have failed during those hours. It mints a DIRECTOR
+row directly, because no supported path can make one any more, and that is the
+point: this is the account an un-migrated checkout still holds.
+
+## L1 · `migrations/…_7c4e0b21d9aa` — the rows, and a downgrade that refuses
+
+`UPDATE users SET role = 'MENTOR', token_version = token_version + 1 WHERE role
+= 'DIRECTOR'`. The version bump is not decoration: a session is a signed
+snapshot, so without it a DIRECTOR cookie minted before the deploy keeps
+asserting the claim until it expires. `downgrade()` raises `NotImplementedError`
+deliberately — nothing records which MENTOR rows used to be DIRECTOR, and a
+downgrade that guesses would promote faculty.
+
+The enum VALUE stays. A Postgres enum value cannot be dropped without recreating
+the type, and the test needs to be able to mint one to prove it reaches nothing.
+
+## L2 · `require_director` → `require_admin`, and `director.py` → `console.py`
+
+One console gate, not two. `require_director` is deleted and its 29 call sites
+now read `require_admin`; `_DIRECTORS` is gone and `_STAFF` is `{"MENTOR",
+"ADMIN"}`. The module that served the console is `app/routers/console.py`.
+
+`/api/director/*` → `/api/admin/*`, checked collision-free first: 28 director
+routes against the 35 already under `/admin`, no overlap. The OpenAPI **tag** was
+still `["director"]` on the console router, which is what `/docs` groups by — the
+kind of naming that survives a rename because nothing renders it in the app.
+
+While in there, two reads that name a student in the path — `student_weekly` and
+`student_resume_pdf` — were missing `_assert_can_access_student`. Rule 2 is not
+optional on a path that carries a student id.
+
+## L2 · `app/routers/auth.py` — a bug the rename created and nothing caught
+
+`_HOME_FOR_ROLE` still read `"ADMIN": "/director"`. It is used by exactly one
+caller — the **Google SSO callback** — so a Main Admin signing in through Google
+was redirected to a route the SPA no longer has. The password door was fine,
+which is precisely why nobody saw it: the seeded logins in AGENTS.md never take
+that path.
+
+`_DEFAULT_HOME` was `/student`, and it was wrong in the one case it exists for:
+an unrecognised role holds no capability and passes no gate, so every screen
+behind `/student` answers 403 to it. Sending it to a workspace it cannot use
+turns "you have no access" into "the app is broken". It is `/login` now, and
+`homeForRole()` in `core/session.ts` is the same decision on the client.
+
+The comment above that map already asked for the two to be kept in step. **A
+comment is not a guard** — `test_the_two_post_login_home_maps_agree` reads both
+files and compares them.
+
+## L2 · `app/routers/registration.py` — the reviewer's side of a public endpoint
+
+The audit flagged the public upload endpoint as returning applicant PII. Read
+properly, the data it returns is the applicant's *own* submission, behind an
+unguessable uuid4 they were handed — not a leak. What did not belong there was
+the **reviewer's** side of the record: `review_note` is a director writing about
+this person for colleagues.
+
+Today it cannot travel — uploads are refused once an application is decided, and
+`reopen` clears the note on the way back into the queue. Both of those are one
+small edit away from being untrue, and the edit that breaks them will not look
+like it touches a public response. So the fix is a **shape, not a filter**:
+`PublicRegistrationOut`, built by narrowing the staff model through
+`model_dump()`, so a field added to the staff model tomorrow is private by
+default. `cohort_id` stayed after a second look — the batch an applicant was
+placed in is their own fact, no more private than the one they typed on the form.
+
+## L3 · `features/director/` → `features/admin/`
+
+14 subfolders, 18 files: imports, route paths, API URLs, `Director*` → `Admin*`
+class names, `app-director-*` → `app-admin-*` selectors. `git mv` failed with
+Permission denied until `ng serve` was stopped — it holds the directory.
+
+**The client knew DIRECTOR as a role, and that was the frontend half of the same
+half-done removal.** `roleGuard('DIRECTOR', 'ADMIN')` guarded the console routes,
+`HOME_FOR_ROLE` sent DIRECTOR to `/admin`, and the shell's `navKind` gave it the
+admin navigation — so a retired DIRECTOR cookie was painted a fifteen-link
+sidebar in which the API answers 403 to every single link. Removing `'DIRECTOR'`
+from the `Role` union is what made the compiler find all of them; `homeForRole()`
+is the answer for a role the client does not recognise.
+
+The **PROGRAM DIRECTOR** block on the leave form is untouched, and must stay
+untouched: it is a job title printed on the college's own PDF, at coordinates
+measured from that file.
+
+## L3 · The vocabulary, everywhere else
+
+~120 prose corrections across both apps, but only the ones that were **false**
+mattered:
+
+- `config.py` and `auth.py` argued that a forged `{"role":"DIRECTOR"}` cookie
+  reads every student's records. It grants nothing now — the sentence had become
+  the opposite of true, in a security argument. It names ADMIN.
+- `interview_records.py` carried a long passage explaining why a DIRECTOR gets
+  403 on a recording and 200 everywhere else in the file. A DIRECTOR now gets 403
+  everywhere. The argument was always operator-versus-programme rather than about
+  that role, so it transfers to MENTOR unchanged — and says so.
+- `seed_kb.py` seeded Knowledge Base rows with `owner_role="DIRECTOR"`. Nothing
+  reads that column, so nothing broke; the label was simply wrong.
+- Docstrings are **published**: FastAPI puts them in `/docs`, so `"""Director:
+  approve or reject a pending application."""` was API documentation.
+
+## L3 · `_FACULTY_ONLY` — the Main Admin is not a faculty member either
+
+Four capabilities — `mentor.mentees`, `mentor.notebook`, `mentor.verifications`,
+`mentor.upskilling` — are a mentor's own instruments, and the office account has
+no mentees, no private notebook, nobody's evidence to verify and no upskilling
+shelf. `ROLE_BASELINE["ADMIN"]` is therefore **deliberately not a superset of**
+`ROLE_BASELINE["MENTOR"]`, which is exactly the assertion `test_governance.py`
+used to make.
+
+Rewriting that test was the right response, not widening the baseline to make it
+pass. It now pins both directions, and the four stay GRANTABLE — so
+`test_mentee_records.py` asserts **403 first** (the assertion that fails if
+somebody quietly widens the baseline to make a screen work) and 200 after the
+grant. `tests/conftest.py` grew a `granted` fixture: one writer for "the Main
+Admin grants itself a faculty instrument", going through the real endpoint so the
+reason floor and the audit write are exercised, and removing the row afterwards
+because a grant outlives the `make_user` account that named it.
+
+## L1 · `migrations/…_a91f3c5d80e4` — the indexing half of the ask
+
+Read out of `pg_indexes` on the running database, not out of the models, which
+is the only way both kinds of mistake here are visible at once.
+
+**Three indexes added, each one a query that could use nothing.**
+`ix_users_email_lower` is the one that matters: NINE call sites ask
+`WHERE lower(email) = :x` — the Google SSO callback, registration
+provisioning, `grant_access`, and the admin faculty/student create-and-edit
+paths — and `ix_users_email` is a plain btree on `email`, which Postgres cannot
+use for that predicate because `lower(email)` is an expression, not the indexed
+value. Every one of those was a sequential scan of `users`: invisible against
+six dev rows, and every single sign-in once a roster is seeded. Proven rather
+than assumed — with `enable_seqscan = off` the plan is
+`Index Scan using ix_users_email_lower ... Index Cond: (lower(email) = ...)`.
+The alternative, lower-casing on write, was rejected: the address is stored as
+the person typed it, and that is what gets printed on a leave form.
+
+`ix_maillog_sent_at` and `ix_interview_session_started` are the same shape: an
+`ORDER BY <col> DESC LIMIT n` over the whole table where the only index carrying
+that column carries it SECOND. An index is walked in sort order from its first
+column, so both were a full scan plus a sort. The mail screen measured
+`Seq Scan + Sort` over 4,689 rows to show 100; it is now
+`Limit → Index Scan`, 0.12 ms.
+
+**Thirteen indexes dropped, each a strict prefix of — or identical to — a UNIQUE
+index on the same table.** `ix_studentbadge_student (student_id)` beside
+`uq_student_badge (student_id, badge_code)`; `ix_ledger_day_student_day` and
+`uq_ledger_day` with the same two columns in the same order. Postgres answers
+those from the unique index, so the duplicate only bought a write on every
+insert and update to the row. They accumulate because each is individually
+reasonable — a unique constraint added to a table that already had an index on
+its lead column, or `index=True` on a foreign key whose unique constraint
+already leads with it — and from inside a model file both lines look necessary.
+
+Dropping them left `test_every_foreign_key_column_is_indexed` green, and for the
+right reason: that guard counts an index whose FIRST column is the FK, and every
+covering unique index leads with the same column. The new
+`test_no_index_duplicates_the_prefix_of_another` computes the whole thing from
+model metadata, skipping partial and functional indexes deliberately — comparing
+`uq_interview_consent_active ... WHERE revoked_at IS NULL` by column name is how
+a guard starts recommending the deletion of an index the planner needs.
+
+**Two of the audit's findings did not survive contact with the database, and
+saying so is the point.** `interview_consents.user_id` was reported as an
+unindexed foreign key; both queries that read it filter
+`(user_id, version, revoked_at IS NULL)`, which is exactly
+`uq_interview_consent_active`. Adding an index there would have been pure cost.
+And 3,576 `PENDING` outbox rows read like a stuck queue until `app/worker.py`
+turned up with `outbox_relay.relay_once` behind it: the relay exists, it has
+simply never been run on this laptop. Neither was changed.
+
+## L2 · `app/routers/mentor.py` — the alert feed had no bound at all
+
+`GET /api/mentor/alerts` was `ORDER BY triggered_at DESC` with no `LIMIT`, and
+the two callers pull in opposite directions: a MENTOR's query is narrowed to
+their own group, but the Main Admin's is not narrowed at all. `open_only=false`
+therefore asked for every alert ever raised for every student in the programme,
+sorted, in one response. `_MAX_ALERTS_LISTED = 200`, and `Alert.id` as the
+tiebreak because two alerts raised in the same transaction share a
+`triggered_at`, and an unstable sort silently drops and repeats rows.
+
+## VERIFY
+
+- `pytest` — **959 passed, 3 skipped** (was 953). Six new tests; five existing
+  ones rewritten to pin the new contract rather than the old one.
+- `alembic upgrade head`, then `downgrade -1` and `upgrade head` again against
+  the real database; `alembic check` reports **no new upgrade operations**, so
+  the models and the schema agree — functional index included. That also
+  disposes of the audit's "constraint naming mismatch" finding: autogenerate
+  sees nothing to change.
+- `npx ng build` — clean, **204.23 kB** initial.
+- **Mutation-verified**, each reverted: a `/api/director/*` route reintroduced;
+  `'DIRECTOR'` put back in the client's `Role` union; the server's home map
+  pointed at `/director` again; the public upload endpoint returned the staff
+  model again (two tests red). All turned the relevant test **red**.
+- **Driven in the browser** as the Main Admin: all 15 console screens under
+  `/admin/*` reached through the sidebar and the analytics tiles — every one
+  arrived, rendered a real `<h1>` and real data, with **zero failed API requests
+  and zero console errors** across the whole tour. The old `/api/director/*`
+  paths answer 404; the demoted seed account holds MENTOR and faculty
+  capabilities only.
+- One-device-at-a-time confirmed itself mid-session: a `curl` login retired the
+  browser session, and the login screen explained why in its live region.
+- **A stale worker nearly sold me a false negative.** The live check said the
+  public registration endpoint still returned `review_note`, while the suite was
+  green. The process on :3300 had started at 16:17, before the edit; the
+  `nohup` restart had failed to bind and died silently, and the old worker
+  answered the readiness probe in 1 s. AGENTS.md warns about exactly this. Killed
+  by PID, restarted, re-checked: **no staff fields**. Every live number above was
+  taken from the fresh worker.
+
+**What is NOT fixed, and is still the owner's call.** Unchanged from Round 8:
+college is not an access boundary, because the tenancy layer has no rows and no
+writer. Removing DIRECTOR narrows *who* the console admits to one account; it
+does not narrow *which students* that account sees, which is still every student
+in every college.
 
 # Round 10 — Deleting the students without deleting the faculty
 

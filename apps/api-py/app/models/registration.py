@@ -172,7 +172,7 @@ class RegistrationDocument(Base):
     """A file attached to a public application BEFORE it is decided.
 
     Why not `Upload`: an Upload is keyed on `students.id`, and an applicant has
-    no Student row until a director approves them — that is the whole point of
+    no Student row until the Main Admin approves them — that is the whole point of
     the queue. So the file lives here, owned by the application, and on
     APPROVE it is MOVED into `uploads` (same stored_name, no second copy of the
     bytes) as the student's first RESUME / PROFILE_PHOTO. On REJECT, or when a
@@ -187,7 +187,6 @@ class RegistrationDocument(Base):
 
     __tablename__ = "registration_documents"
     __table_args__ = (
-        Index("ix_regdoc_registration", "registration_id"),
         UniqueConstraint("registration_id", "kind", name="uq_regdoc_registration_kind"),
     )
 

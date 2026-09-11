@@ -47,7 +47,7 @@ const EDGE_MARGIN = 110;
 
 /** Where a tap goes: each role's own REEP Agent route. */
 function agentRouteFor(role: Role | undefined): string {
-  if (role === 'DIRECTOR' || role === 'ADMIN') return '/director/agent';
+  if (role === 'ADMIN') return '/admin/agent';
   if (role === 'MENTOR') return '/mentor/agent';
   return '/student/agent';
 }

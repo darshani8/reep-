@@ -1517,7 +1517,7 @@ def audio_world(store):
             return {"Cookie": f"{SESSION_COOKIE}={create_session_token(claims)}"}
 
         w.as_director = _auth(
-            userId=director_user.id, email="d@x", name="D", role="DIRECTOR"
+            userId=director_user.id, email="d@x", name="D", role="ADMIN"
         )
         # ADMIN is the operator/"developer" account, and it is the ONLY role that
         # may hear a recording. It reuses the director's user row deliberately:
@@ -1640,32 +1640,39 @@ class TestTheDownload:
         r = api.get(_audio_url(audio_world), headers=audio_world.as_mentor)
         assert r.status_code == 403
 
-    def test_a_director_is_refused_even_though_they_read_everything_else(
+    def test_staff_read_everything_else_about_the_session_and_still_not_the_audio(
         self, api, audio_world
     ):
         """The asymmetry, pinned — this is the whole point of _require_developer.
 
-        A DIRECTOR gets 200 on the transcript, the report and `raw_response` for
-        this very session, and 403 on its audio. That is deliberate: every other
-        staff read is placement business, and a voice recording is not. It exists
-        so whoever OPERATES the system can hear what the engine did.
+        A staff member with legitimate access to this student gets 200 on the
+        transcript, the report and `raw_response` for this very session, and 403
+        on its audio. That is deliberate: every other staff read is placement
+        business, and a voice recording is not. It exists so whoever OPERATES
+        the system can hear what the engine did.
 
-        If this test ever fails because someone put `require_director` back, the
-        fix is not to update the assertion. Widening it hands the most sensitive
-        bytes REEP stores to every placement account, for a question the
-        transcript already answers.
+        WRITTEN AGAINST A MENTOR because DIRECTOR no longer exists (2026-09-10,
+        see tests/test_no_director_privilege.py). The asymmetry it proved is
+        unchanged and now rests on the role that actually holds it: a mentor with
+        the student in their group. The test above proves the refusal happens
+        even for that mentor; this one proves what the same session CAN reach, so
+        the 403 cannot be dismissed as "they could not see this student anyway".
+
+        If this ever fails because someone widened the gate, the fix is not to
+        update the assertion. Widening hands the most sensitive bytes REEP stores
+        to every placement account, for a question the transcript already answers.
         """
-        r = api.get(_audio_url(audio_world), headers=audio_world.as_director)
+        r = api.get(_audio_url(audio_world), headers=audio_world.as_mentor)
         assert r.status_code == 403
         # And the refusal says which role is required, without naming the
         # student or confirming a recording exists.
         assert "administrator" in r.json()["detail"].lower()
 
-        # The same director, same session, reading everything that IS theirs.
+        # The same session, same student, reading everything that IS theirs.
         readable = api.get(
             f"/api/mentor/students/{audio_world.student_id}"
             f"/interviews/{audio_world.recorded_id}",
-            headers=audio_world.as_director,
+            headers=audio_world.as_mentor,
         )
         assert readable.status_code == 200, readable.text
 

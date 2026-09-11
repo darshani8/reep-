@@ -1,36 +1,35 @@
-"""The Main Admin's CRUD over students - one at a time, and a batch at a time.
+"""The Main Admin's edits to students - one at a time, and a batch at a time.
 
     GET    /admin/students?cohort_id=&q=&unseated=   the roster, filtered
-    POST   /admin/students                            create one (User + Student + profile)
     PATCH  /admin/students/{id}                       name / email / USN / batch / faculty / stage / semester
-    DELETE /admin/students/{id}                       remove one, and everything that hangs off them
-    POST   /admin/cohorts/{id}/students/bulk          move / assign faculty / set stage / set semester / delete - every student in the batch
+    POST   /admin/cohorts/{id}/students/bulk          move / assign faculty / set stage / set semester - every student in the batch
     DELETE /admin/cohorts/{id}                        remove an EMPTY batch
+
+NO CREATE AND NO DELETE (2026-09-10), and both absences are the design rather
+than an omission. A student account is minted by exactly one path - the public
+registration form, reviewed and APPROVED by the Main Admin, which provisions
+the row and emails the applicant the setup link they need to prove their
+mailbox and choose a password. An admin-side create was a second way onto the
+roster with none of that; an admin-side delete erased a person's marks,
+attendance, uploads, interviews and mentor notes behind a browser confirm
+dialog, sitting among buttons that only move somebody between batches. What
+remains here is EDITING a student who already exists, which is the day-to-day
+work the screen is actually for. Emptying a deployment of people is
+`python -m app.purge_people`, which is built for it.
 
 GATED BY A CAPABILITY - `admin.students` - the Main Admin's by baseline and a
 faculty member's only by grant. Everything here writes ROSTER rows, and the
-roster IS the access control (an account with a `users` row signs in;
-nothing else does), so the three guards registration's provisioning applies
-are applied here too, in admin wording: an address off the college domain is
-refused, an address that already belongs to a staff account is refused, and
-a second Student for one account is refused. NO PASSWORD is ever set: a
-student signs in with Google, exactly as an approved applicant does.
-
-DELETE IS REAL AND IT IS WIDE. Every student table hangs off `students.id`
-with ON DELETE CASCADE, and every user table off `users.id` the same way or
-with SET NULL - except `login_days`, which is cleared here by hand. The
-before-snapshot goes on the audit trail first, so the row that no longer
-exists can still be read in the trail. Core deletes, not ORM ones: the ORM's
-`User.student` relationship has no cascade configured and would try to
-orphan the Student row rather than let the database drop it.
+roster IS the access control (an account with a `users` row signs in; nothing
+else does), so the guards registration's provisioning applies are applied to
+edits too, in admin wording: an address off the college domain is refused, and
+an address that already belongs to a staff account is refused. NO PASSWORD is
+ever set here: a student sets their own at the end of the onboarding walk
+(routers/onboarding.py), or signs in with Google.
 
 A BATCH ACTION IS THE SINGLE ACTION, REPEATED. `bulk` walks the batch's
-students and applies exactly what the single endpoints apply, through the
-same helpers, so "move a batch" and "move a student" cannot drift; and each
-deleted student still gets their own audit event, because a batch delete is
-not one fact but N.
+students and applies exactly what the single endpoint applies, through the
+same helpers, so "move a batch" and "move a student" cannot drift.
 """
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -49,8 +48,13 @@ from ..identity import get_current_session
 from ..models.cohort import Cohort
 from ..models.institution import Department
 from ..models.student_profile import StudentProfile
-from ..models.user import LoginDay, Mentor, Role, Stage, Student, User
-from .director import ensure_mentor_group
+from ..models.user import Mentor, Role, Stage, Student, User
+from ..student_placement import (
+    DepartmentContradiction,
+    department_of_cohort,
+    resolve_student_department,
+)
+from .console import ensure_mentor_group
 from .registration import SSO_ONLY_PASSWORD_HASH
 
 router = APIRouter(prefix="/admin", tags=["admin-students"])
@@ -73,7 +77,12 @@ class AdminStudentOut(BaseModel):
     cohort_id: str | None
     #: "MBA Batch 2024-26 - Section B · 2024-26", or null when unseated.
     batch: str | None
+    #: The department NAME, resolved through the batch when the student is
+    #: seated and through `students.department_id` when they are not — so an
+    #: unseated student still reads as filed, which is the whole point of
+    #: 31f7a4c60b12. Never stored on the student row; only the id below is.
     department: str | None
+    department_id: str | None
     mentor_id: str | None
     #: The faculty member's USER id - what the console assigns by.
     mentor_user_id: str | None
@@ -111,6 +120,11 @@ class AdminStudentIn(BaseModel):
     email: str
     usn: str | None = None
     cohort_id: str | None = None
+    #: Where the student sits when no batch says so. Ignored in favour of the
+    #: batch's own department whenever the batch has one, and a contradiction
+    #: is a 422 — `student_placement.resolve_student_department` is the single
+    #: writer, exactly as `_resolve_ancestry` is for a cohort's parents.
+    department_id: str | None = None
     current_stage: str = Stage.REBOOT.value
     current_semester: int = Field(default=1, ge=1, le=MAX_SEMESTER)
 
@@ -135,6 +149,10 @@ class AdminStudentPatch(BaseModel):
     email: str | None = None
     usn: str | None = None
     cohort_id: str | None = None
+    #: An explicit null un-files the student from their department, the same way
+    #: a null `cohort_id` un-seats them. Omitted entirely, it is left alone —
+    #: except when the batch changes, which re-derives it.
+    department_id: str | None = None
     mentor_user_id: str | None = None
     current_stage: str | None = None
     current_semester: int | None = Field(default=None, ge=1, le=MAX_SEMESTER)
@@ -154,7 +172,7 @@ class AdminStudentPatch(BaseModel):
         return e
 
 
-BatchAction = Literal["move", "mentor", "stage", "semester", "delete"]
+BatchAction = Literal["move", "mentor", "stage", "semester"]
 
 
 class BatchActionIn(BaseModel):
@@ -209,23 +227,37 @@ def _audit(db: Session, session: dict, request: Request, entity_type: str, entit
 
 def _rows(db: Session, *where) -> list[AdminStudentOut]:
     faculty = aliased(User)
+    # TWO ROUTES TO A DEPARTMENT, and the roster has to try both (31f7a4c60b12).
+    # Joining only through `Cohort` printed a blank Department for every
+    # unseated student — which, before batches exist, is every student — even
+    # though registration had required them to name one. `own_dept` is the
+    # student's own pointer; the batch's still wins where both resolve, which
+    # is the same precedence `resolve_student_department` writes with.
+    own_dept = aliased(Department)
     stmt = (
-        select(Student, User, Cohort.name, Cohort.batch_label, Department.name, Mentor.id, faculty.id, faculty.name)
+        select(
+            Student, User, Cohort.name, Cohort.batch_label,
+            Department.name, Department.id, own_dept.name, own_dept.id,
+            Mentor.id, faculty.id, faculty.name,
+        )
         .join(User, Student.user_id == User.id)
         .outerjoin(Cohort, Cohort.id == Student.cohort_id)
         .outerjoin(Department, Department.id == Cohort.department_id)
+        .outerjoin(own_dept, own_dept.id == Student.department_id)
         .outerjoin(Mentor, Mentor.id == Student.mentor_id)
         .outerjoin(faculty, faculty.id == Mentor.user_id)
         .where(*where)
         .order_by(User.name, Student.usn)
     )
     out: list[AdminStudentOut] = []
-    for student, user, cohort_name, batch_label, dept_name, mentor_id, f_id, f_name in db.execute(stmt):
+    for (student, user, cohort_name, batch_label, dept_name, dept_id,
+         own_name, own_id, mentor_id, f_id, f_name) in db.execute(stmt):
         out.append(AdminStudentOut(
             student_id=student.id, user_id=user.id, name=user.name, email=user.email, usn=student.usn,
             cohort_id=student.cohort_id,
             batch=f"{cohort_name} · {batch_label}" if cohort_name else None,
-            department=dept_name,
+            department=dept_name or own_name,
+            department_id=dept_id or own_id,
             mentor_id=mentor_id, mentor_user_id=f_id, mentor_name=f_name,
             current_stage=student.current_stage.value, current_semester=student.current_semester,
             enrolled_at=student.enrolled_at, last_login_at=user.last_login_at,
@@ -254,15 +286,34 @@ def _cohort_or_404(db: Session, cohort_id: str) -> Cohort:
     return cohort
 
 
-def _delete_student(db: Session, session: dict, request: Request, student: Student, user: User) -> None:
-    """The one delete. Audit first, then the rows: login_days by hand (its FK
-    has no cascade), then the Student (every student table cascades), then
-    the User (every user table cascades or nulls)."""
-    _audit(db, session, request, "student", student.id, "DELETE", _snapshot(student, user), None,
-           {"user_id": user.id, "email": user.email})
-    db.execute(delete(LoginDay).where(LoginDay.user_id == user.id))
-    db.execute(delete(Student).where(Student.id == student.id))
-    db.execute(delete(User).where(User.id == user.id))
+def _department_or_422(
+    db: Session, *, cohort_id: str | None, department_id: str | None, sent: bool
+) -> str | None:
+    """The department to store, or a 422 that names what was wrong.
+
+    The refusals are separate on purpose: "no such department" is a typo in one
+    field, "contradicts the batch" is two fields disagreeing, and an admin fixes
+    those two mistakes differently. A single "invalid department" would make
+    them guess which.
+    """
+    try:
+        return resolve_student_department(
+            db, cohort_id=cohort_id, department_id=department_id, department_sent=sent
+        )
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"No department with id {exc.args[0]!r}.",
+        ) from exc
+    except DepartmentContradiction as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"department_id {exc.sent!r} contradicts the batch you chose, which sits "
+                f"under department {exc.derived!r}. Clear the batch first, or pick a batch "
+                "in the department you want."
+            ),
+        ) from exc
 
 
 # ----------------------------------------------------------------- list --
@@ -292,48 +343,19 @@ def list_students(
     return _rows(db, *where)
 
 
-# --------------------------------------------------------------- create --
-
-
-@router.post("/students", response_model=AdminStudentOut, status_code=status.HTTP_201_CREATED)
-def create_student(
-    body: AdminStudentIn,
-    request: Request,
-    session: dict = Depends(get_current_session),
-    db: Session = Depends(get_db),
-) -> AdminStudentOut:
-    require_capability(db, session, CAPABILITY)
-    _domain_fence(body.email)
-    if body.cohort_id is not None:
-        _cohort_or_404(db, body.cohort_id)
-    existing = db.scalar(select(User).where(func.lower(User.email) == body.email))
-    if existing is not None:
-        if existing.role is not Role.STUDENT:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"{body.email} already belongs to a {existing.role.value} account.",
-            )
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{body.email} is already a student.")
-    if body.usn and db.scalar(select(Student.id).where(Student.usn == body.usn)) is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"USN {body.usn} already belongs to a student.")
-
-    user = User(email=body.email, name=body.name, role=Role.STUDENT, password_hash=SSO_ONLY_PASSWORD_HASH)
-    db.add(user)
-    db.flush()
-    student = Student(
-        user_id=user.id, usn=body.usn, cohort_id=body.cohort_id,
-        current_stage=Stage(body.current_stage), current_semester=body.current_semester,
-    )
-    db.add(student)
-    db.flush()
-    # The profile row, so the student's first sign-in answers 200 rather than
-    # 404 - the same reason registration's provisioning adds one.
-    db.add(StudentProfile(student_id=student.id, email=body.email))
-    db.flush()
-    _audit(db, session, request, "student", student.id, "CREATE", None, _snapshot(student, user),
-           {"user_id": user.id, "email": user.email})
-    db.commit()
-    return _one(db, student.id)
+# ---------------------------------------------------------- NO create --
+#
+# There is no POST /admin/students, deliberately (2026-09-10). A student
+# account comes into existence exactly one way: the public registration form,
+# reviewed and APPROVED by the Main Admin, which provisions the row and emails
+# the applicant their setup link. An admin-side create was a SECOND way in with
+# none of that — no application to read, no reason recorded, no mailbox proof,
+# and an account whose owner has never been told it exists. Two ways to mint a
+# roster seat is one way too many when the roster IS the access control.
+#
+# The migration path for a student who genuinely cannot use the form is the
+# form: someone submits it on their behalf and the admin approves it, which
+# leaves the same audit trail as every other student.
 
 
 # ----------------------------------------------------------------- edit --
@@ -369,10 +391,29 @@ def update_student(
             if taken is not None:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"USN {body.usn} already belongs to a student.")
         student.usn = body.usn
+    # CAPTURED BEFORE THE BATCH MOVES. A row seated before 31f7a4c60b12 — or by
+    # any writer that set only `cohort_id` — carries a NULL `department_id` and
+    # shows its department THROUGH the batch. Reading the fallback after
+    # `student.cohort_id` had been cleared found nothing on either pointer and
+    # un-filed the student, so "leave this batch" silently became "leave this
+    # department too". The effective department is whichever pointer answers now.
+    previous_department = student.department_id or department_of_cohort(db, student.cohort_id)
     if "cohort_id" in sent:
         if body.cohort_id is not None:
             _cohort_or_404(db, body.cohort_id)
         student.cohort_id = body.cohort_id
+    # Re-derived whenever EITHER pointer moves, not just when the client names a
+    # department: moving a student into another batch must not leave them filed
+    # under the old batch's department, and that is a write whose body never
+    # mentions departments at all. Un-seating (cohort_id -> null) deliberately
+    # KEEPS the department — losing the batch is not losing the faculty.
+    if "cohort_id" in sent or "department_id" in sent:
+        student.department_id = _department_or_422(
+            db,
+            cohort_id=student.cohort_id,
+            department_id=body.department_id if "department_id" in sent else previous_department,
+            sent="department_id" in sent,
+        )
     if "mentor_user_id" in sent:
         student.mentor_id = ensure_mentor_group(db, body.mentor_user_id) if body.mentor_user_id else None
     if body.current_stage is not None:
@@ -387,21 +428,20 @@ def update_student(
     return _one(db, student.id)
 
 
-# --------------------------------------------------------------- delete --
-
-
-@router.delete("/students/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_student(
-    student_id: str,
-    request: Request,
-    session: dict = Depends(get_current_session),
-    db: Session = Depends(get_db),
-) -> Response:
-    require_capability(db, session, CAPABILITY)
-    student, user = _student_or_404(db, student_id)
-    _delete_student(db, session, request, student, user)
-    db.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+# ---------------------------------------------------------- NO delete --
+#
+# There is no DELETE /admin/students/{id} and no bulk "delete" action
+# (2026-09-10). Deleting a student erased their marks, attendance, uploads,
+# interview record and mentor notes in one irreversible cascade, from a screen
+# whose other buttons are all routine roster edits — and the only confirmation
+# was a browser dialog. `_delete_student` went with them rather than being left
+# callerless: a delete helper with no caller is the thing the next person wires
+# a button to.
+#
+# Emptying a deployment of people is still possible and still has a tool:
+# `python -m app.purge_people`, which dry-runs by default, demands
+# --i-understand-this-is-permanent, and classifies all 93 tables. That is what
+# a destructive act of this size should look like.
 
 
 # ------------------------------------------------------- the batch level --
@@ -427,6 +467,15 @@ def batch_action(
         _cohort_or_404(db, body.cohort_id)
         for s in students:
             s.cohort_id = body.cohort_id
+            # The destination batch's department travels WITH the move. Setting
+            # only `cohort_id` here would leave every moved student filed under
+            # the department the old batch sat in — a row saying something its
+            # own batch denies, which is the split brain the single-student
+            # path refuses with a 422. `sent=False`: nobody typed a department,
+            # so this derives rather than contradicts.
+            s.department_id = _department_or_422(
+                db, cohort_id=body.cohort_id, department_id=s.department_id, sent=False
+            )
     elif body.action == "mentor":
         mentor_id = ensure_mentor_group(db, body.mentor_user_id) if body.mentor_user_id else None
         for s in students:
@@ -441,16 +490,76 @@ def batch_action(
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="semester needs current_semester.")
         for s in students:
             s.current_semester = body.current_semester
-    elif body.action == "delete":
-        for s in students:
-            _delete_student(db, session, request, s, db.get(User, s.user_id))
-
     db.flush()
     _audit(db, session, request, "cohort", cohort.id, f"STUDENTS_{body.action.upper()}", None, None,
            {"affected": len(students), "cohort_id": body.cohort_id, "mentor_user_id": body.mentor_user_id,
             "current_stage": body.current_stage, "current_semester": body.current_semester})
     db.commit()
     return BatchActionOut(action=body.action, affected=len(students))
+
+
+class RosterBulkIn(BaseModel):
+    """Named students, not a batch.
+
+    Every other bulk action here is scoped to a cohort, which is the right shape
+    for "do this to a batch" — and exactly the wrong shape for the students this
+    endpoint exists for, who have NO batch. A college that has just started has
+    a roster full of them, and filing thirty-five students one PATCH at a time
+    is how a correct feature goes unused.
+
+    IDS ARE EXPLICIT. There is no "everyone unseated" mode: the screen sends the
+    rows the admin ticked, so a mis-click costs one student and never the
+    roster. The cap is the same reason.
+    """
+
+    student_ids: list[str] = Field(min_length=1, max_length=500)
+    action: Literal["department"]
+    department_id: str | None = None
+
+
+class RosterBulkOut(BaseModel):
+    """Its own model rather than a widened `BatchAction`: that Literal is the
+    vocabulary of the COHORT-scoped endpoint, and a member it cannot perform
+    would be a lie in the schema every client reads."""
+
+    action: Literal["department"]
+    affected: int
+
+
+@router.post("/students/bulk", response_model=RosterBulkOut)
+def roster_bulk(
+    body: RosterBulkIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> RosterBulkOut:
+    """File named students under a department, whether or not they are seated."""
+    require_capability(db, session, CAPABILITY)
+    if body.department_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="department needs department_id, the department to file them under.",
+        )
+    students = db.scalars(select(Student).where(Student.id.in_(body.student_ids))).all()
+    missing = set(body.student_ids) - {s.id for s in students}
+    if missing:
+        # Refuse the whole call rather than filing some and reporting a count
+        # that silently does not match what the admin selected.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{len(missing)} of those students no longer exist.",
+        )
+    for s in students:
+        # Per student, because a seated one's batch still outranks the choice —
+        # and says so with a 422 rather than being quietly skipped.
+        s.department_id = _department_or_422(
+            db, cohort_id=s.cohort_id, department_id=body.department_id, sent=True
+        )
+    db.flush()
+    _audit(db, session, request, "roster", "students", "STUDENTS_DEPARTMENT", None, None,
+           {"affected": len(students), "department_id": body.department_id})
+    db.commit()
+    return RosterBulkOut(action="department", affected=len(students))
 
 
 @router.delete("/cohorts/{cohort_id}", status_code=status.HTTP_204_NO_CONTENT)

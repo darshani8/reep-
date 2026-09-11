@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 
 import { AuthService } from './auth.service';
-import { HOME_FOR_ROLE } from './session';
+import { homeForRole } from './session';
 import type { Role } from './session';
 
 export const authGuard: CanActivateFn = async (_route, state) => {
@@ -30,23 +30,23 @@ export const roleGuard = (...allowed: Role[]): CanActivateFn => async () => {
   const router = inject(Router);
   const session = auth.session() ?? (await auth.refresh());
   if (session && allowed.includes(session.role)) return true;
-  return router.createUrlTree([session ? HOME_FOR_ROLE[session.role] : '/login']);
+  return router.createUrlTree([session ? homeForRole(session.role) : '/login']);
 };
 
-/** Passes when the session HOLDS the capability — which a DIRECTOR/ADMIN always
- *  does through the role baseline, and a MENTOR does only when an admin granted
- *  it. UI navigation only; the API re-decides every call. */
+/** Passes when the session HOLDS the capability — which the Main Admin always
+ *  does through the role baseline, and a MENTOR does only when the Main Admin
+ *  granted it. UI navigation only; the API re-decides every call. */
 export const capabilityGuard = (key: string): CanActivateFn => async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const session = auth.session() ?? (await auth.refresh());
   if (session?.capabilities?.includes(key)) return true;
-  return router.createUrlTree([session ? HOME_FOR_ROLE[session.role] : '/login']);
+  return router.createUrlTree([session ? homeForRole(session.role) : '/login']);
 };
 
 export const homeRedirectGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const session = auth.session() ?? (await auth.refresh());
-  return router.createUrlTree([session ? HOME_FOR_ROLE[session.role] : '/login']);
+  return router.createUrlTree([session ? homeForRole(session.role) : '/login']);
 };

@@ -17,10 +17,12 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -52,6 +54,24 @@ class Stage(str, enum.Enum):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        # EVERY case-insensitive lookup of an account, and there are nine:
+        # the Google SSO callback, registration provisioning, `grant_access`,
+        # and the admin faculty/student create-and-edit paths all ask
+        # `WHERE lower(email) = :x`.
+        #
+        # `ix_users_email` is a plain unique btree on `email`, and Postgres
+        # CANNOT use it for that predicate — `lower(email)` is an expression,
+        # not the indexed value — so each of those was a sequential scan of
+        # `users`. With six rows that is invisible; with a seeded roster it is
+        # every single sign-in.
+        #
+        # A functional index is the fix rather than lower-casing on write: the
+        # address is stored as the person typed it, which is what gets printed
+        # on a leave form and read back to them on the phone.
+        Index("ix_users_email_lower", text("lower(email)")),
+    )
+
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
@@ -87,6 +107,43 @@ class User(Base):
     # inventing a department.
     designation: Mapped[str | None] = mapped_column(String, nullable=True)
     department: Mapped[str | None] = mapped_column(String, nullable=True)
+    # WHERE A STAFF MEMBER SITS IN THE INSTITUTION — the faculty counterpart of
+    # `Student.cohort_id`, and for the same reason.
+    #
+    # A student's college, department, course and batch are reached THROUGH one
+    # pointer and stored on nothing (see Student.cohort_id and
+    # routers/student.py::_institution_for). Faculty had no such pointer at all:
+    # the only institutional thing on a staff row was `department` above, a FREE
+    # TEXT string typed on a form, so "Dept of Management Studies", "DMS" and
+    # "Management" were three departments to anybody trying to group by one, and
+    # no staff row could name its college at all. With more than one college in
+    # `colleges` that is not a tidiness problem — it is the difference between
+    # being able to say which institution a person belongs to and not.
+    #
+    # ON `users`, NOT ON `mentors`, and that placement is forced: a faculty
+    # account deliberately has no `Mentor` row until the Main Admin assigns it a
+    # student (see routers/console.py and AGENTS.md). Hanging the department off
+    # `mentors` would mean a newly created faculty member — the exact row the
+    # admin is trying to file — had nowhere to record where they work.
+    #
+    # Nullable, like `cohort_id`: staff exist before anyone files them, and every
+    # account that predates this column keeps working. The free-text `department`
+    # is kept beside it because the leave form prints that line and backfilling
+    # is a separate act; this column is the source of truth wherever it is set.
+    # `use_alter` + an explicit name because this column CLOSES A CYCLE in the
+    # foreign-key graph: users -> departments -> colleges -> users
+    # (`colleges.created_by_user_id`). `Base.metadata.create_all` — which the dev
+    # seed uses — cannot topologically sort a cycle and drops the constraints it
+    # cannot order, silently building a dev database without this FK. `use_alter`
+    # makes it a separate ALTER after both tables exist, which is orderable. The
+    # name is given because an unnamed constraint is called one thing by
+    # create_all and another by Alembic, and the migration's own downgrade cannot
+    # drop a constraint whose name it does not know.
+    department_id: Mapped[str | None] = mapped_column(
+        ForeignKey("departments.id", name="fk_users_department", use_alter=True),
+        nullable=True,
+        index=True,
+    )
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -124,6 +181,27 @@ class Student(Base):
     # referencing side, so dropping it would silently undo b41c9e2d7f05.
     cohort_id: Mapped[str | None] = mapped_column(
         ForeignKey("cohorts.id"), nullable=True, index=True
+    )
+    # WHERE THIS STUDENT SITS WHEN NO BATCH SAYS SO (31f7a4c60b12). `cohort_id`
+    # above was the only institutional pointer a student had, so a student with
+    # no batch resolved to no department and no college — and Course /
+    # Specialization / Batch are all OPTIONAL on the registration form while
+    # College and Department are REQUIRED, so "named a department, seated in
+    # nothing" is the NORMAL state of every college that has not built its
+    # batches yet, not an edge case. Provisioning was dropping the one fact the
+    # applicant was forced to give.
+    #
+    # It is a pointer and nothing is copied off it, exactly like `cohort_id` —
+    # the department NAME is read through the join, never stored here. The two
+    # pointers can both name a department, which is a chance to disagree, so
+    # `student_placement.resolve_student_department` is their single writer: the
+    # batch wins whenever it has a department, a contradicting value is a 422,
+    # and only an unfiled batch lets this stand alone. No `ondelete`, matching
+    # `users.department_id`: the database REFUSES to delete a department that
+    # still has students filed under it, because the design archives, and a
+    # cascade here would delete student rows to tidy a catalogue.
+    department_id: Mapped[str | None] = mapped_column(
+        ForeignKey("departments.id"), nullable=True, index=True
     )
     mentor_id: Mapped[str | None] = mapped_column(ForeignKey("mentors.id"), nullable=True, index=True)
     current_stage: Mapped[Stage] = mapped_column(

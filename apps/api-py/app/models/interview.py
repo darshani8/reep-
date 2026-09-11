@@ -89,6 +89,11 @@ class InterviewSession(Base):
         # "this student's interviews, newest first" — every staff read and the
         # student's own history screen.
         Index("ix_interview_session_student_started", "student_id", "started_at"),
+        # ...and the same sort with NO student: the staff list across the whole
+        # programme, which the composite above cannot serve because student_id
+        # leads it. Bounded by _MAX_SESSIONS_LISTED, so this turns a scan-and-sort
+        # of every interview ever held into reading the first page of an index.
+        Index("ix_interview_session_started", "started_at"),
         # The orphan sweeper's predicate, and nothing else. Partial on
         # status='running' because a finished interview is never a candidate, and
         # there will be hundreds of thousands of those against a handful of live
@@ -457,7 +462,7 @@ class InterviewEvaluation(Base):
     # rather than String because both are model prose of unbounded length.
     drill: Mapped[str | None] = mapped_column(Text, nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # The model's exact output, kept for debugging a bad parse. DIRECTOR/ADMIN
+    # The model's exact output, kept for debugging a bad parse. The Main Admin
     # ONLY, and never sent to the student: it routinely contains the model's
     # private reasoning ABOUT them. It is the model's words about the student's
     # words rather than a database student record, so rule 1 is untouched — but
@@ -532,7 +537,7 @@ class InterviewConsent(Base):
     # imports no ORM model at all.
     scope_live_ai: Mapped[bool] = mapped_column(Boolean)
     # The written transcript kept on the college's server as part of the
-    # interview record, readable by their mentor and the placement director.
+    # interview record, readable by their mentor and the placement office.
     # Note the sentence the consent panel MUST carry alongside this one: clearing
     # the conversation does NOT delete the interview record.
     scope_store_transcript: Mapped[bool] = mapped_column(Boolean)

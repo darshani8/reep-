@@ -2481,3 +2481,155 @@ phone will be signed out of one of them. That is the feature, not a defect, but 
 is worth knowing before it is reported as a bug — and it is exactly why the
 "signed out elsewhere" message was built in the same round rather than left for
 later.
+
+
+# Round 10 — Deleting the students without deleting the faculty
+
+**The ask, verbatim: "delete all students permently", and before it "not
+faculty" and "only student".** The deployment at reep.sast-skills.com holds a
+demonstration cohort — 35 student accounts entered for testing — alongside the
+faculty accounts that are staying. The office wants the first set gone and the
+second set untouched.
+
+## The gap, measured before touching anything
+
+`app.purge_people` cannot express this and it is not a near miss. Its verdicts
+are WHOLE-TABLE: `students: EMPTY`, `users: SURVIVOR`. "Survivor" means the one
+Main Admin, so pointing it at this deployment would delete every faculty and
+alumni account on the way to clearing the cohort. Nothing else in the product
+can do it either — `DELETE /api/admin/students/{id}` answers **405 by design**
+(Round 9's reasoning: a student account is minted by exactly one path and erased
+by none), and `DELETE /api/admin/cohorts/{id}` refuses a batch that is not
+already empty.
+
+So the choice was a new destructor or "purge everything and re-create the five
+survivors by hand". The second was tempting — read out of the 2026-09-10 dry run
+on production, the faculty side owns almost nothing: `mentor_notes`,
+`leave_requests`, `staff_signatures`, `staff_upskilling_certs`, `swoc_entries`,
+the mentor notebook, `uploads` and `registrations` are ALL at zero rows there,
+and `build_plan` only reports tables that have any. But "delete the accounts and
+make them again" is not what was asked for twice, and the next demonstration
+cohort would pose the same question again.
+
+**Sizing it first, because the answer decides the design.** Every one of the 64
+tables `purge_people` empties was classified by how a students-only pass would
+have to reach it:
+
+| scoping key | count | note |
+|---|---|---|
+| `student_id` | 30 | all NOT NULL — only a student can own one |
+| `user_id` | 12 | shared with staff; 5 of them are staff-only |
+| neither | 21 | a hand-written parent join, or a different key entirely |
+
+That third row is the reason this is a module and not a flag.
+
+## L1 · `app/purge_students.py` (new) — a verdict is three values, not two
+
+The load-bearing idea is that **"delete the student rows" is a different
+sentence in a table only a student can own and in a table shared with staff.**
+`resumes.student_id` is NOT NULL, so every row goes; `leave_requests` is the
+form BOTH roles apply on, so the row survives unless its requester is doomed.
+Collapsing those two into one verdict is how a purge either leaves a student's
+records behind or deletes a faculty member's leave.
+
+So `STUDENT_VERDICTS` carries `KEEP`, `ALL`, or a scope, for all 93 tables —
+**38 emptied, 33 untouched, 22 scoped** — and an unclassified table aborts the
+run exactly as it does next door. One check is new and is the point of the
+pairing: the key set is compared against `purge_people.VERDICTS`, so the next
+person to add a model is stopped by BOTH destructors rather than by the one they
+happened to open. A model classified in one and forgotten in the other is silent
+in every other way.
+
+**The doomed set is read ONCE, before anything is deleted, and held as literal
+ids.** Written the obvious way — a live subquery over `users` — every scope
+would re-ask "who is a student" as the pass runs, and the accounts are deleted
+near the END of it, because `users` is a parent of almost everything and the
+order runs children first. Any table ordered AFTER the accounts would then match
+nothing and leave its rows behind. Silently. This is not hypothetical:
+`redesign_api_idempotency_keys` names its owner in `principal_id`, a plain
+string with **no foreign key to `users` at all**, so nothing constrains where it
+lands in the topological sort. The mutation test below confirms it — reverting
+to a subquery leaves that table's rows behind and turns
+`test_the_plan_counts_what_the_delete_deletes` red.
+
+**`registrations` is scoped by something that is not an account, and that is
+deliberate.** It is the only table here holding rows for people who are not
+anybody yet. An application that was APPROVED (it became a student) or that
+carries a doomed address goes; the office's PENDING queue survives a cohort
+being cleared. Leaving an approved application behind would be worse than untidy
+— `POST /api/register`'s duplicate guard would then refuse that address forever,
+and the person it refuses has no account left to explain why.
+
+**Four tables are KEPT here that `purge_people` empties**, and the set is pinned
+by a test so that adding a fifth is an edit somebody has to justify:
+`staff_signatures` and `staff_upskilling_certs` (a faculty member's own shelf —
+the reason this module exists), and `redesign_outbox_events` /
+`redesign_domain_jobs` (no foreign key to `users` and an opaque aggregate id;
+guessing which of those is a student is how a purge deletes another tenant's
+pending work).
+
+**Two tables are scoped that read as though they should be KEEP.** `mentors` and
+`alumni_profiles` belong to people this module protects — but `mentors.user_id`
+carries **no ON DELETE**, so a STUDENT-role account holding a mentor row would
+turn a data error into a constraint violation that aborts the whole pass. A
+scope that is normally a no-op costs one line in the report and removes that
+failure mode.
+
+**It refuses to touch a non-student, twice.** `_refuse_unless_only_students`
+reads the doomed accounts back BY ID and checks their roles before a single byte
+is destroyed — the one way this module could be catastrophic is a scope that is
+wrong about who a row belongs to, and that mistake has to surface while it is
+still only a refusal. Then `execute` counts the non-student accounts before and
+compares after, INSIDE the transaction, so a wrong verdict anywhere else that
+took an account with it rolls the pass back instead of committing it.
+
+## L1 · `app/purge_people.py` — three functions extracted, not copied
+
+`_destroy_files` became `destroy_document_files`, `destroy_interview_audio` and
+`destroy_s3_recordings`, each a function over the rows it is handed rather than
+over the whole database, with `_destroy_files` as a thin caller. `purge_students`
+destroys a SUBSET of the same files and calls exactly these.
+
+The alternative was copying forty lines of try/except into the new module, and
+this is the half of a purge that cannot be rolled back: two versions of it means
+one of them stops getting the fix. Behaviour is unchanged — `test_purge_people.py`
+passes untouched, which is what makes the extraction safe to assert.
+
+## L4 · `.github/workflows/ops-task.yml` — its own sentence, in its own box
+
+`purge-students-dry-run` and `purge-students` join the FIXED menu, and the second
+demands `purge_students_confirm` read exactly **`DELETE EVERY STUDENT`**.
+
+It deliberately does NOT share `purge-people`'s box. The typed confirmation is
+the one step here whose entire value is that it is read rather than repeated, and
+sharing the sentence would have an operator typing "PURGE EVERYONE EXCEPT THE
+MAIN ADMIN" to perform an act that keeps everyone except the students. The header
+comment now says plainly that the two purges are not degrees of the same thing.
+
+## VERIFY
+
+- `pytest` — **973 passed, 3 skipped, 0 failed**. Twelve are new.
+  `test_purge_people.py` passes unchanged, which is the assertion that the
+  extraction above did not alter behaviour.
+- `tools/ci/check_pii_gate.py` and `tools/ci/check_api_imports.py` both clean —
+  the latter now imports **159 modules** against `requirements.txt` alone.
+- **Mutation-verified, each reverted.** Five, and every one turned a test red:
+  `staff_signatures` KEEP→ALL (3 tests); `leave_requests` scoped→ALL, which
+  deletes a faculty member's leave (2); `users` ACCOUNTS→ALL, which deletes
+  everybody (4); the doomed set back to a live subquery (4, including the plan
+  and the new subquery guard); and one table's verdict removed, which stops the
+  run at `check_verdicts` (8).
+- **The confirmation gate exercised as shell**, with the step's real `run`
+  script: the exact sentence passes; wrong case, blank, and — the one worth
+  testing — `purge-people`'s sentence are all refused with nothing changed.
+- **Dry run against the real dev database**: 3 student accounts, 800 rows across
+  38 tables, 3 stored documents, and the report's last line reads
+  `Accounts kept: 1 ADMIN, 1 ALUMNI, 1 MENTOR` — which is the whole point of the
+  module, printed where an operator will actually look at it.
+
+**What is NOT done.** Nothing here has run on production: the module is on a
+branch, and the deployed image (commit `490710e`) does not contain it. The order
+is merge → deploy → `purge-students-dry-run` → read the counts → `purge-students`.
+And the caveat from Round 9 is unchanged: this narrows WHICH ACCOUNTS exist, not
+which students an office account can see — college is still not an access
+boundary.

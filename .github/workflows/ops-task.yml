@@ -12,6 +12,14 @@ name: Ops task
 # anyone who can press the button. Free text exists only as ARGUMENTS to
 # grant_access (an email, a name), passed as argv entries via jq so a quote or
 # semicolon in a name is a name, not shell.
+#
+# TWO purges, and they are not degrees of the same thing. `purge-people` empties
+# a deployment of everyone but the Main Admin and is for handing one over;
+# `purge-students` deletes the STUDENT accounts and leaves every faculty and
+# alumni account, their signatures, their upskilling shelf and their governance
+# grants exactly where they are, and is for clearing a demonstration cohort out
+# of a deployment that is staying in use. Each has its own typed sentence,
+# because the confirmation is only worth anything if it names the act.
 
 on:
   workflow_dispatch:
@@ -26,6 +34,8 @@ on:
           - grant-access
           - purge-people-dry-run
           - purge-people
+          - purge-students-dry-run
+          - purge-students
       email:
         description: "grant-access only: the Google email to allow"
         required: false
@@ -52,6 +62,9 @@ on:
         required: false
       purge_confirm:
         description: 'purge-people only: type PURGE EVERYONE EXCEPT THE MAIN ADMIN (exactly). Deletes every other account, all student records, and every transcript and recording. There is no undo.'
+        required: false
+      purge_students_confirm:
+        description: 'purge-students only: type DELETE EVERY STUDENT (exactly). Deletes every STUDENT account and everything those accounts produced, including what staff wrote about them. Faculty, alumni and the Main Admin are untouched. There is no undo.'
         required: false
       confirm:
         description: 'Type "run" to confirm this touches production data'
@@ -111,6 +124,7 @@ jobs:
           GRANT_WITH_GROUP: ${{ inputs.with_group }}
           GRANT_MENTOR: ${{ inputs.mentor_email }}
           PURGE_CONFIRM: ${{ inputs.purge_confirm }}
+          PURGE_STUDENTS_CONFIRM: ${{ inputs.purge_students_confirm }}
         run: |
           case "$TASK" in
             seed-roster-dry-run)
@@ -133,6 +147,19 @@ jobs:
                 exit 1
               fi
               CMD=$(jq -cn '["python","-m","app.purge_people","--apply","--i-understand-this-is-permanent"]') ;;
+            purge-students-dry-run)
+              CMD=$(jq -cn '["python","-m","app.purge_students"]') ;;
+            purge-students)
+              # Its own sentence, in its own box. Sharing purge-people's would
+              # mean the words an operator types ("EVERYONE EXCEPT THE MAIN
+              # ADMIN") describe a different act from the one they picked, and
+              # the typed confirmation is the one step here whose whole value is
+              # that it is read rather than repeated.
+              if [ "$PURGE_STUDENTS_CONFIRM" != "DELETE EVERY STUDENT" ]; then
+                echo "::error::purge-students needs the purge_students_confirm box to read exactly: DELETE EVERY STUDENT. Nothing was changed."
+                exit 1
+              fi
+              CMD=$(jq -cn '["python","-m","app.purge_students","--apply","--i-understand-this-is-permanent"]') ;;
             grant-access)
               if [ -z "$GRANT_EMAIL" ]; then
                 echo "::error::grant-access needs an email."

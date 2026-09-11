@@ -56,6 +56,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -319,70 +320,111 @@ def build_plan(db: Session) -> Plan:
     return plan
 
 
-def _destroy_files(db: Session, plan: Plan) -> list[str]:
-    """Bytes first, rows after. Returns what could NOT be destroyed; each one is
-    logged as it happens, because a list of forty names at the end is not how an
-    operator finds the one volume that is mounted read-only."""
+# The three file stores, each as a function over the rows it is handed rather
+# than over the whole database. `app.purge_students` destroys a SUBSET of the
+# same files and calls exactly these — copying them would leave two versions of
+# the one step in a purge that cannot be rolled back, and the copy would be the
+# one that stopped getting the fix.
+
+
+def destroy_document_files(rows: Iterable[tuple[str, str]]) -> list[str]:
+    """Delete stored documents. `rows` is (label, stored_name); the label only
+    ever says WHICH table pointed at a file that would not die, because an
+    operator holding a bare stored name has nowhere to start looking."""
     from .document_store import delete as delete_stored
 
     failures: list[str] = []
+    for label, stored in rows:
+        try:
+            delete_stored(stored)
+        except FileNotFoundError:
+            pass  # already gone is the outcome we wanted
+        except Exception as exc:  # noqa: BLE001 — reported, never fatal
+            log.error("Could not delete %s file %s: %s", label, stored, exc)
+            failures.append(f"{label}:{stored}")
+    return failures
 
-    for name, column in FILE_COLUMNS.items():
-        table = Base.metadata.tables[name]
-        col = table.c[column]
-        for (stored,) in db.execute(select(col).where(col.is_not(None))).all():
-            try:
-                delete_stored(stored)
-            except FileNotFoundError:
-                pass  # already gone is the outcome we wanted
-            except Exception as exc:  # noqa: BLE001 — reported, never fatal
-                log.error("Could not delete %s file %s: %s", name, stored, exc)
-                failures.append(f"{name}:{stored}")
 
-    # Interview audio through its own store, for EVERY session and never only
-    # the ones whose row admits to having audio — retention._delete_interview_audio
-    # documents why the filesystem is the authority here, not the columns.
+def destroy_interview_audio(sessions: Iterable[tuple[str, str | None]]) -> list[str]:
+    """Interview audio through its own store, for EVERY session handed in and
+    never only the ones whose row admits to having audio —
+    retention._delete_interview_audio documents why the filesystem is the
+    authority here and the columns are not."""
     try:
         from .interview_audio import delete_session_audio
     except ImportError:  # a slim image without the store
-        delete_session_audio = None  # type: ignore[assignment]
-    if delete_session_audio is not None:
-        sessions = Base.metadata.tables["interview_sessions"]
-        for sid, path in db.execute(select(sessions.c.id, sessions.c.audio_path)).all():
-            try:
-                delete_session_audio(sid, path)
-            except Exception as exc:  # noqa: BLE001
-                log.error("Could not delete interview audio for %s: %s", sid, exc)
-                failures.append(f"interview_audio:{sid}")
+        return []
 
-    # Platform call recordings in S3. No bucket configured means the platform
-    # never uploaded anything, and that is a normal deployment, not an error.
+    failures: list[str] = []
+    for sid, path in sessions:
+        try:
+            delete_session_audio(sid, path)
+        except Exception as exc:  # noqa: BLE001
+            log.error("Could not delete interview audio for %s: %s", sid, exc)
+            failures.append(f"interview_audio:{sid}")
+    return failures
+
+
+def destroy_s3_recordings(keys: Sequence[str]) -> list[str]:
+    """Platform call recordings in S3. No bucket configured means either that
+    the platform never uploaded anything — a normal deployment — or that this
+    process cannot reach the bucket holding them. The two are worth telling
+    apart only when there are keys about to become unfindable, which is why the
+    warning hangs off the count rather than off the configuration."""
     try:
         from .voice_platform.storage.s3 import recording_store
     except ImportError:
-        recording_store = None  # type: ignore[assignment]
-    if recording_store is not None:
-        store = recording_store()
-        if store is not None:
-            calls = Base.metadata.tables["platform_call_sessions"]
-            keys = db.execute(
-                select(calls.c.recording_s3_key).where(calls.c.recording_s3_key.is_not(None))
-            ).all()
-            for (key,) in keys:
-                try:
-                    store.delete(key)
-                except Exception as exc:  # noqa: BLE001
-                    log.error("Could not delete S3 recording %s: %s", key, exc)
-                    failures.append(f"s3:{key}")
-        elif plan.s3_objects:
+        return []
+
+    store = recording_store()
+    if store is None:
+        if keys:
             log.warning(
                 "%d call session(s) name an S3 recording but no recordings bucket "
                 "is configured here, so those objects were NOT deleted. Their rows "
                 "are about to go, which makes the objects undiscoverable - set "
                 "PLATFORM_RECORDINGS_BUCKET and run again if they matter.",
-                plan.s3_objects,
+                len(keys),
             )
+        return []
+
+    failures: list[str] = []
+    for key in keys:
+        try:
+            store.delete(key)
+        except Exception as exc:  # noqa: BLE001
+            log.error("Could not delete S3 recording %s: %s", key, exc)
+            failures.append(f"s3:{key}")
     return failures
+
+
+def _destroy_files(db: Session, plan: Plan) -> list[str]:
+    """Bytes first, rows after. Every file in every store, because every account
+    that could own one is going."""
+    documents: list[tuple[str, str]] = []
+    for name, column in FILE_COLUMNS.items():
+        col = Base.metadata.tables[name].c[column]
+        documents += [
+            (name, stored)
+            for (stored,) in db.execute(select(col).where(col.is_not(None))).all()
+        ]
+
+    sessions = Base.metadata.tables["interview_sessions"]
+    audio = db.execute(select(sessions.c.id, sessions.c.audio_path)).all()
+
+    calls = Base.metadata.tables["platform_call_sessions"]
+    keys = [
+        key
+        for (key,) in db.execute(
+            select(calls.c.recording_s3_key).where(calls.c.recording_s3_key.is_not(None))
+        ).all()
+    ]
+
+    return (
+        destroy_document_files(documents)
+        + destroy_interview_audio(audio)
+        + destroy_s3_recordings(keys)
+    )
 
 
 def _null_created_by(db: Session, plan: Plan) -> None:

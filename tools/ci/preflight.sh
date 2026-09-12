@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# tools/ci/preflight.sh — run the four checks that gate `main`, here, before you push.
+# tools/ci/preflight.sh — run the checks that gate `main`, here, before you push.
 #
 # WHY THIS EXISTS. With the ruleset on `main` applied there is no route to main
 # except a pull request whose required checks conclude success, so a mistake in a
@@ -50,13 +50,14 @@ USE_COLOR=1
 
 usage() {
   cat <<'USAGE'
-tools/ci/preflight.sh - the four CI jobs, run locally, before you push.
+tools/ci/preflight.sh - the CI jobs that gate main, run locally, before you push.
 
-  --quick          Run only the two fast checks: "API (dependency completeness)"
-                   and the Angular typecheck. Seconds, not minutes.
+  --quick          Run only the fast checks: "API (dependency completeness)",
+                   Rule 1, the design-system guards and the Angular typecheck.
+                   Seconds, not minutes.
                    NOT SUFFICIENT FOR A PULL REQUEST - it does not run pytest,
-                   ng test, ng build or the voice worker import, and those are
-                   required checks that run whether you did or not.
+                   ng test or ng build, and those are inside required checks
+                   that run whether you did or not.
   --keep-going     Run every check even after one fails, instead of stopping at
                    the first. Slower, but you learn everything in one pass.
   --clean-deps     Run the two dependency-completeness checks the way CI does:
@@ -75,9 +76,13 @@ tools/ci/preflight.sh - the four CI jobs, run locally, before you push.
 Checks, in the order they run, named exactly as the CI jobs are named:
 
   1. API (dependency completeness)             seconds
-  2. Voice worker (dependency completeness)    seconds
-  3. Web (Angular)                             typecheck, unit tests, prod build
+  2. Rule 1 (every model call declares its cargo)   seconds
+  3. Web (Angular)                             design guards, typecheck, tests, build
   4. API (FastAPI + Postgres)                  migrations, seed, pytest - needs Postgres
+
+  Infra (CDK synth guards) is the fifth required check and is NOT run here: it
+  needs its own Python 3.12 environment under infra/cdk and only matters when
+  infra/ is touched. Run it with: cd infra/cdk && python -m pytest -q
 USAGE
 }
 
@@ -145,9 +150,7 @@ now() { date +%s; }
 # ---------------------------------------------------------------------------
 
 PY=""            # apps/api-py/.venv interpreter
-VOICE_PY=""      # apps/api-py/.venv-voice interpreter
 PY_VERSION=""
-VOICE_PY_VERSION=""
 NODE_MODULES=0
 DB_HOST="127.0.0.1"
 DB_PORT="5433"
@@ -163,9 +166,7 @@ venv_python() {  # venv dir -> prints interpreter path, or returns 1
 }
 
 PY=$(venv_python "$API_DIR/.venv" || true)
-VOICE_PY=$(venv_python "$API_DIR/.venv-voice" || true)
 [ -n "$PY" ] && PY_VERSION=$("$PY" -c 'import platform; print(platform.python_version())' 2>/dev/null || echo "?")
-[ -n "$VOICE_PY" ] && VOICE_PY_VERSION=$("$VOICE_PY" -c 'import platform; print(platform.python_version())' 2>/dev/null || echo "?")
 [ -d "$WEB_DIR/node_modules" ] && NODE_MODULES=1
 
 # Ask the APPLICATION which database it means, exactly the way
@@ -218,13 +219,6 @@ else
   printf '  %-16s %sMISSING%s\n' "api venv" "$YELLOW" "$RESET"
   note "cd apps/api-py && py -3.14 -m venv .venv     # python3.14 -m venv .venv on Linux"
   note "apps/api-py/.venv/Scripts/pip install -r requirements-dev.txt"
-fi
-if [ -n "$VOICE_PY" ]; then
-  printf '  %-16s %s (Python %s)\n' "voice venv" "${VOICE_PY#$REPO_ROOT/}" "$VOICE_PY_VERSION"
-else
-  printf '  %-16s %sMISSING%s\n' "voice venv" "$YELLOW" "$RESET"
-  note "cd apps/api-py && py -3.12 -m venv .venv-voice   # 3.12: livekit-agents is Requires-Python <3.15"
-  note "apps/api-py/.venv-voice/Scripts/pip install -r requirements-voice.txt"
 fi
 if [ "$NODE_MODULES" -eq 1 ]; then
   printf '  %-16s %s\n' "web deps" "apps/web/node_modules"
@@ -322,62 +316,38 @@ check_api_imports() {
 }
 
 # ===========================================================================
-# 2. Voice worker (dependency completeness)
+# 2. Rule 1 (every model call declares its cargo)
 #
-# The same shape of bug, and this one is the original: requirements-voice.txt
-# declared only livekit-agents while voice_agent.py imported groq, silero,
-# noise_cancellation and edge_tts. A clean install raised ImportError at
-# startup. It worked on the machine it was written on because those four had
-# been pip-installed by hand. Importing the module from a FRESH environment is
-# the only way to ask whether the MANIFEST is complete, and it needs no LiveKit
-# or Groq credentials to answer.
+# REPLACED the voice-worker check, which asked its question of a process this
+# repository deleted in 2026-09: voice_agent.py, requirements-voice.txt and
+# .venv-voice are all gone, so the check could only ever record SKIP — and a
+# SKIP sets ANY_MISSING, so `preflight.sh` could not exit 0 on a clean tree.
+#
+# What replaces it is the other cheap required job. carries_student_data
+# defaults to False on complete_chat/stream_chat, so an OMITTED argument
+# silently asserts "this prompt holds no student record". app/routers/agent.py
+# had exactly that shape at two call sites. This is a static AST walk, so it
+# needs no dependencies and answers in about a second.
 # ===========================================================================
 
-check_worker_imports() {
-  local name="Voice worker (dependency completeness)" t0 rc=0 interp="" note_text=""
+check_rule_one() {
+  local name="Rule 1 (every model call declares its cargo)" t0 rc=0
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
   banner "2/4  $name"
-  if [ -z "$VOICE_PY" ]; then
-    record "$name" SKIP 0 "no apps/api-py/.venv-voice - see the setup commands above"; return
-  fi
   t0=$(now)
 
-  if [ "$CLEAN_DEPS" -eq 1 ]; then
-    say "Building a throwaway venv from requirements-voice.txt ALONE, as CI does."
-    say "This downloads the whole audio/ML stack. It is slow the first time."
-    say "pip is quiet below; errors still print."
-    interp=$(clean_venv "$VOICE_PY" voice) || {
-      record "$name" SKIP $(( $(now) - t0 )) "could not build a throwaway venv"; return
-    }
-    run "$interp" -m pip install -r "$API_DIR/requirements-voice.txt" >/dev/null || rc=1
-    if [ "$rc" -ne 0 ]; then
-      record "$name" FAIL $(( $(now) - t0 )) "requirements-voice.txt did not install"; return
-    fi
-  else
-    interp="$VOICE_PY"
-    # This is the WEAKEST check in the script, and it is weak in exactly the
-    # direction the original bug travelled: your .venv-voice may hold packages
-    # you pip-installed by hand months ago and never added to the manifest.
-    # They make the import succeed here and change nothing about CI's fresh
-    # install, which is the only environment that asks the real question.
-    note_text="ran in .venv-voice, which may hold hand-installed packages; --clean-deps asks CI's question"
-    note "Running in your existing .venv-voice. If you have ever pip-installed"
-    note "something here without adding it to requirements-voice.txt, this passes"
-    note "and CI does not. --clean-deps is the version that can tell."
+  # Deliberately the system python3 rather than the venv: the check imports
+  # nothing but the standard library, and CI runs it with no install step at
+  # all. If there is no python3 on PATH there is nothing to run it with.
+  if ! command -v python3 >/dev/null 2>&1; then
+    record "$name" SKIP 0 "no python3 on PATH"; return
   fi
 
-  ( cd "$API_DIR" \
-      && REEP_API_URL="${REEP_API_URL:-http://localhost:3300}" \
-      run "$interp" -c 'import importlib.util
-spec = importlib.util.spec_from_file_location("voice_agent", "voice_agent.py")
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-print("voice_agent imported OK; TTS =", module.VOICE_TTS)' ) || rc=1
-
+  ( cd "$REPO_ROOT" && run python3 tools/ci/check_pii_gate.py ) || rc=1
   if [ "$rc" -eq 0 ]; then
-    record "$name" PASS $(( $(now) - t0 )) "$note_text"
+    record "$name" PASS $(( $(now) - t0 )) ""
   else
-    record "$name" FAIL $(( $(now) - t0 )) "voice_agent.py imports something requirements-voice.txt does not declare"
+    record "$name" FAIL $(( $(now) - t0 )) "a complete_chat/stream_chat call does not say whether it carries student data"
   fi
 }
 
@@ -396,7 +366,7 @@ print("voice_agent imported OK; TTS =", module.VOICE_TTS)' ) || rc=1
 
 check_web() {
   local name="Web (Angular)" t0 rc=0 note_text=""
-  if [ "$QUICK" -eq 1 ]; then name="Web (Angular) - typecheck only"; fi
+  if [ "$QUICK" -eq 1 ]; then name="Web (Angular) - guards and typecheck only"; fi
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
   banner "3/4  $name"
   if [ "$NODE_MODULES" -eq 0 ] && [ "$NPM_CI" -eq 0 ]; then
@@ -408,6 +378,17 @@ check_web() {
     ( cd "$WEB_DIR" && run npm ci ) || {
       record "$name" FAIL $(( $(now) - t0 )) "npm ci failed - package.json and package-lock.json disagree"; return
     }
+  fi
+
+  # The three design-system guards, first: each takes about a second, and each
+  # guards a rule that is invisible at the call site.
+  if command -v python3 >/dev/null 2>&1; then
+    ( cd "$REPO_ROOT" && run python3 tools/ci/check_brand_magenta.py ) || rc=1
+    ( cd "$REPO_ROOT" && run python3 tools/ci/check_style_duplicates.py ) || rc=1
+    ( cd "$REPO_ROOT" && run python3 tools/ci/check_theme_tokens.py ) || rc=1
+    if [ "$rc" -ne 0 ]; then
+      record "$name" FAIL $(( $(now) - t0 )) "a design-system guard failed"; return
+    fi
   fi
 
   ( cd "$WEB_DIR" && run npx tsc --noEmit -p tsconfig.app.json ) || rc=1
@@ -508,12 +489,12 @@ if [ "$QUICK" -eq 1 ]; then
   # The fast pair, and nothing else. The two that did not run are RECORDED as
   # not-run, so they cannot be read in the summary as two that passed.
   check_api_imports
+  check_rule_one
   check_web
-  record "Voice worker (dependency completeness)" SKIP 0 "--quick"
   record "API (FastAPI + Postgres)" SKIP 0 "--quick"
 else
   check_api_imports
-  check_worker_imports
+  check_rule_one
   check_web
   check_api_tests
 fi
@@ -552,16 +533,16 @@ if [ "$ANY_FAILED" -ne 0 ]; then
 fi
 if [ "$ANY_MISSING" -ne 0 ]; then
   if [ "$QUICK" -eq 1 ]; then
-    printf '%sINCOMPLETE.%s --quick ran the two fast checks. It is not sufficient for a\n' \
+    printf '%sINCOMPLETE.%s --quick ran only the fast checks. It is not sufficient for a\n' \
       "$YELLOW$BOLD" "$RESET"
     printf 'pull request: run %stools/ci/preflight.sh%s with no flags before you push.\n' "$CYAN" "$RESET"
   else
     printf '%sINCOMPLETE.%s Nothing failed, but a check did not run - and a check that did\n' \
       "$YELLOW$BOLD" "$RESET"
-    printf 'not run is not a check that passed. CI runs all four regardless.\n'
+    printf 'not run is not a check that passed. CI runs them all regardless.\n'
   fi
   exit 2
 fi
-printf '%sREADY.%s The four checks that gate main are green on this machine.\n' "$GREEN$BOLD" "$RESET"
+printf '%sREADY.%s The checks this script runs are green on this machine.\n' "$GREEN$BOLD" "$RESET"
 printf '%sThey are advisory here and authoritative on the pull request.%s\n' "$DIM" "$RESET"
 exit 0

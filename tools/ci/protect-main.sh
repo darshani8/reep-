@@ -10,7 +10,7 @@
 #     $ gh api repos/darshani8/reep-/rulesets
 #     []
 #
-# CI has four jobs and they are good jobs — a real Postgres, REEP_REQUIRE_DB=1
+# CI has five jobs and they are good jobs — a real Postgres, REEP_REQUIRE_DB=1
 # so a silently skipped DB test is a failure, a dependency-completeness check
 # per manifest, a production Angular build against the bundle budget. None of
 # them can stop anything. `git push origin main` writes to the default branch
@@ -53,7 +53,7 @@
 #
 #   (b) Drop to zero approvals:  ./tools/ci/protect-main.sh --approvals 0
 #       You still cannot push to main. You still cannot merge red. Every change
-#       still goes branch -> PR -> four green checks -> merge, and the checks are
+#       still goes branch -> PR -> five green checks -> merge, and the checks are
 #       what actually verify anything. What you give up is the second pair of
 #       eyes, which on a solo repo you did not have anyway. This is the setting
 #       that gets USED, and a used gate beats an unused one that was switched off
@@ -70,7 +70,7 @@
 # -----------------------------------------------------------------------------
 # GitHub matches a required status check by the DISPLAY NAME of the job — the
 # `name:` field in .github/workflows/ci.yml, not the job's YAML key (`api`,
-# `api-imports`, `worker-imports`, `web`). The four strings in REQUIRED_CHECKS
+# `api-imports`, `web`, `cdk`). The five strings in REQUIRED_CHECKS
 # below must match those `name:` values byte for byte: spaces, parentheses and
 # capitalisation included.
 #
@@ -120,9 +120,10 @@ BRANCH="${REEP_PROTECT_BRANCH:-main}"
 # above: these are matched as strings, and a rename retires the gate in silence.
 REQUIRED_CHECKS=(
   "API (FastAPI + Postgres)"
+  "Rule 1 (every model call declares its cargo)"
   "API (dependency completeness)"
-  "Voice worker (dependency completeness)"
   "Web (Angular)"
+  "Infra (CDK synth guards)"
 )
 
 APPROVALS=1

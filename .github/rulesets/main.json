@@ -1,5 +1,5 @@
 {
-  "name": "main: pull request required, four CI checks, no force push",
+  "name": "main: pull request required, five CI checks, no force push",
   "target": "branch",
   "enforcement": "active",
   "bypass_actors": [],
@@ -26,9 +26,10 @@
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
           { "context": "API (FastAPI + Postgres)" },
+          { "context": "Rule 1 (every model call declares its cargo)" },
           { "context": "API (dependency completeness)" },
-          { "context": "Voice worker (dependency completeness)" },
-          { "context": "Web (Angular)" }
+          { "context": "Web (Angular)" },
+          { "context": "Infra (CDK synth guards)" }
         ]
       }
     },

@@ -28,38 +28,6 @@ textarea {
   font-family: var(--font);
 }
 
-/* --- app rail (in the spec class list; the Angular shell uses .desktop-nav,
-       kept global for parity with the mockup) --- */
-.rail {
-  width: 56px;
-  background: var(--ink);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 0;
-  gap: 4px;
-  flex: 0 0 auto;
-}
-.rail .brand {
-  color: var(--tint-3);
-  font-weight: 800;
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-.rail a {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(248, 244, 236, 0.5);
-}
-.rail a.active {
-  background: rgba(248, 244, 236, 0.14);
-  color: var(--tint-3);
-}
-
 /* --- section stepper --- */
 .stepper {
   width: 250px;
@@ -92,18 +60,6 @@ textarea {
   letter-spacing: 0.05em;
   color: var(--muted);
   font-weight: 700;
-}
-.meter {
-  height: 7px;
-  border-radius: 4px;
-  background: var(--hairline);
-  overflow: hidden;
-}
-.meter i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, var(--brand-magenta), var(--brand-purple));
-  border-radius: 4px;
 }
 .completeness small {
   display: block;
@@ -142,7 +98,7 @@ textarea {
   background: var(--good);
 }
 .step-dot.partial {
-  background: var(--brand-magenta);
+  background: var(--warn-dot);
 }
 .step-item.active .step-dot {
   outline: 2px solid rgba(248, 244, 236, 0.25);
@@ -277,22 +233,6 @@ textarea.ctrl {
   flex: 0 0 auto;
 }
 
-/* card heading + description (reep-v2 defines .card + .card h4; these are new) */
-.card > h3 {
-  font-size: 14px;
-  font-weight: 800;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.card > .desc {
-  font-size: 12.3px;
-  color: var(--muted);
-  margin-bottom: 16px;
-  line-height: 1.5;
-}
 .addlink {
   color: var(--purple-mid);
   font-size: 12.3px;
@@ -489,12 +429,6 @@ textarea.ctrl {
 }
 .tbl .num {
   width: 110px;
-}
-
-/* --- chip: neutral tone (reep-v2 has good/warn/risk only) --- */
-.chip.neutral {
-  background: var(--ground);
-  color: var(--muted);
 }
 
 /* --- notices --- */

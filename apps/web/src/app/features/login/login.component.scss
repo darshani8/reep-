@@ -213,7 +213,7 @@
 
 .portal--on {
   border-color: transparent;
-  background: linear-gradient(120deg, var(--brand-purple, #552c7e), #7a2f9e 45%, var(--brand-magenta, #ba2185));
+  background: var(--primary-gradient);
   color: #fff;
   box-shadow: 0 8px 18px rgba(85, 44, 126, 0.35);
 
@@ -448,7 +448,7 @@
   padding: 13px;
   border-radius: 999px;
   border: 1px solid var(--brand-purple, #552c7e);
-  background: linear-gradient(120deg, var(--brand-purple, #552c7e), #7a2f9e 55%, var(--brand-magenta, #ba2185));
+  background: var(--primary-gradient);
   color: #fff;
   font: inherit;
   font-size: 14.5px;

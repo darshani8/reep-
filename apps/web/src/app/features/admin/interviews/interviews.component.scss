@@ -155,7 +155,7 @@
   cursor: pointer;
 
   &.primary {
-    background: linear-gradient(135deg, var(--purple-mid), var(--brand-magenta));
+    background: var(--primary-gradient);
     color: #fff;
   }
 

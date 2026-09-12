@@ -1158,3 +1158,154 @@ def test_no_index_duplicates_the_prefix_of_another() -> None:
         "write on every row change. Drop it in the model AND in a migration:\n  "
         + "\n  ".join(sorted(set(offenders)))
     )
+
+
+# --------------------------------------------------------------------------- #
+# 33. The development MCP surface stays a development thing
+# --------------------------------------------------------------------------- #
+
+#: The dev MCP mount (app/dev_mcp.py) turns every GET under /api into a tool
+#: and FORWARDS THE CALLER'S COOKIE into the real handlers, so a tool call runs
+#: as whoever holds that session. On a laptop that is the point. On a host
+#: serving real students it is a second front door with none of the rate
+#: limiting, revocation or audit the first one has, and it would answer to any
+#: cookie that leaked from anywhere.
+#:
+#: Three properties keep it where it belongs, and each one has failed somewhere
+#: before in this codebase's history, which is why all three are pinned rather
+#: than trusted:
+#:
+#:   * the gate is the dev ALLOWLIST, never `not is_prod`. AGENTS.md records
+#:     what the other spelling cost: an unrecognised ENV ("staging", "uat", a
+#:     typo, a blank from a half-written deploy template) is not production by
+#:     name, so `not is_prod` would OPEN the door on exactly the boxes nobody
+#:     is watching.
+#:   * the flag is off by default, so the mount cannot arrive by upgrading.
+#:   * `fastapi-mcp` is not in requirements.txt, so it is not in the image the
+#:     Dockerfile builds. A dependency that is absent cannot be switched on by
+#:     a stray environment variable at all.
+
+
+def test_the_dev_mcp_mount_is_refused_outside_a_development_environment() -> None:
+    from app.config import Settings
+
+    development = Settings(env="dev", mcp_dev_surface="true")
+    assert development.mcp_enabled, "a development host with the flag on should mount it"
+
+    for environment in ("prod", "production", "staging", "uat", "demo", "", "Dev-2"):
+        settings = Settings(env=environment, mcp_dev_surface="true")
+        assert not settings.mcp_enabled, (
+            f"ENV={environment!r} mounted the dev MCP surface. The gate must be the "
+            "dev allowlist (_DEV_ENV_NAMES), never `not is_prod` — an environment "
+            "nobody anticipated has to LOSE the affordance, not gain it."
+        )
+
+
+def test_the_dev_mcp_surface_is_off_unless_it_is_switched_on() -> None:
+    from app.config import Settings
+
+    for flag in ("", "false", "no", "0", "ture", "TRUE-ish"):
+        settings = Settings(env="dev", mcp_dev_surface=flag)
+        assert not settings.mcp_enabled, (
+            f"MCP_DEV_SURFACE={flag!r} switched the surface on. Only the exact word "
+            "'true' counts, so a blank line, an absent variable or a typo all mean off."
+        )
+
+    assert Settings(env="dev", mcp_dev_surface="true").mcp_enabled
+    assert Settings(env="dev", mcp_dev_surface="TRUE").mcp_enabled
+
+
+def test_the_mcp_dependency_stays_out_of_the_production_image() -> None:
+    runtime = (Path(__file__).resolve().parent.parent / "requirements.txt").read_text()
+    development = (Path(__file__).resolve().parent.parent / "requirements-dev.txt").read_text()
+
+    assert "fastapi-mcp" not in runtime and "fastapi_mcp" not in runtime, (
+        "fastapi-mcp is in requirements.txt, which is what the Dockerfile installs. "
+        "It is a development tool that forwards a session cookie into every handler; "
+        "it belongs in requirements-dev.txt and nowhere else."
+    )
+    assert "fastapi-mcp==" in development, "requirements-dev.txt should pin fastapi-mcp"
+    assert "mcp==" in development, (
+        "requirements-dev.txt must ALSO pin `mcp`. fastapi-mcp declares `mcp>=1.12.0` "
+        "with no upper bound, and the 2.x line removed Server.request_context, "
+        "list_tools and call_tool — the API it calls. Without the second pin a fresh "
+        "install raises TypeError the moment FastApiMCP(app, ...) is constructed."
+    )
+
+
+def test_the_dev_mcp_mount_publishes_no_write_operation() -> None:
+    """The tool list is GET-only by construction, not by an exclusion list.
+
+    app/dev_mcp.py derives its operations from the app's own OpenAPI schema.
+    The alternative the tooling notes first suggested — `include_tags` with
+    `exclude_operations` — does not do this: in fastapi-mcp 0.4.0 those filters
+    UNION rather than intersect, so the tag list narrows nothing and every
+    write endpoint not named in the exclusion list is published. Every tag this
+    API carries contains write routes.
+    """
+    import ast
+
+    source = (APP / "dev_mcp.py").read_text()
+    tree = ast.parse(source)
+
+    # The CALL's keywords, not the file's text. An earlier draft of this test
+    # grepped for "include_tags=" and failed on the paragraph in dev_mcp.py
+    # that explains why include_tags is wrong — the same shape of bug as a
+    # guard that trips on its own documentation.
+    constructions = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "FastApiMCP"
+    ]
+    assert len(constructions) == 1, "expected exactly one FastApiMCP(...) construction"
+    keywords = {keyword.arg for keyword in constructions[0].keywords}
+
+    assert "include_operations" in keywords, (
+        "app/dev_mcp.py should select operations explicitly by id."
+    )
+    assert "include_tags" not in keywords, (
+        "app/dev_mcp.py must not pass include_tags: in fastapi-mcp 0.4.0 it unions with "
+        "exclude_operations rather than intersecting, so it would publish every write "
+        "endpoint on the app."
+    )
+    assert "exclude_operations" not in keywords, (
+        "app/dev_mcp.py should not need exclude_operations — the tool list is GET-only "
+        "by construction, and an exclusion list is a list somebody has to keep right."
+    )
+
+    method = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "READ_ONLY_METHOD" for target in node.targets)
+    ]
+    assert method and ast.literal_eval(method[0].value) == "GET", (
+        "app/dev_mcp.py should state the one method it publishes as a named constant."
+    )
+
+
+def test_the_dev_session_helper_does_not_retire_the_browsers_session() -> None:
+    """`python -m app.dev_session` mints at the current token version.
+
+    REEP allows one live session per account: every sign-in advances
+    `users.token_version` before the token is minted, and app/security.py
+    refuses a token whose version is behind the row. A helper that copied the
+    login path would therefore sign the developer out of their own browser
+    every time they minted a cookie for the MCP tool, and signing back in would
+    invalidate the cookie they had just exported. The two would take turns.
+    """
+    source = (APP / "dev_session.py").read_text()
+
+    assert "token_version" in source, "dev_session should carry the account's token version"
+    for advance in ("token_version +=", "token_version = user.token_version + 1", "_retire_other_sessions"):
+        assert advance not in source, (
+            f"app/dev_session.py appears to advance the token version ({advance!r}). "
+            "It must READ the current value: advancing it retires the developer's own "
+            "browser session for the same account."
+        )
+    assert "env_is_dev" in source, (
+        "app/dev_session.py must refuse outside a development environment — it prints "
+        "a bearer token for a whole account."
+    )

@@ -1,209 +1,207 @@
 <div class="desktop-frame">
-  <div class="desktop-titlebar">
-    <span class="icon" style="font-size: 14px" aria-hidden="true">school</span>
-    REEP · {{ roleLabel() | uppercase }}
-    @if (navKind() !== 'student') {
-      <!-- Staff hold passwords (option B); students sign in with Google and
-           would only meet a 409 here, so the link is not shown to them. -->
-      <a class="titlebar-logout" routerLink="/account/password">
-        <span class="icon" style="font-size: 14px" aria-hidden="true">lock</span>
-        Password
+  <!-- The app bar. 52px, the titlebar gradient, one hairline at the bottom.
+       Brand mark and console name on the left; the admin's environment pill,
+       search and scope control in the middle; the account block on the right. -->
+  <header class="appbar">
+    <a class="appbar__brand" routerLink="/" aria-label="REEP home">
+      <span class="brandmark" aria-hidden="true">R</span>
+      <span class="brandmark__word">REEP</span>
+      <span class="brandmark__console">{{ consoleName() }}</span>
+    </a>
+
+    @if (navKind() === 'admin') {
+      @if (environmentLabel()) {
+        <!-- Which deployment this is. Rewritten at build time by deploy.yml
+             from the API's ENV, so it says `prod` in production and
+             `development` on a laptop; it is never a guess. -->
+        <span class="envpill">{{ environmentLabel() | uppercase }}</span>
+      }
+
+      <!-- Search and the scope control are on the approved board and have no
+           endpoint on main: there is no cross-entity search API, and scope
+           needs the grant targets that arrive with the backend phase. They
+           render disabled and say so, rather than looking live and doing
+           nothing. -->
+      <button
+        type="button"
+        class="appbar__search"
+        disabled
+        title="Search arrives with the console's Phase 2 screens"
+      >
+        <span class="icon" aria-hidden="true">search</span>
+        <span class="appbar__search-text">Search students, faculty, batches, jobs…</span>
+        <span class="kbd" aria-hidden="true">⌘K</span>
+      </button>
+
+      <span class="select appbar__scope" title="Scoped grants arrive with Phase 3">
+        <span class="lbl">Scope</span>
+        <span class="val">BGSCET · All departments</span>
+        <span class="icon" aria-hidden="true">expand_more</span>
+      </span>
+
+      <button
+        type="button"
+        class="iconbtn appbar__icon"
+        disabled
+        aria-label="Notifications (arrives with Phase 4)"
+        title="Notifications arrive with the alerts engine in Phase 4"
+      >
+        <span class="icon" aria-hidden="true">notifications</span>
+      </button>
+      <a
+        class="iconbtn appbar__icon"
+        href="https://github.com/darshani8/reep-/blob/main/AGENTS.md"
+        target="_blank"
+        rel="noopener"
+        aria-label="Help"
+        title="Help"
+      >
+        <span class="icon" aria-hidden="true">help</span>
       </a>
     }
-    <button type="button" class="titlebar-logout" (click)="signOut()">
-      <span class="icon" style="font-size: 14px" aria-hidden="true">logout</span>
-      Sign out
-    </button>
-  </div>
+
+    <!-- The account block.
+         The student console shows the identity and one Sign out button, as the
+         board does: there is nothing else for a student to reach from here,
+         and their Password link sits in the identity card beside "View
+         profile". Staff and the Main Admin get the menu, because the design
+         puts My account under the avatar and Signature and Password live
+         there until the Account screen lands in Phase 2 — without it neither
+         is reachable except by typing the URL. -->
+    @if (navKind() === 'student') {
+      <div class="account">
+        <span class="account__button account__button--static">
+          <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+          <span class="account__who">
+            <span class="account__name">{{ displayName() }}</span>
+            <span class="account__role">{{ usn() || roleLabel() }}</span>
+          </span>
+        </span>
+      </div>
+      <button type="button" class="btn secondary sm appbar__signout" (click)="signOut()">
+        <span class="icon" aria-hidden="true">logout</span>
+        Sign out
+      </button>
+    } @else {
+    <div class="account">
+      <button
+        type="button"
+        class="account__button"
+        [attr.aria-expanded]="accountMenuOpen()"
+        aria-haspopup="menu"
+        (click)="toggleAccountMenu()"
+      >
+        <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+        <span class="account__who">
+          <span class="account__name">{{ displayName() }}</span>
+          <span class="account__role">{{ usn() || roleLabel() }}</span>
+        </span>
+        <span class="icon" aria-hidden="true">expand_more</span>
+      </button>
+
+      @if (accountMenuOpen()) {
+        <div class="account__menu" role="menu" (keydown.escape)="closeAccountMenu()">
+          <span class="account__menuhead">
+            {{ displayName() }}
+            <small>{{ roleLabel() }}</small>
+          </span>
+
+          <span class="account__item is-disabled" title="The account screen arrives with Phase 2">
+            <span class="icon" aria-hidden="true">person</span>
+            My account
+            <small>Phase 2</small>
+          </span>
+
+          <a
+            class="account__item"
+            role="menuitem"
+            routerLink="/account/password"
+            (click)="closeAccountMenu()"
+          >
+            <span class="icon" aria-hidden="true">lock</span>
+            Password
+          </a>
+
+          <a
+            class="account__item"
+            role="menuitem"
+            routerLink="/mentor/signature"
+            (click)="closeAccountMenu()"
+          >
+            <span class="icon" aria-hidden="true">draw</span>
+            Signature
+          </a>
+
+          <button type="button" class="account__item" role="menuitem" (click)="signOut()">
+            <span class="icon" aria-hidden="true">logout</span>
+            Sign out
+          </button>
+        </div>
+      }
+    </div>
+    }
+  </header>
 
   <div class="desktop-shell">
     <nav class="desktop-nav" aria-label="Main">
-      <!-- Profile card. The avatar is a glyph placeholder until a photo upload
-           is wired through; name and USN come from the session, so a mentor or
-           admin signing in sees their own name rather than a hardcoded one. -->
-      <div class="nav-profile">
-        <div class="avatar">
-          <span class="icon" aria-hidden="true">person</span>
-        </div>
-        <div class="name">{{ displayName() }}</div>
-        @if (usn(); as u) {
-          <div class="usn">{{ u }}</div>
-        }
-        @if (navKind() === 'student') {
-          <!-- The ONE entry point to /student/profile. The sidebar list below
-               deliberately leaves Profile out as "a record rather than a task",
-               and that is fine — but nothing else linked it either, so a fully
-               built screen was reachable only by typing the URL. The identity
-               card is where a person looks for their own details, so the link
-               belongs here rather than as a nav row that the handoff removed. -->
-          <a class="nav-profile__link" routerLink="/student/profile" routerLinkActive="active">
-            <!-- `person`, not `badge`: the icon font is SUBSET to
-                 tools/fonts/icon-names.txt and `badge` is not in it, so it
-                 would have rendered as nothing at all. -->
-            <span class="icon" aria-hidden="true">person</span> View profile
-          </a>
-        }
-      </div>
-
-      @switch (navKind()) {
-        @case ('staff') {
-          <a routerLink="/mentor/notebook" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">menu_book</span> Notebook
-          </a>
-          <a routerLink="/mentor/mentees" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">groups</span> Mentee Log
-          </a>
-          <a routerLink="/mentor/leave" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">event_available</span> Leave Requests
-          </a>
-          <a routerLink="/mentor/verifications" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">verified</span> Skill Verifications
-          </a>
-          <a routerLink="/mentor/upskilling" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">workspace_premium</span> Upskilling
-          </a>
-          <a routerLink="/mentor/signature" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">draw</span> Signature
-          </a>
-          <div class="sec-label">More</div>
-          <a routerLink="/mentor/agent" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
-          </a>
-          @if (adminLinksHeld().length) {
-            <div class="sec-label">Granted access</div>
-            @for (l of adminLinksHeld(); track l.path) {
-              <a [routerLink]="l.path" routerLinkActive="active">
-                <span class="icon" aria-hidden="true">{{ l.icon }}</span> {{ l.label }}
-              </a>
-            }
+      <!-- The student's identity card. The one entry point to /student/profile:
+           the sidebar list deliberately leaves Profile out as "a record rather
+           than a task", and the card is where a person looks for their own
+           details. -->
+      @if (navKind() === 'student') {
+        <div class="nav-profile">
+          <div class="avatar">
+            <span class="icon" aria-hidden="true">person</span>
+          </div>
+          <div class="name">{{ displayName() }}</div>
+          @if (usn(); as studentUsn) {
+            <div class="usn">{{ studentUsn }}</div>
           }
-        }
-        @case ('admin') {
-          <a
-            routerLink="/admin"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: true }"
-          >
-            <span class="icon" aria-hidden="true">insights</span> Analytics
-          </a>
-          <a routerLink="/admin/leave-approvals" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">event_available</span> Leave Approvals
-          </a>
-          <a routerLink="/admin/mentors" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">groups</span> Faculty &amp; Students
-          </a>
-          <a routerLink="/admin/students" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">how_to_reg</span> Students
-          </a>
-          <a routerLink="/admin/institution" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">school</span> Institution
-          </a>
-          <!-- Catalogue sits beside Institution because they are the two
-               structure screens, and because it was reachable from NOWHERE.
-               The note below used to say the Catalogue is "reached from the
-               Analytics tiles"; it never was. Registrations has a tile
-               ("3 pending registration") and Placement has one ("0 approved
-               offers"), but no tile has ever pointed here, so the one account
-               that maintains the course and approved-certification lists could
-               not open the screen that holds them. Found in a browser audit. -->
-          <a routerLink="/admin/catalogue" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">menu_book</span> Catalogue
-          </a>
-          @if (isMainAdmin()) {
-            <a routerLink="/admin/governance" routerLinkActive="active">
-              <span class="icon" aria-hidden="true">admin_panel_settings</span> Governance
+          <div class="nav-profile__links">
+            <a class="nav-profile__link" routerLink="/student/profile" routerLinkActive="active">
+              <!-- `person`, not `badge`: the icon font is SUBSET to
+                   tools/fonts/icon-names.txt, so a glyph outside it renders as
+                   nothing at all. -->
+              <span class="icon" aria-hidden="true">person</span> View profile
             </a>
+            <!-- Students have held passwords since the 2026-09-10 onboarding
+                 work, and this is the only route to the screen: the app bar
+                 used to hide it from them under a comment saying they sign in
+                 with Google and would meet a 409. They do not. -->
+            <a class="nav-profile__link" routerLink="/account/password" routerLinkActive="active">
+              <span class="icon" aria-hidden="true">lock</span> Password
+            </a>
+          </div>
+        </div>
+      }
+
+      @for (group of navigation(); track group.title) {
+        @if (group.title) {
+          <div class="sec-label">{{ group.title }}</div>
+        }
+        @for (item of group.items; track item.label) {
+          @if (item.path) {
+            <a
+              [routerLink]="item.path"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: item.exact === true }"
+            >
+              <span class="icon" aria-hidden="true">{{ item.icon }}</span> {{ item.label }}
+            </a>
+          } @else {
+            <!-- Routed nowhere yet. Rendered so the console's shape is honest,
+                 disabled so it cannot pretend to work. -->
+            <span class="nav-pending" [title]="item.arrivesIn ?? ''" aria-disabled="true">
+              <span class="icon" aria-hidden="true">{{ item.icon }}</span>
+              <span class="label">{{ item.label }}</span>
+              <small>Soon</small>
+            </span>
           }
-          <a routerLink="/admin/jobs" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">work</span> Jobs Sheet
-          </a>
-          <a routerLink="/admin/interviews" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">mic</span> Interview Records
-          </a>
-          <a routerLink="/admin/interview-questions" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">edit_note</span> Interview Questions
-          </a>
-          <a routerLink="/admin/swoc" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">rate_review</span> SWOC Notes
-          </a>
-          <a routerLink="/mentor/signature" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">draw</span> Signature
-          </a>
-
-          <!--
-            SHORTER THAN THE ROUTE TABLE, like the student nav below. The design's
-            admin sidebar is these seven links — Governance joined them with the Main
-            Admin design. Registrations and Placement are still routed and are
-            reached from the Analytics tiles ("3 pending registration",
-            "0 approved offers") and by bookmark, so they are not sidebar
-            destinations. The Catalogue WAS in that sentence and is now a link
-            above: no tile ever pointed at it, so "reached from the Analytics
-            tiles" was true of two of the three and the third was unreachable.
-          -->
-          <div class="sec-label">More</div>
-          <a routerLink="/admin/exports" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">download</span> Exports
-          </a>
-          <a routerLink="/admin/agent" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">smart_toy</span> REEP Agent
-          </a>
-        }
-        @case ('alumni') {
-          <a
-            routerLink="/alumni"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: true }"
-          >
-            <span class="icon" aria-hidden="true">person</span> My Profile
-          </a>
-          <a routerLink="/alumni/jobs" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">work</span> Jobs Sheet
-          </a>
-        }
-        @default {
-          <a
-            routerLink="/student"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: true }"
-          >
-            <span class="icon" aria-hidden="true">home</span> Home
-          </a>
-          <a routerLink="/student/jobs" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">work</span> Jobs
-          </a>
-          <a routerLink="/student/skilling" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">verified</span> Skilling
-          </a>
-          <a routerLink="/student/leaderboards" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">leaderboard</span> Leaderboards
-          </a>
-          <a routerLink="/student/time-log" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">schedule</span> Time Sheet
-          </a>
-
-          <!--
-            SHORTER THAN THE ROUTE TABLE, DELIBERATELY. English Baseline,
-            Certifications, Courses, Records, Uploads and Profile came out of the
-            sidebar in the handoff: each is either reached from the screen that
-            owns the work (certificates from Skilling, documents from the resume
-            builder) or is a record rather than a task. Their ROUTES are kept, so
-            a bookmark, a deep link from another screen and the browser's history
-            all still resolve — this is a navigation decision, not a deletion.
-          -->
-          <div class="sec-label">Programme</div>
-          <a routerLink="/student/mentor-log" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">event_note</span> Faculty / TPO Log
-          </a>
-
-          <div class="sec-label">Documents</div>
-          <a routerLink="/student/resume" routerLinkActive="active">
-            <span class="icon" aria-hidden="true">description</span> Resume Builder
-          </a>
         }
       }
     </nav>
 
-    <main class="desktop-main">
+    <main class="desktop-main" [class.desktop-main--admin]="navKind() === 'admin'">
       <router-outlet></router-outlet>
     </main>
   </div>

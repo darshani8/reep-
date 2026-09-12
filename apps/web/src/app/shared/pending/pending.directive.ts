@@ -34,9 +34,16 @@
  * other host — a link, a row, a whole panel — `disabled` does not exist, so the
  * directive uses `aria-disabled`, removes it from the tab order and blocks
  * pointer events, and `.btn[aria-disabled='true']` in reep-v2.scss already
- * carries the same 0.55 opacity as `:disabled`. `title` alone would leave the
- * reason invisible to a screen reader, so the phase is appended to the host's
- * accessible name too.
+ * carries the same 0.55 opacity as `:disabled`.
+ *
+ * The reason reaches a screen reader as the accessible DESCRIPTION, through
+ * `title`, and the host's own name is left alone. Composing it into
+ * `aria-label` instead was the first attempt and it is wrong twice: a control
+ * that reads its name from its text content would have to be read back out of
+ * the DOM, which is empty at construction and interpolated later, so the name
+ * would be lost for exactly the buttons that have one; and overwriting a name
+ * to carry a reason is what `title` is for. Where the host DOES declare an
+ * `aria-label`, that string is ours to extend and the phase is appended to it.
  */
 
 import { Directive, ElementRef, Renderer2, effect, inject, input } from '@angular/core';
@@ -57,33 +64,31 @@ export class PendingControlDirective {
   private readonly host = (inject(ElementRef) as ElementRef<HTMLElement>).nativeElement;
   private readonly renderer = inject(Renderer2);
 
-  /** The name the control had before the phase note was appended to it. */
-  private readonly ownName = this.host.getAttribute('aria-label') ?? this.host.textContent?.trim() ?? '';
+  /** An aria-label the template declared, before the phase was appended to it.
+   *  Read at construction, which is when the attribute exists: unlike text
+   *  content it is on the element itself and not a child node rendered later. */
+  private readonly declaredLabel = this.host.getAttribute('aria-label');
 
   constructor() {
     effect(() => {
       const note = pendingLabel(this.reepPending());
-      const native = this.host as HTMLButtonElement;
-      const takesDisabled =
-        this.host.tagName === 'BUTTON' ||
-        this.host.tagName === 'INPUT' ||
-        this.host.tagName === 'SELECT' ||
-        this.host.tagName === 'TEXTAREA';
+      const takesDisabled = ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(this.host.tagName);
 
       if (takesDisabled) {
-        this.renderer.setProperty(native, 'disabled', true);
+        this.renderer.setProperty(this.host, 'disabled', true);
       } else {
         this.renderer.setAttribute(this.host, 'aria-disabled', 'true');
         this.renderer.setAttribute(this.host, 'tabindex', '-1');
         this.renderer.setStyle(this.host, 'pointer-events', 'none');
       }
 
+      // The accessible DESCRIPTION. A control that takes its name from its own
+      // text keeps that name; one that declared an aria-label gets the phase
+      // appended, because there is no text for the description to sit beside.
       this.renderer.setAttribute(this.host, 'title', note);
-      this.renderer.setAttribute(
-        this.host,
-        'aria-label',
-        this.ownName ? `${this.ownName} — ${note}` : note,
-      );
+      if (this.declaredLabel) {
+        this.renderer.setAttribute(this.host, 'aria-label', `${this.declaredLabel} — ${note}`);
+      }
     });
   }
 }

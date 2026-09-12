@@ -14,7 +14,8 @@ the ledger's weekly icon). And a gradient whose colour also turns up on chips,
 borders and chart points stops reading as "this is the primary action here",
 which is the whole reason the gradient is reserved.
 
-Twenty-two call sites were retokened when this check was written. Without the
+Twenty-one call sites were retokened when this check was written -- every
+reference under apps/web/src except the two declarations below. Without the
 check they come back one at a time, each looking locally reasonable, and the
 rule is gone a year later with nobody having decided to drop it.
 

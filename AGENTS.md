@@ -36,8 +36,8 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 
 **Tests:** `cd apps/api-py && .venv/Scripts/python -m pytest` (the backend suite). Front end: `cd apps/web && npx ng build`.
 
-**CI has four jobs** (`api`, `pii-gate`, `api-imports`, `web`), and one of them
-exists because a manifest shipped incomplete. `api-imports` proves
+**CI has five jobs** (`api`, `pii-gate`, `api-imports`, `web`, `cdk`), and one of
+them exists because a manifest shipped incomplete. `api-imports` proves
 `requirements.txt` ALONE covers every module under `app/`
 (`tools/ci/check_api_imports.py`). It was added
 after `app/interview_local.py` reached main importing numpy undeclared — the
@@ -45,6 +45,27 @@ import is lazy, inside a request handler, so the API still booted and every test
 still passed, and the break surfaced only as a pytest COLLECTION failure on a
 clean machine. A lazy import does not make an undeclared dependency acceptable;
 it only moves the crash from boot to the first student who reaches that path.
+
+Those five names are also the five REQUIRED STATUS CHECKS in
+`.github/rulesets/main.json` and in `tools/ci/protect-main.sh`'s
+`REQUIRED_CHECKS`, and GitHub matches a required check by the job's DISPLAY NAME
+as a string. So deleting a job does NOT retire its requirement: the ruleset
+asked for "Voice worker (dependency completeness)" for months after that job
+went with the LiveKit stack, which — had the ruleset ever been applied — would
+have blocked every pull request on a check that can never report. Rename or
+remove a job and edit all three files in the same commit. `tools/ci/preflight.sh`
+runs the same five locally, in the order that fails fastest.
+
+The `web` job also runs three static checks over `apps/web/src` before the slow
+steps, each guarding a rule that is invisible at the call site:
+`check_brand_magenta.py` (magenta is reserved for `--primary-gradient`, and had
+leaked to 21 sites, two of them chart colours in TypeScript that a stylesheet
+grep would never have found), `check_style_duplicates.py` (one owner per global
+class — see the two-stylesheets note below; it ratchets in both directions, so a
+merged duplicate must be struck off `KNOWN_DUPLICATES` too) and
+`check_theme_tokens.py` (the grid and chart themes copy tokens as literals,
+because neither library reads CSS custom properties — the duplication is forced,
+the drift is not).
 
 **Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and admin screens, the resume builder, the realtime assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. It is ~142 kB initial now, and the production bundle budget is set close enough to that number that one re-eager-ed route fails `ng build` in CI.
 
@@ -155,6 +176,78 @@ with this: the student Badges, Overview, Academics and Offers screens, the
 mentor Badge Centre and the placeholder component. **The mock interviewer is
 NOT in the design and was kept on purpose** — it is deployed and working, and
 it is the landing's Elevate "Mock Interview" module (`/student/assistant`).
+
+## The 2026-09 redesign — the shell, and the navigation as data
+
+The approved boards are `docs/redesign-2026-09/` (the implementation kit, kept
+in the repository because every phase prompt cites paths under it). Phase 0 is
+the shell and the design system; the screens themselves arrive in the later
+phases, and the sidebar says so rather than hiding them.
+
+**The navigation is DATA, not markup.** `layout/app-shell.component.ts` declares
+`ADMIN_NAVIGATION`, `STUDENT_NAVIGATION`, `FACULTY_NAVIGATION` and
+`ALUMNI_NAVIGATION` as arrays of `NavigationGroup`, and the template renders
+whatever the `navigation()` computed returns. That is what makes the answer to
+"which screens does this role see" a list one can read, rather than a `@if`
+tree; the old template had the four roles' items interleaved in one block with
+role conditions on each, and adding a screen meant finding the right `@if`.
+
+An item with `path: null` renders as a LABELLED, NON-CLICKABLE row carrying its
+`arrivesIn` badge ("Available with Phase 2"). This is deliberate and it is the
+opposite of the usual instinct, which is to leave an unbuilt screen out until it
+works: the boards show the admin six groups, and a sidebar that grows a new
+group each fortnight reads as an app that keeps changing shape. A row nobody can
+click is honest about what is coming; a missing row is not. `.nav-pending`'s
+label ellipsises, because "Students & batches" does not fit the 220px nav
+alongside a badge.
+
+**`capability` on an item is a filter, never a gate.** `grantedAdminScreens()`
+hides a row the session does not hold, and that is a convenience — the API's
+`require_capability` is what refuses the request. A client-side check that looks
+like authorisation is how the next person stops writing the server-side one.
+
+Four capabilities are deliberately absent from the Main Admin's sidebar
+(`mentor.mentees`, `mentor.notebook`, `mentor.verifications`,
+`mentor.upskilling`): `_FACULTY_ONLY` in `app/governance.py` keeps them out of
+the ADMIN baseline, so those screens would render empty for the office account.
+Confirmed live rather than by reading — asking `GET /api/mentor/mentees` as the
+seeded Main Admin answers 403 naming `mentor.mentees`, while the seeded mentor
+gets their one mentee.
+
+### The dev MCP surface at `/mcp` (development only)
+
+`app/dev_mcp.py` publishes every GET under `/api` as an MCP tool, so a screen's
+data can be read AS THE SEEDED ROLE while the screen is being built — the check
+that the board and the payload agree, made without clicking through a browser
+and trusting what is drawn. `apps/api-py/tools/mcp_probe.py` is a client for it;
+`tools/pg_mcp_probe.py` is the same idea against `postgres-mcp` in restricted
+(read-only) mode, for the before-and-after of a migration. Setup:
+`docs/redesign-2026-09/MCP-SETUP.md`.
+
+**Three things keep it from being a second front door**, and they are in the
+module's docstring for the next reader: it mounts only when `settings.mcp_enabled`
+(an ENV allowlist AND an explicit `MCP_DEV_SURFACE` flag, so an unrecognised ENV
+shuts it like every other door in `config.py`); it is read-only BY CONSTRUCTION,
+deriving its tool list from the app's own GET routes rather than from an exclude
+list somebody maintains; and `fastapi_mcp` is imported inside the function and
+lives in `requirements-dev.txt` alone, so it is not in the production image at
+all and `api-imports` still passes. `tests/test_codebase_guards.py` §33 pins all
+three, the last by parsing the `FastApiMCP(...)` call and asserting no write
+operation reaches the tool set.
+
+Two traps are worth carrying forward. `include_tags=` does NOT work here: in
+fastapi-mcp 0.4.0 the filters UNION rather than intersect, and every tag REEP's
+routers carry contains write routes, so the kit's draft would have published
+`DELETE /api/admin/cohorts/{id}` as a tool. And the operation ids must be read
+from `app.openapi()`, not from `app.routes`: FastAPI 0.141 keeps included
+routers as nested objects rather than flattening them, so walking `app.routes`
+finds four documentation endpoints and the mount silently publishes nothing.
+
+`python -m app.dev_session --email <address>` mints the cookie those tools
+forward. It mints at the CURRENT `token_version` WITHOUT advancing it — a helper
+that did "the same as login" would retire the developer's own browser session
+for that account every time it ran, and the two would take turns, with the loser
+each time looking like a bug in the mount.
 
 ## Infrastructure — CDK, and the cutover that has not been run yet (2026-09)
 
@@ -527,9 +620,16 @@ property's docstring says why.
 ### The v2 look, and the token shim under it (2026-08)
 
 The visual language is the **Y2K-chrome / glass** handoff: a lilac-to-pink page
-wash, white translucent cards on 1px lavender hairlines, **Orbitron** for
-headings/labels and **Chakra Petch** for body, with a purple->magenta gradient
-reserved for primary actions and the active nav pill. It is **one committed
+wash, white translucent cards on 1px lavender hairlines, **Plus Jakarta Sans**
+for headings/labels (`--font-display`) and **Inter** for body and data
+(`--font`), with a purple->magenta gradient reserved for primary actions and the
+active nav pill. The handoff's own Orbitron/Chakra Petch pair was replaced
+because Orbitron's wide techno letterforms were hurting the dense data screens —
+the ledger, the analytics tables, the leaderboard — at the 13-14px those tables
+actually use; the comment above the two tokens in `reep-v2.scss` is the record,
+and several sizing rules downstream (`.dt-table`'s 9.5px uppercase became 10px)
+were retuned for Inter's narrower caps rather than left at values chosen for
+Orbitron's. It is **one committed
 theme**, not a light/dark pair — every colour is painted explicitly and there is
 no `prefers-color-scheme` block.
 
@@ -564,8 +664,18 @@ label is pushed out of the 220px nav; without the `fonts-ready` gate (set in
 `tools/fonts/fetch-fonts.sh`. The icon face is SUBSET to the glyphs the app can
 actually render (`tools/fonts/icon-names.txt`, regenerated by
 `collect-icon-names.py`) — the full Material Symbols face is 5.2 MB against
-144 kB subset — which makes adding an icon a two-command step rather than an
-optimisation: a glyph missing from the subset renders as nothing at all.
+172 kB for the 113 glyphs currently in it — which makes adding an icon a
+two-command step rather than an optimisation: a glyph missing from the subset
+renders as nothing at all.
+
+`collect-icon-names.py` reads the templates, so it can only find an icon a
+template already uses — which is a circular problem for a glyph a screen that
+does not exist yet will need, and for one the scanner's denylist rejects as an
+English word (`block`, `key`). `tools/fonts/icon-names.extra.txt` is the answer:
+names DECLARED rather than discovered, unioned in after the denylist filter, one
+per line with a comment saying which screen will want it. Put a glyph there when
+you are about to build the screen that uses it; the alternative is discovering
+on the day that the button is blank.
 
 The floating **agent orb** and its voice overlay live in the SHELL
 (`layout/agent-orb.component.ts`), not in a route, because they are on every

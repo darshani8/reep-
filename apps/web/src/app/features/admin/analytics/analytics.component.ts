@@ -589,7 +589,17 @@ export class AdminAnalyticsComponent implements OnDestroy {
             symbol: 'none',
             data: [{ yAxis: attendanceFloor, name: 'Attendance floor' }],
             lineStyle: { color: STATUS_COLOURS.risk, type: 'dashed', width: 1.5 },
-            label: { formatter: `${attendanceFloor}% floor`, color: STATUS_COLOURS.risk, fontSize: 11 },
+            // INSIDE the plot, not at the end of the line. A markLine label
+            // defaults to `position: 'end'`, which draws it past the grid's
+            // right edge and into the 56px gutter the right-hand axis labels
+            // already occupy -- so "12 h target" rendered as "12 h targe",
+            // clipped by the card. Inside, its width cannot overrun anything.
+            label: {
+              position: 'insideEndTop',
+              formatter: `${attendanceFloor}% floor`,
+              color: STATUS_COLOURS.risk,
+              fontSize: 11,
+            },
           };
 
     this.healthChart.setOption(
@@ -634,6 +644,7 @@ export class AdminAnalyticsComponent implements OnDestroy {
               data: [{ yAxis: series.weekly_hour_target, name: 'Weekly target' }],
               lineStyle: { color: HOURS_COLOUR, type: 'dashed', width: 1.5 },
               label: {
+                position: 'insideEndTop',
                 formatter: `${series.weekly_hour_target} h target`,
                 color: HOURS_COLOUR,
                 fontSize: 11,

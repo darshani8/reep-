@@ -204,17 +204,31 @@ body {
 }
 
 html {
-  /* Painted here as well as on body so the wash owns the canvas even where the
-     body is shorter than the viewport. */
-  background: #ece4f5;
+  /* THE WASH LIVES HERE, not on body, and it is fixed so it is sized to the
+     viewport rather than to the document.
+     
+     It used to be a flat #ece4f5 here and the gradient on `body` with
+     `background-attachment: fixed`. A fixed background is SIZED to the viewport
+     but still PAINTED across the element's whole box, and background-repeat
+     defaults to `repeat` -- so on any page taller than the window the gradient
+     restarted at the fold: lilac, down to pink, then hard back to lilac, with
+     this flat colour showing wherever the repeat did not reach. Inside the
+     shell nothing noticed, because the shell scrolls its own middle and the
+     body never exceeds the window. It showed on the pages that have no shell
+     and do scroll -- sign-in at 390px, register, onboard, activate, reset.
+     
+     On the root element the background propagates to the canvas, which is
+     painted over the whole viewport whatever the document height, so there is
+     no repeat to see and no second colour to keep in step. */
+  background: var(--page-wash);
+  background-attachment: fixed;
 }
 
 body {
   margin: 0;
   font-family: var(--font);
   font-size: 13px;
-  background: var(--page-wash);
-  background-attachment: fixed;
+  /* Transparent: html owns the wash (see above). */
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   line-height: 1.45;

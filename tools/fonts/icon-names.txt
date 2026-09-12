@@ -87,6 +87,7 @@ schedule
 school
 search
 send
+settings
 shield_person
 smart_toy
 stop

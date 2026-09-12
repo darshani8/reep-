@@ -98,3 +98,10 @@ smart_toy
 trending_down
 trending_up
 workspace_premium
+
+# --- Phase 1, Skilling's badge emblems (2026-09) -------------------------
+# One glyph per badge category, drawn inside the hexagon. `groups`,
+# `insights` and `lightbulb` the scanner already finds elsewhere; `settings`
+# is only ever used inside an emblem, which is a CSS background context the
+# template scanner cannot see, so it is declared here.
+settings

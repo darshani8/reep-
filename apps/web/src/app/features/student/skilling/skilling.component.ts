@@ -179,6 +179,26 @@ export class SkillingComponent {
     () => !!this.claimFile() && !!this.claimCategory() && !!this.claimBadge() && !this.claiming(),
   );
 
+  /**
+   * The glyph drawn inside each category's hexagon, per the 2026-09 board.
+   *
+   * `settings` is DECLARED in tools/fonts/icon-names.extra.txt rather than
+   * discovered: collect-icon-names.py reads templates, and this name only ever
+   * reaches the DOM through this map, which the scanner cannot see. A glyph
+   * missing from the subset renders as nothing at all — an empty hexagon.
+   */
+  private readonly CATEGORY_ICON: Record<string, string> = {
+    MANAGERIAL: 'groups',
+    SECTORAL: 'insights',
+    PLATFORM: 'settings',
+    THINKING: 'lightbulb',
+    READINESS: 'lightbulb',
+  };
+
+  categoryIcon(key: string): string {
+    return this.CATEGORY_ICON[key] ?? 'workspace_premium';
+  }
+
   readonly board = computed<BoardCategory[] | null>(() => {
     const dash = this.dashboard();
     if (dash === null) return null;

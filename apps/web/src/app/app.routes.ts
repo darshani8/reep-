@@ -67,6 +67,17 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       // --- account (any signed-in role; the API answers 409 for Google-only) ---
+      // My account (02-admin-console-spec.md §24): sign-in and security, this
+      // device, the signature and the email digests, on one screen. Every role
+      // reaches it from the avatar menu, so it carries no guard beyond the
+      // shell's authGuard — the panels inside it hide themselves when they do
+      // not apply (a Google-only account has no password to change, a student
+      // has no signature).
+      {
+        path: 'account',
+        loadComponent: () =>
+          import('./features/account/account.component').then((m) => m.AccountComponent),
+      },
       {
         path: 'account/password',
         loadComponent: () =>
@@ -331,6 +342,21 @@ export const routes: Routes = [
             (m) => m.AdminMentorsStudentsComponent,
           ),
       },
+      // Colleges (02-admin-console-spec.md §3): the tenant list, the registered
+      // email domains and the platform card. TWO capabilities, and the pair is
+      // the point: `ui.console_v2` says the redesigned screen exists at all —
+      // it is the preview switch the owner reviews this release behind, in the
+      // Main Admin's baseline and nobody else's — and `admin.institution` says
+      // this reader may open it. The sidebar row is gated on the same pair, so
+      // a row that renders is a row that navigates. Phase 5 deletes the switch.
+      {
+        path: 'admin/colleges',
+        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.institution')],
+        loadComponent: () =>
+          import('./features/admin/colleges/colleges.component').then(
+            (m) => m.AdminCollegesComponent,
+          ),
+      },
       // The institution console: College -> Department -> Course ->
       // Specialization -> Batch, and seating. First and only caller of
       // /api/admin/*. Lazy like every other route (AGENTS.md: one re-eager-ed
@@ -371,6 +397,44 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/admin/students/students.component').then((m) => m.AdminStudentsComponent),
       },
+      // Student 360 (§6): one student across every semester. AFTER the roster
+      // route, though the order is not what separates them — both are full-path
+      // matches, so `admin/students` never swallows `admin/students/5`.
+      {
+        path: 'admin/students/:id',
+        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.students')],
+        loadComponent: () =>
+          import('./features/admin/student-detail/student-detail.component').then(
+            (m) => m.AdminStudentDetailComponent,
+          ),
+      },
+      // Faculty (§7) and the four-step Add faculty wizard (§8). Today both live
+      // inside /admin/mentors, which is why they share its capability: the
+      // screens split, the permission did not.
+      {
+        path: 'admin/faculty/new',
+        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.mentors')],
+        loadComponent: () =>
+          import('./features/admin/faculty-new/faculty-new.component').then(
+            (m) => m.AdminAddFacultyComponent,
+          ),
+      },
+      {
+        path: 'admin/faculty',
+        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.mentors')],
+        loadComponent: () =>
+          import('./features/admin/faculty/faculty.component').then((m) => m.AdminFacultyComponent),
+      },
+      // Data imports & criteria (§11): attendance and marks uploads, and the
+      // placement criteria per course. `admin.institution` until B8.1 gives
+      // imports a key of their own — the screen edits the institution's data
+      // and the office account holds that key already.
+      {
+        path: 'admin/imports',
+        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.institution')],
+        loadComponent: () =>
+          import('./features/admin/imports/imports.component').then((m) => m.AdminImportsComponent),
+      },
       // SWOC Notes: the four lines on each student's landing. A capability, so
       // the office can lend it to faculty in Governance.
       {
@@ -392,6 +456,29 @@ export const routes: Routes = [
           import('./features/admin/governance/governance.component').then(
             (m) => m.GovernanceComponent,
           ),
+      },
+      // Student feature switches (§20): the panel that lived on Governance,
+      // given its own URL so the two questions stop sharing one screen — who
+      // may SEE a console screen, and what a STUDENT is shown. Reached from
+      // Roles & functions rather than the sidebar, which is how the boards
+      // route it; the Main Admin's alone, exactly as Governance is.
+      {
+        path: 'admin/governance/features',
+        canActivate: [capabilityGuard('ui.console_v2'), roleGuard('ADMIN')],
+        loadComponent: () =>
+          import('./features/admin/feature-switches/feature-switches.component').then(
+            (m) => m.AdminFeatureSwitchesComponent,
+          ),
+      },
+      // Audit log (§21): every write the console made. roleGuard('ADMIN')
+      // rather than a capability, for the same reason Governance carries one —
+      // `admin.governance` does not exist until B2.6, and a guard naming a key
+      // nobody holds refuses everyone including the office account.
+      {
+        path: 'admin/audit',
+        canActivate: [capabilityGuard('ui.console_v2'), roleGuard('ADMIN')],
+        loadComponent: () =>
+          import('./features/admin/audit/audit.component').then((m) => m.AdminAuditLogComponent),
       },
       // Courses and certifications are ONE screen: a certification only means
       // anything against the course it certifies, so they are read together.

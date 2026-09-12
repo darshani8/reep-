@@ -106,11 +106,10 @@
             <small>{{ roleLabel() }}</small>
           </span>
 
-          <span class="account__item is-disabled" title="The account screen arrives with Phase 2">
+          <a class="account__item" role="menuitem" routerLink="/account" (click)="closeAccountMenu()">
             <span class="icon" aria-hidden="true">person</span>
             My account
-            <small>Phase 2</small>
-          </span>
+          </a>
 
           <a
             class="account__item"

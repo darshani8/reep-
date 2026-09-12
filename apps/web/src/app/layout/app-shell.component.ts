@@ -18,13 +18,15 @@
  * can see: whether an item needs a capability, and whether its screen exists
  * yet.
  *
- * A SCREEN THAT IS NOT BUILT IS NOT A LINK. Seven items on the approved admin
- * boards (Colleges, Faculty, Data imports, Audit log, My account) are Phase 2
- * routes. Angular's wildcard sends an unmatched path through homeRedirectGuard
- * back to /admin, so a `routerLink` to one of them would look live, do
- * nothing, and read as a broken console. They render as disabled rows that say
- * when they arrive — the same rule 06-phase-prompts.md sets for Phase 2's
- * plan-driven controls: never a dead control that looks live.
+ * A SCREEN THAT IS NOT BUILT IS NOT A LINK. Angular's wildcard sends an
+ * unmatched path through homeRedirectGuard back to /admin, so a `routerLink`
+ * to a screen that does not exist would look live, do nothing, and read as a
+ * broken console. An item with `path: null` renders instead as a disabled row
+ * carrying the phase it arrives in — the same rule 06-phase-prompts.md sets
+ * for Phase 2's plan-driven controls: never a dead control that looks live.
+ * Phase 2 builds every admin screen on the boards, so no row is pending today;
+ * the mechanism stays because the next unbuilt screen must not become a
+ * routerLink to nowhere.
  */
 
 import { Component, computed, effect, inject, signal } from '@angular/core';
@@ -46,8 +48,13 @@ interface NavigationItem {
   readonly icon: string;
   /** The route, or null when the screen has not been built yet. */
   readonly path: string | null;
-  /** Only render the row when the session holds this capability. */
-  readonly capability?: string;
+  /** Only render the row when the session holds this capability — or, given
+   *  several, ALL of them. Two are needed while the console is being rebuilt:
+   *  the screen's own `admin.*` key, and `ui.console_v2`, the preview switch
+   *  the new screens sit behind. A row that showed on either would be a link
+   *  the route guard then bounces, which is the dead link this model exists to
+   *  make visible rather than easy. */
+  readonly capability?: string | readonly string[];
   /** Only render the row for the Main Admin, whatever their capabilities. */
   readonly mainAdminOnly?: boolean;
   /** Shown on a row whose screen does not exist yet. */
@@ -62,7 +69,25 @@ interface NavigationGroup {
   readonly items: readonly NavigationItem[];
 }
 
-const PHASE_TWO = 'Available with Phase 2';
+/**
+ * The preview switch the 2026-09 console's NEW screens sit behind.
+ *
+ * `ui.console_v2` is a capability rather than an environment flag because the
+ * owner reviews this on the production deployment, where there is no flag to
+ * set and no second build to serve. It is in the Main Admin's baseline, so the
+ * office account sees the new screens the moment they deploy and nobody has to
+ * grant anything; a faculty account does not hold it and keeps the console it
+ * knows until the Main Admin hands it over in Governance. Phase 5 deletes the
+ * capability and these constants with it.
+ *
+ * Each row needs the preview switch AND the screen's own key: `ui.console_v2`
+ * says the screen exists, `admin.institution` says this reader may open it,
+ * and the route guard checks the same pair. A row gated on only one of them is
+ * a link that navigates back to where it started.
+ */
+const CONSOLE_V2 = 'ui.console_v2';
+const CONSOLE_V2_INSTITUTION = [CONSOLE_V2, 'admin.institution'] as const;
+const CONSOLE_V2_MENTORS = [CONSOLE_V2, 'admin.mentors'] as const;
 
 /**
  * The Main Admin console, in the groups the approved boards use
@@ -79,9 +104,9 @@ const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
   {
     title: 'Institution',
     items: [
-      { label: 'Colleges', icon: 'apartment', path: null, arrivesIn: PHASE_TWO },
+      { label: 'Colleges', icon: 'apartment', path: '/admin/colleges', capability: CONSOLE_V2_INSTITUTION },
       { label: 'Structure', icon: 'school', path: '/admin/institution' },
-      { label: 'Faculty', icon: 'shield_person', path: null, arrivesIn: PHASE_TWO },
+      { label: 'Faculty', icon: 'shield_person', path: '/admin/faculty', capability: CONSOLE_V2_MENTORS },
       { label: 'Students & batches', icon: 'how_to_reg', path: '/admin/students' },
       { label: 'Mentor mapping', icon: 'group', path: '/admin/mentors' },
       { label: 'Catalogue', icon: 'menu_book', path: '/admin/catalogue' },
@@ -91,7 +116,7 @@ const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
     title: 'Operations',
     items: [
       { label: 'Registrations', icon: 'pending_actions', path: '/admin/registrations' },
-      { label: 'Data imports', icon: 'upload', path: null, arrivesIn: PHASE_TWO },
+      { label: 'Data imports', icon: 'upload', path: '/admin/imports', capability: CONSOLE_V2_INSTITUTION },
       { label: 'Leave approvals', icon: 'event_available', path: '/admin/leave-approvals' },
       { label: 'Jobs & placement', icon: 'work', path: '/admin/jobs' },
       { label: 'Exports', icon: 'download', path: '/admin/exports' },
@@ -114,7 +139,13 @@ const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
         path: '/admin/governance',
         mainAdminOnly: true,
       },
-      { label: 'Audit log', icon: 'history', path: null, arrivesIn: PHASE_TWO },
+      {
+        label: 'Audit log',
+        icon: 'history',
+        path: '/admin/audit',
+        capability: CONSOLE_V2,
+        mainAdminOnly: true,
+      },
     ],
   },
   {
@@ -299,7 +330,10 @@ export class AppShellComponent {
     for (const group of source) {
       const items = group.items.filter((item) => {
         if (item.mainAdminOnly && !isMainAdmin) return false;
-        if (item.capability && !held.includes(item.capability)) return false;
+        if (item.capability) {
+          const needed = typeof item.capability === 'string' ? [item.capability] : item.capability;
+          if (!needed.every((key) => held.includes(key))) return false;
+        }
         return true;
       });
       if (items.length) groups.push({ title: group.title, items });

@@ -1,4 +1,5 @@
 <div class="panel" data-p="leaderboards">
+  <p class="crumb">Leaderboards</p>
   <div class="dt-header">
     <div>
       <h1 class="dt-title">Leaderboards</h1>
@@ -15,10 +16,11 @@
     </div>
   }
 
-  <div class="tabs-row lb-tabs" role="tablist" aria-label="Choose a leaderboard">
+  <div class="tabs lb-tabs" role="tablist" aria-label="Choose a leaderboard">
     @for (t of tabs; track t.key) {
       <button
         type="button"
+        class="tab"
         role="tab"
         [class.active]="active() === t.key"
         [attr.aria-selected]="active() === t.key"
@@ -107,20 +109,36 @@
         </div>
       </div>
     } @else {
-      @for (row of rows(); track row.rank) {
-        <div class="lb-row" [class.me]="row.is_me">
-          <span class="lb-rank">{{ row.rank }}</span>
-          <span class="lb-avatar">{{ row.initials }}</span>
-          <span class="lb-name">
-            {{ row.name }}
-            @if (row.is_me) {
-              <span class="lb-you">You</span>
+      <div class="card lb-table-card">
+        <table class="dt-table lb-table">
+          <thead>
+            <tr>
+              <th class="lb-col-rank">Rank</th>
+              <th>Student</th>
+              <th class="lb-col-of">Cohort</th>
+              <th class="lb-col-val">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.rank) {
+              <tr [class.me]="row.is_me">
+                <td class="lb-col-rank"><span class="lb-rank">{{ row.rank }}</span></td>
+                <td>
+                  <span class="lb-name">
+                    <span class="lb-avatar" aria-hidden="true">{{ row.initials }}</span>
+                    {{ row.name }}
+                    @if (row.is_me) {
+                      <span class="chip accent lb-you">You</span>
+                    }
+                  </span>
+                </td>
+                <td class="lb-col-of">of {{ cohortSize() }}</td>
+                <td class="lb-col-val">{{ row.value_label }}</td>
+              </tr>
             }
-          </span>
-          <span class="lb-of">of {{ cohortSize() }}</span>
-          <span class="lb-val">{{ row.value_label }}</span>
-        </div>
-      }
+          </tbody>
+        </table>
+      </div>
     }
   }
 </div>

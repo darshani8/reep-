@@ -19,6 +19,7 @@
 import { Component, computed, input, output } from '@angular/core';
 
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import type { BatchSummary } from './batch-summary';
 
 type CheckTone = 'good' | 'warn' | 'pending';
@@ -39,7 +40,7 @@ const CHECK_ICONS: Record<CheckTone, string> = {
 @Component({
   selector: 'app-graduate-batch-dialog',
   standalone: true,
-  imports: [PendingControlDirective],
+  imports: [PendingControlDirective, PluralPipe],
   templateUrl: './graduate-batch-dialog.component.html',
   styleUrl: './batch-dialog.scss',
   host: { '(document:keydown.escape)': 'dismissed.emit()' },
@@ -53,7 +54,7 @@ export class GraduateBatchDialogComponent {
 
   readonly subLine = computed(() => {
     const batch = this.batch();
-    const students = `${batch.studentCount} student${batch.studentCount === 1 ? '' : 's'}`;
+    const students = plural(batch.studentCount, 'student');
     return `${students} · semester ${batch.currentSemesterLabel} · the batch becomes Graduated and its students become Alumni`;
   });
 
@@ -141,7 +142,7 @@ export class GraduateBatchDialogComponent {
     return {
       tone: 'good',
       icon: CHECK_ICONS.good,
-      headline: `${batch.facultyCount} faculty member${batch.facultyCount === 1 ? '' : 's'} would be released and notified`,
+      headline: `${plural(batch.facultyCount, 'faculty member')} would be released and notified`,
       detail: 'Notes, SWOC and verifications remain attached to the student’s history.',
     };
   }

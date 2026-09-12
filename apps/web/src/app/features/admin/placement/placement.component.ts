@@ -76,6 +76,7 @@ import {
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // The design system's chart theme, registered once for this lazily-loaded
 // chunk. Registration alone does nothing — ECharts applies a theme at init —
@@ -259,7 +260,7 @@ function formatOfferDate(params: ValueFormatterParams<OfferGridRow, string | nul
 @Component({
   selector: 'app-admin-placement',
   standalone: true,
-  imports: [RouterLink, AgGridAngular, PendingControlDirective],
+  imports: [RouterLink, AgGridAngular, PendingControlDirective, PluralPipe],
   templateUrl: './placement.component.html',
   styleUrl: './placement.component.scss',
 })
@@ -354,7 +355,9 @@ export class AdminPlacementComponent implements OnDestroy {
   readonly funnelSummary = computed<string>(() => {
     const stages = this.funnelStages();
     if (stages.length === 0) return 'Placement funnel';
-    const spoken = stages.map((stage) => `${stage.label}: ${stage.students} students`).join('; ');
+    const spoken = stages
+      .map((stage) => `${stage.label}: ${plural(stage.students, 'student')}`)
+      .join('; ');
     return `Placement funnel, counts are distinct students. ${spoken}.`;
   });
 
@@ -432,6 +435,14 @@ export class AdminPlacementComponent implements OnDestroy {
 
   readonly offersAwaitingLabel = computed<string>(() =>
     this.waitingCountIsExact() ? `${this.offersAwaitingCount()}` : `${this.offersAwaitingCount()}+`,
+  );
+
+  /** Whether the drop-off row's noun is singular. The chip beside it prints the
+   *  count, so the noun cannot go through the pipe as well — and a floor stays
+   *  plural whatever it reads: "1+" means at least one and probably more, so
+   *  "1+ offer waiting" would claim a total this account was refused. */
+  readonly exactlyOneOfferWaiting = computed(
+    () => this.waitingCountIsExact() && this.offersAwaitingCount() === 1,
   );
 
   /** Every offer on screen: the newest twenty-five the figures carry, plus any
@@ -760,7 +771,7 @@ export class AdminPlacementComponent implements OnDestroy {
         tooltip: {
           trigger: 'item',
           formatter: (point: { name: string; value: number }) =>
-            `<b>${point.name}</b><br/>${point.value} of ${widest} students`,
+            `<b>${point.name}</b><br/>${point.value} of ${plural(widest, 'student')}`,
         },
         series: [
           {

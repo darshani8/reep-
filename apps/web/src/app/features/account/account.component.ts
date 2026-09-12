@@ -55,6 +55,7 @@ import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
 import type { Role } from '../../core/session';
 import { PendingControlDirective } from '../../shared/pending/pending.directive';
+import { PluralPipe } from '../../shared/text/plural.pipe';
 
 /** `GET /api/auth/sso/status` — which doors this SERVER offers. Unauthenticated
  *  by design and account-free: it reports the deployment, never a row. */
@@ -116,7 +117,7 @@ function bothPasswordsMatch(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [ReactiveFormsModule, PendingControlDirective],
+  imports: [ReactiveFormsModule, PendingControlDirective, PluralPipe],
   templateUrl: './account.component.html',
   styleUrl: './account.component.scss',
 })

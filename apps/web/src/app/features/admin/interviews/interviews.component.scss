@@ -2,11 +2,11 @@
  *
  * .panel .card .kpi-card .chip .btn .select .notice .tabs .crumb .dt-header
  * .dt-title .dt-sub .dt-toolbar .dt-quickfilter .dt-statusbar .eyebrow are
- * global (styles/reep-v2.scss) and are used as they are. What is here is the
- * shape of this board: the filter row, the four tiles, the grid beside its
- * three side cards, and the record panel's own blocks — plus the card head,
- * which the design system draws on every board and has no global class of its
- * own yet.
+ * global (styles/reep-v2.scss) and are used as they are — the card title row
+ * (.card-head, .card-heading, .card-sub) among them now, which this screen and
+ * six others had each declared for themselves. What is here is the shape of
+ * this board: the filter row, the four tiles, the grid beside its three side
+ * cards, and the record panel's own blocks.
  */
 :host {
   display: block;
@@ -104,29 +104,6 @@
 }
 .side-card {
   padding: 14px;
-}
-
-/* --- card head: title + faint sub, actions right ------------------------- */
-.card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.card-heading {
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--ink);
-  margin: 0;
-}
-.card-sub {
-  margin: 2px 0 0;
-  font-size: 11.5px;
-  color: var(--faint);
 }
 
 /* The one shape every loading / progress line on this screen takes. */

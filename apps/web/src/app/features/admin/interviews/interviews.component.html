@@ -430,8 +430,9 @@
         } @else if (selectedCount() > 1) {
           <div class="notice accent" role="status">
             <span class="icon" aria-hidden="true">info</span>
-            {{ selectedCount() }} interviews selected, {{ selectedRecordedCount() }} with a
-            recording. Download them together, or tick a single row to open its record.
+            {{ selectedCount() | plural: 'interview' }} selected,
+            {{ selectedRecordedCount() }} with a recording. Download them together, or tick a
+            single row to open its record.
           </div>
         } @else {
           <div class="notice accent">
@@ -453,7 +454,7 @@
             </h2>
             <p class="card-sub">
               @if (hasScoreTrend()) {
-                {{ scoreTrend().length }} interviews · {{ scoredSessionCount() }} scored
+                {{ scoreTrend().length | plural: 'interview' }} · {{ scoredSessionCount() }} scored
               } @else {
                 overall score per interview, oldest first
               }

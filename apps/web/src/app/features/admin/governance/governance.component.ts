@@ -45,6 +45,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // ---- exact snake_case shapes of the governance router's Out models ---------
 
@@ -185,7 +186,7 @@ function initialsOf(name: string): string {
   // RouterLink is REQUIRED for the two links out of this screen — student
   // feature switches and the audit log. A routerLink in a standalone component
   // that does not import it is inert markup that renders and does nothing.
-  imports: [RouterLink, PendingControlDirective],
+  imports: [RouterLink, PendingControlDirective, PluralPipe],
   templateUrl: './governance.component.html',
   styleUrl: './governance.component.scss',
 })
@@ -493,7 +494,7 @@ export class GovernanceComponent {
         : 'Add at least one access group';
     }
     if (this.grantReasonShort()) {
-      return `A reason of at least ${this.minReason()} characters is required`;
+      return `A reason of at least ${plural(this.minReason(), 'character')} is required`;
     }
     return null;
   });
@@ -528,8 +529,8 @@ export class GovernanceComponent {
     }
     const noun =
       this.grantMode() === 'users'
-        ? `${count} ${count === 1 ? 'faculty member' : 'faculty members'}`
-        : `${count} ${count === 1 ? 'access group' : 'access groups'}`;
+        ? plural(count, 'faculty member')
+        : plural(count, 'access group');
     const inherit =
       this.grantMode() === 'groups' ? ' Every current and future member inherits it.' : '';
     if (chosen.scope === 'PROGRAMME') {
@@ -633,7 +634,7 @@ export class GovernanceComponent {
     this.flash.set(
       created.length === 0
         ? 'Already held — nothing to change.'
-        : `Granted to ${created.length} ${created.length === 1 ? 'subject' : 'subjects'}.`,
+        : `Granted to ${plural(created.length, 'subject')}.`,
     );
     this.grantReason.set('');
     this.pickedUserIds.set([]);
@@ -721,7 +722,7 @@ export class GovernanceComponent {
     this.flash.set(
       revokedCount === 1
         ? `Revoked “${first.functionLabel}” from ${first.subjectLabel}.`
-        : `Revoked ${revokedCount} functions.`,
+        : `Revoked ${plural(revokedCount, 'function')}.`,
     );
     this.cancelRevoke();
     this.selectedGrantIds.set([]);
@@ -797,7 +798,7 @@ export class GovernanceComponent {
       return 'Choose a faculty member';
     }
     if (this.memberReasonShort()) {
-      return `A reason of at least ${this.minReason()} characters is required`;
+      return `A reason of at least ${plural(this.minReason(), 'character')} is required`;
     }
     return null;
   });
@@ -873,9 +874,12 @@ export class GovernanceComponent {
     const switches = this.studentFeatures().length;
     const inForce = this.featureOverridesInForce();
     if (inForce === 0) {
-      return `${switches} switches · every feature is on for every student.`;
+      return `${plural(switches, 'switch', 'switches')} · every feature is on for every student.`;
     }
-    return `${switches} switches · ${inForce} switched off ${inForce === 1 ? 'somewhere' : 'in places'}.`;
+    return (
+      `${plural(switches, 'switch', 'switches')} · ${inForce} switched off ` +
+      `${inForce === 1 ? 'somewhere' : 'in places'}.`
+    );
   });
 
   constructor() {

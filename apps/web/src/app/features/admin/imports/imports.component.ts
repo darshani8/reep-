@@ -46,6 +46,7 @@ import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import {
   ACCEPTED_IMPORT_FILE_TYPES,
   DEFAULT_PREVIEW_PAGE_SIZE,
@@ -96,7 +97,9 @@ interface PlacementCriteriaField {
 
 function describeFileSize(sizeInBytes: number): string {
   if (sizeInBytes < BYTES_IN_A_KILOBYTE) {
-    return `${sizeInBytes} bytes`;
+    // Spelled out, so it has to agree; `kB` and `MB` below are symbols and
+    // never do.
+    return plural(sizeInBytes, 'byte');
   }
   const sizeInKilobytes = sizeInBytes / BYTES_IN_A_KILOBYTE;
   if (sizeInKilobytes < BYTES_IN_A_KILOBYTE) {
@@ -109,7 +112,7 @@ function describeFileSize(sizeInBytes: number): string {
 @Component({
   selector: 'app-admin-imports',
   standalone: true,
-  imports: [AgGridAngular, PendingControlDirective],
+  imports: [AgGridAngular, PendingControlDirective, PluralPipe],
   templateUrl: './imports.component.html',
   styleUrl: './imports.component.scss',
 })
@@ -299,7 +302,7 @@ export class AdminImportsComponent {
       {
         inputId: 'criteria-max-gap',
         label: 'Max education gap',
-        value: `${criteria.max_gap_months} months`,
+        value: plural(criteria.max_gap_months, 'month'),
       },
     ];
   });

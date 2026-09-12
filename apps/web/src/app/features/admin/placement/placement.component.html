@@ -117,7 +117,13 @@
         @if (knowsEligibleWhoNeverApplied()) {
           <div class="dropoff-row">
             <span class="chip warn">{{ eligibleWhoNeverApplied() }}</span>
-            <span class="dropoff-text">eligible students have not applied to a job yet</span>
+            <!-- The chip beside this already prints the count, so the noun and its
+                 verb cannot go through the pipe as well; they agree on their own. -->
+            <span class="dropoff-text">
+              eligible
+              {{ eligibleWhoNeverApplied() === 1 ? 'student has' : 'students have' }}
+              not applied to a job yet
+            </span>
             <a class="dropoff-link" routerLink="/admin/students">
               Students <span class="icon" aria-hidden="true">arrow_forward</span>
             </a>
@@ -126,7 +132,7 @@
         <div class="dropoff-row">
           <span class="chip accent">{{ offersAwaitingLabel() }}</span>
           <span class="dropoff-text">
-            offers waiting for approval
+            {{ exactlyOneOfferWaiting() ? 'offer' : 'offers' }} waiting for approval
             @if (oldestWaitingOfferDate(); as oldest) {
               (oldest {{ oldest }})
             }
@@ -350,7 +356,7 @@
         (selectionChanged)="onOfferSelectionChanged($event)"
       />
       <div class="dt-statusbar">
-        <span>{{ offerRows().length }} offers on screen</span>
+        <span>{{ offerRows().length | plural: 'offer' }} on screen</span>
         <span>{{ offersAwaitingLabel() }} awaiting approval</span>
         <span class="statusbar-note">newest 25 submitted, plus every offer still waiting</span>
       </div>

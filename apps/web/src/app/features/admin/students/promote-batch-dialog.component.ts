@@ -22,6 +22,7 @@
 import { Component, computed, input, output } from '@angular/core';
 
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import type { BatchSummary } from './batch-summary';
 
 /** A check reads as passed, as needing attention, or as not answerable yet. */
@@ -43,7 +44,7 @@ const CHECK_ICONS: Record<CheckTone, string> = {
 @Component({
   selector: 'app-promote-batch-dialog',
   standalone: true,
-  imports: [PendingControlDirective],
+  imports: [PendingControlDirective, PluralPipe],
   templateUrl: './promote-batch-dialog.component.html',
   styleUrl: './batch-dialog.scss',
   host: { '(document:keydown.escape)': 'dismissed.emit()' },
@@ -66,7 +67,7 @@ export class PromoteBatchDialogComponent {
 
   readonly subLine = computed(() => {
     const batch = this.batch();
-    const students = `${batch.studentCount} student${batch.studentCount === 1 ? '' : 's'}`;
+    const students = plural(batch.studentCount, 'student');
     if (batch.nextSemester === null) {
       return `${students} · semester ${batch.currentSemesterLabel} · this batch is not on one semester`;
     }
@@ -110,18 +111,19 @@ export class PromoteBatchDialogComponent {
 
   private unseatedCheck(batch: BatchSummary): PreflightCheck {
     if (batch.studentsWithoutAMentor === 0) {
+      const held = batch.facultyCount === 1 ? 'holds this batch.' : 'hold this batch between them.';
       return {
         tone: 'good',
         icon: CHECK_ICONS.good,
         headline: 'Every student in this batch has a faculty member',
-        detail: `${batch.facultyCount} faculty member${batch.facultyCount === 1 ? '' : 's'} hold this batch between them.`,
+        detail: `${plural(batch.facultyCount, 'faculty member')} ${held}`,
       };
     }
     const count = batch.studentsWithoutAMentor;
     return {
       tone: 'warn',
       icon: CHECK_ICONS.warn,
-      headline: `${count} student${count === 1 ? ' is' : 's are'} unseated (no faculty member)`,
+      headline: `${plural(count, 'student')} ${count === 1 ? 'is' : 'are'} unseated (no faculty member)`,
       detail: 'They would be promoted with the batch; assign them from Mentor mapping.',
     };
   }

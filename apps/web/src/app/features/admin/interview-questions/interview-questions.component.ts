@@ -44,6 +44,7 @@ import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 /** One interview track, from the matrix that runs the interviews. */
 interface InterviewTrack {
@@ -120,7 +121,7 @@ const NOT_MEASURED_YET = '—';
 @Component({
   selector: 'app-interview-questions',
   standalone: true,
-  imports: [PendingControlDirective],
+  imports: [PendingControlDirective, PluralPipe],
   templateUrl: './interview-questions.component.html',
   styleUrl: './interview-questions.component.scss',
 })
@@ -616,14 +617,13 @@ export class InterviewQuestionsComponent {
   }
 
   private bulkFlashFor(addedCount: number, skippedCount: number): string {
-    const added = addedCount === 1 ? '1 question added.' : `${addedCount} questions added.`;
+    const added = `${plural(addedCount, 'question')} added.`;
     if (skippedCount === 0) return added;
-    const lines = skippedCount === 1 ? '1 line' : `${skippedCount} lines`;
-    return `${added} ${lines} skipped — see below.`;
+    return `${added} ${plural(skippedCount, 'line')} skipped — see below.`;
   }
 
   private selectionFlashFor(count: number, enabled: boolean): string {
-    const questions = count === 1 ? '1 question' : `${count} questions`;
+    const questions = plural(count, 'question');
     if (enabled) return `${questions} enabled.`;
     return `${questions} paused — they stay in the bank and are left out of interviews.`;
   }

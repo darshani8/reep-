@@ -1,11 +1,10 @@
 /* Mentor mapping — this screen's LAYOUT only.
  *
  * .panel .card .chip .btn .select .field .notice .meter .avatar .rail .crumb
- * .dt-header .dt-title .dt-sub .dt-toolbar .dt-quickfilter .dt-statusbar are
- * global (styles/reep-v2.scss) and are used as they are. What is here is the
- * shape of this board: the filter row, the two columns, the faculty rail rows,
- * the mentee list and the assign bar — plus the card head, which the design
- * system draws on every board and has no global class of its own yet.
+ * .dt-header .dt-title .dt-sub .dt-toolbar .dt-quickfilter .dt-statusbar
+ * .card-head .card-heading .sr-only are global (styles/reep-v2.scss) and are
+ * used as they are. What is here is the shape of this board: the filter row,
+ * the two columns, the faculty rail rows, the mentee list and the assign bar.
  */
 :host {
   display: block;
@@ -32,21 +31,13 @@
 }
 
 /* --- card head: title, actions right ------------------------------------- */
+/* The row and its title are global now (.card-head / .card-heading). The one
+   declaration this board differs on: all three heads here are a single-line
+   title beside one control — the rail's count chip, the pool's search box — so
+   the control centres against the title rather than sitting at the global's
+   flex-start, which is for a title that wraps to two lines. */
 .card-head {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.card-heading {
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--ink);
-  margin: 0;
 }
 .card-head__actions {
   display: flex;
@@ -230,15 +221,4 @@
 .assign-reason {
   flex: 1 1 260px;
   min-width: 0;
-}
-
-/* The label is hidden from sight but NOT from the accessibility tree.
-   Geometry, never display:none — that would take it out of the focus order. */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }

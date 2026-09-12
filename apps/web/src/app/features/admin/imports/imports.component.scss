@@ -2,13 +2,16 @@
  *
  * `.panel` `.card` `.chip` `.btn` `.select` `.field` `.notice` `.wizard-steps`
  * `.crumb` `.dt-header` `.dt-title` `.dt-sub` `.dt-toolbar` `.dt-frame`
- * `.dt-statusbar` `.icon` are global (styles/reep-v2.scss) and are used as
- * they are. What is here is the shape of this board: the picker row, the two
- * columns, the wizard's file step and the criteria card's field grid.
+ * `.dt-statusbar` `.card-head` `.card-title` `.card-sub` `.icon` are global
+ * (styles/reep-v2.scss) and are used as they are. What is here is the shape of
+ * this board: the picker row, the two columns, the wizard's file step and the
+ * criteria card's field grid.
  *
- * The card-head classes are prefixed `imports-` rather than named `.card-head`
- * / `.card-title`, because those names are already a screen-local pair on the
- * Institution board and a global would be a second owner for them.
+ * The card title rows were once a screen-local `imports-card-*` trio, prefixed
+ * so as not to claim `.card-head` / `.card-title` while those were a local pair
+ * on another board. `.card-head`, `.card-title` and `.card-sub` are GLOBAL now
+ * and own those names, so the copy is gone and only the one line this board
+ * needs differently is left.
  */
 
 :host {
@@ -71,28 +74,13 @@
   padding: 14px;
 }
 
-.imports-card-head {
-  display: flex;
+/* The global's `flex-start` is for a title with its actions beside it. Every
+   card head on this board instead carries a one-line title and a second piece
+   of TEXT on the same line — the wizard's file-shape sentence, the criteria
+   card's "Read-only" chip — which have to sit on the title's baseline and not
+   at the top of a taller box. One line, not a second copy of the rule. */
+.card-head {
   align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.imports-card-title {
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--ink);
-  margin: 0;
-}
-
-.imports-card-sub {
-  font-size: 11.5px;
-  color: var(--muted);
-  min-width: 0;
 }
 
 /* --- the wizard: four numbered steps, then the file --------------------- */

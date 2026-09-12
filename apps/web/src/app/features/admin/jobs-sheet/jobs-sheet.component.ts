@@ -41,6 +41,7 @@ import { AuthService } from '../../../core/auth.service';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe } from '../../../shared/text/plural.pipe';
 import {
   COMFORTABLE_ROW_HEIGHT_PX,
   COMPACT_ROW_HEIGHT_PX,
@@ -77,7 +78,7 @@ const PLACEMENT_CAPABILITY = 'admin.placement';
   // RouterLink is REQUIRED for the Placement tabs and the funnel action: a
   // `routerLink` in a standalone component that does not import it is inert
   // markup — it renders, it looks like a link, and clicking it does nothing.
-  imports: [RouterLink, AgGridAngular, PendingControlDirective],
+  imports: [RouterLink, AgGridAngular, PendingControlDirective, PluralPipe],
   templateUrl: './jobs-sheet.component.html',
   styleUrl: './jobs-sheet.component.scss',
 })

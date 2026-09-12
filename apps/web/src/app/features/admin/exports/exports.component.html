@@ -151,7 +151,7 @@
       [suppressCellFocus]="true"
     />
     <div class="dt-statusbar">
-      <span>{{ downloadHistory().length }} downloads recorded</span>
+      <span>{{ downloadHistory().length | plural: 'download' }} recorded</span>
       <span class="statusbar-note">the audited history is written by the backend, never here</span>
     </div>
   </div>

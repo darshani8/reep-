@@ -58,7 +58,7 @@
         <div class="tree-row bank-tree-static">
           <span class="label">Interview tracks</span>
           <span class="count">
-            {{ trackCount() }} tracks · {{ questionsAcrossTracks() }} questions
+            {{ trackCount() | plural: 'track' }} · {{ questionsAcrossTracks() | plural: 'question' }}
           </span>
         </div>
 
@@ -101,8 +101,8 @@
     <div class="bank-main">
       <!-- ------------------------------------------------- the track card -->
       <div class="card bank-track-card">
-        <div class="bank-card-head">
-          <h2 class="bank-card-title">Track · {{ selectedTrackLabel() }}</h2>
+        <div class="card-head">
+          <h2 class="card-title">Track · {{ selectedTrackLabel() }}</h2>
           <button type="button" class="btn secondary sm" [reepPending]="backendPhase">
             <span class="icon" aria-hidden="true">save</span> Save
           </button>
@@ -147,8 +147,8 @@
       <!-- ------------------------------------------------- add a question -->
       @if (addFormOpen()) {
         <div class="card bank-form-card">
-          <div class="bank-card-head">
-            <h2 class="bank-card-title">Add a question to {{ selectedTrackLabel() }}</h2>
+          <div class="card-head">
+            <h2 class="card-title">Add a question to {{ selectedTrackLabel() }}</h2>
           </div>
 
           <div class="bank-form-row">
@@ -200,8 +200,8 @@
       <!-- ---------------------------------------------- add many at once -->
       @if (bulkOpen()) {
         <div class="card bank-form-card">
-          <div class="bank-card-head">
-            <h2 class="bank-card-title">Add many at once</h2>
+          <div class="card-head">
+            <h2 class="card-title">Add many at once</h2>
           </div>
 
           <p class="bank-hint">
@@ -262,8 +262,8 @@
 
       <!-- ------------------------------------------------------ the grid -->
       <div class="card bank-grid-card">
-        <div class="bank-card-head">
-          <h2 class="bank-card-title">Questions · {{ questionCount() }}</h2>
+        <div class="card-head">
+          <h2 class="card-title">Questions · {{ questionCount() }}</h2>
           <span class="bank-hint">{{ enabledCount() }} asked · {{ pausedCount() }} paused</span>
         </div>
 
@@ -368,7 +368,7 @@
                     @if (isColumnVisible('status')) {
                       <th class="bank-status">Status</th>
                     }
-                    <th class="bank-actions"><span class="bank-sr-only">Actions</span></th>
+                    <th class="bank-actions"><span class="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>

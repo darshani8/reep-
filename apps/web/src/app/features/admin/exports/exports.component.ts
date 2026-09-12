@@ -56,6 +56,7 @@ import { AuthService } from '../../../core/auth.service';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe } from '../../../shared/text/plural.pipe';
 
 /** One extract on the board: a card, and either a file or a stated absence. */
 interface ExtractCard {
@@ -101,7 +102,7 @@ const REQUEST_NOTE_MS = 6000;
 @Component({
   selector: 'app-admin-exports',
   standalone: true,
-  imports: [RouterLink, AgGridAngular, PendingControlDirective],
+  imports: [RouterLink, AgGridAngular, PendingControlDirective, PluralPipe],
   templateUrl: './exports.component.html',
   styleUrl: './exports.component.scss',
 })

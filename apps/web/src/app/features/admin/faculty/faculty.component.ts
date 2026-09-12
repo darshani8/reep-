@@ -59,6 +59,7 @@ import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { plural } from '../../../shared/text/plural.pipe';
 import { DisableFacultyDialogComponent } from './disable-faculty-dialog.component';
 import {
   DEFAULT_FACULTY_COLUMN,
@@ -206,14 +207,17 @@ export class AdminFacultyComponent {
   readonly mentorGroupsAreReadable = computed(() => this.mentorGroups() !== null);
 
   /** The sub-line under the h1. It says only what was read: "2 invited · 1
-   *  disabled" is on the board and cannot be computed by anything on `main`. */
+   *  disabled" is on the board and cannot be computed by anything on `main`.
+   *  Count and word agree, the verb included: a fresh install has one faculty
+   *  account holding one mentor group, so this is the line that would otherwise
+   *  greet the office with "1 faculty accounts · 1 hold a mentor group". */
   readonly summaryLine = computed(() => {
-    const accounts = `${this.facultyCount()} faculty account${this.facultyCount() === 1 ? '' : 's'}`;
+    const accounts = plural(this.facultyCount(), 'faculty account');
     const unfiled = `${this.unfiledCount()} filed in no department`;
     if (!this.mentorGroupsAreReadable()) {
       return `${accounts} · ${unfiled}`;
     }
-    return `${accounts} · ${this.mentorCount()} hold a mentor group · ${unfiled}`;
+    return `${accounts} · ${plural(this.mentorCount(), 'holds', 'hold')} a mentor group · ${unfiled}`;
   });
 
   readonly selectedCount = computed(() => this.selectedRows().length);
@@ -326,7 +330,7 @@ export class AdminFacultyComponent {
       return 'No mentor group. This account becomes a mentor when the office assigns it a student.';
     }
     const mentees = faculty.menteeCount ?? 0;
-    return `${mentees} mentee${mentees === 1 ? '' : 's'} in their group.`;
+    return `${plural(mentees, 'mentee')} in their group.`;
   });
 
   readonly canSaveProfile = computed(() => {

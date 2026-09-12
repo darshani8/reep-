@@ -52,6 +52,7 @@ import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe } from '../../../shared/text/plural.pipe';
 
 /** A certification mapped to a taught subject, as the subjects table shows it. */
 interface SubjectCertification {
@@ -151,7 +152,7 @@ function titleCase(value: string): string {
 @Component({
   selector: 'app-admin-catalogue',
   standalone: true,
-  imports: [PendingControlDirective],
+  imports: [PendingControlDirective, PluralPipe],
   templateUrl: './catalogue.component.html',
   styleUrl: './catalogue.component.scss',
 })

@@ -93,7 +93,7 @@
         <div class="dt-frame">
           <div class="colleges-scroll">
             <table class="dt-table colleges-table">
-              <caption class="colleges-caption">
+              <caption class="sr-only">
                 Every college on this deployment, with its departments, its administrator and its
                 status.
               </caption>
@@ -165,10 +165,10 @@
         </div>
 
         <div class="card functions-card">
-          <div class="colleges-card-head">
+          <div class="card-head">
             <div>
-              <h2 class="colleges-card-title">What a college admin can do inside {{ selectedCollegeName() }}</h2>
-              <p class="colleges-card-sub">
+              <h2 class="card-title">What a college admin can do inside {{ selectedCollegeName() }}</h2>
+              <p class="card-sub">
                 a college admin is a person holding <code>admin.*</code> functions scoped to the
                 college — not a second role
               </p>
@@ -223,14 +223,14 @@
 
         @if (isMainAdmin()) {
           <div class="card platform-card">
-            <div class="colleges-card-head">
+            <div class="card-head">
               <div>
-                <h2 class="colleges-card-title">Platform · Main Admin only</h2>
+                <h2 class="card-title">Platform · Main Admin only</h2>
                 <!-- The board's sub-line asserts a deployment fact ("the harden
                      phase is not deployed"). This browser cannot know that, and
                      the notice directly below says so — so the sub-line states
                      what the card IS instead of what the host is. -->
-                <p class="colleges-card-sub">
+                <p class="card-sub">
                   deployment facts, read from the host and never changed from here
                 </p>
               </div>
@@ -276,7 +276,7 @@
 
       @if (addPanelOpen()) {
         <aside class="card add-panel" aria-label="Add college">
-          <h2 class="colleges-card-title">Add college</h2>
+          <h2 class="card-title">Add college</h2>
 
           @if (createError(); as message) {
             <div class="notice" role="alert">

@@ -491,7 +491,7 @@
         <header class="dialog-head">
           <div>
             <h2 class="dialog-title" id="batch-actions-title">Batch actions · {{ batch.name }}</h2>
-            <p class="dialog-sub">Every action here touches all {{ batchRosterCount() }} student{{ batchRosterCount() === 1 ? '' : 's' }} in this batch — the filters above do not narrow it.</p>
+            <p class="dialog-sub">Every action here touches all {{ batchRosterCount() | plural: 'student' }} in this batch — the filters above do not narrow it.</p>
           </div>
           <button type="button" class="btn ghost sm" aria-label="Close this dialog" (click)="closeDialog()">
             <span class="icon" aria-hidden="true">close</span>
@@ -574,7 +574,7 @@
                    uploads, interviews and mentor notes from a control sitting
                    beside "set semester". -->
               <p class="batch-danger__hint">
-                Move these {{ batchRosterCount() }} students to another batch to empty this one. There is no
+                Move the {{ batchRosterCount() | plural: 'student' }} in this batch to another one to empty it. There is no
                 delete for a student here — emptying a deployment of people is <code>app.purge_people</code>.
               </p>
             }

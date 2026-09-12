@@ -27,6 +27,7 @@
 import { Component, ElementRef, afterNextRender, computed, input, output, viewChild } from '@angular/core';
 
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import type { FacultyRow } from './faculty-row';
 import { identityLineOf } from './faculty-row';
 
@@ -44,7 +45,7 @@ interface DisableConsequence {
 @Component({
   selector: 'app-disable-faculty-dialog',
   standalone: true,
-  imports: [PendingControlDirective],
+  imports: [PendingControlDirective, PluralPipe],
   templateUrl: './disable-faculty-dialog.component.html',
   styleUrl: './disable-faculty-dialog.scss',
   host: { '(document:keydown.escape)': 'dismissed.emit()' },
@@ -83,7 +84,7 @@ export class DisableFacultyDialogComponent {
     {
       icon: 'group_off',
       isKept: false,
-      sentence: `${this.menteesReleasedPhrase()} are released to the unassigned pool, with a history row recording why.`,
+      sentence: `${this.menteesReleasedPhrase()} released to the unassigned pool, with a history row recording why.`,
     },
     {
       icon: 'key',
@@ -99,12 +100,14 @@ export class DisableFacultyDialogComponent {
     },
   ]);
 
-  /** "Their 14 mentees", or "Their mentees" when the assignment list could not
-   *  be read. Never "Their 0 mentees" from a failed request. */
+  /** "Their 14 mentees are", or "Their mentees are" when the assignment list
+   *  could not be read. Never "Their 0 mentees" from a failed request. The VERB
+   *  travels with the count, because the sentence it opens is about releasing
+   *  them: "Their 1 mentee are released" is the same unfinished-software tell
+   *  as "1 mentees", on the one dialog a reader cannot undo by clicking. */
   private menteesReleasedPhrase(): string {
     const menteeCount = this.faculty().menteeCount;
-    if (menteeCount === null) return 'Their mentees';
-    if (menteeCount === 1) return 'Their 1 mentee';
-    return `Their ${menteeCount} mentees`;
+    if (menteeCount === null) return 'Their mentees are';
+    return `Their ${plural(menteeCount, 'mentee')} ${plural(menteeCount, 'is', 'are')}`;
   }
 }

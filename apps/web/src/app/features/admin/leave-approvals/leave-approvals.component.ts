@@ -39,6 +39,7 @@ import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { plural } from '../../../shared/text/plural.pipe';
 
 /** The approval chain, attachments, balances, calendar, cancel and the policy
  *  card are B10.1–B10.8, on branch `feat/redesign-p4-leave`. */
@@ -349,8 +350,7 @@ export class AdminLeaveApprovalsComponent {
     const lastDay = Date.parse(`${row.to_date}T00:00:00Z`);
     if (Number.isNaN(firstDay) || Number.isNaN(lastDay)) return 'Dates not readable';
     const days = Math.round((lastDay - firstDay) / MILLISECONDS_IN_A_DAY) + 1;
-    if (days === 1) return '1 day';
-    return `${days} days`;
+    return plural(days, 'day');
   }
 
   statusChip(row: LeaveRow): StatusChip {

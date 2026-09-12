@@ -263,9 +263,7 @@
           }
 
           @if (row.rules.length > 0) {
-            <h3 class="fs-subhead">
-              {{ row.rules.length === 1 ? '1 rule in force' : row.rules.length + ' rules in force' }}
-            </h3>
+            <h3 class="fs-subhead">{{ row.rules.length | plural: 'rule' }} in force</h3>
             <ul class="fs-rules">
               @for (rule of row.rules; track rule.id) {
                 <li
@@ -416,7 +414,7 @@
                 <option value="" [selected]="formTargetId() === ''">Choose one…</option>
                 @for (node of targetOptions(); track node.id) {
                   <option [value]="node.id" [selected]="formTargetId() === node.id">
-                    {{ node.label }} — {{ studentsLabelFor(node.students) }}
+                    {{ node.label }} — {{ node.students | plural: 'student' }}
                   </option>
                 }
               </select>
@@ -462,8 +460,8 @@
               (input)="formReason.set($any($event.target).value)"
             ></textarea>
             <span class="help">
-              At least {{ minReason() }} characters. It is written onto the audit trail and read by
-              whoever reviews this rule later.
+              At least {{ minReason() | plural: 'character' }}. It is written onto the audit trail
+              and read by whoever reviews this rule later.
             </span>
           </div>
 

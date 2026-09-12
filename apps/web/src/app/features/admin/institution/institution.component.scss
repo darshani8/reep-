@@ -1,8 +1,9 @@
 /* Institution structure — this screen's LAYOUT only.
-   panel / card / chip / btn / ctrl / field / notice / empty / rail / tree-row /
-   dt-frame / dt-table / crumb / icon are global (styles/reep-v2.scss). Nothing
-   here redefines one of those; every class below is named for a box on this
-   board. */
+   panel / card / card-head / card-title / chip / btn / ctrl / field / notice /
+   empty / rail / tree-row / dt-frame / dt-table / crumb / icon are global
+   (styles/reep-v2.scss). The one rule below that names a global class is the
+   `.card-title` override, and it carries only the declaration that differs;
+   every other class here is named for a box on this board. */
 :host {
   display: block;
 }
@@ -81,21 +82,13 @@
   border-top: 1px solid var(--hairline-26);
 }
 
-/* --- card heads --------------------------------------------------------- */
-.card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
+/* --- card heads ---------------------------------------------------------
+   The row itself and the title's type are the design system's now, so the
+   copies that stood here are gone. What this board still needs on top: two of
+   its titles carry a faint inline `.dt-sub` after the name ("Batches in MBA",
+   "Students in MBA-2026-B"), which wants a baseline-aligned flex line rather
+   than the global's plain block. That difference, and nothing else. */
 .card-title {
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--ink);
   display: flex;
   align-items: baseline;
   gap: 8px;

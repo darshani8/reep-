@@ -54,6 +54,7 @@ import type {
   GridReadyEvent,
   ICellRendererParams,
   IRowNode,
+  ProcessCellForExportParams,
   RowSelectionOptions,
   SelectionColumnDef,
   ValueFormatterParams,
@@ -257,6 +258,38 @@ function renderRuleCell(params: ICellRendererParams<QueueRow>): string {
   const row = params.data;
   if (row === undefined) return '';
   return `<span class="chip dot ${row.ruleTone}">${escapeHtml(row.ruleLabel)}</span>`;
+}
+
+// ----------------------------------------------------------- the CSV file --
+
+/**
+ * A cell a spreadsheet must read as TEXT, never as a formula.
+ *
+ * Excel, Sheets and LibreOffice evaluate any cell whose value BEGINS with
+ * `=`, `+`, `-` or `@` — and with a tab or carriage return, which get eaten on
+ * the way in and leave the next character leading. So an applicant who types
+ * `=HYPERLINK("http://evil","click")` into the name field of the PUBLIC
+ * registration form has written live code into the office's spreadsheet. The
+ * values in this export are the least trustworthy input in the product:
+ * members of the public type every one of them, and nobody reviews the string
+ * before the reviewer double-clicks the file.
+ *
+ * AG Grid wraps every value in double quotes and doubles the quotes inside it,
+ * which makes the file parse correctly — quoting is not what stops a formula,
+ * because a spreadsheet strips the quotes and then evaluates what is left.
+ *
+ * THE APOSTROPHE BELOW IS DELIBERATE AND IT IS NOT A BUG. A leading `'` is the
+ * spreadsheets' own "the rest of this cell is text" marker: it lands INSIDE
+ * the quotes AG Grid adds, so the file reads `"'=HYPERLINK(…)"`, and Excel and
+ * Sheets show the cell as the literal text without displaying the apostrophe.
+ * Anyone opening the CSV in a text editor will see it; that is the cost, and
+ * it is the standard one. Cells that do not start with one of those characters
+ * are passed through untouched.
+ */
+const FORMULA_LEAD = /^[=+\-@\t\r]/;
+
+function csvCellAsText(value: string): string {
+  return FORMULA_LEAD.test(value) ? `'${value}` : value;
 }
 
 /** What the quick filter matches on the Applicant column: the name AND the
@@ -823,10 +856,22 @@ export class AdminRegistrationsComponent {
     this.gridApi?.setColumnsVisible([columnId], !wasVisible);
   }
 
-  /** The board's Export: the rows in view, as the reviewer filtered them. No
-   *  endpoint is involved — the grid writes the file. */
+  /**
+   * The board's Export: the rows in view, as the reviewer filtered them. No
+   * endpoint is involved — the grid writes the file.
+   *
+   * `processCellCallback` is the hook where a cell is serialised, so it is
+   * where the formula guard belongs — one place, every column, rather than a
+   * rule each row builder has to remember. `formatValue` is called first
+   * because the callback path hands over the RAW value: without it the
+   * Submitted column would export past its own `valueFormatter`.
+   */
   exportVisibleRows(): void {
-    this.gridApi?.exportDataAsCsv({ fileName: 'reep-registrations.csv' });
+    this.gridApi?.exportDataAsCsv({
+      fileName: 'reep-registrations.csv',
+      processCellCallback: (params: ProcessCellForExportParams<QueueRow>): string =>
+        csvCellAsText(params.formatValue(params.value) ?? ''),
+    });
   }
 
   // ------- the plain inputs the template binds --------------------------

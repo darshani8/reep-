@@ -1,19 +1,33 @@
-<!-- The four steps of the flow, in order: write it, aim it, read it, send it.
-     Numbered because the sequence is the guidance — the previous three tabs
-     named three places and left the student to guess the order. -->
-<div class="rb-steps">
-  <button type="button" [class.active]="flowStep() === 'build'" (click)="go('build')">
-    1 · Build content
-  </button>
-  <button type="button" [class.active]="flowStep() === 'tailor'" (click)="go('tailor')">
-    2 · Tailor to opportunity
-  </button>
-  <button type="button" [class.active]="flowStep() === 'preview'" (click)="go('preview')">
-    3 · Preview
-  </button>
-  <button type="button" [class.active]="flowStep() === 'export'" (click)="go('export')">
-    4 · Export &amp; share
-  </button>
+<!--
+  The page head this screen did not have. It had no <h1> at all — the 2026-09
+  audit counted 29 of 38 screens in that state, and this is one of them fixed:
+  a screen reader landing here was given the four step buttons and no title.
+
+  The four steps of the flow, in order: write it, aim it, read it, send it.
+  Numbered because the sequence is the guidance — the three tabs this replaced
+  named three places and left the student to guess the order. They sit in the
+  head, to the right of the title, as the board draws them.
+-->
+<p class="crumb">Documents <span class="sep">/</span> Resume Builder</p>
+<div class="dt-header rb-header">
+  <div>
+    <h1 class="dt-title">Resume Builder</h1>
+    <p class="dt-sub">Build the content, tailor it to an opportunity, preview, then export and share.</p>
+  </div>
+  <div class="wizard-steps rb-steps">
+    <button type="button" class="step" [class.active]="flowStep() === 'build'" (click)="go('build')">
+      <span class="n">1</span>Build content
+    </button>
+    <button type="button" class="step" [class.active]="flowStep() === 'tailor'" (click)="go('tailor')">
+      <span class="n">2</span>Tailor to opportunity
+    </button>
+    <button type="button" class="step" [class.active]="flowStep() === 'preview'" (click)="go('preview')">
+      <span class="n">3</span>Preview
+    </button>
+    <button type="button" class="step" [class.active]="flowStep() === 'export'" (click)="go('export')">
+      <span class="n">4</span>Export &amp; share
+    </button>
+  </div>
 </div>
 
 <!-- The goal. Every step below reads it, so it stays visible on all four. -->

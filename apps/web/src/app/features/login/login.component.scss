@@ -1,8 +1,18 @@
 /*
- * The sign-in screen, to the design's login frame: a deep-purple brand panel on
- * the left and a white card on the right. It sits OUTSIDE the shell, so it uses
- * the global tokens directly (defined once in styles/reep-v2.scss) and owns its
- * own layout classes here. Nothing in this file redefines a global class.
+ * The sign-in screen, to the 2026-09 board (LoginRedesign / LoginStates /
+ * LoginMobile): the page wash runs edge to edge, the left panel sits ON it
+ * rather than being a dark slab of its own, and the card is white on top.
+ *
+ * WHY THE DARK PANEL WENT. It was the only surface in the product painted in
+ * inverted colours, so it carried its own copy of every rule the rest of the
+ * app states once -- a white-alpha logo tile, rgba(255,255,255,0.68) for muted
+ * text, a lilac for icons that exists nowhere else. Nine colours, none of them
+ * a token. On the wash the same elements read from --ink, --muted and
+ * --brand-purple like every other screen, and the file drops to tokens.
+ *
+ * It sits OUTSIDE the shell, so it uses the global tokens directly (defined
+ * once in styles/reep-v2.scss) and owns its own layout classes here. Nothing in
+ * this file redefines a global class.
  */
 
 :host {
@@ -15,17 +25,26 @@
   display: flex;
   flex-wrap: wrap;
   align-content: stretch;
-  background: var(--page-bg, #f6f1fb);
+  /* NO BACKGROUND HERE, deliberately. This used to read
+     `background: var(--page-bg, #f6f1fb)` -- and there is no `--page-bg` token
+     in this codebase, so every login ever served painted the flat #f6f1fb
+     fallback ON TOP of the body's real `--page-wash`, which is the lilac-to-
+     pink gradient the board shows. The dark panel covered the left half and the
+     card covered the right, so nobody saw the difference until the panel went
+     light. Painting nothing lets the wash through, and there is one place that
+     decides what the page looks like. */
 }
 
 /* ---- brand panel ------------------------------------------------------- */
 
 .panel {
-  flex: 1 1 460px;
+  /* 560px on the board at 1440. `flex: 0 1 560px` rather than a fixed width:
+     the card must keep its 440px before this panel keeps its 560, and below
+     the wrap the panel goes full-width (see the 980px query). */
+  flex: 0 1 560px;
   min-width: 320px;
-  background: linear-gradient(160deg, #3a1f52, var(--brand-purple, #552c7e) 45%, #7a2f9e 88%);
-  color: #fff;
-  padding: clamp(32px, 5vw, 64px);
+  color: var(--ink, #1e1b29);
+  padding: clamp(32px, 4vw, 48px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -38,17 +57,32 @@
   gap: 11px;
 }
 
+/* The middle of the panel's three space-between children. Without this the
+   copy stacks under the brand and the panel reads top-heavy against the
+   card, which is centred in its own half. */
+.panel__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 430px;
+}
+
 .panel__logo {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  /* The brand mark, the same one the shell's app bar carries: a gradient
+     square holding the letter, not an icon tile. */
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--primary-gradient);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 23px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: var(--sh-navpill);
 }
 
 .panel__reep {
@@ -58,56 +92,67 @@
 }
 
 .panel__sub {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  color: var(--muted, #585566);
   font-weight: 600;
   letter-spacing: 0.04em;
+  border-left: 1px solid var(--hairline, rgba(160, 138, 178, 0.42));
+  padding-left: 12px;
 }
 
 .panel__headline {
-  font-size: clamp(26px, 3.4vw, 38px);
+  font-size: clamp(26px, 3.2vw, 34px);
   font-weight: 800;
-  line-height: 1.18;
-  margin: clamp(32px, 6vh, 56px) 0 0;
+  line-height: 1.15;
+  margin: 0;
   letter-spacing: -0.02em;
   text-wrap: pretty;
   max-width: 22ch;
 }
 
 .panel__body {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.78);
-  line-height: 1.6;
-  margin: 14px 0 0;
-  max-width: 40ch;
+  font-size: 14px;
+  color: var(--muted, #585566);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 44ch;
 }
 
 .panel__points {
   list-style: none;
   padding: 0;
-  margin: clamp(28px, 5vh, 44px) 0 0;
+  margin: 4px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 
   li {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 13.5px;
-    color: rgba(255, 255, 255, 0.88);
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink, #1e1b29);
   }
 
+  /* The board sets each point's icon in a 30px tinted square, which is what
+     stops three different glyph widths from ragging the text beside them. */
   .icon {
-    font-size: 19px;
-    color: #e9c9f5;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: var(--tint-1, #efe4f6);
+    color: var(--brand-purple, #552c7e);
+    font-size: 17px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
   }
 }
 
 .panel__foot {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 11.5px;
+  color: var(--muted, #585566);
 }
 
 /* ---- sign-in card ------------------------------------------------------ */
@@ -118,32 +163,48 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(24px, 4vw, 56px);
+  padding: clamp(24px, 3vw, 40px);
 }
 
 .card-login {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   background: var(--surface, #fff);
-  border: 1px solid var(--hairline, rgba(160, 138, 178, 0.35));
-  border-radius: 24px;
-  padding: clamp(24px, 3vw, 34px);
-  box-shadow: 0 20px 50px rgba(58, 31, 82, 0.16);
+  border: 1px solid var(--hairline, rgba(160, 138, 178, 0.38));
+  border-radius: var(--r-card, 16px);
+  padding: 24px 28px;
+  /* Softer than the old 50px drop: on the wash the card no longer has a dark
+     slab behind it to lift away from. */
+  box-shadow:
+    0 10px 26px rgba(58, 31, 82, 0.1),
+    inset 0 1px 0 #fff;
 }
 
 .card-login__brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 22px;
-  font-size: 14px;
+  margin-bottom: 18px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--ink, #1e1b29);
+}
 
-  .icon {
-    font-size: 19px;
-    color: #7a2f9e;
-  }
+/* The card's own mark: the panel's, at the card's scale. */
+.card-login__mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--primary-gradient);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: var(--sh-navpill);
 }
 
 .card-login__title {
@@ -181,17 +242,20 @@
   flex-direction: column;
   gap: 5px;
   text-align: left;
-  padding: 13px 14px;
-  border-radius: 16px;
+  padding: 10px 10px 9px;
+  border-radius: 12px;
   cursor: pointer;
   font: inherit;
-  border: 1.5px solid rgba(160, 138, 178, 0.35);
-  background: #fff;
+  border: 1px solid var(--hairline, rgba(160, 138, 178, 0.42));
+  background: var(--surface, #fff);
   color: var(--ink, #1e1b29);
+  box-shadow:
+    0 2px 6px rgba(58, 31, 82, 0.06),
+    inset 0 1px 0 #fff;
 
   .icon {
-    font-size: 22px;
-    color: #7a2f9e;
+    font-size: 18px;
+    color: var(--brand-purple, #552c7e);
   }
 
   &:focus-visible {
@@ -201,26 +265,28 @@
 }
 
 .portal__label {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .portal__desc {
-  font-size: 11.5px;
+  font-size: 11px;
   line-height: 1.35;
   color: var(--muted, #585566);
 }
 
 .portal--on {
-  border-color: transparent;
-  background: var(--primary-gradient);
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(85, 44, 126, 0.35);
-
-  .icon,
-  .portal__desc {
-    color: rgba(255, 255, 255, 0.88);
-  }
+  /* SELECTED IS OUTLINED, NOT FILLED, and that is the board's decision rather
+     than a taste one. The filled tile used --primary-gradient, which this
+     design reserves for the ONE primary action of a view -- and the primary
+     action here is Sign in, three elements below. Two gradients in one card
+     and neither reads as the thing to press. */
+  border-color: var(--brand-purple, #552c7e);
+  background: var(--tint-2, #f5edfa);
+  box-shadow: 0 0 0 2px rgba(85, 44, 126, 0.18);
 }
 
 /* ---- alerts ------------------------------------------------------------ */

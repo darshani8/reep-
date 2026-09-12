@@ -10,46 +10,31 @@
 /* The numbered flow. Wraps rather than scrolls: four steps at 13px do not fit a
    narrow column, and a step the student cannot see is a step they will not
    take. */
-.rb-steps {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
+/* The stepper is the shared `.wizard-steps`; this only makes its steps
+   buttons and places them in the head.
+
+   They were filled pills, the active one in --primary-gradient. Four pills of
+   which one is the loudest object on the page competed with Generate Resume,
+   which IS this screen's primary action — and the steps are navigation, not an
+   action. The board numbers them in circles: filled for where you are, hollow
+   for where you are not. */
+.rb-header {
+  align-items: flex-start;
+  gap: 16px;
 }
 .rb-steps button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  border: 1px solid var(--hairline);
-  background: var(--tint-3);
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
   white-space: nowrap;
 }
-.rb-steps button .n {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: rgba(58, 31, 82, 0.1);
-  font-size: 11px;
-  font-weight: 700;
-  flex: none;
-}
-.rb-steps button.active {
-  background: var(--primary-gradient);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: var(--sh-primary);
-}
-.rb-steps button.active .n {
-  background: rgba(255, 255, 255, 0.22);
+.rb-steps button:focus-visible {
+  outline: 2px solid var(--brand-purple);
+  outline-offset: 3px;
+  border-radius: var(--r-pill);
 }
 
 /* --- goal strip --- */
@@ -75,12 +60,14 @@
   flex: 1;
   min-width: 220px;
 }
+/* Sentence case, like every other field label — see the note on `.field label`
+   in reep-v2.scss. These three sit above three selects and were the only
+   uppercase labels left on the screen once that changed. */
 .goal-lbl {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
 }
 .rb-goal select {
   padding: 6px 9px;

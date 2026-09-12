@@ -373,7 +373,7 @@ export class AdminAnalyticsComponent implements AfterViewInit, OnDestroy {
    *  the target where there is one, or against the axis top where there is not. */
   private barColour(value: number | null, hi: boolean, target: number | null, max: number): string {
     if (value === null) return NO_DATA;
-    if (hi) return '#BA2185';
+    if (hi) return '#552c7e';
     const ref = target ?? max;
     if (target !== null) {
       return value >= target * 1.15 ? '#552C7E' : value >= target ? '#7a2f9e' : '#c08fd6';
@@ -572,7 +572,7 @@ export class AdminAnalyticsComponent implements AfterViewInit, OnDestroy {
               mean,
               visualMap: false,
               itemStyle: selected
-                ? { color: '#BA2185', borderColor: '#fff', borderWidth: 3 }
+                ? { color: '#552c7e', borderColor: '#fff', borderWidth: 3 }
                 : { color: '#7a2f9e' },
               label: selected ? { ...dark, fontWeight: 800 } : dark,
               // A mentor with no students still needs an arc to be clickable.

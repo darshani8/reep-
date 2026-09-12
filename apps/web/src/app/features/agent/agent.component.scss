@@ -79,10 +79,10 @@
 }
 
 /* --- disclaimer + error ------------------------------------------------- */
+/* `.note` carries the look; these are the parts this screen sets. */
 .ag-disclaimer {
-  margin: 0 0 20px;
-  max-width: 68ch;
-  color: var(--muted);
+  margin: 0 0 16px;
+  max-width: none;
   font-size: 0.8125rem;
   line-height: 1.6;
 }
@@ -127,9 +127,30 @@
 }
 
 /* --- turns -------------------------------------------------------------- */
+/* The agent's brand mark sits beside its answers. In a thread where both sides
+   are bubbles, the mark is what says who spoke — without it, "which side is
+   this" rests on the bubble tint alone, and the board makes the answer bubble
+   white. */
 .ag-row {
   display: flex;
   justify-content: flex-start;
+  align-items: flex-start;
+  gap: 10px;
+}
+.ag-mark {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-top: 2px;
+  border-radius: var(--r-pill);
+  background: var(--brand-purple);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
 }
 .ag-row--user {
   justify-content: flex-end;
@@ -144,12 +165,15 @@
 .ag-stack--user {
   align-items: flex-end;
 }
+/* WHITE, per the board, not the lilac wash. The answer often carries action
+   rows and source chips of its own, and those are tinted — on a tinted bubble
+   they had almost no separation from it. */
 .ag-bubble {
   padding: 10px 14px;
-  border-radius: 22px;
+  border-radius: 16px;
   line-height: 1.5;
   font-size: 0.925rem;
-  background: var(--ag-wash);
+  background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--hairline-42);
   white-space: pre-wrap;
@@ -272,6 +296,9 @@
   align-items: center;
   gap: 4px;
 }
+/* Outlined icon buttons, per the board. These were the literal emoji 👍 👎,
+   which render in whatever face the OS ships and so sat at a different weight
+   and baseline from every other control on the screen. */
 .ag-vote {
   display: inline-flex;
   align-items: center;
@@ -279,7 +306,8 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid transparent;
+  color: var(--muted);
+  border: 1px solid var(--hairline-26);
   border-radius: var(--r-pill);
   background: transparent;
   font-size: 0.9rem;
@@ -415,10 +443,17 @@
   font-weight: 500;
   border: 1px solid transparent;
   border-radius: var(--r-pill);
-  background: var(--purple-mid);
-  color: var(--tint-2);
+  /* The gradient, because Send IS this view's one primary action — the case
+     the reservation exists for. */
+  background: var(--primary-gradient);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: var(--sh-navpill);
   flex-shrink: 0;
   min-width: 84px;
+}
+.ag-send .icon {
+  font-size: 16px;
 }
 .ag-send:disabled {
   opacity: 0.55;
@@ -444,4 +479,17 @@
   .ag-frame {
     height: max(420px, calc(100vh - 380px));
   }
+}
+
+.ag-vote .icon {
+  font-size: 14px;
+}
+.ag-vote--on {
+  color: var(--brand-purple);
+  border-color: var(--brand-purple);
+  background: var(--tint-2);
+}
+.ag-textbtn .icon {
+  font-size: 13px;
+  margin-right: 3px;
 }

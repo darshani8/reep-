@@ -528,6 +528,12 @@ html.fonts-ready .icon {
   padding: 18px;
 }
 
+/* The card title row. `.card > h3` carried a second declaration in
+   reep-v2-resume.scss which, loading last, made every h3 directly inside a
+   card flex with its action right-aligned — on the resume sections, and on
+   Skilling and Interviews too. That is the design system's own card-title
+   pattern (01 §4: title + faint sub, actions right), so it is stated once,
+   here, rather than arriving from the other sheet by accident. */
 .card h4,
 .card > h3,
 .res-card h4 {
@@ -538,6 +544,28 @@ html.fonts-ready .icon {
   margin: 0 0 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--hairline-26);
+}
+
+/* An `h3` used as the card's title row takes an action on its right: the
+   resume sections put "Add another" there, Skilling puts its claim link.
+   These are the declarations reep-v2-resume.scss used to contribute to the
+   same selector, kept verbatim so no screen moves, and stated beside the rule
+   they refine instead of arriving from a file that loads later. */
+.card > h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+/* The faint line under a card title. */
+.card > .desc {
+  font-size: 12.3px;
+  color: var(--muted);
+  margin-bottom: 16px;
+  line-height: 1.5;
 }
 
 .grid-3,
@@ -808,9 +836,13 @@ html.fonts-ready .icon {
   background: var(--risk-bg);
   color: var(--risk);
 }
+/* Tint-2 on ink-soft, per 01-design-system.md §4. Declared twice before —
+   tint-1/muted here and --ground/muted in reep-v2-resume.scss, which won
+   everywhere because it loads last, so neither of the written values was the
+   one on screen. */
 .chip.neutral {
-  background: var(--tint-1);
-  color: var(--muted);
+  background: var(--tint-2);
+  color: var(--ink-soft);
 }
 .tag.lock,
 .tag.evi {
@@ -1081,15 +1113,26 @@ html.fonts-ready .icon {
  * Bars, meters, charts
  * ======================================================================= */
 
+/* ONE OWNER. reep-v2-resume.scss declared .meter as well, and because it loads
+   last (src/styles.scss) its 7px hairline track was what every meter in the app
+   actually rendered — the assistant's mic level, the records attendance bars,
+   the profile completeness and the resume's own — while this rule's 8px tint-1
+   track applied to nothing but the box-shadow. Merged here at the design
+   system's size (01-design-system.md §4: 6-7px track, tint-1 fill, brand purple
+   or the gradient), with both fill elements the templates actually use. */
 .meter,
 .match-bar {
-  height: 8px;
+  height: 7px;
   border-radius: var(--r-pill);
   background: var(--tint-1);
   overflow: hidden;
   box-shadow: var(--sh-well);
 }
+/* `span` in the shell's meters, `i` in the resume builder's completeness bar.
+   Two elements, one fill — renaming either would touch templates this phase
+   is not allowed to redesign. */
 .meter > span,
+.meter > i,
 .match-fill {
   display: block;
   height: 100%;

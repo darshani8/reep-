@@ -1,100 +1,147 @@
-/* Institution console. Two cards: the structure column and the batches.
-   Panel / card / chip / btn / ctrl / field / reg-grid / dt-table / icon are global. */
+/* Institution structure — this screen's LAYOUT only.
+   panel / card / chip / btn / ctrl / field / notice / empty / rail / tree-row /
+   dt-frame / dt-table / crumb / icon are global (styles/reep-v2.scss). Nothing
+   here redefines one of those; every class below is named for a box on this
+   board. */
 :host {
   display: block;
 }
 
+/* The board's two columns: a 470px rail card, then the detail stack. */
 .inst-grid {
   display: grid;
-  grid-template-columns: minmax(300px, 380px) 1fr;
-  gap: 16px;
+  grid-template-columns: minmax(320px, 470px) 1fr;
+  gap: 10px;
   align-items: start;
 }
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .inst-grid {
     grid-template-columns: 1fr;
   }
 }
 
+.inst-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Specializations beside Batches, as on the board. */
+.inst-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+@media (max-width: 1400px) {
+  .inst-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- the rail card ------------------------------------------------------ */
+.tree-card {
+  padding: 10px;
+}
+
+.tree-find {
+  position: relative;
+  margin-bottom: 8px;
+}
+.tree-find .icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--faint);
+  pointer-events: none;
+}
+.tree-find .ctrl {
+  padding-left: 30px;
+}
+
+/* A rail row that names something rather than selecting it — the
+   specializations under a course, and the batch summary line. It must not
+   offer the hover affordance the selectable rows have. */
+.tree-static {
+  cursor: default;
+}
+.tree-static:hover {
+  background: transparent;
+}
+
+.tree-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline-26);
+}
+
+/* --- card heads --------------------------------------------------------- */
 .card-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .card-title {
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   line-height: 1.3;
-  letter-spacing: -0.01em;
   color: var(--ink);
   display: flex;
   align-items: baseline;
   gap: 8px;
 }
 
-/* One block per hierarchy level, stacked. */
-.level {
-  padding: 12px 0;
-  border-top: 1px solid var(--hairline-26);
+/* --- the college card --------------------------------------------------- */
+.college-name {
+  margin: 0 0 10px;
 }
-.level:first-of-type {
-  border-top: 0;
-  padding-top: 0;
-}
-.level-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.level-head label {
-  font-family: var(--font-display);
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--faint);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.level .ctrl {
-  width: 100%;
-}
-
-.spec-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.spec-list li {
+.domain-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 11px;
-  border-radius: 12px;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  font-size: 12.8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: 12.5px;
 }
-.spec-code {
-  font-weight: 800;
-  color: var(--ink);
-  min-width: 42px;
-}
-.spec-list .chip {
-  margin-left: auto;
+.domain-key {
+  color: var(--muted);
 }
 
-/* The inline add forms share the global .field; only the box is local. */
+/* --- the course card ---------------------------------------------------- */
+.course-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.course-form .narrow {
+  width: 150px;
+}
+.course-form .grow {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+/* --- tables ------------------------------------------------------------- */
+.b-code {
+  font-weight: 800;
+  color: var(--ink);
+}
+.row-actions {
+  white-space: nowrap;
+}
+
+/* --- the inline add forms ----------------------------------------------- */
 .add-form {
   margin-top: 10px;
   padding: 12px 14px;
@@ -109,23 +156,10 @@
   margin-top: 2px;
 }
 
-.table-wrap {
-  overflow-x: auto;
-}
-.b-code {
-  font-weight: 800;
-  color: var(--ink);
-}
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
-.dt-table td .chip {
-  margin-top: 4px;
-}
-
+/* --- the batch form ----------------------------------------------------- */
 .batch-form {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid var(--hairline-26);
 }
 .batch-form h4 {
@@ -138,8 +172,12 @@
   align-self: flex-start;
 }
 
+/* --- notices and inboxes ------------------------------------------------ */
 .inbox {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+}
+.card .notice {
+  margin-top: 10px;
 }
 .link-btn {
   background: none;
@@ -156,27 +194,10 @@
   cursor: default;
 }
 
-.state-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--tint-1);
-  color: var(--muted);
-  font-size: 13px;
-  margin-bottom: 14px;
+/* --- seating ------------------------------------------------------------ */
+.seating {
+  margin-top: 14px;
 }
-.state-note.risk {
-  background: var(--risk-bg);
-  color: var(--risk);
-}
-.state-note.good {
-  background: var(--good-bg);
-  color: var(--good);
-}
-
-/* Seating panel: the picker row above the seated list. */
 .seating .seat-add {
   display: flex;
   align-items: flex-end;

@@ -1,93 +1,105 @@
 /**
- * Programme analytics — the admin's cohort view.
+ * Placement analytics — the Main Admin console's landing board.
  *
- * Four stat tiles across the top (students, mentors, badges, placement), then
- * the MENTORSHIP STRUCTURE: a sunburst of faculty mentors (inner ring) and their
- * assigned students (outer ring), coloured by one metric, beside a linked bar
- * chart that shows the same numbers as values. Click a mentor arc and the bars
- * show that mentor's students; click the same mentor again and the bars go back
- * to every mentor's average; click a student arc and the bars become that one
- * student's last six weeks, with their headline figures and a CV download above.
+ * The approved design is `docs/redesign-2026-09/design/admin/Main.html` and its
+ * brief is `02-admin-console-spec.md` §2. Three decisions in this build are
+ * worth reading before changing it.
  *
- * ONE FETCH, THREE METRICS. /admin/mentor-load returns attendance, verified
- * skills and ledger hours for every assigned student in one response; the metric
- * select re-scales what is already loaded. Only a STUDENT click fetches again
- * (/admin/students/{id}/weekly), because six weeks of history for every
- * student in the programme is not something to download on the off-chance.
+ * ONE COMPOSITE CHART, NOT A WALL OF SMALL ONES (01-design-system.md §4, §5).
+ * The board's "Placement health · weekly" draws readiness %, attendance %,
+ * skilling hours and offers per week for a whole batch. NOTHING ON MAIN
+ * COMPUTES A PROGRAMME-WIDE WEEK: `/api/admin/analytics-summary` is a set of
+ * totals with no time axis, and the only weekly series that exists anywhere is
+ * `GET /api/admin/students/{id}/weekly` — six ISO weeks for ONE student. So the
+ * chart draws exactly that, for a student chosen from the roster, and the
+ * notice above it names what arrives with `B8.5` (scoped analytics series) and
+ * `B8.6` (nightly snapshots). Averaging a cohort curve out of one request per
+ * student is not the shortcut it looks like: the screen this replaces carried
+ * the reason in its own comment, and it still holds — six weeks of history for
+ * every student in the programme is not something to download on the
+ * off-chance.
  *
- * THE SUNBURST IS A SAMPLE, ON PURPOSE. Five mentors and their students read;
- * twenty-four mentors and four hundred arcs do not. When the roster is larger
- * than the sample the caption says so ("Sample: 5 of 24 mentors"), the bar chart
- * still lists EVERY mentor's average, and clicking a bar there focuses that
- * mentor — so nobody is unreachable, only un-drawn.
+ * THE FIVE-MENTOR SUNBURST IS GONE. It drew five mentors and their students as
+ * a SAMPLE, on the console's landing screen, because twenty-four mentors and
+ * four hundred arcs do not read as a picture. The spec removes it by name and
+ * puts "Mentor load" in its place as an AG Grid — sorted, paginated, quick
+ * filtered — which shows every faculty account rather than five, and shows them
+ * as the numbers they are.
  *
- * ATTENDANCE CAN BE ABSENT, AND THAT IS NOT ZERO. A student with no recorded
- * sessions returns null, drawn in a neutral grey and labelled "no data" rather
- * than at the bottom of the colour ramp, where it would read as a total absentee.
- * The same rule holds for a week with no classes in the student view.
+ * A TILE NOBODY COMPUTES SHOWS A DASH. Median CTC, placement-readiness and the
+ * mock-interview count have no programme-wide source on main, and no endpoint
+ * here returns a previous period, so no tile carries a delta. Those tiles show
+ * an em dash, a "Phase 4" chip and a sub-line saying what will fill them,
+ * because a plausible number is indistinguishable from a computed one in a
+ * screenshot.
  *
- * ECharts is imported through a narrow barrel (echarts/core plus the two chart
- * types and the components used), never the default bundle; the route is lazy,
- * so this chunk is the only one that carries it.
+ * ECharts is imported through the narrow barrel (core, the two chart types and
+ * the four components used) and AG Grid is registered from the shared
+ * bootstrap; the route is lazy, so both libraries live in this chunk alone.
  */
 
 import { DatePipe } from '@angular/common';
-import {
-  AfterViewInit,
-  Component,
-  ElementRef,
-  OnDestroy,
-  computed,
-  effect,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { Component, ElementRef, OnDestroy, computed, effect, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { AgGridAngular } from 'ag-grid-angular';
+import type { ColDef, ICellRendererParams, ValueFormatterParams } from 'ag-grid-community';
+
 import * as echarts from 'echarts/core';
-import { BarChart, SunburstChart } from 'echarts/charts';
+import { BarChart, LineChart } from 'echarts/charts';
 import {
+  DataZoomComponent,
   GridComponent,
+  LegendComponent,
   MarkLineComponent,
   TooltipComponent,
-  VisualMapComponent,
 } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 
 import { environment } from '../../../../environments/environment';
 import {
+  CATEGORICAL_PALETTE,
   REEP_CHART_THEME,
+  STATUS_COLOURS,
   registerReepChartTheme,
 } from '../../../shared/charts/reep-echarts-theme';
+import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
+import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
+import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 
 // The design system's chart theme, registered once for this lazily-loaded
-// chunk. Registration alone does nothing: ECharts applies a theme at init, so
-// both `echarts.init` calls below name it. Before this, both passed
-// `undefined` and drew on the library's defaults.
+// chunk. Registration alone does nothing — ECharts applies a theme at init —
+// so `echarts.init` below names it.
 registerReepChartTheme(echarts);
 
 echarts.use([
-  SunburstChart,
+  LineChart,
   BarChart,
-  TooltipComponent,
-  VisualMapComponent,
   GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  DataZoomComponent,
   MarkLineComponent,
   SVGRenderer,
 ]);
 
+/** One assigned student, as the mentorship map returns them. */
 interface Mentee {
   student_id: string;
   name: string;
   usn: string | null;
   stage: string | null;
+  /** Null when nothing is recorded — which is not the same as 0 %. */
   attendance_percent: number | null;
   verified_skills: number;
   logged_hours: number;
 }
 
+/** One faculty account with the students it holds. */
 interface MentorLoad {
-  mentor_id: string;
+  /** Null until the Main Admin assigns this faculty member their first student. */
+  mentor_id: string | null;
+  user_id: string;
   name: string;
   department: string | null;
   designation: string | null;
@@ -96,7 +108,8 @@ interface MentorLoad {
   mentees: Mentee[];
 }
 
-interface Summary {
+/** `GET /api/admin/analytics-summary`. */
+interface AnalyticsSummary {
   students_total: number;
   pending_registrations: number;
   mentors_total: number;
@@ -110,587 +123,480 @@ interface Summary {
   generated_at: string;
 }
 
-interface Weekly {
+/** `GET /api/admin/students/{id}/weekly` — the one real weekly series on main. */
+interface StudentWeekly {
   student_id: string;
   name: string;
   usn: string | null;
   weekly_hour_target: number;
   has_resume: boolean;
   weeks: { label: string; start: string; end: string }[];
+  /** Per week; null means no classes that week, never 0 % attendance. */
   attendance_percent: (number | null)[];
   logged_hours: number[];
   skills_by_category: { category: string; count: number }[];
 }
 
-type Metric = 'attendance' | 'skills' | 'hours';
-
-interface MetricSpec {
-  label: string;
-  /** Null when the student has no record of it at all. */
-  value: (m: Mentee) => number | null;
-  /** Appended to a value: "%", " h", or nothing. */
-  suffix: string;
-  /** Where the colour ramp and the bar axis top out. */
-  max: (rows: Mentee[]) => number;
+/** `GET /api/mentor/alerts` — the feed the board draws under "Alerts". */
+interface ProgrammeAlert {
+  id: string;
+  student_id: string;
+  student_name: string;
+  rule_triggered: string;
+  severity: string;
+  message: string;
+  triggered_at: string;
+  resolved: boolean;
 }
 
-const METRICS: Record<Metric, MetricSpec> = {
-  attendance: {
-    label: 'Attendance',
-    value: (m) => m.attendance_percent,
-    suffix: '%',
-    max: () => 100,
-  },
-  skills: {
-    label: 'Skill badges',
-    value: (m) => m.verified_skills,
-    suffix: '',
-    // Scale to the cohort rather than a guessed ceiling: with nobody above 6,
-    // a fixed 42 would render every bar as a stub.
-    max: (rows) => Math.max(5, ...rows.map((r) => r.verified_skills)),
-  },
-  hours: {
-    label: 'Time sheet',
-    value: (m) => m.logged_hours,
-    suffix: ' h',
-    max: (rows) => Math.max(10, ...rows.map((r) => r.logged_hours)),
-  },
+/** One row of the Mentor load grid, already reduced to what the board shows. */
+interface MentorLoadRow {
+  mentorName: string;
+  initials: string;
+  department: string | null;
+  menteeCount: number;
+  capacity: number;
+  /** Averages across this mentor's students; null when nobody has a figure. */
+  averageAttendancePercent: number | null;
+  averageVerifiedSkills: number | null;
+  averageLoggedHours: number | null;
+  loadStatus: string;
+  loadTone: 'good' | 'warn' | 'neutral';
+}
+
+/** The series names, used by the legend, the tooltip and the unit lookup. */
+const ATTENDANCE_SERIES = 'Attendance';
+const HOURS_SERIES = 'Hours logged / wk';
+
+/** The unit each series is measured in, appended in the tooltip. */
+const UNIT_BY_SERIES: Readonly<Record<string, string>> = {
+  [ATTENDANCE_SERIES]: '%',
+  [HOURS_SERIES]: ' h',
 };
 
-/** How many mentors the sunburst draws when the roster is larger. */
-const SAMPLE = 5;
+/** Attendance is series 1 (lilac), skilling hours the fourth (plum), as the
+ *  board draws them. Both come from the validated categorical palette. */
+const ATTENDANCE_COLOUR = CATEGORICAL_PALETTE[0];
+const HOURS_COLOUR = CATEGORICAL_PALETTE[3];
 
-const INK = '#2b1440';
-const NO_DATA = '#cfc6d8';
-/** The design's ramp for the outer ring, low to high. */
-const RAMP = ['#dcc7ea', '#b98fd0', '#a0248f', '#552C7E'];
-const FONT = 'Inter, system-ui, sans-serif';
+/** Mentors per page in the load grid — eight rows fit the board's card. */
+const MENTORS_PER_PAGE = 8;
 
-/** One bar row, whatever it currently stands for. */
-interface BarRow {
-  key: string;
-  label: string;
-  value: number | null;
-  display: string;
+/** What the grid's page-size selector offers. */
+const PAGE_SIZE_CHOICES = [8, 16, 32];
+
+/** Initials for the grid's avatar: first and last word of the name. */
+function initialsOf(fullName: string): string {
+  const words = fullName.trim().split(/\s+/).filter((word) => word.length > 0);
+  if (words.length === 0) return '?';
+  const first = words[0].charAt(0);
+  if (words.length === 1) return first.toUpperCase();
+  const last = words[words.length - 1].charAt(0);
+  return `${first}${last}`.toUpperCase();
+}
+
+/** The mean of the figures that exist, or null when none do. A student with no
+ *  attendance recorded is left out rather than counted as a zero. */
+function averageOf(values: (number | null)[]): number | null {
+  const recorded = values.filter((value): value is number => value !== null);
+  if (recorded.length === 0) return null;
+  let total = 0;
+  for (const value of recorded) {
+    total += value;
+  }
+  return Math.round((total / recorded.length) * 10) / 10;
+}
+
+/** The board's three load states, as text and tone together. */
+function loadStatusOf(menteeCount: number, capacity: number): { label: string; tone: 'good' | 'warn' | 'neutral' } {
+  if (menteeCount === 0) return { label: 'No students yet', tone: 'neutral' };
+  if (menteeCount >= capacity) return { label: 'At capacity', tone: 'warn' };
+  return { label: 'On track', tone: 'good' };
+}
+
+/** AG Grid cell renderers build their own DOM, so a name out of the database
+ *  reaches innerHTML: escape it here rather than trusting the roster. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderMentorNameCell(params: ICellRendererParams<MentorLoadRow>): string {
+  const row = params.data;
+  if (!row) return '';
+  return `<span class="avatar">${escapeHtml(row.initials)}</span><span>${escapeHtml(row.mentorName)}</span>`;
+}
+
+function renderLoadStatusCell(params: ICellRendererParams<MentorLoadRow>): string {
+  const row = params.data;
+  if (!row) return '';
+  // Label and tone are this file's own words, never roster text.
+  return `<span class="chip dot ${row.loadTone}">${row.loadStatus}</span>`;
+}
+
+function formatDepartment(params: ValueFormatterParams<MentorLoadRow, string | null>): string {
+  return params.value ?? 'Not on record';
+}
+
+function formatMenteeLoad(params: ValueFormatterParams<MentorLoadRow, number>): string {
+  const row = params.data;
+  if (!row) return '';
+  return `${row.menteeCount} / ${row.capacity}`;
+}
+
+function formatPercent(params: ValueFormatterParams<MentorLoadRow, number | null>): string {
+  if (params.value === null || params.value === undefined) return '—';
+  return `${params.value}%`;
+}
+
+function formatCount(params: ValueFormatterParams<MentorLoadRow, number | null>): string {
+  if (params.value === null || params.value === undefined) return '—';
+  return `${params.value}`;
+}
+
+function formatHours(params: ValueFormatterParams<MentorLoadRow, number | null>): string {
+  if (params.value === null || params.value === undefined) return '—';
+  return `${params.value} h`;
+}
+
+/** One row of the crosshair tooltip, as ECharts hands it over. */
+interface WeeklyTooltipPoint {
+  axisValue: string;
+  seriesName: string;
+  marker: string;
+  data: number | null;
+}
+
+function formatWeeklyTooltip(points: WeeklyTooltipPoint[]): string {
+  if (points.length === 0) return '';
+  const lines = [`<b>Week of ${points[0].axisValue}</b>`];
+  for (const point of points) {
+    const unit = UNIT_BY_SERIES[point.seriesName] ?? '';
+    const reading = point.data === null ? 'no classes' : `${point.data}${unit}`;
+    lines.push(`${point.marker}${point.seriesName}: <b>${reading}</b>`);
+  }
+  return lines.join('<br/>');
 }
 
 @Component({
   selector: 'app-admin-analytics',
   standalone: true,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, AgGridAngular, PendingControlDirective],
   templateUrl: './analytics.component.html',
   styleUrl: './analytics.component.scss',
 })
-export class AdminAnalyticsComponent implements AfterViewInit, OnDestroy {
-  private readonly sunEl = viewChild.required<ElementRef<HTMLDivElement>>('sun');
-  private readonly barEl = viewChild.required<ElementRef<HTMLDivElement>>('bar');
+export class AdminAnalyticsComponent implements OnDestroy {
+  private readonly healthChartHost = viewChild<ElementRef<HTMLDivElement>>('healthChart');
 
   readonly apiBase = environment.apiBase;
+  readonly gridTheme = reepGridTheme;
+  readonly mentorsPerPage = MENTORS_PER_PAGE;
+  readonly pageSizes = PAGE_SIZE_CHOICES;
 
-  readonly load = signal<MentorLoad[] | null>(null);
-  readonly summary = signal<Summary | null>(null);
+  readonly mentorLoad = signal<MentorLoad[] | null>(null);
+  readonly summary = signal<AnalyticsSummary | null>(null);
+  readonly alerts = signal<ProgrammeAlert[] | null>(null);
   readonly error = signal<string | null>(null);
-  readonly metric = signal<Metric>('attendance');
+
   /** The placement criteria's attendance floor — the one target line drawn. */
   readonly attendanceTarget = signal<number | null>(null);
 
-  /** null = every mentor; an id = that mentor's students. */
-  readonly focusMentor = signal<string | null>(null);
-  /** Set only while a student arc is selected; always inside focusMentor. */
-  readonly focusStudent = signal<string | null>(null);
-  readonly weekly = signal<Weekly | null>(null);
+  /** The student whose six weeks the composite chart draws. */
+  readonly selectedStudentId = signal<string | null>(null);
+  readonly weekly = signal<StudentWeekly | null>(null);
   readonly weeklyBusy = signal(false);
-  private readonly weeklyCache = new Map<string, Weekly>();
+  private readonly weeklyCache = new Map<string, StudentWeekly>();
 
-  private sun: echarts.ECharts | null = null;
-  private bar: echarts.ECharts | null = null;
-  private resizeObserver: ResizeObserver | null = null;
+  /** The grid's quick filter, as typed in the toolbar. */
+  readonly quickFilter = signal('');
 
-  readonly metricKeys = Object.keys(METRICS) as Metric[];
-  readonly spec = computed(() => METRICS[this.metric()]);
+  private healthChart: echarts.ECharts | null = null;
+  private chartResizeObserver: ResizeObserver | null = null;
 
-  readonly mentors = computed(() => this.load() ?? []);
-  readonly allMentees = computed(() => this.mentors().flatMap((m) => m.mentees));
-
-  /** The mentors the sunburst draws: all of them when few, else the SAMPLE with
-   *  the most students — plus whichever one is focused, so a mentor picked from
-   *  the bar chart is always on the ring. */
-  readonly sampled = computed(() => {
-    const all = this.mentors();
-    if (all.length <= SAMPLE) return all;
-    const ranked = [...all].sort(
-      (a, b) => b.mentee_count - a.mentee_count || a.name.localeCompare(b.name),
-    );
-    const pick = ranked.slice(0, SAMPLE);
-    const focus = this.focusMentor();
-    if (focus && !pick.some((m) => m.mentor_id === focus)) {
-      const extra = all.find((m) => m.mentor_id === focus);
-      if (extra) pick.splice(SAMPLE - 1, 1, extra);
-    }
-    return pick;
-  });
-  readonly isSample = computed(() => this.sampled().length < this.mentors().length);
-  readonly sampledStudents = computed(() =>
-    this.sampled().reduce((n, m) => n + m.mentee_count, 0),
-  );
-
-  readonly focusedMentor = computed(
-    () => this.mentors().find((m) => m.mentor_id === this.focusMentor()) ?? null,
-  );
-  readonly focusedStudent = computed(
-    () => this.focusedMentor()?.mentees.find((s) => s.student_id === this.focusStudent()) ?? null,
-  );
-
-  /** Title and caption of the linked chart, for the three scopes. */
-  readonly scope = computed(() => {
-    const label = this.spec().label.toLowerCase();
-    const mentor = this.focusedMentor();
-    const student = this.focusedStudent();
-    if (mentor && student) {
+  /** Every faculty account, including one with no students: on a screen called
+   *  "Mentor load" an empty mentor is the row that matters most. */
+  readonly mentorRows = computed<MentorLoadRow[]>(() =>
+    (this.mentorLoad() ?? []).map((mentor) => {
+      const status = loadStatusOf(mentor.mentee_count, mentor.capacity);
       return {
-        title: student.name,
-        caption:
-          this.metric() === 'skills'
-            ? `Mentored by ${mentor.name} · verified skill badges by category`
-            : `Mentored by ${mentor.name} · ${label} over the last six weeks`,
+        mentorName: mentor.name,
+        initials: initialsOf(mentor.name),
+        department: mentor.department,
+        menteeCount: mentor.mentee_count,
+        capacity: mentor.capacity,
+        averageAttendancePercent: averageOf(mentor.mentees.map((student) => student.attendance_percent)),
+        averageVerifiedSkills: averageOf(mentor.mentees.map((student) => student.verified_skills)),
+        averageLoggedHours: averageOf(mentor.mentees.map((student) => student.logged_hours)),
+        loadStatus: status.label,
+        loadTone: status.tone,
       };
-    }
-    if (mentor) {
-      return {
-        title: mentor.name,
-        caption: `${mentor.mentee_count} assigned student${mentor.mentee_count === 1 ? '' : 's'} · ${label} · click the highlighted mentor again for all mentors`,
-      };
-    }
-    return {
-      title: 'All mentors',
-      caption: `Average mentee ${label} · click a mentor ring to see their students`,
-    };
+    }),
+  );
+
+  readonly mentorColumns: ColDef<MentorLoadRow>[] = [
+    {
+      field: 'mentorName',
+      headerName: 'Mentor',
+      pinned: 'left',
+      minWidth: 210,
+      flex: 1.4,
+      cellStyle: { display: 'flex', alignItems: 'center', gap: '8px' },
+      cellRenderer: renderMentorNameCell,
+    },
+    { field: 'department', headerName: 'Department', minWidth: 170, flex: 1.2, valueFormatter: formatDepartment },
+    {
+      field: 'menteeCount',
+      headerName: 'Mentees',
+      type: 'numericColumn',
+      minWidth: 120,
+      valueFormatter: formatMenteeLoad,
+      headerTooltip: 'Assigned students against the programme mentor capacity',
+    },
+    {
+      field: 'averageAttendancePercent',
+      headerName: 'Attendance',
+      type: 'numericColumn',
+      minWidth: 130,
+      valueFormatter: formatPercent,
+      headerTooltip: 'Mean attendance of this mentor’s students that have any recorded',
+    },
+    {
+      field: 'averageVerifiedSkills',
+      headerName: 'Skills',
+      type: 'numericColumn',
+      minWidth: 110,
+      valueFormatter: formatCount,
+      headerTooltip: 'Verified skill badges per assigned student, on average',
+    },
+    {
+      field: 'averageLoggedHours',
+      headerName: 'Hours logged',
+      type: 'numericColumn',
+      minWidth: 140,
+      valueFormatter: formatHours,
+      // The board's column reads "Hrs / wk". The mentorship map returns hours
+      // for ALL TIME, not per week, and labelling an all-time figure as weekly
+      // is the kind of quiet wrong number this screen exists to avoid.
+      headerTooltip: 'Ledger hours per assigned student, on average, over the whole record',
+    },
+    { field: 'loadStatus', headerName: 'Status', minWidth: 150, cellRenderer: renderLoadStatusCell },
+  ];
+
+  readonly defaultMentorColumn: ColDef<MentorLoadRow> = {
+    sortable: true,
+    resizable: true,
+    filter: true,
+    suppressHeaderMenuButton: false,
+  };
+
+  /** Every assigned student, by name — what the chart's student picker lists. */
+  readonly studentsWithAMentor = computed<Mentee[]>(() => {
+    const students = (this.mentorLoad() ?? []).flatMap((mentor) => mentor.mentees);
+    return [...students].sort((one, other) => one.name.localeCompare(other.name));
   });
+
+  readonly selectedStudent = computed<Mentee | null>(
+    () => this.studentsWithAMentor().find((student) => student.student_id === this.selectedStudentId()) ?? null,
+  );
+
+  /** The name on the chart's picker pill. */
+  readonly selectedStudentName = computed<string>(() => {
+    const student = this.selectedStudent();
+    if (!student) return 'None';
+    return student.name;
+  });
+
+  /** What the header and the counted tiles say while the figures are in
+   *  flight, and what they say when the call failed. Main's own two sentences. */
+  readonly summaryPlaceholderNote = computed<string>(() => {
+    if (this.error()) return 'Cohort figures unavailable.';
+    return 'Loading the cohort figures…';
+  });
+
+  // --- the KPI tiles the console can actually count --------------------------
+
+  readonly placementRatePercent = computed<number | null>(() => {
+    const figures = this.summary();
+    if (!figures) return null;
+    return Math.round(figures.placement_percent);
+  });
+
+  readonly attendanceAveragePercent = computed<number | null>(() =>
+    averageOf(this.studentsWithAMentor().map((student) => student.attendance_percent)),
+  );
+
+  readonly studentsWithAttendanceRecorded = computed<number>(
+    () => this.studentsWithAMentor().filter((student) => student.attendance_percent !== null).length,
+  );
+
+  readonly pendingApprovals = computed<number | null>(() => {
+    const figures = this.summary();
+    if (!figures) return null;
+    return figures.pending_registrations + figures.evidence_awaiting_verification;
+  });
+
+  readonly rosterIsEmpty = computed(() => this.mentorLoad() !== null && this.mentorRows().length === 0);
+  readonly noStudentHasAMentor = computed(
+    () => this.mentorLoad() !== null && this.studentsWithAMentor().length === 0,
+  );
+
+  readonly openAlerts = computed<ProgrammeAlert[]>(() => this.alerts() ?? []);
+  readonly alertsAreEmpty = computed(() => this.alerts() !== null && this.openAlerts().length === 0);
 
   constructor() {
-    void this.fetch();
-    // A student focus needs that student's six weeks; fetched once per student
-    // and kept, so flicking the metric select never re-downloads it.
+    // AG Grid 33+ refuses to draw until its modules are registered, and fails
+    // as an empty rectangle rather than an exception (shared/grid docstring).
+    registerReepGrid();
+    void this.loadTheConsoleFigures();
+
+    // The chart's student is fetched once and kept, so picking a student twice
+    // does not download their six weeks twice.
     effect(() => {
-      const id = this.focusStudent();
-      if (!id) {
+      const studentId = this.selectedStudentId();
+      if (!studentId) {
         this.weekly.set(null);
         return;
       }
-      const cached = this.weeklyCache.get(id);
-      if (cached) {
-        this.weekly.set(cached);
+      const alreadyFetched = this.weeklyCache.get(studentId);
+      if (alreadyFetched) {
+        this.weekly.set(alreadyFetched);
         return;
       }
-      void this.fetchWeekly(id);
+      void this.fetchStudentWeeks(studentId);
     });
-  }
 
-  ngAfterViewInit(): void {
-    this.sun = echarts.init(this.sunEl().nativeElement, REEP_CHART_THEME, { renderer: 'svg' });
-    this.bar = echarts.init(this.barEl().nativeElement, REEP_CHART_THEME, { renderer: 'svg' });
-
-    this.sun.on('click', (params: any) => {
-      const data = params?.data ?? {};
-      if (data.studentId) {
-        this.focusMentor.set(data.mentorId);
-        this.focusStudent.set(data.studentId);
-      } else if (data.mentorId) {
-        // The same mentor again, with no student inside it, clears the focus.
-        const same = this.focusMentor() === data.mentorId && !this.focusStudent();
-        this.focusMentor.set(same ? null : data.mentorId);
-        this.focusStudent.set(null);
-      } else {
+    // The chart element only exists while there is a series to draw, so the
+    // chart is created when it appears and disposed when it goes.
+    effect(() => {
+      const host = this.healthChartHost();
+      if (!host) {
+        this.disposeHealthChart();
         return;
       }
-      this.draw();
+      this.drawWeeklyHealth(host.nativeElement);
     });
-
-    // In the all-mentors view a bar is a mentor; in a mentor's view it is one
-    // of their students. Either way clicking it focuses, so a mentor outside
-    // the drawn sample is still one click away.
-    this.bar.on('click', (params: any) => {
-      const key = params?.data?.key as string | undefined;
-      if (!key) return;
-      if (this.focusStudent()) return;
-      if (this.focusMentor()) {
-        this.focusStudent.set(key);
-      } else {
-        this.focusMentor.set(key);
-      }
-      this.draw();
-    });
-
-    // ECharts cannot size itself inside a flex/grid parent that changes without
-    // the window doing so — the sidebar collapsing is exactly that case.
-    this.resizeObserver = new ResizeObserver(() => {
-      this.sun?.resize();
-      this.bar?.resize();
-    });
-    this.resizeObserver.observe(this.sunEl().nativeElement);
-    this.resizeObserver.observe(this.barEl().nativeElement);
-    this.draw();
   }
 
   ngOnDestroy(): void {
-    this.resizeObserver?.disconnect();
-    this.sun?.dispose();
-    this.bar?.dispose();
+    this.disposeHealthChart();
   }
 
-  setMetric(m: string): void {
-    this.metric.set(m as Metric);
-    this.draw();
+  /** The reader picked a student for the composite chart. */
+  selectStudent(event: Event): void {
+    const picker = event.target as HTMLSelectElement;
+    const pickedStudentId = picker.value;
+    if (pickedStudentId.length === 0) {
+      this.selectedStudentId.set(null);
+      return;
+    }
+    this.selectedStudentId.set(pickedStudentId);
   }
 
-  metricLabel(m: Metric): string {
-    return METRICS[m].label;
+  /** The reader typed in the Mentor load quick filter. */
+  setQuickFilter(event: Event): void {
+    const box = event.target as HTMLInputElement;
+    this.quickFilter.set(box.value);
   }
 
-  clearFocus(): void {
-    this.focusMentor.set(null);
-    this.focusStudent.set(null);
-    this.draw();
+  /** The chip tone for an alert's severity — text and colour together. */
+  alertTone(severity: string): string {
+    if (severity === 'CRITICAL') return 'risk';
+    if (severity === 'WARNING') return 'warn';
+    return 'neutral';
   }
 
-  /** The metric's current value for the focused student, formatted. */
-  studentFigure(m: Metric): string {
-    const s = this.focusedStudent();
-    if (!s) return '—';
-    const v = METRICS[m].value(s);
-    return v === null ? 'no data' : `${v}${METRICS[m].suffix}`;
-  }
-
-  placedPercent(): number {
-    return Math.round(this.summary()?.placement_percent ?? 0);
+  /** "ATTENDANCE_BELOW_THRESHOLD" reads as "Attendance below threshold". */
+  alertRuleLabel(ruleKey: string): string {
+    const words = ruleKey.toLowerCase().split('_');
+    if (words.length === 0) return ruleKey;
+    const first = words[0];
+    const rest = words.slice(1).join(' ');
+    const opening = first.charAt(0).toUpperCase() + first.slice(1);
+    if (rest.length === 0) return opening;
+    return `${opening} ${rest}`;
   }
 
   cvUrl(): string {
-    return `${this.apiBase}/admin/students/${this.focusStudent()}/resume.pdf`;
+    return `${this.apiBase}/admin/students/${this.selectedStudentId()}/resume.pdf`;
   }
 
-  private fmt(value: number | null): string {
-    return value === null ? 'no data' : `${value}${this.spec().suffix}`;
-  }
+  // --- the composite chart ---------------------------------------------------
 
-  private rampColour(value: number | null, min: number, max: number): string {
-    if (value === null) return NO_DATA;
-    const t = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 1;
-    return RAMP[Math.min(RAMP.length - 1, Math.round(t * (RAMP.length - 1)))];
-  }
+  private drawWeeklyHealth(host: HTMLDivElement): void {
+    const series = this.weekly();
+    if (!series) return;
 
-  /** Bar fill: the highlighted row is magenta; otherwise three steps against
-   *  the target where there is one, or against the axis top where there is not. */
-  private barColour(value: number | null, hi: boolean, target: number | null, max: number): string {
-    if (value === null) return NO_DATA;
-    if (hi) return '#552c7e';
-    const ref = target ?? max;
-    if (target !== null) {
-      return value >= target * 1.15 ? '#552C7E' : value >= target ? '#7a2f9e' : '#c08fd6';
-    }
-    return value >= ref * 0.66 ? '#552C7E' : value >= ref * 0.33 ? '#7a2f9e' : '#c08fd6';
-  }
-
-  /** What the bars currently stand for. */
-  private barRows(): { rows: BarRow[]; hi: string | null; max: number; target: number | null; unit: string } {
-    const spec = this.spec();
-    const metric = this.metric();
-    const mentor = this.focusedMentor();
-    const student = this.focusedStudent();
-    const target = metric === 'attendance' ? this.attendanceTarget() : null;
-
-    if (mentor && student) {
-      const w = this.weekly();
-      if (!w) return { rows: [], hi: null, max: spec.max([]), target, unit: spec.suffix };
-      if (metric === 'skills') {
-        return {
-          rows: w.skills_by_category.map((c) => ({
-            key: c.category,
-            label: c.category,
-            value: c.count,
-            display: `${c.count}`,
-          })),
-          hi: null,
-          max: Math.max(5, ...w.skills_by_category.map((c) => c.count)),
-          target: null,
-          unit: '',
-        };
-      }
-      const series = metric === 'attendance' ? w.attendance_percent : w.logged_hours;
-      const rows = w.weeks.map((wk, i) => {
-        const v = series[i] ?? null;
-        return {
-          key: wk.start,
-          label: `Week of ${wk.label}`,
-          value: v,
-          display: v === null ? (metric === 'attendance' ? 'no classes' : '0 h') : `${v}${spec.suffix}`,
-        };
-      });
-      return {
-        rows,
-        // The current week is the one the reader is asking about.
-        hi: rows[rows.length - 1]?.key ?? null,
-        max: metric === 'attendance' ? 100 : Math.max(w.weekly_hour_target, ...w.logged_hours, 1),
-        target: metric === 'attendance' ? target : w.weekly_hour_target,
-        unit: spec.suffix,
-      };
+    if (!this.healthChart) {
+      this.healthChart = echarts.init(host, REEP_CHART_THEME, { renderer: 'svg' });
+      // ECharts cannot size itself inside a flex/grid parent that changes
+      // without the window doing so — the sidebar collapsing is exactly that.
+      this.chartResizeObserver = new ResizeObserver(() => this.healthChart?.resize());
+      this.chartResizeObserver.observe(host);
     }
 
-    if (mentor) {
-      return {
-        rows: mentor.mentees.map((s) => {
-          const v = spec.value(s);
-          return { key: s.student_id, label: s.name, value: v, display: this.fmt(v) };
-        }),
-        hi: this.focusStudent(),
-        max: spec.max(this.allMentees()),
-        target,
-        unit: spec.suffix,
-      };
-    }
+    const attendanceFloor = this.attendanceTarget();
+    const weekLabels = series.weeks.map((week) => week.label);
+    const attendanceMarkLine =
+      attendanceFloor === null
+        ? undefined
+        : {
+            silent: true,
+            symbol: 'none',
+            data: [{ yAxis: attendanceFloor, name: 'Attendance floor' }],
+            lineStyle: { color: STATUS_COLOURS.risk, type: 'dashed', width: 1.5 },
+            label: { formatter: `${attendanceFloor}% floor`, color: STATUS_COLOURS.risk, fontSize: 11 },
+          };
 
-    // No mentor focused: each mentor's mean, the only summary that stays
-    // comparable across different load sizes.
-    return {
-      rows: this.mentors().map((m) => {
-        const vals = m.mentees.map(spec.value).filter((v): v is number => v !== null);
-        const mean = vals.length
-          ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
-          : null;
-        return { key: m.mentor_id, label: m.name, value: mean, display: this.fmt(mean) };
-      }),
-      hi: null,
-      max: spec.max(this.allMentees()),
-      target,
-      unit: spec.suffix,
-    };
-  }
-
-  private draw(): void {
-    const rows = this.load();
-    if (!rows || !this.sun || !this.bar) return;
-    const spec = this.spec();
-    const sampled = this.sampled();
-    const sampledMentees = sampled.flatMap((m) => m.mentees);
-    const values = sampledMentees.map(spec.value).filter((v): v is number => v !== null);
-    // The ramp spans the values actually on the ring, so five mentors whose
-    // students all sit between 70 and 95 still get the whole range of colour.
-    const min = values.length ? Math.min(...values) : 0;
-    const max = values.length ? Math.max(...values, min + 1) : spec.max(this.allMentees());
-    const focus = this.focusMentor();
-    const dark = { color: '#fff', textShadowColor: 'rgba(30,27,41,.55)', textShadowBlur: 3 };
-    const light = { color: INK, textShadowBlur: 0 };
-    const tooltip = {
-      backgroundColor: 'rgba(30,27,41,.92)',
-      borderWidth: 0,
-      padding: [8, 12],
-      textStyle: { color: '#fff', fontSize: 12, fontFamily: FONT },
-      extraCssText: 'border-radius:10px;box-shadow:0 8px 24px rgba(58,31,82,.25)',
-    };
-
-    // --- sunburst: mentors inside, their students outside ---
-    this.sun.setOption(
+    this.healthChart.setOption(
       {
-        textStyle: { fontFamily: FONT, color: '#585566', fontSize: 12 },
-        animationDuration: 500,
-        tooltip: {
-          ...tooltip,
-          trigger: 'item',
-          formatter: (p: any) => {
-            const d = p.data ?? {};
-            if (d.studentId) return `<b>${p.name}</b><br/>${spec.label}: ${d.display}`;
-            return `<b>${p.name}</b><br/>avg ${d.mean ?? 'no data'} · ${d.count} mentee${d.count === 1 ? '' : 's'}`;
+        color: [ATTENDANCE_COLOUR, HOURS_COLOUR],
+        legend: { top: 0, left: 0, itemGap: 20 },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' }, formatter: formatWeeklyTooltip },
+        grid: { left: 46, right: 56, top: 40, bottom: 58, containLabel: false },
+        xAxis: { type: 'category', boundaryGap: true, data: weekLabels },
+        yAxis: [
+          { type: 'value', min: 0, max: 100, interval: 25, axisLabel: { formatter: '{value}%' } },
+          {
+            type: 'value',
+            min: 0,
+            axisLabel: { formatter: '{value} h' },
+            splitLine: { show: false },
           },
-        },
-        visualMap: {
-          type: 'continuous',
-          min,
-          max,
-          orient: 'vertical',
-          left: 2,
-          bottom: 8,
-          itemWidth: 11,
-          itemHeight: 104,
-          precision: 0,
-          text: [`${max}${spec.suffix}`, `${min}${spec.suffix}`],
-          textStyle: { color: '#585566', fontSize: 11.5, fontFamily: FONT },
-          inRange: { color: RAMP },
-        },
-        series: {
-          type: 'sunburst',
-          radius: ['18%', '94%'],
-          center: ['52%', '50%'],
-          sort: null,
-          // Drill-in is off: re-rendering on every click threw away ECharts'
-          // own zoom state, so the two fought. Focus is ours to hold.
-          nodeClick: false,
-          emphasis: { focus: 'ancestor' },
-          itemStyle: { borderColor: '#fff', borderWidth: 2 },
-          label: {
-            rotate: 'radial',
-            // A real faculty name is longer than the arc it is drawn on, and
-            // ECharts draws it anyway: the inner-ring names overprinted each
-            // other in the middle of the chart. A slice too thin to hold text
-            // drops its label; the rest truncate, which needs a width and so
-            // is set per level below (truncate with no width renders nothing).
-            minAngle: 8,
-            color: '#fff',
-            fontSize: 11,
-            fontWeight: 600,
-            textShadowColor: 'rgba(30,27,41,.5)',
-            textShadowBlur: 3,
-          },
-          levels: [
-            {},
-            {
-              r0: '18%',
-              r: '62%',
-              label: {
-                rotate: 'tangential',
-                fontSize: 12.5,
-                fontWeight: 700,
-                width: 96,
-                overflow: 'truncate',
-                ellipsis: '…',
-              },
-            },
-            {
-              r0: '64%',
-              r: '94%',
-              label: {
-                align: 'right',
-                fontSize: 10.5,
-                fontWeight: 600,
-                color: INK,
-                textShadowBlur: 0,
-                width: 104,
-                overflow: 'truncate',
-                ellipsis: '…',
-              },
-            },
-          ],
-          data: sampled.map((m) => {
-            const vals = m.mentees.map(spec.value).filter((v): v is number => v !== null);
-            const mean = vals.length
-              ? `${Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)}${spec.suffix}`
-              : null;
-            const selected = m.mentor_id === focus;
-            return {
-              name: m.name,
-              mentorId: m.mentor_id,
-              count: m.mentee_count,
-              mean,
-              visualMap: false,
-              itemStyle: selected
-                ? { color: '#552c7e', borderColor: '#fff', borderWidth: 3 }
-                : { color: '#7a2f9e' },
-              label: selected ? { ...dark, fontWeight: 800 } : dark,
-              // A mentor with no students still needs an arc to be clickable.
-              value: m.mentee_count ? undefined : 1,
-              children: m.mentees.map((s) => {
-                const v = spec.value(s);
-                const t = v === null ? 0 : (v - min) / Math.max(1, max - min);
-                return {
-                  name: s.name,
-                  // The arc's size is the value (the design's reading); a
-                  // missing value still gets a sliver so it can be clicked.
-                  value: v === null || v <= 0 ? 0.5 : v,
-                  studentId: s.student_id,
-                  mentorId: m.mentor_id,
-                  display: this.fmt(v),
-                  ...(v === null ? { visualMap: false, itemStyle: { color: NO_DATA } } : {}),
-                  // Ink chosen against this arc's own fill: a pale arc with
-                  // white text is unreadable.
-                  label: t >= 0.55 ? dark : light,
-                };
-              }),
-            };
-          }),
-        },
-      },
-      true,
-    );
-
-    // --- bars: the same numbers, as values ---
-    const b = this.barRows();
-    this.bar.setOption(
-      {
-        textStyle: { fontFamily: FONT, color: '#585566', fontSize: 12 },
-        animationDuration: 500,
-        tooltip: {
-          ...tooltip,
-          trigger: 'axis',
-          axisPointer: { type: 'shadow' },
-          formatter: (p: any) => {
-            const one = Array.isArray(p) ? p[0] : p;
-            return `${one.name}: <b>${one.data?.display ?? ''}</b>`;
-          },
-        },
-        grid: { left: 4, right: 48, top: 8, bottom: 4, containLabel: true },
-        yAxis: {
-          type: 'category',
-          inverse: true,
-          data: b.rows.map((r) => r.label),
-          axisTick: { show: false },
-          axisLine: { show: false },
-          // containLabel alone gives a long name whatever width is left and then
-          // clips it from the LEFT, so "Voice Test…" rendered as "ice Test…".
-          // Bounding it truncates at the end instead, where the ellipsis says so.
-          axisLabel: {
-            color: '#585566',
-            fontSize: 11.5,
-            interval: 0,
-            width: 112,
-            overflow: 'truncate',
-            ellipsis: '…',
-          },
-        },
-        xAxis: {
-          type: 'value',
-          max: b.max,
-          axisLine: { show: false },
-          axisTick: { show: false },
-          axisLabel: { color: '#585566', fontSize: 11.5, formatter: `{value}${b.unit}` },
-          splitLine: { lineStyle: { color: 'rgba(160,138,178,.28)', type: 'dashed' } },
-        },
+        ],
+        dataZoom: [{ type: 'slider', bottom: 8, height: 18, start: 0, end: 100 }],
         series: [
           {
+            name: ATTENDANCE_SERIES,
+            type: 'line',
+            yAxisIndex: 0,
+            // A week with no classes is a gap, not a dive to zero.
+            connectNulls: false,
+            data: series.attendance_percent,
+            emphasis: { focus: 'series', blurScope: 'global' },
+            markLine: attendanceMarkLine,
+          },
+          {
+            name: HOURS_SERIES,
             type: 'bar',
-            barMaxWidth: 22,
-            showBackground: true,
-            backgroundStyle: { color: '#efe4f6', borderRadius: 7 },
-            label: {
-              show: true,
-              position: 'right',
-              color: '#585566',
-              fontSize: 12,
-              fontWeight: 700,
-              formatter: (p: any) => p.data?.display ?? '',
-            },
-            data: b.rows.map((r) => ({
-              key: r.key,
-              value: r.value ?? 0,
-              display: r.display,
-              itemStyle: {
-                borderRadius: [0, 7, 7, 0],
-                color: this.barColour(r.value, r.key === b.hi, b.target, b.max),
+            yAxisIndex: 1,
+            barMaxWidth: 26,
+            itemStyle: { opacity: 0.55 },
+            data: series.logged_hours,
+            emphasis: { focus: 'series', blurScope: 'global' },
+            markLine: {
+              silent: true,
+              symbol: 'none',
+              data: [{ yAxis: series.weekly_hour_target, name: 'Weekly target' }],
+              lineStyle: { color: HOURS_COLOUR, type: 'dashed', width: 1.5 },
+              label: {
+                formatter: `${series.weekly_hour_target} h target`,
+                color: HOURS_COLOUR,
+                fontSize: 11,
               },
-            })),
-            markLine:
-              b.target !== null
-                ? {
-                    silent: true,
-                    symbol: 'none',
-                    data: [{ xAxis: b.target }],
-                    lineStyle: { color: 'rgba(173,36,82,.55)', type: 'dashed', width: 1.5 },
-                    label: {
-                      formatter: `${b.target}${b.unit}`,
-                      color: '#ad2452',
-                      fontSize: 11,
-                      position: 'insideEndTop',
-                    },
-                  }
-                : undefined,
+            },
           },
         ],
       },
@@ -698,56 +604,81 @@ export class AdminAnalyticsComponent implements AfterViewInit, OnDestroy {
     );
   }
 
-  private async fetch(): Promise<void> {
+  private disposeHealthChart(): void {
+    this.chartResizeObserver?.disconnect();
+    this.chartResizeObserver = null;
+    this.healthChart?.dispose();
+    this.healthChart = null;
+  }
+
+  // --- reads -----------------------------------------------------------------
+
+  private async loadTheConsoleFigures(): Promise<void> {
     try {
-      const [loadRes, sumRes, critRes] = await Promise.all([
+      const [loadResponse, summaryResponse, criteriaResponse, alertsResponse] = await Promise.all([
         fetch(`${this.apiBase}/admin/mentor-load`, { credentials: 'include' }),
         fetch(`${this.apiBase}/admin/analytics-summary`, { credentials: 'include' }),
         fetch(`${this.apiBase}/admin/criteria`, { credentials: 'include' }),
+        fetch(`${this.apiBase}/mentor/alerts?open_only=true`, { credentials: 'include' }),
       ]);
-      if (!loadRes.ok) {
+
+      if (!loadResponse.ok) {
         this.error.set('Could not load the mentorship map.');
-        this.load.set([]);
+        this.mentorLoad.set([]);
       } else {
-        // A faculty account with no group yet has a null mentor_id and no
-        // mentees; the rings key on mentor_id, so those rows are not drawn.
-        this.load.set(((await loadRes.json()) as MentorLoad[]).filter((m) => m.mentor_id !== null));
+        this.mentorLoad.set((await loadResponse.json()) as MentorLoad[]);
+        this.selectFirstStudentForTheChart();
       }
-      if (sumRes.ok) {
-        this.summary.set((await sumRes.json()) as Summary);
+
+      if (summaryResponse.ok) {
+        this.summary.set((await summaryResponse.json()) as AnalyticsSummary);
       } else if (!this.error()) {
         this.error.set('Could not load the cohort figures.');
       }
-      // No active criteria is a legitimate state (404): then there is simply
-      // no target line to draw.
-      if (critRes.ok) {
-        const c = (await critRes.json()) as { min_attendance_pct?: number };
-        if (typeof c.min_attendance_pct === 'number') this.attendanceTarget.set(c.min_attendance_pct);
+
+      // No active criteria is a legitimate state (404): then there is simply no
+      // attendance floor to draw.
+      if (criteriaResponse.ok) {
+        const criteria = (await criteriaResponse.json()) as { min_attendance_pct?: number };
+        if (typeof criteria.min_attendance_pct === 'number') {
+          this.attendanceTarget.set(criteria.min_attendance_pct);
+        }
       }
-      this.draw();
+
+      if (alertsResponse.ok) {
+        this.alerts.set((await alertsResponse.json()) as ProgrammeAlert[]);
+      } else {
+        this.alerts.set([]);
+      }
     } catch {
       this.error.set('Could not reach the server.');
-      this.load.set([]);
+      this.mentorLoad.set([]);
+      this.alerts.set([]);
     }
   }
 
-  private async fetchWeekly(id: string): Promise<void> {
+  /** The chart opens on a real student rather than on an empty frame; the
+   *  picker beside it names who, and changes them. */
+  private selectFirstStudentForTheChart(): void {
+    if (this.selectedStudentId()) return;
+    const first = this.studentsWithAMentor()[0];
+    if (first) this.selectedStudentId.set(first.student_id);
+  }
+
+  private async fetchStudentWeeks(studentId: string): Promise<void> {
     this.weeklyBusy.set(true);
     try {
-      const res = await fetch(`${this.apiBase}/admin/students/${id}/weekly`, {
+      const response = await fetch(`${this.apiBase}/admin/students/${studentId}/weekly`, {
         credentials: 'include',
       });
-      if (!res.ok) {
+      if (!response.ok) {
         this.error.set("Could not load that student's six weeks.");
         return;
       }
-      const w = (await res.json()) as Weekly;
-      this.weeklyCache.set(id, w);
+      const weeks = (await response.json()) as StudentWeekly;
+      this.weeklyCache.set(studentId, weeks);
       // Still the selected student? The reader may have moved on mid-flight.
-      if (this.focusStudent() === id) {
-        this.weekly.set(w);
-        this.draw();
-      }
+      if (this.selectedStudentId() === studentId) this.weekly.set(weeks);
     } catch {
       this.error.set('Could not reach the server.');
     } finally {

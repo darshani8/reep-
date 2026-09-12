@@ -1,7 +1,8 @@
 <div class="panel" data-p="institution">
   <div class="dt-header">
     <div>
-      <h1 class="dt-title">Institution</h1>
+      <div class="crumb"><span>Institution</span><span class="sep">/</span><span>Structure</span></div>
+      <h1 class="dt-title">Institution structure</h1>
       <div class="dt-sub">
         College · Department · Course · Specialization · Batch.
         @if (levels().length) {
@@ -13,30 +14,49 @@
         }
       </div>
     </div>
+    @if (state() === 'ready') {
+      <div class="dt-toolbar">
+        <button type="button" class="btn secondary" (click)="toggleAdd('college')">
+          <span class="icon" aria-hidden="true">add</span>Add college
+        </button>
+        <button
+          type="button"
+          class="btn primary"
+          (click)="openCreateBatch()"
+          [disabled]="!selectedDepartmentId() || batchMode() !== 'closed'"
+        >
+          <span class="icon" aria-hidden="true">add</span>Add batch
+        </button>
+      </div>
+    }
   </div>
 
-  @if (error()) {
-    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
-  }
-  @if (flash()) {
-    <div class="state-note good"><span class="icon" aria-hidden="true">check</span>{{ flash() }}</div>
-  }
+  <div role="alert">
+    @if (error()) {
+      <div class="notice"><span class="icon" aria-hidden="true">error</span><div>{{ error() }}</div></div>
+    }
+  </div>
+  <div role="status">
+    @if (flash()) {
+      <div class="notice good"><span class="icon" aria-hidden="true">check</span><div>{{ flash() }}</div></div>
+    }
+    @if (state() === 'loading') {
+      <div class="notice info"><span class="icon" aria-hidden="true">hourglass_empty</span><div>Loading…</div></div>
+    }
+  </div>
 
   @switch (state()) {
-    @case ('loading') {
-      <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading…</div>
-    }
     @case ('error') {
       <div class="card">
         <div class="footbar">
-          <button type="button" class="btn" (click)="load()">Try again</button>
+          <button type="button" class="btn secondary" (click)="load()">Try again</button>
         </div>
       </div>
     }
     @case ('ready') {
       <!-- The two inboxes: rows the console would otherwise be unable to reach. -->
       @if (incomplete().length) {
-        <div class="reg-approval flag inbox">
+        <div class="notice warn inbox">
           <span class="icon" aria-hidden="true">warning</span>
           <div>
             {{ incomplete().length }} {{ incomplete().length === 1 ? 'batch is' : 'batches are' }}
@@ -46,7 +66,7 @@
         </div>
       }
       @if (unassigned().length && selectedDepartment()) {
-        <div class="reg-approval flag inbox">
+        <div class="notice accent inbox">
           <span class="icon" aria-hidden="true">info</span>
           <div>
             {{ unassigned().length }} {{ unassigned().length === 1 ? 'batch has' : 'batches have' }}
@@ -68,7 +88,7 @@
             No colleges are on record yet. Everything below hangs off a college.
           </div>
           <div class="footbar">
-            <button type="button" class="btn primary" (click)="toggleAdd('college')">
+            <button type="button" class="btn secondary" (click)="toggleAdd('college')">
               <span class="icon" aria-hidden="true">add</span>Add the first college
             </button>
           </div>
@@ -78,315 +98,423 @@
         </div>
       } @else {
         <div class="inst-grid">
-          <!-- ================= structure ================= -->
-          <div class="card">
-            <div class="card-head">
-              <div class="card-title">Structure</div>
-            </div>
+          <!-- ================= the rail ================= -->
+          <div class="card tree-card">
+            @if (openAdd() === 'college') {
+              <ng-container *ngTemplateOutlet="collegeForm" />
+            }
 
-            <!-- College -->
-            <div class="level">
-              <div class="level-head">
-                <label for="sel-college">College</label>
-                <button type="button" class="btn sm" (click)="toggleAdd('college')">
-                  <span class="icon" aria-hidden="true">add</span>Add
-                </button>
-              </div>
-              <select
-                id="sel-college"
+            <div class="tree-find">
+              <span class="icon" aria-hidden="true">search</span>
+              <input
+                id="tree-find"
+                type="search"
                 class="ctrl"
-                [value]="selectedCollegeId() ?? ''"
-                (change)="pickCollege($any($event.target).value || null)"
-              >
-                @for (c of colleges(); track c.id) {
-                  <option [value]="c.id">
-                    {{ c.code }} · {{ c.name }}{{ c.status === 'ARCHIVED' ? ' (archived)' : '' }}
-                  </option>
-                }
-              </select>
-              @if (openAdd() === 'college') {
-                <ng-container *ngTemplateOutlet="collegeForm" />
-              }
+                placeholder="Find a department, course or batch…"
+                aria-label="Find a department, course or batch"
+                [value]="finderText()"
+                (input)="finderText.set($any($event.target).value)"
+              />
             </div>
 
-            <!-- Department -->
-            <div class="level">
-              <div class="level-head">
-                <label for="sel-department">Department</label>
+            <div class="rail">
+              @for (college of colleges(); track college.id) {
                 <button
                   type="button"
-                  class="btn sm"
-                  (click)="toggleAdd('department')"
-                  [disabled]="!selectedCollegeId()"
+                  class="tree-row"
+                  [class.selected]="college.id === selectedCollegeId()"
+                  [attr.aria-expanded]="college.id === selectedCollegeId()"
+                  (click)="pickCollege(college.id)"
                 >
-                  <span class="icon" aria-hidden="true">add</span>Add
+                  <span class="icon" aria-hidden="true">{{
+                    college.id === selectedCollegeId() ? 'expand_more' : 'chevron_right'
+                  }}</span>
+                  <span class="label">{{ college.code }} · {{ college.name }}</span>
+                  <span class="count">{{ college.department_count }} departments</span>
                 </button>
-              </div>
-              @if (departments().length) {
-                <select
-                  id="sel-department"
-                  class="ctrl"
-                  [value]="selectedDepartmentId() ?? ''"
-                  (change)="pickDepartment($any($event.target).value || null)"
-                >
-                  @for (d of departments(); track d.id) {
-                    <option [value]="d.id">{{ d.code }} · {{ d.name }} · {{ d.cohort_count }} batches</option>
-                  }
-                </select>
-              } @else {
-                <div class="dt-sub">No departments under this college yet.</div>
-              }
-              @if (openAdd() === 'department') {
-                <div class="add-form">
-                  <div class="field">
-                    <label for="dep-code">Code</label>
-                    <input id="dep-code" [value]="departmentDraft().code" (input)="setDraft('department', 'code', $any($event.target).value)" placeholder="MBA" />
-                  </div>
-                  <div class="field">
-                    <label for="dep-name">Name</label>
-                    <input id="dep-name" [value]="departmentDraft().name" (input)="setDraft('department', 'name', $any($event.target).value)" placeholder="Department of Management Studies" />
-                  </div>
-                  <div class="field">
-                    <label for="dep-head">Head (optional)</label>
-                    <input id="dep-head" [value]="departmentDraft().head" (input)="setDraft('department', 'head', $any($event.target).value)" />
-                  </div>
-                  <div class="footbar">
-                    <button type="button" class="btn" (click)="toggleAdd('department')">Cancel</button>
-                    <button type="button" class="btn primary" (click)="addDepartment()" [disabled]="busy() || !departmentDraft().code || !departmentDraft().name">
-                      <span class="icon" aria-hidden="true">save</span>Add department
+
+                @if (college.id === selectedCollegeId()) {
+                  @for (department of visibleDepartments(); track department.id) {
+                    <button
+                      type="button"
+                      class="tree-row depth-1"
+                      [class.selected]="department.id === selectedDepartmentId()"
+                      [attr.aria-expanded]="department.id === selectedDepartmentId()"
+                      (click)="pickDepartment(department.id)"
+                    >
+                      <span class="icon" aria-hidden="true">{{
+                        department.id === selectedDepartmentId() ? 'expand_more' : 'chevron_right'
+                      }}</span>
+                      <span class="label">{{ department.code }} · {{ department.name }}</span>
+                      <span class="count">{{ batchCountOf(department) }}</span>
                     </button>
-                  </div>
-                </div>
+
+                    @if (department.id === selectedDepartmentId()) {
+                      @for (course of visibleCourses(); track course.id) {
+                        <button
+                          type="button"
+                          class="tree-row depth-2"
+                          [class.selected]="course.id === selectedCourseId()"
+                          [attr.aria-expanded]="course.id === selectedCourseId()"
+                          (click)="pickCourse(course.id)"
+                        >
+                          <span class="icon" aria-hidden="true">{{
+                            course.id === selectedCourseId() ? 'expand_more' : 'chevron_right'
+                          }}</span>
+                          <span class="label">{{ course.code }} · {{ course.name }}</span>
+                          <span class="count">{{ specializationCountOf(course) }}</span>
+                        </button>
+
+                        @if (course.id === selectedCourseId()) {
+                          @for (spec of visibleSpecializations(); track spec.id) {
+                            <div class="tree-row depth-3 tree-static">
+                              <span class="icon" aria-hidden="true">chevron_right</span>
+                              <span class="label">{{ spec.code }} · {{ spec.name }}</span>
+                            </div>
+                          }
+                        }
+                      }
+
+                      @if (visibleBatches().length) {
+                        <div class="tree-row depth-2 tree-static">
+                          <span class="icon" aria-hidden="true">school</span>
+                          <span class="label">Batches: {{ batchCodesInDepartment() }}</span>
+                        </div>
+                      }
+                    }
+                  }
+                }
+              }
+
+              @if (railIsEmpty()) {
+                <div class="empty">Nothing here matches “{{ finderText() }}”.</div>
               }
             </div>
 
-            <!-- The optional levels, labels from the server -->
-            @for (lv of levels(); track lv.key) {
-              <div class="level">
-                <div class="level-head">
-                  <label [attr.for]="'sel-' + lv.key">
-                    {{ lv.label }}
-                    @if (lv.required) {
-                      <span class="chip warn">Required</span>
-                    } @else {
-                      <span class="chip neutral">Optional</span>
-                    }
-                  </label>
-                  <button
-                    type="button"
-                    class="btn sm"
-                    (click)="toggleAdd(lv.key === 'course' ? 'course' : 'specialization')"
-                    [disabled]="lv.key === 'course' ? !selectedDepartmentId() : !selectedCourseId()"
-                  >
-                    <span class="icon" aria-hidden="true">add</span>Add
+            <div class="tree-actions">
+              <button
+                type="button"
+                class="btn ghost sm"
+                (click)="toggleAdd('department')"
+                [disabled]="!selectedCollegeId()"
+              >
+                <span class="icon" aria-hidden="true">add</span>Add department
+              </button>
+              <button
+                type="button"
+                class="btn ghost sm"
+                (click)="toggleAdd('course')"
+                [disabled]="!selectedDepartmentId()"
+              >
+                <span class="icon" aria-hidden="true">add</span>Add course
+              </button>
+            </div>
+
+            @if (openAdd() === 'department') {
+              <div class="add-form">
+                <div class="field">
+                  <label for="dep-code">Code</label>
+                  <input id="dep-code" [value]="departmentDraft().code" (input)="setDraft('department', 'code', $any($event.target).value)" placeholder="MBA" />
+                </div>
+                <div class="field">
+                  <label for="dep-name">Name</label>
+                  <input id="dep-name" [value]="departmentDraft().name" (input)="setDraft('department', 'name', $any($event.target).value)" placeholder="Department of Management Studies" />
+                </div>
+                <div class="field">
+                  <label for="dep-head">Head (optional)</label>
+                  <input id="dep-head" [value]="departmentDraft().head" (input)="setDraft('department', 'head', $any($event.target).value)" />
+                </div>
+                <div class="footbar">
+                  <button type="button" class="btn ghost" (click)="toggleAdd('department')">Cancel</button>
+                  <button type="button" class="btn secondary" (click)="addDepartment()" [disabled]="busy() || !departmentDraft().code || !departmentDraft().name">
+                    <span class="icon" aria-hidden="true">save</span>Add department
                   </button>
                 </div>
+              </div>
+            }
 
-                @if (lv.key === 'course') {
-                  @if (courses().length) {
-                    <select
-                      [id]="'sel-' + lv.key"
-                      class="ctrl"
-                      [value]="selectedCourseId() ?? ''"
-                      (change)="pickCourse($any($event.target).value || null)"
-                    >
-                      @for (c of courses(); track c.id) {
-                        <option [value]="c.id">{{ c.code }} · {{ c.name }} · {{ c.specialization_count }} specializations</option>
-                      }
-                    </select>
-                  } @else if (selectedDepartmentId()) {
-                    <div class="dt-sub">No courses under this department yet.</div>
-                  }
-                  @if (openAdd() === 'course') {
-                    <div class="add-form">
-                      <div class="field">
-                        <label for="crs-code">Code</label>
-                        <input id="crs-code" [value]="courseDraft().code" (input)="setDraft('course', 'code', $any($event.target).value)" placeholder="MBA" />
-                      </div>
-                      <div class="field">
-                        <label for="crs-name">Name</label>
-                        <input id="crs-name" [value]="courseDraft().name" (input)="setDraft('course', 'name', $any($event.target).value)" placeholder="Master of Business Administration" />
-                      </div>
-                      <div class="field">
-                        <label for="crs-months">Duration in months (optional)</label>
-                        <input id="crs-months" type="number" min="1" max="120" [value]="courseDraft().duration_months" (input)="setDraft('course', 'duration_months', $any($event.target).value)" />
-                      </div>
-                      <div class="footbar">
-                        <button type="button" class="btn" (click)="toggleAdd('course')">Cancel</button>
-                        <button type="button" class="btn primary" (click)="addCourse()" [disabled]="busy() || !courseDraft().code || !courseDraft().name">
-                          <span class="icon" aria-hidden="true">save</span>Add course
-                        </button>
-                      </div>
-                    </div>
-                  }
-                } @else if (lv.key === 'specialization') {
-                  @if (specializations().length) {
-                    <ul class="spec-list" [id]="'sel-' + lv.key">
-                      @for (s of specializations(); track s.id) {
-                        <li>
-                          <span class="spec-code">{{ s.code }}</span>
-                          <span>{{ s.name }}</span>
-                          <span class="chip neutral">{{ s.cohort_count }} batches</span>
-                        </li>
-                      }
-                    </ul>
-                  } @else if (selectedCourseId()) {
-                    <div class="dt-sub">No specializations under {{ selectedCourse()?.code }} yet.</div>
-                  } @else {
-                    <div class="dt-sub">Choose a course first.</div>
-                  }
-                  @if (openAdd() === 'specialization') {
-                    <div class="add-form">
-                      <div class="field">
-                        <label for="spc-code">Code</label>
-                        <input id="spc-code" [value]="specializationDraft().code" (input)="setDraft('specialization', 'code', $any($event.target).value)" placeholder="FIN" />
-                      </div>
-                      <div class="field">
-                        <label for="spc-name">Name</label>
-                        <input id="spc-name" [value]="specializationDraft().name" (input)="setDraft('specialization', 'name', $any($event.target).value)" placeholder="Finance" />
-                      </div>
-                      <div class="footbar">
-                        <button type="button" class="btn" (click)="toggleAdd('specialization')">Cancel</button>
-                        <button type="button" class="btn primary" (click)="addSpecialization()" [disabled]="busy() || !specializationDraft().code || !specializationDraft().name">
-                          <span class="icon" aria-hidden="true">save</span>Add specialization
-                        </button>
-                      </div>
-                    </div>
-                  }
-                }
+            @if (openAdd() === 'course') {
+              <div class="add-form">
+                <div class="field">
+                  <label for="crs-code">Code</label>
+                  <input id="crs-code" [value]="courseDraft().code" (input)="setDraft('course', 'code', $any($event.target).value)" placeholder="MBA" />
+                </div>
+                <div class="field">
+                  <label for="crs-name">Name</label>
+                  <input id="crs-name" [value]="courseDraft().name" (input)="setDraft('course', 'name', $any($event.target).value)" placeholder="Master of Business Administration" />
+                </div>
+                <div class="field">
+                  <label for="crs-months">Duration in months (optional)</label>
+                  <input id="crs-months" type="number" min="1" max="120" [value]="courseDraft().duration_months" (input)="setDraft('course', 'duration_months', $any($event.target).value)" />
+                </div>
+                <div class="footbar">
+                  <button type="button" class="btn ghost" (click)="toggleAdd('course')">Cancel</button>
+                  <button type="button" class="btn secondary" (click)="addCourse()" [disabled]="busy() || !courseDraft().code || !courseDraft().name">
+                    <span class="icon" aria-hidden="true">save</span>Add course
+                  </button>
+                </div>
               </div>
             }
           </div>
 
-          <!-- ================= batches ================= -->
-          <div class="card">
-            <div class="card-head">
-              <div class="card-title">
-                Batches
-                @if (selectedDepartment(); as d) {
-                  <span class="dt-sub">in {{ d.code }}</span>
-                }
-              </div>
-              <button
-                type="button"
-                class="btn primary sm"
-                (click)="openCreateBatch()"
-                [disabled]="!selectedDepartmentId() || batchMode() !== 'closed'"
-              >
-                <span class="icon" aria-hidden="true">add</span>New batch
-              </button>
-            </div>
-
-            @if (!selectedDepartmentId()) {
-              <div class="empty">Pick a department to see its batches.</div>
-            } @else if (batches().length === 0 && batchMode() === 'closed') {
-              <div class="empty">No batches under {{ selectedDepartment()?.code }} yet.</div>
-            } @else if (batches().length) {
-              <div class="table-wrap">
-                <table class="dt-table">
-                  <thead>
-                    <tr>
-                      <th>Batch</th>
-                      <th>Course · Spec.</th>
-                      <th>Entry</th>
-                      <th>Students</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (b of batches(); track b.id) {
-                      <tr>
-                        <td>
-                          <div class="b-code">{{ b.code }}</div>
-                          <div class="dt-sub">{{ b.batch_label }} · {{ b.name }}</div>
-                          @for (m of b.missing_levels; track m) {
-                            <span class="chip warn"><span class="icon" aria-hidden="true">warning</span>Needs {{ m }}</span>
-                          }
-                        </td>
-                        <td>{{ levelsOf(b) }}</td>
-                        <td class="tabular">{{ b.entry_date }}</td>
-                        <td class="tabular">{{ b.student_count }}</td>
-                        <td>
-                          <button type="button" class="btn sm" (click)="openEditBatch(b)" [disabled]="batchMode() !== 'closed'">
-                            <span class="icon" aria-hidden="true">edit</span>Edit
-                          </button>
-                          <button
-                            type="button"
-                            class="btn sm"
-                            (click)="openSeating(b)"
-                            [attr.aria-pressed]="seatingBatch()?.id === b.id"
-                          >
-                            <span class="icon" aria-hidden="true">group</span>Students
-                          </button>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
+          <!-- ================= the detail column ================= -->
+          <div class="inst-detail">
+            <!-- College -->
+            @if (selectedCollege(); as college) {
+              <div class="card">
+                <div class="card-head">
+                  <div class="card-title">College · {{ college.code }}</div>
+                  <span class="chip dot" [class.good]="college.status === 'ACTIVE'" [class.neutral]="college.status !== 'ACTIVE'">
+                    {{ college.status === 'ACTIVE' ? 'Active' : 'Archived' }}
+                  </span>
+                </div>
+                <div class="dt-sub college-name">
+                  {{ college.name }}@if (college.campus) { · {{ college.campus }} } ·
+                  {{ college.department_count }} departments
+                </div>
+                <div class="domain-row">
+                  <span class="domain-key">Registration email domains</span>
+                  <span class="chip dot neutral">None recorded</span>
+                  <button
+                    type="button"
+                    class="btn ghost sm"
+                    [reepPending]="phaseForCollegeEmailDomains"
+                  >
+                    <span class="icon" aria-hidden="true">add</span>Add domain
+                  </button>
+                </div>
+                <div class="notice accent">
+                  <span class="icon" aria-hidden="true">info</span>
+                  <div>
+                    Registered email domains arrive with Phase {{ phaseForCollegeEmailDomains }} (B1.1);
+                    until then a registration's address is fenced by the server's provisionable-domains
+                    setting, not by a list held on this college.
+                  </div>
+                </div>
               </div>
             }
 
-            <!-- Seating: who is in this batch, and who is in none. -->
-            @if (seatingBatch(); as sb) {
-              <div class="card seating">
+            <!-- Course -->
+            @if (selectedCourse(); as course) {
+              <div class="card">
                 <div class="card-head">
-                  <div class="card-title">
-                    Students in {{ sb.code }}
-                    <span class="dt-sub">{{ sb.batch_label }} · {{ sb.name }}</span>
+                  <div class="card-title">Course · {{ course.code }}</div>
+                  <div class="dt-toolbar">
+                    <button
+                      type="button"
+                      class="btn danger sm"
+                      (click)="archiveCourse()"
+                      [disabled]="busy() || course.status === 'ARCHIVED'"
+                    >
+                      Archive
+                    </button>
+                    <button
+                      type="button"
+                      class="btn secondary sm"
+                      (click)="saveCourse()"
+                      [disabled]="courseSaveBlocked()"
+                    >
+                      <span class="icon" aria-hidden="true">check</span>Save changes
+                    </button>
                   </div>
-                  <button type="button" class="btn sm" (click)="closeSeating()">
-                    <span class="icon" aria-hidden="true">close</span>Close
-                  </button>
                 </div>
 
-                <div class="seat-add">
-                  <div class="field">
-                    <label for="seat-pick">Seat a student</label>
-                    <select
-                      id="seat-pick"
-                      class="ctrl"
-                      [value]="seatPick() ?? ''"
-                      (change)="seatPick.set($any($event.target).value || null)"
-                      [disabled]="busy() || unseated().length === 0"
-                    >
-                      <option value="">
-                        {{ unseated().length ? '— Choose a student not yet in any batch —' : 'Every student is already seated in a batch' }}
-                      </option>
-                      @for (s of unseated(); track s.student_id) {
-                        <option [value]="s.student_id">{{ s.name }}{{ s.usn ? ' · ' + s.usn : '' }}</option>
+                @if (courseError()) {
+                  <div class="notice" role="alert">
+                    <span class="icon" aria-hidden="true">error</span><div>{{ courseError() }}</div>
+                  </div>
+                }
+
+                <form class="course-form" [formGroup]="courseForm">
+                  <div class="field narrow">
+                    <label for="course-code">Code</label>
+                    <input id="course-code" formControlName="code" />
+                  </div>
+                  <div class="field grow">
+                    <label for="course-name">Name</label>
+                    <input id="course-name" formControlName="name" />
+                  </div>
+                  <div class="field narrow">
+                    <label for="course-status">Status</label>
+                    <select id="course-status" class="ctrl" formControlName="status">
+                      @for (s of courseStatuses; track s) {
+                        <option [value]="s">{{ s === 'ACTIVE' ? 'Active' : 'Archived' }}</option>
                       }
                     </select>
                   </div>
-                  <button type="button" class="btn primary" (click)="seat()" [disabled]="busy() || !seatPick()">
-                    <span class="icon" aria-hidden="true">person_add</span>Seat
-                  </button>
+                  <div class="field narrow">
+                    <label for="course-months">Duration in months</label>
+                    <input id="course-months" type="number" min="1" max="120" formControlName="duration_months" />
+                  </div>
+                  <div class="field narrow">
+                    <label for="course-degree">Degree level</label>
+                    <select id="course-degree" class="ctrl" [reepPending]="phaseForCourseSemesters">
+                      <option value="">Not recorded</option>
+                    </select>
+                  </div>
+                  <div class="field narrow">
+                    <label for="course-total-semesters">Total semesters</label>
+                    <input id="course-total-semesters" type="number" placeholder="—" [reepPending]="phaseForCourseSemesters" />
+                  </div>
+                  <div class="field narrow">
+                    <label for="course-semesters-per-year">Semesters per year</label>
+                    <input id="course-semesters-per-year" type="number" placeholder="—" [reepPending]="phaseForCourseSemesters" />
+                  </div>
+                </form>
+
+                <div class="notice accent">
+                  <span class="icon" aria-hidden="true">info</span>
+                  <div>
+                    Degree level, total semesters and semesters per year are a course field from
+                    Phase {{ phaseForCourseSemesters }} (B4.1); until then a batch carries its own
+                    degree level and no batch has a semester to inherit.
+                  </div>
+                </div>
+              </div>
+            }
+
+            <div class="inst-pair">
+              <!-- Specializations -->
+              <div class="card">
+                <div class="card-head">
+                  <div>
+                    <div class="card-title">Specializations · interview track</div>
+                    <div class="dt-sub">track = validated series colour on every chart</div>
+                  </div>
+                  <div class="dt-toolbar">
+                    <button type="button" class="btn ghost sm" [reepPending]="phaseForInterviewTracks">
+                      Map track
+                    </button>
+                    <button
+                      type="button"
+                      class="btn ghost sm"
+                      (click)="toggleAdd('specialization')"
+                      [disabled]="!selectedCourseId()"
+                    >
+                      <span class="icon" aria-hidden="true">add</span>Add
+                    </button>
+                  </div>
                 </div>
 
-                @if (seated().length === 0) {
-                  <div class="empty"><span class="icon" aria-hidden="true">group_off</span>Nobody is seated in this batch yet.</div>
+                @if (!selectedCourseId()) {
+                  <div class="empty">Choose a course first.</div>
+                } @else if (specializations().length === 0) {
+                  <div class="empty">No specializations under {{ selectedCourse()?.code }} yet.</div>
                 } @else {
-                  <div class="table-wrap">
+                  <div class="dt-frame">
                     <table class="dt-table">
                       <thead>
                         <tr>
-                          <th>Student</th>
-                          <th>USN</th>
-                          <th>Stage</th>
+                          <th>Code</th>
+                          <th>Specialization</th>
+                          <th>Track</th>
+                          <th>Batches</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (s of specializations(); track s.id) {
+                          <tr>
+                            <td class="b-code">{{ s.code }}</td>
+                            <td>{{ s.name }}</td>
+                            <td><span class="chip dot neutral">Not mapped</span></td>
+                            <td class="tabular">{{ s.cohort_count }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+
+                <div class="notice accent">
+                  <span class="icon" aria-hidden="true">info</span>
+                  <div>
+                    The interview track a specialization maps to, and the chart colour that
+                    follows it, arrive with Phase {{ phaseForInterviewTracks }} (B5.1).
+                  </div>
+                </div>
+
+                @if (openAdd() === 'specialization') {
+                  <div class="add-form">
+                    <div class="field">
+                      <label for="spc-code">Code</label>
+                      <input id="spc-code" [value]="specializationDraft().code" (input)="setDraft('specialization', 'code', $any($event.target).value)" placeholder="FIN" />
+                    </div>
+                    <div class="field">
+                      <label for="spc-name">Name</label>
+                      <input id="spc-name" [value]="specializationDraft().name" (input)="setDraft('specialization', 'name', $any($event.target).value)" placeholder="Finance" />
+                    </div>
+                    <div class="footbar">
+                      <button type="button" class="btn ghost" (click)="toggleAdd('specialization')">Cancel</button>
+                      <button type="button" class="btn secondary" (click)="addSpecialization()" [disabled]="busy() || !specializationDraft().code || !specializationDraft().name">
+                        <span class="icon" aria-hidden="true">save</span>Add specialization
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Batches -->
+              <div class="card">
+                <div class="card-head">
+                  <div>
+                    <div class="card-title">
+                      Batches
+                      @if (selectedDepartment(); as d) {
+                        <span class="dt-sub">in {{ d.code }}</span>
+                      }
+                    </div>
+                    <div class="dt-sub">inherit level and semesters from the course</div>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn ghost sm"
+                    (click)="openCreateBatch()"
+                    [disabled]="!selectedDepartmentId() || batchMode() !== 'closed'"
+                  >
+                    <span class="icon" aria-hidden="true">add</span>Add batch
+                  </button>
+                </div>
+
+                @if (!selectedDepartmentId()) {
+                  <div class="empty">Pick a department to see its batches.</div>
+                } @else if (batches().length === 0 && batchMode() === 'closed') {
+                  <div class="empty">No batches under {{ selectedDepartment()?.code }} yet.</div>
+                } @else if (batches().length) {
+                  <div class="dt-frame">
+                    <table class="dt-table">
+                      <thead>
+                        <tr>
+                          <th>Batch</th>
+                          <th>Course · Spec.</th>
+                          <th>Students</th>
+                          <th>Ends</th>
                           <th></th>
                         </tr>
                       </thead>
                       <tbody>
-                        @for (s of seated(); track s.student_id) {
-                          <tr>
+                        @for (b of batches(); track b.id) {
+                          <tr [class.selected]="seatingBatch()?.id === b.id">
                             <td>
-                              {{ s.name }}
-                              <div class="dt-sub">{{ s.email }}</div>
+                              <div class="b-code">{{ b.code }}</div>
+                              <div class="dt-sub">{{ b.batch_label }} · {{ b.name }}</div>
+                              @for (m of b.missing_levels; track m) {
+                                <span class="chip warn"><span class="icon" aria-hidden="true">warning</span>Needs {{ m }}</span>
+                              }
                             </td>
-                            <td class="tabular">{{ s.usn ?? '—' }}</td>
-                            <td>{{ stageLabel(s.current_stage) }}</td>
-                            <td>
-                              <button type="button" class="btn sm" (click)="release(s)" [disabled]="busy()">
-                                <span class="icon" aria-hidden="true">person_remove</span>Release
+                            <td>{{ levelsOf(b) }}</td>
+                            <td class="tabular">{{ b.student_count }}</td>
+                            <td class="tabular">{{ b.expected_completion }}</td>
+                            <td class="row-actions">
+                              <button type="button" class="btn ghost sm" (click)="openEditBatch(b)" [disabled]="batchMode() !== 'closed'">
+                                <span class="icon" aria-hidden="true">edit</span>Edit
+                              </button>
+                              <button
+                                type="button"
+                                class="btn ghost sm"
+                                (click)="openSeating(b)"
+                                [attr.aria-pressed]="seatingBatch()?.id === b.id"
+                              >
+                                <span class="icon" aria-hidden="true">group</span>Students
                               </button>
                             </td>
                           </tr>
@@ -395,90 +523,170 @@
                     </table>
                   </div>
                 }
-              </div>
-            }
 
-            <!-- The batch form: create or edit, validators from the switch. -->
-            @if (batchMode() !== 'closed') {
-              <form class="batch-form" [formGroup]="batchForm" (ngSubmit)="saveBatch()">
-                <h4>{{ batchMode() === 'create' ? 'New batch' : 'Edit batch' }}</h4>
+                <div class="notice accent">
+                  <span class="icon" aria-hidden="true">info</span>
+                  <div>
+                    "Semester x of N" arrives with Phase {{ phaseForCourseSemesters }} (B4.1), which
+                    gives a course its total semesters and a batch the semester it is in.
+                  </div>
+                </div>
 
-                @if (batchError()) {
-                  <div class="notice"><span class="icon" aria-hidden="true">error</span><div>{{ batchError() }}</div></div>
+                <!-- Seating: who is in this batch, and who is in none. -->
+                @if (seatingBatch(); as sb) {
+                  <div class="card seating">
+                    <div class="card-head">
+                      <div class="card-title">
+                        Students in {{ sb.code }}
+                        <span class="dt-sub">{{ sb.batch_label }} · {{ sb.name }}</span>
+                      </div>
+                      <button type="button" class="btn ghost sm" (click)="closeSeating()">
+                        <span class="icon" aria-hidden="true">close</span>Close
+                      </button>
+                    </div>
+
+                    <div class="seat-add">
+                      <div class="field">
+                        <label for="seat-pick">Seat a student</label>
+                        <select
+                          id="seat-pick"
+                          class="ctrl"
+                          [value]="seatPick() ?? ''"
+                          (change)="seatPick.set($any($event.target).value || null)"
+                          [disabled]="busy() || unseated().length === 0"
+                        >
+                          <option value="">
+                            {{ unseated().length ? '— Choose a student not yet in any batch —' : 'Every student is already seated in a batch' }}
+                          </option>
+                          @for (s of unseated(); track s.student_id) {
+                            <option [value]="s.student_id">{{ s.name }}{{ s.usn ? ' · ' + s.usn : '' }}</option>
+                          }
+                        </select>
+                      </div>
+                      <button type="button" class="btn secondary" (click)="seat()" [disabled]="busy() || !seatPick()">
+                        <span class="icon" aria-hidden="true">person_add</span>Seat
+                      </button>
+                    </div>
+
+                    @if (seated().length === 0) {
+                      <div class="empty"><span class="icon" aria-hidden="true">group_off</span>Nobody is seated in this batch yet.</div>
+                    } @else {
+                      <div class="dt-frame">
+                        <table class="dt-table">
+                          <thead>
+                            <tr>
+                              <th>Student</th>
+                              <th>USN</th>
+                              <th>Stage</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (s of seated(); track s.student_id) {
+                              <tr>
+                                <td>
+                                  {{ s.name }}
+                                  <div class="dt-sub">{{ s.email }}</div>
+                                </td>
+                                <td class="tabular">{{ s.usn ?? '—' }}</td>
+                                <td>{{ stageLabel(s.current_stage) }}</td>
+                                <td>
+                                  <button type="button" class="btn ghost sm" (click)="release(s)" [disabled]="busy()">
+                                    <span class="icon" aria-hidden="true">person_remove</span>Release
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+                  </div>
                 }
 
-                <div class="reg-grid">
-                  <div class="field">
-                    <label for="b-code">Code</label>
-                    <input id="b-code" formControlName="code" placeholder="MBA-2026-B" />
-                  </div>
-                  <div class="field">
-                    <label for="b-label">Batch label</label>
-                    <input id="b-label" formControlName="batch_label" placeholder="2024-26" />
-                  </div>
-                  <div class="field wide">
-                    <label for="b-name">Name</label>
-                    <input id="b-name" formControlName="name" placeholder="MBA Batch 2024-26 - Section B" />
-                  </div>
-                  <div class="field">
-                    <label for="b-level">Degree level</label>
-                    <select id="b-level" class="ctrl" formControlName="degree_level" [attr.disabled]="batchMode() === 'edit' ? '' : null">
-                      @for (l of degreeLevels; track l) {
-                        <option [value]="l">{{ l }}</option>
-                      }
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label for="b-entry">Entry date</label>
-                    <input id="b-entry" type="date" formControlName="entry_date" />
-                  </div>
-                  <div class="field">
-                    <label for="b-done">Expected completion</label>
-                    <input id="b-done" type="date" formControlName="expected_completion" />
-                  </div>
+                <!-- The batch form: create or edit, validators from the switch. -->
+                @if (batchMode() !== 'closed') {
+                  <form class="batch-form" [formGroup]="batchForm" (ngSubmit)="saveBatch()">
+                    <h4>{{ batchMode() === 'create' ? 'New batch' : 'Edit batch' }}</h4>
 
-                  <!-- One select per served level. Required-ness and label are the server's. -->
-                  @for (lv of levels(); track lv.key) {
-                    <div class="field">
-                      <label [attr.for]="'b-' + lv.key">
-                        {{ lv.label }}
-                        @if (lv.required) {
-                          <span class="chip warn">Required</span>
-                        } @else {
-                          <span class="chip neutral">Optional</span>
-                        }
-                      </label>
-                      <select
-                        [id]="'b-' + lv.key"
-                        class="ctrl"
-                        [formControlName]="lv.field"
-                        [attr.disabled]="levelDisabled(lv) ? '' : null"
-                        (change)="onLevelChange(lv)"
-                      >
-                        <option [ngValue]="null">— {{ lv.required ? 'Select' : 'Not applicable' }} —</option>
-                        @for (opt of levelOptions(lv); track opt.id) {
-                          <option [ngValue]="opt.id">{{ opt.code }} · {{ opt.name }}</option>
-                        }
-                      </select>
-                      @if (isGrandfathered(lv)) {
-                        <span class="chip warn"><span class="icon" aria-hidden="true">history</span>Created before {{ lv.label }} was required — fill in when known</span>
-                      } @else if (levelDisabled(lv)) {
-                        <span class="dt-sub">Choose a course first.</span>
-                      } @else if (levelControl(lv).touched && levelControl(lv).hasError('required')) {
-                        <span class="chip warn"><span class="icon" aria-hidden="true">error</span>{{ lv.label }} is required.</span>
+                    @if (batchError()) {
+                      <div class="notice" role="alert"><span class="icon" aria-hidden="true">error</span><div>{{ batchError() }}</div></div>
+                    }
+
+                    <div class="reg-grid">
+                      <div class="field">
+                        <label for="b-code">Code</label>
+                        <input id="b-code" formControlName="code" placeholder="MBA-2026-B" />
+                      </div>
+                      <div class="field">
+                        <label for="b-label">Batch label</label>
+                        <input id="b-label" formControlName="batch_label" placeholder="2024-26" />
+                      </div>
+                      <div class="field wide">
+                        <label for="b-name">Name</label>
+                        <input id="b-name" formControlName="name" placeholder="MBA Batch 2024-26 - Section B" />
+                      </div>
+                      <div class="field">
+                        <label for="b-level">Degree level</label>
+                        <select id="b-level" class="ctrl" formControlName="degree_level" [attr.disabled]="batchMode() === 'edit' ? '' : null">
+                          @for (l of degreeLevels; track l) {
+                            <option [value]="l">{{ l }}</option>
+                          }
+                        </select>
+                      </div>
+                      <div class="field">
+                        <label for="b-entry">Entry date</label>
+                        <input id="b-entry" type="date" formControlName="entry_date" />
+                      </div>
+                      <div class="field">
+                        <label for="b-done">Expected completion</label>
+                        <input id="b-done" type="date" formControlName="expected_completion" />
+                      </div>
+
+                      <!-- One select per served level. Required-ness and label are the server's. -->
+                      @for (lv of levels(); track lv.key) {
+                        <div class="field">
+                          <label [attr.for]="'b-' + lv.key">
+                            {{ lv.label }}
+                            @if (lv.required) {
+                              <span class="chip warn">Required</span>
+                            } @else {
+                              <span class="chip neutral">Optional</span>
+                            }
+                          </label>
+                          <select
+                            [id]="'b-' + lv.key"
+                            class="ctrl"
+                            [formControlName]="lv.field"
+                            [attr.disabled]="levelDisabled(lv) ? '' : null"
+                            (change)="onLevelChange(lv)"
+                          >
+                            <option [ngValue]="null">— {{ lv.required ? 'Select' : 'Not applicable' }} —</option>
+                            @for (opt of levelOptions(lv); track opt.id) {
+                              <option [ngValue]="opt.id">{{ opt.code }} · {{ opt.name }}</option>
+                            }
+                          </select>
+                          @if (isGrandfathered(lv)) {
+                            <span class="chip warn"><span class="icon" aria-hidden="true">history</span>Created before {{ lv.label }} was required — fill in when known</span>
+                          } @else if (levelDisabled(lv)) {
+                            <span class="dt-sub">Choose a course first.</span>
+                          } @else if (levelControl(lv).touched && levelControl(lv).hasError('required')) {
+                            <span class="chip warn"><span class="icon" aria-hidden="true">error</span>{{ lv.label }} is required.</span>
+                          }
+                        </div>
                       }
                     </div>
-                  }
-                </div>
 
-                <div class="footbar">
-                  <button type="button" class="btn" (click)="closeBatchForm()">Cancel</button>
-                  <button type="submit" class="btn primary" [disabled]="saveBlocked()">
-                    <span class="icon" aria-hidden="true">save</span>{{ batchMode() === 'create' ? 'Create batch' : 'Save' }}
-                  </button>
-                </div>
-              </form>
-            }
+                    <div class="footbar">
+                      <button type="button" class="btn ghost" (click)="closeBatchForm()">Cancel</button>
+                      <button type="submit" class="btn secondary" [disabled]="saveBlocked()">
+                        <span class="icon" aria-hidden="true">save</span>{{ batchMode() === 'create' ? 'Create batch' : 'Save' }}
+                      </button>
+                    </div>
+                  </form>
+                }
+              </div>
+            </div>
           </div>
         </div>
       }
@@ -501,8 +709,8 @@
       <input id="col-campus" [value]="collegeDraft().campus" (input)="setDraft('college', 'campus', $any($event.target).value)" placeholder="Bengaluru" />
     </div>
     <div class="footbar">
-      <button type="button" class="btn" (click)="toggleAdd('college')">Cancel</button>
-      <button type="button" class="btn primary" (click)="addCollege()" [disabled]="busy() || !collegeDraft().code || !collegeDraft().name">
+      <button type="button" class="btn ghost" (click)="toggleAdd('college')">Cancel</button>
+      <button type="button" class="btn secondary" (click)="addCollege()" [disabled]="busy() || !collegeDraft().code || !collegeDraft().name">
         <span class="icon" aria-hidden="true">save</span>Add college
       </button>
     </div>

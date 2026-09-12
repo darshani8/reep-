@@ -1,221 +1,163 @@
-/* Programme analytics. Panel / card / chip / btn / ctrl / icon are global; the
-   stat strip and the chart frames are local because their sizes are the
-   layout. */
+/* Placement analytics — this screen's LAYOUT only.
+ *
+ * .panel .card .kpi-card .kpi .chip .btn .select .notice .dt-header .dt-title
+ * .dt-sub .dt-toolbar .dt-quickfilter .crumb .avatar are global
+ * (styles/reep-v2.scss) and are used as they are. What is here is the shape of
+ * this board: the filter row, the six-tile strip, the chart frame, the two
+ * columns under it and the alert rows — plus the card head, which the design
+ * system draws on every board and has no global class of its own yet.
+ */
 :host {
   display: block;
 }
 
-.sem-chip {
-  align-self: flex-end;
-  padding: 6px 12px;
-  font-size: 12.5px;
-}
-
-/* Four figures separated by left hairlines rather than gaps — the design's
-   metrics strip, one card. The first cell carries no rule so the group reads as
-   one block. */
-.stat-strip {
-  background: var(--card-gradient);
-  border: 1px solid var(--hairline);
-  border-radius: 20px;
-  box-shadow: var(--sh-card);
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 16px;
-}
-.stat {
-  padding: 18px 22px;
-  border-left: 1px solid var(--hairline-26);
-  min-width: 0;
-}
-.stat:first-child {
-  border-left: 0;
-}
-.stat-lbl {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  color: var(--ink-soft);
-  margin-bottom: 7px;
-}
-.stat-val {
-  font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-}
-.stat-unit {
-  font-family: var(--font);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.stat-sub {
-  display: block;
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 4px;
-}
-.stat-link {
-  color: var(--purple-mid);
-  font-weight: 600;
-}
-.stat-link:hover {
-  color: var(--brand-purple);
-  text-decoration: underline;
-}
-/* The one figure worth interrupting for: work someone has to do. */
-.stat-sub.warn {
-  color: var(--warn);
-  font-weight: 700;
-}
-@media (max-width: 900px) {
-  .stat-strip {
-    grid-template-columns: 1fr 1fr;
-  }
-  .stat:nth-child(3) {
-    border-left: 0;
-  }
-  .stat:nth-child(n + 3) {
-    border-top: 1px solid var(--hairline-26);
-  }
-}
-
-/* The sunburst carries the shape and gets the wider share; the bars are read
-   as a list and stay legible narrower. */
-.chart-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-  margin-bottom: 16px;
-}
-@media (max-width: 1080px) {
-  .chart-grid {
-    grid-template-columns: 1fr;
-  }
-}
-/* Kept in the DOM while empty so the chart containers keep their size — ECharts
-   initialises against a real box, and a display:none parent gives it a 0×0 one
-   it never recovers from. */
-.chart-grid--hidden {
-  visibility: hidden;
-  height: 0;
-  overflow: hidden;
-  margin: 0;
-}
-
-.chart-head {
+/* --- the board's filter row --------------------------------------------- */
+.filters {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+/* A filter whose endpoint is a Phase 4 task. The <select> inside carries
+   [reepPending], which disables it and names the phase; this dims the pill it
+   sits in so the row reads as "not yet" at a glance. */
+.filter-pending {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --- the six KPI tiles --------------------------------------------------- */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+@media (max-width: 1280px) {
+  .kpi-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.panel > .notice {
+  margin-bottom: 10px;
+}
+
+/* --- card head: title + faint sub, actions right ------------------------- */
+.card-head {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: flex-end;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
-.chart-title {
+.card-heading {
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   line-height: 1.3;
-  letter-spacing: -0.01em;
   color: var(--ink);
+  margin: 0;
 }
-.chart-hint {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 3px;
+.card-sub {
+  font-size: 11.5px;
   line-height: 1.45;
+  color: var(--faint);
+  margin: 2px 0 0;
+  max-width: 76ch;
 }
-.chart-scope {
-  color: var(--muted);
-  font-size: 12px;
-  white-space: nowrap;
-}
-.chart-actions {
+.card-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
-.metric-select {
-  width: auto;
-  padding: 8px 11px;
-  background: var(--tint-2);
-  font-weight: 600;
-  cursor: pointer;
+
+/* --- the one composite chart --------------------------------------------- */
+.chart-card {
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.chart-card .notice {
+  margin-bottom: 10px;
+}
+.health-chart {
+  width: 100%;
+  height: 320px;
+  min-height: 260px;
 }
 
-.chart {
+/* --- mentor load beside the alert feed, as the board splits them ---------- */
+.board-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+@media (max-width: 1080px) {
+  .board-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grid-card,
+.alerts-card {
+  padding: 14px;
+}
+.grid-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.mentor-grid {
+  display: block;
   width: 100%;
 }
-.chart--sun {
-  height: min(78vh, 760px);
-  min-height: 560px;
-}
-.chart--bar {
-  height: min(58vh, 560px);
-  min-height: 380px;
-}
 
-/* The selected student's three headline figures, above their bars. */
-.stu-strip {
+/* --- the alert feed ------------------------------------------------------ */
+.alert-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.alert-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  margin-bottom: 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--hairline-26);
+  min-width: 0;
 }
-.stu-fig {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 120px;
-  flex: 1;
+.alert-text {
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--ink);
+  min-width: 0;
 }
-.stu-lbl {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.alert-meta {
+  font-size: 11.5px;
   color: var(--faint);
 }
-.stu-fig strong {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-}
-.stu-usn {
-  font-size: 14px !important;
-  letter-spacing: 0.04em;
-}
 
+/* --- loading and progress lines ------------------------------------------ */
 .state-note {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 0;
+  margin: 0;
   color: var(--muted);
   font-size: 12.5px;
 }
 .state-note .icon {
   font-size: 16px;
   color: var(--purple-mid);
-}
-.state-note.risk {
-  color: var(--risk);
-}
-.state-note.risk .icon {
-  color: var(--risk);
 }

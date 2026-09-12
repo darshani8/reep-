@@ -68,9 +68,36 @@ Organisation `bgs-college-of-engineering-and`; projects `reep-api`, `reep-web`,
 ## Postgres
 
 ```
-pipx install postgres-mcp        # or: uv tool install postgres-mcp
+uv tool install --with 'mcp<2' postgres-mcp
 docker compose up -d
 ```
 
+**The `mcp<2` pin is required, and a plain install does not work.** `postgres-mcp`
+declares its `mcp` dependency without an upper bound, so a resolver picks the
+2.x line, which renamed `FastMCP` to `MCPServer`. The server then dies at
+startup on `ModuleNotFoundError: No module named 'mcp.server.fastmcp'` — before
+it reads the database URI, so the error says nothing about Postgres.
+
+This is the same failure `fastapi-mcp` has, for the same reason, and it is why
+`requirements-dev.txt` pins `mcp==1.30.0` beside it. If a third MCP tool is
+added here, check its floor before trusting its install line.
+
 Restricted mode is read-only with a statement timeout. Migrations are written
 as Alembic files and applied with `alembic upgrade head`, never from the tool.
+
+## Checking it all works
+
+Two probes in `apps/api-py/tools/` speak the protocol directly, so a broken
+mount is a clear error rather than a silent absence:
+
+```
+python tools/mcp_probe.py --list                                  # this API's tools
+python tools/mcp_probe.py --email student@bgscet.ac.in --call my_profile_api_student_profile_get
+python tools/pg_mcp_probe.py --list                               # postgres-mcp's tools
+python tools/pg_mcp_probe.py --sql "select count(*) from users"
+```
+
+The second form is the check worth running while building a screen: call the
+endpoint the screen reads, as the seeded role, and compare the payload with the
+board. To check a narrower role sees less, mint for `mentor@bgscet.ac.in` and
+ask the same question.

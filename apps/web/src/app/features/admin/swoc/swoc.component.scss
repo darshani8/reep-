@@ -1,279 +1,294 @@
-/* SWOC Notes. Colours from the reep-v2 tokens; `.card`, `.btn`, `.ctrl`, `.icon`
- * are global. Everything scoped is prefixed `sw-`. The four tiles carry the
- * same tints the student's card draws, so the writer sees what the student
- * will. */
+/* SWOC notes — this screen's LAYOUT only.
+ *
+ * .panel .card .chip .btn .iconbtn .select .field .notice .avatar .crumb
+ * .card-head .card-heading .sr-only .dt-header .dt-title .dt-sub .dt-toolbar
+ * .dt-table .dt-quickfilter are global (styles/reep-v2.scss) and are used as
+ * they are. What is here is the shape of this board: the filter row, the two
+ * columns, the student list and the four quadrants with their entries and
+ * composer.
+ *
+ * The quadrant tones are the board's own four colours, read from the status
+ * tokens (good / risk / brand purple / warn) so a strength and a weakness are
+ * told apart by their heading text AND their tint, never by colour alone.
+ */
+:host {
+  display: block;
+}
 
-.sw {
+/* --- the board's filter row --------------------------------------------- */
+.sw-filters {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
 
-.sw-head {
-  h1 {
-    font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    margin: 0 0 6px;
-  }
-  p {
-    margin: 0;
-    max-width: 78ch;
-    color: var(--muted);
-    font-size: 14.5px;
-  }
+/* A filter whose endpoint is a Phase 3 or Phase 4 task. The <select> inside
+   carries [reepPending], which disables it and names the phase; this dims the
+   pill it sits in so the row reads as "not yet" at a glance. */
+.sw-filter-pending {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-.sw-error {
-  color: var(--risk);
-  background: var(--risk-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
+.sw-summary {
+  margin: 0 0 0 auto;
+  font-size: 11.5px;
+  color: var(--faint);
 }
 
-.sw-flash {
-  color: var(--good);
-  background: var(--good-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
+.panel > .notice {
+  margin-bottom: 10px;
 }
 
-.sw-hint {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin: 0;
-}
-
-.sw-pad {
-  padding: 14px 16px;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-.sw-grid {
+/* --- the two columns ----------------------------------------------------- */
+.sw-board {
   display: grid;
-  grid-template-columns: minmax(260px, 340px) 1fr;
-  gap: 16px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
+}
 
-  @media (max-width: 900px) {
+@media (max-width: 1100px) {
+  .sw-board {
     grid-template-columns: 1fr;
   }
 }
 
-/* --- the list ---------------------------------------------------------- */
+/* The card title row is global now (.card-head / .card-heading), and so is the
+   visually-hidden label (.sr-only). The one thing this board does differently:
+   its title row is one short heading beside a count chip, so the two sit on the
+   same line rather than on the global's flex-start. */
+.card-head {
+  align-items: center;
+}
 
+/* --- the student list ---------------------------------------------------- */
 .sw-list {
-  padding: 0;
-}
-
-.sw-list__head {
+  padding: 14px;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 10px;
-  padding: 14px 16px 8px;
-}
-
-.sw-list__title,
-.sw-editor__name {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 15px;
 }
 
 .sw-search {
   display: block;
-  padding: 0 16px 10px;
+}
 
-  .ctrl {
-    width: 100%;
-  }
+.sw-search .dt-quickfilter {
+  width: 100%;
 }
 
 .sw-rows {
-  max-height: 62vh;
+  max-height: 52vh;
   overflow-y: auto;
-  border-top: 1px solid var(--hairline);
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-control);
+  background: var(--surface);
 }
 
-.sw-row {
+.sw-rows th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--tint-3);
+}
+
+.sw-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A fact nobody has recorded reads as a dash, never as a zero or a tick. */
+.sw-unknown {
+  color: var(--faint);
+}
+
+/* The row's selector. The whole row shows the state; this button is what the
+   keyboard reaches, so the name and USN are inside it. */
+.sw-pick {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 10px 16px;
-  border: none;
-  border-bottom: 1px solid var(--hairline);
+  padding: 0;
+  border: 0;
   background: transparent;
-  text-align: left;
-  cursor: pointer;
   font: inherit;
   color: var(--ink);
-
-  &:hover {
-    background: rgba(122, 47, 158, 0.06);
-  }
-
-  &--on {
-    background: rgba(122, 47, 158, 0.1);
-  }
-
-  &:last-child {
-    border-bottom: 0;
-  }
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
 }
 
-.sw-row__main {
+.sw-pick__main {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  line-height: 1.25;
   min-width: 0;
-  flex: 1;
 }
 
-.sw-row__name {
-  font-weight: 700;
-  font-size: 13.5px;
-}
-
-.sw-row__meta {
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
+.sw-pick__name {
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.sw-row__count {
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
+.sw-pick__meta {
+  font-size: 11px;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sw-empty-cell {
+  padding: 18px 10px;
   color: var(--muted);
+  text-align: center;
 }
 
-/* Written / not - a dot AND a title, never colour alone. */
-.sw-dot {
-  flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 1.5px solid var(--hairline);
-  background: transparent;
-
-  &--written {
-    background: var(--good);
-    border-color: var(--good);
-  }
+.sw-foot {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--faint);
 }
 
-/* --- the editor -------------------------------------------------------- */
-
+/* --- the editor ---------------------------------------------------------- */
 .sw-editor {
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.sw-editor__head {
+.sw-who {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.sw-editor__by {
-  text-align: right;
+.sw-who__main {
+  flex: 1 1 220px;
+  min-width: 0;
 }
 
-.sw-tiles {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.sw-who__meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--faint);
+}
 
-  @media (max-width: 720px) {
+.sw-usn {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+}
+
+.sw-who__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sw-pick-one {
+  padding: 30px 6px;
+  text-align: center;
+}
+
+/* --- the four quadrants -------------------------------------------------- */
+.sw-quads {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 820px) {
+  .sw-quads {
     grid-template-columns: 1fr;
   }
 }
 
-.sw-tile {
+.sw-quad {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-radius: 16px;
   padding: 12px;
-  font-size: 13px;
-
-  > b {
-    font-family: var(--font-display);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  textarea {
-    width: 100%;
-    resize: vertical;
-    border: 1px solid transparent;
-    border-radius: 10px;
-    padding: 7px 9px;
-    font: inherit;
-    font-size: 13.5px;
-    line-height: 1.45;
-    background: rgba(255, 255, 255, 0.72);
-    color: var(--ink);
-
-    &:hover {
-      border-color: rgba(0, 0, 0, 0.08);
-    }
-
-    &:focus {
-      outline: none;
-      border-color: var(--brand-purple);
-      background: #fff;
-      box-shadow: 0 0 0 3px rgba(122, 47, 158, 0.12);
-    }
-  }
-
-  &[data-tone='good'] {
-    background: var(--good-bg, rgba(19, 122, 74, 0.1));
-    color: var(--good, #137a4a);
-  }
-  &[data-tone='risk'] {
-    background: var(--risk-bg, rgba(173, 36, 82, 0.1));
-    color: var(--risk, #ad2452);
-  }
-  &[data-tone='warn'] {
-    background: var(--warn-bg, rgba(143, 97, 0, 0.1));
-    color: var(--warn, #8f6100);
-  }
-  &[data-tone='neutral'] {
-    background: #fff;
-    color: var(--muted, #585566);
-    border: 1px solid var(--hairline, rgba(160, 138, 178, 0.42));
-  }
+  border: 1px solid var(--hairline);
+  border-radius: 14px; /* the board's quadrant radius, between --r-tile and --r-card */
+  background: var(--surface);
+  min-width: 0;
 }
 
+.sw-quad__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sw-quad__title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.sw-quad[data-tone='good'] .sw-quad__title {
+  color: var(--good);
+}
+.sw-quad[data-tone='risk'] .sw-quad__title {
+  color: var(--risk);
+}
+.sw-quad[data-tone='accent'] .sw-quad__title {
+  color: var(--brand-purple);
+}
+.sw-quad[data-tone='warn'] .sw-quad__title {
+  color: var(--warn);
+}
+
+.sw-none {
+  margin: 0;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* --- one entry ----------------------------------------------------------- */
 .sw-entry {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline-26);
 }
 
 .sw-entry__text {
+  width: 100%;
+  resize: vertical;
   min-height: 44px;
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  padding: 6px 8px;
+}
+
+.sw-entry__text:hover {
+  border-color: var(--hairline-26);
+}
+
+.sw-entry__text:focus {
+  outline: none;
+  border-color: var(--purple-mid);
+  box-shadow: var(--focus-ring);
 }
 
 .sw-entry__meta {
@@ -282,94 +297,60 @@
   gap: 8px;
   flex-wrap: wrap;
   font-size: 11.5px;
+  color: var(--muted);
 }
 
 .sw-entry__by {
-  color: var(--muted);
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.sw-chip {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.sw-weight .ctrl--sm {
-  padding: 2px 6px;
-  font-size: 12px;
-  min-width: 44px;
-}
-
-.sw-mini {
-  width: 26px;
-  height: 22px;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  border-radius: 6px;
-  cursor: pointer;
+.sw-weight {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-
-  .icon {
-    font-size: 18px;
-  }
-
-  &:hover:not(:disabled) {
-    background: var(--risk-bg);
-    color: var(--risk);
-  }
-
-  &:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
 }
 
-.sw-none {
-  font-style: italic;
-  opacity: 0.7;
+.sw-weight__select {
+  width: auto;
+  min-width: 52px;
+  padding: 3px 6px;
+  font-size: 12px;
 }
 
-.sw-add {
+/* --- the composer -------------------------------------------------------- */
+.sw-composer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding-top: 8px;
-  border-top: 1px dashed rgba(0, 0, 0, 0.1);
-
-  textarea {
-    min-height: 52px;
-  }
+  border-top: 1px dashed var(--hairline-42);
 }
 
-.sw-add__foot {
+.sw-composer__foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .sw-count {
+  margin-right: auto;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  opacity: 0.7;
+  color: var(--faint);
 }
 
-.sw-empty {
-  padding: 40px 16px;
-  text-align: center;
+/* --- the failure alert --------------------------------------------------
+   `.notice` is a flex row that starts its children at the top, which is right
+   for a wrapped sentence and wrong for a sentence with a 28px button beside
+   it. The retry button is the one control that answers "could not load", so
+   it sits on the alert rather than leaving a page reload as the only way
+   back. */
+.sw-alert {
+  align-items: center;
 }
 
-.sw-empty__title {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 16px;
-  margin-bottom: 6px;
+.sw-alert__text {
+  flex: 1 1 auto;
+  min-width: 0;
 }

@@ -1,98 +1,522 @@
-<section class="ivr">
-  <header class="ivr-head">
-    <h1>Interview Records</h1>
-    <p>
-      Every mock interview, newest first, with the student and the time it was taken. Recorded
-      sessions can be downloaded to your machine — individually, or several at once as a zip.
-    </p>
-  </header>
-
-  @if (state() === 'loading') {
-    <p class="ivr-note">Loading…</p>
-  } @else if (state() === 'error') {
-    <p class="ivr-error">{{ error() }}</p>
-  } @else {
-
-    @if (error()) { <p class="ivr-error" role="alert">{{ error() }}</p> }
-    @if (flash()) { <p class="ivr-flash" role="status">{{ flash() }}</p> }
-
-    <div class="card ivr-toolbar">
-      <label class="ivr-check">
-        <input type="checkbox" [ngModel]="recordedOnly()"
-               (ngModelChange)="onRecordedOnlyChange($event)">
-        Recorded only
-      </label>
-      <span class="ivr-count">
-        {{ visibleRows().length }} interview{{ visibleRows().length === 1 ? '' : 's' }} ·
-        {{ recordedTotal() }} recorded
-      </span>
-      <span class="ivr-spacer"></span>
-      <button type="button" class="ivr-btn primary"
-              [disabled]="selectedCount() === 0 || downloading()"
-              (click)="downloadSelected()">
-        {{ downloading() ? 'Preparing…' :
-           (selectedCount() > 0 ? 'Download selected (' + selectedCount() + ')' : 'Download selected') }}
+<div class="panel" data-p="interviews">
+  <div class="dt-header">
+    <div>
+      <div class="crumb">
+        <span>Student insight</span><span class="sep">/</span><span>Interview records</span>
+      </div>
+      <h1 class="dt-title">Interview records</h1>
+      <div class="dt-sub">
+        Every mock interview in scope, newest first. Transcripts, reports and recordings are deleted
+        on the deployment's retention clock — {{ retentionDays }} days unless it was changed — and a
+        recording exists only where the student's audio consent allowed one.
+      </div>
+    </div>
+    <div class="dt-toolbar">
+      <button type="button" class="btn secondary" [reepPending]="4">
+        <span class="icon" aria-hidden="true">download</span> Export CSV
+      </button>
+      <button
+        type="button"
+        class="btn primary"
+        [disabled]="!canDownloadSelection()"
+        (click)="downloadSelected()"
+      >
+        <span class="icon" aria-hidden="true">graphic_eq</span>
+        {{ downloading() ? 'Preparing…' : 'Download selected audio' }}
       </button>
     </div>
+  </div>
 
-    <div class="card ivr-tablewrap">
-      <table class="dt-table ivr-table">
-        <thead>
-          <tr>
-            <th class="ivr-selcol">
-              <input type="checkbox" [checked]="allSelected()" (change)="toggleAll()"
-                     [disabled]="recordedTotal() === 0" aria-label="Select all recorded">
-            </th>
-            <th>Student</th>
-            <th>When</th>
-            <th>Track</th>
-            <th>Status</th>
-            <th>Recording</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of visibleRows(); track r.session_id) {
-            <tr [class.ivr-sel]="isSelected(r.session_id)">
-              <td class="ivr-selcol">
-                @if (r.audio_recorded) {
-                  <input type="checkbox" [checked]="isSelected(r.session_id)"
-                         (change)="toggle(r.session_id)"
-                         [attr.aria-label]="'Select ' + r.student_name">
-                }
-              </td>
-              <td>
-                <span class="ivr-name">{{ r.student_name }}</span>
-                @if (r.usn) { <span class="ivr-usn">{{ r.usn }}</span> }
-              </td>
-              <td class="ivr-when">{{ when(r.started_at) }}</td>
-              <td>{{ trackLabel(r.specialization) }}</td>
-              <td>
-                <span class="chip {{ statusKind(r.status) }}">{{ r.status }}</span>
-              </td>
-              <td>
-                @if (r.audio_recorded) {
-                  <button type="button" class="ivr-btn tiny" (click)="downloadOne(r)">
-                    <span class="icon" aria-hidden="true">download</span> Download
-                  </button>
-                } @else {
-                  <span class="ivr-noaudio">no recording</span>
-                }
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="6" class="ivr-empty">
-                No interviews {{ recordedOnly() ? 'with a recording ' : '' }}yet.
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+  @if (error()) {
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">error</span>{{ error() }}
+    </div>
+  }
+  @if (flash()) {
+    <div class="notice good" role="status">
+      <span class="icon" aria-hidden="true">check_circle</span>{{ flash() }}
+    </div>
+  }
+
+  <div class="filters">
+    <div class="select filter-pending">
+      <span class="lbl">Batch</span>
+      <span class="val">All batches</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Batch" [reepPending]="4">
+        <option>All batches</option>
+      </select>
     </div>
 
-    <p class="ivr-foot">
-      Recordings are a student's voice, stored with their consent and deleted after 180 days.
-      Downloading one saves it to your machine — treat the file accordingly.
-    </p>
-  }
-</section>
+    <div class="select">
+      <span class="lbl">Track</span>
+      <span class="val">{{ trackFilterLabel() }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Track" [value]="trackFilter()" (change)="setTrackFilter($event)">
+        <option value="all">All tracks</option>
+        <option value="hr">Human Resources</option>
+        <option value="dm">Digital Marketing</option>
+        <option value="ba">Business Analytics</option>
+        <option value="fa">Financial Analytics</option>
+        <option value="generic">Generic interview</option>
+      </select>
+    </div>
+
+    <div class="select">
+      <span class="lbl">Status</span>
+      <span class="val">{{ statusFilterLabel() }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Status" [value]="statusFilter()" (change)="setStatusFilter($event)">
+        <option value="all">All</option>
+        <option value="completed">Completed</option>
+        <option value="abandoned">Abandoned</option>
+        <option value="failed">Failed</option>
+        <option value="running">Running</option>
+      </select>
+    </div>
+
+    <div class="select">
+      <span class="lbl">Recording</span>
+      <span class="val">{{ recordingFilterLabel() }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select
+        aria-label="Recording"
+        [value]="recordingFilter()"
+        (change)="setRecordingFilter($event)"
+      >
+        <option value="any">Any</option>
+        <option value="recorded">Recorded only</option>
+      </select>
+    </div>
+
+    <div class="select">
+      <span class="lbl">Date</span>
+      <span class="val">{{ dateFilterLabel() }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Date" [value]="dateFilter()" (change)="setDateFilter($event)">
+        <option value="all">Whole record</option>
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-head">
+        <div class="eyebrow">Sessions</div>
+        <span class="icon kpi-icon" aria-hidden="true">record_voice_over</span>
+      </div>
+      <div class="num">{{ sessionCount() }}</div>
+      <div class="sub kpi-note">
+        <span>{{ sessionsStartedThisMonth() }} started this month</span>
+        @if (recordsAreTruncated()) {
+          <span class="chip neutral">newest {{ recordsReturnedAtMost }}</span>
+        }
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-head">
+        <div class="eyebrow">Average score</div>
+        <span class="icon kpi-icon" aria-hidden="true">insights</span>
+      </div>
+      <div class="num">—</div>
+      <div class="sub kpi-note"><span class="chip neutral">Phase 4</span> no score in this payload</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-head">
+        <div class="eyebrow">Completion</div>
+        <span class="icon kpi-icon" aria-hidden="true">task_alt</span>
+      </div>
+      <div class="num">{{ completionLabel() }}</div>
+      <div class="sub kpi-note">{{ abandonedCount() }} abandoned · {{ failedCount() }} failed</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-head">
+        <div class="eyebrow">Daily-cap resets</div>
+        <span class="icon kpi-icon" aria-hidden="true">history</span>
+      </div>
+      <div class="num">—</div>
+      <div class="sub kpi-note"><span class="chip neutral">Phase 4</span> resets are not recorded yet</div>
+    </div>
+  </div>
+
+  <div class="notice accent">
+    <span class="icon" aria-hidden="true">info</span>
+    <span>
+      Average score and daily-cap resets, the batch and consent-scope filters, and the audited
+      summary-only CSV all come from the records endpoint and the interview policy (B6.7, B6.4,
+      B6.1). Until those land, this screen counts only what
+      <code>GET /api/mentor/interviews</code> returns and leaves the rest blank rather than
+      estimating it. Score summaries that outlive the retention clock are B6.2.
+    </span>
+  </div>
+
+  <div class="board-columns">
+    <section class="card grid-card">
+      <div class="dt-gridbar">
+        <input
+          class="dt-quickfilter"
+          type="search"
+          placeholder="Quick filter…"
+          aria-label="Search the interview records"
+          (input)="setQuickFilter($event)"
+        />
+        <button
+          type="button"
+          class="btn secondary sm"
+          [disabled]="openRecord() === null"
+          (click)="showTranscript()"
+        >
+          <span class="icon" aria-hidden="true">description</span> Transcript
+        </button>
+        <button
+          type="button"
+          class="btn secondary sm"
+          [disabled]="openRecord() === null"
+          (click)="showReport()"
+        >
+          <span class="icon" aria-hidden="true">rate_review</span> Report
+        </button>
+        <span class="grid-hint">
+          Tick rows to download their recordings · one row opens its record
+        </span>
+      </div>
+
+      @if (loading()) {
+        <p class="state-note" role="status">
+          <span class="icon" aria-hidden="true">hourglass_empty</span>Loading…
+        </p>
+      } @else if (noRecordsAtAll()) {
+        <div class="notice accent" role="status">
+          <span class="icon" aria-hidden="true">info</span>
+          No interviews yet. A mock interview appears here as soon as a student finishes one.
+        </div>
+      } @else if (filtersHideEverything()) {
+        <div class="notice accent" role="status">
+          <span class="icon" aria-hidden="true">filter_list</span>
+          No interviews match these filters. Widen the track, status, recording or date filter above.
+        </div>
+      } @else if (!error()) {
+        <ag-grid-angular
+          class="records-grid"
+          [theme]="gridTheme"
+          [rowData]="rows()"
+          [columnDefs]="columns"
+          [defaultColDef]="defaultColumn"
+          [rowSelection]="rowSelection"
+          [selectionColumnDef]="selectionColumn"
+          [quickFilterText]="quickFilter()"
+          [pagination]="true"
+          [paginationPageSize]="interviewsPerPage"
+          [paginationPageSizeSelector]="pageSizes"
+          [domLayout]="'autoHeight'"
+          [suppressCellFocus]="true"
+          [getRowId]="getRowId"
+          (gridReady)="onGridReady($event)"
+          (modelUpdated)="onModelUpdated($event)"
+          (selectionChanged)="onSelectionChanged($event)"
+        />
+        <div class="dt-statusbar">
+          <span>Rows: <b>{{ rowsOnGrid() }}</b></span>
+          <span>Selected: <b>{{ selectedCount() }}</b></span>
+          <span>{{ recordedOnGrid() }} with a recording</span>
+          @if (recordsAreTruncated()) {
+            <span class="statusbar-note">
+              newest {{ recordsReturnedAtMost }} · server-side paging is B6.7
+            </span>
+          }
+        </div>
+      } @else {
+        <p class="state-note" role="status">
+          <span class="icon" aria-hidden="true">error</span>
+          The records could not be read, so none are shown — a list left on screen after a failed
+          re-read is a list nobody can date.
+        </p>
+      }
+    </section>
+
+    <div class="side-column">
+      <section class="card side-card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-heading">Record</h2>
+            <p class="card-sub">the interview, its report and its transcript</p>
+          </div>
+          @if (openRecord()) {
+            <button
+              type="button"
+              class="btn ghost sm"
+              aria-label="Close this record"
+              (click)="closeRecord()"
+            >
+              <span class="icon" aria-hidden="true">close</span>
+            </button>
+          }
+        </div>
+
+        @if (openRecord(); as record) {
+          <div class="record-identity">
+            <div class="record-name">{{ record.studentName }}</div>
+            <div class="record-usn">{{ record.usn }}</div>
+          </div>
+
+          <div class="record-facts">
+            <div>
+              <div class="eyebrow">Track</div>
+              <div class="fact">{{ record.trackLabel }}</div>
+            </div>
+            <div>
+              <div class="eyebrow">Started</div>
+              <div class="fact">{{ openRecordStartedLabel() }}</div>
+            </div>
+            <div>
+              <div class="eyebrow">Duration</div>
+              <div class="fact">{{ openRecordDurationLabel() }}</div>
+            </div>
+            <div>
+              <div class="eyebrow">Overall score</div>
+              <div class="fact">{{ openRecordScoreLabel() }}</div>
+            </div>
+          </div>
+
+          <div class="record-status">
+            <span class="chip dot {{ record.statusTone }}">{{ record.statusLabel }}</span>
+          </div>
+
+          <div class="consent-block">
+            <div class="eyebrow">Consent &amp; policy — as enforced</div>
+            <div class="consent-chips">
+              @if (record.audioRecorded) {
+                <span class="chip dot good">
+                  Audio stored — the student granted the audio scope
+                </span>
+              } @else {
+                <span class="chip dot neutral">
+                  No audio stored — the scope was refused or capture is off
+                </span>
+              }
+            </div>
+            <p class="consent-note">
+              Nothing here can change a scope. A grant is the student's own row, pinned to the
+              interview it authorised, and it is read-only to this office by design.
+            </p>
+          </div>
+
+          <div class="record-actions">
+            <button
+              type="button"
+              class="btn secondary sm"
+              [disabled]="!record.audioRecorded"
+              (click)="downloadOpenRecording()"
+            >
+              <span class="icon" aria-hidden="true">download</span> Download recording
+            </button>
+            @if (!record.audioRecorded) {
+              <span class="record-hint">No recording was stored for this interview.</span>
+            }
+          </div>
+
+          <div class="tabs record-tabs">
+            <button
+              type="button"
+              class="tab"
+              [class.active]="panelTab() === 'report'"
+              (click)="showReport()"
+            >
+              Report
+            </button>
+            <button
+              type="button"
+              class="tab"
+              [class.active]="panelTab() === 'transcript'"
+              (click)="showTranscript()"
+            >
+              Transcript
+            </button>
+          </div>
+
+          @if (panelLoading()) {
+            <p class="state-note" role="status">
+              <span class="icon" aria-hidden="true">hourglass_empty</span>Loading…
+            </p>
+          }
+          @if (panelNote()) {
+            <div class="notice accent" role="status">
+              <span class="icon" aria-hidden="true">info</span>{{ panelNote() }}
+            </div>
+          }
+
+          @if (reportOnScreen(); as scorecard) {
+            @if (reportIsReadable()) {
+              <div class="report-scores">
+                @for (tile of reportScoreTiles(); track tile.label) {
+                  <div class="report-score">
+                    <div class="eyebrow">{{ tile.label }}</div>
+                    <div class="score-value">{{ tile.value === null ? '—' : tile.value }}</div>
+                    <div class="score-hint">
+                      {{ tile.value === null ? 'not scored' : 'out of 100' }}
+                    </div>
+                  </div>
+                }
+              </div>
+              <p class="calibration">
+                <span class="icon" aria-hidden="true">info</span>
+                <span>
+                  A practice score generated by an AI from one session. It is not a placement
+                  decision — read the notes, not the number.
+                </span>
+              </p>
+              @if (scorecard.summary) {
+                <p class="report-summary">{{ scorecard.summary }}</p>
+              }
+              @if (reportStrengths().length > 0) {
+                <h3 class="report-sub">What went well</h3>
+                <ul class="report-list">
+                  @for (item of reportStrengths(); track $index) {
+                    <li>{{ item }}</li>
+                  }
+                </ul>
+              }
+              @if (reportImprovements().length > 0) {
+                <h3 class="report-sub">What to work on</h3>
+                <ul class="report-list">
+                  @for (item of reportImprovements(); track $index) {
+                    <li>{{ item }}</li>
+                  }
+                </ul>
+              }
+              @if (scorecard.drill) {
+                <p class="report-drill">
+                  <span class="eyebrow">Practise next</span>{{ scorecard.drill }}
+                </p>
+              }
+            } @else {
+              <div class="notice accent" role="status">
+                <span class="icon" aria-hidden="true">info</span>
+                The interview finished, but no readable report came back
+                ({{ scorecard.report_status }}). The transcript is still saved.
+              </div>
+            }
+          }
+
+          @if (transcriptOnScreen()) {
+            @if (transcriptTurns().length === 0) {
+              <div class="notice accent" role="status">
+                <span class="icon" aria-hidden="true">info</span>
+                No turns were saved for this interview.
+              </div>
+            } @else {
+              <ol class="transcript" aria-label="Interview transcript">
+                @for (turn of transcriptTurns(); track turn.seq) {
+                  <li class="turn" [class.turn-student]="turn.speaker === 'student'">
+                    <span class="turn-speaker">{{ turn.speaker }}</span>
+                    @if (turn.content) {
+                      <span class="turn-text">{{ turn.content }}</span>
+                    } @else {
+                      <span class="turn-unheard">
+                        not transcribed ({{ turn.transcription_status }})
+                      </span>
+                    }
+                  </li>
+                }
+              </ol>
+            }
+          }
+        } @else if (selectedCount() > 1) {
+          <div class="notice accent" role="status">
+            <span class="icon" aria-hidden="true">info</span>
+            {{ selectedCount() | plural: 'interview' }} selected,
+            {{ selectedRecordedCount() }} with a recording. Download them together, or tick a
+            single row to open its record.
+          </div>
+        } @else {
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            Tick one interview to read its report, its transcript and the consent it ran under.
+          </div>
+        }
+      </section>
+
+      <section class="card side-card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-heading">
+              @if (openRecord(); as record) {
+                {{ record.studentName }} · progress
+              } @else {
+                Progress
+              }
+            </h2>
+            <p class="card-sub">
+              @if (hasScoreTrend()) {
+                {{ scoreTrend().length | plural: 'interview' }} · {{ scoredSessionCount() }} scored
+              } @else {
+                overall score per interview, oldest first
+              }
+            </p>
+          </div>
+        </div>
+
+        @if (hasScoreTrend()) {
+          <div
+            #progressChart
+            class="progress-chart"
+            role="img"
+            aria-label="Overall score of each interview this student has taken, oldest first"
+          ></div>
+          <p class="chart-note">
+            An interview with no score leaves a gap in the line — a missing score and a zero are
+            opposite facts. Score summaries that outlive the retention clock are B6.2.
+          </p>
+        } @else {
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">insights</span>
+            Open one interview to draw that student's score across every interview they have taken.
+          </div>
+        }
+      </section>
+
+      <section class="card side-card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-heading">Retention</h2>
+            <p class="card-sub">what is kept, and for how long</p>
+          </div>
+          <button type="button" class="btn secondary sm" [reepPending]="4">Policy</button>
+        </div>
+        <ul class="retention-list">
+          <li>
+            <span class="retention-kind">Transcript</span> · {{ retentionDays }} days by default, then
+            deleted
+          </li>
+          <li>
+            <span class="retention-kind">Practice report</span> · {{ retentionDays }} days by default,
+            then deleted
+          </li>
+          <li>
+            <span class="retention-kind">Audio</span> · the same clock · only where the student granted
+            the audio scope
+          </li>
+          <li><span class="retention-kind">Erasure requests</span> · —</li>
+        </ul>
+        <div class="notice accent">
+          <span class="icon" aria-hidden="true">shield_person</span>
+          <span>
+            {{ retentionDays }} days is the PRODUCT DEFAULT
+            (<code>INTERVIEW_RETENTION_DAYS</code>). This deployment's own figure is set on the
+            server and no endpoint reports it, so the screen names the default rather than
+            stating a number it cannot read; that, and the per-college policy this card edits —
+            the scopes, the cap, the time limit and the erasure queue — are the interview policy
+            (B6.1). A downloaded recording leaves the clock behind entirely: it is a student's
+            voice on your machine.
+          </span>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

@@ -1,368 +1,195 @@
-/* Interview Questions. Colours from the reep-v2 tokens; `.tabs-row`, `.card`,
- * `.dt-table`, `.btn`, `.ctrl`, `.icon` are global. Everything scoped is
- * prefixed `iq-`; `.fld`, `.scroll` and `.empty-cell` are the same
- * component-local helpers the catalogue screen defines for itself. */
+/* Interview question bank — this screen's LAYOUT only.
+ *
+ * `.panel` `.card` `.chip` `.btn` `.field` `.ctrl` `.notice` `.rail`
+ * `.tree-row` `.crumb` `.dt-header` `.dt-title` `.dt-sub` `.dt-toolbar`
+ * `.dt-frame` `.dt-gridbar` `.dt-quickfilter` `.dt-table` `.dt-statusbar`
+ * `.icon` `.card-head` `.card-title` `.sr-only` are global
+ * (styles/reep-v2.scss) and are used as they are. What is
+ * here is the shape of this board: the 290px track rail beside the track card,
+ * the add / bulk panels, and the question grid's columns.
+ *
+ * Every class below is prefixed `bank-` (or is scoped inside one that is), so
+ * nothing here can be mistaken for a global the next screen might expect.
+ */
 
-.iq {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+:host {
+  display: block;
 }
 
-.iq-head {
-  h1 {
-    font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    margin: 0 0 6px;
-  }
-  p {
-    margin: 0;
-    max-width: 78ch;
-    color: var(--muted);
-    font-size: 14.5px;
-  }
-}
+/* --- banners -------------------------------------------------------------- */
 
-.iq-error {
-  color: var(--risk);
-  background: var(--risk-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
-}
-
-.iq-flash {
-  color: var(--good);
-  background: var(--good-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
-}
-
-.iq-count {
-  margin-left: 6px;
-  font-variant-numeric: tabular-nums;
-  font-size: 11.5px;
-  opacity: 0.85;
-}
-
-.iq-count__of {
-  opacity: 0.6;
-}
-
-.iq-grid {
-  display: grid;
-  grid-template-columns: minmax(280px, 380px) 1fr;
-  gap: 16px;
-  align-items: start;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* --- the add form ------------------------------------------------------ */
-
-.iq-form {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.iq-form__title,
-.iq-list__title {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 15px;
-}
-
-.fld {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted);
-
-  .ctrl {
-    font-weight: 400;
-    color: var(--ink);
-  }
-
-  textarea.ctrl {
-    resize: vertical;
-    line-height: 1.45;
-  }
-}
-
-.iq-form__foot {
-  display: flex;
+.bank-banner {
   align-items: center;
-  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.bank-banner__dismiss {
+  margin-left: auto;
+  flex: none;
+}
+
+/* --- the two columns ------------------------------------------------------ */
+
+.bank-body {
+  display: flex;
+  align-items: flex-start;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.iq-hint {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0;
-
-  code {
-    font-size: 11.5px;
-    background: var(--tint-3);
-    padding: 1px 5px;
-    border-radius: 5px;
-  }
-}
-
-.iq-bulk-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  background: none;
-  border: none;
-  padding: 4px 0;
-  color: var(--brand-purple);
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.iq-bulk {
+.bank-rail-card {
+  width: 290px;
+  flex: none;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--hairline);
 }
 
-.iq-bulk__text {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12.5px;
-  line-height: 1.5;
-  resize: vertical;
-}
-
-.iq-file {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.iq-skipped {
-  background: var(--warn-bg, rgba(217, 154, 0, 0.12));
-  color: var(--warn, #8f6100);
-  border-radius: 10px;
-  padding: 10px 13px;
-  font-size: 12.5px;
-
-  ul {
-    margin: 6px 0 0;
-    padding-left: 18px;
-  }
-}
-
-/* --- the list ---------------------------------------------------------- */
-
-.iq-list {
-  padding: 0;
-}
-
-.iq-list__head {
+.bank-main {
+  flex: 1 1 460px;
+  min-width: 0;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 14px 16px 10px;
-}
-
-.scroll {
-  overflow-x: auto;
-}
-
-.iq-table {
-  width: 100%;
-  min-width: 640px;
-
-  th,
-  td {
-    padding: 10px 12px;
-    text-align: left;
-    vertical-align: top;
-  }
-
-  th {
-    font-family: var(--font-display);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    border-bottom: 1px solid var(--hairline);
-    white-space: nowrap;
-  }
-
-  td {
-    border-bottom: 1px solid var(--hairline);
-    font-size: 13.5px;
-  }
-
-  tbody tr:last-child td {
-    border-bottom: 0;
-  }
-
-  tr.iq-off td {
-    opacity: 0.6;
-  }
-}
-
-.iq-ord {
-  width: 64px;
-  white-space: nowrap;
-}
-
-.iq-num {
-  display: inline-block;
-  min-width: 18px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.iq-move {
-  display: inline-flex;
   flex-direction: column;
-  vertical-align: middle;
-  margin-left: 4px;
+  gap: 10px;
 }
 
-.iq-phase {
-  width: 132px;
-}
+/* --- the track rail ------------------------------------------------------- */
 
-.iq-on {
-  width: 96px;
-  white-space: nowrap;
-}
-
-.iq-act {
-  width: 44px;
-}
-
-.ctrl--sm {
-  padding: 5px 8px;
-  font-size: 12.5px;
-}
-
-.iq-text {
-  width: 100%;
-  min-height: 44px;
-  resize: vertical;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 6px 8px;
-  font: inherit;
-  font-size: 13.5px;
-  line-height: 1.45;
-  background: transparent;
+/* The group row names what is below it and is not a choice, so it is not a
+   button and does not take the hover a `.tree-row` gives one. */
+.bank-tree-static {
+  cursor: default;
   color: var(--ink);
-
-  &:hover {
-    border-color: var(--hairline);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: var(--brand-purple);
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(122, 47, 158, 0.12);
-  }
+  font-weight: 700;
 }
 
-.iq-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  cursor: pointer;
-
-  input {
-    accent-color: var(--brand-purple);
-  }
-}
-
-.iq-mini {
-  width: 26px;
-  height: 22px;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  .icon {
-    font-size: 18px;
-  }
-
-  &:hover:not(:disabled) {
-    background: rgba(122, 47, 158, 0.08);
-    color: var(--brand-purple);
-  }
-
-  &:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-
-  &--danger:hover:not(:disabled) {
-    background: var(--risk-bg);
-    color: var(--risk);
-  }
-}
-
-.empty-cell {
-  color: var(--muted);
-  font-size: 13px;
-  padding: 18px 12px;
-}
-
-.iq-foot {
-  margin: 0;
-  padding: 10px 16px 14px;
-  font-size: 12.5px;
-  color: var(--muted);
-}
-
-/* The icon subset carries no vertical chevrons; a quarter turn makes "<" point
- * up and ">" point down without rebuilding the font. */
-.iq-rot {
+/* One categorical colour per track (01-design-system.md §1): FIN cat-1,
+   HR cat-2, MKT cat-3, BA cat-4 — fixed, so a track keeps its colour on every
+   screen that draws it. */
+.bank-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--seq-light);
+  flex: none;
   display: inline-block;
-  transform: rotate(90deg);
 }
 
-.iq-disclose {
-  display: inline-block;
-  transition: transform 120ms ease;
-
-  &--open {
-    transform: rotate(90deg);
-  }
+.bank-dot--finance {
+  background: var(--cat-1);
 }
 
-/* INVISIBLE BUT FOCUSABLE — see mentor/signature for the reasoning. `hidden`
-   inside a <label> makes a picker mouse-only. */
-.iq-file__input {
+.bank-dot--people {
+  background: var(--cat-2);
+}
+
+.bank-dot--marketing {
+  background: var(--cat-3);
+}
+
+.bank-dot--analytics {
+  background: var(--cat-4);
+}
+
+.bank-rail-note {
+  font-size: 11.5px;
+  padding: 10px 12px;
+}
+
+.bank-add-track {
+  align-self: flex-start;
+}
+
+/* --- faint helper text (a card head's sub-line, the bulk panel's rules) ---- */
+
+.bank-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* --- the track card ------------------------------------------------------- */
+
+.bank-track-card,
+.bank-form-card,
+.bank-grid-card {
+  padding: 14px;
+}
+
+.bank-track-card .notice {
+  margin-bottom: 12px;
+}
+
+.bank-persona {
+  margin-bottom: 10px;
+}
+
+.bank-track-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bank-frameworks {
+  width: 300px;
+  max-width: 100%;
+}
+
+.bank-voice {
+  width: 120px;
+}
+
+.bank-cap {
+  width: 120px;
+}
+
+/* --- the add and bulk panels ---------------------------------------------- */
+
+.bank-form-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bank-phase-field {
+  width: 160px;
+}
+
+.bank-text-field {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.bank-form-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.bank-bulk-text {
+  min-height: 150px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bank-skipped {
+  margin-top: 10px;
+}
+
+.bank-skipped ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+/* INVISIBLE BUT FOCUSABLE — `hidden` inside a label makes a picker
+   mouse-only, and the label is not tabbable in its place. */
+.bank-file {
+  position: relative;
+}
+
+.bank-file__input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -371,7 +198,187 @@
   white-space: nowrap;
 }
 
-.iq-file:focus-within {
+.bank-file:focus-within {
   outline: 2px solid var(--brand-purple);
   outline-offset: 2px;
+}
+
+/* --- the question grid ---------------------------------------------------- */
+
+.bank-gridbar-end {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+}
+
+/* `.dt-gridbar` wraps, so a full-width child is a second line of the bar —
+   which cannot be clipped by `.dt-frame`'s `overflow: hidden` and cannot land
+   on top of the toolbar when the bar itself wraps. */
+.bank-columns-panel {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--hairline-26);
+}
+
+.bank-columns-panel__title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+}
+
+.bank-columns-panel__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.bank-scroll {
+  overflow-x: auto;
+  max-height: clamp(320px, calc(100vh - 470px), 640px);
+  overflow-y: auto;
+}
+
+.bank-table {
+  min-width: 820px;
+}
+
+.bank-table--compact td,
+.bank-table--compact th {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.bank-tick {
+  width: 36px;
+}
+
+.bank-number {
+  width: 52px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bank-phase {
+  width: 130px;
+}
+
+.bank-phase-select {
+  height: 28px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.bank-metric {
+  width: 86px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+
+.bank-status {
+  width: 120px;
+}
+
+/* A chip that toggles: the button carries no dress of its own, so the chip
+   stays the chip the design system defines. */
+.bank-status-toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.bank-status-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.bank-question-text {
+  width: 100%;
+  min-height: 34px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  padding: 5px 7px;
+}
+
+.bank-question-text:hover {
+  border-color: var(--hairline-26);
+  background: var(--surface);
+}
+
+.bank-question-text:focus {
+  outline: none;
+  border-color: var(--purple-mid);
+  background: var(--surface);
+  box-shadow: var(--focus-ring);
+}
+
+.bank-actions {
+  width: 120px;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.bank-icon-btn {
+  padding: 0 7px;
+}
+
+/* Material Symbols has `expand_more` in the subset and no `expand_less`; the
+   same glyph turned over is the pair. */
+.bank-arrow-up {
+  display: inline-block;
+  transform: rotate(180deg);
+}
+
+.bank-empty {
+  color: var(--muted);
+  padding: 18px 10px;
+  text-align: center;
+}
+
+.bank-state {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0;
+  padding: 14px 12px;
+}
+
+.bank-pagesize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bank-pagesize select {
+  height: 26px;
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-seg);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.bank-foot {
+  font-size: 11.5px;
+  color: var(--faint);
+  margin: 8px 0 0;
+  line-height: 1.5;
 }

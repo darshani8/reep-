@@ -179,10 +179,6 @@ function initialsOf(name: string): string {
   return `${first}${last}`.toUpperCase();
 }
 
-function asCsvCell(value: string): string {
-  return `"${value.split('"').join('""')}"`;
-}
-
 @Component({
   selector: 'app-governance',
   standalone: true,
@@ -434,44 +430,6 @@ export class GovernanceComponent {
       }
       return [...merged];
     });
-  }
-
-  /** The rows in view, as the operator filtered them — never the whole table
-   *  under a name that says otherwise. */
-  exportRowsInView(): void {
-    const header = [
-      'Person or group',
-      'Kind',
-      'Function',
-      'Scope',
-      'Granted by',
-      'Expires',
-      'Status',
-      'Reason',
-    ];
-    const body = this.filteredGrants().map((row) => [
-      row.subjectLabel,
-      row.subjectKindLabel,
-      row.functionLabel,
-      row.reachLabel,
-      row.grantedByLabel,
-      row.expiresLabel,
-      row.statusLabel,
-      row.reason,
-    ]);
-    const csv = [header, ...body].map((cells) => cells.map(asCsvCell).join(',')).join('\r\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'roles-and-functions.csv';
-    // IN the document, which is the house pattern (interview-questions,
-    // interviews, english all do this): Firefox ignores `click()` on an anchor
-    // that was never attached, so a detached one is a button that silently
-    // downloads nothing on a third of the college's laptops.
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
   }
 
   // =========================================================================

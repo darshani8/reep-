@@ -490,10 +490,6 @@ export class AdminFacultyComponent {
     this.gridApi?.setColumnsVisible([columnId], !wasVisible);
   }
 
-  exportVisibleRows(): void {
-    this.gridApi?.exportDataAsCsv({ fileName: 'reep-faculty.csv' });
-  }
-
   /** The name column and the chevron both arrive here, and both open the
    *  drawer: the row IS the record, and a second way in is a second thing to
    *  keep working. */

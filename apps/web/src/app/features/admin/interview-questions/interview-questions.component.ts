@@ -11,9 +11,17 @@
  *
  * WHAT IS LIVE HERE, and it is the whole existing surface:
  * `/api/admin/interview-questions` — `/tracks`, the list, POST, `/bulk`,
- * PATCH, DELETE and `/reorder`. Search, the column and density choices, the
- * page size and the CSV are all done over rows already loaded, so they need no
- * endpoint of their own.
+ * PATCH, DELETE and `/reorder`. Search, the column and density choices and the
+ * page size are all done over rows already loaded, so they need no endpoint of
+ * their own.
+ *
+ * THERE IS NO EXPORT BUTTON ON THIS GRID, and that is deliberate: the board
+ * draws Columns and Density and nothing else, and 02-admin-console-spec.md §22
+ * makes every extract a card on the Exports screen, behind `admin.exports`,
+ * carrying a PII flag and an audited download history. A client-side CSV built
+ * from the rows in view hands the same data out from a screen gated on
+ * `admin.interview_questions`, with no audit row and no flag — it routes around
+ * the control §22 exists to impose. An extract of this bank belongs there.
  *
  * WHAT THE BOARD DRAWS THAT NOTHING CAN ANSWER YET, drawn disabled and said
  * once in a notice rather than filled with a plausible number:
@@ -524,33 +532,6 @@ export class InterviewQuestionsComponent {
     });
   }
 
-  /** The rows in view, as the office reads them, saved as a CSV. Asked and Avg
-   *  score are left out of the file for the same reason they are a dash on
-   *  screen: nothing has measured them. */
-  exportVisibleRows(): void {
-    const header = ['#', 'Phase', 'Question', 'Status'];
-    const lines = [header.map((cell) => this.csvCell(cell)).join(',')];
-    for (const row of this.matchingRows()) {
-      lines.push(
-        [
-          this.csvCell(String(row.number)),
-          this.csvCell(this.phaseLabel(row.question.phase)),
-          this.csvCell(row.question.text),
-          this.csvCell(row.question.enabled ? 'Enabled' : 'Disabled'),
-        ].join(','),
-      );
-    }
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `reep-question-bank-${this.selectedTrackKey()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  }
-
   // --------------------------------------------------------- event reads --
 
   inputValue(event: Event): string {
@@ -645,10 +626,6 @@ export class InterviewQuestionsComponent {
     const questions = count === 1 ? '1 question' : `${count} questions`;
     if (enabled) return `${questions} enabled.`;
     return `${questions} paused — they stay in the bank and are left out of interviews.`;
-  }
-
-  private csvCell(value: string): string {
-    return `"${value.replace(/"/g, '""')}"`;
   }
 
   private async whileBusy(work: () => Promise<void>): Promise<void> {

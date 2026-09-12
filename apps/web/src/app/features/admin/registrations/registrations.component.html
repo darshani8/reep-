@@ -15,6 +15,10 @@
       <button type="button" class="btn secondary" (click)="openSeatingRules()">
         <span class="icon" aria-hidden="true">settings</span> Seating rules
       </button>
+      <!-- THE ONE EXPORT ON THIS SCREEN, and the only grid Export in the
+           console: the board puts it here and spec §10 lists it. Everywhere
+           else an extract is a card on /admin/exports behind `admin.exports`
+           (spec §22) — do not add a second one to the grid toolbar below. -->
       <button type="button" class="btn secondary" (click)="exportVisibleRows()">
         <span class="icon" aria-hidden="true">download</span> Export
       </button>
@@ -157,14 +161,12 @@
           >
             <span class="icon" aria-hidden="true">tune</span>
           </button>
-          <button
-            type="button"
-            class="btn secondary sm"
-            aria-label="Download the applications in view as CSV"
-            (click)="exportVisibleRows()"
-          >
-            <span class="icon" aria-hidden="true">download</span>
-          </button>
+          <!-- NO EXPORT HERE. The board draws Export ONCE, in the page header
+               beside Seating rules; this grid toolbar carries Columns and
+               Density and nothing else. The duplicate that stood here handed
+               the same rows out from a second control, which is also how an
+               extract escapes the Exports screen that spec §22 makes every
+               extract live on. One button, one export. -->
         </span>
 
         @if (columnsPanelOpen()) {

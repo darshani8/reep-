@@ -395,10 +395,6 @@ export class AdminJobsSheetComponent {
     this.gridApi?.setColumnsVisible([columnId], !wasVisible);
   }
 
-  exportVisibleRows(): void {
-    this.gridApi?.exportDataAsCsv({ fileName: 'reep-jobs-sheet.csv' });
-  }
-
   // ================================================= the posting form ====
 
   togglePostingForm(): void {

@@ -1,321 +1,225 @@
-/* Mentor assignment. Two cards: the mentor with their roster, and the pool.
-   Panel / card / chip / btn / ctrl / icon are global. */
+/* Mentor mapping — this screen's LAYOUT only.
+ *
+ * .panel .card .chip .btn .select .field .notice .meter .avatar .rail .crumb
+ * .dt-header .dt-title .dt-sub .dt-toolbar .dt-quickfilter .dt-statusbar are
+ * global (styles/reep-v2.scss) and are used as they are. What is here is the
+ * shape of this board: the filter row, the two columns, the faculty rail rows,
+ * the mentee list and the assign bar — plus the card head, which the design
+ * system draws on every board and has no global class of its own yet.
+ */
 :host {
   display: block;
 }
 
-.assign-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
-  align-items: start;
-}
-
-.card-head {
+/* --- the board's filter row --------------------------------------------- */
+.filters {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-.card-head.baseline {
-  align-items: baseline;
-}
-.card-title {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-.mentor-select {
-  width: auto;
-  max-width: 100%;
-  padding: 8px 11px;
-  background: var(--tint-2);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.mentor-box {
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  margin-bottom: 14px;
-}
-.mentor-name {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--ink);
-}
-.mentor-focus {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 2px;
-}
-.mentor-chips {
-  display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 10px;
+  margin-bottom: 12px;
 }
-.mentor-chips .chip {
-  padding: 4px 9px;
-  font-size: 12px;
-  background: rgba(58, 31, 82, 0.06);
-  color: var(--ink-nav);
-}
-.mentor-chips .chip.good {
-  background: var(--good-bg);
-  color: var(--good);
-}
-.mentor-chips .chip.risk {
-  background: var(--risk-bg);
-  color: var(--risk);
+/* A filter whose endpoint is a Phase 4 task. The <select> inside carries
+   [reepPending], which disables it and names the phase; this dims the pill it
+   sits in so the row reads as "not yet" at a glance. */
+.filter-pending {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-.list-lbl {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  color: var(--faint);
-  margin-bottom: 8px;
+.panel > .notice {
+  margin-bottom: 10px;
 }
-.list {
+
+/* --- card head: title, actions right ------------------------------------- */
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.card-heading {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+  margin: 0;
+}
+.card-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* --- the two columns ----------------------------------------------------- */
+.mapping {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .mapping {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.mapping__right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rail-card,
+.pool-card,
+.history-card {
+  padding: 12px;
+}
+
+/* --- one faculty member on the rail -------------------------------------- */
+.mentor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--hairline-26);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.mentor-row + .mentor-row {
+  margin-top: 4px;
+}
+.mentor-row:hover {
+  border-color: var(--hairline-42);
+  background: var(--tint-3);
+}
+.mentor-row.selected {
+  background: var(--tint-1);
+  border-color: var(--tint-1);
+}
+.mentor-row__body {
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-.pool-list {
-  margin-bottom: 14px;
-}
-.row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 2px;
-  border-bottom: 1px solid var(--hairline-26);
-  font-size: 13px;
-  color: var(--ink);
-}
-.row--pick {
-  cursor: pointer;
-}
-.row--pick input {
-  accent-color: var(--purple-mid);
-  width: 15px;
-  height: 15px;
-  flex: none;
-}
-.row-name {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
-  overflow-wrap: anywhere;
 }
-.row-meta {
-  color: var(--muted);
-  font-size: 12px;
+.mentor-row__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.rm-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1px solid var(--hairline-42);
-  background: var(--surface);
-  color: var(--muted);
+.mentor-row__line {
+  font-size: 11.5px;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mentor-row__count {
   flex: none;
-}
-.rm-btn .icon {
-  font-size: 16px;
-}
-.rm-btn:hover {
-  background: var(--risk-bg);
-  color: var(--risk);
-  border-color: rgba(173, 36, 82, 0.3);
-}
-.rm-btn[disabled] {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.list-empty {
-  padding: 12px 2px;
+  font-size: 12px;
   color: var(--muted);
-  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
-.list-empty.good {
-  color: var(--good);
-  font-weight: 600;
+.mentor-row .meter {
+  margin-top: 4px;
+}
+/* The one fill the global .meter does not have: a group that is full reads in
+   the risk colour, beside the words "At capacity" on the line above it —
+   colour never carries the status alone. */
+.meter > span.at-capacity {
+  background: var(--risk);
 }
 
-.pool-count {
-  color: var(--warn);
-  font-size: 12px;
+/* --- the selected faculty member's mentees ------------------------------- */
+.list-lbl {
+  font-family: var(--font-display);
+  font-size: 11px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  margin: 14px 0 6px;
 }
-.pool-foot {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-  padding-top: 14px;
-  border-top: 1px solid var(--hairline);
-}
-.goes-to {
-  color: var(--muted);
-  font-size: 12px;
-}
-.flash {
-  margin-top: 12px;
-}
-.flash .chip {
-  white-space: normal;
-}
-
-.state-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  color: var(--muted);
-  font-size: 12.5px;
-}
-.state-note .icon {
-  font-size: 16px;
-  color: var(--purple-mid);
-}
-.state-note.risk {
-  color: var(--risk);
-}
-.state-note.risk .icon {
-  color: var(--risk);
-}
-
-/* Designation / department line under the chips, and its inline editor. */
-.mentor-identity {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-.identity-form {
+.mentee-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+}
+.mentee {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 6px 4px;
+  border-top: 1px solid var(--hairline-26);
+}
+.mentee__name {
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mentee__line {
+  grid-column: 1;
+  font-size: 11.5px;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mentee .btn {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+.mentee-empty {
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 8px 4px;
+}
+
+/* --- the pool grid and the one primary action ---------------------------- */
+.pool-grid {
+  display: block;
+  height: 320px;
   width: 100%;
 }
-
-/* Faculty accounts: the Main Admin's create form and the activation link it hands over. */
-.add-faculty {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
+.pool-card .dt-statusbar {
+  border: 1px solid var(--hairline-42);
+  border-top: 0;
+  border-radius: 0 0 var(--r-control) var(--r-control);
 }
-.add-faculty__head {
+.pool-card .notice {
+  margin-top: 10px;
+}
+.assign-bar {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
   flex-wrap: wrap;
+  margin-top: 10px;
 }
-.add-faculty__title {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 15px;
-  margin-bottom: 4px;
-}
-.add-faculty__form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--hairline);
-}
-.add-faculty__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px 14px;
-
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--muted);
-  }
-  .opt {
-    font-weight: 400;
-  }
-  .ctrl {
-    font-weight: 400;
-    color: var(--ink);
-  }
-}
-.add-faculty__foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.add-faculty__actions {
-  display: inline-flex;
-  gap: 6px;
-}
-.link-box {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--good-bg);
-  color: var(--ink);
-  margin-top: 8px;
-}
-.link-box__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-
-  .icon {
-    color: var(--good);
-  }
-}
-.link-box__row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.link-box__link {
-  flex: 1;
+.assign-reason {
+  flex: 1 1 260px;
   min-width: 0;
-  font-size: 12px;
-  word-break: break-all;
-  background: #fff;
-  border: 1px solid var(--hairline);
-  border-radius: 8px;
-  padding: 6px 8px;
 }
 
-/* Filing a faculty member under a department, inline on their row.
-   The label is hidden from sight but NOT from the accessibility tree: a bare
-   <select> in a row of buttons is "combo box" to a screen reader, which is the
-   same thing the a11y sweep fixed everywhere else. Geometry, never
-   display:none — that would take it out of the focus order too. */
+/* The label is hidden from sight but NOT from the accessibility tree.
+   Geometry, never display:none — that would take it out of the focus order. */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -323,17 +227,4 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-.file-faculty {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-
-  .ctrl {
-    min-width: 220px;
-    max-width: 340px;
-  }
 }

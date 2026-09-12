@@ -60,18 +60,6 @@
   overflow-x: auto;
 }
 
-/* The table's accessible caption, hidden by geometry rather than display:none
-   so a screen reader still reads it. */
-.colleges-caption {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 .colleges-table th.num,
 .colleges-table td.num {
   text-align: right;
@@ -126,28 +114,6 @@
 }
 
 /* --- the two cards ------------------------------------------------------ */
-
-.colleges-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.colleges-card-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.colleges-card-sub {
-  margin: 1px 0 0;
-  font-size: 11.5px;
-  color: var(--faint);
-}
 
 .functions-card .notice,
 .platform-card .notice {

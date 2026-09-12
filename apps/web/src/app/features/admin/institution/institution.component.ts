@@ -69,6 +69,7 @@ import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { HierarchyLevel, HierarchySchemaService } from '../../../core/hierarchy-schema.service';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // ---- exact snake_case shapes of the admin router's Out models -------------
 
@@ -154,7 +155,7 @@ const PHASE_FOR_INTERVIEW_TRACKS = 4;
 @Component({
   selector: 'app-admin-institution',
   standalone: true,
-  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, PendingControlDirective],
+  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, PendingControlDirective, PluralPipe],
   templateUrl: './institution.component.html',
   styleUrl: './institution.component.scss',
 })
@@ -902,8 +903,7 @@ export class AdminInstitutionComponent implements OnDestroy {
 
   /** The rail's count line for a department: "4 batches". */
   batchCountOf(d: DepartmentOut): string {
-    if (d.cohort_count === 1) return '1 batch';
-    return `${d.cohort_count} batches`;
+    return plural(d.cohort_count, 'batch', 'batches');
   }
 
   /** The rail's line for a course: "24 months · 4 specializations".
@@ -914,9 +914,10 @@ export class AdminInstitutionComponent implements OnDestroy {
    *  dividing 18 by 12 to print "1 yr" would round a real answer into a wrong
    *  one. */
   specializationCountOf(c: AcademicCourseOut): string {
-    const counted =
-      c.specialization_count === 1 ? '1 specialization' : `${c.specialization_count} specializations`;
-    return c.duration_months === null ? counted : `${c.duration_months} months · ${counted}`;
+    const counted = plural(c.specialization_count, 'specialization');
+    return c.duration_months === null
+      ? counted
+      : `${plural(c.duration_months, 'month')} · ${counted}`;
   }
 
   readonly requiredLabels = computed(() =>

@@ -60,6 +60,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe } from '../../../shared/text/plural.pipe';
 
 // ---- the exact snake_case shapes of the routers' Out models ---------------
 
@@ -182,7 +183,7 @@ const FUNCTION_CHOICES: FunctionChoice[] = [
 @Component({
   selector: 'app-admin-add-faculty',
   standalone: true,
-  imports: [RouterLink, PendingControlDirective],
+  imports: [RouterLink, PendingControlDirective, PluralPipe],
   templateUrl: './faculty-new.component.html',
   styleUrl: './faculty-new.component.scss',
 })

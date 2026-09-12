@@ -34,6 +34,7 @@ import {
 
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
+import { PluralPipe } from '../../shared/text/plural.pipe';
 
 const MIN_LENGTH = 12;
 
@@ -46,7 +47,7 @@ function matching(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-change-password',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, PluralPipe],
   templateUrl: './change-password.component.html',
   styleUrl: './change-password.component.scss',
 })

@@ -63,6 +63,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { plural } from '../../../shared/text/plural.pipe';
 import {
   type ActivityEntry,
   type AdminStudentOut,
@@ -299,7 +300,7 @@ export class AdminStudentDetailComponent {
       return attempt.pending_label;
     }
     if (attempt.band_label === null) {
-      return `${attempt.sections_scored} of ${attempt.sections_total} sections scored`;
+      return `${attempt.sections_scored} of ${plural(attempt.sections_total, 'section')} scored`;
     }
     return attempt.band_label;
   });
@@ -331,7 +332,7 @@ export class AdminStudentDetailComponent {
         items.push({
           chip: 'Time sheet',
           tone: 'warn',
-          text: `${unsubmitted} of the last ${summary.window_days} days started and never submitted`,
+          text: `${unsubmitted} of the last ${plural(summary.window_days, 'day')} started and never submitted`,
         });
       }
     }
@@ -340,7 +341,7 @@ export class AdminStudentDetailComponent {
       items.push({
         chip: 'English',
         tone: 'neutral',
-        text: `${attempt.sections_scored} of ${attempt.sections_total} sections scored`,
+        text: `${attempt.sections_scored} of ${plural(attempt.sections_total, 'section')} scored`,
       });
     }
     return items;

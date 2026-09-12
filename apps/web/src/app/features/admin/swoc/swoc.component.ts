@@ -37,6 +37,7 @@ import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe } from '../../../shared/text/plural.pipe';
 
 /**
  * Scope (B7.1), ownership (B7.2), edit history (B7.3), the semester view
@@ -141,7 +142,7 @@ const ALL_BATCHES = '';
 @Component({
   selector: 'app-admin-swoc',
   standalone: true,
-  imports: [PendingControlDirective],
+  imports: [PendingControlDirective, PluralPipe],
   templateUrl: './swoc.component.html',
   styleUrl: './swoc.component.scss',
 })

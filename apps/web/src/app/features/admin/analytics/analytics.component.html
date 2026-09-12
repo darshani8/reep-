@@ -5,8 +5,8 @@
       <h1 class="dt-title">Placement analytics</h1>
       <div class="dt-sub">
         @if (summary(); as figures) {
-          Programme-wide · {{ figures.students_total }} students ·
-          {{ figures.mentors_total }} mentors with a group
+          Programme-wide · {{ figures.students_total | plural: 'student' }} ·
+          {{ figures.mentors_total | plural: 'mentor' }} with a group
           @if (figures.semester !== null) {
             · semester {{ figures.semester }}
           }
@@ -122,7 +122,8 @@
              counts. Say which, or the tile is a programme figure that is not
              one. -->
         <div class="sub">
-          mean of {{ studentsWithAttendanceRecorded() }} students with a mentor and attendance recorded
+          mean of {{ studentsWithAttendanceRecorded() | plural: 'student' }} with a mentor and
+          attendance recorded
         </div>
       } @else {
         <div class="num">—</div>
@@ -145,9 +146,11 @@
         <div class="num">{{ pendingApprovals() }}</div>
         <div class="sub">
           @if (holds('admin.registrations')) {
-            <a routerLink="/admin/registrations">{{ figures.pending_registrations }} registrations</a>
+            <a routerLink="/admin/registrations">{{
+              figures.pending_registrations | plural: 'registration'
+            }}</a>
           } @else {
-            {{ figures.pending_registrations }} registrations
+            {{ figures.pending_registrations | plural: 'registration' }}
           }
           · {{ figures.evidence_awaiting_verification }} evidence
         </div>
@@ -254,7 +257,9 @@
                account. Both said "mentors" and the header's figure was the
                smaller of the two — one screen, one word, two numbers. -->
           <h2 class="card-heading">
-            Mentor load@if (mentorLoadLoaded()) { · {{ mentorRows().length }} faculty accounts }
+            Mentor load@if (mentorLoadLoaded()) {
+              · {{ mentorRows().length | plural: 'faculty account' }}
+            }
           </h2>
           <p class="card-sub">
             Every faculty account, including one holding nobody yet — which is why this count is at or

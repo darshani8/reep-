@@ -94,9 +94,9 @@
     <!-- ===================================================== the wizard === -->
     <div class="imports-main">
       <div class="card wizard-card">
-        <div class="imports-card-head">
-          <h2 class="imports-card-title">New import</h2>
-          <span class="imports-card-sub">{{ datasetFileShape() }}</span>
+        <div class="card-head">
+          <h2 class="card-title">New import</h2>
+          <span class="card-sub">{{ datasetFileShape() }}</span>
         </div>
 
         <div class="wizard-steps">
@@ -145,8 +145,8 @@
 
       <!-- =================================================== the preview === -->
       <div class="card preview-card">
-        <div class="imports-card-head">
-          <h2 class="imports-card-title">{{ previewCardTitle() }}</h2>
+        <div class="card-head">
+          <h2 class="card-title">{{ previewCardTitle() }}</h2>
         </div>
 
         <div class="notice accent preview-note">
@@ -212,7 +212,7 @@
           @if (hasPreviewRows()) {
             <!-- The board's three counts. They appear only once the server has
                  returned verdicts, never as a number this screen made up. -->
-            <span class="chip dot neutral">{{ previewRowCount() }} rows read</span>
+            <span class="chip dot neutral">{{ previewRowCount() | plural: 'row' }} read</span>
           }
           <span class="preview-rule">
             Same student + semester rows are updated, never duplicated · audited
@@ -230,8 +230,8 @@
 
       <!-- ============================================ the import history === -->
       <div class="card history-card">
-        <div class="imports-card-head">
-          <h2 class="imports-card-title">Recent imports</h2>
+        <div class="card-head">
+          <h2 class="card-title">Recent imports</h2>
         </div>
         <div class="dt-frame">
           <ag-grid-angular
@@ -250,8 +250,8 @@
     <!-- ================================================== the criteria === -->
     <div class="imports-side">
       <div class="card criteria-card">
-        <div class="imports-card-head">
-          <h2 class="imports-card-title">{{ criteriaCardTitle() }}</h2>
+        <div class="card-head">
+          <h2 class="card-title">{{ criteriaCardTitle() }}</h2>
           @if (criteriaState() === 'ready') {
             <span class="chip accent">
               <span class="icon" aria-hidden="true">lock</span> Read-only

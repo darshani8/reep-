@@ -45,7 +45,7 @@
 
       <div class="notice accent">
         <span class="icon" aria-hidden="true">undo</span>
-        Reversible: the account can be re-enabled by the Main Admin within {{ reversibleForDays }} days
+        Reversible: the account can be re-enabled by the Main Admin within {{ reversibleForDays | plural: 'day' }}
         with its history intact — the functions are re-granted explicitly, never restored silently.
         Deleting data is a separate, audited purge.
       </div>

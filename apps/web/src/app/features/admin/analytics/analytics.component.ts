@@ -67,6 +67,7 @@ import {
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe } from '../../../shared/text/plural.pipe';
 
 // The design system's chart theme, registered once for this lazily-loaded
 // chunk. Registration alone does nothing — ECharts applies a theme at init —
@@ -285,7 +286,7 @@ function formatWeeklyTooltip(points: WeeklyTooltipPoint[]): string {
 @Component({
   selector: 'app-admin-analytics',
   standalone: true,
-  imports: [DatePipe, RouterLink, AgGridAngular, PendingControlDirective],
+  imports: [DatePipe, RouterLink, AgGridAngular, PendingControlDirective, PluralPipe],
   templateUrl: './analytics.component.html',
   styleUrl: './analytics.component.scss',
 })

@@ -51,6 +51,7 @@ import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import type { BatchSummary, StageTally } from './batch-summary';
 import { GraduateBatchDialogComponent } from './graduate-batch-dialog.component';
 import { PromoteBatchDialogComponent } from './promote-batch-dialog.component';
@@ -104,7 +105,13 @@ import {
   // RouterLink is REQUIRED for the Registrations and Mentor mapping links: a
   // `routerLink` in a standalone component that does not import it is inert
   // markup — it renders, it looks like a link, and clicking it does nothing.
-  imports: [RouterLink, AgGridAngular, PromoteBatchDialogComponent, GraduateBatchDialogComponent],
+  imports: [
+    RouterLink,
+    AgGridAngular,
+    PluralPipe,
+    PromoteBatchDialogComponent,
+    GraduateBatchDialogComponent,
+  ],
   templateUrl: './students.component.html',
   styleUrls: ['./students.component.scss', './batch-dialog.scss'],
 })
@@ -301,8 +308,7 @@ export class AdminStudentsComponent {
     // "in view" whenever the count on screen is not the whole of what was asked
     // for: the same number means two different things with a filter on.
     const students =
-      `${this.studentCount()} student${this.studentCount() === 1 ? '' : 's'}` +
-      (this.rosterIsNarrowed() ? ' in view' : '');
+      plural(this.studentCount(), 'student') + (this.rosterIsNarrowed() ? ' in view' : '');
     const seated = `${this.seatedCount()} seated with a faculty member`;
     const batch = this.selectedBatch();
     if (batch !== null) {
@@ -452,10 +458,7 @@ export class AdminStudentsComponent {
     };
   });
 
-  readonly selectionSummary = computed(() => {
-    const count = this.selectedCount();
-    return `${count} student${count === 1 ? '' : 's'}`;
-  });
+  readonly selectionSummary = computed(() => plural(this.selectedCount(), 'student'));
 
   // ======================================================= grid options ====
   //
@@ -855,7 +858,7 @@ export class AdminStudentsComponent {
         written = written + 1;
       }
       this.closeDialog();
-      const outcome = `${written} of ${students.length} student${students.length === 1 ? '' : 's'}: ${this.describeSelection(action)}`;
+      const outcome = `${written} of ${plural(students.length, 'student')}: ${this.describeSelection(action)}`;
       if (failure === null) this.flash.set(`${outcome}.`);
       await Promise.all([this.reloadRoster(), this.loadFaculty()]);
       if (failure !== null) this.error.set(`${outcome}, then the next was refused: ${failure}`);
@@ -918,7 +921,7 @@ export class AdminStudentsComponent {
       const result = (await response.json()) as { affected: number };
       this.closeDialog();
       this.flash.set(
-        `${result.affected} student${result.affected === 1 ? '' : 's'}: ${this.describeBatchAction(action)}.`,
+        `${plural(result.affected, 'student')}: ${this.describeBatchAction(action)}.`,
       );
       await Promise.all([this.reloadRoster(), this.loadFaculty()]);
     });

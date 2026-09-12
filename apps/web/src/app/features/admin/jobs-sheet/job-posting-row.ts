@@ -20,6 +20,8 @@
  * software in a screenshot, which is the one thing this phase must not ship.
  */
 
+import { plural } from '../../../shared/text/plural.pipe';
+
 /** Rows per page the status bar offers, and the one it starts on. */
 export const PAGE_SIZES = [10, 25, 50, 100];
 export const DEFAULT_PAGE_SIZE = 10;
@@ -235,7 +237,7 @@ function statusLabelOf(daysLeft: number | null, isClosed: boolean, isClosingSoon
   // the board it publishes to say the same thing about the same posting.
   if (isClosingSoon) {
     if (daysLeft <= 0) return 'Closes today';
-    return `Closes in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
+    return `Closes in ${plural(daysLeft, 'day')}`;
   }
   return 'Open';
 }

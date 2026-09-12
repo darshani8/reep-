@@ -3,10 +3,10 @@
  * `.panel` `.card` `.chip` `.btn` `.seg` `.select` `.field` `.ctrl` `.help`
  * `.notice` `.tabs` `.tab` `.eyebrow` `.crumb` `.avatar` `.icon` `.dt-header`
  * `.dt-title` `.dt-sub` `.dt-toolbar` `.dt-frame` `.dt-gridbar`
- * `.dt-quickfilter` `.dt-statusbar` `.dt-table` `.pinned` `.selected` are
- * global (styles/reep-v2.scss) and are used exactly as they are. Nothing here
- * redefines one: every rule below is either on a `gov-*` class this screen
- * owns, or on an element inside one.
+ * `.dt-quickfilter` `.dt-statusbar` `.dt-table` `.pinned` `.selected`
+ * `.sr-only` are global (styles/reep-v2.scss) and are used exactly as they
+ * are. Nothing here redefines one: every rule below is either on a `gov-*`
+ * class this screen owns, or on an element inside one.
  *
  * What is here is the shape of this board: the filter row, the grants grid
  * beside its 380px grant panel, the shared revoke reason card, and the group
@@ -195,18 +195,6 @@
 .gov-empty {
   color: var(--muted);
   font-size: 12.8px;
-}
-
-/* A heading a screen reader needs and the eye does not. Geometry, never
-   display:none — the same rule the file inputs follow. */
-.gov-hidden-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 .gov-pagesize {

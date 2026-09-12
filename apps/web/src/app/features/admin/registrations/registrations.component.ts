@@ -64,6 +64,7 @@ import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { plural } from '../../../shared/text/plural.pipe';
 
 // ----------------------------------------------------------------- rules --
 
@@ -540,8 +541,8 @@ export class AdminRegistrationsComponent {
     if (automatic.length === 0) {
       return 'No seating rule auto-approves, so every application waits here for a decision.';
     }
-    const plural = automatic.length === 1 ? 'rule auto-approves' : 'rules auto-approve';
-    return `${automatic.length} seating ${plural}; everything else waits here for a decision.`;
+    const counted = plural(automatic.length, 'seating rule auto-approves', 'seating rules auto-approve');
+    return `${counted}; everything else waits here for a decision.`;
   });
 
   // ==================================================== what a decision hits ==
@@ -565,10 +566,7 @@ export class AdminRegistrationsComponent {
     return targets[0];
   });
 
-  readonly decisionSummary = computed(() => {
-    const count = this.decisionTargets().length;
-    return `${count} application${count === 1 ? '' : 's'}`;
-  });
+  readonly decisionSummary = computed(() => plural(this.decisionTargets().length, 'application'));
 
   readonly selectedCount = computed(() => this.selectedRows().length);
 

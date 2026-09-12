@@ -61,7 +61,7 @@
           <div class="account-row">
             <span class="icon account-row__lead" aria-hidden="true">lock</span>
             <div class="account-row__body">
-              <div>Password · {{ minPasswordLength }} characters or more</div>
+              <div>Password · {{ minPasswordLength | plural: 'character' }} or more</div>
               <div class="account-hint">
                 We email a six-digit code to confirm it is you — being signed in is not the
                 proof, the code is.
@@ -197,7 +197,7 @@
                     ) {
                       <div class="err" role="alert">
                         <span class="icon" aria-hidden="true">error</span>
-                        Needs {{ minPasswordLength }} characters or more.
+                        Needs {{ minPasswordLength | plural: 'character' }} or more.
                       </div>
                     } @else {
                       <div class="help">

@@ -44,7 +44,7 @@
       <button type="button" class="btn secondary" (click)="dismissed.emit()">Cancel</button>
       <button type="button" class="btn primary" [reepPending]="4">
         <span class="icon" aria-hidden="true">school</span>
-        Graduate {{ batch().studentCount }} student{{ batch().studentCount === 1 ? '' : 's' }}
+        Graduate {{ batch().studentCount | plural: 'student' }}
       </button>
     </footer>
   </div>

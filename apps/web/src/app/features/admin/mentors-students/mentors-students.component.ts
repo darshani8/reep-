@@ -54,6 +54,7 @@ import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 /**
  * B9.1 (history + the 90-day handover read), B9.2 (required reason, audit,
@@ -155,7 +156,7 @@ function renderStageCell(params: ICellRendererParams<Mentee, string | null>): st
 @Component({
   selector: 'app-admin-mentors-students',
   standalone: true,
-  imports: [AgGridAngular, PendingControlDirective],
+  imports: [AgGridAngular, PendingControlDirective, PluralPipe],
   templateUrl: './mentors-students.component.html',
   styleUrl: './mentors-students.component.scss',
 })
@@ -323,7 +324,7 @@ export class AdminMentorsStudentsComponent {
     if (mentor.mentor_id === null) return 'Becomes a mentor on first assignment';
     if (this.isAtCapacity(mentor)) return `At capacity — programme capacity is ${mentor.capacity}`;
     const free = mentor.capacity - mentor.mentee_count;
-    return `${free} place${free === 1 ? '' : 's'} free`;
+    return `${plural(free, 'place')} free`;
   }
 
   menteeLine(student: Mentee): string {
@@ -337,7 +338,7 @@ export class AdminMentorsStudentsComponent {
     const mentor = this.selectedMentor();
     const studentIds = this.selectedStudentIds();
     if (mentor === null || studentIds.length === 0) return;
-    const seated = studentIds.length === 1 ? '1 student' : `${studentIds.length} students`;
+    const seated = plural(studentIds.length, 'student');
     await this.writeMentor(studentIds, mentor, `${seated} assigned to ${mentor.name}`);
   }
 

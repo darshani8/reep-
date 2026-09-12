@@ -45,6 +45,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // ---- exact snake_case shapes of the governance router's Out models ---------
 
@@ -277,20 +278,13 @@ function scopeLabelOf(scope: string): string {
   return known;
 }
 
-function studentsLabelFor(count: number): string {
-  if (count === 1) {
-    return '1 student';
-  }
-  return `${count} students`;
-}
-
 @Component({
   selector: 'app-admin-feature-switches',
   standalone: true,
   // RouterLink is REQUIRED for the links back to Roles & functions and on to
   // the audit log: a routerLink in a standalone component that does not import
   // it is inert markup that renders and does nothing.
-  imports: [RouterLink, PendingControlDirective],
+  imports: [RouterLink, PendingControlDirective, PluralPipe],
   templateUrl: './feature-switches.component.html',
   styleUrl: './feature-switches.component.scss',
 })
@@ -342,7 +336,7 @@ export class AdminFeatureSwitchesComponent {
         isSwitchedOff: !override.enabled,
         valueLabel: override.enabled ? 'On' : 'Off',
         studentsAffected: override.students_affected,
-        studentsLabel: studentsLabelFor(override.students_affected),
+        studentsLabel: plural(override.students_affected, 'student'),
         untilLabel: dayMonthYearOf(override.expires_at),
         expiryDate: calendarDayOf(override.expires_at),
         hasLapsed: lapsedBy(override.expires_at, now),
@@ -394,7 +388,7 @@ export class AdminFeatureSwitchesComponent {
     if (rules.length === 1) {
       return `${rules[0].scopeLabel} · ${rules[0].targetLabel}`;
     }
-    return `${rules.length} rules`;
+    return plural(rules.length, 'rule');
   }
 
   /** Two rules that both say "off" do not make a feature vary; they make it
@@ -516,10 +510,10 @@ export class AdminFeatureSwitchesComponent {
       return 'No switches are defined.';
     }
     if (enforced === 0) {
-      return `None of the ${total} switches is read by the API yet.`;
+      return `None of the ${plural(total, 'switch', 'switches')} is read by the API yet.`;
     }
     if (enforced === total) {
-      return `All ${total} switches are read by the API.`;
+      return `All ${plural(total, 'switch is', 'switches are')} read by the API.`;
     }
     return `${enforced} of the ${total} switches are read by the API.`;
   });
@@ -528,12 +522,6 @@ export class AdminFeatureSwitchesComponent {
    *  placement cell reads. */
   scopeLabelFor(scope: string): string {
     return scopeLabelOf(scope);
-  }
-
-  /** "1 student", never "1 students" — the target picker prints a live count
-   *  straight from the hierarchy endpoint and one of them is often 1. */
-  studentsLabelFor(count: number): string {
-    return studentsLabelFor(count);
   }
 
   isRowSelected(key: string): boolean {
@@ -625,7 +613,7 @@ export class AdminFeatureSwitchesComponent {
     if (target === null) {
       return 'That target is no longer in the hierarchy.';
     }
-    return `${studentsLabelFor(target.students)} · ${this.resolutionNoteFor(target.scope)}`;
+    return `${plural(target.students, 'student')} · ${this.resolutionNoteFor(target.scope)}`;
   });
 
   private resolutionNoteFor(scope: string): string {
@@ -661,7 +649,7 @@ export class AdminFeatureSwitchesComponent {
       return 'Pick who this applies to.';
     }
     if (this.reasonIsTooShort()) {
-      return `A reason of at least ${this.minReason()} characters is required.`;
+      return `A reason of at least ${plural(this.minReason(), 'character')} is required.`;
     }
     return '';
   });
@@ -833,7 +821,7 @@ export class AdminFeatureSwitchesComponent {
     }
     const value = saved.enabled ? 'on' : 'off';
     this.flash.set(
-      `${saved.feature_label} is ${value} for ${saved.target_label} — ${studentsLabelFor(saved.students_affected)}.`,
+      `${saved.feature_label} is ${value} for ${saved.target_label} — ${plural(saved.students_affected, 'student')}.`,
     );
     this.clearForm();
     await this.reloadOverrides();

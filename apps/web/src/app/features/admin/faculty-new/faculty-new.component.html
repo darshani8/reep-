@@ -367,7 +367,7 @@
                 <span class="icon" aria-hidden="true">mail</span>
                 <div>
                   The activation link was emailed to {{ account.email }} and expires in
-                  {{ account.expires_in_hours }} hours. It is not shown here — if the mail never
+                  {{ account.expires_in_hours | plural: 'hour' }}. It is not shown here — if the mail never
                   arrives, re-mint one from the Faculty screen.
                 </div>
               </div>
@@ -376,7 +376,7 @@
                 <span class="icon" aria-hidden="true">warning</span>
                 <div>
                   This deployment has no mail transport, so nothing was sent. Hand this link over
-                  yourself. It expires in {{ account.expires_in_hours }} hours and is shown
+                  yourself. It expires in {{ account.expires_in_hours | plural: 'hour' }} and is shown
                   <strong>once</strong> — leave this page and it is gone; the Faculty screen mints a
                   new one.
                 </div>

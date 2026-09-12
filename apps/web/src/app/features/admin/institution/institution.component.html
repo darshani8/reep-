@@ -59,7 +59,7 @@
         <div class="notice warn inbox">
           <span class="icon" aria-hidden="true">warning</span>
           <div>
-            {{ incomplete().length }} {{ incomplete().length === 1 ? 'batch is' : 'batches are' }}
+            {{ incomplete().length | plural: 'batch is' : 'batches are' }}
             missing a level that is now required. They still open and still save — fill the
             level in when you know it.
           </div>
@@ -69,7 +69,7 @@
         <div class="notice accent inbox">
           <span class="icon" aria-hidden="true">info</span>
           <div>
-            {{ unassigned().length }} {{ unassigned().length === 1 ? 'batch has' : 'batches have' }}
+            {{ unassigned().length | plural: 'batch has' : 'batches have' }}
             no department. File
             @for (b of unassigned(); track b.id) {
               <button type="button" class="link-btn" (click)="fileUnassigned(b)" [disabled]="busy()">
@@ -130,7 +130,7 @@
                     college.id === selectedCollegeId() ? 'expand_more' : 'chevron_right'
                   }}</span>
                   <span class="label">{{ college.code }} · {{ college.name }}</span>
-                  <span class="count">{{ college.department_count }} departments</span>
+                  <span class="count">{{ college.department_count | plural: 'department' }}</span>
                 </button>
 
                 @if (college.id === selectedCollegeId()) {
@@ -270,7 +270,7 @@
                 </div>
                 <div class="dt-sub college-name">
                   {{ college.name }}@if (college.campus) { · {{ college.campus }} } ·
-                  {{ college.department_count }} departments
+                  {{ college.department_count | plural: 'department' }}
                 </div>
                 <div class="domain-row">
                   <span class="domain-key">Registration email domains</span>
@@ -481,7 +481,7 @@
                   <div class="empty">No batches under {{ selectedDepartment()?.code }} yet.</div>
                 } @else if (visibleBatches().length === 0 && batchMode() === 'closed') {
                   <div class="empty">
-                    None of the {{ batches().length }} batches under
+                    None of the {{ batches().length | plural: 'batch' }} under
                     {{ selectedDepartment()?.code }} match “{{ finderText() }}”.
                   </div>
                 } @else if (visibleBatches().length) {

@@ -7,8 +7,11 @@
         Pick a faculty member, then add or remove their students.
         @if (pool() !== null) {
           @if (unassignedCount() > 0) {
-            {{ unassignedCount() }} student{{ unassignedCount() === 1 ? ' has' : 's have' }} no
-            mentor and cannot be reviewed until they do.
+            <!-- The pipe prints the count with the noun, so the verb after it cannot
+                 go through the pipe as well; it agrees on its own. -->
+            {{ unassignedCount() | plural: 'student' }}
+            {{ unassignedCount() === 1 ? 'has' : 'have' }} no mentor and cannot be
+            reviewed until they do.
           } @else {
             Every student has a mentor.
           }

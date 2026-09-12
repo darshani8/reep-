@@ -104,7 +104,7 @@
     <div class="jobs-stats">
       <span><b>{{ openCount() }}</b> open</span>
       <span><b>{{ closingThisWeekCount() }}</b> closing this week</span>
-      <span><b>{{ applicationCount() }}</b> applications</span>
+      <span><b>{{ applicationCount() | plural: 'application' }}</b></span>
     </div>
   </div>
 

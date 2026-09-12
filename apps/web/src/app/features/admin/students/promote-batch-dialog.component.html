@@ -43,7 +43,7 @@
       <button type="button" class="btn secondary" (click)="dismissed.emit()">Cancel</button>
       <button type="button" class="btn primary" [reepPending]="4">
         <span class="icon" aria-hidden="true">arrow_forward</span>
-        Promote {{ batch().studentCount }} student{{ batch().studentCount === 1 ? '' : 's' }}
+        Promote {{ batch().studentCount | plural: 'student' }}
       </button>
     </footer>
   </div>

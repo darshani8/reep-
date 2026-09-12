@@ -3,7 +3,7 @@
  * `.panel` `.card` `.chip` `.btn` `.select` `.field` `.ctrl` `.notice` `.tabs`
  * `.eyebrow` `.crumb` `.avatar` `.icon` `.wizard-steps` `.dt-header`
  * `.dt-title` `.dt-sub` `.dt-toolbar` `.dt-frame` `.dt-table` `.dt-statusbar`
- * are global (styles/reep-v2.scss) and are used as they are.
+ * `.sr-only` are global (styles/reep-v2.scss) and are used as they are.
  *
  * What is here is the shape of this board: the filter row, the queue table
  * beside its 380px decision panel, the policy card under the table, and the
@@ -406,15 +406,4 @@
 .panel-empty p {
   margin: 0;
   line-height: 1.45;
-}
-
-/* The table's own caption: read by a screen reader, never drawn. Hidden by
-   geometry, the way every other hidden-but-announced thing here is. */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }

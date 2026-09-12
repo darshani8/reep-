@@ -65,6 +65,7 @@ import { RouterLink } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { plural } from '../../../shared/text/plural.pipe';
 
 /** `CollegeOut` in `app/routers/admin.py`, snake_case exactly as it arrives. */
 interface CollegeOut {
@@ -370,8 +371,7 @@ export class AdminCollegesComponent implements OnInit {
 
   /** "BGSCET · Bengaluru · 3 departments" — every part of it a stored value. */
   collegeSubLine(college: CollegeOut): string {
-    const departments =
-      college.department_count === 1 ? '1 department' : `${college.department_count} departments`;
+    const departments = plural(college.department_count, 'department');
     const parts = [college.code];
     if (college.campus) {
       parts.push(college.campus);

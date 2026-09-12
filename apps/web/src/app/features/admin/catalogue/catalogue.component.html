@@ -211,7 +211,7 @@
                       <strong>{{ subject.code }} · {{ subject.name }}</strong>
                       <div class="cat-meta">
                         {{ dimensionLabel(subject.model_type) }} ·
-                        {{ subject.duration_weeks }} weeks
+                        {{ subject.duration_weeks | plural: 'week' }}
                       </div>
                     </td>
                     <td>{{ dimensionLabel(subject.dimension) }}</td>
@@ -232,9 +232,7 @@
                     <td>
                       @if (subject.certifications.length) {
                         <span class="chip good" [title]="subject.certifications.length + ' mapped'">
-                          {{ subject.certifications.length }} certification{{
-                            subject.certifications.length === 1 ? '' : 's'
-                          }}
+                          {{ subject.certifications.length | plural: 'certification' }}
                         </span>
                       } @else {
                         <span class="chip warn">None mapped</span>
@@ -389,7 +387,7 @@
               </button>
               @if (formBadge(); as badge) {
                 <span class="cat-derived">
-                  Category {{ badge.category_label }} · {{ badge.points }} points ·
+                  Category {{ badge.category_label }} · {{ badge.points | plural: 'point' }} ·
                   {{ stageLabel(badge.stage) }} stage — read off the badge, never typed.
                 </span>
               }
@@ -573,9 +571,8 @@
                         }
                       </div>
                       <div class="cat-meta">
-                        {{ certification.provider }} · {{ certification.claims }} claim{{
-                          certification.claims === 1 ? '' : 's'
-                        }}
+                        {{ certification.provider }} ·
+                        {{ certification.claims | plural: 'claim' }}
                         @if (!certification.active) {
                           · <span class="chip neutral">Removed</span>
                         }

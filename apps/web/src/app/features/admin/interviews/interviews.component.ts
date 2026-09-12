@@ -83,6 +83,7 @@ import {
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // The design system's chart theme, registered once for this lazily-loaded
 // chunk. Registration alone does nothing — ECharts applies a theme at init —
@@ -349,7 +350,7 @@ function formatDurationCell(
 @Component({
   selector: 'app-interview-records',
   standalone: true,
-  imports: [AgGridAngular, PendingControlDirective],
+  imports: [AgGridAngular, PendingControlDirective, PluralPipe],
   templateUrl: './interviews.component.html',
   styleUrl: './interviews.component.scss',
 })
@@ -1004,9 +1005,8 @@ export class InterviewRecordsComponent implements OnDestroy {
     // some browsers and save an empty file (features/student/english does the
     // same, and a zip of recordings is the largest blob this app hands over).
     setTimeout(() => URL.revokeObjectURL(url), 0);
-    const plural = count === 1 ? '' : 's';
     this.flash.set(
-      `Saved a zip for the ${count} selected recording${plural}. ` +
+      `Saved a zip for the ${plural(count, 'selected recording')}. ` +
         'Any recording that has expired or is out of your scope is not in it.',
     );
   }

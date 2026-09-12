@@ -161,8 +161,7 @@
       @if (revokingRows().length > 0) {
         <section class="card gov-revoke" aria-label="Revoke a function">
           <h2 class="gov-card-title">
-            Revoke {{ revokingRows().length }}
-            {{ revokingRows().length === 1 ? 'function' : 'functions' }}
+            Revoke {{ revokingRows().length | plural: 'function' }}
           </h2>
           <ul class="gov-revoke-list">
             @for (row of revokingRows(); track row.id) {
@@ -185,8 +184,8 @@
               (input)="revokeReason.set($any($event.target).value)"
             ></textarea>
             <span class="help">
-              A reason of at least {{ minReason() }} characters is required. It is written onto the
-              audit trail.
+              A reason of at least {{ minReason() | plural: 'character' }} is required. It is
+              written onto the audit trail.
             </span>
           </div>
           <div class="gov-actions">
@@ -202,7 +201,7 @@
             </button>
             @if (revokeReasonShort()) {
               <span class="gov-blocked">
-                A reason of at least {{ minReason() }} characters is required
+                A reason of at least {{ minReason() | plural: 'character' }} is required
               </span>
             }
           </div>
@@ -264,7 +263,7 @@
                   <th>Granted by</th>
                   <th>Expires</th>
                   <th>Status</th>
-                  <th><span class="gov-hidden-label">Actions</span></th>
+                  <th><span class="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -525,7 +524,7 @@
               (input)="grantReason.set($any($event.target).value)"
             ></textarea>
             <span class="help">
-              At least {{ minReason() }} characters · shown in the audit log.
+              At least {{ minReason() | plural: 'character' }} · shown in the audit log.
             </span>
           </div>
 
@@ -674,10 +673,7 @@
             <section class="card gov-group" [attr.aria-label]="group.name">
               <div class="gov-group-head">
                 <h2 class="gov-card-title">{{ group.name }}</h2>
-                <span class="chip neutral">
-                  {{ group.members.length }}
-                  {{ group.members.length === 1 ? 'member' : 'members' }}
-                </span>
+                <span class="chip neutral">{{ group.members.length | plural: 'member' }}</span>
               </div>
               @if (group.description) {
                 <p class="gov-hint">{{ group.description }}</p>
@@ -796,7 +792,7 @@
             ></textarea>
             <span class="help">
               Joining hands over every function the group holds, so it asks for the same reason a
-              grant does — at least {{ minReason() }} characters.
+              grant does — at least {{ minReason() | plural: 'character' }}.
             </span>
           </div>
           <div class="gov-actions">

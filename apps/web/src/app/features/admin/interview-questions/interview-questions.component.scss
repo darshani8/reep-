@@ -3,7 +3,8 @@
  * `.panel` `.card` `.chip` `.btn` `.field` `.ctrl` `.notice` `.rail`
  * `.tree-row` `.crumb` `.dt-header` `.dt-title` `.dt-sub` `.dt-toolbar`
  * `.dt-frame` `.dt-gridbar` `.dt-quickfilter` `.dt-table` `.dt-statusbar`
- * `.icon` are global (styles/reep-v2.scss) and are used as they are. What is
+ * `.icon` `.card-head` `.card-title` `.sr-only` are global
+ * (styles/reep-v2.scss) and are used as they are. What is
  * here is the shape of this board: the 290px track rail beside the track card,
  * the add / bulk panels, and the question grid's columns.
  *
@@ -100,23 +101,7 @@
   align-self: flex-start;
 }
 
-/* --- card heads ----------------------------------------------------------- */
-
-.bank-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.bank-card-title {
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink);
-  margin: 0;
-}
+/* --- faint helper text (a card head's sub-line, the bulk panel's rules) ---- */
 
 .bank-hint {
   font-size: 11.5px;
@@ -396,13 +381,4 @@
   color: var(--faint);
   margin: 8px 0 0;
   line-height: 1.5;
-}
-
-.bank-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }

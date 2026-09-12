@@ -1393,7 +1393,10 @@ html.fonts-ready .icon {
  * Misc layout helpers carried over from v2
  * ======================================================================= */
 
-.rail {
+/* The rail is redefined as the design system's tree/rail row further down
+   (search "Rail and tree rows"). This vertical stack keeps the name working
+   for the one thing that used it as a layout. */
+.rail-stack {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -2096,4 +2099,621 @@ html.fonts-ready .icon {
   max-width: 52ch;
   text-align: center;
   margin-top: 14px;
+}
+
+/* ==========================================================================
+ * The 2026-09 design system — components
+ *
+ * docs/redesign-2026-09/01-design-system.md §4, one language for the admin
+ * console and the student portal. Everything here is a GLOBAL class, because
+ * these are used from standalone components across both consoles and
+ * AGENTS.md's rule is to reuse them rather than redefine a global inside a
+ * component.
+ *
+ * NAMES. Four of the design system's names were already taken by something
+ * else in this tree, so they are given names that say who they belong to
+ * rather than quietly stealing the existing ones:
+ *
+ *   design "Note"        -> .notice (already here, gains the accent tone)
+ *   design "Steps"       -> .wizard-steps   (.steps is the onboarding stepper)
+ *   design "Dark stage"  -> .stage-dark     (.stage is placement's KPI tile
+ *                                            and the assistant's frame)
+ *   design "icon button" -> .iconbtn        (.icon is the Material Symbols
+ *                                            glyph class; a .btn.icon would
+ *                                            render in the icon font and stay
+ *                                            invisible until it loaded)
+ *
+ * ONE PRIMARY ACTION PER VIEW. The gradient is the signal that says "this is
+ * the thing to do here", and a second one on the same screen cancels the
+ * first. CSS cannot enforce that; it is a review question on every screen.
+ * ======================================================================= */
+
+/* --- Page head: crumb -> h1 -> sub, actions right ------------------------
+   The existing .dt-header/.dt-title/.dt-sub trio already carries this on 29
+   templates, so the pattern is completed here rather than replaced: .crumb is
+   the only new element, and a screen adopts it by adding one line. */
+.crumb {
+  font-size: 11.5px;
+  color: var(--faint);
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.crumb .sep {
+  opacity: 0.55;
+}
+
+/* --- KPI tile -----------------------------------------------------------
+   A card whose whole job is one number: eyebrow, the numeral, then the change
+   and what it is of. The delta carries an arrow AND a sign, never colour
+   alone — the same rule as every status in this file. */
+.kpi {
+  background: var(--card-gradient);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-card);
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.kpi .kpi-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.kpi .num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.kpi .num .unit {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-left: 3px;
+}
+.kpi .delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.kpi .delta .icon {
+  font-size: 14px;
+}
+.kpi .delta.good {
+  color: var(--good);
+}
+.kpi .delta.risk {
+  color: var(--risk);
+}
+.kpi .sub {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.kpi .spark {
+  flex: none;
+  width: 64px;
+  height: 24px;
+  border-radius: var(--r-tile);
+  overflow: hidden;
+}
+
+/* --- Chip: the two tones the design adds, and the status dot -------------
+   .chip.accent is the "this is selected / this is ours" tone; .chip.navy is
+   the solid one for a count on a dark or busy row. .chip.dot puts a 7px dot
+   before the label so a status is shape AND text, never colour alone. */
+.chip.accent {
+  background: var(--tint-1);
+  color: var(--brand-purple);
+}
+.chip.navy {
+  background: var(--brand-purple);
+  color: #fff;
+}
+.chip.dot::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+  flex: none;
+}
+.chip.dot.neutral::before {
+  background: var(--st-neutral);
+}
+.chip.dot.warn::before {
+  /* The warn TEXT colour is dark enough to read; the dot is the brighter
+     amber, which is the one place --warn-dot is for. */
+  background: var(--warn-dot);
+}
+
+/* --- Buttons: the two variants the design adds --------------------------
+   secondary is the quiet default action; danger is outlined rather than
+   filled, because a filled red button on a lilac page reads as an error
+   message rather than a control. */
+.btn.secondary,
+.dt-btn.secondary {
+  background: var(--surface);
+  border-color: var(--hairline-42);
+  color: var(--ink);
+  box-shadow: var(--sh-ctrl);
+}
+.btn.secondary:hover,
+.dt-btn.secondary:hover {
+  border-color: var(--hairline-45);
+  background: var(--tint-3);
+}
+.btn.danger,
+.dt-btn.danger {
+  background: var(--surface);
+  border-color: var(--risk);
+  color: var(--risk);
+  box-shadow: var(--sh-ctrl);
+}
+.btn.danger:hover,
+.dt-btn.danger:hover {
+  background: var(--risk-bg);
+}
+.btn.sm,
+.dt-btn.sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.btn:disabled,
+.dt-btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.55;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* --- Select: a labelled value, not a bare dropdown ----------------------
+   The boards show the filter controls as "faint label · bold value · chevron"
+   in one 34px pill, so the toolbar reads as a sentence about what is on
+   screen rather than a row of anonymous dropdowns. */
+.select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 30px 0 12px;
+  background: var(--surface);
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-control);
+  box-shadow: var(--sh-ctrl);
+  font-size: 12.5px;
+  color: var(--ink);
+  min-width: 0;
+}
+.select .lbl {
+  color: var(--faint);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.select .val {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select .icon {
+  position: absolute;
+  right: 8px;
+  font-size: 18px;
+  color: var(--ink-nav);
+  pointer-events: none;
+}
+/* A real <select> laid over the pill, so the native menu and the keyboard
+   both work and only the dress is ours. */
+.select select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* --- Field: help, error, and the synced/locked state --------------------
+   A field the student cannot edit because it came from their record is shown
+   on tint-2 with a lock and a "Synced" chip. Read-only is not the same as
+   disabled, and the difference has to be visible: disabled means "not now",
+   synced means "this is your record, ask the office to change it". */
+.field .help {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.field .err {
+  font-size: 11.5px;
+  color: var(--risk);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.field .err .icon {
+  font-size: 14px;
+}
+.field.synced input,
+.field.synced .ctrl,
+.field.synced textarea,
+.input.synced {
+  background: var(--tint-2);
+  color: var(--ink-soft);
+  cursor: default;
+}
+.field .synced-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field .multi,
+textarea.ctrl {
+  min-height: 56px;
+  resize: vertical;
+}
+
+/* --- Note: the accent tone the design adds ------------------------------
+   .notice already carries risk (base), info and evi. Accent is the neutral
+   "here is how this works" tone the empty states use. */
+.notice.accent {
+  background: var(--tint-1);
+  color: var(--ink-soft);
+}
+.notice.good {
+  background: var(--good-bg);
+  color: var(--good);
+}
+.notice.warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+/* --- Steps: the wizard's numbered circles -------------------------------
+   NOT `.steps`: the onboarding screen already styles that name for its own
+   three-step pill row, and a global rule would leak padding and colour into
+   it. Named for the thing that has them — the Add faculty wizard. */
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.wizard-steps .step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.wizard-steps .step .n {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-pill);
+  display: inline-grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid var(--hairline-42);
+  color: var(--muted);
+  background: var(--surface);
+  flex: none;
+}
+.wizard-steps .step.active {
+  color: var(--ink);
+}
+.wizard-steps .step.active .n {
+  background: var(--primary-gradient);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: var(--sh-navpill);
+}
+.wizard-steps .step.done .n {
+  background: var(--good-bg);
+  border-color: transparent;
+  color: var(--good);
+}
+.wizard-steps .sep {
+  width: 18px;
+  height: 1px;
+  background: var(--hairline-42);
+  flex: none;
+}
+
+/* --- Tabs: pill tabs, active on the gradient ---------------------------- */
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tabs .tab {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--r-pill);
+  padding: 6px 14px;
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-nav);
+  cursor: pointer;
+}
+.tabs .tab:hover {
+  background: var(--tint-2);
+  color: var(--brand-purple);
+}
+.tabs .tab.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  box-shadow: var(--sh-navpill);
+}
+.tabs .tab.active:hover {
+  color: #fff;
+}
+
+/* --- Rail and tree rows -------------------------------------------------
+   The institution tree (College > Department > Course > Specialization >
+   Batch) and every "pick one of these" list. Selected is tint-1 with the
+   label in brand purple, not a filled pill: these lists are long, and a
+   gradient on a row competes with the view's one primary action. */
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--r-pill);
+  font-size: 12.5px;
+  color: var(--ink-nav);
+  background: transparent;
+  border: 0;
+  font-family: var(--font);
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  min-width: 0;
+}
+.tree-row:hover {
+  background: var(--tint-2);
+}
+.tree-row.selected {
+  background: var(--tint-1);
+  color: var(--brand-purple);
+  font-weight: 700;
+}
+.tree-row .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-row .count {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+/* Depth is indentation, so the hierarchy is readable without opening a row. */
+.tree-row.depth-1 {
+  padding-left: 24px;
+}
+.tree-row.depth-2 {
+  padding-left: 38px;
+}
+.tree-row.depth-3 {
+  padding-left: 52px;
+}
+
+/* --- Avatar -------------------------------------------------------------
+   A circle with initials. The sidebar's identity card keeps its own portrait
+   frame (`.nav-profile .avatar`, a 88x106 rectangle) — that selector is more
+   specific, so this does not reach it. */
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  background: var(--tint-1);
+  color: var(--brand-purple);
+  display: inline-grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex: none;
+  overflow: hidden;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar.lg {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+
+/* --- Data grid dress ----------------------------------------------------
+   The boards draw AG Grid's look, and the admin screens that use the real
+   library take it from shared/grid/reep-grid-theme.ts. These classes are the
+   same look for the plain tables — the student console's short tables, and
+   any admin table not worth a grid instance. .dt-table already carries the
+   header and row rules; what is added here is the furniture around it. */
+.dt-frame {
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  overflow: hidden;
+}
+.dt-gridbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--tint-3);
+  border-bottom: 1px solid var(--hairline-26);
+  flex-wrap: wrap;
+}
+.dt-quickfilter {
+  width: 240px;
+  max-width: 100%;
+  height: 30px;
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  padding: 0 10px;
+  font-family: var(--font);
+  font-size: 12.5px;
+  color: var(--ink);
+  box-shadow: var(--sh-well);
+}
+/* Pinned first column: an inset shadow on its right edge, so it reads as
+   floating over the scrolled columns rather than as a thicker border. */
+.dt-table th.pinned,
+.dt-table td.pinned {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  box-shadow: inset -6px 0 6px -6px rgba(58, 31, 82, 0.28);
+}
+.dt-table th.pinned {
+  background: var(--tint-3);
+}
+/* Selected row: tint plus a 3px bar down its left edge, because a tint alone
+   is not enough of a difference on a striped table. */
+.dt-table tbody tr.selected > td {
+  background: var(--tint-2);
+}
+.dt-table tbody tr.selected > td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--brand-purple);
+}
+.dt-floatfilter th {
+  padding: 4px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline-26);
+}
+.dt-floatfilter input {
+  width: 100%;
+  height: 26px;
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-seg);
+  background: var(--surface);
+  padding: 0 7px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--ink);
+}
+.dt-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 38px;
+  padding: 0 10px;
+  background: var(--tint-3);
+  border-top: 1px solid var(--hairline-26);
+  font-size: 11.5px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.dt-statusbar .pager {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Dark stage ---------------------------------------------------------
+   The mock interview's stage. NOT `.stage`: placement's KPI tiles and the
+   assistant's own frame already use that name, and a global dark gradient
+   would land on both. */
+.stage-dark {
+  border-radius: var(--r-card);
+  background: linear-gradient(135deg, #1b1526, #2a1c3f 55%, #3d1f4c);
+  color: #fff;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.stage-dark .status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: var(--r-pill);
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.stage-dark .orb {
+  width: 112px;
+  height: 112px;
+  border-radius: var(--r-pill);
+  background: radial-gradient(60% 60% at 40% 32%, rgba(255, 255, 255, 0.3), rgba(85, 44, 126, 0.8));
+  border: 2px solid transparent;
+  background-origin: border-box;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14), 0 18px 44px rgba(12, 4, 22, 0.45);
+  display: grid;
+  place-items: center;
+}
+.stage-dark .caption {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+  text-align: center;
+  max-width: 46ch;
+}
+
+/* --- Badge emblem -------------------------------------------------------
+   The hexagonal shield on Skilling. Outlined lilac while a skill is only
+   available; solid brand purple with a verified seal once it is earned. The
+   shape is an SVG in the template; this is its frame and its two states. */
+.emblem {
+  width: 64px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  color: var(--seq-light);
+}
+.emblem.earned {
+  color: var(--brand-purple);
+}
+.emblem .seal {
+  position: absolute;
+  right: 2px;
+  bottom: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  background: var(--good);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  border: 2px solid var(--surface);
 }

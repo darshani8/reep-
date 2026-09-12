@@ -133,6 +133,39 @@ def test_the_baseline_takes_nothing_away_from_a_mentor() -> None:
     assert ROLE_BASELINE["STUDENT"] == frozenset()
 
 
+def test_the_console_preview_switch_reaches_the_office_and_nobody_else() -> None:
+    """`ui.console_v2` gates the 2026-09 admin console's new screens while the
+    owner reviews them on the production deployment — where there is no
+    environment flag to set and no second build to serve, which is why it is a
+    capability at all.
+
+    Its PLACEMENT is its whole behaviour, and the placement is a one-word
+    decision somebody could reverse without noticing. PROGRAMME scope puts it
+    inside `_ALL`, and `ROLE_BASELINE["ADMIN"]` is `_ALL - _FACULTY_ONLY`, so the
+    office account holds it the moment the line exists and nobody has to grant
+    anything. `_SCOPED` — a MENTOR's baseline — is the SCOPED keys only, so
+    faculty keep the console they know until the Main Admin hands this one over
+    in Governance, which is exactly the review loop it is for. Written SCOPED
+    instead, it would reach every faculty account on the deploy that shipped it
+    and the review would be over before it started.
+
+    It is also the one entry in the catalogue that is not a screen, and it is
+    deleted in Phase 5 (docs/redesign-2026-09/06-phase-prompts.md). This test is
+    what makes that deletion show up as a failing assertion rather than as a
+    sidebar quietly emptying itself.
+    """
+    key = "ui.console_v2"
+    catalogue = {c.key: c for c in CAPABILITIES}
+    assert key in catalogue, "the preview switch left the catalogue; the new console is unreachable"
+    assert catalogue[key].scope is CapabilityScope.PROGRAMME, (
+        "SCOPED would put the preview in every faculty baseline on deploy"
+    )
+    assert key in ROLE_BASELINE["ADMIN"], "the office account cannot see the console it is reviewing"
+    assert key not in ROLE_BASELINE["MENTOR"], "faculty got the preview without a grant"
+    assert key not in ROLE_BASELINE["STUDENT"]
+    assert key not in ROLE_BASELINE["ALUMNI"]
+
+
 @requires_db
 def test_a_student_reaches_none_of_it(client, make_user) -> None:
     stu = make_user(f"gov-stu-{uuid.uuid4().hex[:4]}")

@@ -61,6 +61,7 @@ from ..models.institution import (
 from ..models.job import DegreeLevel
 from ..models.user import Student, User
 from ..governance import require_capability
+from ..institution_domains import normalise_domain
 from .mentor import require_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -135,6 +136,11 @@ class CollegeOut(BaseModel):
     contact: str | None
     status: str
     department_count: int
+    #: The addresses this college will admit an applicant on (B1.1). Empty means
+    #: the deployment's own list applies — see app/institution_domains.py — so
+    #: the screen renders it as "falls back to the deployment list", never as
+    #: "nobody may join".
+    email_domains: list[str] = []
 
 
 class CollegeIn(BaseModel):
@@ -142,6 +148,7 @@ class CollegeIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     campus: str | None = None
     contact: str | None = None
+    email_domains: list[str] | None = None
 
 
 class CollegePatchIn(PatchModel):
@@ -161,6 +168,28 @@ class CollegePatchIn(PatchModel):
     campus: str | None = None
     contact: str | None = None
     status: str | None = None
+    #: NOT in NON_NULLABLE even though the column is NOT NULL: the list is
+    #: emptied by sending [], and `null` is refused by PatchModel like any other
+    #: non-nullable field. Emptying it restores the deployment fallback, which
+    #: is a real thing an admin may want and is not the same as sending null.
+    email_domains: list[str] | None = None
+
+
+def _clean_domains(values: list[str] | None) -> list[str]:
+    """Normalise and de-duplicate a domain list, keeping the order typed.
+
+    `@BGSCET.ac.in` and `bgscet.ac.in ` are the same fence and must not both be
+    stored, because the comparison in app/institution_domains.py is an exact
+    set membership and a stray `@` would silently admit nobody on that domain.
+    An empty list is preserved: it means "fall back to the deployment list",
+    which is a real setting and not a missing one.
+    """
+    seen: list[str] = []
+    for value in values or []:
+        domain = normalise_domain(value)
+        if domain and domain not in seen:
+            seen.append(domain)
+    return seen
 
 
 def _college_out(db: Session, college: College) -> CollegeOut:
@@ -173,6 +202,7 @@ def _college_out(db: Session, college: College) -> CollegeOut:
         name=college.name,
         campus=college.campus,
         contact=college.contact,
+        email_domains=list(college.email_domains or []),
         status=college.status,
         department_count=int(count or 0),
     )
@@ -206,6 +236,7 @@ def create_college(
         name=body.name.strip(),
         campus=body.campus,
         contact=body.contact,
+        email_domains=_clean_domains(body.email_domains),
         created_by_user_id=session["userId"],
     )
     db.add(college)
@@ -241,6 +272,8 @@ def update_college(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"A college with code {fields['code']} already exists.",
             )
+    if "email_domains" in fields:
+        fields["email_domains"] = _clean_domains(fields["email_domains"])
     for field, value in fields.items():
         setattr(college, field, value)
     db.commit()

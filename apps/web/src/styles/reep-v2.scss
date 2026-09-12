@@ -3086,3 +3086,80 @@ textarea.ctrl {
   font-size: 12px;
   border: 2px solid var(--surface);
 }
+
+/* --- Card title row -----------------------------------------------------
+   The row every board draws at the top of a card: a title, an optional faint
+   sub-line under it, and the card's own actions pushed right.
+
+   IT WAS MISSING, AND SEVEN SCREENS FOUND OUT SEPARATELY. `.card h4` and
+   `.card > h3` above carry a bottom border the boards do not draw, so a screen
+   that wanted the board's plain title row could not use them, and each of the
+   2026-09 console screens declared its own `.card-head` + `.card-heading` in
+   its component stylesheet. The declarations agreed on everything that matters
+   -- 13.5px/700 in the display face, 12px gap, 12px below -- which is the
+   signature of a class that should have been global and was not.
+
+   check_style_duplicates.py does not police this: it compares the two GLOBAL
+   sheets against each other and never reads a component's styles. A rule can
+   therefore be copied into twenty components without any check noticing, which
+   is exactly what happened. The consolidation is by hand and stays by hand.
+
+   `align-items: flex-start` is the boards' default, so a title that wraps to
+   two lines keeps its actions level with the first. A card whose row is one
+   short line and one button may override to `center` locally -- that is a
+   deliberate one-line exception, not a second copy of the rule. */
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.card-heading,
+.card-title {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+  margin: 0;
+}
+.card-sub {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--faint);
+  margin: 2px 0 0;
+  max-width: 76ch;
+}
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* A card whose whole content is a data grid: the grid draws its own frame, so
+   the card's 18px padding would show as a lilac gutter around it. 01 §4 asks
+   for padding 0 in that case. */
+.card.flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* --- Visually hidden ----------------------------------------------------
+   For a heading or a label that a screen reader needs and the design does not
+   draw. `display: none` and `[hidden]` would take it out of the accessibility
+   tree too, which is the opposite of the point; this keeps it rendered and
+   off-screen. Six components had declared their own copy under six names. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

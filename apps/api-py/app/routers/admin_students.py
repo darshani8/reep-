@@ -44,6 +44,7 @@ from ..architecture_events import record_change
 from ..config import settings
 from ..db import get_db
 from ..governance import require_capability
+from ..institution_domains import college_id_for_cohort, domain_of, provisionable_domains_for
 from ..identity import get_current_session
 from ..models.cohort import Cohort
 from ..models.institution import Department
@@ -193,11 +194,16 @@ class BatchActionOut(BaseModel):
 # ------------------------------------------------------------- helpers --
 
 
-def _domain_fence(email: str) -> None:
+def _domain_fence(db: Session, email: str, cohort_id: str | None) -> None:
     """Registration's GUARD 1, in admin wording. The roster is the access
-    control; a row minted here is a Google sign-in for that address."""
-    domain = email.rpartition("@")[2]
-    allowed = settings.provisionable_email_domains
+    control; a row minted here is a Google sign-in for that address.
+
+    Fenced by the COLLEGE the student's batch belongs to (B1.1), falling back to
+    the deployment's list for a batch that has not been filed under a department
+    yet — which is the list this used to read unconditionally.
+    """
+    domain = domain_of(email)
+    allowed = provisionable_domains_for(db, college_id_for_cohort(db, cohort_id))
     if not domain or domain not in allowed:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -377,7 +383,11 @@ def update_student(
     if body.name is not None:
         user.name = body.name
     if body.email is not None and body.email != user.email:
-        _domain_fence(body.email)
+        # Fenced by the batch the student will be IN after this patch, not the
+        # one they are in now: a single request may move them and change the
+        # address together, and the college that admits the address is the one
+        # they are moving to.
+        _domain_fence(db, body.email, body.cohort_id if "cohort_id" in sent else student.cohort_id)
         taken = db.scalar(select(User.id).where(func.lower(User.email) == body.email, User.id != user.id))
         if taken is not None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{body.email} already belongs to another account.")

@@ -31,6 +31,7 @@ from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.job import DegreeLevel
+from ..institution_domains import college_id_for_cohort, domain_of, provisionable_domains_for
 from ..models.cohort import Cohort
 from ..models.institution import (
     HIERARCHY_LEVELS,
@@ -907,8 +908,14 @@ def _provision_student(db: Session, reg: Registration) -> Student:
     # settings.provisionable_email_domains explains why a fence HERE is
     # consistent with there deliberately being none on sign-in.
     # ------------------------------------------------------------------ #
-    domain = email.rpartition("@")[2]
-    allowed = settings.provisionable_email_domains
+    # THE COLLEGE'S LIST, not the deployment's (B1.1). An application names a
+    # college on the form, and the rule engine stamps a cohort; either resolves
+    # the tenant whose fence this is. A college with no domains recorded falls
+    # back to the environment, which is what every application was fenced by
+    # before colleges had domains — so day one is unchanged.
+    college_id = reg.college_id or college_id_for_cohort(db, reg.cohort_id)
+    domain = domain_of(email)
+    allowed = provisionable_domains_for(db, college_id)
     if not domain or domain not in allowed:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

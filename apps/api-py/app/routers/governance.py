@@ -49,7 +49,7 @@ from ..models.governance import (
     CapabilityGrant,
     CapabilityScope,
     FeatureOverride,
-    FeatureScope,
+    ScopeLevel,
     SubjectKind,
 )
 from ..models.institution import (
@@ -613,7 +613,7 @@ def remove_member(
 
 class OverrideIn(BaseModel):
     feature: str
-    scope: FeatureScope
+    scope: ScopeLevel
     target_id: str
     enabled: bool = False
     reason: str
@@ -643,16 +643,16 @@ class OverrideOut(BaseModel):
 
 
 _TARGET_MODEL = {
-    FeatureScope.COLLEGE: College,
-    FeatureScope.DEPARTMENT: Department,
-    FeatureScope.COURSE: AcademicCourse,
-    FeatureScope.SPECIALIZATION: AcademicSpecialization,
-    FeatureScope.COHORT: Cohort,
+    ScopeLevel.COLLEGE: College,
+    ScopeLevel.DEPARTMENT: Department,
+    ScopeLevel.COURSE: AcademicCourse,
+    ScopeLevel.SPECIALIZATION: AcademicSpecialization,
+    ScopeLevel.COHORT: Cohort,
 }
 
 
-def _target_label(db: Session, scope: FeatureScope, target_id: str) -> str:
-    if scope == FeatureScope.STUDENT:
+def _target_label(db: Session, scope: ScopeLevel, target_id: str) -> str:
+    if scope == ScopeLevel.STUDENT:
         s = db.get(Student, target_id)
         if s is None:
             return "(removed student)"
@@ -665,17 +665,17 @@ def _target_label(db: Session, scope: FeatureScope, target_id: str) -> str:
     return getattr(row, "name", None) or getattr(row, "label", None) or target_id
 
 
-def _students_affected(db: Session, scope: FeatureScope, target_id: str) -> int:
-    if scope == FeatureScope.STUDENT:
+def _students_affected(db: Session, scope: ScopeLevel, target_id: str) -> int:
+    if scope == ScopeLevel.STUDENT:
         return 1 if db.get(Student, target_id) is not None else 0
     q = select(func.count(Student.id)).select_from(Student).join(Cohort, Student.cohort_id == Cohort.id)
-    if scope == FeatureScope.COHORT:
+    if scope == ScopeLevel.COHORT:
         return int(db.scalar(q.where(Cohort.id == target_id)) or 0)
-    if scope == FeatureScope.SPECIALIZATION:
+    if scope == ScopeLevel.SPECIALIZATION:
         return int(db.scalar(q.where(Cohort.specialization_id == target_id)) or 0)
-    if scope == FeatureScope.COURSE:
+    if scope == ScopeLevel.COURSE:
         return int(db.scalar(q.where(Cohort.course_id == target_id)) or 0)
-    if scope == FeatureScope.DEPARTMENT:
+    if scope == ScopeLevel.DEPARTMENT:
         return int(db.scalar(q.where(Cohort.department_id == target_id)) or 0)
     # College: through its departments.
     dept_ids = db.scalars(select(Department.id).where(Department.college_id == target_id)).all()

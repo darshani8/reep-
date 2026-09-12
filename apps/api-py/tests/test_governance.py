@@ -37,7 +37,7 @@ from app.models.governance import (
     CapabilityGrant,
     CapabilityScope,
     FeatureOverride,
-    FeatureScope,
+    ScopeLevel,
     SubjectKind,
 )
 from app.models.user import Role
@@ -354,7 +354,7 @@ def test_the_most_specific_feature_override_wins(make_user, cleanup) -> None:
     with SessionLocal() as db:
         assert feature_enabled(db, sid, "student.assistant") is True, "features are on by default"
 
-        off = FeatureOverride(feature="student.assistant", scope=FeatureScope.COHORT,
+        off = FeatureOverride(feature="student.assistant", scope=ScopeLevel.COHORT,
                               target_id=cid, enabled=False, reason=REASON)
         db.add(off)
         db.commit()
@@ -363,7 +363,7 @@ def test_the_most_specific_feature_override_wins(make_user, cleanup) -> None:
     with SessionLocal() as db:
         assert feature_enabled(db, sid, "student.assistant") is False, "the cohort rule did not apply"
 
-        back = FeatureOverride(feature="student.assistant", scope=FeatureScope.STUDENT,
+        back = FeatureOverride(feature="student.assistant", scope=ScopeLevel.STUDENT,
                                target_id=sid, enabled=True, reason=REASON)
         db.add(back)
         db.commit()

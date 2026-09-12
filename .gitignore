@@ -55,3 +55,6 @@ apps/api-py/var/
 
 # orc worker transcripts (raw model replies, not source)
 tools/coder/.orc/
+
+# Personal Claude Code overrides (effort level, ultracode). Not team settings.
+.claude/settings.local.json

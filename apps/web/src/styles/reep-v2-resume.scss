@@ -83,9 +83,12 @@ textarea {
 .step-item:hover {
   background: var(--surface);
 }
+/* The selected section, in the brand's purple — it was --ink, a near-black
+   slab that is the only one in the product and reads as "disabled" beside the
+   purple pill the sidebar uses two inches to its left for the same idea. */
 .step-item.active {
-  background: var(--ink);
-  color: var(--tint-3);
+  background: var(--brand-purple);
+  color: #fff;
 }
 .step-dot {
   width: 8px;

@@ -1307,13 +1307,26 @@ html.fonts-ready .icon {
   flex-direction: column;
   gap: 5px;
 }
+/* A FORM FIELD'S LABEL IS SENTENCE CASE, not an uppercase micro-eyebrow.
+   
+   This was 9.5px, uppercase, tracked 0.14em, in --faint — which is the app's
+   EYEBROW treatment, correct over a card or a metric and wrong over an input.
+   All 59 boards in docs/redesign-2026-09/design agree and not one of them
+   tracks or uppercases `.lbl`: 11.5px, 700, --ink-soft, sentence case. The
+   same class of drift as `.kpi`, found the same way — by building a screen to
+   its board and watching the result disagree.
+   
+   This is a GLOBAL and it reaches 138 `.field` labels across 13 templates,
+   several outside Phase 1 (register, profile, institution, mentors & students,
+   account password). Every one of them moves toward its board rather than away,
+   and 9.5px uppercase tracked at 0.14em was the least legible text in the
+   product. */
 .field label {
   font-family: var(--font-display);
-  font-size: 9.5px;
+  font-size: 11.5px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--faint);
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
 }
 
 .ctrl,

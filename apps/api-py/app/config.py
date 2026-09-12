@@ -182,6 +182,17 @@ class Settings(BaseSettings):
     # this a door rather than a hole: opening it admits exactly the accounts an
     # operator has deliberately issued a password to, and no others.
     password_login: str = ""
+    # Whether this process mounts the dev-only MCP surface at /mcp, which lets a
+    # developer's tools call the API's READ endpoints as a signed-in role while
+    # they build a screen against it (docs/redesign-2026-09/08-tooling-mcp.md).
+    #
+    # A string that has to spell "true", the same idiom as password_login and
+    # otp_required, so a blank line, an absent variable or a typo all mean OFF.
+    # Read only through `mcp_enabled`, which ALSO requires a dev environment:
+    # this mount forwards the caller's session cookie into the real handlers, so
+    # on a production host it would be an unauthenticated-by-default door into
+    # every read the cookie's owner can perform.
+    mcp_dev_surface: str = ""
     # Whether a correct password is followed by a SECOND STEP: a six-digit code
     # emailed to the account, which must be posted to /api/auth/login/code before
     # a session is issued. Same idiom as password_login — a string that has to
@@ -1124,6 +1135,36 @@ class Settings(BaseSettings):
     def is_prod(self) -> bool:
         """Whether this process is serving real people. See _PROD_ENV_NAMES."""
         return self.env.strip().lower() in _PROD_ENV_NAMES
+
+    @property
+    def env_is_dev(self) -> bool:
+        """Whether this environment keeps its development affordances.
+
+        The public reading of the `_DEV_ENV_NAMES` ALLOWLIST, which is the only
+        test a dev-only door may key on. Never `not is_prod`: the two name sets are
+        deliberately not complements, so an ENV nobody anticipated — "staging",
+        "uat", a typo, a blank from a half-written deploy template — is neither,
+        and must lose the affordance rather than gain it.
+        """
+        return _is_dev_env(self.env)
+
+    @property
+    def mcp_enabled(self) -> bool:
+        """Whether app/main.py mounts the dev MCP surface at /mcp.
+
+        BOTH halves are required, and the environment half is not negotiable.
+        The mount forwards the caller's Cookie header into the real request
+        handlers, so every tool call runs as whoever holds that session: on a
+        host serving real students it would be a second front door with none of
+        the rate limiting, revocation or audit the first one has. Keying it on
+        the dev allowlist means an unrecognised ENV shuts it, like every other
+        door in this file.
+
+        tests/test_codebase_guards.py pins both halves, and pins that
+        `fastapi_mcp` stays out of requirements.txt — it is a development tool
+        and has no business in the image the Dockerfile builds.
+        """
+        return self.env_is_dev and _env_true(self.mcp_dev_surface)
 
     @property
     def password_login_allowed(self) -> bool:

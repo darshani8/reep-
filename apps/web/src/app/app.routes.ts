@@ -75,13 +75,35 @@ export const routes: Routes = [
           ),
       },
       // --- student ---
+      //
+      // EVERY route below carries a roleGuard, and the reason is a screen that
+      // looked broken rather than forbidden. These 24 routes had `authGuard` on
+      // the shell and nothing else, so any signed-in account could open any of
+      // them. The API refused correctly -- `/api/student/ledger` answers 403 to
+      // a MENTOR or ADMIN, and rule 2 was never in question -- but the component
+      // had already rendered its header by then, so the Main Admin opening
+      // /student/time-log got the title, the date picker and the Submit button
+      // above the words "Could not load today's time sheet", with the six slot
+      // rows and the four tiles simply absent. That reads as a blank screen and
+      // a broken app, not as "this is not your screen".
+      //
+      // roleGuard returns the UrlTree for the session's OWN home, so the wrong
+      // role is now sent somewhere that works. Two mentor routes
+      // (notebook, verifications) already had exactly this guard, which is what
+      // says the omission on the other 24 was an oversight and not a decision.
+      //
+      // Staff do NOT read student screens to see a student: they use
+      // /mentor/students/{id}/... , which goes through rule 2's gate. There is
+      // no case where a MENTOR legitimately opens /student/*.
       {
         path: 'student',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/home/home.component').then((m) => m.StudentHomeComponent),
       },
       {
         path: 'student/certifications',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/certifications/certifications.component').then(
             (m) => m.CertificationsComponent,
@@ -89,6 +111,7 @@ export const routes: Routes = [
       },
       {
         path: 'student/skilling',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/skilling/skilling.component').then((m) => m.SkillingComponent),
       },
@@ -99,21 +122,25 @@ export const routes: Routes = [
       // ledger itself, beside the days it is accumulated from.
       {
         path: 'student/time-log',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/ledger/ledger.component').then((m) => m.LedgerComponent),
       },
       {
         path: 'student/courses',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/courses/courses.component').then((m) => m.CoursesComponent),
       },
       {
         path: 'student/records',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/records/records.component').then((m) => m.RecordsComponent),
       },
       {
         path: 'student/leaderboards',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/leaderboards/leaderboards.component').then(
             (m) => m.LeaderboardsComponent,
@@ -121,11 +148,13 @@ export const routes: Routes = [
       },
       {
         path: 'student/uploads',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/uploads/uploads.component').then((m) => m.UploadsComponent),
       },
       {
         path: 'student/resume',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/resume/resume-builder.component').then(
             (m) => m.ResumeBuilderComponent,
@@ -133,6 +162,7 @@ export const routes: Routes = [
       },
       {
         path: 'student/jobs',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/jobs/jobs.component').then((m) => m.JobsComponent),
       },
@@ -142,6 +172,7 @@ export const routes: Routes = [
       // sees a student's record; the orb's "Type instead" lands here.
       {
         path: 'student/agent',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/agent/agent.component').then((m) => m.AgentComponent),
       },
@@ -151,6 +182,7 @@ export const routes: Routes = [
       // feature the placement office asked to keep — see AGENTS.md.
       {
         path: 'student/assistant',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/assistant/assistant.component').then((m) => m.AssistantComponent),
       },
@@ -161,6 +193,7 @@ export const routes: Routes = [
       // the two reuse rather than a copy in each.
       {
         path: 'student/interviews',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/interviews/interviews.component').then(
             (m) => m.InterviewsComponent,
@@ -168,6 +201,7 @@ export const routes: Routes = [
       },
       {
         path: 'student/english',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/english/english.component').then(
             (m) => m.EnglishBaselineComponent,
@@ -175,6 +209,7 @@ export const routes: Routes = [
       },
       {
         path: 'student/mentor-log',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/mentor-log/mentor-log.component').then(
             (m) => m.MentorLogComponent,
@@ -182,6 +217,7 @@ export const routes: Routes = [
       },
       {
         path: 'student/profile',
+        canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
           import('./features/student/profile/profile.component').then((m) => m.ProfileComponent),
       },
@@ -211,6 +247,7 @@ export const routes: Routes = [
       },
       {
         path: 'mentor/mentees',
+        canActivate: [roleGuard('MENTOR', 'ADMIN')],
         loadComponent: () =>
           import('./features/mentor/mentee-log/mentee-log.component').then(
             (m) => m.MenteeLogComponent,
@@ -228,6 +265,7 @@ export const routes: Routes = [
       },
       {
         path: 'mentor/upskilling',
+        canActivate: [roleGuard('MENTOR', 'ADMIN')],
         loadComponent: () =>
           import('./features/mentor/upskilling/upskilling.component').then(
             (m) => m.UpskillingComponent,
@@ -238,16 +276,19 @@ export const routes: Routes = [
       // form changes; this only holds the picture.
       {
         path: 'mentor/signature',
+        canActivate: [roleGuard('MENTOR', 'ADMIN')],
         loadComponent: () =>
           import('./features/mentor/signature/signature.component').then((m) => m.SignatureComponent),
       },
       {
         path: 'mentor/leave',
+        canActivate: [roleGuard('MENTOR', 'ADMIN')],
         loadComponent: () =>
           import('./features/mentor/leave/leave.component').then((m) => m.LeaveComponent),
       },
       {
         path: 'mentor/agent',
+        canActivate: [roleGuard('MENTOR', 'ADMIN')],
         loadComponent: () =>
           import('./features/agent/agent.component').then((m) => m.AgentComponent),
       },
@@ -383,6 +424,7 @@ export const routes: Routes = [
       },
       {
         path: 'admin/agent',
+        canActivate: [roleGuard('ADMIN')],
         loadComponent: () =>
           import('./features/agent/agent.component').then((m) => m.AgentComponent),
       },
@@ -399,6 +441,7 @@ export const routes: Routes = [
       // --- alumni ---
       {
         path: 'alumni',
+        canActivate: [roleGuard('ALUMNI')],
         loadComponent: () =>
           import('./features/alumni/profile/alumni-profile.component').then(
             (m) => m.AlumniProfileComponent,
@@ -406,6 +449,7 @@ export const routes: Routes = [
       },
       {
         path: 'alumni/jobs',
+        canActivate: [roleGuard('ALUMNI')],
         loadComponent: () =>
           import('./features/alumni/jobs/alumni-jobs.component').then((m) => m.AlumniJobsComponent),
       },

@@ -330,17 +330,259 @@ html.fonts-ready .icon {
   background: transparent;
 }
 
-.desktop-titlebar {
+/* THE APP BAR. A fixed 52px band (01-design-system.md §3), not a
+   content-sized one: the scope control, the search and the account block all
+   sit on its baseline, and a bar that grows with its tallest control moves the
+   whole page under it. It replaced `.desktop-titlebar`, which had no height at
+   all and carried the brand in the SIDEBAR. */
+.appbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 18px;
+  gap: 10px;
+  height: var(--appbar-height);
+  flex: none;
+  padding: 0 14px;
   background: var(--titlebar-gradient);
   border-bottom: 1px solid var(--hairline);
   color: var(--ink);
   font-size: 12.5px;
-  font-weight: 700;
+}
+
+.appbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  text-decoration: none;
   flex: none;
+}
+
+/* The brand mark is one of the three places the gradient is allowed. */
+.brandmark {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-icon);
+  background: var(--primary-gradient);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: var(--sh-primary);
+}
+.brandmark__word {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.brandmark__console {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Which deployment this is. Only the Main Admin sees it, because they are the
+   one person for whom the question is real. */
+.envpill {
+  flex: none;
+  border-radius: var(--r-pill);
+  padding: 3px 10px;
+  background: var(--tint-1);
+  color: var(--ink-soft);
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.appbar__search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 300px;
+  max-width: 34vw;
+  height: 32px;
+  margin-left: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  box-shadow: var(--sh-well);
+  color: var(--faint);
+  font-family: var(--font);
+  font-size: 12.5px;
+  text-align: left;
+}
+.appbar__search-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.appbar__search .icon {
+  font-size: 17px;
+  color: var(--ink-nav);
+}
+.kbd {
+  margin-left: auto;
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-swatch);
+  padding: 0 4px;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.appbar__scope {
+  flex: none;
+  max-width: 34vw;
+}
+
+/* The bar pushes everything after the scope control to the right edge. */
+.appbar__icon {
+  flex: none;
+}
+.appbar__icon:first-of-type {
+  margin-left: auto;
+}
+
+.appbar [disabled],
+.appbar [aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Right-align the account block whether or not the admin controls are there. */
+.account {
+  position: relative;
+  margin-left: auto;
+  flex: none;
+}
+.appbar__icon ~ .account {
+  margin-left: 0;
+}
+
+.account__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 8px 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: left;
+}
+.account__button:hover {
+  background: var(--surface);
+  border-color: var(--hairline-42);
+}
+/* The student console's identity is a label, not a menu. */
+.account__button--static {
+  cursor: default;
+}
+.account__button--static:hover {
+  background: transparent;
+  border-color: transparent;
+}
+.appbar__signout {
+  flex: none;
+}
+.account__button .icon {
+  font-size: 18px;
+  color: var(--ink-nav);
+}
+.account__who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+.account__name {
+  font-size: 12.5px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 16ch;
+}
+.account__role {
+  font-size: 10.5px;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 16ch;
+}
+
+.account__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 216px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  box-shadow: var(--sh-card);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.account__menuhead {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--hairline-26);
+  margin-bottom: 4px;
+}
+.account__menuhead small {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--faint);
+}
+.account__item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-seg);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+}
+.account__item .icon {
+  font-size: 17px;
+  color: var(--ink-nav);
+}
+.account__item small {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.account__item:hover {
+  background: var(--tint-2);
+}
+.account__item.is-disabled {
+  color: var(--faint);
+  cursor: not-allowed;
+}
+.account__item.is-disabled:hover {
+  background: transparent;
 }
 
 .desktop-shell {
@@ -440,6 +682,42 @@ html.fonts-ready .icon {
   color: #fff;
 }
 
+/* A navigation row with no route yet: the console's shape is honest, and the
+   row cannot pretend to work. Not an <a>, so it is not in the tab order and a
+   screen reader does not offer it as a link. */
+.nav-pending {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--faint);
+  margin-bottom: 2px;
+  cursor: not-allowed;
+}
+/* The label keeps the room; the badge is what gives way. A two-line "Data
+   imports" in a 220px rail looks like a bug rather than a state. */
+.nav-pending .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.nav-pending small {
+  margin-left: auto;
+  flex: none;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-pill);
+  padding: 1px 5px;
+}
+
 .desktop-nav .sec-label {
   font-family: var(--font-display);
   font-size: 10.5px;
@@ -454,7 +732,12 @@ html.fonts-ready .icon {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 22px 24px 90px;
+  /* 16/24 (01 §3). The bottom keeps clear of the floating agent orb. */
+  padding: 16px 24px 90px;
+}
+/* The console's boards are denser and sit against the sidebar. */
+.desktop-main--admin {
+  padding: 16px 20px 90px;
 }
 
 /* ==========================================================================

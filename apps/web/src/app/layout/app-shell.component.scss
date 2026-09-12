@@ -1,16 +1,27 @@
-/* The v2 desktop shell. Every visual token for .desktop-frame, .desktop-nav,
-   .nav-profile, .desktop-main etc. lives globally in src/styles/reep-v2.scss;
-   this file styles only the title-bar sign-out affordance, which has no global
-   class because nothing else in the app is a control on a gradient title bar. */
+/* The shell's own chrome. Every frame token — .appbar, .desktop-nav,
+   .nav-profile, .desktop-main and the account menu — lives globally in
+   src/styles/reep-v2.scss, because AGENTS.md's rule is that the design system
+   is global classes and a component does not redefine them.
+
+   What is left here is one rule that exists for a specificity reason. */
 
 :host {
   display: block;
 }
 
-/* The "View profile" link inside the identity card. Scoped as
+/* The two links inside the student's identity card. */
+.nav-profile .nav-profile__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* The "View profile" link inside the student's identity card. Scoped as
    `.nav-profile &` so it beats the global `.desktop-nav a` nav-row rule in
-   reep-v2.scss (0,1,1) — a bare `.nav-profile__link` (0,1,0) would lose and
-   the link would paint as a full-width nav pill inside the card. */
+   reep-v2.scss (0,1,1) — a bare `.nav-profile__link` (0,1,0) would lose and the
+   link would paint as a full-width nav pill inside the card. */
 .nav-profile .nav-profile__link {
   display: inline-flex;
   align-items: center;
@@ -34,25 +45,4 @@
     background: var(--brand-purple);
     color: #fff;
   }
-}
-
-.titlebar-logout {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border: 1px solid var(--hairline-42);
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  color: var(--ink-nav);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  opacity: 0.75;
-}
-.titlebar-logout:hover {
-  opacity: 1;
-  border-color: rgba(122, 47, 158, 0.45);
-  background: var(--tint-3);
 }

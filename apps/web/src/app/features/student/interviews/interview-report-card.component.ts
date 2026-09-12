@@ -219,7 +219,7 @@ const GENERIC_MISSING: StatusChip & { body: string } = {
         margin: 0;
         font-size: 13.5px;
         font-weight: 700;
-        color: var(--reep-text-primary);
+        color: var(--ink);
       }
       .rep__scores {
         margin-bottom: 12px;
@@ -232,18 +232,23 @@ const GENERIC_MISSING: StatusChip & { body: string } = {
       .rep__scorehint {
         margin-top: 2px;
         font-size: 11px;
-        color: var(--reep-text-secondary);
+        color: var(--muted);
       }
+      /* THE CALIBRATION LINE. The design system's warn note (01 §4), which is
+         where a "read this number carefully" sentence belongs. It was a
+         one-off amber nobody else used. Its position — between the scores and
+         the advice, in the same block — is fixed by the file header above and
+         must not move into a tooltip or a collapsed panel. */
       .rep__calibration {
         display: flex;
         gap: 9px;
         align-items: flex-start;
         margin: 0 0 14px;
         padding: 11px 13px;
-        border-radius: 10px;
-        border-left: 3px solid var(--reep-warning-main, #b26a00);
-        background: rgba(168, 117, 47, 0.1);
-        color: var(--reep-text-primary);
+        border-radius: var(--r-control);
+        border-left: 3px solid var(--warn-dot);
+        background: var(--warn-bg);
+        color: var(--ink);
         font-size: 12.4px;
         line-height: 1.5;
       }
@@ -255,7 +260,7 @@ const GENERIC_MISSING: StatusChip & { body: string } = {
         margin: 0 0 14px;
         font-size: 13px;
         line-height: 1.6;
-        color: var(--reep-text-primary);
+        color: var(--ink);
         white-space: pre-wrap;
       }
       .rep__cols {
@@ -269,14 +274,14 @@ const GENERIC_MISSING: StatusChip & { body: string } = {
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--reep-text-secondary);
+        color: var(--muted);
       }
       .rep__list {
         margin: 0;
         padding-left: 18px;
         font-size: 12.6px;
         line-height: 1.6;
-        color: var(--reep-text-primary);
+        color: var(--ink);
       }
       .rep__list li {
         margin-bottom: 4px;
@@ -284,13 +289,13 @@ const GENERIC_MISSING: StatusChip & { body: string } = {
       .rep__note {
         margin: 0;
         font-size: 12.4px;
-        color: var(--reep-text-secondary);
+        color: var(--muted);
       }
       .rep__missing {
         margin: 0 0 8px;
         font-size: 13px;
         line-height: 1.6;
-        color: var(--reep-text-primary);
+        color: var(--ink);
       }
       .rep__drill {
         display: flex;
@@ -299,22 +304,22 @@ const GENERIC_MISSING: StatusChip & { body: string } = {
         margin-top: 16px;
         padding: 12px 14px;
         border-radius: 10px;
-        background: var(--reep-action-hover);
+        background: var(--tint-2);
         font-size: 12.8px;
         line-height: 1.55;
-        color: var(--reep-text-primary);
+        color: var(--ink);
       }
       .rep__drilllabel {
         font-size: 10.8px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--reep-text-secondary);
+        color: var(--muted);
       }
       .rep__stamp {
         margin: 14px 0 0;
         font-size: 11px;
-        color: var(--reep-text-secondary);
+        color: var(--muted);
       }
       @media (max-width: 720px) {
         .rep__cols {

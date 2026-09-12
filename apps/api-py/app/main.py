@@ -440,3 +440,26 @@ else:
             "APIRouter with an /api prefix — the interview record endpoints are "
             "NOT served."
         )
+
+
+# --- The development-only MCP surface ----------------------------------------
+#
+# LAST, and deliberately so: fastapi-mcp reads the app's OpenAPI schema to build
+# its tool list, so every router must already be included or the tools it
+# publishes are a subset of the API by accident of ordering.
+#
+# Two gates, both in settings.mcp_enabled: the ENV must be on the development
+# ALLOWLIST (never `not is_prod` — an unrecognised ENV has to lose the
+# affordance, not gain it) and MCP_DEV_SURFACE must spell "true". The mount
+# forwards the caller's session cookie into the real handlers, so on a host
+# serving real students it would be a second front door with none of the rate
+# limiting, revocation or audit the first one has.
+#
+# app/dev_mcp.py imports fastapi_mcp INSIDE its function: the package is in
+# requirements-dev.txt only, the Dockerfile installs requirements.txt, and CI's
+# dependency-completeness job imports every module under app/ against that same
+# manifest. With the flag off this line is the only thing that runs.
+if settings.mcp_enabled:
+    from .dev_mcp import mount_dev_mcp
+
+    mount_dev_mcp(app)

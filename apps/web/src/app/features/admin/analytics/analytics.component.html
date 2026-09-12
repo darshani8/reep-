@@ -1,165 +1,298 @@
 <div class="panel" data-p="analytics">
   <div class="dt-header">
     <div>
-      <div class="eyebrow">Main Admin · cohort view</div>
-      <h1 class="dt-title">Programme analytics</h1>
+      <div class="crumb"><span>Overview</span><span class="sep">/</span><span>Analytics</span></div>
+      <h1 class="dt-title">Placement analytics</h1>
       <div class="dt-sub">
-        @if (summary(); as s) {
-          {{ s.students_total }} students · {{ s.mentors_total }} mentors
-          @if (s.semester !== null) {
-            · Semester {{ s.semester }}
+        @if (summary(); as figures) {
+          Programme-wide · {{ figures.students_total }} students · {{ figures.mentors_total }} mentors
+          @if (figures.semester !== null) {
+            · semester {{ figures.semester }}
           }
-          · updated {{ s.generated_at | date: 'd MMM y' }}
-        } @else if (!error()) {
-          Loading the cohort figures…
+          · counted {{ figures.generated_at | date: 'd MMM y, HH:mm' }}
         } @else {
-          Cohort figures unavailable.
+          {{ summaryPlaceholderNote() }}
         }
       </div>
     </div>
-    @if (summary()?.semester !== null && summary()) {
-      <span class="chip neutral sem-chip">
-        <span class="icon" aria-hidden="true">event</span> Semester {{ summary()!.semester }}
-      </span>
-    }
+    <div class="dt-toolbar">
+      <a class="btn secondary" routerLink="/admin/exports">
+        <span class="icon" aria-hidden="true">download</span> Export
+      </a>
+      <button type="button" class="btn primary" [reepPending]="4">
+        <span class="icon" aria-hidden="true">upload_file</span> Import data
+      </button>
+    </div>
   </div>
 
   @if (error()) {
-    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">error</span>{{ error() }}
+    </div>
   }
 
-  @if (summary(); as s) {
-    <div class="stat-strip">
-      <div class="stat">
-        <div class="stat-lbl">Active students</div>
-        <div class="stat-val">{{ s.students_total }}</div>
-        @if (s.pending_registrations > 0) {
-          <a class="stat-sub stat-link" routerLink="/admin/registrations">
-            {{ s.pending_registrations }} pending registration
+  <div class="filters">
+    <div class="select filter-pending">
+      <span class="lbl">Batch</span>
+      <span class="val">All batches</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Batch" [reepPending]="4">
+        <option>All batches</option>
+      </select>
+    </div>
+    <div class="select filter-pending">
+      <span class="lbl">Course</span>
+      <span class="val">All courses</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Course" [reepPending]="4">
+        <option>All courses</option>
+      </select>
+    </div>
+    <div class="select filter-pending">
+      <span class="lbl">Track</span>
+      <span class="val">All tracks</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Track" [reepPending]="4">
+        <option>All tracks</option>
+      </select>
+    </div>
+    <div class="select filter-pending">
+      <span class="lbl">Period</span>
+      <span class="val">Last 6 weeks</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Period" [reepPending]="4">
+        <option>Last 6 weeks</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- The board's six tiles, in the board's order. Three of them are counted
+       from what the console returns today; three carry a dash, because the
+       alternative is a number in a screenshot that nobody computed. -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-head"><div class="eyebrow">Placement rate</div></div>
+      @if (summary(); as figures) {
+        <div class="num">{{ placementRatePercent() }}<span class="unit">%</span></div>
+        <!-- 01-design-system.md §3: Placement is reached from the Analytics
+             tiles, so this figure is the way in rather than a dead number. -->
+        <div class="sub">
+          <a routerLink="/admin/placement">
+            {{ figures.placed_students }} of {{ figures.students_total }} with an approved offer
           </a>
-        } @else {
-          <div class="stat-sub">No registrations pending</div>
-        }
+        </div>
+      } @else {
+        <div class="num">—</div>
+        <div class="sub">{{ summaryPlaceholderNote() }}</div>
+      }
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-head">
+        <div class="eyebrow">Median CTC</div>
+        <span class="chip neutral">Phase 4</span>
       </div>
-      <div class="stat">
-        <div class="stat-lbl">Mentors</div>
-        <div class="stat-val">{{ s.mentors_total }}</div>
-        @if (s.mentees_per_mentor !== null) {
-          <div class="stat-sub">{{ s.mentees_per_mentor }} mentees on average</div>
-        } @else {
-          <div class="stat-sub">No mentors on the roster</div>
-        }
+      <div class="num">—</div>
+      <div class="sub">Offer CTC figures arrive with the scoped analytics KPIs (B8.5).</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-head">
+        <div class="eyebrow">Placement-ready</div>
+        <span class="chip neutral">Phase 4</span>
       </div>
-      <div class="stat">
-        <div class="stat-lbl">Badges awarded</div>
-        <div class="stat-val">{{ s.badges_awarded }}</div>
-        @if (s.evidence_awaiting_verification > 0) {
-          <!-- A COUNT, NOT A LINK. The Badge Centre was removed with design-v4
-               and nothing replaced it, so this had been pointing at a route that
-               does not exist: the click did nothing at all. The number is still
-               worth showing; inventing a destination for it is not. -->
-          <div class="stat-sub warn">
-            {{ s.evidence_awaiting_verification }} awaiting verification
+      <div class="num">—</div>
+      <div class="sub">Readiness is per student today; the programme roll-up arrives with B8.5.</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-head"><div class="eyebrow">Attendance</div></div>
+      @if (attendanceAveragePercent() !== null) {
+        <div class="num">{{ attendanceAveragePercent() }}<span class="unit">%</span></div>
+        <div class="sub">mean of {{ studentsWithAttendanceRecorded() }} students with attendance recorded</div>
+      } @else {
+        <div class="num">—</div>
+        <div class="sub">No attendance recorded yet.</div>
+      }
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-head">
+        <div class="eyebrow">Mock interviews</div>
+        <span class="chip neutral">Phase 4</span>
+      </div>
+      <div class="num">—</div>
+      <div class="sub">The interview counter and its average score arrive with B8.5.</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-head"><div class="eyebrow">Pending approvals</div></div>
+      @if (summary(); as figures) {
+        <div class="num">{{ pendingApprovals() }}</div>
+        <div class="sub">
+          <a routerLink="/admin/registrations">{{ figures.pending_registrations }} registrations</a>
+          · {{ figures.evidence_awaiting_verification }} evidence
+        </div>
+      } @else {
+        <div class="num">—</div>
+        <div class="sub">{{ summaryPlaceholderNote() }}</div>
+      }
+    </div>
+  </div>
+
+  <div class="notice accent">
+    <span class="icon" aria-hidden="true">info</span>
+    <span>
+      The batch, course, track and period filters, the week-on-week deltas and the tile sparklines are
+      computed by the scoped analytics KPIs (B8.5) over the nightly snapshots (B8.6), and the college /
+      department scope control arrives with B1.4. Every figure here is programme-wide and counted when
+      the screen loads.
+    </span>
+  </div>
+
+  <section class="card chart-card">
+    <div class="card-head">
+      <div>
+        <h2 class="card-heading">Placement health · weekly</h2>
+        <p class="card-sub">
+          Attendance on the left axis, ledger hours as bars on the right · click a legend item to toggle
+          a series, hover to focus it, drag the strip to narrow the weeks
+        </p>
+      </div>
+      <div class="card-actions">
+        @if (weekly(); as series) {
+          @if (series.has_resume) {
+            <a class="btn secondary sm" [href]="cvUrl()">
+              <span class="icon" aria-hidden="true">download</span> Download CV
+            </a>
+          }
+        }
+        @if (studentsWithAMentor().length > 0) {
+          <div class="select">
+            <span class="lbl">Student</span>
+            <span class="val">{{ selectedStudentName() }}</span>
+            <span class="icon" aria-hidden="true">expand_more</span>
+            <select aria-label="Student drawn in the weekly chart" (change)="selectStudent($event)">
+              @for (student of studentsWithAMentor(); track student.student_id) {
+                <option [value]="student.student_id" [selected]="student.student_id === selectedStudentId()">
+                  {{ student.name }}
+                </option>
+              }
+            </select>
           </div>
-        } @else {
-          <div class="stat-sub">Nothing awaiting verification</div>
         }
       </div>
-      <div class="stat">
-        <div class="stat-lbl">Placed</div>
-        <div class="stat-val">{{ placedPercent() }}<span class="stat-unit"> %</span></div>
-        <a class="stat-sub stat-link" routerLink="/admin/placement">
-          {{ s.approved_offers }} approved offer{{ s.approved_offers === 1 ? '' : 's' }}
+    </div>
+
+    <div class="notice accent">
+      <span class="icon" aria-hidden="true">insights</span>
+      <span>
+        The batch-wide series the board draws — placement-readiness %, cohort attendance % and approved
+        offers per week — is computed by B8.5 and stored nightly by B8.6. Until then the only real week
+        on this deployment is one student's six, so that is what is drawn here, for the student named
+        above.
+      </span>
+    </div>
+
+    @if (weeklyBusy()) {
+      <p class="state-note" role="status">
+        <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the last six weeks…
+      </p>
+    }
+
+    @if (weekly(); as series) {
+      <div
+        #healthChart
+        class="health-chart"
+        role="img"
+        [attr.aria-label]="'Weekly attendance and ledger hours for ' + series.name"
+      ></div>
+    } @else if (noStudentHasAMentor()) {
+      <div class="notice warn">
+        <span class="icon" aria-hidden="true">warning</span>
+        No student is assigned to a mentor yet, so there is no six-week series to draw.
+      </div>
+    }
+  </section>
+
+  <div class="board-columns">
+    <section class="card grid-card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-heading">Mentor load · {{ mentorRows().length }} mentors</h2>
+          <p class="card-sub">
+            Every faculty account, with the mean of its students' figures. Hours are the whole ledger
+            record rather than one week.
+          </p>
+        </div>
+        <a class="btn ghost sm" routerLink="/admin/mentors">
+          <span class="icon" aria-hidden="true">arrow_forward</span> Open mentor mapping
         </a>
       </div>
-    </div>
-  }
 
-  @if (load() !== null && load()!.length === 0 && !error()) {
-    <div class="card">
-      <span class="icon" aria-hidden="true">info</span>
-      No mentors on the roster yet, so there is nothing to map.
-    </div>
-  }
-
-  <div class="chart-grid" [class.chart-grid--hidden]="!load()?.length">
-    <div class="card chart-card">
-      <div class="chart-head">
-        <div>
-          <div class="chart-title">Mentorship structure</div>
-          <div class="chart-hint">
-            Faculty mentor → assigned students@if (isSample()) {, showing a sample of
-            {{ sampled().length }} mentors}. Colour is each student's
-            {{ metricLabel(metric()).toLowerCase() }}. Click a mentor to load their students in
-            the chart alongside; click the same mentor again for all mentors.
-          </div>
+      @if (rosterIsEmpty()) {
+        <div class="notice accent">
+          <span class="icon" aria-hidden="true">info</span>
+          No mentors on the roster yet, so there is nothing to map.
         </div>
-        <span class="chart-scope">
-          @if (isSample()) {
-            Sample: {{ sampled().length }} of {{ mentors().length }} mentors ·
-            {{ sampledStudents() }} of {{ allMentees().length }} students
-          } @else {
-            All {{ mentors().length }} mentors · {{ allMentees().length }} assigned students
-          }
-        </span>
-      </div>
-      <div #sun class="chart chart--sun"></div>
-    </div>
-
-    <div class="card chart-card">
-      <div class="chart-head">
-        <div>
-          <div class="chart-title">{{ scope().title }}</div>
-          <div class="chart-hint">{{ scope().caption }}</div>
+      } @else {
+        <div class="grid-toolbar">
+          <input
+            class="dt-quickfilter"
+            type="search"
+            placeholder="Search mentors…"
+            aria-label="Search the mentor load table"
+            (input)="setQuickFilter($event)"
+          />
         </div>
-        <div class="chart-actions">
-          @if (focusedStudent() && weekly()?.has_resume) {
-            <a class="btn" [href]="cvUrl()"><span class="icon" aria-hidden="true">download</span> Download CV</a>
-          }
-          @if (focusMentor()) {
-            <button type="button" class="btn ghost" (click)="clearFocus()">All mentors</button>
-          }
-          <select
-            class="ctrl metric-select"
-            aria-label="Metric"
-            [value]="metric()"
-            (change)="setMetric($any($event.target).value)"
-          >
-            @for (m of metricKeys; track m) {
-              <option [value]="m">{{ metricLabel(m) }}</option>
-            }
-          </select>
-        </div>
-      </div>
-
-      @if (focusedStudent(); as s) {
-        <div class="stu-strip">
-          <div class="stu-fig">
-            <span class="stu-lbl">Attendance</span>
-            <strong>{{ studentFigure('attendance') }}</strong>
-          </div>
-          <div class="stu-fig">
-            <span class="stu-lbl">Skill badges</span>
-            <strong>{{ studentFigure('skills') }}</strong>
-          </div>
-          <div class="stu-fig">
-            <span class="stu-lbl">Time sheet</span>
-            <strong>{{ studentFigure('hours') }}</strong>
-          </div>
-          @if (s.usn) {
-            <div class="stu-fig">
-              <span class="stu-lbl">USN</span>
-              <strong class="stu-usn">{{ s.usn }}</strong>
-            </div>
-          }
-        </div>
-        @if (weeklyBusy()) {
-          <div class="state-note">
-            <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the last six weeks…
-          </div>
-        }
+        <ag-grid-angular
+          class="mentor-grid"
+          [theme]="gridTheme"
+          [rowData]="mentorRows()"
+          [columnDefs]="mentorColumns"
+          [defaultColDef]="defaultMentorColumn"
+          [quickFilterText]="quickFilter()"
+          [pagination]="true"
+          [paginationPageSize]="mentorsPerPage"
+          [paginationPageSizeSelector]="pageSizes"
+          [domLayout]="'autoHeight'"
+          [suppressCellFocus]="true"
+        />
       }
-      <div #bar class="chart chart--bar"></div>
-    </div>
+    </section>
+
+    <section class="card alerts-card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-heading">Alerts · open</h2>
+          <p class="card-sub">
+            What is stored against the alert rules today. The nightly engine that raises them at 02:00
+            arrives with B8.3.
+          </p>
+        </div>
+        <button type="button" class="btn ghost sm" [reepPending]="4">
+          <span class="icon" aria-hidden="true">tune</span> Rules
+        </button>
+      </div>
+
+      @if (alertsAreEmpty()) {
+        <div class="notice accent">
+          <span class="icon" aria-hidden="true">info</span>
+          Nothing open.
+        </div>
+      } @else {
+        <ul class="alert-list">
+          @for (alert of openAlerts(); track alert.id) {
+            <li class="alert-row">
+              <span class="chip dot {{ alertTone(alert.severity) }}">{{ alertRuleLabel(alert.rule_triggered) }}</span>
+              <span class="alert-text">
+                {{ alert.message }}
+                <span class="alert-meta">· {{ alert.student_name }} · {{ alert.triggered_at | date: 'd MMM' }}</span>
+              </span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
   </div>
 </div>

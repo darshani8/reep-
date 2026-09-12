@@ -1,5 +1,5 @@
 /**
- * Institution — the Main Admin's College → Department → Course →
+ * Institution structure — the Main Admin's College → Department → Course →
  * Specialization → Batch console.
  *
  * THIS IS THE FIRST CALLER OF /api/admin/*. The write layer shipped with
@@ -8,10 +8,13 @@
  * level here is created, listed and edited through those endpoints; nothing
  * is built through a seed.
  *
- * DRILL-DOWN, NOT A TREE WIDGET. Pick a college, its departments appear; pick
- * a department, its courses and its batches appear; pick a course, its
- * specializations appear. Each level is one select plus one inline "add"
- * form, so the whole hierarchy is one column and the batches are the other.
+ * THE TREE IS THE DRILL-DOWN, NOT A TREE WIDGET. The board draws one rail of
+ * indented rows, and that is what this renders: colleges always, the selected
+ * college's departments under it, the selected department's courses under
+ * that, and the selected course's specializations under that. Each level is
+ * still one fetch keyed on its parent — /colleges/{id}/departments,
+ * /departments/{id}/academic-courses — so the rail shows exactly what the API
+ * can answer and never a branch nobody asked for.
  *
  * THE BATCH FORM'S VALIDATORS COME FROM THE SERVER. `HierarchySchemaService`
  * fetches which of Course / Specialization is required; `buildBatchForm`
@@ -33,19 +36,39 @@
  * specialization select is disabled until a course is picked, and changing the
  * course clears it. The server checks the same thing (a 422 from
  * _resolve_ancestry); the cascade just makes it unreachable from here.
+ *
+ * WHAT THE BOARD DRAWS THAT MAIN CANNOT ANSWER YET, and how it renders. Three
+ * of the board's facts have no column behind them on `main`, so not one of
+ * them is invented here — each is the empty state plus one sentence naming the
+ * task that fills it:
+ *
+ *   - the college's registration email domains (B1.1, Phase 3) — "Add domain"
+ *     is drawn through PendingControlDirective;
+ *   - the course's degree level, total semesters and semesters per year
+ *     (B4.1, Phase 4) — three pending inputs, and the batches grid therefore
+ *     has NO "semester x of N" column, because neither half of that fraction
+ *     exists;
+ *   - the specialization's interview track and its chart colour (B5.1,
+ *     Phase 4) — the Track column reads "Not mapped" on every row.
+ *
+ * Degree level on a BATCH is real today (`cohorts.degree_level`) and stays an
+ * ordinary control on the batch form. It is the COURSE-level one the board
+ * shows that has to wait.
  */
 
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { Subscription } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { HierarchyLevel, HierarchySchemaService } from '../../../core/hierarchy-schema.service';
+import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 
 // ---- exact snake_case shapes of the admin router's Out models -------------
 
@@ -120,15 +143,29 @@ const LEVEL_OPTIONS: Record<string, 'courses' | 'specializations'> = {
   specialization: 'specializations',
 };
 
+/** The two values PATCH accepts for any level's `status` (_SETTABLE_STATUSES). */
+const COURSE_STATUSES = ['ACTIVE', 'ARCHIVED'];
+
+/** The phase whose backend task fills each part of the board main cannot answer. */
+const PHASE_FOR_COLLEGE_EMAIL_DOMAINS = 3;
+const PHASE_FOR_COURSE_SEMESTERS = 4;
+const PHASE_FOR_INTERVIEW_TRACKS = 4;
+
 @Component({
   selector: 'app-admin-institution',
   standalone: true,
-  imports: [NgTemplateOutlet, ReactiveFormsModule],
+  imports: [NgTemplateOutlet, ReactiveFormsModule, PendingControlDirective],
   templateUrl: './institution.component.html',
   styleUrl: './institution.component.scss',
 })
-export class AdminInstitutionComponent {
+export class AdminInstitutionComponent implements OnDestroy {
   private readonly schema = inject(HierarchySchemaService);
+
+  /** Read by the template so the phase sentence is written once, here. */
+  readonly phaseForCollegeEmailDomains = PHASE_FOR_COLLEGE_EMAIL_DOMAINS;
+  readonly phaseForCourseSemesters = PHASE_FOR_COURSE_SEMESTERS;
+  readonly phaseForInterviewTracks = PHASE_FOR_INTERVIEW_TRACKS;
+  readonly courseStatuses = COURSE_STATUSES;
 
   // ---- screen -------------------------------------------------------------
   readonly state = signal<ScreenState>('loading');
@@ -158,6 +195,36 @@ export class AdminInstitutionComponent {
     () => this.courses().find((c) => c.id === this.selectedCourseId()) ?? null,
   );
 
+  // ---- the rail's finder --------------------------------------------------
+  /** What was typed into "Find a department, course or batch…".
+   *
+   *  IT DOES NOT FILTER COLLEGES, and the placeholder says so. Filtering the
+   *  top level too reads as a bug the moment anyone uses it: typing a
+   *  department's name hides the college it is under, and the branch the admin
+   *  was looking for goes with it. The colleges are a handful of rows; the
+   *  levels below them are the ones worth searching. */
+  readonly finderText = signal('');
+
+  readonly visibleDepartments = computed(() =>
+    this.departments().filter((d) => this.rowMatchesFinder(d.code, d.name)),
+  );
+  readonly visibleCourses = computed(() =>
+    this.courses().filter((c) => this.rowMatchesFinder(c.code, c.name)),
+  );
+  readonly visibleSpecializations = computed(() =>
+    this.specializations().filter((s) => this.rowMatchesFinder(s.code, s.name)),
+  );
+  readonly visibleBatches = computed(() =>
+    this.batches().filter((b) => this.rowMatchesFinder(b.code, `${b.name} ${b.batch_label}`)),
+  );
+  readonly railIsEmpty = computed(() => {
+    if (!this.finderText().trim()) return false;
+    if (this.visibleDepartments().length) return false;
+    if (this.visibleCourses().length) return false;
+    if (this.visibleSpecializations().length) return false;
+    return this.visibleBatches().length === 0;
+  });
+
   // ---- batches ------------------------------------------------------------
   readonly batches = signal<AdminCohortOut[]>([]);
   /** Batches missing a now-required level — the morning-after-the-flip inbox. */
@@ -186,6 +253,18 @@ export class AdminInstitutionComponent {
 
   batchForm: FormGroup = this.buildBatchForm([]);
 
+  // ---- the course card ----------------------------------------------------
+  /** Code / name / duration / status — the four the PATCH accepts today. */
+  readonly courseForm = new FormGroup({
+    code: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    duration_months: new FormControl('', { nonNullable: true }),
+    status: new FormControl('ACTIVE', { nonNullable: true }),
+  });
+  readonly courseError = signal<string | null>(null);
+  readonly courseSaveBlocked = computed(() => this.busy() || !this.courseFormIsComplete());
+  private readonly courseFormIsComplete = signal(false);
+
   // ---- inline "add" drafts ------------------------------------------------
   readonly collegeDraft = signal({ code: '', name: '', campus: '' });
   readonly departmentDraft = signal({ code: '', name: '', head: '' });
@@ -195,8 +274,20 @@ export class AdminInstitutionComponent {
 
   readonly degreeLevels = ['UG', 'PG'];
 
+  /** Keeps `courseFormIsComplete` honest while the admin types. A form's
+   *  validity is not a signal, so a `computed` over it would cache the answer
+   *  from before the field was cleared and leave Save enabled. */
+  private readonly courseFormWatch: Subscription;
+
   constructor() {
+    this.courseFormWatch = this.courseForm.statusChanges.subscribe(() => {
+      this.courseFormIsComplete.set(this.courseForm.valid);
+    });
     void this.load();
+  }
+
+  ngOnDestroy(): void {
+    this.courseFormWatch.unsubscribe();
   }
 
   // =========================================================================
@@ -240,6 +331,7 @@ export class AdminInstitutionComponent {
     this.specializations.set([]);
     this.batches.set([]);
     this.closeBatchForm();
+    this.closeSeating();
     if (!id) return;
     const departments = await this.get<DepartmentOut[]>(`/admin/colleges/${id}/departments`);
     this.departments.set(departments);
@@ -253,6 +345,7 @@ export class AdminInstitutionComponent {
     this.specializations.set([]);
     this.batches.set([]);
     this.closeBatchForm();
+    this.closeSeating();
     if (!id) return;
     const [courses, batches] = await Promise.all([
       this.get<AcademicCourseOut[]>(`/admin/departments/${id}/academic-courses`),
@@ -266,12 +359,22 @@ export class AdminInstitutionComponent {
   async pickCourse(id: string | null): Promise<void> {
     this.selectedCourseId.set(id);
     this.specializations.set([]);
+    this.courseError.set(null);
     if (!id) return;
     this.specializations.set(
       await this.get<AcademicSpecializationOut[]>(
         `/admin/academic-courses/${id}/academic-specializations`,
       ),
     );
+    this.fillCourseForm();
+  }
+
+  /** The rail's finder: does this row's code or name contain what was typed? */
+  private rowMatchesFinder(code: string, name: string): boolean {
+    const typed = this.finderText().trim().toLowerCase();
+    if (!typed) return true;
+    if (code.toLowerCase().includes(typed)) return true;
+    return name.toLowerCase().includes(typed);
   }
 
   // =========================================================================
@@ -361,6 +464,61 @@ export class AdminInstitutionComponent {
     this.specializationDraft.set({ code: '', name: '' });
     this.openAdd.set(null);
     this.flash.set(`Added specialization ${created.code}`);
+  }
+
+  // =========================================================================
+  // the course card — the four fields PATCH /academic-courses/{id} accepts
+  // =========================================================================
+
+  private fillCourseForm(): void {
+    const course = this.selectedCourse();
+    if (!course) return;
+    this.courseForm.setValue({
+      code: course.code,
+      name: course.name,
+      duration_months: course.duration_months === null ? '' : String(course.duration_months),
+      status: course.status === 'ARCHIVED' ? 'ARCHIVED' : 'ACTIVE',
+    });
+    this.courseFormIsComplete.set(this.courseForm.valid);
+  }
+
+  async saveCourse(): Promise<void> {
+    const course = this.selectedCourse();
+    if (!course) return;
+    this.courseError.set(null);
+    const typed = this.courseForm.getRawValue();
+    const saved = await this.patchCourse(course.id, {
+      code: typed.code,
+      name: typed.name,
+      duration_months: typed.duration_months ? Number(typed.duration_months) : null,
+      status: typed.status,
+    });
+    if (!saved) return;
+    this.flash.set(`Saved course ${saved.code}`);
+  }
+
+  async archiveCourse(): Promise<void> {
+    const course = this.selectedCourse();
+    if (!course) return;
+    this.courseError.set(null);
+    const archived = await this.patchCourse(course.id, { status: 'ARCHIVED' });
+    if (!archived) return;
+    this.flash.set(`Archived course ${archived.code}`);
+  }
+
+  private async patchCourse(
+    courseId: string,
+    body: Record<string, unknown>,
+  ): Promise<AcademicCourseOut | null> {
+    const saved = await this.patch<AcademicCourseOut>(`/admin/academic-courses/${courseId}`, body);
+    if (!saved) {
+      this.courseError.set(this.error());
+      this.error.set(null);
+      return null;
+    }
+    this.courses.update((list) => list.map((c) => (c.id === saved.id ? saved : c)));
+    this.fillCourseForm();
+    return saved;
   }
 
   // =========================================================================
@@ -454,11 +612,22 @@ export class AdminInstitutionComponent {
     // during this edit is NOT grandfathered — that is a fresh gap, and it is
     // refused normally.
     this.grandfathered.set(
-      new Set(this.levels().filter((lv) => lv.required && !(b as any)[lv.field]).map((lv) => lv.field)),
+      new Set(
+        this.levels()
+          .filter((lv) => lv.required && !this.levelValueOf(b, lv))
+          .map((lv) => lv.field),
+      ),
     );
     this.editingBatchId.set(b.id);
     this.batchError.set(null);
     this.batchMode.set('edit');
+  }
+
+  /** The batch's value at one hierarchy level, without naming the level. */
+  private levelValueOf(batch: AdminCohortOut, lv: HierarchyLevel): string | null {
+    if (lv.field === 'course_id') return batch.course_id;
+    if (lv.field === 'specialization_id') return batch.specialization_id;
+    return null;
   }
 
   closeBatchForm(): void {
@@ -616,10 +785,29 @@ export class AdminInstitutionComponent {
     return parts.length ? parts.join(' · ') : '—';
   }
 
+  /** The rail's count line for a department: "4 batches". */
+  batchCountOf(d: DepartmentOut): string {
+    if (d.cohort_count === 1) return '1 batch';
+    return `${d.cohort_count} batches`;
+  }
+
+  /** The rail's count line for a course: "4 specializations". */
+  specializationCountOf(c: AcademicCourseOut): string {
+    if (c.specialization_count === 1) return '1 specialization';
+    return `${c.specialization_count} specializations`;
+  }
+
   readonly requiredLabels = computed(() =>
     this.levels()
       .filter((lv) => lv.required)
       .map((lv) => lv.label),
+  );
+
+  /** The batch codes under the selected department, for the rail's leaf row. */
+  readonly batchCodesInDepartment = computed(() =>
+    this.visibleBatches()
+      .map((b) => b.code)
+      .join(' · '),
   );
 
   // =========================================================================

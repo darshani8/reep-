@@ -36,6 +36,16 @@
 :root {
   /* --- brand ------------------------------------------------------------ */
   --brand-purple: #552c7e;
+  /* MAGENTA APPEARS IN EXACTLY ONE PLACE, AND A CI CHECK ENFORCES IT.
+     The 2026-09 design system (docs/redesign-2026-09/01-design-system.md §1)
+     reserves magenta for the primary gradient below: the one primary button of
+     a view, the active nav pill, the active tab, the brand mark and the meters.
+     It is never a text colour, never a chip, never a chart series — at 4.0:1 on
+     the card fill it is the weakest colour in the palette to read, and a second
+     standalone accent leaves the gradient with nothing to mean.
+     tools/ci/check_brand_magenta.py fails the build if `--brand-magenta`, the
+     literal `#ba2185` or its rgba form appears anywhere but --primary-gradient
+     and this declaration. Reach for --brand-purple or --purple-mid instead. */
   --brand-magenta: #ba2185;
   --purple-mid: #7a2f9e;
   --magenta-mid: #a0248f;
@@ -103,13 +113,46 @@
     rgba(26, 10, 42, 0.98)
   );
 
+  /* --- chart palette (2026-09) ------------------------------------------
+     Charts get their own vocabulary because a data series is not a status and
+     neither is a brand colour. Four categorical hues, fixed per interview
+     track so a track is the same colour on every screen (FIN 1, HR 2, MKT 3,
+     BA 4); one single-hue sequential ramp for magnitude; the status trio for
+     status. All pairs were checked on the --tint-3 table ground: CVD deltaE
+     10.1, normal-vision deltaE 21.9, contrast at or above 3:1.
+     Brand purple is series 1 of a single-series chart and nothing else —
+     see 01-design-system.md §1. */
+  --cat-1: #9e6cd5;
+  --cat-2: #c47c00;
+  --cat-3: #009592;
+  --cat-4: #89275b;
+  --seq: #552c7e;
+  --seq-light: #c9b8d8;
+  --axis: #7c7891;
+  --split: rgba(160, 138, 178, 0.26);
+  --st-good: #137a4a;
+  --st-warn: #d99a00;
+  --st-risk: #ad2452;
+  --st-neutral: #c9b8d8;
+
   /* --- radii ------------------------------------------------------------ */
   --r-pill: 999px;
-  --r-card: 22px;
+  /* 22px -> 16px with the 2026-09 design system. The enterprise dress sets
+     cards at 16 and controls at 12, which reads as a document rather than a
+     consumer app; at 22 the corner ate into dense table content. This one
+     token reshapes .card/.res-card, .dense-stat, .reg-frame, .skill-card and
+     the uploads panel at once, which is why it is called out here. */
+  --r-card: 16px;
   --r-ledger: 20px;
   --r-profile: 18px;
   --r-alert: 14px;
   --r-btn: 12px;
+  /* The control radius, named for what it is. An alias rather than a second
+     value: --r-btn already carries 12px across seven component sheets, and
+     two names holding one number is how they come to disagree. */
+  --r-control: var(--r-btn);
+  /* Small tiles (KPI sparkline wells, swatches, the grid's inner cells). */
+  --r-tile: 10px;
   --r-icon: 8px;
   --r-seg: 6px;
   --r-swatch: 3px;
@@ -134,13 +177,21 @@
 
   /* --- nav -------------------------------------------------------------- */
   --nav-width: 220px;
+  /* The app bar is a fixed 52px band, not a content-sized one. The scope
+     control, the search and the avatar block all sit on its baseline, and a
+     bar that grows with its tallest control moves the whole page under it. */
+  --appbar-height: 52px;
 
   /* --- ground + focus, the two tokens that are not colours or shadows ---- */
   /* The page's flat ground, under the wash. Named for what it is rather than
      inherited from the old warm-paper vocabulary. */
   --ground: #ece4f5;
   --edge-hi: inset 0 1px 0 #fff;
-  --focus-ring: 0 0 0 3px rgba(186, 33, 133, 0.18);
+  /* Brand purple at 25%, 2px, per 01-design-system.md §7. It was magenta at
+     18%, which is both the colour the palette reserves for the gradient and
+     the faintest ring in it — on the white input fill the old value was
+     barely visible, so keyboard users could not see where focus was. */
+  --focus-ring: 0 0 0 2px rgba(85, 44, 126, 0.25);
 }
 
 * {
@@ -862,7 +913,7 @@ html.fonts-ready .icon {
   box-shadow: var(--sh-primary-hover);
 }
 .btn.accent {
-  background: linear-gradient(135deg, var(--magenta-mid), var(--brand-magenta));
+  background: var(--primary-gradient);
   border-color: transparent;
   color: #fff;
   box-shadow: var(--sh-primary);
@@ -1713,7 +1764,7 @@ html.fonts-ready .icon {
   font-family: var(--font-display);
   font-size: 22px;
   font-weight: 700;
-  color: var(--brand-magenta);
+  color: var(--brand-purple);
 }
 
 .skill-card {
@@ -1901,7 +1952,7 @@ html.fonts-ready .icon {
   background: radial-gradient(
     60% 60% at 40% 32%,
     rgba(255, 255, 255, 0.35),
-    rgba(186, 33, 133, 0.55) 60%,
+    rgba(122, 47, 158, 0.55) 60%,
     rgba(85, 44, 126, 0.7)
   );
   box-shadow:
@@ -1929,7 +1980,7 @@ html.fonts-ready .icon {
 .waveform i {
   width: 5px;
   border-radius: var(--r-pill);
-  background: linear-gradient(180deg, #e9c9f5, #ba2185);
+  background: linear-gradient(180deg, #e9c9f5, #7a2f9e);
   max-height: 100%;
   transform-origin: center;
   animation: rp-wave 1.2s ease-in-out infinite;
@@ -1992,7 +2043,7 @@ html.fonts-ready .icon {
   font-size: 25px;
 }
 .voice-controls button.end {
-  background: linear-gradient(135deg, #a0248f, #ba2185);
+  background: linear-gradient(135deg, #c53a63, #ad2452);
   border-color: transparent;
 }
 

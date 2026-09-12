@@ -102,7 +102,7 @@ textarea {
 .meter i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--brand-magenta), var(--brand-purple));
+  background: var(--primary-gradient);
   border-radius: 4px;
 }
 .completeness small {
@@ -142,7 +142,7 @@ textarea {
   background: var(--good);
 }
 .step-dot.partial {
-  background: var(--brand-magenta);
+  background: var(--warn-dot);
 }
 .step-item.active .step-dot {
   outline: 2px solid rgba(248, 244, 236, 0.25);

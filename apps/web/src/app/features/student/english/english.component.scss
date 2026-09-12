@@ -202,7 +202,7 @@
   transition: width 0.3s ease;
 }
 .eb-meter--hero i {
-  background: linear-gradient(90deg, var(--brand-purple), var(--purple-mid) 45%, var(--brand-magenta));
+  background: var(--primary-gradient);
 }
 .eb-meter i.eb-meter__none {
   background: transparent;

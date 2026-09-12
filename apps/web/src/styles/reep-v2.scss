@@ -1779,20 +1779,51 @@ html.fonts-ready .icon {
   padding: 20px 22px;
 }
 
-/* Four metrics separated by left hairlines rather than gaps — the design's
-   metrics strip. The first cell has no rule, so the group reads as one block. */
-.ledger-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  margin-bottom: 20px;
+/* The ledger's metric row: separate tiles, one per entry in `metrics[]`.
+   
+   These were one card divided by left hairlines. The 2026-09 board draws four
+   separate cards, and so does every other metric row in the product — so this
+   is `.card` plus the shared `.eyebrow` / `.kpi`, with only the row and the two
+   value modifiers left here. `flex` rather than a 4-column grid because the
+   server decides how many metrics there are; a hardcoded `repeat(4, …)` is a
+   layout that silently breaks the day a fifth is added. */
+.ledger-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
 }
-.ledger-metrics > div {
-  padding: 2px 22px;
-  border-left: 1px solid var(--hairline-26);
+.ledger-kpis > .kpi-tile {
+  flex: 1 1 0;
+  min-width: 160px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
-.ledger-metrics > div:first-child {
-  border-left: 0;
-  padding-left: 0;
+.ledger-kpis .kpi-line {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.ledger-kpis .kpi-unit {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ledger-kpis .kpi-sub {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  /* The subs are one line on the board and several of them are long
+     ("Lectures · coursework · skilling"); ellipsis rather than a second line
+     keeps the four tiles the same height. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ledger-kpis .kpi-sub.warn {
+  color: var(--warn);
 }
 @media (max-width: 900px) {
   .ledger-metrics {
@@ -1941,11 +1972,23 @@ html.fonts-ready .icon {
   text-align: center;
   vertical-align: bottom;
 }
-.ledger-table th .rule {
-  width: 22px;
-  height: 3px;
-  border-radius: var(--r-pill);
-  margin: 0 auto 6px;
+/* The column's colour key: a filled square BESIDE the label, as the board
+   draws it, not a rule above it. Beside, it reads as "this colour means this
+   column"; above, it read as a decorative underline. The hairline border keeps
+   the two palest activities (Sleep, Travel) visible on the header tint. */
+.ledger-table th .head-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+}
+.ledger-table th .sw {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid rgba(58, 31, 82, 0.12);
+  flex: none;
 }
 .ledger-table th .lbl {
   font-family: var(--font-display);
@@ -2442,11 +2485,27 @@ html.fonts-ready .icon {
   opacity: 0.55;
 }
 
-/* --- KPI tile -----------------------------------------------------------
-   A card whose whole job is one number: eyebrow, the numeral, then the change
-   and what it is of. The delta carries an arrow AND a sign, never colour
-   alone — the same rule as every status in this file. */
+/* --- KPI ----------------------------------------------------------------
+   `.kpi` IS THE NUMERAL, not the tile it sits in. That is what every one of the
+   kit's 60-odd boards means by it — `<span class="kpi">23.5</span>` inside a
+   `.card` — and it was defined here as the card itself, which put a border and
+   a shadow around the number when the first screen used it as the boards do.
+   Nothing had consumed it yet, so the correction is free now and would not
+   have been once Phase 2 had written twenty admin screens against it.
+   
+   The tile is `.kpi-card`, below: a card whose whole job is one number —
+   eyebrow, the numeral, then the change and what it is of. The delta carries an
+   arrow AND a sign, never colour alone: the same rule as every status here. */
 .kpi {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.kpi-card {
   background: var(--card-gradient);
   border: 1px solid var(--hairline);
   border-radius: var(--r-card);
@@ -2457,13 +2516,13 @@ html.fonts-ready .icon {
   gap: 2px;
   min-width: 0;
 }
-.kpi .kpi-head {
+.kpi-card .kpi-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
 }
-.kpi .num {
+.kpi-card .num {
   font-family: var(--font-display);
   font-size: 24px;
   font-weight: 800;
@@ -2471,13 +2530,13 @@ html.fonts-ready .icon {
   letter-spacing: -0.01em;
   color: var(--ink);
 }
-.kpi .num .unit {
+.kpi-card .num .unit {
   font-size: 13px;
   font-weight: 700;
   color: var(--muted);
   margin-left: 3px;
 }
-.kpi .delta {
+.kpi-card .delta {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2485,20 +2544,20 @@ html.fonts-ready .icon {
   font-weight: 700;
   color: var(--muted);
 }
-.kpi .delta .icon {
+.kpi-card .delta .icon {
   font-size: 14px;
 }
-.kpi .delta.good {
+.kpi-card .delta.good {
   color: var(--good);
 }
-.kpi .delta.risk {
+.kpi-card .delta.risk {
   color: var(--risk);
 }
-.kpi .sub {
+.kpi-card .sub {
   font-size: 11.5px;
   color: var(--faint);
 }
-.kpi .spark {
+.kpi-card .spark {
   flex: none;
   width: 64px;
   height: 24px;

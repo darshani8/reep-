@@ -35,17 +35,37 @@ function renderUsnCell(params: ICellRendererParams<RosterRow>): string {
   return `<span style="font-variant-numeric: tabular-nums; letter-spacing: 0.01em;">${escapeHtml(row.usn)}</span>`;
 }
 
+/** What the roster hands its cell renderers. */
+export interface RosterGridContext {
+  /** Whether this reader can open Student 360 — see renderStudentCell. */
+  readonly canOpenDetail: boolean;
+}
+
 function renderStudentCell(params: ICellRendererParams<RosterRow>): string {
   const row = params.data;
   if (!row) return '';
-  // A real anchor, so the keyboard reaches it and the status bar shows where it
-  // goes; the click is intercepted into the router so the SPA does not reload.
-  const href = `/admin/students/${encodeURIComponent(row.studentId)}`;
+  const identity =
+    `<span style="font-size: 11px; color: var(--faint); overflow: hidden; text-overflow: ellipsis;">` +
+    `${escapeHtml(row.email)}</span>`;
+
+  // THE NAME IS A LINK ONLY WHEN THE READER CAN FOLLOW IT. This roster is
+  // guarded by `admin.students` alone, while Student 360 is a new screen and
+  // carries `ui.console_v2` as well, so a faculty member granted the roster and
+  // not the preview would have seen a purple link on every row that bounced
+  // them back to their own home — the dead link the navigation model exists to
+  // make impossible. For them the name is plain text.
+  const name = (params.context as RosterGridContext | undefined)?.canOpenDetail
+    ? // A real anchor, so the keyboard reaches it and the status bar shows where
+      // it goes; the click is intercepted into the router so the SPA does not
+      // reload.
+      `<a href="/admin/students/${encodeURIComponent(row.studentId)}" style="color: var(--brand-purple); font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(row.name)}</a>`
+    : `<span style="font-weight: 600; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(row.name)}</span>`;
+
   return (
     `<span class="avatar">${escapeHtml(row.initials)}</span>` +
     `<span style="display: inline-flex; flex-direction: column; line-height: 1.25; min-width: 0;">` +
-    `<a href="${href}" style="color: var(--brand-purple); font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(row.name)}</a>` +
-    `<span style="font-size: 11px; color: var(--faint); overflow: hidden; text-overflow: ellipsis;">${escapeHtml(row.email)}</span>` +
+    name +
+    identity +
     `</span>`
   );
 }

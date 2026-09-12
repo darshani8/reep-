@@ -64,24 +64,31 @@
 
   @case ('data') {
     @if (ledger(); as l) {
-      <!-- Metrics strip: its own card, as the design draws it. -->
-      <div class="ledger-card metrics-card">
-        <div class="ledger-metrics">
-          @for (m of l.metrics; track m.key) {
-            <div>
-              <div class="lbl">
-                @if (m.key === 'accounted' && l.unaccounted_hours > 0) {
-                  <span class="dot" aria-hidden="true"></span>
-                }
-                {{ m.label }}
-              </div>
-              <div class="val">
-                {{ m.value }}<span class="unit">{{ m.unit }}</span>
-              </div>
-              <div class="sub" [class.warn]="m.tone === 'warn'">{{ m.sub }}</div>
+      <!--
+        Metrics: FOUR SEPARATE TILES, which is what the 2026-09 board draws and
+        what the rest of the product already uses. They were one card divided by
+        left hairlines; the design system has a metric tile (.card + .eyebrow +
+        .kpi) that the admin boards use for exactly this, so the ledger stops
+        carrying a strip of its own.
+
+        The count comes from `metrics[]` and is not four in the markup: the
+        server decides how many there are, and the row wraps if it ever changes.
+      -->
+      <div class="ledger-kpis">
+        @for (m of l.metrics; track m.key) {
+          <div class="card kpi-tile">
+            <div class="eyebrow">
+              @if (m.key === 'accounted' && l.unaccounted_hours > 0) {
+                <span class="dot" aria-hidden="true"></span>
+              }
+              {{ m.label }}
             </div>
-          }
-        </div>
+            <div class="kpi-line">
+              <span class="kpi">{{ m.value }}</span><span class="kpi-unit">{{ m.unit }}</span>
+            </div>
+            <div class="kpi-sub" [class.warn]="m.tone === 'warn'">{{ m.sub }}</div>
+          </div>
+        }
       </div>
 
       <!-- The table: six slot rows × five activity columns, in its own card. -->
@@ -95,8 +102,10 @@
                 </th>
                 @for (a of l.activities; track a.key) {
                   <th>
-                    <span class="rule" [style.background]="a.colour" aria-hidden="true"></span>
-                    <span class="lbl">{{ a.label }}</span>
+                    <span class="head-key">
+                      <span class="sw" [style.background]="a.colour" aria-hidden="true"></span>
+                      <span class="lbl">{{ a.label }}</span>
+                    </span>
                   </th>
                 }
                 <th class="logged-col"><span class="lbl">Logged</span></th>

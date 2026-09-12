@@ -1,4 +1,5 @@
 <div class="panel" data-p="skilling">
+  <p class="crumb">Skilling</p>
   <div class="dt-header">
     <div>
       <h1 class="dt-title">Skilling</h1>
@@ -141,20 +142,37 @@
   @if (openClaims().length) {
     <div class="card claims-card">
       <h4>Claims in progress</h4>
-      @for (c of openClaims(); track c.id) {
-        <div class="reco-row">
-          {{ c.badgeName }}
-          <span class="chip {{ c.chipClass }}">
-            <span class="icon" aria-hidden="true">{{ c.chipIcon }}</span
-            >{{ c.chipLabel }}
-          </span>
-        </div>
-        @if (c.reviewNote) {
-          <div class="review-note">
-            <span class="icon" aria-hidden="true">chat_bubble</span>{{ c.reviewNote }}
-          </div>
-        }
-      }
+      <!--
+        A TABLE, per the board. It was a row per claim with the verifier's note
+        on a line of its own underneath, so on two claims the second claim's
+        badge name sat directly under the first claim's note and the two read as
+        one entry. Three named columns make the note belong to its row.
+      -->
+      <table class="dt-table claims-table">
+        <thead>
+          <tr>
+            <th>Badge</th>
+            <th class="claims-status">Status</th>
+            <th>Note from your mentor</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of openClaims(); track c.id) {
+            <tr>
+              <td>{{ c.badgeName }}</td>
+              <td class="claims-status">
+                <span class="chip {{ c.chipClass }}">
+                  <span class="icon" aria-hidden="true">{{ c.chipIcon }}</span
+                  >{{ c.chipLabel }}
+                </span>
+              </td>
+              <!-- An em dash, not an empty cell: "no note" and "the note did
+                   not load" must not look the same. -->
+              <td class="claims-note">{{ c.reviewNote || '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
   }
 
@@ -189,14 +207,30 @@
             @for (b of cat.badges; track b.code) {
               <button
                 type="button"
-                class="badge-pill"
-                [class.badge-pill--lit]="b.acquired || b.previewed"
-                [class.badge-pill--preview]="b.previewed"
+                class="badge-tile"
+                [class.badge-tile--lit]="b.acquired || b.previewed"
+                [class.badge-tile--preview]="b.previewed"
                 [attr.title]="b.previewed ? 'Preview — tap again to clear' : b.hint"
                 [attr.aria-pressed]="b.acquired ? null : b.previewed"
                 (click)="togglePreview(b)"
               >
-                {{ b.name }}
+                <span class="emblem" aria-hidden="true">
+                  <span class="hex"></span>
+                  <span class="icon">{{ categoryIcon(cat.key) }}</span>
+                  @if (b.acquired || b.previewed) {
+                    <span class="seal"><span class="icon">check</span></span>
+                  }
+                </span>
+                <span class="badge-tile__name">{{ b.name }}</span>
+                <span class="badge-tile__status">
+                  @if (b.acquired) {
+                    <span class="icon" aria-hidden="true">check</span>Verified
+                  } @else if (b.previewed) {
+                    Preview
+                  } @else {
+                    Available
+                  }
+                </span>
               </button>
             }
           </div>

@@ -271,11 +271,14 @@
   color: var(--muted);
   margin-top: 2px;
 }
+/* SIX TILES PER ROW, as the board specifies. `auto-fill` with a floor rather
+   than a hard `repeat(6, …)`: the sidebar is 220px and this card also has to
+   survive a narrow window, where six 150px columns would overflow. */
 .board-badges {
   flex: 1;
   min-width: 280px;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
   align-content: flex-start;
 }
@@ -284,33 +287,134 @@
    will look like once verified (the handoff's "Tap badges to preview the earned
    state"), and nothing about that tap is stored. An earned pill is already lit
    and does not toggle. */
-.badge-pill {
-  padding: 9px 15px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
+/* --- the badge tile -----------------------------------------------------
+   A hexagonal emblem over the skill's name and its state, per the board. It
+   was a text pill, which made 48 badges read as a tag cloud: the one thing a
+   student comes here to see — which of these are lit — was carried by a 1.5px
+   border colour alone.
+
+   The hexagon is a clip-path rather than an inline SVG. The board draws it as
+   SVG, but this needs one shape repeated 48 times with a glyph centred in it,
+   and a clip-path keeps the icon a real `.icon` element that inherits the
+   font, the size clamp and the fonts-ready gate instead of being duplicated
+   into 48 inline <svg> blocks. */
+.badge-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 12px 8px 10px;
+  border-radius: 14px;
   font-family: var(--font);
   background: var(--surface);
-  border: 1px solid rgba(160, 138, 178, 0.4);
-  color: var(--muted);
-  overflow-wrap: anywhere;
+  border: 1px solid var(--hairline-42);
+  color: var(--ink);
   cursor: pointer;
   transition:
     box-shadow 0.14s ease,
     border-color 0.14s ease;
 }
-.badge-pill:hover {
-  border-color: rgba(122, 47, 158, 0.55);
+.badge-tile:hover {
+  border-color: var(--purple-mid);
 }
-.badge-pill--lit {
-  border: 1.5px solid var(--purple-mid);
-  color: var(--ink);
+.badge-tile:focus-visible {
+  outline: 2px solid var(--purple-mid);
+  outline-offset: 2px;
+}
+
+.badge-tile .emblem {
+  position: relative;
+  width: 56px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+/* The shape itself. A pointy-top hexagon, the board's proportions. */
+.badge-tile .hex {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: var(--tint-1);
+  border: 0;
+}
+.badge-tile .emblem > .icon {
+  position: relative;
+  font-size: 22px;
+  color: var(--brand-purple);
+  opacity: 0.75;
+}
+.badge-tile__name {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  /* Two lines' worth, so a one-word badge and a four-word badge put their
+     status line at the same height across a row of six. */
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+.badge-tile__status {
+  font-size: 10.5px;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(122, 47, 158, 0.22);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
-/* A previewed glow is dashed so it cannot be mistaken for the real thing. */
-.badge-pill--preview {
+.badge-tile__status .icon {
+  font-size: 12px;
+}
+
+/* EARNED: the hexagon fills, the glyph inverts, and a green seal is added —
+   three signals, not one, because this is the state the whole screen exists
+   to show. */
+.badge-tile--lit {
+  border-color: var(--purple-mid);
+  box-shadow: 0 6px 16px rgba(85, 44, 126, 0.16);
+}
+.badge-tile--lit .hex {
+  background: var(--brand-purple);
+}
+.badge-tile--lit .emblem > .icon {
+  color: #fff;
+  opacity: 1;
+}
+.badge-tile--lit .badge-tile__status {
+  color: var(--good);
+}
+.badge-tile .seal {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  background: var(--good);
+  border: 2px solid var(--surface);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+.badge-tile .seal .icon {
+  font-size: 11px;
+}
+
+/* A previewed tile is dashed and keeps the muted status word, so it cannot be
+   mistaken for a badge the student has actually earned. */
+.badge-tile--preview {
   border-style: dashed;
+}
+.badge-tile--preview .hex {
+  background: var(--purple-mid);
+}
+.badge-tile--preview .badge-tile__status {
+  color: var(--muted);
+}
+.badge-tile--preview .seal {
+  background: var(--muted);
 }
 
 .board-foot {
@@ -354,4 +458,15 @@
 .review-note .icon {
   font-size: 14px;
   color: var(--faint);
+}
+
+/* --- claims in progress: a table ---------------------------------------- */
+.claims-table {
+  margin: 0;
+}
+.claims-status {
+  width: 190px;
+}
+.claims-note {
+  color: var(--muted);
 }

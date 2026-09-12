@@ -1,11 +1,10 @@
 <!--
   This template is a checklist, not a gate. Nothing here blocks a merge — only the
-  required status checks on `main` do that, and as of this file `main` has no
-  protection at all (`gh api repos/darshani8/reep-/branches/main/protection` → 404,
-  `/rulesets` → `[]`), so today nothing blocks anything. A ticked box is a claim,
-  not evidence. What a checklist buys is narrower and still worth having: after
-  this file exists, "I did not know rule 1 applied to that call site" stops being
-  available to anyone.
+  required status checks on `main` do that, and those are the FIVE named in Checks
+  below, declared in `.github/rulesets/main.json` and applied by
+  `tools/ci/protect-main.sh`. A ticked box is a claim, not evidence. What a checklist
+  buys is narrower and still worth having: after this file exists, "I did not know
+  rule 1 applied to that call site" stops being available to anyone.
 
   Delete nothing. If a section does not apply, tick its "not applicable" box — an
   untouched section reads as an unanswered question, and a reviewer cannot tell the
@@ -52,25 +51,27 @@ forgets the keyword raises nothing, logs nothing, and goes green. Tick one:
 
 ## Rule 2 — staff scope is decided by role, not by a missing field
 
-`require_mentor` (`apps/api-py/app/routers/mentor.py`) admits MENTOR, DIRECTOR and
-ADMIN. It is **not** a student-scope check. Narrowing to a student is
+`require_mentor` (`apps/api-py/app/routers/mentor.py`) admits MENTOR and ADMIN —
+DIRECTOR was removed as a role in 2026-09-10 and `require_admin` is now the one
+console gate. It is **not** a student-scope check. Narrowing to a student is
 `_assert_can_access_student` (same file), and **a MENTOR with no `Mentor` group sees
 NOBODY**. A new `GET /mentor/students/{student_id}/...` that calls `require_mentor` and
 then queries by the path id reads exactly like every gated handler around it and admits
 every MENTOR to the whole programme.
 
-`assert_student_scope` (`app/policies.py`) is a SECOND implementation of the same idea.
-It is not an equal alternative: it is reached only by the 8 call sites in
-`app/routers/redesign.py`, against 23 for `_assert_can_access_student` across five
-modules, and the two differ in the role dependency they sit behind and in what they
-raise. AGENTS.md names `_assert_can_access_student` as the one to import, never to
-reimplement. Treat its call-site list as an allowlist that may shrink and must not grow.
-Tick one:
+`assert_student_scope` (`app/policies.py`) is NO LONGER a second implementation — it is
+the only one. `_assert_can_access_student` delegates to it (see that function's
+docstring), so the 29 call sites across six routers and the 8 in `app/routers/redesign.py`
+now get the same answer: the MENTOR-group narrowing, plus the tenant check, plus a
+refusal for a session with no userId. Either name is correct to call. What is never
+correct is a THIRD one: AGENTS.md names `_assert_can_access_student` as the gate to
+import, and the whole point of that delegation is that rule 2 cannot answer differently
+depending on which URL a request happened to hit. Tick one:
 
 - [ ] This PR adds no route with `{student_id}` in its path and changes no existing scope check.
 - [ ] It adds one, and the handler reaches `_assert_can_access_student` before it touches a student row.
-- [ ] It adds one that is intentionally DIRECTOR/ADMIN-only, gated by `require_director`, and the PR says why the cohort-wide read is correct.
-- [ ] It adds one that reaches `assert_student_scope` instead — growing the `redesign.py` allowlist. The PR body says why `_assert_can_access_student` would not do.
+- [ ] It adds one that is intentionally Main-Admin-only, gated by `require_admin`, and the PR says why the cohort-wide read is correct.
+- [ ] It adds one that calls `assert_student_scope` directly (the `/v1` routers' idiom). Fine — same gate — as long as it is that function and not a fresh `if role == 'MENTOR'` written inline.
 
 ## Tests
 
@@ -100,7 +101,7 @@ Tick one:
 
 <!--
   Two revisions generated off the same parent both merge cleanly and collide on main
-  as "Multiple head revisions". 34 create_type=False references across 15 of the 46
+  as "Multiple head revisions". 34 create_type=False references across 15 of the 70
   revision files depend on strict linear ordering, or they raise `type "x" does not
   exist` at apply time — on production, inside the migration task, after the image is
   already pushed. Never resolve a collision with `alembic merge`: it makes two heads
@@ -113,17 +114,18 @@ Tick one:
 
 ## Config, auth and deploy guards
 
-- [ ] This PR does not touch `app/config.py`, `app/security.py`, `app/google_auth.py`, `app/identity.py`, `.github/workflows/**` or `infra/aws/**`.
+- [ ] This PR does not touch `app/config.py`, `app/security.py`, `app/google_auth.py`, `app/identity.py`, `.github/workflows/**`, `infra/aws/**` or `infra/cdk/**`.
 - [ ] It does, and the PR body above says which guard changed and what it now refuses. Specifically: `production_boot_failures()` must still refuse to boot on a repo-default `AUTH_SECRET`, and `password_login_allowed` must remain an **allowlist** of dev/CI environment names — never `not is_prod`, because an unrecognised `ENV` has to shut the password door, not open it.
 
 ## Checks
 
-CI runs "API (FastAPI + Postgres)", "API (dependency completeness)", "Voice worker
-(dependency completeness)" and "Web (Angular)" against this PR head. Run all four
-locally first, in one command rather than four typed from memory:
+CI runs five jobs against this PR head — "API (FastAPI + Postgres)", "Rule 1 (every
+model call declares its cargo)", "API (dependency completeness)", "Web (Angular)" and
+"Infra (CDK synth guards)". The voice worker's job went with the LiveKit stack it
+checked. Run them locally first, in one command rather than five typed from memory:
 
 ```
-./tools/ci/preflight.sh            # all four, in the order that fails fastest
+./tools/ci/preflight.sh            # all five, in the order that fails fastest
 ./tools/ci/preflight.sh --quick    # the two fast ones only — NOT sufficient for a PR
 .\tools\ci\preflight.ps1           # same thing from PowerShell: it finds bash and hands over
 ```
@@ -135,9 +137,10 @@ check that passed — that is the same distinction `REEP_REQUIRE_DB=1` draws in
 way CI asks them, from a throwaway venv built from the manifest alone; without it they
 run in your existing venvs, which is a weaker question and the script says so.
 
-- [ ] All four pass locally — **exit 0, not exit 2** — or all four are green on this PR.
+- [ ] All five pass locally — **exit 0, not exit 2** — or all five are green on this PR.
 - [ ] If a dependency was added, it is in the right manifest: `requirements.txt` is runtime-only and pinned `==` (it is what the Dockerfile installs), `requirements-dev.txt` is test-only. "API (dependency completeness)" installs `requirements.txt` ALONE, so a lazy import inside a request handler does not save you.
 - [ ] No route in `apps/web/src/app/app.routes.ts` was changed from `loadComponent` to a static `component:`. One re-eager-ed route fails `ng build` on the bundle budget.
+- [ ] If this PR touches `apps/web/src/styles/**` or a theme file, the three design-system guards in the "Web (Angular)" job still pass: `check_brand_magenta.py` (the retired magenta is not referenced), `check_style_duplicates.py` (a selector is not newly declared in BOTH global sheets — `reep-v2-resume.scss` loads last and wins app-wide), and `check_theme_tokens.py` (the grid and chart themes copy tokens as literals, because AG Grid writes its variables into a shadow root; the copies must still equal `reep-v2.scss`).
 
 ## What a reviewer should look at twice
 

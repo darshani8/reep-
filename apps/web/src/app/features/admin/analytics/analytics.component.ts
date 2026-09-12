@@ -55,6 +55,16 @@ import {
 import { SVGRenderer } from 'echarts/renderers';
 
 import { environment } from '../../../../environments/environment';
+import {
+  REEP_CHART_THEME,
+  registerReepChartTheme,
+} from '../../../shared/charts/reep-echarts-theme';
+
+// The design system's chart theme, registered once for this lazily-loaded
+// chunk. Registration alone does nothing: ECharts applies a theme at init, so
+// both `echarts.init` calls below name it. Before this, both passed
+// `undefined` and drew on the library's defaults.
+registerReepChartTheme(echarts);
 
 echarts.use([
   SunburstChart,
@@ -277,8 +287,8 @@ export class AdminAnalyticsComponent implements AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    this.sun = echarts.init(this.sunEl().nativeElement, undefined, { renderer: 'svg' });
-    this.bar = echarts.init(this.barEl().nativeElement, undefined, { renderer: 'svg' });
+    this.sun = echarts.init(this.sunEl().nativeElement, REEP_CHART_THEME, { renderer: 'svg' });
+    this.bar = echarts.init(this.barEl().nativeElement, REEP_CHART_THEME, { renderer: 'svg' });
 
     this.sun.on('click', (params: any) => {
       const data = params?.data ?? {};
@@ -373,7 +383,7 @@ export class AdminAnalyticsComponent implements AfterViewInit, OnDestroy {
    *  the target where there is one, or against the axis top where there is not. */
   private barColour(value: number | null, hi: boolean, target: number | null, max: number): string {
     if (value === null) return NO_DATA;
-    if (hi) return '#BA2185';
+    if (hi) return '#552c7e';
     const ref = target ?? max;
     if (target !== null) {
       return value >= target * 1.15 ? '#552C7E' : value >= target ? '#7a2f9e' : '#c08fd6';
@@ -572,7 +582,7 @@ export class AdminAnalyticsComponent implements AfterViewInit, OnDestroy {
               mean,
               visualMap: false,
               itemStyle: selected
-                ? { color: '#BA2185', borderColor: '#fff', borderWidth: 3 }
+                ? { color: '#552c7e', borderColor: '#fff', borderWidth: 3 }
                 : { color: '#7a2f9e' },
               label: selected ? { ...dark, fontWeight: 800 } : dark,
               // A mentor with no students still needs an arc to be clickable.

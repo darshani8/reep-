@@ -62,6 +62,20 @@ import { PendingControlDirective } from '../../../shared/pending/pending.directi
  */
 const MENTORING_BACKEND_PHASE = 4;
 
+/**
+ * A refusal names the function that was missing, because the two feeds this
+ * screen draws are gated on DIFFERENT capabilities: `/unassigned-students` and
+ * the assignment write take `admin.mentors` (the screen's own), while
+ * `/mentor-load` takes `admin.analytics` (routers/console.py). The Main Admin
+ * holds both, so a faculty account granted only `admin.mentors` in Governance
+ * is the one reader who meets this — and "Could not load mentors and students."
+ * gives them nothing to take to the office.
+ */
+const FORBIDDEN_READ =
+  'Your account may not read one of these lists. The faculty load needs the ' +
+  'admin.analytics function and the student pool needs admin.mentors — ask the Main Admin.';
+const FORBIDDEN_WRITE = 'Your account may not change mentor assignments (admin.mentors).';
+
 /** One student, as both `/mentor-load` and `/unassigned-students` return them. */
 interface Mentee {
   student_id: string;
@@ -154,6 +168,14 @@ export class AdminMentorsStudentsComponent {
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
   readonly busy = signal(false);
+  /**
+   * The last load did not answer. It is a THIRD state, beside "loading" and
+   * "loaded", and it has to be: setting the two lists to `[]` on a failure made
+   * the screen state, in its own words, "No faculty on the roster yet" and
+   * "Every student has a mentor" — two assertions about the institution
+   * produced by a 403 or a dropped connection.
+   */
+  readonly loadFailed = signal(false);
 
   readonly selectedMentorUserId = signal<string | null>(null);
   /** The student ids ticked in the grid, kept as the grid reports them. */
@@ -169,14 +191,6 @@ export class AdminMentorsStudentsComponent {
   readonly selectedMentorName = computed(() => this.selectedMentor()?.name ?? 'this faculty member');
   readonly unassignedCount = computed(() => (this.pool() ?? []).length);
   readonly selectedStudentCount = computed(() => this.selectedStudentIds().length);
-
-  /** Places left under the programme's capacity; never below zero on screen —
-   *  an overloaded mentor reads "At capacity", not "-3 free". */
-  readonly placesFree = computed(() => {
-    const mentor = this.selectedMentor();
-    if (mentor === null) return 0;
-    return Math.max(0, mentor.capacity - mentor.mentee_count);
-  });
 
   readonly canAssign = computed(() => {
     if (this.selectedMentor() === null) return false;
@@ -231,6 +245,30 @@ export class AdminMentorsStudentsComponent {
 
   onGridReady(event: GridReadyEvent<Mentee>): void {
     this.grid = event.api;
+  }
+
+  /**
+   * The grid lives inside an `@if`, so seating the LAST student destroys it
+   * while this component keeps the handle. AG Grid 36 answers a call on a dead
+   * api with a console error, so ask it first. (`gridPreDestroy` is a grid
+   * event but not an `ag-grid-angular` @Output, so binding it would have been a
+   * listener that never fires — the dead control this phase forbids.)
+   */
+  private get liveGrid(): GridApi<Mentee> | null {
+    const api = this.grid;
+    if (api === null || api.isDestroyed()) return null;
+    return api;
+  }
+
+  /** The failure card's one control: ask for both lists again. */
+  async retry(): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(true);
+    try {
+      await this.refresh();
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   onSelectionChanged(event: SelectionChangedEvent<Mentee>): void {
@@ -321,6 +359,10 @@ export class AdminMentorsStudentsComponent {
     const body = this.assignmentBody(target);
     this.busy.set(true);
     this.error.set(null);
+    // A stale "3 students assigned to …" sitting under a red failure notice is
+    // the screen telling the reader both that it worked and that it did not.
+    this.flash.set(null);
+    let failure: string | null = null;
     try {
       for (const studentId of studentIds) {
         const response = await fetch(`${environment.apiBase}/admin/students/${studentId}/mentor`, {
@@ -330,19 +372,31 @@ export class AdminMentorsStudentsComponent {
           body: JSON.stringify(body),
         });
         if (!response.ok) {
-          this.error.set('Could not save that assignment.');
-          return;
+          // This is a request PER STUDENT, so a refusal partway through leaves
+          // some of them seated. Stop, then RELOAD — returning without a
+          // refresh leaves already-assigned students drawn in the pool, which
+          // is the one list on this screen that must not lie.
+          failure =
+            response.status === 403
+              ? FORBIDDEN_WRITE
+              : 'Could not save that change — the lists have been reloaded, so what you see is what was saved.';
+          break;
         }
       }
-      this.grid?.deselectAll();
-      this.selectedStudentIds.set([]);
-      this.flash.set(message);
-      await this.refresh();
     } catch {
-      this.error.set('Could not reach the server.');
-    } finally {
-      this.busy.set(false);
+      failure = 'Could not reach the server — the lists have been reloaded.';
     }
+    this.liveGrid?.deselectAll();
+    this.selectedStudentIds.set([]);
+    await this.refresh();
+    if (failure === null) {
+      this.flash.set(message);
+    } else if (!this.loadFailed()) {
+      // refresh() clears the error it does not raise; the write's reason is the
+      // more specific one, unless the reload failed too and is already saying so.
+      this.error.set(failure);
+    }
+    this.busy.set(false);
   }
 
   private assignmentBody(target: MentorLoad | null): Record<string, string | null> {
@@ -352,20 +406,22 @@ export class AdminMentorsStudentsComponent {
   }
 
   private async refresh(): Promise<void> {
+    this.error.set(null);
     try {
       const [loadResponse, poolResponse] = await Promise.all([
         fetch(`${environment.apiBase}/admin/mentor-load`, { credentials: 'include' }),
         fetch(`${environment.apiBase}/admin/unassigned-students`, { credentials: 'include' }),
       ]);
       if (!loadResponse.ok || !poolResponse.ok) {
-        this.error.set('Could not load mentors and students.');
-        this.mentors.set([]);
-        this.pool.set([]);
+        const forbidden = loadResponse.status === 403 || poolResponse.status === 403;
+        this.error.set(forbidden ? FORBIDDEN_READ : 'Could not load mentors and students.');
+        this.failLoad();
         return;
       }
       const mentors = (await loadResponse.json()) as MentorLoad[];
       this.mentors.set(mentors);
       this.pool.set((await poolResponse.json()) as Mentee[]);
+      this.loadFailed.set(false);
       // Keep a selection across a refresh, and make one on first load so the
       // two cards are never an empty prompt when there is a faculty member.
       if (this.selectedMentorUserId() === null && mentors.length > 0) {
@@ -373,8 +429,15 @@ export class AdminMentorsStudentsComponent {
       }
     } catch {
       this.error.set('Could not reach the server.');
-      this.mentors.set([]);
-      this.pool.set([]);
+      this.failLoad();
     }
+  }
+
+  /** Nothing is known, so nothing is drawn: the two lists go back to "not
+   *  loaded" rather than to "empty", which is a claim about the roster. */
+  private failLoad(): void {
+    this.mentors.set(null);
+    this.pool.set(null);
+    this.loadFailed.set(true);
   }
 }

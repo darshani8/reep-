@@ -1,192 +1,472 @@
 <div class="panel" data-p="registrations">
   <div class="dt-header">
     <div>
+      <div class="crumb"><span>Operations</span><span class="sep">/</span><span>Registrations</span></div>
       <h1 class="dt-title">Registrations</h1>
-      <div class="dt-sub">New sign-ups waiting to be admitted to the programme.</div>
+      <!-- THE COPY FIX (B11.4). Approval provisions the User, the Student and
+           the profile, moves the CV and photo onto their uploads and emails the
+           onboarding link. This line used to say approval provisioned nothing. -->
+      <div class="dt-sub">
+        Applications from the public form. Approval provisions the account and emails the onboarding
+        link — nothing exists before approval.
+      </div>
     </div>
-    <span class="chip warn waiting-chip">
-      <span class="icon" aria-hidden="true">hourglass_top</span> {{ waiting() }} waiting
-    </span>
+    <div class="dt-toolbar">
+      <button type="button" class="btn secondary" (click)="openSeatingRules()">
+        <span class="icon" aria-hidden="true">settings</span> Seating rules
+      </button>
+      <button type="button" class="btn secondary" (click)="exportVisibleRows()">
+        <span class="icon" aria-hidden="true">download</span> Export
+      </button>
+    </div>
   </div>
 
-  <div class="toolbar">
-    <input
-      type="search"
-      class="ctrl search"
-      placeholder="Search name, USN or email"
-      [value]="search()"
-      (input)="search.set($any($event.target).value)"
-    />
-    <select
-      class="ctrl prog"
-      aria-label="Programme"
-      [value]="programme()"
-      (change)="programme.set($any($event.target).value)"
-    >
-      @for (p of programmes(); track p) {
-        <option [value]="p">{{ p }}</option>
-      }
-    </select>
-    <button
-      type="button"
-      class="btn primary"
-      [disabled]="deciding() || selected().length === 0"
-      (click)="approveSelected()"
-    >
-      <span class="icon" aria-hidden="true">task_alt</span>
-      @if (selected().length) {
-        Approve {{ selected().length }} selected
-      } @else {
-        Approve selected
-      }
+  <!-- The board's four tabs. Only PENDING_REVIEW is listable today: GET
+       /register/pending returns that status and nothing else, HOLD is a status
+       B11.2 adds, and there is no by-status queue for the other two. Each
+       unbuilt tab is disabled and says when it arrives, rather than opening an
+       empty list that reads as "nobody was ever auto-approved". -->
+  <div class="tabs queue-tabs" role="group" aria-label="Registration queues">
+    <button type="button" class="tab active" aria-current="true">
+      Pending · {{ waitingCount() }}
     </button>
+    <button type="button" class="tab" [reepPending]="backendPhase">Auto-approved</button>
+    <button type="button" class="tab" [reepPending]="backendPhase">Held</button>
+    <button type="button" class="tab" [reepPending]="backendPhase">Rejected</button>
+  </div>
+
+  <div class="filters">
+    <div class="select">
+      <span class="lbl">College</span>
+      <span class="val">{{ collegeFilterLabel() }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="College" (change)="setCollegeFilter(selectValue($event))">
+        <option [value]="everyCollege" [selected]="collegeFilter() === everyCollege">All colleges</option>
+        @for (college of collegeOptions(); track college) {
+          <option [value]="college" [selected]="college === collegeFilter()">{{ college }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="select batch-select">
+      <span class="lbl">Batch</span>
+      <span class="val">{{ batchFilterLabel() }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Batch" (change)="setBatchFilter(selectValue($event))">
+        <option [value]="everyBatch" [selected]="batchFilter() === everyBatch">All batches</option>
+        @for (batch of batchOptions(); track batch) {
+          <option [value]="batch" [selected]="batch === batchFilter()">{{ batch }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Domain check needs the college's registered domains (B11.1); until that
+         list exists there is nothing to compare an address against. -->
+    <div class="select filter-pending">
+      <span class="lbl">Domain check</span>
+      <span class="val">All</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Domain check" [reepPending]="backendPhase">
+        <option value="">All</option>
+      </select>
+    </div>
+
+    <div class="select">
+      <span class="lbl">Submitted</span>
+      <span class="val">{{ submittedFilterLabel() }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Submitted" (change)="setSubmittedFilter(selectValue($event))">
+        @for (window of submittedWindows; track window.key) {
+          <option [value]="window.key" [selected]="window.key === submittedFilter()">{{ window.label }}</option>
+        }
+      </select>
+    </div>
+
+    @if (autoApproveLine(); as line) {
+      <span class="filters-note">{{ line }}</span>
+    }
   </div>
 
   @if (error()) {
-    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">error</span>{{ error() }}
+    </div>
   }
-  @if (log()) {
-    <div class="log">
-      <span class="icon" aria-hidden="true">check_circle</span>{{ log() }}
+  @if (flash()) {
+    <div class="notice good queue-flash" role="status">
+      <span class="icon" aria-hidden="true">check_circle</span>
+      <span>{{ flash() }}</span>
       @if (lastRejected().length) {
-        <button type="button" class="btn sm undo" [disabled]="undoing()" (click)="undoReject()">
+        <button type="button" class="btn secondary sm undo" [disabled]="undoing()" (click)="undoLastRejection()">
+          <span class="icon" aria-hidden="true">undo</span>
           {{ undoing() ? 'Reopening…' : 'Undo' }}
         </button>
       }
     </div>
   }
 
-  <div class="card">
-    @if (rows() === null) {
-      <div class="state-note"><span class="icon" aria-hidden="true">hourglass_empty</span>Loading applications…</div>
-    } @else {
-      <div class="scroll">
-        <table class="dt-table reg-table">
-          <thead>
-            <tr>
-              <th class="check-col">
-                <input
-                  type="checkbox"
-                  aria-label="Select every visible application"
-                  [checked]="allVisibleChecked()"
-                  [disabled]="visible().length === 0"
-                  (change)="toggleAll()"
-                />
-              </th>
-              <th>Student</th>
-              <th>Programme</th>
-              <th>Registered</th>
-              <th>Documents</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of visible(); track r.id) {
-              <tr>
-                <td class="check-col">
-                  <input
-                    type="checkbox"
-                    [attr.aria-label]="'Select ' + r.name"
-                    [checked]="isChecked(r.id)"
-                    (change)="toggle(r.id)"
-                  />
-                </td>
-                <td>
-                  <strong>{{ r.name }}</strong>
-                  <div class="meta">
-                    @if (r.usn) {
-                      {{ r.usn }} ·
-                    }
-                    {{ r.email }}
-                  </div>
-                  @if (r.college_name || r.department_name) {
-                    <div class="meta claim">
-                      <span class="icon" aria-hidden="true">school</span>
-                      {{ r.college_name }}@if (r.department_name) { · {{ r.department_name }} }@if (r.specialization_name) { · {{ r.specialization_name }} } @else if (r.course_name) { · {{ r.course_name }} }
-                      @if (r.requested_batch) { <span class="chip neutral sm">Batch {{ r.requested_batch }}</span> }
-                    </div>
-                  }
-                </td>
-                <td>
-                  {{ programmeOf(r) }}
-                  <div class="meta">
-                    @if (r.matched_rule_id) {
-                      <span class="chip good sm" [title]="r.decision_reason || ''">Rule matched</span>
-                    } @else {
-                      <span class="chip warn sm" [title]="r.decision_reason || ''">Judgement call</span>
-                    }
-                  </div>
-                </td>
-                <td class="nowrap">{{ r.created_at | date: 'd MMM y' }}</td>
-                <td>
-                  <span class="chip {{ docsKind(r) }}">{{ docsLabel(r) }}</span>
-                </td>
-                <td>
-                  <div class="row-actions">
-                    <button
-                      type="button"
-                      class="btn primary sm"
-                      [disabled]="deciding()"
-                      (click)="approve(r)"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      class="btn sm btn-reject"
-                      [disabled]="deciding() || !!rejectUi(r.id)"
-                      (click)="openReject(r.id)"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              @if (rejectUi(r.id); as ui) {
-                <tr class="reject-row">
-                  <td></td>
-                  <td colspan="5">
-                    <div class="reject-line">
-                      <input
-                        type="text"
-                        class="ctrl remarks"
-                        placeholder="Remarks — reason for rejection (required)"
-                        [value]="ui.remarks"
-                        (input)="setRemarks(r.id, $any($event.target).value)"
-                      />
-                      <button
-                        type="button"
-                        class="btn sm btn-confirm-reject"
-                        [disabled]="deciding()"
-                        (click)="confirmReject(r)"
-                      >
-                        Confirm reject
-                      </button>
-                      <button type="button" class="btn sm" (click)="cancelReject(r.id)">
-                        Cancel
-                      </button>
-                    </div>
-                    @if (ui.err) {
-                      <div class="note-error">Remarks are required.</div>
-                    }
-                  </td>
-                </tr>
-              }
-            } @empty {
-              <tr>
-                <td colspan="6" class="empty-cell">
-                  @if (waiting() === 0) {
-                    No applications waiting.
-                  } @else {
-                    No registration matches this filter.
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
+  <div class="queue">
+    <!-- ----------------------------------------------------------- grid -->
+    <div class="dt-frame queue-grid">
+      <div class="dt-gridbar">
+        <input
+          class="dt-quickfilter"
+          type="search"
+          placeholder="Quick filter…"
+          aria-label="Search applications by name, email or USN"
+          (input)="onQuickFilterInput($event)"
+        />
 
+        <button
+          type="button"
+          class="btn secondary sm"
+          [disabled]="!hasDecisionTarget() || deciding()"
+          (click)="approveTargets()"
+        >
+          <span class="icon" aria-hidden="true">task_alt</span> Approve
+        </button>
+        <!-- Hold is a registration status B11.2 adds, with POST /{id}/hold. -->
+        <button type="button" class="btn secondary sm" [reepPending]="backendPhase">
+          <span class="icon" aria-hidden="true">pending</span> Hold
+        </button>
+        <button
+          type="button"
+          class="btn secondary sm"
+          [disabled]="!hasDecisionTarget() || deciding()"
+          (click)="rejectTargets()"
+        >
+          <span class="icon" aria-hidden="true">cancel</span> Reject
+        </button>
+
+        <span class="gridbar-end">
+          <button
+            type="button"
+            class="btn secondary sm"
+            [attr.aria-expanded]="columnsPanelOpen()"
+            aria-label="Choose which columns are shown"
+            (click)="toggleColumnsPanel()"
+          >
+            <span class="icon" aria-hidden="true">table_rows</span>
+          </button>
+          <button
+            type="button"
+            class="btn secondary sm"
+            [attr.aria-pressed]="isCompact()"
+            aria-label="Toggle compact rows"
+            (click)="toggleDensity()"
+          >
+            <span class="icon" aria-hidden="true">tune</span>
+          </button>
+          <button
+            type="button"
+            class="btn secondary sm"
+            aria-label="Download the applications in view as CSV"
+            (click)="exportVisibleRows()"
+          >
+            <span class="icon" aria-hidden="true">download</span>
+          </button>
+        </span>
+
+        @if (columnsPanelOpen()) {
+          <div class="columns-panel">
+            <div class="columns-panel__title">Columns</div>
+            @for (column of toggleableColumns; track column.id) {
+              <label class="columns-panel__row">
+                <input type="checkbox" [checked]="isColumnVisible(column.id)" (change)="toggleColumn(column.id)" />
+                <span>{{ column.label }}</span>
+              </label>
+            }
+          </div>
+        }
+      </div>
+
+      @if (isLoading()) {
+        <p class="queue-state" role="status">Loading applications…</p>
+      } @else {
+        <!-- Mounted once and never torn down: an @if around the grid destroys
+             the GridApi the toolbar and the status bar hold, so the empty case
+             is main's own words in the no-rows overlay instead. -->
+        <ag-grid-angular
+          class="queue-ag"
+          [theme]="gridTheme()"
+          [rowData]="visibleRows()"
+          [columnDefs]="columns"
+          [defaultColDef]="defaultColumn"
+          [rowSelection]="rowSelection"
+          [selectionColumnDef]="selectionColumn"
+          [overlayNoRowsTemplate]="emptyOverlay()"
+          [getRowId]="rowId"
+          [quickFilterText]="quickFilter()"
+          [rowHeight]="rowHeight()"
+          [pagination]="true"
+          [paginationPageSize]="pageSize()"
+          [suppressPaginationPanel]="true"
+          [suppressCellFocus]="true"
+          (gridReady)="onGridReady($event)"
+          (selectionChanged)="onSelectionChanged()"
+          (paginationChanged)="onPaginationChanged()"
+          (cellClicked)="onCellClicked($event)"
+        />
+      }
+
+      <div class="dt-statusbar">
+        <span>Rows: <b>{{ filteredRowCount() }}</b></span>
+        <span>Selected: <b>{{ selectedCount() }}</b></span>
+        <span class="pager">
+          <label class="pagesize">
+            <span>Page size</span>
+            <select aria-label="Rows per page" (change)="setPageSize(numberValue($event))">
+              @for (size of pageSizes; track size) {
+                <option [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+              }
+            </select>
+          </label>
+          <span>{{ rowRangeLabel() }}</span>
+          <button
+            type="button"
+            class="btn ghost sm"
+            [disabled]="isFirstPage()"
+            aria-label="Previous page"
+            (click)="goToPreviousPage()"
+          >
+            <span class="icon" aria-hidden="true">chevron_left</span>
+          </button>
+          <span>{{ pagerLabel() }}</span>
+          <button
+            type="button"
+            class="btn ghost sm"
+            [disabled]="isLastPage()"
+            aria-label="Next page"
+            (click)="goToNextPage()"
+          >
+            <span class="icon" aria-hidden="true">chevron_right</span>
+          </button>
+        </span>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------- the 380px panel -->
+    <aside class="card queue-panel" aria-label="Decision">
+      @if (reviewedApplication(); as reviewed) {
+        <div class="panel-head">
+          <span class="avatar lg" aria-hidden="true">{{ reviewed.initials }}</span>
+          <div class="panel-who">
+            <div class="panel-name">{{ reviewed.name }}</div>
+            <div class="panel-meta">
+              {{ reviewed.email }} · applied {{ reviewed.submittedAt | date: 'd MMM y, HH:mm' }}
+            </div>
+          </div>
+          <button type="button" class="btn ghost sm" aria-label="Close this application" (click)="clearReview()">
+            <span class="icon" aria-hidden="true">close</span>
+          </button>
+        </div>
+
+        <dl class="panel-facts">
+          <div>
+            <dt>Batch</dt>
+            <dd>{{ reviewed.batchLabel }}</dd>
+          </div>
+          <div>
+            <dt>Specialization</dt>
+            <dd>{{ reviewed.application.specialization_name ?? reviewed.application.course_name ?? 'Not named' }}</dd>
+          </div>
+          <div>
+            <dt>College</dt>
+            <dd>{{ reviewed.application.college_name ?? 'Not named' }}</dd>
+          </div>
+          <div>
+            <dt>Department</dt>
+            <dd>{{ reviewed.application.department_name ?? 'Not named' }}</dd>
+          </div>
+          <div>
+            <dt>USN</dt>
+            <dd>{{ reviewed.usn ?? 'Not on record' }}</dd>
+          </div>
+          <div>
+            <dt>Documents</dt>
+            <dd><span class="chip dot {{ reviewed.documentsTone }}">{{ reviewed.documentsLabel }}</span></dd>
+          </div>
+        </dl>
+
+        <div class="panel-checks">
+          <div class="eyebrow">Checks</div>
+          @for (check of checks(); track check.headline) {
+            <div class="panel-check panel-check--{{ check.tone }}">
+              <span class="icon" aria-hidden="true">{{ check.icon }}</span>
+              <div>
+                <div class="check-headline">{{ check.headline }}</div>
+                <div class="check-detail">{{ check.detail }}</div>
+              </div>
+            </div>
+          }
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            These are the checks the application itself carries. The domain against the college's
+            registered domains, the duplicate-account check and the batch's seat count are B11.1,
+            which lands in Phase {{ backendPhase }}; nothing reports them yet.
+          </div>
+        </div>
+      } @else if (hasDecisionTarget()) {
+        <div class="panel-head">
+          <span class="avatar lg"><span class="icon" aria-hidden="true">group</span></span>
+          <div class="panel-who">
+            <div class="panel-name">{{ decisionSummary() }} selected</div>
+            <div class="panel-meta">One request per application; the result says how many landed.</div>
+          </div>
+          <button type="button" class="btn ghost sm" aria-label="Clear this selection" (click)="clearReview()">
+            <span class="icon" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <div class="notice accent">
+          <span class="icon" aria-hidden="true">info</span>
+          A decision note applies to every application in the selection. Untick all but one to read a
+          single applicant's details and checks.
+        </div>
+      } @else {
+        <div class="panel-empty">
+          <span class="icon" aria-hidden="true">how_to_reg</span>
+          <div class="panel-name">Pick an application</div>
+          <p>
+            Click a row to read the applicant, their documents and the checks the application carries.
+            Tick several to decide on them together.
+          </p>
+        </div>
+      }
+
+      <div class="panel-decision">
+        <div class="field">
+          <label for="decision-note">Decision note</label>
+          <textarea
+            id="decision-note"
+            class="ctrl multi"
+            rows="3"
+            placeholder="Required for Reject · emailed with a rejection, recorded either way"
+            [value]="decisionNote()"
+            [disabled]="!hasDecisionTarget()"
+            [attr.aria-describedby]="noteError() ? 'decision-note-error' : null"
+            [attr.aria-invalid]="noteError() ? 'true' : null"
+            (input)="onDecisionNoteInput($event)"
+          ></textarea>
+          @if (noteError()) {
+            <span class="err" id="decision-note-error" role="alert">
+              <span class="icon" aria-hidden="true">error</span>{{ noteError() }}
+            </span>
+          }
+        </div>
+
+        <div class="notice accent">
+          <span class="icon" aria-hidden="true">info</span>
+          Approve creates the login, seats the student in the batch above, moves the CV and photo onto
+          their record and emails the onboarding link; a note you type is kept on the decision, not
+          emailed. Reject emails your reason and can be undone from the notice at the top of this
+          screen; an approved application cannot, because someone has already been told to sign in.
+        </div>
+
+        <div class="panel-actions">
+          <button
+            type="button"
+            class="btn danger"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="rejectTargets()"
+          >
+            <span class="icon" aria-hidden="true">cancel</span> Reject
+          </button>
+          <button type="button" class="btn secondary" [reepPending]="backendPhase">
+            <span class="icon" aria-hidden="true">pending</span> Hold
+          </button>
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="approveTargets()"
+          >
+            <span class="icon" aria-hidden="true">how_to_reg</span>
+            {{ deciding() ? 'Working…' : approveButtonLabel() }}
+          </button>
+        </div>
+      </div>
+    </aside>
   </div>
+
+  <!-- ================================================= seating rules === -->
+  @if (seatingRulesOpen()) {
+    <div class="dialog-backdrop" (click)="closeSeatingRules()">
+      <div
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="seating-rules-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="dialog-head">
+          <div>
+            <h2 class="dialog-title" id="seating-rules-title">Seating rules</h2>
+            <p class="dialog-sub">
+              The order the rule engine evaluates when an application is submitted. Read-only:
+              creating and editing rules is B11.3, in Phase {{ backendPhase }}.
+            </p>
+          </div>
+          <button type="button" class="btn ghost sm" aria-label="Close the seating rules" (click)="closeSeatingRules()">
+            <span class="icon" aria-hidden="true">close</span>
+          </button>
+        </header>
+
+        <div class="dialog-body">
+          @if (seatingRulesError()) {
+            <div class="notice" role="alert">
+              <span class="icon" aria-hidden="true">error</span>{{ seatingRulesError() }}
+            </div>
+          }
+          @if (seatingRules() === null) {
+            <p class="queue-state" role="status">Loading the seating rules…</p>
+          } @else {
+            <table class="dt-table">
+              <thead>
+                <tr>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Rule</th>
+                  <th scope="col">Matches</th>
+                  <th scope="col">Seats in</th>
+                  <th scope="col">Decision</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (rule of seatingRules(); track rule.id) {
+                  <tr>
+                    <td>{{ rule.priority }}</td>
+                    <td>
+                      {{ rule.name }}
+                      @if (!rule.enabled) {
+                        <span class="chip dot neutral">Off</span>
+                      }
+                    </td>
+                    <td>{{ rule.conditions }}</td>
+                    <td>{{ rule.seatsIn }}</td>
+                    <td>
+                      @if (rule.autoApprove) {
+                        <span class="chip dot good">Auto-approves</span>
+                      } @else {
+                        <span class="chip dot warn">Waits for review</span>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5">No seating rules are on record; every application waits for a decision.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+
+        <footer class="dialog-foot">
+          <button type="button" class="btn secondary" (click)="closeSeatingRules()">Close</button>
+          <button type="button" class="btn secondary" [reepPending]="backendPhase">
+            <span class="icon" aria-hidden="true">add</span> New rule
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
 </div>

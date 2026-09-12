@@ -61,12 +61,27 @@
     </div>
   </div>
 
-  @if (mentors() === null) {
+  <!-- A load that did not answer is its own state. Falling through to the
+       empty states below would have this screen state "No faculty on the
+       roster yet" and "Every student has a mentor" on the strength of a 403. -->
+  @if (loadFailed()) {
+    <div class="card load-failed">
+      <p>
+        Neither list could be read, so nothing is drawn — an empty roster and a
+        failed request are not the same thing.
+      </p>
+      <button type="button" class="btn secondary" [disabled]="busy()" (click)="retry()">
+        <span class="icon" aria-hidden="true">sync</span> Try again
+      </button>
+    </div>
+  } @else if (mentors() === null) {
     <div class="notice info" role="status">
       <span class="icon" aria-hidden="true">hourglass_empty</span>Loading…
     </div>
   } @else if (mentors()?.length === 0) {
-    <div class="card">No faculty on the roster yet, so there is nobody to assign students to.</div>
+    <div class="card" role="status">
+      No faculty on the roster yet, so there is nobody to assign students to.
+    </div>
   } @else if (mentors(); as facultyOnRoster) {
     <div class="mapping">
       <!-- Left: the faculty rail, with load against the programme capacity. -->

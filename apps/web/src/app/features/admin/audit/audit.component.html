@@ -1,9 +1,215 @@
 <div class="panel" data-p="audit">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Governance</span></div>
+      <div class="crumb">
+        <span>Governance</span><span class="sep">/</span><span>Audit log</span>
+      </div>
       <h1 class="dt-title">Audit log</h1>
-      <div class="dt-sub">Every write the console made: who, what, to whom, and what changed.</div>
+      <div class="dt-sub">
+        The writes the API records: who, what, to whom, and what changed. The trail is append-only —
+        nothing on this screen can edit or delete an event.
+      </div>
     </div>
+    <div class="dt-toolbar">
+      <button type="button" class="btn secondary" [reepPending]="readEndpointPhase">
+        <span class="icon" aria-hidden="true">download</span> Export range
+      </button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="select filter-pending">
+      <span class="lbl">Actor</span>
+      <span class="val">Anyone</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Actor" [reepPending]="readEndpointPhase">
+        <option>Anyone</option>
+      </select>
+    </div>
+
+    <div class="select filter-pending">
+      <span class="lbl">Action</span>
+      <span class="val">All actions</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Action" [reepPending]="readEndpointPhase">
+        <option>All actions</option>
+      </select>
+    </div>
+
+    <div class="select filter-pending">
+      <span class="lbl">Target</span>
+      <span class="val">All types</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Target type" [reepPending]="readEndpointPhase">
+        <option>All types</option>
+      </select>
+    </div>
+
+    <div class="select filter-pending">
+      <span class="lbl">College</span>
+      <span class="val">All colleges</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="College" [reepPending]="readEndpointPhase">
+        <option>All colleges</option>
+      </select>
+    </div>
+
+    <div class="select filter-pending">
+      <span class="lbl">Range</span>
+      <span class="val">Last 7 days</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Date range" [reepPending]="readEndpointPhase">
+        <option>Last 7 days</option>
+      </select>
+    </div>
+
+    <span class="filter-hint">Reads are never recorded; not every write is.</span>
+  </div>
+
+  <div class="notice accent">
+    <span class="icon" aria-hidden="true">info</span>
+    <span>
+      The trail is already being written, by seven routers and no others. A governance grant, a
+      registration decision, a faculty account, a student or batch edit, a SWOC entry, a
+      question-bank change and the v1 command routes each call
+      <code>architecture_events.record_change</code>, which stores the actor, the route, the entity
+      and the whole before → after pair in <code>redesign_audit_events</code>. Nothing else does:
+      a sign-in, a leave decision, a mentor assignment, an import and an export leave no row today,
+      so an absent event here means "not recorded", never "did not happen". What does not exist yet
+      is the endpoint that reads those rows back (B2.7): until it lands the grid below stays empty
+      and every control on this screen is disabled, because an audit log is the one screen where a
+      sample row would be indistinguishable from something that really happened.
+    </span>
+  </div>
+
+  <div class="board-columns">
+    <section class="card grid-card">
+      <div class="dt-gridbar">
+        <input
+          class="dt-quickfilter"
+          type="search"
+          placeholder="Search targets, reasons…"
+          aria-label="Search the audit trail"
+          [reepPending]="readEndpointPhase"
+        />
+        <span class="gridbar-actions">
+          <button
+            type="button"
+            class="btn secondary sm"
+            aria-label="Choose columns"
+            [reepPending]="readEndpointPhase"
+          >
+            <span class="icon" aria-hidden="true">table_rows</span>
+          </button>
+          <button
+            type="button"
+            class="btn secondary sm"
+            aria-label="Row density"
+            [reepPending]="readEndpointPhase"
+          >
+            <span class="icon" aria-hidden="true">tune</span>
+          </button>
+          <button
+            type="button"
+            class="btn secondary sm"
+            aria-label="Export these rows"
+            [reepPending]="readEndpointPhase"
+          >
+            <span class="icon" aria-hidden="true">download</span>
+          </button>
+        </span>
+      </div>
+
+      <ag-grid-angular
+        class="audit-grid"
+        [theme]="gridTheme"
+        [rowData]="rows"
+        [columnDefs]="columns"
+        [defaultColDef]="defaultColumn"
+        [overlayNoRowsTemplate]="noEventsOverlay"
+        [pagination]="true"
+        [paginationPageSize]="eventsPerPage"
+        [paginationPageSizeSelector]="pageSizes"
+        [suppressCellFocus]="true"
+      />
+
+      <div class="dt-statusbar">
+        <span>Rows: <b>{{ rows.length }}</b></span>
+        <span>Selected: <b>{{ selectedCount }}</b></span>
+        <span class="statusbar-note">
+          counts, filtering and paging all arrive with the read endpoint (B2.7)
+        </span>
+      </div>
+    </section>
+
+    <aside class="card event-card" aria-labelledby="audit-event-heading">
+      <div class="card-head">
+        <div>
+          <h2 class="card-heading" id="audit-event-heading">Event</h2>
+          <p class="card-sub">who did it, through which route, and what changed</p>
+        </div>
+      </div>
+
+      <div class="notice accent">
+        <span class="icon" aria-hidden="true">info</span>
+        <span>No event can be opened yet. This is the shape one takes when B2.7 serves it.</span>
+      </div>
+
+      <dl class="event-facts">
+        <div class="event-fact">
+          <dt class="eyebrow">Actor</dt>
+          <dd class="fact">—</dd>
+        </div>
+        <div class="event-fact">
+          <dt class="eyebrow">Via</dt>
+          <dd class="fact">—</dd>
+        </div>
+        <div class="event-fact">
+          <dt class="eyebrow">Target</dt>
+          <dd class="fact">—</dd>
+        </div>
+        <div class="event-fact">
+          <dt class="eyebrow">Scope check</dt>
+          <dd class="fact">—</dd>
+        </div>
+      </dl>
+
+      <div class="event-block">
+        <div class="eyebrow">Change</div>
+        <div class="diff">
+          <div class="diff-side">
+            <div class="eyebrow">Before</div>
+            <p class="diff-body">—</p>
+          </div>
+          <div class="diff-side diff-after">
+            <div class="eyebrow">After</div>
+            <p class="diff-body">—</p>
+          </div>
+        </div>
+        <p class="diff-note">
+          <code>before_json</code> and <code>after_json</code> are written on every recorded change
+          already; this panel reads them out field by field once they can be fetched.
+        </p>
+      </div>
+
+      <div class="event-block">
+        <div class="eyebrow">Remark</div>
+        <p class="fact">—</p>
+      </div>
+
+      <div class="event-block">
+        <div class="eyebrow">Related</div>
+        <p class="fact">—</p>
+      </div>
+
+      <div class="event-actions">
+        <button type="button" class="btn secondary" [reepPending]="readEndpointPhase">
+          <span class="icon" aria-hidden="true">content_copy</span> Copy event JSON
+        </button>
+        <button type="button" class="btn ghost" [reepPending]="readEndpointPhase">
+          <span class="icon" aria-hidden="true">open_in_new</span> Open the record
+        </button>
+      </div>
+    </aside>
   </div>
 </div>

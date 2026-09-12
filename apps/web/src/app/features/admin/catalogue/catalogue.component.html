@@ -1,136 +1,239 @@
 <div class="panel" data-p="catalogue">
   <div class="dt-header">
     <div>
+      <div class="crumb">
+        <span>Institution</span><span class="sep">/</span><span>Catalogue</span>
+      </div>
       <h1 class="dt-title">Catalogue</h1>
       <div class="dt-sub">
-        What students may enrol in, and which certifications count towards a badge.
+        Subjects, approved certifications and the badges they unlock. Programme-wide today — scoping
+        a catalogue to one college and one course is a Phase 4 change.
       </div>
     </div>
-    @if (tab() === 'certs') {
-      <button type="button" class="btn primary" (click)="toggleForm()">
-        <span class="icon" aria-hidden="true">{{ formOpen() ? 'close' : 'add' }}</span>
-        {{ formOpen() ? 'Close' : 'Add certification' }}
+    <div class="dt-toolbar">
+      <button type="button" class="btn secondary" [reepPending]="scopingPhase">
+        <span class="icon" aria-hidden="true">upload_file</span>Import subjects
       </button>
+      @if (!certificationsAreMainAdminOnly()) {
+        @if (formOpen()) {
+          <button type="button" class="btn secondary" (click)="closeForm()">
+            <span class="icon" aria-hidden="true">close</span>Cancel
+          </button>
+        } @else {
+          <button type="button" class="btn primary" (click)="openForm()">
+            <span class="icon" aria-hidden="true">add</span>Add certification
+          </button>
+        }
+      }
+    </div>
+  </div>
+
+  <div role="alert">
+    @if (error()) {
+      <div class="notice cat-note">
+        <span class="icon" aria-hidden="true">error</span>
+        <div>{{ error() }}</div>
+      </div>
+    }
+  </div>
+  <div role="status">
+    @if (loading()) {
+      <div class="notice info cat-note">
+        <span class="icon" aria-hidden="true">hourglass_empty</span>
+        <div>Loading the catalogue…</div>
+      </div>
+    }
+    @if (flash()) {
+      <div class="notice good cat-note">
+        <span class="icon" aria-hidden="true">check</span>
+        <div>{{ flash() }}</div>
+      </div>
     }
   </div>
 
-  <div class="tabs-row">
-    <button type="button" [class.active]="tab() === 'courses'" (click)="setTab('courses')">
-      Courses
+  <div class="tabs cat-tabs" role="tablist" aria-label="Catalogue sections">
+    <button
+      type="button"
+      role="tab"
+      class="tab"
+      [class.active]="tab() === 'subjects'"
+      [attr.aria-selected]="tab() === 'subjects'"
+      (click)="setTab('subjects')"
+    >
+      Subjects
+      @if (subjects(); as rows) {
+        <span class="cat-tab-count">· {{ rows.length }}</span>
+      }
     </button>
-    <button type="button" [class.active]="tab() === 'certs'" (click)="setTab('certs')">
-      Certifications
+    <button
+      type="button"
+      role="tab"
+      class="tab"
+      [class.active]="tab() === 'badges'"
+      [attr.aria-selected]="tab() === 'badges'"
+      (click)="setTab('badges')"
+    >
+      Certifications ↔ badges
+      @if (badges().length) {
+        <span class="cat-tab-count">· {{ badges().length }}</span>
+      }
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="tab"
+      [class.active]="tab() === 'stages'"
+      [attr.aria-selected]="tab() === 'stages'"
+      (click)="setTab('stages')"
+    >
+      Stage rules
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="tab"
+      [class.active]="tab() === 'tracks'"
+      [attr.aria-selected]="tab() === 'tracks'"
+      (click)="setTab('tracks')"
+    >
+      Interview tracks
+      @if (tracks(); as rows) {
+        <span class="cat-tab-count">· {{ rows.length }}</span>
+      }
     </button>
   </div>
 
-  @if (error()) {
-    <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ error() }}</div>
-  }
-
-  @if (tab() === 'certs' && formOpen()) {
-    <div class="card form-card">
-      <div class="card-title">New certification</div>
-      <div class="form-grid">
-        <label class="fld">
-          Certification
-          <input
-            type="text"
-            class="ctrl"
-            placeholder="e.g. Microsoft PL-300"
-            [value]="fName()"
-            (input)="fName.set($any($event.target).value)"
-          />
-        </label>
-        <label class="fld">
-          Provider
-          <input
-            type="text"
-            class="ctrl"
-            placeholder="e.g. Microsoft"
-            [value]="fProvider()"
-            (input)="fProvider.set($any($event.target).value)"
-          />
-        </label>
-        <label class="fld">
-          Badge
-          <select class="ctrl" [value]="fBadge()" (change)="fBadge.set($any($event.target).value)">
-            @for (b of badges(); track b.code) {
-              <option [value]="b.code">{{ b.name }} · {{ b.points }} pts</option>
+  <!-- Scope. Both controls are B13: the catalogue is one programme-wide list
+       today, so they are drawn where the board draws them and disabled. -->
+  <div class="cat-filters">
+    <span class="select cat-select is-pending">
+      <span class="lbl">College</span>
+      <span class="val">All colleges</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Scope the catalogue to a college" [reepPending]="scopingPhase">
+        <option>All colleges</option>
+      </select>
+    </span>
+    <span class="select cat-select is-pending">
+      <span class="lbl">Course</span>
+      <span class="val">All courses</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Scope the catalogue to a course" [reepPending]="scopingPhase">
+        <option>All courses</option>
+      </select>
+    </span>
+    @if (tab() === 'badges') {
+      <span class="select cat-select">
+        <span class="lbl">Skill area</span>
+        <span class="val">{{ skillAreaLabel() }}</span>
+        <span class="icon" aria-hidden="true">expand_more</span>
+        <select
+          aria-label="Filter badges by skill area"
+          [value]="skillArea()"
+          (change)="skillArea.set($any($event.target).value)"
+        >
+          <option value="ALL" [selected]="skillArea() === 'ALL'">All</option>
+          @for (area of skillAreas(); track area.value) {
+            <option [value]="area.value" [selected]="area.value === skillArea()">
+              {{ area.label }}
+            </option>
+          }
+        </select>
+      </span>
+      <span class="select cat-select">
+        <span class="lbl">Certifications</span>
+        <span class="val">
+          @switch (mapping()) {
+            @case ('MAPPED') {
+              Mapped
             }
-          </select>
-        </label>
-        <label class="fld">
-          Link <span class="opt">(optional)</span>
-          <input
-            type="url"
-            class="ctrl"
-            placeholder="https://…"
-            [value]="fUrl()"
-            (input)="fUrl.set($any($event.target).value)"
-          />
-        </label>
-      </div>
-      <div class="form-foot">
-        <button type="button" class="btn primary" [disabled]="saving()" (click)="addCert()">
-          <span class="icon" aria-hidden="true">add</span> Add to catalogue
-        </button>
-        @if (formBadge(); as b) {
-          <span class="derived">
-            Category {{ b.category_label }} · {{ b.points }} points · {{ stage(b.stage) }} stage
-          </span>
-        }
-        @if (formErr()) {
-          <span class="chip risk"><span class="icon" aria-hidden="true">error</span> {{ formErr() }}</span>
-        }
-      </div>
-    </div>
-  }
+            @case ('UNMAPPED') {
+              None mapped
+            }
+            @default {
+              All
+            }
+          }
+        </span>
+        <span class="icon" aria-hidden="true">expand_more</span>
+        <select
+          aria-label="Filter badges by whether certifications are mapped to them"
+          [value]="mapping()"
+          (change)="mapping.set($any($event.target).value)"
+        >
+          <option value="ALL" [selected]="mapping() === 'ALL'">All</option>
+          <option value="MAPPED" [selected]="mapping() === 'MAPPED'">Mapped</option>
+          <option value="UNMAPPED" [selected]="mapping() === 'UNMAPPED'">None mapped</option>
+        </select>
+      </span>
+    }
+    <span class="cat-filters-note">
+      One catalogue, every college and course. Scoping and “Copy to course…” arrive with Phase
+      {{ scopingPhase }}.
+    </span>
+  </div>
 
-  <div class="card">
-    @switch (tab()) {
-      @case ('courses') {
-        @if (courses() === null) {
-          <div class="state-note">
-            <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the catalogue…
+  @switch (tab()) {
+    <!-- ---------------------------------------------------------------- -->
+    @case ('subjects') {
+      <div role="tabpanel" aria-label="Subjects">
+        <div class="dt-frame">
+          <div class="dt-gridbar">
+            <input
+              type="search"
+              class="dt-quickfilter"
+              placeholder="Search subjects…"
+              aria-label="Search subjects by code, name or dimension"
+              [value]="query()"
+              (input)="query.set($any($event.target).value)"
+            />
+            <span class="cat-gridbar-note">
+              Read-only: the curriculum is seeded from the programme design.
+            </span>
           </div>
-        } @else {
-          <div class="scroll">
+          <div class="cat-scroll">
             <table class="dt-table cat-table">
               <thead>
                 <tr>
-                  <th>Course</th>
+                  <th class="pinned">Subject</th>
                   <th>Dimension</th>
                   <th>Stage</th>
-                  <th>Semester</th>
+                  <th class="num">Semester</th>
                   <th class="num">Hours</th>
                   <th class="num">Enrolled</th>
                   <th>Evidence path</th>
                 </tr>
               </thead>
               <tbody>
-                @for (c of courses()!; track c.code) {
+                @for (subject of visibleSubjects(); track subject.code) {
                   <tr>
-                    <td>
-                      <strong>{{ c.code }} · {{ c.name }}</strong>
-                      <div class="meta">
-                        {{ dimension(c.model_type) }} · {{ c.duration_weeks }} weeks
+                    <td class="pinned">
+                      <strong>{{ subject.code }} · {{ subject.name }}</strong>
+                      <div class="cat-meta">
+                        {{ dimensionLabel(subject.model_type) }} ·
+                        {{ subject.duration_weeks }} weeks
                       </div>
                     </td>
-                    <td>{{ dimension(c.dimension) }}</td>
-                    <td>{{ stage(c.stage) }}</td>
-                    <td class="num">{{ c.semester }}</td>
-                    <td class="num" [title]="c.teaching_hours + ' h taught · ' + c.self_learning_hours_required + ' h self-study'">
-                      {{ hours(c) }}
+                    <td>{{ dimensionLabel(subject.dimension) }}</td>
+                    <td>{{ stageLabel(subject.stage) }}</td>
+                    <td class="num">{{ subject.semester }}</td>
+                    <td
+                      class="num"
+                      [title]="
+                        subject.teaching_hours +
+                        ' h taught · ' +
+                        subject.self_learning_hours_required +
+                        ' h self-study'
+                      "
+                    >
+                      {{ subjectHours(subject) }}
                     </td>
-                    <td class="num">{{ c.enrolled }}</td>
+                    <td class="num">{{ subject.enrolled }}</td>
                     <td>
-                      @if (c.certifications.length) {
-                        <span
-                          class="chip good"
-                          [title]="c.certifications.map((x) => x.name).join(', ')"
-                        >
-                          {{ c.certifications.length }} certification{{
-                            c.certifications.length === 1 ? '' : 's'
+                      @if (subject.certifications.length) {
+                        <span class="chip good" [title]="subject.certifications.length + ' mapped'">
+                          {{ subject.certifications.length }} certification{{
+                            subject.certifications.length === 1 ? '' : 's'
                           }}
                         </span>
                       } @else {
@@ -140,103 +243,539 @@
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="7" class="empty-cell">No courses in the catalogue yet.</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <div class="foot-note">
-            Courses are the seeded curriculum — code, stage, dimension and delivery model come
-            from the programme design, not from this screen.
-          </div>
-        }
-      }
-      @case ('certs') {
-        @if (certs() === null) {
-          <div class="state-note">
-            <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the catalogue…
-          </div>
-        } @else {
-          <div class="scroll">
-            <table class="dt-table cat-table">
-              <thead>
-                <tr>
-                  <th>Certification</th>
-                  <th>Category</th>
-                  <th>Badge</th>
-                  <th class="num">Points</th>
-                  <th class="num">Claims</th>
-                  <th class="rm-col"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (c of visibleCerts(); track c.id) {
-                  <tr [class.inactive]="!c.active">
-                    <td>
-                      <strong>
-                        @if (c.url) {
-                          <a [href]="c.url" target="_blank" rel="noopener">{{ c.name }}</a>
-                        } @else {
-                          {{ c.name }}
-                        }
-                      </strong>
-                      <div class="meta">
-                        {{ c.provider }}
-                        @if (!c.active) {
-                          · <span class="chip neutral">Inactive</span>
-                        }
-                      </div>
-                    </td>
-                    <td>{{ c.badge_category }}</td>
-                    <td>{{ c.badge_name }}</td>
-                    <td class="num">{{ c.badge_points }}</td>
-                    <td class="num">{{ c.claims }}</td>
-                    <td class="rm-col">
-                      @if (c.active) {
-                        <button
-                          type="button"
-                          class="rm-btn"
-                          title="Remove from the catalogue"
-                          [attr.aria-label]="'Remove ' + c.name + ' from the catalogue'"
-                          [disabled]="busyId() === c.id"
-                          (click)="setActive(c, false)"
-                        >
-                          <span class="icon" aria-hidden="true">close</span>
-                        </button>
+                    <td colspan="7">
+                      @if (loadFailed()) {
+                        <div class="empty">
+                          <span class="icon" aria-hidden="true">error</span>
+                          The catalogue could not be read — this is not an empty catalogue.
+                        </div>
+                      } @else if (subjects()) {
+                        <div class="empty">
+                          <span class="icon" aria-hidden="true">table_rows</span>
+                          @if (query().trim()) {
+                            No subject matches “{{ query() }}”.
+                          } @else {
+                            No courses in the catalogue yet.
+                          }
+                        </div>
                       } @else {
-                        <button
-                          type="button"
-                          class="btn sm"
-                          [disabled]="busyId() === c.id"
-                          (click)="setActive(c, true)"
-                        >
-                          Restore
-                        </button>
+                        <div class="empty">
+                          <span class="icon" aria-hidden="true">hourglass_empty</span>
+                          Loading the catalogue…
+                        </div>
                       }
                     </td>
                   </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="6" class="empty-cell">
-                      No approved certifications yet — add the first one above.
-                    </td>
-                  </tr>
                 }
               </tbody>
             </table>
           </div>
-          @if (inactiveCerts().length) {
-            <div class="foot-note">
-              <button type="button" class="link-btn" (click)="showInactive.set(!showInactive())">
-                {{ showInactive() ? 'Hide' : 'Show' }} {{ inactiveCerts().length }} removed
-              </button>
-              — removed certifications stay on record so evidence already filed against them
-              keeps its reference.
+          <div class="dt-statusbar">
+            <span
+              >Subjects: <b>{{ visibleSubjects().length }}</b></span
+            >
+            @if (subjects(); as rows) {
+              <span
+                >Of <b>{{ rows.length }}</b> in the programme</span
+              >
+            }
+          </div>
+        </div>
+        <p class="cat-foot">
+          Subjects are the seeded curriculum — code, stage, dimension and delivery model come from
+          the programme design, not from this screen.
+        </p>
+      </div>
+    }
+
+    <!-- ---------------------------------------------------------------- -->
+    @case ('badges') {
+      <div role="tabpanel" aria-label="Certifications and badges">
+        <div class="notice accent cat-note">
+          <span class="icon" aria-hidden="true">lock</span>
+          <div>
+            The 48 badges are defined in code, so none can be added, edited or retired here — what
+            this screen maintains is which approved certifications count towards each. “Claims”
+            counts the evidence students have filed against those certifications; a per-badge earned
+            count, the college/course scope and “Copy to course…” arrive with Phase
+            {{ scopingPhase }}.
+          </div>
+        </div>
+
+        @if (certificationsAreMainAdminOnly()) {
+          <div class="notice accent cat-note">
+            <span class="icon" aria-hidden="true">shield_person</span>
+            <div>
+              The Approved Certification Catalogue is the Main Admin's list, so the mapping below
+              reads as empty for this account. The badges themselves are shown in full.
+            </div>
+          </div>
+        } @else if (loadFailed()) {
+          <!-- The error notice at the top of the screen carries the sentence;
+               what must not appear here is "no approved certifications yet",
+               which is a claim about the data nobody could read. -->
+        } @else if (certifications(); as rows) {
+          @if (rows.length === 0) {
+            <div class="notice accent cat-note">
+              <span class="icon" aria-hidden="true">info</span>
+              <div>No approved certifications yet — add the first one with “Add certification”.</div>
             </div>
           }
         }
-      }
+
+        @if (formOpen()) {
+          <div class="card cat-form">
+            <h2 class="cat-card-title">New certification</h2>
+            <div class="cat-form-grid">
+              <div class="field">
+                <label for="certification-name">Certification</label>
+                <input
+                  id="certification-name"
+                  type="text"
+                  class="ctrl"
+                  placeholder="e.g. Microsoft PL-300"
+                  [value]="formName()"
+                  (input)="formName.set($any($event.target).value)"
+                />
+              </div>
+              <div class="field">
+                <label for="certification-provider">Provider</label>
+                <input
+                  id="certification-provider"
+                  type="text"
+                  class="ctrl"
+                  placeholder="e.g. Microsoft"
+                  [value]="formProvider()"
+                  (input)="formProvider.set($any($event.target).value)"
+                />
+              </div>
+              <div class="field">
+                <label for="certification-badge">Badge it counts towards</label>
+                <select
+                  id="certification-badge"
+                  class="ctrl"
+                  [value]="formBadgeCode()"
+                  (change)="formBadgeCode.set($any($event.target).value)"
+                >
+                  @for (badge of badges(); track badge.code) {
+                    <option [value]="badge.code" [selected]="badge.code === formBadgeCode()">
+                      {{ badge.name }} · {{ badge.points }} pts
+                    </option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label for="certification-url"
+                  >Link <span class="cat-optional">(optional)</span></label
+                >
+                <input
+                  id="certification-url"
+                  type="url"
+                  class="ctrl"
+                  placeholder="https://…"
+                  [value]="formUrl()"
+                  (input)="formUrl.set($any($event.target).value)"
+                />
+              </div>
+            </div>
+            <div class="cat-form-foot">
+              <button
+                type="button"
+                class="btn primary"
+                [disabled]="saving()"
+                (click)="addCertification()"
+              >
+                <span class="icon" aria-hidden="true">add</span>Add to catalogue
+              </button>
+              @if (formBadge(); as badge) {
+                <span class="cat-derived">
+                  Category {{ badge.category_label }} · {{ badge.points }} points ·
+                  {{ stageLabel(badge.stage) }} stage — read off the badge, never typed.
+                </span>
+              }
+            </div>
+            <div role="alert">
+              @if (formError()) {
+                <div class="notice cat-note">
+                  <span class="icon" aria-hidden="true">error</span>
+                  <div>{{ formError() }}</div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="cat-body">
+          <div class="cat-main">
+            <div class="dt-frame">
+              <div class="dt-gridbar">
+                <input
+                  type="search"
+                  class="dt-quickfilter"
+                  placeholder="Search badges…"
+                  aria-label="Search badges and the certifications mapped to them"
+                  [value]="query()"
+                  (input)="query.set($any($event.target).value)"
+                />
+                <button type="button" class="btn secondary sm" [reepPending]="scopingPhase">
+                  <span class="icon" aria-hidden="true">content_copy</span>Copy to course…
+                </button>
+              </div>
+              <div class="cat-scroll">
+                <table class="dt-table cat-table">
+                  <thead>
+                    <tr>
+                      <th class="pinned">Badge</th>
+                      <th>Skill area</th>
+                      <th>Certifications</th>
+                      <th>Verifier</th>
+                      <th class="num">Claims</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (badge of visibleBadges(); track badge.code) {
+                      <tr [class.selected]="selectedBadgeCode() === badge.code">
+                        <td class="pinned">
+                          <button
+                            type="button"
+                            class="cat-rowname"
+                            [attr.aria-pressed]="selectedBadgeCode() === badge.code"
+                            (click)="selectBadge(badge.code)"
+                          >
+                            <span class="cat-rowname-title">{{ badge.name }}</span>
+                            <span class="cat-rowcode">{{ badge.code }}</span>
+                          </button>
+                        </td>
+                        <td>{{ badge.category_label }}</td>
+                        <td>
+                          @if (activeCertificationsFor(badge.code).length) {
+                            <span class="cat-chips">
+                              @for (
+                                certification of chipCertificationsFor(badge.code);
+                                track certification.id
+                              ) {
+                                <span class="chip accent" [title]="certification.provider">{{
+                                  certification.name
+                                }}</span>
+                              }
+                              @if (extraCertificationCount(badge.code) > 0) {
+                                <span class="chip neutral"
+                                  >+{{ extraCertificationCount(badge.code) }}</span
+                                >
+                              }
+                            </span>
+                          } @else {
+                            <span class="chip warn">None mapped</span>
+                          }
+                        </td>
+                        <td>
+                          <span class="chip accent" [title]="verifierExplanation(badge)">{{
+                            verifierLabel(badge)
+                          }}</span>
+                        </td>
+                        <td class="num">{{ claimsFor(badge.code) }}</td>
+                        <td>
+                          <span
+                            class="chip dot good"
+                            title="Every badge in the code-defined catalogue is live."
+                            >Active</span
+                          >
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="6">
+                          <div class="empty">
+                            <span class="icon" aria-hidden="true">workspace_premium</span>
+                            @if (badges().length) {
+                              No badge matches these filters.
+                            } @else if (loading()) {
+                              Loading the badge catalogue…
+                            } @else {
+                              The badge catalogue could not be read.
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <div class="dt-statusbar">
+                <span
+                  >Badges: <b>{{ visibleBadges().length }}</b> of <b>{{ badges().length }}</b></span
+                >
+                <span
+                  >Certifications mapped: <b>{{ activeCertifications().length }}</b></span
+                >
+                @if (removedCertifications().length) {
+                  <span
+                    >Removed: <b>{{ removedCertifications().length }}</b></span
+                  >
+                }
+                @if (selectedBadge(); as badge) {
+                  <span
+                    >Selected: <b>{{ badge.name }}</b></span
+                  >
+                }
+              </div>
+            </div>
+          </div>
+
+          @if (selectedBadge(); as badge) {
+            <aside class="card cat-drawer" aria-label="Badge detail">
+              <div class="cat-drawer-head">
+                <h2 class="cat-card-title">Badge · {{ badge.name }}</h2>
+                <button
+                  type="button"
+                  class="iconbtn"
+                  aria-label="Close badge detail"
+                  (click)="closeDrawer()"
+                >
+                  <span class="icon" aria-hidden="true">close</span>
+                </button>
+              </div>
+
+              <div class="cat-drawer-row">
+                <div class="field synced">
+                  <label>Code</label>
+                  <div class="ctrl">{{ badge.code }}</div>
+                </div>
+                <div class="field synced">
+                  <label>Skill area</label>
+                  <div class="ctrl">{{ badge.category_label }}</div>
+                </div>
+              </div>
+              <div class="cat-drawer-row">
+                <div class="field synced">
+                  <label>Stage</label>
+                  <div class="ctrl">{{ stageLabel(badge.stage) }}</div>
+                </div>
+                <div class="field synced">
+                  <label>Points</label>
+                  <div class="ctrl">{{ badge.points }}</div>
+                </div>
+              </div>
+
+              <div class="cat-drawer-section">
+                <h3 class="cat-card-title">Accepted certifications</h3>
+                @for (certification of selectedBadgeCertifications(); track certification.id) {
+                  <div class="cat-cert" [class.is-removed]="!certification.active">
+                    <div class="cat-cert-text">
+                      <div class="cat-cert-name">
+                        @if (certification.url) {
+                          <a [href]="certification.url" target="_blank" rel="noopener">{{
+                            certification.name
+                          }}</a>
+                        } @else {
+                          {{ certification.name }}
+                        }
+                      </div>
+                      <div class="cat-meta">
+                        {{ certification.provider }} · {{ certification.claims }} claim{{
+                          certification.claims === 1 ? '' : 's'
+                        }}
+                        @if (!certification.active) {
+                          · <span class="chip neutral">Removed</span>
+                        }
+                      </div>
+                    </div>
+                    @if (certification.active) {
+                      <button
+                        type="button"
+                        class="btn danger sm"
+                        [disabled]="busyCertificationId() === certification.id"
+                        [attr.aria-label]="'Remove ' + certification.name + ' from the catalogue'"
+                        (click)="setCertificationActive(certification, false)"
+                      >
+                        Remove
+                      </button>
+                    } @else {
+                      <button
+                        type="button"
+                        class="btn secondary sm"
+                        [disabled]="busyCertificationId() === certification.id"
+                        [attr.aria-label]="'Restore ' + certification.name + ' to the catalogue'"
+                        (click)="setCertificationActive(certification, true)"
+                      >
+                        <span class="icon" aria-hidden="true">undo</span>Restore
+                      </button>
+                    }
+                  </div>
+                } @empty {
+                  <p class="cat-help">
+                    Nothing is mapped to this badge yet, so no student can claim it with a
+                    certificate.
+                  </p>
+                }
+                @if (!certificationsAreMainAdminOnly()) {
+                  <button type="button" class="btn ghost sm" (click)="openForm(badge.code)">
+                    <span class="icon" aria-hidden="true">add</span>Add certification
+                  </button>
+                }
+                <p class="cat-help">{{ verifierExplanation(badge) }}</p>
+              </div>
+
+              <div class="field synced">
+                <label>Evidence rule</label>
+                <div class="ctrl">
+                  @if (badgeIsAwarded(badge)) {
+                    Staff award · no evidence accepted
+                  } @else if (selectedBadgeEvidenceRules().length) {
+                    @for (rule of selectedBadgeEvidenceRules(); track rule) {
+                      {{ evidenceRuleLabel(rule) }}{{ $last ? '' : ' · ' }}
+                    }
+                  } @else {
+                    No certifications mapped yet
+                  }
+                </div>
+              </div>
+
+              <div class="field synced">
+                <label>Scope</label>
+                <div class="ctrl">Programme-wide · every college and course</div>
+                <span class="help"
+                  >Per-college and per-course scope arrives with Phase {{ scopingPhase }}.</span
+                >
+              </div>
+
+              <div class="card cat-usedby">
+                <h3 class="cat-card-title">Used by</h3>
+                <div class="notice accent cat-note">
+                  <span class="icon" aria-hidden="true">info</span>
+                  <div>
+                    The stage rule that requires this badge, the job postings that prefer it and its
+                    weight in the readiness score are computed by the Phase {{ scopingPhase }}
+                    catalogue task. Nothing here is guessed in the meantime.
+                  </div>
+                </div>
+              </div>
+
+              <p class="cat-help cat-drawer-foot">
+                <span class="icon" aria-hidden="true">lock</span>
+                The badge itself — name, code, skill area, points — is defined in code (<span
+                  class="cat-mono"
+                  >models/badge.py</span
+                >) and cannot be edited or retired from this screen.
+              </p>
+            </aside>
+          }
+        </div>
+      </div>
     }
-  </div>
+
+    <!-- ---------------------------------------------------------------- -->
+    @case ('stages') {
+      <div role="tabpanel" aria-label="Stage rules">
+        <div class="card">
+          <div class="empty">
+            <span class="icon" aria-hidden="true">flag</span>
+            No stage rules are on record.
+          </div>
+          <div class="notice accent cat-note">
+            <span class="icon" aria-hidden="true">info</span>
+            <div>
+              A stage rule says which semester moves a batch into Reboot, Excel, Excel-Adv or
+              Elevate, and which badge each stage requires. The table behind it (<span
+                class="cat-mono"
+                >stage_rules</span
+              >) is part of the Phase {{ scopingPhase }}
+              catalogue task, and promotion reads it there. Until then a student's stage is set one
+              account at a time on Students &amp; batches.
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ---------------------------------------------------------------- -->
+    @case ('tracks') {
+      <div role="tabpanel" aria-label="Interview tracks">
+        @if (tracksNeedQuestionBank()) {
+          <div class="card">
+            <div class="notice accent cat-note">
+              <span class="icon" aria-hidden="true">info</span>
+              <div>
+                The interview tracks are read through the Question bank, and this account does not
+                hold that function. Ask the Main Admin for
+                <span class="cat-mono">admin.interview_questions</span>
+                in Roles &amp; functions.
+              </div>
+            </div>
+          </div>
+        } @else if (tracks(); as trackRows) {
+          <div class="dt-frame">
+            <div class="cat-scroll">
+              <table class="dt-table cat-table">
+                <thead>
+                  <tr>
+                    <th class="pinned">Track</th>
+                    <th>Key</th>
+                    <th>Phases</th>
+                    <th class="num">Questions</th>
+                    <th class="num">In use</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (interviewTrack of trackRows; track interviewTrack.key) {
+                    <tr>
+                      <td class="pinned">
+                        <strong>{{ interviewTrack.label }}</strong>
+                      </td>
+                      <td class="cat-mono">{{ interviewTrack.key }}</td>
+                      <td>{{ interviewTrack.phases.join(' · ') }}</td>
+                      <td class="num">{{ interviewTrack.count }}</td>
+                      <td class="num">{{ interviewTrack.enabled_count }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5">
+                        <div class="empty">
+                          <span class="icon" aria-hidden="true">record_voice_over</span>
+                          No interview tracks are configured.
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="dt-statusbar">
+              <span
+                >Tracks: <b>{{ trackRows.length }}</b></span
+              >
+            </div>
+          </div>
+          <div class="notice accent cat-note">
+            <span class="icon" aria-hidden="true">info</span>
+            <div>
+              Read-only here. The four tracks come from the matrix that runs the mock interviews;
+              their questions are edited on the Question bank screen, and tracks that belong to a
+              college and a course arrive with Phase {{ scopingPhase }}.
+            </div>
+          </div>
+        } @else if (tracksFailed()) {
+          <div class="card">
+            <div class="empty">
+              <span class="icon" aria-hidden="true">error</span>
+              The interview tracks could not be read.
+            </div>
+            <div class="cat-retry">
+              <button type="button" class="btn secondary sm" (click)="retryTracks()">
+                <span class="icon" aria-hidden="true">sync</span>Try again
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="card">
+            <div class="empty">
+              <span class="icon" aria-hidden="true">hourglass_empty</span>
+              Loading the interview tracks…
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
 </div>

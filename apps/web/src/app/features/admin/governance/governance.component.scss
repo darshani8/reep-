@@ -1,338 +1,378 @@
-/* Governance console.
+/* Roles & functions — this screen's LAYOUT only.
  *
- * Every colour is a token from styles/reep-v2.scss — nothing is redefined here,
- * per the house rule that a colour is defined once and called one thing. The
- * classes are scoped `gov-*` so they cannot collide with reep-v2-resume.scss,
- * which loads after the global sheet and owns names like `.entry` and `.card`. */
+ * `.panel` `.card` `.chip` `.btn` `.seg` `.select` `.field` `.ctrl` `.help`
+ * `.notice` `.tabs` `.tab` `.eyebrow` `.crumb` `.avatar` `.icon` `.dt-header`
+ * `.dt-title` `.dt-sub` `.dt-toolbar` `.dt-frame` `.dt-gridbar`
+ * `.dt-quickfilter` `.dt-statusbar` `.dt-table` `.pinned` `.selected` are
+ * global (styles/reep-v2.scss) and are used exactly as they are. Nothing here
+ * redefines one: every rule below is either on a `gov-*` class this screen
+ * owns, or on an element inside one.
+ *
+ * What is here is the shape of this board: the filter row, the grants grid
+ * beside its 380px grant panel, the shared revoke reason card, and the group
+ * cards. The two links out of the screen wear `.btn` and `.tab`, so they carry
+ * a screen-local class for the one property an anchor needs and a button does
+ * not.
+ */
 
-.gov {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+:host {
+  display: block;
 }
 
-.gov-head {
-  h1 {
-    font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    margin: 0 0 6px;
-  }
-  p {
-    margin: 0;
-    max-width: 72ch;
-    color: var(--muted);
-    font-size: 14.5px;
-  }
+/* --- page furniture ------------------------------------------------------ */
+
+.gov-note {
+  margin-bottom: 12px;
+}
+
+.gov-tabs {
+  margin-bottom: 12px;
+}
+
+/* A tab that navigates rather than switching panes. `.tab` is a button's dress;
+   an anchor needs the underline taken off on hover, which `a:hover` would
+   otherwise leave in place. */
+.gov-tablink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+.gov-tablink:hover {
+  text-decoration: none;
+}
+.gov-tablink .icon {
+  font-size: 14px;
+}
+
+.gov-tab-count {
+  margin-left: 6px;
+  font-weight: 600;
+  opacity: 0.72;
+}
+
+/* --- the board's filter row ---------------------------------------------- */
+
+.gov-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.gov-filters .select {
+  max-width: 250px;
+}
+
+.gov-function-filter {
+  max-width: 260px;
+}
+
+/* A filter whose answer needs an unmerged endpoint. The directive disables the
+   real <select> inside — which is what takes it out of the tab order and stops
+   the menu — and this dims the pill it is laid over, so the row does not read
+   as four live filters two of which silently ignore you. */
+.gov-filter-pending {
+  opacity: 0.55;
+}
+
+.gov-filters-note {
+  margin-left: auto;
+  max-width: 46ch;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+/* --- the grid beside its 380px panel ------------------------------------- */
+
+.gov-board {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.gov-grid-frame {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gov-grid-scroll {
+  overflow-x: auto;
 }
 
 .gov-panel {
+  flex: 0 0 380px;
+  width: 380px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
 
-  h2 {
-    font-family: var(--font-display);
-    font-size: 16px;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: -0.01em;
+.gov-grouplist {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 1180px) {
+  .gov-board {
+    flex-direction: column;
+  }
+  .gov-panel {
+    flex: 1 1 auto;
+    width: 100%;
   }
 }
 
-.gov-panel-head {
+.gov-gridbar-end {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+/* --- the grants table ---------------------------------------------------- */
+
+.gov-table {
+  width: 100%;
+}
+.gov-table th,
+.gov-table td {
+  white-space: nowrap;
+}
+/* Compact rows: the density toggle on the grid bar. */
+.gov-compact td {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.gov-who-col {
+  min-width: 260px;
+}
+.gov-fn-col {
+  min-width: 230px;
+}
+
+.gov-check {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.gov-who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.gov-who-name {
+  font-weight: 600;
+}
+.gov-sub {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.gov-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.gov-rowaction {
+  text-align: right;
+}
+
+.gov-key {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.gov-empty {
+  color: var(--muted);
+  font-size: 12.8px;
+}
+
+/* A heading a screen reader needs and the eye does not. Geometry, never
+   display:none — the same rule the file inputs follow. */
+.gov-hidden-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.gov-pagesize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.gov-pagesize select {
+  height: 26px;
+  padding: 0 5px;
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-seg);
+  background: var(--surface);
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--ink);
+}
+
+/* --- cards on this screen ------------------------------------------------ */
+
+.gov-card-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.gov-spaced {
+  margin-top: 10px;
 }
 
 .gov-hint {
   margin: 0;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--muted);
   max-width: 78ch;
 }
 
-.gov-note,
-.gov-empty {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.gov-error {
-  color: var(--risk);
-  background: var(--risk-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
-}
-
-.gov-flash {
-  color: var(--good);
-  background: var(--good-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
-}
-
-/* segmented control ------------------------------------------------------ */
 .gov-seg {
-  display: inline-flex;
-  gap: 3px;
-  padding: 3px;
-  border-radius: 9px;
-  background: rgba(122, 47, 158, 0.08);
   align-self: flex-start;
-
-  button {
-    font-family: var(--font-display);
-    font-size: 12.5px;
-    font-weight: 700;
-    padding: 6px 14px;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
-    color: var(--brand-purple);
-    cursor: pointer;
-
-    &.on {
-      background: var(--surface);
-      box-shadow: 0 1px 2px rgba(85, 44, 126, 0.16);
-    }
-  }
-}
-
-/* form ------------------------------------------------------------------- */
-.gov-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  align-items: start;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.gov-label {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  margin: 10px 0 5px;
-
-  &:first-child {
-    margin-top: 0;
-  }
-}
-
-.gov-req {
-  color: var(--risk);
-  text-transform: none;
-  letter-spacing: 0;
-  font-size: 11px;
-}
-
-.gov-opt {
-  color: var(--faint);
-  text-transform: none;
-  letter-spacing: 0;
-  font-size: 11px;
-}
-
-select,
-input[type='text'],
-input[type='date'],
-textarea {
-  font-family: var(--font);
-  font-size: 14px;
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: 9px;
-  padding: 9px 11px;
-  width: 100%;
-
-  &:disabled {
-    color: var(--faint);
-    background: rgba(255, 255, 255, 0.5);
-  }
-}
-
-textarea {
-  resize: vertical;
-  line-height: 1.45;
 }
 
 .gov-row {
   display: flex;
-  gap: 8px;
   align-items: center;
-
-  select,
-  input {
-    flex: 1;
-    min-width: 0;
-  }
+  gap: 8px;
+}
+.gov-row .ctrl {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .gov-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 9px;
-  min-height: 26px;
-
-  .chip button {
-    border: 0;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-    padding: 0 0 0 5px;
-  }
 }
 
-/* the blast-radius preview ----------------------------------------------- */
-.gov-reach {
-  margin: 4px 0 0;
+.gov-chip-x {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.gov-chip-x .icon {
   font-size: 13px;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px dashed var(--faint);
-  border-radius: 10px;
-  padding: 11px 13px;
-
-  &.wide {
-    color: var(--risk);
-    background: var(--risk-bg);
-    border-color: var(--risk);
-    border-style: solid;
-    font-weight: 500;
-  }
 }
 
-/* actions ---------------------------------------------------------------- */
+.gov-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .gov-actions {
   display: flex;
-  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 4px;
-}
-
-.gov-btn {
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  font-weight: 700;
-  border-radius: 9px;
-  padding: 10px 18px;
-  border: 1px solid transparent;
-  cursor: pointer;
-
-  &.primary {
-    background: var(--primary-gradient);
-    color: #fff;
-  }
-  &.danger {
-    background: var(--risk);
-    color: #fff;
-  }
-  &.ghost {
-    background: transparent;
-    border-color: var(--hairline);
-    color: var(--brand-purple);
-  }
-  &.tiny {
-    padding: 5px 11px;
-    font-size: 12px;
-    background: transparent;
-    border-color: var(--hairline);
-    color: var(--risk);
-  }
-  &:disabled {
-    background: rgba(160, 138, 178, 0.28);
-    color: var(--faint);
-    border-color: transparent;
-    cursor: not-allowed;
-  }
+  gap: 8px;
 }
 
 .gov-blocked {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--warn);
+}
+
+/* --- the shared revoke reason -------------------------------------------- */
+
+.gov-revoke {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.gov-revoke-list {
+  margin: 0;
+  padding-left: 18px;
   font-size: 12.5px;
-  color: var(--risk);
+}
+.gov-revoke-list .gov-sub {
+  margin-left: 6px;
 }
 
-/* lists ------------------------------------------------------------------ */
-.gov-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  align-items: start;
+/* --- the link out to the student switches -------------------------------- */
 
-  @media (max-width: 1000px) {
-    grid-template-columns: 1fr;
-  }
+.gov-linkcard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
 }
 
-.gov-sub {
-  font-size: 12px;
-  color: var(--muted);
+.gov-openlink {
+  flex: none;
+  text-decoration: none;
+}
+.gov-openlink:hover {
+  text-decoration: none;
 }
 
-.gov-reasoncell {
-  max-width: 34ch;
-  font-size: 12.5px;
-  color: var(--muted);
+/* --- access groups ------------------------------------------------------- */
+
+.gov-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.gov-groups {
+.gov-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gov-group-block .eyebrow {
+  margin-bottom: 6px;
+}
+
+.gov-members {
   list-style: none;
-  margin: 6px 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-
-  li {
-    display: flex;
-    gap: 9px;
-    align-items: baseline;
-    flex-wrap: wrap;
-  }
-}
-
-/* The inline revoke reason. Was a native window.prompt, which could not be
-   styled, could not enforce the server's minimum before sending, and is blocked
-   outright in some embedding contexts. */
-.gov-revokecell {
-  min-width: 220px;
-}
-
-.gov-revoke__reason {
-  width: 100%;
-  font: inherit;
-  padding: 6px 8px;
-  border: 1px solid var(--hairline);
-  border-radius: 8px;
-  resize: vertical;
-}
-
-.gov-revoke__actions {
-  display: flex;
   gap: 6px;
-  margin-top: 6px;
+}
+.gov-members li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gov-members li .btn {
+  margin-left: auto;
 }
 
-.gov-revoke__hint {
-  margin-top: 5px;
-  font-size: 11.5px;
-  color: var(--muted);
+/* The three panes are a tablist; the two links beside them are not tabs, so
+   they sit outside it. `display: contents` keeps the row one flex line. */
+.gov-tablist {
+  display: contents;
 }

@@ -1,9 +1,542 @@
 <div class="panel" data-p="student-detail">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Institution</span><span class="sep">/</span><span>Students &amp; batches</span></div>
-      <h1 class="dt-title">Student</h1>
-      <div class="dt-sub">One student across every semester — results, ledger, interviews, badges and mentor history.</div>
+      <div class="crumb">
+        <span>Institution</span><span class="sep">/</span>
+        <a routerLink="/admin/students">Students &amp; batches</a><span class="sep">/</span>
+        <span>{{ usnLabel() }}</span>
+      </div>
+      <h1 class="dt-title">{{ studentName() }}</h1>
+      <div class="dt-sub head-sub">
+        <span class="student-usn">{{ usnLabel() }}</span>
+        <span>· {{ batchLabel() }} · {{ departmentLabel() }} · {{ semesterLine() }} ·</span>
+        @if (mentorName(); as name) {
+          <span>mentor {{ name }}</span>
+        } @else {
+          <span>no faculty member assigned</span>
+        }
+        <!-- Both chips are STATEMENTS about this student, so neither is drawn
+             until there is a row to make them from: an unread student used to
+             render a green "Active". -->
+        @if (student() !== null) {
+          <span class="chip dot" [class.good]="hasSignedIn()" [class.warn]="!hasSignedIn()">{{
+            accountStatusLabel()
+          }}</span>
+          <span class="chip accent">{{ stageLabel() }}</span>
+        }
+      </div>
+    </div>
+    <div class="dt-toolbar">
+      <button type="button" class="btn secondary" [reepPending]="4">
+        <span class="icon" aria-hidden="true">history</span> Hold back
+      </button>
+      <a class="btn secondary" routerLink="/admin/audit">
+        <span class="icon" aria-hidden="true">description</span> Audit trail
+      </a>
+      <button
+        type="button"
+        class="btn secondary"
+        [disabled]="student() === null"
+        (click)="openEditor('batch')"
+      >
+        <span class="icon" aria-hidden="true">school</span> Move batch
+      </button>
+      <button
+        type="button"
+        class="btn secondary"
+        [disabled]="student() === null"
+        (click)="openEditor('profile')"
+      >
+        <span class="icon" aria-hidden="true">edit</span> Edit profile
+      </button>
+    </div>
+  </div>
+
+  <div class="detail-body">
+    @if (loading()) {
+      <div class="loading-line" role="status">Reading this student's record…</div>
+    }
+    @if (error()) {
+      <div class="notice" role="alert">
+        <span class="icon" aria-hidden="true">error</span><span>{{ error() }}</span>
+      </div>
+    }
+    @if (flash()) {
+      <div class="notice good" role="status">
+        <span class="icon" aria-hidden="true">check_circle</span><span>{{ flash() }}</span>
+      </div>
+    }
+
+    <!-- The board's nine views. Overview is the one any endpoint on `main` can
+         answer for a single student; the other eight need the composite read
+         (B4.5, Phase 4), so they are drawn disabled rather than left out - a
+         reviewer can then tell a missing view from a missed one. -->
+    <div class="tabs" role="group" aria-label="Student views">
+      <button type="button" class="tab active" aria-current="true">Overview</button>
+      <button type="button" class="tab" [reepPending]="4">Results</button>
+      <button type="button" class="tab" [reepPending]="4">Attendance</button>
+      <button type="button" class="tab" [reepPending]="4">Time sheet</button>
+      <button type="button" class="tab" [reepPending]="4">Interviews</button>
+      <button type="button" class="tab" [reepPending]="4">SWOC</button>
+      <button type="button" class="tab" [reepPending]="4">Leave</button>
+      <button type="button" class="tab" [reepPending]="4">Uploads</button>
+      <button type="button" class="tab" [reepPending]="4">Audit</button>
+    </div>
+
+    @if (menteeReadsRefusal(); as refusal) {
+      <div class="notice warn" role="status">
+        <span class="icon" aria-hidden="true">lock</span>
+        <span
+          >The time sheet and the English baseline were not readable with this account:
+          {{ refusal }} They are a faculty member's instruments, so the placement office grants
+          itself the Mentee log function in Governance — with a reason, on the audit trail — when it
+          needs to look.</span
+        >
+      </div>
+    }
+
+    @if (editorOpen()) {
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">{{ editorTitle() }}</h2>
+            <div class="card-sub">
+              one student, one write path — moving a batch and editing a profile both save through
+              PATCH /api/admin/students; no password is ever set here
+            </div>
+          </div>
+        </div>
+        @if (editorIntent() === 'batch') {
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            <span
+              >Pick the new batch below. A student can also be left with no batch — the roster calls
+              that unseated.</span
+            >
+          </div>
+        }
+        <div class="editor-grid">
+          <div class="field">
+            <label for="student-name">Full name</label>
+            <input
+              #nameInput
+              id="student-name"
+              type="text"
+              [value]="formName()"
+              (input)="onName(nameInput.value)"
+            />
+          </div>
+          <div class="field">
+            <label for="student-email">College email</label>
+            <input
+              #emailInput
+              id="student-email"
+              type="email"
+              [value]="formEmail()"
+              (input)="onEmail(emailInput.value)"
+            />
+            <div class="help">
+              Only a college domain is accepted — the roster is the access control.
+            </div>
+          </div>
+          <div class="field">
+            <label for="student-usn">USN</label>
+            <input
+              #usnInput
+              id="student-usn"
+              type="text"
+              [value]="formUsn()"
+              (input)="onUsn(usnInput.value)"
+            />
+          </div>
+          <div class="field">
+            <label for="student-batch">Batch</label>
+            <select #batchSelect id="student-batch" (change)="onBatch(batchSelect.value)">
+              <option value="" [selected]="formBatchId() === ''">No batch (unseated)</option>
+              @for (batch of batches(); track batch.id) {
+                <option [value]="batch.id" [selected]="batch.id === formBatchId()">
+                  {{ batch.name }} · {{ batch.batch_label }}
+                </option>
+              }
+            </select>
+            @if (batchesRefusal(); as refusal) {
+              <div class="help">The batch list could not be read: {{ refusal }}</div>
+            }
+          </div>
+          <div class="field">
+            <label for="student-stage">Stage</label>
+            <select #stageSelect id="student-stage" (change)="onStage(stageSelect.value)">
+              @for (stage of stages; track stage.key) {
+                <option [value]="stage.key" [selected]="stage.key === formStage()">
+                  {{ stage.label }}
+                </option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="student-semester">Semester</label>
+            <select
+              #semesterSelect
+              id="student-semester"
+              (change)="onSemester(semesterSelect.value)"
+            >
+              @for (semester of semesters; track semester) {
+                <option [value]="semester" [selected]="semester === formSemester()">
+                  {{ semester }}
+                </option>
+              }
+            </select>
+            <div class="help">
+              The course's own total number of semesters is not reported yet, so this is bounded at
+              {{ semesters.length }}.
+            </div>
+          </div>
+        </div>
+        <div class="editor-actions">
+          <button type="button" class="btn secondary" (click)="closeEditor()">Cancel</button>
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="!canSaveProfile()"
+            (click)="saveProfile()"
+          >
+            <span class="icon" aria-hidden="true">save</span> Save changes
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Semester timeline · nothing is rewritten on promotion</h2>
+          <div class="card-sub">
+            promotion writes a history row and increments current_semester; every table keeps its
+            own semester number
+          </div>
+        </div>
+      </div>
+      @if (semesterSteps().length > 0) {
+        <div class="timeline">
+          @for (step of semesterSteps(); track step.number) {
+            <div class="timeline-col">
+              <div class="wizard-steps">
+                <span
+                  class="step"
+                  [class.done]="step.state === 'done'"
+                  [class.active]="step.state === 'active'"
+                >
+                  <span class="n">
+                    @if (step.state === 'done') {
+                      <span class="icon" aria-hidden="true">check</span>
+                    } @else {
+                      {{ step.number }}
+                    }
+                  </span>
+                  <span>{{ step.label }}</span>
+                </span>
+              </div>
+              @if (step.state === 'active') {
+                <div class="timeline-line">Stage {{ stageLabel() }}</div>
+                <div class="timeline-line soft">the semester they are in now</div>
+              } @else {
+                <div class="timeline-line soft">
+                  {{ notReadable }} results, ledger, interviews and badges are not attributed to a
+                  semester yet
+                </div>
+              }
+            </div>
+          }
+          <div class="timeline-col">
+            <div class="wizard-steps">
+              <span class="step">
+                <span class="n"><span class="icon" aria-hidden="true">school</span></span>
+                <span>Alumni</span>
+              </span>
+            </div>
+            <div class="timeline-line soft">
+              login unchanged · the full history stays readable · the alumni profile links to this
+              record
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="empty">
+          <span class="icon" aria-hidden="true">history</span>No semester on record for this student
+          yet.
+        </div>
+      }
+      <div class="notice accent">
+        <span class="icon" aria-hidden="true">info</span>
+        <span
+          >Per-semester results, ledger compliance, interviews and badges — and how many semesters
+          this course has — arrive with the Student 360 composite read and the course shape (Phase
+          4).</span
+        >
+      </div>
+    </div>
+
+    <div class="three-columns">
+      <div class="column">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Identity &amp; login</h2>
+              <div class="card-sub">
+                an admin never sets a password; a student's setup link comes from the onboarding
+                walk, not from here
+              </div>
+            </div>
+          </div>
+          <dl class="facts">
+            <div class="fact">
+              <dt>College email</dt>
+              <dd>{{ student()?.email ?? notReadable }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Last sign-in</dt>
+              <dd>{{ lastSignInLabel() }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Enrolled</dt>
+              <dd>{{ enrolledLabel() }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Consent</dt>
+              <dd>{{ notReadable }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Interview cap today</dt>
+              <dd>{{ notReadable }}</dd>
+            </div>
+          </dl>
+          <div class="row-actions">
+            <button type="button" class="btn secondary sm" [reepPending]="3">
+              <span class="icon" aria-hidden="true">lock</span> Sign out everywhere
+            </button>
+            <button type="button" class="btn secondary sm" [reepPending]="4">
+              <span class="icon" aria-hidden="true">sync</span> Reset daily cap
+            </button>
+            <button type="button" class="btn ghost sm" disabled>Re-send invite</button>
+          </div>
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            <span
+              >Re-send invite is greyed because it is not a student's path: an activation link is
+              refused for a STUDENT on purpose, and their setup link comes from the onboarding walk,
+              which proves the mailbox with a six-digit code before a password is chosen. The Google
+              link, the consent grant and today's interview count arrive with the composite read
+              (Phase 4); Sign out everywhere is Phase 3 and the daily-cap reset is Phase 4.</span
+            >
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h2 class="card-title">Recent activity</h2></div>
+            <div class="card-actions">
+              <a class="btn ghost sm" routerLink="/admin/audit">
+                <span class="icon" aria-hidden="true">arrow_forward</span> Audit trail
+              </a>
+            </div>
+          </div>
+          @if (recentActivity().length > 0) {
+            <div class="activity">
+              @for (entry of recentActivity(); track entry.id) {
+                <div class="activity-row">
+                  <span class="icon" aria-hidden="true">{{ entry.icon }}</span>
+                  <span class="activity-text">{{ entry.text }}</span>
+                  <span class="activity-at">{{ entry.at }}</span>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty">
+              <span class="icon" aria-hidden="true">history</span>No mock interviews on record for
+              this student.
+            </div>
+          }
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            <span
+              >Mock interviews are the one activity a per-student endpoint answers today. The time
+              sheet, leave, SWOC and upload lines arrive with the composite read (Phase 4).</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="card">
+          <div class="card-head">
+            <div><h2 class="card-title">Mentor</h2></div>
+          </div>
+          @if (mentorName(); as name) {
+            <div class="mentor-row">
+              <span class="avatar lg" aria-hidden="true">{{ mentorInitials() }}</span>
+              <div class="mentor-who">
+                <div class="mentor-name">{{ name }}</div>
+                <div class="soft">faculty · assigned on Mentor mapping</div>
+              </div>
+              <a class="btn ghost sm" routerLink="/admin/mentors">
+                <span class="icon" aria-hidden="true">group</span> Reassign
+              </a>
+            </div>
+          } @else {
+            <div class="empty">
+              <span class="icon" aria-hidden="true">group_off</span>No faculty member assigned — this
+              student reaches nobody's mentee log yet.
+            </div>
+            <div class="row-actions">
+              <a class="btn secondary sm" routerLink="/admin/mentors">
+                <span class="icon" aria-hidden="true">group</span> Assign on Mentor mapping
+              </a>
+            </div>
+          }
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            <span
+              >Since when, the previous mentor and the 90-day handover window arrive with mentor
+              assignment history (Phase 4).</span
+            >
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h2 class="card-title">Open items</h2></div>
+          </div>
+          @if (openItems().length > 0) {
+            <div class="open-list">
+              @for (item of openItems(); track item.text) {
+                <div class="open-row">
+                  <span
+                    class="chip"
+                    [class.warn]="item.tone === 'warn'"
+                    [class.neutral]="item.tone === 'neutral'"
+                    >{{ item.chip }}</span
+                  >
+                  <span>{{ item.text }}</span>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty">
+              <span class="icon" aria-hidden="true">task_alt</span>Nothing open that this screen can
+              read yet.
+            </div>
+          }
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            <span
+              >Pending uploads, badge claims, leave requests and offers awaiting approval arrive with
+              the composite read (Phase 4).</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="card">
+          <div class="card-head">
+            <div><h2 class="card-title">Readiness · this semester</h2></div>
+          </div>
+          <div class="readiness-score">
+            <span class="kpi">{{ notReadable }}</span>
+            <span class="soft">/ 100 · not computed yet</span>
+          </div>
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            <span
+              >The weighted score, its band and the change since last semester arrive when
+              evaluations and SWOC feed readiness (Phase 4). What is below is measured today and
+              unweighted — it is not that score.</span
+            >
+          </div>
+
+          <div class="eyebrow measured-head">Measured today</div>
+
+          <div class="readiness-meters">
+            <div class="meter-row">
+              <span class="meter-label">Attendance</span>
+              @if (meanAttendancePercent() !== null) {
+                <span class="meter readiness-bar" aria-hidden="true"
+                  ><span [style.width.%]="meanAttendancePercent()"></span
+                ></span>
+                <span class="meter-value">{{ meanAttendancePercent() }}%</span>
+              } @else {
+                <span class="meter-none">{{ attendanceNoneLine() }}</span>
+              }
+            </div>
+
+            <div class="meter-row">
+              <span class="meter-label">Badges</span>
+              @if (badges(); as dashboard) {
+                <span class="meter readiness-bar" aria-hidden="true"
+                  ><span [style.width.%]="badgesEarnedPercent()"></span
+                ></span>
+                <span class="meter-value"
+                  >{{ dashboard.earned_total }}/{{ dashboard.badge_total }}</span
+                >
+              } @else {
+                <span class="meter-none">not readable</span>
+              }
+            </div>
+
+            <div class="meter-row">
+              <span class="meter-label">Time sheet</span>
+              @if (ledger(); as summary) {
+                <span class="meter readiness-bar" aria-hidden="true"
+                  ><span [style.width.%]="ledgerSubmittedPercent()"></span
+                ></span>
+                <span class="meter-value"
+                  >{{ summary.days_submitted }}/{{ summary.window_days }} d</span
+                >
+              } @else {
+                <span class="meter-none">{{ notReadable }}</span>
+              }
+            </div>
+
+            <div class="meter-row">
+              <span class="meter-label">Best interview</span>
+              @if (bestInterviewScore() !== null) {
+                <span class="meter readiness-bar" aria-hidden="true"
+                  ><span [style.width.%]="bestInterviewScore()"></span
+                ></span>
+                <span class="meter-value">{{ bestInterviewScore() }}</span>
+              } @else {
+                <span class="meter-none">{{ interviewsSatLine() }}</span>
+              }
+            </div>
+          </div>
+
+          @if (weeklyRefusal(); as refusal) {
+            <div class="notice warn" role="status">
+              <span class="icon" aria-hidden="true">lock</span>
+              <span
+                >Attendance and verified skills were not readable with this account:
+                {{ refusal }} They are the Analytics function, which is granted separately from
+                the student roster.</span
+              >
+            </div>
+          }
+
+          <dl class="facts readiness-facts">
+            <div class="fact">
+              <dt>English baseline</dt>
+              <dd>{{ englishLine() ?? notReadable }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Verified skills</dt>
+              <dd>{{ verifiedSkillCount() ?? notReadable }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Badge points</dt>
+              <dd>{{ badges()?.points_total ?? notReadable }}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
     </div>
   </div>
 </div>

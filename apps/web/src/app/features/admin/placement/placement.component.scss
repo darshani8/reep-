@@ -1,174 +1,237 @@
-/* Placement. Panel / card / chip / btn / ctrl / dt-table are global. */
+/* Placement & offers — this screen's LAYOUT only.
+ *
+ * .panel .card .kpi .chip .btn .select .field .notice .tabs .crumb .avatar
+ * .dt-header .dt-title .dt-sub .dt-toolbar .dt-quickfilter .dt-statusbar are
+ * global (styles/reep-v2.scss) and are used as they are. What is here is the
+ * shape of this board: the filter row, the funnel beside its three side cards,
+ * the drop-off rows, the rejection strip and the offers grid — plus the card
+ * head, which the design system draws on every board and has no global class
+ * of its own yet.
+ */
 :host {
   display: block;
 }
 
-.pending-chip {
-  align-self: flex-end;
-  padding: 6px 12px;
-  font-size: 13px;
+/* The screen-level error and confirmation notices, above the tabs. */
+.panel > .notice {
+  margin-bottom: 10px;
 }
 
-/* The funnel: four figures in one card, separated by hairlines. */
-.funnel {
-  background: var(--card-gradient);
-  border: 1px solid var(--hairline);
-  border-radius: 20px;
-  box-shadow: var(--sh-card);
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 16px;
+/* --- tabs: Jobs is a route, Placement is here, Offers is the table below --- */
+.placement-tabs {
+  margin-bottom: 12px;
 }
-.stage {
-  padding: 18px 20px;
-  border-left: 1px solid var(--hairline-26);
-}
-.stage:first-child {
-  border-left: 0;
-}
-.stage-lbl {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  color: var(--ink-soft);
-  margin-bottom: 7px;
-}
-.stage-val {
-  font-family: var(--font-display);
-  font-size: 25px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-}
-@media (max-width: 720px) {
-  .funnel {
-    grid-template-columns: 1fr 1fr;
-  }
-  .stage:nth-child(3) {
-    border-left: 0;
-  }
-  .stage:nth-child(n + 3) {
-    border-top: 1px solid var(--hairline-26);
-  }
+.placement-tabs a.tab,
+.placement-tabs a.tab:hover {
+  text-decoration: none;
 }
 
-.offers-card {
-  margin-bottom: 16px;
-}
-.card-title {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-  margin-bottom: 14px;
-}
-
-.scroll {
-  overflow-x: auto;
-}
-.offers-table {
-  min-width: 720px;
-}
-.offers-table td {
-  color: var(--ink);
-  font-size: 13px;
-}
-.usn,
-.meta {
-  color: var(--muted);
-  font-size: 12px;
-}
-.meta {
-  margin-top: 2px;
-}
-.nowrap {
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.row-actions {
+/* --- the board's filter row ---------------------------------------------- */
+.filters {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.btn.sm {
-  padding: 6px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  box-shadow: none;
-}
-.btn-reject {
-  color: var(--risk);
-  border-color: rgba(173, 36, 82, 0.35);
-}
-.btn-confirm-reject {
-  background: var(--risk);
-  border-color: transparent;
-  color: #fff;
-}
-.btn-confirm-reject:hover {
-  background: var(--risk);
-  border-color: transparent;
-}
-.reject-row td {
-  background: var(--tint-3);
-}
-.reject-line {
-  display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+/* A filter whose endpoint is a Phase 4 task. The <select> inside carries
+   [reepPending], which disables it and names the phase; this dims the pill it
+   sits in so the row reads as "not yet" at a glance. */
+.filter-pending {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --- card head: title + faint sub, actions right ------------------------- */
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.card-heading {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+  margin: 0;
+}
+.card-sub {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--faint);
+  margin: 2px 0 0;
+  max-width: 76ch;
+}
+.card-actions {
+  display: flex;
   align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.remarks {
-  flex: 1;
-  min-width: 240px;
+
+/* --- the funnel beside the side cards, as the board splits them ----------- */
+.board-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 10px;
 }
-.note-error {
-  color: var(--risk);
-  font-size: 12.5px;
-  font-weight: 600;
-  margin-top: 6px;
+@media (max-width: 1080px) {
+  .board-columns {
+    grid-template-columns: 1fr;
+  }
 }
-.empty-cell {
-  padding: 16px 10px;
+
+.funnel-card,
+.side-card,
+.offers-card {
+  padding: 14px;
+}
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.funnel-chart {
+  width: 100%;
+  height: 190px;
+  min-height: 150px;
+}
+.funnel-rates {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: 11.5px;
   color: var(--muted);
-  font-size: 13px;
+}
+.funnel-rates b {
+  color: var(--ink);
+}
+
+.funnel-card .notice,
+.side-card .notice {
+  margin-top: 10px;
+}
+
+/* --- where students drop off --------------------------------------------- */
+.dropoff {
+  margin-top: 12px;
+}
+.dropoff-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--hairline-26);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.dropoff-text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.dropoff-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--brand-purple);
+  font-weight: 600;
+  font-size: 12.5px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.dropoff-link .icon {
+  font-size: 15px;
+}
+.dropoff-link.as-button {
+  border: 0;
+  background: transparent;
+  font-family: var(--font);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* --- this year, as four figures in one card ------------------------------ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+}
+.kpi-grid .kpi {
+  font-size: 20px;
+}
+.kpi-sub {
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.status-chart {
+  width: 100%;
+  height: 190px;
+  min-height: 160px;
 }
 
 .recruiters {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
-.recruiter {
-  padding: 6px 12px;
-  font-size: 13px;
-  background: rgba(58, 31, 82, 0.06);
-  color: var(--ink-nav);
-}
-.muted {
-  color: var(--muted);
-  font-size: 13px;
-}
 
-.decided {
+/* --- the offers grid and its decision strip ------------------------------ */
+.offers-card:focus {
+  outline: none;
+}
+.rejection {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.rejection-field {
+  flex: 1 1 320px;
+  min-width: 240px;
+  margin: 0;
+}
+.rejection-error {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: var(--good-bg);
-  color: var(--good);
-  font-size: 13px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--risk);
 }
-.decided .icon {
-  font-size: 18px;
+.rejection-error .icon {
+  font-size: 16px;
+}
+
+.grid-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.grid-count {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.offers-grid {
+  display: block;
+  width: 100%;
+}
+.statusbar-note {
+  margin-left: auto;
 }
 
 .state-note {
@@ -176,16 +239,11 @@
   align-items: center;
   gap: 8px;
   padding: 8px 0;
+  margin: 0;
   color: var(--muted);
   font-size: 12.5px;
 }
 .state-note .icon {
   font-size: 16px;
   color: var(--purple-mid);
-}
-.state-note.risk {
-  color: var(--risk);
-}
-.state-note.risk .icon {
-  color: var(--risk);
 }

@@ -22,7 +22,7 @@
 
   <!-- Rule 1 in one sentence. The link is a STUDENT screen, so staff get the
        same disclaimer without it — the agent is the same helper for them. -->
-  <p class="ag-disclaimer note">
+  <p class="ag-disclaimer notice accent">
     <span class="icon" aria-hidden="true">info</span>
     @if (isStudent()) {
       The REEP Agent is a general helper — it does not see your private records, marks or
@@ -39,154 +39,228 @@
     <p class="ag-error" role="alert">{{ message }}</p>
   }
 
-  <div class="ag-frame">
-    <div class="ag-scroll" #scroller role="log" aria-live="polite" aria-label="Conversation">
-      @if (historyState() === 'loading') {
-        <p class="ag-quiet">Loading your conversation…</p>
-      }
+  <!-- The thread and, for the Main Admin alone, the board's 320px rail beside
+       it. `.ag-body` and `.ag-thread` are plain blocks until `.ag-body--rail`
+       turns the row on, so the student and faculty renderings are unchanged:
+       a block wrapper around a full-width child moves nothing. -->
+  <div class="ag-body" [class.ag-body--rail]="isMainAdmin()">
+    <div class="ag-thread">
+      <div class="ag-frame">
+        <div class="ag-scroll" #scroller role="log" aria-live="polite" aria-label="Conversation">
+          @if (historyState() === 'loading') {
+            <p class="ag-quiet">Loading your conversation…</p>
+          }
 
-      @for (m of messages(); track m.id) {
-        @if (m.role === 'user') {
-          <div class="ag-row ag-row--user">
-            <div class="ag-stack ag-stack--user">
-              <div class="ag-bubble ag-bubble--user">{{ m.content }}</div>
-              @if (m.status === 'failed') {
-                <span class="ag-turn-state">Not sent</span>
-              } @else if (m.status === 'stopped') {
-                <span class="ag-turn-state">Stopped</span>
-              }
-            </div>
-          </div>
-        } @else {
-          <div class="ag-row">
-            <span class="ag-mark" aria-hidden="true">R</span>
-            <div class="ag-stack">
-              <div class="ag-bubble">{{ m.content }}</div>
+          @for (m of messages(); track m.id) {
+            @if (m.role === 'user') {
+              <div class="ag-row ag-row--user">
+                <div class="ag-stack ag-stack--user">
+                  <div class="ag-bubble ag-bubble--user">{{ m.content }}</div>
+                  @if (m.status === 'failed') {
+                    <span class="ag-turn-state">Not sent</span>
+                  } @else if (m.status === 'stopped') {
+                    <span class="ag-turn-state">Stopped</span>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="ag-row">
+                <span class="ag-mark" aria-hidden="true">R</span>
+                <div class="ag-stack">
+                  <div class="ag-bubble">{{ m.content }}</div>
 
-              @if (m.actions?.length) {
-                <div class="ag-action-list">
-                  @for (a of m.actions; track a.route + a.label) {
-                    <a class="ag-action" [routerLink]="a.route">
-                      <span class="ag-action__arrow" aria-hidden="true">→</span>
-                      <span class="ag-action__text">
-                        <span class="ag-action__label">{{ a.label }}</span>
-                        <span class="ag-action__reason">{{ a.reason }}</span>
+                  @if (m.actions?.length) {
+                    <div class="ag-action-list">
+                      @for (a of m.actions; track a.route + a.label) {
+                        <a class="ag-action" [routerLink]="a.route">
+                          <span class="ag-action__arrow" aria-hidden="true">→</span>
+                          <span class="ag-action__text">
+                            <span class="ag-action__label">{{ a.label }}</span>
+                            <span class="ag-action__reason">{{ a.reason }}</span>
+                          </span>
+                        </a>
+                      }
+                    </div>
+                  }
+
+                  @if (m.sources?.length) {
+                    <div class="ag-sources">
+                      @for (s of m.sources; track s.label) {
+                        <span class="ag-source ag-source--{{ sourceTone(s) }}">Source: {{ s.label }}</span>
+                      }
+                    </div>
+                  }
+
+                  @if (m.limitations?.length) {
+                    <div class="ag-limits">
+                      @for (l of m.limitations; track l) {
+                        <p>{{ l }}</p>
+                      }
+                    </div>
+                  }
+
+                  <div class="ag-feedback">
+                    <button type="button" class="ag-textbtn" (click)="copy(m)">
+                      {{ copiedId() === m.id ? 'Copied' : 'Copy' }}
+                    </button>
+                    @if (m.runId) {
+                      <span class="ag-votes">
+                        <button
+                          type="button"
+                          class="ag-vote"
+                          [class.ag-vote--on]="m.rating === 'HELPFUL'"
+                          [attr.aria-pressed]="m.rating === 'HELPFUL'"
+                          aria-label="Helpful"
+                          (click)="rate(m, 'HELPFUL')"
+                        >
+                          <span class="icon" aria-hidden="true">thumb_up</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="ag-vote"
+                          [class.ag-vote--on]="m.rating === 'NOT_HELPFUL'"
+                          [attr.aria-pressed]="m.rating === 'NOT_HELPFUL'"
+                          aria-label="Not helpful"
+                          (click)="rate(m, 'NOT_HELPFUL')"
+                        >
+                          <span class="icon" aria-hidden="true">thumb_down</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="ag-textbtn ag-textbtn--muted"
+                          [class.ag-textbtn--on]="m.rating === 'REPORT'"
+                          [attr.aria-pressed]="m.rating === 'REPORT'"
+                          (click)="rate(m, 'REPORT')"
+                        >
+                          <span class="icon" aria-hidden="true">flag</span>Report
+                        </button>
+                        @if (m.rating) {
+                          <span class="ag-thanks" role="status">Thanks for the feedback</span>
+                        }
                       </span>
-                    </a>
-                  }
-                </div>
-              }
-
-              @if (m.sources?.length) {
-                <div class="ag-sources">
-                  @for (s of m.sources; track s.label) {
-                    <span class="ag-source ag-source--{{ sourceTone(s) }}">Source: {{ s.label }}</span>
-                  }
-                </div>
-              }
-
-              @if (m.limitations?.length) {
-                <div class="ag-limits">
-                  @for (l of m.limitations; track l) {
-                    <p>{{ l }}</p>
-                  }
-                </div>
-              }
-
-              <div class="ag-feedback">
-                <button type="button" class="ag-textbtn" (click)="copy(m)">
-                  {{ copiedId() === m.id ? 'Copied' : 'Copy' }}
-                </button>
-                @if (m.runId) {
-                  <span class="ag-votes">
-                    <button
-                      type="button"
-                      class="ag-vote"
-                      [class.ag-vote--on]="m.rating === 'HELPFUL'"
-                      [attr.aria-pressed]="m.rating === 'HELPFUL'"
-                      aria-label="Helpful"
-                      (click)="rate(m, 'HELPFUL')"
-                    >
-                      <span class="icon" aria-hidden="true">thumb_up</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="ag-vote"
-                      [class.ag-vote--on]="m.rating === 'NOT_HELPFUL'"
-                      [attr.aria-pressed]="m.rating === 'NOT_HELPFUL'"
-                      aria-label="Not helpful"
-                      (click)="rate(m, 'NOT_HELPFUL')"
-                    >
-                      <span class="icon" aria-hidden="true">thumb_down</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="ag-textbtn ag-textbtn--muted"
-                      [class.ag-textbtn--on]="m.rating === 'REPORT'"
-                      [attr.aria-pressed]="m.rating === 'REPORT'"
-                      (click)="rate(m, 'REPORT')"
-                    >
-                      <span class="icon" aria-hidden="true">flag</span>Report
-                    </button>
-                    @if (m.rating) {
-                      <span class="ag-thanks" role="status">Thanks for the feedback</span>
                     }
-                  </span>
+                  </div>
+                </div>
+              </div>
+            }
+          }
+
+          @if (pending()) {
+            <div class="ag-row" aria-label="The REEP Agent is answering">
+              <div class="ag-typing">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          }
+
+          @if (isEmpty()) {
+            <div class="ag-empty">
+              <p>Start the conversation, or pick a starter below.</p>
+              <div class="ag-starters ag-starters--centred">
+                @for (s of starters; track s) {
+                  <button type="button" class="ag-starter" (click)="useStarter(s)">{{ s }}</button>
                 }
               </div>
             </div>
-          </div>
-        }
-      }
-
-      @if (pending()) {
-        <div class="ag-row" aria-label="The REEP Agent is answering">
-          <div class="ag-typing">
-            <span></span><span></span><span></span>
-          </div>
+          }
         </div>
-      }
 
-      @if (isEmpty()) {
-        <div class="ag-empty">
-          <p>Start the conversation, or pick a starter below.</p>
-          <div class="ag-starters ag-starters--centred">
+        @if (!isEmpty() && historyState() !== 'loading') {
+          <div class="ag-starters ag-starters--row">
             @for (s of starters; track s) {
-              <button type="button" class="ag-starter" (click)="useStarter(s)">{{ s }}</button>
+              <button type="button" class="ag-starter" [disabled]="pending()" (click)="useStarter(s)">
+                {{ s }}
+              </button>
             }
           </div>
-        </div>
-      }
-    </div>
-
-    @if (!isEmpty() && historyState() !== 'loading') {
-      <div class="ag-starters ag-starters--row">
-        @for (s of starters; track s) {
-          <button type="button" class="ag-starter" [disabled]="pending()" (click)="useStarter(s)">
-            {{ s }}
-          </button>
         }
-      </div>
-    }
 
-    <div class="ag-composer">
-      <textarea
-        #composer
-        rows="1"
-        placeholder="Message the REEP Agent…"
-        aria-label="Message the REEP Agent"
-        [value]="draft()"
-        (input)="onComposerInput($event)"
-        (keydown)="onComposerKeydown($event)"
-      ></textarea>
-      @if (pending()) {
-        <button type="button" class="ag-send ag-send--stop" (click)="stop()">Stop</button>
-      } @else {
-        <button type="button" class="ag-send" [disabled]="!canSend()" (click)="submit()">
-          <span class="icon" aria-hidden="true">send</span>Send
-        </button>
-      }
+        <div class="ag-composer">
+          <textarea
+            #composer
+            rows="1"
+            placeholder="Message the REEP Agent…"
+            aria-label="Message the REEP Agent"
+            [value]="draft()"
+            (input)="onComposerInput($event)"
+            (keydown)="onComposerKeydown($event)"
+          ></textarea>
+          @if (pending()) {
+            <button type="button" class="ag-send ag-send--stop" (click)="stop()">Stop</button>
+          } @else {
+            <button type="button" class="ag-send" [disabled]="!canSend()" (click)="submit()">
+              <span class="icon" aria-hidden="true">send</span>Send
+            </button>
+          }
+        </div>
+      </div>
+      <p class="ag-hint">Enter to send · Shift+Enter for a new line</p>
     </div>
+    <!-- MAIN ADMIN ONLY (board: design/admin/Agent.html, 02 §23). Everything in
+         here is read from the session this client already holds, or is a rule
+         written in the code — no endpoint reports a region, and none reports
+         whether this deployment allows a remote model to receive student data. -->
+    @if (isMainAdmin()) {
+      <aside class="ag-rail">
+        <section class="card ag-scope" aria-labelledby="ag-scope-title">
+          <h4 id="ag-scope-title">
+            <span class="icon" aria-hidden="true">visibility</span>What the agent can see
+          </h4>
+          <dl class="ag-scope__rows">
+            <dt>Signed in as</dt>
+            <dd>{{ readerName() }} · Main Admin</dd>
+
+            <dt>Functions</dt>
+            <dd>
+              @if (grantedFunctions().length > 0) {
+                <details class="ag-scope__functions">
+                  <summary>
+                    {{ grantedFunctions().length }} on this account, resolved by the server
+                  </summary>
+                  <div class="ag-scope__chips">
+                    @for (grantedFunction of grantedFunctions(); track grantedFunction) {
+                      <span class="chip neutral">{{ grantedFunction }}</span>
+                    }
+                  </div>
+                </details>
+              } @else {
+                This session carries no functions.
+              }
+            </dd>
+
+            <dt>Records</dt>
+            <dd>
+              Approved Knowledge-Base policy text, and general questions about how REEP works.
+              The personalised student-record tools answer on a student's own account only, so
+              an answer here states that limitation instead of reading a record.
+            </dd>
+
+            <dt>Never</dt>
+            <dd>Interview transcripts, interview audio, passwords.</dd>
+
+            <dt>This screen sends</dt>
+            <dd>
+              The message you type, and nothing else — no student record is composed into the
+              request.
+            </dd>
+
+            <dt>Rule 1</dt>
+            <dd>
+              <span class="chip neutral dot">Not reported yet</span>
+              A model on this machine may receive student data; anything off this machine is
+              refused unless the deployment sets LLM_ALLOW_REMOTE_STUDENT_DATA. This screen
+              cannot read that setting, so it states the rule and claims no region.
+            </dd>
+          </dl>
+          <div class="notice accent ag-scope__note">
+            <span class="icon" aria-hidden="true">info</span>
+            <span
+              >The server will state this card itself — the caller's scope, and Rule 1's setting
+              as a live value — with Phase 3.</span
+            >
+          </div>
+        </section>
+      </aside>
+    }
   </div>
-  <p class="ag-hint">Enter to send · Shift+Enter for a new line</p>
 </div>

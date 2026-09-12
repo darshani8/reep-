@@ -493,3 +493,83 @@
   font-size: 13px;
   margin-right: 3px;
 }
+
+/* --- "What the agent can see" — the Main Admin's card only ---------------
+ * The board draws this in a 320px rail to the RIGHT of the thread, and that is
+ * where it is. It was a full-width block above the frame first, which pushed a
+ * frame already sized `calc(100vh - 330px)` down by the height of the card —
+ * on the Main Admin's screen the composer and the Send button started below
+ * the fold, on a screen whose whole purpose is the composer.
+ *
+ * The row is turned on by a class the admin branch adds, so nothing moves for
+ * the other two roles: `.ag-body` and `.ag-thread` are plain blocks otherwise,
+ * and a block wrapper around a full-width child renders identically. Only the
+ * layout is here — `.card`, `.chip`, `.notice` are the design system's and are
+ * not redefined. */
+.ag-body--rail {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ag-body--rail > .ag-thread {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.ag-rail {
+  width: 320px;
+  flex: none;
+}
+.ag-scope {
+  padding: 14px;
+}
+.ag-scope h4 .icon {
+  font-size: 15px;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+/* Label over value, not beside it: the board's 96px label column has nowhere
+   to go in a 320px rail once a value is a sentence. */
+.ag-scope__rows {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+.ag-scope__rows dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+.ag-scope__rows dd {
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+.ag-scope__rows dd:last-of-type {
+  margin-bottom: 0;
+}
+/* The functions are a DISCLOSURE, not a wall. An office account holds ~28 of
+   them, and 28 chips in a 320px rail is 11 wrapped rows — taller than the chat
+   beside it. The count is the fact; the keys are one click away. */
+.ag-scope__functions > summary {
+  cursor: pointer;
+  color: var(--ink);
+}
+.ag-scope__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ag-scope__note {
+  margin-top: 14px;
+}
+
+/* Below 1040px the rail has no room beside the thread: the card drops under
+   the composer rather than squeezing the chat to nothing. */
+@media (max-width: 1040px) {
+  .ag-body--rail {
+    display: block;
+  }
+  .ag-rail {
+    width: auto;
+    margin-top: 12px;
+  }
+}

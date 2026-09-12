@@ -1,3 +1,291 @@
+/* Colleges — this screen's layout only. Every visual token, card, chip, notice,
+   button, field and table rule is the global design system in
+   apps/web/src/styles/reep-v2.scss; nothing global is redefined here. */
+
 :host {
   display: block;
+}
+
+/* The board's two columns: the list and its two cards on the left, the
+   380px Add-college panel on the right when it is open. */
+.colleges-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.colleges-main {
+  flex: 1 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-note {
+  margin: 0 0 0 auto;
+  max-width: 52ch;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.created-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12.8px;
+  color: var(--good);
+}
+
+.created-note .icon {
+  font-size: 16px;
+}
+
+.retry {
+  margin-left: 8px;
+}
+
+/* --- the tenant list --------------------------------------------------- */
+
+.colleges-scroll {
+  overflow-x: auto;
+}
+
+/* The table's accessible caption, hidden by geometry rather than display:none
+   so a screen reader still reads it. */
+.colleges-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.colleges-table th.num,
+.colleges-table td.num {
+  text-align: right;
+}
+
+/* The phase a column waits for, under its header — so a dash in the cell has
+   its reason directly above it rather than only in the notice. */
+.col-pending {
+  display: block;
+  font-family: var(--font);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--faint);
+}
+
+.college-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.college-cell:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--r-seg);
+}
+
+.college-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.college-sub {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.cell-empty {
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- the two cards ------------------------------------------------------ */
+
+.colleges-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.colleges-card-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.colleges-card-sub {
+  margin: 1px 0 0;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.functions-card .notice,
+.platform-card .notice {
+  margin-bottom: 12px;
+}
+
+.functions-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 12px 24px;
+}
+
+.functions-heading {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.functions-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.functions-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.functions-list .icon {
+  flex: none;
+  margin-top: 1px;
+  font-size: 16px;
+}
+
+.functions-list .icon.good {
+  color: var(--good);
+}
+
+.functions-list .icon.risk {
+  color: var(--risk);
+}
+
+.functions-keys {
+  display: block;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.functions-foot {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.platform-rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.platform-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: baseline;
+  font-size: 12.5px;
+}
+
+.platform-row dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.platform-row dd {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.platform-reports {
+  color: var(--muted);
+}
+
+/* --- the Add-college panel ---------------------------------------------- */
+
+.add-panel {
+  width: 380px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.add-row {
+  display: flex;
+  gap: 10px;
+}
+
+.add-row .field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.add-row .code-field {
+  flex: 0 0 120px;
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+}
+
+@media (max-width: 1180px) {
+  .add-panel {
+    width: 100%;
+  }
+
+  .functions-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filter-note {
+    margin-left: 0;
+  }
 }

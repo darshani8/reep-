@@ -29,6 +29,22 @@
  * /ask is the typed message and nothing else. What the server does with it is
  * governed in the orchestrator, not here.
  *
+ * ONE CARD IS THE MAIN ADMIN'S ALONE. The admin board (02 §23,
+ * design/admin/Agent.html) adds "What the agent can see" in a 320px rail to the
+ * right of the thread — which is where it is, and not above it: the frame is
+ * sized `calc(100vh - 330px)`, so a full-width block above it puts the composer
+ * of the other two roles' identical screen below the fold on this one. It holds
+ * the reader's own scope and Rule 1's status. It renders for role ADMIN only,
+ * and everything it states is read from the session this client already holds
+ * — the functions the server resolved on /auth/me — or is a rule written in
+ * the code. It states NO REGION and no deployment setting: the board's
+ * "ap-south-1" and its "Remote data · Off" chip are facts no endpoint reports
+ * today, and `student_data_egress_allowed` (app/ai/llm.py) makes a narrower
+ * promise than either — loopback is always allowed, and anything off-machine
+ * is refused unless LLM_ALLOW_REMOTE_STUDENT_DATA is set. B16 is what makes
+ * the server state its own scope and that flag as a boolean; until it lands
+ * the card says which half is a rule and which half is not reported.
+ *
  * Fetch, not HttpClient, with credentials: 'include' — the house pattern
  * (features/student/jobs/jobs.component.ts). The three states every list needs
  * are explicit: `historyState` for the initial load, `pending` while an answer
@@ -141,6 +157,22 @@ export class AgentComponent {
 
   /** Staff see a different disclaimer: "your records" is a student screen. */
   readonly isStudent = computed(() => this.auth.session()?.role === 'STUDENT');
+
+  /** The Main Admin is the only role the "What the agent can see" card renders
+   *  for — the student and faculty screens are unchanged by it. */
+  readonly isMainAdmin = computed(() => this.auth.session()?.role === 'ADMIN');
+
+  /** Who is reading, for the card's first line. */
+  readonly readerName = computed(() => this.auth.session()?.name ?? 'This account');
+
+  /** The functions this session holds, exactly as the server resolved them on
+   *  /auth/me (the role baseline plus any grant). They are the only scope this
+   *  screen can state: the college / department scope the board draws is a
+   *  grant field that does not exist yet (B1.2), so it is not claimed here. */
+  readonly grantedFunctions = computed(() => {
+    const functionsOnThisSession = this.auth.session()?.capabilities ?? [];
+    return [...functionsOnThisSession].sort();
+  });
 
   readonly isEmpty = computed(
     () => this.historyState() !== 'loading' && this.messages().length === 0 && !this.pending(),

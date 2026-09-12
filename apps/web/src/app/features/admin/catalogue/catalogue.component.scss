@@ -1,146 +1,258 @@
-/* Catalogue. Panel / card / chip / btn / ctrl / tabs-row / dt-table are global. */
+/* Catalogue — this screen's layout only.
+ *
+ * Everything that has a look rather than a position comes from
+ * styles/reep-v2.scss: .panel .dt-header .dt-title .dt-sub .crumb .tabs .card
+ * .field .ctrl .select .chip .btn .notice .empty .dt-frame .dt-gridbar
+ * .dt-quickfilter .dt-table .dt-statusbar .iconbtn. Nothing here redefines one
+ * of those; what is here is the two-column body, the drawer and the few pieces
+ * of type this screen needs. */
+
 :host {
   display: block;
 }
 
-.form-card {
-  margin-bottom: 16px;
-}
-.card-title {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-  margin-bottom: 14px;
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 12px;
-}
-.fld {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-.fld .opt {
-  font-weight: 400;
-  color: var(--muted);
-}
-.form-foot {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-.derived {
-  font-size: 12px;
-  color: var(--muted);
+/* --- Head and filters --------------------------------------------------- */
+
+.cat-note {
+  margin-bottom: 12px;
 }
 
-.scroll {
-  overflow-x: auto;
+.cat-tabs {
+  margin-bottom: 12px;
 }
-.cat-table {
-  min-width: 720px;
-}
-.cat-table td {
-  color: var(--ink);
-  font-size: 13px;
-}
-.cat-table strong {
-  font-weight: 700;
-}
-.meta {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 2px;
-}
-.num {
-  text-align: right;
+.cat-tab-count {
   font-variant-numeric: tabular-nums;
-}
-.rm-col {
-  width: 44px;
-  text-align: center;
-}
-.inactive td {
-  color: var(--muted);
+  opacity: 0.75;
+  margin-left: 2px;
 }
 
-.rm-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1px solid var(--hairline-42);
-  background: var(--surface);
-  color: var(--muted);
-}
-.rm-btn .icon {
-  font-size: 16px;
-}
-.rm-btn:hover {
-  background: var(--risk-bg);
-  color: var(--risk);
-  border-color: rgba(173, 36, 82, 0.3);
-}
-.rm-btn[disabled] {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn.sm {
-  padding: 5px 10px;
-  font-size: 12px;
-  box-shadow: none;
-}
-
-.empty-cell {
-  padding: 16px 10px;
-  color: var(--muted);
-  font-size: 13px;
-}
-.foot-note {
-  margin-top: 12px;
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.5;
-}
-.link-btn {
-  border: none;
-  background: none;
-  padding: 0;
-  color: var(--purple-mid);
-  font-family: var(--font);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.state-note {
+.cat-filters {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 0;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.cat-select {
+  max-width: 220px;
+}
+/* A scope control the backend cannot answer yet. The directive disables the
+   real <select> underneath; this is the pill telling the eye the same thing. */
+.cat-select.is-pending {
+  opacity: 0.55;
+}
+.cat-filters-note {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--faint);
+  max-width: 46ch;
+}
+
+/* --- The grid ----------------------------------------------------------- */
+
+.cat-gridbar-note {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.cat-scroll {
+  overflow-x: auto;
+}
+.cat-table {
+  min-width: 760px;
+}
+.cat-table td {
+  color: var(--ink);
+}
+.cat-table td.num,
+.cat-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cat-meta {
   color: var(--muted);
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+.cat-chips {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* The badge name is the control that opens the drawer, so it is a real button
+   rather than a click handler on the row: a row is not focusable and a student
+   developer reading this should not have to discover that it is clickable. */
+.cat-rowname {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  font-family: var(--font);
+  cursor: pointer;
+  color: var(--ink);
+}
+.cat-rowname-title {
+  font-weight: 700;
+}
+.cat-rowname:hover .cat-rowname-title {
+  color: var(--brand-purple);
+  text-decoration: underline;
+}
+.cat-rowcode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.cat-foot {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* --- Body: grid beside the 380px drawer --------------------------------- */
+
+.cat-body {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.cat-main {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+.cat-drawer {
+  width: 380px;
+  flex: none;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 1100px) {
+  .cat-drawer {
+    width: 100%;
+  }
+}
+.cat-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cat-drawer-row {
+  display: flex;
+  gap: 10px;
+}
+.cat-drawer-row > .field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.cat-drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cat-drawer-foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: auto;
+}
+.cat-drawer-foot .icon {
+  font-size: 15px;
+}
+
+.cat-card-title {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+  margin: 0;
+}
+
+.cat-cert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--hairline-26);
+  border-radius: var(--r-control);
+  background: var(--surface);
+}
+.cat-cert.is-removed {
+  background: var(--tint-2);
+}
+.cat-cert-text {
+  min-width: 0;
+  flex: 1 1 0;
+}
+.cat-cert-name {
   font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
 }
-.state-note .icon {
-  font-size: 16px;
-  color: var(--purple-mid);
+.cat-usedby {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.state-note.risk {
-  color: var(--risk);
+.cat-usedby .cat-note {
+  margin-bottom: 0;
 }
-.state-note.risk .icon {
-  color: var(--risk);
+
+.cat-help {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.cat-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+}
+.cat-optional {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* --- The one form ------------------------------------------------------- */
+
+.cat-form {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cat-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.cat-form-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cat-derived {
+  font-size: 11.5px;
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+/* The one retry on this screen: the tracks read failed and the tab offers it
+   again rather than sitting on a spinner that says "Loading" for ever. */
+.cat-retry {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 12px;
 }

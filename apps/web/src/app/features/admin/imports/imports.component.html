@@ -1,9 +1,320 @@
 <div class="panel" data-p="imports">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Operations</span></div>
-      <h1 class="dt-title">Data imports &amp; criteria</h1>
-      <div class="dt-sub">Attendance and marks uploads, and the placement criteria each course is measured against.</div>
+      <div class="crumb"><span>Operations</span><span class="sep">/</span><span>Data imports</span></div>
+      <h1 class="dt-title">Data imports</h1>
+      <div class="dt-sub">
+        Attendance and marks enter REEP here — validated before anything is written. Placement
+        criteria are set per course.
+      </div>
+    </div>
+    <div class="dt-toolbar">
+      <button type="button" class="btn secondary" [reepPending]="importsPhase">
+        <span class="icon" aria-hidden="true">download</span> Download templates
+      </button>
+      <button
+        type="button"
+        class="btn secondary"
+        [disabled]="!hasAnySelection()"
+        (click)="startNewImport()"
+      >
+        <span class="icon" aria-hidden="true">add</span> New import
+      </button>
+    </div>
+  </div>
+
+  @if (hierarchyError()) {
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">error</span>{{ hierarchyError() }}
+    </div>
+  }
+
+  <!-- The board's picker row. Course narrows the batches; the batch, the
+       semester and the dataset are what an import run is FOR. -->
+  <div class="pickers">
+    <div class="select">
+      <span class="lbl">Dataset</span>
+      <span class="val">{{ datasetLabel() }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Dataset to import" (change)="chooseDataset(selectValue($event))">
+        @for (dataset of datasets; track dataset.kind) {
+          <option [value]="dataset.kind" [selected]="dataset.kind === datasetKind()">
+            {{ dataset.label }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="select">
+      <span class="lbl">Course</span>
+      <span class="val">{{ courseLabel() }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Course" (change)="chooseCourse(selectValue($event))">
+        <option value="" [selected]="courseId() === ''">All courses</option>
+        @for (course of courses(); track course.id) {
+          <option [value]="course.id" [selected]="course.id === courseId()">{{ course.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="select batch-select">
+      <span class="lbl">Batch</span>
+      <span class="val">{{ batchLabel() || 'Choose a batch' }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Batch" (change)="chooseBatch(selectValue($event))">
+        <option value="" [selected]="batchId() === ''">Choose a batch</option>
+        @for (batch of batchOptions(); track batch.id) {
+          <option [value]="batch.id" [selected]="batch.id === batchId()">
+            {{ batch.name }} · {{ batch.batchLabel }}{{ batch.isRunning ? '' : ' (ended)' }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="select semester-select">
+      <span class="lbl">Semester</span>
+      <span class="val">{{ semesterLabel() || '—' }}</span>
+      <span class="icon" aria-hidden="true">expand_more</span>
+      <select aria-label="Semester" (change)="chooseSemester(selectValue($event))">
+        <option value="" [selected]="semester() === null">Choose a semester</option>
+        @for (number of semesters; track number) {
+          <option [value]="number" [selected]="number === semester()">{{ number }}</option>
+        }
+      </select>
+    </div>
+
+    @if (hasNoBatches()) {
+      <span class="chip warn pickers-end">
+        <span class="icon" aria-hidden="true">warning</span> No batches under this course yet
+      </span>
+    }
+  </div>
+
+  <div class="imports-layout">
+    <!-- ===================================================== the wizard === -->
+    <div class="imports-main">
+      <div class="card wizard-card">
+        <div class="imports-card-head">
+          <h2 class="imports-card-title">New import</h2>
+          <span class="imports-card-sub">{{ datasetFileShape() }}</span>
+        </div>
+
+        <div class="wizard-steps">
+          @for (step of wizardSteps(); track step.number) {
+            @if (step.number > 1) {
+              <span class="sep" aria-hidden="true"></span>
+            }
+            <span class="step" [class.active]="step.state === 'active'" [class.done]="step.state === 'done'">
+              <span class="n" aria-hidden="true">{{ step.number }}</span>
+              <span class="step-text">
+                <span class="step-label">{{ step.label }}</span>
+                <span class="step-chosen">{{ step.chosen || 'Not chosen' }}</span>
+              </span>
+            </span>
+          }
+        </div>
+
+        <div class="wizard-file">
+          <label class="btn secondary wizard-file__label">
+            <span class="icon" aria-hidden="true">upload_file</span>
+            {{ chosenFileName() ? 'Choose a different file' : 'Choose file' }}
+            <!-- Hidden by GEOMETRY, never display:none: an input taken out of
+                 the focus order leaves the picker mouse-only, and a <label>
+                 wrapper is not tabbable either. The :focus-within ring on this
+                 label is what makes the focusable invisible input visible. -->
+            <input
+              #importFilePicker
+              class="wizard-file__input"
+              type="file"
+              [attr.accept]="acceptedFileTypes"
+              (change)="chooseFile($event)"
+            />
+          </label>
+          <span class="wizard-file__name">{{ chosenFileLabel() }}</span>
+          @if (chosenFileName()) {
+            <button type="button" class="btn ghost sm" (click)="forgetChosenFile()">
+              <span class="icon" aria-hidden="true">close</span> Remove
+            </button>
+          }
+        </div>
+
+        @if (wizardStatus()) {
+          <p class="wizard-status" role="status">{{ wizardStatus() }}</p>
+        }
+      </div>
+
+      <!-- =================================================== the preview === -->
+      <div class="card preview-card">
+        <div class="imports-card-head">
+          <h2 class="imports-card-title">{{ previewCardTitle() }}</h2>
+        </div>
+
+        <div class="notice accent preview-note">
+          <span class="icon" aria-hidden="true">info</span>
+          This grid stays empty on purpose. Nothing in REEP reads an import file yet: the preview,
+          the error report, the templates and “Import rows” are all B8.1 (Phase 4), which validates
+          the file on the server against the batch’s roster. The browser never opens the file, so
+          no row here has been checked by anything.
+        </div>
+
+        <div class="dt-frame preview-frame">
+          <ag-grid-angular
+            class="preview-ag"
+            [theme]="gridTheme"
+            [rowData]="previewRows()"
+            [columnDefs]="previewColumns()"
+            [defaultColDef]="defaultColumn"
+            [overlayNoRowsTemplate]="previewEmptyOverlay()"
+            [pagination]="true"
+            [paginationPageSize]="previewPageSize()"
+            [suppressPaginationPanel]="true"
+            [suppressCellFocus]="true"
+            (gridReady)="onPreviewGridReady($event)"
+            (paginationChanged)="onPreviewPaginationChanged()"
+          />
+
+          <div class="dt-statusbar">
+            <span>Rows: <b>{{ previewRowCount() }}</b></span>
+            <span class="pager">
+              <label class="pagesize">
+                <span>Page size</span>
+                <select aria-label="Rows per page" (change)="setPreviewPageSize(numberValue($event))">
+                  @for (size of previewPageSizes; track size) {
+                    <option [value]="size" [selected]="size === previewPageSize()">{{ size }}</option>
+                  }
+                </select>
+              </label>
+              <span>{{ previewRangeLabel() }}</span>
+              <button
+                type="button"
+                class="btn ghost sm"
+                [disabled]="isFirstPreviewPage()"
+                aria-label="Previous page"
+                (click)="goToPreviousPreviewPage()"
+              >
+                <span class="icon" aria-hidden="true">chevron_left</span>
+              </button>
+              <span>{{ previewPagerLabel() }}</span>
+              <button
+                type="button"
+                class="btn ghost sm"
+                [disabled]="isLastPreviewPage()"
+                aria-label="Next page"
+                (click)="goToNextPreviewPage()"
+              >
+                <span class="icon" aria-hidden="true">chevron_right</span>
+              </button>
+            </span>
+          </div>
+        </div>
+
+        <div class="preview-actions">
+          @if (hasPreviewRows()) {
+            <!-- The board's three counts. They appear only once the server has
+                 returned verdicts, never as a number this screen made up. -->
+            <span class="chip dot neutral">{{ previewRowCount() }} rows read</span>
+          }
+          <span class="preview-rule">
+            Same student + semester rows are updated, never duplicated · audited
+          </span>
+          <span class="preview-actions__end">
+            <button type="button" class="btn secondary" [reepPending]="importsPhase">
+              <span class="icon" aria-hidden="true">description</span> Error report
+            </button>
+            <button type="button" class="btn primary" [reepPending]="importsPhase">
+              <span class="icon" aria-hidden="true">check_circle</span> Import rows
+            </button>
+          </span>
+        </div>
+      </div>
+
+      <!-- ============================================ the import history === -->
+      <div class="card history-card">
+        <div class="imports-card-head">
+          <h2 class="imports-card-title">Recent imports</h2>
+        </div>
+        <div class="dt-frame">
+          <ag-grid-angular
+            class="history-ag"
+            [theme]="gridTheme"
+            [rowData]="recentImports()"
+            [columnDefs]="recentImportColumns"
+            [defaultColDef]="defaultColumn"
+            [overlayNoRowsTemplate]="recentImportsEmptyOverlay"
+            [suppressCellFocus]="true"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================== the criteria === -->
+    <div class="imports-side">
+      <div class="card criteria-card">
+        <div class="imports-card-head">
+          <h2 class="imports-card-title">{{ criteriaCardTitle() }}</h2>
+          @if (criteriaState() === 'ready') {
+            <span class="chip accent">
+              <span class="icon" aria-hidden="true">lock</span> Read-only
+            </span>
+          }
+        </div>
+
+        @switch (criteriaState()) {
+          @case ('loading') {
+            <p class="criteria-state" role="status">Loading…</p>
+          }
+          @case ('none') {
+            <!-- NO NUMBERS HERE. `GET /api/admin/criteria` answered 404, so this
+                 screen has no criteria to show, and the built-in fallbacks are
+                 not one set: readiness scoring falls back to its own constants
+                 while job eligibility applies no academic gate at all. Printing
+                 either set as "the criteria" would be a value the office reads
+                 as the record. -->
+            <div class="notice accent">
+              <span class="icon" aria-hidden="true">info</span>
+              No active placement criteria are set, so there is nothing to show here. Setting them
+              from this console is B8.2 (Phase 4).
+            </div>
+          }
+          @case ('refused') {
+            <div class="notice" role="alert">
+              <span class="icon" aria-hidden="true">error</span>{{ criteriaError() }}
+            </div>
+            <button type="button" class="btn secondary sm" (click)="reloadPlacementCriteria()">
+              <span class="icon" aria-hidden="true">sync</span> Try again
+            </button>
+          }
+          @case ('ready') {
+            <div class="criteria-fields">
+              @for (criteriaField of criteriaFields(); track criteriaField.inputId) {
+                <div class="field synced criteria-field">
+                  <label [attr.for]="criteriaField.inputId">{{ criteriaField.label }}</label>
+                  <input
+                    type="text"
+                    [id]="criteriaField.inputId"
+                    [value]="criteriaField.value"
+                    readonly
+                  />
+                </div>
+              }
+            </div>
+            <p class="criteria-rule">
+              Applies to readiness scoring and job eligibility for every batch. One set is active
+              across the whole programme today; criteria per course, with the history behind that
+              button, are B8.2 (Phase 4).
+            </p>
+          }
+        }
+
+        <div class="criteria-actions">
+          <button type="button" class="btn ghost sm" [reepPending]="criteriaWritePhase">
+            <span class="icon" aria-hidden="true">history</span> History
+          </button>
+          <button type="button" class="btn secondary sm" [reepPending]="criteriaWritePhase">
+            <span class="icon" aria-hidden="true">save</span> Save
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

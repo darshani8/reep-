@@ -463,7 +463,7 @@
                         <span class="dt-sub">in {{ d.code }}</span>
                       }
                     </div>
-                    <div class="dt-sub">inherit level and semesters from the course</div>
+                    <div class="dt-sub">each batch carries its own degree level today</div>
                   </div>
                   <button
                     type="button"
@@ -479,7 +479,12 @@
                   <div class="empty">Pick a department to see its batches.</div>
                 } @else if (batches().length === 0 && batchMode() === 'closed') {
                   <div class="empty">No batches under {{ selectedDepartment()?.code }} yet.</div>
-                } @else if (batches().length) {
+                } @else if (visibleBatches().length === 0 && batchMode() === 'closed') {
+                  <div class="empty">
+                    None of the {{ batches().length }} batches under
+                    {{ selectedDepartment()?.code }} match “{{ finderText() }}”.
+                  </div>
+                } @else if (visibleBatches().length) {
                   <div class="dt-frame">
                     <table class="dt-table">
                       <thead>
@@ -492,7 +497,7 @@
                         </tr>
                       </thead>
                       <tbody>
-                        @for (b of batches(); track b.id) {
+                        @for (b of visibleBatches(); track b.id) {
                           <tr [class.selected]="seatingBatch()?.id === b.id">
                             <td>
                               <div class="b-code">{{ b.code }}</div>
@@ -503,7 +508,10 @@
                             </td>
                             <td>{{ levelsOf(b) }}</td>
                             <td class="tabular">{{ b.student_count }}</td>
-                            <td class="tabular">{{ b.expected_completion }}</td>
+                            <!-- 'UTC' on purpose: expected_completion is a calendar
+                                 date, and rendering it in the reader's zone slides
+                                 it a day west of Greenwich. -->
+                            <td class="tabular">{{ b.expected_completion | date: 'd MMM y' : 'UTC' }}</td>
                             <td class="row-actions">
                               <button type="button" class="btn ghost sm" (click)="openEditBatch(b)" [disabled]="batchMode() !== 'closed'">
                                 <span class="icon" aria-hidden="true">edit</span>Edit
@@ -659,6 +667,11 @@
                             class="ctrl"
                             [formControlName]="lv.field"
                             [attr.disabled]="levelDisabled(lv) ? '' : null"
+                            [attr.aria-invalid]="
+                              levelControl(lv).touched && levelControl(lv).hasError('required')
+                                ? 'true'
+                                : null
+                            "
                             (change)="onLevelChange(lv)"
                           >
                             <option [ngValue]="null">— {{ lv.required ? 'Select' : 'Not applicable' }} —</option>
@@ -671,7 +684,7 @@
                           } @else if (levelDisabled(lv)) {
                             <span class="dt-sub">Choose a course first.</span>
                           } @else if (levelControl(lv).touched && levelControl(lv).hasError('required')) {
-                            <span class="chip warn"><span class="icon" aria-hidden="true">error</span>{{ lv.label }} is required.</span>
+                            <span class="chip warn" role="alert"><span class="icon" aria-hidden="true">error</span>{{ lv.label }} is required.</span>
                           }
                         </div>
                       }

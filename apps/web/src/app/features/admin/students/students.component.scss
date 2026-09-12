@@ -1,301 +1,272 @@
-/* Students. Colours from the reep-v2 tokens; `.card`, `.dt-table`, `.btn`,
- * `.ctrl`, `.chip`, `.icon` are global. Everything scoped is prefixed `st-`. */
+/* Students & batches — this screen's LAYOUT only.
+ *
+ * `.panel` `.card` `.chip` `.btn` `.select` `.field` `.ctrl` `.notice`
+ * `.dt-header` `.dt-title` `.dt-sub` `.dt-toolbar` `.dt-frame` `.dt-gridbar`
+ * `.dt-quickfilter` `.dt-statusbar` `.crumb` `.avatar` `.icon` are global
+ * (styles/reep-v2.scss) and are used as they are; the dialog chrome comes from
+ * ./batch-dialog.scss, which this component loads alongside this file so the
+ * two batch dialogs and the roster's own dialogs wear one shape.
+ *
+ * What is here is the shape of this board: the filter row, the grid beside its
+ * 300px rail, the grid bar's columns popover, and the forms inside the
+ * dialogs.
+ */
 
-.st {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+:host {
+  display: block;
 }
 
-.st-head {
-  h1 {
-    font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    margin: 0 0 6px;
-  }
-  p {
-    margin: 0;
-    max-width: 78ch;
-    color: var(--muted);
-    font-size: 14.5px;
-  }
-}
+/* --- the board's filter row --------------------------------------------- */
 
-.st-error {
-  color: var(--risk);
-  background: var(--risk-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
-}
-
-.st-flash {
-  color: var(--good);
-  background: var(--good-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
-}
-
-.st-hint {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin: 0;
-}
-
-.st-pad {
-  padding: 14px 16px;
-}
-
-.st-warn {
-  font-size: 13px;
-  color: var(--risk);
-  font-weight: 600;
-}
-
-/* --- the bar ------------------------------------------------------------ */
-
-.st-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 14px 16px;
-}
-
-.st-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted);
-  min-width: 160px;
-
-  .ctrl {
-    font-weight: 400;
-    color: var(--ink);
-  }
-
-  &--grow {
-    flex: 1;
-    min-width: 200px;
-  }
-}
-
-.st-count {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--muted);
-  padding-bottom: 8px;
-  white-space: nowrap;
-}
-
-/* --- the add form --------------------------------------------------------- */
-
-.st-form {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.st-form__title {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 15px;
-}
-
-.st-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.st-form__foot {
+.filters {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  margin-bottom: 10px;
 }
 
-.st-actions {
+.filters .select {
+  max-width: 230px;
+}
+
+.filters .batch-select {
+  max-width: 260px;
+}
+
+.filters-end {
+  margin-left: auto;
+}
+
+.columns-note {
+  margin-bottom: 10px;
+}
+
+/* --- grid beside its rail ----------------------------------------------- */
+
+.roster {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.roster-grid {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* The grid bar has to be able to hold the columns popover. */
+  position: relative;
+}
+
+.roster-ag {
+  display: block;
+  width: 100%;
+  height: clamp(380px, calc(100vh - 400px), 760px);
+}
+
+/* Loading, empty and error all sit where the grid would, in main's own words. */
+.roster-state {
+  margin: 0;
+  padding: 28px 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.gridbar-end {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
 }
 
-/* --- the batch actions --------------------------------------------------- */
-
-.st-batch {
-  padding: 16px;
+/* --- the Columns popover ------------------------------------------------- */
+/* AG Grid's own side panel is an Enterprise feature; this is the Community
+   equivalent of the board's Columns tab, driven by setColumnsVisible. */
+.columns-panel {
+  position: absolute;
+  top: 46px;
+  right: 10px;
+  z-index: 5;
+  width: 200px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-control);
+  box-shadow: var(--sh-card);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  border-left: 4px solid var(--brand-purple);
+  gap: 4px;
 }
 
-.st-batch__head {
+.columns-panel__title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  margin-bottom: 2px;
+}
+
+.columns-panel__row {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+/* --- the status bar's page-size control ---------------------------------- */
+
+.pagesize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pagesize select {
+  height: 24px;
+  border: 1px solid var(--hairline-42);
+  border-radius: var(--r-seg);
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 11.5px;
+  color: var(--ink);
+  padding: 0 4px;
+}
+
+/* --- the 300px rail ------------------------------------------------------ */
+
+.roster-rail {
+  flex: none;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  flex-wrap: wrap;
-  align-items: baseline;
 }
 
-.st-batch__row {
+.rail-card {
+  padding: 12px;
+}
+
+.rail-card__head {
+  margin-bottom: 12px;
+}
+
+.card-heading {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.rail-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12.5px;
+  margin: 0;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  dt {
+    color: var(--muted);
+    flex: none;
+  }
+
+  dd {
+    margin: 0;
+    text-align: right;
+    min-width: 0;
+  }
+}
+
+.rail-hint {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+@media (max-width: 1180px) {
+  .roster {
+    flex-direction: column;
+  }
+
+  .roster-rail {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+
+    > * {
+      flex: 1 1 260px;
+    }
+  }
+}
+
+/* --- forms inside the dialogs -------------------------------------------- */
+
+.edit-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 10px 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
-/* One control and its button, side by side, the button on the baseline. */
-.st-batch__item {
+@media (max-width: 620px) {
+  .edit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* One whole-batch control and its button, the button on the baseline. */
+.batch-action {
   display: flex;
   align-items: flex-end;
   gap: 8px;
 
-  .st-field {
-    flex: 1;
+  .field {
+    flex: 1 1 0;
     min-width: 0;
   }
 
   .btn {
-    height: 38px;
     flex: none;
   }
 }
 
-.st-batch__danger {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-top: 10px;
+.batch-danger {
+  padding-top: 12px;
   border-top: 1px dashed var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
 }
 
-/* --- the table ----------------------------------------------------------- */
-
-.st-list {
-  padding: 0;
-}
-
-.scroll {
-  overflow-x: auto;
-}
-
-.st-table {
-  width: 100%;
-  min-width: 960px;
-
-  th,
-  td {
-    padding: 10px 12px;
-    text-align: left;
-    vertical-align: middle;
-  }
-
-  th {
-    font-family: var(--font-display);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    border-bottom: 1px solid var(--hairline);
-    white-space: nowrap;
-  }
-
-  td {
-    border-bottom: 1px solid var(--hairline);
-    font-size: 13.5px;
-  }
-
-  tbody tr:last-child td {
-    border-bottom: 0;
-  }
-
-  tr.st-editing td {
-    background: rgba(122, 47, 158, 0.05);
-  }
-}
-
-.st-name {
-  font-weight: 700;
-}
-
-.st-muted {
-  color: var(--muted);
+.batch-danger__warn {
+  margin: 0;
   font-size: 12.5px;
-}
-
-.st-usn {
-  width: 130px;
-}
-
-.st-act {
-  width: 1%;
-  white-space: nowrap;
-}
-
-.st-empty {
-  color: var(--muted);
-  font-size: 13px;
-  padding: 18px 12px;
-}
-
-.ctrl--sm {
-  padding: 5px 8px;
-  font-size: 12.5px;
-  min-width: 0;
-}
-
-.btn--sm {
-  padding: 5px 10px;
-  font-size: 12.5px;
-}
-
-.btn.danger {
-  background: var(--risk-bg);
+  font-weight: 600;
   color: var(--risk);
-  border-color: transparent;
 }
 
-.st-mini {
-  width: 28px;
-  height: 24px;
-  border: none;
-  background: transparent;
+.batch-danger__row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.batch-danger__hint {
+  margin: 0;
+  font-size: 11.5px;
   color: var(--muted);
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  line-height: 1.5;
 
-  .icon {
-    font-size: 18px;
-  }
-
-  &:hover:not(:disabled) {
-    background: rgba(122, 47, 158, 0.08);
-    color: var(--brand-purple);
-  }
-
-  &--danger:hover:not(:disabled) {
-    background: var(--risk-bg);
-    color: var(--risk);
-  }
-
-  &:disabled {
-    opacity: 0.35;
-    cursor: default;
+  code {
+    font-size: 11px;
   }
 }

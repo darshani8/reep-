@@ -81,30 +81,44 @@ interface Quadrant {
   hint: string;
 }
 
+/**
+ * The four quadrants, and what the composer prompts for in each.
+ *
+ * THE PROMPTS DESCRIBE A SENTENCE, THEY DO NOT WRITE ONE. The board fills these
+ * boxes with finished assessments of its imaginary student — "Strong analytical
+ * and quantitative skills — top quartile in Sem 3 accounting" — and those
+ * sentences read exactly like something a mentor wrote about the student whose
+ * name is at the top of this screen. A reader skimming a half-filled quadrant
+ * cannot tell a grey example from a pale saved note, and the one thing a SWOC
+ * note must never do is put words in a colleague's mouth about a named student.
+ * So the placeholder asks for the shape of the line instead of supplying one,
+ * which is also the more useful prompt: every quadrant here is worth writing
+ * only when it names the evidence.
+ */
 const QUADRANTS: Quadrant[] = [
   {
     key: 'STRENGTH',
     label: 'Strengths',
     tone: 'good',
-    hint: 'e.g. Strong analytical and quantitative skills — top quartile in Sem 3 accounting.',
+    hint: 'Something they do well, and what you saw that shows it.',
   },
   {
     key: 'WEAKNESS',
     label: 'Weaknesses',
     tone: 'risk',
-    hint: 'e.g. Needs structured problem-solving practice under time pressure.',
+    hint: 'A gap to work on, stated as a next step rather than a verdict.',
   },
   {
     key: 'OPPORTUNITY',
     label: 'Opportunities',
     tone: 'accent',
-    hint: 'e.g. Fintech internships opening this quarter — profile matches 3 postings.',
+    hint: 'An opening ahead of them, and why they are placed to take it.',
   },
   {
     key: 'CHALLENGE',
     label: 'Challenges',
     tone: 'warn',
-    hint: 'e.g. Public speaking under time pressure; freezes in group discussions.',
+    hint: 'What stands in the way, and what would move it.',
   },
 ];
 

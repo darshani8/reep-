@@ -186,14 +186,6 @@
           >
             <span class="icon" aria-hidden="true">tune</span>
           </button>
-          <button
-            type="button"
-            class="btn secondary sm"
-            aria-label="Download the rows in view as CSV"
-            (click)="exportVisibleRows()"
-          >
-            <span class="icon" aria-hidden="true">download</span>
-          </button>
         </span>
 
         @if (columnsPanelOpen()) {
@@ -218,6 +210,7 @@
         <ag-grid-angular
           class="roster-ag"
           [theme]="gridTheme"
+          [context]="gridContext()"
           [rowData]="visibleRows()"
           [columnDefs]="columns"
           [defaultColDef]="defaultColumn"

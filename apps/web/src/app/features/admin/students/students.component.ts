@@ -48,6 +48,7 @@ import { AgGridAngular } from 'ag-grid-angular';
 import type { CellClickedEvent, GetRowIdParams, GridApi, GridReadyEvent } from 'ag-grid-community';
 
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/auth.service';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import type { BatchSummary, StageTally } from './batch-summary';
@@ -56,6 +57,7 @@ import { PromoteBatchDialogComponent } from './promote-batch-dialog.component';
 import {
   DEFAULT_ROSTER_COLUMN,
   ROSTER_COLUMNS,
+  type RosterGridContext,
   ROSTER_ROW_SELECTION,
   ROSTER_SELECTION_COLUMN,
   TOGGLEABLE_ROSTER_COLUMNS,
@@ -108,6 +110,20 @@ import {
 })
 export class AdminStudentsComponent {
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+
+  /**
+   * What the cell renderers are told about this reader.
+   *
+   * `canOpenDetail` is a CONVENIENCE AND NOT A PERMISSION — /admin/students/:id
+   * decides for itself, and so does every endpoint behind it. What it buys is
+   * that the roster does not draw a link the guard would refuse: this screen is
+   * gated on `admin.students` alone and Student 360 on that plus
+   * `ui.console_v2`, so the two do not admit the same people.
+   */
+  readonly gridContext = computed<RosterGridContext>(() => ({
+    canOpenDetail: (this.auth.session()?.capabilities ?? []).includes('ui.console_v2'),
+  }));
 
   readonly stages = STAGES;
   readonly semesters = SEMESTERS;
@@ -708,10 +724,6 @@ export class AdminStudentsComponent {
     this.gridApi?.setColumnsVisible([columnId], !wasVisible);
   }
 
-  exportVisibleRows(): void {
-    this.gridApi?.exportDataAsCsv({ fileName: 'reep-students.csv' });
-  }
-
   /** The Student column's link, and the pencil, both arrive here. */
   onCellClicked(event: CellClickedEvent<RosterRow>): void {
     const row = event.data;
@@ -719,7 +731,11 @@ export class AdminStudentsComponent {
     const columnId = event.column.getColId();
     if (columnId === 'name') {
       event.event?.preventDefault();
-      void this.router.navigate(['/admin/students', row.studentId]);
+      // Same condition the renderer drew the anchor on: without it the cell is
+      // plain text and a click here would navigate to a guard that bounces.
+      if (this.gridContext().canOpenDetail) {
+        void this.router.navigate(['/admin/students', row.studentId]);
+      }
       return;
     }
     if (columnId === 'actions') {

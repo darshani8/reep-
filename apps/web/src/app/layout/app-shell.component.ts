@@ -227,8 +227,17 @@ const ALUMNI_NAVIGATION: readonly NavigationGroup[] = [
  * A faculty account that holds one sees it under "Granted access". A
  * capability with no row here is a grant that changes nothing on screen, so
  * this list and the catalogue in app/models/governance.py are kept in step.
+ *
+ * THE FIVE NEW SCREENS ARE HERE TOO, each needing its pair. Left out, a
+ * faculty member granted `ui.console_v2` AND `admin.institution` would pass
+ * /admin/colleges' route guard with no row anywhere offering it — reachable
+ * only by typing the URL, which is the exact defect the 2026-09 browser audit
+ * found on four screens and which this list exists to prevent. The Main Admin
+ * does not read this list at all; its own rows are in ADMIN_NAVIGATION.
  */
-const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & { capability: string })[] = [
+const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
+  capability: string | readonly string[];
+})[] = [
   { capability: 'admin.analytics', path: '/admin', label: 'Analytics', icon: 'insights' },
   {
     capability: 'admin.registrations',
@@ -255,6 +264,29 @@ const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & { capability: string }
   },
   { capability: 'admin.swoc', path: '/admin/swoc', label: 'SWOC notes', icon: 'rate_review' },
   { capability: 'admin.exports', path: '/admin/exports', label: 'Exports', icon: 'download' },
+
+  // The 2026-09 console's new screens. Each pairs the preview switch with the
+  // screen's own key, exactly as its route guard does, so a row that renders is
+  // a row that navigates. Phase 5 drops the CONSOLE_V2 half when the switch
+  // goes; the screens and their own keys stay.
+  {
+    capability: CONSOLE_V2_INSTITUTION,
+    path: '/admin/colleges',
+    label: 'Colleges',
+    icon: 'apartment',
+  },
+  {
+    capability: CONSOLE_V2_INSTITUTION,
+    path: '/admin/imports',
+    label: 'Data imports',
+    icon: 'upload',
+  },
+  {
+    capability: CONSOLE_V2_MENTORS,
+    path: '/admin/faculty',
+    label: 'Faculty',
+    icon: 'shield_person',
+  },
 ];
 
 /**
@@ -352,7 +384,11 @@ export class AppShellComponent {
   private readonly grantedAdminScreens = computed<readonly NavigationItem[]>(() => {
     if (this.navKind() !== 'staff') return [];
     const held = this.session()?.capabilities ?? [];
-    return GRANTABLE_ADMIN_SCREENS.filter((screen) => held.includes(screen.capability));
+    return GRANTABLE_ADMIN_SCREENS.filter((screen) => {
+      const needed =
+        typeof screen.capability === 'string' ? [screen.capability] : screen.capability;
+      return needed.every((key) => held.includes(key));
+    });
   });
 
   /**

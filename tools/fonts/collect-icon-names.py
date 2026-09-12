@@ -11,11 +11,15 @@ Run this after adding an icon, then re-run tools/fonts/fetch-fonts.sh:
 
     python3 tools/fonts/collect-icon-names.py && tools/fonts/fetch-fonts.sh
 
-It reads three places, because a glyph name can come from any of them:
+It reads four places, because a glyph name can come from any of them:
   * a template's `<span class="icon">name</span>`;
   * a ternary inside one, `{{ muted() ? 'mic' : 'mic_off' }}`;
   * the API — SLOT_ICON / SKILL_ICON / STATUS_GLYPH send glyph names down the
-    wire, so a backend-only icon would never appear in a template at all.
+    wire, so a backend-only icon would never appear in a template at all;
+  * icon-names.extra.txt, for the two things scanning cannot answer: a glyph
+    the design system requires before the screen that uses it exists, and a
+    glyph whose name is also an ordinary word and so is thrown away by
+    NOT_GLYPHS below (`block`, `key`). That file says why, per name.
 """
 
 import pathlib
@@ -39,6 +43,25 @@ NOT_GLYPHS = {
 
 GLYPH = r"[a-z][a-z0-9_]{2,}"
 
+EXTRA_NAMES = pathlib.Path(__file__).with_name("icon-names.extra.txt")
+
+
+def declared_extras() -> set[str]:
+    """Glyph names stated by hand in icon-names.extra.txt.
+
+    Unioned in AFTER the denylist, so a name listed there wins over
+    NOT_GLYPHS -- which is the point: `block` and `key` are real icons whose
+    names the denylist cannot distinguish from ordinary words.
+    """
+    if not EXTRA_NAMES.exists():
+        return set()
+    names: set[str] = set()
+    for line in EXTRA_NAMES.read_text().splitlines():
+        name = line.split("#", 1)[0].strip()
+        if name:
+            names.add(name)
+    return names
+
 
 def collect() -> set[str]:
     names: set[str] = set()
@@ -57,7 +80,7 @@ def collect() -> set[str]:
         for chunk in re.findall(r"\b(?:SLOT_ICON|SKILL_ICON|STATUS_GLYPH|icon)\b.{0,400}", text, re.S):
             names.update(re.findall(rf'"({GLYPH})"', chunk))
 
-    return {n for n in names if n not in NOT_GLYPHS}
+    return {n for n in names if n not in NOT_GLYPHS} | declared_extras()
 
 
 def main() -> int:
@@ -68,7 +91,11 @@ def main() -> int:
 
     added = sorted(set(names) - set(previous))
     removed = sorted(set(previous) - set(names))
-    print(f"{len(names)} glyph names -> {out.relative_to(ROOT)}")
+    extras = declared_extras()
+    print(
+        f"{len(names)} glyph names -> {out.relative_to(ROOT)} "
+        f"({len(extras)} declared in {EXTRA_NAMES.name})"
+    )
     if added:
         print("  added:  " + ", ".join(added))
     if removed:

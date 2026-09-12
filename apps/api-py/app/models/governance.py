@@ -193,13 +193,25 @@ FEATURES: Final[tuple[Feature, ...]] = (
 FEATURES_BY_KEY: Final[dict[str, Feature]] = {f.key: f for f in FEATURES}
 
 
-class FeatureScope(str, enum.Enum):
-    """A rung of the institutional hierarchy.
+class ScopeLevel(str, enum.Enum):
+    """A rung of the institutional hierarchy that something can hang on.
 
     NOT `institution.HierarchyLevel`, which is a different thing with a
     confusingly similar name: that one says which levels a NEW BATCH must name.
-    This one says where a feature override was hung. Ordered most general to most
+    This one says WHERE something was hung. Ordered most general to most
     specific, and `SPECIFICITY` below depends on that order.
+
+    WAS `FeatureScope`, because a feature override was the only thing that hung
+    on a rung. B1.2 hangs capability grants on the same rungs — a grant scoped to
+    a department reaches that department's students and no others — and two
+    enums with identical members, one called Feature- and one called Grant-,
+    would be the same mistake twice. The docstring already described this as "a
+    rung of the institutional hierarchy" before anything but features used it.
+
+    There is no PROGRAMME member and there must not be one. A grant that reaches
+    everything hangs on NO rung, which is `scope_level IS NULL` on the row, not a
+    seventh value here; a feature override always hangs on one. Adding PROGRAMME
+    would make it representable for features, where it means nothing.
     """
 
     COLLEGE = "COLLEGE"
@@ -215,13 +227,13 @@ class FeatureScope(str, enum.Enum):
 #: student and keeps the most specific — which is why an admin can switch a
 #: feature off for a whole specialization and still turn it back on for one
 #: student inside it, without deleting the broader rule.
-SPECIFICITY: Final[dict[FeatureScope, int]] = {
-    FeatureScope.COLLEGE: 0,
-    FeatureScope.DEPARTMENT: 1,
-    FeatureScope.COURSE: 2,
-    FeatureScope.SPECIALIZATION: 3,
-    FeatureScope.COHORT: 4,
-    FeatureScope.STUDENT: 5,
+SPECIFICITY: Final[dict[ScopeLevel, int]] = {
+    ScopeLevel.COLLEGE: 0,
+    ScopeLevel.DEPARTMENT: 1,
+    ScopeLevel.COURSE: 2,
+    ScopeLevel.SPECIALIZATION: 3,
+    ScopeLevel.COHORT: 4,
+    ScopeLevel.STUDENT: 5,
 }
 
 
@@ -290,6 +302,11 @@ class CapabilityGrant(Base):
             "(subject_kind = 'GROUP' AND subject_group_id IS NOT NULL AND subject_user_id  IS NULL)",
             name="ck_capability_grant_one_subject",
         ),
+        CheckConstraint(
+            "(scope_level IS NULL AND scope_id IS NULL)"
+            " OR (scope_level IS NOT NULL AND scope_id IS NOT NULL)",
+            name="ck_capability_grant_scope_pair",
+        ),
         Index("ix_capgrant_user_live", "subject_user_id", "capability", "revoked_at"),
         Index("ix_capgrant_group_live", "subject_group_id", "capability", "revoked_at"),
         Index("ix_capgrant_capability", "capability"),
@@ -300,6 +317,24 @@ class CapabilityGrant(Base):
     #: capability is a deploy rather than a type migration — the same choice
     #: auth_tokens.purpose makes and for the same reason.
     capability: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    #: WHERE this grant reaches, as a rung of the spine — or NULL for everywhere.
+    #:
+    #: NULL IS PROGRAMME-WIDE AND IS NOT A MISSING VALUE. A grant that reaches
+    #: every college hangs on no rung; representing that as a seventh ScopeLevel
+    #: member would make "PROGRAMME" available to feature overrides, where it
+    #: means nothing. The check constraint below is what stops the two columns
+    #: from disagreeing — a level with no id reaches nothing and an id with no
+    #: level reaches everything, and both are silent.
+    #:
+    #: `scope_id` is deliberately not a foreign key, for the same reason
+    #: `feature_overrides.target_id` is not: it points at one of five tables
+    #: depending on the level, and no database expresses a polymorphic FK.
+    #: Resolution joins explicitly per level in policies.scope_filter.
+    scope_level: Mapped[ScopeLevel | None] = mapped_column(
+        Enum(ScopeLevel, name="governance_scope_level"), nullable=True
+    )
+    scope_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
     subject_kind: Mapped[SubjectKind] = mapped_column(
         Enum(SubjectKind, name="governance_subject_kind"), nullable=False
@@ -345,8 +380,8 @@ class FeatureOverride(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     feature: Mapped[str] = mapped_column(String(64), nullable=False)
-    scope: Mapped[FeatureScope] = mapped_column(
-        Enum(FeatureScope, name="governance_feature_scope"), nullable=False
+    scope: Mapped[ScopeLevel] = mapped_column(
+        Enum(ScopeLevel, name="governance_scope_level"), nullable=False
     )
     #: The id of the college / department / course / specialization / cohort /
     #: student this hangs on. Not an FK: it points at six different tables

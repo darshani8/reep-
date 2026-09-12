@@ -35,11 +35,11 @@ from .models.governance import (
     CapabilityGrant,
     CapabilityScope,
     FeatureOverride,
-    FeatureScope,
+    ScopeLevel,
     SubjectKind,
 )
 from .models.institution import Department
-from .models.user import Student
+from .models.user import Student, User
 
 _ALL: Final[frozenset[str]] = frozenset(c.key for c in CAPABILITIES)
 _SCOPED: Final[frozenset[str]] = frozenset(
@@ -133,6 +133,70 @@ def granted_capabilities(db: Session, user_id: str) -> frozenset[str]:
     return frozenset(k for k in keys if k in CAPABILITIES_BY_KEY)
 
 
+def granted_reaches(db: Session, user_id: str, key: str) -> list[tuple[ScopeLevel | None, str | None]]:
+    """How far this user's live grants for `key` reach, one entry per grant.
+
+    `(None, None)` is a programme-wide grant and means everywhere. Anything else
+    is a rung of the spine and the id it hangs on, and the holder reaches a
+    target only when that pair is in the target's ancestry.
+
+    Separate from `granted_capabilities` rather than folded into it because the
+    two answer different questions and only one of them is asked on every
+    request: "which keys does this session hold" drives the sidebar and runs on
+    /auth/me, while "how far does this key reach" is asked by the handful of
+    endpoints that name a target. Returning the reaches from the common path
+    would make every /auth/me carry six columns it does not read.
+    """
+    if not user_id:
+        return []
+    now = _now()
+    live = (
+        CapabilityGrant.capability == key,
+        CapabilityGrant.revoked_at.is_(None),
+        or_(CapabilityGrant.expires_at.is_(None), CapabilityGrant.expires_at > now),
+    )
+    columns = (CapabilityGrant.scope_level, CapabilityGrant.scope_id)
+    direct = select(*columns).where(
+        CapabilityGrant.subject_kind == SubjectKind.USER,
+        CapabilityGrant.subject_user_id == user_id,
+        *live,
+    )
+    via_group = (
+        select(*columns)
+        .join(AccessGroupMember, AccessGroupMember.group_id == CapabilityGrant.subject_group_id)
+        .where(
+            CapabilityGrant.subject_kind == SubjectKind.GROUP,
+            AccessGroupMember.user_id == user_id,
+            *live,
+        )
+    )
+    return [tuple(row) for row in db.execute(direct).all()] + [
+        tuple(row) for row in db.execute(via_group).all()
+    ]
+
+
+def reaches_target(
+    reaches: list[tuple[ScopeLevel | None, str | None]],
+    ancestry: list[tuple[ScopeLevel, str]],
+) -> bool:
+    """Does any of these grants cover a target with this ancestry?
+
+    A programme-wide grant covers everything. A scoped grant covers the target
+    when its (rung, id) is one of the target's own — which is why the ancestry
+    is computed as the full list rather than the deepest rung: a grant on the
+    college and a grant on the batch are both satisfied by the same student.
+
+    AN EMPTY ANCESTRY IS NOT COVERED BY A SCOPED GRANT, and that is deliberate.
+    A student seated in no batch and filed under no department, or an unfiled
+    faculty account, hangs under nothing — so a department-scoped holder cannot
+    reach them. Answering "yes" there would make the unfiled state a way around
+    every scope in the system, and unfiled is an ordinary state that the console
+    shows a list of.
+    """
+    covered = set(ancestry)
+    return any(level is None or (level, target_id) in covered for level, target_id in reaches)
+
+
 def capabilities_for(db: Session, session: dict) -> frozenset[str]:
     """Everything this session may use: its role's baseline plus its grants."""
     role = str(session.get("role") or "")
@@ -146,20 +210,59 @@ def has_capability(db: Session, session: dict, key: str) -> bool:
     return key in capabilities_for(db, session)
 
 
-def require_capability(db: Session, session: dict, key: str) -> None:
-    """403 when the session lacks the capability.
+def require_capability(
+    db: Session,
+    session: dict,
+    key: str,
+    *,
+    target: list[tuple[ScopeLevel, str]] | None = None,
+) -> None:
+    """403 when the session lacks the capability, or holds it somewhere else.
 
     403 and not 404, unlike rule 2's refusals: the caller is a known staff member
     and the resource is not a student they might be probing for. "You do not hold
     this" is a true and safe thing to tell them, and a 404 here would send an
     admin hunting for a broken route instead of granting a capability.
+
+    `target` IS OPT-IN AND EVERY EXISTING CALL SITE KEEPS ITS MEANING. Eighty
+    calls in this repository pass three positional arguments and ask "may you do
+    this at all"; they still get exactly that answer. A call that passes a
+    target — the ancestry of the student, faculty member or batch it is about —
+    additionally asks "may you do it HERE", and that is the only question scope
+    narrows. Adding the parameter without a default would have been a change to
+    all eighty at once, decided by whoever was quickest to update the signature.
+
+    A capability held through the ROLE BASELINE is unscoped. That is the Main
+    Admin, whose baseline is every programme key and whose whole job is the
+    programme; a MENTOR's baseline keys are narrowed by rule 2's mentor-group
+    check instead, which is a different and stricter gate that this must not
+    replace. Scope is a property of a GRANT, because a grant is the thing
+    somebody decided to hand over, and handing it over is where "how far" gets
+    asked.
     """
-    if not has_capability(db, session, key):
+    if key not in CAPABILITIES_BY_KEY:
+        raise ValueError(f"unknown capability {key!r}")
+
+    role = str(session.get("role") or "")
+    if key in ROLE_BASELINE.get(role, frozenset()):
+        return
+
+    user_id = str(session.get("userId") or "")
+    reaches = granted_reaches(db, user_id, key)
+    if not reaches:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
                 f"You do not hold the '{CAPABILITIES_BY_KEY[key].label}' capability. "
                 "An administrator can grant it in Governance."
+            ),
+        )
+    if target is not None and not reaches_target(reaches, target):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Your '{CAPABILITIES_BY_KEY[key].label}' capability does not reach this "
+                "record. An administrator can widen it in Governance."
             ),
         )
 
@@ -168,43 +271,96 @@ def require_capability(db: Session, session: dict, key: str) -> None:
 # Student features
 # --------------------------------------------------------------------------- #
 
-def _ancestry(db: Session, student_id: str) -> list[tuple[FeatureScope, str]]:
-    """Every (rung, id) pair an override could hang on for this student.
+def ancestry_of_student(db: Session, student_id: str) -> list[tuple[ScopeLevel, str]]:
+    """Every (rung, id) pair this student hangs under.
 
-    One flat LEFT-JOIN read, and nothing is stored: the same shape as
+    One flat read, and nothing is stored: the same shape as
     `routers/student.py::_institution_for`, and for the same reason — copying a
     student's ancestry onto their row is the backfill the spine exists to avoid.
 
     A cohort carries all three ancestor pointers rather than only the deepest,
     because the levels are individually optional; missing rungs simply produce no
-    pair, and an override at a level this student has no ancestor for cannot
+    pair, and anything hung at a level this student has no ancestor for cannot
     match them.
+
+    TWO POINTERS REACH A DEPARTMENT, AND THIS READS BOTH. `cohorts.department_id`
+    is one; `students.department_id` (migration 31f7a4c60b12) is the other, and
+    it is the ONLY one for a student who named a department on the registration
+    form and has not been seated in a batch — which is every student at a college
+    that has not built its batches yet. `_institution_for` has tried both since
+    that column existed, and this function did not: it read the cohort route
+    alone, so an override hung on a department reached the seated students in it
+    and silently missed the unseated ones.
+
+    That was a live bug in feature overrides before it was a hole in B1.2's
+    scope check, and fixing it HERE fixes both, which is why this is the one
+    ancestry function rather than a second one written for grants. Switching a
+    feature off for a department now also switches it off for that department's
+    unseated students — which is what "for this department" has always meant on
+    the screen that sets it.
+
+    The college is reached through the DEPARTMENT only. `cohorts.course_id` and
+    `specialization_id` are flat sibling pointers, not a chain upward: a course
+    does not carry a college, so walking through one would resolve nothing (see
+    `routers/student.py`'s note on why chaining them is wrong).
     """
     row = db.execute(
         select(
             Student.id,
             Student.cohort_id,
-            Cohort.department_id,
+            Student.department_id.label("own_department_id"),
+            Cohort.department_id.label("batch_department_id"),
             Cohort.course_id,
             Cohort.specialization_id,
-            Department.college_id,
         )
         .select_from(Student)
         .outerjoin(Cohort, Student.cohort_id == Cohort.id)
-        .outerjoin(Department, Cohort.department_id == Department.id)
         .where(Student.id == student_id)
     ).first()
     if row is None:
         return []
+
+    # The batch's department wins where there is one, because it is the more
+    # specific statement about where this student sits; the student's own
+    # pointer stands alone for an unseated student, and stands in for a batch
+    # nobody filed. Same precedence as `_institution_for`.
+    department_id = row.batch_department_id or row.own_department_id
+    college_id = (
+        db.scalar(select(Department.college_id).where(Department.id == department_id))
+        if department_id
+        else None
+    )
     pairs = [
-        (FeatureScope.STUDENT, row.id),
-        (FeatureScope.COHORT, row.cohort_id),
-        (FeatureScope.SPECIALIZATION, row.specialization_id),
-        (FeatureScope.COURSE, row.course_id),
-        (FeatureScope.DEPARTMENT, row.department_id),
-        (FeatureScope.COLLEGE, row.college_id),
+        (ScopeLevel.STUDENT, row.id),
+        (ScopeLevel.COHORT, row.cohort_id),
+        (ScopeLevel.SPECIALIZATION, row.specialization_id),
+        (ScopeLevel.COURSE, row.course_id),
+        (ScopeLevel.DEPARTMENT, department_id),
+        (ScopeLevel.COLLEGE, college_id),
     ]
     return [(scope, tid) for scope, tid in pairs if tid]
+
+
+def ancestry_of_user(db: Session, user_id: str) -> list[tuple[ScopeLevel, str]]:
+    """Where a STAFF account sits: its department, and that department's college.
+
+    Shorter than a student's on purpose — a faculty member is filed under a
+    department and nothing else. An unfiled account (`users.department_id IS
+    NULL`, a first-class state on the Faculty screen) hangs under nothing, so a
+    scoped grant cannot reach it and a scoped holder cannot reach them.
+    """
+    department_id = db.scalar(select(User.department_id).where(User.id == user_id))
+    if not department_id:
+        return []
+    college_id = db.scalar(select(Department.college_id).where(Department.id == department_id))
+    pairs = [(ScopeLevel.DEPARTMENT, department_id), (ScopeLevel.COLLEGE, college_id)]
+    return [(scope, tid) for scope, tid in pairs if tid]
+
+
+#: Kept so the feature-override code below reads as it did. The rename is the
+#: point: this answers "where does this student hang", which is a question about
+#: the spine and not about features.
+_ancestry = ancestry_of_student
 
 
 def feature_enabled(db: Session, student_id: str, feature: str) -> bool:

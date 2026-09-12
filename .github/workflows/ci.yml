@@ -172,6 +172,33 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      # Three static checks over the web sources, before the slow steps: each
+      # takes seconds and each guards a rule that is invisible at the call site
+      # and so comes back on its own.
+      #
+      # MAGENTA is reserved for --primary-gradient, which is what makes the
+      # gradient mean "this is the one primary action here". It had leaked to
+      # 22 sites, two of them chart colours in TypeScript that a stylesheet
+      # grep would never have found.
+      #
+      # ONE OWNER PER GLOBAL CLASS. reep-v2-resume.scss loads after
+      # reep-v2.scss, so on every property they both set the resume sheet wins
+      # ACROSS THE WHOLE APP. Four selectors were declared in both, and in
+      # three of them neither written value was the one on screen.
+      #
+      # THE GRID AND CHART THEMES copy tokens as literals, because neither
+      # library reads CSS custom properties. The duplication is forced; the
+      # drift is not.
+      - name: Design system guards
+        run: |
+          python tools/ci/check_brand_magenta.py
+          python tools/ci/check_style_duplicates.py
+          python tools/ci/check_theme_tokens.py
+
       - name: Install
         working-directory: apps/web
         run: npm ci

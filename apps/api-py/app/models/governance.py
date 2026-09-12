@@ -148,6 +148,22 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # time (app/routers/admin_students.py). PROGRAMME and personal: it creates,
     # edits and deletes roster rows - the access control itself.
     Capability("admin.students", "Students", _P, carries_pii=True),
+    # -- temporary, and the only entry here that is not a screen --------------
+    # THIS ONE IS DELETED IN PHASE 5. It gates the 2026-09 admin console while
+    # it is being built, so the owner can review it on a production deployment
+    # before it replaces the screens the office uses every day
+    # (06-phase-prompts.md, Phase 2). The old screens stay reachable until
+    # Phase 3 is accepted; this is the switch that decides which a session sees.
+    #
+    # PROGRAMME, not SCOPED, and that placement is the whole behaviour: _ALL
+    # minus _FACULTY_ONLY is the Main Admin's baseline, so the office account
+    # holds it the moment this line exists and nobody has to grant it anything;
+    # _SCOPED is a MENTOR's baseline and a PROGRAMME capability is not in it, so
+    # a faculty member sees the old console until the Main Admin grants them
+    # this one in Governance -- which is exactly the review loop it is for.
+    #
+    # It carries no PII: it selects a rendering, it does not read a student.
+    Capability("ui.console_v2", "New admin console (preview)", _P),
 )
 
 CAPABILITIES_BY_KEY: Final[dict[str, Capability]] = {c.key: c for c in CAPABILITIES}

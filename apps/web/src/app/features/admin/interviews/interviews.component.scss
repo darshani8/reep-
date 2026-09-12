@@ -1,190 +1,324 @@
-/* Interview Records. Colours come from styles/reep-v2.scss tokens — nothing
- * redefined here; classes are scoped `ivr-*` to avoid the resume sheet's names. */
-
-.ivr {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.ivr-head {
-  h1 {
-    font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    margin: 0 0 6px;
-  }
-  p {
-    margin: 0;
-    max-width: 74ch;
-    color: var(--muted);
-    font-size: 14.5px;
-  }
-}
-
-.ivr-note,
-.ivr-empty,
-.ivr-noaudio {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.ivr-error {
-  color: var(--risk);
-  background: var(--risk-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
-}
-
-.ivr-flash {
-  color: var(--good);
-  background: var(--good-bg);
-  border-radius: 10px;
-  padding: 10px 13px;
-  margin: 0;
-  font-size: 13.5px;
-}
-
-.ivr-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-  flex-wrap: wrap;
-}
-
-.ivr-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-
-  input {
-    accent-color: var(--brand-purple);
-  }
-}
-
-.ivr-count {
-  font-size: 13px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.ivr-spacer {
-  flex: 1;
-}
-
-.ivr-tablewrap {
-  padding: 0;
-  overflow-x: auto;
-}
-
-.ivr-table {
-  width: 100%;
-  min-width: 720px;
-
-  th,
-  td {
-    padding: 11px 14px;
-    text-align: left;
-    vertical-align: middle;
-  }
-
-  th {
-    font-family: var(--font-display);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    border-bottom: 1px solid var(--hairline);
-    white-space: nowrap;
-  }
-
-  td {
-    border-bottom: 1px solid var(--hairline);
-    font-size: 13.5px;
-  }
-
-  tbody tr:last-child td {
-    border-bottom: 0;
-  }
-
-  tbody tr.ivr-sel {
-    background: rgba(122, 47, 158, 0.05);
-  }
-}
-
-.ivr-selcol {
-  width: 40px;
-  text-align: center !important;
-
-  input {
-    accent-color: var(--brand-purple);
-  }
-}
-
-.ivr-name {
-  font-weight: 600;
+/* Interview records — this screen's LAYOUT only.
+ *
+ * .panel .card .kpi-card .chip .btn .select .notice .tabs .crumb .dt-header
+ * .dt-title .dt-sub .dt-toolbar .dt-quickfilter .dt-statusbar .eyebrow are
+ * global (styles/reep-v2.scss) and are used as they are — the card title row
+ * (.card-head, .card-heading, .card-sub) among them now, which this screen and
+ * six others had each declared for themselves. What is here is the shape of
+ * this board: the filter row, the four tiles, the grid beside its three side
+ * cards, and the record panel's own blocks.
+ */
+:host {
   display: block;
 }
 
-.ivr-usn {
-  font-size: 12px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
+/* The screen-level error and confirmation notices, above the filters. */
+.panel > .notice {
+  margin-bottom: 10px;
 }
 
-.ivr-when {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+/* --- the board's filter row ---------------------------------------------- */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+/* A filter whose endpoint is a Phase 4 task. The <select> inside carries
+   [reepPending], which disables it and names the phase; this dims the pill it
+   sits in so the row reads as "not yet" at a glance. */
+.filter-pending {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-.ivr-btn {
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  font-weight: 700;
-  border-radius: 9px;
-  padding: 9px 16px;
-  border: 1px solid transparent;
-  cursor: pointer;
+/* --- the four tiles ------------------------------------------------------ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.kpi-icon {
+  font-size: 18px;
+  color: var(--ink-nav);
+  opacity: 0.75;
+}
+/* A LOCAL name beside the global `.sub`, not a rule on `.sub` itself:
+   `.kpi-card .sub` is declared in styles/reep-v2.scss (font size and colour),
+   and one owner per global class is the rule check_style_duplicates.py polices
+   between the two global sheets. This only adds the row layout the chip in
+   these subs needs. */
+.kpi-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 
-  &.primary {
-    background: var(--primary-gradient);
-    color: #fff;
-  }
-
-  &.tiny {
-    padding: 5px 11px;
-    font-size: 12px;
-    background: transparent;
-    border-color: var(--hairline);
-    color: var(--brand-purple);
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-
-    .icon {
-      font-size: 14px;
-    }
-  }
-
-  &:disabled {
-    background: rgba(160, 138, 178, 0.28);
-    color: var(--faint);
-    border-color: transparent;
-    cursor: not-allowed;
+@media (max-width: 1180px) {
+  .kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-.ivr-foot {
-  margin: 4px 0 0;
+/* --- the grid beside its side cards -------------------------------------- */
+.board-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 12px;
+  align-items: start;
+  margin-top: 12px;
+}
+@media (max-width: 1180px) {
+  .board-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.grid-card {
+  padding: 0;
+  overflow: hidden;
+}
+/* The toolbar itself is the global .dt-gridbar; this is only the hint that
+   sits at its right-hand end. */
+.grid-hint {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.records-grid {
+  display: block;
+  width: 100%;
+}
+.statusbar-note {
+  color: var(--faint);
+}
+
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.side-card {
+  padding: 14px;
+}
+
+/* The one shape every loading / progress line on this screen takes. */
+.state-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 12px 14px;
   font-size: 12.5px;
   color: var(--muted);
-  max-width: 76ch;
+}
+
+/* --- the record panel ---------------------------------------------------- */
+.record-identity {
+  margin-bottom: 10px;
+}
+.record-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.record-usn {
+  font-size: 11.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.record-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+.fact {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.record-status {
+  margin-bottom: 10px;
+}
+
+.consent-block {
+  border: 1px solid var(--hairline-26);
+  border-radius: var(--r-control);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.consent-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.consent-chips .chip {
+  white-space: normal;
+}
+.consent-note {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.record-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.record-hint {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.record-tabs {
+  margin-bottom: 10px;
+}
+
+/* --- the report inside the panel ----------------------------------------- */
+.report-scores {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.score-value {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.score-hint {
+  font-size: 10.5px;
+  color: var(--faint);
+}
+/* The calibration line: the design system's warn note, between the numbers and
+   the advice, so a score is never read on its own. */
+.calibration {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 0 10px;
+  padding: 9px 11px;
+  border-radius: var(--r-control);
+  border-left: 3px solid var(--warn-dot);
+  background: var(--warn-bg);
+  color: var(--ink);
+  font-size: 11.8px;
+  line-height: 1.45;
+}
+.calibration .icon {
+  flex: none;
+  font-size: 16px;
+}
+.report-summary {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.report-sub {
+  margin: 0 0 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--ink-soft);
+}
+.report-list {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 12.3px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.report-drill {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: var(--r-control);
+  background: var(--tint-2);
+  font-size: 12.3px;
+  line-height: 1.45;
+}
+
+/* --- the transcript ------------------------------------------------------ */
+.transcript {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.turn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--r-control);
+  background: var(--tint-3);
+  border: 1px solid var(--hairline-26);
+}
+.turn-student {
+  background: var(--tint-1);
+}
+.turn-speaker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.turn-text {
+  font-size: 12.3px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+/* An empty turn is "we could not hear it", never "nothing was said". */
+.turn-unheard {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* --- the progress chart and the retention card --------------------------- */
+.progress-chart {
+  width: 100%;
+  height: 190px;
+}
+.chart-note {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--faint);
+  line-height: 1.45;
+}
+.retention-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.3px;
+  color: var(--ink);
+}
+.retention-list .retention-kind {
+  font-weight: 700;
+  color: var(--ink-soft);
 }

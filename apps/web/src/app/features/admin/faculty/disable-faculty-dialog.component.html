@@ -1,0 +1,69 @@
+<div class="dialog-backdrop" (click)="dismissed.emit()">
+  <div
+    #panel
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    [attr.aria-labelledby]="titleId"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="dialog-head">
+      <div>
+        <h2 class="dialog-title" [id]="titleId">{{ headline() }}</h2>
+        <p class="dialog-sub">{{ subLine() }}</p>
+      </div>
+      <button type="button" class="btn ghost sm" aria-label="Close this dialog" (click)="dismissed.emit()">
+        <span class="icon" aria-hidden="true">close</span>
+      </button>
+    </header>
+
+    <div class="dialog-body">
+      @for (consequence of consequences(); track consequence.sentence) {
+        <div class="consequence" [class.kept]="consequence.isKept">
+          <span class="icon" aria-hidden="true">{{ consequence.icon }}</span>
+          <div>{{ consequence.sentence }}</div>
+        </div>
+      }
+
+      <div class="dialog-fields">
+        <div class="field">
+          <label for="disable-faculty-reason">Reason</label>
+          <input
+            id="disable-faculty-reason"
+            class="ctrl"
+            type="text"
+            placeholder="e.g. Left the institution"
+            [reepPending]="3"
+          />
+        </div>
+        <div class="field dated">
+          <label for="disable-faculty-effective">Effective</label>
+          <input id="disable-faculty-effective" class="ctrl" type="date" [value]="today" [reepPending]="3" />
+        </div>
+      </div>
+
+      <div class="notice accent">
+        <span class="icon" aria-hidden="true">undo</span>
+        Reversible: the account can be re-enabled by the Main Admin within {{ reversibleForDays | plural: 'day' }}
+        with its history intact — the functions are re-granted explicitly, never restored silently.
+        Deleting data is a separate, audited purge.
+      </div>
+
+      <div class="notice info" role="status">
+        <span class="icon" aria-hidden="true">hourglass_top</span>
+        Nothing is written yet. Disabling an account is backend task B3.3 (Phase 3), which adds the
+        disable columns, the check in every sign-in door, and the mentee release. Until it lands this
+        dialog states what will happen and stops there.
+      </div>
+    </div>
+
+    <footer class="dialog-foot">
+      <button type="button" class="btn secondary" (click)="dismissed.emit()">Cancel</button>
+      <button type="button" class="btn danger" [reepPending]="3">
+        <span class="icon" aria-hidden="true">block</span>
+        Disable account
+      </button>
+    </footer>
+  </div>
+</div>

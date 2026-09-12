@@ -1,351 +1,816 @@
-<section class="gov">
-  <header class="gov-head">
-    <h1>Governance</h1>
-    <p>
-      Two instruments, deliberately separate. <strong>Faculty access</strong> grants a capability
-      to a person or a group — nobody holds one until you say so. <strong>Student features</strong>
-      are on for everyone by default and switched off down the hierarchy.
-    </p>
-  </header>
+<div class="panel" data-p="governance">
+  <div class="dt-header">
+    <div>
+      <div class="crumb"><span>Governance</span><span class="sep">/</span><span>Roles &amp; functions</span></div>
+      <h1 class="dt-title">Roles &amp; functions</h1>
+      <div class="dt-sub">
+        Role is who someone is. A function is what they may do, where, and until when.
+      </div>
+    </div>
+    <div class="dt-toolbar">
+      <!-- The queue of grants awaiting a second admin and of grants about to
+           lapse is B2.4 — there is no /governance/review endpoint on main. -->
+      <button type="button" class="btn secondary" [reepPending]="grantReviewPhase">
+        <span class="icon" aria-hidden="true">rate_review</span> Review queue
+      </button>
+      <button type="button" class="btn secondary" (click)="focusGrantForm()">
+        <span class="icon" aria-hidden="true">key</span> Grant function
+      </button>
+    </div>
+  </div>
 
-  @if (state() === 'loading') {
-    <p class="gov-note">Loading…</p>
-  } @else if (state() === 'error') {
-    <p class="gov-error">{{ error() }}</p>
-  } @else {
+  <div role="status">
+    @if (state() === 'loading') {
+      <div class="notice info gov-note">
+        <span class="icon" aria-hidden="true">hourglass_empty</span>
+        <div>Loading…</div>
+      </div>
+    }
+    @if (flash()) {
+      <div class="notice good gov-note">
+        <span class="icon" aria-hidden="true">check</span>
+        <div>{{ flash() }}</div>
+      </div>
+    }
+  </div>
+  <div role="alert">
+    @if (error()) {
+      <div class="notice gov-note">
+        <span class="icon" aria-hidden="true">error</span>
+        <div>{{ error() }}</div>
+      </div>
+    }
+  </div>
 
-    @if (error()) { <p class="gov-error" role="alert">{{ error() }}</p> }
-    @if (flash()) { <p class="gov-flash" role="status">{{ flash() }}</p> }
+  @if (state() === 'ready') {
+    <div class="tabs gov-tabs">
+      <div class="gov-tablist" role="tablist" aria-label="Governance sections">
+      <button
+        type="button"
+        role="tab"
+        id="gov-tab-grants"
+        aria-controls="gov-pane-grants"
+        class="tab"
+        [class.active]="tab() === 'grants'"
+        [attr.aria-selected]="tab() === 'grants'"
+        (click)="tab.set('grants')"
+      >
+        Grants<span class="gov-tab-count">· {{ grantRows().length }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="gov-tab-catalogue"
+        aria-controls="gov-pane-catalogue"
+        class="tab"
+        [class.active]="tab() === 'catalogue'"
+        [attr.aria-selected]="tab() === 'catalogue'"
+        (click)="tab.set('catalogue')"
+      >
+        Functions catalogue<span class="gov-tab-count">· {{ functionCatalogue().length }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="gov-tab-groups"
+        aria-controls="gov-pane-groups"
+        class="tab"
+        [class.active]="tab() === 'groups'"
+        [attr.aria-selected]="tab() === 'groups'"
+        (click)="tab.set('groups')"
+      >
+        Groups<span class="gov-tab-count">· {{ groups().length }}</span>
+      </button>
+      </div>
+      <!-- Two destinations rather than two tabs: the student switches and the
+           audit log are screens of their own (§20, §21), and a tab that
+           navigates away is honest about that. -->
+      <a class="tab gov-tablink" routerLink="/admin/governance/features">
+        Student feature switches<span class="icon" aria-hidden="true">open_in_new</span>
+      </a>
+      <a class="tab gov-tablink" routerLink="/admin/audit">
+        Audit<span class="icon" aria-hidden="true">open_in_new</span>
+      </a>
+    </div>
 
-    <!-- ============ A. faculty access ============ -->
-    <div class="card gov-panel">
-      <header class="gov-panel-head">
-        <h2>Faculty access</h2>
-        <span class="chip neutral">Deny by default</span>
-      </header>
-      <p class="gov-hint">
-        Grant a capability to named individuals, or to an access group so every current and
-        future member inherits it.
-      </p>
+    <!-- =================================================== GRANTS ======= -->
+    @if (tab() === 'grants') {
+      <div role="tabpanel" id="gov-pane-grants" aria-labelledby="gov-tab-grants">
+      <div class="gov-filters">
+        <!-- College and department are the scope control, B1.2/B1.4. Until a
+             grant carries a scope target there is nothing to narrow by. -->
+        <div class="select gov-filter-pending">
+          <span class="lbl">College</span>
+          <span class="val">All colleges</span>
+          <span class="icon" aria-hidden="true">expand_more</span>
+          <select aria-label="College" [reepPending]="scopeTargetPhase">
+            <option>All colleges</option>
+          </select>
+        </div>
+        <div class="select gov-filter-pending">
+          <span class="lbl">Department</span>
+          <span class="val">All departments</span>
+          <span class="icon" aria-hidden="true">expand_more</span>
+          <select aria-label="Department" [reepPending]="scopeTargetPhase">
+            <option>All departments</option>
+          </select>
+        </div>
 
-      <div class="gov-seg" role="radiogroup" aria-label="Grant to">
-        <button type="button" [class.on]="grantMode() === 'users'"
-                (click)="setGrantMode('users')">Individuals</button>
-        <button type="button" [class.on]="grantMode() === 'groups'"
-                (click)="setGrantMode('groups')">Access group</button>
+        <div class="select gov-function-filter">
+          <span class="lbl">Function</span>
+          <span class="val">{{ functionFilterLabel() }}</span>
+          <span class="icon" aria-hidden="true">expand_more</span>
+          <select aria-label="Function" (change)="setFunctionFilter($any($event.target).value)">
+            <option value="" [selected]="functionFilter() === ''">All functions</option>
+            @for (capability of capabilities(); track capability.key) {
+              <option [value]="capability.key" [selected]="functionFilter() === capability.key">
+                {{ capability.label }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="select">
+          <span class="lbl">Status</span>
+          <span class="val">{{ statusFilterLabel() }}</span>
+          <span class="icon" aria-hidden="true">expand_more</span>
+          <select aria-label="Status" (change)="setStatusFilter($any($event.target).value)">
+            <option value="all" [selected]="statusFilter() === 'all'">All</option>
+            <option value="live" [selected]="statusFilter() === 'live'">Live</option>
+            <option value="expiring" [selected]="statusFilter() === 'expiring'">
+              Expiring soon
+            </option>
+          </select>
+        </div>
+
+        <p class="gov-filters-note">
+          Every grant here is live. Revoked and lapsed grants stay in the audit trail.
+        </p>
       </div>
 
-      <div class="gov-grid">
+      <!-- A grant has no scope target yet, so the Scope column says what the
+           FUNCTION reaches. That is the server's own answer, not a guess. -->
+      <div class="notice accent gov-note">
+        <span class="icon" aria-hidden="true">info</span>
         <div>
-          @if (grantMode() === 'users') {
-            <label class="gov-label" for="gov-user">Add a faculty member</label>
-            <div class="gov-row">
-              <select id="gov-user" [ngModel]="userToAdd()" (ngModelChange)="userToAdd.set($event)">
-                <option value="">Choose…</option>
-                @for (s of addableStaff(); track s.user_id) {
-                  <option [value]="s.user_id">{{ s.name }} — {{ s.role }}</option>
+          A grant has no scope target of its own yet, so Scope shows what the function itself
+          reaches. Choosing a college, department, course or batch per grant arrives with Phase 3.
+        </div>
+      </div>
+
+      @if (revokingRows().length > 0) {
+        <section class="card gov-revoke" aria-label="Revoke a function">
+          <h2 class="gov-card-title">
+            Revoke {{ revokingRows().length | plural: 'function' }}
+          </h2>
+          <ul class="gov-revoke-list">
+            @for (row of revokingRows(); track row.id) {
+              <li>
+                <strong>{{ row.functionLabel }}</strong>
+                <span class="gov-sub">from {{ row.subjectLabel }}</span>
+              </li>
+            }
+          </ul>
+          <div class="field">
+            <label for="gov-revoke-reason">Reason</label>
+            <textarea
+              id="gov-revoke-reason"
+              #revokeReasonBox
+              class="ctrl multi"
+              rows="2"
+              maxlength="400"
+              placeholder="Why this is being taken away, in a sentence someone can audit in a year."
+              [value]="revokeReason()"
+              (input)="revokeReason.set($any($event.target).value)"
+            ></textarea>
+            <span class="help">
+              A reason of at least {{ minReason() | plural: 'character' }} is required. It is
+              written onto the audit trail.
+            </span>
+          </div>
+          <div class="gov-actions">
+            <button type="button" class="btn ghost" (click)="cancelRevoke()">Keep it</button>
+            <button
+              type="button"
+              class="btn danger"
+              [disabled]="revokeReasonShort() || revokeBusy()"
+              (click)="revoke()"
+            >
+              <span class="icon" aria-hidden="true">block</span>
+              {{ revokeBusy() ? 'Revoking…' : 'Revoke' }}
+            </button>
+            @if (revokeReasonShort()) {
+              <span class="gov-blocked">
+                A reason of at least {{ minReason() | plural: 'character' }} is required
+              </span>
+            }
+          </div>
+        </section>
+      }
+
+      <div class="gov-board">
+        <div class="dt-frame gov-grid-frame">
+          <div class="dt-gridbar">
+            <input
+              class="dt-quickfilter"
+              type="search"
+              placeholder="Quick filter…"
+              aria-label="Search grants by person, group, function or reason"
+              (input)="setQuickFilter($any($event.target).value)"
+            />
+            <button
+              type="button"
+              class="btn secondary sm"
+              [disabled]="selectedGrantIds().length === 0"
+              (click)="startRevokeSelected()"
+            >
+              <span class="icon" aria-hidden="true">block</span> Revoke
+            </button>
+            <!-- Extending a grant's expiry is B2.4's POST /grants/{id}/extend. -->
+            <button type="button" class="btn secondary sm" [reepPending]="grantReviewPhase">
+              <span class="icon" aria-hidden="true">schedule</span> Extend
+            </button>
+            <span class="gov-gridbar-end">
+              <button
+                type="button"
+                class="btn secondary sm"
+                [attr.aria-pressed]="rowsAreCompact()"
+                aria-label="Toggle compact rows"
+                (click)="toggleRowDensity()"
+              >
+                <span class="icon" aria-hidden="true">tune</span>
+              </button>
+            </span>
+          </div>
+
+          <div class="gov-grid-scroll">
+            <table class="dt-table gov-table" [class.gov-compact]="rowsAreCompact()">
+              <thead>
+                <tr>
+                  <th class="pinned gov-who-col">
+                    <label class="gov-check">
+                      <input
+                        type="checkbox"
+                        aria-label="Select every grant on this page"
+                        [checked]="allOnPageAreSelected()"
+                        (change)="toggleSelectionForPage()"
+                      />
+                      <span>Person / group</span>
+                    </label>
+                  </th>
+                  <th>Function</th>
+                  <th>Scope</th>
+                  <th>Granted by</th>
+                  <th>Expires</th>
+                  <th>Status</th>
+                  <th><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of pagedGrants(); track row.id) {
+                  <tr [class.selected]="isGrantSelected(row.id)">
+                    <td class="pinned gov-who-col">
+                      <label class="gov-check">
+                        <input
+                          type="checkbox"
+                          [checked]="isGrantSelected(row.id)"
+                          [attr.aria-label]="'Select ' + row.functionLabel + ' for ' + row.subjectLabel"
+                          (change)="toggleGrantSelection(row.id)"
+                        />
+                        <span class="avatar" aria-hidden="true">{{ row.subjectInitials }}</span>
+                        <span class="gov-who">
+                          <span class="gov-who-name">{{ row.subjectLabel }}</span>
+                          <span class="gov-sub">{{ row.subjectKindLabel }}</span>
+                        </span>
+                      </label>
+                    </td>
+                    <td><span class="chip accent">{{ row.functionLabel }}</span></td>
+                    <td>
+                      <span class="chip dot" [class.risk]="row.reachIsProgrammeWide" [class.neutral]="!row.reachIsProgrammeWide">
+                        {{ row.reachLabel }}
+                      </span>
+                    </td>
+                    <td>{{ row.grantedByLabel }}</td>
+                    <td class="gov-nums">{{ row.expiresLabel }}</td>
+                    <td>
+                      <span class="chip dot" [class.warn]="row.statusIsExpiringSoon" [class.good]="!row.statusIsExpiringSoon">
+                        {{ row.statusLabel }}
+                      </span>
+                    </td>
+                    <td class="gov-rowaction">
+                      <button type="button" class="btn ghost sm" (click)="startRevokeOne(row)">
+                        Revoke
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7" class="gov-empty">
+                      @if (grantRows().length === 0) {
+                        No grants yet — every role holds its baseline.
+                      } @else {
+                        No grant matches these filters.
+                      }
+                    </td>
+                  </tr>
                 }
-              </select>
-              <button type="button" class="gov-btn ghost" (click)="addUser()"
-                      [disabled]="!userToAdd()">Add</button>
-            </div>
-            <div class="gov-chips">
-              @for (s of pickedStaff(); track s.user_id) {
-                <span class="chip good">
-                  {{ s.name }}
-                  <button type="button" (click)="removeUser(s.user_id)"
-                          [attr.aria-label]="'Remove ' + s.name">×</button>
-                </span>
-              } @empty {
-                <span class="gov-empty">Nobody added yet.</span>
-              }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="dt-statusbar">
+            <span>Rows: <b>{{ filteredGrants().length }}</b></span>
+            <span>Selected: <b>{{ selectedGrantIds().length }}</b></span>
+            <span>Expiring soon: <b>{{ expiringSoonCount() }}</b></span>
+            <span class="pager">
+              <label class="gov-pagesize">
+                <span>Page size</span>
+                <select aria-label="Rows per page" (change)="setRowsPerPage($any($event.target).value)">
+                  @for (size of rowsPerPageChoices; track size) {
+                    <option [value]="size" [selected]="size === rowsPerPage()">{{ size }}</option>
+                  }
+                </select>
+              </label>
+              <span>{{ rowRangeLabel() }}</span>
+              <button
+                type="button"
+                class="btn ghost sm"
+                [disabled]="isFirstPage()"
+                aria-label="Previous page"
+                (click)="goToPreviousPage()"
+              >
+                <span class="icon" aria-hidden="true">chevron_left</span>
+              </button>
+              <span>{{ pagerLabel() }}</span>
+              <button
+                type="button"
+                class="btn ghost sm"
+                [disabled]="isLastPage()"
+                aria-label="Next page"
+                (click)="goToNextPage()"
+              >
+                <span class="icon" aria-hidden="true">chevron_right</span>
+              </button>
+            </span>
+          </div>
+        </div>
+
+        <!-- ------------------------------------------ the 380px panel ---- -->
+        <aside class="card gov-panel" aria-label="Grant a function">
+          <h2 class="gov-card-title">Grant a function</h2>
+
+          <div class="seg gov-seg" role="group" aria-label="Grant to">
+            <button
+              type="button"
+              [class.active]="grantMode() === 'users'"
+              [attr.aria-pressed]="grantMode() === 'users'"
+              (click)="setGrantMode('users')"
+            >
+              Individuals
+            </button>
+            <button
+              type="button"
+              [class.active]="grantMode() === 'groups'"
+              [attr.aria-pressed]="grantMode() === 'groups'"
+              (click)="setGrantMode('groups')"
+            >
+              Access group
+            </button>
+          </div>
+
+          @if (grantMode() === 'users') {
+            <div class="field">
+              <label for="gov-user">Person</label>
+              <div class="gov-row">
+                <select
+                  id="gov-user"
+                  class="ctrl"
+                  (change)="userToAdd.set($any($event.target).value)"
+                >
+                  <option value="" [selected]="userToAdd() === ''">Choose…</option>
+                  @for (person of addableStaff(); track person.user_id) {
+                    <option [value]="person.user_id" [selected]="userToAdd() === person.user_id">
+                      {{ person.name }} — {{ person.email }}
+                    </option>
+                  }
+                </select>
+                <button type="button" class="btn secondary sm" [disabled]="!userToAdd()" (click)="addUser()">
+                  Add
+                </button>
+              </div>
+              <div class="gov-chips">
+                @for (person of pickedStaff(); track person.user_id) {
+                  <span class="chip accent">
+                    {{ person.name }}
+                    <button
+                      type="button"
+                      class="gov-chip-x"
+                      [attr.aria-label]="'Remove ' + person.name"
+                      (click)="removeUser(person.user_id)"
+                    >
+                      <span class="icon" aria-hidden="true">close</span>
+                    </button>
+                  </span>
+                } @empty {
+                  <span class="gov-empty">Nobody added yet.</span>
+                }
+              </div>
             </div>
           } @else {
-            <label class="gov-label" for="gov-group">Add an access group</label>
-            <div class="gov-row">
-              <select id="gov-group" [ngModel]="groupToAdd()" (ngModelChange)="groupToAdd.set($event)">
-                <option value="">Choose…</option>
-                @for (g of addableGroups(); track g.id) {
-                  <option [value]="g.id">{{ g.name }} ({{ g.members.length }} faculty)</option>
-                }
-              </select>
-              <button type="button" class="gov-btn ghost" (click)="addGroup()"
-                      [disabled]="!groupToAdd()">Add</button>
-            </div>
-            <div class="gov-chips">
-              @for (g of pickedGroups(); track g.id) {
-                <span class="chip good">
-                  {{ g.name }}
-                  <button type="button" (click)="removeGroup(g.id)"
-                          [attr.aria-label]="'Remove ' + g.name">×</button>
-                </span>
-              } @empty {
-                <span class="gov-empty">No group added yet.</span>
-              }
-            </div>
-          }
-        </div>
-
-        <div>
-          <label class="gov-label" for="gov-cap">Capability</label>
-          <select id="gov-cap" [ngModel]="capabilityKey()" (ngModelChange)="capabilityKey.set($event)">
-            <optgroup label="Scoped — narrowed to the holder's mentor group">
-              @for (c of scopedCapabilities(); track c.key) {
-                <option [value]="c.key">{{ c.label }}{{ c.carries_pii ? ' · personal record' : '' }}</option>
-              }
-            </optgroup>
-            <optgroup label="Programme-wide — cannot be narrowed">
-              @for (c of programmeCapabilities(); track c.key) {
-                <option [value]="c.key">{{ c.label }}{{ c.carries_pii ? ' · personal record' : '' }}</option>
-              }
-            </optgroup>
-          </select>
-
-          <label class="gov-label" for="gov-expiry">Expires <span class="gov-opt">optional</span></label>
-          <input id="gov-expiry" type="date" [ngModel]="grantExpiry()"
-                 (ngModelChange)="grantExpiry.set($event)">
-        </div>
-      </div>
-
-      @if (grantReach(); as reach) {
-        <p class="gov-reach" [class.wide]="reach.wide">{{ reach.text }}</p>
-      }
-
-      <label class="gov-label" for="gov-reason">
-        Reason <span class="gov-req">required — at least {{ minReason() }} characters</span>
-      </label>
-      <textarea id="gov-reason" rows="2" [ngModel]="grantReason()"
-                (ngModelChange)="grantReason.set($event)"
-                placeholder="Why these people need this, in a sentence someone can audit in a year."></textarea>
-
-      <div class="gov-actions">
-        <button type="button" class="gov-btn primary" [disabled]="!canGrant()" (click)="grant()">
-          {{ pickedCount() > 1 ? 'Grant access to ' + pickedCount() : 'Grant access' }}
-        </button>
-        @if (grantBlockedBecause(); as why) { <span class="gov-blocked">{{ why }}</span> }
-      </div>
-    </div>
-
-    <!-- ============ B. student features ============ -->
-    <div class="card gov-panel">
-      <header class="gov-panel-head">
-        <h2>Student feature availability</h2>
-        <span class="chip neutral">Allow by default</span>
-      </header>
-      <p class="gov-hint">
-        Switch a feature off for a whole specialization, a single batch, or one student. The most
-        specific rule wins — a batch-level switch overrides its specialization.
-      </p>
-
-      <div class="gov-grid">
-        <div>
-          <label class="gov-label" for="gov-feat">Feature</label>
-          <select id="gov-feat" [ngModel]="featureKey()" (ngModelChange)="featureKey.set($event)">
-            @for (f of features(); track f.key) {
-              <option [value]="f.key">{{ f.label }}</option>
-            }
-          </select>
-
-          <label class="gov-label" for="gov-level">Apply at</label>
-          <select id="gov-level" [ngModel]="levelScope()" (ngModelChange)="levelScope.set($event)">
-            @for (l of levels; track l.scope) {
-              <option [value]="l.scope">{{ l.label }}</option>
-            }
-          </select>
-
-          <label class="gov-label" for="gov-freason">
-            Reason <span class="gov-req">required — at least {{ minReason() }} characters</span>
-          </label>
-          <textarea id="gov-freason" rows="2" [ngModel]="featureReason()"
-                    (ngModelChange)="featureReason.set($event)"
-                    placeholder="Why this is being switched off, and when it should come back."></textarea>
-        </div>
-
-        <div>
-          <label class="gov-label" for="gov-col">College</label>
-          <select id="gov-col" [ngModel]="pickedCollege()"
-                  (ngModelChange)="pickedCollege.set($event); onCollegeChange()">
-            <option value="">Choose…</option>
-            @for (n of collegeOptions(); track n.id) {
-              <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
-            }
-          </select>
-
-          @if (levelScope() !== 'COLLEGE') {
-            <label class="gov-label" for="gov-dep">Department</label>
-            <select id="gov-dep" [ngModel]="pickedDepartment()"
-                    (ngModelChange)="pickedDepartment.set($event); onDepartmentChange()"
-                    [disabled]="!pickedCollege()">
-              <option value="">Choose…</option>
-              @for (n of departmentOptions(); track n.id) {
-                <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
-              }
-            </select>
-          }
-
-          @if (levelScope() === 'COURSE' || levelScope() === 'SPECIALIZATION' || levelScope() === 'COHORT') {
-            <label class="gov-label" for="gov-cou">Course</label>
-            <select id="gov-cou" [ngModel]="pickedCourse()"
-                    (ngModelChange)="pickedCourse.set($event); onCourseChange()"
-                    [disabled]="!pickedDepartment()">
-              <option value="">Choose…</option>
-              @for (n of courseOptions(); track n.id) {
-                <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
-              }
-            </select>
-          }
-
-          @if (levelScope() === 'SPECIALIZATION' || levelScope() === 'COHORT') {
-            <label class="gov-label" for="gov-spec">Specialization</label>
-            <select id="gov-spec" [ngModel]="pickedSpecialization()"
-                    (ngModelChange)="pickedSpecialization.set($event); onSpecializationChange()"
-                    [disabled]="!pickedCourse()">
-              <option value="">Choose…</option>
-              @for (n of specializationOptions(); track n.id) {
-                <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
-              }
-            </select>
-          }
-
-          @if (levelScope() === 'COHORT') {
-            <label class="gov-label" for="gov-coh">Batch</label>
-            <select id="gov-coh" [ngModel]="pickedCohort()" (ngModelChange)="pickedCohort.set($event)">
-              <option value="">Choose…</option>
-              @for (n of cohortOptions(); track n.id) {
-                <option [value]="n.id">{{ n.label }} ({{ n.students }})</option>
-              }
-            </select>
-          }
-        </div>
-      </div>
-
-      @if (featureReach(); as reach) {
-        <p class="gov-reach" [class.wide]="reach.wide">{{ reach.text }}</p>
-      }
-
-      <div class="gov-actions">
-        <button type="button" class="gov-btn danger" [disabled]="!canSwitch()" (click)="switchOff(false)">
-          @if (targetNode(); as n) { Switch off for {{ n.students }} } @else { Switch off }
-        </button>
-        <button type="button" class="gov-btn ghost" [disabled]="!canSwitch()" (click)="switchOff(true)">
-          Switch back on
-        </button>
-        @if (featureBlockedBecause(); as why) { <span class="gov-blocked">{{ why }}</span> }
-      </div>
-    </div>
-
-    <!-- ============ live state ============ -->
-    <div class="gov-cols">
-      <div class="card gov-panel">
-        <h2>Capabilities in force</h2>
-        <p class="gov-hint">Live grants only. Revoked and lapsed ones stay in the audit trail.</p>
-        <table class="dt-table">
-          <thead>
-            <tr><th>Capability</th><th>Held by</th><th>Reason</th><th></th></tr>
-          </thead>
-          <tbody>
-            @for (g of grants(); track g.id) {
-              <tr>
-                <td>
-                  {{ g.capability_label }}
-                  @if (g.scope === 'PROGRAMME') { <span class="chip risk">Programme-wide</span> }
-                </td>
-                <td>{{ g.subject_label }}<br><span class="gov-sub">{{ g.subject_kind === 'GROUP' ? 'group' : 'individual' }}</span></td>
-                <td class="gov-reasoncell">{{ g.reason }}</td>
-                <td class="gov-revokecell">
-                  @if (revokingId() === g.id) {
-                    <!-- Inline, like the grant and switch-off reasons above.
-                         The confirm stays disabled until the reason clears the
-                         server's own floor, so a short reason can no longer be
-                         discovered as a 422. -->
-                    <textarea
-                      class="gov-revoke__reason"
-                      rows="2"
-                      [attr.maxlength]="400"
-                      [attr.aria-label]="'Why ' + g.capability_label + ' is being revoked from ' + g.subject_label"
-                      [placeholder]="'Why this is being taken away, in a sentence someone can audit in a year.'"
-                      [value]="revokeReason()"
-                      (input)="revokeReason.set($any($event.target).value)"
-                    ></textarea>
-                    <div class="gov-revoke__actions">
-                      <button type="button" class="gov-btn tiny" (click)="cancelRevoke()">Keep it</button>
-                      <button
-                        type="button"
-                        class="gov-btn tiny danger"
-                        [disabled]="revokeReasonShort() || revokeBusy()"
-                        [attr.title]="revokeReasonShort() ? 'A reason of at least ' + minReason() + ' characters is required' : null"
-                        (click)="revoke(g)"
-                      >
-                        {{ revokeBusy() ? 'Revoking\u2026' : 'Revoke' }}
-                      </button>
-                    </div>
-                    @if (revokeReasonShort()) {
-                      <div class="gov-revoke__hint">
-                        A reason of at least {{ minReason() }} characters is required. It is written
-                        onto the audit trail.
-                      </div>
-                    }
-                  } @else {
-                    <button type="button" class="gov-btn tiny" (click)="startRevoke(g)">Revoke</button>
+            <div class="field">
+              <label for="gov-group">Access group</label>
+              <div class="gov-row">
+                <select
+                  id="gov-group"
+                  class="ctrl"
+                  (change)="groupToAdd.set($any($event.target).value)"
+                >
+                  <option value="" [selected]="groupToAdd() === ''">Choose…</option>
+                  @for (group of addableGroups(); track group.id) {
+                    <option [value]="group.id" [selected]="groupToAdd() === group.id">
+                      {{ group.name }} ({{ group.members.length }} faculty)
+                    </option>
                   }
-                </td>
-              </tr>
-            } @empty {
-              <tr><td colspan="4" class="gov-empty">No grants yet — every role holds its baseline.</td></tr>
-            }
-          </tbody>
-        </table>
+                </select>
+                <button type="button" class="btn secondary sm" [disabled]="!groupToAdd()" (click)="addGroup()">
+                  Add
+                </button>
+              </div>
+              <div class="gov-chips">
+                @for (group of pickedGroups(); track group.id) {
+                  <span class="chip accent">
+                    {{ group.name }}
+                    <button
+                      type="button"
+                      class="gov-chip-x"
+                      [attr.aria-label]="'Remove ' + group.name"
+                      (click)="removeGroup(group.id)"
+                    >
+                      <span class="icon" aria-hidden="true">close</span>
+                    </button>
+                  </span>
+                } @empty {
+                  <span class="gov-empty">No group added yet.</span>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="field">
+            <label for="gov-function">Function</label>
+            <select
+              id="gov-function"
+              #functionSelect
+              class="ctrl"
+              (change)="capabilityKey.set($any($event.target).value)"
+            >
+              <optgroup label="Scoped — narrowed to the holder's mentor group">
+                @for (capability of scopedCapabilities(); track capability.key) {
+                  <option [value]="capability.key" [selected]="capabilityKey() === capability.key">
+                    {{ capability.label }}
+                  </option>
+                }
+              </optgroup>
+              <optgroup label="Programme-wide — cannot be narrowed">
+                @for (capability of programmeCapabilities(); track capability.key) {
+                  <option [value]="capability.key" [selected]="capabilityKey() === capability.key">
+                    {{ capability.label }}
+                  </option>
+                }
+              </optgroup>
+            </select>
+            <span class="help">{{ chosenFunctionHelp() }}</span>
+          </div>
+
+          <div class="field">
+            <label for="gov-scope">Scope</label>
+            <select id="gov-scope" class="ctrl" [reepPending]="scopeTargetPhase" aria-describedby="gov-scope-help">
+              <option>Everything the function reaches</option>
+            </select>
+            <span class="help" id="gov-scope-help">
+              Narrowing a grant to one college, department, course or batch arrives with Phase 3.
+            </span>
+          </div>
+
+          <div class="gov-two">
+            <div class="field">
+              <label for="gov-expiry">Expires</label>
+              <input
+                id="gov-expiry"
+                class="ctrl"
+                type="date"
+                [value]="grantExpiry()"
+                (change)="grantExpiry.set($any($event.target).value)"
+              />
+              <span class="help">Optional. Left empty it stays until it is revoked.</span>
+            </div>
+            <div class="field">
+              <label for="gov-review">Review</label>
+              <select id="gov-review" class="ctrl" [reepPending]="grantReviewPhase">
+                <option>Not scheduled yet</option>
+              </select>
+              <span class="help">A review cadence arrives with Phase 3.</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="gov-reason">Reason</label>
+            <textarea
+              id="gov-reason"
+              class="ctrl multi"
+              rows="3"
+              placeholder="Why these people need this, in a sentence someone can audit in a year."
+              [value]="grantReason()"
+              (input)="grantReason.set($any($event.target).value)"
+            ></textarea>
+            <span class="help">
+              At least {{ minReason() | plural: 'character' }} · shown in the audit log.
+            </span>
+          </div>
+
+          @if (grantReach(); as reach) {
+            <div class="notice gov-note" [class.accent]="!reach.wide" [class.warn]="reach.wide">
+              @if (reach.wide) {
+                <span class="icon" aria-hidden="true">warning</span>
+              } @else {
+                <span class="icon" aria-hidden="true">info</span>
+              }
+              <div>{{ reach.text }}</div>
+            </div>
+          }
+
+          @if (chosenFunctionCarriesPersonalData()) {
+            <div class="notice warn gov-note">
+              <span class="icon" aria-hidden="true">shield_person</span>
+              <div>
+                This function shows a student's own record. It goes live the moment it is granted —
+                the second-admin approval step arrives with Phase 3.
+              </div>
+            </div>
+          }
+
+          <div class="gov-actions">
+            <button type="button" class="btn ghost" (click)="clearGrantForm()">Cancel</button>
+            <!-- "Send for approval" is B2.4's approval_state; there is no
+                 endpoint for it on main, so it cannot be pressed. -->
+            <button type="button" class="btn secondary" [reepPending]="grantReviewPhase">
+              <span class="icon" aria-hidden="true">how_to_reg</span> Send for approval
+            </button>
+            <button type="button" class="btn primary" [disabled]="!canGrant()" (click)="grant()">
+              <span class="icon" aria-hidden="true">key</span>
+              {{ grantButtonLabel() }}
+            </button>
+          </div>
+          @if (grantBlockedBecause(); as why) {
+            <p class="gov-blocked">{{ why }}</p>
+          }
+        </aside>
       </div>
 
-      <div class="card gov-panel">
-        <h2>Features switched off</h2>
-        <p class="gov-hint">Active overrides. Removing a rule lets the level above decide again.</p>
-        <table class="dt-table">
+      <!-- The student switches used to be the second half of this screen. They
+           are the opposite instrument — allow-until-switched-off — and they now
+           have their own URL (§20). -->
+      <section class="card gov-linkcard" aria-labelledby="gov-features-title">
+        <div>
+          <h2 class="gov-card-title" id="gov-features-title">Student feature switches</h2>
+          <p class="gov-hint">
+            Functions are denied until granted; student features are on until switched off. Two
+            opposite defaults, so they are two screens. {{ featureSummary() }}
+          </p>
+        </div>
+        <a class="btn secondary gov-openlink" routerLink="/admin/governance/features">
+          <span class="icon" aria-hidden="true">tune</span> Open student feature switches
+        </a>
+      </section>
+      </div>
+    }
+
+    <!-- ============================================ FUNCTIONS CATALOGUE == -->
+    @if (tab() === 'catalogue') {
+      <div role="tabpanel" id="gov-pane-catalogue" aria-labelledby="gov-tab-catalogue">
+      @if (!anyEnforcementIsReported()) {
+        <div class="notice accent gov-note">
+          <span class="icon" aria-hidden="true">info</span>
+          <div>
+            The API does not yet report which functions it checks on every request, so this column
+            says so rather than claiming it. Phase 3 adds the flag and makes every unenforced key
+            either enforced or deleted.
+          </div>
+        </div>
+      }
+
+      <div class="notice accent gov-note">
+        <span class="icon" aria-hidden="true">visibility</span>
+        <div>
+          <strong>ui.console_v2 — New admin console (preview)</strong> is listed here like every
+          other function. It is what admits an account to these redesigned screens; the Main Admin
+          holds it already, and a faculty member sees the old console until it is granted.
+        </div>
+      </div>
+
+      <div class="dt-frame">
+        <table class="dt-table gov-table">
           <thead>
-            <tr><th>Feature</th><th>Applied to</th><th>Students</th><th></th></tr>
+            <tr>
+              <th class="pinned gov-fn-col">Function</th>
+              <th>Key</th>
+              <th>Scope</th>
+              <th>Personal data</th>
+              <th>Server-enforced</th>
+              <th>Live grants</th>
+            </tr>
           </thead>
           <tbody>
-            @for (o of overrides(); track o.id) {
+            @for (row of functionCatalogue(); track row.key) {
               <tr>
+                <td class="pinned gov-fn-col">{{ row.label }}</td>
+                <td><code class="gov-key">{{ row.key }}</code></td>
                 <td>
-                  {{ o.feature_label }}
-                  <span class="chip" [class.risk]="!o.enabled" [class.good]="o.enabled">
-                    {{ o.enabled ? 'On' : 'Off' }}
+                  <span class="chip dot" [class.risk]="row.reachIsProgrammeWide" [class.neutral]="!row.reachIsProgrammeWide">
+                    {{ row.reachLabel }}
                   </span>
                 </td>
-                <td>{{ o.target_label }}<br><span class="gov-sub">{{ o.scope.toLowerCase() }}</span></td>
-                <td>{{ o.students_affected }}</td>
-                <td><button type="button" class="gov-btn tiny" (click)="clearOverride(o)">Remove</button></td>
+                <td>
+                  <span class="chip dot" [class.warn]="row.carriesPersonalData" [class.neutral]="!row.carriesPersonalData">
+                    {{ row.personalDataLabel }}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    class="chip dot"
+                    [class.good]="row.enforcementIsReported && row.enforcementIsServerChecked"
+                    [class.risk]="row.enforcementIsReported && !row.enforcementIsServerChecked"
+                    [class.neutral]="!row.enforcementIsReported"
+                  >
+                    {{ row.enforcementLabel }}
+                  </span>
+                </td>
+                <td class="gov-nums">{{ row.liveGrantCount }}</td>
               </tr>
             } @empty {
-              <tr><td colspan="4" class="gov-empty">Every feature is on for every student.</td></tr>
+              <tr>
+                <td colspan="6" class="gov-empty">The catalogue is empty.</td>
+              </tr>
             }
           </tbody>
         </table>
       </div>
-    </div>
 
-    <div class="card gov-panel">
-      <h2>Access groups</h2>
       <p class="gov-hint">
-        A group issues the same capabilities to everyone in it, now and later.
+        A role's baseline already carries some of these without a grant, so a zero in Live grants
+        does not mean nobody holds it. The catalogue itself is code, not rows — adding a function is
+        a code change, because each one has to be enforced at a call site.
       </p>
-      <div class="gov-row">
-        <input type="text" [ngModel]="newGroupName()" (ngModelChange)="newGroupName.set($event)"
-               placeholder="New group name" aria-label="New group name">
-        <button type="button" class="gov-btn ghost" (click)="createGroup()"
-                [disabled]="newGroupName().trim().length < 2">Create group</button>
       </div>
-      <ul class="gov-groups">
-        @for (g of groups(); track g.id) {
-          <li>
-            <strong>{{ g.name }}</strong>
-            <span class="gov-sub">{{ g.members.length }} faculty · {{ g.capabilities.length }} capabilities</span>
-          </li>
-        } @empty {
-          <li class="gov-empty">No access groups yet.</li>
-        }
-      </ul>
-    </div>
+    }
+
+    <!-- ==================================================== GROUPS ======= -->
+    @if (tab() === 'groups') {
+      <div role="tabpanel" id="gov-pane-groups" aria-labelledby="gov-tab-groups">
+      <div class="gov-board">
+        <div class="gov-grouplist">
+          @for (group of groups(); track group.id) {
+            <section class="card gov-group" [attr.aria-label]="group.name">
+              <div class="gov-group-head">
+                <h2 class="gov-card-title">{{ group.name }}</h2>
+                <span class="chip neutral">{{ group.members.length | plural: 'member' }}</span>
+              </div>
+              @if (group.description) {
+                <p class="gov-hint">{{ group.description }}</p>
+              }
+
+              <div class="gov-group-block">
+                <div class="eyebrow">Functions it carries</div>
+                <div class="gov-chips">
+                  @for (key of group.capabilities; track key) {
+                    <span class="chip accent">{{ labelForFunctionKey(key) }}</span>
+                  } @empty {
+                    <span class="gov-empty">No function granted to this group yet.</span>
+                  }
+                </div>
+              </div>
+
+              <div class="gov-group-block">
+                <div class="eyebrow">Members</div>
+                <ul class="gov-members">
+                  @for (member of group.members; track member.user_id) {
+                    <li>
+                      <span class="avatar" aria-hidden="true">{{ member.name.charAt(0) }}</span>
+                      <span class="gov-who">
+                        <span class="gov-who-name">{{ member.name }}</span>
+                        <span class="gov-sub">{{ member.email }}</span>
+                      </span>
+                      <button
+                        type="button"
+                        class="btn ghost sm"
+                        [attr.aria-label]="'Remove ' + member.name + ' from ' + group.name"
+                        (click)="removeMemberFromGroup(group, member)"
+                      >
+                        <span class="icon" aria-hidden="true">person_remove</span>
+                      </button>
+                    </li>
+                  } @empty {
+                    <li class="gov-empty">Nobody in this group yet.</li>
+                  }
+                </ul>
+              </div>
+            </section>
+          } @empty {
+            <div class="card gov-group">
+              <p class="gov-empty">No access groups yet.</p>
+            </div>
+          }
+        </div>
+
+        <aside class="card gov-panel" aria-label="Access groups">
+          <h2 class="gov-card-title">New access group</h2>
+          <p class="gov-hint">
+            A group issues the same functions to everyone in it, now and later.
+          </p>
+          <div class="field">
+            <label for="gov-newgroup">Name</label>
+            <input
+              id="gov-newgroup"
+              class="ctrl"
+              type="text"
+              placeholder="Placement cell"
+              [value]="newGroupName()"
+              (input)="newGroupName.set($any($event.target).value)"
+            />
+          </div>
+          <div class="gov-actions">
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="newGroupName().trim().length < 2 || groupBusy()"
+              (click)="createGroup()"
+            >
+              <span class="icon" aria-hidden="true">add</span> Create group
+            </button>
+          </div>
+
+          <h2 class="gov-card-title gov-spaced">Add someone to a group</h2>
+          <div class="field">
+            <label for="gov-membergroup">Group</label>
+            <select
+              id="gov-membergroup"
+              class="ctrl"
+              (change)="memberGroupId.set($any($event.target).value)"
+            >
+              <option value="" [selected]="memberGroupId() === ''">Choose…</option>
+              @for (group of groups(); track group.id) {
+                <option [value]="group.id" [selected]="memberGroupId() === group.id">
+                  {{ group.name }}
+                </option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="gov-memberuser">Person</label>
+            <select
+              id="gov-memberuser"
+              class="ctrl"
+              (change)="memberUserId.set($any($event.target).value)"
+            >
+              <option value="" [selected]="memberUserId() === ''">Choose…</option>
+              @for (person of staff(); track person.user_id) {
+                <option [value]="person.user_id" [selected]="memberUserId() === person.user_id">
+                  {{ person.name }} — {{ person.email }}
+                </option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="gov-memberreason">Reason</label>
+            <textarea
+              id="gov-memberreason"
+              class="ctrl multi"
+              rows="2"
+              placeholder="Why this person joins the group, in a sentence someone can audit in a year."
+              [value]="memberReason()"
+              (input)="memberReason.set($any($event.target).value)"
+            ></textarea>
+            <span class="help">
+              Joining hands over every function the group holds, so it asks for the same reason a
+              grant does — at least {{ minReason() | plural: 'character' }}.
+            </span>
+          </div>
+          <div class="gov-actions">
+            <button
+              type="button"
+              class="btn secondary"
+              [disabled]="!canAddMember()"
+              (click)="addMemberToGroup()"
+            >
+              <span class="icon" aria-hidden="true">person_add</span> Add to group
+            </button>
+          </div>
+          @if (addMemberBlockedBecause(); as why) {
+            <p class="gov-blocked">{{ why }}</p>
+          }
+        </aside>
+      </div>
+      </div>
+    }
   }
-</section>
+</div>

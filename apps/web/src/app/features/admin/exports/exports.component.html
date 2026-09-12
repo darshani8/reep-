@@ -1,13 +1,23 @@
 <div class="panel" data-p="exports">
   <div class="dt-header">
     <div>
+      <div class="crumb"><span>Operations</span><span class="sep">/</span><span>Exports</span></div>
       <h1 class="dt-title">Exports</h1>
-      <div class="dt-sub">
-        Cohort reports for accreditation, review meetings and the placement cell.
-      </div>
+      <p class="dt-sub">
+        CSV extracts for accreditation, review meetings and the placement cell. Each file is
+        generated fresh on download and covers the whole programme today — scoping to your grant,
+        the gate on personal fields and the audited history all arrive with the Phase
+        {{ exportsBackendPhase }} exports task.
+      </p>
+    </div>
+    <div class="dt-toolbar">
+      <button type="button" class="btn secondary" [reepPending]="exportsBackendPhase">
+        <span class="icon" aria-hidden="true">event_repeat</span> Schedule an export
+      </button>
     </div>
   </div>
 
+  <!-- The warning comes before the cards, because it is about pressing them. -->
   <div class="notice info data-note">
     <span class="icon" aria-hidden="true">shield_person</span>
     <div>
@@ -17,22 +27,132 @@
     </div>
   </div>
 
-  <div class="grid">
-    @for (x of cards; track x.key) {
-      <div class="card export">
-        <div class="export-head">
-          <div class="export-title">{{ x.title }}</div>
-          <span class="chip fmt">{{ x.format }}</span>
+  @if (justRequested(); as requested) {
+    <p class="request-note" role="status">
+      <span class="icon" aria-hidden="true">download</span>
+      {{ requested }} requested — your browser is saving the file.
+    </p>
+  }
+
+  <div class="extract-grid">
+    @for (extract of extracts; track extract.key) {
+      <div class="card extract-card">
+        <div class="extract-head">
+          <h2 class="extract-title">{{ extract.title }}</h2>
+          @if (extract.path === null) {
+            <span class="chip dot neutral">Not built yet</span>
+          } @else if (extract.carriesNameAndUsn) {
+            <span class="chip dot risk">Carries name &amp; USN</span>
+          }
         </div>
-        <p class="export-desc">{{ x.description }}</p>
-        <div class="export-foot">
-          <span class="export-last">{{ lastLabel(x) }}</span>
-          <!-- A real link, so the browser streams the file straight to disk. -->
-          <a class="btn" [href]="url(x)" [attr.download]="x.filename" (click)="noteDownload(x)">
-            <span class="icon" aria-hidden="true">download</span> Download
-          </a>
+
+        <p class="extract-desc">{{ extract.description }}</p>
+
+        @if (extract.headerRow; as headerRow) {
+          <p class="extract-columns" title="The file's header row">{{ headerRow }}</p>
+        } @else {
+          <p class="extract-columns extract-columns-unknown">
+            No file yet — its columns are settled with the endpoint.
+          </p>
+        }
+
+        @if (extract.mainAdminOnly) {
+          <p class="extract-gate">
+            <span class="icon" aria-hidden="true">lock</span>
+            @if (isMainAdmin()) {
+              Main Admin only: this file answers to the office account, not to a granted Exports
+              function.
+            } @else {
+              Main Admin only: your Exports function does not open this file, and the office
+              account is the one that can.
+            }
+          </p>
+        }
+
+        <div class="extract-foot">
+          @if (extract.path === null) {
+            <span class="extract-last">Not available yet</span>
+            <button type="button" class="btn secondary sm" [reepPending]="exportsBackendPhase">
+              <span class="icon" aria-hidden="true">download</span> Download CSV
+            </button>
+          } @else if (!canDownload(extract)) {
+            <!-- `require_admin`, not `admin.exports`: a live link here would
+                 save a 403 body under a .csv name and record it as a
+                 download. Disabled, with the reason on the card. -->
+            <span class="extract-last">Main Admin only</span>
+            <button
+              type="button"
+              class="btn secondary sm"
+              disabled
+              title="This file answers to the Main Admin account only"
+            >
+              <span class="icon" aria-hidden="true">download</span> Download CSV
+            </button>
+          } @else {
+            <span class="extract-last">{{ lastDownloadedLabel(extract) }}</span>
+            <!-- A real link, so the browser streams the file straight to disk. -->
+            <a
+              class="btn secondary sm"
+              [href]="downloadUrl(extract)"
+              [attr.download]="extract.filename"
+              (click)="noteDownload(extract)"
+            >
+              <span class="icon" aria-hidden="true">download</span> Download CSV
+            </a>
+          }
         </div>
       </div>
     }
+  </div>
+
+  <div class="notice accent">
+    <span class="icon" aria-hidden="true">info</span>
+    <div>
+      The Interviews, Registrations and Leave extracts — and the scope filter, the gate that drops
+      personal columns for a caller without the PII-carrying function, and the audited download
+      history below — are the Phase {{ exportsBackendPhase }} exports task (B14); until it lands,
+      those three cards download nothing.
+    </div>
+  </div>
+
+  <div class="card history-card">
+    <div class="history-head">
+      <div>
+        <h2 class="history-title">Download history</h2>
+        <p class="history-sub">who exported what, with which filters — retained 7 years</p>
+      </div>
+      <!-- `/admin/audit` is roleGuard('ADMIN'); a granted faculty member would
+           be bounced by the guard, so the link is not offered to them. -->
+      @if (isMainAdmin()) {
+        <a class="btn ghost sm" routerLink="/admin/audit">
+          Open audit log <span class="icon" aria-hidden="true">arrow_forward</span>
+        </a>
+      }
+    </div>
+
+    <div class="notice accent history-empty">
+      <span class="icon" aria-hidden="true">history</span>
+      <div>
+        Nothing is recorded here yet. Every download starts being written to the audit trail — the
+        file, the scope it was run in, the row count and who pressed it — when
+        <code>GET /api/admin/exports/history</code> arrives with the Phase
+        {{ exportsBackendPhase }} exports task.
+      </div>
+    </div>
+
+    <ag-grid-angular
+      class="history-grid"
+      [theme]="gridTheme"
+      [rowData]="downloadHistory()"
+      [columnDefs]="historyColumns"
+      [defaultColDef]="defaultHistoryColumn"
+      [overlayNoRowsTemplate]="historyEmptyOverlay"
+      [domLayout]="'autoHeight'"
+      [suppressCellFocus]="true"
+    />
+    <div class="dt-statusbar">
+      <span>{{ downloadHistory().length }} downloads recorded</span>
+      <span class="statusbar-note">the audited history is written by the backend, never here</span>
+    </div>
   </div>
 </div>

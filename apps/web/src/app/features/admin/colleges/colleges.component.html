@@ -1,9 +1,403 @@
 <div class="panel" data-p="colleges">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Institution</span></div>
+      <div class="crumb"><span>Institution</span><span class="sep">/</span><span>Colleges</span></div>
       <h1 class="dt-title">Colleges</h1>
-      <div class="dt-sub">Every college on this deployment, its registered email domains and who administers it.</div>
+      <p class="dt-sub">
+        Each college is a tenant: its own registration domains, departments, admins and catalogues.
+        The Main Admin sees every college; a college admin sees one.
+      </p>
+    </div>
+    <div class="dt-toolbar">
+      <!-- The panel this button opens is rendered inside the ready state, so the
+           button is only offered there: shown while the list is loading or after
+           it failed, it is a control that removes itself and opens nothing. -->
+      @if (state() === 'ready' && !addPanelOpen()) {
+        <button type="button" class="btn primary" (click)="openAddPanel()">
+          <span class="icon" aria-hidden="true">add</span> Add college
+        </button>
+      }
     </div>
   </div>
+
+  @if (state() === 'loading') {
+    <p class="loading-line" role="status">Loading colleges…</p>
+  }
+
+  @if (state() === 'error') {
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">error</span>
+      <div>
+        {{ loadError() }}
+        <button type="button" class="btn ghost sm retry" (click)="loadColleges()">Try again</button>
+      </div>
+    </div>
+  }
+
+  @if (state() === 'ready') {
+    <div class="colleges-layout">
+      <div class="colleges-main">
+        <div class="filter-row">
+          <div class="select">
+            <span class="lbl">Status</span>
+            <span class="val">{{ statusFilterLabel() }}</span>
+            <span class="icon" aria-hidden="true">expand_more</span>
+            <select aria-label="Status" (change)="setStatusFilter($any($event.target).value)">
+              <option value="all" [selected]="statusFilter() === 'all'">All</option>
+              <option value="ACTIVE" [selected]="statusFilter() === 'ACTIVE'">Active</option>
+              <option value="DRAFT" [selected]="statusFilter() === 'DRAFT'">Draft</option>
+              <option value="ARCHIVED" [selected]="statusFilter() === 'ARCHIVED'">Archived</option>
+            </select>
+          </div>
+
+          <div class="select">
+            <span class="lbl">Campus</span>
+            <span class="val">{{ campusFilterLabel() }}</span>
+            <span class="icon" aria-hidden="true">expand_more</span>
+            <select aria-label="Campus" (change)="setCampusFilter($any($event.target).value)">
+              <option value="all" [selected]="campusFilter() === 'all'">All</option>
+              @for (campus of campusesOnRecord(); track campus) {
+                <option [value]="campus" [selected]="campusFilter() === campus">{{ campus }}</option>
+              }
+            </select>
+          </div>
+
+          <p class="filter-note">
+            Admin functions granted at college scope stop at the college boundary — including
+            analytics, exports and the agent.
+          </p>
+        </div>
+
+        @if (createdCollegeName(); as created) {
+          <p class="created-note" role="status">
+            <span class="icon" aria-hidden="true">check_circle</span>
+            {{ created }} created. It seats no one and grants nothing yet — add its departments,
+            courses and batches in <a routerLink="/admin/institution">Structure</a>.
+          </p>
+        }
+
+        <div class="notice accent">
+          <span class="icon" aria-hidden="true">info</span>
+          <div>
+            Four columns are empty on purpose. Registered email domains are not a column on a
+            college yet (<code>colleges.email_domains</code>, B1.1); the college admin is a faculty
+            account holding <code>admin.*</code> functions scoped to the college, which needs the
+            scoped grants and <code>GET /api/admin/colleges/&#123;id&#125;/admins</code> (B1.3); and
+            the student and faculty lists are programme-wide until <code>scope_filter</code> can
+            narrow them to one college (B1.4). All three land in Phase
+            {{ collegeScopePhase }} — until then a dash here means "nothing stores this", never
+            "none".
+          </div>
+        </div>
+
+        <div class="dt-frame">
+          <div class="colleges-scroll">
+            <table class="dt-table colleges-table">
+              <caption class="colleges-caption">
+                Every college on this deployment, with its departments, its administrator and its
+                status.
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">College</th>
+                  <th scope="col">
+                    Domains <span class="col-pending">Phase {{ collegeScopePhase }}</span>
+                  </th>
+                  <th scope="col" class="num">
+                    Students <span class="col-pending">Phase {{ collegeScopePhase }}</span>
+                  </th>
+                  <th scope="col" class="num">
+                    Faculty <span class="col-pending">Phase {{ collegeScopePhase }}</span>
+                  </th>
+                  <th scope="col">
+                    College admin <span class="col-pending">Phase {{ collegeScopePhase }}</span>
+                  </th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (college of visibleColleges(); track college.id) {
+                  <tr [class.selected]="college.id === selectedCollege()?.id">
+                    <td>
+                      <button
+                        type="button"
+                        class="college-cell"
+                        [attr.aria-pressed]="college.id === selectedCollege()?.id"
+                        (click)="selectCollege(college.id)"
+                      >
+                        <span class="college-name">{{ college.name }}</span>
+                        <span class="college-sub">{{ collegeSubLine(college) }}</span>
+                      </button>
+                    </td>
+                    <td><span class="cell-empty">—</span></td>
+                    <td class="num"><span class="cell-empty">—</span></td>
+                    <td class="num"><span class="cell-empty">—</span></td>
+                    <td><span class="cell-empty">—</span></td>
+                    <td>
+                      <span [class]="statusChipClass(college.status)">
+                        {{ statusLabel(college.status) }}
+                      </span>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6">
+                      <p class="empty">
+                        <span class="icon" aria-hidden="true">apartment</span>
+                        @if (colleges().length === 0) {
+                          No college has been created yet. "Add college" writes the first one.
+                        } @else {
+                          No college matches this filter.
+                        }
+                      </p>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="dt-statusbar">
+            <span>Rows: <b>{{ visibleColleges().length }}</b></span>
+            <span>Selected: <b>{{ selectedCollege() ? 1 : 0 }}</b></span>
+            <span class="pager">{{ visibleColleges().length }} of {{ colleges().length }} shown</span>
+          </div>
+        </div>
+
+        <div class="card functions-card">
+          <div class="colleges-card-head">
+            <div>
+              <h2 class="colleges-card-title">What a college admin can do inside {{ selectedCollegeName() }}</h2>
+              <p class="colleges-card-sub">
+                a college admin is a person holding <code>admin.*</code> functions scoped to the
+                college — not a second role
+              </p>
+            </div>
+          </div>
+
+          <div class="notice warn">
+            <span class="icon" aria-hidden="true">warning</span>
+            <div>
+              Today not one of these stops at a college. Every <code>admin.*</code> key in the
+              catalogue is <code>CapabilityScope.PROGRAMME</code>, so a grant made in Governance
+              covers every college on this deployment; <code>mentor.leave_approve</code> is
+              <code>SCOPED</code>, which narrows it to the holder's own mentor group — not to a
+              college either. Scope on a grant (B1.2) and the scoped college-admin grant set (B1.3)
+              arrive in Phase {{ collegeScopePhase }}; this card describes the college boundary they
+              create.
+            </div>
+          </div>
+
+          <div class="functions-grid">
+            <div>
+              <h3 class="functions-heading">Can, when the function is granted at college scope</h3>
+              <ul class="functions-list">
+                @for (fn of collegeAdminCan; track fn.summary) {
+                  <li>
+                    <span class="icon good" aria-hidden="true">check_circle</span>
+                    <span>
+                      {{ fn.summary }}
+                      <span class="functions-keys">{{ fn.capabilityKeys }}</span>
+                    </span>
+                  </li>
+                }
+              </ul>
+            </div>
+            <div>
+              <h3 class="functions-heading">Never, at any scope</h3>
+              <ul class="functions-list">
+                @for (limit of collegeAdminNever; track limit) {
+                  <li>
+                    <span class="icon risk" aria-hidden="true">cancel</span>
+                    <span>{{ limit }}</span>
+                  </li>
+                }
+              </ul>
+              <p class="functions-foot">
+                Roles &amp; functions and this platform card stay with the Main Admin;
+                <code>require_admin</code> is the one console gate.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        @if (isMainAdmin()) {
+          <div class="card platform-card">
+            <div class="colleges-card-head">
+              <div>
+                <h2 class="colleges-card-title">Platform · Main Admin only</h2>
+                <!-- The board's sub-line asserts a deployment fact ("the harden
+                     phase is not deployed"). This browser cannot know that, and
+                     the notice directly below says so — so the sub-line states
+                     what the card IS instead of what the host is. -->
+                <p class="colleges-card-sub">
+                  deployment facts, read from the host and never changed from here
+                </p>
+              </div>
+              <!-- A LINK to the runbook, never a button that deploys: nothing in
+                   this app may start an infrastructure change. -->
+              <a
+                class="btn secondary"
+                [href]="hardenRunbookUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span class="icon" aria-hidden="true">open_in_new</span> Deploy harden phase
+                (runbook)
+              </a>
+            </div>
+
+            <div class="notice accent">
+              <span class="icon" aria-hidden="true">info</span>
+              <div>
+                Nothing below is read by this browser. Mail transport, the sender's SES
+                verification, the region, the retention window and the session policy are facts
+                about the deployment, and
+                <code>GET /api/admin/platform/status</code> reports them from Phase
+                {{ platformStatusPhase }} (B3.7). A value copied from the repository's defaults
+                would be a claim about a host nobody checked.
+              </div>
+            </div>
+
+            <dl class="platform-rows">
+              @for (fact of platformFacts; track fact.label) {
+                <div class="platform-row">
+                  <dt>{{ fact.label }}</dt>
+                  <dd>
+                    <span class="chip dot neutral">Not reported yet</span>
+                    <span class="platform-reports">{{ fact.reports }}</span>
+                  </dd>
+                </div>
+              }
+            </dl>
+          </div>
+        }
+      </div>
+
+      @if (addPanelOpen()) {
+        <aside class="card add-panel" aria-label="Add college">
+          <h2 class="colleges-card-title">Add college</h2>
+
+          @if (createError(); as message) {
+            <div class="notice" role="alert">
+              <span class="icon" aria-hidden="true">error</span>
+              <div>{{ message }}</div>
+            </div>
+          }
+
+          <div class="add-row">
+            <div class="field code-field">
+              <label for="college-code">Code <span class="req">*</span></label>
+              <input
+                id="college-code"
+                [value]="newCollegeDraft().code"
+                (input)="setNewCollegeField('code', $any($event.target).value)"
+                placeholder="e.g. SJBIT"
+                autocomplete="off"
+              />
+            </div>
+            <div class="field">
+              <label for="college-name">Name <span class="req">*</span></label>
+              <input
+                id="college-name"
+                [value]="newCollegeDraft().name"
+                (input)="setNewCollegeField('name', $any($event.target).value)"
+                placeholder="Full name as on the affiliation letter"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="add-row">
+            <div class="field">
+              <label for="college-campus">City</label>
+              <input
+                id="college-campus"
+                [value]="newCollegeDraft().campus"
+                (input)="setNewCollegeField('campus', $any($event.target).value)"
+                placeholder="Bengaluru"
+                autocomplete="off"
+              />
+            </div>
+            <div class="field">
+              <label for="college-contact">Contact</label>
+              <input
+                id="college-contact"
+                [value]="newCollegeDraft().contact"
+                (input)="setNewCollegeField('contact', $any($event.target).value)"
+                placeholder="Office email or phone"
+                autocomplete="off"
+              />
+              <p class="help">Optional · who the placement cell calls about this college</p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="college-domains">Registration email domains</label>
+            <input
+              id="college-domains"
+              [reepPending]="collegeScopePhase"
+              placeholder="bgscet.ac.in"
+              autocomplete="off"
+            />
+            <p class="help">
+              Applications from these domains can auto-approve; every other domain is held for
+              review. The column is <code>colleges.email_domains</code> (B1.1) — until it exists,
+              the fence is the deployment-wide
+              <code>provisionable_email_domains</code> setting.
+            </p>
+          </div>
+
+          <div class="field">
+            <label for="college-admin">College admin</label>
+            <input
+              id="college-admin"
+              [reepPending]="collegeScopePhase"
+              placeholder="Choose a faculty account or invite one"
+              autocomplete="off"
+            />
+            <p class="help">
+              Receives <code>admin.*</code> functions scoped to this college — the scoped grant set
+              is B1.3.
+            </p>
+          </div>
+
+          <div class="field">
+            <label for="college-catalogues">Copy catalogues from</label>
+            <input
+              id="college-catalogues"
+              [reepPending]="catalogueCopyPhase"
+              placeholder="Another college's course"
+              autocomplete="off"
+            />
+            <p class="help">
+              Optional · badges, stage rules, interview tracks and placement criteria. Catalogues
+              are programme-wide today; copying between courses is B13.
+            </p>
+          </div>
+
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            <div>
+              Creating a college seats no one and grants nothing. Departments, courses and batches
+              are added in <a routerLink="/admin/institution">Structure</a>.
+            </div>
+          </div>
+
+          <div class="panel-actions">
+            <button type="button" class="btn secondary" (click)="closeAddPanel()">Cancel</button>
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="!canCreateCollege()"
+              (click)="createCollege()"
+            >
+              <span class="icon" aria-hidden="true">check</span>
+              {{ creatingCollege() ? 'Creating…' : 'Create college' }}
+            </button>
+          </div>
+        </aside>
+      }
+    </div>
+  }
 </div>

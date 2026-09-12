@@ -1,0 +1,51 @@
+<div class="dialog-backdrop" (click)="dismissed.emit()">
+  <div class="dialog" role="dialog" aria-modal="true" [attr.aria-labelledby]="titleId" (click)="$event.stopPropagation()">
+    <header class="dialog-head">
+      <div>
+        <h2 class="dialog-title" [id]="titleId">Graduate {{ batch().batchName }}</h2>
+        <p class="dialog-sub">{{ subLine() }}</p>
+      </div>
+      <button type="button" class="btn ghost sm" aria-label="Close this dialog" (click)="dismissed.emit()">
+        <span class="icon" aria-hidden="true">close</span>
+      </button>
+    </header>
+
+    <div class="dialog-body">
+      @for (check of checks(); track check.headline) {
+        <div class="preflight" [class.good]="check.tone === 'good'" [class.warn]="check.tone === 'warn'" [class.pending]="check.tone === 'pending'">
+          <span class="icon" aria-hidden="true">{{ check.icon }}</span>
+          <div>
+            <div class="preflight-headline">{{ check.headline }}</div>
+            <div class="preflight-detail">{{ check.detail }}</div>
+          </div>
+        </div>
+      }
+
+      <div class="dialog-fields">
+        <label class="field dated">
+          <span>Graduation date</span>
+          <input class="ctrl" type="date" [value]="today" [reepPending]="4" />
+        </label>
+        <label class="field">
+          <span>Reason</span>
+          <input class="ctrl" type="text" [reepPending]="4" placeholder="e.g. Results declared; convocation date set" />
+        </label>
+      </div>
+
+      <div class="notice accent">
+        <span class="icon" aria-hidden="true">info</span>
+        Graduation is written by the graduate endpoint (B4.4), which lands in Phase 4 — with it come the
+        30-day undo and the per-student exceptions for detained students. Nothing on this screen changes a
+        role yet.
+      </div>
+    </div>
+
+    <footer class="dialog-foot">
+      <button type="button" class="btn secondary" (click)="dismissed.emit()">Cancel</button>
+      <button type="button" class="btn primary" [reepPending]="4">
+        <span class="icon" aria-hidden="true">school</span>
+        Graduate {{ batch().studentCount }} student{{ batch().studentCount === 1 ? '' : 's' }}
+      </button>
+    </footer>
+  </div>
+</div>

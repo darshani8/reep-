@@ -56,7 +56,7 @@
  * shows that has to wait.
  */
 
-import { NgTemplateOutlet } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import {
   FormControl,
@@ -154,7 +154,7 @@ const PHASE_FOR_INTERVIEW_TRACKS = 4;
 @Component({
   selector: 'app-admin-institution',
   standalone: true,
-  imports: [NgTemplateOutlet, ReactiveFormsModule, PendingControlDirective],
+  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, PendingControlDirective],
   templateUrl: './institution.component.html',
   styleUrl: './institution.component.scss',
 })
@@ -323,6 +323,26 @@ export class AdminInstitutionComponent implements OnDestroy {
     }
   }
 
+  /** Every drill-down read goes through here.
+   *
+   *  `get` throws on a non-2xx, and these methods are called straight from
+   *  click handlers. Without this the rejection is unhandled: the rail simply
+   *  stays empty, with no notice and no console state saying why a 403 on
+   *  `admin.institution` or a 500 stopped it. A screen that fails silently is
+   *  worse than one that fails loudly, because nobody files it.
+   */
+  private async guarded(work: () => Promise<void>): Promise<void> {
+    try {
+      await work();
+    } catch (e) {
+      this.error.set(
+        e instanceof TypeError
+          ? 'Could not reach the server.'
+          : 'That part of the institution structure could not be loaded.',
+      );
+    }
+  }
+
   async pickCollege(id: string | null): Promise<void> {
     this.selectedCollegeId.set(id);
     this.selectedDepartmentId.set(null);
@@ -333,9 +353,11 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.closeBatchForm();
     this.closeSeating();
     if (!id) return;
-    const departments = await this.get<DepartmentOut[]>(`/admin/colleges/${id}/departments`);
-    this.departments.set(departments);
-    if (departments.length) await this.pickDepartment(departments[0].id);
+    await this.guarded(async () => {
+      const departments = await this.get<DepartmentOut[]>(`/admin/colleges/${id}/departments`);
+      this.departments.set(departments);
+      if (departments.length) await this.pickDepartment(departments[0].id);
+    });
   }
 
   async pickDepartment(id: string | null): Promise<void> {
@@ -347,13 +369,19 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.closeBatchForm();
     this.closeSeating();
     if (!id) return;
-    const [courses, batches] = await Promise.all([
-      this.get<AcademicCourseOut[]>(`/admin/departments/${id}/academic-courses`),
-      this.get<AdminCohortOut[]>(`/admin/departments/${id}/cohorts`),
-    ]);
-    this.courses.set(courses);
-    this.batches.set(batches);
-    if (courses.length) await this.pickCourse(courses[0].id);
+    await this.guarded(async () => {
+      const [courses, batches] = await Promise.all([
+        this.get<AcademicCourseOut[]>(`/admin/departments/${id}/academic-courses`),
+        this.get<AdminCohortOut[]>(`/admin/departments/${id}/cohorts`),
+      ]);
+      this.courses.set(courses);
+      this.batches.set(batches);
+      // The grid names each batch's specialization, and a batch may sit under
+      // a course other than the selected one — so the names for the whole
+      // department are learned here rather than from the selected course only.
+      await this.learnSpecializationCodes(courses);
+      if (courses.length) await this.pickCourse(courses[0].id);
+    });
   }
 
   async pickCourse(id: string | null): Promise<void> {
@@ -361,12 +389,50 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.specializations.set([]);
     this.courseError.set(null);
     if (!id) return;
-    this.specializations.set(
-      await this.get<AcademicSpecializationOut[]>(
+    await this.guarded(async () => {
+      const specializations = await this.get<AcademicSpecializationOut[]>(
         `/admin/academic-courses/${id}/academic-specializations`,
-      ),
-    );
-    this.fillCourseForm();
+      );
+      this.rememberSpecializationCodes(specializations);
+      this.specializations.set(specializations);
+      this.fillCourseForm();
+    });
+  }
+
+  /** Code by specialization id, for every specialization this screen has read.
+   *
+   *  `AdminCohortOut` names its specialization by ID only, and
+   *  `specializations()` holds one course's worth. Resolving the grid's
+   *  "Course · Spec." column out of that signal printed the course alone for
+   *  every batch under a course that was not selected — the batch looked as
+   *  though it had no specialization at all. */
+  private readonly specializationCodes = new Map<string, string>();
+
+  private rememberSpecializationCodes(rows: AcademicSpecializationOut[]): void {
+    for (const s of rows) this.specializationCodes.set(s.id, s.code);
+  }
+
+  /** Learn the codes for every course in the department, so the batches grid
+   *  can name a specialization under a course nobody has selected.
+   *
+   *  Its own try/catch on purpose: this is a NAMING read, not a structural
+   *  one. If it fails the drill-down must still finish — the grid falls back
+   *  to "…" for that one cell rather than the department refusing to open. */
+  private async learnSpecializationCodes(courses: AcademicCourseOut[]): Promise<void> {
+    try {
+      const lists = await Promise.all(
+        courses
+          .filter((c) => c.specialization_count > 0)
+          .map((c) =>
+            this.get<AcademicSpecializationOut[]>(
+              `/admin/academic-courses/${c.id}/academic-specializations`,
+            ),
+          ),
+      );
+      for (const list of lists) this.rememberSpecializationCodes(list);
+    } catch {
+      /* names only; the structure below is already on screen */
+    }
   }
 
   /** The rail's finder: does this row's code or name contain what was typed? */
@@ -429,6 +495,7 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.openAdd.set(null);
     this.flash.set(`Added department ${created.code}`);
     await this.pickDepartment(created.id);
+    await this.refreshCounts();
   }
 
   async addCourse(): Promise<void> {
@@ -460,10 +527,12 @@ export class AdminInstitutionComponent implements OnDestroy {
       { code: d.code, name: d.name },
     );
     if (!created) return;
+    this.rememberSpecializationCodes([created]);
     this.specializations.update((list) => [...list, created]);
     this.specializationDraft.set({ code: '', name: '' });
     this.openAdd.set(null);
     this.flash.set(`Added specialization ${created.code}`);
+    await this.refreshCounts();
   }
 
   // =========================================================================
@@ -570,13 +639,17 @@ export class AdminInstitutionComponent implements OnDestroy {
     // Changing the course clears anything under it and reloads its options.
     const courseId = this.batchForm.get('course_id')?.value as string | null;
     this.batchForm.get('specialization_id')?.setValue(null);
-    this.formSpecializations.set(
-      courseId
-        ? await this.get<AcademicSpecializationOut[]>(
-            `/admin/academic-courses/${courseId}/academic-specializations`,
-          )
-        : [],
-    );
+    if (!courseId) {
+      this.formSpecializations.set([]);
+      return;
+    }
+    await this.guarded(async () => {
+      const rows = await this.get<AcademicSpecializationOut[]>(
+        `/admin/academic-courses/${courseId}/academic-specializations`,
+      );
+      this.rememberSpecializationCodes(rows);
+      this.formSpecializations.set(rows);
+    });
   }
 
   openCreateBatch(): void {
@@ -601,13 +674,17 @@ export class AdminInstitutionComponent implements OnDestroy {
       specialization_id: b.specialization_id,
     });
     this.batchForm.get('code')?.disable(); // the code is the batch's handle; not edited here
-    this.formSpecializations.set(
-      b.course_id
-        ? await this.get<AcademicSpecializationOut[]>(
-            `/admin/academic-courses/${b.course_id}/academic-specializations`,
-          )
-        : [],
-    );
+    this.formSpecializations.set([]);
+    if (b.course_id) {
+      const courseId = b.course_id;
+      await this.guarded(async () => {
+        const rows = await this.get<AcademicSpecializationOut[]>(
+          `/admin/academic-courses/${courseId}/academic-specializations`,
+        );
+        this.rememberSpecializationCodes(rows);
+        this.formSpecializations.set(rows);
+      });
+    }
     // Required NOW, blank on the row AS LOADED. Anything the admin clears
     // during this edit is NOT grandfathered — that is a fresh gap, and it is
     // refused normally.
@@ -685,7 +762,7 @@ export class AdminInstitutionComponent implements OnDestroy {
     if (!res) return;
     this.flash.set(this.batchMode() === 'create' ? `Created batch ${res.code}` : `Saved ${res.code}`);
     this.closeBatchForm();
-    await Promise.all([this.reloadBatches(), this.reloadInboxes()]);
+    await Promise.all([this.reloadBatches(), this.reloadInboxes(), this.refreshCounts()]);
   }
 
   async fileUnassigned(b: AdminCohortOut): Promise<void> {
@@ -696,7 +773,7 @@ export class AdminInstitutionComponent implements OnDestroy {
     });
     if (!res) return;
     this.flash.set(`Filed ${res.code} under ${this.selectedDepartment()?.code ?? 'department'}`);
-    await Promise.all([this.reloadBatches(), this.reloadInboxes()]);
+    await Promise.all([this.reloadBatches(), this.reloadInboxes(), this.refreshCounts()]);
   }
 
   // =========================================================================
@@ -761,26 +838,64 @@ export class AdminInstitutionComponent implements OnDestroy {
   private async reloadBatches(): Promise<void> {
     const department = this.selectedDepartmentId();
     if (!department) return;
-    this.batches.set(await this.get<AdminCohortOut[]>(`/admin/departments/${department}/cohorts`));
+    await this.guarded(async () => {
+      this.batches.set(await this.get<AdminCohortOut[]>(`/admin/departments/${department}/cohorts`));
+    });
   }
 
   private async reloadInboxes(): Promise<void> {
-    const [incomplete, unassigned] = await Promise.all([
-      this.get<AdminCohortOut[]>('/admin/cohorts/incomplete'),
-      this.get<AdminCohortOut[]>('/admin/cohorts/unassigned'),
-    ]);
-    this.incomplete.set(incomplete);
-    this.unassigned.set(unassigned);
+    await this.guarded(async () => {
+      const [incomplete, unassigned] = await Promise.all([
+        this.get<AdminCohortOut[]>('/admin/cohorts/incomplete'),
+        this.get<AdminCohortOut[]>('/admin/cohorts/unassigned'),
+      ]);
+      this.incomplete.set(incomplete);
+      this.unassigned.set(unassigned);
+    });
+  }
+
+  /** Re-read the rows that CARRY THE COUNTS the rail prints, without moving
+   *  the selection.
+   *
+   *  `department_count`, `cohort_count` and `specialization_count` are computed
+   *  server-side per row, so every inline create leaves the parent's count line
+   *  stale: add the first department to a college and the rail went on saying
+   *  "0 departments". A wrong number on screen is the same failure as an
+   *  invented one, and incrementing it locally would be inventing it. */
+  private async refreshCounts(): Promise<void> {
+    const college = this.selectedCollegeId();
+    const department = this.selectedDepartmentId();
+    await this.guarded(async () => {
+      this.colleges.set(await this.get<CollegeOut[]>('/admin/colleges'));
+      if (college) {
+        this.departments.set(
+          await this.get<DepartmentOut[]>(`/admin/colleges/${college}/departments`),
+        );
+      }
+      if (department) {
+        this.courses.set(
+          await this.get<AcademicCourseOut[]>(`/admin/departments/${department}/academic-courses`),
+        );
+      }
+    });
   }
 
   // =========================================================================
   // display helpers
   // =========================================================================
 
-  /** "MBA · FIN", or "—" for a batch attached at department level. */
+  /** "MBA · FIN", or "—" for a batch attached at department level.
+   *
+   *  Read from the learned map, never from `specializations()` — that signal
+   *  holds the SELECTED course's rows, so a batch under a sibling course would
+   *  print "MBA" and read as having no specialization. An id whose code is
+   *  somehow still unknown prints "…", never nothing: the cell must not deny a
+   *  level the row actually names. */
   levelsOf(b: AdminCohortOut): string {
     const course = this.courses().find((c) => c.id === b.course_id)?.code;
-    const spec = this.specializations().find((s) => s.id === b.specialization_id)?.code;
+    const spec = b.specialization_id
+      ? (this.specializationCodes.get(b.specialization_id) ?? '…')
+      : undefined;
     const parts = [course, spec].filter((p): p is string => !!p);
     return parts.length ? parts.join(' · ') : '—';
   }
@@ -791,10 +906,17 @@ export class AdminInstitutionComponent implements OnDestroy {
     return `${d.cohort_count} batches`;
   }
 
-  /** The rail's count line for a course: "4 specializations". */
+  /** The rail's line for a course: "24 months · 4 specializations".
+   *
+   *  The board writes this row as "PG · 2 yrs · 4 sems". Level and semesters
+   *  are B4.1 and are not shown at all rather than guessed; `duration_months`
+   *  IS a real column, so it is shown — in months, the unit stored, because
+   *  dividing 18 by 12 to print "1 yr" would round a real answer into a wrong
+   *  one. */
   specializationCountOf(c: AcademicCourseOut): string {
-    if (c.specialization_count === 1) return '1 specialization';
-    return `${c.specialization_count} specializations`;
+    const counted =
+      c.specialization_count === 1 ? '1 specialization' : `${c.specialization_count} specializations`;
+    return c.duration_months === null ? counted : `${c.duration_months} months · ${counted}`;
   }
 
   readonly requiredLabels = computed(() =>

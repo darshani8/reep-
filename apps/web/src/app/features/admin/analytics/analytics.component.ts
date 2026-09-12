@@ -39,7 +39,7 @@
  */
 
 import { DatePipe } from '@angular/common';
-import { Component, ElementRef, OnDestroy, computed, effect, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AgGridAngular } from 'ag-grid-angular';
@@ -57,6 +57,7 @@ import {
 import { SVGRenderer } from 'echarts/renderers';
 
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/auth.service';
 import {
   CATEGORICAL_PALETTE,
   REEP_CHART_THEME,
@@ -301,6 +302,23 @@ export class AdminAnalyticsComponent implements OnDestroy {
   readonly alerts = signal<ProgrammeAlert[] | null>(null);
   readonly error = signal<string | null>(null);
 
+  /** A READ THAT FAILED IS NOT A READ THAT RETURNED NOTHING.
+   *
+   *  Both of these used to be `set([])` in the catch and in the !ok branch,
+   *  which is how "we could not reach the alert feed" reached the screen as the
+   *  sentence "Nothing open." — a zero nobody counted, on the console's landing
+   *  board, which is the invented figure this phase exists to prevent. The data
+   *  signal now stays null on a failure and these say why, so the empty state
+   *  is only ever drawn over an answer the server actually gave. */
+  readonly mentorLoadFailed = signal(false);
+  readonly alertsFailed = signal(false);
+
+  /** The chart's own failure, kept apart from the screen-level `error()`.
+   *  Sharing one signal meant a 404 on ONE student's six weeks raised a banner
+   *  that nothing ever cleared: picking a student whose weeks load fine left
+   *  "Could not load that student's six weeks." standing over their chart. */
+  readonly weeklyError = signal<string | null>(null);
+
   /** The placement criteria's attendance floor — the one target line drawn. */
   readonly attendanceTarget = signal<number | null>(null);
 
@@ -312,6 +330,23 @@ export class AdminAnalyticsComponent implements OnDestroy {
 
   /** The grid's quick filter, as typed in the toolbar. */
   readonly quickFilter = signal('');
+
+  private readonly auth = inject(AuthService);
+
+  /** THIS SCREEN IS NOT ONLY THE MAIN ADMIN'S. `admin.analytics` is grantable
+   *  (console.py's own docstring: "the difference is a MENTOR an admin has
+   *  granted admin.analytics to"), and every cross-link on this board leads to
+   *  a route guarded by a DIFFERENT capability — `admin.placement`,
+   *  `admin.registrations`, `admin.mentors`, `admin.exports`. `capabilityGuard`
+   *  answers a capability it does not hold with a silent redirect to the
+   *  reader's own home, so for a granted mentor those four controls are a
+   *  button that throws you off the screen. The shell's sidebar already filters
+   *  its rows this way; the same filter belongs on the links. It is a
+   *  CONVENIENCE, exactly as app-shell says — the route guard and the API are
+   *  what refuse. */
+  holds(capability: string): boolean {
+    return this.auth.session()?.capabilities?.includes(capability) ?? false;
+  }
 
   private healthChart: echarts.ECharts | null = null;
   private chartResizeObserver: ResizeObserver | null = null;
@@ -438,9 +473,10 @@ export class AdminAnalyticsComponent implements OnDestroy {
     return figures.pending_registrations + figures.evidence_awaiting_verification;
   });
 
-  readonly rosterIsEmpty = computed(() => this.mentorLoad() !== null && this.mentorRows().length === 0);
+  readonly mentorLoadLoaded = computed(() => this.mentorLoad() !== null);
+  readonly rosterIsEmpty = computed(() => this.mentorLoadLoaded() && this.mentorRows().length === 0);
   readonly noStudentHasAMentor = computed(
-    () => this.mentorLoad() !== null && this.studentsWithAMentor().length === 0,
+    () => this.mentorLoadLoaded() && this.studentsWithAMentor().length === 0,
   );
 
   readonly openAlerts = computed<ProgrammeAlert[]>(() => this.alerts() ?? []);
@@ -465,6 +501,11 @@ export class AdminAnalyticsComponent implements OnDestroy {
         this.weekly.set(alreadyFetched);
         return;
       }
+      // Clear the frame BEFORE the request. Leaving the previous student's
+      // series up while the next one is in flight draws one student's six weeks
+      // under another student's name in the picker beside it — and if the
+      // request then fails it stays there, permanently mislabelled.
+      this.weekly.set(null);
       void this.fetchStudentWeeks(studentId);
     });
 
@@ -624,7 +665,7 @@ export class AdminAnalyticsComponent implements OnDestroy {
 
       if (!loadResponse.ok) {
         this.error.set('Could not load the mentorship map.');
-        this.mentorLoad.set([]);
+        this.mentorLoadFailed.set(true);
       } else {
         this.mentorLoad.set((await loadResponse.json()) as MentorLoad[]);
         this.selectFirstStudentForTheChart();
@@ -648,12 +689,12 @@ export class AdminAnalyticsComponent implements OnDestroy {
       if (alertsResponse.ok) {
         this.alerts.set((await alertsResponse.json()) as ProgrammeAlert[]);
       } else {
-        this.alerts.set([]);
+        this.alertsFailed.set(true);
       }
     } catch {
       this.error.set('Could not reach the server.');
-      this.mentorLoad.set([]);
-      this.alerts.set([]);
+      this.mentorLoadFailed.set(true);
+      this.alertsFailed.set(true);
     }
   }
 
@@ -667,12 +708,15 @@ export class AdminAnalyticsComponent implements OnDestroy {
 
   private async fetchStudentWeeks(studentId: string): Promise<void> {
     this.weeklyBusy.set(true);
+    // Whatever went wrong for the last student is not this student's state.
+    this.weeklyError.set(null);
     try {
       const response = await fetch(`${this.apiBase}/admin/students/${studentId}/weekly`, {
         credentials: 'include',
       });
       if (!response.ok) {
-        this.error.set("Could not load that student's six weeks.");
+        this.weeklyError.set("Could not load that student's six weeks.");
+        if (this.selectedStudentId() === studentId) this.weekly.set(null);
         return;
       }
       const weeks = (await response.json()) as StudentWeekly;
@@ -680,7 +724,8 @@ export class AdminAnalyticsComponent implements OnDestroy {
       // Still the selected student? The reader may have moved on mid-flight.
       if (this.selectedStudentId() === studentId) this.weekly.set(weeks);
     } catch {
-      this.error.set('Could not reach the server.');
+      this.weeklyError.set('Could not reach the server.');
+      if (this.selectedStudentId() === studentId) this.weekly.set(null);
     } finally {
       this.weeklyBusy.set(false);
     }

@@ -5,7 +5,8 @@
       <h1 class="dt-title">Placement analytics</h1>
       <div class="dt-sub">
         @if (summary(); as figures) {
-          Programme-wide · {{ figures.students_total }} students · {{ figures.mentors_total }} mentors
+          Programme-wide · {{ figures.students_total }} students ·
+          {{ figures.mentors_total }} mentors with a group
           @if (figures.semester !== null) {
             · semester {{ figures.semester }}
           }
@@ -16,9 +17,11 @@
       </div>
     </div>
     <div class="dt-toolbar">
-      <a class="btn secondary" routerLink="/admin/exports">
-        <span class="icon" aria-hidden="true">download</span> Export
-      </a>
+      @if (holds('admin.exports')) {
+        <a class="btn secondary" routerLink="/admin/exports">
+          <span class="icon" aria-hidden="true">download</span> Export
+        </a>
+      }
       <button type="button" class="btn primary" [reepPending]="4">
         <span class="icon" aria-hidden="true">upload_file</span> Import data
       </button>
@@ -77,9 +80,13 @@
         <!-- 01-design-system.md §3: Placement is reached from the Analytics
              tiles, so this figure is the way in rather than a dead number. -->
         <div class="sub">
-          <a routerLink="/admin/placement">
+          @if (holds('admin.placement')) {
+            <a routerLink="/admin/placement">
+              {{ figures.placed_students }} of {{ figures.students_total }} with an approved offer
+            </a>
+          } @else {
             {{ figures.placed_students }} of {{ figures.students_total }} with an approved offer
-          </a>
+          }
         </div>
       } @else {
         <div class="num">—</div>
@@ -109,7 +116,14 @@
       <div class="kpi-head"><div class="eyebrow">Attendance</div></div>
       @if (attendanceAveragePercent() !== null) {
         <div class="num">{{ attendanceAveragePercent() }}<span class="unit">%</span></div>
-        <div class="sub">mean of {{ studentsWithAttendanceRecorded() }} students with attendance recorded</div>
+        <!-- `/admin/mentor-load` groups students BY MENTOR and drops the
+             unassigned ones, so this mean is over students who have a mentor
+             and have attendance recorded — not over the roster the header
+             counts. Say which, or the tile is a programme figure that is not
+             one. -->
+        <div class="sub">
+          mean of {{ studentsWithAttendanceRecorded() }} students with a mentor and attendance recorded
+        </div>
       } @else {
         <div class="num">—</div>
         <div class="sub">No attendance recorded yet.</div>
@@ -130,7 +144,11 @@
       @if (summary(); as figures) {
         <div class="num">{{ pendingApprovals() }}</div>
         <div class="sub">
-          <a routerLink="/admin/registrations">{{ figures.pending_registrations }} registrations</a>
+          @if (holds('admin.registrations')) {
+            <a routerLink="/admin/registrations">{{ figures.pending_registrations }} registrations</a>
+          } @else {
+            {{ figures.pending_registrations }} registrations
+          }
           · {{ figures.evidence_awaiting_verification }} evidence
         </div>
       } @else {
@@ -200,6 +218,12 @@
       </p>
     }
 
+    @if (weeklyError(); as weeklyProblem) {
+      <div class="notice" role="alert">
+        <span class="icon" aria-hidden="true">error</span>{{ weeklyProblem }}
+      </div>
+    }
+
     @if (weekly(); as series) {
       <div
         #healthChart
@@ -207,6 +231,11 @@
         role="img"
         [attr.aria-label]="'Weekly attendance and ledger hours for ' + series.name"
       ></div>
+    } @else if (mentorLoadFailed()) {
+      <div class="notice warn" role="alert">
+        <span class="icon" aria-hidden="true">warning</span>
+        The mentorship map did not load, so there is nobody to draw a series for. Reload the screen.
+      </div>
     } @else if (noStudentHasAMentor()) {
       <div class="notice warn">
         <span class="icon" aria-hidden="true">warning</span>
@@ -219,22 +248,41 @@
     <section class="card grid-card">
       <div class="card-head">
         <div>
-          <h2 class="card-heading">Mentor load · {{ mentorRows().length }} mentors</h2>
+          <!-- "faculty accounts", not "mentors": `/analytics-summary` counts
+               `Mentor` ROWS, which exist only once the office has assigned that
+               person a student, while this grid lists every MENTOR-role
+               account. Both said "mentors" and the header's figure was the
+               smaller of the two — one screen, one word, two numbers. -->
+          <h2 class="card-heading">
+            Mentor load@if (mentorLoadLoaded()) { · {{ mentorRows().length }} faculty accounts }
+          </h2>
           <p class="card-sub">
-            Every faculty account, with the mean of its students' figures. Hours are the whole ledger
-            record rather than one week.
+            Every faculty account, including one holding nobody yet — which is why this count is at or
+            above the header's. The figures are the mean across that mentor's students, and hours are
+            the whole ledger record rather than one week.
           </p>
         </div>
-        <a class="btn ghost sm" routerLink="/admin/mentors">
-          <span class="icon" aria-hidden="true">arrow_forward</span> Open mentor mapping
-        </a>
+        @if (holds('admin.mentors')) {
+          <a class="btn ghost sm" routerLink="/admin/mentors">
+            <span class="icon" aria-hidden="true">arrow_forward</span> Open mentor mapping
+          </a>
+        }
       </div>
 
-      @if (rosterIsEmpty()) {
+      @if (mentorLoadFailed()) {
+        <div class="notice warn" role="alert">
+          <span class="icon" aria-hidden="true">warning</span>
+          Could not load the mentorship map, so this table is not the roster — it is nothing at all.
+        </div>
+      } @else if (rosterIsEmpty()) {
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
           No mentors on the roster yet, so there is nothing to map.
         </div>
+      } @else if (!mentorLoadLoaded()) {
+        <p class="state-note" role="status">
+          <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the mentorship map…
+        </p>
       } @else {
         <div class="grid-toolbar">
           <input
@@ -275,7 +323,12 @@
         </button>
       </div>
 
-      @if (alertsAreEmpty()) {
+      @if (alertsFailed()) {
+        <div class="notice warn" role="alert">
+          <span class="icon" aria-hidden="true">warning</span>
+          Could not load the alert feed, so this is not "nothing open" — it is not known.
+        </div>
+      } @else if (alertsAreEmpty()) {
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
           Nothing open.

@@ -4,13 +4,33 @@
     <div class="reg-sub">Fill the form yourself, or upload your CV and we'll auto-fill what we can read from it.</div>
 
     @if (result(); as r) {
-      <!-- decided: surface the rule engine's verdict -->
+      <!-- decided: surface the rule engine's verdict.
+
+           THE COPY FIX (B11.4), and both halves of it were on this line. It read
+           "Domain matched — auto-approved" and "Your account is active
+           immediately".
+
+           "Domain matched" named the COLLEGE'S registered domains to the reader.
+           What actually fires here is a seating rule
+           (`registration_rules.email_domain`) — a different list, a different
+           screen, and one that may be null, so the rule can match on a USN
+           pattern or a degree level alone with no domain involved at all. The
+           college's domain list is the fence that can REFUSE an auto-approval
+           (GUARD 1), which is the opposite direction.
+
+           "Active immediately" has been false since 2026-09-10: approval mints
+           the account with an unusable password sentinel and emails a setup
+           link, and the applicant must confirm the address with a six-digit code
+           and set a password before they can sign in. -->
       @if (approved()) {
         <div class="reg-approval ok">
           <span class="icon" aria-hidden="true">check_circle</span>
           <div>
-            <b>Domain matched — auto-approved.</b>
-            {{ r.decision_reason ?? (r.email + ' is within an approved domain. Your account is active immediately.') }}
+            <b>A seating rule approved your application.</b>
+            {{ r.decision_reason ?? 'A seating rule matched what you entered, so this application did not need to wait for a reviewer.' }}
+            We have emailed {{ r.email }} a setup link. Open it, confirm the address with the
+            code we send you, and choose a password — approval created your account but no
+            password, and that link is how you get one.
           </div>
         </div>
       } @else {

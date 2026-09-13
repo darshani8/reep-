@@ -120,6 +120,64 @@ def registration_scope_clause(reach: Reach):
     return or_(*clauses)
 
 
+def registration_rule_scope_clause(reach: Reach):
+    """The reach, as a WHERE clause over `registration_rules` (B11.3).
+
+    A RULE HANGS ON ITS BATCH, and on nothing else. `registration_rules` carries
+    one spine pointer — a nullable `cohort_id` — so the walk is the batch's own:
+    `cohorts` carries `department_id`, `course_id` and `specialization_id`, and
+    the college is one more join through the department. That is the same walk
+    `institution_domains.college_ids_for_cohorts` makes and the same shape
+    `import_run_scope_clause` uses directly below; it is written as a subquery
+    rather than as ancestry denormalised onto the rule for the reason
+    `_resolve_ancestry` exists — one writer for a batch's ancestry.
+
+    A RULE THAT NAMES NO BATCH IS THE MAIN ADMIN'S, and that is the deliberate
+    opposite of a `capability_grants` NULL (B1.2), where NULL means
+    programme-wide. `cohort_id IS NULL` here means the rule hangs under nothing,
+    so `IN (subquery)` is NULL for it and no narrowed reach matches it — the
+    same answer `registration_scope_clause` gives an application that named
+    nothing, and for the same reason: a rule visible to everybody because it
+    named nobody would be the way around every scope in the system.
+
+    THIS IS THE LIST *AND* THE WRITES. `registration._assert_rule_reachable`
+    re-SELECTs a rule through this very clause rather than re-reading the reach
+    in Python, so "which rules can I see" and "which rules can I edit" are one
+    predicate by construction — which matters more here than anywhere else on
+    this screen, because an `auto_approve` rule naming a batch is the one
+    control in the product that seats a student without a human.
+    """
+    from .models.cohort import Cohort
+    from .models.institution import Department
+    from .models.registration import RegistrationRule
+
+    if reach.everything:
+        return sa_true()
+    clauses = []
+    if reach.cohorts:
+        clauses.append(RegistrationRule.cohort_id.in_(reach.cohorts))
+    if reach.colleges:
+        clauses.append(
+            RegistrationRule.cohort_id.in_(
+                select(Cohort.id)
+                .join(Department, Cohort.department_id == Department.id)
+                .where(Department.college_id.in_(reach.colleges))
+            )
+        )
+    for values, column in (
+        (reach.departments, Cohort.department_id),
+        (reach.courses, Cohort.course_id),
+        (reach.specializations, Cohort.specialization_id),
+    ):
+        if values:
+            clauses.append(
+                RegistrationRule.cohort_id.in_(select(Cohort.id).where(column.in_(values)))
+            )
+    if not clauses:
+        return sa_false()
+    return or_(*clauses)
+
+
 def import_run_scope_clause(reach: Reach):
     """The reach, as a WHERE clause over `import_runs` (B8.1).
 

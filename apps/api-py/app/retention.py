@@ -47,7 +47,6 @@ from sqlalchemy.orm import Session
 
 from .account_links import sweep_login_codes
 from . import document_store
-from .models.registration import Registration, RegistrationDocument, RegistrationStatus
 from .config import settings
 from .models.agent_run import AgentRun
 from .models.conversation import Conversation, Message

@@ -14,11 +14,19 @@
  * task on this screen that is a client change: it is fixed here.
  *
  * WHAT IS LIVE, AND ON WHICH ENDPOINT.
- *   GET  /api/register/pending            the queue (PENDING_REVIEW only)
+ *   GET  /api/register/pending            the queue. NO PARAMETERS is the
+ *                                         historical unbounded pending list and
+ *                                         is what the Pending tab asks for;
+ *                                         `?status=&limit=` is the other three
+ *                                         tabs (B11.2)
  *   POST /api/register/{id}/decision      approve, and reject WITH A REASON —
  *                                         the API answers 422 without one and
  *                                         this screen refuses before posting
- *   POST /api/register/{id}/reopen        the board's Undo, rejected rows only
+ *   POST /api/register/{id}/hold          park it WITH A NOTE, same shape: 422
+ *                                         without one, refused here first
+ *   POST /api/register/{id}/reopen        back in the queue — the Rejected
+ *                                         tab's Undo AND the Held tab's release,
+ *                                         because they are one act
  *   GET  /api/register/rules              the Seating rules drawer, read-only
  *   GET  /api/register/hierarchy          batch names for the queue and the
  *                                         College / Batch filters (public, and
@@ -27,14 +35,33 @@
  *                                         else — `/api/admin/cohorts` is not,
  *                                         it asks for `admin.analytics`)
  *
- * WHAT IS NOT, AND WHY IT IS DRAWN DISABLED RATHER THAN LIVE. The board's other
- * three tabs (Auto-approved, Held, Rejected) need a queue that can be listed by
- * status; its Domain check filter needs the college's registered domains; its
- * Checks panel needs the domain, duplicate-account and seat verdicts; and Hold
- * needs a status that does not exist. Those are B11.1 and B11.2, both Phase 4.
- * Every one of them renders as a disabled control saying so, beside the checks
- * this screen CAN compute from the payload it already has — the rule engine's
- * own verdict, the batch it routed to, and what the applicant attached.
+ * THE CHECKS ARE THE SERVER'S NOW (B11.1). Every row of `GET /pending` carries
+ * `checks[]`: the rule engine's verdict, the college domain fence, whose account
+ * this address already is, and the USN. Three of those are the guards
+ * `_provision_student` applies when Approve is pressed, read out BEFORE the
+ * press — so a red line here and a 4xx there are one answer and not two, which
+ * is only true because this screen renders what it is given and recomputes
+ * nothing. The client's own guess at the rule check is gone for that reason.
+ * The batch line and the two attachment lines stay client-side: neither is a
+ * guard and neither can contradict a decision.
+ *
+ * THERE IS NO SEAT CHECK AND THERE IS NOT GOING TO BE ONE. The board draws
+ * "60 of 60 seats"; `cohorts` has no capacity column and 04 §B11.1 asks for
+ * none. A nullable one would render as "no check" on every batch nobody had
+ * filled in — grey exactly where it would matter — and seating capacity is a
+ * course-shape decision that belongs with the catalogue. The notice under the
+ * checklist used to promise it under B11.1 and now says plainly that nothing
+ * counts seats.
+ *
+ * THE FOUR TABS ARE LIVE (B11.2). They were drawn disabled because the queue
+ * could only be asked for one hard-coded status; `?status=` is that gap closed.
+ * HOLD is the new one and it is INTERNAL: a note a reviewer writes about an
+ * application for colleagues, no mail, nothing the applicant can see. A held
+ * application is still decidable, is still counted on the Analytics pending
+ * tile, and can still receive the document it is being held for.
+ *
+ * WHAT IS STILL NOT LIVE: creating and editing seating rules (B11.3), which is
+ * the one remaining disabled control on this screen and says so.
  *
  * BULK IS THE LOOP, deliberately. There is no bulk decision endpoint; "Approve
  * 3 selected" is three POSTs and the notice says how many landed. A failure
@@ -72,6 +99,29 @@ import { plural } from '../../../shared/text/plural.pipe';
  *  B11.2 (HOLD) and B11.3 (rules CRUD) — 06-phase-prompts.md, Phase 4. */
 const REGISTRATIONS_BACKEND_PHASE = 4;
 
+/** The board's four tabs, and what each one asks the server for.
+ *
+ *  THE PENDING TAB SENDS NO `?status=` AT ALL, and that is deliberate rather
+ *  than a shortcut: `GET /register/pending` answers its historical list — every
+ *  pending application in reach, oldest first, UNBOUNDED — only when it is
+ *  called with no parameters, and that list is the one the office works through
+ *  every morning. Asking for it by name with a page size would silently cap it.
+ *
+ *  The other three are bounded, because AUTO_APPROVED and REJECTED grow for the
+ *  life of the deployment. */
+type QueueStatus = 'PENDING_REVIEW' | 'HOLD' | 'AUTO_APPROVED' | 'REJECTED';
+
+const QUEUE_TABS: { key: QueueStatus; label: string }[] = [
+  { key: 'PENDING_REVIEW', label: 'Pending' },
+  { key: 'AUTO_APPROVED', label: 'Auto-approved' },
+  { key: 'HOLD', label: 'Held' },
+  { key: 'REJECTED', label: 'Rejected' },
+];
+
+/** How many rows a non-default tab asks for. The server clamps at 500 of its
+ *  own accord; this is the screen saying what it can actually draw. */
+const DECIDED_TAB_PAGE = 200;
+
 /** The board's "Submitted" filter. Client-side, over the rows already loaded —
  *  `GET /pending` takes no date parameter. */
 const SUBMITTED_WINDOWS: { key: string; label: string; days: number | null }[] = [
@@ -105,6 +155,26 @@ const NOT_ON_RECORD = 'Not on record';
 
 // ------------------------------------------------------- the API payloads --
 
+/**
+ * `CheckOut` in `app/routers/registration.py` — one line of the reviewer's
+ * pre-decision checklist, computed by the SERVER.
+ *
+ * THE VOCABULARY IS THE SERVER'S AND IS NOT RESTATED HERE. "blocked" means
+ * Approve will refuse this exact application with a 4xx, and every blocked
+ * check is one-to-one with a guard in `_provision_student`; "warn" means Approve
+ * will succeed but something is worth a human's eye; "ok" means nothing to
+ * report. The screen branches on `key`, never on `label`, which is prose.
+ *
+ * The key set on a row is NOT fixed: `usn_pattern` appears only where a matched
+ * rule declares a pattern. Render what arrives, in the order it arrives.
+ */
+interface CheckApiRow {
+  key: string;
+  status: 'ok' | 'warn' | 'blocked';
+  label: string;
+  detail: string;
+}
+
 /** `RegistrationOut` in `app/routers/registration.py`. */
 interface RegistrationApiRow {
   id: string;
@@ -126,6 +196,20 @@ interface RegistrationApiRow {
   specialization_name: string | null;
   /** The batch the APPLICANT asked for; `cohort_id` is the rule's, and wins. */
   requested_batch: string | null;
+  /** B11.1. NULL MEANS NOT COMPUTED — only a row somebody can still decide gets
+   *  a checklist, and the single-row answers from `decision`, `hold` and
+   *  `reopen` leave it null rather than answering `[]`, which would render as a
+   *  clean bill of health for an application nobody checked. Treat null as "no
+   *  checklist", never as "no problems". The Auto-approved and Rejected tabs
+   *  carry null on every row for the same reason: a live "Approve will refuse
+   *  this" is an answer to a question that was settled last month. */
+  checks: CheckApiRow[] | null;
+  /** B11.2, and staff-only — `PublicRegistrationOut` declares none of the three,
+   *  so a hold note cannot reach the applicant it is written about. Null on
+   *  every application that is not, and has never been, on hold. */
+  hold_note: string | null;
+  held_by_id: string | null;
+  held_at: string | null;
 }
 
 /** `RuleOut` in `app/routers/registration.py`. */
@@ -176,17 +260,47 @@ interface QueueRow {
   documentsTone: string;
   ruleLabel: string;
   ruleTone: string;
+  /** The server's `domain` check for this row, or null on a payload that
+   *  carried no checklist. Null is NOT "the domain is fine" — the cell renders
+   *  neutral and says so, which is the same distinction the server draws. */
+  domainCheck: CheckApiRow | null;
+  domainTone: string;
   application: RegistrationApiRow;
 }
 
-/** One line of the panel's Checks list. Only checks this screen can actually
- *  compute appear here; the rest are named in the notice under them. */
+/** One line of the panel's Checks list.
+ *
+ *  Most of these now come from the SERVER (`checks[]`, B11.1) — the rule
+ *  engine's verdict, the college domain fence, whose account this address
+ *  already is and the USN. Two are still the client's, because the payload
+ *  already answers them and the server does not: the batch a rule seated them
+ *  in, and what they attached. The `risk` tone is the server's "blocked": a
+ *  check that says Approve WILL refuse this application. */
 interface ApplicationCheck {
   headline: string;
   detail: string;
-  tone: 'good' | 'warn' | 'neutral';
+  tone: 'good' | 'warn' | 'neutral' | 'risk';
   icon: string;
 }
+
+/** The server's three verdicts, mapped onto this screen's tones and glyphs.
+ *  One place, so a new verdict is a compile error rather than a silent grey. */
+const CHECK_TONES: Record<CheckApiRow['status'], { tone: ApplicationCheck['tone']; icon: string }> = {
+  ok: { tone: 'good', icon: 'check_circle' },
+  warn: { tone: 'warn', icon: 'warning' },
+  blocked: { tone: 'risk', icon: 'block' },
+};
+
+/** The key of the server check the Email domain column colours itself from. */
+const DOMAIN_CHECK_KEY = 'domain';
+
+/** The board's "Domain check" filter, live since B11.1. */
+const DOMAIN_FILTERS: { key: string; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'ok', label: 'On a college domain' },
+  { key: 'blocked', label: 'Off-domain (Approve refuses)' },
+];
+const EVERY_DOMAIN_VERDICT = 'all';
 
 /** A seating rule as the drawer reads it out. */
 interface SeatingRuleLine {
@@ -236,17 +350,21 @@ function renderUsnCell(params: ICellRendererParams<QueueRow>): string {
 }
 
 /**
- * The domain the onboarding link will be sent to — a VALUE, not a verdict.
+ * The domain the onboarding link will be sent to, coloured by the SERVER's
+ * verdict (B11.1).
  *
- * The board colours this cell green or red by whether the domain is one of the
- * college's registered ones. Nothing on main holds that list (B11.1), so a
- * green chip here would be a judgement no code made. It is neutral until the
- * check exists, and the column header says why.
+ * It was neutral until B11.1, because nothing held the college's registered
+ * domains and a green chip would have been a judgement no code made. The chip
+ * is now the `domain` check that `domain_verdict` computed — the same function
+ * GUARD 1 calls when Approve is pressed — so red here and a 422 there are one
+ * answer rather than two. A row that carried no checklist stays neutral, for
+ * the original reason.
  */
 function renderEmailDomainCell(params: ICellRendererParams<QueueRow>): string {
   const row = params.data;
   if (row === undefined) return '';
-  return `<span class="chip neutral">${escapeHtml(row.emailDomain)}</span>`;
+  const title = row.domainCheck === null ? '' : ` title="${escapeHtml(row.domainCheck.label)}"`;
+  return `<span class="chip ${row.domainTone}"${title}>${escapeHtml(row.emailDomain)}</span>`;
 }
 
 function renderDocumentsCell(params: ICellRendererParams<QueueRow>): string {
@@ -328,6 +446,22 @@ function initialsOf(name: string): string {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
+/** One server check off a row, by key. Null when the payload carried no
+ *  checklist at all — which is a different fact from "that check passed". */
+function checkOf(application: RegistrationApiRow, key: string): CheckApiRow | null {
+  return application.checks?.find((check) => check.key === key) ?? null;
+}
+
+/** The chip class for a server check. NEUTRAL for a check that was not
+ *  computed: a green chip there would be a verdict no code made, which is
+ *  exactly what this cell was neutral to avoid before B11.1 existed. */
+function toneOfCheck(check: CheckApiRow | null): string {
+  if (check === null) return 'neutral';
+  if (check.status === 'ok') return 'good';
+  if (check.status === 'warn') return 'warn';
+  return 'risk';
+}
+
 function emailDomainOf(email: string): string {
   const at = email.lastIndexOf('@');
   if (at === -1 || at === email.length - 1) return 'No domain';
@@ -366,7 +500,10 @@ function shortDateOf(isoTimestamp: string): string {
 })
 export class AdminRegistrationsComponent {
   readonly backendPhase = REGISTRATIONS_BACKEND_PHASE;
+  readonly queueTabs = QUEUE_TABS;
   readonly submittedWindows = SUBMITTED_WINDOWS;
+  readonly domainFilters = DOMAIN_FILTERS;
+  readonly everyDomainVerdict = EVERY_DOMAIN_VERDICT;
   readonly pageSizes = PAGE_SIZES;
   readonly everyCollege = EVERY_COLLEGE;
   readonly everyBatch = EVERY_BATCH;
@@ -384,9 +521,14 @@ export class AdminRegistrationsComponent {
   readonly flash = signal<string | null>(null);
   readonly deciding = signal(false);
   readonly undoing = signal(false);
+  /** Which tab is open. One request per tab, on demand — four queues held at
+   *  once would be four lists going stale behind three tabs nobody is looking
+   *  at, and a decision taken on one of them would leave the others wrong. */
+  readonly activeTab = signal<QueueStatus>('PENDING_REVIEW');
   readonly quickFilter = signal('');
   readonly collegeFilter = signal(EVERY_COLLEGE);
   readonly batchFilter = signal(EVERY_BATCH);
+  readonly domainFilter = signal(EVERY_DOMAIN_VERDICT);
   readonly submittedFilter = signal(SUBMITTED_WINDOWS[0].key);
   readonly decisionNote = signal('');
   readonly noteError = signal<string | null>(null);
@@ -443,9 +585,68 @@ export class AdminRegistrationsComponent {
       documentsTone: documentsToneOf(application.documents),
       ruleLabel: application.matched_rule_id === null ? 'Needs a decision' : 'Rule matched',
       ruleTone: application.matched_rule_id === null ? 'warn' : 'good',
+      domainCheck: checkOf(application, DOMAIN_CHECK_KEY),
+      domainTone: toneOfCheck(checkOf(application, DOMAIN_CHECK_KEY)),
       application,
     };
   }
+
+  // ============================================================== the tabs ==
+
+  /** THE COUNT IS ON THE PENDING TAB ALONE, and that is honesty rather than
+   *  laziness. The default queue is unbounded, so the number of rows loaded IS
+   *  the number waiting; every other tab is a bounded page, where the same
+   *  arithmetic would draw "Rejected · 200" over a table of four thousand. A
+   *  count nobody can trust is worse than no count, and the board's numbers
+   *  would be exactly that. The grid's own status bar says how many rows are in
+   *  view, which is a claim this screen can actually make. */
+  /** AND ONLY WHILE PENDING IS THE TAB THAT IS OPEN. `waitingCount()` counts the
+   *  ONE list this screen holds, which belongs to whichever tab is showing — so
+   *  reading it onto the Pending label from the Held tab would print the number
+   *  of held applications beside the word "Pending". The count goes away with
+   *  the list it describes rather than going stale. */
+  tabLabel(tab: { key: QueueStatus; label: string }): string {
+    if (tab.key !== 'PENDING_REVIEW' || this.activeTab() !== 'PENDING_REVIEW') return tab.label;
+    if (this.applications() === null) return tab.label;
+    return `${tab.label} · ${this.waitingCount()}`;
+  }
+
+  setTab(tab: QueueStatus): void {
+    if (this.activeTab() === tab) return;
+    this.activeTab.set(tab);
+    // Everything below belongs to the tab being left. A decision note typed for
+    // one application must not survive onto another, and an Undo offer for a
+    // rejection made on the Pending tab must not sit above the Rejected list it
+    // would now be acting on twice.
+    this.applications.set(null);
+    this.clearReview();
+    this.decisionNote.set('');
+    this.flash.set(null);
+    this.error.set(null);
+    this.lastRejected.set([]);
+    void this.loadQueue();
+  }
+
+  /** Whether the rows on this tab can still be approved or rejected. The server
+   *  is the authority — `POST /decision` answers 409 on a decided row — and this
+   *  is the screen refusing first, in the same words. */
+  readonly canDecide = computed(
+    () => this.activeTab() === 'PENDING_REVIEW' || this.activeTab() === 'HOLD',
+  );
+
+  /** Hold applies to a waiting application only. A held one is re-held by
+   *  releasing it first, which the server refuses to shortcut: two audit rows
+   *  say what happened, where an in-place edit of the note would lose the first
+   *  reviewer's words. */
+  readonly canHold = computed(() => this.activeTab() === 'PENDING_REVIEW');
+
+  /** Reopen is one verb with one meaning — "back in the queue" — so it releases
+   *  a hold and undoes a rejection through the same route. An APPROVED
+   *  application is not on either of these tabs, which is the only reason this
+   *  button never meets the 409 that refuses it. */
+  readonly canReopen = computed(
+    () => this.activeTab() === 'HOLD' || this.activeTab() === 'REJECTED',
+  );
 
   /** THE BATCH IS THE PROGRAMME, when a rule chose one. With no batch, the
    *  degree level is all the application knows, and that is what is shown. */
@@ -478,15 +679,25 @@ export class AdminRegistrationsComponent {
     return [...named].sort();
   });
 
-  /** The three client-side filters the board draws above the grid. The quick
-   *  filter is the grid's own and is not repeated here. */
+  /** The four client-side filters the board draws above the grid. The quick
+   *  filter is the grid's own and is not repeated here.
+   *
+   *  CLIENT-SIDE, INCLUDING THE DOMAIN ONE. `GET /pending` takes no query
+   *  parameters and returns the reviewer's whole reach; every one of these
+   *  narrows rows the caller was already entitled to see, so none of them is
+   *  doing access control. What decides which applications arrive at all is
+   *  `registration_scope_clause` on the server. */
   readonly visibleRows = computed(() => {
     const college = this.collegeFilter();
     const batch = this.batchFilter();
+    const domain = this.domainFilter();
     const window = this.submittedWindow();
     return this.rows().filter((row) => {
       if (college !== EVERY_COLLEGE && row.collegeName !== college) return false;
       if (batch !== EVERY_BATCH && row.batchLabel !== batch) return false;
+      if (domain !== EVERY_DOMAIN_VERDICT && (row.domainCheck?.status ?? null) !== domain) {
+        return false;
+      }
       if (!this.wasSubmittedWithin(row, window)) return false;
       return true;
     });
@@ -515,6 +726,12 @@ export class AdminRegistrationsComponent {
     const chosen = this.batchFilter();
     if (chosen === EVERY_BATCH) return 'All batches';
     return chosen;
+  });
+
+  readonly domainFilterLabel = computed(() => {
+    const chosen = DOMAIN_FILTERS.find((option) => option.key === this.domainFilter());
+    if (chosen === undefined) return DOMAIN_FILTERS[0].label;
+    return chosen.label;
   });
 
   readonly submittedFilterLabel = computed(() => {
@@ -576,45 +793,50 @@ export class AdminRegistrationsComponent {
     return `Approve & invite ${count}`;
   });
 
-  /** The checks this screen can actually make, from the payload it already
-   *  holds. The rest — domain against the college's registered domains, a
-   *  duplicate account, the seat count — are B11.1 and are named in the notice
-   *  beneath, not invented here. */
+  /** The panel's checklist: THE SERVER'S CHECKS FIRST, then the two this
+   *  screen still answers for itself.
+   *
+   *  The rule engine's verdict, the college domain fence, whose account this
+   *  address already is and the USN all come from `checks[]` (B11.1). They are
+   *  not recomputed here and must not be: three of the four are guards
+   *  `_provision_student` will apply when Approve is pressed, and a second
+   *  reading of any of them disagrees with the button the first time the
+   *  server's rule changes — showing as a green line above a request that
+   *  refuses. The client's guess at the rule check was exactly that and is
+   *  gone.
+   *
+   *  The batch and the two document lines stay client-side because the server
+   *  does not answer them and the payload already does: neither is a guard, and
+   *  neither can contradict a decision. */
   readonly checks = computed<ApplicationCheck[]>(() => {
     const reviewed = this.reviewedApplication();
     if (reviewed === null) return [];
     const application = reviewed.application;
-    const checks: ApplicationCheck[] = [];
-    checks.push(this.ruleCheckFor(application));
+    // NULL MEANS NOT COMPUTED, so the whole checklist goes rather than the
+    // server's half of it. Every line here is written in the future tense about
+    // a decision — "Approving seats them in…", "it moves onto the student's
+    // uploads when this application is approved" — and on the Rejected tab that
+    // decision was taken weeks ago. A partial checklist under a decided
+    // application reads as advice; it is archaeology.
+    if (application.checks === null) return [];
+    const checks: ApplicationCheck[] = application.checks.map((check) => ({
+      headline: check.label,
+      detail: check.detail,
+      tone: CHECK_TONES[check.status].tone,
+      icon: CHECK_TONES[check.status].icon,
+    }));
     checks.push(this.batchCheckFor(application, reviewed.batchLabel));
     checks.push(this.documentCheckFor(application, 'CV', 'CV'));
     checks.push(this.documentCheckFor(application, 'PHOTO', 'Photo'));
-    checks.push({
-      headline: `The onboarding link goes to ${reviewed.emailDomain}`,
-      detail: `${application.email} becomes the login on this account.`,
-      tone: 'neutral',
-      icon: 'mail',
-    });
     return checks;
   });
 
-  private ruleCheckFor(application: RegistrationApiRow): ApplicationCheck {
-    const verdict = application.decision_reason ?? 'The rule engine recorded no verdict.';
-    if (application.matched_rule_id === null) {
-      return {
-        headline: 'No seating rule matched',
-        detail: verdict,
-        tone: 'warn',
-        icon: 'warning',
-      };
-    }
-    return {
-      headline: 'A seating rule routed this application',
-      detail: verdict,
-      tone: 'good',
-      icon: 'check_circle',
-    };
-  }
+  /** Whether anything on this application says Approve will refuse it. Drawn as
+   *  a line above the buttons rather than used to disable them: the reviewer can
+   *  still reject, and a control that vanishes explains nothing. */
+  readonly blockingChecks = computed<ApplicationCheck[]>(() =>
+    this.checks().filter((check) => check.tone === 'risk'),
+  );
 
   private batchCheckFor(application: RegistrationApiRow, batchLabel: string): ApplicationCheck {
     const asked = application.requested_batch;
@@ -731,7 +953,7 @@ export class AdminRegistrationsComponent {
       minWidth: 170,
       cellRenderer: renderEmailDomainCell,
       headerTooltip:
-        'The domain the onboarding link goes to. Whether it is one of the college’s registered domains is B11.1 (Phase 4), so no verdict is shown.',
+        'The domain the onboarding link goes to, coloured by the server’s own check: red is an address Approve refuses because it is not on this college’s registered domains.',
     },
     {
       colId: 'submitted',
@@ -756,7 +978,7 @@ export class AdminRegistrationsComponent {
       minWidth: 160,
       cellRenderer: renderRuleCell,
       headerTooltip:
-        'Whether a seating rule routed this application. The domain, duplicate-account and seat checks the board draws are B11.1 (Phase 4).',
+        'Whether a seating rule routed this application. Open a row for the full checklist — the rule’s verdict, the domain, the account and the USN.',
     },
   ];
 
@@ -768,9 +990,19 @@ export class AdminRegistrationsComponent {
 
   readonly rowId = (params: GetRowIdParams<QueueRow>): string => params.data.registrationId;
 
+  /** THE EMPTY TAB SAYS WHICH EMPTY IT IS. "No applications waiting" under the
+   *  Rejected tab would read as a claim about rejections; "nothing matches this
+   *  filter" over an unfiltered empty list reads as a broken screen. The two
+   *  cases are told apart by whether anything was loaded at all. */
   readonly emptyOverlay = computed(() => {
+    const empty = {
+      PENDING_REVIEW: 'No applications waiting.',
+      AUTO_APPROVED: 'No application has been auto-approved by a seating rule.',
+      HOLD: 'No application is on hold.',
+      REJECTED: 'No application has been rejected.',
+    }[this.activeTab()];
     if (this.waitingCount() === 0) {
-      return '<span class="ag-overlay-no-rows-center">No applications waiting.</span>';
+      return `<span class="ag-overlay-no-rows-center">${empty}</span>`;
     }
     return '<span class="ag-overlay-no-rows-center">No registration matches this filter.</span>';
   });
@@ -889,6 +1121,10 @@ export class AdminRegistrationsComponent {
 
   setBatchFilter(value: string): void {
     this.batchFilter.set(value);
+  }
+
+  setDomainFilter(value: string): void {
+    this.domainFilter.set(value);
   }
 
   setSubmittedFilter(value: string): void {
@@ -1024,6 +1260,107 @@ export class AdminRegistrationsComponent {
     return `${who} rejected — your reason has been emailed to them.`;
   }
 
+  /**
+   * Park the selected applications with the note the API demands (B11.2).
+   *
+   * THE NOTE IS REQUIRED AND THE SCREEN SAYS SO FIRST. `POST /{id}/hold` answers
+   * 422 without one, because a HOLD carrying no words is indistinguishable from
+   * PENDING_REVIEW on every screen here — same tab treatment, same buttons —
+   * so the note is not a nicety on the feature, it IS the feature. Refusing
+   * locally keeps the message the reviewer reads identical to the server's.
+   *
+   * NOTHING IS MAILED. A hold is a note to colleagues, not a notice to the
+   * applicant: the applicant's result card is unchanged and their
+   * `decision_reason` is untouched. The copy under the buttons says this,
+   * because a reviewer who believes the applicant has been told will not tell
+   * them.
+   */
+  async holdTargets(): Promise<void> {
+    const targets = this.decisionTargets();
+    if (targets.length === 0) return;
+    const note = this.decisionNote().trim();
+    if (note === '') {
+      this.noteError.set('A note is required when holding an application — say what it is waiting on.');
+      return;
+    }
+    await this.runOnEach(targets, 'hold', { note }, (held) =>
+      held.length === 1
+        ? `${held[0].name} is on hold — your note is on the application, and nothing was sent to them.`
+        : `${held.length} applications are on hold. Nothing was sent to the applicants.`,
+    );
+  }
+
+  /**
+   * Put the selected applications back in the queue — the Held tab's release
+   * and the Rejected tab's undo, through one endpoint.
+   *
+   * ONE VERB, ONE MEANING. `POST /{id}/reopen` is "back in the queue, waiting
+   * for a decision", which is exactly what releasing a hold is and exactly what
+   * undoing a rejection is. A second route doing the same thing to a different
+   * status is how the two drift — and the half that drifts is the stamp, not
+   * the status: a released hold whose `held_by_id` survived would draw a "held
+   * by" on a row sitting in Pending.
+   */
+  async reopenTargets(): Promise<void> {
+    const targets = this.decisionTargets();
+    if (targets.length === 0) return;
+    const released = this.activeTab() === 'HOLD';
+    await this.runOnEach(targets, 'reopen', null, (rows) => {
+      const what = released ? 'released' : 'reopened';
+      return rows.length === 1
+        ? `${rows[0].name} ${what} — back in the pending queue.`
+        : `${rows.length} applications ${what} — back in the pending queue.`;
+    });
+  }
+
+  /**
+   * One POST per application, stopping at the first refusal.
+   *
+   * BULK IS THE LOOP, deliberately, and it stops rather than pressing on: there
+   * is no bulk endpoint, and a run that swallowed one 409 to finish the rest
+   * would leave the reviewer with a success notice and no idea which row did
+   * not take. The rows that DID land leave this tab, because they no longer
+   * belong to it.
+   */
+  private async runOnEach(
+    targets: QueueRow[],
+    path: 'hold' | 'reopen',
+    body: object | null,
+    line: (done: RegistrationApiRow[]) => string,
+  ): Promise<void> {
+    this.deciding.set(true);
+    this.error.set(null);
+    this.flash.set(null);
+    const done: RegistrationApiRow[] = [];
+    try {
+      for (const target of targets) {
+        const response = await fetch(
+          `${environment.apiBase}/register/${target.registrationId}/${path}`,
+          {
+            method: 'POST',
+            credentials: 'include',
+            ...(body === null
+              ? {}
+              : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+          },
+        );
+        if (!response.ok) {
+          this.error.set(await detailOf(response));
+          break;
+        }
+        done.push((await response.json()) as RegistrationApiRow);
+      }
+    } catch {
+      this.error.set('Could not reach the server.');
+    } finally {
+      this.deciding.set(false);
+    }
+    if (done.length === 0) return;
+    this.dropDecidedRows(done);
+    this.lastRejected.set([]);
+    this.flash.set(line(done));
+  }
+
   /** Reopen the rejections the last action made. One request per row; rows that
    *  reopen return to the queue. */
   async undoLastRejection(): Promise<void> {
@@ -1050,7 +1387,13 @@ export class AdminRegistrationsComponent {
       this.undoing.set(false);
     }
     if (reopened.length === 0) return;
-    this.applications.update((loaded) => [...reopened, ...(loaded ?? [])]);
+    // Back onto the list only where a pending application belongs. Undoing a
+    // rejection made from the HELD tab reopens the row to PENDING_REVIEW, so
+    // putting it back here would draw a pending row under a heading that says
+    // Held — the row is simply gone from this tab, correctly.
+    if (this.activeTab() === 'PENDING_REVIEW') {
+      this.applications.update((loaded) => [...reopened, ...(loaded ?? [])]);
+    }
     this.lastRejected.set([]);
     this.flash.set(
       reopened.length === 1
@@ -1073,15 +1416,24 @@ export class AdminRegistrationsComponent {
   // =============================================================== loading ==
 
   private async loadQueue(): Promise<void> {
+    const tab = this.activeTab();
+    // NO QUERY STRING ON THE PENDING TAB. See QUEUE_TABS: the parameterless
+    // call is the one that answers the whole unbounded pending list, and this
+    // screen must not be the thing that caps it.
+    const url =
+      tab === 'PENDING_REVIEW'
+        ? `${environment.apiBase}/register/pending`
+        : `${environment.apiBase}/register/pending?status=${tab}&limit=${DECIDED_TAB_PAGE}`;
     try {
-      const response = await fetch(`${environment.apiBase}/register/pending`, {
-        credentials: 'include',
-      });
+      const response = await fetch(url, { credentials: 'include' });
       if (!response.ok) {
-        this.error.set('Could not load pending applications.');
+        this.error.set('Could not load applications.');
         this.applications.set([]);
         return;
       }
+      // A tab switched while this was in flight would otherwise land the old
+      // tab's rows under the new tab's heading.
+      if (this.activeTab() !== tab) return;
       this.applications.set((await response.json()) as RegistrationApiRow[]);
     } catch {
       this.error.set('Could not reach the server.');

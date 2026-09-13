@@ -7,9 +7,20 @@ the application through (AUTO_APPROVED) and assigns its cohort; a matching
 non-auto rule routes it to a human (PENDING_REVIEW) with a label; no match falls
 to manual review. The Main Admin then approves/rejects the queue.
 
-Provisioning the actual Student (User row, cohort seat) is a deliberate
-follow-up step, not done here — approval only stamps the decision, mirroring the
-model note that a Student cannot exist until approval has decided a cohort.
+APPROVAL PROVISIONS. It was once true that it did not — this docstring said so
+for the whole life of the file, three lines from the top, and it was the
+original of the false claim B11.4 exists to strike. `decide` (APPROVE) mints the
+User row, the Student row seated in the rule's cohort and a profile row, moves
+the CV and photo onto that student's own uploads and emails the onboarding link,
+all in one transaction; `_apply_rule` does the same for an auto-approved
+application. Nothing exists before that decision.
+
+WHAT APPROVAL DOES NOT DO IS LET ANYONE IN. The account carries the unusable
+`SSO_ONLY_PASSWORD_HASH` sentinel, and the applicant must still open the emailed
+link, type their address back, read a six-digit code, spend it for a ticket and
+set a password before they can sign in (`app/routers/onboarding.py`, three
+steps). "Approved" and "active" are two different facts and any copy that says
+otherwise — here, or on the applicant's own result card — is wrong.
 """
 
 import logging
@@ -17,20 +28,21 @@ import re
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Sequence
+from typing import NamedTuple, Sequence
 
 from fastapi import (
     APIRouter,
     Depends,
     File,
     HTTPException,
+    Query,
     Request,
     Response,
     UploadFile,
     status,
 )
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from fastapi.responses import RedirectResponse
@@ -40,7 +52,13 @@ from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.job import DegreeLevel
-from ..institution_domains import college_id_for_cohort, domain_of, provisionable_domains_for
+from ..institution_domains import (
+    college_id_for_cohort,
+    college_ids_for_cohorts,
+    domain_of,
+    normalise_domain,
+    provisionable_domains_for,
+)
 from ..models.cohort import Cohort
 from ..models.institution import (
     HIERARCHY_LEVELS,
@@ -53,6 +71,7 @@ from ..models.institution import (
 from ..models.registration import (
     DOCUMENT_KIND_CV,
     DOCUMENT_KIND_PHOTO,
+    PENDING_QUEUE_STATUSES,
     Registration,
     RegistrationDocument,
     RegistrationRule,
@@ -63,7 +82,11 @@ from ..models.user import Role, Student, User
 from ..student_placement import resolve_student_department
 from ..governance import require_capability
 from ..policies import scope_filter
-from ..scope_views import registration_scope_clause, scope_header
+from ..scope_views import (
+    registration_rule_scope_clause,
+    registration_scope_clause,
+    scope_header,
+)
 from ..architecture_events import record_change
 from ..document_store import MAX_BYTES, QuotaRejected, VolumeQuota, save_bytes
 from ..document_store import delete as delete_stored
@@ -287,6 +310,64 @@ class RegisterIn(BaseModel):
     requested_cohort_id: str | None = None
 
 
+# --- the check vocabulary (B11.1) --------------------------------------------
+#
+# DEFINED ONCE, HERE. The pending queue draws these, and the Hold screen and the
+# by-status tabs read the same words; a second vocabulary invented beside this
+# one is two things on screen that look identical and mean different things.
+#
+# THREE VERDICTS, AND THE MIDDLE ONE IS THE POINT.
+#
+#   "blocked"  Approve WILL refuse this application, right now, with a 4xx. Every
+#              blocked check is one-to-one with a guard in `_provision_student`,
+#              and that is the whole contract: a blocked check the reviewer can
+#              click past, or a guard with no check in front of it, is the queue
+#              lying about what the button does.
+#   "warn"     Approve will succeed. Something is still worth a human's eye —
+#              no USN, no rule matched, a batch the applicant did not ask for.
+#   "ok"       Nothing to report.
+#
+# Collapsing "warn" into "blocked" is the specific mistake to avoid: an applicant
+# who ALREADY HOLDS A STUDENT ACCOUNT is the ordinary re-application path, which
+# Approve handles by reusing the account. One "duplicate" chip makes that read
+# like a wall.
+#
+# THE CHECKS ARE LIVE, and a `decision_reason` is HISTORY. A row whose reason
+# begins "Rule 'X' would auto-approve, but:" was refused by a guard at submit
+# time; if the college has added the domain since, that row's `domain` check is
+# green and the reason is stale. The two do not contradict each other — they are
+# answers to the same question at two different moments, and the check is the one
+# that says what Approve will do now.
+CHECK_OK = "ok"
+CHECK_WARN = "warn"
+CHECK_BLOCKED = "blocked"
+
+#: Every key this endpoint can emit. The set on any one row is NOT fixed —
+#: `usn_pattern` appears only where a matched rule declares a pattern to check
+#: against, because a line saying "no pattern to check" is noise in a panel whose
+#: job is to be read in two seconds. Clients render what they are given and key
+#: off `key`, never off position.
+CHECK_RULE = "rule"
+CHECK_DOMAIN = "domain"
+CHECK_DUPLICATE_ACCOUNT = "duplicate_account"
+CHECK_USN_UNIQUE = "usn_unique"
+CHECK_USN_PATTERN = "usn_pattern"
+
+
+class CheckOut(BaseModel):
+    """One line of the reviewer's pre-decision checklist."""
+
+    #: Stable machine name — one of the CHECK_* constants above. The client
+    #: branches on this and never on the label, which is prose and will change.
+    key: str
+    #: "ok" | "warn" | "blocked", as defined above.
+    status: str
+    #: The headline, already written for a human. Five words or so.
+    label: str
+    #: One sentence saying what it means for the decision about to be made.
+    detail: str
+
+
 class RegistrationOut(BaseModel):
     id: str
     name: str
@@ -302,6 +383,14 @@ class RegistrationOut(BaseModel):
     review_note: str | None
     approved_student_id: str | None
     created_at: datetime
+    #: The HOLD stamp (B11.2) — who parked this application, when, and why. All
+    #: three are null on every row that is not, and has never been, on hold.
+    #: Staff-only for free: `PublicRegistrationOut` declares none of them, and
+    #: `_public_out_one` narrows by `model_fields`. That is the point of a hold
+    #: note — it is written ABOUT the applicant for colleagues, never TO them.
+    hold_note: str | None = None
+    held_by_id: str | None = None
+    held_at: datetime | None = None
     # The applicant's claim, ids and resolved names (names for the queue and the
     # result card; ids so a client can re-select). requested_cohort_id is the
     # batch THEY picked; cohort_id above is the rule's, and wins.
@@ -318,6 +407,18 @@ class RegistrationOut(BaseModel):
     #: Kinds attached with the application - "CV", "PHOTO" - so the queue can
     #: show a reviewer what is there before they open anything.
     documents: list[str] = []
+    #: The pre-decision checklist (B11.1). NULL MEANS NOT COMPUTED, and that is
+    #: deliberate — `GET /auth/me`'s `google_linked` precedent. Only the queue
+    #: builds these, and only for a status somebody can still decide (see
+    #: DECIDABLE_STATUSES); the single-row responses from `decision`, `hold` and
+    #: `reopen` leave it null rather than answering `[]`, because an empty list
+    #: reads as "nothing to report" and a client that renders it that way would
+    #: show a clean bill of health for an application nobody checked.
+    #:
+    #: Absent from `PublicRegistrationOut` for free: `_public_out_one` narrows by
+    #: `model_fields`. A check naming a duplicate account is the reviewer's side
+    #: of the record and must never travel to the applicant.
+    checks: list[CheckOut] | None = None
 
 
 class PublicRegistrationOut(BaseModel):
@@ -467,6 +568,367 @@ def _claim_names(db: Session, rows: Sequence[Registration]) -> dict[str, dict[st
     }
 
 
+# --- the domain verdict: ONE writer for GUARD 1 and for the queue's check -----
+#
+# GUARD 1 in `_provision_student` refuses an approval whose address is not on the
+# college's list. The review queue draws the same verdict as a check BEFORE the
+# reviewer clicks anything (B11.1). That is one question asked at two moments,
+# and written twice the two disagree the first time `provisionable_domains_for`'s
+# fallback rule changes — with the disagreement surfacing as a GREEN CHECK on a
+# row that Approve then refuses with a 422, which is the worst way to learn about
+# it. So there is one function and GUARD 1 CALLS IT.
+
+
+class DomainVerdict(NamedTuple):
+    """Whether this application's address is one the college will admit.
+
+    `allowed` travels with the answer because both callers need it: the 422 names
+    the domains so the reviewer knows what the address should have been, and the
+    check's detail line says the same thing on screen.
+    """
+
+    ok: bool
+    domain: str
+    allowed: frozenset[str]
+
+
+def college_for_registration(db: Session, reg: Registration) -> str | None:
+    """Whose fence applies to this application.
+
+    The college the applicant NAMED on the form, else the one their rule-assigned
+    batch sits under. None is the pre-spine case — an application that named no
+    college and was seated in no batch — and `provisionable_domains_for` answers
+    that with the deployment's list, which is what every address was fenced by
+    before colleges had domains of their own.
+    """
+    return reg.college_id or college_id_for_cohort(db, reg.cohort_id)
+
+
+def domain_verdict(
+    db: Session, reg: Registration, *, allowed: frozenset[str] | None = None
+) -> DomainVerdict:
+    """GUARD 1's question, asked once.
+
+    `allowed` is an escape hatch for a LIST: `provisionable_domains_for` is one
+    `db.get(College, ...)` and `college_for_registration` is a three-table join,
+    so a queue that called this per row would fire two queries per application.
+    `pending` resolves the distinct colleges of a page once and hands the answer
+    in. Passing nothing resolves it here, which is what every single-row caller
+    (GUARD 1 included) does.
+    """
+    domain = domain_of((reg.email or "").strip().lower())
+    if allowed is None:
+        allowed = provisionable_domains_for(db, college_for_registration(db, reg))
+    return DomainVerdict(ok=bool(domain) and domain in allowed, domain=domain, allowed=allowed)
+
+
+def _checks_for(db: Session, rows: Sequence[Registration]) -> dict[str, list[CheckOut]]:
+    """The pre-decision checklist for a whole page, in a handful of queries.
+
+    BATCHED BY `IN`, NEVER PER ROW — `_doc_kinds` and `_claim_names` above are the
+    house pattern and this follows it, because the queue has no LIMIT and the two
+    lookups behind the domain verdict (`college_ids_for_cohorts`, a three-table
+    join, and `provisionable_domains_for`, a `db.get`) would otherwise fire twice
+    per application on a two-hundred-row queue.
+
+    Four lookups, whatever the page size: the colleges of the batches nobody
+    named a college for, the accounts already holding these addresses, the
+    students holding those accounts or these USNs, and the rules that routed
+    them. `provisionable_domains_for` is then called once per DISTINCT college,
+    which keeps `domain_verdict` the one writer of the fence.
+    """
+    if not rows:
+        return {}
+
+    # -- the college fence, per distinct college ------------------------------
+    cohort_colleges = college_ids_for_cohorts(
+        db, [r.cohort_id for r in rows if not r.college_id and r.cohort_id]
+    )
+    # `college_for_registration`'s rule, applied from the batched lookup: the
+    # college the applicant NAMED, else the one their rule-assigned batch sits
+    # under, else None (the deployment's list).
+    college_by_reg: dict[str, str | None] = {}
+    for r in rows:
+        if r.college_id:
+            college_by_reg[r.id] = r.college_id
+        elif r.cohort_id:
+            college_by_reg[r.id] = cohort_colleges.get(r.cohort_id)
+        else:
+            college_by_reg[r.id] = None
+    allowed_by_college: dict[str | None, frozenset[str]] = {
+        cid: provisionable_domains_for(db, cid) for cid in set(college_by_reg.values())
+    }
+
+    # -- the accounts these addresses already hold ----------------------------
+    emails = {(r.email or "").strip().lower() for r in rows if (r.email or "").strip()}
+    users_by_email: dict[str, User] = {}
+    if emails:
+        for u in db.scalars(select(User).where(func.lower(User.email).in_(list(emails)))).all():
+            users_by_email[(u.email or "").lower()] = u
+
+    # -- the students behind those accounts, and whoever holds these USNs -----
+    usns = {(r.usn or "").strip() for r in rows if (r.usn or "").strip()}
+    user_ids = {u.id for u in users_by_email.values()}
+    student_by_user: dict[str, Student] = {}
+    student_by_usn: dict[str, Student] = {}
+    clauses = []
+    if user_ids:
+        clauses.append(Student.user_id.in_(list(user_ids)))
+    if usns:
+        clauses.append(Student.usn.in_(list(usns)))
+    if clauses:
+        for st in db.scalars(select(Student).where(or_(*clauses))).all():
+            student_by_user[st.user_id] = st
+            if st.usn:
+                student_by_usn[st.usn] = st
+
+    # -- the rules that routed them -------------------------------------------
+    rule_ids = {r.matched_rule_id for r in rows if r.matched_rule_id}
+    rules_by_id: dict[str, RegistrationRule] = (
+        {
+            rule.id: rule
+            for rule in db.scalars(
+                select(RegistrationRule).where(RegistrationRule.id.in_(list(rule_ids)))
+            ).all()
+        }
+        if rule_ids
+        else {}
+    )
+
+    return {
+        r.id: _checks_for_one(
+            r,
+            verdict=domain_verdict(db, r, allowed=allowed_by_college[college_by_reg[r.id]]),
+            account=users_by_email.get((r.email or "").strip().lower()),
+            student_by_user=student_by_user,
+            student_by_usn=student_by_usn,
+            rule=rules_by_id.get(r.matched_rule_id) if r.matched_rule_id else None,
+        )
+        for r in rows
+    }
+
+
+def _checks_for_one(
+    r: Registration,
+    *,
+    verdict: DomainVerdict,
+    account: User | None,
+    student_by_user: dict[str, Student],
+    student_by_usn: dict[str, Student],
+    rule: RegistrationRule | None,
+) -> list[CheckOut]:
+    """One application's checklist, from facts the caller already resolved.
+
+    PURE, and takes no Session on purpose: every lookup it could make is one the
+    batched caller above has already made for the whole page, and a helper that
+    can reach the database is a helper somebody calls in a loop.
+    """
+    checks: list[CheckOut] = []
+    reason = (r.decision_reason or "").strip()
+
+    # ---- the rule engine's own verdict --------------------------------------
+    if rule is None:
+        checks.append(
+            CheckOut(
+                key=CHECK_RULE,
+                status=CHECK_WARN,
+                label="No seating rule matched" if r.matched_rule_id is None else "The rule that routed this is gone",
+                detail=reason or "Nothing routed this application, so the batch is a human decision.",
+            )
+        )
+    elif rule.auto_approve and r.status is RegistrationStatus.PENDING_REVIEW:
+        # `_apply_rule` catches a GUARD refusal and queues the application with
+        # the refusal as its reason rather than dropping or forcing it. So this
+        # row is here BECAUSE a guard said no — the checks below say whether it
+        # still would.
+        checks.append(
+            CheckOut(
+                key=CHECK_RULE,
+                status=CHECK_WARN,
+                label=f"Rule '{rule.name}' would auto-approve, but a guard refused it",
+                detail=reason or "Auto-approval was refused at submit time and the row was queued.",
+            )
+        )
+    else:
+        checks.append(
+            CheckOut(
+                key=CHECK_RULE,
+                status=CHECK_OK,
+                label=f"Routed by rule '{rule.name}'",
+                detail=reason or "The rule engine matched this application when it was submitted.",
+            )
+        )
+
+    # ---- GUARD 1: the college's fence ---------------------------------------
+    named = ", ".join(sorted(verdict.allowed)) or "no domain at all"
+    if verdict.ok:
+        checks.append(
+            CheckOut(
+                key=CHECK_DOMAIN,
+                status=CHECK_OK,
+                label=f"{verdict.domain} is a college domain",
+                detail="Approving mints the sign-in account on this address.",
+            )
+        )
+    else:
+        checks.append(
+            CheckOut(
+                key=CHECK_DOMAIN,
+                status=CHECK_BLOCKED,
+                label=(
+                    f"{verdict.domain} is not a college domain"
+                    if verdict.domain
+                    else "That address has no domain"
+                ),
+                detail=(
+                    f"Approve refuses this (422). Only {named} may become a sign-in "
+                    "account here; a college's own list is set on Colleges."
+                ),
+            )
+        )
+
+    # ---- GUARD 2: whose account this address already is ---------------------
+    email = (r.email or "").strip().lower()
+    if account is None:
+        checks.append(
+            CheckOut(
+                key=CHECK_DUPLICATE_ACCOUNT,
+                status=CHECK_OK,
+                label="No account on this address",
+                detail="Approving creates one and emails the onboarding link.",
+            )
+        )
+    elif account.role is Role.STUDENT:
+        # THE MIDDLE VERDICT. Approve REUSES this account — it is the ordinary
+        # re-application path, and the state `python -m app.seed_roster` leaves
+        # behind for every enrolled student. Rendering it as a blocker would send
+        # reviewers to reject applications the queue handles correctly.
+        checks.append(
+            CheckOut(
+                key=CHECK_DUPLICATE_ACCOUNT,
+                status=CHECK_WARN,
+                label="A student account already exists on this address",
+                detail="Approving reuses it rather than creating a second — no duplicate is made.",
+            )
+        )
+    else:
+        checks.append(
+            CheckOut(
+                key=CHECK_DUPLICATE_ACCOUNT,
+                status=CHECK_BLOCKED,
+                label=f"{email} belongs to a {account.role.value} account",
+                detail=(
+                    "Approve refuses this (409). Attaching a student record would widen "
+                    "that account's reach; reject it, or correct the address first."
+                ),
+            )
+        )
+
+    # ---- GUARD 3: the USN is the roster key and it is unique ----------------
+    #
+    # THIS FOLLOWS `_provision_student`'S CONTROL FLOW, NOT JUST ITS RULE. GUARD 3
+    # runs only where a Student row is about to be INSERTED — an applicant who
+    # already has one keeps it, USN and all, and the number typed on the
+    # application is never written. So "somebody else holds this USN" is a
+    # BLOCKER for a new record and merely a remark for an existing one, and a
+    # check that skipped that branch would report a refusal on an approval that
+    # in fact succeeds. That is the same defect as a green check on a row Approve
+    # refuses, in the other direction.
+    usn = (r.usn or "").strip()
+    own_student = student_by_user.get(account.id) if account is not None else None
+    holder = student_by_usn.get(usn) if usn else None
+    if not usn:
+        checks.append(
+            CheckOut(
+                key=CHECK_USN_UNIQUE,
+                status=CHECK_WARN,
+                label="No USN on this application",
+                detail="Approving seats them without one; Students & batches can add it later.",
+            )
+        )
+    elif own_student is not None and own_student.usn == usn:
+        checks.append(
+            CheckOut(
+                key=CHECK_USN_UNIQUE,
+                status=CHECK_OK,
+                label=f"USN {usn} is already this applicant's own",
+                detail="Approving reuses their existing record and leaves the USN alone.",
+            )
+        )
+    elif own_student is not None:
+        checks.append(
+            CheckOut(
+                key=CHECK_USN_UNIQUE,
+                status=CHECK_WARN,
+                label=f"Their record already reads {own_student.usn or 'no USN'}",
+                detail=(
+                    f"Approving reuses that record, so {usn} is NOT copied onto it. Change "
+                    "the USN on Students & batches if this one is the right one."
+                ),
+            )
+        )
+    elif holder is not None:
+        checks.append(
+            CheckOut(
+                key=CHECK_USN_UNIQUE,
+                status=CHECK_BLOCKED,
+                label=f"USN {usn} already belongs to another student",
+                detail=(
+                    "Approve refuses this (409). Correct the USN on this application, or "
+                    "reject it as a duplicate."
+                ),
+            )
+        )
+    else:
+        checks.append(
+            CheckOut(
+                key=CHECK_USN_UNIQUE,
+                status=CHECK_OK,
+                label=f"USN {usn} is free",
+                detail="No other student on the roster holds it.",
+            )
+        )
+
+    # ---- the matched rule's own USN condition, re-run -----------------------
+    # Only where there is a pattern to check against. Free: `_usn_matcher` is
+    # lru_cached on the pattern string, so this is a dictionary hit and a
+    # `search` over a string RegisterIn caps at 32 characters.
+    if rule is not None and rule.usn_pattern:
+        matcher = _usn_matcher(rule.usn_pattern)
+        if matcher is None:
+            checks.append(
+                CheckOut(
+                    key=CHECK_USN_PATTERN,
+                    status=CHECK_WARN,
+                    label=f"Rule '{rule.name}' has a USN pattern nothing will run",
+                    detail="It is refused as a backtracking risk, so the rule is skipped at match time.",
+                )
+            )
+        elif usn and len(usn) <= MAX_USN_MATCH_LENGTH and matcher.search(usn):
+            checks.append(
+                CheckOut(
+                    key=CHECK_USN_PATTERN,
+                    status=CHECK_OK,
+                    label=f"The USN matches rule '{rule.name}'",
+                    detail=f"It still satisfies the rule's pattern {rule.usn_pattern}.",
+                )
+            )
+        else:
+            checks.append(
+                CheckOut(
+                    key=CHECK_USN_PATTERN,
+                    status=CHECK_WARN,
+                    label=f"The USN no longer matches rule '{rule.name}'",
+                    detail=(
+                        "The rule routed this application and has been edited since, or the "
+                        "USN has. Approving still seats them in the rule's batch."
+                    ),
+                )
+            )
+
+    return checks
+
+
 def _out_one(db: Session, r: Registration) -> RegistrationOut:
     """One row with everything the client needs: documents and claim names."""
     return _out(r, _doc_kinds(db, [r.id]).get(r.id, ()), _claim_names(db, [r]).get(r.id))
@@ -486,10 +948,16 @@ def _public_out_one(db: Session, r: Registration) -> PublicRegistrationOut:
     return PublicRegistrationOut(**{k: v for k, v in full.model_dump().items() if k in fields})
 
 
-def _out(r: Registration, docs: Sequence[str] = (), names: dict[str, str | None] | None = None) -> RegistrationOut:
+def _out(
+    r: Registration,
+    docs: Sequence[str] = (),
+    names: dict[str, str | None] | None = None,
+    checks: list[CheckOut] | None = None,
+) -> RegistrationOut:
     names = names or {}
     return RegistrationOut(
         documents=sorted(docs),
+        checks=checks,
         college_id=r.college_id,
         department_id=r.department_id,
         course_id=r.course_id,
@@ -514,6 +982,9 @@ def _out(r: Registration, docs: Sequence[str] = (), names: dict[str, str | None]
         review_note=r.review_note,
         approved_student_id=r.approved_student_id,
         created_at=r.created_at,
+        hold_note=r.hold_note,
+        held_by_id=r.held_by_id,
+        held_at=r.held_at,
     )
 
 
@@ -809,13 +1280,69 @@ def submit(
     return _public_out_one(db, reg)
 
 
+#: The statuses this endpoint will list. DRAFT and PENDING_VERIFICATION are
+#: deliberately absent: nothing has written either for a year (see
+#: `RegistrationStatus`), so accepting them would answer an empty list forever
+#: and read as "nobody was ever in that state" rather than "that state does not
+#: exist". A 422 naming the five says which it is.
+LISTABLE_STATUSES: tuple[RegistrationStatus, ...] = (
+    RegistrationStatus.PENDING_REVIEW,
+    RegistrationStatus.HOLD,
+    RegistrationStatus.AUTO_APPROVED,
+    RegistrationStatus.APPROVED,
+    RegistrationStatus.REJECTED,
+)
+
+#: The statuses whose rows a human can still decide, and therefore the only ones
+#: `checks[]` is computed for. A check on a decided row would be a live answer to
+#: a question that was settled last month — "Approve will refuse this" about an
+#: application already approved — so those rows answer `checks: null`, which the
+#: contract above `CheckOut` defines as NOT COMPUTED.
+DECIDABLE_STATUSES: tuple[RegistrationStatus, ...] = PENDING_QUEUE_STATUSES
+
+#: The bound on the by-status path, and it is NOT OPTIONAL. This endpoint has
+#: never had a LIMIT, which was survivable while it answered one status that an
+#: office works through; AUTO_APPROVED grows without bound for the life of the
+#: deployment, so the tab that lists it would hand back every application ever
+#: submitted, with its claim names and document kinds, on every page load.
+DEFAULT_QUEUE_LIMIT = 100
+MAX_QUEUE_LIMIT = 500
+
+
 @router.get("/pending", response_model=list[RegistrationOut])
 def pending(
     response: Response,
+    # ALIASED, NOT NAMED `status`. The module-level `status` here is FastAPI's
+    # status-code namespace, which every raise in this file reads; a parameter
+    # of that name shadows it inside this function only, so the first
+    # HTTPException added later would be an AttributeError at runtime and
+    # nowhere else.
+    status_filter: str | None = Query(default=None, alias="status"),
+    limit: int | None = None,
+    offset: int | None = None,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[RegistrationOut]:
     """The review queue — applications a human still needs to decide.
+
+    WITH NO `?status=` THIS ANSWERS EXACTLY WHAT IT ALWAYS HAS: every
+    PENDING_REVIEW application in reach, oldest first, unbounded, with the same
+    scope headers. That is load-bearing rather than politeness — the Phase 2
+    console is built against this array and the Pending tab is the screen's
+    default view, so a page size appearing here would silently truncate the one
+    list the office actually works from.
+
+    `?status=` IS THE OTHER THREE TABS (B11.2, decision 2). One of
+    `LISTABLE_STATUSES`; anything else is a 422 that names them. The bound comes
+    with it and is not optional: see DEFAULT_QUEUE_LIMIT.
+
+    WHY THE ORDER DEPENDS ON THE STATUS. A queue and a log are read from
+    opposite ends. PENDING_REVIEW and HOLD are work waiting, and the row that
+    matters is the applicant who has waited longest, so they come oldest first —
+    the order this endpoint has always used. AUTO_APPROVED, APPROVED and
+    REJECTED are a record of what happened, where the row that matters is the
+    most recent one, and paging an unbounded history from the far end would put
+    a deployment's first-ever application on page one forever.
 
     SCOPED BY THE CLAIM (B1.4), through `registration_scope_clause`. An
     application is not a student yet, so there is no `students` row for
@@ -829,28 +1356,106 @@ def pending(
     any unfiled thing, and the same reason: if "named nothing" were visible to
     everybody, it would be the way around every scope in the system, and it is
     a state a public form can produce on purpose.
+
+    EVERY ROW CARRIES ITS CHECKS (B11.1) — the rule engine's verdict, the college
+    domain fence, whose account this address already is, and the USN. Three of
+    them are the guards `_provision_student` will apply when Approve is pressed,
+    read out BEFORE the press rather than after: see `_checks_for` for the
+    batching and the check vocabulary above `CheckOut` for what the three
+    verdicts mean.
     """
     require_capability(db, session, "admin.registrations")
+    wanted = _queue_status(status_filter)
+    page = _queue_page(status_filter, limit, offset)
     reach = scope_filter(db, session, "admin.registrations")
     scope_header(response, reach)
     if reach.nothing:
         return []
-    rows = db.scalars(
-        select(Registration)
-        .where(
-            Registration.status == RegistrationStatus.PENDING_REVIEW,
-            registration_scope_clause(reach),
-        )
-        .order_by(Registration.created_at)
-    ).all()
+    stmt = select(Registration).where(
+        Registration.status == wanted, registration_scope_clause(reach)
+    )
+    if wanted in PENDING_QUEUE_STATUSES:
+        stmt = stmt.order_by(Registration.created_at)
+    else:
+        stmt = stmt.order_by(Registration.created_at.desc())
+    if page is not None:
+        stmt = stmt.limit(page[0]).offset(page[1])
+    rows = db.scalars(stmt).all()
     kinds = _doc_kinds(db, [r.id for r in rows])
     names = _claim_names(db, rows)
-    return [_out(r, kinds.get(r.id, ()), names.get(r.id)) for r in rows]
+    # Only a row somebody can still decide gets a checklist. See
+    # DECIDABLE_STATUSES: null here means NOT COMPUTED, never "nothing wrong".
+    checks = _checks_for(db, rows) if wanted in DECIDABLE_STATUSES else {}
+    return [_out(r, kinds.get(r.id, ()), names.get(r.id), checks.get(r.id)) for r in rows]
+
+
+def _queue_status(requested: str | None) -> RegistrationStatus:
+    """Which status the queue was asked for. None is PENDING_REVIEW, unchanged."""
+    if requested is None:
+        return RegistrationStatus.PENDING_REVIEW
+    for candidate in LISTABLE_STATUSES:
+        if requested.upper() == candidate.value:
+            return candidate
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=(
+            "status must be one of "
+            + ", ".join(s.value for s in LISTABLE_STATUSES)
+            + "."
+        ),
+    )
+
+
+def _queue_page(
+    requested_status: str | None, limit: int | None, offset: int | None
+) -> tuple[int, int] | None:
+    """`(limit, offset)` for the by-status path, or None for the default one.
+
+    PAGING IS PART OF `?status=` AND IS REFUSED WITHOUT IT, rather than quietly
+    ignored. A client that sends `?limit=25` to the default queue believes it is
+    paging; ignoring the parameter hands it every row and it renders the first
+    25, so the office reads a queue that is missing applications and nothing on
+    the screen says so. A 422 is a bug report; a silent full list is a defect
+    that surfaces as "we never saw that application".
+    """
+    if requested_status is None:
+        if limit is None and offset is None:
+            return None
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "limit and offset are only accepted with ?status=. The default "
+                "queue is the whole pending list on purpose."
+            ),
+        )
+    # Clamped, not refused: a client asking for 10 000 rows gets the biggest page
+    # this endpoint will build rather than an error it has to learn to handle.
+    size = DEFAULT_QUEUE_LIMIT if limit is None else max(1, min(int(limit), MAX_QUEUE_LIMIT))
+    start = 0 if offset is None else max(0, int(offset))
+    return size, start
 
 
 class DecisionIn(BaseModel):
     decision: str  # "APPROVE" | "REJECT"
     note: str | None = None
+
+
+#: The statuses a HUMAN decision is already over for — the exact pair this guard
+#: has always tested, lifted to a name so that what is NOT in it is a statement
+#: rather than a silence.
+#:
+#: HOLD is not in it: a hold is a bookmark, not an outcome, and Approve and
+#: Reject are the verbs that end one.
+#:
+#: AUTO_APPROVED is not in it either, and that is unchanged behaviour, not an
+#: oversight this constant introduces. A rule-approved application can still be
+#: stamped by a reviewer, which `_provision_student` survives because it is
+#: idempotent by lookup rather than by flag — it finds the account the rule
+#: already made and returns it.
+ALREADY_DECIDED_STATUSES: tuple[RegistrationStatus, ...] = (
+    RegistrationStatus.APPROVED,
+    RegistrationStatus.REJECTED,
+)
 
 
 #: Unusable-password sentinel. Identical to grant_access.SSO_ONLY_PASSWORD_HASH
@@ -947,15 +1552,16 @@ def _provision_student(db: Session, reg: Registration) -> Student:
     # the tenant whose fence this is. A college with no domains recorded falls
     # back to the environment, which is what every application was fenced by
     # before colleges had domains — so day one is unchanged.
-    college_id = reg.college_id or college_id_for_cohort(db, reg.cohort_id)
-    domain = domain_of(email)
-    allowed = provisionable_domains_for(db, college_id)
-    if not domain or domain not in allowed:
+    #
+    # ONE WRITER: `domain_verdict` above is this guard's own reading, and the
+    # queue's `domain` check calls the same function rather than restating it.
+    verdict = domain_verdict(db, reg)
+    if not verdict.ok:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 "This application cannot be approved: its email address is not on a "
-                f"college domain ({', '.join(sorted(allowed))}). Approving it would "
+                f"college domain ({', '.join(sorted(verdict.allowed))}). Approving it would "
                 "create a sign-in account. Staff accounts are created with "
                 "`python -m app.grant_access`, not from this queue."
             ),
@@ -996,10 +1602,45 @@ def _provision_student(db: Session, reg: Registration) -> Student:
 
     student = db.scalar(select(Student).where(Student.user_id == user.id))
     if student is None:
+        usn = (reg.usn or "").strip() or None
+        if usn is not None and db.scalar(select(Student.id).where(Student.usn == usn)) is not None:
+            # ------------------------------------------------------------------ #
+            # GUARD 3: the USN. `students.usn` is `unique=True, nullable=True`,
+            # and this line wrote it with no check at all — so two applications
+            # carrying one USN meant the first approved and the second raised
+            # IntegrityError on COMMIT. That is a 500, not the 409 this endpoint
+            # promises, and it lands AFTER `decide` has already added its
+            # `record_change` row: the rollback takes the audit row with it, so
+            # the trail does not even show that anybody tried.
+            #
+            # Two applications can honestly carry one USN — a typo, a
+            # re-application under a corrected address, two colleges with
+            # overlapping formats — so this is a refusal a reviewer can act on,
+            # not an impossible state.
+            #
+            # WHAT IT DOES NOT CLOSE, stated so nobody reads more into it: two
+            # approvals racing on two DIFFERENT applications lock two different
+            # registration rows, so the check can still be overtaken between here
+            # and the commit. The unique index remains the backstop; this turns
+            # the case that actually happens — the clash already exists — into an
+            # answer the reviewer can read.
+            #
+            # It fires only where a Student row is about to be INSERTED. An
+            # applicant who already has one keeps it untouched, USN included, so
+            # the ordinary re-application path never trips over its own number.
+            # ------------------------------------------------------------------ #
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"USN {usn} already belongs to another student. Correct the USN on "
+                    "this application, or reject it as a duplicate — approving it would "
+                    "fail on the roster's uniqueness rule."
+                ),
+            )
         cohort_id = reg.cohort_id or reg.requested_cohort_id
         student = Student(
             user_id=user.id,
-            usn=(reg.usn or "").strip() or None,
+            usn=usn,
             # The rule's cohort wins - it is policy. When no rule seated them, the
             # batch the applicant picked on the form is what the Main Admin approved.
             cohort_id=cohort_id,
@@ -1035,11 +1676,21 @@ def _provision_student(db: Session, reg: Registration) -> Student:
 
 
 def _apply_rule(db: Session, reg: Registration) -> None:
-    """Decide a CONFIRMED application: auto-approve and provision, or queue it.
+    """Decide a freshly submitted application: auto-approve and provision, or
+    queue it for a human.
 
-    Runs at confirmation time, not submit time, so the rule engine only ever
-    sees addresses somebody has proved they own. If the rule says approve but
-    provisioning refuses — the domain fence, or an address that already belongs
+    RUNS AT SUBMIT TIME, ON AN ADDRESS NOBODY HAS PROVED. This docstring used to
+    say the opposite — "at confirmation time, not submit time, so the rule engine
+    only ever sees addresses somebody has proved they own" — and both halves have
+    been false since 2026-09-10: `submit()` calls this directly, and the
+    confirmation gate it named was removed (see `submit()`'s own note on why a
+    gate nobody can pass is an outage). The mailbox proof did not vanish, it
+    moved PAST the decision, into onboarding. So the engine does see unproven
+    addresses, which is exactly why GUARD 1 and GUARD 2 exist in
+    `_provision_student` and why their refusal is caught below rather than
+    allowed to drop or force an application through.
+
+    If the rule says approve but provisioning refuses — the domain fence, or an address that already belongs
     to a staff account — the application is NOT dropped and NOT force-approved:
     it lands in the review queue with the refusal as its reason, which is
     where a human decision belongs. That also closes the old gap where
@@ -1150,7 +1801,14 @@ def decide(
     if reg is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
     _assert_reachable(db, session, reg)
-    if reg.status in (RegistrationStatus.APPROVED, RegistrationStatus.REJECTED):
+    # A HELD APPLICATION IS STILL DECIDABLE, and that is the point of the status
+    # rather than an accident of this test. HOLD means "I read this and it is
+    # waiting on something", so Approve and Reject are exactly the verbs that
+    # end it — a hold that had to be released first would make the reviewer
+    # press two buttons to do one thing, and the second press would look
+    # optional. `ALREADY_DECIDED_STATUSES` is the set that is genuinely over;
+    # HOLD is deliberately not in it, and a test pins that.
+    if reg.status in ALREADY_DECIDED_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Application already decided."
         )
@@ -1238,8 +1896,9 @@ async def attach_document(
     sign in with yet. The application id is the bearer: a uuid4 the client was
     handed on the 201, unguessable, and the same trust the emailed confirmation
     link carries. It is accepted only while the application is undecided
-    (PENDING_VERIFICATION or PENDING_REVIEW), so a file can never be slipped
-    onto a record the Main Admin has already ruled on.
+    (PENDING_REVIEW or HOLD - and the dead PENDING_VERIFICATION; see the check
+    itself), so a file can never be slipped onto a record the Main Admin has
+    already ruled on.
 
     The bytes go through app/document_store exactly as a student's own uploads
     do - magic-sniffed, size-capped, no client path near the disk - and THEN
@@ -1270,7 +1929,21 @@ async def attach_document(
     )
     if reg is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
-    if reg.status not in (RegistrationStatus.PENDING_VERIFICATION, RegistrationStatus.PENDING_REVIEW):
+    # UNDECIDED, WHICH NOW INCLUDES HOLD. "Held for a missing document" is the
+    # main reason to hold an application at all, so an applicant who is told to
+    # send their CV must be able to send it; refusing here would make the hold
+    # note an instruction the product itself blocks.
+    #
+    # PENDING_VERIFICATION IS DEAD and is kept here only so a row written before
+    # migration 9b2d47f0ce15 — if any survived it — is not locked out by this
+    # check. Nothing has written it since; see `RegistrationStatus` for why the
+    # value cannot simply be removed. Read this tuple as "the three statuses
+    # nobody has ruled on", not as three live states.
+    if reg.status not in (
+        RegistrationStatus.PENDING_VERIFICATION,
+        RegistrationStatus.PENDING_REVIEW,
+        RegistrationStatus.HOLD,
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This application has already been decided; documents can no longer be added.",
@@ -1330,6 +2003,94 @@ async def attach_document(
     return _public_out_one(db, reg)
 
 
+class HoldIn(BaseModel):
+    note: str | None = None
+
+
+@router.post("/{registration_id}/hold", response_model=RegistrationOut)
+def hold(
+    registration_id: str,
+    body: HoldIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> RegistrationOut:
+    """Park an application a reviewer has read but cannot decide yet (B11.2).
+
+    WHY THE STATUS EXISTS. Without it the queue carries two kinds of
+    PENDING_REVIEW that look identical and mean opposite things: "nobody has
+    looked at this" and "I looked, and it is waiting on a CV the applicant has
+    not sent". The second was recorded by doing nothing, so the next reviewer
+    read the application from scratch and the applicant waited twice.
+
+    A NOTE IS REQUIRED - 422 without one. A HOLD carrying no words is
+    indistinguishable from PENDING_REVIEW on every screen in the product, so the
+    note is not decoration on the feature, it IS the feature. This is the same
+    rule as B3.1's disable reason and for the same reason: nobody remembers in
+    six weeks, and the row is the only place that could have said.
+
+    IT IS INTERNAL, and that is a decision rather than an omission. Nothing is
+    mailed, `decision_reason` is untouched, and the note does not travel to the
+    applicant - `PublicRegistrationOut` declares none of the three hold columns
+    and `_public_out_one` narrows by `model_fields`. Communicating a hold would
+    need a mail that a sandboxed SES account cannot send, which is the exact
+    failure that killed PENDING_VERIFICATION; a gate nobody can pass is an
+    outage, and a notice nobody receives is worse than none.
+
+    ONLY A PENDING APPLICATION CAN BE HELD. Re-holding one that is already on
+    hold is a 409 naming reopen rather than an in-place edit of the note: two
+    audit rows (released, held again) say what happened, where a silent
+    overwrite loses the first reviewer's words entirely.
+
+    Reached through `_assert_reachable`, the same predicate the queue is listed
+    by, so a scoped reviewer cannot hold an application they cannot see.
+    """
+    require_capability(db, session, "admin.registrations")
+    # SELECT ... FOR UPDATE for the same reason `decide` uses one: the status
+    # check below is a read followed by a write, and two reviewers acting on one
+    # row must not both pass it.
+    reg = db.scalar(
+        select(Registration).where(Registration.id == registration_id).with_for_update()
+    )
+    if reg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+    _assert_reachable(db, session, reg)
+    note = (body.note or "").strip()
+    if not note:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="A note is required when holding an application — say what it is waiting on.",
+        )
+    if reg.status is RegistrationStatus.HOLD:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "This application is already on hold. Reopen it to put it back in the "
+                "queue, then hold it again with the new note."
+            ),
+        )
+    if reg.status is not RegistrationStatus.PENDING_REVIEW:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only an application waiting for review can be held.",
+        )
+    status_before = reg.status.value
+    reg.status = RegistrationStatus.HOLD
+    reg.hold_note = note
+    reg.held_by_id = session["userId"]
+    reg.held_at = datetime.now(timezone.utc)
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="registration", entity_id=reg.id, action="HELD",
+        before={"status": status_before},
+        after={"status": reg.status.value, "hold_note": note},
+        event_type="registration.held", payload={"email": reg.email},
+    )
+    db.commit()
+    db.refresh(reg)
+    return _out_one(db, reg)
+
+
 @router.post("/{registration_id}/reopen", response_model=RegistrationOut)
 def reopen(
     registration_id: str,
@@ -1337,18 +2098,30 @@ def reopen(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> RegistrationOut:
-    """Put a REJECTED application back in the queue - the design's Undo.
+    """Put an application back in the queue - the design's Undo, and the way a
+    hold is released.
+
+    ONE VERB, ONE MEANING: "back in the queue, waiting for a decision". That is
+    exactly what undoing a rejection does and exactly what releasing a hold does,
+    so they are the same route rather than two that drift - a second endpoint
+    doing the same thing to a different status is how one of them ends up
+    forgetting to clear a stamp.
 
     Rejection only stamped the row, so reopening is exact: status back to
     PENDING_REVIEW, the reviewer stamp and remarks cleared, the attached
     documents untouched (they were never deleted on rejection, precisely so
-    this is lossless). An APPROVED application is refused with 409: approval
-    PROVISIONED a User and a Student and sent them an enrolment notice, and
-    quietly deleting an account someone was just told to sign in to is not an
-    undo - it is a second, destructive decision that deserves its own tooling.
+    this is lossless). A hold is the same shape - its own three columns are
+    cleared, and the row is a plain pending application again.
+
+    An APPROVED application is refused with 409: approval PROVISIONED a User and
+    a Student and sent them an enrolment notice, and quietly deleting an account
+    someone was just told to sign in to is not an undo - it is a second,
+    destructive decision that deserves its own tooling. THE BOARD'S "reopen
+    within 24 h undoes an approval" IS WRONG ABOUT THIS SERVER, deliberately:
+    deprovisioning is `python -m app.purge_students`, and it is not a button.
 
     Audited through record_change with the stamp it clears, so "who reopened
-    this and what did the rejection say" stays answerable.
+    this and what did the rejection or the hold say" stays answerable.
     """
     require_capability(db, session, "admin.registrations")
     reg = db.scalar(
@@ -1357,12 +2130,12 @@ def reopen(
     if reg is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
     _assert_reachable(db, session, reg)
-    if reg.status is not RegistrationStatus.REJECTED:
+    if reg.status not in (RegistrationStatus.REJECTED, RegistrationStatus.HOLD):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                "Only a rejected application can be reopened. An approved one already has "
-                "an account behind it."
+                "Only a rejected or held application can be reopened. An approved one "
+                "already has an account behind it."
             ),
         )
     before = {
@@ -1370,11 +2143,19 @@ def reopen(
         "reviewed_by_id": reg.reviewed_by_id,
         "reviewed_at": reg.reviewed_at.isoformat() if reg.reviewed_at else None,
         "review_note": reg.review_note,
+        # The hold this released, when it released one. Null on every reopened
+        # rejection, which is the honest answer rather than an absent key.
+        "held_by_id": reg.held_by_id,
+        "held_at": reg.held_at.isoformat() if reg.held_at else None,
+        "hold_note": reg.hold_note,
     }
     reg.status = RegistrationStatus.PENDING_REVIEW
     reg.reviewed_by_id = None
     reg.reviewed_at = None
     reg.review_note = None
+    reg.hold_note = None
+    reg.held_by_id = None
+    reg.held_at = None
     record_change(
         db, session=session, request=request, tenant_id=None,
         entity_type="registration", entity_id=reg.id, action="REOPENED",
@@ -1384,6 +2165,51 @@ def reopen(
     db.commit()
     db.refresh(reg)
     return _out_one(db, reg)
+
+
+
+# --- B11.3 · the seating rules themselves -------------------------------------
+#
+# A RULE WITH `auto_approve` AND A BATCH IS THE ONE CONTROL IN THIS PRODUCT THAT
+# SEATS A STUDENT WITHOUT A HUMAN. `_apply_rule` stamps the batch and calls
+# `_provision_student`, which mints the User row, the Student row and the
+# profile, moves the documents across and emails the onboarding link — and the
+# application never appears in anybody's queue. Every decision below is shaped by
+# that one fact rather than by CRUD convention:
+#
+#   * `validate_usn_pattern` IS CALLED ON EVERY WRITE, and its ValueError comes
+#     back as a 422 carrying that message verbatim. The message was written for
+#     the rule AUTHOR, who is the only person who can fix the pattern. Not
+#     calling it would let an admin store "(a+)+$" and turn POST /register — the
+#     one unauthenticated write in the app — into a ReDoS anybody can fire. This
+#     is rule-write defence #1 from the comment block at the top of this module;
+#     `_usn_matcher`'s match-time refusal is #2 and stays exactly where it is,
+#     because a rule row can always be edited straight in psql and skip whatever
+#     this path checks.
+#   * NOTHING TOUCHES `_usn_matcher`'s CACHE. It is keyed on the pattern STRING,
+#     so an edited pattern is a new key and the fix takes effect with no restart;
+#     a deleted rule leaves its compiled matcher behind, and nothing ever looks
+#     it up again — one entry in a 256-entry LRU. Keying that cache on the rule
+#     id instead, which is the obvious "fix", would make an edit invisible until
+#     a restart: the opposite of what the cache is for.
+#   * THERE IS NO REORDER CONTROL, and there must not be one. `_pick_rule` breaks
+#     a `priority` tie on `created_at` "so a rule added later can't silently
+#     outrank an equal", and a screen where an author types a priority produces
+#     ties constantly. A drag-to-reorder that rewrote `created_at` would rewrite
+#     which rule fired yesterday, under a control that looks cosmetic. Priority
+#     is typed; equal priorities are settled by age; age is not editable.
+#   * EVERY WRITE IS AUDITED, the delete included, with the rule's whole
+#     before-state on the row. The evidence of a bad rule is an account that
+#     exists and an application nobody ever reviewed, so "who wrote this rule and
+#     what did it say" has to survive the rule being deleted.
+#
+# SCOPED BY THE RULE'S BATCH (decision 3), through
+# `scope_views.registration_rule_scope_clause` — the READ as well as the writes.
+# A college admin who could list a rule they cannot edit, with nothing on screen
+# saying which is which, is worse than either alternative. The write gate is
+# `_assert_rule_reachable`, which re-SELECTs through the list's own predicate
+# exactly as `_assert_reachable` does for an application, and a rule naming NO
+# batch hangs under nothing and belongs to the Main Admin alone.
 
 
 class RuleOut(BaseModel):
@@ -1396,28 +2222,427 @@ class RuleOut(BaseModel):
     cohort_id: str | None
     auto_approve: bool
     priority: int
+    #: THE TIEBREAK, ON THE WIRE. Two rules at priority 100 are decided by which
+    #: was created first (`_pick_rule`), and a screen that ordered by priority
+    #: alone would draw the pair in whichever order the database felt like.
+    created_at: datetime
+
+
+class RuleIn(BaseModel):
+    """A new seating rule. Every condition is optional and an omitted one is a
+    WILDCARD — which is why `_assert_rule_has_a_condition` exists below."""
+
+    name: str = Field(min_length=1, max_length=200)
+    enabled: bool = True
+    email_domain: str | None = Field(default=None, max_length=200)
+    # A COARSE bound only. The real limit is MAX_USN_PATTERN_LENGTH and it is
+    # enforced by `validate_usn_pattern`, whose refusal is one sentence written
+    # for the author; a Field(max_length=200) here would answer the same case
+    # with FastAPI's list-shaped schema error instead, which is the message that
+    # renders as "[object Object]" in a client that forgets `detailOf`.
+    usn_pattern: str | None = Field(default=None, max_length=2000)
+    degree_level: DegreeLevel | None = None
+    cohort_id: str | None = None
+    auto_approve: bool = False
+    # 0 is "before everything". The ceiling is arbitrary and generous: priority
+    # is an ordering, not a score, and nothing reads its magnitude.
+    priority: int = Field(default=100, ge=0, le=10_000)
+
+
+class RulePatch(BaseModel):
+    """A partial edit. NULL AND ABSENT ARE DIFFERENT HERE: an absent field is
+    left alone, and an explicit `null` CLEARS a condition (it is how a rule stops
+    requiring a USN pattern). The four fields the column cannot hold NULL for are
+    refused rather than silently ignored — see `_rule_patch`."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    enabled: bool | None = None
+    email_domain: str | None = Field(default=None, max_length=200)
+    usn_pattern: str | None = Field(default=None, max_length=2000)
+    degree_level: DegreeLevel | None = None
+    cohort_id: str | None = None
+    auto_approve: bool | None = None
+    priority: int | None = Field(default=None, ge=0, le=10_000)
+
+
+#: The fields a rule row cannot hold NULL for. An explicit `null` on one of these
+#: is a 422 rather than a no-op: a client that sends `{"name": null}` believes it
+#: is doing something, and ignoring it is how a screen reports a save that never
+#: happened.
+_RULE_NOT_NULLABLE: tuple[str, ...] = ("name", "enabled", "auto_approve", "priority")
+
+
+def _rule_out(rule: RegistrationRule) -> RuleOut:
+    """ONE writer for the rule's shape, so the list and the three write routes
+    cannot answer different objects for the same row."""
+    return RuleOut(
+        id=rule.id,
+        name=rule.name,
+        enabled=rule.enabled,
+        email_domain=rule.email_domain,
+        usn_pattern=rule.usn_pattern,
+        degree_level=rule.degree_level.value if rule.degree_level is not None else None,
+        cohort_id=rule.cohort_id,
+        auto_approve=rule.auto_approve,
+        priority=rule.priority,
+        created_at=rule.created_at,
+    )
+
+
+def _rule_snapshot(rule: RegistrationRule) -> dict:
+    """What the audit trail keeps. The whole rule, because a rule is small and
+    the question asked of the trail later is "what did it say", not "what
+    changed"."""
+    return {
+        "name": rule.name,
+        "enabled": rule.enabled,
+        "email_domain": rule.email_domain,
+        "usn_pattern": rule.usn_pattern,
+        "degree_level": rule.degree_level.value if rule.degree_level is not None else None,
+        "cohort_id": rule.cohort_id,
+        "auto_approve": rule.auto_approve,
+        "priority": rule.priority,
+    }
+
+
+def _validated_rule_pattern(pattern: str | None) -> str | None:
+    """Rule-write defence #1, as a 422 in the author's own language.
+
+    The ValueError text is handed back UNCHANGED. It names the actual problem —
+    too long, a quantified group, a syntax error and where — and the person
+    reading it is the person editing the pattern.
+    """
+    if pattern is None:
+        return None
+    pattern = pattern.strip()
+    if not pattern:
+        return None
+    try:
+        validate_usn_pattern(pattern)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+    return pattern
+
+
+def _validated_rule_domain(domain: str | None) -> str | None:
+    """`@BGSCET.ac.in ` -> `bgscet.ac.in`, or a 422 saying what was expected.
+
+    NORMALISED AT WRITE TIME because `_rule_matches` compares the stored value
+    against `_email_domain(email)`, which is already lowercased and stripped: a
+    rule stored as "BGSCET.ac.in" would simply never match, and the symptom is
+    an application quietly falling through to manual review with no rule to
+    blame. The same normalisation `institution_domains` uses, not a second copy.
+    """
+    if domain is None:
+        return None
+    normalised = normalise_domain(domain)
+    if not normalised:
+        return None
+    if "@" in normalised or any(ch.isspace() for ch in normalised) or "." not in normalised:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "email_domain is the part after the @ — 'bgscet.ac.in', not a whole "
+                "address and not a single word."
+            ),
+        )
+    return normalised
+
+
+def _validated_rule_cohort(db: Session, cohort_id: str | None) -> str | None:
+    """The batch a rule seats into must exist. Checked here rather than left to
+    the foreign key, because an IntegrityError on commit is a 500 with the audit
+    row rolled back inside it — the same shape as the USN hole GUARD 3 closed."""
+    if not cohort_id:
+        return None
+    if db.get(Cohort, cohort_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="That batch does not exist. Pick one from the list, or leave the rule unseated.",
+        )
+    return cohort_id
+
+
+def _assert_rule_has_a_condition(rule: RegistrationRule) -> None:
+    """Refuse an auto-approving rule that matches EVERYTHING.
+
+    A rule with no populated condition is a wildcard — `_rule_matches` returns
+    True for every applicant — and `auto_approve` on top of that is "provision an
+    account for whoever submits the form", which is the one outcome this queue
+    exists to prevent. It is not hypothetical on a CRUD screen where all three
+    conditions are optional inputs and the auto-approve switch is one click.
+
+    The deployment that genuinely wants "everyone on our domain is waved
+    through" says so by naming the domain, which costs one field and makes the
+    intent readable on the rules table afterwards. A rule that does NOT
+    auto-approve is left alone: a catch-all that routes everything to review with
+    a label is a useful rule and refuses nobody.
+
+    This is not a substitute for GUARD 1 — the college's provisionable domains
+    still fence an auto-approval, and `_apply_rule` catches that refusal and
+    sends the application to review. It is a second lock on the same door,
+    because the first one is a per-college list an operator can widen.
+    """
+    if not rule.auto_approve:
+        return
+    if rule.email_domain or rule.usn_pattern or rule.degree_level is not None:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=(
+            "A rule that auto-approves with no conditions would provision an account for "
+            "every application ever submitted. Name at least one condition — the email "
+            "domain is the usual one — or leave auto-approve off."
+        ),
+    )
+
+
+def _assert_rule_reachable(db: Session, session: dict, rule: RegistrationRule) -> None:
+    """Refuse a rule this caller's grant does not reach (decision 3).
+
+    THE SAME CONSTRUCTION AS `_assert_reachable`, and for the same reason: a
+    re-SELECT through `registration_rule_scope_clause` rather than a second
+    reading of the reach in Python, so the drawer's list and the buttons under it
+    obey one predicate. A rule naming no batch hangs under nothing and is reached
+    only by a reach of everything, which is the Main Admin — the same answer
+    `registration_scope_clause` gives an application that named nothing.
+
+    CALLED AFTER THE FLUSH ON A CREATE OR A RE-TARGET, not before. There is no
+    row to re-select until there is a row, and checking a cohort id in Python
+    first would be precisely the second reading this avoids. Nothing is committed
+    until every check has passed, and `get_db` closes the session — rolling the
+    insert back — on the way out of the exception.
+
+    403, not 404: the caller is a known reviewer, so "this one is not yours" is
+    true, safe and actionable. See `_assert_reachable` for why that argument does
+    not transfer to students.
+    """
+    reach = scope_filter(db, session, "admin.registrations")
+    if reach.everything:
+        return
+    covered = db.scalar(
+        select(RegistrationRule.id).where(
+            RegistrationRule.id == rule.id, registration_rule_scope_clause(reach)
+        )
+    )
+    if covered is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Your Registrations capability does not reach that batch, so it cannot "
+                "seat a rule there. A rule that names no batch at all is the Main "
+                "Admin's."
+            ),
+        )
 
 
 @router.get("/rules", response_model=list[RuleOut])
 def rules(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[RuleOut]:
-    """Main Admin: the active rule set, in the order the engine evaluates it."""
+    """The rule set, in the order the engine evaluates it.
+
+    NARROWED THE SAME WAY THE WRITES ARE (decision 3). This list was
+    unscoped — every rule to any holder of `admin.registrations` — which was the
+    third of the three options the map laid out and the worst of them: a college
+    admin reading rules they cannot edit, with nothing saying which is which.
+    `X-Reep-Scope` states the narrowing, so "no rules" and "no rules you can see"
+    are different words on the screen rather than the same empty table.
+    """
     require_capability(db, session, "admin.registrations")
+    reach = scope_filter(db, session, "admin.registrations")
+    scope_header(response, reach)
+    if reach.nothing:
+        return []
     rows = db.scalars(
-        select(RegistrationRule).order_by(RegistrationRule.priority, RegistrationRule.created_at)
+        select(RegistrationRule)
+        .where(registration_rule_scope_clause(reach))
+        .order_by(RegistrationRule.priority, RegistrationRule.created_at)
     ).all()
-    return [
-        RuleOut(
-            id=r.id,
-            name=r.name,
-            enabled=r.enabled,
-            email_domain=r.email_domain,
-            usn_pattern=r.usn_pattern,
-            degree_level=r.degree_level.value if r.degree_level is not None else None,
-            cohort_id=r.cohort_id,
-            auto_approve=r.auto_approve,
-            priority=r.priority,
+    return [_rule_out(r) for r in rows]
+
+
+@router.post("/rules", response_model=RuleOut, status_code=status.HTTP_201_CREATED)
+def create_rule(
+    body: RuleIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> RuleOut:
+    """Write a new seating rule (B11.3).
+
+    THE ORDER OF THE CHECKS IS THE POINT. The pattern is validated before
+    anything is written, the batch is proven to exist before the foreign key can
+    500 on it, the wildcard-auto-approve door is shut, and the row is flushed and
+    then re-SELECTed through the LIST'S OWN predicate — so a scoped author cannot
+    seat a rule in somebody else's batch, and cannot write a batchless
+    programme-wide rule at all. Only then is anything committed.
+
+    Audited. `auto_approve` plus a batch is the one control in the product that
+    mints an account with no human in the loop, and the trail is where "who
+    turned that on" is answered.
+    """
+    require_capability(db, session, "admin.registrations")
+    rule = RegistrationRule(
+        name=body.name.strip(),
+        enabled=body.enabled,
+        email_domain=_validated_rule_domain(body.email_domain),
+        usn_pattern=_validated_rule_pattern(body.usn_pattern),
+        degree_level=body.degree_level,
+        cohort_id=_validated_rule_cohort(db, body.cohort_id),
+        auto_approve=body.auto_approve,
+        priority=body.priority,
+    )
+    if not rule.name:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="A rule needs a name — it is what the queue shows beside every application it routes.",
         )
-        for r in rows
-    ]
+    _assert_rule_has_a_condition(rule)
+    db.add(rule)
+    db.flush()
+    _assert_rule_reachable(db, session, rule)
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="registration_rule", entity_id=rule.id, action="CREATED",
+        before=None, after=_rule_snapshot(rule),
+        event_type="registration.rule_created",
+        payload={"name": rule.name, "auto_approve": rule.auto_approve},
+    )
+    db.commit()
+    db.refresh(rule)
+    return _rule_out(rule)
+
+
+@router.patch("/rules/{rule_id}", response_model=RuleOut)
+def update_rule(
+    rule_id: str,
+    body: RulePatch,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> RuleOut:
+    """Edit a seating rule (B11.3).
+
+    ABSENT AND NULL ARE DIFFERENT. An omitted field is left alone; an explicit
+    `null` clears a condition, which is the only way a rule stops requiring a USN
+    pattern. `model_fields_set` is what tells the two apart — `exclude_unset`
+    would flatten the enum back to a string on the way — and the four columns
+    that cannot hold NULL refuse it rather than ignoring it.
+
+    REACHABLE BEFORE AND AFTER. A scoped author must already reach the rule, and
+    must still reach it once the edit lands: without the second check, moving a
+    rule's batch would be the way to hand it to another college — or to take it
+    programme-wide, out of everybody's reach including the author's.
+    """
+    require_capability(db, session, "admin.registrations")
+    rule = db.scalar(
+        select(RegistrationRule).where(RegistrationRule.id == rule_id).with_for_update()
+    )
+    if rule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule not found.")
+    _assert_rule_reachable(db, session, rule)
+    provided = body.model_fields_set
+    for field in _RULE_NOT_NULLABLE:
+        if field in provided and getattr(body, field) is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"{field} cannot be cleared — leave it out to keep the value it has.",
+            )
+    before = _rule_snapshot(rule)
+    if "name" in provided:
+        name = (body.name or "").strip()
+        if not name:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="A rule needs a name — it is what the queue shows beside every application it routes.",
+            )
+        rule.name = name
+    if "enabled" in provided:
+        rule.enabled = bool(body.enabled)
+    if "email_domain" in provided:
+        rule.email_domain = _validated_rule_domain(body.email_domain)
+    if "usn_pattern" in provided:
+        rule.usn_pattern = _validated_rule_pattern(body.usn_pattern)
+    if "degree_level" in provided:
+        rule.degree_level = body.degree_level
+    if "cohort_id" in provided:
+        rule.cohort_id = _validated_rule_cohort(db, body.cohort_id)
+    if "auto_approve" in provided:
+        rule.auto_approve = bool(body.auto_approve)
+    if "priority" in provided:
+        rule.priority = int(body.priority)
+    _assert_rule_has_a_condition(rule)
+    db.flush()
+    _assert_rule_reachable(db, session, rule)
+    after = _rule_snapshot(rule)
+    if after == before:
+        # Nothing changed — no audit row. A trail that records every no-op save
+        # is a trail in which the one real edit is on page nine.
+        db.commit()
+        db.refresh(rule)
+        return _rule_out(rule)
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="registration_rule", entity_id=rule.id, action="UPDATED",
+        before=before, after=after,
+        event_type="registration.rule_updated",
+        payload={"name": rule.name, "auto_approve": rule.auto_approve},
+    )
+    db.commit()
+    db.refresh(rule)
+    return _rule_out(rule)
+
+
+@router.delete("/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_rule(
+    rule_id: str,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> None:
+    """Delete a seating rule (B11.3).
+
+    IT COSTS PROVENANCE, AND THE TRAIL IS WHAT PAYS FOR IT.
+    `registrations.matched_rule_id` is `ON DELETE SET NULL`, so every application
+    this rule routed loses the pointer that said which rule routed it — the
+    queue's "Rule" column goes to "No rule matched" on rows a rule certainly did
+    match. The audit row carries the whole rule and the number of applications
+    that referenced it, which is the only place that fact survives.
+
+    DISABLING IS THE REVERSIBLE ONE. `PATCH {"enabled": false}` stops a rule
+    firing, keeps it on the screen where somebody can see why the intake behaved
+    as it did, and keeps every `matched_rule_id` pointing at it. The client says
+    so beside the button; this endpoint does not refuse the delete, because an
+    office that has typed a rule by mistake should be able to remove it.
+    """
+    require_capability(db, session, "admin.registrations")
+    rule = db.scalar(
+        select(RegistrationRule).where(RegistrationRule.id == rule_id).with_for_update()
+    )
+    if rule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule not found.")
+    _assert_rule_reachable(db, session, rule)
+    routed = (
+        db.scalar(
+            select(func.count())
+            .select_from(Registration)
+            .where(Registration.matched_rule_id == rule.id)
+        )
+        or 0
+    )
+    before = _rule_snapshot(rule)
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="registration_rule", entity_id=rule.id, action="DELETED",
+        before=before, after=None,
+        event_type="registration.rule_deleted",
+        payload={"name": rule.name, "applications_unlinked": routed},
+    )
+    db.delete(rule)
+    db.commit()
+    return None

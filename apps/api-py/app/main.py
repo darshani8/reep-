@@ -42,7 +42,10 @@ from .routers import (
     admin_students,
     interview_bank,
     interview_policy,
+    leave_alternate,
+    leave_attachments,
     leave_paper,
+    leave_policy,
     signature,
     swoc,
     leave,
@@ -385,6 +388,19 @@ app.include_router(leave.router, prefix="/api")
 app.include_router(staff_upskilling.router, prefix="/api")
 app.include_router(signature.router, prefix="/api")
 app.include_router(leave_paper.router, prefix="/api")
+# B10's three additions, each in its OWN module for leave_paper's reason: the
+# form's submit and decide paths live in routers/leave.py, the owner asked for
+# them to be left exactly as they are, and that file grows nothing. All three
+# import the scope rule from it rather than restating one.
+#   leave_attachments  the papers that came with a request (B10.3)
+#   leave_alternate    who is covering, and their acceptance (B10.6)
+#   leave_policy       allowances and the college calendar (B10.2) — two
+#                      routers, because the office's CRUD is /api/admin/... and
+#                      the person's own two reads are /api/leaves/...
+app.include_router(leave_attachments.router, prefix="/api")
+app.include_router(leave_alternate.router, prefix="/api")
+app.include_router(leave_policy.leave_router, prefix="/api")
+app.include_router(leave_policy.admin_router, prefix="/api")
 app.include_router(alumni.router, prefix="/api")
 # The Skills & Badge dashboard: the student half shares the /student prefix
 # (badges, growth, leaderboards); badge_verification carries the staff review queue,

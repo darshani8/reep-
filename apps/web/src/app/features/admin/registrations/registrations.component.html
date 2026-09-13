@@ -25,18 +25,26 @@
     </div>
   </div>
 
-  <!-- The board's four tabs. Only PENDING_REVIEW is listable today: GET
-       /register/pending returns that status and nothing else, HOLD is a status
-       B11.2 adds, and there is no by-status queue for the other two. Each
-       unbuilt tab is disabled and says when it arrives, rather than opening an
-       empty list that reads as "nobody was ever auto-approved". -->
+  <!-- The board's four tabs, live since B11.2. Three of them were disabled
+       because GET /register/pending answered one hard-coded status; `?status=`
+       is that gap closed, and HOLD is the status the Held tab needed.
+
+       ONLY PENDING CARRIES A NUMBER. That queue is unbounded, so the rows
+       loaded ARE the rows waiting; the other three are bounded pages, where the
+       same count would draw "Rejected · 200" over a table of four thousand. See
+       `tabLabel`. -->
   <div class="tabs queue-tabs" role="group" aria-label="Registration queues">
-    <button type="button" class="tab active" aria-current="true">
-      Pending · {{ waitingCount() }}
-    </button>
-    <button type="button" class="tab" [reepPending]="backendPhase">Auto-approved</button>
-    <button type="button" class="tab" [reepPending]="backendPhase">Held</button>
-    <button type="button" class="tab" [reepPending]="backendPhase">Rejected</button>
+    @for (tab of queueTabs; track tab.key) {
+      <button
+        type="button"
+        class="tab"
+        [class.active]="activeTab() === tab.key"
+        [attr.aria-current]="activeTab() === tab.key ? 'true' : null"
+        (click)="setTab(tab.key)"
+      >
+        {{ tabLabel(tab) }}
+      </button>
+    }
   </div>
 
   <div class="filters">
@@ -64,14 +72,17 @@
       </select>
     </div>
 
-    <!-- Domain check needs the college's registered domains (B11.1); until that
-         list exists there is nothing to compare an address against. -->
-    <div class="select filter-pending">
+    <!-- Domain check, live since B11.1. The verdict is the server's `domain`
+         check — the same `domain_verdict` GUARD 1 calls on Approve — so
+         "Off-domain" here is exactly the set Approve would refuse. -->
+    <div class="select">
       <span class="lbl">Domain check</span>
-      <span class="val">All</span>
+      <span class="val">{{ domainFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Domain check" [reepPending]="backendPhase">
-        <option value="">All</option>
+      <select aria-label="Domain check" (change)="setDomainFilter(selectValue($event))">
+        @for (option of domainFilters; track option.key) {
+          <option [value]="option.key" [selected]="option.key === domainFilter()">{{ option.label }}</option>
+        }
       </select>
     </div>
 
@@ -121,26 +132,52 @@
           (input)="onQuickFilterInput($event)"
         />
 
-        <button
-          type="button"
-          class="btn secondary sm"
-          [disabled]="!hasDecisionTarget() || deciding()"
-          (click)="approveTargets()"
-        >
-          <span class="icon" aria-hidden="true">task_alt</span> Approve
-        </button>
-        <!-- Hold is a registration status B11.2 adds, with POST /{id}/hold. -->
-        <button type="button" class="btn secondary sm" [reepPending]="backendPhase">
-          <span class="icon" aria-hidden="true">pending</span> Hold
-        </button>
-        <button
-          type="button"
-          class="btn secondary sm"
-          [disabled]="!hasDecisionTarget() || deciding()"
-          (click)="rejectTargets()"
-        >
-          <span class="icon" aria-hidden="true">cancel</span> Reject
-        </button>
+        <!-- The verbs this tab's rows can actually take. A decided application
+             answers 409 to both Approve and Reject, so the buttons that would
+             earn that are disabled rather than drawn and then refused; the
+             Rejected and Held tabs get Reopen instead, which is the one act
+             their rows DO accept. -->
+        @if (canDecide()) {
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="approveTargets()"
+          >
+            <span class="icon" aria-hidden="true">task_alt</span> Approve
+          </button>
+        }
+        @if (canHold()) {
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="holdTargets()"
+          >
+            <span class="icon" aria-hidden="true">pending</span> Hold
+          </button>
+        }
+        @if (canDecide()) {
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="rejectTargets()"
+          >
+            <span class="icon" aria-hidden="true">cancel</span> Reject
+          </button>
+        }
+        @if (canReopen()) {
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="reopenTargets()"
+          >
+            <span class="icon" aria-hidden="true">undo</span>
+            {{ activeTab() === 'HOLD' ? 'Release hold' : 'Reopen' }}
+          </button>
+        }
 
         <span class="gridbar-end">
           <button
@@ -290,23 +327,71 @@
           </div>
         </dl>
 
+        <!-- THE HOLD NOTE, AND ONLY WHERE THERE IS ONE. It is the whole reason
+             HOLD exists as a status: without the words, a held application is a
+             pending application with a different tab. `hold_note` is staff-only
+             — `PublicRegistrationOut` does not declare it — so this is the one
+             place it is ever read, and the line under it says plainly that the
+             applicant was told nothing, because a reviewer who assumes they
+             were will not tell them. -->
+        @if (reviewed.application.hold_note; as note) {
+          <div class="panel-hold">
+            <div class="eyebrow">On hold</div>
+            <p class="hold-note">{{ note }}</p>
+            <p class="hold-meta">
+              Held {{ reviewed.application.held_at | date: 'd MMM y, HH:mm' }} · internal to the
+              office. Nothing was emailed and the applicant's own page is unchanged.
+            </p>
+          </div>
+        }
+
         <div class="panel-checks">
           <div class="eyebrow">Checks</div>
-          @for (check of checks(); track check.headline) {
-            <div class="panel-check panel-check--{{ check.tone }}">
-              <span class="icon" aria-hidden="true">{{ check.icon }}</span>
-              <div>
-                <div class="check-headline">{{ check.headline }}</div>
-                <div class="check-detail">{{ check.detail }}</div>
+          <!-- NO CHECKLIST ON A DECIDED APPLICATION, and it is SAID rather than
+               left blank. `checks` comes back null for the Auto-approved and
+               Rejected tabs, which the contract defines as NOT COMPUTED rather
+               than "nothing to report" — every line below is written in the
+               future tense about a decision that has already been taken, and a
+               silent gap where a checklist usually sits reads as a clean bill of
+               health for a row nobody checked. -->
+          @if (checks().length === 0) {
+            <p class="checks-none">
+              No checklist: it is computed for applications still waiting on a decision, and this one
+              has been decided.
+            </p>
+          } @else {
+            @for (check of checks(); track check.headline) {
+              <div class="panel-check panel-check--{{ check.tone }}">
+                <span class="icon" aria-hidden="true">{{ check.icon }}</span>
+                <div>
+                  <div class="check-headline">{{ check.headline }}</div>
+                  <div class="check-detail">{{ check.detail }}</div>
+                </div>
               </div>
+            }
+            @if (blockingChecks().length) {
+              <div class="notice warn">
+                <span class="icon" aria-hidden="true">block</span>
+                Approve will refuse this application while the {{ blockingChecks().length === 1 ? 'line' : 'lines' }}
+                marked above stand. Fix the application or reject it — the server answers the same
+                refusal, so approving anyway only returns the error.
+              </div>
+            }
+            <!-- THE SEAT COUNT IS NOT COMING, and this notice used to promise it
+                 under B11.1. `cohorts` has no capacity column, 04 §B11.1 asks for
+                 none, and only the board draws the check — so the line was wrong
+                 the day it was written. A nullable capacity would also render as
+                 "no check" on every batch nobody has filled in, which is every
+                 batch on day one: grey exactly where it would matter. Seating
+                 capacity is a course-shape decision and belongs with the
+                 catalogue, not with the review queue. -->
+            <div class="notice accent">
+              <span class="icon" aria-hidden="true">info</span>
+              The first lines are the server's own checks — the same guards Approve applies. The
+              batch and the attachments are read from this application. There is no seat check:
+              batches carry no capacity, so nothing here counts seats.
             </div>
           }
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">info</span>
-            These are the checks the application itself carries. The domain against the college's
-            registered domains, the duplicate-account check and the batch's seat count are B11.1,
-            which lands in Phase {{ backendPhase }}; nothing reports them yet.
-          </div>
         </div>
       } @else if (hasDecisionTarget()) {
         <div class="panel-head">
@@ -342,7 +427,7 @@
             id="decision-note"
             class="ctrl multi"
             rows="3"
-            placeholder="Required for Reject · emailed with a rejection, recorded either way"
+            placeholder="Required for Reject and for Hold · a rejection emails it, a hold does not"
             [value]="decisionNote()"
             [disabled]="!hasDecisionTarget()"
             [attr.aria-describedby]="noteError() ? 'decision-note-error' : null"
@@ -362,29 +447,56 @@
           their record and emails the onboarding link; a note you type is kept on the decision, not
           emailed. Reject emails your reason and can be undone from the notice at the top of this
           screen; an approved application cannot, because someone has already been told to sign in.
+          <!-- HOLD IS INTERNAL and this sentence is the reason the reviewer can
+               be trusted with it: a note they believe was emailed is a note
+               that leaves the applicant waiting for a message nobody sent. -->
+          Hold parks it here with your note and sends the applicant nothing at all — they can still
+          attach the document you are waiting for.
         </div>
 
         <div class="panel-actions">
-          <button
-            type="button"
-            class="btn danger"
-            [disabled]="!hasDecisionTarget() || deciding()"
-            (click)="rejectTargets()"
-          >
-            <span class="icon" aria-hidden="true">cancel</span> Reject
-          </button>
-          <button type="button" class="btn secondary" [reepPending]="backendPhase">
-            <span class="icon" aria-hidden="true">pending</span> Hold
-          </button>
-          <button
-            type="button"
-            class="btn primary"
-            [disabled]="!hasDecisionTarget() || deciding()"
-            (click)="approveTargets()"
-          >
-            <span class="icon" aria-hidden="true">how_to_reg</span>
-            {{ deciding() ? 'Working…' : approveButtonLabel() }}
-          </button>
+          @if (canDecide()) {
+            <button
+              type="button"
+              class="btn danger"
+              [disabled]="!hasDecisionTarget() || deciding()"
+              (click)="rejectTargets()"
+            >
+              <span class="icon" aria-hidden="true">cancel</span> Reject
+            </button>
+          }
+          @if (canHold()) {
+            <button
+              type="button"
+              class="btn secondary"
+              [disabled]="!hasDecisionTarget() || deciding()"
+              (click)="holdTargets()"
+            >
+              <span class="icon" aria-hidden="true">pending</span> Hold
+            </button>
+          }
+          @if (canReopen()) {
+            <button
+              type="button"
+              class="btn secondary"
+              [disabled]="!hasDecisionTarget() || deciding()"
+              (click)="reopenTargets()"
+            >
+              <span class="icon" aria-hidden="true">undo</span>
+              {{ activeTab() === 'HOLD' ? 'Release hold' : 'Reopen' }}
+            </button>
+          }
+          @if (canDecide()) {
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="!hasDecisionTarget() || deciding()"
+              (click)="approveTargets()"
+            >
+              <span class="icon" aria-hidden="true">how_to_reg</span>
+              {{ deciding() ? 'Working…' : approveButtonLabel() }}
+            </button>
+          }
         </div>
       </div>
     </aside>

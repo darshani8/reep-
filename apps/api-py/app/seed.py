@@ -818,8 +818,18 @@ def main() -> None:
             db.commit()
             print("added registration rules (2)")
 
-        # Idempotently seed two sample applications: one that the narrow rule
-        # auto-approves, one that only the broad rule routes to manual review.
+        # Idempotently seed three sample applications: one the narrow rule
+        # auto-approves, one only the broad rule routes to manual review, and one
+        # a reviewer has HELD.
+        #
+        # THE HELD ONE IS SEEDED FOR THE SAME REASON THE TIME LEDGER IS SEEDED
+        # HALF AN HOUR SHORT: a state nobody can see on a fresh database is a
+        # state nobody reviews. HOLD is one row in one column, the Held tab is
+        # empty without it, and "the tab loads and shows nothing" is
+        # indistinguishable from "the tab is broken" until somebody holds an
+        # application by hand. The note is what a real hold looks like — it says
+        # what the application is waiting on, because a hold with no note is a
+        # PENDING_REVIEW row with extra steps.
         if db.scalar(select(Registration)) is None:
             rules = {r.name: r for r in db.scalars(select(RegistrationRule)).all()}
             auto = rules.get("MBA 2024-26 auto-admit")
@@ -828,10 +838,14 @@ def main() -> None:
                 [
                     Registration(name="Asha Rao", email="1bg24mba045@bgscet.ac.in", usn="1BG24MBA045", degree_level=DegreeLevel.PG, status=RegistrationStatus.AUTO_APPROVED, cohort_id=auto.cohort_id if auto else None, matched_rule_id=auto.id if auto else None, decision_reason="Auto-approved by rule 'MBA 2024-26 auto-admit'."),
                     Registration(name="Ravi Kumar", email="ravi.kumar@bgscet.ac.in", degree_level=DegreeLevel.PG, status=RegistrationStatus.PENDING_REVIEW, matched_rule_id=broad.id if broad else None, decision_reason="Routed by rule 'College domain — route to review' — awaiting review."),
+                    # `held_by_id` is left NULL and `decision_reason` keeps the
+                    # rule engine's own sentence: the seed has no reviewer to
+                    # name, and a hold changes nothing the applicant is told.
+                    Registration(name="Nikhil Shetty", email="nikhil.shetty@bgscet.ac.in", degree_level=DegreeLevel.PG, status=RegistrationStatus.HOLD, matched_rule_id=broad.id if broad else None, decision_reason="Routed by rule 'College domain — route to review' — awaiting review.", hold_note="No CV attached, and the USN on the form is one digit short. Asked him to resend both.", held_at=datetime.now(timezone.utc)),
                 ]
             )
             db.commit()
-            print("added registrations (2: 1 auto-approved, 1 pending review)")
+            print("added registrations (3: 1 auto-approved, 1 pending review, 1 held)")
 
         # THERE IS NO JOB-IMPORT SEED ANY MORE. B8.4 deleted `job_import_runs`
         # and `jobs.import_run_id` with the three endpoints nobody called; this

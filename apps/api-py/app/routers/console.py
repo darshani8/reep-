@@ -54,7 +54,7 @@ from ..criteria import (
     as_payload as criteria_payload,
     resolve as resolve_criteria,
 )
-from ..models.registration import Registration, RegistrationStatus
+from ..models.registration import PENDING_QUEUE_STATUSES, Registration
 from ..models.resume import Resume
 from ..models.user import Mentor, Role, Student, User
 # Rule 2's gate, imported rather than reimplemented — see its docstring for why
@@ -952,6 +952,10 @@ def _modal_semester(db: Session, reach=None) -> int | None:
 
 class AnalyticsSummaryOut(BaseModel):
     students_total: int
+    #: Applications still waiting on a human: PENDING_REVIEW **or** HOLD
+    #: (B11.2). A hold is a bookmark with a note, not an outcome, so the work is
+    #: still owed; counting only PENDING_REVIEW would make this tile fall the
+    #: moment somebody pressed Hold and report progress that nobody made.
     pending_registrations: int
     mentors_total: int
     # Assigned students per mentor. None with no mentors — an average over
@@ -1008,9 +1012,16 @@ def analytics_summary(
 
     in_reach = Student.id.in_(reach.student_ids())
     total = count(select(Student.id).where(in_reach))
+    # PENDING_REVIEW **OR** HOLD, through the one `PENDING_QUEUE_STATUSES` the
+    # model declares (B11.2). A held application is work the office still owes
+    # somebody — parked with a note, not finished — and counting only
+    # PENDING_REVIEW would drop this tile the moment a reviewer pressed Hold,
+    # reporting a queue getting shorter when nothing had been decided. The
+    # Registrations screen splits the two into tabs because it has room to; this
+    # tile is one number and must mean "waiting on us".
     pending_regs = count(
         select(Registration.id).where(
-            Registration.status == RegistrationStatus.PENDING_REVIEW,
+            Registration.status.in_(PENDING_QUEUE_STATUSES),
             registration_scope_clause(reach),
         )
     )
@@ -1695,12 +1706,16 @@ def analytics_kpis(
                 "so no readiness score can be computed. Run an import (B8.1)."
             )
 
+    # The same `PENDING_QUEUE_STATUSES` the summary tile counts, for the same
+    # reason: a held application is still an approval this office owes somebody.
+    # Two KPIs answering "pending" from two different status sets is how the
+    # Analytics screen ends up contradicting itself by four.
     pending = int(
         db.scalar(
             select(func.count()).select_from(
                 select(Registration.id)
                 .where(
-                    Registration.status == RegistrationStatus.PENDING_REVIEW,
+                    Registration.status.in_(PENDING_QUEUE_STATUSES),
                     registration_scope_clause(reach),
                 )
                 .subquery()
@@ -1777,7 +1792,8 @@ def analytics_kpis(
                 key="pending_approvals", label="Pending approvals", unit="count",
                 value=float(pending),
                 note=(
-                    "Applications awaiting review plus evidence awaiting "
+                    "Applications awaiting review — held ones included, because "
+                    "a hold is a note, not a decision — plus evidence awaiting "
                     "verification. No comparison period: queue depth is not "
                     "recorded over time."
                 ),

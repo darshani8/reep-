@@ -27,7 +27,11 @@
  *   POST /api/register/{id}/reopen        back in the queue — the Rejected
  *                                         tab's Undo AND the Held tab's release,
  *                                         because they are one act
- *   GET  /api/register/rules              the Seating rules drawer, read-only
+ *   GET  /api/register/rules              the Seating rules drawer — NARROWED
+ *                                         the same way the writes are, so every
+ *                                         rule listed is one this account can
+ *                                         edit
+ *   POST/PATCH/DELETE /api/register/rules the drawer's editor (B11.3)
  *   GET  /api/register/hierarchy          batch names for the queue and the
  *                                         College / Batch filters (public, and
  *                                         reachable by a grantee who holds
@@ -60,8 +64,23 @@
  * application is still decidable, is still counted on the Analytics pending
  * tile, and can still receive the document it is being held for.
  *
- * WHAT IS STILL NOT LIVE: creating and editing seating rules (B11.3), which is
- * the one remaining disabled control on this screen and says so.
+ * THE SEATING RULES ARE EDITABLE NOW (B11.3), AND THAT IS THE SHARPEST CONTROL
+ * ON THIS SCREEN. A rule with auto-approve and a batch provisions an account
+ * with no human in the loop — the application never reaches the queue this
+ * screen is — so the drawer says so in words beside the switch, refuses a
+ * conditionless auto-approve in the server's own sentence before posting, and
+ * offers Disable beside Delete because disabling is the reversible one:
+ * `registrations.matched_rule_id` is ON DELETE SET NULL, so deleting a rule
+ * blanks the Rule column on every application it ever routed.
+ *
+ * THE USN PATTERN IS A REGULAR EXPRESSION THE PUBLIC ENDPOINT RUNS. The server
+ * validates it at write time and answers 422 with a sentence written for whoever
+ * typed it; this screen prints that sentence verbatim rather than replacing it
+ * with "Invalid pattern", because the author is the only person who can fix it.
+ * There is deliberately no client-side regex check: a second opinion about what
+ * `validate_usn_pattern` refuses is a second opinion that will be wrong.
+ *
+ * NOTHING ON THIS SCREEN IS DISABLED FOR A LATER PHASE ANY MORE.
  *
  * BULK IS THE LOOP, deliberately. There is no bulk decision endpoint; "Approve
  * 3 selected" is three POSTs and the notice says how many landed. A failure
@@ -90,14 +109,9 @@ import type {
 import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { plural } from '../../../shared/text/plural.pipe';
 
 // ----------------------------------------------------------------- rules --
-
-/** The phase that lands B11.1 (college scope, domain and duplicate checks),
- *  B11.2 (HOLD) and B11.3 (rules CRUD) — 06-phase-prompts.md, Phase 4. */
-const REGISTRATIONS_BACKEND_PHASE = 4;
 
 /** The board's four tabs, and what each one asks the server for.
  *
@@ -223,6 +237,10 @@ interface SeatingRuleApiRow {
   cohort_id: string | null;
   auto_approve: boolean;
   priority: number;
+  /** The tiebreak `_pick_rule` uses when two rules share a priority — the older
+   *  wins, "so a rule added later can't silently outrank an equal". The drawer
+   *  shows it for that reason and for no other. */
+  created_at: string;
 }
 
 /** `PublicHierarchyOut` in `app/routers/registration.py`, narrowed to the two
@@ -302,7 +320,9 @@ const DOMAIN_FILTERS: { key: string; label: string }[] = [
 ];
 const EVERY_DOMAIN_VERDICT = 'all';
 
-/** A seating rule as the drawer reads it out. */
+/** A seating rule as the drawer reads it out — the rendered half AND the raw
+ *  half, so Edit prefills the form from what is already loaded instead of
+ *  fetching the row again and briefly showing a form full of nothing. */
 interface SeatingRuleLine {
   id: string;
   name: string;
@@ -311,7 +331,46 @@ interface SeatingRuleLine {
   autoApprove: boolean;
   conditions: string;
   seatsIn: string;
+  createdAt: string;
+  emailDomain: string | null;
+  usnPattern: string | null;
+  degreeLevel: string | null;
+  cohortId: string | null;
 }
+
+/** What the rule form holds. STRINGS THROUGHOUT, because a form field is a
+ *  string: the conversion to the API's nulls, numbers and enum values happens
+ *  once, in `saveRule`, rather than in eight input handlers that would each have
+ *  their own idea of what an empty box means. */
+interface RuleDraft {
+  name: string;
+  priority: string;
+  emailDomain: string;
+  usnPattern: string;
+  degreeLevel: string;
+  cohortId: string;
+  autoApprove: boolean;
+  enabled: boolean;
+}
+
+const EMPTY_RULE_DRAFT: RuleDraft = {
+  name: '',
+  priority: '100',
+  emailDomain: '',
+  usnPattern: '',
+  degreeLevel: '',
+  cohortId: '',
+  autoApprove: false,
+  enabled: true,
+};
+
+/** The degree levels a rule can require, plus "any". `DegreeLevel` in
+ *  `app/models/job.py`; the empty key is the API's null. */
+const RULE_DEGREE_LEVELS: { key: string; label: string }[] = [
+  { key: '', label: 'Any degree level' },
+  { key: 'UG', label: 'UG only' },
+  { key: 'PG', label: 'PG only' },
+];
 
 // --------------------------------------------------------- cell renderers --
 //
@@ -494,15 +553,15 @@ function shortDateOf(isoTimestamp: string): string {
 @Component({
   selector: 'app-admin-registrations',
   standalone: true,
-  imports: [DatePipe, AgGridAngular, PendingControlDirective],
+  imports: [DatePipe, AgGridAngular],
   templateUrl: './registrations.component.html',
   styleUrl: './registrations.component.scss',
 })
 export class AdminRegistrationsComponent {
-  readonly backendPhase = REGISTRATIONS_BACKEND_PHASE;
   readonly queueTabs = QUEUE_TABS;
   readonly submittedWindows = SUBMITTED_WINDOWS;
   readonly domainFilters = DOMAIN_FILTERS;
+  readonly ruleDegreeLevels = RULE_DEGREE_LEVELS;
   readonly everyDomainVerdict = EVERY_DOMAIN_VERDICT;
   readonly pageSizes = PAGE_SIZES;
   readonly everyCollege = EVERY_COLLEGE;
@@ -514,6 +573,8 @@ export class AdminRegistrationsComponent {
   readonly batchNames = signal<Map<string, string>>(new Map());
   readonly seatingRules = signal<SeatingRuleLine[] | null>(null);
   readonly seatingRulesError = signal<string | null>(null);
+  /** `X-Reep-Scope` off the rules list: `programme`, `narrowed` or `none`. */
+  readonly rulesScope = signal<string | null>(null);
 
   // --- what the reviewer is doing ---------------------------------------
 
@@ -533,6 +594,20 @@ export class AdminRegistrationsComponent {
   readonly decisionNote = signal('');
   readonly noteError = signal<string | null>(null);
   readonly seatingRulesOpen = signal(false);
+
+  // --- the rule editor (B11.3) -------------------------------------------
+  //
+  // ONE FORM, TWO VERBS. `editingRuleId` null means POST and a rule id means
+  // PATCH; the fields are identical either way, so a second "edit" form would be
+  // the same eight inputs maintained twice. `ruleBusyId` is the row-level spinner
+  // for Disable and Delete, which act without opening the form at all.
+  readonly ruleFormOpen = signal(false);
+  readonly editingRuleId = signal<string | null>(null);
+  readonly ruleDraft = signal<RuleDraft>(EMPTY_RULE_DRAFT);
+  readonly ruleSaving = signal(false);
+  readonly ruleFormError = signal<string | null>(null);
+  readonly ruleFlash = signal<string | null>(null);
+  readonly ruleBusyId = signal<string | null>(null);
   readonly columnsPanelOpen = signal(false);
   readonly isCompact = signal(false);
   readonly pageSize = signal(DEFAULT_PAGE_SIZE);
@@ -1411,6 +1486,197 @@ export class AdminRegistrationsComponent {
 
   closeSeatingRules(): void {
     this.seatingRulesOpen.set(false);
+    this.closeRuleForm();
+    this.ruleFlash.set(null);
+  }
+
+  /** The batches a rule can seat into, from `/register/hierarchy` — the same
+   *  read the queue's Batch column uses, so a rule cannot name a batch this
+   *  screen would then fail to label. */
+  readonly ruleBatchOptions = computed(() =>
+    [...this.batchNames().entries()]
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+  );
+
+  newRule(): void {
+    this.editingRuleId.set(null);
+    this.ruleDraft.set(EMPTY_RULE_DRAFT);
+    this.ruleFormError.set(null);
+    this.ruleFormOpen.set(true);
+  }
+
+  editRule(rule: SeatingRuleLine): void {
+    this.editingRuleId.set(rule.id);
+    this.ruleDraft.set({
+      name: rule.name,
+      priority: String(rule.priority),
+      emailDomain: rule.emailDomain ?? '',
+      usnPattern: rule.usnPattern ?? '',
+      degreeLevel: rule.degreeLevel ?? '',
+      cohortId: rule.cohortId ?? '',
+      autoApprove: rule.autoApprove,
+      enabled: rule.enabled,
+    });
+    this.ruleFormError.set(null);
+    this.ruleFormOpen.set(true);
+  }
+
+  closeRuleForm(): void {
+    this.ruleFormOpen.set(false);
+    this.editingRuleId.set(null);
+    this.ruleFormError.set(null);
+  }
+
+  onRuleField(field: 'name' | 'priority' | 'emailDomain' | 'usnPattern', event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.ruleDraft.update((draft) => ({ ...draft, [field]: value }));
+  }
+
+  onRuleChoice(field: 'degreeLevel' | 'cohortId', value: string): void {
+    this.ruleDraft.update((draft) => ({ ...draft, [field]: value }));
+  }
+
+  onRuleSwitch(field: 'autoApprove' | 'enabled', event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.ruleDraft.update((draft) => ({ ...draft, [field]: checked }));
+  }
+
+  /**
+   * Write the rule — POST when it is new, PATCH when it is not.
+   *
+   * PATCH SENDS EVERY FIELD, on purpose. This is a whole-rule editor, so the
+   * draft holds the complete rule, and an explicit `null` is how a condition is
+   * CLEARED (the server distinguishes absent from null for exactly this). Sending
+   * only what changed would need a diff against the loaded row, and a diff that
+   * misses a cleared field leaves a condition the author believes they removed.
+   *
+   * THE THREE LOCAL REFUSALS ARE THE SERVER'S OWN SENTENCES. A rule needs a
+   * name, a priority is a whole number, and an auto-approving rule with no
+   * condition is an open door — all three are 422s from the API, said here first
+   * so the author is not round-tripped to be told. Anything else the server
+   * refuses is printed exactly as it wrote it, which is the whole point of
+   * `detailOf`: `validate_usn_pattern`'s message names the actual problem with
+   * the pattern and no client-side guess could.
+   */
+  async saveRule(): Promise<void> {
+    const draft = this.ruleDraft();
+    const name = draft.name.trim();
+    const emailDomain = draft.emailDomain.trim();
+    const usnPattern = draft.usnPattern.trim();
+    if (name === '') {
+      this.ruleFormError.set(
+        'A rule needs a name — it is what the queue shows beside every application it routes.',
+      );
+      return;
+    }
+    const priority = Number(draft.priority);
+    if (!Number.isInteger(priority) || priority < 0) {
+      this.ruleFormError.set('Priority is a whole number, 0 or more. The lowest one wins.');
+      return;
+    }
+    if (draft.autoApprove && emailDomain === '' && usnPattern === '' && draft.degreeLevel === '') {
+      this.ruleFormError.set(
+        'A rule that auto-approves with no conditions would provision an account for every ' +
+          'application ever submitted. Name at least one condition — the email domain is the ' +
+          'usual one — or leave auto-approve off.',
+      );
+      return;
+    }
+
+    const editing = this.editingRuleId();
+    const body = {
+      name,
+      enabled: draft.enabled,
+      email_domain: emailDomain === '' ? null : emailDomain,
+      usn_pattern: usnPattern === '' ? null : usnPattern,
+      degree_level: draft.degreeLevel === '' ? null : draft.degreeLevel,
+      cohort_id: draft.cohortId === '' ? null : draft.cohortId,
+      auto_approve: draft.autoApprove,
+      priority,
+    };
+
+    this.ruleSaving.set(true);
+    this.ruleFormError.set(null);
+    try {
+      const response = await fetch(
+        editing === null
+          ? `${environment.apiBase}/register/rules`
+          : `${environment.apiBase}/register/rules/${editing}`,
+        {
+          method: editing === null ? 'POST' : 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        },
+      );
+      if (!response.ok) {
+        this.ruleFormError.set(await detailOf(response));
+        return;
+      }
+      this.closeRuleForm();
+      this.ruleFlash.set(editing === null ? `Rule '${name}' is live.` : `Rule '${name}' saved.`);
+      await this.loadSeatingRules();
+    } catch {
+      this.ruleFormError.set('Could not reach the server.');
+    } finally {
+      this.ruleSaving.set(false);
+    }
+  }
+
+  /** The reversible one. A disabled rule stops firing, stays on this table where
+   *  somebody can see why last month's intake behaved as it did, and keeps every
+   *  `matched_rule_id` pointing at it. */
+  async toggleRuleEnabled(rule: SeatingRuleLine): Promise<void> {
+    await this.writeRule(rule, { enabled: !rule.enabled }, 'PATCH', `Rule '${rule.name}' is now ${rule.enabled ? 'off' : 'on'}.`);
+  }
+
+  /**
+   * Delete, after saying what it costs.
+   *
+   * `registrations.matched_rule_id` is ON DELETE SET NULL, so every application
+   * this rule routed loses the pointer that said so and the queue's Rule column
+   * reads "Needs a decision" on rows a rule certainly did match. The audit trail
+   * keeps the rule's whole text; this table will not.
+   */
+  async deleteRule(rule: SeatingRuleLine): Promise<void> {
+    const agreed = window.confirm(
+      `Delete the rule '${rule.name}'?\n\n` +
+        'Applications it already routed will stop showing which rule routed them — that pointer ' +
+        'is cleared by the database, not kept. Disable the rule instead if you only want it to ' +
+        'stop firing.',
+    );
+    if (!agreed) return;
+    await this.writeRule(rule, null, 'DELETE', `Rule '${rule.name}' is gone.`);
+  }
+
+  private async writeRule(
+    rule: SeatingRuleLine,
+    body: object | null,
+    method: 'PATCH' | 'DELETE',
+    flash: string,
+  ): Promise<void> {
+    this.ruleBusyId.set(rule.id);
+    this.seatingRulesError.set(null);
+    try {
+      const response = await fetch(`${environment.apiBase}/register/rules/${rule.id}`, {
+        method,
+        credentials: 'include',
+        ...(body === null
+          ? {}
+          : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+      });
+      if (!response.ok) {
+        this.seatingRulesError.set(await detailOf(response));
+        return;
+      }
+      this.ruleFlash.set(flash);
+      await this.loadSeatingRules();
+    } catch {
+      this.seatingRulesError.set('Could not reach the server.');
+    } finally {
+      this.ruleBusyId.set(null);
+    }
   }
 
   // =============================================================== loading ==
@@ -1474,6 +1740,11 @@ export class AdminRegistrationsComponent {
         this.seatingRules.set([]);
         return;
       }
+      // THE LIST IS NARROWED THE SAME WAY THE WRITES ARE (decision 3), and the
+      // header is how this screen can say which of the two empty tables it is
+      // looking at: "no rules exist" and "no rules you can see" are opposite
+      // facts. `programme` means the whole rule set.
+      this.rulesScope.set(response.headers.get('X-Reep-Scope'));
       const rules = (await response.json()) as SeatingRuleApiRow[];
       this.seatingRules.set(rules.map((rule) => this.toSeatingRuleLine(rule)));
     } catch {
@@ -1495,6 +1766,11 @@ export class AdminRegistrationsComponent {
       autoApprove: rule.auto_approve,
       conditions: conditions.length === 0 ? 'Matches every application' : conditions.join(' · '),
       seatsIn: this.seatLabelFor(rule.cohort_id),
+      createdAt: rule.created_at,
+      emailDomain: rule.email_domain,
+      usnPattern: rule.usn_pattern,
+      degreeLevel: rule.degree_level,
+      cohortId: rule.cohort_id,
     };
   }
 

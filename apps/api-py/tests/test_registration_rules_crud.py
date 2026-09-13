@@ -18,6 +18,7 @@ routed.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import delete, func, select
@@ -63,6 +64,8 @@ def spine():
                 batch_label="2026-28",
                 department_id=department.id,
                 degree_level=DegreeLevel.PG,
+                start_date=datetime(2026, 8, 1, tzinfo=timezone.utc),
+                end_date=datetime(2028, 7, 31, tzinfo=timezone.utc),
             )
             db.add(cohort)
             db.commit()

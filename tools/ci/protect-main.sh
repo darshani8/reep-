@@ -70,7 +70,7 @@
 # -----------------------------------------------------------------------------
 # GitHub matches a required status check by the DISPLAY NAME of the job — the
 # `name:` field in .github/workflows/ci.yml, not the job's YAML key (`api`,
-# `api-imports`, `web`, `cdk`). The five strings in REQUIRED_CHECKS
+# `pii-gate`, `api-imports`, `web`, `cdk`). The five strings in REQUIRED_CHECKS
 # below must match those `name:` values byte for byte: spaces, parentheses and
 # capitalisation included.
 #
@@ -86,6 +86,15 @@
 # So: rename a job and re-run this script in the same change. The pre-flight
 # check below turns "you renamed a gate" into an error today instead of a gap
 # discovered three months from now.
+#
+# That pre-flight only fires for whoever remembers to run this script, and it
+# says nothing about .github/rulesets/main.json — which is how the ruleset came
+# to ask for "Voice worker (dependency completeness)" for months after that job
+# went with the LiveKit stack. Since Phase 5 the agreement is also a TEST:
+# apps/api-py/tests/test_codebase_guards.py compares ci.yml's job names against
+# this array, against the committed ruleset and against tools/ci/preflight.sh,
+# and fails the `api` job when any of the four disagrees. Edit all four in one
+# commit; CI will tell you if you missed one.
 #
 # -----------------------------------------------------------------------------
 # WHAT THIS SCRIPT USES, AND WHAT IT DOES NOT

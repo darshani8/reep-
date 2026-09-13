@@ -203,8 +203,16 @@ const SWOC_TILES: { key: keyof SwocBoard; label: string; tone: 'good' | 'risk' |
   { key: 'challenges', label: 'Challenge', tone: 'neutral' },
 ];
 
-/** Several lines arrive per quadrant; the tile shows them as one sentence,
- *  the same join the Mentor / TPO Log uses, so the two never disagree. */
+/** Several lines arrive per quadrant; the landing tile shows them as one
+ *  sentence.
+ *
+ *  THE MENTOR / TPO LOG NO LONGER JOINS — B7.5 gave every line its author, its
+ *  date and an acknowledgement, and a concatenated string has nowhere to put any
+ *  of the three, so that screen lists them. This tile stays a summary on
+ *  purpose: it is four boxes on a landing page beside everything else the
+ *  student has to do, and a name and a date per line there is a card that has
+ *  become the board. The two still read the same texts in the same order out of
+ *  the same payload; the Log is simply where the board is read in full. */
 function joinSwoc(items: SwocItem[]): string | null {
   return items.length ? items.map((i) => i.text).join(' · ') : null;
 }

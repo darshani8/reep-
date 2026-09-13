@@ -69,7 +69,7 @@ from ..models.student_profile import StudentProfile
 from ..models.resume import Resume, ResumeStatus
 from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, SkillClaim, StudentSkill
-from ..models.swoc import SwocEntry
+from ..models.swoc import SwocEntry, SwocKind, SwocSource
 from ..models.resume_profile import ResumeProfile
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload, UploadKind, UploadStatus
@@ -640,9 +640,39 @@ def overview(
 
 
 class SwocItemOut(BaseModel):
+    """One line of the student's own board — B7.5.
+
+    THE FOUR NEW FIELDS ARE ADDITIVE AND THE TILE IS NOT REDRAWN. 04 asks for
+    author, date and an acknowledgement here, and the board in this repository
+    (`docs/redesign-2026-09/design/student/MentorLogRedesign.html`) draws none of
+    them: the SWOC tiles are eyebrow + text, one tile per quadrant, and
+    `03-student-portal-spec.md` says "API unchanged" for that screen. The
+    current client concatenates every entry in a quadrant into ONE STRING
+    (`mentor-log.component.ts`'s `joinSwoc`), so per-entry author, date or an
+    acknowledge button is structurally impossible without a new tile — and
+    inventing one is not this task's to invent. The API carries the facts so the
+    screen can be built when the board says how; nothing that exists changes
+    shape, because every one of these is a new key.
+
+    `id` is here because `POST /student/swoc/{entry_id}/acknowledge` needs one
+    and the student's payload has never exposed it.
+    """
+
+    id: str
     source: str
     text: str
     weight: int
+    #: The author's NAME, with `author_recorded` beside it for the same reason
+    #: the admin board carries the pair — and see that model for why the flag is
+    #: NOT "the account is gone": `author_user_id` is `ON DELETE SET NULL`, so
+    #: `author: null` means nobody was recorded and nothing else. On the
+    #: student's own screen that must render as "Author not recorded"; "written
+    #: by somebody who left" is a sentence about a person who never existed.
+    author: str | None
+    author_recorded: bool
+    recorded_at: datetime
+    semester: int | None
+    acknowledged_at: datetime | None
 
 
 class SwocBoardOut(BaseModel):
@@ -657,8 +687,9 @@ def my_swoc(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> SwocBoardOut:
     student_id = _require_student(session)
-    rows = db.scalars(
-        select(SwocEntry)
+    rows = db.execute(
+        select(SwocEntry, User.name)
+        .outerjoin(User, User.id == SwocEntry.author_user_id)
         .where(SwocEntry.student_id == student_id)
         .order_by(SwocEntry.weight.desc())
     ).all()
@@ -668,15 +699,68 @@ def my_swoc(
         "OPPORTUNITY": [],
         "CHALLENGE": [],
     }
-    for r in rows:
+    for r, author in rows:
         buckets[r.kind.value].append(
-            SwocItemOut(source=r.source.value, text=r.text, weight=r.weight)
+            SwocItemOut(
+                id=r.id, source=r.source.value, text=r.text, weight=r.weight,
+                author=author, author_recorded=r.author_user_id is not None,
+                recorded_at=r.recorded_at, semester=r.semester,
+                acknowledged_at=r.acknowledged_at,
+            )
         )
     return SwocBoardOut(
         strengths=buckets["STRENGTH"],
         weaknesses=buckets["WEAKNESS"],
         opportunities=buckets["OPPORTUNITY"],
         challenges=buckets["CHALLENGE"],
+    )
+
+
+@router.post("/swoc/{entry_id}/acknowledge", response_model=SwocItemOut)
+def acknowledge_swoc(
+    entry_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> SwocItemOut:
+    """"I have read this." — B7.5. The student's own entry, and nobody else's.
+
+    FIRST-PERSON, WITH THE ID FROM THE SESSION AND NEVER FROM THE REQUEST.
+    `_require_student` resolves who is asking, and the entry must carry that
+    student_id or this is a 404 — an entry id is a bare uuid, so without that
+    check the endpoint would acknowledge any line about any student on the
+    deployment, which is a write against somebody else's record.
+
+    IDEMPOTENT, AND IT KEEPS THE FIRST TIMESTAMP. Pressing it twice is a
+    double-tap, not a second reading, and re-stamping would move the date the
+    mentor sees. A line cannot be UN-acknowledged: "I read it" is not a thing a
+    later click makes untrue, and a toggle would let a student quietly undo the
+    one signal this field carries.
+
+    NOT FEATURE-GATED. `governance.require_feature`'s map gates
+    `student.mentor_log` on `GET /student/mentor-meetings` only, and `GET
+    /student/swoc` — which also feeds Home — has never been gated. Acknowledging
+    a line about yourself is closest to that docstring's "artefact the student
+    already produced" exemption; gating it would hide the button on a board the
+    same screen still draws.
+    """
+    student_id = _require_student(session)
+    row = db.execute(
+        select(SwocEntry, User.name)
+        .outerjoin(User, User.id == SwocEntry.author_user_id)
+        .where(SwocEntry.id == entry_id, SwocEntry.student_id == student_id)
+    ).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such entry.")
+    entry, author = row
+    if entry.acknowledged_at is None:
+        entry.acknowledged_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(entry)
+    return SwocItemOut(
+        id=entry.id, source=entry.source.value, text=entry.text, weight=entry.weight,
+        author=author, author_recorded=entry.author_user_id is not None,
+        recorded_at=entry.recorded_at, semester=entry.semester,
+        acknowledged_at=entry.acknowledged_at,
     )
 
 
@@ -3020,6 +3104,45 @@ def _best_interview_score(db: Session, student_id: str) -> int | None:
     )
 
 
+#: B7.6. The weight at which a SWOC weakness becomes something to do about it.
+#: The author's own number off the composer's weight picker — see `next_actions`.
+SWOC_ACTION_MIN_WEIGHT = 4
+
+#: How many of them may reach the card at once, so one board cannot take over a
+#: list it is one input to.
+SWOC_MAX_ACTIONS = 2
+
+#: WHOSE OBSERVATION IT WAS, in the student's words rather than the enum's. The
+#: board is deliberately un-averaged — disagreement between viewpoints IS the
+#: finding — so the viewpoint travels with the line onto this card too, and a
+#: student can tell "my mentor said this" from "the placement cell said this".
+#: PM is unreachable from the writer and still legal in storage, so it is
+#: answered here rather than left to a KeyError on a row the seed writes.
+SWOC_ACTION_REASON: dict[SwocSource, str] = {
+    SwocSource.MENTOR: "Flagged by your mentor on your Faculty / TPO Log",
+    SwocSource.PLACEMENT: "Flagged by the placement cell on your Faculty / TPO Log",
+    SwocSource.PM: "Flagged on your Faculty / TPO Log",
+}
+
+
+def _swoc_action_route(entry: SwocEntry) -> str:
+    """Where a flagged weakness sends the student — B7.6's two halves meeting.
+
+    The LINK decides, and the fallback is the board itself. Order matters only
+    where an author named more than one: the skill is the most specific thing a
+    weakness can be about and the posting is the least, so the route follows
+    that. Every one of these is a real route in `app.routes.ts`; a `cta_route`
+    that 404s is a button that reports the product as broken.
+    """
+    if entry.linked_skill_id:
+        return "/student/skilling"
+    if entry.linked_session_id:
+        return "/student/interviews"
+    if entry.linked_job_id:
+        return "/student/jobs"
+    return "/student/mentor-log"
+
+
 class NextActionOut(BaseModel):
     id: str
     title: str
@@ -3249,6 +3372,77 @@ def next_actions(
                 status="Suggested",
                 deadline=None,
                 priority=3,
+            )
+        )
+
+    # B7.6 — the heavy weaknesses somebody wrote on this student's SWOC board.
+    #
+    # WEIGHT >= 4 IS THE WHOLE FILTER, and it is the author's own judgement
+    # rather than a threshold this function invented: the composer's weight
+    # picker is the one control a mentor has for "this matters". A board with
+    # nine 3s produces no actions, which is correct — the screen exists to carry
+    # observations, not to nag about every one of them.
+    #
+    # THE TWO HEAVIEST ONLY. `actions[:5]` below is a cap on the list, not on any
+    # one source, so six weight-5 weaknesses would push the overdue certification
+    # and the profile fields off a student's next-actions card entirely — the
+    # board would have quietly taken over a list it is one input to.
+    #
+    # "WHILE IT IS UNADDRESSED" IS THE AUTHOR'S TO ANSWER, and unlike B6.3's
+    # drill this one already has a mechanism: the mentor lowers the weight or
+    # deletes the line. That is a real human lifecycle on an existing screen, so
+    # nothing here needs a flag nobody presses. The student's own acknowledgement
+    # deliberately does NOT clear it: "I have read this" is not "I have done
+    # something about it", and letting a tap remove the action would make the one
+    # honest signal the student sends into a way of hiding the line.
+    #
+    # THE ROUTE COMES FROM THE LINK (B7.6's other half), and that is the reason
+    # these two halves are one task. `NextActionOut` requires a `cta_route` and a
+    # sentence about a person has no natural destination; a linked skill,
+    # interview or posting does. With no link the route is the board itself,
+    # where the line is drawn in full beside the meeting it came out of.
+    #
+    # READINESS IS DELIBERATELY NOT TOUCHED, and this is the one place a reader
+    # will look for it. 04 asks for "readiness and next-actions"; adding an
+    # eighth `ReadinessFactorOut` would (a) move `MIN_SCORED_WEIGHT_SHARE`'s bar
+    # under everybody — the comment on that constant spells out what happened the
+    # last time a factor was added and the fraction was not re-derived — and
+    # (b) score a student DOWN for a colleague's written opinion, which has no
+    # cut-off, no import behind it and no way for the student to answer it. Every
+    # other factor is a measurement against a stated threshold. A SWOC line is a
+    # judgement, and turning it into two points of a headline number is a
+    # different product decision from showing it as something to work on.
+    heavy = db.execute(
+        select(SwocEntry)
+        .where(
+            SwocEntry.student_id == student_id,
+            SwocEntry.kind == SwocKind.WEAKNESS,
+            SwocEntry.weight >= SWOC_ACTION_MIN_WEIGHT,
+        )
+        .order_by(SwocEntry.weight.desc(), SwocEntry.recorded_at.desc())
+        .limit(SWOC_MAX_ACTIONS)
+    ).scalars().all()
+    for entry in heavy:
+        actions.append(
+            NextActionOut(
+                id=f"swoc-{entry.id}",
+                # THE AUTHOR'S OWN SENTENCE, for B6.3's reason restated: a line
+                # rewritten into a house phrasing stops being the thing the
+                # student's mentor actually wrote about them, which is the only
+                # reason it carries any weight here.
+                title=entry.text,
+                reason=SWOC_ACTION_REASON[entry.source],
+                cta_label="Open",
+                cta_route=_swoc_action_route(entry),
+                status="Flagged",
+                # NO DEADLINE, and not one derived from `recorded_at` either. A
+                # mentor writing "needs more practice" set no date, and a card
+                # that invents one would age a line into an overdue-looking chip
+                # nobody promised.
+                deadline=None,
+                # A 5 sits with the overdue certification and a 4 with the
+                # in-progress work: the author said which of the two this was.
+                priority=2 if entry.weight >= 5 else 3,
             )
         )
 

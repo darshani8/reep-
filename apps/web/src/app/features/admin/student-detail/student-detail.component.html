@@ -429,13 +429,54 @@
               </a>
             </div>
           }
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">info</span>
-            <span
-              >Since when, the previous mentor and the 90-day handover window arrive with mentor
-              assignment history (Phase 4).</span
-            >
-          </div>
+          <!-- B9.1's assignment history. A REFUSAL IS NOT AN EMPTY HISTORY:
+               `admin.mentors` gates this read and this screen is gated on
+               `admin.students`, so a faculty member granted the roster and not
+               Mentor mapping gets the server's own sentence here rather than a
+               timeline saying nobody has ever mentored this student. -->
+          @if (mentorHistoryRefusal(); as refusal) {
+            <div class="notice accent">
+              <span class="icon" aria-hidden="true">lock</span>
+              <span>{{ refusal }}</span>
+            </div>
+          } @else if (mentorSpells().length > 0) {
+            <h3 class="soft sub-heading">Assignment history</h3>
+            <ul class="mentor-spells">
+              @for (spell of mentorSpells(); track spell.id) {
+                <li [class.current]="spell.current">
+                  <div class="spell-who">
+                    {{ spell.who }}
+                    @if (spell.current) {
+                      <span class="chip good">current</span>
+                    }
+                  </div>
+                  <div class="soft">{{ spell.when }}</div>
+                  @if (spell.opened) {
+                    <div class="soft">{{ spell.opened }}</div>
+                  }
+                  @if (spell.closed) {
+                    <div class="soft">{{ spell.closed }}</div>
+                  }
+                </li>
+              }
+            </ul>
+          } @else if (mentorName()) {
+            <div class="notice accent">
+              <span class="icon" aria-hidden="true">info</span>
+              <span
+                >This student has a faculty member assigned, but no record of how it came
+                about — the pairing predates assignment history.</span
+              >
+            </div>
+          } @else {
+            <div class="notice accent">
+              <span class="icon" aria-hidden="true">info</span>
+              <span
+                >No faculty member has ever been assigned to this student. Nothing is missing
+                from the record; there is nothing to record yet.</span
+              >
+            </div>
+          }
         </div>
 
         <div class="card">

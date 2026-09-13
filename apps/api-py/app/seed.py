@@ -28,6 +28,7 @@ from sqlalchemy import select
 
 from .config import settings
 from .db import SessionLocal
+from .mentor_history import record_mentor_change
 from .resume_pdf import render_resume_pdf
 from .models.academic_history import AcademicGap, AcademicQualification, QualificationLevel
 from .models.academics import SemesterResult, SubjectMark
@@ -276,7 +277,21 @@ def main() -> None:
             select(Mentor).join(User, Mentor.user_id == User.id).where(User.email == "mentor@bgscet.ac.in")
         )
         if stu and mentor and stu.mentor_id != mentor.id:
+            previous_mentor_id = stu.mentor_id
             stu.mentor_id = mentor.id
+            # B9.1. The seed is the fourth of the five writers of this pointer,
+            # and it goes through the same one function as the other four —
+            # `app/mentor_history.py` names them by count for the reason this
+            # line exists. No session and no request: there is no HTTP caller to
+            # audit against, which is what the optional arguments are for.
+            record_mentor_change(
+                db,
+                student_id=stu.id,
+                previous_mentor_id=previous_mentor_id,
+                new_mentor_id=mentor.id,
+                by_user_id=None,
+                reason="seeded demo pairing",
+            )
             db.commit()
             print("assigned student to mentor group")
         if stu and mentor and db.scalar(
@@ -363,12 +378,27 @@ def main() -> None:
 
         # Idempotently add a few SWOC entries across the viewpoints.
         if stu and db.scalar(select(SwocEntry).where(SwocEntry.student_id == stu.id)) is None:
+            # EVERY SEEDED LINE NOW HAS AN AUTHOR, and that is a one-line fix to
+            # a demo that told a lie. `author_user_id` was NULL on all four, and
+            # the admin board's copy for a NULL author is "Author no longer on
+            # the roster" — a false statement about a row nobody ever wrote, on
+            # a screen the student's own Faculty / TPO Log reads from. Two
+            # distinct facts (never recorded / recorded but the account is gone)
+            # were collapsing into one string, and the honest fix is to stop
+            # producing the first one in the seed. `semester` is stamped for the
+            # same reason the write path stamps it: at the moment of writing.
+            mentor_user_id = db.scalar(select(User.id).where(User.email == "mentor@bgscet.ac.in"))
+            office_user_id = db.scalar(select(User.id).where(User.email == "admin@bgscet.ac.in"))
             db.add_all(
                 [
-                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.STRENGTH, text="Strong analytical and quantitative skills.", weight=5),
-                    SwocEntry(student_id=stu.id, source=SwocSource.PLACEMENT, kind=SwocKind.WEAKNESS, text="Needs structured problem-solving practice.", weight=4),
-                    SwocEntry(student_id=stu.id, source=SwocSource.PM, kind=SwocKind.OPPORTUNITY, text="Fintech internships opening this quarter.", weight=3),
-                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.CHALLENGE, text="Public speaking under time pressure.", weight=3),
+                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.STRENGTH, text="Strong analytical and quantitative skills.", weight=5, author_user_id=mentor_user_id, semester=stu.current_semester),
+                    SwocEntry(student_id=stu.id, source=SwocSource.PLACEMENT, kind=SwocKind.WEAKNESS, text="Needs structured problem-solving practice.", weight=4, author_user_id=office_user_id, semester=stu.current_semester),
+                    # PM STAYS. It is a legal stored value, the client maps it,
+                    # and dropping a Postgres enum value means recreating the
+                    # type — 04's "PM retired from the writer" is already true
+                    # of the API, where `_source_for` has only two outcomes.
+                    SwocEntry(student_id=stu.id, source=SwocSource.PM, kind=SwocKind.OPPORTUNITY, text="Fintech internships opening this quarter.", weight=3, author_user_id=office_user_id, semester=stu.current_semester),
+                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.CHALLENGE, text="Public speaking under time pressure.", weight=3, author_user_id=mentor_user_id, semester=stu.current_semester),
                 ]
             )
             db.commit()

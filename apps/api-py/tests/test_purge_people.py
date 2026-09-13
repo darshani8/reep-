@@ -239,6 +239,23 @@ def test_the_receipt_actually_writes():
     audit = Base.metadata.tables["redesign_audit_events"]
     with SessionLocal() as db:
         plan = _plan_with_one_admin(db)
+        # ROLLED BACK BEFORE THE COMMIT, and this line is load-bearing.
+        #
+        # `_plan_with_one_admin` demotes every surplus ADMIN to MENTOR and says
+        # in its docstring that the demotion "dies with the same rollback() the
+        # delete does" — which is true of the two tests above and was FALSE
+        # here: this one never rolls back, and `_stamp` COMMITS, so the pending
+        # demotion was committed with the receipt. On a database where any
+        # earlier module had left a second ADMIN row, that permanently demoted
+        # the seeded Main Admin, and every purge test afterwards failed with
+        # "the dev seed's Main Admin is missing" — on a shared dev database,
+        # for everybody, until somebody put the role back by hand. `app.seed`
+        # does not repair it either: the account still EXISTS, so the seed
+        # reports "already exists" and changes nothing.
+        #
+        # The plan is a plain object and holds the ids it needs, so undoing the
+        # demotion before the receipt is written costs nothing.
+        db.rollback()
         plan.rows = {"users": 11}
         purge_people._stamp(db, plan)  # commits its own row
 

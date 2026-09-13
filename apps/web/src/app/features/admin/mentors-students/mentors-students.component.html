@@ -198,6 +198,7 @@
               type="button"
               class="btn primary"
               [disabled]="!canAssign()"
+              [attr.title]="assignBlockedBecause() || null"
               (click)="assignSelectedStudents()"
             >
               <span class="icon" aria-hidden="true">arrow_forward</span>{{ assignActionLabel() }}
@@ -208,9 +209,22 @@
                 id="assign-reason"
                 type="text"
                 placeholder="Why this seating"
-                [reepPending]="mentoringBackendPhase"
+                maxlength="400"
+                [value]="assignReason()"
+                (input)="assignReason.set($any($event.target).value)"
+                [attr.aria-invalid]="hasReason() ? null : 'true'"
+                [attr.aria-describedby]="'assign-reason-help'"
               />
-              <span class="help">Recorded in the audit log, and both people emailed, from Phase 4.</span>
+              <!-- NO PROMISE OF AN EMAIL. This said "and both people emailed,
+                   from Phase 4" while nothing could send one: app/mail_transport
+                   falls back to a console outbox whenever SES_FROM_ADDRESS is
+                   unset, which is every deployment today (B3.7). A screen that
+                   tells an admin two people were notified, when nobody was, is
+                   worse than a screen that says nothing. -->
+              <span class="help" id="assign-reason-help">
+                Required. Recorded against this student's assignment history and on the audit
+                trail — it is the only record of why they were moved.
+              </span>
             </div>
           </div>
 
@@ -221,8 +235,15 @@
           }
         </section>
 
-        <!-- History is B9.1. The empty state says what will fill it; a sample
-             row here would be indistinguishable from working software. -->
+        <!-- History is B9.1, and the BACK END IS NOW LIVE: every move writes a
+             spell to `mentor_assignments` and a release mints the 90-day
+             handover grant. What is not drawn yet is THIS card, because the
+             endpoint that exists is per STUDENT
+             (`GET /admin/students/{id}/mentor-history`) and the board asks for
+             it per FACULTY MEMBER — two different queries, and inventing the
+             second to fill a card is how a screen ends up with a list nobody
+             specified. The copy says exactly that rather than claiming nothing
+             is recorded, which is no longer true. -->
         <section class="card history-card" aria-labelledby="history-title">
           <div class="card-head">
             <h2 class="card-heading" id="history-title">
@@ -231,9 +252,10 @@
           </div>
           <div class="notice accent">
             <span class="icon" aria-hidden="true">history</span>
-            No assignment history is recorded yet. B9.1 (Phase 4) writes a row for every move —
-            who, when, by whom and why — and opens the 90-day handover window in which the
-            previous mentor keeps reading that student's notes.
+            Every assignment, release and handover is now recorded — who, when, by whom and
+            why — and a release opens the 90-day window in which the previous faculty member
+            can still read that student's notes. This per-faculty view is not drawn yet; the
+            history for one student is on their own record.
           </div>
         </section>
       </div>

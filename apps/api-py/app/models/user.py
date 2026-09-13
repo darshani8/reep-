@@ -148,7 +148,7 @@ class User(Base):
     #
     # ON `users`, NOT ON `mentors`, and that placement is forced: a faculty
     # account deliberately has no `Mentor` row until the Main Admin assigns it a
-    # student (see routers/console.py and AGENTS.md). Hanging the department off
+    # student (see routers/admin_mentoring.py and AGENTS.md). Hanging the department off
     # `mentors` would mean a newly created faculty member — the exact row the
     # admin is trying to file — had nowhere to record where they work.
     #

@@ -235,6 +235,23 @@ STUDENT_VERDICTS: dict[str, object] = {
     # with them, for `mentor_notes`' reason. The office's audit trail keeps the
     # STUDENTS_PROMOTE event either way; that is where the act survives.
     "student_semester_history": ALL,
+    # B9.1's assignment history. `student_semester_history` directly above is
+    # the precedent and the reasoning transfers WORD FOR WORD, which is why this
+    # entry is short: `mentor_assignments.student_id` is NOT NULL and is the
+    # row's whole subject, so "somebody was moved from Dr Rao to Dr Iyer" with
+    # nobody to name is not a record of anything — and it would render on the
+    # mentor-load history card against a student who is not there.
+    #
+    # THE TEMPTING WRONG ANSWER HERE IS A SCOPE, and it is worth naming because
+    # this table looks more like a staff artefact than the promotion one does:
+    # `by_user_id` and `ended_by_user_id` name MEMBERS OF STAFF, who survive
+    # this module, so `by_user("by_user_id")` reads as the careful choice. It
+    # would match almost nothing (no student has ever assigned a mentor) and
+    # leave every row standing, pointing at deleted students. A scope that is
+    # right about WHO WROTE the row and wrong about WHO THE ROW IS ABOUT is the
+    # exact mistake three verdict values exist to prevent — `import_runs` above
+    # and `mentor_notes` below are the same shape decided the same way.
+    "mentor_assignments": ALL,
     "student_skills": ALL,
     "student_badges": ALL,
     "student_milestones": ALL,
@@ -300,6 +317,7 @@ STUDENT_VERDICTS: dict[str, object] = {
     # leave the faculty screens rendering notes against a missing name.
     "mentor_notes": ALL,
     "swoc_entries": ALL,
+    "swoc_entry_revisions": ALL,  # child of swoc_entries; see `mentor_notes`
     "redesign_mentor_notebook_entries": ALL,
     "redesign_mentor_notebook_entry_revisions": ALL,  # child of entries
     "redesign_mentor_notebook_actions": ALL,

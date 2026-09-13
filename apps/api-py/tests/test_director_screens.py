@@ -25,6 +25,7 @@ from app.db import SessionLocal
 from app.models.badge import ApprovedCertification
 from app.models.job import Job, JobApplication
 from app.models.resume import Resume
+from app.models.mentor_assignment import MentorAssignment
 from app.models.user import Mentor, User, Role, Student
 
 
@@ -347,13 +348,13 @@ def test_a_faculty_account_becomes_a_mentor_the_moment_the_admin_assigns_a_stude
         assert client.get("/api/mentor/mentees", headers=faculty.headers).status_code == 403
 
         # The faculty member cannot assign themselves (the write is the scope key).
-        assert client.post(assign, headers=faculty.headers, json={"mentor_user_id": faculty.user_id}).status_code == 403
+        assert client.post(assign, headers=faculty.headers, json={"mentor_user_id": faculty.user_id, "reason": "test assignment"}).status_code == 403
         # A student account is not a faculty account.
-        r = client.post(assign, headers=admin.headers, json={"mentor_user_id": stu.user_id})
+        r = client.post(assign, headers=admin.headers, json={"mentor_user_id": stu.user_id, "reason": "test assignment"})
         assert r.status_code == 404 and "Not a faculty account" in r.text
 
         # The Main Admin assigns: the group now exists and the student is in it.
-        r = client.post(assign, headers=admin.headers, json={"mentor_user_id": faculty.user_id})
+        r = client.post(assign, headers=admin.headers, json={"mentor_user_id": faculty.user_id, "reason": "test assignment"})
         assert r.status_code == 204, r.text
         with SessionLocal() as db:
             group = db.scalar(select(Mentor).where(Mentor.user_id == faculty.user_id))
@@ -369,7 +370,7 @@ def test_a_faculty_account_becomes_a_mentor_the_moment_the_admin_assigns_a_stude
         stu2 = make_user("fa-stu2", Role.STUDENT)
         sid2 = _student_id(stu2.user_id)
         assert client.post(f"/api/admin/students/{sid2}/mentor", headers=admin.headers,
-                           json={"mentor_user_id": faculty.user_id}).status_code == 204
+                           json={"mentor_user_id": faculty.user_id, "reason": "test assignment"}).status_code == 204
         with SessionLocal() as db:
             assert db.scalar(select(func.count()).select_from(Mentor).where(Mentor.user_id == faculty.user_id)) == 1
         assert len(client.get("/api/mentor/mentees", headers=faculty.headers).json()) == 2
@@ -380,5 +381,12 @@ def test_a_faculty_account_becomes_a_mentor_the_moment_the_admin_assigns_a_stude
                 for st in db.scalars(select(Student).where(Student.mentor_id == group.id)).all():
                     st.mentor_id = None
                 db.flush()
+                # B9.1. The spell rows first: `mentor_assignments.mentor_id`
+                # carries no `ondelete`, so the database refuses to delete a
+                # group somebody was mentored under. Children before parents,
+                # the same order both purge modules use.
+                db.execute(
+                    delete(MentorAssignment).where(MentorAssignment.mentor_id == group.id)
+                )
                 db.delete(group)
             db.commit()

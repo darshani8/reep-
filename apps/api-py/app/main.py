@@ -36,6 +36,7 @@ from .routers import (
     admin_faculty,
     admin_imports,
     admin_interview_tracks,
+    admin_mentoring,
     admin_promotion,
     admin_student_360,
     admin_students,
@@ -344,6 +345,12 @@ app.include_router(mentor.router, prefix="/api")
 # and every endpoint in it goes through _assert_can_access_student (rule 2).
 app.include_router(mentee_records.router, prefix="/api")
 app.include_router(console.router, prefix="/api")
+# B9 - mentor mapping: the load board, the unassigned pool, the assignment
+# itself and the history it leaves. Moved OUT of console.py, which is a file of
+# programme-wide aggregates; this is the write that decides rule 2's scope key,
+# and it needs to be findable by somebody asking where mentor assignment is
+# decided. Same /admin prefix and the same paths - see the module docstring.
+app.include_router(admin_mentoring.router, prefix="/api")
 # Main Admin: the institutional write layer (colleges, departments, batches,
 # seating a student, and the users.designation/department columns that had no
 # writer at all). require_admin inside, same as every other admin surface.

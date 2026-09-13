@@ -43,7 +43,7 @@ from sqlalchemy.orm import Session, aliased
 from ..architecture_events import record_change
 from ..config import settings
 from ..db import get_db
-from ..governance import ancestry_of_student, require_capability
+from ..governance import ancestry_of_student, ancestry_of_user, require_capability
 from ..institution_domains import college_id_for_cohort, domain_of, provisionable_domains_for
 from ..identity import get_current_session
 from ..models.cohort import Cohort
@@ -58,7 +58,12 @@ from ..student_placement import (
 from ..policies import scope_filter
 from ..scope_views import scope_header
 from ..semester_bounds import ceiling_for_cohort, ceiling_for_student, rejection
-from .console import ensure_mentor_group
+from ..mentor_history import record_mentor_change
+# B9. The assignment screen's two rules, imported rather than restated: a
+# faculty account becomes a mentor by being handed a student, and a mentor must
+# be in the student's own college. Two copies of a college rule disagree the
+# first time one of them is corrected.
+from .admin_mentoring import _assert_same_college, ensure_mentor_group
 from .registration import SSO_ONLY_PASSWORD_HASH
 
 router = APIRouter(prefix="/admin", tags=["admin-students"])
@@ -199,6 +204,22 @@ class BatchActionIn(BaseModel):
     mentor_user_id: str | None = None  # mentor: the faculty account; null releases
     current_stage: str | None = None  # stage
     current_semester: int | None = Field(default=None, ge=1)  # semester
+    #: B9.2's reason, for the `mentor` action. OPTIONAL HERE AND REQUIRED ON
+    #: `POST /admin/students/{id}/mentor`, which is a difference worth stating
+    #: rather than smoothing over: the single endpoint is the assignment screen,
+    #: where the admin is making one decision about one student and is asked to
+    #: say why. This endpoint is the roster's batch bar, where the same field
+    #: would be asked once and applied to thirty people — a sentence that
+    #: describes the batch, not any of the students in it. It is recorded when
+    #: given and the batch's own audit row carries the act either way.
+    #:
+    #: THERE IS STILL NO `student_ids` ON THIS MODEL, and adding one was
+    #: considered and rejected again here. 04 says it "already exists"; it does
+    #: not, and `RosterBulkIn` below explains in its own docstring why the two
+    #: bulk shapes are separate — "a member it cannot perform would be a lie in
+    #: the schema every client reads". The console keeps its per-student loop,
+    #: and N audit rows is the honest record of N decisions.
+    reason: str | None = None
 
     validate_stage = field_validator("current_stage", mode="before")(classmethod(lambda cls, v: None if v is None else _clean_stage(v)))
 
@@ -503,7 +524,40 @@ def update_student(
             sent="department_id" in sent,
         )
     if "mentor_user_id" in sent:
-        student.mentor_id = ensure_mentor_group(db, body.mentor_user_id) if body.mentor_user_id else None
+        # B1.5 AND B1.2 ON THIS PATH TOO, and until Phase 4 they were on the
+        # single assignment endpoint only. `admin_mentoring.set_student_mentor`
+        # refuses
+        # a mentor from another college with a 422 and refuses a faculty member
+        # the caller's grant does not reach; this endpoint sets the SAME column
+        # and did neither, so the roster editor was a way around both fences on
+        # a screen nobody thinks of as the assignment screen. That was a present
+        # defect, not a Phase-4 feature. One implementation, imported rather
+        # than restated — two copies of a college rule disagree the first time
+        # one of them is corrected.
+        previous_mentor_id = student.mentor_id
+        if body.mentor_user_id:
+            require_capability(
+                db, session, CAPABILITY, target=ancestry_of_user(db, body.mentor_user_id)
+            )
+            _assert_same_college(db, student, body.mentor_user_id)
+            student.mentor_id = ensure_mentor_group(db, body.mentor_user_id)
+        else:
+            student.mentor_id = None
+        # B9.1. The history row and the handover grant, through the one writer.
+        # `reason` is not on this schema — the roster editor is a form of many
+        # fields and demanding a sentence for one of them would be a different
+        # screen; the audit row below carries the whole patch, which is what a
+        # reader of this path is looking for.
+        record_mentor_change(
+            db,
+            student_id=student.id,
+            previous_mentor_id=previous_mentor_id,
+            new_mentor_id=student.mentor_id,
+            by_user_id=session.get("userId"),
+            reason=None,
+            session=session,
+            request=request,
+        )
     if body.current_stage is not None:
         student.current_stage = Stage(body.current_stage)
     if body.current_semester is not None:
@@ -577,9 +631,41 @@ def batch_action(
                 db, cohort_id=body.cohort_id, department_id=s.department_id, sent=False
             )
     elif body.action == "mentor":
-        mentor_id = ensure_mentor_group(db, body.mentor_user_id) if body.mentor_user_id else None
-        for s in students:
-            s.mentor_id = mentor_id
+        # B9.2/B9.3. THE FENCES, ASKED ONCE FOR THE BATCH AND NOT PER STUDENT,
+        # to match the all-or-nothing reach check a few lines above: a batch
+        # action is the single action repeated, so it is refused whole or
+        # applied whole. `_assert_same_college` is per student because that is
+        # what it asks — a batch can legitimately straddle nothing, but the
+        # check is about the pair and the pair changes with each row.
+        mentor_id = None
+        if body.mentor_user_id:
+            require_capability(
+                db, session, CAPABILITY, target=ancestry_of_user(db, body.mentor_user_id)
+            )
+            for st in students:
+                _assert_same_college(db, st, body.mentor_user_id)
+            mentor_id = ensure_mentor_group(db, body.mentor_user_id)
+        # B9.3. HISTORY PER STUDENT, EVEN THOUGH THE AUDIT ROW IS PER BATCH.
+        # 04 reads "add validation + history + audit" and the temptation is one
+        # history row for the batch, matching the one audit row. A history row
+        # is a fact about ONE student's mentor, read on that student's own card;
+        # a batch row there would be a record nobody could render. The audit
+        # trail keeps the batch shape because that is the act the office
+        # performed, and `record_mentor_change` skips an unchanged pair, so
+        # re-running a batch action does not grow N rows of nothing.
+        for st in students:
+            previous_mentor_id = st.mentor_id
+            st.mentor_id = mentor_id
+            record_mentor_change(
+                db,
+                student_id=st.id,
+                previous_mentor_id=previous_mentor_id,
+                new_mentor_id=mentor_id,
+                by_user_id=session.get("userId"),
+                reason=body.reason,
+                session=session,
+                request=request,
+            )
     elif body.action == "stage":
         if body.current_stage is None:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="stage needs current_stage.")
@@ -598,9 +684,27 @@ def batch_action(
         for s in students:
             s.current_semester = body.current_semester
     db.flush()
-    _audit(db, session, request, "cohort", cohort.id, f"STUDENTS_{body.action.upper()}", None, None,
-           {"affected": len(students), "cohort_id": body.cohort_id, "mentor_user_id": body.mentor_user_id,
-            "current_stage": body.current_stage, "current_semester": body.current_semester})
+    # B9.2. THE AUDIT ROW NOW SAYS WHAT THE BATCH DID. It carried
+    # `before=None, after=None` and a payload nobody reads through the console:
+    # `GET /api/admin/audit` renders `before`/`after`, so the trail recorded
+    # that SOMETHING happened to a cohort and nothing about what — on the one
+    # path that can move thirty students' mentor at once.
+    #
+    # `before` STAYS NULL, and that is not the same omission. A batch has N
+    # students with N different previous mentors, semesters and stages; one
+    # "before" for the batch would have to pick one of them, and the honest
+    # record of each student's previous mentor is their own spell in
+    # `mentor_assignments`, written per student a few lines above.
+    applied = {
+        "affected": len(students),
+        "cohort_id": body.cohort_id,
+        "mentor_user_id": body.mentor_user_id,
+        "current_stage": body.current_stage,
+        "current_semester": body.current_semester,
+        "reason": body.reason,
+    }
+    _audit(db, session, request, "cohort", cohort.id, f"STUDENTS_{body.action.upper()}",
+           None, applied, applied)
     db.commit()
     return BatchActionOut(action=body.action, affected=len(students))
 

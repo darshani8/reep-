@@ -437,13 +437,20 @@ def test_rule_two_gate_is_a_pure_delegate(monkeypatch) -> None:
     sentinel = object()
     seen: list[tuple] = []
 
-    def fake(session, student_id, db):
-        seen.append((session, student_id, db))
+    def fake(session, student_id, db, *, allow_handover=False):
+        seen.append((session, student_id, db, allow_handover))
         return sentinel
 
     monkeypatch.setattr(mentor, "assert_student_scope", fake)
     assert mentor._assert_can_access_student({"role": "MENTOR"}, "s1", "db") is sentinel
-    assert seen == [({"role": "MENTOR"}, "s1", "db")]
+    # B9.1 added `allow_handover`, and it must arrive at the delegate FALSE
+    # unless a caller typed otherwise: fifteen of this gate's call sites are
+    # writes, and a default that drifted to True would turn a 90-day read into
+    # a 90-day right to write about somebody else's student.
+    assert seen == [({"role": "MENTOR"}, "s1", "db", False)]
+    seen.clear()
+    assert mentor._assert_can_access_student({"role": "MENTOR"}, "s1", "db", allow_handover=True) is sentinel
+    assert seen == [({"role": "MENTOR"}, "s1", "db", True)]
 
     # And structurally: strip the docstring and exactly one statement remains,
     # a `return assert_student_scope(...)`. The mock proves the call happens;

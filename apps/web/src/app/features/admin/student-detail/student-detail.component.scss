@@ -209,6 +209,50 @@
   margin-left: auto;
 }
 
+/* --- B9.1 assignment history ------------------------------------------------ */
+
+/* A sub-heading INSIDE a card, below the card title. `.card-title` is the
+   global; this is the second level the mentor card needs and nothing else on
+   the screen does, so it stays local rather than claiming a global name. */
+.sub-heading {
+  margin: 14px 0 6px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mentor-spells {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.mentor-spells li {
+  /* The rail is what makes a list of spells read as a timeline. The current
+     one is the only coloured rail: "who has them now" is the question this
+     card is opened for. */
+  border-left: 2px solid var(--hairline);
+  padding-left: 10px;
+}
+
+.mentor-spells li.current {
+  border-left-color: var(--brand-purple);
+}
+
+.spell-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-weight: 700;
+}
+
 /* --- open items ------------------------------------------------------------ */
 
 .open-list {

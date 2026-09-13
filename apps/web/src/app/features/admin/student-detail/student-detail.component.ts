@@ -109,6 +109,44 @@ interface ReadResult<T> {
   refusal: string | null;
 }
 
+/** `admin_mentoring.MentorAssignmentOut` — one spell of mentoring, from
+ *  `GET /api/admin/students/{id}/mentor-history` (B9.1).
+ *
+ *  EVERY DATE HERE IS NULLABLE AND THE NULLS MEAN DIFFERENT THINGS. `from_at`
+ *  null is "mentoring since before this was recorded" — the seeded row for a
+ *  pair that predates the table — and must never render as a blank or as the
+ *  day the migration ran. `to_at` null is "this is the current pair". The two
+ *  are read by the same card and confusing them turns a live assignment into a
+ *  closed one.
+ */
+interface MentorSpell {
+  id: string;
+  mentor_id: string;
+  mentor_name: string | null;
+  from_at: string | null;
+  to_at: string | null;
+  kind: string;
+  by_name: string | null;
+  reason: string | null;
+  end_kind: string | null;
+  ended_by_name: string | null;
+  end_reason: string | null;
+}
+
+/** One spell, dressed for the card. */
+interface MentorSpellRow {
+  id: string;
+  who: string;
+  /** "since 04 Sep 2026" / "04 Sep 2026 – 11 Sep 2026" / "since before this
+   *  was recorded" — one phrase, composed where the nulls are understood. */
+  when: string;
+  current: boolean;
+  /** "Assigned by S Kumar — thin year on the DM side", or "" when neither the
+   *  actor nor the reason was recorded. */
+  opened: string;
+  closed: string;
+}
+
 /** `admin_faculty.AccountStateOut` — the answer from disable, enable and
  *  sign-out-everywhere.
  *
@@ -126,6 +164,38 @@ interface AccountStateOut {
   token_version: number;
   links_revoked: number;
   detail: string;
+}
+
+/** How a spell ended, in the words a person would use. The stored vocabulary
+ *  is `app/models/mentor_assignment.py`'s; an unknown value is printed as-is
+ *  rather than swallowed, because a kind this client has not learned yet is
+ *  still a fact about the student. */
+function endLabelOf(kind: string): string {
+  if (kind === 'release') return 'Released';
+  if (kind === 'reassign') return 'Moved on';
+  if (kind === 'faculty_disabled') return 'Released when the faculty account was disabled';
+  return kind;
+}
+
+/** "since 04 Sep 2026", "04 Sep 2026 – 11 Sep 2026", or the sentence a NULL
+ *  `from_at` actually means. */
+function whenOf(spell: MentorSpell): string {
+  const from = spell.from_at === null ? null : formatDay(spell.from_at);
+  const to = spell.to_at === null ? null : formatDay(spell.to_at);
+  if (from === null && to === null) return 'Since before this was recorded';
+  if (from === null) return `Until ${to}, from before this was recorded`;
+  if (to === null) return `Since ${from}`;
+  return `${from} – ${to}`;
+}
+
+/** "Assigned by S Kumar — thin year on the DM side". Either half may be
+ *  missing: the CLI writers record no actor, and rows written before B9.2 made
+ *  a reason compulsory carry none. An empty string draws no line at all, which
+ *  is the honest rendering of "nobody wrote this down". */
+function actOf(verb: string, by: string | null, reason: string | null): string {
+  if (by === null && reason === null) return '';
+  const who = by === null ? verb : `${verb} by ${by}`;
+  return reason === null ? who : `${who} — ${reason}`;
 }
 
 @Component({
@@ -154,6 +224,15 @@ export class AdminStudentDetailComponent {
   readonly ledger = signal<LedgerSummaryOut | null>(null);
   readonly english = signal<EnglishBaselineOut | null>(null);
   readonly batches = signal<CohortOut[]>([]);
+
+  /** B9.1's spells, newest first, exactly as the server ordered them. */
+  readonly mentorHistory = signal<MentorSpell[]>([]);
+
+  /** Why the history did not answer, if it did not. `admin.mentors` gates it
+   *  and this screen's own capability is `admin.students`, so a faculty member
+   *  granted the roster and not Mentor mapping is refused here — which must
+   *  read as a refusal, never as "this student has never had a mentor". */
+  readonly mentorHistoryRefusal = signal<string | null>(null);
 
   /** Why the two `mentor.mentees` reads did not answer, in the API's own
    *  words. Almost always "You do not hold the 'Mentee log' capability", which
@@ -222,6 +301,28 @@ export class AdminStudentDetailComponent {
     }
     return initialsOf(name);
   });
+
+  /**
+   * The spells, dressed. NEWEST FIRST, and the open one is the first row.
+   *
+   * AN EMPTY LIST IS NOT "NEVER HAD A MENTOR" — the template says which, using
+   * `mentorName()` beside it: nothing recorded and nobody assigned is a student
+   * waiting to be seated; nothing recorded WITH somebody assigned is a record
+   * that predates the history, not a missing mentor.
+   */
+  readonly mentorSpells = computed<MentorSpellRow[]>(() =>
+    this.mentorHistory().map((spell) => ({
+      id: spell.id,
+      who: spell.mentor_name ?? 'A faculty account that is no longer on the roster',
+      when: whenOf(spell),
+      current: spell.to_at === null,
+      opened: actOf(spell.kind === 'reassign' ? 'Moved here' : 'Assigned', spell.by_name, spell.reason),
+      closed:
+        spell.end_kind === null
+          ? ''
+          : actOf(endLabelOf(spell.end_kind), spell.ended_by_name, spell.end_reason),
+    })),
+  );
 
   readonly stageLabel = computed(() => {
     const row = this.student();
@@ -595,6 +696,7 @@ export class AdminStudentDetailComponent {
       this.loadBadges(),
       this.loadMenteeRecords(),
       this.loadBatches(),
+      this.loadMentorHistory(),
     ]);
     this.loading.set(false);
   }
@@ -658,6 +760,17 @@ export class AdminStudentDetailComponent {
     if (english.value === null) {
       this.menteeReadsRefusal.set(english.refusal);
     }
+  }
+
+  /** B9.1. The one read behind the Mentor card's timeline. It is composed on
+   *  the server by `admin_mentoring.compose_mentor_history`, which the Student
+   *  360 read uses too — one query, one shape, two screens. */
+  private async loadMentorHistory(): Promise<void> {
+    const history = await this.read<MentorSpell[]>(
+      `/admin/students/${this.studentId}/mentor-history`,
+    );
+    this.mentorHistory.set(history.value ?? []);
+    this.mentorHistoryRefusal.set(history.refusal);
   }
 
   private async loadBatches(): Promise<void> {

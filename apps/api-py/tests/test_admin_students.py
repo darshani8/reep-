@@ -27,6 +27,8 @@ from test_admin_institution import (  # noqa: F401 - fixtures by name
 )
 
 from app.db import SessionLocal
+from app.models.governance import CapabilityGrant
+from app.models.mentor_assignment import MentorAssignment
 from app.models.redesign import AuditEvent
 from app.models.student_profile import StudentProfile
 from app.models.user import LoginDay, Mentor, Role, Student, User
@@ -50,6 +52,14 @@ def swept():
                 for st in db.scalars(select(Student).where(Student.mentor_id == group.id)).all():
                     st.mentor_id = None
                 db.flush()
+                # B9.1. Neither of `mentor_assignments`' two pointers carries an
+                # `ondelete`, deliberately: the database refuses to delete a
+                # student or a mentor group out from under a recorded spell.
+                # Children before parents, the order both purge modules use.
+                db.execute(delete(MentorAssignment).where(MentorAssignment.mentor_id == group.id))
+                db.execute(
+                    delete(CapabilityGrant).where(CapabilityGrant.subject_user_id == fid)
+                )
                 db.delete(group)
         for email in emails:
             user = db.scalar(select(User).where(User.email == email))
@@ -57,6 +67,7 @@ def swept():
                 sid = db.scalar(select(Student.id).where(Student.user_id == user.id))
                 if sid:
                     db.execute(delete(AuditEvent).where(AuditEvent.entity_type == "student", AuditEvent.entity_id == sid))
+                    db.execute(delete(MentorAssignment).where(MentorAssignment.student_id == sid))
                 db.execute(delete(LoginDay).where(LoginDay.user_id == user.id))
                 db.execute(delete(Student).where(Student.user_id == user.id))
                 db.execute(delete(User).where(User.id == user.id))

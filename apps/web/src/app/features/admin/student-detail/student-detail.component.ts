@@ -514,6 +514,12 @@ export class AdminStudentDetailComponent {
 
   // --- sign out everywhere (B3.6) -----------------------------------------
 
+  /** Asks first. The FACULTY screen calls this same endpoint without asking
+   *  (`features/admin/faculty`, which argues it is reversible and sits beside a
+   *  Disable dialog that sets the gradient). This button stands alone among
+   *  disabled controls, where a misclick is likelier and nothing else nearby
+   *  confirms. Both readings are defensible; the divergence is deliberate and
+   *  cross-referenced so whoever settles it changes both. */
   askSignOutEverywhere(): void {
     if (this.student() === null || this.busy()) {
       return;

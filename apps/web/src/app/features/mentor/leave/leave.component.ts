@@ -10,8 +10,12 @@
  *
  * THE FORM IS THE SOURCE OF TRUTH FOR WHAT IT ASKS. Fields the printed sheet
  * does not have are not added to it — no employee id, no phone number, no leave
- * balance. A leave form that collects more than the college's own form is a
- * different document with the college's letterhead on it.
+ * balance cell. A leave form that collects more than the college's own form is
+ * a different document with the college's letterhead on it. (The allowance is
+ * READ on the dashboard, beside the list of requests. That is not a field on
+ * the sheet and nothing is collected by it; it is there because REEP can now
+ * REFUSE a form for want of days, and a refusal whose number the applicant
+ * cannot see anywhere is a refusal they cannot act on.)
  *
  * THREE THINGS ARRIVED BESIDE THE FORM IN PHASE 4, AND NONE OF THEM IS ON IT.
  * The sheet's fields, its Sign button, `signAndSubmit`'s payload and the
@@ -105,6 +109,21 @@ interface LeaveRow {
   director_name: string | null;
   director_decided_at: string | null;
   director_note: string | null;
+}
+
+/** One allowance, as `GET /api/leaves/balances` answers it. `remaining_days`
+ *  may be NEGATIVE — leave past an allowance happens and the office signs it —
+ *  so it is printed as it arrives and never clamped. */
+interface BalanceRow {
+  kind: string;
+  entitled_days: number;
+  consumed_days: number;
+  remaining_days: number;
+}
+
+interface BalanceSet {
+  academic_year: string;
+  balances: BalanceRow[];
 }
 
 /** One paper attached to a request (B10.3). `can_delete` is the SERVER's
@@ -254,6 +273,12 @@ export class LeaveComponent {
   readonly withdrawing = signal(false);
   readonly withdrawError = signal<string | null>(null);
 
+  /// B10.2 — the caller's OWN allowances for the current academic year, which
+  /// is what `submit_refusal` measures a new request against. An EMPTY list is
+  /// not a zero balance: it means the office has recorded no allowance, and
+  /// then nothing is checked at all. The card says which.
+  readonly balances = signal<BalanceSet | null>(null);
+
   /// B10.6 — requests that name THIS account in their alternate table.
   readonly cover = signal<LeaveBrief[] | null>(null);
   readonly coverError = signal<string | null>(null);
@@ -273,6 +298,7 @@ export class LeaveComponent {
   constructor() {
     void this.load();
     void this.loadCover();
+    void this.loadBalances();
   }
 
   chip(status: string): Chip {
@@ -579,6 +605,21 @@ export class LeaveComponent {
       this.withdrawError.set('Could not reach the server.');
     } finally {
       this.withdrawing.set(false);
+    }
+  }
+
+  // ------------------------------------------------- B10.2 · allowances --
+
+  private async loadBalances(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/leaves/balances`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      this.balances.set((await res.json()) as BalanceSet);
+    } catch {
+      /* left as null: not answered is not "no allowance", and the card that
+         draws those two differently must not be shown for the wrong one. */
     }
   }
 

@@ -183,8 +183,14 @@ class Reach:
             or self.students
         )
 
-    def student_ids(self, db: Session):
+    def student_ids(self):
         """A SELECT of the student ids this reach covers, for `Student.id.in_(…)`.
+
+        TAKES NO SESSION, deliberately. It used to, and never used it: a `db`
+        in the signature is an invitation for the next editor to execute inside
+        the helper, which turns a composable subquery into a materialised list
+        of ids — the enumeration OpenFGA and AuthZed both warn against, and the
+        thing this shape exists to avoid.
 
         A subquery rather than a predicate over the caller's own FROM clause,
         because the caller's query shape is not ours to change: several of these
@@ -201,6 +207,17 @@ class Reach:
         from .models.cohort import Cohort
         from .models.institution import Department
         from .models.user import Student
+
+        # EVERYTHING SELECTS EVERYTHING. This used to fall through to the empty
+        # clause list below and return NO ROWS, on the theory that every caller
+        # checks `.everything` first. That is a convention across twelve list
+        # endpoints, and the cost of forgetting it once is an EMPTY ROSTER FOR
+        # THE MAIN ADMIN — a screen saying the college has no students, which
+        # reads as data loss rather than a permission bug, on the account that
+        # holds every capability. A helper whose most dangerous output is
+        # produced by its commonest caller omitting one line is built wrong.
+        if self.everything:
+            return select(Student.id)
 
         batch_department = (
             select(Cohort.department_id).where(Cohort.id == Student.cohort_id).scalar_subquery()
@@ -233,7 +250,7 @@ class Reach:
             return select(Student.id).where(sa_false())
         return select(Student.id).where(or_(*clauses))
 
-    def user_ids(self, db: Session):
+    def user_ids(self):
         """A SELECT of the STAFF user ids this reach covers.
 
         Shorter than a student's, because a faculty account is filed under a
@@ -243,6 +260,9 @@ class Reach:
         """
         from .models.institution import Department
         from .models.user import User
+
+        if self.everything:
+            return select(User.id)
 
         clauses = []
         if self.departments:

@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 
 from .models.cohort import Cohort
 from .models.governance import (
+    APPROVAL_ACTIVE,
     CAPABILITIES,
     CAPABILITIES_BY_KEY,
     FEATURES_BY_KEY,
@@ -112,6 +113,28 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _live_grant_clauses(now: datetime) -> tuple:
+    """What makes a grant count, in SQL. ONE definition, used by every reader.
+
+    Three conditions, and the third was missing. Not revoked and not expired
+    were always filtered here — in SQL rather than in Python, so a long-expired
+    grant never reaches the process at all. `approval_state` was added for
+    B2.4's two-person rule, written on every row, carried a check constraint and
+    a docstring about four-eyes approval — and was read by NO query, so a grant
+    awaiting a second Main Admin was fully live the moment it was inserted.
+
+    A shared tuple rather than the same condition written twice, because
+    `granted_capabilities` and `granted_reaches` ARE one question asked two
+    ways, and a condition living in two places is exactly how the third one
+    came to be missing from both.
+    """
+    return (
+        CapabilityGrant.revoked_at.is_(None),
+        or_(CapabilityGrant.expires_at.is_(None), CapabilityGrant.expires_at > now),
+        CapabilityGrant.approval_state == APPROVAL_ACTIVE,
+    )
+
+
 def granted_capabilities(db: Session, user_id: str) -> frozenset[str]:
     """Capabilities this user holds by grant — directly, or through a group.
 
@@ -122,10 +145,7 @@ def granted_capabilities(db: Session, user_id: str) -> frozenset[str]:
     if not user_id:
         return frozenset()
     now = _now()
-    live = (
-        CapabilityGrant.revoked_at.is_(None),
-        or_(CapabilityGrant.expires_at.is_(None), CapabilityGrant.expires_at > now),
-    )
+    live = _live_grant_clauses(now)
     direct = select(CapabilityGrant.capability).where(
         CapabilityGrant.subject_kind == SubjectKind.USER,
         CapabilityGrant.subject_user_id == user_id,
@@ -167,11 +187,7 @@ def granted_reaches(db: Session, user_id: str, key: str) -> list[tuple[ScopeLeve
     if not user_id:
         return []
     now = _now()
-    live = (
-        CapabilityGrant.capability == key,
-        CapabilityGrant.revoked_at.is_(None),
-        or_(CapabilityGrant.expires_at.is_(None), CapabilityGrant.expires_at > now),
-    )
+    live = (CapabilityGrant.capability == key, *_live_grant_clauses(now))
     columns = (CapabilityGrant.scope_level, CapabilityGrant.scope_id)
     direct = select(*columns).where(
         CapabilityGrant.subject_kind == SubjectKind.USER,

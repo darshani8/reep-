@@ -15,7 +15,17 @@
           <span class="icon" aria-hidden="true">insights</span> Placement funnel
         </a>
       }
-      <button type="button" class="btn secondary" [reepPending]="4">
+      <!-- DEMOTED, NOT PENDING. REEP has no postings importer and is not
+           getting one: B8.4 DELETED `job_import_runs`, `jobs.import_run_id` and
+           the three import endpoints nobody called, and the import wizard on
+           Data imports covers marks and attendance only. A phase number here
+           would promise a feature that was removed on purpose. -->
+      <button
+        type="button"
+        class="btn secondary"
+        disabled
+        title="There is no postings importer — the import wizard covers marks and attendance, and the job-import endpoints were removed because nothing called them. Publish, or Duplicate an existing posting."
+      >
         <span class="icon" aria-hidden="true">upload_file</span> Import postings
       </button>
       <!-- ONE PRIMARY PER VIEW (01-design-system.md §4): while the panel is open
@@ -66,27 +76,86 @@
     </div>
   }
 
-  <!-- The board's filter row. Status is the one that reads a field a posting
-       already carries; college, course and track are B12.1 and are drawn
-       disabled rather than left out or wired to nothing. -->
+  <!-- The board's filter row, all four live. `GET /api/admin/jobs` takes no
+       query parameters and is scoped server-side, so every one of these narrows
+       the rows already returned and none of them changes what may be read —
+       the Leave queue's Department filter, exactly.
+
+       PICKING A COLLEGE INCLUDES THE POSTINGS THAT NAME NONE, because those are
+       on that college's board too (`app/jobs_visibility.py::visible_clauses`).
+       "Every college" is offered as its own choice for the office that wants
+       exactly the un-narrowed ones. A select with nothing to offer is disabled
+       with that as its reason rather than left standing as an empty menu. -->
   <div class="jobs-filters">
-    <button type="button" class="select jobs-filter--pending" [reepPending]="4">
+    <div class="select" [class.jobs-filter--empty]="collegeFilterDisabledReason() !== null">
       <span class="lbl">College</span>
-      <span class="val">All</span>
+      <span class="val">{{ collegeFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-    </button>
+      <select
+        aria-label="College — narrows to the postings a student at that college can see"
+        [disabled]="collegeFilterDisabledReason() !== null"
+        [attr.title]="collegeFilterDisabledReason()"
+        (change)="setCollegeFilter(selectValue($event))"
+      >
+        <option [value]="anyFilter" [selected]="collegeFilter() === anyFilter">All</option>
+        @for (college of collegeOptions(); track college.id) {
+          <option [value]="college.id" [selected]="college.id === collegeFilter()">
+            {{ college.label }}
+          </option>
+        }
+        @if (hasUnnarrowedCollege()) {
+          <option [value]="namesNone" [selected]="collegeFilter() === namesNone">
+            {{ everyCollege }}
+          </option>
+        }
+      </select>
+    </div>
 
-    <button type="button" class="select jobs-filter--pending" [reepPending]="4">
+    <div class="select" [class.jobs-filter--empty]="courseFilterDisabledReason() !== null">
       <span class="lbl">Course</span>
-      <span class="val">All</span>
+      <span class="val">{{ courseFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-    </button>
+      <select
+        aria-label="Course — narrows to the postings a student on that course can see"
+        [disabled]="courseFilterDisabledReason() !== null"
+        [attr.title]="courseFilterDisabledReason()"
+        (change)="setCourseFilter(selectValue($event))"
+      >
+        <option [value]="anyFilter" [selected]="courseFilter() === anyFilter">All</option>
+        @for (course of courseOptions(); track course.id) {
+          <option [value]="course.id" [selected]="course.id === courseFilter()">
+            {{ course.label }}
+          </option>
+        }
+        @if (hasUnnarrowedCourse()) {
+          <option [value]="namesNone" [selected]="courseFilter() === namesNone">
+            {{ everyCourse }}
+          </option>
+        }
+      </select>
+    </div>
 
-    <button type="button" class="select jobs-filter--pending" [reepPending]="4">
+    <div class="select" [class.jobs-filter--empty]="trackFilterDisabledReason() !== null">
       <span class="lbl">Track</span>
-      <span class="val">All</span>
+      <span class="val">{{ trackFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-    </button>
+      <select
+        aria-label="Track — narrows to the postings a student on that specialization can see"
+        [disabled]="trackFilterDisabledReason() !== null"
+        [attr.title]="trackFilterDisabledReason()"
+        (change)="setTrackFilter(selectValue($event))"
+      >
+        <option [value]="anyFilter" [selected]="trackFilter() === anyFilter">All</option>
+        @for (code of trackOptions(); track code) {
+          <option [value]="code" [selected]="code === trackFilter()">{{ code }}</option>
+        }
+        @if (hasUnnarrowedTrack()) {
+          <option [value]="namesNone" [selected]="trackFilter() === namesNone">
+            {{ everyTrack }}
+          </option>
+        }
+      </select>
+    </div>
 
     <div class="select">
       <span class="lbl">Status</span>
@@ -102,8 +171,13 @@
     </div>
 
     <div class="jobs-stats">
-      <span><b>{{ openCount() }}</b> open</span>
+      <span><b>{{ listedCount() }}</b> on the boards</span>
       <span><b>{{ closingThisWeekCount() }}</b> closing this week</span>
+      @if (pastDeadlineCount() > 0) {
+        <span class="jobs-stats__warn">
+          <b>{{ pastDeadlineCount() }}</b> past deadline, still listed
+        </span>
+      }
       <span><b>{{ applicationCount() | plural: 'application' }}</b></span>
     </div>
   </div>
@@ -111,11 +185,12 @@
   <div class="notice accent jobs-gaps">
     <span class="icon" aria-hidden="true">info</span>
     <span>
-      Track and CTC read “{{ notReadable }}”, and “Applied” is the applicant count alone rather
-      than the board’s “6 / 13”, because a posting records none of those yet: the college/course
-      scope and tracks are B12.1 and closing a posting by hand is B12.2, both Phase 4, and no task
-      records a posting’s CTC or openings at all. Every other column, and Publish, Duplicate and
-      Remove, are live.
+      <b>Only “Withdrawn” takes a posting off the student and alumni boards.</b> Those feeds read
+      the posting’s open-or-withdrawn state and never its closing date, so a row reading “Past
+      deadline” is still being applied to — close it to take it down, which keeps every
+      application against it. CTC reads “{{ notReadable }}” and “Applied” is the applicant count
+      alone rather than the board’s “6 / 13”: nothing in REEP records a posting’s pay or its
+      number of openings, and no backend task adds either.
     </span>
   </div>
 
@@ -131,7 +206,13 @@
           (input)="onQuickFilterInput($event)"
         />
 
-        <button type="button" class="btn secondary sm" [reepPending]="4">
+        <button
+          type="button"
+          class="btn secondary sm"
+          [disabled]="!canClose()"
+          [title]="closeHint()"
+          (click)="closeSelectedPosting()"
+        >
           <span class="icon" aria-hidden="true">block</span> Close posting
         </button>
         <button
@@ -340,8 +421,22 @@
 
         <div class="field">
           <label for="jobs-tracks">Tracks</label>
-          <input id="jobs-tracks" class="ctrl" type="text" placeholder="HR" [reepPending]="4" />
-          <div class="help">Only students on these tracks see the posting — B12.1, Phase 4</div>
+          <input
+            id="jobs-tracks"
+            class="ctrl"
+            type="text"
+            placeholder="HR, DM"
+            [value]="draft().tracks"
+            (input)="setDraft('tracks', inputValue($event))"
+          />
+          <div class="help">
+            Specialization codes, separated by commas, matched against the student’s own batch.
+            @if (draftTracks().length > 0) {
+              Sent as <b>{{ draftTracks().join(' · ') }}</b>.
+            } @else {
+              Leave it empty and every track sees the posting.
+            }
+          </div>
         </div>
 
         @if (hasCarriedSkills()) {
@@ -382,10 +477,50 @@
           not on this form — that is how a cut-off gets set a notch too high by accident.
         </div>
 
-        <div class="field">
-          <label for="jobs-scope">Scope</label>
-          <input id="jobs-scope" class="ctrl" type="text" placeholder="—" [reepPending]="4" />
-          <div class="help">College and course scope arrives with B12.1, Phase 4</div>
+        <!-- SCOPE IS TWO SELECTS AND ONE ANSWER. A course belongs to exactly
+             one college through the spine, so picking a course sets the college
+             too; picking a college that the chosen course does not sit in
+             clears the course, because a posting naming a mismatched pair
+             matches no student at all and reads on this sheet as published. -->
+        <div class="jobs-post__row">
+          <div class="field">
+            <label for="jobs-scope-college">College</label>
+            <select
+              id="jobs-scope-college"
+              class="ctrl"
+              [disabled]="!scopePickerReady()"
+              [attr.title]="scopePickerReady() ? null : scopeNote()"
+              (change)="setScopeCollege(selectValue($event))"
+            >
+              <option value="" [selected]="draft().collegeId === ''">{{ everyCollege }}</option>
+              @for (college of scopeColleges(); track college.id) {
+                <option [value]="college.id" [selected]="college.id === draft().collegeId">
+                  {{ college.label }}
+                </option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="jobs-scope-course">Course</label>
+            <select
+              id="jobs-scope-course"
+              class="ctrl"
+              [disabled]="!scopePickerReady()"
+              [attr.title]="scopePickerReady() ? null : scopeNote()"
+              (change)="setScopeCourse(selectValue($event))"
+            >
+              <option value="" [selected]="draft().courseId === ''">{{ everyCourse }}</option>
+              @for (course of scopeCourses(); track course.id) {
+                <option [value]="course.id" [selected]="course.id === draft().courseId">
+                  {{ scopeCourseLabel(course) }}
+                </option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="jobs-post__help">
+          {{ scopeNote() }} This posting will be published to
+          <b>{{ scopeSentence() }}</b>.
         </div>
 
         <div class="field">
@@ -405,7 +540,9 @@
           <span class="icon" aria-hidden="true">info</span>
           <span>
             Publishing puts the opening on the student and alumni boards at once. Once anyone has
-            applied it can no longer be removed; closing it instead arrives with B12.2, Phase 4.
+            applied it can no longer be removed — tick it in the sheet and use <b>Close posting</b>
+            instead, which takes it off both boards and keeps every application against it. There
+            is no reopen: a posting closed by mistake is published again.
           </span>
         </div>
 

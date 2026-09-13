@@ -12,12 +12,23 @@
  * key, so a faculty member granted it in Governance reaches this screen with
  * nothing else changing.
  *
- * THE VIEWPOINT IS NOT A FIELD HERE. The API stamps it from the writer's role
- * (a mentor writes as MENTOR, the office as PLACEMENT); the editor only shows
- * it, as a chip, so a mentor can see which lines are theirs.
+ * THE VIEWPOINT IS NOT A FIELD HERE. The API stamps it, and B7 made that stamp
+ * mean something: MENTOR is written only when the author actually mentors THAT
+ * student, so one granted lecturer no longer files every line on a department's
+ * board as MENTOR about students they have never met. The editor only shows it,
+ * as a chip.
+ *
+ * A LINE BELONGS TO WHOEVER WROTE IT (B7.2). The author edits and deletes their
+ * own; the Main Admin edits any; an authorless line is the office's alone,
+ * because treating "no author" as "everybody is the author" makes exactly the
+ * rows nobody is answerable for the easiest to rewrite. The server answers 403
+ * with a sentence saying so, and this screen prints that sentence rather than
+ * pre-disabling the box: the response carries the author's NAME and not their
+ * id, so a client guess would have to match on a name, and two colleagues who
+ * share one would each be told the other's lines are theirs.
  *
  * THE DEPARTMENT PILL IS A READ-OUT, NOT A FILTER (B1.4). `GET /admin/swoc` is
- * scoped now — `scope_filter` narrows the students AND their entries to the
+ * scoped — `scope_filter` narrows the students AND their entries to the
  * caller's grant — and it takes no department parameter: the reach is stated on
  * the response instead, in `X-Reep-Scope` with `X-Reep-Scope-Colleges` and
  * `X-Reep-Scope-Departments` beside it. A picker was the wrong shape twice
@@ -33,37 +44,21 @@
  * the first is a governance problem for one account and the second is a fact
  * about the college.
  *
- * WHAT THE BOARD DRAWS THAT THE BACKEND CANNOT YET ANSWER. The board also shows
- * the mentor and semester filters, the student's acknowledgement state, the
- * per-entry edit history, the semester view, the links to skills, interviews
- * and jobs, and an Export. Every one of those is the Phase 4 SWOC task
- * (B7.1–B7.7 in 04-backend-changes.md). So each of those controls renders
- * through PendingControlDirective, the acknowledgement column renders a dash —
- * the design system's "this is not known" — and one `.notice.accent` beside the
- * quadrants says which task fills them. A plausible-looking sample entry would
- * be indistinguishable from working software on a screenshot; a dash is not.
- *
- * WHAT IS REAL. Author, date and source on every entry come off the rows the
- * API returns today, as does the batch each student is in — so the batch filter
- * and the quick filter narrow the list the screen actually holds, rather than
- * pretending to ask the server for a slice it cannot cut yet.
+ * WHAT THE BOARD DRAWS THAT NO ENDPOINT ANSWERS. Two things, and both are
+ * plainly `disabled` with the real reason in a `title` and NO phase number on
+ * them — the treatment `45b91a9` gave the Faculty screen's orphan controls,
+ * because a phase number beside a control nothing is bringing is a promise the
+ * product does not keep. The MENTOR filter: `SwocStudentRow` carries no mentor
+ * and `GET /admin/swoc` takes no mentor parameter, so a menu here could only
+ * hide students without saying why. The EXPORT: there is no SWOC CSV anywhere
+ * in the API — `/admin/exports/` serves students, placement and the ledger, and
+ * nothing serves written notes about named students as a file.
  */
 
 import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
-
-/**
- * The MENTOR filter (B7.1) — the grant's own reach is wired now, in B1.4, and
- * this is the further narrowing to one mentor's group, which no row here
- * carries — ownership (B7.2), edit history (B7.3), the semester view (B7.4),
- * the student's acknowledgement (B7.5), the links (B7.6) and the filters at
- * scale (B7.7) all land on the Phase 4 mentoring branch — 06-phase-prompts.md,
- * Phase 4d.
- */
-const SWOC_BACKEND_PHASE = 4;
 
 /** The three words `app/scope_views.py` writes into `X-Reep-Scope`. Three and
  *  not a boolean, for its reason: `programme` and `none` are opposite facts and
@@ -92,8 +87,25 @@ interface SwocEntry {
   source: string;
   text: string;
   weight: number;
+  /** The author's NAME, or null. */
   author: string | null;
+  /**
+   * Whether an author was recorded at all. `author_user_id` is ON DELETE SET
+   * NULL, so `author_recorded: true` with `author: null` is unreachable and a
+   * null author means ONE thing — nobody was recorded. This flag is the stated
+   * fact to branch on, rather than a falsy name.
+   */
+  author_recorded: boolean;
   recorded_at: string;
+  /** Equal to `recorded_at` means "as written"; later means "edited then". */
+  updated_at: string;
+  /** B7.4. NULL on every line written before the column existed, and NEVER
+   *  backfilled: there is no semester history to backfill from, and today's
+   *  semester on a line written last year is a lie on the student's own
+   *  screen. It renders as "semester not recorded". */
+  semester: number | null;
+  /** B7.5. When the STUDENT said they had read it. */
+  acknowledged_at: string | null;
 }
 
 interface StudentRow {
@@ -102,6 +114,23 @@ interface StudentRow {
   usn: string | null;
   batch: string | null;
   entries: SwocEntry[];
+}
+
+/** One edit of one line, from `GET /admin/swoc/{student_id}/history` (B7.3). */
+interface SwocRevision {
+  id: string;
+  entry_id: string;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  by: string | null;
+  changed_at: string;
+}
+
+/** One field that changed in a revision, as the panel prints it. */
+interface FieldChange {
+  field: string;
+  from: string;
+  to: string;
 }
 
 type SwocKind = SwocEntry['kind'];
@@ -166,6 +195,16 @@ const SOURCE_LABEL: Record<string, string> = {
   PM: 'Programme',
 };
 
+/** The `_snapshot` keys worth printing in an edit, in the order they read. The
+ *  rest of the snapshot (student_id, source, the three links) either cannot
+ *  change through this screen or is an id no reader can resolve. */
+const REVISION_FIELDS: { key: string; label: string }[] = [
+  { key: 'text', label: 'Text' },
+  { key: 'weight', label: 'Weight' },
+  { key: 'kind', label: 'Quadrant' },
+  { key: 'semester', label: 'Semester' },
+];
+
 /** One quadrant line is a sentence or two, not an essay: the API refuses more. */
 const MAX_ENTRY_CHARS = 400;
 
@@ -175,10 +214,13 @@ const WEIGHTS = [5, 4, 3, 2, 1];
 /** The batch filter's "no batch chosen" value, so the empty option is not a name. */
 const ALL_BATCHES = '';
 
+/** The semester filter's "do not send the parameter" value. */
+const ALL_SEMESTERS = '';
+
 @Component({
   selector: 'app-admin-swoc',
   standalone: true,
-  imports: [PendingControlDirective, PluralPipe],
+  imports: [PluralPipe],
   templateUrl: './swoc.component.html',
   styleUrl: './swoc.component.scss',
 })
@@ -186,12 +228,35 @@ export class AdminSwocComponent {
   readonly quadrants = QUADRANTS;
   readonly weights = WEIGHTS;
   readonly maxEntryChars = MAX_ENTRY_CHARS;
-  readonly swocBackendPhase = SWOC_BACKEND_PHASE;
+  readonly allSemesters = ALL_SEMESTERS;
 
   readonly rows = signal<StudentRow[] | null>(null);
   readonly query = signal('');
   readonly batchFilter = signal(ALL_BATCHES);
   readonly selectedStudentId = signal<string | null>(null);
+
+  /**
+   * B7.4's semester filter, and it goes to the SERVER — `GET /admin/swoc`
+   * takes `?semester=`.
+   *
+   * IT NARROWS THE ENTRIES AND NOT THE STUDENTS, deliberately, and the copy
+   * says so: a student with nothing written this term is still a row on the
+   * board with an empty quadrant set, because dropping them would turn "show me
+   * semester 3" into "hide everybody nobody has written about yet", which is
+   * the cohort this screen exists to find. A line whose semester was never
+   * recorded is not in any semester and so is not in this slice either.
+   */
+  readonly semesterFilter = signal(ALL_SEMESTERS);
+
+  /**
+   * The semesters to offer, derived from the lines the board is holding.
+   *
+   * REBUILT ONLY FROM AN UNFILTERED LOAD, for the mentor-mapping screen's
+   * reason: once semester 3 is chosen the response holds semester 3 alone, so
+   * rebuilding from it would collapse the menu to the one option and strand the
+   * reader inside it.
+   */
+  readonly semesterOptions = signal<number[]>([]);
 
   /** The quadrant whose composer is open — at most one, so the view keeps its
    *  single primary action. */
@@ -201,6 +266,15 @@ export class AdminSwocComponent {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
+
+  /** B7.3's edit history for the student on screen, and B7.4's per-semester
+   *  read of their board. Both are panels rather than routes: they are about
+   *  the student already selected. */
+  readonly historyOpen = signal(false);
+  readonly revisions = signal<SwocRevision[] | null>(null);
+  readonly historyBusy = signal(false);
+  readonly historyError = signal<string | null>(null);
+  readonly semesterViewOpen = signal(false);
 
   /** What the server said this caller's grant reaches, read off the list
    *  response. `null` means it stated nothing, which is not "nothing". */
@@ -278,6 +352,11 @@ export class AdminSwocComponent {
 
   readonly batchFilterLabel = computed(() => this.batchFilter() || 'All batches');
 
+  readonly semesterFilterLabel = computed(() => {
+    const chosen = this.semesterFilter();
+    return chosen === ALL_SEMESTERS ? 'All semesters' : `Semester ${chosen}`;
+  });
+
   readonly filtered = computed(() => {
     const needle = this.query().trim().toLowerCase();
     const batch = this.batchFilter();
@@ -308,6 +387,32 @@ export class AdminSwocComponent {
     return byQuadrant;
   });
 
+  /**
+   * B7.4's semester view for the selected student: their lines grouped by the
+   * semester each was STAMPED WITH AT WRITE TIME. "Not recorded" is a group of
+   * its own and never folded into a number — a line written before the column
+   * existed belongs to no semester, and putting it in the current one would be
+   * inventing a fact on the student's own screen.
+   */
+  readonly semesterBreakdown = computed<{ key: string; label: string; count: number }[]>(() => {
+    const entries = this.selected()?.entries ?? [];
+    const counts = new Map<number, number>();
+    let unrecorded = 0;
+    for (const entry of entries) {
+      if (entry.semester === null) unrecorded += 1;
+      else counts.set(entry.semester, (counts.get(entry.semester) ?? 0) + 1);
+    }
+    const groups = Array.from(counts, ([semester, count]) => ({
+      key: String(semester),
+      label: `Semester ${semester}`,
+      count,
+    })).sort((left, right) => Number(left.key) - Number(right.key));
+    if (unrecorded > 0) {
+      groups.push({ key: '', label: 'Semester not recorded', count: unrecorded });
+    }
+    return groups;
+  });
+
   readonly draftLength = computed(() => this.draft().trim().length);
 
   readonly canSaveDraft = computed(() => this.draftLength() > 0 && !this.busy());
@@ -318,16 +423,54 @@ export class AdminSwocComponent {
 
   async load(): Promise<void> {
     this.error.set(null);
+    const semester = this.semesterFilter();
+    const query = semester === ALL_SEMESTERS ? '' : `?semester=${encodeURIComponent(semester)}`;
     try {
-      const response = await fetch(`${environment.apiBase}/admin/swoc`, { credentials: 'include' });
+      const response = await fetch(`${environment.apiBase}/admin/swoc${query}`, {
+        credentials: 'include',
+      });
       if (!response.ok) throw new Error(await this.detailOf(response));
       this.scope.set(this.readScope(response));
-      this.rows.set((await response.json()) as StudentRow[]);
+      const rows = (await response.json()) as StudentRow[];
+      this.rows.set(rows);
+      if (semester === ALL_SEMESTERS) this.rememberSemesters(rows);
     } catch (failure) {
       this.scope.set(null);
       this.rows.set([]);
       this.error.set(failure instanceof Error ? failure.message : 'Could not load students.');
     }
+  }
+
+  async setSemesterFilter(value: string): Promise<void> {
+    if (value === this.semesterFilter()) return;
+    this.semesterFilter.set(value);
+    this.flash.set(null);
+    await this.load();
+  }
+
+  /** `<select>` hands its value back through the event; read once, here. */
+  selectValue(event: Event): string {
+    return (event.target as HTMLSelectElement).value;
+  }
+
+  /** The filter holds the option's VALUE, which a `<select>` always spells as a
+   *  string; the menu is built from numbers. Compared here rather than in the
+   *  template, which has no `String`. */
+  isSemesterFilter(semester: number): boolean {
+    return this.semesterFilter() === String(semester);
+  }
+
+  /** Every semester any line on the board carries, for the filter's menu. A
+   *  board where nothing has been stamped yet offers nothing, and the control
+   *  says that rather than showing an empty menu. */
+  private rememberSemesters(rows: StudentRow[]): void {
+    const seen = new Set<number>();
+    for (const student of rows) {
+      for (const entry of student.entries) {
+        if (entry.semester !== null) seen.add(entry.semester);
+      }
+    }
+    this.semesterOptions.set(Array.from(seen).sort((left, right) => left - right));
   }
 
   /** The reach the server stated on this response, or `null` when it stated
@@ -367,6 +510,11 @@ export class AdminSwocComponent {
     this.closeComposer();
     this.flash.set(null);
     this.error.set(null);
+    // Both panels are about the student who was selected when they opened.
+    this.historyOpen.set(false);
+    this.revisions.set(null);
+    this.historyError.set(null);
+    this.semesterViewOpen.set(false);
   }
 
   isSelected(student: StudentRow): boolean {
@@ -408,6 +556,110 @@ export class AdminSwocComponent {
     });
   }
 
+  // --------------------------------------------------- what a line says --
+
+  /** Author, semester and date on one line, in the order a reader asks them. */
+  entryBy(entry: SwocEntry): string {
+    // "Author not recorded", NOT "no longer on the roster": `author_user_id` is
+    // ON DELETE SET NULL, so a null author means nobody was recorded and cannot
+    // mean anybody left. `author_recorded` is the stated fact to branch on.
+    const who = entry.author_recorded && entry.author ? entry.author : 'Author not recorded';
+    const term = entry.semester === null ? 'Semester not recorded' : `Semester ${entry.semester}`;
+    const parts = [who, term, this.when(entry.recorded_at)];
+    if (this.wasEdited(entry)) parts.push(`edited ${this.when(entry.updated_at)}`);
+    return parts.join(' · ');
+  }
+
+  /** `updated_at` carries no `onupdate` on purpose — it would fire when the
+   *  STUDENT acknowledges a line and report it as edited by nobody. So a later
+   *  `updated_at` really does mean somebody rewrote the line. */
+  wasEdited(entry: SwocEntry): boolean {
+    return entry.updated_at !== entry.recorded_at;
+  }
+
+  /** B7.5. Whether the student has said they read this line — as text and
+   *  colour together, never colour alone. */
+  ackChip(entry: SwocEntry): { label: string; tone: 'good' | 'neutral' } {
+    if (entry.acknowledged_at === null) return { label: 'Not acknowledged', tone: 'neutral' };
+    return { label: `Acknowledged ${this.when(entry.acknowledged_at)}`, tone: 'good' };
+  }
+
+  /** How many of this student's lines they have acknowledged. */
+  ackCount(student: StudentRow): number {
+    return student.entries.filter((entry) => entry.acknowledged_at !== null).length;
+  }
+
+  // ------------------------------------------------------- the panels ----
+
+  async toggleHistory(): Promise<void> {
+    if (this.historyOpen()) {
+      this.historyOpen.set(false);
+      return;
+    }
+    const student = this.selected();
+    if (student === null) return;
+    this.historyOpen.set(true);
+    this.semesterViewOpen.set(false);
+    this.revisions.set(null);
+    this.historyError.set(null);
+    this.historyBusy.set(true);
+    try {
+      const response = await fetch(
+        `${environment.apiBase}/admin/swoc/${student.student_id}/history`,
+        { credentials: 'include' },
+      );
+      if (!response.ok) {
+        this.historyError.set(await this.detailOf(response));
+        return;
+      }
+      this.revisions.set((await response.json()) as SwocRevision[]);
+    } catch {
+      this.historyError.set('Could not reach the server.');
+    } finally {
+      this.historyBusy.set(false);
+    }
+  }
+
+  toggleSemesterView(): void {
+    this.semesterViewOpen.update((open) => !open);
+    if (this.semesterViewOpen()) this.historyOpen.set(false);
+  }
+
+  /**
+   * The fields that actually changed in one revision, in a fixed order. The
+   * snapshot carries more than a reader can use — the student id, the viewpoint
+   * and three link ids — so only the four a person edits are printed, and only
+   * where the two sides differ.
+   */
+  changesIn(revision: SwocRevision): FieldChange[] {
+    const changes: FieldChange[] = [];
+    for (const { key, label } of REVISION_FIELDS) {
+      const from = this.snapshotValue(revision.before[key]);
+      const to = this.snapshotValue(revision.after[key]);
+      if (from === to) continue;
+      changes.push({ field: label, from, to });
+    }
+    return changes;
+  }
+
+  private snapshotValue(value: unknown): string {
+    if (value === null || value === undefined) return 'not recorded';
+    return String(value);
+  }
+
+  /**
+   * Which line an edit was to, named by the text it holds AFTER the edit. The
+   * snapshot always carries `text`, so this identifies the row even for an edit
+   * that only moved the weight — and even for a line that has since been
+   * deleted, which is exactly the case a history is opened for.
+   */
+  revisionLine(revision: SwocRevision): string {
+    const text = revision.after['text'];
+    return typeof text === 'string' && text.length > 0 ? text : 'A line that no longer exists';
+  }
+
+  // -------------------------------------------------------- the writes --
+
   async addEntry(kind: SwocKind): Promise<void> {
     const student = this.selected();
     const text = this.draft().trim();
@@ -446,7 +698,12 @@ export class AdminSwocComponent {
       this.error.set('An entry cannot be blank — use Remove to delete this line.');
       return;
     }
-    await this.editEntry(entry, { text: cleaned });
+    await this.editEntry(entry, { text: cleaned }, () => {
+      // B7.2. A refusal means somebody else's line: put their sentence back in
+      // the box, or the screen shows this writer's draft over a line the server
+      // kept exactly as it was.
+      field.value = entry.text;
+    });
   }
 
   /** A refused weight puts the picker back where the row still is: a select

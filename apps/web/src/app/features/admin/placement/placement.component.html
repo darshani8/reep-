@@ -13,15 +13,22 @@
           @if (placement.semester !== null) {
             · Semester {{ placement.semester }}
           }
+          @if (narrowingSentence(); as narrowed) {
+            · <b>{{ narrowed }}</b>
+          }
         } @else {
           {{ figuresPlaceholderNote() }}
         }
       </div>
     </div>
     <div class="dt-toolbar">
-      <!-- A real link, so the browser streams the file straight to disk. -->
-      <a class="btn secondary" [href]="offersCsvUrl" download="reep-placement-summary.csv">
-        <span class="icon" aria-hidden="true">download</span> Export offers
+      <!-- B12.3's batch-scoped offers extract IS this file: the existing
+           `/admin/exports/placement.csv` already carries B14's scope filter,
+           its personal-column gate and its receipt, and takes `?cohort_id=`.
+           A real link, so the browser streams it straight to disk. -->
+      <a class="btn secondary" [href]="offersCsvUrl()" download="reep-placement-summary.csv">
+        <span class="icon" aria-hidden="true">download</span>
+        {{ cohortFilter() === '' ? 'Export offers' : 'Export this batch' }}
       </a>
     </div>
   </div>
@@ -45,29 +52,64 @@
     </button>
   </div>
 
+  <!-- BATCH and PERIOD are parameters on `GET /api/admin/placement`, so both
+       re-read the whole payload: every count, the split and the recent list
+       move together, and the funnel's columns keep adding up. TRACK is not a
+       parameter and is not coming — see its title. -->
   <div class="filters">
-    <div class="select filter-pending">
+    <div class="select" [class.filter-pending]="cohortFilterDisabledReason() !== null">
       <span class="lbl">Batch</span>
-      <span class="val">All batches</span>
+      <span class="val">{{ cohortFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Batch" [reepPending]="4">
-        <option>All batches</option>
+      <select
+        aria-label="Batch — narrows every figure on this screen"
+        [disabled]="cohortFilterDisabledReason() !== null"
+        [attr.title]="cohortFilterDisabledReason()"
+        (change)="setCohortFilter(selectValue($event))"
+      >
+        <option value="" [selected]="cohortFilter() === ''">All batches</option>
+        @for (cohort of cohortOptions(); track cohort.id) {
+          <option [value]="cohort.id" [selected]="cohort.id === cohortFilter()">
+            {{ cohort.name }}
+          </option>
+        }
       </select>
     </div>
+
+    <!-- DEMOTED, NOT PENDING. `GET /api/admin/placement` takes no `?track=`
+         and no task adds one: the payload answers the track question as the
+         By track split below, placed over eligible per specialization.
+         Narrowing here client-side would leave the funnel and the KPIs
+         describing the whole reach under a caption naming one track. Plain
+         `disabled` with the real reason in the title, and no phase number —
+         the treatment the Leave queue's Requester filter was given. -->
     <div class="select filter-pending">
       <span class="lbl">Track</span>
       <span class="val">All tracks</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Track" [reepPending]="4">
-        <option>All tracks</option>
+      <select
+        aria-label="Track — this screen answers the track question as a split, not a filter"
+        disabled
+        title="The placement figures are not narrowed by track — the By track card below is how this screen answers that question, placed over eligible for every specialization at once."
+      >
+        <option value="">All tracks</option>
       </select>
     </div>
-    <div class="select filter-pending">
+
+    <div class="select" [class.filter-pending]="yearFilterDisabledReason() !== null">
       <span class="lbl">Period</span>
-      <span class="val">Whole record</span>
+      <span class="val">{{ yearFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Period" [reepPending]="4">
-        <option>Whole record</option>
+      <select
+        aria-label="Period — narrows the offer figures to one calendar year, over the students on the roll today"
+        [disabled]="yearFilterDisabledReason() !== null"
+        [attr.title]="yearFilterDisabledReason()"
+        (change)="setYearFilter(selectValue($event))"
+      >
+        <option value="" [selected]="yearFilter() === ''">Whole record</option>
+        @for (year of yearOptions(); track year) {
+          <option [value]="year" [selected]="year.toString() === yearFilter()">{{ year }}</option>
+        }
       </select>
     </div>
   </div>
@@ -102,15 +144,16 @@
         </p>
       }
 
-      <div class="notice accent">
-        <span class="icon" aria-hidden="true">insights</span>
-        <span>
-          Shortlisted, Interviewed and Offer received are the three stages the board draws that nothing
-          on main counts as distinct students — the scoped placement payload (B12.3) adds them, with the
-          batch, track and period filters above. The three stages drawn here are counted when the screen
-          loads.
-        </span>
-      </div>
+      <!-- THE SERVER SAYS WHICH STAGE IT CANNOT COUNT AND WHY, and this
+           renders that list rather than a sentence of its own — one written
+           here would go on being displayed after somebody built the thing that
+           fills the gap. Nothing is drawn when the list is empty. -->
+      @for (gap of funnelGaps(); track gap.stage) {
+        <div class="notice accent">
+          <span class="icon" aria-hidden="true">insights</span>
+          <span><b>{{ gapTitle(gap) }} — not counted.</b> {{ gap.reason }}</span>
+        </div>
+      }
 
       <div class="dropoff">
         <div class="eyebrow">Where students drop off</div>
@@ -150,7 +193,10 @@
     <div class="side-column">
       <section class="card side-card">
         <div class="card-head">
-          <div><h2 class="card-heading">This year</h2></div>
+          <div>
+            <h2 class="card-heading">{{ kpiCardHeading() }}</h2>
+            <p class="card-sub">{{ kpiCardPeriod() }}</p>
+          </div>
         </div>
         <div class="kpi-grid">
           <div>
@@ -167,26 +213,28 @@
           </div>
           <div>
             <div class="eyebrow">Median CTC</div>
-            <div class="kpi">—</div>
-            <div class="kpi-sub"><span class="chip neutral">Phase 4</span></div>
+            <div class="kpi">{{ medianCtcLabel() }}</div>
+            <div class="kpi-sub">{{ ctcCountedLabel() }}</div>
           </div>
           <div>
             <div class="eyebrow">Highest</div>
-            <div class="kpi">—</div>
-            <div class="kpi-sub"><span class="chip neutral">Phase 4</span></div>
+            <div class="kpi">{{ highestCtcLabel() }}</div>
+            <div class="kpi-sub">{{ ctcCountedLabel() }}</div>
           </div>
           <div>
             <div class="eyebrow">Multiple offers</div>
-            <div class="kpi">—</div>
-            <div class="kpi-sub"><span class="chip neutral">Phase 4</span></div>
+            <div class="kpi">{{ multipleOffersLabel() }}</div>
+            <div class="kpi-sub">students holding more than one</div>
           </div>
         </div>
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
           <span>
-            The CTC figures and the multiple-offer count are computed over every offer by the scoped
-            placement payload (B12.3). This screen holds the newest twenty-five, and a median of a page
-            is not a median.
+            All four figures are computed over <b>every</b> offer in reach, not over the
+            twenty-five rows below — a median of a page is not a median. The CTC pair counts only
+            approved offers that state a CTC: a blank one means “not recorded” far more often than
+            it means an unpaid role, and counting blanks as zero would drag the median to the
+            floor. A dash is a figure nobody could compute, never a zero.
           </span>
         </div>
       </section>
@@ -229,13 +277,41 @@
             <p class="card-sub">placed / eligible</p>
           </div>
         </div>
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          <span>
-            An offer carries no track on main, so nothing here can say which specialization placed a
-            student. The by-track split arrives with the scoped placement payload (B12.3).
-          </span>
-        </div>
+        @if (noTrackSplitYet()) {
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
+            No student is on the roll for this batch and period, so there is no track to split.
+          </div>
+        } @else {
+          <table class="dt-table track-split">
+            <thead>
+              <tr>
+                <th scope="col">Track</th>
+                <th scope="col" class="num">Placed</th>
+                <th scope="col" class="num">Eligible</th>
+                <th scope="col">Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of trackSplit(); track row.code ?? row.name) {
+                <tr>
+                  <td>{{ row.name }}</td>
+                  <td class="num">{{ row.placed }}</td>
+                  <td class="num">{{ row.eligible }}</td>
+                  <td>
+                    <span class="chip {{ trackTone(row) }}">{{ trackRateLabel(row) }}</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <p class="card-note">
+            A track is the student’s own batch specialization, not the posting’s — an off-campus
+            offer has no posting behind it, and a posting for two tracks would count one placement
+            twice. “Not filed” is the students whose batch names no specialization; the row is kept
+            so the column adds up to the funnel.
+          </p>
+        }
       </section>
 
       <section class="card side-card">

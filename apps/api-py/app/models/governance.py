@@ -336,6 +336,7 @@ class CapabilityGrant(Base):
     )
     scope_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
+
     subject_kind: Mapped[SubjectKind] = mapped_column(
         Enum(SubjectKind, name="governance_subject_kind"), nullable=False
     )

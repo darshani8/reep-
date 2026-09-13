@@ -23,6 +23,7 @@ import pytest
 from conftest import TEST_PASSWORD, requires_db
 
 from app.db import SessionLocal
+from app.mentor_functions import MENTOR_FUNCTIONS
 from app.governance import (
     ROLE_BASELINE,
     _FACULTY_ONLY,
@@ -99,8 +100,15 @@ def test_the_baseline_takes_nothing_away_from_a_mentor() -> None:
     """A deny-by-default rollout would have removed every mentor's own mentee log
     on the deploy that shipped it. The baseline is what stops that."""
     mentor_caps = ROLE_BASELINE["MENTOR"]
-    assert "mentor.mentees" in mentor_caps
-    assert "student.records" in mentor_caps
+    # B2.3: THE BASELINE IS WHAT BELONGS TO THE PERSON, NOT THE GROUP. It was
+    # every SCOPED key, which made "is this person staff" and "may this person
+    # read a mentee's ledger" one question with one answer. The four that belong
+    # to a group are derived from the mentee count now
+    # (app/mentor_functions.py), and the ten student.* keys gate nothing.
+    assert mentor_caps == {"mentor.agent", "mentor.upskilling"}
+    assert "mentor.mentees" not in mentor_caps, (
+        "a faculty account with no mentees is holding the mentee log again"
+    )
     # ...and the programme-wide set is NOT inherited: that is what a grant is for.
     assert "admin.analytics" not in mentor_caps
     assert "admin.exports" not in mentor_caps
@@ -126,7 +134,17 @@ def test_the_baseline_takes_nothing_away_from_a_mentor() -> None:
     assert _FACULTY_ONLY and not (admin_caps & _FACULTY_ONLY), (
         "the Main Admin picked up a faculty instrument by baseline; a grant is the way in"
     )
-    assert _FACULTY_ONLY <= mentor_caps, "a faculty instrument a MENTOR does not hold"
+    # A FACULTY MEMBER STILL HOLDS ALL FOUR — three of them by mentoring somebody
+    # rather than by being staff (B2.3). The original assertion was
+    # `_FACULTY_ONLY <= mentor_caps` and it protected a real thing: a faculty
+    # instrument nobody on the faculty can reach is a broken screen. That is
+    # still the property; what moved is where three of the four come from.
+    assert _FACULTY_ONLY <= (mentor_caps | MENTOR_FUNCTIONS), (
+        "a faculty instrument no faculty member can hold, by baseline or by mentees"
+    )
+    assert MENTOR_FUNCTIONS.isdisjoint(mentor_caps), (
+        "a function is in the baseline as well, so it is held without any mentees"
+    )
     assert _FACULTY_ONLY <= {c.key for c in CAPABILITIES}, (
         "a faculty instrument left the catalogue, so it can no longer be granted at all"
     )
@@ -237,7 +255,7 @@ def test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members(
     with SessionLocal() as db:
         held = capabilities_for(db, {"userId": mentor.user_id, "role": "MENTOR"})
         assert "admin.analytics" in held, "the grant did not take effect"
-        assert "mentor.mentees" in held, "the baseline was lost when a grant appeared"
+        assert "mentor.agent" in held, "the baseline was lost when a grant appeared"
 
     # Now the group path: a second mentor inherits by joining, with no grant of
     # their own. That is the reason groups exist.
@@ -283,9 +301,14 @@ def test_a_grant_never_widens_which_students_a_mentor_reaches(
 
     # Rule 2 is unmoved: the groupless mentor still reaches nobody. Asserted
     # through the real endpoint, because that is where the gate actually runs.
+    # THE REFUSAL MOVED ONE GATE EARLIER; THE PROPERTY IS THE SAME. Before B2.3
+    # this answered 200 with an empty list: the account held mentor.mentees
+    # through the baseline and rule 2 filtered every student out. A faculty
+    # account with no mentees does not hold the function at all now, so the
+    # capability gate refuses first. Either way it reaches nobody — and 403
+    # tells them the true reason, which "200 []" never did.
     listing = client.get("/api/mentor/mentees", headers=mentor.headers)
-    assert listing.status_code == 200
-    assert listing.json() == [], "a capability handed a groupless mentor a mentee"
+    assert listing.status_code == 403, "a capability handed a groupless mentor a mentee"
 
     sid = None
     with SessionLocal() as db:
@@ -294,7 +317,9 @@ def test_a_grant_never_widens_which_students_a_mentor_reaches(
         sid = row.id if row else None
     if sid:
         notes = client.get(f"/api/mentor/students/{sid}/notes", headers=mentor.headers)
-        assert notes.status_code == 404, "a capability reached a student outside the mentor's group"
+        assert notes.status_code in (403, 404), (
+            "a capability reached a student outside the mentor's group"
+        )
 
 
 @requires_db
@@ -405,7 +430,7 @@ def test_a_granted_capability_opens_the_analytics_endpoints(client, admin, mento
     assert r.status_code == 403, r.text
     me = client.get("/api/auth/me", headers=mentor.headers).json()
     assert "admin.analytics" not in me["capabilities"]
-    assert "mentor.mentees" in me["capabilities"], "the baseline must be reported too"
+    assert "mentor.agent" in me["capabilities"], "the baseline must be reported too"
 
     r = client.post(f"{GOV}/grants", headers=admin.headers, json={
         "capability": "admin.analytics", "user_ids": [mentor.user_id], "reason": REASON})

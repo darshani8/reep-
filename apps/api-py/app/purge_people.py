@@ -33,9 +33,10 @@ SECOND, THE FILES GO BEFORE THE ROWS. A row is the last pointer to a student's
 resume, a faculty member's signature and a named student's recorded voice.
 Delete the row first and a failed file delete leaves bytes on the volume that
 nobody can find again — the one outcome that cannot be repaired afterwards.
-This is `retention._delete_interview_audio`'s reasoning, applied to the other
-five stores, and it is why `_destroy_files` runs first and why anything it
-could not destroy is reported rather than swallowed.
+This is `retention._delete_interview_audio`'s reasoning, applied to every other
+store in `FILE_COLUMNS` (six of them since B10.3's leave attachments), and it is
+why `_destroy_files` runs first and why anything it could not destroy is
+reported rather than swallowed.
 
 THIRD, IT REFUSES TO LEAVE NOBODY BEHIND. The survivor is found by role, and
 the run aborts unless there is EXACTLY ONE ADMIN. Zero means this deployment
@@ -109,6 +110,14 @@ VERDICTS: dict[str, str] = {
     # and outlive every intake, exactly like `approved_certifications` above.
     "badge_course_map": KEEP,
     "stage_rules": KEEP,
+    # B10.2's calendar. It names NOBODY: a date, a word ("holiday" / "working")
+    # and a label somebody in the office typed once for the whole college. It
+    # sits with the catalogues for exactly the reason they are here — the next
+    # intake's leave is counted against these same days, and emptying it would
+    # silently change the arithmetic on every request made afterwards. (The
+    # BALANCES are per-person and are emptied below; the two tables live in one
+    # module and get opposite verdicts, which is the distinction worth checking.)
+    "academic_calendar": KEEP,
     "placement_criteria": KEEP,
     "registration_rules": KEEP,
     "alert_rule_configs": KEEP,
@@ -218,6 +227,15 @@ VERDICTS: dict[str, str] = {
     # about a person this module is removing.
     "swoc_entry_revisions": EMPTY,
     "leave_requests": EMPTY,
+    # B10.3. A medical certificate or an OOD letter belonging to one
+    # application, and FILE-BACKED — see FILE_COLUMNS below, which is what makes
+    # the bytes go before the row that points at them.
+    "leave_attachments": EMPTY,
+    # B10.2. One person's allowance for one kind of leave in one year. Keyed on
+    # `users.id` because staff hold balances too, which is also why it cannot be
+    # read as a catalogue: the row is about a person, and the person is going.
+    # Its sibling `academic_calendar` is KEPT, up with the catalogues.
+    "leave_balances": EMPTY,
     "staff_signatures": EMPTY,
     "staff_upskilling_certs": EMPTY,
     "redesign_mentor_notebook_entries": EMPTY,
@@ -288,6 +306,7 @@ FILE_COLUMNS: dict[str, str] = {
     "staff_signatures": "stored_name",
     "staff_upskilling_certs": "stored_name",
     "alumni_profiles": "resume_stored_name",
+    "leave_attachments": "stored_name",
 }
 
 #: KEPT tables that point at `users` with no ON DELETE clause. The institution

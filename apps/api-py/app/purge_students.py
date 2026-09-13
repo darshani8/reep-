@@ -137,7 +137,7 @@ def by_email(column: str) -> tuple[str, str]:
 def by_parent(table: str, column: str) -> tuple[str, str, str]:
     """Rows reached only through their parent, where the parent is itself
     scoped. Written out rather than inferred: a child whose parent is `ALL` is
-    marked `ALL` too, so the only `by_parent` entries here are the four that
+    marked `ALL` too, so the only `by_parent` entries here are the handful that
     genuinely need the join."""
     return ("via", table, column)
 
@@ -166,6 +166,11 @@ STUDENT_VERDICTS: dict[str, object] = {
     "interview_policies": KEEP,
     "badge_course_map": KEEP,
     "stage_rules": KEEP,
+    # B10.2's calendar: a date, a word and a label, for a whole college. The
+    # next cohort's leave is counted against exactly these days. Its sibling
+    # table `leave_balances` is per-person and is scoped below — one module,
+    # two opposite verdicts, which is the pair worth checking here.
+    "academic_calendar": KEEP,
     "placement_criteria": KEEP,
     "registration_rules": KEEP,
     "alert_rule_configs": KEEP,
@@ -324,6 +329,24 @@ STUDENT_VERDICTS: dict[str, object] = {
     "redesign_mentor_notebook_attachments": ALL,  # child of entries
     # -- leave: BOTH roles apply on this form, so it is scoped ---------------
     "leave_requests": by_user("requester_user_id"),
+    # B10.3, AND THE ONE PLACE HERE WHERE THE OBVIOUS SCOPE IS WRONG.
+    #
+    # `leave_attachments.uploaded_by_user_id` names a person, so `by_user` on it
+    # reads as the careful answer. It is not. An approver may attach the
+    # office's own paper to a request they are signing, and a staff uploader
+    # SURVIVES this module — so that scope would leave a departed student's
+    # medical certificate on the volume and its row in the table, attached to an
+    # application that has itself been deleted. The row belongs to the REQUEST,
+    # which is already scoped one line above, so the join is the right answer
+    # and `by_parent` is how it is said. (The CASCADE on the FK would take the
+    # row either way; it would NOT take the bytes, because a database delete
+    # touches no file — which is exactly what `_destroy_files` below is for, and
+    # it drives off `FILE_COLUMNS` through this same predicate.)
+    "leave_attachments": by_parent("leave_requests", "leave_request_id"),
+    # B10.2's balances. Keyed on `users.id` and staff hold them too — the same
+    # shape as `leave_requests` directly above, decided the same way. Its
+    # sibling `academic_calendar` is a college catalogue and is KEPT.
+    "leave_balances": by_user("user_id"),
     # -- recordings and transcripts ------------------------------------------
     "interview_sessions": ALL,
     "interview_turns": ALL,  # child of interview_sessions

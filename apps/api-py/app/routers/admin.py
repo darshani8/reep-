@@ -35,10 +35,10 @@ answers to "who may administer", which is exactly the shape of bug rule 2 exists
 to prevent.
 """
 
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import ClassVar, NamedTuple
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -59,9 +59,28 @@ from ..models.institution import (
     HierarchyLevel,
 )
 from ..models.job import DegreeLevel
-from ..models.user import Student, User
+from ..models.user import Role, Student, User
+from ..architecture_events import record_change
 from ..governance import require_capability
+from ..models.governance import (
+    APPROVAL_ACTIVE,
+    APPROVAL_PENDING,
+    CAPABILITIES_BY_KEY,
+    REVIEW_AFTER_DAYS,
+    CapabilityGrant,
+    ScopeLevel,
+    SubjectKind,
+)
 from ..institution_domains import normalise_domain
+# B1.3 appoints college admins by writing capability GRANTS, so it answers to
+# the gate that owns grants rather than to this module's `admin.institution`.
+# `require_governance` and `_reason` are imported from the router that
+# declares them — a second reason floor with a different sentence, or a
+# second spelling of "who may hand out access", is the drift these two names
+# exist to prevent. (`.governance` here is app/routers/governance.py; the
+# module `..governance` two lines above is the resolver. The collision is
+# pre-existing and deliberate in this codebase.)
+from .governance import _reason, require_governance
 from .mentor import require_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -279,6 +298,315 @@ def update_college(
     db.commit()
     db.refresh(college)
     return _college_out(db, college)
+
+
+# ------------------------------------------------------- college admins (B1.3) --
+#
+# THERE IS NO SECOND MAIN ADMIN, AND THIS IS NOT ONE.
+#
+# REEP has exactly one office account by rule, and `app.grant_access`'s
+# `_refuse_second_main_admin` is what keeps it that way. Nothing in this section
+# touches it, changes anybody's `users.role`, or mints an account: a "college
+# admin" here is a FACULTY account (role MENTOR, unchanged) holding a set of
+# `admin.*` capability grants SCOPED to one college. That is the whole idea —
+# the function is the grant, the role is the identity, and the second college a
+# deployment onboards gets somebody who runs it without getting the keys to the
+# first one.
+#
+# WHY AN ENDPOINT RATHER THAN "USE GOVERNANCE ELEVEN TIMES". Appointing one is
+# eleven grants, all with the same scope and the same reason, and eleven
+# separate acts on the Governance screen is eleven chances to hold the set
+# wrong: ten of eleven is a person whose console half works, and a twelfth key
+# added by mistake is `admin.governance` — the one that hands access on. One
+# call, one reason, one audit trail, a fixed list in code.
+#
+# WHAT IS DELIBERATELY NOT IN THE SET is as much of the decision as what is:
+# `admin.governance` (a college admin must not be able to appoint anybody,
+# including themselves, to anything — Governance stays the Main Admin's and its
+# deputy's), `admin.interview_audio` (a recording is a named student's voice and
+# is its own decision every time, which is why it is the one key the Main Admin
+# holds and grants separately), `ui.console_v2` (a rendering preview, not a
+# function) and every `mentor.*` key (a college admin is not a faculty member of
+# that college's students — the same reasoning `_FACULTY_ONLY` applies to the
+# Main Admin).
+#
+# `admin.interviews` is in 04-backend-changes.md's list for this set and IS NOT
+# IN THE CATALOGUE — B6.7 adds it with the records grid. `admin.interview_questions`
+# is the interview key that exists today and is the one granted. When B6.7 lands,
+# add its key here; the appointment endpoint is idempotent, so re-running it on
+# an existing college admin fills in whatever is missing.
+
+#: The functions that make up "runs this college". Ordered as the console's
+#: sidebar orders them, so the screen and this list can be read against each
+#: other by eye.
+COLLEGE_ADMIN_CAPABILITIES: tuple[str, ...] = (
+    "admin.analytics",
+    "admin.registrations",
+    "admin.students",
+    "admin.mentors",
+    "admin.institution",
+    "admin.catalogue",
+    "admin.jobs",
+    "admin.placement",
+    "admin.swoc",
+    "admin.interview_questions",
+    "admin.exports",
+)
+
+
+class CollegeAdminGrantOut(BaseModel):
+    capability: str
+    label: str
+    #: `active` or `pending_approval`. A `carries_pii` capability needs a second
+    #: Main Admin before it does anything (B2.4) and five of the eleven carry
+    #: it, so a freshly appointed college admin is normally PART live. Reporting
+    #: the state per key rather than one boolean for the set is the difference
+    #: between "approve these five" and "why does half my console 403".
+    approval_state: str
+    grant_id: str
+
+
+class CollegeAdminOut(BaseModel):
+    user_id: str
+    name: str
+    email: str
+    #: Where the account itself is filed. An account filed under ANOTHER college
+    #: can still be appointed here — a shared registrar, a founder's office —
+    #: and the screen should be able to show that rather than hide it.
+    department_id: str | None
+    capabilities: list[CollegeAdminGrantOut]
+    #: Keys from the set this person does NOT hold for this college. Normally
+    #: empty; non-empty after the set grows in code, or after somebody revoked
+    #: one key in Governance. A list that only ever showed what is held could
+    #: not tell those two apart from a complete appointment.
+    missing: list[str]
+
+
+class CollegeAdminIn(BaseModel):
+    user_id: str
+    reason: str
+
+
+def _college_or_404(db: Session, college_id: str) -> College:
+    college = db.get(College, college_id)
+    if college is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="College not found.")
+    return college
+
+
+def _college_admin_rows(db: Session, college_id: str) -> list[CollegeAdminOut]:
+    """Everybody holding any of the set, scoped to this college.
+
+    ANY rather than ALL, on purpose. A person holding nine of the eleven is a
+    college admin whose appointment is incomplete or partly revoked, and the one
+    screen that could tell the office that is this one; requiring the full set
+    would render them as nobody and leave nine live grants invisible here.
+    """
+    rows = db.execute(
+        select(CapabilityGrant, User)
+        .join(User, User.id == CapabilityGrant.subject_user_id)
+        .where(
+            CapabilityGrant.subject_kind == SubjectKind.USER,
+            CapabilityGrant.capability.in_(COLLEGE_ADMIN_CAPABILITIES),
+            CapabilityGrant.scope_level == ScopeLevel.COLLEGE,
+            CapabilityGrant.scope_id == college_id,
+            CapabilityGrant.revoked_at.is_(None),
+        )
+        .order_by(User.name)
+    ).all()
+    by_user: dict[str, tuple[User, list[CapabilityGrant]]] = {}
+    for grant, user in rows:
+        by_user.setdefault(user.id, (user, []))[1].append(grant)
+    out: list[CollegeAdminOut] = []
+    for user, grants in by_user.values():
+        held = {g.capability for g in grants}
+        out.append(
+            CollegeAdminOut(
+                user_id=user.id,
+                name=user.name,
+                email=user.email,
+                department_id=user.department_id,
+                capabilities=[
+                    CollegeAdminGrantOut(
+                        capability=g.capability,
+                        label=CAPABILITIES_BY_KEY[g.capability].label,
+                        approval_state=g.approval_state,
+                        grant_id=g.id,
+                    )
+                    for g in sorted(grants, key=lambda g: g.capability)
+                ],
+                missing=[k for k in COLLEGE_ADMIN_CAPABILITIES if k not in held],
+            )
+        )
+    return out
+
+
+@router.get("/colleges/{college_id}/admins", response_model=list[CollegeAdminOut])
+def list_college_admins(
+    college_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[CollegeAdminOut]:
+    """Who runs this college, and with which of the eleven functions.
+
+    `require_governance`: this reads WHO HOLDS WHAT, which is the Governance
+    screen's subject and not the institution screen's. Gating it on
+    `admin.institution` — the capability the rest of this module uses — would
+    let anyone who may rename a department read the access map.
+    """
+    require_governance(db, session)
+    _college_or_404(db, college_id)
+    return _college_admin_rows(db, college_id)
+
+
+@router.post(
+    "/colleges/{college_id}/admins",
+    response_model=CollegeAdminOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def appoint_college_admin(
+    college_id: str,
+    body: CollegeAdminIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> CollegeAdminOut:
+    """Appoint a faculty account to run one college. One reason, eleven grants.
+
+    IDEMPOTENT BY THE SAME RULE `POST /governance/grants` USES: a key already
+    held live for this college is left exactly as it is, rather than granted
+    again. Two live rows for one pair make revocation a question of which one —
+    and here it would also be a question of which reason was the real one.
+
+    THE SECOND-APPROVAL RULE IS NOT BYPASSED. Five of the eleven are
+    `carries_pii`, so those rows are written `pending_approval` and hold nothing
+    until a different holder of `admin.governance` approves each in Governance
+    (B2.4). That is the point of appointing somebody through grants rather than
+    through a role: a role would have handed over the roster the moment it was
+    typed.
+
+    THIS IS THE SECOND WRITER OF `capability_grants` AND THAT IS A REAL COST.
+    `POST /api/admin/governance/grants` is the first, and it cannot be reused
+    because `GrantIn` has no scope field — it writes programme-wide rows only.
+    The two are kept in step by sharing every constant that decides a row
+    (`APPROVAL_*`, `REVIEW_AFTER_DAYS`, `_reason`, `role_at_grant`); the change
+    that would delete this duplication outright is a `scope` on `GrantIn`, at
+    which point this endpoint becomes a loop over that one.
+    """
+    require_governance(db, session)
+    college = _college_or_404(db, college_id)
+    reason = _reason(body.reason)
+
+    user = db.get(User, body.user_id)
+    if user is None or user.role not in (Role.MENTOR, Role.ADMIN):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "A college admin is a faculty account holding scoped functions. "
+                "That id is not a staff account."
+            ),
+        )
+
+    now = datetime.now(timezone.utc)
+    review_at = now + timedelta(days=REVIEW_AFTER_DAYS)
+    created: list[CapabilityGrant] = []
+    def already_live(key: str) -> bool:
+        """Is there already a row for this pair that has not ended?
+
+        A `pending_approval` ROW COUNTS, and this is the one place it was easy
+        to get wrong. The obvious implementation asks `granted_reaches`, which
+        is the reader `require_capability` uses — and that reader filters on
+        `approval_state == active`, precisely so a grant awaiting a second Main
+        Admin holds nothing. Five of these eleven carry PII and are therefore
+        written pending, so a second appointment of the same person wrote five
+        DUPLICATE rows, each awaiting its own approval, and the approver then
+        had to pick one. Exactly the ambiguity `create_grants.already_live`
+        documents, reached through the one door that does not yet grant
+        anything. This asks the table instead: live means not revoked and not
+        expired, whatever it is waiting for.
+        """
+        return db.scalar(
+            select(CapabilityGrant.id).where(
+                CapabilityGrant.capability == key,
+                CapabilityGrant.subject_kind == SubjectKind.USER,
+                CapabilityGrant.subject_user_id == user.id,
+                CapabilityGrant.revoked_at.is_(None),
+                or_(
+                    CapabilityGrant.expires_at.is_(None),
+                    CapabilityGrant.expires_at > now,
+                ),
+                or_(
+                    # A programme-wide grant already covers this college, and a
+                    # narrower duplicate of it would only be a second row to
+                    # revoke later.
+                    CapabilityGrant.scope_level.is_(None),
+                    (CapabilityGrant.scope_level == ScopeLevel.COLLEGE)
+                    & (CapabilityGrant.scope_id == college.id),
+                ),
+            )
+        ) is not None
+
+    for key in COLLEGE_ADMIN_CAPABILITIES:
+        if already_live(key):
+            continue
+        cap = CAPABILITIES_BY_KEY[key]
+        created.append(
+            CapabilityGrant(
+                capability=key,
+                subject_kind=SubjectKind.USER,
+                subject_user_id=user.id,
+                scope_level=ScopeLevel.COLLEGE,
+                scope_id=college.id,
+                reason=reason,
+                granted_by_user_id=session["userId"],
+                approval_state=APPROVAL_PENDING if cap.carries_pii else APPROVAL_ACTIVE,
+                review_at=review_at,
+                role_at_grant=user.role.value,
+            )
+        )
+    for grant in created:
+        db.add(grant)
+    db.flush()
+
+    # ONE audit row per grant, and one `batch_size` on each, exactly as
+    # `create_grants` writes them: "why does this person hold Exports for
+    # BGSCET" must be answerable from the row that named them, not from a
+    # sibling row they are not mentioned in.
+    for grant in created:
+        record_change(
+            db, session=session, request=request, tenant_id=None,
+            entity_type="capability_grant", entity_id=grant.id, action="GRANTED",
+            before=None,
+            after={
+                "capability": grant.capability,
+                "scope_level": ScopeLevel.COLLEGE.value,
+                "scope_id": college.id,
+                "college_code": college.code,
+                "subject_kind": SubjectKind.USER.value,
+                "subject_id": user.id,
+                "reason": reason,
+                "approval_state": grant.approval_state,
+                "review_at": review_at.isoformat(),
+                "role_at_grant": grant.role_at_grant,
+                "appointment": "college_admin",
+                "batch_size": len(created),
+            },
+            event_type="governance.college_admin.appointed",
+            payload={"capability": grant.capability, "college_id": college.id},
+        )
+    db.commit()
+
+    rows = [r for r in _college_admin_rows(db, college.id) if r.user_id == user.id]
+    if not rows:
+        # Every key was already held programme-wide: a real outcome, and the
+        # honest answer is the person with no COLLEGE-scoped rows rather than a
+        # 500 over an empty list.
+        return CollegeAdminOut(
+            user_id=user.id, name=user.name, email=user.email,
+            department_id=user.department_id, capabilities=[],
+            missing=list(COLLEGE_ADMIN_CAPABILITIES),
+        )
+    return rows[0]
 
 
 # -------------------------------------------------------------- departments --

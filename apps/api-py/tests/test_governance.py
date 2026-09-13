@@ -265,20 +265,30 @@ def test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members(
     gid = grp.json()["id"]
     cleanup["groups"].append(gid)
 
+    # THE GROUP'S CAPABILITY CHANGED FROM `admin.exports`, THE PROPERTY DID NOT
+    # (B2.4). Exports is flagged `carries_pii`, so a grant of it is now written
+    # `pending_approval` and holds nothing until a SECOND holder of
+    # `admin.governance` approves it — which would make this test about the
+    # four-eyes rule rather than about groups, and it would have gone green
+    # again the moment somebody approved for the wrong reason.
+    # `admin.catalogue` is the nearest live equivalent: PROGRAMME, not held by a
+    # mentor's baseline, and not personal, so joining the group is the only thing
+    # that can hand it over. The approval rule has its own module
+    # (tests/test_governance_review.py) where it is the subject.
     r = client.post(f"{GOV}/grants", headers=admin.headers, json={
-        "capability": "admin.exports", "group_ids": [gid], "reason": REASON})
+        "capability": "admin.catalogue", "group_ids": [gid], "reason": REASON})
     cleanup["grants"] += [g["id"] for g in r.json()]
 
     joiner = make_user(f"gov-join-{uuid.uuid4().hex[:4]}", Role.MENTOR)
     with SessionLocal() as db:
-        assert "admin.exports" not in granted_capabilities(db, joiner.user_id)
+        assert "admin.catalogue" not in granted_capabilities(db, joiner.user_id)
 
     add = client.post(f"{GOV}/groups/{gid}/members", headers=admin.headers,
                       json={"user_ids": [joiner.user_id], "reason": REASON})
     assert add.status_code == 200, add.text
 
     with SessionLocal() as db:
-        assert "admin.exports" in granted_capabilities(db, joiner.user_id), \
+        assert "admin.catalogue" in granted_capabilities(db, joiner.user_id), \
             "joining the group did not hand over its capability"
 
 
@@ -480,6 +490,14 @@ def test_interview_audio_is_a_capability_faculty_must_be_granted(client, admin, 
     THE STUDENT IS IN THIS MENTOR'S GROUP DELIBERATELY. Without that, rule 2
     would 404 them for scope and the test would pass on the wrong 404 - green
     whether or not the capability gate ever opened.
+
+    THE GRANT NOW NEEDS A SECOND PAIR OF EYES (B2.4). `admin.interview_audio` is
+    flagged `carries_pii` — it is a named student's recorded voice, the most
+    sensitive bytes REEP stores — so the grant is written `pending_approval` and
+    hands over NOTHING until a different holder of `admin.governance` approves
+    it. That step is asserted here rather than skipped, because the interesting
+    moment is the one between: the row exists, the console lists it, the audit
+    trail records it, and the gate is still shut.
     """
     from app.models.user import Mentor, Student
 
@@ -514,17 +532,43 @@ def test_interview_audio_is_a_capability_faculty_must_be_granted(client, admin, 
         # The Main Admin, no grant: through on the baseline.
         assert client.get(url, headers=admin.headers).status_code == 404
 
-        # Faculty cannot grant it to themselves - Governance is the Main Admin's.
+        # Faculty cannot grant it to themselves - Governance is a capability
+        # they do not hold. The refusal used to read "Main Admin only"; B2.6
+        # replaced that role gate with `admin.governance`, so it now names the
+        # capability to ask for, which is the same refusal said usefully.
         body = {
             "capability": "admin.interview_audio",
             "user_ids": [faculty.user_id],
             "reason": REASON,
         }
         r = client.post(f"{GOV}/grants", headers=headers, json=body)
-        assert r.status_code == 403 and "Main Admin" in r.text, r.text
+        assert r.status_code == 403 and "Governance" in r.text, r.text
         r = client.post(f"{GOV}/grants", headers=admin.headers, json=body)
         assert r.status_code == 201, r.text
-        cleanup["grants"] += [g["id"] for g in r.json()]
+        rows = r.json()
+        cleanup["grants"] += [g["id"] for g in rows]
+        assert rows[0]["approval_state"] == "pending_approval", (
+            "a capability carrying a student's recorded voice went live on one "
+            "person's say-so"
+        )
+
+        # Granted, listed, audited - and still shut.
+        assert client.get(url, headers=headers).status_code == 403
+
+        # The second pair of eyes. A deputy is a faculty member the office gave
+        # `admin.governance` to; the Main Admin cannot approve its own grant.
+        deputy = make_user(f"gov-dep-{uuid.uuid4().hex[:4]}", Role.MENTOR)
+        dep = client.post(f"{GOV}/grants", headers=admin.headers, json={
+            "capability": "admin.governance", "user_ids": [deputy.user_id],
+            "reason": "Deputy for governance while the office is away for the audit.",
+        })
+        assert dep.status_code == 201, dep.text
+        cleanup["grants"] += [g["id"] for g in dep.json()]
+        ok = client.post(
+            f"{GOV}/grants/{rows[0]['id']}/approve", headers=deputy.headers,
+            json={"reason": "Agreed: this faculty member sits on the review panel."},
+        )
+        assert ok.status_code == 200, ok.text
 
         # Same cookie, no re-login: the gate now opens for them too.
         assert client.get(url, headers=headers).status_code == 404
@@ -545,17 +589,38 @@ def test_interview_audio_is_a_capability_faculty_must_be_granted(client, admin, 
 
 
 @requires_db
-def test_governance_is_the_main_admins_alone(client, admin, mentor, make_user, cleanup) -> None:
-    """REEP has one Main Admin, and deciding what faculty may see is that
-    account's instrument alone. A DIRECTOR holds every console screen by
-    baseline and is still refused here, by name - so the console never grows a
-    second hand that can widen access."""
+def test_governance_is_nobodys_until_it_is_granted(client, admin, mentor, make_user, cleanup) -> None:
+    """Nobody but the Main Admin reaches Governance without being given it.
+
+    WAS `test_governance_is_the_main_admins_alone`, AND THE REFUSAL MOVED ONE
+    GATE (B2.6). The router asked `require_admin` and answered "Main Admin
+    only"; it now asks for the `admin.governance` capability, which the Main
+    Admin holds by baseline and nobody else holds at all. The DEFAULT is
+    therefore unchanged — that is what these assertions still pin — and what is
+    new is that the office can appoint a deputy instead of sharing its mailbox
+    when it is unreachable. The old assertion described a gate that no longer
+    exists; deleting it would leave nothing pinning that faculty start with
+    none of this.
+
+    The two refusals differ on purpose and both are asserted. A MENTOR is staff,
+    so it passes the role floor and is turned away by the capability, named, so
+    they know what to ask for. A DIRECTOR is not staff at all any more
+    (tests/test_no_director_privilege.py) and is refused by the floor before a
+    database read.
+
+    tests/test_governance_delegation.py is where the deputy path is proven.
+    """
     director = make_user(f"gov-dir-{uuid.uuid4().hex[:4]}", Role.DIRECTOR)
     body = {"capability": "admin.analytics", "user_ids": [mentor.user_id], "reason": REASON}
-    for who in (director, mentor):
-        r = client.post(f"{GOV}/grants", headers=who.headers, json=body)
-        assert r.status_code == 403 and "Main Admin" in r.text, r.text
-        assert client.get(f"{GOV}/catalogue", headers=who.headers).status_code == 403
+
+    r = client.post(f"{GOV}/grants", headers=mentor.headers, json=body)
+    assert r.status_code == 403 and "Governance" in r.text, r.text
+    assert client.get(f"{GOV}/catalogue", headers=mentor.headers).status_code == 403
+
+    r = client.post(f"{GOV}/grants", headers=director.headers, json=body)
+    assert r.status_code == 403, r.text
+    assert client.get(f"{GOV}/catalogue", headers=director.headers).status_code == 403
+
     r = client.post(f"{GOV}/grants", headers=admin.headers, json=body)
     assert r.status_code == 201, r.text
     cleanup["grants"] += [g["id"] for g in r.json()]

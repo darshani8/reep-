@@ -184,6 +184,90 @@ def test_reissuing_an_activation_link_supersedes_the_old_one(client, make_user):
     client.cookies.clear()
 
 
+@requires_db
+def test_an_activation_link_cannot_set_a_password_on_an_account_that_has_one(
+    client, make_user
+):
+    """B3.4. THE ONE THAT MATTERS. An activation link sets a FIRST password.
+
+    `POST /api/admin/users/{id}/activation-link` will mint one for any staff
+    account on request - that is deliberate, it is how "the email never
+    arrived" gets closed on the phone. Until this refusal existed, re-minting
+    one for a faculty member who ALREADY HELD a password let whoever ended up
+    holding that link set a new one on a live account: an account takeover
+    wearing a support action's clothes, and one that contradicts the product's
+    own rule that an admin never sets somebody's password.
+
+    Two locks, because they close different doors. `issue_activation` refuses
+    to MINT (nothing new goes into circulation); `activate` refuses to SPEND
+    (the links already handed out stop working). Delete either and the other
+    leaves a live path - the first alone leaves yesterday's link working, the
+    second alone leaves an admin able to mint links that always fail.
+    """
+    director = make_user("pw-dir-b34", Role.ADMIN)
+    mentor = make_user("pw-has-password", Role.MENTOR)
+    _make_google_only(mentor.user_id)
+
+    # A link is minted while the account still has no password, and set aside.
+    client.post(f"/api/admin/users/{mentor.user_id}/activation-link", headers=director.headers)
+    stashed = _token_from(_mail_to(mentor.email, "Set up"))
+    first = client.post("/api/auth/activate", json={"token": stashed, "password": GOOD})
+    assert first.status_code == 200, first.text
+    client.cookies.clear()
+
+    # LOCK 1: no new link may be minted for it.
+    refused = client.post(
+        f"/api/admin/users/{mentor.user_id}/activation-link", headers=director.headers
+    )
+    assert refused.status_code == 422, refused.text
+    assert "Forgot password" in refused.json()["detail"], (
+        "the refusal must name the door that DOES work"
+    )
+
+    # LOCK 2: a link minted before the password existed is dead too. This one
+    # is live by construction - it is re-issued straight into the table, which
+    # is what "a link already in somebody's inbox" looks like from here.
+    with SessionLocal() as db:
+        from datetime import timedelta as _td
+
+        from app import account_links
+        from app.models.auth_token import PURPOSE_ACTIVATION as _P
+
+        raw, _row = account_links.issue_user_token(db, db.get(User, mentor.user_id), _P, _td(hours=1))
+        db.commit()
+    spend = client.post("/api/auth/activate", json={"token": raw, "password": "a different long passphrase"})
+    assert spend.status_code == 410, spend.text
+    assert "Forgot password" in spend.json()["detail"]
+
+    # And the password they actually chose still works.
+    ok = client.post("/api/auth/login", json={"email": mentor.email, "password": GOOD})
+    assert ok.status_code == 200, "the refused link must not have changed anything"
+    client.cookies.clear()
+
+
+@requires_db
+def test_a_spent_link_still_says_it_was_used_rather_than_the_new_refusal(client, make_user):
+    """ORDER, and it is the difference between a useful message and a confusing one.
+
+    Both refusals are 410. A person who clicks the same link twice must be told
+    "already used"; the B3.4 refusal is for the DIFFERENT case of a live link
+    against an account that has a password. Checking the password first would
+    collapse the two, and the commonest one - a double click - would start
+    telling people to use Forgot password for no reason.
+    """
+    director = make_user("pw-dir-order", Role.ADMIN)
+    mentor = make_user("pw-order", Role.MENTOR)
+    _make_google_only(mentor.user_id)
+    client.post(f"/api/admin/users/{mentor.user_id}/activation-link", headers=director.headers)
+    token = _token_from(_mail_to(mentor.email, "Set up"))
+    assert client.post("/api/auth/activate", json={"token": token, "password": GOOD}).status_code == 200
+    client.cookies.clear()
+
+    again = client.post("/api/auth/activate", json={"token": token, "password": GOOD})
+    assert again.status_code == 410
+    assert "already been used" in again.json()["detail"], again.text
+
+
 # ----------------------------------------------------------------- forgot --
 
 

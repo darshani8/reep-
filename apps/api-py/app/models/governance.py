@@ -158,6 +158,29 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # time (app/routers/admin_students.py). PROGRAMME and personal: it creates,
     # edits and deletes roster rows - the access control itself.
     Capability("admin.students", "Students", _P, carries_pii=True),
+    # Governance itself: the grants screen, the access groups and the student
+    # feature switches (app/routers/governance.py). B2.6.
+    #
+    # IT IS NOT FLAGGED `carries_pii`, AND THAT IS THE BOOTSTRAP, NOT AN
+    # OVERSIGHT. 04-backend-changes.md asks for this key to be "grantable to one
+    # deputy with a reason and second approval". It cannot be both: the second
+    # approver must be somebody OTHER than the granter who also holds this key
+    # (`_approver_of` in the router), REEP has exactly ONE Main Admin by rule,
+    # and so on a fresh deployment the only account that could approve the
+    # deputy's grant is the account that made it. A `carries_pii` flag here
+    # would make the appointment of the first deputy permanently pending --
+    # four-eyes with one pair of eyes -- and the four-eyes rule would then
+    # protect nothing at all, because no PII grant could ever be approved
+    # either.
+    #
+    # So the deputy is the bootstrap: appointing one takes effect at once, and
+    # from that moment REEP has the two people every `carries_pii` grant needs.
+    # The appointment is still a decision on the trail with a typed reason, made
+    # by the one account that holds this by baseline.
+    #
+    # It reads no student record itself -- it hands out screens -- which is what
+    # `carries_pii` actually means on this dataclass.
+    Capability("admin.governance", "Governance", _P),
     # -- temporary, and the only entry here that is not a screen --------------
     # THIS ONE IS DELETED IN PHASE 5. It gates the 2026-09 admin console while
     # it is being built, so the owner can review it on a production deployment
@@ -183,21 +206,54 @@ CAPABILITIES_BY_KEY: Final[dict[str, Capability]] = {c.key: c for c in CAPABILIT
 class Feature:
     key: str
     label: str
+    #: Does a router actually ASK about this key? B2.2.
+    #:
+    #: It defaults to False, which is the opposite of convenient and is the
+    #: whole point. Between 2026-08 and B2.2 every one of these ten was recorded,
+    #: audited, displayed with a reason — and inert: `feature_enabled()` and
+    #: `features_for()` were written, correct and tested, and NOTHING CALLED
+    #: EITHER. The Governance screen said a feature was off and the student used
+    #: it all afternoon. A switch wired to nothing is worse than a missing one,
+    #: because somebody trusted it.
+    #:
+    #: So the flag is a claim the next person has to make ON PURPOSE, and
+    #: `tests/test_feature_switches.py` makes them back it up: a key marked
+    #: enforced with no call site in `app/` fails, and a key that IS gated but
+    #: still says False fails too. Adding a Feature and forgetting the wiring is
+    #: then a switch the console shows as "not wired yet" and REFUSES to set
+    #: (422 on the override write) — honest, and unusable, rather than a lie the
+    #: office can act on.
+    enforced: bool = False
 
 
 #: Student-facing features. These are SWITCHED OFF, never granted — every
 #: student has them until an override says otherwise.
+#:
+#: `enforced=True` on every row here means every one of them is asked about at
+#: a real call site; the map from key to the endpoints that ask is in
+#: `app/governance.py::require_feature`'s docstring, next to the rule about
+#: which endpoints are deliberately NOT gated.
 FEATURES: Final[tuple[Feature, ...]] = (
-    Feature("student.assistant", "Voice interviewer (Mock Interview)"),
-    Feature("student.agent", "REEP Agent (chat)"),
-    Feature("student.resume", "Resume Builder"),
-    Feature("student.english", "English baseline test"),
-    Feature("student.jobs", "Jobs feed & applications"),
-    Feature("student.leaderboards", "Leaderboards"),
-    Feature("student.uploads", "Document uploads"),
-    Feature("student.time_log", "Time allocation ledger"),
-    Feature("student.skilling", "Skilling & badges"),
-    Feature("student.certifications", "Certifications"),
+    Feature("student.assistant", "Voice interviewer (Mock Interview)", enforced=True),
+    Feature("student.agent", "REEP Agent (chat)", enforced=True),
+    Feature("student.resume", "Resume Builder", enforced=True),
+    Feature("student.english", "English baseline test", enforced=True),
+    Feature("student.jobs", "Jobs feed & applications", enforced=True),
+    Feature("student.leaderboards", "Leaderboards", enforced=True),
+    Feature("student.uploads", "Document uploads", enforced=True),
+    Feature("student.time_log", "Time allocation ledger", enforced=True),
+    Feature("student.skilling", "Skilling & badges", enforced=True),
+    Feature("student.certifications", "Certifications", enforced=True),
+    # ADDED BY B2.2, and the spec is why it was missing. 04-backend-changes.md
+    # names the ten features to gate as "jobs, leaderboards, mock interview,
+    # resume generate, agent, uploads, english, skilling, time-log, mentor-log"
+    # — but the catalogue it was describing has no `student.mentor_log`, and has
+    # `student.certifications`, which that sentence never mentions. Both screens
+    # are real and a student reaches both, so both are switches now: dropping
+    # the mentor log would have left the spec's own list one short, and dropping
+    # certifications would have left a catalogue row that gates nothing, which
+    # is the exact state B2.2 exists to end.
+    Feature("student.mentor_log", "Mentor meeting log", enforced=True),
 )
 
 FEATURES_BY_KEY: Final[dict[str, Feature]] = {f.key: f for f in FEATURES}
@@ -297,6 +353,20 @@ class AccessGroupMember(Base):
 APPROVAL_ACTIVE: Final[str] = "active"
 APPROVAL_PENDING: Final[str] = "pending_approval"
 APPROVAL_STATES: Final[frozenset[str]] = frozenset({APPROVAL_ACTIVE, APPROVAL_PENDING})
+
+#: How long a grant runs before somebody has to look at it again (B2.4).
+#:
+#: A REVIEW IS NOT AN EXPIRY. An expiry ends the grant on its own; a review only
+#: puts it in front of a person, who extends it or revokes it. Most of the access
+#: that goes wrong in an institution is access that was correct when it was given
+#: and that nobody revisited, so the grant that never lapses is exactly the one
+#: that needs a date on it.
+REVIEW_AFTER_DAYS: Final[int] = 180
+
+#: How far ahead `GET /review` looks. A month is long enough that the office can
+#: act between two of its own meetings, and short enough that the queue is a list
+#: of things to do rather than a second copy of the grants table.
+REVIEW_HORIZON_DAYS: Final[int] = 30
 
 
 class CapabilityGrant(Base):

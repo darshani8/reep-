@@ -79,6 +79,7 @@ from ..models.time_ledger import (
     TimeLedgerDay,
 )
 from ..english_report import render_english_report_pdf
+from ..governance import require_feature
 from ..models.timesheet import DayActivity
 from ..models.user import Mentor, Student, User
 
@@ -378,6 +379,7 @@ def read_ledger(
     """One day of the ledger. A day with nothing logged is a 200 with zeroes —
     an empty day is a real answer, not a 404."""
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.time_log")
     target = day or date.today()
     return compose_ledger(target, load_day(db, student_id, target))
 
@@ -477,6 +479,7 @@ def save_ledger(
 ) -> LedgerOut:
     """Save the whole day as a draft. Does not submit it."""
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.time_log")
     if body.day > date.today():
         raise HTTPException(422, detail="You cannot log a day that has not happened yet.")
 
@@ -510,6 +513,7 @@ def copy_yesterday(
     came from once they are sitting in today's boxes.
     """
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.time_log")
     source_day = body.day - timedelta(days=1)
     source = load_day(db, student_id, source_day)
     if source is None or source.status != LedgerDayStatus.SUBMITTED:
@@ -542,6 +546,7 @@ def submit_ledger(
     sentence under the disabled button are produced by one expression.
     """
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.time_log")
     ledger = load_day(db, student_id, body.day)
     view = compose_ledger(body.day, ledger)
     if not view.can_submit:
@@ -712,7 +717,9 @@ def read_english_baseline(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> EnglishBaselineOut:
-    return compose_english_baseline(db, _require_student(session))
+    student_id = _require_student(session)
+    require_feature(db, student_id, "student.english")
+    return compose_english_baseline(db, student_id)
 
 
 
@@ -742,6 +749,7 @@ def start_english_baseline(
     in front of a student that no assessment produced.
     """
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.english")
     student = db.get(Student, student_id)
     semester = student.current_semester if student else 1
 
@@ -905,6 +913,7 @@ def read_mentor_meetings(
     see is a note that should not have been written on these tables.
     """
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.mentor_log")
 
     rows = db.scalars(
         select(MentorNote)
@@ -1061,6 +1070,7 @@ def request_mentor_meeting(
     silent success — a request nobody can receive is worse than a "not yet".
     """
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.mentor_log")
     student = db.get(Student, student_id)
     if student is None or not student.mentor_id:
         raise HTTPException(

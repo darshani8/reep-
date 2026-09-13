@@ -18,6 +18,12 @@ onboarding rather than one with a forgotten password. The password door itself
 is still `password_door_open` in auth.py — the first real scrypt hash opens it,
 and the first one is now usually a student's.
 
+AND `activate` REFUSES AN ACCOUNT THAT ALREADY HOLDS ONE (B3.4). A first-password
+link that also works as a change-password link is an account takeover wearing a
+support action's clothes: the Main Admin can re-mint an activation link for
+anybody, so whoever held that link could set a new password on a live faculty
+account. It answers 410 and names "Forgot password?", which mails the ACCOUNT.
+
 WHY A SEPARATE MODULE. auth.py is 830 lines and owns sign-in; this owns
 credentials. It borrows auth's session issuance rather than copying it, so a
 change to the cookie is still one edit.
@@ -33,7 +39,7 @@ from __future__ import annotations
 import logging
 import time
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -48,6 +54,8 @@ from ..schemas.auth import SessionUser
 from ..security import hash_password, note_revocation, verify_password
 from ..set_password import password_problem
 from .auth import (
+    DISABLED_SIGN_IN_MESSAGE,
+    DOOR_ACTIVATION,
     _confirm_exclusive_session,
     _issue_session,
     _payload_for,
@@ -111,6 +119,7 @@ class LinkPasswordIn(BaseModel):
 @router.post("/activate", response_model=SessionUser)
 def activate(
     body: LinkPasswordIn,
+    request: Request,
     response: Response,
     db: Session = Depends(get_db),
 ) -> SessionUser:
@@ -119,6 +128,16 @@ def activate(
     ORDER MATTERS: the password is checked against policy BEFORE the link is
     spent. A refusal for "12 characters minimum" must not burn the link, or a
     typo costs the person a second email from an admin.
+
+    AN ACTIVATION LINK SETS A FIRST PASSWORD AND NOTHING ELSE (B3.4). It used to
+    check only the token, the policy, the race and the role — so re-minting a
+    link for a faculty member who ALREADY HELD a password, which
+    `POST /api/admin/users/{id}/activation-link` will do for anybody, let
+    whoever ended up holding that link set a new one on a live account. That is
+    an account takeover through a support action, and it contradicts the
+    product's own rule that an admin never sets somebody's password. The
+    account's own door for a forgotten password is `/auth/forgot`, which mails
+    the ACCOUNT rather than handing a link to whoever asked.
     """
     token = body.token.strip()
     live = account_links.peek_user_token(db, PURPOSE_ACTIVATION, token)
@@ -126,6 +145,24 @@ def activate(
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail=account_links.explain_user_token(db, PURPOSE_ACTIVATION, token),
+        )
+    # AFTER the peek, so a link that is merely spent keeps saying "already been
+    # used" — the words that tell somebody who clicked twice what happened.
+    holder = db.get(User, live.user_id)
+    if holder is not None and holder.password_hash.startswith("scrypt:"):
+        # `account_links.issue_activation` refuses to MINT one of these now, so
+        # this closes the links already in circulation.
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail=(
+                "This account already has a password, so this setup link no "
+                "longer works. Use \"Forgot password?\" on the sign-in screen "
+                "to choose a new one."
+            ),
+        )
+    if holder is not None and holder.disabled_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=DISABLED_SIGN_IN_MESSAGE
         )
     problem = password_problem(body.password)
     if problem:
@@ -151,7 +188,12 @@ def activate(
     # One device at a time, same as every other sign-in door: activating an
     # account signs it in, so it retires anything that account already holds.
     _retire_other_sessions(user)
-    _record_login(db, user)  # the commit that persists the retirement
+    # The commit that persists the retirement -- and, since B15, the
+    # `login_events` row. Activation IS a sign-in door (it issues the cookie
+    # four lines below), so it names itself like the other three; `door` is a
+    # required keyword in `_record_login` precisely so this call could not be
+    # left behind when that table was added.
+    _record_login(db, user, door=DOOR_ACTIVATION, request=request)
     _confirm_exclusive_session(user)
     payload = _payload_for(user)
     _issue_session(response, payload)
@@ -188,6 +230,12 @@ def _issue_reset_in_background(email: str) -> None:
             # Google-only account: nothing to reset, and mailing a link would
             # quietly turn it into a password account.
             return
+        if user.disabled_at is not None:
+            # Offboarded (B3.3). A reset link is a way back in, and there is no
+            # way back in. Silently, because /forgot answers the same 202 to
+            # every address and must not become "is this account still active".
+            log.info("forgot-password ignored for %s: the account is disabled", email)
+            return
         account_links.issue_password_reset(db, user)
 
 
@@ -213,10 +261,19 @@ def reset(body: LinkPasswordIn, db: Session = Depends(get_db)) -> MessageOut:
     """New password from a reset link. Every device is signed out, including
     this one — the person signs in fresh with what they just chose."""
     token = body.token.strip()
-    if account_links.peek_user_token(db, PURPOSE_RESET, token) is None:
+    live = account_links.peek_user_token(db, PURPOSE_RESET, token)
+    if live is None:
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail=account_links.explain_user_token(db, PURPOSE_RESET, token),
+        )
+    holder = db.get(User, live.user_id)
+    if holder is not None and holder.disabled_at is not None:
+        # A link minted the minute before the account was disabled is still
+        # live. Refused BEFORE the consume, so the link is not burnt on a
+        # decision nothing about this request can change.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=DISABLED_SIGN_IN_MESSAGE
         )
     problem = password_problem(body.password)
     if problem:

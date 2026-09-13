@@ -12,16 +12,48 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 
 from conftest import requires_db
 
 from app.db import SessionLocal
 from app.models.auth_token import AuthToken
 from app.models.redesign import AuditEvent
+from app.models.institution import College, Department
 from app.models.user import LoginDay, Mentor, Role, User
 
 API = "/api/admin/faculty"
+
+
+@pytest.fixture
+def a_department():
+    """A throwaway college + department, because a faculty account cannot be
+    created without one any more (B3.1). Yields (department_id, name).
+
+    The college records NO `email_domains`, so the address fence falls back to
+    the deployment's list — which is what every college gets today and is why
+    `@bgscet.ac.in` addresses still sail through here (B3.2, and
+    app/institution_domains.py's "the environment is the fallback")."""
+    suffix = uuid.uuid4().hex[:6].upper()
+    with SessionLocal() as db:
+        college = College(code=f"FC{suffix}", name=f"Faculty College {suffix}")
+        db.add(college)
+        db.flush()
+        dep = Department(college_id=college.id, code=f"FD{suffix}", name=f"Faculty Dept {suffix}")
+        db.add(dep)
+        db.commit()
+        made = (dep.id, dep.name, college.id)
+    yield made[0], made[1]
+    with SessionLocal() as db:
+        # `users.department_id` is a real FK with no ON DELETE, and the accounts
+        # filed here are swept by a fixture that finalises AFTER this one. Unfile
+        # them first rather than reordering fixtures: the pointer is what the
+        # constraint protects, and dropping it is what "the department is gone"
+        # means for a row that outlives it.
+        db.execute(update(User).where(User.department_id == made[0]).values(department_id=None))
+        db.execute(delete(Department).where(Department.id == made[0]))
+        db.execute(delete(College).where(College.id == made[2]))
+        db.commit()
 
 
 @pytest.fixture
@@ -47,14 +79,26 @@ def _email(label: str) -> str:
 
 
 @requires_db
-def test_only_the_main_admin_creates_faculty_and_the_link_it_shows_works(client, make_user, swept):
+def test_only_the_main_admin_creates_faculty_and_the_link_it_shows_works(client, make_user, swept, a_department):
+    dept_id, dept_name = a_department
     admin = make_user("fac-adm", Role.ADMIN)
     mentor = make_user("fac-men", Role.MENTOR)
     alumni = make_user("fac-alum", Role.ALUMNI)
     student = make_user("fac-stu")
     email = _email("new")
     swept.append(email)
-    body = {"name": "  Kavya   N ", "email": email.upper(), "designation": "Assistant Professor", "department": "MBA"}
+    # `department_id` IS REQUIRED NOW (B3.1). It used to be absent here, and the
+    # free-text `department` line alone was enough; that no longer describes the
+    # system, because the department is how the account reaches its college and
+    # the college is what fences the address (B3.2). The free-text line is still
+    # sent and is still overwritten by the real department's NAME.
+    body = {
+        "name": "  Kavya   N ",
+        "email": email.upper(),
+        "designation": "Assistant Professor",
+        "department": "MBA",
+        "department_id": dept_id,
+    }
 
     # A DIRECTOR used to be the interesting case here — the role with the most
     # access that still could not mint an account. There is no DIRECTOR any
@@ -68,7 +112,8 @@ def test_only_the_main_admin_creates_faculty_and_the_link_it_shows_works(client,
     assert r.status_code == 201, r.text
     out = r.json()
     assert out["name"] == "Kavya N" and out["email"] == email
-    assert out["designation"] == "Assistant Professor" and out["department"] == "MBA"
+    assert out["designation"] == "Assistant Professor"
+    assert out["department"] == dept_name, "the real department's NAME overwrites the typed line"
     assert "/activate?token=" in out["activation_link"] and out["expires_in_hours"] == 168
     assert out["emailed"] is False, "no transport in the suite: the screen hands the link over"
 
@@ -81,10 +126,10 @@ def test_only_the_main_admin_creates_faculty_and_the_link_it_shows_works(client,
 
     # The same address again, or anyone's address: refused.
     assert client.post(API, headers=admin.headers, json=body).status_code == 409
-    r = client.post(API, headers=admin.headers, json={"name": "X", "email": student.email})
+    r = client.post(API, headers=admin.headers, json={"name": "X", "email": student.email, "department_id": dept_id})
     assert r.status_code == 409 and "STUDENT account" in r.text
-    assert client.post(API, headers=admin.headers, json={"name": "X", "email": "not-an-address"}).status_code == 422
-    assert client.post(API, headers=admin.headers, json={"name": "   ", "email": _email("blank")}).status_code == 422
+    assert client.post(API, headers=admin.headers, json={"name": "X", "email": "not-an-address", "department_id": dept_id}).status_code == 422
+    assert client.post(API, headers=admin.headers, json={"name": "   ", "email": _email("blank"), "department_id": dept_id}).status_code == 422
 
     # They appear where the Main Admin assigns students, with no group yet.
     row = next(m for m in client.get("/api/admin/mentor-load", headers=admin.headers).json() if m["user_id"] == user.id)

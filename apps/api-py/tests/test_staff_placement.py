@@ -134,19 +134,35 @@ def test_a_faculty_member_is_filed_on_creation_and_the_college_comes_with_it(
 
 
 @requires_db
-def test_a_faculty_member_may_be_created_unfiled_and_filed_afterwards(
+def test_an_account_that_predates_the_rule_is_filed_afterwards(
     client, make_user, swept, institution
 ):
     """Filing later is not a nicety: the column arrived after the accounts did,
-    so without this every existing faculty member is permanently unfiled."""
+    so without this every existing faculty member is permanently unfiled.
+
+    THE CREATION HALF OF THIS TEST IS GONE (B3.1). It used to POST with no
+    `department_id` and assert a 201 with `filed: false`, because the field was
+    optional so an admin could mint a login now and file it later. That
+    assertion no longer describes the system: the department is how the account
+    reaches its COLLEGE, and the college now decides which email domains may
+    hold an account (B3.2) and what a scoped grant on this person means (B1.2),
+    so an unfiled account is one with no tenant rather than one with a missing
+    label. Creation refuses without it — pinned two tests down — and the unfiled
+    row here is made the way the ones in production were: directly, before the
+    rule existed.
+    """
     admin = make_user("place-adm2", Role.ADMIN)
     email = _email("later")
     swept.append(email)
 
-    created = client.post(API, headers=admin.headers, json={"name": "Ravi P", "email": email})
-    assert created.status_code == 201, created.text
-    assert created.json()["placement"]["filed"] is False
-    user_id = created.json()["user_id"]
+    with SessionLocal() as db:
+        legacy = User(email=email, name="Ravi P", role=Role.MENTOR, password_hash="google-only")
+        db.add(legacy)
+        db.commit()
+        user_id = legacy.id
+
+    listed = client.get(API, headers=admin.headers).json()
+    assert next(r for r in listed if r["email"] == email)["placement"]["filed"] is False
 
     filed = client.patch(
         f"{API}/{user_id}",
@@ -185,7 +201,11 @@ def test_an_unknown_department_is_refused_rather_than_filed_under_nothing(
         assert db.scalar(select(User).where(User.email == email)) is None
 
     # The same refusal on the edit path.
-    made = client.post(API, headers=admin.headers, json={"name": "Real F", "email": _email("real")})
+    made = client.post(
+        API,
+        headers=admin.headers,
+        json={"name": "Real F", "email": _email("real"), "department_id": institution["dept_a"]},
+    )
     swept.append(made.json()["email"])
     bad = client.patch(
         f"{API}/{made.json()['user_id']}",
@@ -204,7 +224,11 @@ def test_only_the_main_admin_files_faculty_and_only_faculty_can_be_filed(
     alumni = make_user("place-alum", Role.ALUMNI)
     student = make_user("place-stu")
 
-    made = client.post(API, headers=admin.headers, json={"name": "Target F", "email": _email("t")})
+    made = client.post(
+        API,
+        headers=admin.headers,
+        json={"name": "Target F", "email": _email("t"), "department_id": institution["dept_a"]},
+    )
     swept.append(made.json()["email"])
     target = made.json()["user_id"]
     body = {"department_id": institution["dept_a"]}
@@ -235,7 +259,14 @@ def test_the_faculty_list_puts_the_unfiled_first(client, make_user, swept, insti
         headers=admin.headers,
         json={"name": "AAA Filed", "email": filed_email, "department_id": institution["dept_a"]},
     )
-    client.post(API, headers=admin.headers, json={"name": "ZZZ Unfiled", "email": unfiled_email})
+    # UNFILED ROWS ARE NO LONGER CREATABLE THROUGH THE API (B3.1) — the
+    # department is required — so the one this test needs is made the way the
+    # ones in production were: directly, before the rule existed. The ordering
+    # rule it pins is unchanged and still matters, because that backlog is
+    # exactly what `?unfiled=true` and this sort exist to work through.
+    with SessionLocal() as db:
+        db.add(User(email=unfiled_email, name="ZZZ Unfiled", role=Role.MENTOR, password_hash="google-only"))
+        db.commit()
 
     rows = client.get(API, headers=admin.headers).json()
     ours = [r for r in rows if r["email"] in {filed_email, unfiled_email}]

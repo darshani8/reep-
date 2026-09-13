@@ -15,6 +15,7 @@ import secrets
 import threading
 import time
 from datetime import datetime, timedelta, timezone
+from typing import NamedTuple
 
 import jwt
 from sqlalchemy import select
@@ -50,10 +51,33 @@ SESSION_TTL_SECONDS = 60 * 60 * 12
 # on every request, which is the thing this cache exists to avoid.
 SESSION_VERSION_CLAIM = "tokenVersion"
 
-# user_id -> (monotonic deadline, version). Bounded by the number of real users
-# who have signed in on this worker: only a token that already passed the HS256
-# signature check ever reaches the lookup, so an attacker cannot seed entries.
-_version_cache: dict[str, tuple[float, int]] = {}
+# DISABLED ACCOUNTS RIDE THE SAME LOOKUP, AND THAT IS THE WHOLE POINT (B3.3).
+#
+# The plan said "checked in verify_session_token, auth.login, the Google
+# callback, onboarding/activation" — five doors, and a sixth the day somebody
+# adds one. A check that has to be repeated at every door is a check the next
+# door forgets, and the door it is forgotten at is the one a disabled faculty
+# member walks through. There IS a chokepoint for the authenticated half:
+# `verify_session_token` is the one function that turns a cookie into an
+# identity, for HTTP, for the WebSocket and for every test, and it already pays
+# for a users row on the revocation path. So `disabled_at` is read in the SAME
+# query and cached in the SAME entry — no second round trip, no second cache,
+# and no route that can opt out of it.
+#
+# It fails CLOSED with the version check it shares: a lookup that raises answers
+# "disabled", because "we could not tell whether this account still exists" must
+# not admit a bearer token.
+#
+# The other half — MINTING a session — cannot live here, because this function
+# never sees the User row a sign-in door has just loaded. Its chokepoint is
+# `_payload_for` in app/routers/auth.py, which every door calls before issuing a
+# cookie and which raises for a disabled row.
+#
+# user_id -> (monotonic deadline, version, disabled). Bounded by the number of
+# real users who have signed in on this worker: only a token that already passed
+# the HS256 signature check ever reaches the lookup, so an attacker cannot seed
+# entries.
+_version_cache: dict[str, tuple[float, int, bool]] = {}
 # FastAPI runs `def` endpoints in a threadpool and the WS path enters from the
 # event loop, so two requests really can be in here at once. The lock is held
 # only around the dict, never across the query — a database that has gone slow
@@ -107,14 +131,37 @@ def _cache_ttl() -> float:
     return max(float(settings.auth_revocation_cache_seconds), 0.0)
 
 
-def current_token_version(user_id: str) -> int | None:
-    """The user's `token_version`, from this worker's cache or the database.
+class AccountState(NamedTuple):
+    """What the one authorization read answers: is this session still current,
+    and is the account still allowed in at all.
 
-    None means the database returned no user row and resolves to version 0. A
-    database exception returns the internal negative sentinel instead; callers
-    treat that as an authorization failure. This is intentionally fail-closed:
-    revocation state is security state, so the application must not admit a
-    bearer token when it cannot confirm the current token version.
+    `version` is -1 when the LOOKUP FAILED, which is a different thing from a
+    missing row (version 0): a missing row cannot say "you revoked", but a
+    failed read cannot say anything, so it refuses. `disabled` is True on that
+    same failure, for the same reason and in the same direction.
+    """
+
+    version: int
+    disabled: bool
+
+
+#: The answer when the database could not be asked. Fails closed on BOTH halves.
+_LOOKUP_FAILED = AccountState(version=-1, disabled=True)
+
+
+def account_state(user_id: str) -> AccountState:
+    """The user's `token_version` and `disabled_at`, from cache or the database.
+
+    ONE QUERY FOR BOTH, because both are asked on every authenticated request
+    and both are answers to the same question — may this cookie still act as
+    this person. Reading `disabled_at` separately would double the per-request
+    round trips that `auth_revocation_cache_seconds` exists to avoid, and give
+    the two facts two cache windows that can disagree.
+
+    Fail-closed: a database exception answers `_LOOKUP_FAILED`, which
+    `verify_session_token` refuses. Revocation and offboarding are security
+    state, so the application must not admit a bearer token when it cannot
+    confirm either.
     """
     global _db_retry_after
 
@@ -122,11 +169,11 @@ def current_token_version(user_id: str) -> int | None:
     with _version_lock:
         entry = _version_cache.get(user_id)
         if entry is not None and now < entry[0]:
-            return entry[1]
+            return AccountState(version=entry[1], disabled=entry[2])
         if now < _db_retry_after:
             # Still inside the backoff from a failed read. Revocation is
             # authorization state, so refuse until the database can answer.
-            return -1
+            return _LOOKUP_FAILED
 
     try:
         # Imported HERE, not at module scope. app/seed.py, app/seed_roster.py
@@ -138,7 +185,9 @@ def current_token_version(user_id: str) -> int | None:
         from .models.user import User
 
         with SessionLocal() as db:
-            version = db.scalar(select(User.token_version).where(User.id == user_id))
+            row = db.execute(
+                select(User.token_version, User.disabled_at).where(User.id == user_id)
+            ).first()
     except Exception:
         # OperationalError, InterfaceError, DNS failure and a half-applied
         # migration all fail closed. Privileged authorization must not continue
@@ -146,36 +195,49 @@ def current_token_version(user_id: str) -> int | None:
         with _version_lock:
             _db_retry_after = time.monotonic() + _DB_FAILURE_BACKOFF_SECONDS
         log.exception(
-            "could not read token_version for user %s; refusing the session and "
-            "not re-asking for %.0fs until the database answers",
+            "could not read token_version/disabled_at for user %s; refusing the "
+            "session and not re-asking for %.0fs until the database answers",
             user_id,
             _DB_FAILURE_BACKOFF_SECONDS,
         )
-        # -1 is an internal failure sentinel, distinct from a missing user row
-        # (which resolves to version 0). verify_session_token refuses it.
-        return -1
+        return _LOOKUP_FAILED
 
     # A row that has vanished — a user deleted while still holding a session —
     # reads as version 0 rather than as a refusal. This function answers exactly
     # one question, "has this user revoked since the token was minted?", and a
     # missing row cannot answer yes. Deciding that a deleted user's session must
     # die is a different decision belonging to the deps that do authorisation,
-    # not to a signature check.
-    resolved = int(version or 0)
+    # not to a signature check. It is likewise NOT read as disabled: an absent
+    # row was never offboarded.
+    version, disabled_at = row if row is not None else (0, None)
+    state = AccountState(version=int(version or 0), disabled=disabled_at is not None)
     with _version_lock:
-        _version_cache[user_id] = (now + _cache_ttl(), resolved)
-    return resolved
+        _version_cache[user_id] = (now + _cache_ttl(), state.version, state.disabled)
+    return state
 
 
-def note_revocation(user_id: str, version: int) -> None:
+def current_token_version(user_id: str) -> int:
+    """Just the version half of `account_state`. Kept as a name because that is
+    the one question the revocation comments above are written about."""
+    return account_state(user_id).version
+
+
+def note_revocation(user_id: str, version: int, *, disabled: bool = False) -> None:
     """Record a just-committed bump so THIS worker refuses the old token now.
 
     Without it a logout would not bite even in the process that served it until
     the TTL lapsed — and that is the one case a student is watching: sign out,
     press Back, still signed in. Other workers converge within the TTL.
+
+    `disabled` carries the offboarding half through the same door, for the same
+    reason: the admin who has just disabled an account watches the faculty list
+    and must not see that account still able to act for a cache window. Default
+    False because every OTHER caller (logout, reset, change-password, sign-in)
+    is by construction acting for an account that is not disabled — a disabled
+    one cannot reach any of them.
     """
     with _version_lock:
-        _version_cache[user_id] = (time.monotonic() + _cache_ttl(), int(version))
+        _version_cache[user_id] = (time.monotonic() + _cache_ttl(), int(version), bool(disabled))
 
 
 def _claimed_version(claims: dict) -> int:
@@ -216,6 +278,12 @@ def verify_session_token(token: str) -> dict | None:
     that turns a cookie into an identity — the HTTP dependency, the WebSocket
     dependency and every test read the session through it. A revocation check
     bolted onto one caller is a revocation check the next caller forgets.
+
+    OFFBOARDING LIVES HERE FOR EXACTLY THE SAME REASON (B3.3). A disabled
+    account is refused on every authenticated request, on every route, without
+    any route knowing about it. The bump that `POST /admin/users/{id}/disable`
+    makes would already retire the sessions that EXIST; this is what makes the
+    refusal survive anything that mints a fresh one.
     """
     try:
         claims = jwt.decode(token, settings.auth_secret, algorithms=["HS256"])
@@ -228,10 +296,12 @@ def verify_session_token(token: str) -> dict | None:
     # database restore rolls the counter back, and in that case admitting the
     # sessions people are actually holding beats logging the whole college out
     # of a system that has just been through an incident.
-    current = current_token_version(str(claims["userId"]))
-    if current is not None and current < 0:
+    state = account_state(str(claims["userId"]))
+    if state.version < 0:
         return None
-    if current is not None and _claimed_version(claims) < current:
+    if state.disabled:
+        return None
+    if _claimed_version(claims) < state.version:
         return None
     return claims
 
@@ -273,9 +343,16 @@ def session_was_retired(token: str | None) -> bool:
         return False
     if not isinstance(claims, dict) or not claims.get("userId") or not claims.get("role"):
         return False
-    current = current_token_version(str(claims["userId"]))
+    state = account_state(str(claims["userId"]))
     # A negative sentinel means the lookup FAILED. "We could not check" must not
     # be reported to the student as "someone else signed in".
-    if current is None or current < 0:
+    if state.version < 0:
         return False
-    return _claimed_version(claims) < current
+    # A DISABLED account's version is behind too — `disable` bumps it — but the
+    # sentence this header buys ("you signed in on another device") is then a
+    # lie, and a worse one than saying nothing: it tells an offboarded faculty
+    # member to go and sign in again. They get the plain "Sign in required" and
+    # the truth from the person who disabled them.
+    if state.disabled:
+        return False
+    return _claimed_version(claims) < state.version

@@ -43,7 +43,7 @@ from sqlalchemy.orm import Session, aliased
 from ..architecture_events import record_change
 from ..config import settings
 from ..db import get_db
-from ..governance import require_capability
+from ..governance import ancestry_of_student, require_capability
 from ..institution_domains import college_id_for_cohort, domain_of, provisionable_domains_for
 from ..identity import get_current_session
 from ..models.cohort import Cohort
@@ -55,6 +55,8 @@ from ..student_placement import (
     department_of_cohort,
     resolve_student_department,
 )
+from ..policies import scope_filter
+from ..scope_views import scope_header
 from .console import ensure_mentor_group
 from .registration import SSO_ONLY_PASSWORD_HASH
 
@@ -327,14 +329,34 @@ def _department_or_422(
 
 @router.get("/students", response_model=list[AdminStudentOut])
 def list_students(
+    response: Response,
     cohort_id: str | None = None,
     q: str | None = None,
     unseated: bool = False,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[AdminStudentOut]:
+    """The roster, narrowed to what this caller's grant reaches (B1.4).
+
+    THE ROSTER IS THE ACCESS CONTROL, so this is the list where a scope hole
+    costs the most: every row carries a name, an address and a USN, and the
+    screen it draws has an Edit button beside each. `admin.students` granted to
+    a faculty member in one college read every student in the other until this
+    line existed.
+
+    `?unseated=true` KEEPS ITS MEANING AND IS STILL NARROWED. An unseated
+    student hangs under their own `students.department_id` where they named one
+    — `Reach.student_ids` reads both pointers — and under nothing at all where
+    they did not, which means the students nobody has filed are visible to the
+    Main Admin alone. That is the same rule `reaches_target` applies to every
+    unfiled thing, and it is why filing them is the office's work.
+    """
     require_capability(db, session, CAPABILITY)
-    where = []
+    reach = scope_filter(db, session, CAPABILITY)
+    scope_header(response, reach)
+    if reach.nothing:
+        return []
+    where = [Student.id.in_(reach.student_ids())]
     if unseated:
         where.append(Student.cohort_id.is_(None))
     elif cohort_id:
@@ -377,6 +399,14 @@ def update_student(
 ) -> AdminStudentOut:
     require_capability(db, session, CAPABILITY)
     student, user = _student_or_404(db, student_id)
+    # B1.2/B1.4. The list above is narrowed; the EDIT has to be narrowed by the
+    # same grant or the narrowing is decoration — a scoped holder who cannot see
+    # a student could still rename them, move their batch and change the address
+    # their account signs in on, by typing the id. `target=` asks the second
+    # question ("may you do it HERE") of the one helper that answers it.
+    require_capability(
+        db, session, CAPABILITY, target=ancestry_of_student(db, student.id)
+    )
     before = _snapshot(student, user)
     sent = body.model_fields_set
 
@@ -468,6 +498,29 @@ def batch_action(
     require_capability(db, session, CAPABILITY)
     cohort = _cohort_or_404(db, cohort_id)
     students = db.scalars(select(Student).where(Student.cohort_id == cohort.id)).all()
+    # B1.4. A batch action is the single action repeated, so it is scoped the
+    # same way — but ALL OR NOTHING rather than per student. Silently applying
+    # a move to the fourteen students a scoped holder reaches and skipping the
+    # other three would report "affected: 14" for a batch of seventeen and
+    # leave a batch split across two places with nothing on screen saying why.
+    # One refusal naming the batch is the honest answer; the reach is the same
+    # `scope_filter` the list uses, asked once in SQL.
+    reach = scope_filter(db, session, CAPABILITY)
+    if students and not reach.everything:
+        outside = db.scalar(
+            select(func.count())
+            .select_from(Student)
+            .where(Student.cohort_id == cohort.id, Student.id.not_in(reach.student_ids()))
+        ) or 0
+        if outside:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"{outside} student{'s' if outside != 1 else ''} in this batch "
+                    "are outside what your Students capability reaches. An "
+                    "administrator can widen it in Governance."
+                ),
+            )
 
     if body.action == "move":
         if body.cohort_id is None:

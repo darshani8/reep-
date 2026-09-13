@@ -138,6 +138,24 @@ def revoke_user_tokens(db: Session, user_id: str, purpose: str) -> int:
     return int(result.rowcount or 0)
 
 
+def revoke_all_user_tokens(db: Session, user_id: str) -> int:
+    """Kill every still-live link and code this user holds, whatever its purpose.
+
+    Offboarding's companion (B3.3). Disabling an account that still holds a live
+    activation or reset link leaves a way to set a password on it — and while
+    every door now refuses a disabled account, a link that outlives the account
+    it belongs to is a loaded gun waiting for the day somebody re-enables it and
+    forgets what was in circulation. Returns how many were killed, which is what
+    the audit row records.
+    """
+    result = db.execute(
+        update(AuthToken)
+        .where(AuthToken.user_id == user_id, AuthToken.consumed_at.is_(None))
+        .values(consumed_at=_now())
+    )
+    return int(result.rowcount or 0)
+
+
 def issue_user_token(
     db: Session,
     user: User,
@@ -546,12 +564,30 @@ def issue_activation(
     is a staff first-password link, and staff accounts are created by a named
     admin who already knows who they are. Handing one to a student would trade
     the mailbox proof for nothing.
+
+    AND IT REFUSES AN ACCOUNT THAT ALREADY HOLDS A PASSWORD (B3.4). FIRST
+    password is the whole of what this link is for. Re-minting one for a faculty
+    member who has already set theirs handed a live account's password to
+    whoever ended up holding the link — a support action ("the email never
+    arrived") that quietly doubles as an account takeover, and one an admin is
+    not supposed to be able to perform at all: the product's rule is that an
+    admin never sets somebody's password. The account's own door is
+    `/auth/forgot`, which mails the ACCOUNT rather than the person asking, so
+    the refusal names it. `routers/passwords.py::activate` refuses the same case
+    on redemption, which is what closes the links already handed out.
     """
     if user.role is Role.STUDENT:
         raise ValueError(
             "Students set their password from the setup link they are emailed "
             "when their registration is approved. Activation links are for "
             "staff accounts."
+        )
+    if (user.password_hash or "").startswith("scrypt:"):
+        raise ValueError(
+            f"{user.email} already has a password, so there is no first password "
+            "to set. Ask them to use \"Forgot password?\" on the sign-in screen — "
+            "a reset link goes to their own mailbox, which an activation link "
+            "handed over in person does not."
         )
     raw, row = issue_user_token(
         db,

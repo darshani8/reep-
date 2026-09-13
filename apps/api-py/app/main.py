@@ -27,12 +27,15 @@ from .routers import (
     agent,
     alumni,
     auth,
+    admin_catalogue,
     badge_verification,
     badges,
     console,
     health,
     interview,
     admin_faculty,
+    admin_promotion,
+    admin_student_360,
     admin_students,
     interview_bank,
     leave_paper,
@@ -343,6 +346,17 @@ app.include_router(console.router, prefix="/api")
 # writer at all). require_admin inside, same as every other admin surface.
 app.include_router(admin.router, prefix="/api")
 app.include_router(admin_students.router, prefix="/api")
+# B4.3/B4.4 - promote and graduate a whole batch. Its own module beside the
+# roster edits, not inside them: a promotion is not "the single edit,
+# repeated" - it writes a history row per student, reads the course's length
+# and carries an effective date - and `admin_students.py` is already the file
+# every roster change touches.
+app.include_router(admin_promotion.router, prefix="/api")
+# B4.5 — the whole of one student in one read, so the detail screen stops
+# fetching the entire roster to pick a row out of it. Its own module: the
+# roster edits are writes with a domain fence and an audit row on every one,
+# and this is a read that touches ten tables and writes nothing.
+app.include_router(admin_student_360.router, prefix="/api")
 app.include_router(admin_faculty.router, prefix="/api")
 # Governance: capability grants for staff (deny past the role baseline) and
 # student feature overrides (allow until switched off, at any rung of the
@@ -359,10 +373,17 @@ app.include_router(leave_paper.router, prefix="/api")
 app.include_router(alumni.router, prefix="/api")
 # The Skills & Badge dashboard: the student half shares the /student prefix
 # (badges, growth, leaderboards); badge_verification carries the staff review queue,
-# manual awards, assessment entry, cohort views and the certification
-# catalogue, under /mentor and /admin as rule 2 dictates.
+# manual awards, assessment entry and cohort views, under /mentor and /admin as
+# rule 2 dictates.
 app.include_router(badges.router, prefix="/api")
 app.include_router(badge_verification.router, prefix="/api")
+# B13 - the catalogue, per college and per course: the approved certifications
+# (MOVED HERE FROM badge_verification, same URLs), which of the 48 code-defined
+# badges apply to a programme, the stage rules a promotion reads, the copy
+# between two programmes and the subject CSV import. Its own module because it
+# is the one admin surface that names no student at all: every fence in it is
+# `admin.catalogue` plus B1.2's reach, and none of it is rule 2's.
+app.include_router(admin_catalogue.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")
 app.include_router(interview_bank.router, prefix="/api")
 app.include_router(swoc.router, prefix="/api")

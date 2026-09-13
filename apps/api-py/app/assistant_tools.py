@@ -41,17 +41,21 @@ from sqlalchemy.orm import Session
 
 from . import knowledge
 from .models.student_profile import StudentProfile
+from .models.user import Role
 from .routers import student as student_ep
 
 
 def _session(student_id: str) -> dict:
     """The minimal session payload the student endpoints read.
 
-    Every endpoint reused below narrows to the caller via
-    ``session.get("studentId")`` (``_require_student``); none of them touch
-    ``userId``/``name``/``role`` on these read paths, so this is sufficient and
-    keeps the tools decoupled from auth."""
-    return {"studentId": student_id}
+    Every endpoint reused below narrows to the caller via ``_require_student``,
+    which reads ``studentId`` AND the role: B4.4's graduation keeps a graduate's
+    ``students`` row and flips ``users.role`` to ALUMNI, so the claim alone stopped
+    being proof that the caller is a current student. The role is stated here
+    rather than threaded through from the real session because the caller has
+    already resolved ``student_id`` from a verified one — this payload is a
+    projection of that session, not a second source of truth for it."""
+    return {"studentId": student_id, "role": Role.STUDENT.value}
 
 
 # --- Tools -------------------------------------------------------------------

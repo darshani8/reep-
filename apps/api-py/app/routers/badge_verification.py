@@ -35,7 +35,6 @@ from ..models.badge import (
     BADGES,
     CAPABILITY_LABEL,
     CATEGORY_LABEL,
-    ApprovedCertification,
     AssessmentCheckpoint,
     BadgeCategory,
     BadgeEvidence,
@@ -43,7 +42,6 @@ from ..models.badge import (
     CapabilityKind,
     EvidenceStatus,
     EvidenceType,
-    Stage,
     StudentBadge,
     StudentBadgeStatus,
 )
@@ -625,155 +623,17 @@ def export_cohort_csv(
         reach=reach, carried_pii=carried_pii,
     )
 
-
-# --- the Approved Certification Catalogue (§12, admin-maintained) ------------
-
-
-class ApprovedCertificationIn(BaseModel):
-    name: str = Field(min_length=1, max_length=300)
-    provider: str = Field(min_length=1, max_length=200)
-    badge_code: str
-    evidence_type: str = "EXTERNAL_VERIFIED"
-    stage: str = "EXCEL"
-    duration_text: str | None = Field(default=None, max_length=100)
-    is_free: bool = True
-    url: str | None = Field(default=None, max_length=1000)
-    active: bool = True
-
-
-class ApprovedCertificationOut(BaseModel):
-    id: str
-    name: str
-    provider: str
-    badge_code: str
-    badge_name: str
-    # Read off the badge catalogue (code, not rows): the category the badge
-    # sits in and the points it is worth. The Catalogue screen's Category and
-    # Points columns, derived here so the two can never disagree with the badge.
-    badge_category: str
-    badge_points: int
-    evidence_type: str
-    stage: str
-    duration_text: str | None
-    is_free: bool
-    url: str | None
-    active: bool
-    # Evidence rows students have filed against this catalogue entry, in any
-    # review state. A certification nobody claims is a finding, not a gap.
-    claims: int
-
-
-def _approved_certification_row(
-    c: ApprovedCertification, claims: int = 0
-) -> ApprovedCertificationOut:
-    badge = BADGE_BY_CODE.get(c.badge_code)
-    return ApprovedCertificationOut(
-        id=c.id,
-        name=c.name,
-        provider=c.provider,
-        badge_code=c.badge_code,
-        badge_name=badge.name if badge else c.badge_code,
-        badge_category=CATEGORY_LABEL[badge.category] if badge else "",
-        badge_points=badge.points if badge else 0,
-        evidence_type=c.evidence_type.value,
-        stage=c.stage.value,
-        duration_text=c.duration_text,
-        is_free=c.is_free,
-        url=c.url,
-        active=c.active,
-        claims=claims,
-    )
-
-
-def _validated_certification_fields(body: ApprovedCertificationIn) -> tuple[EvidenceType, Stage]:
-    if body.badge_code not in BADGE_BY_CODE:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="No such badge.")
-    try:
-        ev_type = EvidenceType(body.evidence_type)
-        stage = Stage(body.stage)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Bad evidence_type or stage.",
-        )
-    return ev_type, stage
-
-
-@router.get("/admin/approved-certifications", response_model=list[ApprovedCertificationOut])
-def list_approved_certifications(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> list[ApprovedCertificationOut]:
-    require_admin(session)
-    claims = {
-        cert_id: n
-        for cert_id, n in db.execute(
-            select(BadgeEvidence.approved_certification_id, func.count())
-            .where(BadgeEvidence.approved_certification_id.is_not(None))
-            .group_by(BadgeEvidence.approved_certification_id)
-        ).all()
-    }
-    return [
-        _approved_certification_row(c, claims.get(c.id, 0))
-        for c in db.scalars(select(ApprovedCertification).order_by(ApprovedCertification.name)).all()
-    ]
-
-
-@router.post(
-    "/admin/approved-certifications",
-    response_model=ApprovedCertificationOut,
-    status_code=status.HTTP_201_CREATED,
-)
-def add_approved_certification(
-    body: ApprovedCertificationIn, session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> ApprovedCertificationOut:
-    require_admin(session)
-    ev_type, stage = _validated_certification_fields(body)
-    cert = ApprovedCertification(
-        name=body.name.strip(),
-        provider=body.provider.strip(),
-        badge_code=body.badge_code,
-        evidence_type=ev_type,
-        stage=stage,
-        duration_text=(body.duration_text or "").strip() or None,
-        is_free=body.is_free,
-        url=(body.url or "").strip() or None,
-        active=body.active,
-    )
-    db.add(cert)
-    db.commit()
-    db.refresh(cert)
-    return _approved_certification_row(cert)
-
-
-@router.patch("/admin/approved-certifications/{cert_id}", response_model=ApprovedCertificationOut)
-def edit_approved_certification(
-    cert_id: str,
-    body: ApprovedCertificationIn,
-    session: dict = Depends(get_current_session),
-    db: Session = Depends(get_db),
-) -> ApprovedCertificationOut:
-    require_admin(session)
-    cert = db.get(ApprovedCertification, cert_id)
-    if cert is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certification not found.")
-    ev_type, stage = _validated_certification_fields(body)
-    cert.name = body.name.strip()
-    cert.provider = body.provider.strip()
-    cert.badge_code = body.badge_code
-    cert.evidence_type = ev_type
-    cert.stage = stage
-    cert.duration_text = (body.duration_text or "").strip() or None
-    cert.is_free = body.is_free
-    cert.url = (body.url or "").strip() or None
-    cert.active = body.active
-    db.commit()
-    db.refresh(cert)
-    claims = (
-        db.scalar(
-            select(func.count())
-            .select_from(BadgeEvidence)
-            .where(BadgeEvidence.approved_certification_id == cert.id)
-        )
-        or 0
-    )
-    return _approved_certification_row(cert, claims)
+# --- the Approved Certification Catalogue (§12) LIVES IN admin_catalogue.py --
+#
+# `GET/POST/PATCH /api/admin/approved-certifications` and their two schemas
+# moved to `app/routers/admin_catalogue.py` in B13 (2026-09-13). THE URLs DID
+# NOT CHANGE; what changed is that the catalogue is now scoped per college and
+# per course, and its gate is the grantable `admin.catalogue` rather than
+# `require_admin` — which is what the Catalogue screen always claimed to open
+# on.
+#
+# They moved rather than growing here because this module is the EVIDENCE
+# QUEUE: every other endpoint in it names a student and goes through rule 2's
+# `_assert_can_access_student`. The certification catalogue names no student at
+# all, and leaving it here meant the one list on the Catalogue screen was
+# governed by the one module that does not know what a course is.

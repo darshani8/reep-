@@ -81,16 +81,46 @@ from ..models.time_ledger import (
 from ..english_report import render_english_report_pdf
 from ..governance import require_feature
 from ..models.timesheet import DayActivity
-from ..models.user import Mentor, Student, User
+from ..models.user import Mentor, Role, Student, User
 
 router = APIRouter(prefix="/student", tags=["student-screens"])
 
 
 def _require_student(session: dict) -> str:
-    """The same gate `routers/student.py` uses, deliberately duplicated rather
-    than imported: a cross-import between two sibling routers for four lines is
-    a circular-import waiting to happen the first time either grows a shared
-    schema."""
+    """The student's own id, or a 403 — and the ROLE is checked, not just the claim.
+
+    THE SAME GATE `routers/student.py` USES, deliberately duplicated rather
+    than imported: a cross-import between two sibling routers for six lines is a
+    circular-import waiting to happen the first time either grows a shared
+    schema. EDIT BOTH OR NEITHER.
+
+    THE MOST DANGEROUS LINE IN B4.4. This used to read `session["studentId"]`
+    and nothing else, and `_payload_for` (routers/auth.py) mints that claim for
+    ANY account with a `students` row. Graduation flips `users.role` to ALUMNI
+    and deliberately KEEPS the `students` row — it is the record of their marks,
+    badges and interviews — so on the role check alone a graduate kept a valid
+    `studentId` and with it roughly forty endpoints across this module,
+    student_programme.py and badges.py: results, ledger, uploads, resume
+    generation, SWOC acknowledgements. The Angular `roleGuard('STUDENT')` bounced
+    them off the SCREENS, so the symptom would have been an API wide open behind
+    a client that looked closed.
+
+    It is not only graduation. `registrations`' GUARD 2 refuses to attach a
+    Student row to a staff account precisely because `studentId` would then ride
+    in a MENTOR's session; that guard is one write path, and this is the read
+    side of the same fact. The role is what decides scope (rule 2). The claim
+    only says which row.
+
+    BOTH FACTS ARE REQUIRED AND THE ROLE IS ASKED FIRST, so a STUDENT-role
+    account with no Student row and an ALUMNI account with one get different
+    sentences — they are different problems and the office fixes them
+    differently.
+    """
+    if session.get("role") != Role.STUDENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The student screens are open to current students only.",
+        )
     student_id = session.get("studentId")
     if not student_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a student account.")

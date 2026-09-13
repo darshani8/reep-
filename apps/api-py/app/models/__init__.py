@@ -9,6 +9,7 @@ from . import alumni  # noqa: F401
 from . import auth_token  # noqa: F401
 from . import attendance  # noqa: F401
 from . import badge  # noqa: F401
+from . import catalogue  # noqa: F401
 from . import certification  # noqa: F401
 from . import cohort  # noqa: F401
 from . import conversation  # noqa: F401
@@ -35,6 +36,7 @@ from . import redesign  # noqa: F401
 from . import resume  # noqa: F401
 from . import resume_profile  # noqa: F401
 from . import schedule  # noqa: F401
+from . import semester_history  # noqa: F401
 from . import skill  # noqa: F401
 from . import staff_upskilling  # noqa: F401
 from . import swoc  # noqa: F401

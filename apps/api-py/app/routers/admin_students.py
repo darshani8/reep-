@@ -57,6 +57,7 @@ from ..student_placement import (
 )
 from ..policies import scope_filter
 from ..scope_views import scope_header
+from ..semester_bounds import ceiling_for_cohort, ceiling_for_student, rejection
 from .console import ensure_mentor_group
 from .registration import SSO_ONLY_PASSWORD_HASH
 
@@ -65,7 +66,21 @@ router = APIRouter(prefix="/admin", tags=["admin-students"])
 CAPABILITY = "admin.students"
 
 STAGES: tuple[str, ...] = tuple(s.value for s in Stage)
-MAX_SEMESTER = 8
+
+# THERE IS NO `MAX_SEMESTER` HERE ANY MORE (B4.2). It was `8`, enforced as a
+# Pydantic `Field(le=MAX_SEMESTER)` on three schemas, which made the bound a
+# property of the WIRE rather than of the student's programme: an MBA runs four
+# semesters and accepted seven; a five-year integrated course has ten and was
+# refused. The bound is now resolved per student through
+# `cohort -> academic_courses.total_semesters` by `app/semester_bounds.py`, and
+# a batch that names no course keeps the old number as a documented fallback.
+#
+# THE ERROR SHAPE CHANGED WITH IT, and the clients had to be checked: a
+# `Field(le=…)` refusal is FastAPI's 422 with `detail` as a LIST of error
+# objects, while a handler check is an HTTPException whose `detail` is a
+# STRING. Both console screens already route every failure through a `detailOf`
+# helper that renders either, which is why the message can now be a sentence
+# naming the course instead of "Input should be less than or equal to 8".
 
 
 # ------------------------------------------------------------- schemas --
@@ -129,7 +144,7 @@ class AdminStudentIn(BaseModel):
     #: writer, exactly as `_resolve_ancestry` is for a cohort's parents.
     department_id: str | None = None
     current_stage: str = Stage.REBOOT.value
-    current_semester: int = Field(default=1, ge=1, le=MAX_SEMESTER)
+    current_semester: int = Field(default=1, ge=1)
 
     validate_name = field_validator("name", mode="before")(classmethod(lambda cls, v: _clean_name(v)))
     validate_usn = field_validator("usn", mode="before")(classmethod(lambda cls, v: _clean_usn(v)))
@@ -158,7 +173,7 @@ class AdminStudentPatch(BaseModel):
     department_id: str | None = None
     mentor_user_id: str | None = None
     current_stage: str | None = None
-    current_semester: int | None = Field(default=None, ge=1, le=MAX_SEMESTER)
+    current_semester: int | None = Field(default=None, ge=1)
 
     validate_name = field_validator("name", mode="before")(classmethod(lambda cls, v: None if v is None else _clean_name(v)))
     validate_usn = field_validator("usn", mode="before")(classmethod(lambda cls, v: _clean_usn(v)))
@@ -183,7 +198,7 @@ class BatchActionIn(BaseModel):
     cohort_id: str | None = None  # move: the destination batch
     mentor_user_id: str | None = None  # mentor: the faculty account; null releases
     current_stage: str | None = None  # stage
-    current_semester: int | None = Field(default=None, ge=1, le=MAX_SEMESTER)  # semester
+    current_semester: int | None = Field(default=None, ge=1)  # semester
 
     validate_stage = field_validator("current_stage", mode="before")(classmethod(lambda cls, v: None if v is None else _clean_stage(v)))
 
@@ -231,6 +246,39 @@ def _audit(db: Session, session: dict, request: Request, entity_type: str, entit
         entity_type=entity_type, entity_id=entity_id, action=action,
         before=before, after=after, event_type=f"{entity_type}.{action.lower()}", payload=payload,
     )
+
+
+def assert_batch_within_reach(db: Session, session: dict, cohort_id: str) -> None:
+    """B1.4, ALL OR NOTHING, for any action that works on a whole batch.
+
+    Silently applying a batch action to the fourteen students a scoped holder
+    reaches and skipping the other three would report "affected: 14" for a batch
+    of seventeen and leave the batch split across two places with nothing on
+    screen saying why. One refusal naming the batch is the honest answer.
+
+    PUBLIC AND IMPORTED, never copied: `admin_promotion.py` promotes and
+    graduates whole batches and has to refuse on exactly this rule. Two
+    implementations of "may you act on this batch" is how one of them ends up
+    admitting a rung the other refuses — the same argument `_target_label`
+    settles for a grant's scope target.
+    """
+    reach = scope_filter(db, session, CAPABILITY)
+    if reach.everything:
+        return
+    outside = db.scalar(
+        select(func.count())
+        .select_from(Student)
+        .where(Student.cohort_id == cohort_id, Student.id.not_in(reach.student_ids()))
+    ) or 0
+    if outside:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"{outside} student{'s' if outside != 1 else ''} in this batch "
+                "are outside what your Students capability reaches. An "
+                "administrator can widen it in Governance."
+            ),
+        )
 
 
 def _rows(db: Session, *where) -> list[AdminStudentOut]:
@@ -459,6 +507,14 @@ def update_student(
     if body.current_stage is not None:
         student.current_stage = Stage(body.current_stage)
     if body.current_semester is not None:
+        # BOUNDED BY THE BATCH THE STUDENT IS IN *AFTER* THIS PATCH, exactly as
+        # `_domain_fence` above is: one request may move a student and set their
+        # semester together, and the programme that says how many semesters
+        # there are is the one they are moving to. `student.cohort_id` has
+        # already taken the new value a few lines up.
+        refusal = rejection(ceiling_for_student(db, student.cohort_id), body.current_semester)
+        if refusal:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=refusal)
         student.current_semester = body.current_semester
 
     db.flush()
@@ -499,28 +555,9 @@ def batch_action(
     cohort = _cohort_or_404(db, cohort_id)
     students = db.scalars(select(Student).where(Student.cohort_id == cohort.id)).all()
     # B1.4. A batch action is the single action repeated, so it is scoped the
-    # same way — but ALL OR NOTHING rather than per student. Silently applying
-    # a move to the fourteen students a scoped holder reaches and skipping the
-    # other three would report "affected: 14" for a batch of seventeen and
-    # leave a batch split across two places with nothing on screen saying why.
-    # One refusal naming the batch is the honest answer; the reach is the same
-    # `scope_filter` the list uses, asked once in SQL.
-    reach = scope_filter(db, session, CAPABILITY)
-    if students and not reach.everything:
-        outside = db.scalar(
-            select(func.count())
-            .select_from(Student)
-            .where(Student.cohort_id == cohort.id, Student.id.not_in(reach.student_ids()))
-        ) or 0
-        if outside:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=(
-                    f"{outside} student{'s' if outside != 1 else ''} in this batch "
-                    "are outside what your Students capability reaches. An "
-                    "administrator can widen it in Governance."
-                ),
-            )
+    # same way — but ALL OR NOTHING rather than per student. See the helper.
+    if students:
+        assert_batch_within_reach(db, session, cohort.id)
 
     if body.action == "move":
         if body.cohort_id is None:
@@ -551,6 +588,13 @@ def batch_action(
     elif body.action == "semester":
         if body.current_semester is None:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="semester needs current_semester.")
+        # ONE CEILING FOR THE WHOLE BATCH, asked once: every student here sits
+        # in this cohort, so they share a course and therefore a bound. Refused
+        # before any row moves, because the alternative is a batch left half on
+        # the new semester with a 422 on screen explaining neither half.
+        refusal = rejection(ceiling_for_cohort(db, cohort.id), body.current_semester)
+        if refusal:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=refusal)
         for s in students:
             s.current_semester = body.current_semester
     db.flush()

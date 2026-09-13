@@ -220,3 +220,15 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* The review row's exception sentence, under its chip. It sits in a `dd` beside
+   a chip rather than in a notice because the review card's job is to be read
+   top to bottom before the one irreversible button, and a reason that moved to
+   a notice would be read as a warning about something else. */
+.external-reason {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}

@@ -33,6 +33,37 @@ class LeaveDecision(str, enum.Enum):
     REJECTED = "REJECTED"
 
 
+# --------------------------------------------------------------------------- #
+# WHICH FUNCTION SIGNED (B10.1) — the vocabulary for `first_signed_as` /
+# `second_signed_as` below.
+# --------------------------------------------------------------------------- #
+#
+# THREE VALUES, AND THE TWO THAT ARE MISSING ARE MISSING BECAUSE THEY DO NOT
+# EXIST. 04-backend-changes.md asks for "Mentor / HOD / Principal / Main Admin".
+# There is no HOD ACCOUNT in this product — `departments.head` is a free-text
+# String, "as printed on the leave form's department line", with no `head_user_id`
+# and no `Role.HOD` — and there is no principal concept anywhere. Minting either
+# word here would put a job title on the college's own signed form that nothing
+# in the database can substantiate, which is worse than the NULL it replaces.
+#
+# What the product does have is a GRANT: `mentor.leave_approve` handed to a
+# faculty account in Governance, scoped to a department or a college, with a
+# reason and an audit row. That is a function in every sense that matters here —
+# somebody decided this person signs leave for these people — and it is what
+# DELEGATE names.
+#
+# A plain str, not an enum: see the column comments. Adding a fourth value is a
+# data change and a label in `app/leave_paper.py::SIGNED_AS_LABELS`, which
+# `tests/test_leave_chain.py` pins against this tuple so the paper can never
+# meet a function it has no word for.
+SIGNED_AS_MENTOR = "MENTOR"
+#: Admitted by a SCOPED GRANT of `mentor.leave_approve`, not by mentoring the
+#: applicant and not by being the office.
+SIGNED_AS_DELEGATE = "DELEGATE"
+SIGNED_AS_MAIN_ADMIN = "MAIN_ADMIN"
+SIGNED_AS: tuple[str, ...] = (SIGNED_AS_MENTOR, SIGNED_AS_DELEGATE, SIGNED_AS_MAIN_ADMIN)
+
+
 # One shared Enum instance for both decision columns, so the PG type is created
 # exactly once (two separate Enum(...) would each try to CREATE TYPE).
 _LEAVE_DECISION = Enum(LeaveDecision, name="leave_decision")

@@ -135,6 +135,21 @@ class Settings(BaseSettings):
     # SES authenticates through the task role, so there is no key to paste.
     ses_from_address: str = ""
     ses_region: str = ""  # falls back to AWS_REGION, then ap-south-1
+    # B10.5's leave notifications, and they are OFF by default on purpose.
+    #
+    # B3.7 (SES in production) has not shipped. With `ses_from_address` blank —
+    # every machine this has ever run on — `mail_transport.send` logs the message
+    # and appends it to a bounded in-memory `outbox`, which reaches NOBODY. A
+    # leave notification that is on by default therefore writes a `mail_logs` row
+    # saying SENT for a message the applicant never received, and the row is the
+    # only thing anyone would look at afterwards. The exact shape of the failure
+    # that killed PENDING_VERIFICATION.
+    #
+    # So this stays false until an operator has a transport AND wants the mail,
+    # and no screen may say "the applicant has been emailed" while it is false.
+    # Turning it on with SES configured is one line; turning it on without SES is
+    # the mistake this default exists to prevent.
+    leave_mail_enabled: bool = False
     # Link lifetimes, from the agreed plan: activation 7 days (a new staff
     # member may not check mail today); reset 1 hour (the account exists and
     # may already be under attack); an application's confirmation 24 hours.
@@ -799,6 +814,7 @@ class Settings(BaseSettings):
         "interview_audio_min_free_bytes",
         "interview_temperature",
         "auth_revocation_cache_seconds",
+        "leave_mail_enabled",
         mode="before",
     )
     @classmethod

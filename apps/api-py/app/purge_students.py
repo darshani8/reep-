@@ -40,7 +40,7 @@ plus one this module needs and `purge_people` does not.**
 FIRST, EVERY TABLE HAS A WRITTEN VERDICT — and here a verdict is not two
 values but three, because "delete the student rows" is a different sentence in
 a table only a student can own (`resumes`) and in a table shared with staff
-(`leave_requests`). `STUDENT_VERDICTS` below says which, for all 93 tables, and
+(`leave_requests`). `STUDENT_VERDICTS` below says which, for all 109 tables, and
 an unclassified table ABORTS THE RUN exactly as it does next door. The key set
 is checked against `purge_people.VERDICTS`, so the next person to add a model
 is stopped by BOTH destructors rather than by the one they happened to read.
@@ -142,7 +142,7 @@ def by_parent(table: str, column: str) -> tuple[str, str, str]:
     return ("via", table, column)
 
 
-#: What happens to each of the 93 tables. `KEEP` is untouched; `ALL` is emptied;
+#: What happens to each of the 109 tables. `KEEP` is untouched; `ALL` is emptied;
 #: anything else is a scope, and the row survives unless the scope names it.
 #: Grouped by the REASON, because the reason is what a reviewer has to check.
 STUDENT_VERDICTS: dict[str, object] = {

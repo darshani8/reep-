@@ -71,6 +71,17 @@ class User(Base):
         # address is stored as the person typed it, which is what gets printed
         # on a leave form and read back to them on the phone.
         Index("ix_users_email_lower", text("lower(email)")),
+        # PARTIAL, and the predicate is part of the declaration: the only
+        # question ever asked of this column is "is this account disabled", and
+        # on a healthy deployment almost every row is NULL. Declared here as
+        # well as in e5f2c86d40b1 — an index that exists only in a migration is
+        # drift, and `alembic check` asking to drop three of them every run is
+        # how a real drop goes unnoticed.
+        Index(
+            "ix_users_disabled_at",
+            "disabled_at",
+            postgresql_where=text("disabled_at IS NOT NULL"),
+        ),
     )
 
 

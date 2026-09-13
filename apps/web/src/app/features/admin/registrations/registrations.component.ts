@@ -1500,6 +1500,7 @@ export class AdminRegistrationsComponent {
   );
 
   newRule(): void {
+    this.ruleFlash.set(null);
     this.editingRuleId.set(null);
     this.ruleDraft.set(EMPTY_RULE_DRAFT);
     this.ruleFormError.set(null);
@@ -1507,6 +1508,7 @@ export class AdminRegistrationsComponent {
   }
 
   editRule(rule: SeatingRuleLine): void {
+    this.ruleFlash.set(null);
     this.editingRuleId.set(rule.id);
     this.ruleDraft.set({
       name: rule.name,
@@ -1731,6 +1733,10 @@ export class AdminRegistrationsComponent {
   }
 
   private async loadSeatingRules(): Promise<void> {
+    // CLEARED HERE, not only set. A failed Delete leaves its refusal on screen,
+    // and the reload that follows would otherwise draw that sentence over a
+    // table it has just read correctly.
+    this.seatingRulesError.set(null);
     try {
       const response = await fetch(`${environment.apiBase}/register/rules`, {
         credentials: 'include',

@@ -21,7 +21,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -41,10 +41,30 @@ class LoginEvent(Base):
     """
 
     __tablename__ = "login_events"
+    __table_args__ = (
+        # The query the "Recent sign-ins" list actually runs: this user's rows,
+        # newest first. Declared HERE as well as in e5f2c86d40b1 because a
+        # migration-only index is drift — `alembic check` reports it as a
+        # removed index on every run, and a real removal then hides in the
+        # noise. Same reasoning as CapabilityGrant's check constraints.
+        #
+        # AND DECLARING IT FOUND A REDUNDANT INDEX THE GUARD COULD NOT SEE.
+        # `user_id` carried `index=True` as well, so `ix_login_events_user_id`
+        # was a second btree buying nothing this one does not already give —
+        # Postgres serves `WHERE user_id = ?` from the composite's lead column,
+        # and the narrow index only cost a write on every sign-in.
+        # `test_no_index_duplicates_the_prefix_of_another` is written to catch
+        # exactly that and was BLIND to it, because it reads the models and the
+        # covering index was declared only in a migration. The undeclared index
+        # was not merely noise in `alembic check`; it was hiding a real one.
+        # Dropped in `f3a8d61c07be`; the FK stays indexed, by this composite,
+        # which leads with it.
+        Index("ix_login_events_user_at", "user_id", "at"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     user_id: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     #: `password`, `code`, `google`, `activation`, `reset` — the four doors of
     #: AGENTS.md's single-device note, plus the two link flows. A String, not an

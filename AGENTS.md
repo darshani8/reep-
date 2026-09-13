@@ -30,11 +30,15 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 - `python -m app.seed` **refuses to run when `ENV=prod`.** It creates the logins above — including the Main Admin, who by rule 2 below reads every student's marks, attendance and USN — behind passwords published in this file. Those accounts must never exist on a production host, so there is no override flag.
 - `python -m app.seed_kb` is the production-safe seed: the grounded assistant's Knowledge Base, no accounts. Production needs it (without it the assistant has nothing to ground against) and never needs the demo users, which is why they no longer travel together.
 
-**Handing a deployment over: `python -m app.purge_people`.** The counterpart to the seeds — it empties a deployment of PEOPLE (every account except the Main Admin, every record those accounts produced, every transcript and every recording, and the documents and audio on the volume) while leaving the institution and the catalogues standing: colleges, departments, courses, specializations, batches, job postings, the badge and certification catalogues and the Knowledge Base. It exists because nothing else can do it: `grant_access` creates and updates accounts and cannot remove one, the Main Admin console has no screen at all for deleting a faculty account, and the Ops task menu is a FIXED LIST because free text there is RCE on the cluster. **Every one of the 93 tables carries a written verdict in `VERDICTS`, and a table nobody classified ABORTS THE RUN** — not kept (which leaves a student's records behind) and not emptied (which destroys a catalogue somebody added last week); `tests/test_purge_people.py` fails in CI first, so the next person to add a model is made to decide. **Files go before rows**, because a row is the last pointer to a student's resume and a named student's recorded voice, and a delete that loses the pointer first leaves bytes nobody can find — `retention._delete_interview_audio`'s reasoning, applied to the five document stores and the S3 recordings. It refuses unless there is EXACTLY ONE ADMIN: zero would lock every human out of the console, and picking between two would be this module choosing which colleague keeps their account. **Dry run is the default**; `--apply` also demands `--i-understand-this-is-permanent`, and the Ops task's `purge-people` demands a typed sentence of its own on top of the menu's `confirm: run`, because that box is muscle memory by the time anyone reaches this task and nothing else on the menu destroys anything. The delete order satisfies 93 real foreign keys — several with no `ON DELETE` at all (`login_days.user_id`, `mentors.user_id`, `students.user_id`, and the four `created_by_user_id` columns on the KEPT institutional spine, which are nulled first) — and the test proves it by running the real delete against the real schema inside a transaction it rolls back, which is why `_delete_rows` is factored out of `execute` without a commit.
+**Handing a deployment over: `python -m app.purge_people`.** The counterpart to the seeds — it empties a deployment of PEOPLE (every account except the Main Admin, every record those accounts produced, every transcript and every recording, and the documents and audio on the volume) while leaving the institution and the catalogues standing: colleges, departments, courses, specializations, batches, job postings, the badge and certification catalogues and the Knowledge Base. It exists because nothing else can do it: `grant_access` creates and updates accounts and cannot remove one, the Main Admin console has no screen at all for deleting a faculty account, and the Ops task menu is a FIXED LIST because free text there is RCE on the cluster. **Every one of the 109 tables carries a written verdict in `VERDICTS`, and a table nobody classified ABORTS THE RUN** — not kept (which leaves a student's records behind) and not emptied (which destroys a catalogue somebody added last week); `tests/test_purge_people.py` fails in CI first, so the next person to add a model is made to decide. **Files go before rows**, because a row is the last pointer to a student's resume and a named student's recorded voice, and a delete that loses the pointer first leaves bytes nobody can find — `retention._delete_interview_audio`'s reasoning, applied to the five document stores and the S3 recordings. It refuses unless there is EXACTLY ONE ADMIN: zero would lock every human out of the console, and picking between two would be this module choosing which colleague keeps their account. **Dry run is the default**; `--apply` also demands `--i-understand-this-is-permanent`, and the Ops task's `purge-people` demands a typed sentence of its own on top of the menu's `confirm: run`, because that box is muscle memory by the time anyone reaches this task and nothing else on the menu destroys anything. The delete order satisfies 180 real foreign keys — several with no `ON DELETE` at all (`login_days.user_id`, `mentors.user_id`, `students.user_id`, and the four `created_by_user_id` columns on the KEPT institutional spine, which are nulled first) — and the test proves it by running the real delete against the real schema inside a transaction it rolls back, which is why `_delete_rows` is factored out of `execute` without a commit.
 
-**Clearing a demonstration cohort: `python -m app.purge_students`.** The narrow counterpart, and the one that gets run on a deployment that is STAYING IN USE: it deletes every account whose role is STUDENT, everything those accounts produced, and everything staff wrote ABOUT them — while every MENTOR, ALUMNI and ADMIN account, their signatures, their upskilling shelf, their governance grants and their own leave requests stay exactly where they are. `purge_people` cannot express that, because its verdicts are whole-table (`students: EMPTY`, `users: SURVIVOR`): running it to clear a cohort deletes every faculty account on the way through. So here a verdict is THREE values and not two — "delete the student rows" is a different sentence in a table only a student can own (`resumes`) and in one shared with staff (`leave_requests`, `conversations`, `agent_runs`, `login_days`). 38 tables are emptied outright, 33 are untouched, 21 are scoped, and **`STUDENT_VERDICTS`'s key set is checked against `purge_people.VERDICTS`**, so the next person to add a model is stopped by BOTH destructors rather than the one they happened to read. **The doomed set is read ONCE, before anything is deleted**, and held as literal ids: as a live subquery over `users` it would be right only by accident, because the accounts go near the END of the pass and any table ordered after them would match nothing and silently leave its rows behind. `registrations` is the one table scoped by something other than an account — an application that was APPROVED, or that carries a doomed address, goes; the office's PENDING queue survives, because an approved application left behind makes `POST /api/register`'s duplicate guard refuse that address forever with no account left to explain why. The three file stores are `purge_people`'s own functions handed a subset, never a copy. Dry run is the default, the Ops task's `purge-students` demands the typed sentence `DELETE EVERY STUDENT` (deliberately NOT `purge-people`'s, so the words name the act), and `execute` refuses to commit if the number of non-student accounts changed.
+**Clearing a demonstration cohort: `python -m app.purge_students`.** The narrow counterpart, and the one that gets run on a deployment that is STAYING IN USE: it deletes every account whose role is STUDENT, everything those accounts produced, and everything staff wrote ABOUT them — while every MENTOR, ALUMNI and ADMIN account, their signatures, their upskilling shelf, their governance grants and their own leave requests stay exactly where they are. `purge_people` cannot express that, because its verdicts are whole-table (`students: EMPTY`, `users: SURVIVOR`): running it to clear a cohort deletes every faculty account on the way through. So here a verdict is THREE values and not two — "delete the student rows" is a different sentence in a table only a student can own (`resumes`) and in one shared with staff (`leave_requests`, `conversations`, `agent_runs`, `login_days`). 46 tables are emptied outright, 39 are untouched, 24 are scoped, and **`STUDENT_VERDICTS`'s key set is checked against `purge_people.VERDICTS`**, so the next person to add a model is stopped by BOTH destructors rather than the one they happened to read. **The doomed set is read ONCE, before anything is deleted**, and held as literal ids: as a live subquery over `users` it would be right only by accident, because the accounts go near the END of the pass and any table ordered after them would match nothing and silently leave its rows behind. `registrations` is the one table scoped by something other than an account — an application that was APPROVED, or that carries a doomed address, goes; the office's PENDING queue survives, because an approved application left behind makes `POST /api/register`'s duplicate guard refuse that address forever with no account left to explain why. The three file stores are `purge_people`'s own functions handed a subset, never a copy. Dry run is the default, the Ops task's `purge-students` demands the typed sentence `DELETE EVERY STUDENT` (deliberately NOT `purge-people`'s, so the words name the act), and `execute` refuses to commit if the number of non-student accounts changed.
 
 **Tests:** `cd apps/api-py && .venv/Scripts/python -m pytest` (the backend suite). Front end: `cd apps/web && npx ng build`.
+
+**ONE THING AT A TIME TOUCHES ONE DATABASE.** `tests/conftest.py` says it in its first paragraph and the consequence is nowhere: the integration tests hit the SEEDED DEV DATABASE — the same `reep_py` a running `uvicorn` is using, the same one `python -m app.seed` wrote. So **two pytest runs at once, or a pytest run beside a live API, corrupt each other's fixtures**, and the failures that come out of it are the expensive kind: they look completely real, they name a plausible cause, and every one of them passes when you re-run it on its own. The two that cost an afternoon were a purge-plan count off by one (the other run's throwaway student was in the table when the plan was taken) and a fixture student answering 404 (the other run's teardown had deleted them mid-test). Nothing in the suite is isolated by a transaction — `make_user` and its friends commit, because the endpoints under test commit.
+
+The workaround is one environment variable and no code: give each concurrent run **its own database**. `createdb reep_alice`, `DATABASE_URL="postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_alice" .venv/Scripts/python -m alembic upgrade head`, then the same `DATABASE_URL` on `python -m app.seed` and on every `pytest`, `alembic` and script invocation for that run. Two agents, two humans, or a human and a CI container on one machine are three separate databases, not one shared one. `alembic check` and `alembic current` read the database too, so they belong to whichever run owns it.
 
 **CI has five jobs** (`api`, `pii-gate`, `api-imports`, `web`, `cdk`), and one of
 them exists because a manifest shipped incomplete. `api-imports` proves
@@ -363,6 +367,132 @@ routes grew no scope header, disabling one account bumps nobody else's
 guardrails whose subject is Phase 4 are listed at the foot of that module with
 the reason each cannot be pinned yet — a checklist with five quiet gaps is one
 somebody signs off as complete.
+
+### Phase 4 — the console's promises came due (2026-09-13)
+
+Phase 2 drew the whole admin console and disabled every control whose endpoint
+did not exist yet, with the phase written on the control. Phase 4 is those
+endpoints, in six areas at once — **4a** semesters, promotion and graduation
+(B4) plus the catalogue copy (B13); **4b** spreadsheet imports, placement
+criteria, the alert engine and analytics (B8) with jobs and placement (B12);
+**4c** interview tracks, the college's interview policy and the interview
+record (B5/B6/B17); **4d** mentor assignment history and SWOC ownership
+(B9/B7); **4e** the leave chain, balances, attachments and the paper (B10);
+**4f** the registration queue, its checks, HOLD and the rules CRUD (B11). The
+areas that changed a rule already have their own sections above; what follows is
+the part that has no other home.
+
+**81 disabled controls went to 1, and the survivor is honest.** A
+`[reepPending]` badge is truthful exactly while the endpoint is missing; the
+moment it lands, that badge is the stale label `45b91a9` had just finished
+removing from the Faculty screen. So every control was taken back to its router
+and decided by READING THE ROUTER, never by trusting a template comment that may
+predate it. **Five groups were DEMOTED rather than wired** — plain `disabled`
+with the real reason in a `title`, no phase number, because a phase number
+promises a date and these are not waiting for one:
+
+  * **Student 360's "Hold back"**. `KIND_HOLD_BACK` exists in
+    `app/models/semester_history.py` and **nothing writes it**: a student is
+    held back through `PromoteIn.hold_back`, on the batch dialog, not from their
+    own panel. A button calling a writer that does not exist is worse than a
+    disabled one.
+  * **Student 360's SWOC, Leave and Uploads tabs.** Every one of those endpoints
+    is a programme-wide QUEUE, not one person's file. Wiring them would have made
+    a per-student screen fetch and filter a roster.
+  * **Analytics' Batch / Course / Track filters.** Neither analytics endpoint
+    takes a cohort and both aggregate server-side, so there is nothing to narrow
+    client-side either — and a Track is the INTERVIEW vocabulary: no attendance
+    record, ledger entry or offer carries one.
+  * **The roster's Readiness / CGPA / Attendance columns.** All three are real,
+    but only on `GET /admin/students/{id}/360` — one request per student, so a
+    roster that filled them would be one request per ROW. The tooltips point at
+    360.
+  * **The shell's notifications bell.** There is no per-account feed at all.
+
+**Building the wiring found two real defects that no test had.** `placement`
+called a `selectValue` helper that did not exist, so the screen's own filter was
+a template reference to nothing; and BOTH batch dialogs emitted a `completed`
+output that no parent bound, which meant the grid behind a successful promote or
+graduate went on rendering the PRE-WRITE read — the admin pressed the button, it
+worked, and the screen said it had not. Neither is visible from a router and
+neither is visible from a board. They are visible from pressing the button.
+
+**THE FOUR REFUSALS, and the reason each is not the obvious answer.** These
+matter more than the list above, because a task refused with no record is a task
+somebody re-opens next quarter and re-refuses at the same cost.
+
+**B4.4's alumni-profile auto-create is IMPOSSIBLE, not merely unwise.**
+Graduation was asked to create the graduate's `alumni_profiles` row so they
+arrive as a finished alumnus. `alumni_profiles.company` is **NOT NULL**, so such
+a row must invent an employer for somebody who has not told us one — and worse,
+**row EXISTENCE is what `GET /api/alumni/profile`'s `created:` flag reports**,
+and that flag is the entire branch behind the first-login create-profile form.
+Minting the row does not pre-fill the form; it DELETES the form, permanently,
+for every graduate. So graduation flips the role and the status and stops there,
+and the graduate meets the create-profile form, which is what it is for. What
+was added instead is a nullable `alumni_profiles.student_id`, which the form
+fills in, so the alumnus and the record they left behind are joinable without
+either one being guessed.
+
+**B6.6's `interview_turns.question_id` cannot be filled by anything, and B5.5
+depends on it.** The column is there — free on an empty nullable column, costly
+to add later to a table with hundreds of thousands of rows — and **nothing
+writes it**. The question bank is rendered into the INSTRUCTIONS once, as a
+block of `[phase] text` lines with the model explicitly told to rephrase rather
+than recite; the engine never SELECTS a question, so there is no "the question
+it injected" to record, `_TurnRecord` has no slot for one and neither engine
+could fill it. 04's B5.5 (`asked_count` / `avg_score` per question) is built on
+that column and is therefore refused with it. If it is ever filled it will be by
+POST-HOC matching of the interviewer's words against the bank, which is lossy
+BY CONSTRUCTION because the prompt orders the rephrasing — NULL would then mean
+"unmatched", never "not asked", and every count built on it is an ESTIMATE the
+screen must label as one. The alternative, a `mark_question` tool call inside
+the turn loop, puts a round trip on the hot path the deterministic word gate
+exists to keep off, and the local engine has no equivalent, so the two engines
+would stop sharing one contract.
+
+**B10.1's HOD and Principal signing functions have nobody to name.** There is no
+HOD ACCOUNT in this product — `departments.head` is FREE TEXT, a name typed on a
+form, with no `users` row behind it — and no principal concept at all. A
+"function-based signing chain" over those two would be a vocabulary whose values
+can never be resolved to a person who can sign in, which is how a leave request
+ends up in a state only a database edit can leave. What B10.1's real bug turned
+out to be is narrower and provable: `_assert_can_decide` resolved the requester
+to a `Student` row, so a FACULTY member's own leave was decidable by ADMIN
+alone — and `grant_access` permits exactly one ADMIN while `decide_leave`
+requires two DISTINCT signatures. Every staff leave request on every real
+deployment reached FIRST_APPROVED and could never reach APPROVED, silently,
+behind a live "Mark Sanctioned" button. The third door is a SCOPED GRANT of
+`mentor.leave_approve` at `ScopeLevel.DEPARTMENT` or `COLLEGE`, made in
+Governance with a reason and an audit row. `leave_requests.first_signed_as` /
+`second_signed_as` record the function the signer was ACTING IN, as a plain
+`String` and not an enum, precisely because that vocabulary is the part still
+being argued about and must stay a data change.
+
+**B10.8's "refuse to render" clause is refused.** B10.8 asks that the paper
+print the signer's function, and it does — as a third element on the attestation
+line already drawn in the blank margin, "Asha Rao · Mentor · 10 Sep 2026, 09:00",
+never as part of the form. Two things it is written as asking for must not
+happen. Printing the function INSTEAD OF the fixed "PROGRAM DIRECTOR" label
+means whiting out and reprinting over the college's own PDF — defacing the
+office's form — and the test asserts that label survives. And **refusing (422) to
+render a decided request whose signer has no signature image** would refuse an
+APPLICANT their own sanctioned leave because a DIFFERENT person never uploaded a
+PNG. A signature image is decoration on top of a record that already exists; if
+the office wants pressure on signers, that belongs on a console screen, not in a
+download. A function prints only where one was recorded — every row decided
+before the column existed has NULL, and NULL prints the line exactly as it
+printed before, never a function guessed from a mentor group that may have
+changed since.
+
+**One live defect fixed in passing, because it was the same guardrail.**
+`_attendance_pct` returned `0.0` for an empty table, and `attendance_records`
+has exactly one writer — B8.1's spreadsheet import. So on every deployment where
+that import had not been run, every student's own home screen read **"Attendance
+0.0% vs required 75.0%"** with a red Not-met chip, for a bar nobody had measured
+them against. It answers `None` now, and `None` renders as a dash. That is 07
+§5's "screens say 'no import yet' instead of zeros", met on the screen where
+being told you are failing costs the most.
 
 ### The dev MCP surface at `/mcp` (development only)
 
@@ -903,6 +1033,7 @@ property's docstring says why.
 ## Backend conventions
 
 - **Models** live in `apps/api-py/app/models/` and are the schema's source of truth; each new module is imported in `models/__init__.py` so Alembic autogenerate sees it.
+- **An index created in a migration must ALSO be declared on the model**, and this is not tidiness. Three Phase 3 indexes (`ix_capgrant_scope`, `ix_login_events_user_at`, `ix_users_disabled_at`) lived only in their migrations, so `alembic check` asked to DROP all three on every single run — which is how a real drop goes unnoticed, in the noise. Declaring them was not free: it immediately failed `tests/test_codebase_guards.py::test_no_index_duplicates_the_prefix_of_another`, because `login_events.user_id` also carried `index=True` and `ix_login_events_user_id` was a second btree buying nothing that `(user_id, at)` did not already give. That redundancy was real in every database and **invisible to the guard, which reads the models** — an undeclared index is a hole the schema guards see straight through. Dropped by `f3a8d61c07be`; the FK stays indexed by the composite, which leads with it. Note `ix_users_disabled_at` is PARTIAL — the `postgresql_where` predicate is part of the declaration, or the two definitions differ and the drift comes back.
 - **Alembic enum gotchas** (hit these repeatedly): (a) adding an enum *column* to an existing table does not auto-`CREATE TYPE` — create it first; (b) a *new table* reusing an *existing* enum must use `postgresql.ENUM(..., name='x', create_type=False)` in the migration (autogenerate emits a bare `sa.Enum` that errors "type already exists" — hand-fix it); (c) two columns sharing one enum reuse a single `Enum` instance.
 - **Universal LLM adapter** (`app/ai/llm.py`) is OpenAI-compatible and auto-selects the first configured provider (Sakana → Groq → Mistral → OpenRouter → Gemini → Cohere), or an explicit `LLM_BASE_URL`+`LLM_MODEL`+`LLM_API_KEY`. One set of keys, any provider, no code change.
 - **Knowledge Base = pgvector.** The docker image is `pgvector/pgvector:pg17` (stock PG17 + `CREATE EXTENSION vector`); `KnowledgeChunk.embedding` is a dimensionless `vector`. Retrieval (`app/knowledge.py`) is HYBRID — Postgres full-text blended with pgvector cosine (`embedding <=> :q`), gated by a distance floor so an off-topic query still hits the honest "no approved answer" fallback. The embedder (`app/ai/embeddings.py`) mirrors the LLM adapter: explicit `EMBEDDING_*`, else auto-select Mistral (`mistral-embed`) — and **no embedder configured ⇒ full-text only** (the KB always works). The KB is APPROVED public policy text, so embedding it is outside the student-data egress gate.

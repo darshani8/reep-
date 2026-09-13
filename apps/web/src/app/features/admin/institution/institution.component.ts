@@ -81,6 +81,16 @@ interface CollegeOut {
   contact: string | null;
   status: string;
   department_count: number;
+  /** B1.1. The addresses this college will admit an applicant on.
+   *
+   *  EMPTY IS NOT "NO FENCE". `app/institution_domains.py` reads an empty list
+   *  as "this college has named none of its own", and falls back to the
+   *  deployment's `provisionable_email_domains` — so an applicant is still
+   *  fenced, by the environment rather than by the row. The API's own schema
+   *  comment says to render it that way and never as "nobody may join", and
+   *  this screen used to print a hardcoded "None recorded" chip that said the
+   *  opposite of both. */
+  email_domains: string[];
 }
 
 interface DepartmentOut {
@@ -148,7 +158,6 @@ const LEVEL_OPTIONS: Record<string, 'courses' | 'specializations'> = {
 const COURSE_STATUSES = ['ACTIVE', 'ARCHIVED'];
 
 /** The phase whose backend task fills each part of the board main cannot answer. */
-const PHASE_FOR_COLLEGE_EMAIL_DOMAINS = 3;
 const PHASE_FOR_COURSE_SEMESTERS = 4;
 const PHASE_FOR_INTERVIEW_TRACKS = 4;
 
@@ -163,7 +172,70 @@ export class AdminInstitutionComponent implements OnDestroy {
   private readonly schema = inject(HierarchySchemaService);
 
   /** Read by the template so the phase sentence is written once, here. */
-  readonly phaseForCollegeEmailDomains = PHASE_FOR_COLLEGE_EMAIL_DOMAINS;
+  // ------------------------------------------------------- B1.1 domains --
+  //
+  // The college's own fence. Held as a draft so the input is not a write on
+  // every keystroke, and committed through PATCH /admin/colleges/{id}, whose
+  // `email_domains` is explicitly NOT in NON_NULLABLE: the list is emptied by
+  // sending `[]`, and emptying it restores the deployment fallback, which is a
+  // real thing an admin may want and is not the same as sending null.
+  readonly domainDraft = signal('');
+  readonly domainBusy = signal(false);
+  readonly domainError = signal<string | null>(null);
+
+  /** The fence as a sentence, because an empty list and a recorded one are
+   *  different facts and a bare chip count cannot say which. */
+  readonly domainSummary = computed(() => {
+    const college = this.selectedCollege();
+    if (!college) return '';
+    return college.email_domains.length
+      ? `${college.email_domains.length} recorded on this college`
+      : 'None on this college — the deployment\'s own list applies';
+  });
+
+  async addDomain(): Promise<void> {
+    const college = this.selectedCollege();
+    const typed = this.domainDraft().trim().replace(/^@/, '').toLowerCase();
+    if (!college || !typed) return;
+    if (college.email_domains.includes(typed)) {
+      this.domainError.set(`${typed} is already on this college.`);
+      return;
+    }
+    await this.saveDomains(college, [...college.email_domains, typed]);
+    this.domainDraft.set('');
+  }
+
+  async removeDomain(domain: string): Promise<void> {
+    const college = this.selectedCollege();
+    if (!college) return;
+    await this.saveDomains(
+      college,
+      college.email_domains.filter((d) => d !== domain),
+    );
+  }
+
+  /** ONE writer for both directions. The server normalises and de-duplicates
+   *  (`_clean_domains`), so the row it returns is the truth and is what the
+   *  screen adopts — echoing the list that was sent would show an admin their
+   *  own typing rather than what was stored. */
+  private async saveDomains(college: CollegeOut, domains: string[]): Promise<void> {
+    this.domainBusy.set(true);
+    this.domainError.set(null);
+    try {
+      const saved = await this.patch<CollegeOut>(`/admin/colleges/${college.id}`, {
+        email_domains: domains,
+      });
+      if (!saved) {
+        this.domainError.set(this.error());
+        this.error.set(null);
+        return;
+      }
+      this.colleges.update((list) => list.map((c) => (c.id === saved.id ? saved : c)));
+    } finally {
+      this.domainBusy.set(false);
+    }
+  }
+
   readonly phaseForCourseSemesters = PHASE_FOR_COURSE_SEMESTERS;
   readonly phaseForInterviewTracks = PHASE_FOR_INTERVIEW_TRACKS;
   readonly courseStatuses = COURSE_STATUSES;

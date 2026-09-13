@@ -323,11 +323,16 @@
                 <div class="notice accent">
                   <span class="icon" aria-hidden="true">info</span>
                   <div>
-                    This is the fence a registration's address is checked against when the
-                    application is approved (B1.1). <strong>An empty list is not "no fence"</strong>
-                    — it means this college has named none of its own, and the deployment's
-                    provisionable-domains setting applies instead. Recording domains here takes
-                    this college off that shared list; removing the last one puts it back.
+                    This is the fence checked when an application is approved and a roster
+                    row is minted (B1.1) — by a human in Registrations, and by the rule engine
+                    too. <strong>It is not the rule engine's own domain condition</strong>: that
+                    lives on a registration rule and is what decides auto-approval. The two meet
+                    here — a rule that would auto-approve is still refused by this fence, and the
+                    application lands in the review queue carrying the refusal as its reason.
+                    <strong>An empty list is not "no fence"</strong> — it means this college has
+                    named none of its own, and the deployment's provisionable-domains setting
+                    applies instead. Recording domains here takes this college off that shared
+                    list; removing the last one puts it back.
                   </div>
                 </div>
               </div>

@@ -23,7 +23,7 @@
  * which one these days belong to.
  */
 
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, effect, input, output, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import type { LeaveCollegeSummary } from './leave-policy-dialog.component';
@@ -72,7 +72,13 @@ export class LeaveCalendarDialogComponent {
   constructor() {
     // The first college, so the dialog opens on something rather than on an
     // empty select the office has to notice.
-    queueMicrotask(() => {
+    //
+    // An `effect` and not the constructor body: `colleges` is a REQUIRED input
+    // and reading a required input during construction throws, because Angular
+    // has not bound it yet. The effect runs after it has, and the guard makes
+    // it a one-shot — a later change to the input must not yank the office off
+    // the college they are editing.
+    effect(() => {
       const first = this.colleges()[0];
       if (first && this.collegeId().length === 0) {
         this.collegeId.set(first.college_id);

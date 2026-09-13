@@ -82,6 +82,46 @@
       }
     }
 
+    <!-- YOUR ALLOWANCE (B10.2) — a READ, beside the list and not on the sheet.
+         It is here because the submit path can now refuse a form for want of
+         days, and "you have 2 casual days left" is a number the applicant has
+         to be able to see somewhere other than in the refusal that stopped
+         them. An EMPTY list is not a zero: it means the office has recorded no
+         allowance, and then nothing is measured at all — two opposite states
+         that must never render the same. -->
+    @if (balances(); as allowance) {
+      <div class="card lv-balance">
+        <div class="lv-balance-head">
+          <strong>Your leave allowance</strong>
+          <span class="req-kind">{{ allowance.academic_year }}</span>
+        </div>
+        @if (allowance.balances.length) {
+          <ul class="lv-balance-list">
+            @for (balance of allowance.balances; track balance.kind) {
+              <li>
+                <span class="lv-balance-kind">{{ kindLabel(balance.kind) }}</span>
+                <span class="chip {{ balance.remaining_days < 0 ? 'risk' : 'neutral' }}">
+                  {{ balance.remaining_days }} left
+                </span>
+                <span class="req-kind">
+                  {{ balance.consumed_days }} of {{ balance.entitled_days }} taken
+                </span>
+              </li>
+            }
+          </ul>
+          <p class="form-hint">
+            Days are counted from your college's calendar, so a holiday inside a leave span is not
+            charged against this.
+          </p>
+        } @else {
+          <p class="form-hint">
+            The office has recorded no allowance for you this year, so no request of yours is
+            measured against one. That is not a balance of zero.
+          </p>
+        }
+      </div>
+    }
+
     <!-- ASKED TO COVER (B10.6) — the other side of the Alternate Arrangements
          table, and a different document from the one above: these are other
          people's requests, and every one of them arrives as the REDUCED

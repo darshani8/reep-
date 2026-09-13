@@ -25,6 +25,8 @@ from . import job  # noqa: F401
 from . import knowledge  # noqa: F401
 from . import lab  # noqa: F401
 from . import leave  # noqa: F401
+from . import leave_attachment  # noqa: F401
+from . import leave_policy  # noqa: F401
 from . import mail  # noqa: F401
 from . import mentor_assignment  # noqa: F401
 from . import mentor_note  # noqa: F401

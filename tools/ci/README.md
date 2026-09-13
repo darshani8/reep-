@@ -134,7 +134,7 @@ cd apps/api-py && python -m alembic check && python -m alembic heads
 
 A wrapper, deliberately not a second implementation: it locates `bash` and
 forwards every argument and the exit code unchanged. A PowerShell port would be a
-third copy of the same four commands, and the copy that drifts from `ci.yml` is
+third copy of the same five commands, and the copy that drifts from `ci.yml` is
 always the one nobody runs often enough to notice.
 
 ```
@@ -149,22 +149,31 @@ a Linux filesystem view makes it invoke `apps/api-py/.venv/Scripts/python.exe`,
 producing a failure that reads as a broken preflight rather than as the wrong
 shell. With no bash found it exits **69** and prints install instructions.
 
-That fallback lists all four checks by hand, each labelled with the CI job it
-stands in for. It listed only three until this commit: **"Voice worker
-(dependency completeness)" was missing**, which is the check whose manifest
-actually shipped incomplete and the one this repository added a guard for first.
-A Windows developer with no Git Bash who followed it had run three of four checks
-believing they ran all four — the exact SKIP-versus-PASS confusion the exit code
-2 exists to prevent. The fourth command is the `ci.yml` **worker-imports** step,
-and it runs against the separate Python 3.12 venv — `.venv-voice`, never `.venv`,
-because `livekit-agents` declares `Requires-Python <3.15` and will not install
-into the 3.14 one.
+That fallback lists all five checks by hand, each labelled with the CI job it
+stands in for, and keeping it honest has already gone wrong twice.
+
+It listed three of four once, missing **"Voice worker (dependency
+completeness)"** — the check whose manifest actually shipped incomplete, and the
+one this repository added a guard for first. A Windows developer with no Git Bash
+who followed it ran three checks believing they had run all four: the exact
+SKIP-versus-PASS confusion exit code 2 exists to prevent.
+
+Then that job was DELETED with the LiveKit stack in 2026-09 and this fallback was
+not touched, so until Phase 5 it told a Windows developer to run `voice_agent.py`
+out of `.venv-voice` — a deleted file, out of a venv nothing creates, against a
+manifest that no longer exists — while saying nothing about Rule 1 or the CDK
+guards, which were two of the five things actually gating their merge. (It also
+printed `cd ..` followed by a literal BEL byte where `\a` in `..\api-py` had been
+eaten by an escape somewhere: the instruction beeped the terminal instead of
+changing directory.) Instructions rot in exactly the direction of the deletion
+that made them wrong, which is why the check-name agreement is now a test rather
+than a habit — see `apps/api-py/tests/test_codebase_guards.py`.
 
 ## `protect-main.sh`
 
 Applies classic branch protection to `main` on `github.com/darshani8/reep-`
 through `gh api -X PUT repos/{owner}/{repo}/branches/{branch}/protection`: the
-four CI jobs required by their exact display names, `strict` (up-to-date)
+five CI jobs required by their exact display names, `strict` (up-to-date)
 branches, a pull request required, stale approvals dismissed, conversation
 resolution required, force pushes and deletion blocked, and — by default — the
 rules applied to administrators.
@@ -190,7 +199,7 @@ and see below for why no workflow should hold a token that could call it.
 **There are now two routes to the same control, and you must take only one.**
 `.github/rulesets/main.json` is the *ruleset* form of this configuration —
 `gh api -X POST repos/darshani8/reep-/rulesets --input .github/rulesets/main.json` —
-and it requires the same four checks with `required_approving_review_count: 0`
+and it requires the same five checks with `required_approving_review_count: 0`
 and `bypass_actors: []`. Classic protection (this script) and rulesets are
 separate systems that GitHub evaluates together, most-restrictive-wins. Applying
 both leaves two places a control can be relaxed and one of them is the place

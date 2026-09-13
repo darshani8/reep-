@@ -34,11 +34,10 @@ services:
       - -c
       - effective_cache_size=1536MB
       # Must stay ABOVE the sum of everything that connects: the api's
-      # 4 workers × (10 pool + 10 overflow) = 80, plus the voice worker's API-
-      # mediated load (none direct — it has no DB access), the one-shot
-      # migrate, the retention sidecar, the nightly pg_dump, and a human's
-      # psql. 200 leaves that headroom without the per-connection memory cost
-      # of the four-digit values people reach for on a whim.
+      # 4 workers × (10 pool + 10 overflow) = 80, the one-shot migrate, the
+      # retention sidecar, the nightly pg_dump, and a human's psql. 200 leaves
+      # that headroom without the per-connection memory cost of the four-digit
+      # values people reach for on a whim.
       - -c
       - max_connections=200
       # Every statement slower than 500ms is logged WITH its text. The audit
@@ -236,8 +235,9 @@ services:
       resources:
         # Raised from 1G with the move to 4 workers: each worker is a full
         # CPython process with litellm/google-adk resident, so the old limit
-        # was an OOM-kill loop waiting for the first busy afternoon. The RAM
-        # comes from the voice worker no longer starting by default.
+        # was an OOM-kill loop waiting for the first busy afternoon. The RAM was
+        # freed by the LiveKit voice worker, which no longer started by default
+        # and which Phase 5 removed from this file altogether.
         limits: { cpus: "2", memory: 2G }
         reservations: { memory: 1G }
 

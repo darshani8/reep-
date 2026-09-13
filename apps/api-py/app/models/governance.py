@@ -217,23 +217,30 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # It reads no student record itself -- it hands out screens -- which is what
     # `carries_pii` actually means on this dataclass.
     Capability("admin.governance", "Governance", _P),
-    # -- temporary, and the only entry here that is not a screen --------------
-    # THIS ONE IS DELETED IN PHASE 5. It gates the 2026-09 admin console while
-    # it is being built, so the owner can review it on a production deployment
-    # before it replaces the screens the office uses every day
-    # (06-phase-prompts.md, Phase 2). The old screens stay reachable until
-    # Phase 3 is accepted; this is the switch that decides which a session sees.
-    #
-    # PROGRAMME, not SCOPED, and that placement is the whole behaviour: _ALL
-    # minus _FACULTY_ONLY is the Main Admin's baseline, so the office account
-    # holds it the moment this line exists and nobody has to grant it anything;
-    # _SCOPED is a MENTOR's baseline and a PROGRAMME capability is not in it, so
-    # a faculty member sees the old console until the Main Admin grants them
-    # this one in Governance -- which is exactly the review loop it is for.
-    #
-    # It carries no PII: it selects a rendering, it does not read a student.
-    Capability("ui.console_v2", "New admin console (preview)", _P),
 )
+
+# `ui.console_v2` STOOD HERE UNTIL PHASE 5, AND ITS DELETION IS THE INVARIANT.
+#
+# It was the one entry that was not a screen: a preview switch the 2026-09
+# console's new screens sat behind, in the Main Admin's baseline, so the owner
+# could review them on the production deployment while the office kept the
+# console it knew. That review is over; the new screens ARE the console, and a
+# switch nobody can turn off is a screen's second gate that only ever refuses.
+#
+# It also cost the catalogue its one exemption. Every OTHER key here is checked
+# by a `require_capability` / `has_capability` / `scope_filter` call site under
+# `app/`, which `tools/ci/check_capability_enforcement.py` proves; this one
+# could not be, because it selected a CLIENT rendering and there was no request
+# to refuse. With it gone that checker's EXEMPT dict is EMPTY, and B2.1's rule
+# -- enforce every catalogue key or delete it -- has no "or write your name on
+# a list" third option any more. `tests/test_codebase_guards.py` pins it empty.
+#
+# Grants naming it may still exist on a deployment. That is safe and was
+# designed for: `granted_capabilities` filters on CAPABILITIES_BY_KEY, so such a
+# row resolves to nothing while every other key the same person holds resolves
+# normally (tests/test_capability_enforcement.py). Do not write a migration to
+# delete those rows -- the audit trail is why the office can answer "who was
+# given what, and when".
 
 CAPABILITIES_BY_KEY: Final[dict[str, Capability]] = {c.key: c for c in CAPABILITIES}
 

@@ -15,9 +15,11 @@
  *
  * EVERY LIST COMES FROM THE SERVER, none is typed here. `/catalogue` serves the
  * functions from the same constants the API enforces, so a function cannot
- * appear in a dropdown that no call site checks — and `ui.console_v2`, the
- * temporary switch that admits an account to these redesigned screens, is
- * listed exactly like every other one rather than hidden because it is ours.
+ * appear in a dropdown that no call site checks. That is now true without an
+ * asterisk: `ui.console_v2` — the temporary switch that admitted an account to
+ * the redesigned screens, and the one entry in the catalogue that gated a
+ * client rendering rather than an endpoint — was deleted in Phase 5, so every
+ * function in this dropdown is one the API refuses requests over.
  * `/hierarchy` serves the scope targets the same way, each with the live
  * student count that makes a grant's blast radius a number instead of a name.
  *

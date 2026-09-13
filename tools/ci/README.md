@@ -6,14 +6,14 @@ by a developer on a laptop before pushing, and are advisory by construction. One
 is executed by a repository admin, once, from a terminal, and is the reason the
 first one can fail anything at all.
 
-Every claim in this file was checked against the scripts on 2026-08-28. Where a
+Every claim in this file was checked against the scripts on 2026-09-13. Where a
 script does *not* do something a reader would reasonably assume, that is written
 down here rather than left to be discovered.
 
 | file | what it proves | who runs it | can it block a merge? |
 |---|---|---|---|
 | `check_api_imports.py` | `app/` imports nothing `requirements.txt` fails to declare | CI job **API (dependency completeness)**, every push to `main` and every PR | **not yet** — the job fails, but no check is *required*: `main` has no protection (see `protect-main.sh`) |
-| `preflight.sh` | the four CI jobs, run locally, before you push | a developer, by hand | **no**, and it is not meant to — it is invoked by nothing |
+| `preflight.sh` | all five CI jobs, run locally, before you push | a developer, by hand | **no**, and it is not meant to — it is invoked by nothing |
 | `preflight.ps1` | nothing of its own — it finds `bash` and hands `preflight.sh` the arguments | a developer on Windows | **no** |
 | `protect-main.sh` | nothing; it *applies* branch protection to `main` | a repository admin, by hand, with `gh auth login` | **no** — but every other row's ability to block comes from it |
 
@@ -57,7 +57,7 @@ those had been pip-installed by hand for something else.
 
 ## `preflight.sh`
 
-The four CI jobs, run on your machine, in the order that fails fastest:
+All five CI jobs, run on your machine, in the order that fails fastest:
 
 ```
 ./tools/ci/preflight.sh
@@ -70,7 +70,7 @@ app.seed`, then `pytest`, and on the web side runs `tsc --noEmit`, `ng test
 so a red line here and a red job there are recognisably the same thing.
 
 ```
-./tools/ci/preflight.sh --quick         # the two fast checks only; seconds
+./tools/ci/preflight.sh --quick         # the fast checks only; seconds
 ./tools/ci/preflight.sh --keep-going    # run everything even after a failure
 ./tools/ci/preflight.sh --clean-deps    # dependency checks in a THROWAWAY venv, as CI does
 ./tools/ci/preflight.sh --npm-ci        # npm ci first, as the Web job does
@@ -105,14 +105,26 @@ authority is the required status checks on the pull request — once those exist
 ### What it does *not* run
 
 Named here because the gap is the useful part of this section. `preflight.sh`
-runs **four** checks because `ci.yml` defines four jobs. It does not run
-`alembic check`, it does not assert `alembic heads` prints one row, it does not
-attempt the `downgrade -1 && upgrade head` round trip, and it runs no secret
-scan, no `git check-ignore` assertions and no formatter. Those are steps the
-process documents ask for and **no workflow performs them today** — so preflight
-is not lagging CI, it matches it, and both are silent on the schema mistake that
-is the most common one in this repository (a model changed with no revision, or
-two heads after a rebase). Check those by hand until a job exists:
+runs **five** checks because `ci.yml` defines five jobs — and that matched only
+from Phase 5. It ran four for months, arguing in its own usage text that
+`Infra (CDK synth guards)` "needs its own Python 3.12 environment under
+infra/cdk and only matters when infra/ is touched". Both halves were true and
+neither made it optional: it is a REQUIRED status check, so it runs on every
+pull request whether `infra/` was touched or not, and a red one blocks a merge
+about something else entirely. A local runner that covers four fifths of the
+gate is worse than one that covers none — it teaches you to trust it and then
+lets you push into the fifth. `apps/api-py/tests/test_codebase_guards.py` now
+fails the build if `ci.yml`, `.github/rulesets/main.json`, `protect-main.sh` and
+`preflight.sh` ever name different checks.
+
+What is still missing from all five is schema hygiene. Nothing runs
+`alembic check`, nothing asserts `alembic heads` prints one row, nothing attempts
+the `downgrade -1 && upgrade head` round trip, and there is no secret scan, no
+`git check-ignore` assertion and no formatter. Those are steps the process
+documents ask for and **no workflow performs them today** — so preflight is not
+lagging CI, it matches it, and both are silent on the schema mistake that is the
+most common one in this repository (a model changed with no revision, or two
+heads after a rebase). Check those by hand until a job exists:
 
 ```
 cd apps/api-py && python -m alembic check && python -m alembic heads

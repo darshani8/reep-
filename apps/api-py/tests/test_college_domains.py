@@ -18,7 +18,8 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import String, bindparam, delete, select, text
+from sqlalchemy.dialects.postgresql import ARRAY
 
 from conftest import requires_db
 
@@ -163,20 +164,96 @@ def test_a_batch_resolves_its_college_through_its_department(college):
 
 
 @requires_db
-def test_the_migration_wrote_the_deployments_list_onto_the_college_that_exists():
+def test_the_backfill_records_the_deployments_fence_onto_a_pre_existing_college():
     """The backfill records a fact rather than inventing one: every college that
     existed when B1.1 landed was fenced by the environment list, because that
     was the only fence there had ever been. Writing it down is what makes the
     Colleges screen show the real fence instead of "none recorded", which reads
-    as "no fence at all"."""
+    as "no fence at all".
+
+    THE PRECONDITION IS RECONSTRUCTED, NOT OBSERVED, AND THAT IS THE WHOLE
+    LESSON OF THIS TEST. It was first written to read whichever colleges happen
+    to be on the database and assert that at least one carried the fence. That
+    passed on a developer's machine — whose database HAD colleges when
+    `a1f4c7d92e08` ran — and failed on CI forever, because CI builds a database
+    from nothing: `alembic upgrade head` runs against an EMPTY `colleges` table,
+    so the backfill's UPDATE matches zero rows, and every college the seed then
+    creates takes the column's `'{}'` server default. The assertion was about a
+    population CI does not have and cannot be given, and no amount of re-running
+    would have changed it.
+
+    So this creates a college in exactly the state a pre-B1.1 row was in when the
+    migration reached it — the column at its server default — and runs the
+    migration's own statement against it. Deterministic on any database, and it
+    exercises the SQL rather than an after-effect of it.
+    """
+    domains = sorted(settings.provisionable_email_domains)
+    if not domains:
+        pytest.skip(
+            "this environment names no provisionable domain, so the migration's "
+            "own `if domains:` guard skips the UPDATE too — there is no backfill "
+            "to check, which is correct rather than untested"
+        )
+
+    tag = uuid.uuid4().hex[:6]
+    with SessionLocal() as db:
+        college = College(code=f"BF{tag.upper()}", name="Backfill College", status=STATUS_ACTIVE)
+        db.add(college)
+        db.commit()
+        college_id = college.id
+
+    try:
+        with SessionLocal() as db:
+            fresh = db.get(College, college_id)
+            assert fresh.email_domains == [], (
+                "a new college must start with an empty fence and fall back to "
+                "the environment — this is the state the backfill acted on"
+            )
+
+        # The migration's statement, in the shape `a1f4c7d92e08` runs it. Scoped
+        # to this row by id ONLY because the suite shares a database with other
+        # tests; the migration itself deliberately carries no WHERE, and its
+        # docstring says why — a migration whose only failure mode is doing
+        # nothing is the worst kind to write.
+        with SessionLocal() as db:
+            db.execute(
+                text("UPDATE colleges SET email_domains = :domains WHERE id = :id").bindparams(
+                    bindparam("domains", value=domains, type_=ARRAY(String())),
+                    bindparam("id", value=college_id),
+                )
+            )
+            db.commit()
+
+        with SessionLocal() as db:
+            after = db.get(College, college_id)
+            assert set(after.email_domains) == set(domains), (
+                "the backfill did not write the environment's fence onto the row"
+            )
+            assert all(d == normalise_domain(d) for d in after.email_domains), (
+                f"the backfill stored an unnormalised domain: {after.email_domains}"
+            )
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(College).where(College.id == college_id))
+            db.commit()
+
+
+@requires_db
+def test_no_college_anywhere_holds_a_null_or_unnormalised_fence():
+    """The invariant that DOES hold on every database, including a fresh one.
+
+    `email_domains` is NOT NULL with a `'{}'` server default, so "this college
+    names no domains of its own" is an empty list and never a NULL — which is
+    what lets `provisionable_domains_for` tell that state apart from a fence of
+    its own without a second column saying which. A NULL here would make the
+    fallback unreachable for exactly the rows that need it.
+    """
     with SessionLocal() as db:
         rows = db.scalars(select(College)).all()
         if not rows:
             pytest.skip("no colleges on this database")
-        seeded = [c for c in rows if c.email_domains]
-        assert seeded, "the backfill left every college with an empty fence"
-        for c in seeded:
-            assert set(c.email_domains) <= settings.provisionable_email_domains or True
+        for c in rows:
+            assert c.email_domains is not None, f"{c.code} holds a NULL fence"
             assert all(d == normalise_domain(d) for d in c.email_domains), (
                 f"{c.code} holds an unnormalised domain: {c.email_domains}"
             )

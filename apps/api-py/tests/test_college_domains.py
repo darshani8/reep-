@@ -247,13 +247,34 @@ def test_no_college_anywhere_holds_a_null_or_unnormalised_fence():
     what lets `provisionable_domains_for` tell that state apart from a fence of
     its own without a second column saying which. A NULL here would make the
     fallback unreachable for exactly the rows that need it.
+
+    THE NOT NULL IS ASSERTED AGAINST THE SCHEMA, NOT AGAINST THE ROWS, and the
+    difference came out of mutation-testing this module: deleting a
+    `row.email_domains is not None` check left the suite GREEN, because while the
+    constraint stands no row can violate it and the assertion can never fail. A
+    check that cannot fail is not a check — it reads like one in a diff, which is
+    worse than its absence. What this guard is actually for is a future migration
+    that relaxes the column, so it asks the catalogue whether the constraint is
+    still there. That assertion CAN fail, and the day it does is the day the
+    fallback silently stops being reachable.
     """
     with SessionLocal() as db:
+        nullable = db.scalar(
+            text(
+                "SELECT is_nullable FROM information_schema.columns "
+                "WHERE table_name = 'colleges' AND column_name = 'email_domains'"
+            )
+        )
+        assert nullable == "NO", (
+            "colleges.email_domains became nullable: an empty fence and an "
+            "unrecorded one are now indistinguishable, and the environment "
+            "fallback is unreachable for the rows that need it"
+        )
+
         rows = db.scalars(select(College)).all()
         if not rows:
-            pytest.skip("no colleges on this database")
+            pytest.skip("no colleges on this database to check normalisation on")
         for c in rows:
-            assert c.email_domains is not None, f"{c.code} holds a NULL fence"
             assert all(d == normalise_domain(d) for d in c.email_domains), (
                 f"{c.code} holds an unnormalised domain: {c.email_domains}"
             )

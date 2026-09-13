@@ -62,8 +62,8 @@
  * reaches the screen.
  */
 
-import { Component, ElementRef, computed, signal, viewChild } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
@@ -303,6 +303,17 @@ export class GovernanceComponent {
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
   readonly tab = signal<GovernanceTab>('grants');
+
+  /** `?tab=review` opens the queue directly, so another screen can send an
+   *  admin to the thing they asked for rather than to this screen's front page.
+   *  The Faculty board's "Review expiring grants" is the caller.
+   *
+   *  Read ONCE at construction and never written back: the tab is ordinary
+   *  in-screen state, and pushing every click into the URL would put four
+   *  history entries between an admin and the screen they came from. An
+   *  unrecognised value leaves the default standing rather than blanking the
+   *  screen — a bad query string is somebody's stale bookmark, not an error. */
+  private readonly openedAt = inject(ActivatedRoute).snapshot.queryParamMap.get('tab');
 
   // ---- server data --------------------------------------------------------
   readonly capabilities = signal<CapabilityOut[]>([]);
@@ -1381,6 +1392,10 @@ export class GovernanceComponent {
   });
 
   constructor() {
+    const asked = this.openedAt;
+    if (asked === 'review' || asked === 'grants' || asked === 'catalogue' || asked === 'groups') {
+      this.tab.set(asked);
+    }
     void this.load();
   }
 

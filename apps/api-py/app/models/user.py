@@ -19,6 +19,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     UniqueConstraint,
     func,
@@ -95,6 +96,31 @@ class User(Base):
     # Nullable + unique is the right pair in Postgres: NULLs are not compared,
     # so any number of un-pinned rows coexist.
     google_sub: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
+
+    #: OFFBOARDING (B3.3). Set and the account cannot sign in by any door, and
+    #: every live session is retired with it.
+    #:
+    #: A TIMESTAMP RATHER THAN A BOOLEAN, because "disabled" without "when" is
+    #: unanswerable six months later, and the 90-day window in which enabling
+    #: restores the login is measured from it. Nothing is deleted: the mentor
+    #: notes they wrote, the leave they sanctioned and the evidence they verified
+    #: are part of other people's records and were true when they were written.
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    disabled_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    disable_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    #: What REEP may email this account, as a small JSON object (B15).
+    #:
+    #: JSON rather than a column per switch: these are preferences, they will
+    #: grow, and a migration per digest is a migration nobody will write -- so
+    #: the alternative is a preference that exists on the screen and nowhere
+    #: else. Empty object means "every default", which is what every account has
+    #: today.
+    notification_prefs: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default=text("'{}'::json")
+    )
     # Bumped on logout; carried in the session JWT and compared on the way back
     # in. See app/security.py — this column is the whole of the revocation
     # story, including its honest limits.

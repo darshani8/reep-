@@ -181,8 +181,33 @@ VERDICTS: dict[str, str] = {
     "assistant_feedback": EMPTY,
     # -- logs ---------------------------------------------------------------
     "mail_logs": EMPTY,
-    "redesign_audit_events": EMPTY,
+    # THE AUDIT TRAIL SURVIVES THE PEOPLE IN IT, and this line used to say EMPTY.
+    #
+    # B2.7 requires this table to be append-only and never purged, and the reason
+    # is not paperwork: it records what the OFFICE did — who was approved, who
+    # was granted a capability, who deleted a batch — and the purge is itself one
+    # of the acts somebody may later have to ask about. Emptying it here made the
+    # trail disappear at exactly the moment it mattered, and left the purge with
+    # no record of having run.
+    #
+    # It holds `actor_user_id` values pointing at accounts this purge deletes.
+    # Those columns are nullable and ON DELETE SET NULL, so the rows survive with
+    # the actor anonymised — which is the shape the erasure regimes actually ask
+    # for: remove the person, keep the fact. `entity_id` is a plain string and
+    # not a foreign key, so a row about a deleted student keeps its id and stops
+    # resolving to anybody.
+    "redesign_audit_events": KEEP,
     "redesign_outbox_events": EMPTY,
+    # Sign-ins belong to the person who made them and go with that person.
+    # Unlike the audit trail, nobody else's record depends on them: the FK is
+    # ON DELETE CASCADE and this line agrees with it.
+    "login_events": EMPTY,
+    # An export is an act by a member of STAFF, usually the Main Admin, who
+    # survives this purge — and the fact that a spreadsheet of students left the
+    # building is not erased by deleting the students who were in it. The FK is
+    # SET NULL for the same reason, so a row whose downloader is deleted keeps
+    # the fact and loses the name.
+    "export_events": KEEP,
     "redesign_domain_jobs": EMPTY,
     "redesign_api_idempotency_keys": EMPTY,
 }

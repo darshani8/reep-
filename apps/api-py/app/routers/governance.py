@@ -1,9 +1,23 @@
 """Governance — the Main Admin console's access endpoints.
 
-ADMIN ONLY throughout - the Main Admin - via `require_admin` imported from
-mentor.py rather than reimplemented. REEP has one Main Admin, and deciding what
-faculty may see is that account's instrument alone: the Main Admin holds every
-console screen by baseline and is still refused here, by name. Two instruments with opposite defaults, kept apart here as
+GATED ON `admin.governance` THROUGHOUT (B2.6), not on the ADMIN role.
+
+It was `require_admin` at every call site, and for good reasons that have not
+changed: REEP has one Main Admin, and deciding what faculty may see is that
+account's instrument. The capability keeps that as the DEFAULT -- the Main Admin
+holds `admin.governance` by baseline and nobody else holds anything -- and adds
+one thing the role gate could not express: a DEPUTY. When the office account is
+unreachable and a grant has to be made, the alternative to a deputy is sharing
+the Main Admin's mailbox, which is worse in every way and leaves an audit trail
+naming the wrong person.
+
+So the deputy is a grant like any other: one key, one named faculty member, a
+typed reason, an audit row, revocable in one click. `_refuse_second_main_admin`
+in `app/grant_access.py` is UNTOUCHED and must stay so -- a deputy is not a
+second Main Admin, holds exactly this one key and nothing else, and cannot mint
+an ADMIN account. `tests/test_governance_delegation.py` pins both halves.
+
+Two instruments with opposite defaults, kept apart here as
 they are in the model:
 
     /grants    capability grants for staff. Deny past the role baseline.
@@ -19,6 +33,13 @@ existing writer, rather than a second audit table. It already records actor,
 entity, action, before/after and the route; a parallel implementation would be
 the copy that stops matching.
 
+A `carries_pii` CAPABILITY NEEDS TWO PEOPLE (B2.4). The grant is written
+`pending_approval` and holds nothing until a DIFFERENT holder of
+`admin.governance` approves it; `granted_capabilities` and `granted_reaches`
+both ignore a pending row, so the state is enforced where access is resolved and
+not only on the screen that shows it. The approver may not be the granter, which
+is the only part of a four-eyes rule that actually does anything.
+
 THE CATALOGUE ENDPOINTS EXIST FOR THE DROPDOWNS. `/catalogue` and `/hierarchy`
 serve exactly what the console's selects need, from the same constants the
 enforcement reads — so a capability the API does not know can never appear in the
@@ -27,23 +48,28 @@ list an admin picks from.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from .. import policies
 from ..architecture_events import record_change
 from ..db import get_db
-from ..governance import capabilities_for, granted_capabilities
+from ..governance import capabilities_for, granted_capabilities, require_capability
 from ..identity import get_current_session
 from ..models.cohort import Cohort
 from ..models.governance import (
+    APPROVAL_ACTIVE,
+    APPROVAL_PENDING,
     CAPABILITIES,
     CAPABILITIES_BY_KEY,
     FEATURES,
     FEATURES_BY_KEY,
+    REVIEW_AFTER_DAYS,
+    REVIEW_HORIZON_DAYS,
     AccessGroup,
     AccessGroupMember,
     CapabilityGrant,
@@ -59,9 +85,31 @@ from ..models.institution import (
     Department,
 )
 from ..models.user import Role, Student, User
-from .mentor import require_admin
 
 router = APIRouter(prefix="/admin/governance", tags=["governance"])
+
+#: B2.6. Declared once and passed by name at every call site, so the gate reads
+#: the same everywhere and `tools/ci/check_capability_enforcement.py` can resolve
+#: it without a grep for string literals.
+GOVERNANCE_CAPABILITY = "admin.governance"
+
+
+def require_governance(db: Session, session: dict) -> None:
+    """The one gate on this router: staff, holding `admin.governance`.
+
+    A ROLE FLOOR UNDER A CAPABILITY, which is the house pattern (see
+    `require_staff` under `mentor.notebook` in redesign.py). The floor is not
+    redundant with the capability: it is the thing that keeps a STUDENT or
+    ALUMNI session out of this router even in the presence of a grant row
+    somebody wrote by hand, and it answers before any database read.
+
+    REPLACES `require_admin`, which is why this is a function and not four lines
+    inlined sixteen times: the Main Admin holds `admin.governance` by baseline,
+    so nothing changes for the office account, and a deputy now exists that the
+    role gate could not express (see the module docstring).
+    """
+    policies.require_staff(session)
+    require_capability(db, session, GOVERNANCE_CAPABILITY)
 
 #: Long enough that "asdf" and "ok" do not pass, short enough that a real
 #: sentence does. A trail of one-word reasons is indistinguishable from none.
@@ -86,6 +134,19 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _aware(value: datetime | None) -> datetime | None:
+    """Read a naive datetime as UTC before comparing it with one.
+
+    JSON has no timezone rule, so `"2026-12-01T00:00:00"` arrives naive from a
+    perfectly ordinary client and `naive <= aware` raises TypeError — a 500 on
+    an admin extending a grant, caused by a missing `Z`. Assuming UTC matches
+    what the column stores and what every other date in this API means.
+    """
+    if value is None or value.tzinfo is not None:
+        return value
+    return value.replace(tzinfo=timezone.utc)
+
+
 # --------------------------------------------------------------------------- #
 # Catalogue + hierarchy — the dropdown sources
 # --------------------------------------------------------------------------- #
@@ -100,6 +161,13 @@ class CapabilityOut(BaseModel):
 class FeatureOut(BaseModel):
     key: str
     label: str
+    #: Does a router actually ask about this key (B2.2)? False means the switch
+    #: is inert, the screen must say so, and `PUT /features` REFUSES to set one
+    #: — see `set_override`. Served rather than mirrored in the client for the
+    #: reason the whole catalogue is: a hand-maintained list of what the server
+    #: enforces is right only on the day somebody wrote it, and the Phase 2
+    #: screen carried exactly such a list with a comment saying so.
+    enforced: bool
 
 
 class CatalogueOut(BaseModel):
@@ -119,13 +187,15 @@ def catalogue(
     a dropdown that no call site checks — the row that names a promise the API
     does not keep.
     """
-    require_admin(session)
+    require_governance(db, session)
     return CatalogueOut(
         capabilities=[
             CapabilityOut(key=c.key, label=c.label, scope=c.scope.value, carries_pii=c.carries_pii)
             for c in CAPABILITIES
         ],
-        features=[FeatureOut(key=f.key, label=f.label) for f in FEATURES],
+        features=[
+            FeatureOut(key=f.key, label=f.label, enforced=f.enforced) for f in FEATURES
+        ],
         min_reason_chars=MIN_REASON_CHARS,
     )
 
@@ -151,7 +221,7 @@ def hierarchy(
     cohort may attach at department, course or specialization depth and only its
     own columns say which.
     """
-    require_admin(session)
+    require_governance(db, session)
 
     def counts(column) -> dict[str, int]:
         rows = db.execute(
@@ -214,7 +284,7 @@ def staff(
     """The people a capability can be granted to. Staff only — a capability is
     a staff instrument, and offering a STUDENT in the picker would invite an
     admin to grant one and wonder why nothing changed."""
-    require_admin(session)
+    require_governance(db, session)
     rows = db.scalars(
         select(User).where(User.role.in_([Role.MENTOR, Role.ADMIN])).order_by(User.name)
     ).all()
@@ -250,6 +320,14 @@ class GrantOut(BaseModel):
     capability: str
     capability_label: str
     scope: str
+    #: B2.4. The console paints a pending row differently and offers Approve on
+    #: it; a client that does not know the field yet simply shows a grant that is
+    #: listed and not yet working, which is the truth.
+    carries_pii: bool = False
+    approval_state: str = APPROVAL_ACTIVE
+    approved_by: str | None = None
+    approved_at: datetime | None = None
+    review_at: datetime | None = None
     subject_kind: str
     subject_id: str
     subject_label: str
@@ -270,11 +348,17 @@ def _grant_out(db: Session, g: CapabilityGrant) -> GrantOut:
         grp = db.get(AccessGroup, subject_id) if subject_id else None
         label = grp.name if grp else "(removed group)"
     granter = db.get(User, g.granted_by_user_id) if g.granted_by_user_id else None
+    approver = db.get(User, g.approved_by_user_id) if g.approved_by_user_id else None
     return GrantOut(
         id=g.id,
         capability=g.capability,
         capability_label=cap.label if cap else g.capability,
         scope=cap.scope.value if cap else "UNKNOWN",
+        carries_pii=bool(cap.carries_pii) if cap else False,
+        approval_state=g.approval_state,
+        approved_by=(approver.name or approver.email) if approver else None,
+        approved_at=g.approved_at,
+        review_at=g.review_at,
         subject_kind=g.subject_kind.value,
         subject_id=subject_id,
         subject_label=label,
@@ -290,9 +374,18 @@ def list_grants(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[GrantOut]:
-    """Live grants only. Revoked and lapsed ones stay in the table and are read
-    from the audit trail, which is where "who held this in March" belongs."""
-    require_admin(session)
+    """Live grants only — INCLUDING the ones awaiting a second approval.
+
+    Revoked and lapsed ones stay in the table and are read from the audit trail,
+    which is where "who held this in March" belongs.
+
+    A `pending_approval` row is listed on purpose, with its state on the row: it
+    is a decision somebody made that has not taken effect, and hiding it until it
+    works would mean the grant an admin just wrote is missing from the screen
+    that is supposed to show what they did. `GET /review` is the queue; this is
+    the register.
+    """
+    require_governance(db, session)
     now = _now()
     rows = db.scalars(
         select(CapabilityGrant)
@@ -322,7 +415,7 @@ def create_grants(
     Re-granting something already held is a no-op rather than a duplicate: two
     live rows for the same pair make revocation a question of which one.
     """
-    require_admin(session)
+    require_governance(db, session)
     reason = _reason(body.reason)
     if not body.user_ids and not body.group_ids:
         raise HTTPException(
@@ -331,9 +424,28 @@ def create_grants(
         )
 
     now = _now()
+    cap = CAPABILITIES_BY_KEY[body.capability]
+    # B2.4. A capability that shows a student's own record needs two people: the
+    # row is written, listed and audited, and holds NOTHING until a different
+    # holder of `admin.governance` approves it.
+    approval_state = APPROVAL_PENDING if cap.carries_pii else APPROVAL_ACTIVE
+    # A grant with an expiry reviews AT that expiry -- the queue shows it as
+    # running out, and the admin extends it or lets it lapse. One with no expiry
+    # is the grant that most needs a date, because nothing else will ever bring
+    # it back to anybody's attention.
+    review_at = _aware(body.expires_at) or (now + timedelta(days=REVIEW_AFTER_DAYS))
     created: list[CapabilityGrant] = []
 
     def already_live(kind: SubjectKind, subject_id: str) -> bool:
+        """Is there already a row for this pair that has not ended?
+
+        A `pending_approval` row COUNTS, deliberately, and this query is
+        unfiltered by `approval_state` for that reason rather than by omission.
+        Granting twice while the first is awaiting approval would leave two rows
+        for one decision, and the second approval would then have to pick one —
+        which is the same ambiguity the no-duplicates rule exists to prevent,
+        arriving through the one door that does not yet grant anything.
+        """
         col = (
             CapabilityGrant.subject_user_id
             if kind == SubjectKind.USER
@@ -361,6 +473,10 @@ def create_grants(
         created.append(CapabilityGrant(
             capability=body.capability, subject_kind=SubjectKind.USER, subject_user_id=uid,
             reason=reason, granted_by_user_id=session["userId"], expires_at=body.expires_at,
+            approval_state=approval_state, review_at=review_at,
+            # B2.5. The role this decision was made about. `granted_capabilities`
+            # stops counting the row if the account becomes something else.
+            role_at_grant=user.role.value,
         ))
 
     for gid in body.group_ids:
@@ -373,13 +489,18 @@ def create_grants(
         created.append(CapabilityGrant(
             capability=body.capability, subject_kind=SubjectKind.GROUP, subject_group_id=gid,
             reason=reason, granted_by_user_id=session["userId"], expires_at=body.expires_at,
+            approval_state=approval_state, review_at=review_at,
+            # `role_at_grant` STAYS NULL ON A GROUP GRANT, and that is right
+            # rather than lazy: the decision names "the placement coordinators",
+            # not a role, and there is no single account whose role could later
+            # contradict it. Membership is staff-only and checked when somebody
+            # joins, which is where that question belongs.
         ))
 
     for g in created:
         db.add(g)
     db.flush()
 
-    cap = CAPABILITIES_BY_KEY[body.capability]
     for g in created:
         record_change(
             db, session=session, request=request, tenant_id=None,
@@ -391,6 +512,10 @@ def create_grants(
                 "subject_id": g.subject_user_id or g.subject_group_id,
                 "reason": reason,
                 "expires_at": body.expires_at.isoformat() if body.expires_at else None,
+                "review_at": review_at.isoformat(),
+                "approval_state": approval_state,
+                "carries_pii": cap.carries_pii,
+                "role_at_grant": g.role_at_grant,
                 "batch_size": len(created),
             },
             event_type="governance.capability.granted",
@@ -416,7 +541,7 @@ def revoke_grant(
 ) -> GrantOut:
     """Stamp, never delete. "Who held exports last March, and who signed it off"
     has to stay answerable after the answer stops being current."""
-    require_admin(session)
+    require_governance(db, session)
     reason = _reason(body.reason)
     g = db.get(CapabilityGrant, grant_id)
     if g is None:
@@ -438,6 +563,222 @@ def revoke_grant(
     return _grant_out(db, g)
 
 
+class ApproveIn(BaseModel):
+    reason: str
+
+
+@router.post("/grants/{grant_id}/approve", response_model=GrantOut)
+def approve_grant(
+    grant_id: str,
+    body: ApproveIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> GrantOut:
+    """The second pair of eyes on a `carries_pii` grant (B2.4).
+
+    THE SELF-APPROVAL REFUSAL IS THE WHOLE FEATURE. Everything else here —
+    the state column, the check constraint, the four readers that honour it — is
+    bookkeeping around one sentence: the person who decided cannot be the person
+    who agreed. Drop that one check and the flow still works end to end, still
+    writes two audit rows, still paints a pending badge and still shows an
+    approver's name, and protects nobody at all. `tests/test_governance_review.py`
+    asserts it in both directions, because an implementation that refuses the
+    granter but admits anybody else is no better.
+
+    It is the GRANTER that is refused, not the SUBJECT. A Main Admin approving a
+    grant made to themselves by somebody else is fine and is the ordinary shape
+    of "the office was given exports by the deputy"; what must not happen is one
+    person writing and agreeing to the same row.
+    """
+    require_governance(db, session)
+    reason = _reason(body.reason)
+    g = db.get(CapabilityGrant, grant_id)
+    if g is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Grant not found.")
+    if g.revoked_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="That grant was revoked. Grant it again if it is still wanted.",
+        )
+    if g.approval_state == APPROVAL_ACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="That grant is already active."
+        )
+    if g.granted_by_user_id and g.granted_by_user_id == session.get("userId"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You granted this, so you cannot also approve it. A capability that "
+                "carries a student's own records needs a second person holding "
+                "Governance — grant a colleague the Governance capability if there "
+                "is nobody who can."
+            ),
+        )
+    g.approval_state = APPROVAL_ACTIVE
+    g.approved_by_user_id = session["userId"]
+    g.approved_at = _now()
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="capability_grant", entity_id=g.id, action="APPROVED",
+        before={"approval_state": APPROVAL_PENDING, "capability": g.capability},
+        after={
+            "approval_state": APPROVAL_ACTIVE,
+            "capability": g.capability,
+            "granted_by": g.granted_by_user_id,
+            "reason": reason,
+        },
+        event_type="governance.capability.approved", payload={"capability": g.capability},
+    )
+    db.commit()
+    db.refresh(g)
+    return _grant_out(db, g)
+
+
+class ExtendIn(BaseModel):
+    reason: str
+    expires_at: datetime | None = None
+    review_at: datetime | None = None
+
+
+@router.post("/grants/{grant_id}/extend", response_model=GrantOut)
+def extend_grant(
+    grant_id: str,
+    body: ExtendIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> GrantOut:
+    """Push out the expiry, the review date, or both — with a fresh reason.
+
+    THE REASON IS RETYPED, NOT INHERITED. "Still needed" is a different decision
+    from "needed", made months later by somebody who may not be the person who
+    made the first one, and a review that copies the original reason forward
+    produces a trail where every grant looks as though it was justified once and
+    never questioned. That is the failure mode the review queue exists to break.
+
+    A LAPSED GRANT IS NOT EXTENDED, IT IS GRANTED AGAIN (409). Reviving a row
+    whose expiry has passed would restore access silently on the strength of a
+    decision that has already ended, and the original reason would be doing work
+    on a day nobody chose. Re-granting costs one request and writes a row that
+    says what it is.
+
+    Shortening is allowed and is not a special case: bringing an expiry forward
+    is a narrowing, and the one thing this refuses is a date in the past, which
+    would be a revocation wearing the wrong verb (`/revoke` records who and why).
+    """
+    require_governance(db, session)
+    reason = _reason(body.reason)
+    if body.expires_at is None and body.review_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Name a new expiry, a new review date, or both.",
+        )
+    g = db.get(CapabilityGrant, grant_id)
+    if g is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Grant not found.")
+    if g.revoked_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="That grant was revoked."
+        )
+    now = _now()
+    new_expires_at, new_review_at = _aware(body.expires_at), _aware(body.review_at)
+    if g.expires_at is not None and g.expires_at <= now:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "That grant has already lapsed. Grant it again, with a reason for "
+                "why it is needed now."
+            ),
+        )
+    for label, value in (("expiry", new_expires_at), ("review date", new_review_at)):
+        if value is not None and value <= now:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"The new {label} is in the past.",
+            )
+    before = {
+        "expires_at": g.expires_at.isoformat() if g.expires_at else None,
+        "review_at": g.review_at.isoformat() if g.review_at else None,
+    }
+    if new_expires_at is not None:
+        g.expires_at = new_expires_at
+    if new_review_at is not None:
+        g.review_at = new_review_at
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="capability_grant", entity_id=g.id, action="EXTENDED",
+        before=before,
+        after={
+            "capability": g.capability,
+            "expires_at": g.expires_at.isoformat() if g.expires_at else None,
+            "review_at": g.review_at.isoformat() if g.review_at else None,
+            "reason": reason,
+        },
+        event_type="governance.capability.extended", payload={"capability": g.capability},
+    )
+    db.commit()
+    db.refresh(g)
+    return _grant_out(db, g)
+
+
+class ReviewOut(BaseModel):
+    horizon_days: int
+    pending: list[GrantOut]
+    expiring: list[GrantOut]
+
+
+@router.get("/review", response_model=ReviewOut)
+def review_queue(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> ReviewOut:
+    """The two lists an admin has to act on: waiting on them, and running out.
+
+    TWO LISTS AND NOT ONE, because they need opposite actions. A pending grant
+    holds nothing and somebody is waiting; an expiring grant is working now and
+    will stop. Merging them into "needs attention" would put the urgent one
+    behind the routine one on the day they collide.
+
+    EXPIRING IS `expires_at` OR `review_at`, whichever falls inside the horizon.
+    A grant with no expiry never appears on an expiry-only queue, which is
+    exactly the grant that most needs looking at — the one issued for a November
+    audit that is still held in March. That is what `review_at` is for, and a
+    queue that read only the expiry would have made the column decorative.
+    """
+    require_governance(db, session)
+    now = _now()
+    horizon = now + timedelta(days=REVIEW_HORIZON_DAYS)
+    unfinished = (
+        CapabilityGrant.revoked_at.is_(None),
+        or_(CapabilityGrant.expires_at.is_(None), CapabilityGrant.expires_at > now),
+    )
+    pending = db.scalars(
+        select(CapabilityGrant)
+        .where(*unfinished, CapabilityGrant.approval_state == APPROVAL_PENDING)
+        .order_by(CapabilityGrant.granted_at.asc())
+    ).all()
+    expiring = db.scalars(
+        select(CapabilityGrant)
+        .where(
+            *unfinished,
+            CapabilityGrant.approval_state == APPROVAL_ACTIVE,
+            or_(
+                CapabilityGrant.expires_at <= horizon,
+                CapabilityGrant.review_at <= horizon,
+            ),
+        )
+        .order_by(
+            func.coalesce(CapabilityGrant.expires_at, CapabilityGrant.review_at).asc()
+        )
+    ).all()
+    return ReviewOut(
+        horizon_days=REVIEW_HORIZON_DAYS,
+        pending=[_grant_out(db, g) for g in pending],
+        expiring=[_grant_out(db, g) for g in expiring],
+    )
+
+
 @router.get("/effective/{user_id}", response_model=list[str])
 def effective_capabilities(
     user_id: str,
@@ -450,7 +791,7 @@ def effective_capabilities(
     thing: a mentor holds sixteen scoped capabilities with no grant at all, and an
     admin looking only at grants would conclude they hold nothing.
     """
-    require_admin(session)
+    require_governance(db, session)
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
@@ -486,12 +827,20 @@ def _group_out(db: Session, grp: AccessGroup) -> GroupOut:
         .where(AccessGroupMember.group_id == grp.id).order_by(User.name)
     ).scalars().all()
     now = _now()
+    # THE FOURTH READER OF A GRANT, and the one that forgot. B2.4's approval
+    # state is enforced in `governance._live_grant_clauses`, which is what
+    # `granted_capabilities` asks — but this screen builds the group card from
+    # its own query, so a `pending_approval` grant was listed here as a
+    # capability the group HOLDS while resolving to nothing on every request.
+    # A console that reports access the API does not give is worse than one that
+    # reports none: nobody goes looking for the bug.
     caps = db.scalars(
         select(CapabilityGrant.capability).where(
             CapabilityGrant.subject_kind == SubjectKind.GROUP,
             CapabilityGrant.subject_group_id == grp.id,
             CapabilityGrant.revoked_at.is_(None),
             or_(CapabilityGrant.expires_at.is_(None), CapabilityGrant.expires_at > now),
+            CapabilityGrant.approval_state == APPROVAL_ACTIVE,
         )
     ).all()
     return GroupOut(
@@ -506,7 +855,7 @@ def list_groups(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[GroupOut]:
-    require_admin(session)
+    require_governance(db, session)
     return [_group_out(db, g) for g in db.scalars(select(AccessGroup).order_by(AccessGroup.name)).all()]
 
 
@@ -517,7 +866,7 @@ def create_group(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> GroupOut:
-    require_admin(session)
+    require_governance(db, session)
     if db.scalar(select(AccessGroup.id).where(AccessGroup.name == body.name.strip())):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A group with that name exists.")
     grp = AccessGroup(
@@ -552,7 +901,7 @@ def add_members(
 ) -> GroupOut:
     """Adding a member hands them every capability the group holds, so it is
     audited exactly like a grant and asks for the same reason."""
-    require_admin(session)
+    require_governance(db, session)
     reason = _reason(body.reason)
     grp = db.get(AccessGroup, group_id)
     if grp is None:
@@ -588,7 +937,7 @@ def remove_member(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> GroupOut:
-    require_admin(session)
+    require_governance(db, session)
     grp = db.get(AccessGroup, group_id)
     if grp is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
@@ -618,6 +967,12 @@ class OverrideIn(BaseModel):
     enabled: bool = False
     reason: str
     expires_at: datetime | None = None
+    #: What the STUDENT reads at the refusal. SEPARATE FROM `reason`, which is
+    #: the office's note to itself and is nobody else's business — "withheld
+    #: pending the disciplinary meeting" is a true reason and not a sentence to
+    #: put on somebody's screen. Optional: null means the feature is simply
+    #: absent from their console, and explaining is not always kind.
+    student_message: str | None = Field(default=None, max_length=500)
 
     @field_validator("feature")
     @classmethod
@@ -631,11 +986,15 @@ class OverrideOut(BaseModel):
     id: str
     feature: str
     feature_label: str
+    #: False when no router asks about this key. The screen shows "not wired
+    #: yet" and `PUT /features` would have refused it.
+    feature_enforced: bool
     scope: str
     target_id: str
     target_label: str
     enabled: bool
     reason: str
+    student_message: str | None
     set_by: str | None
     set_at: datetime
     expires_at: datetime | None
@@ -689,9 +1048,10 @@ def _override_out(db: Session, o: FeatureOverride) -> OverrideOut:
     setter = db.get(User, o.set_by_user_id) if o.set_by_user_id else None
     return OverrideOut(
         id=o.id, feature=o.feature, feature_label=feat.label if feat else o.feature,
+        feature_enforced=bool(feat and feat.enforced),
         scope=o.scope.value, target_id=o.target_id,
         target_label=_target_label(db, o.scope, o.target_id),
-        enabled=o.enabled, reason=o.reason,
+        enabled=o.enabled, reason=o.reason, student_message=o.student_message,
         set_by=(setter.name or setter.email) if setter else None,
         set_at=o.set_at, expires_at=o.expires_at,
         students_affected=_students_affected(db, o.scope, o.target_id),
@@ -703,7 +1063,7 @@ def list_overrides(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[OverrideOut]:
-    require_admin(session)
+    require_governance(db, session)
     rows = db.scalars(select(FeatureOverride).order_by(FeatureOverride.set_at.desc())).all()
     return [_override_out(db, o) for o in rows]
 
@@ -722,8 +1082,27 @@ def set_override(
     two rows, and deleting the broader one would turn it on for the other
     eighty-five. Use DELETE to remove a rule entirely.
     """
-    require_admin(session)
+    require_governance(db, session)
     reason = _reason(body.reason)
+    # A SWITCH THAT DOES NOTHING MUST NOT BE SETTABLE (B2.2). Refused in both
+    # directions, not only "off": an `enabled=True` row on an unwired key is
+    # equally a promise this API does not keep, it is indistinguishable on the
+    # screen from a rule that is doing something, and `enabled=True` is the
+    # default state anyway — so nothing is lost by refusing it and a stale
+    # client cannot write a row that reads as enforcement.
+    #
+    # 422 rather than 403: the caller holds the capability and the request is
+    # well-formed; it is the FEATURE that cannot accept a rule yet. A 403 here
+    # would send an admin looking for a grant that would change nothing.
+    feature = FEATURES_BY_KEY[body.feature]
+    if not feature.enforced:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"'{feature.label}' is not wired to anything yet, so a rule here would "
+                "be recorded and ignored. It cannot be switched until the API enforces it."
+            ),
+        )
     if _target_label(db, body.scope, body.target_id).startswith("(removed"):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -739,17 +1118,22 @@ def set_override(
         row = FeatureOverride(
             feature=body.feature, scope=body.scope, target_id=body.target_id,
             enabled=body.enabled, reason=reason, set_by_user_id=session["userId"],
-            expires_at=body.expires_at,
+            expires_at=body.expires_at, student_message=body.student_message,
         )
         db.add(row)
         db.flush()
     else:
-        before = {"enabled": existing.enabled, "reason": existing.reason}
+        before = {
+            "enabled": existing.enabled,
+            "reason": existing.reason,
+            "student_message": existing.student_message,
+        }
         existing.enabled = body.enabled
         existing.reason = reason
         existing.set_by_user_id = session["userId"]
         existing.set_at = _now()
         existing.expires_at = body.expires_at
+        existing.student_message = body.student_message
         row = existing
     record_change(
         db, session=session, request=request, tenant_id=None,
@@ -759,6 +1143,9 @@ def set_override(
         after={
             "feature": body.feature, "scope": body.scope.value, "target_id": body.target_id,
             "enabled": body.enabled, "reason": reason,
+            # On the trail because it is the sentence a student was shown, and
+            # "what were they told" is a question somebody asks afterwards.
+            "student_message": body.student_message,
             "students_affected": _students_affected(db, body.scope, body.target_id),
         },
         event_type="governance.feature.set", payload={"feature": body.feature},
@@ -776,7 +1163,7 @@ def clear_override(
     db: Session = Depends(get_db),
 ):
     """Remove the rule entirely, so the next rung up decides again."""
-    require_admin(session)
+    require_governance(db, session)
     row = db.get(FeatureOverride, override_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Override not found.")

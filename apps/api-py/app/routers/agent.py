@@ -113,7 +113,7 @@ from .. import knowledge
 from ..ai import orchestrator
 from ..ai.llm import complete_chat, llm_config, stream_chat
 from ..db import SessionLocal, get_db
-from ..governance import require_capability
+from ..governance import require_capability, require_feature
 from ..identity import get_current_session
 from ..models.agent_run import AgentRun, AgentRunStatus
 from ..models.conversation import Message
@@ -296,7 +296,10 @@ def _persist_run(
 
 
 def _require_agent_access(db: Session, session: dict) -> None:
-    """`mentor.agent` for staff. For a student, nothing — deliberately.
+    """`mentor.agent` for staff, the `student.agent` FEATURE for a student.
+
+    TWO INSTRUMENTS, ONE ENDPOINT, AND THEY ARE NOT INTERCHANGEABLE — that is
+    the whole reason this function has a role branch instead of a single call.
 
     THE ROLE BRANCH IS THE WHOLE DESIGN AND IT CANNOT BE AN UNCONDITIONAL CALL.
     `ROLE_BASELINE["STUDENT"]` and `["ALUMNI"]` are `frozenset()`, and a student
@@ -305,11 +308,12 @@ def _require_agent_access(db: Session, session: dict) -> None:
     in would 403 every student in the deployment on the deploy that shipped it,
     which is the failure mode `CAPABILITIES`' own docstring calls "a deny-by-
     default rollout". Whether a STUDENT has the agent at all is a FeatureOverride
-    question (`student.agent`, B2.2), which is allow-by-default and answered with
-    the override's own message — not a capability, which is deny-by-default and
-    answered with "ask an administrator".
+    question (`student.agent`), which is allow-by-default and answered with the
+    override's own message — not a capability, which is deny-by-default and
+    answered with "ask an administrator". B2.2 made that second half real; see
+    the branch below.
 
-    So this gates the STAFF surface only: the REEP Agent screen routed at
+    The capability half gates the STAFF surface: the REEP Agent screen routed at
     /mentor/agent and /admin/agent. Both staff roles hold `mentor.agent` by
     baseline today, so nothing changes for anybody — the point is that the key
     now HAS a call site, so the Governance row means something the day the
@@ -325,6 +329,19 @@ def _require_agent_access(db: Session, session: dict) -> None:
     """
     if str(session.get("role") or "") in STAFF_ROLES:
         require_capability(db, session, "mentor.agent")
+        return
+    # And the student half, which B2.2 filled in. The docstring above has said
+    # since B2.1 that "whether a STUDENT has the agent at all is a
+    # FeatureOverride question"; until now that sentence described an intention
+    # and no code, so `student.agent` could be switched off in Governance and
+    # the student kept chatting. Same three endpoints, opposite instrument:
+    # allow-by-default, refused with the office's own message.
+    #
+    # `require_feature` takes the claim as-is: a STUDENT session with no
+    # `studentId` (a User row with no Student row) is not somebody an override
+    # can describe, so there is nothing to refuse and the orchestrator's own
+    # non-student path already handles what it can answer for them.
+    require_feature(db, session.get("studentId"), "student.agent")
 
 
 @router.post(

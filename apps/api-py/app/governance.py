@@ -5,6 +5,17 @@ Two questions, two functions, and they are deliberately not the same shape:
     has_capability(db, session, key)      -> bool   staff, deny past the baseline
     feature_enabled(db, student_id, key)  -> bool   students, allow until switched off
 
+and each has the refusal that goes with it, which is what the routers call:
+
+    require_capability(db, session, key)  -> 403 "an administrator can grant it"
+    require_feature(db, student_id, key)  -> 403 in the office's OWN WORDS
+
+The asymmetry in those two sentences is the asymmetry in the model. A missing
+capability is a staff member asking for something they were never given, and the
+fix is a grant. A switched-off feature is something a student HAD and the office
+took away for a stated reason, and the fix is a conversation — so the refusal
+carries `student_message` from the winning override rather than boilerplate.
+
 RULE 2 IS NOT IN THIS FILE, ON PURPOSE. `_assert_can_access_student` decides
 WHICH STUDENTS a staff member may reach and lives in routers/mentor.py; this
 decides WHICH SCREENS. Both must pass and they are checked separately, so a
@@ -18,6 +29,7 @@ workers until the next deploy.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Final
 
@@ -113,39 +125,86 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _live_grant_clauses(now: datetime) -> tuple:
+def _live_grant_clauses(now: datetime, role: str | None = None) -> tuple:
     """What makes a grant count, in SQL. ONE definition, used by every reader.
 
-    Three conditions, and the third was missing. Not revoked and not expired
-    were always filtered here — in SQL rather than in Python, so a long-expired
-    grant never reaches the process at all. `approval_state` was added for
-    B2.4's two-person rule, written on every row, carried a check constraint and
-    a docstring about four-eyes approval — and was read by NO query, so a grant
-    awaiting a second Main Admin was fully live the moment it was inserted.
+    Four conditions, and two of them were missing at one time or another. Not
+    revoked and not expired were always filtered here — in SQL rather than in
+    Python, so a long-expired grant never reaches the process at all.
+    `approval_state` was added for B2.4's two-person rule, written on every row,
+    carried a check constraint and a docstring about four-eyes approval — and
+    was read by NO query, so a grant awaiting a second Main Admin was fully live
+    the moment it was inserted.
 
-    A shared tuple rather than the same condition written twice, because
+    `role_at_grant` is B2.5's, and it is the same shape of hole. A grant is a
+    decision about a person IN A ROLE — "this MENTOR may read the registrations
+    queue". Change the account's role and the sentence stops describing anybody,
+    so the grant must stop counting; a grant that silently survives a role change
+    is how a demoted account keeps a console screen with a live audit row saying
+    it was given one.
+
+    NULL `role_at_grant` IS HONOURED, NOT REFUSED. It means "granted before this
+    column existed": the backfill cannot know which role was held at the time,
+    and guessing would revoke real access on the deploy that shipped the guess.
+    It is also what every GROUP grant carries, correctly — a grant to "the
+    placement coordinators" is a decision about the group, and the role that
+    matters there is the one each member holds when they join, which
+    `AccessGroupMember` and the staff-only membership check already decide.
+
+    `role` is optional so a caller that has not resolved one does not silently
+    get an unfiltered read: every caller in this module passes it, and the
+    parameter exists for the reads that genuinely have no subject (there are
+    none today, and the next one should think about it rather than inherit a
+    default).
+
+    A shared tuple rather than the same conditions written four times, because
     `granted_capabilities` and `granted_reaches` ARE one question asked two
-    ways, and a condition living in two places is exactly how the third one
+    ways, and a condition living in two places is exactly how the approval one
     came to be missing from both.
     """
-    return (
+    clauses = (
         CapabilityGrant.revoked_at.is_(None),
         or_(CapabilityGrant.expires_at.is_(None), CapabilityGrant.expires_at > now),
         CapabilityGrant.approval_state == APPROVAL_ACTIVE,
     )
+    if role is None:
+        return clauses
+    return (
+        *clauses,
+        or_(
+            CapabilityGrant.role_at_grant.is_(None),
+            CapabilityGrant.role_at_grant == role,
+        ),
+    )
+
+
+def current_role_of(db: Session, user_id: str) -> str | None:
+    """The role on the ROW, not the one in the session cookie.
+
+    A session is a signed snapshot minted at sign-in. A role change bumps
+    `token_version` and retires it, but the question "does this grant still
+    describe this person" is asked on every request including the ones made with
+    a cookie that has not been rejected yet — and answering it from the claim
+    would let the stale claim vouch for the stale grant.
+    """
+    if not user_id:
+        return None
+    role = db.scalar(select(User.role).where(User.id == user_id))
+    return getattr(role, "value", role) if role is not None else None
 
 
 def granted_capabilities(db: Session, user_id: str) -> frozenset[str]:
     """Capabilities this user holds by grant — directly, or through a group.
 
-    Live means: not revoked, and either no expiry or an expiry still ahead. Both
-    are filtered in SQL rather than in Python so a long-expired grant never
-    reaches the process at all.
+    Live means: not revoked, not expired, approved, and still describing the role
+    this account holds today — `_live_grant_clauses` is the one place that says
+    so, and all four are filtered in SQL rather than in Python so a long-expired
+    grant never reaches the process at all.
     """
     if not user_id:
         return frozenset()
     now = _now()
-    live = _live_grant_clauses(now)
+    live = _live_grant_clauses(now, current_role_of(db, user_id))
     direct = select(CapabilityGrant.capability).where(
         CapabilityGrant.subject_kind == SubjectKind.USER,
         CapabilityGrant.subject_user_id == user_id,
@@ -187,7 +246,10 @@ def granted_reaches(db: Session, user_id: str, key: str) -> list[tuple[ScopeLeve
     if not user_id:
         return []
     now = _now()
-    live = (CapabilityGrant.capability == key, *_live_grant_clauses(now))
+    live = (
+        CapabilityGrant.capability == key,
+        *_live_grant_clauses(now, current_role_of(db, user_id)),
+    )
     columns = (CapabilityGrant.scope_level, CapabilityGrant.scope_id)
     direct = select(*columns).where(
         CapabilityGrant.subject_kind == SubjectKind.USER,
@@ -413,6 +475,111 @@ def ancestry_of_user(db: Session, user_id: str) -> list[tuple[ScopeLevel, str]]:
 _ancestry = ancestry_of_student
 
 
+#: The header a feature refusal carries, so a client can tell "switched off for
+#: you" from every other 403 without parsing English out of `detail`. Chosen
+#: over a machine code inside `detail` because `detail` is what the screens
+#: already print (`detailOf` in the Angular client), and B2.2's whole point is
+#: that the STUDENT reads the override's own sentence there. Same idiom as
+#: `X-Reep-Session: retired` in app/security.py, for the same reason: the
+#: human-readable body stays human-readable and the machine reads a header.
+FEATURE_DISABLED_HEADER: Final[str] = "X-Reep-Feature-Disabled"
+
+#: What a student is told when the office switched something off and wrote no
+#: `student_message`. Deliberately says nothing about WHY: `reason` is the
+#: office's note to itself ("withheld pending the disciplinary meeting" is a
+#: true reason and not a sentence to put on a student's screen), and only
+#: `student_message` was written to be read by them.
+FEATURE_DISABLED_DEFAULT_MESSAGE: Final[str] = (
+    "This part of REEP is switched off for your account. "
+    "Your placement cell can tell you more."
+)
+
+
+@dataclass(frozen=True, slots=True)
+class FeatureState:
+    """One feature, resolved for one student: is it on, and what are they told.
+
+    The message travels WITH the boolean rather than being fetched separately,
+    because the two come from the same winning row and a second read could pick
+    a different winner — an override edited between the two calls, or a
+    student-level rule that expired in the gap. One row, one answer.
+    """
+
+    key: str
+    enabled: bool
+    #: The override's `student_message`, and ONLY when the feature is off. A
+    #: message on a feature somebody can use is a sentence with nowhere to go,
+    #: and carrying it would let a client render "switched off" next to a
+    #: working screen.
+    message: str | None
+
+
+def _resolve_features(
+    db: Session, student_id: str, only: str | None = None
+) -> dict[str, FeatureState]:
+    """The ONE feature resolution. Allow by default; most specific rung wins.
+
+    Every public function below is a view of this: `feature_enabled` reads the
+    boolean, `require_feature` raises on it, `features_for` and
+    `feature_states_for` ask for all of them at once. Written once because the
+    rules are subtle in three places at least — the expiry filter, the
+    specificity tie-break, and "a message only counts when the answer is off" —
+    and a second copy would drift on whichever of the three the copier did not
+    notice.
+
+    `only` narrows the read to one key. It is not an optimisation of the query
+    (the ancestry read dominates either way); it is so a single-feature caller
+    cannot accidentally depend on the other ten being resolved correctly.
+    """
+    keys = tuple(FEATURES_BY_KEY) if only is None else (only,)
+    pairs = _ancestry(db, student_id)
+    if not pairs:
+        # A student who hangs under nothing is reached by no rule, so every
+        # feature is on. Same reasoning as `reaches_target`'s empty ancestry:
+        # unfiled is an ordinary state, and it must not be a way around the
+        # system in either direction.
+        return {key: FeatureState(key, True, None) for key in keys}
+    now = _now()
+    where = [
+        or_(FeatureOverride.expires_at.is_(None), FeatureOverride.expires_at > now),
+        or_(
+            *[
+                (FeatureOverride.scope == scope) & (FeatureOverride.target_id == tid)
+                for scope, tid in pairs
+            ]
+        ),
+    ]
+    if only is not None:
+        where.append(FeatureOverride.feature == only)
+    rows = db.scalars(select(FeatureOverride).where(*where)).all()
+    best: dict[str, FeatureOverride] = {}
+    for r in rows:
+        # A row naming a feature the catalogue no longer defines is ignored, for
+        # the reason `granted_capabilities` ignores a dropped capability: the
+        # key left in a deploy and nothing enforces it any more, so honouring it
+        # would switch off a screen no console can switch back on.
+        if r.feature not in FEATURES_BY_KEY:
+            continue
+        current = best.get(r.feature)
+        if current is None or SPECIFICITY[r.scope] > SPECIFICITY[current.scope]:
+            best[r.feature] = r
+    out: dict[str, FeatureState] = {}
+    for key in keys:
+        row = best.get(key)
+        if row is None or row.enabled:
+            out[key] = FeatureState(key, True, None)
+        else:
+            out[key] = FeatureState(key, False, (row.student_message or "").strip() or None)
+    return out
+
+
+def feature_state(db: Session, student_id: str, feature: str) -> FeatureState:
+    """Is `feature` on for this student, and what do we tell them if not."""
+    if feature not in FEATURES_BY_KEY:
+        raise ValueError(f"unknown feature {feature!r}")
+    return _resolve_features(db, student_id, feature)[feature]
+
+
 def feature_enabled(db: Session, student_id: str, feature: str) -> bool:
     """Is `feature` on for this student? Allow by default; most specific wins.
 
@@ -422,58 +589,79 @@ def feature_enabled(db: Session, student_id: str, feature: str) -> bool:
     rather than the row's mere existence meaning "off" — deleting the broader
     rule to make an exception would turn the feature on for everyone else too.
     """
-    if feature not in FEATURES_BY_KEY:
-        raise ValueError(f"unknown feature {feature!r}")
-    pairs = _ancestry(db, student_id)
-    if not pairs:
-        return True
-    now = _now()
-    rows = db.scalars(
-        select(FeatureOverride).where(
-            FeatureOverride.feature == feature,
-            or_(FeatureOverride.expires_at.is_(None), FeatureOverride.expires_at > now),
-            or_(
-                *[
-                    (FeatureOverride.scope == scope) & (FeatureOverride.target_id == tid)
-                    for scope, tid in pairs
-                ]
-            ),
-        )
-    ).all()
-    if not rows:
-        return True
-    winner = max(rows, key=lambda r: SPECIFICITY[r.scope])
-    return bool(winner.enabled)
+    return feature_state(db, student_id, feature).enabled
+
+
+def require_feature(db: Session, student_id: str | None, feature: str) -> None:
+    """403 with the office's own words when this student's switch is off.
+
+    WHICH ENDPOINTS CALL THIS, and the rule that decided it (B2.2). The gate
+    goes on the SCREEN — its primary read — and on every action that USES the
+    feature. It does NOT go on retrieving or removing an artefact the student
+    already produced: `GET /student/uploads/{id}/file`,
+    `DELETE /student/uploads/{id}`, `GET /student/resume` and its PDF, and
+    `PUT /student/leaderboard-visibility` all keep working with the feature off.
+
+    Switching a feature off is the office saying "not from here, for now". It is
+    not the office confiscating a certificate a student uploaded in March, or
+    taking away their ability to opt out of a leaderboard — and a student who
+    cannot reach the screen cannot be asked to turn that setting off on it
+    first.
+
+        student.jobs          GET /student/jobs, POST /student/jobs/{id}/apply
+        student.leaderboards  GET /student/leaderboards,
+                              GET /student/badges/leaderboards
+        student.assistant     GET /api/interview/status, WS /api/interview
+        student.resume        POST /student/resume/generate
+        student.agent         POST /api/agent/{chat,chat/stream,ask}
+        student.uploads       GET + POST /student/uploads
+        student.english       GET /student/english-baseline, POST .../start
+        student.skilling      GET /student/badges, GET /student/growth,
+                              POST /student/badges/{code}/{start,evidence}
+        student.time_log      GET + PUT /student/ledger,
+                              POST /student/ledger/{copy-yesterday,submit}
+        student.certifications  GET /student/certifications
+        student.mentor_log    GET /student/mentor-meetings,
+                              POST /student/mentor-meetings/request
+
+    403 rather than 404. The student exists, the screen exists, and "this is
+    switched off for you" is a true and safe thing to say to the person it is
+    switched off for — it is their own account. The opposite choice would send
+    them to support with "the app is broken", which is the outcome the
+    `student_message` column was added to prevent.
+
+    `student_id` may be None so a caller that has not resolved one (the agent
+    endpoints, which serve staff too) can hand over what it has without an `if`
+    of its own. No student id means no student, and a feature override is a
+    statement about a student: there is nothing to refuse.
+    """
+    if not student_id:
+        return
+    state = feature_state(db, student_id, feature)
+    if state.enabled:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=state.message or FEATURE_DISABLED_DEFAULT_MESSAGE,
+        headers={FEATURE_DISABLED_HEADER: feature},
+    )
+
+
+def feature_states_for(db: Session, student_id: str) -> dict[str, FeatureState]:
+    """Every feature's state for one student, message included.
+
+    One call rather than eleven, because the student's shell asks for all of
+    them at once on /auth/me and eleven round trips through `_ancestry` would
+    read the same six ids eleven times.
+    """
+    return _resolve_features(db, student_id)
 
 
 def features_for(db: Session, student_id: str) -> dict[str, bool]:
-    """Every feature's state for one student, for the client to render from.
+    """Every feature's state for one student as plain booleans.
 
-    One call rather than ten, because the student's shell asks for all of them at
-    once and ten round trips through `_ancestry` would read the same six ids ten
-    times.
+    Kept alongside `feature_states_for` because "which of these may this student
+    use" is a question with a yes/no answer and several callers want only that;
+    it is a view of the same resolution, never a second one.
     """
-    pairs = _ancestry(db, student_id)
-    if not pairs:
-        return {key: True for key in FEATURES_BY_KEY}
-    now = _now()
-    rows = db.scalars(
-        select(FeatureOverride).where(
-            or_(FeatureOverride.expires_at.is_(None), FeatureOverride.expires_at > now),
-            or_(
-                *[
-                    (FeatureOverride.scope == scope) & (FeatureOverride.target_id == tid)
-                    for scope, tid in pairs
-                ]
-            ),
-        )
-    ).all()
-    best: dict[str, FeatureOverride] = {}
-    for r in rows:
-        current = best.get(r.feature)
-        if current is None or SPECIFICITY[r.scope] > SPECIFICITY[current.scope]:
-            best[r.feature] = r
-    return {
-        key: bool(best[key].enabled) if key in best else True
-        for key in FEATURES_BY_KEY
-    }
+    return {key: state.enabled for key, state in _resolve_features(db, student_id).items()}

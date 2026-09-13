@@ -2,14 +2,12 @@
 an admin.* capability per screen (Governance). Compute-only over existing data.
 """
 
-import csv
-import io
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -42,6 +40,7 @@ from ..models.job_import_run import JobImportRun
 from ..models.mail import MailLog
 from ..models.offer import OfferStatus, PlacementOffer
 from ..models.placement_criteria import PlacementCriteria
+from ..models.institution import Department
 from ..models.registration import Registration, RegistrationStatus
 from ..models.resume import Resume
 from ..models.user import Mentor, Role, Student, User
@@ -54,7 +53,25 @@ from .mentor import _assert_can_access_student
 # tests/test_codebase_guards.py exists to stop.
 from .admin_faculty import StaffPlacementOut
 from ..resume_pdf import render_resume_pdf
-from ..governance import require_capability
+from ..architecture_events import record_change
+from ..governance import ancestry_of_student, ancestry_of_user, require_capability
+from ..models.governance import ScopeLevel
+from ..policies import scope_filter
+# B1.4. The projection of ONE reach onto `registrations`, and the response
+# header that states the caller's scope. See app/scope_views.py for why
+# neither belongs in policies.py.
+from ..scope_views import registration_scope_clause, scope_header
+# B14. What an extract may carry and the receipt it leaves are decided in ONE
+# module, shared with the badge export in routers/badge_verification.py — an
+# export rule written twice is an export rule applied once.
+from ..exports import (
+    carries_personal_columns,
+    csv_response,
+    drop_personal,
+    record_export,
+    scope_note,
+)
+from ..models.account_events import ExportEvent
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -374,6 +391,20 @@ class MenteeMetricsOut(BaseModel):
     verified_skills: int
     # Hours logged in the time ledger, all time.
     logged_hours: float
+    # B1.5. TRUE when this pair spans two departments. The pair is KEPT and
+    # flagged, never broken: `set_student_mentor` refuses a NEW cross-COLLEGE
+    # assignment, and everything already on the roster was assigned under the
+    # old rule by somebody who meant it. Breaking those on deploy would empty
+    # real mentor groups, which is rule 2's input — a mentor with no group sees
+    # nobody — so the office would discover the change as mentors losing their
+    # mentees rather than as a policy taking effect.
+    #
+    # False when either side is unfiled, and that is not the same fact: an
+    # unfiled faculty account or an unseated student hangs under nothing, so
+    # "different departments" is not something anyone can assert about the pair.
+    # The Faculty screen already has a list of the unfiled; this column is not
+    # a second one.
+    cross_department: bool = False
 
 
 class MentorLoadOut(BaseModel):
@@ -411,31 +442,113 @@ class MentorLoadOut(BaseModel):
     mentees: list[MenteeMetricsOut]
 
 
+#: The capability `mentor-load` is gated on, named once so the gate and the
+#: scope that narrows it can never read two different grants.
+#:
+#: IT IS `admin.analytics`, AND THAT IS A DEFECT ON THE OWNER'S LIST rather
+#: than a decision recorded here. The three screens of ONE workflow — see who
+#: is loaded, see who is unassigned, assign somebody — are gated on two
+#: different capabilities: this one on Analytics, `unassigned_students` and
+#: `set_student_mentor` on `admin.mentors`. Scope makes that visible in a way
+#: the bare capability check never did: a college admin granted Mentors &
+#: students for their college can open the picker and perform the assignment
+#: and cannot see the load board, while an Analytics grant reads the mentor map
+#: — names, USNs, attendance — of everyone it reaches. Reconciling them is a
+#: change to who holds what on a live deployment, which is the owner's call and
+#: not this task's; naming the constant is what makes the disagreement one line
+#: to fix rather than three greps.
+MENTOR_LOAD_CAPABILITY = "admin.analytics"
+
+
+def _student_department_expr():
+    """The department a student sits in, in SQL: the batch's, else their own.
+
+    The same precedence as `governance.ancestry_of_student` and
+    `policies.Reach.student_ids` — the batch wins where there is one, the
+    student's own pointer stands alone for an unseated student. Two lines of SQL
+    repeated rather than a scope rule repeated: what may be seen is still
+    decided once, in `scope_filter`; this only says where a row sits so an
+    optional `?department_id=` can narrow WITHIN that answer.
+    """
+    batch = select(Cohort.department_id).where(Cohort.id == Student.cohort_id).scalar_subquery()
+    return func.coalesce(batch, Student.department_id)
+
+
+def _departments_of(db: Session, college_id: str) -> list[str]:
+    return list(db.scalars(select(Department.id).where(Department.college_id == college_id)).all())
+
+
 @router.get("/mentor-load", response_model=list[MentorLoadOut])
 def mentor_load(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    college_id: str | None = None,
+    department_id: str | None = None,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[MentorLoadOut]:
-    """Every FACULTY account with their assigned students and each student's
-    three headline metrics. Programme-wide, so Main Admin only.
+    """Every FACULTY account this caller may see, with their assigned students
+    and each student's three headline metrics.
+
+    NOT "Main Admin only", which is what this docstring said and the code has
+    never done: the gate is `MENTOR_LOAD_CAPABILITY`, a GRANTABLE capability, so
+    any faculty account the Main Admin grants it reaches this endpoint. That
+    sentence mattered while the answer was the whole programme either way; with
+    B1.4 it is the difference between a screen and a data leak, and a docstring
+    that names the wrong gate is how the next reader decides no scope is needed
+    here.
+
+    SCOPED (B1.4). Faculty rows come from `reach.user_ids()` and mentee rows
+    from `reach.student_ids()`, both narrowed in SQL. Narrowing only the faculty
+    would have been the more obvious half and the wrong one: a mentor group can
+    span departments (see `cross_department`), so a college admin reading a
+    faculty member inside their college would otherwise read that faculty
+    member's mentees in a college they hold nothing for.
+
+    `?college_id=` and `?department_id=` narrow WITHIN the reach and cannot
+    widen it: they are applied as additional predicates over the reach's own, so
+    asking for a department the caller does not hold returns no rows rather than
+    somebody else's. Re-validation is the shape of the query rather than a
+    second check that could one day disagree with the first.
 
     Every MENTOR-role user is a row, including one who has never been assigned
     a student: that is the account the Main Admin needs to see in order to
     assign one, and until then `mentor_id` is null and rule 2 shows them
     nobody. A faculty account is not a mentor by existing; it becomes one when
     the office hands it a student."""
-    require_capability(db, session, "admin.analytics")
+    require_capability(db, session, MENTOR_LOAD_CAPABILITY)
+    reach = scope_filter(db, session, MENTOR_LOAD_CAPABILITY)
+    scope_header(response, reach)
+    if reach.nothing:
+        return []
+
+    faculty_where = [User.role == Role.MENTOR, User.id.in_(reach.user_ids())]
+    student_where = [Student.id.in_(reach.student_ids())]
+    if department_id:
+        faculty_where.append(User.department_id == department_id)
+        student_where.append(_student_department_expr() == department_id)
+    if college_id:
+        in_college = _departments_of(db, college_id)
+        faculty_where.append(User.department_id.in_(in_college))
+        student_where.append(_student_department_expr().in_(in_college))
 
     mentors = db.execute(
-        select(Mentor.id, User.id, User.name, User.department, User.designation)
+        select(
+            Mentor.id, User.id, User.name, User.department, User.designation,
+            User.department_id,
+        )
         .select_from(User)
         .outerjoin(Mentor, Mentor.user_id == User.id)
-        .where(User.role == Role.MENTOR)
+        .where(*faculty_where)
         .order_by(User.name)
     ).all()
 
     students = db.execute(
-        select(Student.id, User.name, Student.usn, Student.current_stage, Student.mentor_id)
+        select(
+            Student.id, User.name, Student.usn, Student.current_stage, Student.mentor_id,
+            _student_department_expr().label("department_id"),
+        )
         .join(User, Student.user_id == User.id)
+        .where(*student_where)
         .order_by(User.name)
     ).all()
 
@@ -469,8 +582,13 @@ def mentor_load(
         ).all()
     }
 
-    def metrics(sid: str, name: str, usn, stage) -> MenteeMetricsOut:
+    # mentor_id -> the department that faculty account is filed under, so a
+    # mentee row can be compared against it without a second query per pair.
+    faculty_department = {mid: dept for mid, _uid, _n, _d, _g, dept in mentors if mid}
+
+    def metrics(sid: str, name: str, usn, stage, mentor_id, department_id) -> MenteeMetricsOut:
         present, total = att.get(sid, (0, 0))
+        mentor_department = faculty_department.get(mentor_id)
         return MenteeMetricsOut(
             student_id=sid,
             name=name,
@@ -479,12 +597,20 @@ def mentor_load(
             attendance_percent=round(100 * present / total, 1) if total else None,
             verified_skills=skills.get(sid, 0),
             logged_hours=hours.get(sid, 0.0),
+            # Both sides must resolve before this can be asserted — see the
+            # field's own note. `and` rather than `!=` on two possibly-None
+            # values, which would call every unfiled pair cross-department.
+            cross_department=bool(
+                department_id and mentor_department and department_id != mentor_department
+            ),
         )
 
     by_mentor: dict[str, list[MenteeMetricsOut]] = {}
-    for sid, name, usn, stage, mentor_id in students:
+    for sid, name, usn, stage, mentor_id, department_id in students:
         if mentor_id:
-            by_mentor.setdefault(mentor_id, []).append(metrics(sid, name, usn, stage))
+            by_mentor.setdefault(mentor_id, []).append(
+                metrics(sid, name, usn, stage, mentor_id, department_id)
+            )
 
     # One query for every faculty member's placement, not one per row.
     placements = placements_for(db, [uid for _mid, uid, *_ in mentors])
@@ -501,7 +627,7 @@ def mentor_load(
             mentee_count=len(by_mentor.get(mid, [])),
             mentees=by_mentor.get(mid, []),
         )
-        for mid, uid, name, department, designation in mentors
+        for mid, uid, name, department, designation, _department_id in mentors
     ]
 
 
@@ -514,14 +640,35 @@ class UnassignedStudentOut(BaseModel):
 
 @router.get("/unassigned-students", response_model=list[UnassignedStudentOut])
 def unassigned_students(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    college_id: str | None = None,
+    department_id: str | None = None,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[UnassignedStudentOut]:
-    """Students with no mentor yet — the pool the assignment screen draws from."""
+    """Students with no mentor yet — the pool the assignment screen draws from.
+
+    SCOPED (B1.4) by `admin.mentors`, the capability that gates it. `?department_id=`
+    is the picker's default filter (B1.5): the assignment it feeds refuses a
+    mentor from another COLLEGE outright, and offering the same-department pool
+    first is how an admin stops proposing pairs the next screen will reject. It
+    narrows within the reach and can never widen it — the two predicates are
+    ANDed, so an id outside the caller's grant simply matches nothing.
+    """
     require_capability(db, session, "admin.mentors")
+    reach = scope_filter(db, session, "admin.mentors")
+    scope_header(response, reach)
+    if reach.nothing:
+        return []
+    where = [Student.mentor_id.is_(None), Student.id.in_(reach.student_ids())]
+    if department_id:
+        where.append(_student_department_expr() == department_id)
+    if college_id:
+        where.append(_student_department_expr().in_(_departments_of(db, college_id)))
     rows = db.execute(
         select(Student.id, User.name, Student.usn, Student.current_stage)
         .join(User, Student.user_id == User.id)
-        .where(Student.mentor_id.is_(None))
+        .where(*where)
         .order_by(User.name)
     ).all()
     return [
@@ -566,30 +713,115 @@ def ensure_mentor_group(db: Session, faculty_user_id: str) -> str:
     return group.id
 
 
+def _college_of_student(db: Session, student_id: str) -> str | None:
+    return dict(ancestry_of_student(db, student_id)).get(ScopeLevel.COLLEGE)
+
+
+def _college_of_faculty(db: Session, user_id: str) -> str | None:
+    return dict(ancestry_of_user(db, user_id)).get(ScopeLevel.COLLEGE)
+
+
+def _assert_same_college(db: Session, student: Student, mentor_user_id: str) -> None:
+    """B1.5. A mentor must be in the student's own college. 422 when they are not.
+
+    422 rather than 403: the caller holds the capability and is allowed to make
+    assignments — this particular pair is the thing that is wrong, and the
+    message says which two institutions it spans so the admin can pick somebody
+    else rather than go asking for a wider grant.
+
+    IT REFUSES ONLY WHEN BOTH SIDES RESOLVE. An unfiled faculty account
+    (`users.department_id IS NULL`, a first-class state the Faculty screen keeps
+    a list of) and an unseated student both hang under no college, and "these
+    two are in different colleges" is not something anybody can assert about
+    such a pair. Refusing there would make filing a precondition for mentoring
+    on a deployment that has not finished filing anyone — which is every
+    deployment on the day the spine arrives — and the failure would read as the
+    assign button being broken.
+
+    THE COLLEGE, NOT THE DEPARTMENT. A cross-DEPARTMENT pair inside one college
+    is ordinary and stays legal: the placement cell mentors across departments
+    routinely, the picker merely offers same-department first, and
+    `MenteeMetricsOut.cross_department` flags the ones that span. A college is
+    the tenant, and a mentor in another tenant reading a student's marks,
+    attendance and USN through rule 2 is the thing this refuses.
+    """
+    student_college = _college_of_student(db, student.id)
+    mentor_college = _college_of_faculty(db, mentor_user_id)
+    if not student_college or not mentor_college or student_college == mentor_college:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=(
+            "A faculty member can only mentor students in their own college. "
+            "This student and this faculty account are filed under different "
+            "colleges — pick a faculty member from the student's college, or "
+            "file the account under it first."
+        ),
+    )
+
+
 @router.post("/students/{student_id}/mentor", status_code=status.HTTP_204_NO_CONTENT)
 def set_student_mentor(
     student_id: str,
     body: AssignMentorIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> None:
     """Assign a student to a mentor, or release them.
 
-    Main Admin only, and deliberately not available to a MENTOR: mentor_id is
-    what rule 2's scope gate filters on, so a mentor who could set it could
-    assign themselves any student in the programme and then read everything about
-    them. Who mentors whom is an administrative decision, not a mentoring one.
+    Deliberately not available to a MENTOR by role: mentor_id is what rule 2's
+    scope gate filters on, so a mentor who could set it could assign themselves
+    any student in the programme and then read everything about them. Who
+    mentors whom is an administrative decision, not a mentoring one.
+
+    SCOPED (B1.4/B1.2). The capability is checked twice and they are different
+    questions: once bare, for "may you assign at all", and once with the
+    STUDENT'S ancestry as `target`, for "may you assign THIS one". A college
+    admin can move students inside their college and is refused one in another.
+    The faculty member is checked the same way, because an assignment is a
+    statement about two people: a grant that reaches the student and not the
+    mentor would let a scoped admin hand a student to staff they hold nothing
+    for.
+
+    SAME COLLEGE (B1.5): `_assert_same_college`. Existing pairs are untouched —
+    nothing here rewrites a row it was not asked to.
+
+    AUDITED, with the previous mentor in `before`. "Who moved this student, and
+    off whom" is the first question asked when a mentee disappears from a
+    group, and until now the only record was the row itself, which by then
+    holds the answer to neither.
     """
     require_capability(db, session, "admin.mentors")
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
+    require_capability(
+        db, session, "admin.mentors", target=ancestry_of_student(db, student_id)
+    )
     mentor_id = body.mentor_id
     if mentor_id is None and body.mentor_user_id is not None:
         mentor_id = ensure_mentor_group(db, body.mentor_user_id)
     if mentor_id is not None and db.get(Mentor, mentor_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mentor not found.")
+
+    if mentor_id is not None:
+        faculty_user_id = db.scalar(select(Mentor.user_id).where(Mentor.id == mentor_id))
+        if faculty_user_id:
+            require_capability(
+                db, session, "admin.mentors", target=ancestry_of_user(db, faculty_user_id)
+            )
+            _assert_same_college(db, student, faculty_user_id)
+
+    before = student.mentor_id
     student.mentor_id = mentor_id
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="student", entity_id=student.id, action="MENTOR_ASSIGNED",
+        before={"mentor_id": before}, after={"mentor_id": mentor_id},
+        event_type="student.mentor.assigned",
+        payload={"student_id": student.id, "mentor_id": mentor_id, "released": mentor_id is None},
+    )
     db.commit()
 
 
@@ -816,13 +1048,22 @@ def delete_job(
 # --- the analytics header and stat tiles ------------------------------------
 
 
-def _modal_semester(db: Session) -> int | None:
+def _modal_semester(db: Session, reach=None) -> int | None:
     """The semester most students are in, or None with no students. There is no
     programme-wide "current semester" row; the header says the one that holds
-    for most of the cohort rather than inventing a setting for it."""
+    for most of the cohort rather than inventing a setting for it.
+
+    NARROWED BY THE CALLER'S REACH when one is given (B1.4): the modal semester
+    of a department is a different number from the modal semester of the
+    programme, and a scoped screen showing the programme's would be quietly
+    describing students the reader cannot see. `reach=None` keeps the
+    programme-wide answer for the callers that have not resolved one.
+    """
+    stmt = select(Student.current_semester, func.count())
+    if reach is not None and not reach.everything:
+        stmt = stmt.where(Student.id.in_(reach.student_ids()))
     row = db.execute(
-        select(Student.current_semester, func.count())
-        .group_by(Student.current_semester)
+        stmt.group_by(Student.current_semester)
         .order_by(func.count().desc(), Student.current_semester.desc())
         .limit(1)
     ).first()
@@ -847,31 +1088,79 @@ class AnalyticsSummaryOut(BaseModel):
 
 @router.get("/analytics-summary", response_model=AnalyticsSummaryOut)
 def analytics_summary(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> AnalyticsSummaryOut:
-    """The four tiles across the top of Programme analytics, in one call."""
+    """The four tiles across the top of Programme analytics, in one call.
+
+    SCOPED (B1.4). A count is a smaller leak than a list and it is still a leak:
+    "your college has 41 students" told to somebody granted Analytics for one
+    department of it is a number they can subtract. Every tile is narrowed
+    through the SAME reach, so the percentages stay consistent with each other —
+    a scoped numerator over a programme-wide denominator would draw a placement
+    rate nobody can reproduce from any screen.
+
+    THE MENTOR COUNT IS FACULTY, NOT GROUPS. It used to count `mentors` rows,
+    which are groups; scoping it needs the account behind the group anyway, and
+    counting accounts is what `mentees_per_mentor` has always divided by on
+    every deployment where the two agree. They disagree only for a `Mentor` row
+    whose user has been purged, which is a row `purge_people` removes.
+
+    `B8.5`'s analytics SERIES endpoints do not exist yet. This is the only
+    analytics route there is, so it is the only one there was to scope.
+    """
     require_capability(db, session, "admin.analytics")
+    reach = scope_filter(db, session, "admin.analytics")
+    scope_header(response, reach)
 
     def count(stmt) -> int:
         return db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
 
-    total = db.scalar(select(func.count()).select_from(Student)) or 0
+    if reach.nothing:
+        return AnalyticsSummaryOut(
+            students_total=0, pending_registrations=0, mentors_total=0,
+            mentees_per_mentor=None, badges_awarded=0,
+            evidence_awaiting_verification=0, placed_students=0,
+            placement_percent=0.0, approved_offers=0, semester=None,
+            generated_at=datetime.now(timezone.utc),
+        )
+
+    in_reach = Student.id.in_(reach.student_ids())
+    total = count(select(Student.id).where(in_reach))
     pending_regs = count(
-        select(Registration.id).where(Registration.status == RegistrationStatus.PENDING_REVIEW)
+        select(Registration.id).where(
+            Registration.status == RegistrationStatus.PENDING_REVIEW,
+            registration_scope_clause(reach),
+        )
     )
-    mentors = db.scalar(select(func.count()).select_from(Mentor)) or 0
-    assigned = count(select(Student.id).where(Student.mentor_id.is_not(None)))
-    badges = count(select(StudentBadge.id).where(StudentBadge.status == StudentBadgeStatus.EARNED))
+    mentors = count(
+        select(User.id).where(User.role == Role.MENTOR, User.id.in_(reach.user_ids()))
+    )
+    assigned = count(select(Student.id).where(in_reach, Student.mentor_id.is_not(None)))
+    badges = count(
+        select(StudentBadge.id).where(
+            StudentBadge.status == StudentBadgeStatus.EARNED,
+            StudentBadge.student_id.in_(reach.student_ids()),
+        )
+    )
     awaiting = count(
-        select(BadgeEvidence.id).where(BadgeEvidence.status == EvidenceStatus.PENDING_VERIFICATION)
+        select(BadgeEvidence.id).where(
+            BadgeEvidence.status == EvidenceStatus.PENDING_VERIFICATION,
+            BadgeEvidence.student_id.in_(reach.student_ids()),
+        )
     )
     approved_offers = count(
-        select(PlacementOffer.id).where(PlacementOffer.status == OfferStatus.APPROVED)
+        select(PlacementOffer.id).where(
+            PlacementOffer.status == OfferStatus.APPROVED,
+            PlacementOffer.student_id.in_(reach.student_ids()),
+        )
     )
     placed = (
         db.scalar(
             select(func.count(func.distinct(PlacementOffer.student_id))).where(
-                PlacementOffer.status == OfferStatus.APPROVED
+                PlacementOffer.status == OfferStatus.APPROVED,
+                PlacementOffer.student_id.in_(reach.student_ids()),
             )
         )
         or 0
@@ -886,7 +1175,7 @@ def analytics_summary(
         placed_students=placed,
         placement_percent=round(100 * placed / total, 1) if total else 0.0,
         approved_offers=approved_offers,
-        semester=_modal_semester(db),
+        semester=_modal_semester(db, reach),
         generated_at=datetime.now(timezone.utc),
     )
 
@@ -1119,26 +1408,67 @@ RECENT_OFFERS = 25
 
 @router.get("/placement", response_model=PlacementOut)
 def placement(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> PlacementOut:
-    require_capability(db, session, "admin.placement")
-    submitted = PlacementOffer.status != OfferStatus.DRAFT
+    """The placement funnel and the recent offers.
 
-    eligible = db.scalar(select(func.count()).select_from(Student)) or 0
-    applied = db.scalar(select(func.count(func.distinct(JobApplication.student_id)))) or 0
-    offers = db.scalar(select(func.count()).select_from(PlacementOffer).where(submitted)) or 0
+    SCOPED (B1.4) through the student, which is the only route there is: an
+    offer hangs on a `students` row and a `jobs` row, and JOBS CARRY NO
+    INSTITUTION AT ALL (`app/models/job.py` has no college, department or course
+    column and no join path to one). 04-backend-changes.md lists jobs among
+    B1.4's scope targets and they cannot be one until B12.1 adds those columns;
+    the posting sheet is therefore programme-wide on purpose and says so here
+    rather than growing a column this task invented.
+
+    The funnel's stages are all narrowed by one reach, so the ratios between
+    them stay readable. `top_recruiters` counts only offers inside it, which
+    means a scoped reader sees the recruiters OF THEIR OWN students — the
+    question that screen is asked.
+    """
+    require_capability(db, session, "admin.placement")
+    reach = scope_filter(db, session, "admin.placement")
+    scope_header(response, reach)
+    if reach.nothing:
+        return PlacementOut(
+            semester=None, eligible=0, applied=0, offers=0, approved=0,
+            approved_students=0, recent=[], top_recruiters=[],
+        )
+    submitted = PlacementOffer.status != OfferStatus.DRAFT
+    mine = PlacementOffer.student_id.in_(reach.student_ids())
+
+    eligible = (
+        db.scalar(
+            select(func.count())
+            .select_from(Student)
+            .where(Student.id.in_(reach.student_ids()))
+        )
+        or 0
+    )
+    applied = (
+        db.scalar(
+            select(func.count(func.distinct(JobApplication.student_id))).where(
+                JobApplication.student_id.in_(reach.student_ids())
+            )
+        )
+        or 0
+    )
+    offers = (
+        db.scalar(select(func.count()).select_from(PlacementOffer).where(submitted, mine)) or 0
+    )
     approved = (
         db.scalar(
             select(func.count())
             .select_from(PlacementOffer)
-            .where(PlacementOffer.status == OfferStatus.APPROVED)
+            .where(PlacementOffer.status == OfferStatus.APPROVED, mine)
         )
         or 0
     )
     approved_students = (
         db.scalar(
             select(func.count(func.distinct(PlacementOffer.student_id))).where(
-                PlacementOffer.status == OfferStatus.APPROVED
+                PlacementOffer.status == OfferStatus.APPROVED, mine
             )
         )
         or 0
@@ -1147,19 +1477,19 @@ def placement(
         select(PlacementOffer, User.name, Student.usn)
         .join(Student, PlacementOffer.student_id == Student.id)
         .join(User, Student.user_id == User.id)
-        .where(submitted)
+        .where(submitted, mine)
         .order_by(PlacementOffer.created_at.desc())
         .limit(RECENT_OFFERS)
     ).all()
     recruiters = db.execute(
         select(PlacementOffer.organisation, func.count())
-        .where(PlacementOffer.status == OfferStatus.APPROVED)
+        .where(PlacementOffer.status == OfferStatus.APPROVED, mine)
         .group_by(PlacementOffer.organisation)
         .order_by(func.count().desc(), PlacementOffer.organisation)
         .limit(10)
     ).all()
     return PlacementOut(
-        semester=_modal_semester(db),
+        semester=_modal_semester(db, reach),
         eligible=eligible,
         applied=applied,
         offers=offers,
@@ -1217,38 +1547,32 @@ def badge_catalogue(session: dict = Depends(get_current_session), db: Session = 
     ]
 
 
-# --- exports ----------------------------------------------------------------
-
-
-def _csv_cell(value: object) -> str:
-    """CSV formula injection guard, same convention as the badge export: a name
-    registered as "=HYPERLINK(...)" becomes a live formula the moment the file
-    is opened in Excel/Sheets. The leading apostrophe is the spreadsheet
-    convention for "this is text"."""
-    text = "" if value is None else str(value)
-    return f"'{text}" if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
-
-
-def _csv_response(header: list[str], rows: list[list[object]], filename: str) -> Response:
-    buf = io.StringIO()
-    writer = csv.writer(buf)
-    writer.writerow(header)
-    for row in rows:
-        writer.writerow([_csv_cell(v) for v in row])
-    return Response(
-        content=buf.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
+# --- exports (B14) ----------------------------------------------------------
+#
+# Three extracts, one set of rules, and none of the rules live here: see
+# app/exports.py for scope, the personal-column test and the receipt. What this
+# section owns is which columns each file has and which of them name a person.
 
 
 @router.get("/exports/students.csv")
 def export_students_csv(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> Response:
     """Admitted students with their stage, semester, cohort and mentor — the
-    "registrations & mentor map" a placement office forwards."""
+    "registrations & mentor map" a placement office forwards.
+
+    SCOPED (B1.4/B14). It used to select every `students` row on the
+    deployment, so an `admin.exports` grant scoped to one department downloaded
+    the other department's roster — the widest possible failure of the
+    narrowest possible grant, on the one endpoint whose output cannot be
+    recalled.
+    """
     require_capability(db, session, "admin.exports")
+    reach = scope_filter(db, session, "admin.exports")
+    carried_pii = carries_personal_columns(db, session)
+
     mentor_name = {
         mid: name
         for mid, name in db.execute(
@@ -1256,10 +1580,17 @@ def export_students_csv(
         ).all()
     }
     cohort_name = dict(db.execute(select(Cohort.id, Cohort.name)).all())
-    rows = db.execute(
-        select(Student, User.name).join(User, Student.user_id == User.id).order_by(User.name)
-    ).all()
-    return _csv_response(
+    rows = (
+        []
+        if reach.nothing
+        else db.execute(
+            select(Student, User.name)
+            .join(User, Student.user_id == User.id)
+            .where(Student.id.in_(reach.student_ids()))
+            .order_by(User.name)
+        ).all()
+    )
+    header, body = drop_personal(
         ["Name", "USN", "REEP stage", "Semester", "Cohort", "Mentor"],
         [
             [
@@ -1272,24 +1603,46 @@ def export_students_csv(
             ]
             for s, name in rows
         ],
-        "reep-students-mentor-map.csv",
+        # The mentor's name stays. It is a member of staff acting in their
+        # professional role on a map of who mentors whom — which is the whole
+        # subject of this file — and dropping it would leave a spreadsheet of
+        # anonymous students assigned to anonymous mentors, useful to nobody.
+        ["Name", "USN"],
+        carry=carried_pii,
+    )
+    record_export(
+        db, session=session, request=request, kind="students",
+        filters=scope_note(reach), rows=len(body), carried_pii=carried_pii,
+    )
+    return csv_response(
+        header, body, "reep-students-mentor-map.csv",
+        reach=reach, carried_pii=carried_pii,
     )
 
 
 @router.get("/exports/placement.csv")
 def export_placement_csv(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> Response:
     """Every submitted offer: student, company, role, CTC and the decision."""
     require_capability(db, session, "admin.exports")
-    rows = db.execute(
+    reach = scope_filter(db, session, "admin.exports")
+    carried_pii = carries_personal_columns(db, session)
+
+    query = (
         select(PlacementOffer, User.name, Student.usn)
         .join(Student, PlacementOffer.student_id == Student.id)
         .join(User, Student.user_id == User.id)
         .where(PlacementOffer.status != OfferStatus.DRAFT)
         .order_by(PlacementOffer.created_at.desc())
-    ).all()
-    return _csv_response(
+    )
+    if not reach.everything:
+        query = query.where(Student.id.in_(reach.student_ids()))
+    rows = [] if reach.nothing else db.execute(query).all()
+
+    header, body = drop_personal(
         ["Student", "USN", "Company", "Role", "Role type", "CTC (INR)", "Status", "Submitted", "Decided"],
         [
             [
@@ -1305,18 +1658,38 @@ def export_placement_csv(
             ]
             for o, name, usn in rows
         ],
-        "reep-placement-summary.csv",
+        ["Student", "USN"],
+        carry=carried_pii,
+    )
+    record_export(
+        db, session=session, request=request, kind="placement",
+        filters=scope_note(reach), rows=len(body), carried_pii=carried_pii,
+    )
+    return csv_response(
+        header, body, "reep-placement-summary.csv",
+        reach=reach, carried_pii=carried_pii,
     )
 
 
 @router.get("/exports/ledger.csv")
 def export_ledger_csv(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> Response:
     """Time Allocation Ledger compliance per student: days logged, days
     submitted, hours entered and the productive share (lectures, coursework,
-    skilling — the same three heads the student's own metrics strip counts)."""
+    skilling — the same three heads the student's own metrics strip counts).
+
+    THE ONE EXTRACT THAT IS STILL WORTH READING WITHOUT NAMES, which is the
+    argument for the whole personal-column rule: "42 students logged 6 days and
+    submitted 2" is a compliance question, and it is answerable from the
+    redacted file.
+    """
     require_capability(db, session, "admin.exports")
+    reach = scope_filter(db, session, "admin.exports")
+    carried_pii = carries_personal_columns(db, session)
+
     days: dict[str, tuple[int, int]] = {
         sid: (int(logged or 0), int(submitted or 0))
         for sid, logged, submitted in db.execute(
@@ -1341,16 +1714,104 @@ def export_ledger_csv(
             .group_by(TimeLedgerDay.student_id)
         ).all()
     }
-    rows = db.execute(
-        select(Student, User.name).join(User, Student.user_id == User.id).order_by(User.name)
-    ).all()
+    rows = (
+        []
+        if reach.nothing
+        else db.execute(
+            select(Student, User.name)
+            .join(User, Student.user_id == User.id)
+            .where(Student.id.in_(reach.student_ids()))
+            .order_by(User.name)
+        ).all()
+    )
     out: list[list[object]] = []
     for s, name in rows:
         logged, submitted = days.get(s.id, (0, 0))
         total_h, productive_h = hours.get(s.id, (0, 0))
         out.append([name, s.usn or "", logged, submitted, total_h / 2, productive_h / 2])
-    return _csv_response(
+    header, body = drop_personal(
         ["Name", "USN", "Days logged", "Days submitted", "Hours logged", "Productive hours"],
         out,
-        "reep-ledger-compliance.csv",
+        ["Name", "USN"],
+        carry=carried_pii,
+    )
+    record_export(
+        db, session=session, request=request, kind="ledger",
+        filters=scope_note(reach), rows=len(body), carried_pii=carried_pii,
+    )
+    return csv_response(
+        header, body, "reep-ledger-compliance.csv",
+        reach=reach, carried_pii=carried_pii,
+    )
+
+
+class ExportEventOut(BaseModel):
+    id: str
+    kind: str
+    at: datetime
+    rows: int
+    carried_pii: bool
+    filters: dict
+    #: The account that downloaded it. Never null on a fresh row; null once that
+    #: account has been deleted, because the FK is ON DELETE SET NULL — the
+    #: export still happened and the history must not lose the fact of it just
+    #: because the person left.
+    by_user_id: str | None
+    by_name: str | None
+
+
+class ExportHistoryOut(BaseModel):
+    """The receipts, and the reach of the person reading them.
+
+    `scope` IS IN THIS BODY and in no other export response, and that is not an
+    inconsistency: this is the one B14 endpoint that returns JSON. The three
+    CSVs state the same fact in response headers, because a JSON envelope around
+    a CSV is not a CSV (app/exports.py says so at more length).
+    """
+
+    scope: dict
+    events: list[ExportEventOut]
+
+
+@router.get("/exports/history", response_model=ExportHistoryOut)
+def export_history(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+    limit: int = 100,
+) -> ExportHistoryOut:
+    """Who has taken what out of the building (B14).
+
+    WHO SEES WHOSE. A holder whose Exports grant covers the programme sees every
+    receipt — that is the office, and the whole point of a receipt is that
+    somebody else reads it. A NARROWED holder sees only their own downloads.
+    That is not a scope filter in the usual sense, because an `export_events`
+    row hangs under an account rather than under a student and has no ancestry
+    to test; the honest narrowing is "you may audit what you can reach, and a
+    department-scoped grant does not reach the office's downloads".
+    """
+    require_capability(db, session, "admin.exports")
+    reach = scope_filter(db, session, "admin.exports")
+    query = (
+        select(ExportEvent, User.name)
+        .outerjoin(User, ExportEvent.user_id == User.id)
+        .order_by(ExportEvent.at.desc())
+        .limit(max(1, min(limit, 500)))
+    )
+    if not reach.everything:
+        query = query.where(ExportEvent.user_id == session.get("userId"))
+    return ExportHistoryOut(
+        scope=scope_note(reach),
+        events=[
+            ExportEventOut(
+                id=row.id,
+                kind=row.kind,
+                at=row.at,
+                rows=row.rows,
+                carried_pii=bool(row.carried_pii),
+                filters=row.filters or {},
+                by_user_id=row.user_id,
+                by_name=name,
+            )
+            for row, name in db.execute(query).all()
+        ],
     )

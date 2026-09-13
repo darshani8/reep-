@@ -1,6 +1,13 @@
-"""Faculty accounts, created by the Main Admin on screen: POST /api/admin/faculty.
+"""Faculty accounts, created and offboarded by the Main Admin on screen.
 
-Until now a faculty login was minted only by `python -m app.grant_access` -
+  POST   /api/admin/faculty                        create the login (B3.1, B3.2)
+  GET    /api/admin/faculty[?unfiled=true]         every faculty account (B3.1)
+  PATCH  /api/admin/faculty/{user_id}              identity + filing (B3.5)
+  POST   /api/admin/users/{user_id}/disable        offboard (B3.3)
+  POST   /api/admin/users/{user_id}/enable         within 90 days (B3.3)
+  POST   /api/admin/users/{user_id}/sign-out-everywhere   (B3.6)
+
+Until 2026-09 a faculty login was minted only by `python -m app.grant_access` -
 on a production host, the GitHub "Ops task" workflow - and its activation link
 was read out of a run log. This is that same act on the Faculty & Students
 screen: the Main Admin types a name and an address, the account is created,
@@ -14,16 +21,36 @@ gives faculty their access, and an account is the first grant of all.
 WHAT THE ACCOUNT IS. Role MENTOR; the unusable password sentinel, so nothing
 signs in until the person redeems the link and sets their own password (or
 Google, once configured); NO `Mentor` group - a faculty member becomes a
-mentor when the Main Admin assigns them a student (routers/console.py). The
-address is not fenced to the college domain, exactly like grant_access: the
-roster row IS the access control, and the Main Admin minting it deliberately
-is the check. An address already in `users` is refused - a MENTOR row must
-never be attached to someone else's account.
+mentor when the Main Admin assigns them a student (routers/console.py). An
+address already in `users` is refused - a MENTOR row must never be attached to
+someone else's account.
+
+THE ADDRESS IS NOW FENCED TO THE COLLEGE'S DOMAINS (B3.2), which is a reversal
+of what this module used to say. The old argument was that grant_access does
+not fence either and that the Main Admin minting the row deliberately IS the
+check. That held while there was one college and one operator. It stops holding
+the moment there are two, because "one of ours" becomes "one of THEIRS", and a
+typo in a domain (gmail.com for the college's own) mints a REEP account on an
+address the institution does not control - which is a roster row, and the roster
+is the access control. So the fence is the college's `email_domains`
+(app/institution_domains.py, B1.1), with the deployment's env list as the
+fallback for a college that has recorded none. An address outside it is still
+mintable, because a visiting lecturer on a personal address is a real case - but
+only with `allow_external` AND a written reason, and both land in the audit row.
+
+OFFBOARDING IS A COLUMN, NOT A DELETE (B3.3). `users.disabled_at` and its two
+companions; nothing the person wrote is removed, because the mentor notes, the
+sanctioned leave and the verified evidence are parts of OTHER people's records
+and were true when they were written. Deleting a faculty account is
+`python -m app.purge_people`'s business and nothing else's.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import logging
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -33,12 +60,34 @@ from ..architecture_events import record_change
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
+from ..institution_domains import domain_of, provisionable_domains_for
 from ..models.user import Role, User
+from ..security import note_revocation
 from ..staff_placement import UNFILED, StaffPlacement, placement_for, placements_for, resolve_department
 from .mentor import require_admin
 from .registration import SSO_ONLY_PASSWORD_HASH
 
-router = APIRouter(prefix="/admin/faculty", tags=["admin-faculty"])
+log = logging.getLogger(__name__)
+
+#: `router` is what app/main.py mounts, and it is a COMPOSITE: the faculty
+#: screen's own surface hangs off `/admin/faculty`, while disable/enable/
+#: sign-out-everywhere are properties of an ACCOUNT rather than of a faculty
+#: member and hang off `/admin/users` beside the activation-link endpoint that
+#: is already there. Two prefixes, one mount, so nothing in main.py changes.
+router = APIRouter()
+faculty_router = APIRouter(prefix="/admin/faculty", tags=["admin-faculty"])
+users_router = APIRouter(prefix="/admin/users", tags=["admin-faculty"])
+
+#: How long after being disabled an account may be switched back on. Past it the
+#: answer is a NEW account: ninety days is long enough for "she is back from
+#: sabbatical" and short enough that re-enabling is never the way somebody's old
+#: access quietly returns a year later. The window is measured from
+#: `disabled_at`, which is why that column is a timestamp and not a boolean.
+ENABLE_WINDOW_DAYS = 90
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _department_or_422(db: Session, department_id: str | None):
@@ -57,6 +106,51 @@ def _department_or_422(db: Session, department_id: str | None):
         ) from None
 
 
+def _email_policy(
+    db: Session,
+    email: str,
+    *,
+    college_id: str | None,
+    allow_external: bool,
+    reason: str | None,
+) -> dict:
+    """Decide whether this address may hold a REEP faculty account, and say why.
+
+    Returns the decision, which the caller puts in the audit row VERBATIM. That
+    is the point of returning it rather than a bool: "we let an outside address
+    through" is exactly the fact somebody will be asked about in six months, and
+    a policy decision that leaves no trace is indistinguishable from no policy.
+    """
+    domains = provisionable_domains_for(db, college_id)
+    domain = domain_of(email)
+    if domain and domain in domains:
+        return {"domain": domain, "external": False}
+    listed = ", ".join(sorted(domains)) or "(none configured)"
+    if not allow_external:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"{email} is not on this college's domains ({listed}). Tick "
+                "\"outside the college domain\" and give a reason if that is "
+                "deliberate."
+            ),
+        )
+    if not (reason or "").strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "An address outside the college's domains needs a reason. It is "
+                "recorded against this account."
+            ),
+        )
+    return {
+        "domain": domain,
+        "external": True,
+        "reason": reason.strip(),
+        "college_domains": sorted(domains),
+    }
+
+
 class AdminFacultyIn(BaseModel):
     name: str
     email: str
@@ -64,12 +158,29 @@ class AdminFacultyIn(BaseModel):
     #: Free text, kept because the official leave form prints this line and
     #: existing rows carry it. `department_id` below is the real pointer.
     department: str | None = None
-    #: WHERE THIS PERSON WORKS, as a real department id. Optional so the Main
-    #: Admin can mint a login now and file it later — the same reason
-    #: `students.cohort_id` is nullable — but the screen asks for it, because an
-    #: unfiled faculty member is invisible to every question that starts "who
-    #: teaches in...".
-    department_id: str | None = None
+    #: WHERE THIS PERSON WORKS, as a real department id. REQUIRED (B3.1).
+    #:
+    #: It was optional, and the argument for that was a good one: the Main Admin
+    #: could mint a login now and file it later, the same way `students.cohort_id`
+    #: is nullable, with the screen asking for it anyway. What that argument
+    #: missed is that the department is no longer only a label to group by - it
+    #: is how the account reaches its COLLEGE, and the college is what decides
+    #: which email domains may hold an account (B3.2) and, through B1.2, what a
+    #: scoped grant on this person can ever mean. An unfiled faculty account is
+    #: therefore not merely invisible to "who teaches in..."; it is an account
+    #: with no tenant, fenced by the deployment's fallback list rather than by
+    #: anybody's policy.
+    #:
+    #: The escape hatch stays where it belongs: the COLUMN is still nullable, so
+    #: every account created before this rule keeps working, and
+    #: `GET /api/admin/faculty?unfiled=true` lists them for filing through PATCH.
+    #: This is a rule about new rows, not a promise about old ones - the same
+    #: distinction `HIERARCHY_LEVELS` draws for batches.
+    department_id: str
+    #: B3.2. An address off the college's domains is refused unless BOTH of these
+    #: are supplied; the pair, and the domain, are written into the audit row.
+    allow_external: bool = False
+    external_reason: str | None = None
 
     @field_validator("name", mode="before")
     @classmethod
@@ -86,13 +197,24 @@ class AdminFacultyIn(BaseModel):
             raise ValueError("not an email address")
         return e
 
-    @field_validator("designation", "department", mode="before")
+    @field_validator("department_id", mode="before")
+    @classmethod
+    def _department_id(cls, v: object) -> str:
+        value = str(v or "").strip()
+        if not value:
+            raise ValueError(
+                "a department is required: it is how this account reaches its "
+                "college, and the college decides which addresses may hold one"
+            )
+        return value
+
+    @field_validator("designation", "department", "external_reason", mode="before")
     @classmethod
     def _blank_is_none(cls, v: object) -> str | None:
         if v is None:
             return None
         s = " ".join(str(v).split())
-        return s[:120] or None
+        return s[:240] or None
 
 
 class StaffPlacementOut(BaseModel):
@@ -138,27 +260,59 @@ class AdminFacultyOut(BaseModel):
     #: True only when a mail transport is configured and the link was sent.
     emailed: bool
     expires_in_hours: int
+    #: B3.4. The link is shown ONCE and never listed again — nothing stores the
+    #: raw token, only its sha256, so this response is the only place it exists.
+    #: The client says so instead of letting an admin think they can come back
+    #: for it; re-minting is a deliberate act with its own endpoint.
+    shown_once: bool = True
 
 
 class AdminFacultyPatchIn(BaseModel):
-    """Filing an EXISTING faculty member. Only what is sent is changed.
+    """Editing an EXISTING faculty member. Only what is sent is changed.
 
     This endpoint exists because the column arrived after the accounts did:
     without it, every faculty member created before this change is permanently
-    unfiled and the only way to place them is a hand-written UPDATE.
+    unfiled and the only way to place them is a hand-written UPDATE. B3.5 adds
+    the two identity fields — a married name, a typo in an address read out over
+    a phone — for the same reason: the alternative is a hand-written UPDATE on
+    `users`, which no audit row will ever mention.
     """
 
+    name: str | None = None
+    email: str | None = None
     designation: str | None = None
     department: str | None = None
     department_id: str | None = None
+    allow_external: bool = False
+    external_reason: str | None = None
 
-    @field_validator("designation", "department", mode="before")
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name(cls, v: object) -> str | None:
+        if v is None:
+            return None
+        name = " ".join(str(v).split())
+        if not name:
+            raise ValueError("name must not be blank")
+        return name
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _email(cls, v: object) -> str | None:
+        if v is None:
+            return None
+        e = str(v).strip().lower()
+        if "@" not in e or e.startswith("@") or e.endswith("@"):
+            raise ValueError("not an email address")
+        return e
+
+    @field_validator("designation", "department", "external_reason", mode="before")
     @classmethod
     def _blank_is_none(cls, v: object) -> str | None:
         if v is None:
             return None
         s = " ".join(str(v).split())
-        return s[:120] or None
+        return s[:240] or None
 
 
 class AdminFacultyRowOut(BaseModel):
@@ -172,9 +326,15 @@ class AdminFacultyRowOut(BaseModel):
     designation: str | None
     department: str | None
     placement: StaffPlacementOut
+    #: B3.3. Null for every account that is signed in as usual. The screen shows
+    #: a disabled account greyed with its date rather than hiding it — a faculty
+    #: member who vanishes from the list reads as a bug, and the office still has
+    #: to be able to find them to switch them back on.
+    disabled_at: datetime | None = None
+    disable_reason: str | None = None
 
 
-@router.post("", response_model=AdminFacultyOut, status_code=status.HTTP_201_CREATED)
+@faculty_router.post("", response_model=AdminFacultyOut, status_code=status.HTTP_201_CREATED)
 def create_faculty(
     body: AdminFacultyIn,
     request: Request,
@@ -189,6 +349,16 @@ def create_faculty(
             detail=f"{body.email} already belongs to a {existing.role.value} account.",
         )
     dep = _department_or_422(db, body.department_id)
+    # `department_id` is required by the schema, so `dep` is never None here —
+    # but `_department_or_422` is shared with PATCH, where it can be.
+    assert dep is not None
+    policy = _email_policy(
+        db,
+        body.email,
+        college_id=dep.college_id,
+        allow_external=body.allow_external,
+        reason=body.external_reason,
+    )
     user = User(
         email=body.email,
         name=body.name,
@@ -198,8 +368,8 @@ def create_faculty(
         # The free-text line the leave form prints. When a real department was
         # chosen its NAME is what goes here, so the two can never disagree on
         # paper; a caller who names no department may still type the line.
-        department=(dep.name if dep is not None else body.department),
-        department_id=(dep.id if dep is not None else None),
+        department=dep.name,
+        department_id=dep.id,
     )
     db.add(user)
     db.flush()
@@ -208,8 +378,13 @@ def create_faculty(
         db, session=session, request=request, tenant_id=None,
         entity_type="faculty", entity_id=user.id, action="CREATE",
         before=None,
-        after={"email": user.email, "name": user.name, "designation": user.designation, "department": user.department},
-        event_type="faculty.create", payload={"email": user.email, "emailed": emailed},
+        after={
+            "email": user.email, "name": user.name, "designation": user.designation,
+            "department": user.department, "department_id": user.department_id,
+            "email_policy": policy,
+        },
+        event_type="faculty.create",
+        payload={"email": user.email, "emailed": emailed, "email_policy": policy},
     )
     db.commit()
     return AdminFacultyOut(
@@ -220,8 +395,12 @@ def create_faculty(
     )
 
 
-@router.get("", response_model=list[AdminFacultyRowOut])
+@faculty_router.get("", response_model=list[AdminFacultyRowOut])
 def list_faculty(
+    unfiled: bool = Query(
+        False,
+        description="Only the accounts with no department — the ones to file.",
+    ),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[AdminFacultyRowOut]:
@@ -230,13 +409,39 @@ def list_faculty(
     UNFILED FIRST, then by name. The screen's job is to get everyone placed, and
     a list that buries the six unfiled accounts alphabetically among two hundred
     filed ones is a list nobody finishes.
+
+    `?unfiled=true` narrows to exactly those (B3.1). Sorting them to the top is
+    not the same affordance: with the department now REQUIRED on creation, the
+    unfiled set is a fixed backlog of accounts that predate the rule, and the
+    admin working through it wants a list that EMPTIES. Filtered in SQL on
+    `department_id IS NULL`, not on `placement.filed` after the fact, so the
+    count is the query's and cannot drift from the rows.
+
+    B1.4 ASKS FOR THIS LIST TO BE SCOPED AND IT IS NOT, DELIBERATELY. The gate
+    is `require_admin` — the Main Admin and nobody else — so the "college admin"
+    B1.3 describes (a MENTOR account holding scoped `admin.*` grants) is refused
+    at the door and never reaches a filter. Adding `scope_filter` under a role
+    gate that admits one account whose baseline resolves to `everything` would
+    narrow nothing for anybody, while reading as a fence that is doing work; the
+    next person to widen the gate would then believe the scope was already
+    there. Whoever widens it — B3.x owns this module's gate — narrows it in the
+    same commit, with `Reach.user_ids()`, and should know that an UNFILED
+    account (`users.department_id IS NULL`, the backlog `?unfiled=true` exists
+    to empty) hangs under nothing and so is reached by no scoped grant: the
+    unfiled list stays the Main Admin's work by construction.
     """
     require_admin(session)
-    rows = db.execute(
-        select(User.id, User.name, User.email, User.designation, User.department)
+    query = (
+        select(
+            User.id, User.name, User.email, User.designation, User.department,
+            User.disabled_at, User.disable_reason,
+        )
         .where(User.role == Role.MENTOR)
         .order_by(User.name)
-    ).all()
+    )
+    if unfiled:
+        query = query.where(User.department_id.is_(None))
+    rows = db.execute(query).all()
     placements = placements_for(db, [r[0] for r in rows])
     out = [
         AdminFacultyRowOut(
@@ -246,14 +451,27 @@ def list_faculty(
             designation=designation,
             department=department,
             placement=StaffPlacementOut.of(placements.get(uid, UNFILED)),
+            disabled_at=disabled_at,
+            disable_reason=disable_reason,
         )
-        for uid, name, email, designation, department in rows
+        for uid, name, email, designation, department, disabled_at, disable_reason in rows
     ]
     out.sort(key=lambda r: (r.placement.filed, r.name.lower()))
     return out
 
 
-@router.patch("/{user_id}", response_model=AdminFacultyRowOut)
+def _faculty_or_404(db: Session, user_id: str) -> User:
+    """ONLY FACULTY. A path id naming a student, an alumnus or the Main Admin is
+    a 404 rather than an edit: this endpoint writes `role`-adjacent
+    institutional fields and must never become a way to reach another kind of
+    account."""
+    user = db.get(User, user_id)
+    if user is None or user.role is not Role.MENTOR:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Faculty member not found.")
+    return user
+
+
+@faculty_router.patch("/{user_id}", response_model=AdminFacultyRowOut)
 def update_faculty(
     user_id: str,
     body: AdminFacultyPatchIn,
@@ -261,23 +479,31 @@ def update_faculty(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AdminFacultyRowOut:
-    """File an existing faculty member, or move them.
+    """File an existing faculty member, move them, or correct who they are.
 
-    ONLY FACULTY. A path id naming a student, an alumnus or the Main Admin is a
-    404 rather than an edit: this endpoint writes `role`-adjacent institutional
-    fields and must never become a way to reach another kind of account.
+    CHANGING THE ADDRESS CHANGES THE IDENTITY, so it does three things a
+    designation change does not: it is lower-cased and checked for uniqueness
+    (the address is how Google sign-in finds the row, and two rows answering one
+    address is an account takeover with no attacker in it); it goes through the
+    same college-domain fence as creation (B3.2), because an edit that could put
+    an account on any domain would make the fence on creation decorative; and it
+    bumps `token_version`, which signs the account out everywhere. That last one
+    is not tidiness - the session cookie carries `email` as a claim, so an
+    un-retired session would keep acting under the old address until it expired.
     """
     require_admin(session)
-    user = db.get(User, user_id)
-    if user is None or user.role is not Role.MENTOR:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Faculty member not found.")
+    user = _faculty_or_404(db, user_id)
 
     fields = body.model_dump(exclude_unset=True)
     before = {
+        "name": user.name,
+        "email": user.email,
         "designation": user.designation,
         "department": user.department,
         "department_id": user.department_id,
     }
+    policy: dict | None = None
+    signed_out = False
 
     if "department_id" in fields:
         dep = _department_or_422(db, fields["department_id"])
@@ -287,6 +513,32 @@ def update_faculty(
         # truth for one line is how a paper form contradicts the console.
         if dep is not None:
             user.department = dep.name
+    if "email" in fields and fields["email"] and fields["email"] != user.email.lower():
+        email = fields["email"]
+        clash = db.scalar(
+            select(User).where(func.lower(User.email) == email, User.id != user.id)
+        )
+        if clash is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"{email} already belongs to a {clash.role.value} account.",
+            )
+        # The fence reads the college the person is filed under AFTER any move in
+        # this same request: moving somebody to another college and giving them
+        # that college's address is one edit, and checking the old college would
+        # refuse it.
+        policy = _email_policy(
+            db,
+            email,
+            college_id=placement_for(db, user.id).college_id if user.department_id else None,
+            allow_external=body.allow_external,
+            reason=body.external_reason,
+        )
+        user.email = email
+        user.token_version = (user.token_version or 0) + 1
+        signed_out = True
+    if "name" in fields and fields["name"]:
+        user.name = fields["name"]
     if "designation" in fields:
         user.designation = fields["designation"]
     # An explicit free-text department only wins when no real one was named in
@@ -294,21 +546,287 @@ def update_faculty(
     if "department" in fields and not user.department_id:
         user.department = fields["department"]
 
+    after = {
+        "name": user.name,
+        "email": user.email,
+        "designation": user.designation,
+        "department": user.department,
+        "department_id": user.department_id,
+    }
+    if policy is not None:
+        after["email_policy"] = policy
     record_change(
         db, session=session, request=request, tenant_id=None,
         entity_type="faculty", entity_id=user.id, action="UPDATE",
         before=before,
-        after={
-            "designation": user.designation,
-            "department": user.department,
-            "department_id": user.department_id,
-        },
-        event_type="faculty.update", payload={"email": user.email},
+        after=after,
+        event_type="faculty.update",
+        payload={"email": user.email, "signed_out": signed_out},
     )
     db.commit()
     db.refresh(user)
+    if signed_out:
+        note_revocation(user.id, user.token_version)
+        log.info("faculty %s renamed address; all sessions revoked", user.id)
     return AdminFacultyRowOut(
         user_id=user.id, name=user.name, email=user.email,
         designation=user.designation, department=user.department,
         placement=StaffPlacementOut.of(placement_for(db, user.id)),
+        disabled_at=user.disabled_at, disable_reason=user.disable_reason,
     )
+
+
+# ------------------------------------------------- the account itself (B3.3) --
+
+
+class DisableIn(BaseModel):
+    """A reason, and it is not optional.
+
+    Disabling an account is the one console action whose effect is invisible
+    from the console afterwards - the person simply cannot get in, and six
+    months later nobody remembers whether it was a resignation, a secondment or
+    a security incident. The reason is stored on the row AND in the audit
+    trail, and the 90-day re-enable window is read against it.
+    """
+
+    reason: str
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _reason(cls, v: object) -> str:
+        text = " ".join(str(v or "").split())
+        if len(text) < 3:
+            raise ValueError("a reason is required, in words")
+        return text[:500]
+
+
+class AccountStateOut(BaseModel):
+    user_id: str
+    email: str
+    role: str
+    disabled: bool
+    disabled_at: datetime | None = None
+    disable_reason: str | None = None
+    token_version: int
+    #: How many live links and codes were killed with the account. Zero is the
+    #: usual answer and is worth saying: it means there was nothing outstanding.
+    links_revoked: int = 0
+    detail: str
+
+
+@users_router.post("/{user_id}/disable", response_model=AccountStateOut)
+def disable_account(
+    user_id: str,
+    body: DisableIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> AccountStateOut:
+    """Offboard an account: it cannot sign in by any door, and every device goes.
+
+    THREE WRITES AND NO DELETES. `disabled_at` (the check every door reads,
+    through app/security.py's one lookup), `token_version + 1` (the live
+    sessions, which app/security.py refuses on their next request), and every
+    outstanding activation/reset/onboarding link consumed. Everything the person
+    wrote stays: their mentor notes are part of a student's record, the leave
+    they sanctioned is on somebody's form, the evidence they verified is the
+    reason a badge exists. Emptying a deployment of people is
+    `python -m app.purge_people`, which dry-runs by default and says so.
+
+    WHAT IT DELIBERATELY DOES NOT DO, so the next reader does not assume it did:
+    it does not release their mentees and it does not revoke their capability
+    grants. Both are real follow-ups (B2.5, B9.1) and both belong to modules
+    this one does not own - `console.py` owns the mentor group and
+    `governance.py` owns grants. Neither is a hole: a grant is a permission to
+    make a REQUEST, and a disabled account cannot make one. A mentee still
+    pointing at a disabled mentor is a listing problem for the Mentors &
+    Students screen, not an access one.
+
+    REFUSES AN ADMIN, and refuses you. The Main Admin IS the console; disabling
+    it locks every human out of the only screen that could switch it back on,
+    and there is no second admin by design (`grant_access` refuses to mint one).
+    A handover demotes the current office account to MENTOR first, which is the
+    path `grant_access` already documents.
+    """
+    require_admin(session)
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
+    if user.id == session.get("userId"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="You cannot disable the account you are signed in with.",
+        )
+    if user.role is Role.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "The Main Admin account cannot be disabled - it is the only way "
+                "into the console. Hand the office over first (demote it to "
+                "MENTOR with `python -m app.grant_access`), then disable it."
+            ),
+        )
+    if user.disabled_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"{user.email} was already disabled on {user.disabled_at:%Y-%m-%d}.",
+        )
+
+    before = {
+        "disabled_at": None,
+        "disable_reason": None,
+        "token_version": int(user.token_version or 0),
+    }
+    user.disabled_at = _now()
+    user.disabled_by_user_id = session.get("userId")
+    user.disable_reason = body.reason
+    user.token_version = int(user.token_version or 0) + 1
+    revoked = account_links.revoke_all_user_tokens(db, user.id)
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="user", entity_id=user.id, action="DISABLE",
+        before=before,
+        after={
+            "disabled_at": user.disabled_at.isoformat(),
+            "disable_reason": user.disable_reason,
+            "token_version": user.token_version,
+            "links_revoked": revoked,
+        },
+        event_type="user.disable",
+        payload={"email": user.email, "role": user.role.value, "reason": body.reason},
+    )
+    db.commit()
+    # AFTER the commit, and carrying `disabled=True`, so this worker refuses the
+    # account at once rather than at the end of the revocation cache window.
+    note_revocation(user.id, user.token_version, disabled=True)
+    log.warning(
+        "account %s (%s) DISABLED by %s: %s",
+        user.email, user.role.value, session.get("email"), body.reason,
+    )
+    return AccountStateOut(
+        user_id=user.id, email=user.email, role=user.role.value, disabled=True,
+        disabled_at=user.disabled_at, disable_reason=user.disable_reason,
+        token_version=user.token_version, links_revoked=revoked,
+        detail=(
+            f"{user.email} can no longer sign in, and every device it held has "
+            "been signed out. Nothing they wrote has been removed."
+        ),
+    )
+
+
+@users_router.post("/{user_id}/enable", response_model=AccountStateOut)
+def enable_account(
+    user_id: str,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> AccountStateOut:
+    """Switch a disabled account back on. THE LOGIN ONLY.
+
+    Capability grants are NOT re-granted, and that asymmetry is the design: a
+    grant is made in Governance with a reason on the audit trail, so restoring
+    one silently - as a side effect of a different button, on the word of
+    whoever is re-enabling - would be a grant nobody made. The office re-grants
+    what is still needed, which is also the moment to notice what no longer is.
+
+    NINETY DAYS, from `disabled_at`. Past that the answer is a new account,
+    because "re-enable" a year later is how a departed colleague's access comes
+    back with nobody having decided it should.
+    """
+    require_admin(session)
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
+    if user.disabled_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"{user.email} is not disabled.",
+        )
+    disabled_at = user.disabled_at
+    if disabled_at.tzinfo is None:  # a column read back from a naive driver
+        disabled_at = disabled_at.replace(tzinfo=timezone.utc)
+    if _now() - disabled_at > timedelta(days=ENABLE_WINDOW_DAYS):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"{user.email} was disabled on {disabled_at:%Y-%m-%d}, more than "
+                f"{ENABLE_WINDOW_DAYS} days ago. Create a new account instead - "
+                "re-enabling this one would restore access nobody has decided to "
+                "give back."
+            ),
+        )
+
+    before = {
+        "disabled_at": disabled_at.isoformat(),
+        "disable_reason": user.disable_reason,
+    }
+    user.disabled_at = None
+    user.disabled_by_user_id = None
+    user.disable_reason = None
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="user", entity_id=user.id, action="ENABLE",
+        before=before,
+        after={"disabled_at": None, "disable_reason": None},
+        event_type="user.enable",
+        payload={"email": user.email, "role": user.role.value},
+    )
+    db.commit()
+    # The cached `disabled` flag would otherwise keep refusing this account for
+    # the rest of the revocation window on this worker — an admin who re-enables
+    # somebody and watches them still be refused reads it as the button failing.
+    note_revocation(user.id, int(user.token_version or 0), disabled=False)
+    log.warning("account %s (%s) ENABLED by %s", user.email, user.role.value, session.get("email"))
+    return AccountStateOut(
+        user_id=user.id, email=user.email, role=user.role.value, disabled=False,
+        token_version=int(user.token_version or 0),
+        detail=(
+            f"{user.email} can sign in again. Capability grants were not "
+            "restored - grant what is still needed in Governance."
+        ),
+    )
+
+
+@users_router.post("/{user_id}/sign-out-everywhere", response_model=AccountStateOut)
+def sign_out_account_everywhere(
+    user_id: str,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> AccountStateOut:
+    """Retire every session an account holds, without touching its password (B3.6).
+
+    The office's version of `POST /api/auth/sign-out-everywhere`, for the call
+    that starts "I left myself signed in on the lab machine and I am at home".
+    It changes nothing the person can see afterwards except that they sign in
+    again - no password reset, no disable, nothing to undo - which is what makes
+    it the right first move while the facts are still unclear.
+    """
+    require_admin(session)
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
+    before = int(user.token_version or 0)
+    user.token_version = before + 1
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="user", entity_id=user.id, action="SIGN_OUT_EVERYWHERE",
+        before={"token_version": before},
+        after={"token_version": user.token_version},
+        event_type="user.sign_out_everywhere",
+        payload={"email": user.email, "self": False},
+    )
+    db.commit()
+    note_revocation(user.id, user.token_version, disabled=user.disabled_at is not None)
+    log.info("all sessions revoked for %s by %s", user.email, session.get("email"))
+    return AccountStateOut(
+        user_id=user.id, email=user.email, role=user.role.value,
+        disabled=user.disabled_at is not None,
+        disabled_at=user.disabled_at, disable_reason=user.disable_reason,
+        token_version=user.token_version,
+        detail=f"Every device holding {user.email} has been signed out.",
+    )
+
+
+router.include_router(faculty_router)
+router.include_router(users_router)

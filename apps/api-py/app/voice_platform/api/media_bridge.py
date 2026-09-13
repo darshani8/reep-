@@ -221,9 +221,18 @@ async def media_bridge(websocket: WebSocket) -> None:
         return
 
     try:
-        conversation_id, interview_session_id, consent_id = await asyncio.to_thread(
+        # `_open_records` returns a RECORD since B6.1 (it now also carries the
+        # college's resolved policy and the pinned acknowledgement's scopes).
+        # Unpacked here rather than passed around: this path applies the
+        # PLATFORM's own per-degree recording policy and time limit below, and
+        # the two must not silently start disagreeing about which one won.
+        opened = await asyncio.to_thread(
             _open_records, user_id, Role(session["role"]), student_id, conn_id, config.specialization
         )
+        conversation_id = opened.conversation_id
+        interview_session_id = opened.interview_session_id
+        consent_id = opened.consent_id
+        interview_policy = opened.policy
     except _ConsentRequired:
         _LIMITER.release(user_id)
         await _refuse(websocket, conn_id, _CLOSE_CONSENT_REQUIRED, "Interview consent required", "no live consent")
@@ -235,11 +244,13 @@ async def media_bridge(websocket: WebSocket) -> None:
             "You already have a mock interview open. Close it and try again.", "fleet-wide per-user cap",
         )
         return
-    except _DailyCapReached:
+    except _DailyCapReached as exc:
+        # B6.4's two ceilings: the sentence comes off the exception, so this
+        # path says the same thing the student portal's socket says and a change
+        # to the wording cannot reach one and miss the other.
         _LIMITER.release(user_id)
         await _refuse(
-            websocket, conn_id, _CLOSE_DAILY_CAP,
-            "You've reached today's mock interview limit. Try again tomorrow.", "daily cap",
+            websocket, conn_id, _CLOSE_DAILY_CAP, exc.message, f"{exc.which} cap",
         )
         return
     except Exception:
@@ -269,9 +280,20 @@ async def media_bridge(websocket: WebSocket) -> None:
 
     # RECORDING: three switches, all required — the degree's policy, the
     # process flag, and the candidate's own live store-audio grant. The
-    # per-speaker recorder keeps its own two gates inside recorder_for().
-    primary = await asyncio.to_thread(recorder_for, interview_session_id, user_id)
-    if policy_enabled and settings.interview_recording_enabled:
+    # per-speaker recorder keeps its own gates inside recorder_for() — the
+    # operator's flag, the college's policy and the candidate's grant.
+    primary = await asyncio.to_thread(
+        recorder_for,
+        interview_session_id,
+        user_id,
+        # FOUR switches on this path, and the college's is the new one: the
+        # degree's platform policy (`policy_enabled`, applied below), the
+        # operator's flag, the college's `store_audio` and the candidate's own
+        # grant. The narrowest wins, which is why this is an AND of all of them
+        # rather than the platform policy standing in for the college's.
+        policy_allows_audio=interview_policy.store_audio,
+    )
+    if policy_enabled and settings.interview_recording_enabled and interview_policy.store_audio:
         consented = await asyncio.to_thread(audio_consent_granted, user_id)
         if consented:
             buffer = DualChannelBuffer(
@@ -295,7 +317,12 @@ async def media_bridge(websocket: WebSocket) -> None:
             pass
 
     base_finalize = _make_finalizer(interview_session_id)
-    base_heartbeat = _make_heartbeat(interview_session_id, consent_id=consent_id, on_consent_revoked=_consent_withdrawn)
+    base_heartbeat = _make_heartbeat(
+        interview_session_id,
+        consent_id=consent_id,
+        on_consent_revoked=_consent_withdrawn,
+        consent_scopes=opened.consent_scopes,
+    )
 
     def on_heartbeat() -> None:
         base_heartbeat()
@@ -311,7 +338,11 @@ async def media_bridge(websocket: WebSocket) -> None:
             log.warning("[conn=%s] media-bridge heartbeat bookkeeping failed: %s", conn_id, exc)
 
     turns_seen = {"n": 0}
-    base_turn = _make_turn_writer(conversation_id, interview_session_id)
+    base_turn = _make_turn_writer(
+        conversation_id,
+        interview_session_id,
+        store_transcript=interview_policy.store_transcript,
+    )
 
     def on_turn(*args: Any, **kwargs: Any) -> None:
         turns_seen["n"] += 1

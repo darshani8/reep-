@@ -119,9 +119,10 @@ database code at all, exactly like the relay.
 GET    /api/interview/status                          {available, reason, active_sessions, max_sessions}
 WS     /api/interview                                 one interview; ?specialization=hr|dm|ba|fa optional
 
-GET    /api/interview/consent                         the caller's own live grant, or null
-POST   /api/interview/consent                         grant; 422 on a version this server does not know
-DELETE /api/interview/consent                         revoke every live grant this user holds
+GET    /api/interview/policy                          the college's policy, today's spend, the tracks (B6.1/B5.3/B6.4)
+GET    /api/interview/consent                         the caller's own live acknowledgement, or null
+POST   /api/interview/consent                         acknowledge; body is {version} ONLY; 422 on a version this server does not know
+                                                      (DELETE is GONE — 405 for everyone; see "Consent" below)
 
 GET    /api/interview/sessions                        the caller's own interviews
 GET    /api/interview/sessions/{id}                   404 — never 403 — for somebody else's
@@ -433,14 +434,36 @@ Consent is a **row**, not a `localStorage` key and not
 destroys — a consent record the subject can delete by accident is not a consent
 record).
 
+**THE SCOPES ARE THE COLLEGE'S SINCE B6.1 (2026-09-13), AND THE ROW IS AN
+ACKNOWLEDGEMENT.** `interview_policies` holds one row per `(college, course)`;
+the two storage scopes are copied onto the grant by `POST /api/interview/consent`,
+which now takes the version string and nothing else. `scope_live_ai` is written
+true and has no policy column: the interview IS a live AI conversation, so "no"
+to it is not an interview with a setting turned off — it is no interview, which
+is what not pressing Start already means.
+
 **Three booleans, not one**, because they are three different disclosures and a
-student may reasonably accept two and refuse the third:
+reader a year later has to be able to see which of them was in force. What
+changed is who states them, not how many there are:
 
 | scope | what the student is agreeing to |
 |---|---|
 | `scope_live_ai` | their microphone audio is streamed to the interviewer's speech model while the interview runs — the panel names the actual recipient, which the server supplies as `provider` on `GET /api/interview/consent` |
 | `scope_store_transcript` | a written transcript and an AI practice score are kept on the college's server, readable by their mentor and the placement director, for 180 days |
-| `scope_store_audio` | the audio itself is kept — **optional, unticked, and off by default at both ends** |
+| `scope_store_audio` | the audio itself is kept — off by default at all THREE ends (the operator's flag, the college's `store_audio`, this row) |
+
+**`POST` is idempotent when nothing changed**, and that is load-bearing rather
+than tidy: the client posts at every Start, and superseding an identical
+acknowledgement would stamp `revoked_at` on the row a RUNNING interview is
+pinned to — closing it 4014 from a second tab, with a sentence the student did
+not earn.
+
+**`DELETE /api/interview/consent` IS GONE and answers 405 for everyone.** What it
+withdrew is the college's decision now, so a button offering to overrule it would
+be a promise the server does not keep. It was deleted rather than made to 403 —
+`app/routers/admin_students.py`'s precedent — because a capability refusal would
+mean the endpoint is still there waiting for a grant. Nothing is deleted from the
+table; every historical grant stays readable.
 
 `INTERVIEW_CONSENT_VERSION` (`"2026-08"`) is stamped on every grant. Consent is
 not retroactive: bump it when the wording changes, and rows carrying the old
@@ -456,7 +479,16 @@ for the current version:
   so a refusal leaves no conversation and no `interview_sessions` row for the
   sweeper to trip over.
 - the grant revoked while an interview is running → the heartbeat notices within
-  a minute and the socket closes **4014**.
+  a minute and the socket closes **4014**. Since B6.1 it asks a SECOND question
+  before stopping: does this user still hold a live grant covering every scope
+  this interview is running under? If they do, the acknowledgement was replaced
+  by an equal-or-wider one and the call continues; if they do not, a scope the
+  interview depends on is gone. That is the compatibility board's "a policy
+  change stops a running session with 4014 only when it removes a scope",
+  expressed as a property of the grant rather than as a second read of the policy
+  table on every heartbeat of every live interview
+  (`_successor_covers`). The second query runs only when the first said the row
+  is gone, so the steady state is still one indexed SELECT a minute.
 
 That gate could only be turned on **after** the browser started posting grants;
 enabling it first would have locked every existing student out of the feature on

@@ -94,6 +94,47 @@ interface ConsentGrant {
 }
 
 /**
+ * GET /api/interview/policy, verbatim from StudentPolicyOut (B6.1 / B5.3 / B6.4).
+ *
+ * THE STUDENT DOES NOT CHOOSE ANY OF THIS ANY MORE. The two storage scopes are
+ * the COLLEGE's decision, taken once in the console for everybody on a course,
+ * so the panel below states them rather than offering them. That is why the
+ * audio checkbox is gone and why there is no longer a "Withdraw" control: a
+ * button that appeared to let one student overrule their college would be a
+ * promise the server does not keep, and `DELETE /api/interview/consent` answers
+ * 405 for everyone.
+ *
+ * What survives unchanged is the ROW. Three booleans are still written, the
+ * interview still pins the exact grant it ran under, and close 4013/4014 still
+ * mean what they meant — see app/routers/interview_records.py.
+ */
+interface InterviewPolicyCard {
+  consent_version: string;
+  provider_label: string;
+  policy: {
+    store_transcript: boolean;
+    store_audio: boolean;
+    retention_days: number;
+    daily_cap: number;
+    attempt_cap: number;
+    time_limit_seconds: number;
+    source: string;
+  };
+  usage: {
+    completed: number;
+    attempts: number;
+    daily_cap: number;
+    attempt_cap: number;
+    reset_applied: boolean;
+  };
+  acknowledged: boolean;
+  /** B5.3: the track this student's batch implies, or null. NULL is a real
+   *  answer and the picker stays — it must never be filled with a guess. */
+  default_track: string | null;
+  tracks: { code: string; label: string }[];
+}
+
+/**
  * GET /api/interview/consent, verbatim from ConsentStateOut.
  *
  * `version` is not decoration and must be read from here rather than baked into
@@ -280,7 +321,9 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
   /** The audio checkbox, OFF by default. A pre-ticked box is not consent — it
    *  is a default the student did not choose, on the one scope that keeps a
    *  recording of their voice for staff to listen to. */
-  readonly consentAudio = signal(false);
+  /** The college's policy, or null while it is being read. The panel shows
+   *  what it says; there is nothing on it for the student to set. */
+  readonly policy = signal<InterviewPolicyCard | null>(null);
   readonly consentBusy = signal(false);
   readonly consentError = signal<string | null>(null);
 
@@ -394,6 +437,7 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
   constructor() {
     void this.loadHistory();
     void this.loadConsent();
+    void this.loadPolicy();
 
     // --- drive the orb ------------------------------------------------- //
     // Injection only moves a damper TARGET; the visualizer's own render loop
@@ -512,20 +556,25 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
     this.interview.dismissNotice();
   }
 
-  /** Open the disclosure — before the first interview, or from "Change". */
+  /** Whole minutes, for the panel. A method rather than `| number` so the
+   *  component keeps its current `imports: []` — a pipe used in a standalone
+   *  component's template and left out of that array renders NOTHING and raises
+   *  nothing, which is the same class of silent failure as an inert
+   *  `routerLink`. */
+  minutesOf(seconds: number): number {
+    return Math.max(1, Math.round(seconds / 60));
+  }
+
+  /** Open the disclosure — before the first interview, or from "Read again". */
   openConsent(): void {
-    // Pre-tick the audio box only if the student's own live grant already says
-    // yes. Reopening the panel must show them what they chose last time, and
-    // must never invent a yes they did not give.
-    this.consentAudio.set(this.consent()?.scope_store_audio ?? false);
+    // Nothing to pre-tick any more: the panel states the college's policy and
+    // the student acknowledges it. Re-read it first so the copy they agree to is
+    // the copy that is in force, not the copy that was in force when the tab
+    // was opened.
+    void this.loadPolicy();
     this.consentError.set(null);
     this.consentReturnFocus = document.activeElement as HTMLElement | null;
     this.showConsent.set(true);
-  }
-
-  /** The audio checkbox. */
-  setConsentAudio(on: boolean): void {
-    this.consentAudio.set(on);
   }
 
   /**
@@ -560,16 +609,12 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          version,
-          // The two the "I agree" button grants — the interview cannot run
-          // without either, and the panel says so above the button.
-          scope_live_ai: true,
-          scope_store_transcript: true,
-          // The one that is genuinely optional, and is why there are three
-          // booleans rather than one.
-          scope_store_audio: this.consentAudio(),
-        }),
+        // THE VERSION STRING AND NOTHING ELSE (B6.1). The three scopes are read
+        // off the college's policy server-side and written onto the row there;
+        // sending them from here would be this bundle choosing what its college
+        // decided, and a bundle cached across a policy change would choose
+        // wrong. The row still carries three booleans — see the interface above.
+        body: JSON.stringify({ version }),
       });
       if (res.status === 422) {
         // The terms moved under a cached bundle. A reload is the fix, and it is
@@ -614,38 +659,19 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
     this.consentReturnFocus = null;
   }
 
-  /**
-   * Withdraw consent. Expressible at all only because a grant is a row.
-   *
-   * It stamps `revoked_at` and leaves the historical row: the interviews already
-   * conducted under it still point at the grant that was live when they ran, so
-   * "was this student consented at the time" stays answerable. It does NOT
-   * delete those interviews, and the copy beside this button says so rather than
-   * letting "withdraw" imply an erase it does not perform.
-   */
-  async withdrawConsent(): Promise<void> {
-    if (this.active() || this.consentBusy()) return;
-    this.consentBusy.set(true);
-    this.consentError.set(null);
-    try {
-      const res = await fetch(`${environment.apiBase}/interview/consent`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        this.consentError.set('Could not withdraw your consent. Please try again.');
-        return;
-      }
-      const state = (await res.json()) as ConsentState;
-      this.consentVersion.set(state.version);
-      this.consent.set(state.consent);
-      if (state.provider) this.consentProvider.set(state.provider);
-    } catch {
-      this.consentError.set('Could not reach the server. Please try again.');
-    } finally {
-      this.consentBusy.set(false);
-    }
-  }
+  // THERE IS NO `withdrawConsent()` ANY MORE (B6.1), and the route it called is
+  // gone: `DELETE /api/interview/consent` answers 405 for everyone.
+  //
+  // What it withdrew — whether the transcript is kept, whether the audio is
+  // captured — is now the COLLEGE's decision, taken once for everybody on a
+  // course. A "Withdraw" button here would have kept working for exactly as
+  // long as it took somebody to press it, and then told the student their
+  // consent could not be withdrawn; the honest version is a panel that says
+  // whose decision it is.
+  //
+  // The row it used to revoke is untouched: nothing is deleted, every
+  // historical grant stays readable, and the interviews conducted under one
+  // still point at it.
 
   /**
    * Keep Tab inside the dialog. Wrapping at each end is what makes the modality
@@ -660,11 +686,12 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
     const ev = event as KeyboardEvent;
     const card = this.consentCard()?.nativeElement;
     if (!card) return;
-    // `input` is in this list because the panel now carries the optional audio
-    // checkbox. Leaving it out did not make the checkbox unreachable — the
-    // browser still tabs to it — it made the WRAP wrong: the computed "first"
-    // would have been the Cancel button below it, so Shift+Tab from the checkbox
-    // walked straight out of a dialog that claims aria-modal="true".
+    // `input` is still in this list although the panel no longer carries the
+    // audio checkbox (B6.1 made the scopes the college's). It stays because the
+    // cost of keeping it is nothing and the cost of leaving it out is subtle:
+    // the computed "first" would be whichever BUTTON came first, so the moment
+    // anybody adds a field here Shift+Tab walks straight out of a dialog that
+    // claims aria-modal="true" — which is exactly how it was got wrong before.
     const focusable = [...card.querySelectorAll<HTMLElement>('button, a[href], input')].filter(
       (el) => !el.hasAttribute('disabled'),
     );
@@ -729,6 +756,35 @@ export class AssistantComponent implements AfterViewInit, OnDestroy {
    * interrupt a student with before they have pressed anything, and the panel
    * will say so at the moment it actually matters.
    */
+  /**
+   * The college's policy, the student's spend today and the tracks on offer.
+   *
+   * Silent on failure, for the reason `loadConsent` below gives: an unreachable
+   * endpoint is not something to interrupt a student with before they have
+   * pressed anything. What a null `policy()` costs is copy — the panel falls
+   * back to the wording that was true before this table existed, which is also
+   * what the SERVER falls back to when a college has configured nothing.
+   */
+  private async loadPolicy(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/interview/policy`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const card = (await res.json()) as InterviewPolicyCard;
+      this.policy.set(card);
+      if (card.provider_label) this.consentProvider.set(card.provider_label);
+      // B5.3: preselect the track this student's batch implies. Only when they
+      // have not already picked one themselves, and only when the server named
+      // one — a null default leaves the picker exactly as it was.
+      if (card.default_track && this.selectedSpecialization() === null) {
+        this.selectedSpecialization.set(card.default_track);
+      }
+    } catch {
+      /* offline or not signed in — the panel handles it on Start */
+    }
+  }
+
   private async loadConsent(): Promise<void> {
     try {
       const res = await fetch(`${environment.apiBase}/interview/consent`, {

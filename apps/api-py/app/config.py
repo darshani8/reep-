@@ -462,10 +462,28 @@ class Settings(BaseSettings):
     # in _open_records with one indexed COUNT over the student's sessions in the
     # last 24 h, refused with close 4015 BEFORE any upstream socket opens or row
     # is written. 8 is a full afternoon of honest practice; a student who hits
-    # it is looping, sharing a cookie, or being scripted. Abandoned and failed
-    # sessions COUNT toward it on purpose — a cap that only counts clean
-    # finishes is a cap a crash loop never hits.
+    # it is looping, sharing a cookie, or being scripted.
+    #
+    # B6.4 SPLIT IT IN TWO AND THIS IS NOW THE PRACTICE ALLOWANCE, counted on
+    # COMPLETED interviews only: an interview that dropped out at minute two no
+    # longer costs a student a turn. Abandoned and failed sessions used to count
+    # here, and the reason they did has not gone away — "a cap that only counts
+    # clean finishes is a cap a crash loop never hits" — so it moved to the
+    # setting below, which is the one that still counts everything.
+    #
+    # Both are the DEPLOYMENT's answer and both are overridable per college
+    # (`interview_policies`, B6.1). A college that has decided nothing gets
+    # exactly these numbers, which is what makes the absence of a policy row the
+    # default rather than a row somebody has to create.
     interview_max_per_student_per_day: int = 8
+    # The SPEND ceiling: every `interview_sessions` row in the same rolling 24 h,
+    # finished or not. Higher than the allowance above by construction — the
+    # policy table's CHECK refuses the other order, because a spend ceiling below
+    # the practice cap makes the practice cap unreachable and the student's
+    # allowance silently becomes the ceiling. 20 leaves room for a bad network
+    # morning (a dozen dropped handshakes and eight real interviews) and still
+    # bounds a reconnect loop at a number somebody would notice on an invoice.
+    interview_max_attempts_per_student_per_day: int = 20
 
     # The deterministic answer gate — a word count, not a model call, because
     # this runs on the hot path between the student finishing and the

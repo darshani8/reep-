@@ -39,6 +39,15 @@ from ..models.course import Course, Enrollment, ProgressStatus
 from ..models.job import Job, JobApplication
 from ..models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from ..models.mock_test import MockAttempt
+# B6.3. The mock interviewer's four numbers reach the home screen through the
+# SUMMARY table, never through `interview_evaluations`: the summaries outlive
+# the 180-day purge, so a trend, a readiness factor and the Home chart do not
+# quietly lose their oldest points every night. See app/interview_summary.py.
+from ..models.interview import (
+    InterviewEvaluation,
+    InterviewScoreSummary,
+    InterviewSession,
+)
 from ..models.offer import (
     OfferChannel,
     OfferRoleType,
@@ -671,6 +680,21 @@ def my_swoc(
     )
 
 
+#: B6.3 — where one row of the Home mocks chart came from.
+#:
+#: `mock_attempt` is the staff-logged rehearsal the placement cell has always
+#: recorded by hand; `interview` is a completed mock interview with the AI
+#: interviewer. ONE SERIES, TWO SOURCES, because to a student they are the same
+#: thing — "how have my practice interviews gone" — and two charts side by side
+#: would make them ask which one counts.
+#:
+#: The field DEFAULTS to `mock_attempt`, which is what makes this additive: a
+#: client built before this release reads the same six keys it always did and
+#: simply gains rows.
+MOCK_SOURCE_ATTEMPT = "mock_attempt"
+MOCK_SOURCE_INTERVIEW = "interview"
+
+
 class MockAttemptOut(BaseModel):
     type: str
     taken_on: datetime
@@ -678,19 +702,39 @@ class MockAttemptOut(BaseModel):
     max_score: float | None
     percent: float | None
     notes: str | None
+    source: str = MOCK_SOURCE_ATTEMPT
 
 
 @router.get("/mocks", response_model=list[MockAttemptOut])
 def my_mocks(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[MockAttemptOut]:
+    """Every practice attempt, newest first — staff-logged and AI both (B6.3).
+
+    THE INTERVIEWS COME FROM `interview_score_summaries`, not from
+    `interview_sessions` joined to their evaluations, and the difference shows
+    up six months after a deployment goes live rather than in any test: the
+    summary is the row that survives `retention.purge_expired`, so the oldest
+    points on this chart stay where they are instead of disappearing overnight.
+
+    ONLY COMPLETED INTERVIEWS COUNT HERE, which is deliberately NARROWER than
+    `GET /api/interview/progress`. This is the Home chart — "how have my
+    practice attempts scored" — and an abandoned interview has no score to plot.
+    The progress screen carries every attempt including the abandoned ones,
+    because "three attempts abandoned in the first minute" is the fact a MENTOR
+    needs, and it is a fact about practice habits rather than about performance.
+
+    A scorecard the model never produced leaves `score` NULL. It is not turned
+    into a 0 anywhere on the way here: a missing score and a zero mean opposite
+    things, and this list is charted.
+    """
     student_id = _require_student(session)
     rows = db.scalars(
         select(MockAttempt)
         .where(MockAttempt.student_id == student_id)
         .order_by(MockAttempt.taken_on.desc())
     ).all()
-    return [
+    out = [
         MockAttemptOut(
             type=r.type.value,
             taken_on=r.taken_on,
@@ -702,9 +746,42 @@ def my_mocks(
                 else None
             ),
             notes=r.notes,
+            source=MOCK_SOURCE_ATTEMPT,
         )
         for r in rows
     ]
+    interviews = db.scalars(
+        select(InterviewScoreSummary)
+        .where(
+            InterviewScoreSummary.student_id == student_id,
+            InterviewScoreSummary.status == "completed",
+        )
+        .order_by(InterviewScoreSummary.started_at.desc())
+    ).all()
+    out.extend(
+        MockAttemptOut(
+            # The same word `MockType.INTERVIEW` carries, so the chart's series
+            # key does not fork. `source` is what tells the two apart, and it is
+            # the field a client should branch on — never the type.
+            type="INTERVIEW",
+            taken_on=iv.started_at,
+            score=None if iv.overall_score is None else float(iv.overall_score),
+            # The scorecard is already out of 100, so the percent and the score
+            # are the same number. Stated rather than left for the client to
+            # infer from a null max_score, which would chart as a bare count.
+            max_score=None if iv.overall_score is None else 100.0,
+            percent=None if iv.overall_score is None else float(iv.overall_score),
+            # No notes. The interview's own words are its transcript and its
+            # scorecard, both of which have their own screen with the
+            # calibration copy beside them; a summary sentence pulled onto a
+            # chart tooltip would be the model's judgement with none of that.
+            notes=None,
+            source=MOCK_SOURCE_INTERVIEW,
+        )
+        for iv in interviews
+    )
+    out.sort(key=lambda m: m.taken_on, reverse=True)
+    return out
 
 
 class StudentSkillOut(BaseModel):
@@ -2558,12 +2635,28 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
         return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} skills") for sid in sids}
 
     if board == "mocks":
+        # B6.3 — BOTH SOURCES, and in the same commit as `my_mocks`. This board
+        # and the Home chart answer the same question in the same word
+        # ("mocks"), so a board counting only the staff-logged rehearsals would
+        # tell a student they had sat 2 while their own home screen showed 9,
+        # with nothing on either screen to explain the gap. Completed interviews
+        # only, which is exactly what `my_mocks` charts.
         rows = db.execute(
             select(MockAttempt.student_id, func.count())
             .where(MockAttempt.student_id.in_(sids))
             .group_by(MockAttempt.student_id)
         ).all()
         counts = {sid: n for sid, n in rows}
+        interview_rows = db.execute(
+            select(InterviewScoreSummary.student_id, func.count())
+            .where(
+                InterviewScoreSummary.student_id.in_(sids),
+                InterviewScoreSummary.status == "completed",
+            )
+            .group_by(InterviewScoreSummary.student_id)
+        ).all()
+        for sid, n in interview_rows:
+            counts[sid] = counts.get(sid, 0) + n
         return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} mocks") for sid in sids}
 
     if board == "vtu":
@@ -2871,6 +2964,62 @@ def _resume_pct(db: Session, student_id: str) -> int:
     return _resume_completeness(row.data if row else {})
 
 
+#: B6.3 — how far back a mock-interview score counts towards readiness.
+#:
+#: Ninety days is the spec's number and it is a judgement about SHELF LIFE, not
+#: about the window a student practises in: an interview sat last October says
+#: very little about how somebody presents in February, and a readiness score
+#: standing on it would be quietly out of date on the screen a placement
+#: decision gets argued from. Past the window the factor goes back to
+#: UNMEASURED — which is not the same as failing it, and the machinery below
+#: keeps those apart.
+INTERVIEW_READINESS_WINDOW_DAYS = 90
+
+#: The bar a mock-interview score has to clear to count as met.
+#:
+#: A JUDGEMENT AND NOT A DERIVATION, and it deliberately does not live in
+#: `placement_criteria` with the other four cut-offs. Those four are the
+#: college's (B8.2 made them a table, per course, with history); this one is a
+#: property of a scorecard written by a model REEP chose and is not a rule any
+#: college has set. Putting it in that table would invite an office to tune it
+#: against a scale they have no way to calibrate.
+#:
+#: 60 is the same number `_readiness_band` calls the bottom of "On track", so a
+#: student whose interview score is at their overall band passes this check
+#: rather than dragging it. Move it and a cohort changes band on a deploy.
+MIN_MOCK_INTERVIEW_SCORE = 60
+
+
+def _best_interview_score(db: Session, student_id: str) -> int | None:
+    """The best overall mock-interview score inside the window, or None.
+
+    BEST, NOT LATEST, and the spec says so for a reason worth keeping: this is a
+    practice instrument a student is meant to use repeatedly, and a rule that
+    reads the last attempt punishes exactly the behaviour the product is asking
+    for — sitting one more interview to try something different can only lower
+    your readiness. Best answers "what has this student shown they can do".
+
+    None means NOT ASSESSED and is the whole point of the column being nullable
+    all the way down. A student who has never practised has no interview score;
+    they have not failed one. `build_readiness` carries that through as
+    `measured=False`, which keeps the factor out of the denominator entirely —
+    so not having practised yet cannot lower a readiness score.
+
+    Reads `interview_score_summaries`, never `interview_evaluations`: the
+    summary survives retention and the evaluation does not, so this is the only
+    read that gives the same answer in March about a January interview.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(
+        days=INTERVIEW_READINESS_WINDOW_DAYS
+    )
+    return db.scalar(
+        select(func.max(InterviewScoreSummary.overall_score)).where(
+            InterviewScoreSummary.student_id == student_id,
+            InterviewScoreSummary.started_at >= cutoff,
+        )
+    )
+
+
 class NextActionOut(BaseModel):
     id: str
     title: str
@@ -3055,6 +3204,54 @@ def next_actions(
                 )
             )
 
+    # B6.3 — the drill the last mock interview asked for.
+    #
+    # "WHILE IT IS UNADDRESSED" IS DEFINED AS "UNTIL YOU SIT ANOTHER ONE", and
+    # that is the whole of the definition. Nothing records that a student did a
+    # drill — there is no acknowledgement flag, and inventing one would be a
+    # column written by a button nobody presses, which then makes the action
+    # stick forever for everybody who ignores it. Reading the MOST RECENT
+    # completed interview instead means the action is replaced when the student
+    # practises again (with the new drill, or with nothing if that interview
+    # produced none), which is the behaviour a student would describe as "it
+    # went away when I did it".
+    #
+    # The drill is the model's own sentence about this student, so it is shown
+    # to the student and nowhere else — this endpoint is `_require_student` and
+    # first-person throughout.
+    drill_row = db.execute(
+        select(InterviewEvaluation.drill, InterviewSession.started_at)
+        .join(
+            InterviewSession,
+            InterviewEvaluation.interview_session_id == InterviewSession.id,
+        )
+        .where(
+            InterviewSession.student_id == student_id,
+            InterviewSession.status == "completed",
+            InterviewSession.deleted_at.is_(None),
+        )
+        .order_by(InterviewSession.started_at.desc())
+        .limit(1)
+    ).first()
+    if drill_row is not None and (drill_row[0] or "").strip():
+        drill_text = drill_row[0].strip()
+        actions.append(
+            NextActionOut(
+                id="interview-drill",
+                # The model's words, not a paraphrase. A drill rewritten into a
+                # house sentence stops being the thing the student was told at
+                # the end of their interview, which is the only reason it
+                # carries any weight.
+                title=drill_text,
+                reason="From your last mock interview",
+                cta_label="Practise",
+                cta_route="/student/assistant",
+                status="Suggested",
+                deadline=None,
+                priority=3,
+            )
+        )
+
     actions.sort(key=lambda a: a.priority)
     return NextActionsOut(actions=actions[:5])
 
@@ -3101,26 +3298,38 @@ BAND_NOT_ASSESSED = "Not assessed yet"
 #: reported at all.
 #:
 #: WITHOUT THIS THE FIX MAKES THE HEADLINE NUMBER WORSE, which is worth spelling
-#: out because it is counter-intuitive. Two of the six checks read what the
+#: out because it is counter-intuitive. Two of the seven checks read what the
 #: STUDENT has typed (contact details, resume completeness) and are therefore
-#: always measurable; the other four read tables only an import or a staff
-#: action fills. So on a fresh deployment, scoring "over the measured weight"
-#: means scoring over those two alone — and a student who has not yet typed
-#: their phone number lands on **0/100 — Not ready**, in a 27px numeral, where
-#: the old broken arithmetic at least said 17. Both are verdicts on evidence
-#: that does not exist; the new one is simply a harsher way of being wrong.
+#: always measurable; the other five read tables only an import, a staff action
+#: or a mock interview fills. So on a fresh deployment, scoring "over the
+#: measured weight" means scoring over those two alone — and a student who has
+#: not yet typed their phone number lands on **0/100 — Not ready**, in a 27px
+#: numeral, where the old broken arithmetic at least said 17. Both are verdicts
+#: on evidence that does not exist; the new one is simply a harsher way of being
+#: wrong.
 #:
 #: A score over a sixth of the evidence is not a score. Below this share the
 #: honest answer is that there is not enough on record, said in words, with the
 #: per-check chips underneath still showing exactly what is and is not known —
 #: which is more use to a student than any number would be.
 #:
-#: HALF is a judgement and not a derivation. It is set where the two checks that
-#: cannot be missing (weight 2 of 12) are nowhere near sufficient on their own,
-#: and where either of the two IMPORTED pairs — marks (6) or attendance plus
-#: certifications (4) — crosses it in company with them. Move it and a cohort's
+#: IT IS A JUDGEMENT AND NOT A DERIVATION, and it is expressed as a FRACTION so
+#: that adding a check does not silently move the bar. The judgement is: the two
+#: checks that cannot be missing are nowhere near sufficient on their own, and
+#: EITHER of the imported pairs — marks (6), or two of {attendance 2,
+#: certifications 2, mock interview 2} — crosses it in company with them.
+#:
+#: It read `0.5` while the rule carried six checks weighing 12, and 6/12 was
+#: exactly the attendance-plus-certifications case. B6.3 added a seventh check
+#: worth 2, and leaving the number at 0.5 would have quietly RAISED the bar:
+#: 6/14 is 0.43, so a first-semester student with attendance and certifications
+#: imported but no results yet would have stopped being scored on a deploy that
+#: changed nothing about them. `3/7` is the same judgement over the new total —
+#: every combination that crossed before crosses now, and the only new ones are
+#: the two that pair the mock interview with attendance or certifications, which
+#: is the same shape as the pair that already crossed. Move it and a cohort's
 #: worth of students change band on a deploy, so move it deliberately.
-MIN_SCORED_WEIGHT_SHARE = 0.5
+MIN_SCORED_WEIGHT_SHARE = 3 / 7
 
 
 def _readiness_band(score: int | None) -> str:
@@ -3160,6 +3369,11 @@ class _ReadinessInputs:
     cert_pct: float | None
     has_contacts: bool
     resume_pct: int
+    #: B6.3 — the best overall mock-interview score inside the 90-day window.
+    #: None is NOT ASSESSED, never a zero, and it is what keeps a student who
+    #: has simply not practised out of the denominator instead of ~14 points
+    #: below where they were yesterday.
+    best_interview_score: int | None = None
 
 
 @dataclass(frozen=True)
@@ -3213,6 +3427,7 @@ def _readiness_inputs(db: Session, student_id: str) -> _ReadinessInputs:
         cert_pct=_cert_completion_pct(db, student_id),
         has_contacts=bool(prof and prof.phone and prof.linkedin_url),
         resume_pct=_resume_pct(db, student_id),
+        best_interview_score=_best_interview_score(db, student_id),
     )
 
 
@@ -3302,6 +3517,30 @@ def readiness_inputs_many(db: Session, student_ids: list[str]) -> dict[str, _Rea
             )
         ).all()
     }
+    # B6.3, and it is the SAME rule `_best_interview_score` states one query at
+    # a time: best-in-window, from the summaries, absent means not assessed. The
+    # `.get(sid)` below is what makes "no row" read as None rather than as 0 —
+    # the equivalence `tests/test_readiness_unassessed.py` pins, because the
+    # moment this reader disagrees with the single-student one a mentor and a
+    # student are looking at different numbers again.
+    interview_cutoff = datetime.now(timezone.utc) - timedelta(
+        days=INTERVIEW_READINESS_WINDOW_DAYS
+    )
+    interviews = {
+        sid: best
+        for sid, best in db.execute(
+            select(
+                InterviewScoreSummary.student_id,
+                func.max(InterviewScoreSummary.overall_score),
+            )
+            .where(
+                InterviewScoreSummary.student_id.in_(student_ids),
+                InterviewScoreSummary.started_at >= interview_cutoff,
+            )
+            .group_by(InterviewScoreSummary.student_id)
+        ).all()
+        if best is not None
+    }
 
     return {
         sid: _ReadinessInputs(
@@ -3311,6 +3550,7 @@ def readiness_inputs_many(db: Session, student_ids: list[str]) -> dict[str, _Rea
             cert_pct=certs.get(sid),
             has_contacts=contacts.get(sid, False),
             resume_pct=resumes.get(sid, _resume_completeness({})),
+            best_interview_score=interviews.get(sid),
         )
         for sid in student_ids
     }
@@ -3335,8 +3575,9 @@ def build_readiness(
     cert_pct = inputs.cert_pct
     has_contacts = inputs.has_contacts
     resume_pct = inputs.resume_pct
+    interview = inputs.best_interview_score
 
-    # FOUR OF THE SIX CHECKS CAN BE UNMEASURED, AND TWO NEVER CAN. CGPA,
+    # FIVE OF THE SEVEN CHECKS CAN BE UNMEASURED, AND TWO NEVER CAN. CGPA,
     # backlogs, attendance and certification completion are read out of tables
     # that only an IMPORT or a staff action fills, so "no rows" means "nobody
     # has looked", not "zero". Placement profile and resume completeness are
@@ -3408,6 +3649,35 @@ def build_readiness(
             met=(resume_pct >= 70),
             detail=f"Resume profile {resume_pct}% complete (target 70%)",
             weight=1,
+        ),
+        # B6.3. WEIGHT 2, AND `measured=False` WHEN THERE IS NO SCORE — which
+        # is the whole design of this factor and not a detail of it. An
+        # unmeasured factor is out of BOTH the numerator and the denominator
+        # (see below), so a student who has never sat a mock interview is not
+        # told they are less placement-ready for it. They are told, on the chip,
+        # that nobody has assessed this yet — which is a thing they can act on
+        # in one click, unlike "your CGPA has not been imported".
+        #
+        # BEST OF THE LAST 90 DAYS, from `interview_score_summaries`: best so
+        # that practising again can never lower a score, the window so that a
+        # reading does not stand on an interview from last October, and the
+        # summaries because they are the rows that survive retention.
+        ReadinessFactorOut(
+            label="Mock interview",
+            met=(interview is not None and interview >= MIN_MOCK_INTERVIEW_SCORE),
+            measured=interview is not None,
+            detail=(
+                f"Best mock-interview score {interview} in the last "
+                f"{INTERVIEW_READINESS_WINDOW_DAYS} days "
+                f"(target {MIN_MOCK_INTERVIEW_SCORE})"
+                if interview is not None
+                else (
+                    "No scored mock interview in the last "
+                    f"{INTERVIEW_READINESS_WINDOW_DAYS} days — practise one and "
+                    f"{MIN_MOCK_INTERVIEW_SCORE} is the target"
+                )
+            ),
+            weight=2,
         ),
     ]
 

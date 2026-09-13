@@ -51,7 +51,7 @@ from .models.governance import (
     ScopeLevel,
     SubjectKind,
 )
-from .models.institution import Department
+from .models.institution import AcademicCourse, Department
 from .mentor_functions import mentor_functions_for
 from .models.user import Student, User
 
@@ -511,6 +511,57 @@ def ancestry_of_user(db: Session, user_id: str) -> list[tuple[ScopeLevel, str]]:
         return []
     college_id = db.scalar(select(Department.college_id).where(Department.id == department_id))
     pairs = [(ScopeLevel.DEPARTMENT, department_id), (ScopeLevel.COLLEGE, college_id)]
+    return [(scope, tid) for scope, tid in pairs if tid]
+
+
+def ancestry_of_interview_track(
+    db: Session,
+    *,
+    college_id: str | None,
+    course_id: str | None,
+    specialization_id: str | None,
+) -> list[tuple[ScopeLevel, str]]:
+    """Where an INTERVIEW TRACK hangs — B5.1's target.
+
+    Takes the three pointers rather than a row id, because the write path checks
+    the reach of the values being SUBMITTED, before anything is stored: an
+    endpoint that could only ask "may you edit the row as it is today" would let
+    a college-scoped holder move a track into another college and then be unable
+    to move it back.
+
+    THE COURSE REACHES A DEPARTMENT AND THROUGH IT A COLLEGE, which is the one
+    place this differs from `ancestry_of_cohort` directly above. A cohort names
+    its department itself, so that function walks department → college and says
+    a course carries no college. A track does not name a department at all, and
+    `academic_courses.department_id` is NOT NULL — so the walk course →
+    department → college always lands, and it is the same walk
+    `scope_views.job_scope_clause` already makes for a posting. Without it a
+    department-scoped holder could hold a key over a course they own and be
+    refused the track hung on it.
+
+    AN EMPTY LIST IS PROGRAMME-WIDE AND IS REACHED BY NO SCOPED GRANT. That is
+    `reaches_target`'s rule, not a special case, and here it is the rule doing
+    exactly what it should: the four seeded tracks are programme-wide on any
+    multi-college deployment, editing one changes the interview for every
+    college, and a college admin must not be able to do that from their own
+    screen. They can add their college's own row instead, which shadows it.
+    """
+    if course_id:
+        department_id = db.scalar(
+            select(AcademicCourse.department_id).where(AcademicCourse.id == course_id)
+        )
+    else:
+        department_id = None
+    if not college_id and department_id:
+        college_id = db.scalar(
+            select(Department.college_id).where(Department.id == department_id)
+        )
+    pairs = [
+        (ScopeLevel.SPECIALIZATION, specialization_id),
+        (ScopeLevel.COURSE, course_id),
+        (ScopeLevel.DEPARTMENT, department_id),
+        (ScopeLevel.COLLEGE, college_id),
+    ]
     return [(scope, tid) for scope, tid in pairs if tid]
 
 

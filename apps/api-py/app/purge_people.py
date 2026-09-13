@@ -95,6 +95,14 @@ VERDICTS: dict[str, str] = {
     "skills": KEEP,
     "jobs": KEEP,
     "interview_bank_questions": KEEP,
+    # B5.1 made the Specialization Matrix a table an admin edits, and B6.1 made
+    # the interview's storage and caps a college's decision. Both are the
+    # office's own configuration and name nobody: a persona, a framework list, a
+    # syllabus, a retention number. They sit with `interview_bank_questions`
+    # above because they are the same kind of thing — staff-authored text the
+    # next intake is interviewed against.
+    "interview_tracks": KEEP,
+    "interview_policies": KEEP,
     # B13's per-course catalogue. Neither table names a person: one says which
     # of the 48 code-defined badges apply to a programme, the other which REEP
     # stage a semester of it sits in. Both are the office's own configuration
@@ -205,6 +213,18 @@ VERDICTS: dict[str, str] = {
     "interview_turns": EMPTY,
     "interview_evaluations": EMPTY,
     "interview_consents": EMPTY,
+    # B6.2's summary is built to OUTLIVE the interview it summarises — the
+    # retention job deletes the transcript, the audio and the scorecard on the
+    # 180-day clock and deliberately never touches this table. That is about a
+    # CLOCK, and it is not a reason to keep the row here: every row names a
+    # student by a NOT NULL foreign key, and "61, then 68, then 74" about
+    # somebody who has been removed from the deployment is the student record
+    # this module exists to remove. Surviving retention and surviving a purge
+    # are different questions with different answers.
+    "interview_score_summaries": EMPTY,
+    # An admin gave a named student their practice attempts back, and said why.
+    # The student is going; the row would name nobody.
+    "interview_cap_resets": EMPTY,
     "platform_call_sessions": EMPTY,
     "conversations": EMPTY,
     "messages": EMPTY,

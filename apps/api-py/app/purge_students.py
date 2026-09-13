@@ -159,6 +159,11 @@ STUDENT_VERDICTS: dict[str, object] = {
     "skills": KEEP,
     "jobs": KEEP,
     "interview_bank_questions": KEEP,
+    # The Specialization Matrix (B5.1) and the college's interview rules
+    # (B6.1/B6.4). Staff-authored configuration, no student in either, and the
+    # next cohort is interviewed against exactly these rows.
+    "interview_tracks": KEEP,
+    "interview_policies": KEEP,
     "badge_course_map": KEEP,
     "stage_rules": KEEP,
     "placement_criteria": KEEP,
@@ -305,6 +310,21 @@ STUDENT_VERDICTS: dict[str, object] = {
     "interview_sessions": ALL,
     "interview_turns": ALL,  # child of interview_sessions
     "interview_evaluations": ALL,  # child of interview_sessions
+    # B6.2'S SUMMARY, AND THE ONE PLACE ITS DESIGN COULD MISLEAD A READER.
+    #
+    # This table is built to survive `retention.purge_expired`: `session_id` is
+    # ON DELETE SET NULL precisely so the four numbers outlive the transcript
+    # they came from, and the retention job never deletes one. It is tempting to
+    # read that as "never purged" and write KEEP. It is not. Retention is a
+    # clock on an INTERVIEW; this module is a cohort leaving the deployment, and
+    # `student_id` is NOT NULL and can only name a student. A KEEP here would
+    # leave score rows standing for students who no longer exist — invisible on
+    # every screen, because every screen reads them through a `students` join
+    # that now matches nothing, and therefore never noticed and never removed.
+    "interview_score_summaries": ALL,
+    # Keyed on `student_id` NOT NULL. The admin who granted it survives; the row
+    # is about the student, and `by_user_id` is SET NULL anyway.
+    "interview_cap_resets": ALL,
     "interview_consents": by_user("user_id"),
     "platform_call_sessions": by_user("user_id"),
     # -- the assistant: staff use it too -------------------------------------

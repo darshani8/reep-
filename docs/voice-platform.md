@@ -29,6 +29,39 @@ infra/cdk/                      AWS CDK (Python): S3 x2, SQS x2 (+DLQs), Lambda,
 app/voice_platform/ssm_config.py  the api reads the stack's SSM parameters at boot (production only)
 ```
 
+## Two catalogues, and which one each socket reads (B5.4, 2026-09-13)
+
+There are now **two** interview catalogues in this repository, and this section
+says which is which so nobody has to grep for it:
+
+| | rows | keyed by | read by |
+|---|---|---|---|
+| the dashboard's | `interview_tracks` + `interview_bank_questions` | `(college_id, code)`, programme-wide when `college_id IS NULL` | `/api/interview` — `app/interview_tracks.resolve_specialization` |
+| the platform's | `platform_specializations` + `platform_questions` | `(degree_level, key)` | `/ws/media-bridge` — `app/voice_platform/engine/nova.load_engine_config` |
+
+**They are NOT merged, and that is a decision rather than an omission.**
+04-backend-changes.md §B5.4 asks the platform to "read from `interview_tracks`",
+on the premise that the two duplicate the interviewer. They do not: the platform
+has compiled its rows into an `interview_matrix.Specialization` and run the
+dashboard's own `NovaSonicSession`, `_open_records`, recorder, writers and close
+codes since the day it shipped (`engine/nova.compile_specialization`). What is
+duplicated is the **storage**, and the two schemas genuinely disagree —
+`platform_specializations` is keyed on `degree_level` and carries a `rubric` per
+question, neither of which `interview_tracks` has, and `interview_tracks` hangs
+on the institutional spine, which the platform's does not. Retiring one CRUD
+would take its admin screen, its SSM-driven status endpoint and this document
+with it, for no change to what a candidate hears.
+
+What §B5.4 is right about: **`platform_time_limits` and
+`platform_recording_policies` stay**, because the per-degree time limit and
+recording policy are the platform's own and B6.1's college policy does not
+replace them.
+
+If the two are ever merged, the shape to merge toward is a `degree_level` column
+on `interview_tracks` and a `rubric` column on `interview_bank_questions` —
+not a second reader of one table, which would put the office's tracks behind two
+screens with different validation.
+
 ## How a call runs
 
 1. The client opens `wss://<host>/api/platform/media-bridge?degree=UG&specialization=bsc-ai`

@@ -46,5 +46,7 @@ from . import timesheet  # noqa: F401
 from . import upload  # noqa: F401
 from . import user  # noqa: F401
 from . import interview_bank  # noqa: F401
+from . import interview_policy  # noqa: F401
+from . import interview_track  # noqa: F401
 from . import staff_signature  # noqa: F401
 from . import voice_platform  # noqa: F401

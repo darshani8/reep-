@@ -13,6 +13,18 @@ same code path as `/api/interview`.
 
 Rule 1 holds: the compiled instructions are staff-authored catalogue text. No
 candidate record is read here and no student field is composed into them.
+
+WHICH CATALOGUE (B5.4). This module reads the PLATFORM's tables —
+`platform_specializations` / `platform_questions`, keyed on `(degree_level,
+key)`. The dashboard's `/api/interview` reads the OTHER one,
+`interview_tracks` / `interview_bank_questions`, through
+`app/interview_tracks.resolve_specialization`. The two were deliberately NOT
+merged in Phase 4c: what they duplicate is the storage, not the interviewer —
+both compile to `interview_matrix.Specialization` and run the same session — and
+the schemas disagree on the two things that matter (`degree_level` keying here,
+the institutional spine there; a per-question `rubric` here, none there).
+`docs/voice-platform.md` carries the table and the shape any future merge should
+take.
 """
 
 from __future__ import annotations

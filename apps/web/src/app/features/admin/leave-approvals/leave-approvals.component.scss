@@ -282,7 +282,15 @@
   color: var(--ink);
 }
 
+/* The acceptance chip sits inline with the colleague's name, so the name line
+   wraps rather than pushing the chip out of the 380px panel. ONE rule, not a
+   second `.alt-who` further down the file: two declarations of the same name in
+   one sheet is the same trap the global sheets have, at component scale. */
 .alt-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
 }
 
@@ -406,4 +414,54 @@
 .panel-empty p {
   margin: 0;
   line-height: 1.45;
+}
+
+/* --- the panel's three extra reads (B10.2/B10.3/B10.6) -------------------- */
+/* `.panel-hint` and not `.hint`: the two global sheets both own short generic
+   names, and a component rule of the same name overrides only the properties
+   it repeats and silently inherits the rest. One owner per global class. */
+
+.panel-hint {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.balance-list,
+.attach-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.balance-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.balance-kind {
+  font-weight: 600;
+  min-width: 78px;
+}
+
+.balance-detail {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.attach-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attach-meta {
+  font-size: 11px;
+  color: var(--faint);
 }

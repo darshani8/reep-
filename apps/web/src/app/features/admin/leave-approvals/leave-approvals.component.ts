@@ -8,12 +8,14 @@
  * /api/leaves/{id}/paper.pdf` renders the college's own form with the uploaded
  * signatures drawn in, which is the version that matters once it is filed.
  *
- * THREE LIVE TABS. The board shows Pending / Approved / Rejected / Cancelled.
- * The first three are real: pending comes from /leaves/pending, the other two
- * from /leaves/history. CANCELLED is a status the enum already carries and
- * nothing writes — the cancel endpoint is B10.4 — so that tab is disabled and
- * says which phase brings it, rather than opening an empty list that reads as
- * "nobody has ever withdrawn a request".
+ * FOUR LIVE TABS (B10.4). Pending comes from /leaves/pending; Approved,
+ * Rejected and Cancelled each come from /leaves/history, which now takes
+ * `?status=`. The last one needed that parameter to exist at all: /pending
+ * filters SUBMITTED and FIRST_APPROVED and /history used to filter APPROVED and
+ * REJECTED, so a withdrawn request was returned by NEITHER and no amount of
+ * client-side filtering could have lit the tab. The default (no `status=`) is
+ * untouched, so the Approved and Rejected tabs still read the same array they
+ * always did.
  *
  * TWO DISTINCT APPROVERS, ENFORCED SERVER-SIDE. /leaves/pending already omits a
  * request this user first-approved, and the decision endpoint refuses a second
@@ -25,13 +27,20 @@
  * sanctioned" and no idea what to do next. On an approval the remarks are
  * optional and are still sent — `note` is stored for both decisions.
  *
- * WHAT IS NOT HERE IS PENDING, NEVER INVENTED. The board's leave balances,
- * department cover, attachment, alternate acceptance, calendar, cancel and the
- * per-department policy card are all B10.x (Phase 4). Each is drawn as its
- * empty state with one sentence saying what fills it; the approval chain is
- * built ONLY from what `LeaveOut` already carries — the applicant's own
- * signature, the two-signature status, and the approver printed on a decided
- * request.
+ * THE PANEL READS THREE MORE ENDPOINTS, EACH BEHIND THE SAME GATE AS THE PAPER.
+ * `GET /leaves/{id}/balance` (the applicant's allowances for the year the
+ * request falls in), `GET /leaves/{id}/attachments` and `GET
+ * /leaves/{id}/alternate` are all gated by `_assert_can_decide` server-side —
+ * the same function, the same three doors, the same flattened 404 — so this
+ * screen asks for them and reports what it is given rather than deciding
+ * anything itself. A 403 or 404 on one of the three leaves that block absent;
+ * it is never rendered as "none recorded", because those are opposite facts.
+ *
+ * NOTHING HERE IS INVENTED. Where the office has recorded no allowance the
+ * panel says exactly that — "no allowance recorded, so nothing is measured
+ * against one" — and never a zero, for `LeaveBalance`'s own reason: a missing
+ * row and an exhausted allowance are opposite states and a 0 in a chip reads as
+ * the second.
  *
  * THE SCOPE PILLS, WIRED — AND THEY ARE TWO DIFFERENT FACTS (B1.4). `GET
  * /leaves/pending` and `GET /leaves/history` take NO college or department
@@ -60,15 +69,16 @@
  */
 
 import { DatePipe } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { AuthService } from '../../../core/auth.service';
 import { plural } from '../../../shared/text/plural.pipe';
-
-/** The approval chain, attachments, balances, calendar, cancel and the policy
- *  card are B10.1–B10.8, on branch `feat/redesign-p4-leave`. */
-const LEAVE_BACKEND_PHASE = 4;
+import { LeaveCalendarDialogComponent } from './leave-calendar-dialog.component';
+import {
+  LeavePolicyDialogComponent,
+  type LeaveCollegeSummary,
+} from './leave-policy-dialog.component';
 
 /** The three words `app/scope_views.py` writes into `X-Reep-Scope`. Three and
  *  not a boolean: `programme` and `none` are opposite facts, not two ends of
@@ -127,7 +137,65 @@ interface LeaveRow {
   director_name: string | null;
   director_decided_at: string | null;
   director_note: string | null;
+  /** WHICH FUNCTION EACH SIGNATURE WAS GIVEN IN (B10.1). NULL on every row
+   *  decided before those columns existed and on every step nobody has signed,
+   *  and rendered as nothing at all — guessing a function from who the signer
+   *  is today would put a claim about authority onto an old form. */
+  first_signed_as: string | null;
+  second_signed_as: string | null;
 }
+
+/** One paper attached to a request (B10.3). */
+interface LeaveAttachment {
+  id: string;
+  original_name: string;
+  mime_type: string;
+  size_bytes: number;
+  uploaded_at: string;
+  uploaded_by_name: string | null;
+  can_delete: boolean;
+}
+
+interface BalanceRow {
+  kind: string;
+  entitled_days: number;
+  consumed_days: number;
+  remaining_days: number;
+}
+
+interface BalanceSet {
+  academic_year: string;
+  balances: BalanceRow[];
+}
+
+/** One line of the Alternate Arrangements table, with the account link and the
+ *  acceptance B10.6 added to the stored JSON. */
+interface AlternateRow {
+  index: number;
+  date: string;
+  staff_name: string;
+  cls: string;
+  time: string;
+  remarks: string;
+  user_id: string | null;
+  user_name: string | null;
+  accepted_at: string | null;
+}
+
+interface AlternateTable {
+  rows: AlternateRow[];
+}
+
+/** The three words `app/leave_paper.py::SIGNED_AS_LABELS` prints, and the same
+ *  three the model's `SIGNED_AS` tuple allows. A value this map does not know
+ *  is printed as it arrived rather than dropped: a function the server records
+ *  and this screen cannot name is a fact, and hiding it is worse than showing
+ *  it raw. */
+const SIGNED_AS_LABELS: Record<string, string> = {
+  MENTOR: 'Mentor',
+  DELEGATE: 'Delegated approver',
+  MAIN_ADMIN: 'Main Admin',
+};
 
 /** The five printed options, in the order the college's form lists them. */
 const KINDS = [
@@ -155,7 +223,7 @@ const NO_DEPARTMENT = '';
  *  exactly on it says so instead of quietly dropping the 201st request. */
 const HISTORY_SERVER_CAP = 200;
 
-type QueueTab = 'pending' | 'approved' | 'rejected';
+type QueueTab = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 type DecisionMode = 'idle' | 'approve' | 'reject';
 
@@ -178,17 +246,18 @@ const EMPTY_NOTE: Record<QueueTab, string> = {
   pending: 'No requests waiting on your signature.',
   approved: 'Nothing sanctioned yet.',
   rejected: 'No rejected requests.',
+  cancelled: 'Nobody has withdrawn a request.',
 };
 
 @Component({
   selector: 'app-admin-leave-approvals',
   standalone: true,
-  imports: [DatePipe, PendingControlDirective],
+  imports: [DatePipe, LeaveCalendarDialogComponent, LeavePolicyDialogComponent],
   templateUrl: './leave-approvals.component.html',
   styleUrl: './leave-approvals.component.scss',
 })
 export class AdminLeaveApprovalsComponent {
-  readonly leaveBackendPhase = LEAVE_BACKEND_PHASE;
+  private readonly auth = inject(AuthService);
   readonly kinds = KINDS;
   readonly everyKind = EVERY_KIND;
   readonly everyDepartment = EVERY_DEPARTMENT;
@@ -198,6 +267,7 @@ export class AdminLeaveApprovalsComponent {
     { key: 'pending', label: 'Pending' },
     { key: 'approved', label: 'Approved' },
     { key: 'rejected', label: 'Rejected' },
+    { key: 'cancelled', label: 'Cancelled' },
   ];
 
   readonly tab = signal<QueueTab>('pending');
@@ -208,6 +278,9 @@ export class AdminLeaveApprovalsComponent {
   readonly scope = signal<ScopeReach | null>(null);
   readonly pending = signal<LeaveRow[] | null>(null);
   readonly history = signal<LeaveRow[] | null>(null);
+  /** `GET /leaves/history?status=CANCELLED` — its own read, because the default
+   *  history deliberately does NOT include withdrawn requests. */
+  readonly cancelled = signal<LeaveRow[] | null>(null);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
   readonly selectedId = signal<string | null>(null);
@@ -216,7 +289,25 @@ export class AdminLeaveApprovalsComponent {
   readonly remarksError = signal<string | null>(null);
   readonly deciding = signal<boolean>(false);
 
-  readonly isLoading = computed(() => this.pending() === null || this.history() === null);
+  /** What the panel's three extra reads answered for the SELECTED request.
+   *  `null` means "not answered", which is never rendered as "none recorded". */
+  readonly attachments = signal<LeaveAttachment[] | null>(null);
+  readonly balanceSet = signal<BalanceSet | null>(null);
+  readonly alternate = signal<AlternateTable | null>(null);
+
+  /** The two office dialogs (B10.2). */
+  readonly policyOpen = signal(false);
+  readonly calendarOpen = signal(false);
+  readonly colleges = signal<LeaveCollegeSummary[]>([]);
+
+  /** Every write behind those two dialogs is `require_admin` server-side, so a
+   *  granted approver who is not the office gets the buttons disabled with the
+   *  reason on them rather than a dialog whose every control answers 403. */
+  readonly isMainAdmin = computed(() => this.auth.session()?.role === 'ADMIN');
+
+  readonly isLoading = computed(
+    () => this.pending() === null || this.history() === null || this.cancelled() === null,
+  );
 
   readonly counts = computed(() => {
     const decided = this.history() ?? [];
@@ -224,6 +315,7 @@ export class AdminLeaveApprovalsComponent {
       pending: (this.pending() ?? []).length,
       approved: decided.filter((row) => row.status === 'APPROVED').length,
       rejected: decided.filter((row) => row.status === 'REJECTED').length,
+      cancelled: (this.cancelled() ?? []).length,
     };
   });
 
@@ -244,11 +336,11 @@ export class AdminLeaveApprovalsComponent {
     return inTab;
   });
 
-  /** Every department named on a loaded request, from BOTH queues so the menu
+  /** Every department named on a loaded request, from EVERY queue so the menu
    *  does not change shape when the tab does. */
   readonly departments = computed<string[]>(() => {
     const names = new Set<string>();
-    for (const row of [...(this.pending() ?? []), ...(this.history() ?? [])]) {
+    for (const row of this.everyLoadedRow()) {
       const name = this.departmentOf(row);
       if (name !== NO_DEPARTMENT) names.add(name);
     }
@@ -258,10 +350,12 @@ export class AdminLeaveApprovalsComponent {
   /** True when some loaded request has no department, so the menu offers that
    *  bucket rather than leaving those rows reachable only under "All". */
   readonly hasUnstatedDepartment = computed(() =>
-    [...(this.pending() ?? []), ...(this.history() ?? [])].some(
-      (row) => this.departmentOf(row) === NO_DEPARTMENT,
-    ),
+    this.everyLoadedRow().some((row) => this.departmentOf(row) === NO_DEPARTMENT),
   );
+
+  private everyLoadedRow(): LeaveRow[] {
+    return [...(this.pending() ?? []), ...(this.history() ?? []), ...(this.cancelled() ?? [])];
+  }
 
   readonly departmentFilterLabel = computed(() => {
     const wanted = this.departmentFilter();
@@ -373,10 +467,20 @@ export class AdminLeaveApprovalsComponent {
 
   readonly selectedCount = computed(() => (this.selectedRequest() === null ? 0 : 1));
 
-  /** True when the decided queue is standing on the server's row cap. */
-  readonly historyCapped = computed(
-    () => this.tab() !== 'pending' && (this.history() ?? []).length >= HISTORY_SERVER_CAP,
-  );
+  /** True when the queue on screen is standing on the server's row cap.
+   *
+   *  Measured against the ARRAY THIS TAB WAS SERVED, not against `history()`:
+   *  Cancelled is its own request with its own `.limit(200)`, so reading the
+   *  settled queue's length there would report a cap that belongs to a
+   *  different response — and, on a deployment with 200 decided requests and
+   *  three withdrawn ones, would tell the office three rows might be missing
+   *  when none are. */
+  readonly historyCapped = computed(() => {
+    const tab = this.tab();
+    if (tab === 'pending') return false;
+    const served = tab === 'cancelled' ? (this.cancelled() ?? []) : (this.history() ?? []);
+    return served.length >= HISTORY_SERVER_CAP;
+  });
 
   readonly historyCap = HISTORY_SERVER_CAP;
 
@@ -419,6 +523,8 @@ export class AdminLeaveApprovalsComponent {
     this.decisionMode.set('idle');
     this.remarks.set('');
     this.remarksError.set(null);
+    this.clearPanelReads();
+    void this.loadPanel(id);
   }
 
   clearSelection(): void {
@@ -426,6 +532,117 @@ export class AdminLeaveApprovalsComponent {
     this.decisionMode.set('idle');
     this.remarks.set('');
     this.remarksError.set(null);
+    this.clearPanelReads();
+  }
+
+  private clearPanelReads(): void {
+    this.attachments.set(null);
+    this.balanceSet.set(null);
+    this.alternate.set(null);
+  }
+
+  /** The applicant's allowances, the attached papers and the alternate table.
+   *
+   *  EVERY ONE OF THE THREE IS OPTIONAL, and a refusal is silence rather than
+   *  an empty list: all three are gated server-side by `_assert_can_decide`, so
+   *  a 404 here means this account may not read that half of the request — not
+   *  that the applicant attached nothing. Each result is discarded if the
+   *  selection moved on while it was in flight, because a balance rendered
+   *  under somebody else's name is the worst failure this panel has. */
+  private async loadPanel(id: string): Promise<void> {
+    const stillSelected = () => this.selectedId() === id;
+    try {
+      const [balance, attachments, alternate] = await Promise.all([
+        fetch(`${environment.apiBase}/leaves/${id}/balance`, { credentials: 'include' }),
+        fetch(`${environment.apiBase}/leaves/${id}/attachments`, { credentials: 'include' }),
+        fetch(`${environment.apiBase}/leaves/${id}/alternate`, { credentials: 'include' }),
+      ]);
+      if (!stillSelected()) return;
+      if (balance.ok) this.balanceSet.set((await balance.json()) as BalanceSet);
+      if (!stillSelected()) return;
+      if (attachments.ok) this.attachments.set((await attachments.json()) as LeaveAttachment[]);
+      if (!stillSelected()) return;
+      if (alternate.ok) this.alternate.set((await alternate.json()) as AlternateTable);
+    } catch {
+      // The panel's three extras stay absent. The decision controls above them
+      // are unaffected — they were never gated on this.
+    }
+  }
+
+  /** `GET /api/leaves/{id}/attachments/{aid}/file`. Served `Content-Disposition:
+   *  attachment` whatever this link asks for; an inline PDF on the SPA's own
+   *  origin is same-origin script execution (document_store says so). */
+  attachmentUrl(request: LeaveRow, attachment: LeaveAttachment): string {
+    return `${environment.apiBase}/leaves/${request.id}/attachments/${attachment.id}/file`;
+  }
+
+  fileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} kB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  /** The word the paper prints for a function, or the raw value when this
+   *  screen has not been taught one. Never the empty string: a step nobody has
+   *  signed has no function, and the template asks before it calls. */
+  signedAsLabel(value: string | null): string {
+    if (!value) return '';
+    return SIGNED_AS_LABELS[value] ?? value;
+  }
+
+  /** The alternate table, preferring the server's own rows (which carry the
+   *  account link and the acceptance) and falling back to what the queue row
+   *  already printed. */
+  readonly altRows = computed<AlternateRow[]>(() => {
+    const table = this.alternate();
+    if (table !== null) return table.rows;
+    const request = this.selectedRequest();
+    if (request === null) return [];
+    return request.alt_rows.map((row, index) => ({
+      index,
+      date: row.date,
+      staff_name: row.staff_name,
+      cls: row.cls,
+      time: row.time,
+      remarks: row.remarks,
+      user_id: null,
+      user_name: null,
+      accepted_at: null,
+    }));
+  });
+
+  // -------------------------------------------------------- the two dialogs --
+
+  openPolicy(): void {
+    if (!this.isMainAdmin()) return;
+    this.policyOpen.set(true);
+  }
+
+  openCalendar(): void {
+    if (!this.isMainAdmin()) return;
+    void this.loadColleges();
+    this.calendarOpen.set(true);
+  }
+
+  closeDialogs(): void {
+    this.policyOpen.set(false);
+    this.calendarOpen.set(false);
+  }
+
+  /** The colleges the calendar dialog picks between, read from the policy sheet
+   *  rather than from a second colleges endpoint — one question, one answer. */
+  private async loadColleges(): Promise<void> {
+    if (this.colleges().length > 0) return;
+    try {
+      const response = await fetch(`${environment.apiBase}/admin/leave-policy`, {
+        credentials: 'include',
+      });
+      if (!response.ok) return;
+      const sheet = (await response.json()) as { colleges: LeaveCollegeSummary[] };
+      this.colleges.set(sheet.colleges ?? []);
+    } catch {
+      // The dialog then opens on an empty picker and says so.
+    }
   }
 
   isSelected(row: LeaveRow): boolean {
@@ -507,9 +724,15 @@ export class AdminLeaveApprovalsComponent {
     return `${parts.day} ${month}`;
   }
 
-  /** Calendar days, inclusive of both ends. WORKING days need the academic
-   *  calendar (B10.2), so this counts what the two dates on the form say and
-   *  is labelled as calendar days. */
+  /** Calendar days, inclusive of both ends, and LABELLED as calendar days.
+   *
+   *  The academic calendar exists now (the Calendar dialog writes it) and the
+   *  server counts working days against it when it measures a request — but
+   *  neither queue endpoint returns that number, and this screen will not fetch
+   *  a college's holidays per row to compute a second one. Two independent
+   *  counts of the same span is how the queue ends up disagreeing with the
+   *  refusal the applicant was shown. What is drawn here is the span on the
+   *  form, and it says so. */
   dayCountLabel(row: LeaveRow): string {
     const firstDay = Date.parse(`${row.from_date}T00:00:00Z`);
     const lastDay = Date.parse(`${row.to_date}T00:00:00Z`);
@@ -526,6 +749,8 @@ export class AdminLeaveApprovalsComponent {
         return { label: 'Not sanctioned', tone: 'risk' };
       case 'FIRST_APPROVED':
         return { label: 'Sanction pending', tone: 'warn' };
+      case 'CANCELLED':
+        return { label: 'Withdrawn', tone: 'neutral' };
       default:
         return { label: 'First signature pending', tone: 'warn' };
     }
@@ -540,6 +765,8 @@ export class AdminLeaveApprovalsComponent {
         return `Refused by ${row.director_name || 'an approver'}`;
       case 'FIRST_APPROVED':
         return 'One signature recorded → sanction';
+      case 'CANCELLED':
+        return 'Withdrawn by the applicant';
       default:
         return 'First signature, then sanction';
     }
@@ -554,6 +781,16 @@ export class AdminLeaveApprovalsComponent {
     if (row.status === 'REJECTED') return 'Rejected — remarks';
     if (row.status === 'FIRST_APPROVED') return 'First signature — remarks';
     return 'Sanctioned — remarks';
+  }
+
+  /** Has anybody signed this form at all? A withdrawn request may never have
+   *  been signed, and a submitted one certainly has not. */
+  hasASignature(row: LeaveRow): boolean {
+    return (
+      row.status === 'FIRST_APPROVED' ||
+      row.status === 'APPROVED' ||
+      row.status === 'REJECTED'
+    );
   }
 
   /** SUBMITTED has nothing decided, so any note on it would be nobody's. */
@@ -688,6 +925,7 @@ export class AdminLeaveApprovalsComponent {
   private rowsInTab(): LeaveRow[] {
     const tab = this.tab();
     if (tab === 'pending') return this.pending() ?? [];
+    if (tab === 'cancelled') return this.cancelled() ?? [];
     const wantedStatus = tab === 'approved' ? 'APPROVED' : 'REJECTED';
     return (this.history() ?? []).filter((row) => row.status === wantedStatus);
   }
@@ -718,28 +956,39 @@ export class AdminLeaveApprovalsComponent {
         detail: 'Recorded, or the form was refused at this step.',
       };
     }
+    const asWhat = this.signedAsLabel(row.first_signed_as);
+    const asPhrase = asWhat.length > 0 ? ` · signed as ${asWhat}` : '';
     return {
       label: 'First signature',
       state: 'done',
       detail: row.director_note
-        ? 'Recorded with remarks — a second, different approver is required.'
-        : 'Recorded — a second, different approver is required.',
+        ? `Recorded with remarks${asPhrase} — a second, different approver is required.`
+        : `Recorded${asPhrase} — a second, different approver is required.`,
     };
   }
 
   private sanctionStep(row: LeaveRow): ChainStep {
+    const asWhat = this.signedAsLabel(row.second_signed_as || row.first_signed_as);
+    const asPhrase = asWhat.length > 0 ? ` · as ${asWhat}` : '';
     if (row.status === 'APPROVED') {
       return {
         label: 'Sanction',
         state: 'done',
-        detail: `${row.director_name || 'Approver'} · ${this.stampOf(row.director_decided_at)}`,
+        detail: `${row.director_name || 'Approver'}${asPhrase} · ${this.stampOf(row.director_decided_at)}`,
       };
     }
     if (row.status === 'REJECTED') {
       return {
         label: 'Not sanctioned',
         state: 'refused',
-        detail: `${row.director_name || 'Approver'} · ${this.stampOf(row.director_decided_at)}`,
+        detail: `${row.director_name || 'Approver'}${asPhrase} · ${this.stampOf(row.director_decided_at)}`,
+      };
+    }
+    if (row.status === 'CANCELLED') {
+      return {
+        label: 'Withdrawn',
+        state: 'refused',
+        detail: 'The applicant took this request back before it was decided.',
       };
     }
     if (row.status === 'FIRST_APPROVED') {
@@ -763,24 +1012,33 @@ export class AdminLeaveApprovalsComponent {
 
   private async loadQueues(): Promise<void> {
     try {
-      const [pendingResponse, historyResponse] = await Promise.all([
+      const [pendingResponse, historyResponse, cancelledResponse] = await Promise.all([
         fetch(`${environment.apiBase}/leaves/pending`, { credentials: 'include' }),
         fetch(`${environment.apiBase}/leaves/history`, { credentials: 'include' }),
+        // The withdrawn queue is a THIRD read and not a filter over the second:
+        // `/history` without `?status=` answers the settled queue exactly as it
+        // always has, and a CANCELLED row is in neither default queue.
+        fetch(`${environment.apiBase}/leaves/history?status=CANCELLED`, {
+          credentials: 'include',
+        }),
       ]);
-      if (!pendingResponse.ok || !historyResponse.ok) {
+      if (!pendingResponse.ok || !historyResponse.ok || !cancelledResponse.ok) {
         this.error.set('Could not load the approvals queue.');
         this.pending.set([]);
         this.history.set([]);
+        this.cancelled.set([]);
         return;
       }
       this.scope.set(this.readScope(pendingResponse) ?? this.readScope(historyResponse));
       this.pending.set((await pendingResponse.json()) as LeaveRow[]);
       this.history.set((await historyResponse.json()) as LeaveRow[]);
+      this.cancelled.set((await cancelledResponse.json()) as LeaveRow[]);
     } catch {
       this.error.set('Could not reach the server.');
       this.scope.set(null);
       this.pending.set([]);
       this.history.set([]);
+      this.cancelled.set([]);
     }
   }
 

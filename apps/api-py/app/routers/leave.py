@@ -68,6 +68,7 @@ from ..governance import (
     require_capability,
 )
 from ..identity import get_current_session
+from ..leave_mail import notify_transition
 from ..leave_policy import submit_refusal
 from ..policies import scope_filter
 from ..scope_views import scope_header
@@ -359,6 +360,13 @@ def submit_leave(
     db.add(lr)
     db.commit()
     db.refresh(lr)
+    # B10.5, AND IT IS OFF UNLESS `LEAVE_MAIL_ENABLED` IS SET. After the commit,
+    # never before: `deliver_once` commits its own MailLog, so calling it first
+    # would commit a half-written request, and a mail about a request that has
+    # not landed is worse than a late one. It never raises and it returns None
+    # when the feature is off, so this line cannot change what this endpoint
+    # answers — which is the whole point, on an endpoint that must not change.
+    notify_transition(db, lr)
     return _leave_out(lr, db)
 
 
@@ -828,4 +836,10 @@ def decide_leave(
 
     db.commit()
     db.refresh(lr)
+    # B10.5, off by default, after the commit. See `submit_leave`. A first
+    # signature and a final decision are different messages carrying different
+    # dedupe keys, so signing both steps sends two and retrying either sends
+    # neither again. CANCELLED has no message at all: the applicant withdrew it
+    # themselves and does not need telling what they just did.
+    notify_transition(db, lr)
     return _leave_out(lr, db)

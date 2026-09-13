@@ -265,3 +265,51 @@ def test_the_new_keys_are_invisible_to_every_old_reader(client, make_user):
 
     paper = client.get(f"{LEAVES}/{leave['id']}/paper.pdf", headers=applicant.headers)
     assert paper.status_code == 200 and paper.content.startswith(b"%PDF")
+
+
+@requires_db
+def test_an_applicant_cannot_submit_a_forged_acceptance(client, make_user):
+    """THE CLIENT CAN NOW SEND THESE KEYS, AND THE SERVER MUST STILL DROP THEM.
+
+    `leave.component.ts`'s "Edit & resubmit" copies a rejected request's stored
+    `alt_rows` into a fresh form with `{...r}` — and since B10.6 those stored
+    rows carry `user_id` and `accepted_at`. So the path that posts a colleague's
+    acceptance back to `POST /api/leaves` is reachable from the product, not
+    only from curl. It must land as nothing.
+
+    What makes it safe is that `routers/leave.py::AltRow` declares five fields
+    and pydantic v2 ignores the rest, so `[r.model_dump() for r in body.alt_rows]`
+    can only ever write those five. Adding either key to that model — which is
+    exactly what 04 §B10.6 asks for in as many words — would make an applicant
+    able to stamp their colleague's agreement onto their own form, with nothing
+    in the record to show they did.
+    """
+    applicant = make_user("alt8-app", Role.MENTOR)
+    covering = make_user("alt8-cov", Role.MENTOR)
+    leave = _leave(
+        client,
+        applicant.headers,
+        rows=[
+            {
+                "date": date.today().isoformat(),
+                "staff_name": "Kavya N",
+                "cls": "MBA-II",
+                "time": "10:00",
+                "remarks": "Swapped",
+                # Both forged, exactly as a re-submitted form would carry them.
+                "user_id": covering.user_id,
+                "accepted_at": "2020-01-01T00:00:00+00:00",
+            }
+        ],
+    )
+    table = client.get(f"{LEAVES}/{leave['id']}/alternate", headers=applicant.headers)
+    assert table.status_code == 200, table.text
+    row = table.json()["rows"][0]
+    assert row["user_id"] is None, "the applicant cannot name an account at submit time"
+    assert row["accepted_at"] is None, "and certainly cannot stamp the agreement"
+    assert row["staff_name"] == "Kavya N", "the typed name the paper prints is kept"
+
+    # And the colleague they tried to name is not on the hook for it.
+    mine = client.get(f"{LEAVES}/alternate/mine", headers=covering.headers)
+    assert mine.status_code == 200, mine.text
+    assert [b["id"] for b in mine.json() if b["id"] == leave["id"]] == []

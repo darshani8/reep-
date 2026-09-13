@@ -26,8 +26,10 @@ A table in the metadata that nobody classified ABORTS THE RUN — it is not
 quietly kept (which would leave a student's records behind) and not quietly
 emptied (which would destroy a catalogue somebody added last week). The next
 person to add a table is made to decide, by a test that fails in CI and by this
-module refusing to run. That is the whole reason the verdicts are a dict of 93
-entries rather than a pair of prefixes and a `startswith`.
+module refusing to run. That is the whole reason the verdicts are a dict of 109
+entries — one per table, `len(VERDICTS)` — rather than a pair of prefixes and a
+`startswith`. (109 is the table count; the 180 below is the foreign-key count.
+They were both written as "93" for months, which is how a stale number spreads.)
 
 SECOND, THE FILES GO BEFORE THE ROWS. A row is the last pointer to a student's
 resume, a faculty member's signature and a named student's recorded voice.
@@ -556,7 +558,7 @@ def _delete_rows(db: Session, plan: Plan) -> None:
 
     SEPARATE FROM `execute` AND WITHOUT A COMMIT ON PURPOSE. This is the half
     whose correctness is a property of the ORDER, and the only honest way to
-    test an order against 93 real foreign keys is to run it against the real
+    test an order against 180 real foreign keys is to run it against the real
     schema and roll back — which a function that commits cannot offer.
     tests/test_purge_people.py does exactly that.
     """

@@ -2,7 +2,7 @@
 
 The load-bearing test here is `test_the_delete_order_survives_every_foreign_key`,
 and it is written the way it is on purpose. `app.purge_people` is correct only
-if its delete order satisfies 93 real foreign keys — several of which carry no
+if its delete order satisfies 180 real foreign keys — several of which carry no
 ON DELETE clause at all (`login_days.user_id`, `mentors.user_id`,
 `students.user_id`, and the four `created_by_user_id` columns on the
 institutional spine, which point at rows that are about to be deleted from
@@ -20,6 +20,9 @@ either leaves a student's records behind or destroys the badge catalogue.
 """
 
 from __future__ import annotations
+
+import pathlib
+import re
 
 import pytest
 from sqlalchemy import func, select
@@ -50,6 +53,72 @@ def test_the_verdicts_cover_the_whole_schema_exactly():
     assert purge_people.VERDICTS["interview_sessions"] == purge_people.EMPTY
     assert purge_people.VERDICTS["messages"] == purge_people.EMPTY
     assert purge_people.VERDICTS["users"] == purge_people.SURVIVOR
+
+
+def test_the_written_counts_are_the_real_counts():
+    """The two destructors quote their own size, and the numbers went stale.
+
+    `93` was the table count AND the foreign-key count in six places at once —
+    in the two modules' docstrings, in both test modules, and in AGENTS.md —
+    long after the schema had outgrown both of those figures. Nobody
+    noticed, because prose is not executed. That matters more here than almost
+    anywhere else in the repository: these paragraphs are what an operator reads
+    to check their understanding of a destructive, irreversible pass BEFORE they
+    type `--i-understand-this-is-permanent`, and a number they can see is wrong
+    costs the rest of the page its credibility.
+
+    So the prose is executed now. Add a model and this fails beside
+    `test_every_table_has_a_verdict`, which is the point: one event, both
+    obligations — classify the table, and correct the sentence that counts it.
+    """
+    repo = pathlib.Path(__file__).resolve().parents[3]
+    tables = len(purge_people.VERDICTS)
+    foreign_keys = sum(len(t.foreign_keys) for t in Base.metadata.tables.values())
+
+    sources = [
+        repo / "apps" / "api-py" / "app" / "purge_people.py",
+        repo / "apps" / "api-py" / "app" / "purge_students.py",
+        repo / "apps" / "api-py" / "tests" / "test_purge_people.py",
+        repo / "apps" / "api-py" / "tests" / "test_purge_students.py",
+        repo / "AGENTS.md",
+    ]
+
+    # The two claims are DIFFERENT counts and were conflated into one number
+    # for months, so they are matched separately and never by a bare \d+.
+    table_claim = re.compile(
+        r"(?:all |each of the |Every one of the |dict of )(\d+)\s+(?:tables|entries)"
+    )
+    fk_claim = re.compile(r"(\d+)\s+real foreign keys")
+
+    for path in sources:
+        text = path.read_text(encoding="utf-8")
+        for claimed in table_claim.findall(text):
+            assert int(claimed) == tables, (
+                f"{path.name} says {claimed} tables; the schema has {tables}"
+            )
+        for claimed in fk_claim.findall(text):
+            assert int(claimed) == foreign_keys, (
+                f"{path.name} says {claimed} foreign keys; the schema has {foreign_keys}"
+            )
+
+    # AGENTS.md also breaks purge_students down by verdict, and that sentence
+    # was wrong in a second way: its three numbers summed to 92, not to any
+    # schema this repository has ever had.
+    from app import purge_students
+
+    breakdown = re.search(
+        r"(\d+) tables are emptied outright, (\d+) are untouched, (\d+) are scoped",
+        (repo / "AGENTS.md").read_text(encoding="utf-8"),
+    )
+    assert breakdown, "the purge_students breakdown sentence was reworded; re-pin it"
+    emptied, untouched, scoped = (int(g) for g in breakdown.groups())
+    verdicts = purge_students.STUDENT_VERDICTS.values()
+    assert emptied == sum(1 for v in verdicts if v == purge_students.ALL)
+    assert untouched == sum(1 for v in verdicts if v == purge_students.KEEP)
+    assert scoped == sum(
+        1 for v in verdicts if v not in (purge_students.ALL, purge_students.KEEP)
+    )
+    assert emptied + untouched + scoped == tables
 
 
 def test_every_file_backed_table_is_emptied_not_kept():

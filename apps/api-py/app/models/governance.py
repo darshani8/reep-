@@ -433,6 +433,10 @@ class CapabilityGrant(Base):
         Index("ix_capgrant_user_live", "subject_user_id", "capability", "revoked_at"),
         Index("ix_capgrant_group_live", "subject_group_id", "capability", "revoked_at"),
         Index("ix_capgrant_capability", "capability"),
+        # B1.2's rung. Declared here for the same reason as the constraints
+        # above: it is created by b2c9e04a7731 and, undeclared, `alembic check`
+        # asks to drop it on every single run.
+        Index("ix_capgrant_scope", "scope_level", "scope_id"),
         CheckConstraint(
             "approval_state IN ('active', 'pending_approval')",
             name="ck_capability_grant_approval_state",

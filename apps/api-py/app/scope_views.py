@@ -38,7 +38,7 @@ from typing import Final
 
 from fastapi import Response
 from sqlalchemy import false as sa_false
-from sqlalchemy import or_
+from sqlalchemy import or_, select
 from sqlalchemy import true as sa_true
 
 from .exports import scope_note
@@ -117,4 +117,102 @@ def registration_scope_clause(reach: Reach):
         clauses.append(Registration.requested_cohort_id.in_(reach.cohorts))
     if not clauses:
         return sa_false()
+    return or_(*clauses)
+
+
+def import_run_scope_clause(reach: Reach):
+    """The reach, as a WHERE clause over `import_runs` (B8.1).
+
+    AN IMPORT RUN IS NOT A STUDENT EITHER, which is why it is here beside the
+    registrations projection rather than in `policies.py`. It hangs on a COLLEGE
+    and on a BATCH, and the four rungs in between are reached through the batch
+    — `cohorts` carries `department_id`, `course_id` and `specialization_id`, so
+    a department-scoped reviewer sees the run through a subquery over those
+    pointers rather than through a copy of the ancestry denormalised onto every
+    run. One writer for a batch's ancestry (`_resolve_ancestry` in
+    routers/admin.py) is the reason that copy must not exist.
+
+    A STUDENT-SCOPED REACH MATCHES NO RUN, for `registration_scope_clause`'s
+    reason turned around: a run is an act performed on a whole batch, and a
+    grant naming one student says nothing about whether its holder may see the
+    other eighty-five lines in the file.
+
+    A RUN WITH NULL ON BOTH POINTERS IS VISIBLE ONLY TO A REACH OF EVERYTHING,
+    and that is deliberate and the opposite of `capability_grants`' NULL rule
+    (B1.2), where NULL means programme-wide. Here NULL means "this run's batch
+    was deleted and nobody can say which college it was for" — unattributable,
+    not universal — and a narrowed holder must not be handed a file of marks
+    that nothing places inside their reach.
+    """
+    from .models.cohort import Cohort
+    from .models.data_import import ImportRun
+
+    if reach.everything:
+        return sa_true()
+    clauses = []
+    if reach.colleges:
+        clauses.append(ImportRun.college_id.in_(reach.colleges))
+    if reach.cohorts:
+        clauses.append(ImportRun.cohort_id.in_(reach.cohorts))
+    for values, column in (
+        (reach.departments, Cohort.department_id),
+        (reach.courses, Cohort.course_id),
+        (reach.specializations, Cohort.specialization_id),
+    ):
+        if values:
+            clauses.append(
+                ImportRun.cohort_id.in_(select(Cohort.id).where(column.in_(values)))
+            )
+    if not clauses:
+        return sa_false()
+    return or_(*clauses)
+
+
+def job_scope_clause(reach: Reach):
+    """The reach, as a WHERE clause over `jobs` (B12.1).
+
+    A POSTING IS NOT A STUDENT EITHER, and until B12.1 it hung on nothing at
+    all: `console.placement`'s docstring said so in as many words, and the jobs
+    sheet was the one console list B1.4 could not narrow. It hangs on a COLLEGE
+    and on a COURSE now, and the department in between is reached through the
+    course — `academic_courses.department_id` is NOT NULL, so that walk always
+    lands, and denormalising a department onto every posting to save the
+    subquery would be a second writer for a fact the spine already owns.
+
+    A POSTING WITH NULL ON BOTH POINTERS IS VISIBLE TO EVERY REACH, and this is
+    the deliberate OPPOSITE of `import_run_scope_clause` directly above. The two
+    NULLs mean different things. An import run with no college is one whose
+    batch was deleted — unattributable, and a narrowed holder must not be handed
+    a file of marks nothing places inside their fence. A posting with no college
+    is one the office published to EVERYBODY: it is the row every deployment has
+    today, it is what every student can already see, and hiding it from a
+    college admin would mean the narrowing of the jobs sheet reads as the office
+    having posted nothing.
+
+    A REACH BELOW THE COURSE — a specialization, a batch or one student — adds
+    no clause and therefore sees only the programme-wide postings. That is
+    `reaches_target`'s rule rather than a gap: a grant hangs on a rung and
+    reaches DOWN, and a posting attached to the whole college sits above a batch
+    grant, not inside it. `X-Reep-Scope: narrowed` beside the short list is what
+    says so.
+    """
+    from .models.institution import AcademicCourse
+    from .models.job import Job
+
+    if reach.everything:
+        return sa_true()
+    programme_wide = Job.college_id.is_(None) & Job.course_id.is_(None)
+    clauses = [programme_wide]
+    if reach.colleges:
+        clauses.append(Job.college_id.in_(reach.colleges))
+    if reach.courses:
+        clauses.append(Job.course_id.in_(reach.courses))
+    if reach.departments:
+        clauses.append(
+            Job.course_id.in_(
+                select(AcademicCourse.id).where(
+                    AcademicCourse.department_id.in_(reach.departments)
+                )
+            )
+        )
     return or_(*clauses)

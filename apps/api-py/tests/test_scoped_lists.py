@@ -291,6 +291,15 @@ SCOPED_LISTS = [
 # passes whatever the fence does. It gets its own two tests below — one for the
 # faculty rows, one (`cross_department`) for the mentee rows.
 
+# THE JOBS SHEET IS NOT IN THAT TABLE EITHER, and for a sharper reason than
+# mentor-load's: `GET /api/admin/jobs` became scopeable in B12.1 and its rows
+# carry NO STUDENT AT ALL, so there is no `student_id` for `ids_of` to read.
+# Its reach is projected onto `jobs` by `scope_views.job_scope_clause`, whose
+# NULL rule is the deliberate opposite of every other projection's — a posting
+# naming no college is visible to everybody — and that is a property this
+# table's one assertion ("the other department is not in this list") cannot
+# express. It is pinned in `tests/test_jobs_scope.py` instead.
+
 
 @requires_db
 @pytest.mark.parametrize("url, capability, ids_of", SCOPED_LISTS, ids=lambda v: str(v)[:24])

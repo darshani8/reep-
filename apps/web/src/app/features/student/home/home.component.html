@@ -333,8 +333,8 @@
         @if (readiness(); as r) {
           <div class="readiness-head">
             <div class="readiness-score">
-              <div class="readiness-num">{{ r.score }}</div>
-              <div class="dt-sub">/ 100</div>
+              <div class="readiness-num">{{ r.score ?? '—' }}</div>
+              <div class="dt-sub">{{ r.score === null ? 'not scored' : '/ 100' }}</div>
             </div>
             <div class="readiness-band">
               <span class="chip {{ bandChip(r.band) }}"
@@ -345,10 +345,11 @@
           </div>
           <div class="factor-list">
             @for (f of r.factors; track f.label) {
+              @let chip = factorChip(f);
               <div class="factor-row">
-                <span class="chip {{ f.met ? 'good' : 'risk' }}">
-                  <span class="icon" aria-hidden="true">{{ f.met ? 'check' : 'close' }}</span>
-                  {{ f.met ? 'Met' : 'Not met' }}
+                <span class="chip {{ chip.tone }}">
+                  <span class="icon" aria-hidden="true">{{ chip.icon }}</span>
+                  {{ chip.text }}
                 </span>
                 <div class="factor-text">
                   <div class="factor-label">{{ f.label }}</div>

@@ -453,6 +453,51 @@ def ancestry_of_student(db: Session, student_id: str) -> list[tuple[ScopeLevel, 
     return [(scope, tid) for scope, tid in pairs if tid]
 
 
+def ancestry_of_cohort(db: Session, cohort_id: str) -> list[tuple[ScopeLevel, str]]:
+    """Every (rung, id) pair a BATCH hangs under — B8.1's target.
+
+    An import names a batch, not a student, so the fence on
+    `POST /admin/imports/preview` has to be able to ask "does this holder's
+    grant reach this batch" before a single line of the file is read. The
+    student ancestry cannot answer it: a batch with nobody seated in it yet is
+    exactly the batch a new cohort's first results file is imported into, and
+    walking its students would find none and refuse the office.
+
+    THE THREE ANCESTOR POINTERS ARE READ OFF THE COHORT ROW, never re-derived.
+    `cohorts.department_id`, `course_id` and `specialization_id` have exactly
+    one writer — `_resolve_ancestry` in routers/admin.py — which is what makes
+    reading them here reading a value that walk already checked. The college is
+    reached through the DEPARTMENT only, for `ancestry_of_student`'s reason: a
+    course carries no college, so chaining through one resolves nothing.
+
+    A batch filed under nothing hangs under nothing and no scoped grant reaches
+    it, which is `reaches_target`'s rule and not a special case here.
+    """
+    row = db.execute(
+        select(
+            Cohort.id,
+            Cohort.department_id,
+            Cohort.course_id,
+            Cohort.specialization_id,
+        ).where(Cohort.id == cohort_id)
+    ).first()
+    if row is None:
+        return []
+    college_id = (
+        db.scalar(select(Department.college_id).where(Department.id == row.department_id))
+        if row.department_id
+        else None
+    )
+    pairs = [
+        (ScopeLevel.COHORT, row.id),
+        (ScopeLevel.SPECIALIZATION, row.specialization_id),
+        (ScopeLevel.COURSE, row.course_id),
+        (ScopeLevel.DEPARTMENT, row.department_id),
+        (ScopeLevel.COLLEGE, college_id),
+    ]
+    return [(scope, tid) for scope, tid in pairs if tid]
+
+
 def ancestry_of_user(db: Session, user_id: str) -> list[tuple[ScopeLevel, str]]:
     """Where a STAFF account sits: its department, and that department's college.
 

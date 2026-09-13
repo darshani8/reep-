@@ -634,7 +634,12 @@ def test_sentry_never_ships_local_variables_or_request_bodies() -> None:
             "single exception on the interview path ships a student's transcript to "
             "a third party. See this test's docstring."
         )
-    for module in ("main.py", "retention_job.py", "voice_platform/queue/worker.py"):
+    for module in (
+        "main.py",
+        "retention_job.py",
+        "alerts_job.py",
+        "voice_platform/queue/worker.py",
+    ):
         text = (APP / module).read_text(encoding="utf-8")
         assert "sentry_sdk.init(" not in text, f"app/{module} must initialise Sentry through app.observability"
         assert "init_sentry(" in text, f"app/{module} no longer initialises Sentry at all"
@@ -652,6 +657,13 @@ def test_every_reporting_process_names_its_own_service_and_its_own_dsn() -> None
     expectations = {
         "main.py": ("SERVICE_API", "settings.sentry_dsn"),
         "retention_job.py": ("SERVICE_JOBS", "settings.sentry_jobs_dsn"),
+        # B8.3's alert sweep. TWO SCHEDULED JOBS SHARING ONE SENTRY PROJECT is
+        # right and is not the thing this test forbids: `reep-scheduled-jobs` IS
+        # the project for scheduled work, and the two are told apart by the
+        # `job.name` tag `job_run` sets. What is forbidden is either of them
+        # reading SENTRY_DSN, which is in their environment because they run on
+        # the api's task definition with a command override.
+        "alerts_job.py": ("SERVICE_JOBS", "settings.sentry_jobs_dsn"),
         "voice_platform/queue/worker.py": ("SERVICE_INTERVIEW_WORKER", "settings.sentry_interview_worker_dsn"),
     }
     for module, (service, dsn_setting) in expectations.items():
@@ -659,7 +671,7 @@ def test_every_reporting_process_names_its_own_service_and_its_own_dsn() -> None
         assert f"init_sentry({service}, {dsn_setting})" in text, (
             f"app/{module} must call init_sentry({service}, {dsn_setting}) — see this test's docstring"
         )
-    for module in ("retention_job.py", "voice_platform/queue/worker.py"):
+    for module in ("retention_job.py", "alerts_job.py", "voice_platform/queue/worker.py"):
         text = (APP / module).read_text(encoding="utf-8")
         assert "settings.sentry_dsn)" not in text and "settings.sentry_dsn " not in text, (
             f"app/{module} reads the api's DSN; it must read its own"
@@ -829,6 +841,67 @@ def test_the_retention_monitor_keeps_the_same_clock_as_the_scheduler() -> None:
     assert MONITOR_CONFIG["timezone"] == "Etc/UTC"
     for key in ("checkin_margin", "max_runtime", "failure_issue_threshold", "recovery_threshold"):
         assert key in MONITOR_CONFIG, f"{key} is missing — a camelCase key is accepted and ignored by the ingest"
+
+
+def test_the_alert_sweep_has_no_monitor_until_it_has_a_scheduler() -> None:
+    """The twin of the guard above, written BEFORE it is needed.
+
+    `app/alerts_job.py` (B8.3) deliberately ships with no Sentry cron monitor:
+    no EventBridge schedule exists for it yet, because adding one touches
+    `reep-core` and needs the owner's go. A monitor without a scheduler reports
+    MISSED every single night against a job that was never invoked, which is how
+    a Sentry project becomes noise nobody reads — the same failure mode as two
+    clocks for one job, arrived at from the other side.
+
+    So this asserts the pair moves together. Add `MONITOR_CONFIG` to that module
+    and this test immediately demands the matching `cron()` in the stack; add
+    the schedule and nothing here objects. Either way the two cannot ship apart.
+    """
+    import ast
+
+    import app.alerts_job as alerts_job
+
+    config = getattr(alerts_job, "MONITOR_CONFIG", None)
+    stack_path = REPO / "infra" / "cdk" / "reep_core" / "stack.py"
+    stack = stack_path.read_text(encoding="utf-8") if stack_path.exists() else ""
+    scheduled = "app.alerts_job" in stack
+
+    if config is None:
+        assert not scheduled, (
+            "an EventBridge schedule runs `python -m app.alerts_job` and that "
+            "module has no MONITOR_CONFIG — a nightly job nothing watches. Add "
+            "the Sentry monitor, with the SAME cron as the schedule."
+        )
+        # Parsed, not grepped: the module's docstring NAMES `monitor_slug=` in
+        # the paragraph explaining why it does not pass one, and a textual
+        # search cannot tell an explanation from a call.
+        tree = ast.parse((APP / "alerts_job.py").read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "job_run"
+            ):
+                assert not any(k.arg == "monitor_slug" for k in node.keywords), (
+                    "alerts_job passes a monitor_slug with no MONITOR_CONFIG to "
+                    "pin its clock against the scheduler"
+                )
+        return
+
+    assert scheduled, (
+        "app/alerts_job.py declares a Sentry cron monitor but no EventBridge "
+        "schedule invokes it. That monitor reports MISSED every night against a "
+        "job nobody is running. Ship the schedule in the same commit."
+    )
+    anchor_at = stack.find("app.alerts_job")
+    match = re.search(
+        r'schedule_expression="cron\((\d+) (\d+) \* \* \? \*\)"',
+        stack[max(0, anchor_at - 2000) : anchor_at + 2000],
+    )
+    assert match, "the alerts schedule moved or changed shape; update this guard"
+    minute, hour = match.group(1), match.group(2)
+    assert config["schedule"] == {"type": "crontab", "value": f"{minute} {hour} * * *"}
+    assert config["timezone"] == "Etc/UTC"
 
 
 # --------------------------------------------------------------------------- #

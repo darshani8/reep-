@@ -158,7 +158,6 @@ STUDENT_VERDICTS: dict[str, object] = {
     "courses": KEEP,
     "skills": KEEP,
     "jobs": KEEP,
-    "job_import_runs": KEEP,
     "interview_bank_questions": KEEP,
     "badge_course_map": KEEP,
     "stage_rules": KEEP,
@@ -242,6 +241,35 @@ STUDENT_VERDICTS: dict[str, object] = {
     "attendance_records": ALL,
     "subject_marks": ALL,  # child of semester_results
     "semester_results": ALL,
+    # B8.1's imports, AND THIS IS THE THREE-VALUED CASE THAT LOOKS LIKE THE
+    # OTHER TWO AND IS NOT.
+    #
+    # `import_runs.by_user_id` names a member of STAFF, who survives this
+    # module — so the instinct is `by_user("by_user_id")`, a scope, which would
+    # match no run at all (no student has ever read a spreadsheet) and leave the
+    # whole import history standing. `import_rows` would then keep every USN,
+    # every name and every mark of a cohort this pass exists to remove, filed
+    # under a staff member's receipt. A scope that is correct about WHO WROTE
+    # the row and wrong about WHO THE ROW IS ABOUT is the exact mistake
+    # `STUDENT_VERDICTS` has three values to prevent, and `mentor_notes` four
+    # groups down is the same shape decided the same way.
+    #
+    # So: ALL. This module deletes every STUDENT on the deployment, so every
+    # import run imported for students who are gone and every line names one of
+    # them. The office keeps the fact that an import happened in
+    # `redesign_audit_events`, which is KEPT — that is where the act survives,
+    # and it is where `student_semester_history` above leaves its act too.
+    #
+    # A run is deleted with its lines rather than emptied of them: a receipt
+    # reading "84 rows" with no rows under it is a record that lies, and the
+    # counters on the run are a summary of exactly the lines that are going.
+    "import_runs": ALL,
+    "import_rows": ALL,  # child of import_runs
+    # B8.6's nightly roll-up, for `purge_people`'s reason: derived from the
+    # students being deleted, and stale about them the moment they are gone. It
+    # does not name a staff member and there is nothing in it to keep; the next
+    # scheduled run rewrites the current week.
+    "analytics_snapshots": ALL,
     "enrollments": ALL,
     "lab_sessions": ALL,
     "schedule_items": ALL,

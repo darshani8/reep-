@@ -6,11 +6,16 @@
       <div class="dt-sub">{{ summaryLine() }}</div>
     </div>
     <div class="dt-toolbar">
-      <!-- B2.4's endpoint exists; the screen it would open does not. See
-           GRANT_REVIEW_PHASE in faculty.component.ts. -->
-      <button type="button" class="btn secondary" [reepPending]="grantReviewPhase">
+      <!-- The destination exists now: Governance grew the queue B2.4 feeds, and
+           `?tab=review` opens it directly rather than landing the admin on that
+           screen's front page to hunt for the tab. -->
+      <a
+        class="btn secondary"
+        routerLink="/admin/governance"
+        [queryParams]="{ tab: 'review' }"
+      >
         <span class="icon" aria-hidden="true">pending_actions</span> Review expiring grants
-      </button>
+      </a>
       <a class="btn primary" routerLink="/admin/faculty/new">
         <span class="icon" aria-hidden="true">person_add</span> Add faculty
       </a>

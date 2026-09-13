@@ -20,12 +20,16 @@
  *   POST  /api/admin/users/{id}/enable              within 90 days of that
  *   POST  /api/admin/users/{id}/sign-out-everywhere retire every session
  *
- * WHAT IS STILL NOT, AND WHY IT IS DRAWN RATHER THAN LEFT OUT. Two controls
- * remain disabled through PendingControlDirective and one column remains an em
- * dash: "Grant function", "Review expiring grants" and Sign-in. Each has its
- * reason on the constant that carries it, and none of them is "the endpoint
- * does not exist" any more — see GRANT_FUNCTION_PHASE, GRANT_REVIEW_PHASE and
- * faculty-grid.ts's SIGN_IN_PENDING_REASON. A plausible "Active · today 09:12"
+ * WHAT IS STILL NOT, AND WHY IT IS DRAWN RATHER THAN LEFT OUT. One control
+ * remains disabled through PendingControlDirective and one column remains an em
+ * dash: "Grant function" and Sign-in. Each has its reason on the constant that
+ * carries it, and neither reason is "the endpoint does not exist" any more —
+ * see GRANT_FUNCTION_PHASE and faculty-grid.ts's SIGN_IN_PENDING_REASON.
+ *
+ * "Review expiring grants" WAS the third, on the grounds that B2.4's endpoint
+ * existed but nothing drew its queue. Governance drew it, so the button is a
+ * link now — `/admin/governance?tab=review`, which opens the queue rather than
+ * landing the admin on that screen's front page to find the tab themselves. A plausible "Active · today 09:12"
  * in a screenshot is indistinguishable from working software; so is a button
  * that opens a screen nobody has built.
  *
@@ -128,18 +132,6 @@ type FunctionFilter = '' | 'mentor' | 'none';
  */
 const GRANT_FUNCTION_PHASE = 3;
 
-/**
- * "Review expiring grants" — STILL DISABLED, for the other half of the same
- * reason.
- *
- * `GET /api/admin/governance/review` exists (B2.4). What does not exist is a
- * destination: there is no `/admin/governance/review` route in app.routes.ts
- * and no queue drawn on the Governance screen, so this button has nowhere to
- * go. A `routerLink` to a path the router does not know is the "dead control
- * that looks live" this directive was written to prevent — it is worse here
- * than a grey button, because it fails only once somebody presses it.
- */
-const GRANT_REVIEW_PHASE = 3;
 
 /** B3.3's window, mirrored from `admin_faculty.ENABLE_WINDOW_DAYS`. The server
  *  is the authority — it refuses past it, with a sentence this screen shows
@@ -171,7 +163,6 @@ export class AdminFacultyComponent {
   readonly statusUnknownReason = STATUS_UNKNOWN_REASON;
   readonly signInPendingReason = SIGN_IN_PENDING_REASON;
   readonly grantFunctionPhase = GRANT_FUNCTION_PHASE;
-  readonly grantReviewPhase = GRANT_REVIEW_PHASE;
   readonly enableWindowDays = ENABLE_WINDOW_DAYS;
 
   // --- what the server said ----------------------------------------------

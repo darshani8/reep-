@@ -197,16 +197,19 @@ services:
       # grant; this only makes what IS captured durable.
       INTERVIEW_AUDIO_DIR: /var/reep/interview-audio
       INTERVIEW_RECORDING_ENABLED: ${INTERVIEW_RECORDING_ENABLED:-false}
-      # Blank means GET /api/interview/status reports unavailable and the
-      # socket closes 4001 — the mock interviewer, and only it, is off.
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      LIVEKIT_URL: ${LIVEKIT_URL:-}
-      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
-      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
+      # THE INTERVIEWER TAKES NO API KEY. It is Amazon Nova 2 Sonic on Bedrock,
+      # signed with SigV4 from the task's own AWS chain — see AGENTS.md. What
+      # must resolve is NOVA_SONIC_REGION (falling back to BEDROCK_REGION, then
+      # AWS_REGION), not a secret. `OPENAI_API_KEY`, `LIVEKIT_URL`,
+      # `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` and `VOICE_WORKER_SECRET` all
+      # stood here until Phase 5 and NOTHING READ ANY OF THEM: the relay engine
+      # and the LiveKit worker were deleted in 2026-09. VOICE_WORKER_SECRET was
+      # the expensive one — a `:?` hard-fail, so `docker compose up` refused the
+      # whole production stack over a secret no process looks at.
+      #
+      # GROQ_API_KEY stays and is live: it is one of the LLM adapter's providers
+      # (app/ai/llm.py), nothing to do with voice.
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-      # Blank here is a hard error at request time in prod (require_voice_worker),
-      # not a silent open door.
-      VOICE_WORKER_SECRET: ${VOICE_WORKER_SECRET:?set VOICE_WORKER_SECRET}
       # libpq reads these directly, so TLS verification works regardless of what
       # the DATABASE_URL query string carries.
       PGSSLMODE: ${PGSSLMODE:-prefer}
@@ -299,60 +302,6 @@ services:
     deploy:
       resources:
         limits: { cpus: "1", memory: 256M }
-
-  # The LiveKit ROLLBACK PATH (AGENTS.md): retained and mounted, but the
-  # interview assistant replaced it and no UI calls it — so it no longer starts
-  # by default, reclaiming its 1–3 GB. On rollback, start it explicitly:
-  #   docker compose -f docker-compose.prod.yml --profile voice up -d
-  # The interview assistant's audio does NOT flow through this service; that is
-  # a WebSocket inside the api process and is unaffected by this profile.
-  voice-worker:
-    profiles: ["voice"]
-    build:
-      context: ./apps/api-py
-      dockerfile: Dockerfile.voice
-    restart: unless-stopped
-    depends_on:
-      api: { condition: service_started }
-    environment:
-      # These four were `${VAR:?}` hard-fails when this service always started.
-      # They cannot stay that way behind a profile: compose interpolates every
-      # service in the file BEFORE applying profiles, so a required-but-unset
-      # voice secret would refuse to start the whole default stack — the one
-      # that deliberately does not run this worker. The cost is that on
-      # rollback day a missing value surfaces as the worker failing to register
-      # (worker_healthy: false in GET /api/voice/status) instead of a loud
-      # compose refusal; docs/deployment-env.md names all four as required.
-      LIVEKIT_URL: ${LIVEKIT_URL:-}
-      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
-      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
-      # Must MATCH the API's value. If they disagree the worker's heartbeat and
-      # transcript POSTs 401: voice reports "worker offline" forever and turns
-      # stop persisting, with the worker itself looking perfectly healthy.
-      VOICE_WORKER_SECRET: ${VOICE_WORKER_SECRET:?set VOICE_WORKER_SECRET}
-      # Service name on the compose network, not localhost — the worker is a
-      # different container now.
-      REEP_API_URL: http://api:3300
-      # edge-tts is an unofficial no-SLA endpoint. Production should be groq or
-      # another SLA-backed provider; this default makes that an explicit choice.
-      VOICE_TTS: ${VOICE_TTS:-groq}
-    # No healthcheck: the worker has NO inbound HTTP surface. Its liveness is
-    # observed through the heartbeat row that GET /api/voice/status reads, which
-    # is the same signal that gates token minting.
-    #
-    # Derived, not guessed: AgentServer(drain_timeout=900) + two rounds of
-    # shutdown_process_timeout (20s each) + slack = 960s. On SIGTERM the SDK
-    # stops accepting new jobs and waits out in-flight ones, while our heartbeat
-    # posts a final `draining: true` so readiness withdraws in ~1s. Anything
-    # shorter than the drain budget SIGKILLs a student mid-sentence.
-    stop_grace_period: 960s
-    deploy:
-      resources:
-        # Heavier than the API: Silero plus the livekit-agents stack are resident
-        # per process, and each concurrent call adds audio buffers.
-        limits: { cpus: "2", memory: 3G }
-        reservations: { memory: 1G }
 
 volumes:
   reep_pgdata:

@@ -132,7 +132,7 @@
         />
 
         <!-- Grants are made in Governance; see GRANT_FUNCTION_PHASE. -->
-        <button type="button" class="btn secondary sm" [reepPending]="grantFunctionPhase">
+        <button type="button" class="btn secondary sm" disabled [title]="grantFunctionReason">
           <span class="icon" aria-hidden="true">key</span>
           Grant function
         </button>
@@ -390,7 +390,7 @@
                 </a>
               </div>
 
-              <button type="button" class="btn secondary" [reepPending]="grantFunctionPhase">
+              <button type="button" class="btn secondary" disabled [title]="grantFunctionReason">
                 <span class="icon" aria-hidden="true">key</span> Grant function
               </button>
 

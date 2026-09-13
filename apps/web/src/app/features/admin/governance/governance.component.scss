@@ -9,8 +9,8 @@
  * class this screen owns, or on an element inside one.
  *
  * What is here is the shape of this board: the filter row, the grants grid
- * beside its 380px grant panel, the shared revoke reason card, and the group
- * cards. The two links out of the screen wear `.btn` and `.tab`, so they carry
+ * beside its 380px grant panel, the one reason card that approve, extend and
+ * revoke share, the review queue's two lists, and the group cards. The two links out of the screen wear `.btn` and `.tab`, so they carry
  * a screen-local class for the one property an anchor needs and a button does
  * not.
  */
@@ -67,14 +67,6 @@
 
 .gov-function-filter {
   max-width: 260px;
-}
-
-/* A filter whose answer needs an unmerged endpoint. The directive disables the
-   real <select> inside — which is what takes it out of the tab order and stops
-   the menu — and this dims the pill it is laid over, so the row does not read
-   as four live filters two of which silently ignore you. */
-.gov-filter-pending {
-  opacity: 0.55;
 }
 
 .gov-filters-note {
@@ -286,22 +278,56 @@
   color: var(--warn);
 }
 
-/* --- the shared revoke reason -------------------------------------------- */
+/* --- the shared reason card: approve, extend and revoke ------------------ */
 
-.gov-revoke {
+/* ONE CARD FOR THREE WRITES. It was the revoke box; approve and extend ask the
+   same question of the operator and are refused by the API on the same floor,
+   so a second and third card would have been the same layout three times with
+   only the verb different. It sits above the tabs, because a row can be acted
+   on from the register or from the review queue. */
+.gov-action {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 12px;
 }
 
-.gov-revoke-list {
+.gov-action-list {
   margin: 0;
   padding-left: 18px;
   font-size: 12.5px;
 }
-.gov-revoke-list .gov-sub {
+.gov-action-list .gov-sub {
   margin-left: 6px;
+}
+
+/* --- the review queue's two lists ---------------------------------------- */
+
+.gov-review-block {
+  margin-bottom: 16px;
+}
+.gov-review-block .gov-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gov-review-block .gov-hint {
+  max-width: 78ch;
+}
+
+/* A reason is a sentence, not a cell: left unbounded it pushes every action
+   button off the right edge of a table that already scrolls. */
+.gov-reason-cell {
+  max-width: 42ch;
+  white-space: normal;
+}
+
+/* Two or three ghost buttons in one action cell, on one line. */
+.gov-rowactions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 /* --- the link out to the student switches -------------------------------- */

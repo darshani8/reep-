@@ -17,7 +17,8 @@
  * assignment list" are opposite facts and must not share a rendering.
  */
 
-/** Every column the board draws that nothing on `main` can answer yet. */
+/** A cell nothing can answer: a refused read, or a column whose fact no
+ *  endpoint reports. Never a confident zero and never a blank. */
 export const NOT_READABLE = '—';
 
 export const PAGE_SIZES = [10, 25, 50] as const;
@@ -55,6 +56,32 @@ export interface FacultyApiRow {
   designation: string | null;
   department: string | null;
   placement: StaffPlacementApi;
+  /** B3.3. Null for an account that signs in as usual; a timestamp for one the
+   *  office has offboarded. THE ACCOUNT STATE IS THIS FIELD — the 90-day
+   *  re-enable window is measured from it, which is why it is a moment and not
+   *  a boolean, and why the screen branches on it rather than on a flag it
+   *  derives once and then has to keep in step. */
+  disabled_at: string | null;
+  disable_reason: string | null;
+}
+
+/** `AccountStateOut` — the answer from disable, enable and sign-out-everywhere.
+ *
+ *  `detail` is the SERVER'S OWN SENTENCE about what it just did ("… can no
+ *  longer sign in, and every device it held has been signed out"). It is shown
+ *  verbatim as the confirmation: a client that composes its own version of that
+ *  sentence is a second description of one act, and the two drift. */
+export interface AccountStateApi {
+  user_id: string;
+  email: string;
+  role: string;
+  disabled: boolean;
+  disabled_at: string | null;
+  disable_reason: string | null;
+  token_version: number;
+  /** Live activation / reset / onboarding links killed with the account. */
+  links_revoked: number;
+  detail: string;
 }
 
 /** The fields this screen reads out of `GET /api/admin/mentor-load`. */
@@ -102,6 +129,10 @@ export interface FacultyRow {
   holdsMentorGroup: boolean | null;
   /** Null for the same reason. */
   menteeCount: number | null;
+  /** B3.3, straight off the row: when the account was disabled, and why. */
+  disabledAt: string | null;
+  disableReason: string | null;
+  isDisabled: boolean;
 }
 
 /** A college, derived from the department picker rather than fetched again:
@@ -114,17 +145,32 @@ export interface CollegeOption {
 /** The four panes of the drawer the board draws. */
 export type DrawerTab = 'profile' | 'functions' | 'sessions' | 'history';
 
-/** What the Profile pane can actually write: `PATCH /api/admin/faculty/{id}`
- *  accepts designation, department and department_id, and nothing else. Name
- *  and email are B3.5. */
+/** What the Profile pane writes. B3.5 added the two identity fields, so
+ *  `PATCH /api/admin/faculty/{id}` now accepts name, email, designation,
+ *  department, department_id — plus the pair that lets an address off the
+ *  college's domains through (B3.2).
+ *
+ *  CHANGING THE ADDRESS IS NOT AN ORDINARY EDIT and the draft carries the
+ *  escape hatch because of it: the server fences a new address to the college's
+ *  `email_domains` and refuses anything else unless BOTH `allow_external` and a
+ *  written reason arrive with it. Without these two fields on the draft the
+ *  refusal would name a remedy this screen has no control for. */
 export interface FacultyProfileDraft {
+  name: string;
+  email: string;
   departmentId: string;
   designation: string;
+  allowExternal: boolean;
+  externalReason: string;
 }
 
 export const EMPTY_PROFILE_DRAFT: FacultyProfileDraft = {
+  name: '',
+  email: '',
   departmentId: '',
   designation: '',
+  allowExternal: false,
+  externalReason: '',
 };
 
 // ------------------------------------------------------------- helpers ----
@@ -138,6 +184,16 @@ export function escapeHtml(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/** "12 Sep 2026" for a timestamp the server sent, and an em dash for a null —
+ *  a date field that renders "Invalid Date" is how a reader learns to distrust
+ *  every other date on the screen. */
+export function dayLabelOf(value: string | null): string {
+  if (value === null || value === '') return NOT_READABLE;
+  const when = new Date(value);
+  if (Number.isNaN(when.getTime())) return NOT_READABLE;
+  return when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function initialsOf(name: string): string {

@@ -178,6 +178,12 @@ class User(Base):
     login_days: Mapped[list["LoginDay"]] = relationship(back_populates="user")
 
 
+#: `students.status` — see the column. Two values today; a plain String so a
+#: third is a data change rather than a CREATE TYPE migration.
+STUDENT_STATUS_ACTIVE = "ACTIVE"
+STUDENT_STATUS_GRADUATED = "GRADUATED"
+
+
 class Student(Base):
     __tablename__ = "students"
     __table_args__ = (
@@ -234,6 +240,25 @@ class Student(Base):
         Enum(Stage, name="stage"), default=Stage.EXCEL, server_default="EXCEL"
     )
     current_semester: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    # ------------------------------------------------------------------ #
+    # IS THIS STUDENT STILL A STUDENT (B4.4). ACTIVE | GRADUATED.
+    #
+    # A PLAIN STRING for institution.py's stated reason, and NOT a deletion:
+    # the row is the record of who was in the batch, what they scored and what
+    # they were awarded, and a graduate's placement still counts in the
+    # college's own numbers for the year they graduated.
+    #
+    # WHAT THIS COLUMN DOES **NOT** DO, and the next person to add a broad
+    # `select(Student)` needs to know it: it does not filter anything by
+    # itself. Graduating flips `users.role` to ALUMNI as well, and the two
+    # facts answer different questions — the role decides what the ACCOUNT may
+    # reach, this column decides who is counted as a current student on a
+    # roster, a leaderboard and an analytics tile. A query that means "current
+    # students" must say so; nothing derives it.
+    # ------------------------------------------------------------------ #
+    status: Mapped[str] = mapped_column(
+        String, default=STUDENT_STATUS_ACTIVE, server_default=STUDENT_STATUS_ACTIVE
+    )
     enrolled_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

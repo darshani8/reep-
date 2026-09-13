@@ -2,8 +2,13 @@
 sheet.
 
 ALUMNI only, and their OWN row only: an alumnus is neither staff (rule 2's gate
-never admits them) nor a student (no Student row, so every /student endpoint
-already refuses them). The two surfaces here are deliberately small:
+never admits them) nor a student. That second half USED to rest on "no Student
+row", and B4.4 ended it — a graduated batch keeps its `students` rows, because
+they are the record of the marks, badges and interviews those people earned
+here, so a graduate's session carries a perfectly valid `studentId` claim. What
+refuses them the student endpoints now is the ROLE check inside
+`routers/student.py::_require_student` and its twin in `student_programme.py`.
+The two surfaces here are deliberately small:
 
   * GET/POST /alumni/profile — `created: false` from the GET is what sends the
     client to the first-login create form; the POST upserts (company required,

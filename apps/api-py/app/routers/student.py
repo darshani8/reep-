@@ -54,7 +54,7 @@ from ..models.swoc import SwocEntry
 from ..models.resume_profile import ResumeProfile
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload, UploadKind, UploadStatus
-from ..models.user import LoginDay, Mentor, Student, User
+from ..models.user import LoginDay, Mentor, Role, Student, User
 from ..ratelimit import llm_rate_limited
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -389,11 +389,10 @@ class ProfileOut(BaseModel):
 def my_profile(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> ProfileOut:
-    student_id = session.get("studentId")
-    if not student_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Not a student account."
-        )
+    # Through the one helper rather than a fourth copy of the same two lines:
+    # this was an inline duplicate and therefore the one student endpoint the
+    # B4.4 role check would have missed.
+    student_id = _require_student(session)
     prof = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
     if prof is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile yet.")
@@ -421,6 +420,35 @@ class SemesterResultOut(BaseModel):
 
 
 def _require_student(session: dict) -> str:
+    """The student's own id, or a 403 — and the ROLE is checked, not just the claim.
+
+    THE MOST DANGEROUS LINE IN B4.4. This used to read `session["studentId"]`
+    and nothing else, and `_payload_for` (routers/auth.py) mints that claim for
+    ANY account with a `students` row. Graduation flips `users.role` to ALUMNI
+    and deliberately KEEPS the `students` row — it is the record of their marks,
+    badges and interviews — so on the role check alone a graduate kept a valid
+    `studentId` and with it roughly forty endpoints across this module,
+    student_programme.py and badges.py: results, ledger, uploads, resume
+    generation, SWOC acknowledgements. The Angular `roleGuard('STUDENT')` bounced
+    them off the SCREENS, so the symptom would have been an API wide open behind
+    a client that looked closed.
+
+    It is not only graduation. `registrations`' GUARD 2 refuses to attach a
+    Student row to a staff account precisely because `studentId` would then ride
+    in a MENTOR's session; that guard is one write path, and this is the read
+    side of the same fact. The role is what decides scope (rule 2). The claim
+    only says which row.
+
+    BOTH FACTS ARE REQUIRED AND THE ROLE IS ASKED FIRST, so a STUDENT-role
+    account with no Student row and an ALUMNI account with one get different
+    sentences — they are different problems and the office fixes them
+    differently.
+    """
+    if session.get("role") != Role.STUDENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The student screens are open to current students only.",
+        )
     student_id = session.get("studentId")
     if not student_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a student account.")
@@ -2984,14 +3012,22 @@ def _readiness_band(score: int) -> str:
     return "Ready"
 
 
-@router.get("/placement-readiness", response_model=PlacementReadinessOut)
-def placement_readiness(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> PlacementReadinessOut:
-    """A weighted placement-readiness score against the active PlacementCriteria
-    (or sensible defaults when none is set). Rule-based; no model."""
-    student_id = _require_student(session)
+def compose_placement_readiness(db: Session, student_id: str) -> PlacementReadinessOut:
+    """The readiness score for one student, computed once and shared.
 
+    THE BUILDER IS SHARED BECAUSE THE VIEW MUST BE. `routers/mentee_records.py`
+    already states the rule this follows: a staff screen reads the STUDENT'S OWN
+    numbers, computed by the same expression, or a mentor ends up looking at a
+    confident 0 where the student sees a dash and acting on it. B4.5's student
+    360 needs this score for a student named in a path, so the endpoint below
+    keeps the session check and the arithmetic moves here, unchanged.
+
+    It takes a student id rather than a session on purpose: `_require_student`
+    is the first-person gate and has no business in a builder a staff route
+    calls. Rule 2's gate runs at the staff call site, before this is reached.
+
+    Rule-based; no model, so rule 1's egress gate does not apply to it.
+    """
     crit = db.scalar(
         select(PlacementCriteria)
         .where(PlacementCriteria.active.is_(True))
@@ -3071,6 +3107,15 @@ def placement_readiness(
     summary = f"{score}/100 — {band}. {met_count} of {len(factors)} placement checks met."
 
     return PlacementReadinessOut(score=score, band=band, summary=summary, factors=factors)
+
+
+@router.get("/placement-readiness", response_model=PlacementReadinessOut)
+def placement_readiness(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> PlacementReadinessOut:
+    """A weighted placement-readiness score against the active PlacementCriteria
+    (or sensible defaults when none is set). Rule-based; no model."""
+    return compose_placement_readiness(db, _require_student(session))
 
 
 class RecommendationOut(BaseModel):

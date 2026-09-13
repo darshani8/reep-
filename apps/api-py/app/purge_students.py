@@ -13,6 +13,22 @@ produced, every row any staff member wrote ABOUT them (mentor notes, SWOC
 entries, the mentor notebook), and the documents, interview audio and call
 recordings behind all of it.
 
+AND EVERY FORMER STUDENT, BUT ONLY IF ASKED (`--include-graduates`). Since B4.4
+a graduate is an ALUMNI account that still owns its `students` row, and that
+pulls the module's two halves apart: `users` is scoped by ROLE, so the account
+survives, while `students` and the thirty tables under it are verdict `ALL`, so
+the whole academic record is emptied out from under it. A login with nothing
+behind it, silently, on a module whose entire claim is that it knows who each
+row belongs to. So `_refuse_unless_every_student_row_is_doomed` REFUSES the run
+the moment a `students` row belongs to an account this pass is not deleting,
+names the accounts, and stops before a byte is destroyed. `--include-graduates`
+is the answer to that refusal and it is a wider act, not a workaround: it adds
+every account that owns a `students` row WHATEVER ITS ROLE, so a graduate goes
+completely — account, alumni profile, record — because they were a student on
+this deployment. An ALUMNI account that never was one (a guest speaker, the
+seeded `alumni@bgscet.ac.in`) owns no `students` row and is not touched by
+either mode.
+
 WHAT STAYS: every MENTOR, ALUMNI and ADMIN account untouched, their own
 records, the institutional hierarchy, the catalogues, the job postings and the
 Knowledge Base — everything `app.purge_people` keeps, plus the people it would
@@ -36,10 +52,13 @@ three stores are destroyed through `purge_people`'s own functions, handed the
 subset of rows this purge is taking, never a copy of the logic.
 
 THIRD, IT REFUSES TO TOUCH A NON-STUDENT. The doomed set is `role == STUDENT`
-and nothing else, and `_refuse_unless_only_students` proves that against the
-database BEFORE a single byte is destroyed — because the one way this module
-could be catastrophic is a scope predicate that is wrong about who a row
-belongs to, and that mistake must surface while it is still only a refusal.
+and nothing else, plus — under `--include-graduates`, and only there — the
+accounts that own a `students` row, each one read back and proved rather than
+taken on the word of the query that selected it. `_refuse_unless_only_students`
+checks all of that against the database BEFORE a single byte is destroyed,
+because the one way this module could be catastrophic is a scope predicate that
+is wrong about who a row belongs to, and that mistake must surface while it is
+still only a refusal.
 After the deletes it is checked AGAIN, inside the transaction, so a wrong
 verdict on some other table that took an account with it rolls the whole pass
 back instead of committing it.
@@ -141,6 +160,8 @@ STUDENT_VERDICTS: dict[str, object] = {
     "jobs": KEEP,
     "job_import_runs": KEEP,
     "interview_bank_questions": KEEP,
+    "badge_course_map": KEEP,
+    "stage_rules": KEEP,
     "placement_criteria": KEEP,
     "registration_rules": KEEP,
     "alert_rule_configs": KEEP,
@@ -197,6 +218,19 @@ STUDENT_VERDICTS: dict[str, object] = {
     "email_verifications": by_parent("registrations", "registration_id"),
     # -- a student's own records: nobody else can hold one of these ----------
     "student_profiles": ALL,
+    # THE ONE WHERE THE TWO READINGS PULL APART, and it is worth the sentence.
+    # A promotion row is a fact about a student AND the office's record of an
+    # academic act, and `redesign_audit_events` two groups down is KEPT on
+    # exactly that second reading. The difference: an audit row is written
+    # ABOUT an act and keeps its meaning with the person removed from it
+    # (`actor_user_id` is nullable and SET NULL — remove the person, keep the
+    # record), while `student_semester_history.student_id` is NOT NULL and is
+    # the row's whole subject. "Somebody was promoted from 3 to 4" with nobody
+    # to name is not a record of anything, and it would render on the roster
+    # screen's promotion history against a student who is not there. So it goes
+    # with them, for `mentor_notes`' reason. The office's audit trail keeps the
+    # STUDENTS_PROMOTE event either way; that is where the act survives.
+    "student_semester_history": ALL,
     "student_skills": ALL,
     "student_badges": ALL,
     "student_milestones": ALL,
@@ -338,18 +372,31 @@ class Doomed:
     user_ids: tuple[str, ...]
     emails: tuple[str, ...]
     registration_ids: tuple[str, ...]
+    #: The doomed accounts that are NOT role STUDENT — the former students
+    #: `--include-graduates` adds. Empty in the default mode, and held
+    #: SEPARATELY rather than folded into `user_ids` so that
+    #: `_refuse_unless_only_students` can still refuse every OTHER kind of
+    #: stray: "this account is not a student" stays a refusal, and only the
+    #: accounts this run was explicitly asked to widen to are exempt from it.
+    former_student_user_ids: tuple[str, ...] = ()
 
     def __bool__(self) -> bool:
         return bool(self.user_ids)
 
 
-def find_doomed(db: Session) -> Doomed:
+def find_doomed(db: Session, *, include_former_students: bool = False) -> Doomed:
     """The scope of this whole module, in one place. ROLE, never an address
     typed on a form: a purge that took an email argument would delete the wrong
     person the moment somebody fat-fingered it.
 
     Both the enum member and its string value are matched, because a row written
     by a migration and a row written by the ORM do not always compare equal.
+
+    `include_former_students` adds the accounts that OWN a `students` row and
+    are not role STUDENT — a graduate, since B4.4 flips the role to ALUMNI and
+    leaves the record standing. It is a join against `students`, never a role
+    list: "ALUMNI" is not the question, "was this person a student here" is, and
+    an ALUMNI account that never had a record on this deployment answers no.
 
     The registrations are resolved here too, against the accounts as they are
     now: an application that was APPROVED (it became a student) or that carries
@@ -363,6 +410,18 @@ def find_doomed(db: Session) -> Doomed:
     ).all()
     user_ids = tuple(r[0] for r in rows)
     emails = tuple(r[1] for r in rows if r[1])
+
+    former_ids: tuple[str, ...] = ()
+    if include_former_students:
+        students = Base.metadata.tables["students"]
+        former = db.execute(
+            select(users.c.id, users.c.email)
+            .join(students, students.c.user_id == users.c.id)
+            .where(users.c.role.not_in((user_model.Role.STUDENT, "STUDENT")))
+        ).all()
+        former_ids = tuple(r[0] for r in former)
+        user_ids += former_ids
+        emails += tuple(r[1] for r in former if r[1])
 
     regs = Base.metadata.tables["registrations"]
     registration_ids = tuple(
@@ -379,7 +438,12 @@ def find_doomed(db: Session) -> Doomed:
         .scalars()
         .all()
     )
-    return Doomed(user_ids=user_ids, emails=emails, registration_ids=registration_ids)
+    return Doomed(
+        user_ids=user_ids,
+        emails=emails,
+        registration_ids=registration_ids,
+        former_student_user_ids=former_ids,
+    )
 
 
 def predicate(name: str, doomed: Doomed):
@@ -431,6 +495,13 @@ class Plan:
         return len(self.doomed.user_ids)
 
     @property
+    def former_students(self) -> int:
+        """How many of `accounts` were widened to by --include-graduates.
+        Reported separately because deleting a graduate is a different act from
+        deleting a current student and an operator must see it counted."""
+        return len(self.doomed.former_student_user_ids)
+
+    @property
     def total_rows(self) -> int:
         return sum(self.rows.values())
 
@@ -447,18 +518,95 @@ def _refuse_unless_only_students(db: Session, doomed: Doomed) -> None:
     if not doomed:
         return
     users = Base.metadata.tables["users"]
+    students = Base.metadata.tables["students"]
     strays = db.execute(
-        select(users.c.email, users.c.role)
+        select(users.c.id, users.c.email, users.c.role)
         .where(users.c.id.in_(doomed.user_ids))
         .where(users.c.role.not_in((user_model.Role.STUDENT, "STUDENT")))
     ).all()
+    if not strays:
+        return
+
+    # The only accounts allowed to be here are the former students this run was
+    # asked to widen to, and each one is PROVED to own a `students` row rather
+    # than taken on the word of the set that selected it — the same reason this
+    # guard re-reads the roles instead of trusting `find_doomed`'s query.
+    allowed = set(doomed.former_student_user_ids)
+    if allowed:
+        confirmed = set(
+            db.execute(
+                select(students.c.user_id).where(students.c.user_id.in_(allowed))
+            ).scalars()
+        )
+        allowed &= confirmed
+    strays = [row for row in strays if row[0] not in allowed]
     if strays:
-        listed = ", ".join(f"{email} ({role})" for email, role in strays[:10])
+        listed = ", ".join(f"{email} ({role})" for _, email, role in strays[:10])
         raise PurgeRefused(
             f"{len(strays)} account(s) selected for deletion are not students: "
             f"{listed}. This module deletes STUDENT accounts and nothing else; "
             "nothing was changed."
         )
+
+
+def _refuse_unless_every_student_row_is_doomed(db: Session, doomed: Doomed) -> None:
+    """THE GRADUATION GUARD, and the other half of the one above.
+
+    `_refuse_unless_only_students` asks "is every account we are deleting a
+    student". This asks the question in the other direction — "is every student
+    RECORD we are deleting owned by an account we are deleting" — and it exists
+    because since B4.4 the answer can be no.
+
+    Graduation flips `users.role` to ALUMNI and leaves the `students` row where
+    it is, on purpose: the row is the record of what that person did here. But
+    `STUDENT_VERDICTS["students"]` is `ALL` and `users` is `ACCOUNTS`, so a pass
+    that selects on role deletes the record and keeps the login. Nothing else
+    would notice: the account is not in `doomed.user_ids`, so the survivor count
+    in `execute` matches, `_refuse_unless_only_students` passes, and the run
+    commits a graduate with no marks, no interviews, no uploads and no badges.
+
+    Verdict changes were the alternative and were rejected. Scoping the thirty
+    `ALL` tables by a doomed-student-id set is the eventually-right answer and
+    is a thirty-line diff through tables that reach `students` only through a
+    parent (`subject_marks`, `time_ledger_cells`, `english_baseline_sections`);
+    every one of those lines is a chance to leave a student's rows behind, which
+    is the failure this module is least able to detect. `ALL` is correct exactly
+    when every `students` row is going, so this makes that TRUE instead — by
+    refusing when it is not, and by offering `--include-graduates` for the
+    operator who means it.
+
+    WHAT A COHORT PURGE NOW DOES TO A GRADUATE, in one sentence each:
+      * by default it REFUSES, names them, and deletes nothing at all;
+      * with `--include-graduates` it deletes them completely — the ALUMNI
+        account, the `alumni_profiles` row, and the whole academic record —
+        because they were a student on this deployment and that is what this
+        module is for.
+    There is deliberately no third behaviour in which some of a person's rows
+    go and the rest stay.
+    """
+    students = Base.metadata.tables["students"]
+    users = Base.metadata.tables["users"]
+    strays = db.execute(
+        select(users.c.email, users.c.role, func.count())
+        .select_from(students.join(users, students.c.user_id == users.c.id))
+        .where(students.c.user_id.not_in(doomed.user_ids))
+        .group_by(users.c.email, users.c.role)
+    ).all()
+    if not strays:
+        return
+    listed = ", ".join(
+        f"{email} ({getattr(role, 'name', role)})" for email, role, _ in strays[:10]
+    )
+    more = f" and {len(strays) - 10} more" if len(strays) > 10 else ""
+    raise PurgeRefused(
+        f"{len(strays)} student record(s) belong to account(s) this run is NOT "
+        f"deleting: {listed}{more}. That is what a graduated student looks like "
+        "- the account became ALUMNI and kept its record. Deleting the record "
+        "and leaving the login is not something this module will do silently, "
+        "so nothing was changed. Re-run with --include-graduates to delete "
+        "those people COMPLETELY (account, alumni profile and academic record), "
+        "or move them out of this deployment first."
+    )
 
 
 def _scoped(stmt, name: str, doomed: Doomed):
@@ -468,10 +616,11 @@ def _scoped(stmt, name: str, doomed: Doomed):
     return stmt if where is None else stmt.where(where)
 
 
-def build_plan(db: Session) -> Plan:
+def build_plan(db: Session, *, include_former_students: bool = False) -> Plan:
     check_verdicts()
-    doomed = find_doomed(db)
+    doomed = find_doomed(db, include_former_students=include_former_students)
     _refuse_unless_only_students(db, doomed)
+    _refuse_unless_every_student_row_is_doomed(db, doomed)
     plan = Plan(doomed=doomed)
 
     for table in _tables_in_delete_order():
@@ -633,6 +782,7 @@ def _stamp(db: Session, plan: Plan) -> None:
                 after_json={
                     "purged_at": datetime.now(timezone.utc).isoformat(),
                     "accounts_deleted": plan.accounts,
+                    "former_students_deleted": plan.former_students,
                     "rows_deleted": plan.total_rows,
                     "tables_touched": sorted(plan.rows),
                     "files_deleted": plan.files,
@@ -654,6 +804,12 @@ def _report(db: Session, plan: Plan, *, applied: bool) -> None:
         log.info("This deployment holds no STUDENT accounts. Nothing to delete.")
         return
     log.info("Student accounts deleted: %d", plan.accounts)
+    if plan.former_students:
+        log.info(
+            "  of which FORMER students (graduated, now ALUMNI): %d - their "
+            "account, alumni profile and academic record all go.",
+            plan.former_students,
+        )
     for name in sorted(plan.rows, key=lambda k: (-plan.rows[k], k)):
         log.info("  %-45s %8d row(s)", name, plan.rows[name])
     log.info("  %-45s %8d row(s)  TOTAL", "", plan.total_rows)
@@ -696,13 +852,28 @@ def main(argv: list[str] | None = None) -> int:
             "Delete every STUDENT account and everything those accounts "
             "produced, including what staff wrote about them and every "
             "transcript, document and recording. Faculty, alumni and the Main "
-            "Admin are untouched, as are the institution and the catalogues."
+            "Admin are untouched, as are the institution and the catalogues. "
+            "A GRADUATE is an alumni account that still owns its student "
+            "record: the run refuses on one unless --include-graduates says to "
+            "delete those people completely."
         ),
     )
     parser.add_argument(
         "--apply",
         action="store_true",
         help="Actually delete. Without this the run reports and changes nothing.",
+    )
+    parser.add_argument(
+        "--include-graduates",
+        dest="include_graduates",
+        action="store_true",
+        help=(
+            "Also delete every account that OWNS a student record but is no "
+            "longer role STUDENT - a graduate, whom B4.4 turned into an ALUMNI "
+            "account holding its record. Without this the run REFUSES rather "
+            "than deleting a graduate's record and leaving their login. With "
+            "it they go completely: account, alumni profile and record."
+        ),
     )
     parser.add_argument(
         "--i-understand-this-is-permanent",
@@ -724,7 +895,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         with SessionLocal() as db:
-            plan = build_plan(db)
+            plan = build_plan(db, include_former_students=args.include_graduates)
             if not args.apply:
                 _report(db, plan, applied=False)
                 log.info("Re-run with --apply --i-understand-this-is-permanent to do it.")

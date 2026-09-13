@@ -96,6 +96,12 @@ VERDICTS: dict[str, str] = {
     "jobs": KEEP,
     "job_import_runs": KEEP,  # provenance for the postings above, names no student
     "interview_bank_questions": KEEP,
+    # B13's per-course catalogue. Neither table names a person: one says which
+    # of the 48 code-defined badges apply to a programme, the other which REEP
+    # stage a semester of it sits in. Both are the office's own configuration
+    # and outlive every intake, exactly like `approved_certifications` above.
+    "badge_course_map": KEEP,
+    "stage_rules": KEEP,
     "placement_criteria": KEEP,
     "registration_rules": KEEP,
     "alert_rule_configs": KEEP,
@@ -130,6 +136,13 @@ VERDICTS: dict[str, str] = {
     "email_verifications": EMPTY,
     # -- a student's own records --------------------------------------------
     "student_profiles": EMPTY,
+    # The record of a promotion or a graduation. It is BOTH a fact about a
+    # student and the office's record of an academic act, and here the two
+    # readings agree: this module empties the deployment of people, so the
+    # student it names is going and the staff member who decided is going too.
+    # (`by_user_id` is SET NULL, so the act would survive the actor; the row
+    # does not survive its subject, because without them it records nothing.)
+    "student_semester_history": EMPTY,
     "student_skills": EMPTY,
     "student_badges": EMPTY,
     "student_milestones": EMPTY,

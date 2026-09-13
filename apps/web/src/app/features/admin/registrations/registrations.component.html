@@ -515,9 +515,15 @@
         <header class="dialog-head">
           <div>
             <h2 class="dialog-title" id="seating-rules-title">Seating rules</h2>
+            <!-- WHAT A RULE IS, IN THE ORDER THAT MATTERS. The engine runs on
+                 the PUBLIC form, before anybody has read anything, and an
+                 auto-approving rule ends with an account that exists. That is
+                 the sentence an author needs before they type, not after. -->
             <p class="dialog-sub">
-              The order the rule engine evaluates when an application is submitted. Read-only:
-              creating and editing rules is B11.3, in Phase {{ backendPhase }}.
+              The order the engine evaluates when an application arrives on the public form. The
+              lowest priority among the rules that match wins; equal priorities are settled by which
+              rule is older. A rule that auto-approves creates the account itself — that application
+              never reaches the queue.
             </p>
           </div>
           <button type="button" class="btn ghost sm" aria-label="Close the seating rules" (click)="closeSeatingRules()">
@@ -531,54 +537,259 @@
               <span class="icon" aria-hidden="true">error</span>{{ seatingRulesError() }}
             </div>
           }
-          @if (seatingRules() === null) {
+          @if (ruleFlash()) {
+            <div class="notice good" role="status">
+              <span class="icon" aria-hidden="true">check_circle</span>{{ ruleFlash() }}
+            </div>
+          }
+
+          @if (ruleFormOpen()) {
+            <!-- ONE FORM, TWO VERBS: `editingRuleId` decides POST or PATCH, and
+                 the fields are the same either way. Every condition is optional
+                 and an empty one is a WILDCARD, which is why the auto-approve
+                 switch carries its own warning rather than a label. -->
+            <div class="rule-form">
+              <div class="eyebrow">{{ editingRuleId() === null ? 'New rule' : 'Edit rule' }}</div>
+
+              @if (ruleFormError()) {
+                <div class="notice" role="alert">
+                  <span class="icon" aria-hidden="true">error</span>{{ ruleFormError() }}
+                </div>
+              }
+
+              <div class="rule-grid">
+                <div class="field">
+                  <label for="rule-name">Name</label>
+                  <input
+                    id="rule-name"
+                    class="ctrl"
+                    type="text"
+                    maxlength="200"
+                    placeholder="MBA 2026-28 auto-admit"
+                    [value]="ruleDraft().name"
+                    (input)="onRuleField('name', $event)"
+                  />
+                  <span class="field-help">Shown beside every application this rule routes.</span>
+                </div>
+
+                <div class="field">
+                  <label for="rule-priority">Priority</label>
+                  <input
+                    id="rule-priority"
+                    class="ctrl"
+                    type="number"
+                    min="0"
+                    step="1"
+                    [value]="ruleDraft().priority"
+                    (input)="onRuleField('priority', $event)"
+                  />
+                  <span class="field-help">Lowest wins. Ties go to the older rule.</span>
+                </div>
+
+                <div class="field">
+                  <label for="rule-domain">Email domain</label>
+                  <input
+                    id="rule-domain"
+                    class="ctrl"
+                    type="text"
+                    maxlength="200"
+                    placeholder="bgscet.ac.in"
+                    [value]="ruleDraft().emailDomain"
+                    (input)="onRuleField('emailDomain', $event)"
+                  />
+                  <span class="field-help">
+                    The part after the @. Leave empty to match any domain.
+                  </span>
+                </div>
+
+                <div class="field">
+                  <label for="rule-degree">Degree level</label>
+                  <select
+                    id="rule-degree"
+                    class="ctrl"
+                    (change)="onRuleChoice('degreeLevel', selectValue($event))"
+                  >
+                    @for (level of ruleDegreeLevels; track level.key) {
+                      <option [value]="level.key" [selected]="level.key === ruleDraft().degreeLevel">
+                        {{ level.label }}
+                      </option>
+                    }
+                  </select>
+                </div>
+
+                <div class="field wide">
+                  <label for="rule-usn">USN pattern</label>
+                  <input
+                    id="rule-usn"
+                    class="ctrl"
+                    type="text"
+                    placeholder="^1BG2[0-9]MBA[0-9]{3}$"
+                    [value]="ruleDraft().usnPattern"
+                    (input)="onRuleField('usnPattern', $event)"
+                  />
+                  <!-- NO CLIENT-SIDE REGEX CHECK. The server runs this pattern on
+                       the one unauthenticated endpoint in the app and refuses a
+                       quantified group, an over-long pattern and anything that
+                       will not compile — with a message written for whoever typed
+                       it. A second opinion here would be the one that is wrong. -->
+                  <span class="field-help">
+                    A regular expression the USN must satisfy. Leave empty to match any USN. The
+                    server checks it when you save and says exactly what is wrong with it.
+                  </span>
+                </div>
+
+                <div class="field wide">
+                  <label for="rule-batch">Seats in</label>
+                  <select id="rule-batch" class="ctrl" (change)="onRuleChoice('cohortId', selectValue($event))">
+                    <option value="" [selected]="ruleDraft().cohortId === ''">No batch</option>
+                    @for (batch of ruleBatchOptions(); track batch.id) {
+                      <option [value]="batch.id" [selected]="batch.id === ruleDraft().cohortId">
+                        {{ batch.label }}
+                      </option>
+                    }
+                  </select>
+                  <span class="field-help">
+                    The batch an application this rule matches is seated in — whether or not the rule
+                    auto-approves.
+                  </span>
+                </div>
+              </div>
+
+              <label class="rule-switch">
+                <input
+                  type="checkbox"
+                  [checked]="ruleDraft().autoApprove"
+                  (change)="onRuleSwitch('autoApprove', $event)"
+                />
+                <span>
+                  <b>Auto-approve a matching application</b>
+                  <span class="field-help">
+                    Creates the login, seats the student and emails the onboarding link with no
+                    human in the loop. The application never appears in the queue. The college's
+                    registered email domains still apply — an address outside them is sent for
+                    review instead.
+                  </span>
+                </span>
+              </label>
+
+              <label class="rule-switch">
+                <input
+                  type="checkbox"
+                  [checked]="ruleDraft().enabled"
+                  (change)="onRuleSwitch('enabled', $event)"
+                />
+                <span>
+                  <b>Enabled</b>
+                  <span class="field-help">A disabled rule stays here and is never evaluated.</span>
+                </span>
+              </label>
+            </div>
+          } @else if (seatingRules() === null) {
             <p class="queue-state" role="status">Loading the seating rules…</p>
           } @else {
-            <table class="dt-table">
-              <thead>
-                <tr>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Rule</th>
-                  <th scope="col">Matches</th>
-                  <th scope="col">Seats in</th>
-                  <th scope="col">Decision</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (rule of seatingRules(); track rule.id) {
+            @if (rulesScope() === 'narrowed') {
+              <p class="rules-scope">
+                Narrowed to the batches your Registrations capability reaches. Rules seated in
+                another college, and rules that name no batch at all, are not listed here and are
+                not yours to edit.
+              </p>
+            }
+            <div class="rules-scroll">
+              <table class="dt-table">
+                <thead>
                   <tr>
-                    <td>{{ rule.priority }}</td>
-                    <td>
-                      {{ rule.name }}
-                      @if (!rule.enabled) {
-                        <span class="chip dot neutral">Off</span>
-                      }
-                    </td>
-                    <td>{{ rule.conditions }}</td>
-                    <td>{{ rule.seatsIn }}</td>
-                    <td>
-                      @if (rule.autoApprove) {
-                        <span class="chip dot good">Auto-approves</span>
-                      } @else {
-                        <span class="chip dot warn">Waits for review</span>
-                      }
-                    </td>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Rule</th>
+                    <th scope="col">Matches</th>
+                    <th scope="col">Seats in</th>
+                    <th scope="col">Decision</th>
+                    <th scope="col">Actions</th>
                   </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="5">No seating rules are on record; every application waits for a decision.</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (rule of seatingRules(); track rule.id) {
+                    <tr>
+                      <td>{{ rule.priority }}</td>
+                      <td>
+                        {{ rule.name }}
+                        @if (!rule.enabled) {
+                          <span class="chip dot neutral">Off</span>
+                        }
+                      </td>
+                      <td>{{ rule.conditions }}</td>
+                      <td>{{ rule.seatsIn }}</td>
+                      <td>
+                        @if (rule.autoApprove) {
+                          <span class="chip dot good">Auto-approves</span>
+                        } @else {
+                          <span class="chip dot warn">Waits for review</span>
+                        }
+                      </td>
+                      <td class="rule-actions">
+                        <button
+                          type="button"
+                          class="btn ghost sm"
+                          [disabled]="ruleBusyId() !== null"
+                          [attr.aria-label]="'Edit the rule ' + rule.name"
+                          (click)="editRule(rule)"
+                        >
+                          <span class="icon" aria-hidden="true">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn ghost sm"
+                          [disabled]="ruleBusyId() !== null"
+                          (click)="toggleRuleEnabled(rule)"
+                        >
+                          {{ rule.enabled ? 'Disable' : 'Enable' }}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn ghost sm"
+                          [disabled]="ruleBusyId() !== null"
+                          [attr.aria-label]="'Delete the rule ' + rule.name"
+                          (click)="deleteRule(rule)"
+                        >
+                          <span class="icon" aria-hidden="true">delete</span>
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6">No seating rules are on record; every application waits for a decision.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <!-- DISABLE IS THE REVERSIBLE ONE, and the table has to say so where
+                 the two buttons sit side by side. `matched_rule_id` is ON DELETE
+                 SET NULL: deleting a rule blanks the Rule column on every
+                 application it ever routed, and only the audit trail keeps what
+                 the rule said. -->
+            <p class="rules-foot">
+              Disable stops a rule firing and keeps it here, with every application it routed still
+              pointing at it. Delete removes it for good — applications it routed will stop showing
+              which rule did it.
+            </p>
           }
         </div>
 
         <footer class="dialog-foot">
-          <button type="button" class="btn secondary" (click)="closeSeatingRules()">Close</button>
-          <button type="button" class="btn secondary" [reepPending]="backendPhase">
-            <span class="icon" aria-hidden="true">add</span> New rule
-          </button>
+          @if (ruleFormOpen()) {
+            <button type="button" class="btn secondary" [disabled]="ruleSaving()" (click)="closeRuleForm()">
+              Cancel
+            </button>
+            <button type="button" class="btn primary" [disabled]="ruleSaving()" (click)="saveRule()">
+              <span class="icon" aria-hidden="true">save</span>
+              {{ ruleSaving() ? 'Saving…' : editingRuleId() === null ? 'Create rule' : 'Save rule' }}
+            </button>
+          } @else {
+            <button type="button" class="btn secondary" (click)="closeSeatingRules()">Close</button>
+            <button type="button" class="btn secondary" (click)="newRule()">
+              <span class="icon" aria-hidden="true">add</span> New rule
+            </button>
+          }
         </footer>
       </div>
     </div>

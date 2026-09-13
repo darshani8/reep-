@@ -738,12 +738,17 @@ def test_audio_defaults_say_not_recorded_rather_than_unknown(subject):
 def test_no_pg_enum_types_were_created_for_the_interview_vocabularies():
     """§6.1: every vocabulary column here is a plain String.
 
-    The seven of them — status, specialization, final_phase, speaker,
+    The seven original ones — status, specialization, final_phase, speaker,
     transcription_status, answer_quality, report_status — will move (a fifth
-    specialization is a one-line data change in `interview_matrix.py`), and
-    turning that into an `ALTER TYPE ... ADD VALUE` migration would be a
-    regression. This test fails the moment someone "fixes" one into an enum,
-    which is exactly when the next editor should be made to read §6.1.
+    specialization used to be a one-line data change in `interview_matrix.py`
+    and is now a row in `interview_tracks`), and turning that into an
+    `ALTER TYPE ... ADD VALUE` migration would be a regression. This test fails
+    the moment someone "fixes" one into an enum, which is exactly when the next
+    editor should be made to read §6.1.
+
+    Phase 4c's four tables are covered here too, and `interview_tracks.code` is
+    now the sharpest case: that table exists SO THAT a fifth track is a data
+    change, so an enum on it would defeat the feature it belongs to.
     """
     expected = {
         "interview_sessions": {
@@ -752,10 +757,19 @@ def test_no_pg_enum_types_were_created_for_the_interview_vocabularies():
         },
         "interview_turns": {
             "speaker", "phase", "transcription_status", "answer_quality",
-            "provider_turn_id",
+            "provider_turn_id", "question_id",
         },
         "interview_evaluations": {"report_status", "model"},
         "interview_consents": {"version", "user_agent", "source_ip_hash"},
+        # Phase 4c. `interview_tracks.code` is the one this rule was really
+        # written for: B5.1 exists so that a fifth track is a DATA change, and
+        # an enum here would put it straight back into a `CREATE TYPE`
+        # migration. `interview_score_summaries.status` copies
+        # `interview_sessions.status` and must stay the same kind of thing.
+        "interview_tracks": {"code", "label", "nova_voice"},
+        "interview_score_summaries": {"status", "track_code"},
+        "interview_cap_resets": set(),
+        "interview_policies": set(),
     }
     with SessionLocal() as db:
         rows = db.execute(
@@ -765,7 +779,9 @@ def test_no_pg_enum_types_were_created_for_the_interview_vocabularies():
                   from information_schema.columns
                  where table_name in (
                        'interview_sessions', 'interview_turns',
-                       'interview_evaluations', 'interview_consents')
+                       'interview_evaluations', 'interview_consents',
+                       'interview_tracks', 'interview_policies',
+                       'interview_score_summaries', 'interview_cap_resets')
                 """
             )
         ).all()

@@ -35,10 +35,12 @@ from .routers import (
     interview,
     admin_faculty,
     admin_imports,
+    admin_interview_tracks,
     admin_promotion,
     admin_student_360,
     admin_students,
     interview_bank,
+    interview_policy,
     leave_paper,
     signature,
     swoc,
@@ -391,8 +393,24 @@ app.include_router(badge_verification.router, prefix="/api")
 # `admin.catalogue` plus B1.2's reach, and none of it is rule 2's.
 app.include_router(admin_catalogue.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")
+# B5.1 — the Specialization Matrix as rows. MOUNTED BEFORE THE BANK ROUTER, and
+# the order is load-bearing rather than tidy: both live under
+# /api/admin/interview-questions, and FastAPI matches the first route whose path
+# and method fit. `tracks` is a single path segment, so a request to
+# /admin/interview-questions/tracks would otherwise be matched by the bank's
+# `/{question_id}` routes and answer "Question not found." for a track list.
+app.include_router(admin_interview_tracks.router, prefix="/api")
 app.include_router(interview_bank.router, prefix="/api")
 app.include_router(swoc.router, prefix="/api")
+# B6.1/B6.4 — the college's interview policy, the cap reset and the student's
+# policy card. Its two routers are declared ALREADY PREFIXED (/api/admin and
+# /api/interview), the same shape `interview_records` uses and for the same
+# reason: the student card belongs under /api/interview beside the socket it
+# describes, and mounting it under the `prefix="/api"` the domain routers use
+# would serve it at /api/api/interview/policy — every request 404s, nothing
+# raises, and the only symptom is a Start button that never learns the caps.
+app.include_router(interview_policy.admin_router)
+app.include_router(interview_policy.student_router)
 # B2.7: the audit trail, read back. A READER ONLY — `record_change` writes
 # redesign_audit_events from twenty-seven endpoints and nothing in this module
 # writes a domain row. Mounted last among the admin surfaces because it is about

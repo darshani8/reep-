@@ -121,12 +121,20 @@ def test_the_job_import_machinery_is_gone() -> None:
 
 
 @requires_db
-def test_admin_imports_is_enforced_and_admin_interviews_does_not_exist_yet(
-    client, make_user
-) -> None:
-    """One key landed with its call site; the other must land with 4c's.
+def test_both_new_keys_are_catalogued_and_enforced(client, make_user) -> None:
+    """One key landed with its call site in 4b; the other landed with 4c's.
 
-    `tools/ci/check_capability_enforcement.py` proves the first half statically.
+    This test was written while `admin.interviews` did not exist, and it asserted
+    that — with the rule that matters spelled out beside it: the key must be
+    absent from BOTH the catalogue and `COLLEGE_ADMIN_CAPABILITIES` or present
+    in BOTH, because the appointment endpoint reads `CAPABILITIES_BY_KEY[key]`
+    for every name in that tuple and a missing one is a KeyError in front of
+    whoever is appointing a college admin. 4c added it to both, in one commit,
+    with `require_capability` call sites in
+    `app/routers/interview_policy.py` — so the assertion flips and the RULE is
+    unchanged.
+
+    `tools/ci/check_capability_enforcement.py` proves enforcement statically.
     This proves the half a static walk cannot: that the gate actually refuses
     somebody, and that the college-admin set names no key the catalogue lacks.
     """
@@ -138,10 +146,12 @@ def test_admin_imports_is_enforced_and_admin_interviews_does_not_exist_yet(
     )
     assert "admin.imports" in COLLEGE_ADMIN_CAPABILITIES
 
-    # 4c's key. It must be absent from BOTH or present in BOTH: the appointment
-    # endpoint reads CAPABILITIES_BY_KEY[key] for every name in the set.
-    assert "admin.interviews" not in CAPABILITIES_BY_KEY
-    assert "admin.interviews" not in COLLEGE_ADMIN_CAPABILITIES
+    # 4c's key, now in both. `carries_pii` for the same reason
+    # `admin.imports` carries it: what hangs off this key names students — the
+    # cap reset names one, the records grid names a cohort with their scores
+    # beside them.
+    assert CAPABILITIES_BY_KEY["admin.interviews"].carries_pii
+    assert "admin.interviews" in COLLEGE_ADMIN_CAPABILITIES
     assert set(COLLEGE_ADMIN_CAPABILITIES) <= set(CAPABILITIES_BY_KEY)
 
     faculty = make_user(f"imp-nokey-{uuid.uuid4().hex[:6]}", Role.MENTOR)

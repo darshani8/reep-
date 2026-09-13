@@ -216,3 +216,64 @@ def job_scope_clause(reach: Reach):
             )
         )
     return or_(*clauses)
+
+
+def interview_track_scope_clause(reach: Reach):
+    """The reach, as a WHERE clause over `interview_tracks` (B5.1).
+
+    A TRACK IS NOT A STUDENT EITHER, and it hangs on its own three pointers —
+    college, course, specialization — exactly as a posting hangs on two. So this
+    is `job_scope_clause`'s shape, and the reasoning transfers line for line:
+
+    A PROGRAMME-WIDE TRACK — NULL on all three — IS VISIBLE TO EVERY REACH. Those
+    are the four rows migration `a4f7d2c80b93` seeds on any deployment with more
+    than one college, they are the interviews every student in every college is
+    actually sitting, and hiding them from a college admin would make the screen
+    say the office has configured no interviewer at all. VISIBLE IS NOT EDITABLE:
+    a programme-wide track has an empty ancestry (`ancestry_of_interview_track`),
+    so `require_capability(..., target=…)` refuses a scoped holder who tries to
+    change one. The list says so per row rather than letting them find out by
+    being 403'd after they have typed a persona.
+
+    A reach BELOW the specialization — a batch or one student — adds no clause
+    and sees only the programme-wide rows, which is `reaches_target`'s rule: a
+    grant hangs on a rung and reaches DOWN, and a track attached to a whole
+    course sits above a batch grant rather than inside it.
+    """
+    from .models.institution import AcademicCourse, AcademicSpecialization
+    from .models.interview_track import InterviewTrack
+
+    if reach.everything:
+        return sa_true()
+    programme_wide = (
+        InterviewTrack.college_id.is_(None)
+        & InterviewTrack.course_id.is_(None)
+        & InterviewTrack.specialization_id.is_(None)
+    )
+    clauses = [programme_wide]
+    if reach.colleges:
+        clauses.append(InterviewTrack.college_id.in_(reach.colleges))
+    if reach.courses:
+        clauses.append(InterviewTrack.course_id.in_(reach.courses))
+        clauses.append(
+            InterviewTrack.specialization_id.in_(
+                select(AcademicSpecialization.id).where(
+                    AcademicSpecialization.course_id.in_(reach.courses)
+                )
+            )
+        )
+    if reach.specializations:
+        clauses.append(InterviewTrack.specialization_id.in_(reach.specializations))
+    if reach.departments:
+        in_department = select(AcademicCourse.id).where(
+            AcademicCourse.department_id.in_(reach.departments)
+        )
+        clauses.append(InterviewTrack.course_id.in_(in_department))
+        clauses.append(
+            InterviewTrack.specialization_id.in_(
+                select(AcademicSpecialization.id).where(
+                    AcademicSpecialization.course_id.in_(in_department)
+                )
+            )
+        )
+    return or_(*clauses)

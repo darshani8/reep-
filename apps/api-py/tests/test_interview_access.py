@@ -672,19 +672,33 @@ def test_consent_reports_the_version_the_server_is_asking_for(api, world):
 
 
 @requires_db
-def test_consent_grant_read_and_withdrawal(api, world):
+def test_consent_is_an_acknowledgement_of_the_policy_and_there_is_no_withdrawal(
+    api, world
+):
+    """B6.1. The student acknowledges the COLLEGE's policy; they do not choose
+    it, and they can no longer withdraw it.
+
+    This test used to post three booleans and then DELETE them. Both halves
+    changed and neither was weakened: the payload is now the version string
+    alone (the two storage scopes are the college's, and the row still records
+    three so "they consented" stays falsifiable), and `DELETE` is gone from the
+    router entirely — which makes it 405 for everyone rather than 403 for a
+    student. `admin_students.py` set that precedent and stated the reason: a
+    capability refusal would mean the endpoint is still there waiting for a
+    grant, and this one is not there at all.
+    """
     from app.config import settings
 
-    body = {
-        "version": settings.interview_consent_version,
-        "scope_live_ai": True,
-        "scope_store_transcript": True,
-        "scope_store_audio": False,
-    }
+    body = {"version": settings.interview_consent_version}
     r = api.post("/api/interview/consent", json=body, headers=world.as_student)
     assert r.status_code == 201, r.text
     granted = r.json()
+    # No policy row exists on the seeded deployment, so these are `config.py`'s
+    # defaults — which is exactly what the socket would have used, and is the
+    # compatibility rule: a deployment that never opens the policy screen
+    # behaves as it did before the table existed.
     assert granted["scope_live_ai"] is True
+    assert granted["scope_store_transcript"] is True
     assert granted["scope_store_audio"] is False
     # The audit fields are recorded but not handed back to the browser that
     # supplied them.
@@ -693,14 +707,15 @@ def test_consent_grant_read_and_withdrawal(api, world):
     r = api.get("/api/interview/consent", headers=world.as_student)
     assert r.json()["consent"]["id"] == granted["id"]
 
+    # THE WITHDRAWAL ROUTE IS GONE. 405 and not 403: the operation does not
+    # exist here, which is true; 403 would say it exists and you may not, which
+    # is not.
     r = api.delete("/api/interview/consent", headers=world.as_student)
-    assert r.status_code == 200, r.text
-    assert r.json()["consent"] is None
+    assert r.status_code == 405, r.text
+    # ...and nothing was revoked by asking.
     assert api.get("/api/interview/consent", headers=world.as_student).json()[
         "consent"
-    ] is None
-    # Revocation stamps the row; it never deletes it. The historical fact that
-    # consent WAS given is what the interviews conducted under it depend on.
+    ]["id"] == granted["id"]
     with SessionLocal() as db:
         rows = list(
             db.scalars(
@@ -709,42 +724,114 @@ def test_consent_grant_read_and_withdrawal(api, world):
                 )
             ).all()
         )
-    assert len(rows) == 1 and rows[0].revoked_at is not None
+    assert len(rows) == 1 and rows[0].revoked_at is None
 
 
 @requires_db
-def test_regranting_supersedes_the_old_row_instead_of_editing_it(api, world):
-    """A grant is a row and a row is never edited: `interview_sessions.
-    consent_id` pins the grant that was live when an interview opened, and
-    mutating it would rewrite the answer for every interview pointing at it."""
+def test_acknowledging_twice_returns_the_standing_row_and_does_not_supersede_it(
+    api, world
+):
+    """IDEMPOTENCE IS LOAD-BEARING HERE, not tidiness.
+
+    The client posts this at every Start. If an unchanged acknowledgement
+    superseded the live row, a student pressing Start in a second tab would
+    stamp `revoked_at` on the very row their RUNNING interview is pinned to,
+    and the heartbeat would close that interview 4014 "Consent withdrawn" — a
+    sentence they did not earn. A supersede must happen only when the policy has
+    actually changed.
+    """
     from app.config import settings
 
-    def _post(**scopes):
-        return api.post(
-            "/api/interview/consent",
-            json={"version": settings.interview_consent_version, **scopes},
-            headers=world.as_student,
-        )
-
-    first = _post(
-        scope_live_ai=True, scope_store_transcript=False, scope_store_audio=False
-    )
+    body = {"version": settings.interview_consent_version}
+    first = api.post("/api/interview/consent", json=body, headers=world.as_student)
     assert first.status_code == 201, first.text
-    second = _post(
-        scope_live_ai=True, scope_store_transcript=True, scope_store_audio=False
-    )
+    second = api.post("/api/interview/consent", json=body, headers=world.as_student)
     assert second.status_code == 201, second.text
-    assert second.json()["id"] != first.json()["id"]
+    assert second.json()["id"] == first.json()["id"]
 
     live = _live_consents(world.student_user_id)
-    assert [row.id for row in live] == [second.json()["id"]]
-    assert live[0].scope_store_transcript is True
+    assert [row.id for row in live] == [first.json()["id"]]
+
+
+@requires_db
+def test_a_changed_policy_supersedes_the_row_instead_of_editing_it(api, world):
+    """A grant is a row and a row is never edited: `interview_sessions.
+    consent_id` pins the grant that was live when an interview opened, and
+    mutating it would rewrite the answer for every interview pointing at it.
+
+    What triggers the supersede changed with B6.1 — it is the COLLEGE changing
+    the policy, not the student changing their mind — and the property under it
+    did not."""
+    from app.config import settings
+
+    from app.interview_policy import spine_of_student
+    from app.models.institution import College, Department
+    from app.models.interview_policy import InterviewPolicy
+
+    body = {"version": settings.interview_consent_version}
+    first = api.post("/api/interview/consent", json=body, headers=world.as_student)
+    assert first.status_code == 201, first.text
+    assert first.json()["scope_store_transcript"] is True
+
+    # `world`'s student is a throwaway with no batch, so it hangs under no
+    # college and resolves the deployment defaults. Giving it a department is
+    # what puts a college above it — and it goes on `students.department_id`
+    # rather than through a cohort ON PURPOSE: that is the pointer an UNSEATED
+    # student has, and reading only the cohort route is the bug
+    # `ancestry_of_student` was fixed for.
+    college_id = f"col-{uuid.uuid4().hex[:10]}"
+    department_id = f"dep-{uuid.uuid4().hex[:10]}"
     with SessionLocal() as db:
-        superseded = db.get(InterviewConsent, first.json()["id"])
-        assert superseded is not None and superseded.revoked_at is not None
-        # The superseded row still says exactly what the student agreed to at
-        # the time, which is the whole point of keeping it.
-        assert superseded.scope_store_transcript is False
+        db.add(College(id=college_id, name="Policy Test College", code=college_id[:12]))
+        db.add(
+            Department(
+                id=department_id,
+                college_id=college_id,
+                name="Policy Test Dept",
+                code=department_id[:12],
+            )
+        )
+        db.flush()
+        db.get(Student, world.student_id).department_id = department_id
+        db.add(
+            InterviewPolicy(
+                college_id=college_id,
+                course_id=None,
+                store_transcript=False,
+                store_audio=False,
+            )
+        )
+        db.commit()
+    with SessionLocal() as db:
+        assert spine_of_student(db, world.student_id)[0] == college_id
+    try:
+        second = api.post(
+            "/api/interview/consent", json=body, headers=world.as_student
+        )
+        assert second.status_code == 201, second.text
+        assert second.json()["id"] != first.json()["id"]
+        assert second.json()["scope_store_transcript"] is False
+
+        live = _live_consents(world.student_user_id)
+        assert [row.id for row in live] == [second.json()["id"]]
+        with SessionLocal() as db:
+            superseded = db.get(InterviewConsent, first.json()["id"])
+            assert superseded is not None and superseded.revoked_at is not None
+            # The superseded row still says exactly what the student was told at
+            # the time, which is the whole point of keeping it.
+            assert superseded.scope_store_transcript is True
+    finally:
+        with SessionLocal() as db:
+            db.get(Student, world.student_id).department_id = None
+            db.execute(
+                delete(InterviewPolicy).where(
+                    InterviewPolicy.college_id == college_id
+                )
+            )
+            db.flush()
+            db.execute(delete(Department).where(Department.id == department_id))
+            db.execute(delete(College).where(College.id == college_id))
+            db.commit()
 
 
 @requires_db
@@ -766,22 +853,31 @@ def test_consent_refuses_a_version_this_server_does_not_know(api, world):
 
 
 @requires_db
-def test_consent_requires_every_scope_to_be_stated(api, world):
-    """No defaults. Defaulting a missing scope to False would silently record a
-    refusal the student never made, on the row that is the evidence of what they
-    agreed to."""
+def test_a_stale_client_cannot_choose_its_own_scopes(api, world):
+    """B6.1. The scopes are the college's, so a bundle cached from before this
+    release posts its three booleans and gets the POLICY's.
+
+    Not refused — a 422 would take the feature away from every tab open across
+    the deploy — and not obeyed either: honouring a stale client's
+    `scope_store_audio: true` over a college that has turned recording off would
+    record a student the college said not to record.
+    """
     from app.config import settings
 
     r = api.post(
         "/api/interview/consent",
         json={
             "version": settings.interview_consent_version,
-            "scope_live_ai": True,
-            "scope_store_transcript": True,
+            "scope_live_ai": False,
+            "scope_store_transcript": False,
+            "scope_store_audio": True,
         },
         headers=world.as_student,
     )
-    assert r.status_code == 422, r.text
+    assert r.status_code == 201, r.text
+    assert r.json()["scope_store_audio"] is False
+    assert r.json()["scope_store_transcript"] is True
+    assert r.json()["scope_live_ai"] is True
 
 
 @requires_db
@@ -802,10 +898,15 @@ def test_only_a_student_can_grant_consent(api, world):
 
 
 @requires_db
-def test_withdrawal_covers_a_grant_carrying_an_older_version(api, world):
-    """"I withdraw" is about the person, not about a version string. A live
-    grant left behind under last term's version is the kind of half-revocation
-    that makes a consent record worthless."""
+def test_the_withdrawal_route_is_gone_and_an_old_version_row_is_left_alone(
+    api, world
+):
+    """This test used to prove that "I withdraw" was about the PERSON and not
+    about a version string: `DELETE /consent` revoked every live grant of every
+    version. The route is gone (B6.1 — what it withdrew is now the college's
+    decision), so what has to be pinned is the other half: asking does nothing,
+    to any version, and the rows are untouched.
+    """
     with SessionLocal() as db:
         db.add(
             InterviewConsent(
@@ -820,8 +921,8 @@ def test_withdrawal_covers_a_grant_carrying_an_older_version(api, world):
     assert len(_live_consents(world.student_user_id)) == 1
 
     r = api.delete("/api/interview/consent", headers=world.as_student)
-    assert r.status_code == 200, r.text
-    assert _live_consents(world.student_user_id) == []
+    assert r.status_code == 405, r.text
+    assert len(_live_consents(world.student_user_id)) == 1
 
 
 # ---------------------------------------------------------------------------

@@ -175,6 +175,25 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # which is what `admin.governance`'s bootstrap note above exists for - not
     # to drop the flag.
     Capability("admin.imports", "Data imports", _P, carries_pii=True),
+    # B6.1/B6.4/B6.7's interviews: the college's interview POLICY (what is kept,
+    # for how long, how many attempts a day) and the records grid behind it.
+    # PROGRAMME for the same reason `admin.interview_questions` is: a policy
+    # governs every student on a course, and no mentor GROUP is a rung a policy
+    # could hang on. It is narrowed by B1.2's scope instead — a college-scoped
+    # holder writes their own college's policy and not another's.
+    #
+    # `carries_pii` IS TRUE, and the half that earns it is not the policy row —
+    # it is everything that hangs off this key: the records grid names students
+    # with their scores beside them, and the cap reset names one student and
+    # gives them back attempts. So a grant lands `pending_approval` under B2.4
+    # and holds NOTHING until a second `admin.governance` holder approves it.
+    # On a one-admin deployment it therefore never activates, which is a real
+    # consequence and an honest one; the way to make it work is to appoint a
+    # deputy, not to drop the flag. (04-backend-changes.md B1.3 listed this key
+    # in `COLLEGE_ADMIN_CAPABILITIES` for months while it did not exist —
+    # `app/routers/admin.py` carried the note. It exists now, in the same commit
+    # as its first `require_capability` call site and its place in that set.)
+    Capability("admin.interviews", "Interviews", _P, carries_pii=True),
     # Governance itself: the grants screen, the access groups and the student
     # feature switches (app/routers/governance.py). B2.6.
     #

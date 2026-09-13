@@ -17,6 +17,7 @@ before every test, so these tests build their own warm state and assert on it.
 
 import types
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import delete, select
@@ -100,9 +101,24 @@ def test_chat_answers_429_with_retry_after_over_the_limit(
 # ---------------------------------------------------------------------------
 @requires_db
 def test_daily_interview_cap_refuses_before_writing(make_user, monkeypatch):
+    """B6.4 made this TWO ceilings, and the test covers both.
+
+    It used to open two sessions of any status and expect the third to be
+    refused. The practice allowance now counts COMPLETED interviews only — an
+    interview that dropped out at minute two no longer costs a student a turn —
+    so the two have to be finished before the third is refused. The property the
+    test was written for is unchanged and is still asserted: the refusal happens
+    BEFORE anything is written.
+
+    The second half is the control 04-backend-changes.md would have deleted.
+    Counting completions alone hands a reconnect loop unlimited billable
+    handshakes, so `attempt_cap` counts every row whatever its status — and this
+    proves it refuses on rows that never reached `completed`.
+    """
     from app.routers.interview import _DailyCapReached, _open_records
 
     monkeypatch.setattr(settings, "interview_max_per_student_per_day", 2)
+    monkeypatch.setattr(settings, "interview_max_attempts_per_student_per_day", 3)
     s = make_user("dailycap")
     try:
         with SessionLocal() as db:
@@ -118,14 +134,19 @@ def test_daily_interview_cap_refuses_before_writing(make_user, monkeypatch):
             )
             db.commit()
 
-        # Two interviews open normally...
+        # Two interviews open normally, and are FINISHED — a `running` row is
+        # the concurrency cap's business (4012), not this one's.
         for i in range(2):
-            _open_records(s.user_id, Role.STUDENT, student_id, f"cap{i}", None)
+            opened = _open_records(s.user_id, Role.STUDENT, student_id, f"cap{i}", None)
+            with SessionLocal() as db:
+                db.get(InterviewSession, opened.interview_session_id).status = "completed"
+                db.commit()
 
         # ...and the third is refused with the cap exception, leaving the
         # session count where it was: the refusal writes nothing.
-        with pytest.raises(_DailyCapReached):
+        with pytest.raises(_DailyCapReached) as caught:
             _open_records(s.user_id, Role.STUDENT, student_id, "cap2", None)
+        assert caught.value.which == "daily"
         with SessionLocal() as db:
             rows = db.scalars(
                 select(InterviewSession.id).where(
@@ -133,6 +154,26 @@ def test_daily_interview_cap_refuses_before_writing(make_user, monkeypatch):
                 )
             ).all()
             assert len(rows) == 2
+
+        # THE SPEND CEILING, on rows that never completed. Raise the practice
+        # allowance out of the way and abandon three attempts: the student has
+        # completed nothing and is still stopped.
+        monkeypatch.setattr(settings, "interview_max_per_student_per_day", 50)
+        with SessionLocal() as db:
+            for i in range(3):
+                db.add(
+                    InterviewSession(
+                        student_id=student_id,
+                        status="abandoned",
+                        started_at=datetime.now(timezone.utc),
+                        heartbeat_at=datetime.now(timezone.utc),
+                        conn_id=f"attempt{i}",
+                    )
+                )
+            db.commit()
+        with pytest.raises(_DailyCapReached) as caught:
+            _open_records(s.user_id, Role.STUDENT, student_id, "cap3", None)
+        assert caught.value.which == "attempts"
     finally:
         # interview_sessions reference the conversation make_user's teardown
         # deletes, so these rows must go first or that teardown FK-fails.

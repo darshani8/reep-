@@ -371,9 +371,16 @@ export const routes: Routes = [
       },
       // Interview Records: every mock interview with the student named and a
       // download for each recording. Lazy like the rest.
+      //
+      // A CAPABILITY, NOT A ROLE, SINCE B6.7. `admin.interviews` is what
+      // `GET /api/admin/interviews` checks, and a route still guarded on
+      // `roleGuard('ADMIN')` would mean a faculty member the Main Admin handed
+      // the screen to holds the key and cannot open the door — a grant that
+      // reports success in Governance and does nothing, which is the worst
+      // shape of permissions bug because nothing anywhere says no.
       {
         path: 'admin/interviews',
-        canActivate: [roleGuard('ADMIN')],
+        canActivate: [capabilityGuard('admin.interviews')],
         loadComponent: () =>
           import('./features/admin/interviews/interviews.component').then(
             (m) => m.InterviewRecordsComponent,

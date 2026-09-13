@@ -21,10 +21,11 @@
  *   POST  /api/admin/users/{id}/sign-out-everywhere retire every session
  *
  * WHAT IS STILL NOT, AND WHY IT IS DRAWN RATHER THAN LEFT OUT. One control
- * remains disabled through PendingControlDirective and one column remains an em
- * dash: "Grant function" and Sign-in. Each has its reason on the constant that
- * carries it, and neither reason is "the endpoint does not exist" any more —
- * see GRANT_FUNCTION_PHASE and faculty-grid.ts's SIGN_IN_PENDING_REASON.
+ * stays disabled and one column stays an em dash: "Grant function" and Sign-in.
+ * Each has its reason on the constant that carries it, and NEITHER reason is a
+ * missing endpoint any more — see GRANT_FUNCTION_REASON and faculty-grid.ts's
+ * SIGN_IN_PENDING_REASON. Nothing on this screen names a phase, because nothing
+ * left on it is waiting for one.
  *
  * "Review expiring grants" WAS the third, on the grounds that B2.4's endpoint
  * existed but nothing drew its queue. Governance drew it, so the button is a
@@ -69,7 +70,6 @@ import type { CellClickedEvent, GetRowIdParams, GridApi, GridReadyEvent } from '
 import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { plural } from '../../../shared/text/plural.pipe';
 import { DisableFacultyDialogComponent } from './disable-faculty-dialog.component';
 import {
@@ -129,8 +129,20 @@ type FunctionFilter = '' | 'mentor' | 'none';
  * So the control stays drawn and disabled, and the notice beside it names
  * Governance as where a function is granted. Wiring it means moving the
  * composer into a shared component first, not adding a POST here.
+ *
+ * NOT THROUGH PendingControlDirective, and that changed when Phase 3 shipped.
+ * The directive says "Available with Phase N", which was true while B2.3 was
+ * the blocker. B2.3 has landed and the blocker is now a CLIENT refactor that no
+ * phase in the kit schedules — so a phase number here would promise that some
+ * deploy fixes it, which is the stale-label failure the directive itself exists
+ * to avoid. It is a plain `disabled` with the real reason in its title, the
+ * same shape the disable dialog's effective date and the grant form's review
+ * select take for the same kind of reason.
  */
-const GRANT_FUNCTION_PHASE = 3;
+/** Why "Grant function" cannot be pressed, shown on the control itself. */
+const GRANT_FUNCTION_REASON =
+  'Functions are granted in Governance, which owns the reason, the scope target and ' +
+  'the expiry a grant carries. This screen would need that whole composer a second time.';
 
 
 /** B3.3's window, mirrored from `admin_faculty.ENABLE_WINDOW_DAYS`. The server
@@ -152,7 +164,7 @@ interface MentorGroupFact {
   // RouterLink is REQUIRED for the "Add faculty" and "Mentor mapping" links: a
   // `routerLink` in a standalone component that does not import it is inert
   // markup — it renders, it looks like a link, and clicking it does nothing.
-  imports: [RouterLink, AgGridAngular, PendingControlDirective, DisableFacultyDialogComponent],
+  imports: [RouterLink, AgGridAngular, DisableFacultyDialogComponent],
   templateUrl: './faculty.component.html',
   styleUrl: './faculty.component.scss',
 })
@@ -162,7 +174,7 @@ export class AdminFacultyComponent {
   readonly notReadable = NOT_READABLE;
   readonly statusUnknownReason = STATUS_UNKNOWN_REASON;
   readonly signInPendingReason = SIGN_IN_PENDING_REASON;
-  readonly grantFunctionPhase = GRANT_FUNCTION_PHASE;
+  readonly grantFunctionReason = GRANT_FUNCTION_REASON;
   readonly enableWindowDays = ENABLE_WINDOW_DAYS;
 
   // --- what the server said ----------------------------------------------

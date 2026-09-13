@@ -325,10 +325,10 @@ def update_college(
 # including themselves, to anything — Governance stays the Main Admin's and its
 # deputy's), `admin.interview_audio` (a recording is a named student's voice and
 # is its own decision every time, which is why it is the one key the Main Admin
-# holds and grants separately), `ui.console_v2` (a rendering preview, not a
-# function) and every `mentor.*` key (a college admin is not a faculty member of
-# that college's students — the same reasoning `_FACULTY_ONLY` applies to the
-# Main Admin).
+# holds and grants separately) and every `mentor.*` key (a college admin is not
+# a faculty member of that college's students — the same reasoning
+# `_FACULTY_ONLY` applies to the Main Admin). `ui.console_v2` was a fourth, kept
+# out as "a rendering preview, not a function"; Phase 5 deleted the key itself.
 #
 # `admin.interviews` IS NOW IN THE CATALOGUE and is in the set below (Phase 4c,
 # B6.1/B6.4). It was listed in 04-backend-changes.md for this set for months

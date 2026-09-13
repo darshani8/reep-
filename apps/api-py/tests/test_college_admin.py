@@ -146,10 +146,17 @@ def test_the_set_never_hands_on_access(client, make_user, colleges, forget_grant
     with a gate in it. `admin.interview_audio` is out for a different reason:
     a recording is a named student's voice, and it is the one capability that
     stays a separate decision every time it is made.
+
+    A third line stood here asserting `ui.console_v2` was out of the set. Phase 5
+    deleted that key from the catalogue, which makes the assertion vacuously
+    true — and a vacuous assertion in a test named "never hands on access" reads
+    as one more fence than there is. The rule it stood for survives where it
+    bites: `set(COLLEGE_ADMIN_CAPABILITIES) <= set(CAPABILITIES_BY_KEY)` in
+    tests/test_imports_schema.py, because a name in this tuple with no catalogue
+    entry is a KeyError thrown at whoever is appointing a college admin.
     """
     assert "admin.governance" not in COLLEGE_ADMIN_CAPABILITIES
     assert "admin.interview_audio" not in COLLEGE_ADMIN_CAPABILITIES
-    assert "ui.console_v2" not in COLLEGE_ADMIN_CAPABILITIES
     assert not [k for k in COLLEGE_ADMIN_CAPABILITIES if k.startswith("mentor.")], (
         "a college admin is not a faculty member of that college's students"
     )

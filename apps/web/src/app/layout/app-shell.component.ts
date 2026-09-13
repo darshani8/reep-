@@ -49,11 +49,14 @@ interface NavigationItem {
   /** The route, or null when the screen has not been built yet. */
   readonly path: string | null;
   /** Only render the row when the session holds this capability — or, given
-   *  several, ALL of them. Two are needed while the console is being rebuilt:
-   *  the screen's own `admin.*` key, and `ui.console_v2`, the preview switch
-   *  the new screens sit behind. A row that showed on either would be a link
-   *  the route guard then bounces, which is the dead link this model exists to
-   *  make visible rather than easy. */
+   *  several, ALL of them.
+   *
+   *  The ARRAY form has no user left: every row now names one key, because
+   *  Phase 5 deleted `ui.console_v2`, the preview switch the redesigned screens
+   *  were paired with. It is kept because the rule it encodes is the one that
+   *  matters — a row must be gated on exactly what its route guard checks, all
+   *  of it. Gated on less, the row is a link the guard bounces; that is the
+   *  dead link this model exists to make visible rather than easy. */
   readonly capability?: string | readonly string[];
   /** Only render the row for the Main Admin, whatever their capabilities. */
   readonly mainAdminOnly?: boolean;
@@ -69,29 +72,20 @@ interface NavigationGroup {
   readonly items: readonly NavigationItem[];
 }
 
-/**
- * The preview switch the 2026-09 console's NEW screens sit behind.
+/*
+ * THE PREVIEW SWITCH IS GONE (Phase 5). `CONSOLE_V2`, `CONSOLE_V2_INSTITUTION`,
+ * `CONSOLE_V2_IMPORTS` and `CONSOLE_V2_MENTORS` stood here: `ui.console_v2` was
+ * a capability rather than an environment flag because the owner reviewed the
+ * redesigned console on the production deployment, where there is no flag to set
+ * and no second build to serve, and it sat in the Main Admin's baseline so the
+ * office saw the new screens on deploy while faculty kept the ones they knew.
  *
- * `ui.console_v2` is a capability rather than an environment flag because the
- * owner reviews this on the production deployment, where there is no flag to
- * set and no second build to serve. It is in the Main Admin's baseline, so the
- * office account sees the new screens the moment they deploy and nobody has to
- * grant anything; a faculty account does not hold it and keeps the console it
- * knows until the Main Admin hands it over in Governance. Phase 5 deletes the
- * capability and these constants with it.
- *
- * Each row needs the preview switch AND the screen's own key: `ui.console_v2`
- * says the screen exists, `admin.institution` says this reader may open it,
- * and the route guard checks the same pair. A row gated on only one of them is
- * a link that navigates back to where it started.
+ * That review is over and the redesigned screens ARE the console, so each of
+ * those rows is gated on the screen's own key alone — the same single key its
+ * route guard in app.routes.ts checks. Data imports keeps `admin.imports`
+ * rather than `admin.institution` (B8.1, Phase 4b): the screen reads every
+ * student's marks, so it `carries_pii` and is granted on its own.
  */
-const CONSOLE_V2 = 'ui.console_v2';
-const CONSOLE_V2_INSTITUTION = [CONSOLE_V2, 'admin.institution'] as const;
-/** Data imports has its own key since B8.1 (Phase 4b). It stood on
- *  `admin.institution` while the endpoints did not exist; the screen reads
- *  every student's marks, so it is `carries_pii` and granted on its own. */
-const CONSOLE_V2_IMPORTS = [CONSOLE_V2, 'admin.imports'] as const;
-const CONSOLE_V2_MENTORS = [CONSOLE_V2, 'admin.mentors'] as const;
 
 /**
  * The Main Admin console, in the groups the approved boards use
@@ -108,9 +102,9 @@ const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
   {
     title: 'Institution',
     items: [
-      { label: 'Colleges', icon: 'apartment', path: '/admin/colleges', capability: CONSOLE_V2_INSTITUTION },
+      { label: 'Colleges', icon: 'apartment', path: '/admin/colleges', capability: 'admin.institution' },
       { label: 'Structure', icon: 'school', path: '/admin/institution' },
-      { label: 'Faculty', icon: 'shield_person', path: '/admin/faculty', capability: CONSOLE_V2_MENTORS },
+      { label: 'Faculty', icon: 'shield_person', path: '/admin/faculty', capability: 'admin.mentors' },
       { label: 'Students & batches', icon: 'how_to_reg', path: '/admin/students' },
       { label: 'Mentor mapping', icon: 'group', path: '/admin/mentors' },
       { label: 'Catalogue', icon: 'menu_book', path: '/admin/catalogue' },
@@ -120,7 +114,7 @@ const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
     title: 'Operations',
     items: [
       { label: 'Registrations', icon: 'pending_actions', path: '/admin/registrations' },
-      { label: 'Data imports', icon: 'upload', path: '/admin/imports', capability: CONSOLE_V2_IMPORTS },
+      { label: 'Data imports', icon: 'upload', path: '/admin/imports', capability: 'admin.imports' },
       { label: 'Leave approvals', icon: 'event_available', path: '/admin/leave-approvals' },
       { label: 'Jobs & placement', icon: 'work', path: '/admin/jobs' },
       { label: 'Exports', icon: 'download', path: '/admin/exports' },
@@ -147,7 +141,6 @@ const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
         label: 'Audit log',
         icon: 'history',
         path: '/admin/audit',
-        capability: CONSOLE_V2,
         mainAdminOnly: true,
       },
     ],
@@ -256,12 +249,12 @@ const ALUMNI_NAVIGATION: readonly NavigationGroup[] = [
  * capability with no row here is a grant that changes nothing on screen, so
  * this list and the catalogue in app/models/governance.py are kept in step.
  *
- * THE FIVE NEW SCREENS ARE HERE TOO, each needing its pair. Left out, a
- * faculty member granted `ui.console_v2` AND `admin.institution` would pass
- * /admin/colleges' route guard with no row anywhere offering it — reachable
- * only by typing the URL, which is the exact defect the 2026-09 browser audit
- * found on four screens and which this list exists to prevent. The Main Admin
- * does not read this list at all; its own rows are in ADMIN_NAVIGATION.
+ * THE REDESIGNED SCREENS ARE HERE TOO. Left out, a faculty member granted
+ * `admin.institution` would pass /admin/colleges' route guard with no row
+ * anywhere offering it — reachable only by typing the URL, which is the exact
+ * defect the 2026-09 browser audit found on four screens and which this list
+ * exists to prevent. The Main Admin does not read this list at all; its own
+ * rows are in ADMIN_NAVIGATION.
  */
 const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
   capability: string | readonly string[];
@@ -293,24 +286,23 @@ const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
   { capability: 'admin.swoc', path: '/admin/swoc', label: 'SWOC notes', icon: 'rate_review' },
   { capability: 'admin.exports', path: '/admin/exports', label: 'Exports', icon: 'download' },
 
-  // The 2026-09 console's new screens. Each pairs the preview switch with the
-  // screen's own key, exactly as its route guard does, so a row that renders is
-  // a row that navigates. Phase 5 drops the CONSOLE_V2 half when the switch
-  // goes; the screens and their own keys stay.
+  // The 2026-09 console's screens. Each names the screen's own key, exactly as
+  // its route guard does, so a row that renders is a row that navigates. Each
+  // paired that key with `ui.console_v2` until Phase 5 deleted the switch.
   {
-    capability: CONSOLE_V2_INSTITUTION,
+    capability: 'admin.institution',
     path: '/admin/colleges',
     label: 'Colleges',
     icon: 'apartment',
   },
   {
-    capability: CONSOLE_V2_IMPORTS,
+    capability: 'admin.imports',
     path: '/admin/imports',
     label: 'Data imports',
     icon: 'upload',
   },
   {
-    capability: CONSOLE_V2_MENTORS,
+    capability: 'admin.mentors',
     path: '/admin/faculty',
     label: 'Faculty',
     icon: 'shield_person',

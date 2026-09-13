@@ -162,12 +162,19 @@ export class AdminStudentsComponent {
    *
    * `canOpenDetail` is a CONVENIENCE AND NOT A PERMISSION — /admin/students/:id
    * decides for itself, and so does every endpoint behind it. What it buys is
-   * that the roster does not draw a link the guard would refuse: this screen is
-   * gated on `admin.students` alone and Student 360 on that plus
-   * `ui.console_v2`, so the two do not admit the same people.
+   * that the roster does not draw a link the guard would refuse.
+   *
+   * It read `ui.console_v2` until Phase 5, because Student 360 was one of the
+   * redesigned screens and carried the preview switch as well as this screen's
+   * key. With the switch deleted the two routes name the SAME capability, so
+   * this is true for everyone who got as far as reading the roster. It is kept
+   * reading the key rather than hard-coded to `true` deliberately: it is a
+   * MIRROR of /admin/students/:id's route guard, and a mirror that stops
+   * tracking its subject is worse than no mirror. Change that guard and change
+   * this line in the same edit.
    */
   readonly gridContext = computed<RosterGridContext>(() => ({
-    canOpenDetail: (this.auth.session()?.capabilities ?? []).includes('ui.console_v2'),
+    canOpenDetail: (this.auth.session()?.capabilities ?? []).includes('admin.students'),
   }));
 
   readonly stages = STAGES;

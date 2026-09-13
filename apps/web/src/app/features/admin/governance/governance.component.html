@@ -8,10 +8,13 @@
       </div>
     </div>
     <div class="dt-toolbar">
-      <!-- The queue of grants awaiting a second admin and of grants about to
-           lapse is B2.4 — there is no /governance/review endpoint on main. -->
-      <button type="button" class="btn secondary" [reepPending]="grantReviewPhase">
+      <!-- B2.4's GET /review, live. Two lists — waiting on a second admin, and
+           running out — and the count is both, because both need somebody. -->
+      <button type="button" class="btn secondary" (click)="openReviewQueue()">
         <span class="icon" aria-hidden="true">rate_review</span> Review queue
+        @if (reviewCount() > 0) {
+          <span class="gov-tab-count">· {{ reviewCount() }}</span>
+        }
       </button>
       <button type="button" class="btn secondary" (click)="focusGrantForm()">
         <span class="icon" aria-hidden="true">key</span> Grant function
@@ -43,6 +46,101 @@
   </div>
 
   @if (state() === 'ready') {
+    <!-- ONE REASON BOX FOR THREE WRITES, and it sits above the tabs because a
+         row can be acted on from the register or from the review queue and the
+         box must not scroll away with whichever list opened it. -->
+    @if (actionKind(); as kind) {
+      <section class="card gov-action" [attr.aria-label]="actionTitle()">
+        <h2 class="gov-card-title">{{ actionTitle() }}</h2>
+        <ul class="gov-action-list">
+          @for (row of actionRows(); track row.id) {
+            <li>
+              <strong>{{ row.functionLabel }}</strong>
+              <span class="gov-sub">
+                {{ kind === 'revoke' ? 'from' : 'for' }} {{ row.subjectLabel }} · {{ row.reachLabel }}
+              </span>
+            </li>
+          }
+        </ul>
+
+        @if (kind === 'approve') {
+          <div class="notice accent gov-note">
+            <span class="icon" aria-hidden="true">how_to_reg</span>
+            <div>
+              Approving makes it live. The API refuses an approval from the person who made the
+              grant — a function that shows a student's own record needs a second pair of eyes,
+              and one person doing both is not that.
+            </div>
+          </div>
+        }
+
+        @if (kind === 'extend') {
+          <div class="gov-two">
+            <div class="field">
+              <label for="gov-action-expiry">New expiry</label>
+              <input
+                id="gov-action-expiry"
+                class="ctrl"
+                type="date"
+                [value]="actionExpiry()"
+                (change)="actionExpiry.set($any($event.target).value)"
+              />
+              <span class="help">Optional if you set a review date.</span>
+            </div>
+            <div class="field">
+              <label for="gov-action-review">New review date</label>
+              <input
+                id="gov-action-review"
+                class="ctrl"
+                type="date"
+                [value]="actionReview()"
+                (change)="actionReview.set($any($event.target).value)"
+              />
+              <span class="help">
+                Optional if you set an expiry. A grant with no expiry is brought back by this
+                date and nothing else.
+              </span>
+            </div>
+          </div>
+        }
+
+        <div class="field">
+          <label for="gov-action-reason">Reason</label>
+          <textarea
+            id="gov-action-reason"
+            #actionReasonBox
+            class="ctrl multi"
+            rows="2"
+            maxlength="400"
+            [placeholder]="actionReasonPlaceholder()"
+            [value]="actionReason()"
+            (input)="actionReason.set($any($event.target).value)"
+          ></textarea>
+          <span class="help">
+            A reason of at least {{ minReason() | plural: 'character' }} is required. It is
+            written onto the audit trail — and on an extension it is a fresh decision, not the
+            first one repeated.
+          </span>
+        </div>
+
+        <div class="gov-actions">
+          <button type="button" class="btn ghost" (click)="cancelAction()">Cancel</button>
+          <button
+            type="button"
+            [class]="actionButtonClass()"
+            [disabled]="!canRunAction()"
+            (click)="runAction()"
+          >
+            <span class="icon" aria-hidden="true">{{ actionIcon() }}</span>
+            {{ actionVerb() }}
+          </button>
+          @if (actionBlockedBecause(); as why) {
+            <span class="gov-blocked">{{ why }}</span>
+          }
+        </div>
+      </section>
+    }
+
     <div class="tabs gov-tabs">
       <div class="gov-tablist" role="tablist" aria-label="Governance sections">
       <button
@@ -56,6 +154,18 @@
         (click)="tab.set('grants')"
       >
         Grants<span class="gov-tab-count">· {{ grantRows().length }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="gov-tab-review"
+        aria-controls="gov-pane-review"
+        class="tab"
+        [class.active]="tab() === 'review'"
+        [attr.aria-selected]="tab() === 'review'"
+        (click)="tab.set('review')"
+      >
+        Review<span class="gov-tab-count">· {{ reviewCount() }}</span>
       </button>
       <button
         type="button"
@@ -97,22 +207,33 @@
     @if (tab() === 'grants') {
       <div role="tabpanel" id="gov-pane-grants" aria-labelledby="gov-tab-grants">
       <div class="gov-filters">
-        <!-- College and department are the scope control, B1.2/B1.4. Until a
-             grant carries a scope target there is nothing to narrow by. -->
-        <div class="select gov-filter-pending">
+        <!-- B1.2/B1.4. A grant now carries its own reach, so these two narrow
+             the register by the rung a grant touches — not by the rung it was
+             hung on exactly. See `reachTouches`. -->
+        <div class="select">
           <span class="lbl">College</span>
-          <span class="val">All colleges</span>
+          <span class="val">{{ collegeFilterLabel() }}</span>
           <span class="icon" aria-hidden="true">expand_more</span>
-          <select aria-label="College" [reepPending]="scopeTargetPhase">
-            <option>All colleges</option>
+          <select aria-label="College" (change)="setCollegeFilter($any($event.target).value)">
+            <option value="" [selected]="collegeFilter() === ''">All colleges</option>
+            @for (node of colleges(); track node.id) {
+              <option [value]="node.id" [selected]="collegeFilter() === node.id">
+                {{ node.label }} — {{ node.students | plural: 'student' }}
+              </option>
+            }
           </select>
         </div>
-        <div class="select gov-filter-pending">
+        <div class="select">
           <span class="lbl">Department</span>
-          <span class="val">All departments</span>
+          <span class="val">{{ departmentFilterLabel() }}</span>
           <span class="icon" aria-hidden="true">expand_more</span>
-          <select aria-label="Department" [reepPending]="scopeTargetPhase">
-            <option>All departments</option>
+          <select aria-label="Department" (change)="setDepartmentFilter($any($event.target).value)">
+            <option value="" [selected]="departmentFilter() === ''">All departments</option>
+            @for (node of departmentsInScope(); track node.id) {
+              <option [value]="node.id" [selected]="departmentFilter() === node.id">
+                {{ node.label }} — {{ node.students | plural: 'student' }}
+              </option>
+            }
           </select>
         </div>
 
@@ -138,75 +259,32 @@
             <option value="all" [selected]="statusFilter() === 'all'">All</option>
             <option value="live" [selected]="statusFilter() === 'live'">Live</option>
             <option value="expiring" [selected]="statusFilter() === 'expiring'">
-              Expiring soon
+              Needs review
+            </option>
+            <option value="pending" [selected]="statusFilter() === 'pending'">
+              Awaiting approval
             </option>
           </select>
         </div>
 
         <p class="gov-filters-note">
-          Every grant here is live. Revoked and lapsed grants stay in the audit trail.
+          Every grant here is live or waiting to be approved. Revoked and lapsed grants stay in
+          the audit trail.
         </p>
       </div>
 
-      <!-- A grant has no scope target yet, so the Scope column says what the
-           FUNCTION reaches. That is the server's own answer, not a guess. -->
+      <!-- A grant's REACH and its function's SCOPE are two different questions
+           with confusingly similar names, so they are two columns. -->
       <div class="notice accent gov-note">
         <span class="icon" aria-hidden="true">info</span>
         <div>
-          A grant has no scope target of its own yet, so Scope shows what the function itself
-          reaches. Choosing a college, department, course or batch per grant arrives with Phase 3.
+          <strong>Function scope</strong> is what the function itself reaches — whether a mentor
+          group narrows it at all. <strong>Reach</strong> is how far this particular grant was
+          handed over: a college, department, course, specialization or batch, or everything the
+          function reaches. The College and Department filters above show every grant that
+          touches that rung, including the un-narrowed ones, because those reach it too.
         </div>
       </div>
-
-      @if (revokingRows().length > 0) {
-        <section class="card gov-revoke" aria-label="Revoke a function">
-          <h2 class="gov-card-title">
-            Revoke {{ revokingRows().length | plural: 'function' }}
-          </h2>
-          <ul class="gov-revoke-list">
-            @for (row of revokingRows(); track row.id) {
-              <li>
-                <strong>{{ row.functionLabel }}</strong>
-                <span class="gov-sub">from {{ row.subjectLabel }}</span>
-              </li>
-            }
-          </ul>
-          <div class="field">
-            <label for="gov-revoke-reason">Reason</label>
-            <textarea
-              id="gov-revoke-reason"
-              #revokeReasonBox
-              class="ctrl multi"
-              rows="2"
-              maxlength="400"
-              placeholder="Why this is being taken away, in a sentence someone can audit in a year."
-              [value]="revokeReason()"
-              (input)="revokeReason.set($any($event.target).value)"
-            ></textarea>
-            <span class="help">
-              A reason of at least {{ minReason() | plural: 'character' }} is required. It is
-              written onto the audit trail.
-            </span>
-          </div>
-          <div class="gov-actions">
-            <button type="button" class="btn ghost" (click)="cancelRevoke()">Keep it</button>
-            <button
-              type="button"
-              class="btn danger"
-              [disabled]="revokeReasonShort() || revokeBusy()"
-              (click)="revoke()"
-            >
-              <span class="icon" aria-hidden="true">block</span>
-              {{ revokeBusy() ? 'Revoking…' : 'Revoke' }}
-            </button>
-            @if (revokeReasonShort()) {
-              <span class="gov-blocked">
-                A reason of at least {{ minReason() | plural: 'character' }} is required
-              </span>
-            }
-          </div>
-        </section>
-      }
 
       <div class="gov-board">
         <div class="dt-frame gov-grid-frame">
@@ -215,19 +293,25 @@
               class="dt-quickfilter"
               type="search"
               placeholder="Quick filter…"
-              aria-label="Search grants by person, group, function or reason"
+              aria-label="Search grants by person, group, function, reach or reason"
               (input)="setQuickFilter($any($event.target).value)"
             />
             <button
               type="button"
               class="btn secondary sm"
               [disabled]="selectedGrantIds().length === 0"
-              (click)="startRevokeSelected()"
+              (click)="startActionForSelection('revoke')"
             >
               <span class="icon" aria-hidden="true">block</span> Revoke
             </button>
-            <!-- Extending a grant's expiry is B2.4's POST /grants/{id}/extend. -->
-            <button type="button" class="btn secondary sm" [reepPending]="grantReviewPhase">
+            <!-- B2.4's POST /grants/{id}/extend, live. Batched the same way the
+                 revoke is: one reason, applied to each row in turn. -->
+            <button
+              type="button"
+              class="btn secondary sm"
+              [disabled]="selectedGrantIds().length === 0"
+              (click)="startActionForSelection('extend')"
+            >
               <span class="icon" aria-hidden="true">schedule</span> Extend
             </button>
             <span class="gov-gridbar-end">
@@ -259,7 +343,8 @@
                     </label>
                   </th>
                   <th>Function</th>
-                  <th>Scope</th>
+                  <th>Function scope</th>
+                  <th>Reach</th>
                   <th>Granted by</th>
                   <th>Expires</th>
                   <th>Status</th>
@@ -286,26 +371,46 @@
                     </td>
                     <td><span class="chip accent">{{ row.functionLabel }}</span></td>
                     <td>
-                      <span class="chip dot" [class.risk]="row.reachIsProgrammeWide" [class.neutral]="!row.reachIsProgrammeWide">
+                      <span class="chip dot" [class.risk]="row.functionScopeIsProgrammeWide" [class.neutral]="!row.functionScopeIsProgrammeWide">
+                        {{ row.functionScopeLabel }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="chip dot" [class.risk]="row.reachIsWholeCollege" [class.neutral]="!row.reachIsWholeCollege">
                         {{ row.reachLabel }}
                       </span>
                     </td>
                     <td>{{ row.grantedByLabel }}</td>
                     <td class="gov-nums">{{ row.expiresLabel }}</td>
                     <td>
-                      <span class="chip dot" [class.warn]="row.statusIsExpiringSoon" [class.good]="!row.statusIsExpiringSoon">
+                      <span
+                        class="chip dot"
+                        [class.good]="row.statusTone === 'good'"
+                        [class.warn]="row.statusTone === 'warn'"
+                        [class.risk]="row.statusTone === 'risk'"
+                      >
                         {{ row.statusLabel }}
                       </span>
                     </td>
                     <td class="gov-rowaction">
-                      <button type="button" class="btn ghost sm" (click)="startRevokeOne(row)">
-                        Revoke
-                      </button>
+                      <span class="gov-rowactions">
+                        @if (row.isPending) {
+                          <button type="button" class="btn ghost sm" (click)="startAction('approve', [row])">
+                            Approve
+                          </button>
+                        }
+                        <button type="button" class="btn ghost sm" (click)="startAction('extend', [row])">
+                          Extend
+                        </button>
+                        <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
+                          Revoke
+                        </button>
+                      </span>
                     </td>
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="7" class="gov-empty">
+                    <td colspan="8" class="gov-empty">
                       @if (grantRows().length === 0) {
                         No grants yet — every role holds its baseline.
                       } @else {
@@ -321,6 +426,7 @@
           <div class="dt-statusbar">
             <span>Rows: <b>{{ filteredGrants().length }}</b></span>
             <span>Selected: <b>{{ selectedGrantIds().length }}</b></span>
+            <span>Awaiting approval: <b>{{ pendingApprovalCount() }}</b></span>
             <span>Expiring soon: <b>{{ expiringSoonCount() }}</b></span>
             <span class="pager">
               <label class="gov-pagesize">
@@ -482,13 +588,30 @@
             <span class="help">{{ chosenFunctionHelp() }}</span>
           </div>
 
+          <!-- B1.2, live. The blank option posts NEITHER scope_level nor
+               scope_id: GrantIn refuses a level without an id and an id without
+               a level, and omitting both is the programme-wide grant this
+               endpoint has always written. -->
           <div class="field">
-            <label for="gov-scope">Scope</label>
-            <select id="gov-scope" class="ctrl" [reepPending]="scopeTargetPhase" aria-describedby="gov-scope-help">
-              <option>Everything the function reaches</option>
+            <label for="gov-scope">Scope target</label>
+            <select
+              id="gov-scope"
+              class="ctrl"
+              aria-describedby="gov-scope-help"
+              (change)="grantScope.set($any($event.target).value)"
+            >
+              <option value="" [selected]="grantScope() === ''">
+                Everything the function reaches
+              </option>
+              @for (option of scopeOptions(); track option.key) {
+                <option [value]="option.key" [selected]="grantScope() === option.key">
+                  {{ option.label }}
+                </option>
+              }
             </select>
             <span class="help" id="gov-scope-help">
-              Narrowing a grant to one college, department, course or batch arrives with Phase 3.
+              How far this grant reaches. A student-level target is storable through the API but
+              is not offered here — a college of students is not a dropdown.
             </span>
           </div>
 
@@ -504,12 +627,18 @@
               />
               <span class="help">Optional. Left empty it stays until it is revoked.</span>
             </div>
+            <!-- READ-ONLY, AND NOT A PENDING CONTROL. The review date is real
+                 and shown — the API derives it — but POST /grants does not
+                 accept one, so a live select here would post a value the server
+                 drops in silence. It is changed after the fact with Extend. -->
             <div class="field">
               <label for="gov-review">Review</label>
-              <select id="gov-review" class="ctrl" [reepPending]="grantReviewPhase">
-                <option>Not scheduled yet</option>
+              <select id="gov-review" class="ctrl" disabled aria-describedby="gov-review-help">
+                <option>{{ reviewDerivedLabel() }}</option>
               </select>
-              <span class="help">A review cadence arrives with Phase 3.</span>
+              <span class="help" id="gov-review-help">
+                Set by the API, not chosen here. Change it with Extend once the grant exists.
+              </span>
             </div>
           </div>
 
@@ -543,21 +672,22 @@
             <div class="notice warn gov-note">
               <span class="icon" aria-hidden="true">shield_person</span>
               <div>
-                This function shows a student's own record. It goes live the moment it is granted —
-                the second-admin approval step arrives with Phase 3.
+                This function shows a student's own record, so it needs two people. The grant is
+                written, listed and audited at once — and <strong>holds nothing</strong> until a
+                different holder of Governance approves it. You cannot approve your own.
               </div>
             </div>
           }
 
           <div class="gov-actions">
             <button type="button" class="btn ghost" (click)="clearGrantForm()">Cancel</button>
-            <!-- "Send for approval" is B2.4's approval_state; there is no
-                 endpoint for it on main, so it cannot be pressed. -->
-            <button type="button" class="btn secondary" [reepPending]="grantReviewPhase">
-              <span class="icon" aria-hidden="true">how_to_reg</span> Send for approval
-            </button>
+            <!-- ONE SUBMIT. "Send for approval" is not a second endpoint: POST
+                 /grants writes a carries_pii grant pending by itself, so the
+                 button says which of the two acts it is about to perform. -->
             <button type="button" class="btn primary" [disabled]="!canGrant()" (click)="grant()">
-              <span class="icon" aria-hidden="true">key</span>
+              <span class="icon" aria-hidden="true">
+                {{ chosenFunctionCarriesPersonalData() ? 'how_to_reg' : 'key' }}
+              </span>
               {{ grantButtonLabel() }}
             </button>
           </div>
@@ -585,6 +715,164 @@
       </div>
     }
 
+    <!-- =================================================== REVIEW ======= -->
+    @if (tab() === 'review') {
+      <div role="tabpanel" id="gov-pane-review" aria-labelledby="gov-tab-review">
+      <div class="notice accent gov-note">
+        <span class="icon" aria-hidden="true">rate_review</span>
+        <div>
+          Two lists, not one, because they need opposite actions. A grant
+          <strong>awaiting approval holds nothing</strong> and somebody is waiting on you; a
+          grant <strong>running out</strong> is working today and will stop.
+        </div>
+      </div>
+
+      <section class="gov-review-block" aria-labelledby="gov-review-pending-title">
+        <h2 class="gov-card-title" id="gov-review-pending-title">
+          Awaiting a second admin
+          <span class="chip neutral">{{ reviewPendingRows().length | plural: 'grant' }}</span>
+        </h2>
+        <p class="gov-hint">
+          Written, listed and audited — and holding nothing. Whoever made the grant cannot be the
+          one who agrees to it.
+        </p>
+        <div class="dt-frame">
+          <div class="gov-grid-scroll">
+            <table class="dt-table gov-table">
+              <thead>
+                <tr>
+                  <th class="pinned gov-who-col">Person / group</th>
+                  <th>Function</th>
+                  <th>Reach</th>
+                  <th>Granted by</th>
+                  <th>Reason</th>
+                  <th><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of reviewPendingRows(); track row.id) {
+                  <tr>
+                    <td class="pinned gov-who-col">
+                      <span class="avatar" aria-hidden="true">{{ row.subjectInitials }}</span>
+                      <span class="gov-who">
+                        <span class="gov-who-name">{{ row.subjectLabel }}</span>
+                        <span class="gov-sub">{{ row.subjectKindLabel }}</span>
+                      </span>
+                    </td>
+                    <td>
+                      <span class="chip accent">{{ row.functionLabel }}</span>
+                      @if (row.carriesPersonalData) {
+                        <span class="chip dot warn">Personal record</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="chip dot" [class.risk]="row.reachIsWholeCollege" [class.neutral]="!row.reachIsWholeCollege">
+                        {{ row.reachLabel }}
+                      </span>
+                    </td>
+                    <td>{{ row.grantedByLabel }}</td>
+                    <td class="gov-reason-cell">{{ row.reason }}</td>
+                    <td class="gov-rowaction">
+                      <span class="gov-rowactions">
+                        <button type="button" class="btn secondary sm" (click)="startAction('approve', [row])">
+                          <span class="icon" aria-hidden="true">how_to_reg</span> Approve
+                        </button>
+                        <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
+                          Revoke
+                        </button>
+                      </span>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6" class="gov-empty">Nothing is waiting on a second admin.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="gov-review-block" aria-labelledby="gov-review-expiring-title">
+        <h2 class="gov-card-title" id="gov-review-expiring-title">
+          Running out within {{ reviewHorizonDays() | plural: 'day' }}
+          <span class="chip neutral">{{ reviewExpiringRows().length | plural: 'grant' }}</span>
+        </h2>
+        <p class="gov-hint">
+          An expiry inside the window, or a review date inside it — a grant with no expiry never
+          appears on an expiry-only queue, and that is exactly the grant that most needs looking
+          at. Extend it with a fresh reason, or let it lapse.
+        </p>
+        <div class="dt-frame">
+          <div class="gov-grid-scroll">
+            <table class="dt-table gov-table">
+              <thead>
+                <tr>
+                  <th class="pinned gov-who-col">Person / group</th>
+                  <th>Function</th>
+                  <th>Reach</th>
+                  <th>Expires</th>
+                  <th>Review</th>
+                  <th>Status</th>
+                  <th><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of reviewExpiringRows(); track row.id) {
+                  <tr>
+                    <td class="pinned gov-who-col">
+                      <span class="avatar" aria-hidden="true">{{ row.subjectInitials }}</span>
+                      <span class="gov-who">
+                        <span class="gov-who-name">{{ row.subjectLabel }}</span>
+                        <span class="gov-sub">{{ row.subjectKindLabel }}</span>
+                      </span>
+                    </td>
+                    <td><span class="chip accent">{{ row.functionLabel }}</span></td>
+                    <td>
+                      <span class="chip dot" [class.risk]="row.reachIsWholeCollege" [class.neutral]="!row.reachIsWholeCollege">
+                        {{ row.reachLabel }}
+                      </span>
+                    </td>
+                    <td class="gov-nums">{{ row.expiresLabel }}</td>
+                    <td class="gov-nums">{{ row.reviewLabel }}</td>
+                    <td>
+                      <span
+                        class="chip dot"
+                        [class.good]="row.statusTone === 'good'"
+                        [class.warn]="row.statusTone === 'warn'"
+                        [class.risk]="row.statusTone === 'risk'"
+                      >
+                        {{ row.statusLabel }}
+                      </span>
+                    </td>
+                    <td class="gov-rowaction">
+                      <span class="gov-rowactions">
+                        <button type="button" class="btn secondary sm" (click)="startAction('extend', [row])">
+                          <span class="icon" aria-hidden="true">schedule</span> Extend
+                        </button>
+                        <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
+                          Revoke
+                        </button>
+                      </span>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7" class="gov-empty">
+                      Nothing is running out in the next
+                      {{ reviewHorizonDays() | plural: 'day' }}.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      </div>
+    }
+
     <!-- ============================================ FUNCTIONS CATALOGUE == -->
     @if (tab() === 'catalogue') {
       <div role="tabpanel" id="gov-pane-catalogue" aria-labelledby="gov-tab-catalogue">
@@ -592,9 +880,13 @@
         <div class="notice accent gov-note">
           <span class="icon" aria-hidden="true">info</span>
           <div>
-            The API does not yet report which functions it checks on every request, so this column
-            says so rather than claiming it. Phase 3 adds the flag and makes every unenforced key
-            either enforced or deleted.
+            B2.1 answered "is this function actually checked" somewhere other than this payload:
+            the ten <code class="gov-key">student.*</code> keys no call site checked were
+            <strong>deleted</strong>, and <code class="gov-key">tools/ci/check_capability_enforcement.py</code>
+            now fails CI if a key reaches no check anywhere under <code class="gov-key">app/</code>.
+            So the catalogue is enforced by construction — but <code class="gov-key">/catalogue</code>
+            reports no per-function flag, and this column will only say what the payload carries.
+            A list kept by hand here would be right on the day somebody wrote it.
           </div>
         </div>
       }

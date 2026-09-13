@@ -37,7 +37,7 @@ Internet ── WAF ── CloudFront ──┬── S3 (Angular SPA, private, 
 | Traceability | One `X-Request-ID` per request: caller-supplied or minted, echoed on the response, tagged on every Sentry event, printed in every `reep.access` log line, with ALB access logs in S3 as the edge record. One id from a click to a log line |
 | Claude connectivity | The `reep-claude-observer` IAM role (read-only logs/metrics/ECS/RDS) for AWS-side diagnosis, plus the Sentry MCP connector for issue-level work — see §6 |
 | Voice AI on Nova | `BEDROCK_MODEL` (default `apac.amazon.nova-pro-v1:0`) drives the LLM adapter for the resume brief and the grounded assistant. The realtime interviewer runs **Nova 2 Sonic** over the bidirectional stream — §7 is the checklist for turning it on, and it is not one variable |
-| Call recording | `INTERVIEW_RECORDING_ENABLED=true` (a stack variable): two WAVs per interview (student and AI tracks, deliberately unmixed) on EFS at `/data/interview-audio`, only for students whose consent grant ticks store-audio, downloadable by DIRECTOR/ADMIN via `/api/interview` records, deleted on the 180-day retention clock |
+| Call recording | `INTERVIEW_RECORDING_ENABLED=true` (a stack variable): two WAVs per interview (student and AI tracks, deliberately unmixed) on EFS at `/data/interview-audio`, only for students whose consent grant ticks store-audio, downloadable only by a holder of `admin.interview_audio` (the Main Admin by baseline; a MENTOR only by an explicit grant) via the interview records endpoints, deleted on the 180-day retention clock |
 
 ## 2. Prerequisites
 
@@ -284,7 +284,7 @@ consent grant with the store-audio scope ticked (a separate, unticked-by-default
 checkbox whose copy says staff can listen). Two WAV files per interview, one
 per speaker, never mixed; capped by `INTERVIEW_RECORDING_MAX_BYTES` with a
 truncation flag; stored on EFS (`/data/interview-audio`), covered by the AWS
-Backup plan, retrievable only by DIRECTOR/ADMIN, and deleted with the rest of
+Backup plan, retrievable only by a holder of `admin.interview_audio`, and deleted with the rest of
 the interview record after `INTERVIEW_RETENTION_DAYS` (180). A student who
 never ticks the box is never recorded, whatever the flag says.
 

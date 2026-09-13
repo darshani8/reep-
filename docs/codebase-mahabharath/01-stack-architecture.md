@@ -1,5 +1,13 @@
 # Chapter 1 — The Stack, End to End
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 > This is the keystone chapter. After reading it you should be able to draw REEP on a
 > whiteboard from memory, start every process on a clean machine in the right order, trace a
 > single HTTP request from a mouse click to a Postgres row and back, and — most importantly —

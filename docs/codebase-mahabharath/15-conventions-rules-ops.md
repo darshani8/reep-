@@ -1,5 +1,13 @@
 # Chapter 15 — Conventions, Rules and Running It
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 *The closing volume. This is the page you keep open.*
 
 Chapters 1–14 explained the code. This one is the compendium: every naming rule the book

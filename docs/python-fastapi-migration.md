@@ -1,5 +1,20 @@
 # Migration: Next.js/React → Angular + Python (FastAPI)
 
+> **THIS MIGRATION IS COMPLETE. This is the plan, kept as the record of how the
+> cutover was sequenced and why — not a description of the tree.**
+>
+> The Next.js/React app, the NestJS `apps/api` and Prisma are **deleted**. What
+> exists is `apps/web` (Angular) and `apps/api-py` (FastAPI + SQLAlchemy 2.0 +
+> Alembic on PostgreSQL). Every reference below to `apps/api`, `prisma/schema.prisma`,
+> `server-only`, a Next.js route handler or a NestJS module is describing
+> something that is gone; nothing in this file can be run.
+>
+> Also stale here: the **LiveKit voice stack** (removed 2026-09 — there is no
+> fourth process, no `voice_agent.py`, no `requirements-voice.txt`, no
+> `/api/voice/*`) and **DIRECTOR as a role** (removed 2026-09-10). Current truth
+> is `AGENTS.md`.
+>
+
 Replace the Next.js full-stack app and the NestJS `apps/api` with an **Angular
 frontend + Python/FastAPI backend**. Build the replacement to parity, cut over,
 then delete the old stacks. **Nothing is deleted until parity is reached** — the

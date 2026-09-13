@@ -1,3 +1,8 @@
+> **PARTLY STALE.** Written before the 2026-09-10 role removal: DIRECTOR is not
+> a role in this product. There is one office account, role ADMIN; faculty are
+> MENTOR and reach a console screen only through a grant the Main Admin makes in
+> Governance. Current truth is `AGENTS.md`.
+
 # REEP Phase 4 Architecture Redesign
 
 Branch: `arch/redesign-phase4`

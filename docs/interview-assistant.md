@@ -132,16 +132,18 @@ GET    /api/interview/sessions/{id}/report            without `raw_response`
 GET    /api/mentor/students/{sid}/interviews          rule 2, then the row's own subject re-checked
 GET    /api/mentor/students/{sid}/interviews/{id}
 GET    /api/mentor/students/{sid}/interviews/{id}/transcript
-GET    /api/mentor/students/{sid}/interviews/{id}/report     `raw_response` only for DIRECTOR/ADMIN
+GET    /api/mentor/students/{sid}/interviews/{id}/report     `raw_response` only for the Main Admin
 GET    /api/mentor/students/{sid}/interviews/{id}/audio      ADMIN only; ?track=mixed(default)|student|interviewer
 ```
 
 `GET /status` exists because a **rejected WebSocket handshake reaches the browser
 as a bare 1006 with no code and no reason**. It is the only place a student can be
 told *why* — not configured, not signed in, not a student. It answers `200` with
-`available:false` even for a non-student (where `/api/voice/status` raises 403),
+`available:false` even for a non-student,
 because the client treats any non-2xx as "probe unavailable" and would throw the
-explanation away.
+explanation away. (It was written against `/api/voice/status`, which raised 403
+for a non-student; that endpoint went with the LiveKit stack in 2026-09 and the
+convention is this socket's own now.)
 
 It deliberately does **not** report missing consent. The client treats
 `available:false` as "do not start", which would hide the very consent panel that
@@ -329,7 +331,8 @@ This is structural, not a matter of asking the model nicely:
 - the session id, conversation id and user id never leave the process.
 
 The persona **also tells the model it is blind** — the same disclosure
-`voice_agent.py`'s `BASE_INSTRUCTIONS` makes for the LiveKit worker. That sentence
+`voice_agent.py`'s `BASE_INSTRUCTIONS` made for the LiveKit worker, which was
+removed in 2026-09 along with that file. That sentence
 is not redundant with the architecture: a model that is not told it cannot see the
 dashboard will invent a CGPA and say it out loud, and the student has no way to
 know it was fiction.
@@ -342,12 +345,14 @@ same shape as `/student/resume/generate` degrading to `used_ai=false`.
 ## Persistence — and how to check it
 
 Turns are written through `app/conversations.py` into the **same**
-`conversations` / `messages` tables the text agent and the LiveKit worker use, so
+`conversations` / `messages` tables the text agent uses (and the removed LiveKit
+worker used — its rows read back unchanged, which is why `Message.channel` is
+still a plain String), so
 `GET /api/agent/history` returns them unchanged. That contract does not bend —
 the four tables below are **in addition**, never instead.
 
 Writes are **fire-and-forget**: a failed write must never end an interview that is
-otherwise going fine (the same rule as the LiveKit transcript POSTs). That buys
+otherwise going fine (the same rule the LiveKit transcript POSTs followed). That buys
 the silent failure mode the voice runbook exists to catch, so after a test call:
 
 ```sql
@@ -359,7 +364,8 @@ are being dropped. The cause is in the API log, with its exception — grep for
 `Dropped interview turn`. The channel is `interview`, **not** `voice`: both are
 spoken, but they are different products with different retention questions, and
 folding them together would make this query unable to answer "did the interviewer
-save anything" independently of LiveKit.
+save anything" independently of the `voice` rows the removed LiveKit stack left
+behind.
 
 Dedup is on `(conversation_id, provider_turn_id)`, with `u:`/`a:` prefixes because
 upstream item ids and response ids are separate sequences.
@@ -375,7 +381,7 @@ vocabulary lives in a comment next to the column.
 |---|---|---|
 | `interview_sessions` | interview | the subject, the track, the terminal status and close code, `answers_accepted`, `turns_emitted`/`turns_persisted`, the relay's `conn_id`, the upstream session id, the consent grant, the retention deadline |
 | `interview_turns` | turn | the **phase** it happened in, whether the transcriber actually heard it (`transcription_status`), how the answer gate judged it (`answer_quality`), whether it ticked the arc (`counted_as_answer`), whether an interviewer turn was cut off (`is_partial`) |
-| `interview_evaluations` | interview (UNIQUE) | the scorecard: four nullable 0–100 scores, strengths, improvements, a drill, a summary, and `raw_response` for a DIRECTOR debugging a bad parse |
+| `interview_evaluations` | interview (UNIQUE) | the scorecard: four nullable 0–100 scores, strengths, improvements, a drill, a summary, and `raw_response` for the Main Admin debugging a bad parse |
 | `interview_consents` | grant | who agreed, to which version, to which of three scopes, when, from what user agent and a **salted hash** of the address — never the address |
 
 Two things about this record are worth knowing before reading it:
@@ -541,7 +547,7 @@ a recording feature is not what that containment gets spent on.
 | **Where** | a sibling of the uploads root, `<uploads>/../interview-audio`, each file named after the `interview_sessions.id` that owns it — so retention can find it from the primary key alone even if `audio_path` is ever lost. Not `app/document_store.py`: that store decides type by magic bytes and accepts only PDF/PNG/JPEG, and admitting audio would loosen the one control that makes it trustworthy |
 | **Cap** | `INTERVIEW_RECORDING_MAX_BYTES` is a hard per-session ceiling on **captured PCM**. At the cap capture **stops**, `interview_sessions.audio_truncated` is set, and the interview continues — a call is never dropped to protect a file, and a truncation is never silent. **Size it against 96,000 B/s, not 48,000**: both tracks are padded to the session's wall clock, so an interview burns two streams whether or not anyone is talking. 128 MB is ~22 min, past the 900 s session cap; budget ~256 MB of *disk* per session, because the derived `mixed` copy is written on top of what survived. This row said "64 MB ≈ 45 min" for a release after the padding landed — arithmetic from the speech-only era, under which the cap bound first and quietly cut the last 3.8 minutes off every full-length interview |
 | **Truncation** | three things stop a capture, and the WARNING names which: the byte cap above, a timeline gap longer than an interview can run (a suspended host, not a silence), and the write buffer bound — *"the disk is not keeping up"*, which now means only that. It used to fire on a healthy disk: pending silence was materialised into that buffer, so a 90-second answer left the interviewer owing one 4.3 MB lump and the next question ended the recording. Silence is an integer segment now, materialised in the writer, so the buffer holds real audio only |
-| **Retrieval** | `GET /api/mentor/students/{sid}/interviews/{id}/audio?track=mixed\|student\|interviewer`, **defaulting to `mixed`**, behind `_require_developer` — **ADMIN only, deliberately narrower than every other read in that router** — **and** `_assert_can_access_student` **and** a re-check that the row's subject is the student in the path. A DIRECTOR gets 403 here and 200 everywhere else in the file; that asymmetry is intended, because a stored voice is an operator's artefact and not placement business. 404 — never 403 — when nothing was recorded, so a caller cannot tell "not recorded" from "not a real id" |
+| **Retrieval** | `GET /api/mentor/students/{sid}/interviews/{id}/audio?track=mixed\|student\|interviewer`, **defaulting to `mixed`**, behind the **`admin.interview_audio` capability** — the Main Admin by baseline, a MENTOR **only by an explicit grant**, deliberately narrower than every other read in that router — **and** `_assert_can_access_student` **and** a re-check that the row's subject is the student in the path. A faculty account that can read every transcript in the file still gets 403 here until somebody grants it that key; the asymmetry is intended, because a stored voice is an operator's artefact and not placement business. (This row said `_require_developer` and "a DIRECTOR gets 403" until Phase 5: that helper is gone, and so is the role — the gate is the capability.) 404 — never 403 — when nothing was recorded, so a caller cannot tell "not recorded" from "not a real id" |
 | **Retention** | the same 180-day clock as the transcript. `purge_expired` deletes the bytes **before** the rows; a session whose audio could not be deleted keeps its row, because an orphaned voice file is undiscoverable and therefore undeletable |
 
 Read **`interview_sessions.audio_recorded`**, never `audio_path IS NOT NULL`. A
@@ -560,7 +566,7 @@ find.
 If you are turning this on: it is a stored voice recording of a named student,
 readable by staff. That is a materially different consent and legal posture from
 a transcript, which is why the default is off, why the consent scope is separate
-and unticked, and why the download is DIRECTOR/ADMIN only.
+and unticked, and why the download needs `admin.interview_audio`, which no faculty account holds by default.
 
 ## Configuration
 
@@ -610,8 +616,8 @@ There is **no API key on this path at all** any more. The stream is signed with
 SigV4 from the standard AWS chain, so what used to be a containment problem —
 one pasted credential, attached to exactly one socket, never logged — is now
 absent by construction. `app/main.py` still pins the `websockets` logger to INFO
-(the LiveKit voice path uses that library and `--log-level debug` prints
-handshake headers unredacted).
+(this socket uses that library, as the removed LiveKit path did, and
+`--log-level debug` prints handshake headers unredacted).
 
 ## Close codes
 
@@ -698,6 +704,12 @@ audio that is not there is how a deletion request quietly fails to be honoured.
 
 ## What this replaced
 
-`POST /api/agent/ask` and the LiveKit voice stack are **retained, mounted and
-working** — they are the rollback path, not dead code. See the header on
+`POST /api/agent/ask` is **retained, mounted and working**, and now has a UI
+caller of its own (the REEP Agent chat at `/student/agent`). See the header on
 `app/routers/agent.py` for the route-by-route audit of what is still live.
+
+**The LiveKit voice stack is NOT.** This section said it was retained as the
+rollback path; it was removed in 2026-09 — `voice_agent.py`, `app/routers/voice.py`
+(`/api/voice/*`), `requirements-voice.txt`, `chat-voice.service.ts`, the fourth
+process and its Python 3.12 venv are all gone. There is no rollback path; this
+socket is the only voice experience in the product.

@@ -1,5 +1,13 @@
 # Chapter 12 — Frontend Architecture: Bootstrap, Lazy Routes, Signals and the Shell
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 After this chapter you will be able to open `apps/web` and know exactly what happens between the browser fetching `index.html` and a student seeing their landing page: which six lines start the application, which three providers it registers and which it deliberately refuses, how every screen in the app is code-split behind a dynamic `import()` and what the production build does when one is not, how the client knows who is signed in when JavaScript is forbidden from reading the session cookie, and what shape a new feature component has to take to look like every other one. You will also be able to add a screen without breaking the bundle budget, and to recognise on sight the **eight** places where the code and the repo's own documentation disagree — three stale file headers naming "the NestJS backend", a guard citing an endpoint that does not exist, an error message pointing at the wrong port, and three claims in AGENTS.md and the CI comment that the measurements in §2 and §11 disprove.
 
 **In scope:** the skeleton. `main.ts`, `app.config.ts`, `app.routes.ts`, everything under `src/app/core/` — including `core/chat-voice.service.ts`, the largest source file in the front end, documented in §5 — the shell in `src/app/layout/`, the shared atoms in `src/app/shared/`, the build and serve configuration, and the house patterns and naming rules every feature obeys.

@@ -21,7 +21,7 @@ The session that comes out the far end is **byte-identical to the one password
 login has always minted** — same HS256 JWT, same `AUTH_SECRET`, same claim names
 (`userId, email, name, role, studentId?, mentorId?`), same cookie flags. That is
 the whole reason this change is small: `get_current_session`, `require_mentor`,
-`require_director`, `_assert_can_access_student` and the WebSocket auth in
+`require_admin`, `_assert_can_access_student` and the WebSocket auth in
 `routers/interview.py` were not touched and cannot tell the two paths apart.
 
 | file | role |
@@ -99,7 +99,7 @@ streak frozen at whatever it was — silent, and only noticed weeks later.
 | `GET /api/auth/me` | unchanged | `200 SessionUser` / `401` |
 | `POST /api/auth/logout` | unchanged | `200 {ok:true}` |
 
-`/api/auth/sso/status` exists for the same reason `/api/voice/status` and
+`/api/auth/sso/status` exists for the same reason `/api/interview/status` and
 `/api/interview/status` do: a Google button rendered live with no
 `GOOGLE_CLIENT_ID` configured reproduces the "why is voice broken" report this
 codebase already has a runbook for. Blank credentials ⇒ `google_available:false` ⇒ the
@@ -184,7 +184,8 @@ dropped.
 ## Environment variables
 
 All in `apps/api-py/.env` — the one file every process in this repo reads. Blank
-means the feature is off, the same convention the LiveKit and OpenAI keys follow.
+means the feature is off, the same convention every other optional integration
+in `config.py` follows.
 
 | variable | default | blank means | where it comes from |
 |---|---|---|---|
@@ -426,7 +427,7 @@ Consequences worth knowing:
 
 - **In dev and CI nothing changed.** `tests/conftest.py`'s `login` fixture, the
   eight test files that take it, and `test_conversations.py`'s inline login all
-  keep passing unmodified. The seeded `student@ / mentor@ / director@` logins
+  keep passing unmodified. The seeded `student@ / mentor@ / admin@` logins
   still work locally.
 - **In production it is a hard 403**, with a message that names the alternative.
   The production login screen does not render the password form at all; the 403

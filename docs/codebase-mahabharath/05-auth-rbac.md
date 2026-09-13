@@ -1,5 +1,13 @@
 # Chapter 5 — Auth & RBAC: Passwords, Sessions, and Who Is Allowed to See a Student
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 When you finish this chapter you will be able to read a stored REEP password byte by byte
 and say which scrypt parameters produced it; trace a login from the POST body through the
 HS256 token to the `Set-Cookie` header and back into a handler's `session` dict; name every

@@ -1,5 +1,34 @@
 # Interview Engine v3 — the relay owns the turn
 
+> **THE ENGINE THIS SPECIFIES WAS DELETED IN 2026-09. THE DOCUMENT IS KEPT ON
+> PURPOSE — read it for the ARGUMENT, not as a description of running code.**
+>
+> Everything below is written against the `openai` engine: `app/interview_relay.py`
+> (3 968 lines), `wss://api.openai.com/v1/realtime`, `OPENAI_API_KEY`,
+> `session.update`, `turn_detection.create_response: false` and `response.create`.
+> That module and its test module are gone, along with the realtime model/voice
+> settings, the server-VAD tuning and the per-row OpenAI `voice` column.
+>
+> **What outlived the mechanism is the reasoning**, and the current engine
+> inherits it: the phase machine (`opening → probing → deep_dive → wrap_up`), the
+> deterministic word-count gate, "one open question at a time" as a property of
+> the call graph rather than a sentence in the persona, and the scorecard as a
+> separate strict-JSON artefact that is never spoken. **Read this document before
+> changing the arc.** AGENTS.md says so in as many words.
+>
+> The live engine is **Amazon Nova 2 Sonic** on Bedrock, in-process, signed with
+> SigV4 and holding no API key (`app/interview_nova.py`, with the shared contract
+> in `app/interview_core.py`). Where Nova differs it is forced by that API and
+> the difference is written down in AGENTS.md: no `create_response: false` and no
+> `session.update`, so steering arrives as a cross-modal `[INTERVIEW CONTROL]`
+> note; the scorecard is a `submit_scorecard` **tool call**; Bedrock closes the
+> stream at 8 minutes, so the wrap-up is forced 90 s early.
+>
+> **§8.4 is overridden.** It argues against capturing audio. Audio capture was
+> built, behind three independent switches, none of them on by default — read
+> §8.4 anyway, because it is why every one of those guards exists.
+>
+
 The realtime mock interviewer promises one thing: **ask one question, wait for the
 whole answer, judge it, ask the next, and end with a verdict and a written record.**
 Today it cannot keep that promise, and no amount of prompt wording will make it —

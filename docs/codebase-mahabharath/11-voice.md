@@ -1,5 +1,28 @@
 # Chapter 11 — The Voice Assistant: The Fourth Process, the State Machine, and the Silent Failure
 
+> **THE SUBSYSTEM THIS CHAPTER IS ABOUT NO LONGER EXISTS.** The LiveKit voice
+> stack — the fourth process, its Python 3.12 venv, `voice_agent.py`,
+> `requirements-voice.txt`, `app/routers/voice.py` (`/api/voice/*`),
+> `chat-voice.service.ts`, the orb's voice overlay and the `worker-imports` CI job
+> — was **removed in 2026-09**. Nothing in this chapter can be run and no path in
+> it can be opened.
+>
+> **Read it as an account of a design that was tried and replaced, never as a
+> map.** What replaced it is genuinely speech-to-speech and lives *inside* the API
+> process: `/student/assistant` over a WebSocket to Amazon Nova 2 Sonic on
+> Bedrock, signed with SigV4 and holding no API key
+> (`docs/interview-assistant.md`).
+>
+> **Three things here outlived the stack and are still true**, which is the reason
+> this chapter is kept rather than deleted: `Message.channel` is still a plain
+> String column, so the historical `voice` rows read back unchanged; the
+> `provider_turn_id` dedup in `conversations.append_message` is still the first
+> dedup layer, now pinned by `tests/test_conversation_dedup.py`; and the silent
+> save-nothing failure mode this chapter teaches you to diagnose — a call that is
+> perfect in the room and empty in the database — is **still the worst failure
+> mode in this stack**, with the same `group by channel` query behind it.
+> `AGENTS.md`'s runbook is that lesson, inherited.
+
 After this chapter you will be able to start a REEP voice call from cold, name every
 process it touches and every credential that crosses each hop, read the worker's log and
 tell "misconfigured" from "server down" from "working perfectly", explain why a call can

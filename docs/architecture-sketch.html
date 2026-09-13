@@ -193,6 +193,11 @@
     @keyframes settle { from { opacity: 0; transform: rotate(-1.2deg) translateY(6px); } }
   }
 </style>
+
+<div style="max-width:1100px;margin:16px auto;padding:14px 18px;border:2px solid #b4341f;border-radius:8px;background:#fdeeea;color:#5a1a0e;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.55">
+  <strong style="display:block;font-size:15px;margin-bottom:6px">PARTLY STALE &mdash; drawn before 2026-09. <code>AGENTS.md</code> is the current truth.</strong>
+  This sketch draws the interview relay as it was built on <strong>OpenAI's realtime API</strong> (<code>app/interview_relay.py</code>, <code>OPENAI_API_KEY</code>, <code>wss://api.openai.com/v1/realtime</code>) and mentions the <strong>LiveKit voice stack</strong>. Both were removed in 2026-09. The live engine is <strong>Amazon Nova 2 Sonic</strong> on Bedrock, in-process, signed with SigV4 and holding no API key; there is no fourth process and no second venv. The reasoning the sketch records is still the engine's reasoning &mdash; see <code>docs/interview-engine-v3.md</code>, kept for the same reason.
+</div>
 </head>
 <body>
 

@@ -99,7 +99,10 @@ dictate keys to an agent:
 ```bash
 aws secretsmanager put-secret-value \
   --secret-id "$(terraform output -raw external_secret_arn)" \
-  --secret-string '{"OPENAI_API_KEY":"","GOOGLE_CLIENT_ID":"","GOOGLE_CLIENT_SECRET":"","SENTRY_DSN":"","VOICE_WORKER_SECRET":""}'
+  --secret-string '{"OPENAI_API_KEY":"","GOOGLE_CLIENT_ID":"","GOOGLE_CLIENT_SECRET":"","SENTRY_DSN":""}'
+  # OPENAI_API_KEY is a dead key kept in the operator-owned secret on purpose
+  # (infra/aws/secrets.tf says why); nothing under app/ reads it. VOICE_WORKER_SECRET
+  # was dropped in Phase 5 — the LiveKit worker it belonged to went in 2026-09.
 ```
 
 Blank values degrade exactly as documented: no OpenAI key means the AI
@@ -183,7 +186,7 @@ Worth stating plainly, because a browser agent holds live console sessions:
 
 - **Never disable `deletion_protection` on the database, and never run
   `terraform destroy`.** Both are one click from losing the cohort's records.
-- **Never run `python -m app.seed` on this environment.** It creates a DIRECTOR
+- **Never run `python -m app.seed` on this environment.** It creates the Main Admin
   account whose password is published in the repo. The refusal on `ENV=prod` is
   the point, not an obstacle to work around.
 - **Never paste a secret into a page, a chat, or a commit** — and never read one

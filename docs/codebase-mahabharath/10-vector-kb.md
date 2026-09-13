@@ -1,5 +1,13 @@
 # Chapter 10 — Vector DB & the Knowledge Base: Hybrid Retrieval, pgvector and the Honest Fallback
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 When you finish this chapter you will be able to add a document to REEP's Knowledge Base and know exactly which SQL statements will find it; you will be able to read `search()` line by line and predict the score of any chunk it returns; you will know what an embedding actually is, why the vector column has no dimension, why the embedder swallows every error it meets, and why a machine with no embedding key still has a working Knowledge Base. Most importantly you will be able to answer the question the whole subsystem exists to answer — *how does REEP decide that it has found nothing good enough, and say so, instead of handing a student the least-bad paragraph it could find?* — and you will know precisely where that guarantee holds and where, today, it does not.
 
 **In scope.** `apps/api-py/app/knowledge.py` (retrieval), `apps/api-py/app/ai/embeddings.py` (the embedder), `apps/api-py/app/seed_kb.py` (the corpus and the production-safe seed), the `embedding` column as retrieval uses it, and `apps/api-py/tests/test_knowledge.py`.

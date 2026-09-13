@@ -1,3 +1,10 @@
+> **A PROPOSAL, NOT THE API. Partly superseded, and not implemented as written.**
+> The live surface is the one `app/main.py` mounts under `/api` — there is no
+> `/api/v1` prefix. The role list below still names `DIRECTOR`, which was removed
+> on 2026-09-10: the roles are STUDENT, MENTOR, ALUMNI and ADMIN (the Main Admin,
+> and there is exactly one). Current truth is `AGENTS.md` and
+> `docs/google-sign-in.md`.
+
 # REEP v1 API and workflow contract
 
 This document is the implementation contract for `arch/redesign-phase4`. It is additive: existing `/api` routes remain available while clients migrate to `/api/v1`.

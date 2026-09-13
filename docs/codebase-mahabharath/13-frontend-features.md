@@ -1,5 +1,13 @@
 # Chapter 13 — Frontend Features: Every Screen a Student Actually Uses
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 When you finish this chapter you will be able to open any screen in REEP, name the file
 that draws it before you look, predict which endpoints it will hit and in what order,
 know what it shows while loading and what it shows when that endpoint is down, and say

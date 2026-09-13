@@ -1998,7 +1998,7 @@ explanation. `try { … } finally { navigate }` fixes both.
 **3. `ResizeObserver loop limit exceeded`,** the *legacy* message, which the
 default filter does not cover — it only covers the modern
 "loop completed with undelivered notifications". The source is REEP's own
-`features/director/analytics/analytics.component.ts:316`, which calls
+`features/admin/analytics/analytics.component.ts:316` (this read `features/director/` until the 2026-09-10 role removal renamed the directory), which calls
 `this.sun?.resize(); this.bar?.resize();` synchronously inside the observer
 callback. The correct pattern is one file away in
 `shared/voice-visualizer.ts:954`, which sets a flag and resizes on the next
@@ -3505,7 +3505,7 @@ and the Google start/callback pair are all public too; `verify` is even a GET,
 but it consumes a single-use token, so polling it burns activation links. The
 authenticated status endpoints are not candidates either
 (`/api/interview/status` needs a session, `/api/platform/admin/status` and
-`/api/agent/metrics` need DIRECTOR/ADMIN). `sso/status` was written as a
+`/api/agent/metrics` need the Main Admin). `sso/status` was written as a
 login-screen feature probe — its docstring says "Unauthenticated by design" —
 and it is being borrowed. Sentry Uptime does support custom request headers, so
 an authenticated probe is technically possible — **do not build one.** REEP's
@@ -4031,7 +4031,7 @@ change with the same meaning — no committed file can turn it on.
 | `Could not open the Nova Sonic stream` (`interview_nova.py:845`) / `Bedrock refused the stream` (`:1259`) | One per Start press during a throttle. `interview_max_sessions=100` is a **per-worker** cap, so the fleet ceiling is 100 × tasks; whether that sits above the account's Nova Sonic bidirectional-stream quota is **unverified** — read it from Service Quotas rather than from here | Rate-limit or tag by exception name; the underlying signal belongs on a CloudWatch Bedrock-quota metric, not an issue tracker | **SDK / code**. [NOT WRITTEN] |
 | **ChunkLoadError** after every deploy (browser — only if `WEB_SENTRY_DSN` is set) | Every route is `loadComponent`, and `.github/workflows/deploy.yml:221` runs `aws s3 sync . --delete`, which removes the previous build's hashed chunks the moment the new build lands. Volume = open tabs at deploy time × navigations, **and it fires again on every deploy**. This is the predicted top browser issue by count | Sentry ships a **built-in ChunkLoadErrors inbound filter** — console-only, no deploy, free. Turn it on first. Then, separately, a reload-on-chunk-error handler in the app, because the filter hides the report and the student's tab is still broken | **inbound filter** [ADMIN — NOT YET APPLIED] **+ code** [NOT WRITTEN] (`apps/web/src/main.ts:18-26`) |
 | Unhandled rejection on sign-out (`apps/web/src/app/layout/app-shell.component.ts:107-110`) | Low. It may reach the SDK twice — once through `provideBrowserGlobalErrorListeners()` (`app/app.config.ts:9`) → `createErrorHandler()`, once through the default `globalHandlersIntegration` — but `dedupeIntegration` is also a default (`@sentry/browser/build/npm/cjs/prod/sdk.js`) and drops an event identical to the **immediately preceding** one, which is exactly where the second capture lands. Assume one event and let the issue's event count settle it | `try/finally` and navigate regardless. It is a real bug either way: `auth.logout()` rejecting leaves the cookie cleared and the SPA sitting on the page | **SDK / code**. [NOT WRITTEN] |
-| `ResizeObserver loop limit exceeded` on `/director/analytics` (`features/director/analytics/analytics.component.ts:316-321` resizes ECharts synchronously inside the observer) | Legacy Chrome/Firefox only. The browser SDK's `DEFAULT_IGNORE_ERRORS` filters `/^ResizeObserver loop completed with undelivered notifications.$/` but **not** the older `loop limit exceeded` message — read out of the installed `@sentry/core/build/cjs/integrations/eventFilters.js:13` | Use the pattern already in the tree one file away: `apps/web/src/app/shared/voice-visualizer.ts:950-954` sets a flag and resizes on the next frame | **SDK / code**. [NOT WRITTEN] |
+| `ResizeObserver loop limit exceeded` on `/admin/analytics` (`features/admin/analytics/analytics.component.ts:316-321` resizes ECharts synchronously inside the observer) | Legacy Chrome/Firefox only. The browser SDK's `DEFAULT_IGNORE_ERRORS` filters `/^ResizeObserver loop completed with undelivered notifications.$/` but **not** the older `loop limit exceeded` message — read out of the installed `@sentry/core/build/cjs/integrations/eventFilters.js:13` | Use the pattern already in the tree one file away: `apps/web/src/app/shared/voice-visualizer.ts:950-954` sets a flag and resizes on the next frame | **SDK / code**. [NOT WRITTEN] |
 
 Two spans-only line items that are not "noise" but are bill:
 

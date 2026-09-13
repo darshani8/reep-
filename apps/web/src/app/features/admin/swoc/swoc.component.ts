@@ -16,16 +16,32 @@
  * (a mentor writes as MENTOR, the office as PLACEMENT); the editor only shows
  * it, as a chip, so a mentor can see which lines are theirs.
  *
- * WHAT THE BOARD DRAWS THAT THE BACKEND CANNOT YET ANSWER. The board shows the
- * department / mentor / semester filters, the student's acknowledgement state,
- * the per-entry edit history, the semester view, the links to skills,
- * interviews and jobs, and an Export. Every one of those is the Phase 4 SWOC
- * task (B7.1–B7.7 in 04-backend-changes.md; the department scope is B1.2 in
- * Phase 3). So each of those controls renders through PendingControlDirective,
- * the acknowledgement column renders a dash — the design system's "this is not
- * known" — and one `.notice.accent` beside the quadrants says which task fills
- * them. A plausible-looking sample entry would be indistinguishable from
- * working software on a screenshot; a dash is not.
+ * THE DEPARTMENT PILL IS A READ-OUT, NOT A FILTER (B1.4). `GET /admin/swoc` is
+ * scoped now — `scope_filter` narrows the students AND their entries to the
+ * caller's grant — and it takes no department parameter: the reach is stated on
+ * the response instead, in `X-Reep-Scope` with `X-Reep-Scope-Colleges` and
+ * `X-Reep-Scope-Departments` beside it. A picker was the wrong shape twice
+ * over: there is nothing to send, and a row here carries no department to
+ * filter on client-side either (`SwocStudentRow` is student, USN, batch and the
+ * entries), so a menu could only have hidden students without saying why. What
+ * the pill does instead is state how far the grant reaches, which is the
+ * question the board's filter was really asking.
+ *
+ * AND "REACHES NOBODY" IS NOT "NOBODY IS ENROLLED". A grant whose only target
+ * was a deleted department answers `[]`, exactly as a fresh deployment does.
+ * The empty list says which of the two it is looking at, because on this screen
+ * the first is a governance problem for one account and the second is a fact
+ * about the college.
+ *
+ * WHAT THE BOARD DRAWS THAT THE BACKEND CANNOT YET ANSWER. The board also shows
+ * the mentor and semester filters, the student's acknowledgement state, the
+ * per-entry edit history, the semester view, the links to skills, interviews
+ * and jobs, and an Export. Every one of those is the Phase 4 SWOC task
+ * (B7.1–B7.7 in 04-backend-changes.md). So each of those controls renders
+ * through PendingControlDirective, the acknowledgement column renders a dash —
+ * the design system's "this is not known" — and one `.notice.accent` beside the
+ * quadrants says which task fills them. A plausible-looking sample entry would
+ * be indistinguishable from working software on a screenshot; a dash is not.
  *
  * WHAT IS REAL. Author, date and source on every entry come off the rows the
  * API returns today, as does the batch each student is in — so the batch filter
@@ -40,15 +56,35 @@ import { PendingControlDirective } from '../../../shared/pending/pending.directi
 import { PluralPipe } from '../../../shared/text/plural.pipe';
 
 /**
- * Scope (B7.1), ownership (B7.2), edit history (B7.3), the semester view
- * (B7.4), the student's acknowledgement (B7.5), the links (B7.6) and the
- * filters at scale (B7.7) all land on the Phase 4 mentoring branch —
- * 06-phase-prompts.md, Phase 4d.
+ * The MENTOR filter (B7.1) — the grant's own reach is wired now, in B1.4, and
+ * this is the further narrowing to one mentor's group, which no row here
+ * carries — ownership (B7.2), edit history (B7.3), the semester view (B7.4),
+ * the student's acknowledgement (B7.5), the links (B7.6) and the filters at
+ * scale (B7.7) all land on the Phase 4 mentoring branch — 06-phase-prompts.md,
+ * Phase 4d.
  */
 const SWOC_BACKEND_PHASE = 4;
 
-/** The department scope the board's first filter needs is B1.2, Phase 3. */
-const SCOPE_BACKEND_PHASE = 3;
+/** The three words `app/scope_views.py` writes into `X-Reep-Scope`. Three and
+ *  not a boolean, for its reason: `programme` and `none` are opposite facts and
+ *  must never render the same. */
+type ScopeWord = 'programme' | 'narrowed' | 'none';
+
+interface ScopeReach {
+  word: ScopeWord;
+  /** Ids, not names. This screen has no catalogue to resolve them against, so
+   *  they are counted and never printed. */
+  colleges: string[];
+  departments: string[];
+}
+
+const SCOPE_HEADER = 'X-Reep-Scope';
+const SCOPE_COLLEGES_HEADER = 'X-Reep-Scope-Colleges';
+const SCOPE_DEPARTMENTS_HEADER = 'X-Reep-Scope-Departments';
+
+/** `MAX_SCOPE_IDS` in app/scope_views.py — the header stops at twenty ids, so a
+ *  count standing exactly on it is a floor and reads "20+". */
+const MAX_SCOPE_IDS = 20;
 
 interface SwocEntry {
   id: string;
@@ -151,7 +187,6 @@ export class AdminSwocComponent {
   readonly weights = WEIGHTS;
   readonly maxEntryChars = MAX_ENTRY_CHARS;
   readonly swocBackendPhase = SWOC_BACKEND_PHASE;
-  readonly scopeBackendPhase = SCOPE_BACKEND_PHASE;
 
   readonly rows = signal<StudentRow[] | null>(null);
   readonly query = signal('');
@@ -166,6 +201,58 @@ export class AdminSwocComponent {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
+
+  /** What the server said this caller's grant reaches, read off the list
+   *  response. `null` means it stated nothing, which is not "nothing". */
+  readonly scope = signal<ScopeReach | null>(null);
+
+  /** The pill where the board drew a Department menu: the reach, as text. */
+  readonly scopeChip = computed<{ label: string; tone: 'neutral' | 'accent' | 'warn' } | null>(
+    () => {
+      const reach = this.scope();
+      if (reach === null) return null;
+      if (reach.word === 'programme') return { label: 'Reach · every department', tone: 'neutral' };
+      if (reach.word === 'none') return { label: 'Reach · nobody', tone: 'warn' };
+      const parts = [
+        this.idCount(reach.colleges, 'college', 'colleges'),
+        this.idCount(reach.departments, 'department', 'departments'),
+      ].filter((part) => part !== null);
+      if (parts.length === 0) return { label: 'Reach · narrowed', tone: 'accent' };
+      return { label: `Reach · ${parts.join(' · ')}`, tone: 'accent' };
+    },
+  );
+
+  /** The sentence under the filters, saying what the list below is. */
+  readonly scopeNote = computed<{ text: string; tone: 'accent' | 'warn' } | null>(() => {
+    const reach = this.scope();
+    if (reach === null) return null;
+    if (reach.word === 'programme') {
+      return {
+        tone: 'accent',
+        text: 'Your grant reaches every student on the deployment, so that is what the list holds. The server narrowed nothing; there is no department to pick, because a picker here could only hide students you are entitled to write for.',
+      };
+    }
+    if (reach.word === 'none') {
+      return {
+        tone: 'warn',
+        text: 'Your grant for SWOC notes reaches no student: it names no college, department, batch or student that still exists. The list below is empty for that reason and not because nobody is enrolled. A Main Admin can give the grant a scope in Governance.',
+      };
+    }
+    return {
+      tone: 'accent',
+      text: 'Your grant is narrowed, and the server has already cut this list to it — the pill counts what it reaches. Every student you can write for is below; nobody is being hidden by a filter on this screen.',
+    };
+  });
+
+  /** Why the list is empty — the two reasons are opposite facts. */
+  readonly emptyListNote = computed(() => {
+    if (this.error()) return 'The list could not be loaded, so nothing is shown here.';
+    if (this.query() || this.batchFilter()) return 'No student matches this filter.';
+    if (this.scope()?.word === 'none') {
+      return 'Your grant reaches no student, so there is nobody here to write about. This is not an empty college.';
+    }
+    return 'No students yet.';
+  });
 
   readonly studentCount = computed(() => (this.rows() ?? []).length);
 
@@ -234,11 +321,45 @@ export class AdminSwocComponent {
     try {
       const response = await fetch(`${environment.apiBase}/admin/swoc`, { credentials: 'include' });
       if (!response.ok) throw new Error(await this.detailOf(response));
+      this.scope.set(this.readScope(response));
       this.rows.set((await response.json()) as StudentRow[]);
     } catch (failure) {
+      this.scope.set(null);
       this.rows.set([]);
       this.error.set(failure instanceof Error ? failure.message : 'Could not load students.');
     }
+  }
+
+  /** The reach the server stated on this response, or `null` when it stated
+   *  none. The headers are readable because the SPA is same-origin through
+   *  proxy.conf.json; a cross-origin fetch would need them CORS-allowlisted.
+   *
+   *  AN UNRECOGNISED WORD IS `null`, NEVER A GUESS: reading a header this
+   *  screen does not understand as "none" would tell a writer their grant
+   *  reaches nobody on the strength of a typo. */
+  private readScope(response: Response): ScopeReach | null {
+    const word = response.headers.get(SCOPE_HEADER);
+    if (word !== 'programme' && word !== 'narrowed' && word !== 'none') return null;
+    return {
+      word,
+      colleges: this.scopeIds(response.headers.get(SCOPE_COLLEGES_HEADER)),
+      departments: this.scopeIds(response.headers.get(SCOPE_DEPARTMENTS_HEADER)),
+    };
+  }
+
+  private scopeIds(raw: string | null): string[] {
+    if (raw === null) return [];
+    return raw
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
+  }
+
+  /** "3 departments", or "20+ colleges" where the header stood on its cap. */
+  private idCount(ids: string[], one: string, many: string): string | null {
+    if (ids.length === 0) return null;
+    const capped = ids.length >= MAX_SCOPE_IDS ? `${MAX_SCOPE_IDS}+` : `${ids.length}`;
+    return `${capped} ${ids.length === 1 ? one : many}`;
   }
 
   selectStudent(student: StudentRow): void {

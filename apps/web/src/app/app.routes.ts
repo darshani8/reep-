@@ -426,12 +426,22 @@ export const routes: Routes = [
           import('./features/admin/faculty/faculty.component').then((m) => m.AdminFacultyComponent),
       },
       // Data imports & criteria (§11): attendance and marks uploads, and the
-      // placement criteria per course. `admin.institution` until B8.1 gives
-      // imports a key of their own — the screen edits the institution's data
-      // and the office account holds that key already.
+      // placement criteria per course. `admin.imports` is the screen's own key
+      // since B8.1 (Phase 4b) — it stood on `admin.institution` while the
+      // endpoints did not exist, which admitted anyone who could edit a batch
+      // to a screen that reads every student's marks. The key `carries_pii`,
+      // so a grant of it needs a second Main Admin's signature (B2.4).
+      //
+      // THE GUARD IS A FILTER AND NOT THE FENCE. `require_capability` in
+      // app/routers/admin_imports.py is what refuses the request; this only
+      // keeps the nav item and the URL from leading somewhere that will 403.
+      // The criteria card on this screen still reads `admin.analytics` and the
+      // component says so in its own refusal message — two keys on one screen
+      // is deliberate: reading the gates is the analytics function, uploading a
+      // roster's marks is not.
       {
         path: 'admin/imports',
-        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.institution')],
+        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.imports')],
         loadComponent: () =>
           import('./features/admin/imports/imports.component').then((m) => m.AdminImportsComponent),
       },

@@ -87,6 +87,10 @@ interface NavigationGroup {
  */
 const CONSOLE_V2 = 'ui.console_v2';
 const CONSOLE_V2_INSTITUTION = [CONSOLE_V2, 'admin.institution'] as const;
+/** Data imports has its own key since B8.1 (Phase 4b). It stood on
+ *  `admin.institution` while the endpoints did not exist; the screen reads
+ *  every student's marks, so it is `carries_pii` and granted on its own. */
+const CONSOLE_V2_IMPORTS = [CONSOLE_V2, 'admin.imports'] as const;
 const CONSOLE_V2_MENTORS = [CONSOLE_V2, 'admin.mentors'] as const;
 
 /**
@@ -116,7 +120,7 @@ const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
     title: 'Operations',
     items: [
       { label: 'Registrations', icon: 'pending_actions', path: '/admin/registrations' },
-      { label: 'Data imports', icon: 'upload', path: '/admin/imports', capability: CONSOLE_V2_INSTITUTION },
+      { label: 'Data imports', icon: 'upload', path: '/admin/imports', capability: CONSOLE_V2_IMPORTS },
       { label: 'Leave approvals', icon: 'event_available', path: '/admin/leave-approvals' },
       { label: 'Jobs & placement', icon: 'work', path: '/admin/jobs' },
       { label: 'Exports', icon: 'download', path: '/admin/exports' },
@@ -300,7 +304,7 @@ const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
     icon: 'apartment',
   },
   {
-    capability: CONSOLE_V2_INSTITUTION,
+    capability: CONSOLE_V2_IMPORTS,
     path: '/admin/imports',
     label: 'Data imports',
     icon: 'upload',

@@ -49,7 +49,6 @@ from .models.cohort import Cohort
 from .models.institution import AcademicCourse, AcademicSpecialization, College, Department
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
-from .models.job_import_run import JobImportRun
 from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from .models.mail import MailLog
 from .models.registration import Registration, RegistrationRule, RegistrationStatus
@@ -804,29 +803,13 @@ def main() -> None:
             db.commit()
             print("added registrations (2: 1 auto-approved, 1 pending review)")
 
-        # Idempotently seed a completed job-import run and back-link the seeded
-        # jobs to it — the audit row that says "these three came from that sheet".
-        if db.scalar(select(JobImportRun)) is None:
-            base = datetime(2026, 8, 1, tzinfo=timezone.utc)
-            admin_user = db.scalar(select(User).where(User.email == "admin@bgscet.ac.in"))
-            jobs = db.scalars(select(Job)).all()
-            run = JobImportRun(
-                file_name="vacancies_2026_aug.csv",
-                uploaded_by_id=admin_user.id if admin_user else None,
-                started_at=base,
-                finished_at=base + timedelta(minutes=1),
-                rows_seen=4,
-                rows_created=len(jobs),
-                rows_updated=0,
-                errors=[{"row": 4, "column": "min_cgpa", "message": "not a number: 'N/A'"}],
-            )
-            db.add(run)
-            db.flush()  # get run.id
-            for j in jobs:
-                if j.import_run_id is None:
-                    j.import_run_id = run.id
-            db.commit()
-            print(f"added job import run (1, linked {len(jobs)} jobs)")
+        # THERE IS NO JOB-IMPORT SEED ANY MORE. B8.4 deleted `job_import_runs`
+        # and `jobs.import_run_id` with the three endpoints nobody called; this
+        # block used to write one run and back-link every seeded posting to it.
+        # B8.1's `import_runs` is the import provenance now, and it is seeded
+        # nowhere on purpose: an import run is a receipt for a file somebody
+        # chose, and a fabricated one on a fresh database would put a row in the
+        # history grid that no operator can account for.
 
         # Idempotently seed the per-cohort alert thresholds (config in data,
         # never hard-coded). One row per (cohort, rule_key).

@@ -330,11 +330,23 @@ def update_college(
 # that college's students — the same reasoning `_FACULTY_ONLY` applies to the
 # Main Admin).
 #
-# `admin.interviews` is in 04-backend-changes.md's list for this set and IS NOT
-# IN THE CATALOGUE — B6.7 adds it with the records grid. `admin.interview_questions`
-# is the interview key that exists today and is the one granted. When B6.7 lands,
-# add its key here; the appointment endpoint is idempotent, so re-running it on
-# an existing college admin fills in whatever is missing.
+# `admin.interviews` is in 04-backend-changes.md's list for this set and IS
+# STILL NOT IN THE CATALOGUE — B6.7 adds it with the records grid, in Phase 4c.
+# The owner's decision is that a college admin holds it; it cannot be listed
+# here until the key exists, because `CAPABILITIES_BY_KEY[key]` below is what
+# reads its `carries_pii` flag and a missing key is a KeyError at the moment
+# somebody appoints a college admin. 4c adds it in BOTH places, in one commit,
+# with a `require_capability` call site — the same rule `admin.imports` has just
+# been held to. `admin.interview_questions` is the interview key that exists
+# today and is the one granted meanwhile. The appointment endpoint is
+# idempotent, so re-running it on an existing college admin fills in whatever is
+# missing.
+#
+# `admin.imports` (B8.1) IS in the set, by the owner's decision, and it carries
+# PII — so it is one of the six of twelve that land `pending_approval` and hold
+# nothing until a second `admin.governance` holder approves them. That is the
+# state `CollegeAdminGrantOut.approval_state` reports per key, for exactly this
+# reason.
 
 #: The functions that make up "runs this college". Ordered as the console's
 #: sidebar orders them, so the screen and this list can be read against each
@@ -350,6 +362,7 @@ COLLEGE_ADMIN_CAPABILITIES: tuple[str, ...] = (
     "admin.placement",
     "admin.swoc",
     "admin.interview_questions",
+    "admin.imports",
     "admin.exports",
 )
 

@@ -98,7 +98,8 @@ def test_the_trail_is_the_offices_alone(client, make_user, trail):
     and the only one that cannot be undone by revoking a capability afterwards.
     """
     seed, _, _ = trail
-    event_id = seed(entity_type="capability_grant", entity_id=uuid.uuid4().hex, action="GRANTED")
+    marker = f"gate-{uuid.uuid4().hex[:8]}"
+    event_id = seed(entity_type=marker, entity_id=uuid.uuid4().hex, action="GRANTED")
 
     admin = make_user("aud-gate-adm", Role.ADMIN)
     for label, role in (("stu", Role.STUDENT), ("men", Role.MENTOR), ("alu", Role.ALUMNI)):
@@ -109,7 +110,18 @@ def test_the_trail_is_the_offices_alone(client, make_user, trail):
 
     assert client.get(API, headers=admin.headers).status_code == 200
     assert client.get(f"{API}/{event_id}", headers=admin.headers).status_code == 200
-    assert client.get(f"{API}/export.csv", headers=admin.headers).status_code == 200
+    # FILTERED, like the three other export tests in this module, and not because
+    # filtering is tidier: `export.csv` refuses a query matching more than
+    # MAX_EXPORT_ROWS (10 000) with a 413, deliberately, so that a download
+    # nobody bounded cannot stream the whole trail. An UNFILTERED assertion here
+    # therefore tests the size of the database rather than the gate this test is
+    # about — it passed on CI's fresh schema and failed the moment a long-lived
+    # development database crossed the cap, which is the same shape of bug as
+    # the B1.1 backfill test that could only pass on a database predating its
+    # own migration.
+    assert client.get(
+        f"{API}/export.csv", headers=admin.headers, params={"target_type": marker}
+    ).status_code == 200
 
 
 @requires_db

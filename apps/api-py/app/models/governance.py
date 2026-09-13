@@ -158,6 +158,23 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # time (app/routers/admin_students.py). PROGRAMME and personal: it creates,
     # edits and deletes roster rows - the access control itself.
     Capability("admin.students", "Students", _P, carries_pii=True),
+    # B8.1's spreadsheet imports (app/routers/admin_imports.py). PROGRAMME,
+    # because an import is FOR A BATCH and no mentor group narrows a batch - the
+    # rung it hangs on is the college or the batch itself, which is a B1.2 scope
+    # target and not a mentor function.
+    #
+    # `carries_pii` IS TRUE AND THE CONSEQUENCE IS DELIBERATE. A preview names
+    # every student in the batch by USN with their marks or their attendance
+    # beside it, on screen, before anything is written - it is one of the most
+    # concentrated views of student records the console has. So under B2.4 a
+    # grant of this key lands `pending_approval` and HOLDS NOTHING until a
+    # second `admin.governance` holder approves it. On a one-admin deployment it
+    # therefore never activates, which is a real cost and an honest one: the
+    # Colleges screen's admin column already renders "N awaiting approval"
+    # rather than pretending. The way to make it work is to appoint a deputy,
+    # which is what `admin.governance`'s bootstrap note above exists for - not
+    # to drop the flag.
+    Capability("admin.imports", "Data imports", _P, carries_pii=True),
     # Governance itself: the grants screen, the access groups and the student
     # feature switches (app/routers/governance.py). B2.6.
     #

@@ -114,9 +114,19 @@ interface ReadinessFactor {
   met: boolean;
   detail: string;
   weight: number;
+  /**
+   * FALSE means nothing has been imported or recorded for this check, so `met`
+   * is not an answer. Read this BEFORE `met`: until 2026-09-13 the API returned
+   * 0.0 for a student with no attendance rows and this card drew
+   * "Attendance 0.0% vs required 75.0%" with a red Not-met chip — a failing
+   * grade for an assessment that had not happened. See
+   * `routers/student.py::_attendance_pct`.
+   */
+  measured: boolean;
 }
 interface PlacementReadiness {
-  score: number;
+  /** NULL when not one check could be measured — never 0. */
+  score: number | null;
   band: string;
   summary: string;
   factors: ReadinessFactor[];
@@ -449,7 +459,19 @@ export class StudentHomeComponent {
   bandChip(band: string): ChipTone {
     if (band === 'Ready' || band === 'On track') return 'good';
     if (band === 'Developing') return 'warn';
+    // "Not assessed yet" is NEUTRAL, not risk. A red chip over a score nobody
+    // could compute is the same false verdict in a colour — and the house rule
+    // is that status is text AND colour together, so the two must agree.
+    if (band.startsWith('Not assessed')) return 'neutral';
     return 'risk';
+  }
+
+  /** The chip beside one factor: met, not met, or not measured at all. */
+  factorChip(f: ReadinessFactor): { tone: ChipTone; icon: string; text: string } {
+    if (!f.measured) return { tone: 'neutral', icon: 'remove', text: 'Not measured' };
+    return f.met
+      ? { tone: 'good', icon: 'check', text: 'Met' }
+      : { tone: 'risk', icon: 'close', text: 'Not met' };
   }
 
   readonly recommendations = computed<Recommendation[] | null>(() => {

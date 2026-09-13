@@ -34,6 +34,7 @@ from .routers import (
     health,
     interview,
     admin_faculty,
+    admin_imports,
     admin_promotion,
     admin_student_360,
     admin_students,
@@ -358,6 +359,11 @@ app.include_router(admin_promotion.router, prefix="/api")
 # and this is a read that touches ten tables and writes nothing.
 app.include_router(admin_student_360.router, prefix="/api")
 app.include_router(admin_faculty.router, prefix="/api")
+# B8.1 - spreadsheet imports. Its own module for admin_promotion.py's reason:
+# `console.py` and `admin.py` are ~1700 lines each and this is a new surface,
+# not a variation on an existing one. Today it answers the history; preview,
+# apply, the error report and the templates land with the parser.
+app.include_router(admin_imports.router, prefix="/api")
 # Governance: capability grants for staff (deny past the role baseline) and
 # student feature overrides (allow until switched off, at any rung of the
 # hierarchy). Two instruments with OPPOSITE defaults, which is why they are one

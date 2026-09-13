@@ -105,3 +105,12 @@ workspace_premium
 # is only ever used inside an emblem, which is a CSS background context the
 # template scanner cannot see, so it is declared here.
 settings
+
+# --- Phase 4b, the "Not measured" readiness chip (2026-09) ---------------
+# `remove` is the em-dash glyph on a factor the API reports `measured: false`
+# for — a check nobody has imported data for yet. It is chosen in TypeScript
+# (`features/student/home/home.component.ts::factorChip`) rather than written
+# in a template, so `collect-icon-names.py` cannot find it: it scans
+# templates. It happens to be in icon-names.txt today because another screen
+# spells it out, and the day that screen changes this chip would render blank.
+remove

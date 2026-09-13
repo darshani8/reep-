@@ -56,9 +56,41 @@ class Job(Base):
     # Per-posting eligibility overrides; null => use the default criteria.
     min_cgpa: Mapped[float | None] = mapped_column(Float, nullable=True)
     max_live_backlogs: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    import_run_id: Mapped[str | None] = mapped_column(
-        ForeignKey("job_import_runs.id", ondelete="SET NULL"), nullable=True, index=True
+    # ------------------------------------------------------------------ #
+    # B12.1: WHERE A POSTING IS OFFERED, and B12.2: whether it still is.
+    #
+    # A NULL COLLEGE MEANS EVERY COLLEGE, and that is the compatible reading,
+    # not an oversight. Every posting that existed before B12.1 has NULLs here
+    # and every student could see it; a migration that attached them all to the
+    # one college that happens to exist would make the second college onboarded
+    # inherit an empty jobs board, silently, on deploy. The console sets the
+    # college on a posting that is genuinely for one; the feed treats NULL as
+    # "show it to everybody", which is exactly today's behaviour.
+    #
+    # No `ondelete` on either: the spine's convention is that the database
+    # refuses to delete a rung that still has rows under it.
+    # ------------------------------------------------------------------ #
+    college_id: Mapped[str | None] = mapped_column(
+        ForeignKey("colleges.id"), nullable=True, index=True
     )
+    course_id: Mapped[str | None] = mapped_column(
+        ForeignKey("academic_courses.id"), nullable=True, index=True
+    )
+    #: Interview/specialization track CODES this posting is for, denormalised
+    #: onto the row exactly as `required_skills` is above and for the same
+    #: reason: the student feed's filter is then one predicate rather than a
+    #: join table nobody else reads. EMPTY MEANS EVERY TRACK, matching the NULL
+    #: college above — an empty list is not "no student qualifies".
+    tracks: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, server_default="{}")
+    #: `open` or `closed` (B12.2). A PLAIN STRING, not a PG enum — `Message.
+    #: channel` is the house precedent and a new state here must be a data
+    #: change, not a CREATE TYPE migration carrying AGENTS.md's three gotchas.
+    #:
+    #: It sits BESIDE `closes_on`, which the client already derives a state
+    #: from; which of the two wins is the router's decision (B12.2) and is
+    #: written down there, not here. What the column adds is the case a date
+    #: cannot express: a posting withdrawn by the recruiter this morning.
+    status: Mapped[str] = mapped_column(String, default="open", server_default="open")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

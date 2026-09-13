@@ -264,14 +264,36 @@ def _readiness(db: Session, student_id: str) -> dict[str, Any]:
     data = tools.placement_readiness(db, student_id)
     summary = data["summary"]
     factors = data.get("factors", [])
+    # UNMET IS NOT UNMEASURED, and the difference is the whole quality of this
+    # answer. A factor whose `measured` is false has no rows behind it — no
+    # marks imported, no attendance recorded — so "Your next win: Attendance"
+    # is advice to a student about a number nobody has taken, pointing them at
+    # a screen where they can do nothing about it. `.get("measured", True)`
+    # rather than `["measured"]`: this reads a dict built by
+    # `assistant_tools.placement_readiness`, and a missing key there must not
+    # turn the assistant's only student-record answer into a KeyError.
     unmet = sorted(
-        (f for f in factors if not f["met"]), key=lambda f: f["weight"], reverse=True
+        (f for f in factors if f.get("measured", True) and not f["met"]),
+        key=lambda f: f["weight"],
+        reverse=True,
     )
+    unmeasured = [f for f in factors if not f.get("measured", True)]
 
-    # `summary` already opens with "{score}/100 — {band}. …", so don't repeat it.
+    # `summary` already opens with "{score}/100 — {band}. …" (or with the band
+    # alone when nothing could be scored), so don't repeat it.
     if unmet:
         top = unmet[0]
         answer = f"You're {summary} Your next win: {top['label']} — {top['detail']}."
+    elif data.get("score") is None:
+        answer = (
+            f"You're {summary} Nothing here says you are behind — it says the "
+            "college has not entered your marks or attendance yet."
+        )
+    elif unmeasured:
+        answer = (
+            f"You're {summary} Every check that can be scored is met; the rest "
+            "are waiting on records the college enters."
+        )
     else:
         answer = f"You're {summary} Every placement check is met — keep it up."
 

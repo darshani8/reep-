@@ -483,10 +483,24 @@ def mentor_load(
             # comprehension would have silently given every faculty member on
             # the page the capacity of whatever department the reader happened
             # to be filtering by.
-            capacity=capacities.get(row_department_id) or settings.mentor_capacity,
+            # `is not None`, NEVER `or`. `_capacities_of` returns
+            # `dict[str, int | None]` and that signature is the whole point:
+            # None means the department has named no number, and ZERO IS A
+            # NUMBER A DEPARTMENT CAN NAME — "we are taking no new mentees this
+            # year", which on an advisory rail reads as everyone over capacity.
+            # `x or default` collapses those two into one, and the second
+            # expression is the worse half: it would report a department that
+            # deliberately said 0 as CAPACITY_PROGRAMME, which is precisely the
+            # thing this field exists to prevent ("so a programme default is not
+            # presented as a departmental decision").
+            capacity=(
+                capacities[row_department_id]
+                if capacities.get(row_department_id) is not None
+                else settings.mentor_capacity
+            ),
             capacity_source=(
                 CAPACITY_DEPARTMENT
-                if capacities.get(row_department_id)
+                if capacities.get(row_department_id) is not None
                 else CAPACITY_PROGRAMME
             ),
             mentee_count=len(by_mentor.get(mid, [])),

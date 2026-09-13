@@ -7,6 +7,7 @@
   GET  /api/auth/sso/google/callback   -> finish it (302 back into the SPA)
   GET  /api/auth/me                    -> the current session
   POST /api/auth/logout                -> clear the cookie AND revoke the token
+  POST /api/auth/sign-out-everywhere   -> retire every device, this one included
 
 THE CALLBACK PATH IS A CONTRACT, not a preference. It is registered as an
 "Authorised redirect URI" on the Google OAuth client, derived by
@@ -84,7 +85,9 @@ first time these three lists were written independently.
 import logging
 import secrets
 import time
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
+from typing import Final
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
@@ -93,15 +96,26 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from .. import google_auth
+from .. import google_auth, mail_transport
 from ..account_links import consume_user_code, issue_user_token, new_login_code, send_login_code
+from ..architecture_events import record_change
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
+from ..mailer import deliver_once
+from ..models.account_events import LoginEvent
 from ..models.auth_token import PURPOSE_LOGIN_CODE
-from ..models.user import LoginDay, User
-from ..governance import capabilities_for
-from ..schemas.auth import LoginChallenge, LoginCodeRequest, LoginRequest, SessionUser
+from ..models.user import LoginDay, Role, User
+from ..governance import capabilities_for, feature_states_for
+from ..schemas.auth import (
+    FeatureFlagOut,
+    LoginChallenge,
+    LoginCodeRequest,
+    LoginRequest,
+    NotificationPrefOut,
+    SessionUser,
+    SignInOut,
+)
 from ..security import (
     SESSION_COOKIE,
     SESSION_TTL_SECONDS,
@@ -325,7 +339,60 @@ def _cookie_secure() -> bool:
     return not settings.insecure_cookies_allowed
 
 
+# --------------------------------------------------------------------------- #
+# Offboarding: the OTHER half of the one check (B3.3)
+# --------------------------------------------------------------------------- #
+#
+# app/security.py refuses a disabled account on every authenticated REQUEST,
+# from one place, because `verify_session_token` is the one function that turns
+# a cookie into an identity. It cannot cover MINTING, because a sign-in door has
+# a `User` row in hand and no cookie yet.
+#
+# `_payload_for` is that door's chokepoint: every path that issues a session —
+# password, one-time code, Google, activation, change-password — calls it
+# immediately before `_issue_session`, and a new door that does not call it
+# cannot produce a session payload at all. So the refusal lives IN it, as an
+# exception rather than an HTTPException: the callers need different
+# vocabularies (a 403 body, a 302 back to the login screen) and an HTTPException
+# raised on the Google callback is a raw error page outside the SPA.
+#
+# Each door ALSO calls `refuse_disabled_sign_in` earlier, where it can say
+# something better and, on the OTP path, before a code is mailed to an account
+# that will not be let in. The raise in `_payload_for` is the backstop that
+# makes forgetting that call a loud failure instead of a silent admission.
+
+
+class AccountDisabledError(Exception):
+    """A disabled account reached a door that mints sessions."""
+
+
+#: Said to the person, and deliberately incurious. It names no reason: the
+#: `disable_reason` is what the office wrote FOR THE OFFICE, and it can be
+#: "under investigation".
+DISABLED_SIGN_IN_MESSAGE = (
+    "This account has been disabled. Contact the placement office."
+)
+
+
+def refuse_disabled_sign_in(user: User) -> None:
+    """403 if this account has been offboarded. Called by every sign-in door."""
+    if user.disabled_at is not None:
+        log.warning(
+            "sign-in refused for %s: the account was disabled at %s",
+            user.email,
+            user.disabled_at,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=DISABLED_SIGN_IN_MESSAGE
+        )
+
+
 def _payload_for(user: User) -> dict:
+    if user.disabled_at is not None:
+        # The backstop. Every door above checks first, so reaching here means a
+        # new door was written without one — which must be a 500 in the log
+        # rather than a session for an offboarded account.
+        raise AccountDisabledError(user.email)
     payload = {
         "userId": user.id,
         "email": user.email,
@@ -352,13 +419,152 @@ def _payload_for(user: User) -> dict:
     return payload
 
 
-def _record_login(db: Session, user: User) -> None:
-    """last_login_at + the per-day streak row. BOTH sign-in paths call this.
+# --------------------------------------------------------------------------- #
+# B15 - what REEP may email this account
+# --------------------------------------------------------------------------- #
+#
+# `users.notification_prefs` is a small JSON object. The catalogue of what may
+# be in it is CODE, the same rule the badge catalogue and the capability
+# catalogue already follow: a preference is a promise about behaviour, and a
+# promise that lives in a row is one nobody can grep for.
+#
+# EVERY ENTRY SAYS WHETHER IT IS ENFORCED, and that is B2.2's rule applied to a
+# second kind of switch. A feature switch that gates nothing "cannot be turned
+# off (422) - the switches screen shows 'Not wired yet - hidden'"; the same must
+# hold here, because a preference that is stored and never read is worse than a
+# missing one. It looks like it works.
+#
+# WHAT IS DELIBERATELY NOT IN THIS CATALOGUE: account-security mail. REEP sends
+# seven kinds of message today (app/account_links.py) - activation,
+# password-reset, login-code, onboarding-invite, onboarding-code, change-code
+# and registration-rejected - and not one of them is switchable here. Six are
+# the mail somebody needs in order to get INTO their account, so an off switch
+# is a lock-out with a preference attached; the seventh goes to a rejected
+# applicant who has no account at all and for whom it is, as AGENTS.md puts it,
+# "the only channel the product has to them".
+#
+# Which leaves exactly one honest entry today. It is enforced, in
+# `_alert_sign_in`, on the one path this module owns.
+
+
+@dataclass(frozen=True, slots=True)
+class NotificationPref:
+    key: str
+    label: str
+    #: What an account that has never touched this screen gets.
+    default: bool
+    #: True when something actually reads it. False is reported to the client
+    #: and refuses an attempt to switch the preference OFF.
+    enforced: bool
+
+
+#: Mail this account when a session is minted for it.
+#:
+#: DEFAULT FALSE, and that is what makes it a switch rather than a change of
+#: behaviour. Defaulting it on would have every account on the deployment
+#: emailed on every sign-in from the moment this deployed - including the
+#: seeded demo accounts and CI - which is how a feature is switched off
+#: globally in a hurry and never switched back on.
+PREF_SIGN_IN_ALERTS: Final[str] = "sign_in_alerts"
+
+NOTIFICATION_PREFS: Final[tuple[NotificationPref, ...]] = (
+    NotificationPref(
+        PREF_SIGN_IN_ALERTS,
+        "Email me when my account is signed in",
+        default=False,
+        enforced=True,
+    ),
+)
+NOTIFICATION_PREFS_BY_KEY: Final[dict[str, NotificationPref]] = {
+    p.key: p for p in NOTIFICATION_PREFS
+}
+
+
+def notification_enabled(user: User, key: str) -> bool:
+    """Does this account want `key`? Defaults answered from the catalogue.
+
+    An unknown key stored on a row - a preference this build no longer has -
+    is ignored rather than trusted, exactly as `granted_capabilities` ignores a
+    grant naming a capability the catalogue no longer defines.
+    """
+    pref = NOTIFICATION_PREFS_BY_KEY.get(key)
+    if pref is None:
+        return False
+    stored = user.notification_prefs or {}
+    value = stored.get(key)
+    return bool(value) if isinstance(value, bool) else pref.default
+
+
+def notification_state(user: User) -> dict[str, "NotificationPrefOut"]:
+    """The DENSE map the client renders - every key, never only the ones that
+    have been changed. `features` on this same model is dense for the same
+    reason: an absent key must never be readable as "switched off"."""
+    return {
+        pref.key: NotificationPrefOut(
+            enabled=notification_enabled(user, pref.key),
+            label=pref.label,
+            enforced=pref.enforced,
+        )
+        for pref in NOTIFICATION_PREFS
+    }
+
+
+#: The doors that mint a session, as `login_events.door` spells them.
+#:
+#: FOUR, and the same four `tests/test_single_device_session.py` covers. The
+#: brief for B15 lists a fifth -- "reset" -- and the code disagrees:
+#: `/auth/reset` signs NOBODY in (it sets the password, bumps `token_version`
+#: to put every device out, and sends the person to the login form), so there
+#: is no sign-in there to record and recording one would put an event on the
+#: security screen for a session that never existed.
+#: `/auth/change-password` does re-issue a cookie, and is also absent: it is
+#: `Depends(get_current_session)`, so the person was already signed in and the
+#: cookie is being refreshed at the new token version rather than a new device
+#: being admitted. A "recent sign-ins" list that reports your own password
+#: change as a sign-in is a list people learn to ignore.
+DOOR_PASSWORD: Final[str] = "password"
+DOOR_CODE: Final[str] = "code"
+DOOR_GOOGLE: Final[str] = "google"
+DOOR_ACTIVATION: Final[str] = "activation"
+
+
+def _peer(request: Request | None) -> tuple[str | None, str | None]:
+    """The caller's address and browser, as far as they are knowable here.
+
+    Behind the ALB `request.client.host` is the load balancer for the entire
+    internet -- the same fact that makes `_login_retry_after` refuse to key on
+    it. It is recorded anyway: on a laptop deployment it is real, and where it
+    is not it is honestly the same value on every row rather than a wrong one.
+    It is NOT read from `X-Forwarded-For`, which a client sets for itself unless
+    a proxy is known to rewrite it; a spoofable address on a security screen is
+    worse than an address that is plainly the proxy's.
+    """
+    if request is None:
+        return None, None
+    ip = request.client.host if request.client else None
+    agent = request.headers.get("user-agent") or None
+    return (ip[:64] if ip else None), (agent[:256] if agent else None)
+
+
+def _record_login(db: Session, user: User, *, door: str, request: Request | None) -> None:
+    """last_login_at, the per-day streak row, and the sign-in event. EVERY
+    sign-in door calls this.
 
     GET /api/student/dashboard counts LoginDay rows for the streak, so a door
     that authenticates without writing here produces a perfectly good session
-    and a streak that silently stops counting â visible to the student, and
+    and a streak that silently stops counting - visible to the student, and
     attributable to nothing.
+
+    `door` IS A REQUIRED KEYWORD WITH NO DEFAULT, and that is the whole
+    mechanism by which B15's "Recent sign-ins" stays true. A default would let
+    a new door compile while recording the wrong thing; without one, a door
+    that does not say which door it is does not run at all.
+
+    `login_events` IS NOT `login_days`, which this function also writes. The day
+    row is one per student per day for the streak: no door, no address, and
+    staff have none of them at all. The event row answers a different person's
+    question - "was that me?" - and to answer it needs WHEN, THROUGH WHICH DOOR
+    and FROM WHERE, for every role.
     """
     user.last_login_at = datetime.now(timezone.utc)
     # Local calendar date, matching the Next.js streak bucketing.
@@ -369,7 +575,53 @@ def _record_login(db: Session, user: User) -> None:
     )
     if already is None:
         db.add(LoginDay(user_id=user.id, day=today))
+    ip, agent = _peer(request)
+    event = LoginEvent(user_id=user.id, door=door, ip=ip, user_agent=agent)
+    db.add(event)
     db.commit()
+    _alert_sign_in(db, user, event)
+
+
+def _alert_sign_in(db: Session, user: User, event: LoginEvent) -> None:
+    """Email the account that it was just signed into, if it asked to be.
+
+    OPT-IN AND OFF BY DEFAULT (see NOTIFICATION_PREFS), which is what makes it
+    an honest switch rather than a change of behaviour for everybody on the
+    deploy that shipped it.
+
+    AFTER the commit and never inside it: the mail is a consequence of a sign-in
+    that has already happened, and `mailer.deliver_once` commits a MailLog row
+    of its own. Every failure is swallowed and logged - somebody holding a
+    correct password must not be refused because SES is down, which is the same
+    trade `_record_login`'s callers already make for the streak row.
+    """
+    if not notification_enabled(user, PREF_SIGN_IN_ALERTS):
+        return
+    try:
+        when = (event.at or datetime.now(timezone.utc)).strftime("%d %b %Y, %H:%M UTC")
+        text = (
+            f"Hello {user.name},\n\n"
+            f"Your REEP account was signed in on {when} through the "
+            f"{event.door} door, from {event.ip or 'an unrecorded address'}.\n\n"
+            "REEP allows one device at a time, so this sign-in signed out any "
+            "other device holding this account. If this was not you, change "
+            "your password immediately and tell the placement office.\n"
+        )
+        deliver_once(
+            db,
+            kind="sign-in-alert",
+            recipient=user.email,
+            # The EVENT id, not the user's: every sign-in is a new message. A
+            # key on the user would send the first alert and silently swallow
+            # every one after it, which is precisely the event this feature
+            # exists to surface.
+            dedupe_key=f"sign-in-alert:{event.id}",
+            subject="Your REEP account was signed in",
+            send=lambda to, subject: mail_transport.send(to, subject or "", text),
+        )
+    except Exception:
+        db.rollback()
+        log.exception("could not send the sign-in alert for %s", user.email)
 
 
 # --------------------------------------------------------------------------- #
@@ -599,6 +851,11 @@ def login(
     # a shared lab machine whose users fat-finger passwords all morning must not
     # lock out the person who types theirs correctly.
     _clear_login_failures(account_key)
+    # BEFORE the OTP branch, not after it: a disabled account that reached this
+    # line with the right password must not be mailed a code it can never spend.
+    # Only after the password verified, so this is not an existence oracle —
+    # whoever sees it already knows the password.
+    refuse_disabled_sign_in(user)
     if settings.otp_login_required:
         # THE SECOND STEP. The password was right, but no session yet: a
         # six-digit code goes to the account's mailbox and /login/code is what
@@ -619,7 +876,8 @@ def login(
         return LoginChallenge(email=user.email, expires_in_minutes=settings.otp_code_minutes)
     # One device at a time: this sign-in retires every session the account holds.
     _retire_other_sessions(user)
-    _record_login(db, user)  # the commit that persists the retirement
+    # the commit that persists the retirement
+    _record_login(db, user, door=DOOR_PASSWORD, request=request)
     _confirm_exclusive_session(user)
     payload = _payload_for(user)
     _issue_session(response, payload)
@@ -696,6 +954,10 @@ def login_with_code(
         )
 
     _clear_login_failures(account_key)
+    # Unreachable through /login, which refuses a disabled account before a code
+    # is ever minted — but a code issued the minute before the account was
+    # disabled is still live, and it must not be worth anything.
+    refuse_disabled_sign_in(user)
     # One device at a time. The bump rides on the SAME commit as the code's
     # consumed_at, which is why _retire_other_sessions does not commit for
     # itself: an extra commit here would make "code spent, session refused"
@@ -704,7 +966,7 @@ def login_with_code(
     # _record_login commits, which also lands the consumed_at write above: the
     # spend and the sign-in are one transaction, so a failure here leaves the
     # code unspent rather than spent-and-refused.
-    _record_login(db, user)
+    _record_login(db, user, door=DOOR_CODE, request=request)
     _confirm_exclusive_session(user)
     payload = _payload_for(user)
     _issue_session(response, payload)
@@ -814,6 +1076,7 @@ def google_start(next_: str = Query("", alias="next")) -> RedirectResponse:
 # canonical path â it is the one registered on the OAuth client.
 @router.get("/google/callback", include_in_schema=False)
 def google_callback(
+    request: Request,
     code: str | None = Query(None),
     state: str | None = Query(None),
     error: str | None = Query(None),
@@ -902,6 +1165,28 @@ def google_callback(
         )
         return _sso_failure("sso_not_enrolled")
 
+    if user.disabled_at is not None:
+        # OFFBOARDED (B3.3). Google verified them; the roster no longer admits
+        # them, which is the same sentence `sso_not_enrolled` already says and
+        # the same thing to do about it — talk to the placement office.
+        #
+        # DELIBERATELY REUSING THAT CODE rather than adding `sso_disabled`. The
+        # code list is a three-way contract (this docstring, `messageFor` in
+        # apps/web/.../login.component.ts, and docs/google-sign-in.md); a code
+        # added on one side only lands the person on the "reason unknown to this
+        # page" fallback, which is worse than a true-enough sentence. The REAL
+        # reason is logged, which is where the operator looks. When the client
+        # learns a code of its own, split this branch off — it is already
+        # separate for that reason.
+        log.warning(
+            "GET /api/auth/sso/google/callback -> 302 /login?error=sso_not_enrolled: "
+            "%s is DISABLED (since %s) — Google verified the identity, the account "
+            "is offboarded",
+            identity.email,
+            user.disabled_at,
+        )
+        return _sso_failure("sso_not_enrolled")
+
     # THE ADDRESS FOUND THE ROW; THE `sub` PROVES IT IS THE SAME PERSON.
     #
     # An institutional address is a lease. The college re-issues
@@ -959,7 +1244,14 @@ def google_callback(
     # session is still issued and the older devices stay signed in until their
     # tokens expire, which is logged in the handler below.
     _retire_other_sessions(user)
-    payload = _payload_for(user)
+    try:
+        payload = _payload_for(user)
+    except AccountDisabledError:
+        # Cannot happen — the branch above already returned — but an uncaught
+        # exception HERE is a raw traceback page instead of the redirect this
+        # module promises, so the backstop gets a redirect of its own.
+        log.exception("GET /api/auth/sso/google/callback: disabled account reached _payload_for")
+        return _sso_failure("sso_not_enrolled")
     # Pinned on the first Google sign-in, and folded into the commit
     # `_record_login` already makes rather than given one of its own: two writes
     # would mean two failure modes to reason about for one logical event. If
@@ -970,7 +1262,7 @@ def google_callback(
     if pin_pending:
         user.google_sub = identity.sub
     try:
-        _record_login(db, user)
+        _record_login(db, user, door=DOOR_GOOGLE, request=request)
         _confirm_exclusive_session(user)
     except SQLAlchemyError:
         # The streak row is telemetry; the session is the product. A verified
@@ -1024,7 +1316,57 @@ def me(
     # Two indexed SELECTs per call, and worth it: this is what makes a grant
     # or a revocation visible without a sign-out, because the claims in the
     # cookie are deliberately not the place capabilities live.
-    return SessionUser(**session, capabilities=sorted(capabilities_for(db, session)))
+    #
+    # The student's FEATURE switches ride along for the same reason and cost one
+    # more read (B2.2). The client greys the nav item and prints the office's
+    # message from this; the API refuses the endpoint itself with
+    # `require_feature`, and that second half is the one that matters — a client
+    # map is a convenience, exactly as `capability` on a nav item is a filter and
+    # never a gate (app-shell.component.ts says so about the other half).
+    #
+    # Asked only of a STUDENT: a feature override is a statement about a student,
+    # and `features_for` on a staff session would resolve an ancestry for an id
+    # that is not in `students` and hand back eleven meaningless `true`s that a
+    # client could learn to read.
+    student_id = session.get("studentId")
+    features = (
+        {
+            key: FeatureFlagOut(enabled=state.enabled, message=state.message)
+            for key, state in feature_states_for(db, student_id).items()
+        }
+        if session.get("role") == Role.STUDENT.value and student_id
+        else {}
+    )
+    # B15. ONE extra row read and one extra list read, and the two are the whole
+    # of "My account": the `users` row carries `google_sub` and
+    # `notification_prefs`, and `login_events` carries the recent sign-ins.
+    #
+    # `google_linked` is derived from `google_sub` rather than stored, because
+    # the pin IS the link -- a boolean beside it would be a second source of
+    # truth for one fact, and the day they disagreed the account would either be
+    # told it can unlink something it cannot, or be refused an unlink it needs.
+    user = db.get(User, session["userId"])
+    sign_ins = (
+        db.scalars(
+            select(LoginEvent)
+            .where(LoginEvent.user_id == session["userId"])
+            .order_by(LoginEvent.at.desc())
+            .limit(RECENT_SIGN_INS)
+        ).all()
+        if user is not None
+        else []
+    )
+    return SessionUser(
+        **session,
+        capabilities=sorted(capabilities_for(db, session)),
+        features=features,
+        google_linked=(user.google_sub is not None) if user is not None else None,
+        last_sign_ins=[
+            SignInOut(at=e.at, door=e.door, ip=e.ip, user_agent=e.user_agent)
+            for e in sign_ins
+        ],
+        notification_prefs=notification_state(user) if user is not None else {},
+    )
 
 
 @router.post("/logout")
@@ -1089,3 +1431,219 @@ def logout(
         secure=_cookie_secure(),
     )
     return {"ok": True}
+
+
+# ------------------------------------------------ sign out everywhere (B3.6) --
+
+
+class SignedOutEverywhereOut(BaseModel):
+    """What the account was told. `sessions_retired` is the honest word: this
+    retires every token minted before now, including the one that asked."""
+
+    detail: str
+    token_version: int
+
+
+@router.post("/sign-out-everywhere", response_model=SignedOutEverywhereOut)
+def sign_out_everywhere(
+    request: Request,
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> SignedOutEverywhereOut:
+    """Drop every device this account holds, INCLUDING this one.
+
+    Under one device at a time an account already holds exactly one live
+    session, so this looks redundant — and it is not. The thing a person reaches
+    for it about is the session they can no longer see: a shared lab machine
+    they walked away from, a phone that was taken, a browser on a computer they
+    have handed back. `logout` can only end the session making the request;
+    this ends the one they are worried about.
+
+    THIS DEVICE GOES TOO, deliberately. Keeping it would mean re-issuing a
+    cookie at the new version, and then "sign out everywhere" would have an
+    exception in it — which is exactly the sentence somebody in trouble must not
+    have to read. They sign in again, which is one form and proves the password
+    still works.
+
+    Audited, because a token_version bump is otherwise invisible: the only trace
+    of it is everyone's sessions ending at once.
+    """
+    user = db.get(User, session["userId"])
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in again.")
+    before = int(user.token_version or 0)
+    user.token_version = before + 1
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="user", entity_id=user.id, action="SIGN_OUT_EVERYWHERE",
+        before={"token_version": before},
+        after={"token_version": user.token_version},
+        event_type="user.sign_out_everywhere", payload={"email": user.email, "self": True},
+    )
+    db.commit()
+    note_revocation(user.id, user.token_version)
+    log.info("sign-out-everywhere for %s; all sessions revoked", user.email)
+    response.delete_cookie(
+        SESSION_COOKIE,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=_cookie_secure(),
+    )
+    return SignedOutEverywhereOut(
+        detail="Signed out on every device. Sign in again to continue.",
+        token_version=user.token_version,
+    )
+
+
+# ----------------------------------------------------------- my account (B15) --
+
+#: How many sign-ins GET /api/auth/me carries. Ten is a screenful and bounds an
+#: unbounded list on the one endpoint every authenticated page calls.
+RECENT_SIGN_INS: Final[int] = 10
+
+
+class GoogleLinkOut(BaseModel):
+    detail: str
+    google_linked: bool
+
+
+@router.post("/google/unlink", response_model=GoogleLinkOut)
+def google_unlink(
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> GoogleLinkOut:
+    """Unpin this account's Google identity (B15).
+
+    THE REFUSAL IS THE FEATURE. `users.google_sub` is what proves the person
+    signing in with Google is the same person as last time; clearing it is the
+    only way to hand a roster row to a new holder when an institutional address
+    is re-issued. It is also, for an account that has no password, the act of
+    deleting your own only door -- and REEP mints exactly that account by
+    design: `grant_access` and `seed_roster` write SSO_ONLY_PASSWORD_HASH, a
+    sentinel `verify_password` can never match. So the guard is not defensive
+    programming, it is the commonest case.
+
+    TWO CONDITIONS, not one, because "a password exists" is not the same as "a
+    password works". `password_door_open(db)` is the single answer /login and
+    /sso/status already share, and on a deployment that has set
+    PASSWORD_LOGIN=false a real scrypt hash opens nothing at all. Checking only
+    the hash would cheerfully lock somebody out of a deployment whose password
+    door is bolted -- which is the exact outcome this endpoint exists to
+    prevent, arriving through the check that was meant to prevent it.
+
+    IT DOES NOT SIGN ANYBODY OUT. Unlinking changes which doors exist, not who
+    is at the keyboard, and retiring the session would mean the person is thrown
+    to a login screen at the precise moment they have one fewer way through it.
+    """
+    user = db.get(User, session["userId"])
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in again.")
+    if user.google_sub is None:
+        # 409 rather than a cheerful 200: "unlinked" and "was never linked" are
+        # different facts, and a screen that shows a success toast for the
+        # second one teaches its reader that the button did something.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This account is not linked to a Google sign-in.",
+        )
+    if not user.password_hash.startswith("scrypt:") or not password_door_open(db):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Google is the only way into this account, so unlinking it would "
+                "lock you out. Set a password first."
+            ),
+        )
+    before = user.google_sub
+    user.google_sub = None
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="user", entity_id=user.id, action="GOOGLE_UNLINK",
+        # The `sub` is the identifier of a Google account, not of a person, and
+        # it is the ONE thing an operator needs six months later to answer "who
+        # held this row before". Recorded in the audit trail, which is read by
+        # the office, and never in a response body.
+        before={"google_sub": before},
+        after={"google_sub": None},
+        event_type="user.google_unlink", payload={"email": user.email},
+    )
+    db.commit()
+    log.info("google sign-in unlinked for %s", user.email)
+    return GoogleLinkOut(
+        detail="Google sign-in unlinked. Sign in with your email and password.",
+        google_linked=False,
+    )
+
+
+class NotificationPrefsIn(BaseModel):
+    """A PARTIAL map, deliberately. Every key sent is set; every key omitted
+    keeps whatever it had. A screen that posts the whole map would overwrite a
+    preference added by a later deploy with this build's default, on the first
+    save by anybody who had not reloaded."""
+
+    prefs: dict[str, bool]
+
+
+@router.put("/notification-prefs", response_model=dict[str, NotificationPrefOut])
+def set_notification_prefs(
+    body: NotificationPrefsIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> dict[str, NotificationPrefOut]:
+    """Set what REEP may email this account (B15). Self-service, every role.
+
+    UNKNOWN KEYS ARE REFUSED (422) rather than stored. A JSON column will accept
+    anything, so a typo on the client would be written, read back, rendered as
+    a switch that never does anything, and survive every future deploy -- the
+    preference equivalent of B2.1's capability keys that nothing checked.
+
+    AN UNENFORCED PREFERENCE CANNOT BE SWITCHED OFF (422), which is B2.2's rule
+    for feature switches applied to the second kind of switch. Turning off mail
+    that nothing consults is a promise the server does not keep; the catalogue
+    says `enforced: false` and the screen shows it as not wired yet. Every entry
+    in the catalogue is enforced today, so this branch fires for nobody -- and
+    it is written now, because the alternative is that the first unenforced
+    entry ships as a working-looking switch and nobody notices for a release.
+    """
+    unknown = sorted(set(body.prefs) - set(NOTIFICATION_PREFS_BY_KEY))
+    if unknown:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Unknown notification preference: {', '.join(unknown)}.",
+        )
+    unwired = sorted(
+        key
+        for key, want in body.prefs.items()
+        if not want and not NOTIFICATION_PREFS_BY_KEY[key].enforced
+    )
+    if unwired:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"REEP does not send this mail yet, so it cannot be switched off: "
+                f"{', '.join(unwired)}."
+            ),
+        )
+
+    user = db.get(User, session["userId"])
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in again.")
+    before = dict(user.notification_prefs or {})
+    after = {**before, **body.prefs}
+    # REASSIGNED, never mutated in place: a JSON column is an opaque value to
+    # SQLAlchemy's change detection, so mutating the dict writes nothing and the
+    # save silently does not happen.
+    user.notification_prefs = after
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="user", entity_id=user.id, action="NOTIFICATION_PREFS_SET",
+        before={"notification_prefs": before},
+        after={"notification_prefs": after},
+        event_type="user.notification_prefs_set", payload={"changed": sorted(body.prefs)},
+    )
+    db.commit()
+    return notification_state(user)

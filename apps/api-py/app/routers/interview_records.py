@@ -882,6 +882,21 @@ def all_interviews(
 
     `?recorded_only=1` returns only rows with a stored file — what the download
     grid filters to when an operator wants the recordings and not the failures.
+
+    B1.4 LISTS THIS GRID AS A SCOPE TARGET AND THERE IS NOTHING HERE TO KEY A
+    SCOPE ON, which is a finding rather than an omission. `policies.scope_filter`
+    answers "how far does this session's grant for CAPABILITY K reach", and this
+    endpoint checks no capability at all: its gate is `require_mentor`, a role.
+    Every caller it admits is therefore fenced already — a MENTOR by their own
+    group, two lines below, which is stricter than any scope; the Main Admin by
+    being the Main Admin, whose baseline resolves to `everything` for every key
+    there is. Picking a key to narrow on would change nobody's answer and would
+    put a capability name in the code that no grant is ever checked against,
+    which is the "promise the API does not keep" the catalogue note in
+    app/models/governance.py is about. The key this wants is `admin.interviews`,
+    which B6.7 adds along with the paginated grid; scope belongs in the same
+    commit as the gate, because that is the commit that first admits somebody
+    who is neither a mentor nor the office.
     """
     require_mentor(session)
     query = (

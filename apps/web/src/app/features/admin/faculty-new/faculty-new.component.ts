@@ -15,40 +15,51 @@
  * institution question is first because a faculty login filed under nothing is
  * invisible to every question that starts "who teaches in…".
  *
- * WHAT THE BOARD DRAWS THAT MAIN CANNOT ANSWER YET, and how each renders —
- * none of it is invented, and no control that would 404 is live:
+ * WHAT PHASE 3 LANDED AND WHAT IS STILL GREY. None of it is invented and no
+ * control that would 404 is live:
  *
- *   - **Department required.** This wizard will not continue without one, and
- *     it says so in its own words. `AdminFacultyIn.department_id` is still
- *     OPTIONAL on the server (`B3.1`, Phase 3), so the help text says the form
- *     asks and does not claim the server refuses. A client-side rule that
- *     pretends to be a server rule is how the next person skips writing the
- *     server one.
- *   - **The college email domain fence** (`B3.2`, Phase 3, on the domains
- *     `B1.1` adds to the college). The address is checked here only for shape,
- *     exactly as the server's own validator checks it; the notice on step 2
- *     says plainly that no domain is enforced today and that the Main Admin
- *     typing the address is the check.
- *   - **Employee ID.** The board draws the input; there is no column behind it
- *     on `main`, so it renders disabled through `PendingControlDirective`
- *     rather than accepting a value this screen would silently drop.
- *   - **Functions at creation** (`B2.3`, Phase 3). The account is created as
- *     Faculty with no mentor group and no functions — that is what the endpoint
- *     does — so step 3 lists the functions as disabled choices and points at
- *     Roles & functions, which is the only place that records WHY a function
- *     was granted.
- *   - **Mail.** `GET /api/admin/platform/status` (`B3.7`) does not exist, so
- *     this screen never predicts whether the invitation can be emailed. The
- *     create response's own `emailed` flag is the answer, after the fact, and
- *     the activation link is shown exactly when it is `false` — the board's
- *     "a link is shown only if email is unavailable, once".
+ *   - **Department is required, on the server now** (`B3.1`).
+ *     `AdminFacultyIn.department_id` is a plain `str` and its validator answers
+ *     422 on a blank one, saying why. That sentence is rendered VERBATIM
+ *     (`DEPARTMENT_REQUIRED_MESSAGE`) rather than paraphrased: it names the
+ *     consequence — the department is how this account reaches its COLLEGE, and
+ *     the college is what decides which addresses may hold one — and a screen
+ *     that restates a server rule in its own words is a second copy of that
+ *     rule to keep true.
+ *   - **The college email domain fence** (`B3.2`, over the `email_domains`
+ *     `B1.1` put on the college). `_email_policy` in
+ *     `app/routers/admin_faculty.py` refuses an address off the college's
+ *     domains unless `allow_external` is set AND `external_reason` is written,
+ *     and it writes the pair, the domain and the list into the audit row. Both
+ *     fields are live on step 2: the checkbox reveals the reason, and the
+ *     reason is required while it is ticked. The college's own domains come
+ *     back on `GET /api/admin/colleges` (`email_domains`) and are shown, so the
+ *     fence is visible before it refuses anybody — but the comparison drawn on
+ *     screen is a HINT and says so, because a college that has recorded no
+ *     domains falls back to the deployment's own list
+ *     (`app/institution_domains.py`), which this screen cannot see. The server
+ *     is the only fence; this one only saves a round trip.
+ *   - **Employee ID** and **functions at creation** are still disabled, and
+ *     their phase numbers changed rather than their state. See
+ *     `EMPLOYEE_ID_PHASE` and `FUNCTIONS_AT_CREATION_PHASE`.
+ *   - **Mail.** `GET /api/admin/platform/status` (`B3.7`) still does not exist
+ *     — nothing under `/api/admin` answers it — so this screen never predicts
+ *     whether the invitation can be emailed. The create response's own
+ *     `emailed` flag is the answer, after the fact, and the activation link is
+ *     shown exactly when it is `false` — the board's "a link is shown only if
+ *     email is unavailable, once", and B3.7's own instruction that this wizard
+ *     "must not promise an email that cannot be sent".
  *
- * THE LINK IS SHOWN ONCE, IN THIS SESSION. `POST /api/admin/faculty` returns
- * the activation link in its response and `shown_once` is `B3.4`; until that
- * lands, "once" is a property of this screen — the link is not stored, not
- * re-rendered after "Add another", and never listed. Re-minting one is the
- * Faculty screen's "Activation link" action, which is a deliberate act with its
- * own endpoint.
+ * THE LINK IS SHOWN ONCE, AND THE SERVER IS THE ONE SAYING SO.
+ * `AdminFacultyOut.shown_once` is `true` (`B3.4`): nothing stores the raw
+ * token, only its sha256, so this response is the only place the link exists.
+ * The screen honours that — the link is held in no signal past "Add another",
+ * is never listed, and the copy control is offered beside it while it is on
+ * screen. Re-minting one is the Faculty screen's "Activation link" action,
+ * which is a deliberate act with its own endpoint. Which of the two things
+ * happened is stated either way: emailed to the address, or not sent at all
+ * and therefore only here — which is what a deployment whose SES is still
+ * sandboxed gets, every time.
  *
  * ONE PRIMARY BUTTON. The footer's Continue is the view's primary through
  * steps 1–3, becomes "Create account & invite" on step 4, and becomes "Done"
@@ -72,6 +83,11 @@ interface CollegeOut {
   contact: string | null;
   status: string;
   department_count: number;
+  /** B1.1. The addresses this college admits. EMPTY is not "nobody": it means
+   *  the deployment's own list applies (`app/institution_domains.py`), and that
+   *  list is not on any endpoint this screen calls — so an empty list is
+   *  rendered as "not recorded here", never as a fence. */
+  email_domains: string[];
 }
 
 interface DepartmentOut {
@@ -105,6 +121,10 @@ interface CreatedFacultyOut {
   activation_link: string;
   emailed: boolean;
   expires_in_hours: number;
+  /** B3.4. The server's own statement that this response is the only place the
+   *  raw link exists. The wording on screen is driven off this rather than
+   *  hard-coded, so a server that ever stops promising it stops being quoted. */
+  shown_once: boolean;
 }
 
 /** What the four steps collect, in the order the board asks for it. */
@@ -114,6 +134,10 @@ interface FacultyDraft {
   name: string;
   email: string;
   designation: string;
+  /** B3.2. `AdminFacultyIn.allow_external` — the deliberate exception. */
+  allowExternal: boolean;
+  /** B3.2. `AdminFacultyIn.external_reason` — what justifies it on the trail. */
+  externalReason: string;
 }
 
 const EMPTY_DRAFT: FacultyDraft = {
@@ -122,13 +146,46 @@ const EMPTY_DRAFT: FacultyDraft = {
   name: '',
   email: '',
   designation: '',
+  allowExternal: false,
+  externalReason: '',
 };
 
 type LoadState = 'loading' | 'ready' | 'error';
 
-/** The phase that makes the faculty-lifecycle controls work: `B3.1`–`B3.6`
- *  and `B2.3` are all Phase 3 (`06-phase-prompts.md`). */
-const FACULTY_LIFECYCLE_PHASE = 3;
+/** Employee ID is drawn on the board (`design/admin/AddFaculty.html`) and
+ *  exists nowhere else. There is no `employee_id` column on `users`, no field
+ *  for it on `AdminFacultyIn`, and `04-backend-changes.md` never adds one —
+ *  B3.5's identity PATCH is name, email, designation and department. So this is
+ *  NOT a control waiting on Phase 3: Phase 3 has landed, B3.1–B3.6 with it, and
+ *  the box still has nothing behind it. The number moves to the one this
+ *  console uses for "not in this release" rather than the control being
+ *  deleted, because the board draws it and a reviewer cannot tell a control
+ *  that is missing from one that was missed. */
+const EMPLOYEE_ID_PHASE = 4;
+
+/** B2.3 LANDED, and the functions on step 3 are real — `ensure_mentor_group`
+ *  grants the four mentor capabilities on the first student assignment, and
+ *  every other function is a scoped grant made in Roles & functions. What did
+ *  not land is a way to ask for one HERE. `AdminFacultyIn` is name, email,
+ *  designation, department, department_id, allow_external, external_reason;
+ *  there is no functions field, and §8 of `02-admin-console-spec.md` never
+ *  asked for one — its "Needs" list is B3.1, B3.2, B3.4, B3.7. Wiring these
+ *  boxes would also mean writing a grant with no reason and no scope target,
+ *  which is exactly the audit row B1.2 and B2.4 exist to require. Disabled, at
+ *  the "not in this release" number, with the notice above pointing at the one
+ *  screen that records why a function was given. */
+const FUNCTIONS_AT_CREATION_PHASE = 4;
+
+/** `AdminFacultyIn._department_id`'s own refusal, copied verbatim. The
+ *  consequence is the half that matters and the half a paraphrase drops. */
+const DEPARTMENT_REQUIRED_MESSAGE =
+  'A department is required: it is how this account reaches its college, and ' +
+  'the college decides which addresses may hold one.';
+
+/** `_email_policy`'s own refusal when the box is ticked and the box alone. */
+const EXTERNAL_REASON_REQUIRED_MESSAGE =
+  "An address outside the college's domains needs a reason. It is recorded " +
+  'against this account.';
 
 /** `models/institution.py::STATUS_ACTIVE`. Anything else is archived. */
 const ACTIVE_STATUS = 'ACTIVE';
@@ -190,7 +247,10 @@ const FUNCTION_CHOICES: FunctionChoice[] = [
 export class AdminAddFacultyComponent implements OnInit {
   readonly steps = WIZARD_STEPS;
   readonly functionChoices = FUNCTION_CHOICES;
-  readonly facultyLifecyclePhase = FACULTY_LIFECYCLE_PHASE;
+  readonly employeeIdPhase = EMPLOYEE_ID_PHASE;
+  readonly functionsAtCreationPhase = FUNCTIONS_AT_CREATION_PHASE;
+  readonly departmentRequiredMessage = DEPARTMENT_REQUIRED_MESSAGE;
+  readonly externalReasonRequiredMessage = EXTERNAL_REASON_REQUIRED_MESSAGE;
   readonly lastStep = LAST_STEP;
 
   readonly step = signal(FIRST_STEP);
@@ -299,6 +359,22 @@ export class AdminAddFacultyComponent implements OnInit {
     this.draft.update((draft) => ({ ...draft, designation }));
   }
 
+  /** Un-ticking clears the reason as well as the flag. A reason left behind in
+   *  the draft would be sent on the next attempt with `allow_external` false,
+   *  where the server ignores it — so the audit row would not carry the
+   *  sentence the admin can still see on screen. */
+  setAllowExternal(allowExternal: boolean): void {
+    this.draft.update((draft) => ({
+      ...draft,
+      allowExternal,
+      externalReason: allowExternal ? draft.externalReason : '',
+    }));
+  }
+
+  setExternalReason(externalReason: string): void {
+    this.draft.update((draft) => ({ ...draft, externalReason }));
+  }
+
   // ---- what each step needs before it is complete -----------------------
 
   readonly selectedCollege = computed(() => {
@@ -365,11 +441,58 @@ export class AdminAddFacultyComponent implements OnInit {
     return address.slice(at + 1).includes('.');
   });
 
+  /** B1.1, as this college recorded it. Empty means the college has none and
+   *  the deployment's list applies; the screen says that rather than guessing
+   *  at a list it cannot read. */
+  readonly collegeDomains = computed(() => this.selectedCollege()?.email_domains ?? []);
+
+  /** `institution_domains.domain_of` — the part after the LAST `@`, lower-cased.
+   *  Empty when there is no `@` at all, which is the same distinction that
+   *  helper's docstring is about: "no domain here" must not answer a domain. */
+  readonly emailDomain = computed(() => {
+    const address = this.draft().email.trim().toLowerCase();
+    const at = address.lastIndexOf('@');
+    return at < 0 ? '' : address.slice(at + 1).replace(/^@+/, '');
+  });
+
+  /** A HINT, never a gate. It can only fire when this college has recorded its
+   *  own domains: a college with none is fenced by the deployment's list, which
+   *  is not on any endpoint here, so the honest answer for that case is to say
+   *  nothing and let the server decide. Nothing on this screen is disabled by
+   *  it — `_email_policy` is the fence, and a client that refused first would
+   *  be a second fence quietly drifting from the real one. */
+  readonly addressLooksOffCollegeDomain = computed(() => {
+    const domains = this.collegeDomains();
+    const domain = this.emailDomain();
+    return (
+      domains.length > 0 &&
+      domain.length > 0 &&
+      this.emailLooksLikeAnAddress() &&
+      !domains.includes(domain)
+    );
+  });
+
+  /** The reason is required while the box is ticked, which is very slightly
+   *  stricter than the server: `_email_policy` returns before it looks at the
+   *  pair when the address IS on the college's domains, so a reason typed for
+   *  an on-domain address is ignored. That case is a box ticked for nothing,
+   *  and the fix for it is to untick the box. The alternative — asking for the
+   *  reason only when this screen thinks the address is outside — hands the
+   *  decision to the hint above, which cannot see the deployment fallback and
+   *  would let the create go out reasonless and come back 422. */
+  readonly externalReasonIsGiven = computed(
+    () => this.draft().externalReason.trim().length > 0,
+  );
+
+  readonly externalReasonIsMissing = computed(
+    () => this.draft().allowExternal && !this.externalReasonIsGiven(),
+  );
+
   readonly institutionStepIsComplete = computed(
     () => this.collegeIsChosen() && this.departmentIsChosen(),
   );
   readonly identityStepIsComplete = computed(
-    () => this.nameIsGiven() && this.emailLooksLikeAnAddress(),
+    () => this.nameIsGiven() && this.emailLooksLikeAnAddress() && !this.externalReasonIsMissing(),
   );
 
   readonly currentStepIsComplete = computed(() => {
@@ -446,6 +569,12 @@ export class AdminAddFacultyComponent implements OnInit {
           email: draft.email.trim().toLowerCase(),
           designation: draft.designation.trim() || null,
           department_id: draft.departmentId,
+          // B3.2. Sent on every create, not only when this screen suspects the
+          // address is outside: the server is the one that knows the effective
+          // domain list, and a flag withheld because the client guessed "on
+          // domain" is a 422 the admin cannot act on without retyping.
+          allow_external: draft.allowExternal,
+          external_reason: draft.allowExternal ? draft.externalReason.trim() || null : null,
         }),
       });
       if (!response.ok) {
@@ -506,7 +635,10 @@ export class AdminAddFacultyComponent implements OnInit {
         return detail;
       }
       if (Array.isArray(detail) && detail.length > 0 && typeof detail[0]?.msg === 'string') {
-        return detail[0].msg;
+        // Pydantic v2 prefixes a validator's own ValueError with "Value error, ".
+        // The sentence after it is the one written for a person to read; the
+        // prefix is an implementation detail of the server's schema library.
+        return detail[0].msg.replace(/^Value error,\s*/, '');
       }
     } catch {
       /* fall through to the status */

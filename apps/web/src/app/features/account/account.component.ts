@@ -22,8 +22,10 @@
  * the deployment and not about this row — accounts minted by `grant_access` and
  * `seed_roster` hold the SSO_ONLY sentinel — so the only per-account truth is
  * the 409 `POST /auth/change-password/code` answers, and that swaps the form
- * for the same sentence the moment it arrives. There is no endpoint that says
- * "does THIS account hold a password"; B15 adds one on `/auth/me`.
+ * for the same sentence the moment it arrives. There is STILL no endpoint that
+ * says "does THIS account hold a password": B15 put `google_linked`,
+ * `last_sign_ins` and `notification_prefs` on `/auth/me` and nothing about the
+ * password, so that 409 remains the only per-account truth.
  *
  * ONE PROOF, NEVER TWO. `/auth/change-password` takes the emailed code or the
  * current password and refuses both together (`_authorised_to_change`). This
@@ -32,12 +34,34 @@
  * proves the mailbox is readable now. The current-password path stays the
  * API's, for staff and for the tests; it is not a second form here.
  *
- * WHAT THE BOARD DRAWS THAT NO ENDPOINT ANSWERS TODAY — whether the Google
- * identity is linked and unlinking it, the email digests, the recent sign-in
- * list, and Sign out everywhere — is `B15` and `B3.6`, Phase 3. Each is a
- * disabled control through `PendingControlDirective` or an empty state beside
- * a `.notice.accent` that says what will fill it. None of it is sample data:
- * a screenshot of an invented sign-in row is indistinguishable from a real one.
+ * B15 AND B3.6 HAVE LANDED, so the four controls this screen drew disabled are
+ * live: the Google link state and `POST /auth/google/unlink`, the recent
+ * sign-ins, the notification switches (`PUT /auth/notification-prefs`) and
+ * `POST /auth/sign-out-everywhere`. `PendingControlDirective` is gone from this
+ * component with them.
+ *
+ * ALL THREE READS ARRIVE ON ONE CALL. `google_linked`, `last_sign_ins` and
+ * `notification_prefs` ride on `GET /api/auth/me` — the call `AuthService`
+ * already owns — so this screen adds no endpoint of its own and its "refresh"
+ * is `AuthService.refresh()`. A second raw `fetch` of `/auth/me` here would
+ * paint the right numbers over a session signal the rest of the app reads and
+ * would then be holding the old ones.
+ *
+ * `google_linked` IS `bool | null` AND THE NULL IS LOAD-BEARING. Only `/me`
+ * answers it; `/login` mints the same model and leaves it null. A client that
+ * reads absent as `false` tells somebody their Google sign-in is unlinked on
+ * the screen immediately after they used it, so "not asked" is its own
+ * rendering here and never "not linked".
+ *
+ * WHAT THE BOARD STILL DRAWS THAT NO ENDPOINT ANSWERS is the digest FREQUENCY
+ * per topic (daily / weekly / immediately) and the five topics beside it, and
+ * "All events". The catalogue behind `notification_prefs` holds exactly one
+ * switch and it is on or off, so the card says that rather than drawing five
+ * dropdowns over one boolean; and `/me` carries the last ten sign-ins, which is
+ * the whole list REEP keeps for a person, so the button beside it re-reads that
+ * list instead of promising a longer one. Neither is a disabled control with a
+ * phase on it, because no phase adds them: a "Available with Phase N" that
+ * names no phase is the same lie as a dead button.
  */
 
 import { Component, computed, inject, signal } from '@angular/core';
@@ -53,8 +77,7 @@ import { Router } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
-import type { Role } from '../../core/session';
-import { PendingControlDirective } from '../../shared/pending/pending.directive';
+import type { Role, SessionPayload } from '../../core/session';
 import { PluralPipe } from '../../shared/text/plural.pipe';
 
 /** `GET /api/auth/sso/status` — which doors this SERVER offers. Unauthenticated
@@ -64,6 +87,48 @@ interface SignInDoors {
   password_login_available?: boolean;
   domain?: string | null;
   reason?: string | null;
+}
+
+/** One row of `last_sign_ins` — `SignInOut` in app/schemas/auth.py.
+ *
+ *  SUCCESSES ONLY, which the card says out loud: `login_events` records a
+ *  sign-in that happened, and a failed attempt is the brute-force limiter's
+ *  business. A "Result" column whose every value is "OK" would read as "nobody
+ *  has ever tried and failed", which this list cannot know. */
+interface SignIn {
+  at: string;
+  /** `password`, `code`, `google` or `activation` — auth.py's `DOOR_*`. */
+  door: string;
+  /** THE SERVER'S VIEW OF WHERE THE REQUEST CAME FROM, and behind the college's
+   *  load balancer that is the balancer, identically for every row. Labelled as
+   *  such on screen rather than as "your device's address", which is the one
+   *  reading that would make an unfamiliar value alarming for no reason. */
+  ip: string | null;
+  user_agent: string | null;
+}
+
+/** One switch from auth.py's `NOTIFICATION_PREFS` — `NotificationPrefOut`. */
+interface NotificationPref {
+  enabled: boolean;
+  label: string;
+  /** False means NOTHING READS THIS PREFERENCE YET. Shown as "not wired yet",
+   *  and `PUT /auth/notification-prefs` answers 422 to an attempt to switch it
+   *  off — B2.2's rule for an unwired feature switch, applied to the second
+   *  kind of switch. */
+  enforced: boolean;
+}
+
+/** The three B15 fields `GET /api/auth/me` adds to the session payload.
+ *
+ *  DECLARED HERE AND NOT ON `SessionPayload`, because `SessionPayload` is the
+ *  claim set every screen and guard reads and these three are answered by one
+ *  endpoint out of four. `AuthService` holds the parsed body of that call, so
+ *  the fields are present at runtime; this is the narrowing that reads them.
+ *  Each is optional AND nullable on purpose — see the class docstring. */
+interface AccountFacts {
+  google_linked?: boolean | null;
+  last_sign_ins?: SignIn[];
+  notification_prefs?: Record<string, NotificationPref>;
 }
 
 /** `GET /api/staff/signature` — app/routers/signature.py `SignatureOut`. */
@@ -95,14 +160,19 @@ const MIN_PASSWORD_LENGTH = 12;
 /** A signature is a small image (`MAX_SIGNATURE_BYTES`, 2 MB). */
 const MAX_SIGNATURE_MEGABYTES = 2;
 
-/** Google link state and unlinking — `B15`, Phase 3. */
-const GOOGLE_LINK_PHASE = 3;
-/** `POST /api/auth/sign-out-everywhere` — `B3.6`, Phase 3. */
-const SIGN_OUT_EVERYWHERE_PHASE = 3;
-/** `notification_prefs` and the digests — `B15`, Phase 3. */
-const EMAIL_DIGEST_PHASE = 3;
-/** `last_sign_ins[]` from the new `login_events` table — `B15`, Phase 3. */
-const RECENT_SIGN_INS_PHASE = 3;
+/** What each `login_events.door` is called on screen.
+ *
+ *  An unrecognised door renders its stored value rather than a guess: the model
+ *  comment names a fifth (`reset`) that `DOOR_*` deliberately never writes, and
+ *  a new door is meant to be a deploy rather than a type migration — so this
+ *  map will be behind the server one day, and being visibly behind beats
+ *  labelling an unknown sign-in "Password". */
+const DOOR_LABEL: Record<string, string> = {
+  password: 'Email and password',
+  code: 'Emailed code',
+  google: 'Google',
+  activation: 'Activation link',
+};
 
 /** The two new passwords have to agree before either is worth posting. */
 function bothPasswordsMatch(group: AbstractControl): ValidationErrors | null {
@@ -117,7 +187,7 @@ function bothPasswordsMatch(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [ReactiveFormsModule, PendingControlDirective, PluralPipe],
+  imports: [ReactiveFormsModule, PluralPipe],
   templateUrl: './account.component.html',
   styleUrl: './account.component.scss',
 })
@@ -125,10 +195,6 @@ export class AccountComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  readonly googleLinkPhase = GOOGLE_LINK_PHASE;
-  readonly signOutEverywherePhase = SIGN_OUT_EVERYWHERE_PHASE;
-  readonly emailDigestPhase = EMAIL_DIGEST_PHASE;
-  readonly recentSignInsPhase = RECENT_SIGN_INS_PHASE;
   readonly minPasswordLength = MIN_PASSWORD_LENGTH;
   readonly maxSignatureMegabytes = MAX_SIGNATURE_MEGABYTES;
 
@@ -147,6 +213,74 @@ export class AccountComponent {
   });
 
   readonly signingOut = signal(false);
+
+  // ---- the B15 facts, all three from one GET /api/auth/me -----------------
+
+  /** The session payload AS `/auth/me` ANSWERS IT. The service holds the parsed
+   *  body; `SessionPayload` types only the claims every screen shares. */
+  private readonly facts = computed(
+    () => this.auth.session() as (SessionPayload & AccountFacts) | null,
+  );
+
+  /** True while `/auth/me` is being re-read — the initial load and the
+   *  sign-ins "Refresh". */
+  readonly rereadingAccount = signal(false);
+
+  /** The re-read came back with no session at all. Under one device at a time
+   *  that is a real event (this account was signed in somewhere else), and the
+   *  screen says so instead of rendering every card as an empty state. */
+  readonly accountUnavailable = computed(() => !this.rereadingAccount() && this.facts() === null);
+
+  // ---- Google identity ----------------------------------------------------
+
+  /** The unlink's own answer, which is authoritative and arrives before the
+   *  next `/me`. Null until this screen has unlinked something. */
+  private readonly googleLinkAfterWrite = signal<boolean | null>(null);
+
+  /** `null` / absent is NOT ASKED and must never render as "not linked" — only
+   *  `/auth/me` answers this field and `/login` mints the same model without
+   *  it. So the template asks whether the answer is KNOWN before it reads it. */
+  readonly googleLinkKnown = computed(() => {
+    if (this.googleLinkAfterWrite() !== null) {
+      return true;
+    }
+    const linked = this.facts()?.google_linked;
+    return linked === true || linked === false;
+  });
+
+  readonly googleLinked = computed(
+    () => (this.googleLinkAfterWrite() ?? this.facts()?.google_linked) === true,
+  );
+
+  readonly confirmGoogleUnlink = signal(false);
+  readonly unlinkingGoogle = signal(false);
+  readonly googleError = signal<string | null>(null);
+  readonly googleFlash = signal<string | null>(null);
+
+  // ---- sign out everywhere ------------------------------------------------
+
+  readonly confirmSignOutEverywhere = signal(false);
+  readonly signingOutEverywhere = signal(false);
+  readonly signOutEverywhereError = signal<string | null>(null);
+
+  // ---- notification preferences -------------------------------------------
+
+  /** The PUT's own answer — the dense map, every key, as the server now holds
+   *  it. Preferred over the session copy until the next `/me` re-read. */
+  private readonly prefsAfterWrite = signal<Record<string, NotificationPref> | null>(null);
+
+  readonly notificationPrefs = computed(() => {
+    const map = this.prefsAfterWrite() ?? this.facts()?.notification_prefs ?? {};
+    return Object.entries(map).map(([key, pref]) => ({ key, ...pref }));
+  });
+
+  readonly savingPrefKey = signal<string | null>(null);
+  readonly prefsError = signal<string | null>(null);
+  readonly prefsFlash = signal<string | null>(null);
+
+  // ---- recent sign-ins ----------------------------------------------------
+
+  readonly recentSignIns = computed(() => this.facts()?.last_sign_ins ?? []);
 
   // ---- which doors this server offers -------------------------------------
 
@@ -244,12 +378,43 @@ export class AccountComponent {
 
   constructor() {
     void this.loadSignInDoors();
+    void this.rereadAccount();
     if (this.holdsASignatureSlot()) {
       void this.loadSignature();
     }
   }
 
   // ---- loads --------------------------------------------------------------
+
+  /** Re-read `GET /api/auth/me` THROUGH THE SERVICE.
+   *
+   *  This is the whole of this screen's own data load and it is also the
+   *  sign-ins "Refresh": the three B15 fields ride on the one call the rest of
+   *  the app already makes, so a raw `fetch` here would leave `AuthService`'s
+   *  session — the thing the shell, the guards and the nav read — holding the
+   *  values this screen has just replaced on the page.
+   *
+   *  IT RUNS ON EVERY VISIT rather than only when the fields are absent. They
+   *  can be absent (a session set by `/login`, which mints the same model and
+   *  answers all three at their defaults) and they can equally be STALE — a
+   *  sign-in list is a security screen's reason for existing and a cached one
+   *  is worth less than no list. The write answers held above are dropped here,
+   *  because `/me` is now the fresher of the two. */
+  async rereadAccount(): Promise<void> {
+    if (this.rereadingAccount()) {
+      return;
+    }
+    this.rereadingAccount.set(true);
+    try {
+      const session = await this.auth.refresh();
+      if (session) {
+        this.googleLinkAfterWrite.set(null);
+        this.prefsAfterWrite.set(null);
+      }
+    } finally {
+      this.rereadingAccount.set(false);
+    }
+  }
 
   /** Ask which sign-in doors exist. It fails CLOSED for the password form and
    *  OPEN for Google, the same way the login screen's probe does: a probe that
@@ -447,10 +612,116 @@ export class AccountComponent {
     }
   }
 
+  // ---- Google identity ----------------------------------------------------
+
+  /** `POST /api/auth/google/unlink`.
+   *
+   *  THE REFUSAL IS THE FEATURE AND IT IS THE SERVER'S TO MAKE. Unlinking an
+   *  account that holds no usable password deletes its only door, and REEP
+   *  mints exactly that account by design (`grant_access` and `seed_roster`
+   *  write the SSO_ONLY sentinel). The endpoint checks two things this client
+   *  cannot see — a real `scrypt:` hash on THIS row, and whether the password
+   *  door is open at all — and answers 409 with the sentence to show. So there
+   *  is no second guess here: the button is offered, and the server's own words
+   *  are what the person reads back.
+   *
+   *  It signs nobody out, so the session stands and there is nowhere to
+   *  navigate; the row re-renders from the answer's `google_linked`. */
+  async unlinkGoogle(): Promise<void> {
+    if (this.unlinkingGoogle()) {
+      return;
+    }
+    this.unlinkingGoogle.set(true);
+    this.googleError.set(null);
+    this.googleFlash.set(null);
+    try {
+      const response = await fetch(`${environment.apiBase}/auth/google/unlink`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        this.googleError.set(await this.detailOf(response));
+        return;
+      }
+      const body = (await response.json()) as { detail?: string; google_linked?: boolean };
+      this.googleLinkAfterWrite.set(body.google_linked ?? false);
+      this.confirmGoogleUnlink.set(false);
+      this.googleFlash.set(body.detail ?? 'Google sign-in unlinked.');
+    } catch {
+      this.googleError.set('Could not reach the server. Try again in a moment.');
+    } finally {
+      this.unlinkingGoogle.set(false);
+    }
+  }
+
+  // ---- notification preferences -------------------------------------------
+
+  /** `PUT /api/auth/notification-prefs`, ONE KEY AT A TIME.
+   *
+   *  The endpoint takes a PARTIAL map deliberately: every key sent is set and
+   *  every key omitted keeps what it had, so a screen that posted the whole map
+   *  would overwrite a preference added by a later deploy with this build's
+   *  default, on the first save by anybody who had not reloaded. Sending the
+   *  one switch that was just clicked is that contract used as intended.
+   *
+   *  The answer is the DENSE map — every key, as the server now holds it — so
+   *  it is taken as the new state rather than the click being assumed to have
+   *  won. */
+  async setNotificationPref(
+    key: string,
+    wanted: boolean,
+    /** The checkbox itself, SO A REFUSAL CAN PUT IT BACK. `[checked]` is bound
+     *  to the value the server gave us, and the click changed the DOM without
+     *  changing that value — so Angular has nothing to re-render, and a 422
+     *  would leave a ticked box sitting above the sentence explaining that it
+     *  was not saved. Restoring it is the only way the control and the error
+     *  message can agree. */
+    box?: HTMLInputElement,
+  ): Promise<void> {
+    if (this.savingPrefKey() !== null) {
+      return;
+    }
+    const restore = (): void => {
+      if (box) {
+        box.checked = !wanted;
+      }
+    };
+    this.savingPrefKey.set(key);
+    this.prefsError.set(null);
+    this.prefsFlash.set(null);
+    try {
+      const response = await fetch(`${environment.apiBase}/auth/notification-prefs`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefs: { [key]: wanted } }),
+      });
+      if (!response.ok) {
+        restore();
+        this.prefsError.set(await this.detailOf(response));
+        return;
+      }
+      const body = (await response.json()) as Record<string, NotificationPref>;
+      this.prefsAfterWrite.set(body);
+      const saved = body[key];
+      this.prefsFlash.set(
+        saved
+          ? `Saved — ${saved.label.toLocaleLowerCase()}: ${saved.enabled ? 'on' : 'off'}.`
+          : 'Saved.',
+      );
+    } catch {
+      restore();
+      this.prefsError.set('Could not reach the server. Try again in a moment.');
+    } finally {
+      this.savingPrefKey.set(null);
+    }
+  }
+
   // ---- this device --------------------------------------------------------
 
   /** Sign out HERE. One device at a time means there is never another live
-   *  session to end as well; ending them all is `B3.6`. */
+   *  session to end as well; ending every token the account has ever held is
+   *  "Sign out everywhere" below. */
   async signOut(): Promise<void> {
     if (this.signingOut()) {
       return;
@@ -464,7 +735,83 @@ export class AccountComponent {
     }
   }
 
+  /** `POST /api/auth/sign-out-everywhere` — and THIS DEVICE GOES TOO.
+   *
+   *  That is the endpoint's design, not an accident of it: keeping this session
+   *  alive would mean re-issuing a cookie at the new `token_version`, and "sign
+   *  out everywhere" would then have an exception in it — the one sentence
+   *  somebody reaching for this button must not have to read. So the server
+   *  deletes the cookie and every token minted before now is refused, this
+   *  page's included.
+   *
+   *  WHICH MEANS THE SCREEN CANNOT STAY. Every request this component would
+   *  make next is a 401, so it takes the app's ordinary signed-out path — clear
+   *  the session the service holds, go to `/login` — exactly as "Sign out"
+   *  above does. `auth.logout()` is idempotent and reads the cookie optionally,
+   *  so posting it against the cookie the server has just deleted is a no-op
+   *  that clears the signal, and a failure there must still not strand anybody
+   *  on a dead screen.
+   *
+   *  Confirmed first, because it is the only button here that ends a session
+   *  the person cannot see — and the reason they reach for it (a shared lab
+   *  machine, a phone that was taken) is the reason it must not be a slip. */
+  async signOutEverywhere(): Promise<void> {
+    if (this.signingOutEverywhere()) {
+      return;
+    }
+    this.signingOutEverywhere.set(true);
+    this.signOutEverywhereError.set(null);
+    try {
+      const response = await fetch(`${environment.apiBase}/auth/sign-out-everywhere`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        this.signOutEverywhereError.set(await this.detailOf(response));
+        return;
+      }
+    } catch {
+      this.signOutEverywhereError.set('Could not reach the server. Try again in a moment.');
+      return;
+    } finally {
+      this.signingOutEverywhere.set(false);
+    }
+    try {
+      await this.auth.logout();
+    } catch {
+      // The cookie is already gone server-side; the session signal is cleared
+      // by the navigation's guard on the next route either way.
+    }
+    await this.router.navigate(['/login']);
+  }
+
   // ---- formatting ---------------------------------------------------------
+
+  /** A door as the person would name it, or the stored value where this build
+   *  does not know the door. */
+  doorLabel(door: string): string {
+    return DOOR_LABEL[door] ?? door;
+  }
+
+  /** The browser's own description of itself, or a dash. A missing user agent
+   *  is a fact about the request, not a device called "Unknown". */
+  deviceOf(userAgent: string | null): string {
+    const described = userAgent?.trim();
+    return described ? described : '—';
+  }
+
+  /** The address the request ARRIVED FROM, which behind a load balancer is the
+   *  balancer for every row. Never captioned as the person's own address. */
+  seenFrom(ip: string | null): string {
+    const address = ip?.trim();
+    return address ? address : '—';
+  }
+
+  /** `login_events.at` is `DateTime(timezone=True)`, so the offset travels with
+   *  it and this renders in the reader's own zone. */
+  signedInOn(iso: string): string {
+    return this.uploadedOn(iso);
+  }
 
   uploadedOn(iso: string | null): string {
     if (!iso) {

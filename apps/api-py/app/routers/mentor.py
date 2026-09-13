@@ -384,6 +384,20 @@ def _offer_row(offer: PlacementOffer, student_name: str) -> PendingOfferOut:
 def pending_offers(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[PendingOfferOut]:
+    """Offers waiting on the office's decision.
+
+    CHECKED AGAINST B1.4'S LIST AND LEFT ALONE. It was carried into this task as
+    one of two "staff queues that already narrow by mentor group and are the
+    remaining unscoped leaks"; it is neither. There is no mentor-group narrowing
+    in this function and there is no leak: `require_admin` admits the Main Admin
+    alone, so the only session that reaches it holds every programme capability
+    by baseline and any reach computed here would resolve to `everything`.
+    Scoping it becomes real work when approving an offer becomes a grantable
+    function (`admin.placement` on this route rather than the role), and then it
+    is one `scope_filter` call keyed on that capability — the funnel this queue
+    feeds, `console.placement`, is already written that way and is the shape to
+    copy.
+    """
     require_admin(session)
     rows = db.execute(
         select(PlacementOffer, User.name)

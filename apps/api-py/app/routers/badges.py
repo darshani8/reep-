@@ -26,6 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..governance import require_feature
 from ..identity import get_current_session
 from ..models.badge import (
     BADGE_BY_CODE,
@@ -300,6 +301,7 @@ def my_badges(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> BadgeDashboardOut:
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.skilling")
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
@@ -310,7 +312,9 @@ def my_badges(
 def my_growth(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> GrowthOut:
-    return compose_growth(_require_student(session), db)
+    student_id = _require_student(session)
+    require_feature(db, student_id, "student.skilling")
+    return compose_growth(student_id, db)
 
 
 # --- student writes ----------------------------------------------------------
@@ -331,6 +335,7 @@ def start_badge(
 ) -> BadgeDashboardOut:
     """Mark a badge In Progress (§13). Idempotent; never demotes an EARNED row."""
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.skilling")
     badge = _badge_or_404(code)
     if badge.staff_awarded:
         raise HTTPException(
@@ -372,6 +377,7 @@ def submit_evidence(
     db: Session = Depends(get_db),
 ) -> BadgeDashboardOut:
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.skilling")
     badge = _badge_or_404(code)
     if badge.staff_awarded:
         # §8: readiness badges come from BGSCET assessment thresholds, and an
@@ -499,6 +505,11 @@ def badge_leaderboards(
     students enter the programme at different starting capabilities, and a
     points board would rank their starting line, not their work."""
     student_id = _require_student(session)
+    # `student.leaderboards`, NOT `student.skilling`: these are boards, and an
+    # office that switched the leaderboards off for a cohort meant all of them.
+    # Switching skilling off hides the badge screen; it does not silently leave
+    # the same cohort ranked on a board reached from it.
+    require_feature(db, student_id, "student.leaderboards")
     if view not in _LB_LABEL:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Unknown view.")
 

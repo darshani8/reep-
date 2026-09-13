@@ -15,9 +15,20 @@ the landing. What was missing was a WRITER. This is it.
 GATED BY A CAPABILITY, NOT A ROLE — `admin.swoc`. The placement office holds
 it by baseline; a faculty member holds it only when an administrator grants it
 in Governance. "From TPO and mentor inputs" means more than one hand writes
-the board, and Governance is where the owner decides whose. PROGRAMME scope
-like the other admin screens: the grant is the decision to let that person
-write for every student.
+the board, and Governance is where the owner decides whose.
+
+AND THE GRANT NOW CARRIES A SCOPE (B1.2/B1.4), WHICH REVERSES WHAT THIS
+DOCSTRING USED TO SAY. It read "PROGRAMME scope like the other admin screens:
+the grant is the decision to let that person write for every student", and that
+sentence was true of the mechanism and wrong about the act. A SWOC line names a
+student and characterises them — it is the one thing on their landing page that
+another person wrote about them — and "let this lecturer write for every student
+in the institution" was never a decision anybody meant to make; it was the only
+decision the grant could express. A grant may now name a college, a department,
+a batch or one student, `scope_filter` narrows the board to it, and the writes
+are narrowed by the same reach through `require_capability(..., target=...)`.
+A programme-wide grant still exists and still means what it says; it is now a
+choice rather than the only shape.
 
 THE VIEWPOINT IS DERIVED, NOT TYPED. A MENTOR's entry is a MENTOR entry; a
 the Main Admin's is the PLACEMENT cell's. The board is deliberately
@@ -41,8 +52,10 @@ from sqlalchemy.orm import Session
 
 from ..architecture_events import record_change
 from ..db import get_db
-from ..governance import require_capability
+from ..governance import ancestry_of_student, require_capability
 from ..identity import get_current_session
+from ..policies import scope_filter
+from ..scope_views import scope_header
 from ..models.cohort import Cohort
 from ..models.swoc import SwocEntry, SwocKind, SwocSource
 from ..models.user import Student, User
@@ -164,19 +177,35 @@ def _entry_or_404(db: Session, entry_id: str) -> SwocEntry:
 
 @router.get("", response_model=list[SwocStudentRow])
 def list_swoc(
+    response: Response,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[SwocStudentRow]:
+    """Every student this caller's grant reaches, with their board.
+
+    SCOPED (B1.4) — see the module docstring for why the reversal is part of
+    this change and not a side effect of it. The ENTRIES are narrowed too, not
+    only the student rows: a board is read by joining one to the other, and
+    fetching every entry on the deployment to display a scoped subset would put
+    another student's stated weakness in the response body of a screen that
+    happens not to draw it.
+    """
     require_capability(db, session, CAPABILITY)
+    reach = scope_filter(db, session, CAPABILITY)
+    scope_header(response, reach)
+    if reach.nothing:
+        return []
     students = db.execute(
         select(Student.id, User.name, Student.usn, Cohort.name, Cohort.batch_label)
         .join(User, User.id == Student.user_id)
         .outerjoin(Cohort, Cohort.id == Student.cohort_id)
+        .where(Student.id.in_(reach.student_ids()))
         .order_by(User.name, Student.usn)
     ).all()
     entries = db.execute(
         select(SwocEntry, User.name)
         .outerjoin(User, User.id == SwocEntry.author_user_id)
+        .where(SwocEntry.student_id.in_(reach.student_ids()))
         .order_by(SwocEntry.student_id, SwocEntry.kind, SwocEntry.weight.desc(), SwocEntry.recorded_at)
     ).all()
     by_student: dict[str, list[SwocEntryOut]] = {}
@@ -206,6 +235,10 @@ def add_entry(
     require_capability(db, session, CAPABILITY)
     if db.get(Student, student_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such student.")
+    # The board is narrowed, so the pen is narrowed. Checked AFTER the 404 so
+    # the two refusals stay distinguishable to the person fixing whichever one
+    # they hit: "no such student" is a bad id, "does not reach" is a grant.
+    require_capability(db, session, CAPABILITY, target=ancestry_of_student(db, student_id))
     e = SwocEntry(
         student_id=student_id,
         source=_source_for(session),
@@ -232,6 +265,7 @@ def edit_entry(
 ) -> SwocEntryOut:
     require_capability(db, session, CAPABILITY)
     e = _entry_or_404(db, entry_id)
+    require_capability(db, session, CAPABILITY, target=ancestry_of_student(db, e.student_id))
     before = _snapshot(e)
     if body.text is not None:
         e.text = body.text
@@ -254,6 +288,7 @@ def remove_entry(
 ) -> Response:
     require_capability(db, session, CAPABILITY)
     e = _entry_or_404(db, entry_id)
+    require_capability(db, session, CAPABILITY, target=ancestry_of_student(db, e.student_id))
     _audit(db, session, request, e, "DELETE", _snapshot(e), None)
     db.delete(e)
     db.commit()

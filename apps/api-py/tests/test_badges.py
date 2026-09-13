@@ -140,7 +140,12 @@ def test_reject_and_more_info_mint_nothing(client, make_user, granted):
 @requires_db
 def test_groupless_mentor_sees_no_queue_and_students_see_no_admin(client, make_user):
     mentor = make_user("bdg-scope", Role.MENTOR)  # no Mentor row => no group
-    assert client.get("/api/mentor/badge-evidence/pending", headers=mentor.headers).json() == []
+    # 403 since B2.3, where it was `200 []`. A faculty account with no mentees
+    # does not hold `mentor.verifications` at all now — it is derived from the
+    # mentee count, not carried by the role — so the capability gate refuses
+    # before the queue is narrowed. The property is the same and the reason is
+    # now true on screen: they see no queue because they mentor nobody.
+    assert client.get("/api/mentor/badge-evidence/pending", headers=mentor.headers).status_code == 403
 
     student = make_user("bdg-scope-stud", Role.STUDENT)
     assert (

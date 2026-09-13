@@ -202,6 +202,17 @@ def test_every_admin_operation_refuses_a_student(client, make_user, chain):
         ),
         ("patch", "/api/admin/academic-specializations/whoever", {"name": "X"}),
         ("post", "/api/admin/users/whoever/activation-link", {}),
+        # B1.3 — the college-admin appointment. Gated on `require_governance`
+        # rather than this module's `admin.institution` (it reads and writes who
+        # holds what, which is Governance's subject), so the refusal a STUDENT
+        # gets here comes from `policies.require_staff` rather than from
+        # `require_admin` — the same 403, from the gate that owns the act.
+        ("get", f"/api/admin/colleges/{college_id}/admins", None),
+        (
+            "post",
+            f"/api/admin/colleges/{college_id}/admins",
+            {"user_id": "whoever", "reason": "a reason long enough to pass the floor"},
+        ),
     ]
     # Pinned to the router, so a new operation without a line above is a
     # visible failure here rather than silently unguarded.

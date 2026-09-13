@@ -13,6 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
+from ..governance import require_feature
 from ..identity import get_current_session
 from ..document_store import (
     MAX_BYTES,
@@ -898,6 +899,7 @@ def my_jobs(
     """The opportunities feed with a per-row skill match % and the eligibility
     verdict (per-posting CGPA / live-backlog gates)."""
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.jobs")
 
     skill_slugs = set(
         db.scalars(
@@ -992,6 +994,10 @@ def apply_to_job(
     db: Session = Depends(get_db),
 ) -> dict:
     student_id = _require_student(session)
+    # BEFORE the job lookup, so a student whose jobs feed is switched off reads
+    # the office's sentence rather than "Job not found" for a posting that is
+    # sitting right there.
+    require_feature(db, student_id, "student.jobs")
     job = db.get(Job, job_id)
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
@@ -1584,6 +1590,11 @@ def generate_resume(
     PII, so a model is used ONLY when it is local or explicitly allowed; otherwise
     it composes deterministically and says so (the AGENTS.md egress rule)."""
     student_id = _require_student(session)
+    # Gated here and not on GET /student/resume or the PDF: a switched-off
+    # Resume Builder stops the student MAKING a new document, and does not take
+    # away the ones they already made. See require_feature's docstring for the
+    # rule; it is the same one that keeps DELETE /uploads/{id} open.
+    require_feature(db, student_id, "student.resume")
     name = session.get("name", "")
     profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
     # ONLY VERIFIED SKILLS REACH THE DOCUMENT. A resume is a claim made to an
@@ -1942,6 +1953,7 @@ def my_certifications(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[CertProgressOut]:
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.certifications")
     rows = db.execute(
         select(CertificationProgress, Certification)
         .join(Certification, CertificationProgress.cert_code == Certification.code)
@@ -2096,6 +2108,7 @@ def my_uploads(
 ) -> list[UploadRowOut]:
     """A student's own submitted documents and their review state."""
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.uploads")
     rows = db.scalars(
         select(Upload)
         .where(Upload.student_id == student_id)
@@ -2143,6 +2156,7 @@ def create_upload(
     same SpooledTemporaryFile, no coroutine.
     """
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.uploads")
     try:
         upload_kind = UploadKind(kind)
     except ValueError:
@@ -2616,6 +2630,7 @@ def leaderboards(
     """Rank the caller's cohort on one board. A student who opted out is excluded
     from every board and — in both directions — sees no ranks themselves."""
     student_id = _require_student(session)
+    require_feature(db, student_id, "student.leaderboards")
     if board not in _BOARDS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

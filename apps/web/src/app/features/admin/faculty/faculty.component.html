@@ -6,10 +6,16 @@
       <div class="dt-sub">{{ summaryLine() }}</div>
     </div>
     <div class="dt-toolbar">
-      <!-- The Governance review queue of expiring grants is B2.4. -->
-      <button type="button" class="btn secondary" [reepPending]="3">
+      <!-- The destination exists now: Governance grew the queue B2.4 feeds, and
+           `?tab=review` opens it directly rather than landing the admin on that
+           screen's front page to hunt for the tab. -->
+      <a
+        class="btn secondary"
+        routerLink="/admin/governance"
+        [queryParams]="{ tab: 'review' }"
+      >
         <span class="icon" aria-hidden="true">pending_actions</span> Review expiring grants
-      </button>
+      </a>
       <a class="btn primary" routerLink="/admin/faculty/new">
         <span class="icon" aria-hidden="true">person_add</span> Add faculty
       </a>
@@ -27,9 +33,10 @@
     </div>
   }
 
-  <!-- The board's filter row. College and Department narrow what is already
-       loaded, each reading a field the faculty row already carries; Function
-       and Status have nothing to read yet and say so on themselves. -->
+  <!-- The board's filter row. All four narrow WHAT IS ALREADY LOADED, each
+       reading a field the faculty row already carries: the list endpoint takes
+       one parameter and none of these is it, so a refetch would fetch the same
+       rows back. -->
   <div class="filters">
     <div class="select">
       <span class="lbl">College</span>
@@ -55,21 +62,36 @@
       </select>
     </div>
 
-    <div class="select is-pending">
+    <!-- Function is the mentor group and says so in its options: HOD, placement
+         officer and verifier are capability grants and are not on this row.
+         It greys out when the assignment list was refused, because filtering on
+         a fact nobody could read would quietly hide people. -->
+    <div class="select" [class.is-muted]="!mentorGroupsAreReadable()">
       <span class="lbl">Function</span>
-      <span class="val">All</span>
+      <span class="val">{{ functionFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Function" [reepPending]="3">
-        <option value="">All</option>
+      <select
+        aria-label="Function"
+        [disabled]="!mentorGroupsAreReadable()"
+        [title]="mentorGroupsAreReadable() ? '' : 'The mentor assignment list could not be read with this account’s access.'"
+        (change)="setFunctionFilter(selectValue($event))"
+      >
+        <option value="" [selected]="functionFilter() === ''">All</option>
+        <option value="mentor" [selected]="functionFilter() === 'mentor'">Mentor</option>
+        <option value="none" [selected]="functionFilter() === 'none'">No mentor group</option>
       </select>
     </div>
 
-    <div class="select is-pending">
+    <!-- Two values, not the board's three: nothing reports whether an account
+         has redeemed its activation link, so there is no honest "Invited". -->
+    <div class="select">
       <span class="lbl">Status</span>
-      <span class="val">All</span>
+      <span class="val">{{ statusFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Status" [reepPending]="3">
-        <option value="">All</option>
+      <select aria-label="Status" (change)="setStatusFilter(selectValue($event))">
+        <option value="" [selected]="statusFilter() === ''">All</option>
+        <option value="active" [selected]="statusFilter() === 'active'">Active</option>
+        <option value="disabled" [selected]="statusFilter() === 'disabled'">Disabled</option>
       </select>
     </div>
 
@@ -80,9 +102,9 @@
 
   <div class="notice accent columns-note">
     <span class="icon" aria-hidden="true">info</span>
-    Status and Sign-in read “{{ notReadable }}” because nothing reports either per faculty account yet:
-    {{ statusPendingReason }} {{ signInPendingReason }} Functions shows the mentor group the office has
-    assigned — HOD, placement officer and verifier arrive with B2.3. Everything else on this grid is live.
+    Sign-in reads “{{ notReadable }}”: {{ signInPendingReason }} {{ statusUnknownReason }}
+    Functions shows the mentor group the office has assigned — HOD, placement officer and verifier are
+    grants and are made in Governance. Everything else on this grid is live.
   </div>
 
   <!-- Only once the reads have finished, and only when the DIRECTORY itself was
@@ -109,15 +131,16 @@
           (input)="onQuickFilterInput($event)"
         />
 
-        <!-- Granting a function is B2.3; disabling an account is B3.3. -->
-        <button type="button" class="btn secondary sm" [reepPending]="3">
+        <!-- Grants are made in Governance; see GRANT_FUNCTION_PHASE. -->
+        <button type="button" class="btn secondary sm" disabled [title]="grantFunctionReason">
           <span class="icon" aria-hidden="true">key</span>
           Grant function
         </button>
         <button
           type="button"
           class="btn secondary sm"
-          [disabled]="!hasExactlyOneSelected()"
+          [disabled]="!canDisableSelection()"
+          [title]="disableHint()"
           (click)="openDisableDialogForSelection()"
         >
           <span class="icon" aria-hidden="true">block</span>
@@ -245,21 +268,77 @@
         </div>
 
         <div class="drawer-body">
+          <!-- Outside the tab switch: an offboarded account is a fact about the
+               whole record, not about one pane of it. -->
+          @if (faculty.isDisabled) {
+            <div class="notice" role="status">
+              <span class="icon" aria-hidden="true">block</span>
+              {{ openFacultyStatusLine() }}
+            </div>
+          }
+
           @switch (activeTab()) {
             @case ('profile') {
-              <!-- Name and email are read-only until B3.5 gives PATCH
-                   /api/admin/faculty/{id} those two fields. -->
-              <div class="field synced">
+              <div class="field">
                 <label for="faculty-name">Name</label>
-                <input id="faculty-name" class="ctrl" type="text" [value]="faculty.name" [reepPending]="3" />
-                <span class="help">Set when the account was created. Editing it is B3.5.</span>
+                <input
+                  id="faculty-name"
+                  class="ctrl"
+                  type="text"
+                  [value]="draft().name"
+                  (input)="setDraftName(inputValue($event))"
+                />
+                <span class="help">Printed on the college’s leave form and shown to their mentees.</span>
               </div>
 
-              <div class="field synced">
+              <div class="field">
                 <label for="faculty-email">Official email</label>
-                <input id="faculty-email" class="ctrl" type="email" [value]="faculty.email" [reepPending]="3" />
-                <span class="help">Changing the email signs them out of every device, so it lands with B3.5.</span>
+                <input
+                  id="faculty-email"
+                  class="ctrl"
+                  type="email"
+                  [value]="draft().email"
+                  (input)="setDraftEmail(inputValue($event))"
+                />
+                <span class="help">
+                  How Google sign-in finds this account. Changing it signs every device out at once.
+                </span>
               </div>
+
+              <!-- B3.2's escape hatch, shown only once the address has actually
+                   changed: while it has not, neither control can affect the
+                   request, and the server refuses the tick without a reason. -->
+              @if (emailChanged()) {
+                <div class="field">
+                  <label class="inline-check">
+                    <input
+                      type="checkbox"
+                      [checked]="draft().allowExternal"
+                      (change)="setDraftAllowExternal(checkboxValue($event))"
+                    />
+                    <span>This address is outside the college’s domains</span>
+                  </label>
+                  <span class="help">
+                    Leave it clear unless it is deliberate — a typo in a domain mints an account on an
+                    address the institution does not control.
+                  </span>
+                </div>
+
+                @if (draft().allowExternal) {
+                  <div class="field">
+                    <label for="faculty-external-reason">Why this address</label>
+                    <input
+                      id="faculty-external-reason"
+                      class="ctrl"
+                      type="text"
+                      placeholder="e.g. Visiting lecturer, no college address"
+                      [value]="draft().externalReason"
+                      (input)="setDraftExternalReason(inputValue($event))"
+                    />
+                    <span class="help">Required, and recorded on the audit trail against this account.</span>
+                  </div>
+                }
+              }
 
               <div class="field synced">
                 <label for="faculty-college">College</label>
@@ -311,15 +390,16 @@
                 </a>
               </div>
 
-              <button type="button" class="btn secondary" [reepPending]="3">
+              <button type="button" class="btn secondary" disabled [title]="grantFunctionReason">
                 <span class="icon" aria-hidden="true">key</span> Grant function
               </button>
 
               <div class="notice accent">
                 <span class="icon" aria-hidden="true">info</span>
                 The mentor function is a group the office creates by assigning the first student. HOD,
-                placement officer and verifier become grants with a scope, a reason and an expiry in B2.3
-                (Phase 3); until then Governance is where a function is granted.
+                placement officer and verifier are grants with a scope, a reason and an expiry, and they
+                are made on <a routerLink="/admin/governance">Governance</a> — this drawer does not carry
+                a second copy of that form.
               </div>
             }
 
@@ -330,6 +410,12 @@
                   Minting a new link supersedes every older one, so what you hand over is the only link that
                   works. It is how “the email never arrived” is closed on the call, not a stopgap.
                 </p>
+                @if (faculty.isDisabled) {
+                  <p class="drawer-line faint-line">
+                    This account is disabled, so a link minted now cannot be redeemed until it is enabled
+                    again — disabling killed every link that was outstanding.
+                  </p>
+                }
                 <button type="button" class="btn secondary" [disabled]="busy()" (click)="mintActivationLink()">
                   <span class="icon" aria-hidden="true">link</span> Mint activation link
                 </button>
@@ -355,6 +441,17 @@
                 }
               </div>
 
+              <div class="drawer-card card">
+                <h2 class="card-heading">Sessions</h2>
+                <p class="drawer-line">
+                  Retires every device this account is signed in on. Nothing else changes — no password
+                  reset, no disable — so it is the safe first move while the facts are still unclear.
+                </p>
+                <button type="button" class="btn secondary" [disabled]="busy()" (click)="signOutEverywhere()">
+                  <span class="icon" aria-hidden="true">logout</span> Sign out everywhere
+                </button>
+              </div>
+
               <p class="drawer-line faint-line">
                 Passwords are never set by an admin — an active account resets through “Forgot password”.
                 REEP holds one live session per account, so a new sign-in retires the previous device.
@@ -362,8 +459,9 @@
 
               <div class="notice accent">
                 <span class="icon" aria-hidden="true">history</span>
-                Recent sign-ins are listed once login events are recorded (B15, Phase 3). Nothing on
-                <code>main</code> reports when this account last signed in.
+                Sign-ins are recorded (B15), but the only endpoint that reads them serves the signed-in
+                account its own history on My account. Nothing answers “when did this person last sign
+                in”, so no list is drawn here.
               </div>
             }
 
@@ -379,12 +477,21 @@
         </div>
 
         <div class="drawer-foot">
-          <button type="button" class="btn secondary" [reepPending]="3">
+          <button type="button" class="btn secondary" [disabled]="busy()" (click)="signOutEverywhere()">
             <span class="icon" aria-hidden="true">logout</span> Sign out everywhere
           </button>
-          <button type="button" class="btn danger" (click)="openDisableDialog(faculty.userId)">
-            <span class="icon" aria-hidden="true">person_remove</span> Disable account
-          </button>
+          <!-- One button, two directions. An account that is already disabled
+               has no second offboarding to offer, and the only act the office
+               wants on it is the one that undoes the first. -->
+          @if (faculty.isDisabled) {
+            <button type="button" class="btn secondary" [disabled]="busy()" (click)="enableAccount()">
+              <span class="icon" aria-hidden="true">lock_open</span> Enable account
+            </button>
+          } @else {
+            <button type="button" class="btn danger" (click)="openDisableDialog(faculty.userId)">
+              <span class="icon" aria-hidden="true">person_remove</span> Disable account
+            </button>
+          }
         </div>
       </aside>
     } @else {
@@ -399,6 +506,10 @@
   </div>
 
   @if (disablingFaculty(); as faculty) {
-    <app-disable-faculty-dialog [faculty]="faculty" (dismissed)="closeDisableDialog()" />
+    <app-disable-faculty-dialog
+      [faculty]="faculty"
+      (dismissed)="closeDisableDialog()"
+      (accountDisabled)="onDisabled($event)"
+    />
   }
 </div>

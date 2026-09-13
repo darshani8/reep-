@@ -65,8 +65,10 @@
   text-align: right;
 }
 
-/* The phase a column waits for, under its header — so a dash in the cell has
-   its reason directly above it rather than only in the notice. */
+/* Why a column is empty, under its header — so a dash in the cell has its
+   reason directly above it rather than only in the notice. It carried a phase
+   number while the endpoint was unbuilt; Students and Faculty now carry the
+   truth instead, because no phase is going to bring a per-college count. */
 .col-pending {
   display: block;
   font-family: var(--font);
@@ -111,6 +113,32 @@
 .cell-empty {
   color: var(--faint);
   font-variant-numeric: tabular-nums;
+}
+
+/* A domain list is data, not prose: it wraps rather than stretching the column,
+   and stays narrow enough that the four columns after it survive at 1440px. */
+.domains-cell {
+  display: inline-block;
+  max-width: 22ch;
+  overflow-wrap: anywhere;
+}
+
+/* One college admin: the name, and a chip saying how much of the eleven is
+   actually live. Text AND colour — the chip never carries the state alone. */
+.admin-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-cell + .admin-cell {
+  margin-top: 4px;
+}
+
+.admin-name {
+  font-weight: 600;
+  color: var(--ink);
 }
 
 /* --- the two cards ------------------------------------------------------ */

@@ -190,6 +190,10 @@ STUDENT_VERDICTS: dict[str, object] = {
     # carries no ON DELETE at all.
     "auth_tokens": by_user("user_id"),
     "login_days": by_user("user_id"),
+    # A sign-in belongs to the person who made it. Nobody else's record depends
+    # on one, so it goes with them — unlike the audit trail above, where the
+    # office's actions are the point.
+    "login_events": by_user("user_id"),
     "email_verifications": by_parent("registrations", "registration_id"),
     # -- a student's own records: nobody else can hold one of these ----------
     "student_profiles": ALL,
@@ -248,10 +252,26 @@ STUDENT_VERDICTS: dict[str, object] = {
     "assistant_feedback": by_parent("agent_runs", "run_id"),
     # -- logs -----------------------------------------------------------------
     "mail_logs": by_email("recipient"),
+    # An export is an act by STAFF, who survive this purge, and the fact that a
+    # spreadsheet left the building is not erased by deleting the students who
+    # were listed in it.
+    "export_events": KEEP,
     # The office's audit trail SURVIVES; only the events a student performed
     # themselves go. An admin's record of approving or editing that student is
     # the office's own history and is not theirs to take away.
-    "redesign_audit_events": by_user("actor_user_id"),
+    # THE AUDIT TRAIL IS KEPT, and this line used to scope it by actor.
+    #
+    # B2.7 makes the table append-only. Scoping it by `actor_user_id` deleted
+    # the rows a STUDENT was the actor of — which sounds narrow and is not: the
+    # rows recording what the OFFICE did TO that student (approved their
+    # registration, moved their batch, granted somebody the capability to read
+    # them) have a staff actor and were already surviving, so this only ever
+    # removed the half of the story where the student acted. A trail that keeps
+    # what was done to somebody and drops what they did is worse than no trail.
+    #
+    # `actor_user_id` is nullable and SET NULL, so a purged student's rows lose
+    # the name and keep the fact — remove the person, keep the record.
+    "redesign_audit_events": KEEP,
     "redesign_api_idempotency_keys": by_user("principal_id"),
 }
 

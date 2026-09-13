@@ -71,22 +71,45 @@
         @if (createdCollegeName(); as created) {
           <p class="created-note" role="status">
             <span class="icon" aria-hidden="true">check_circle</span>
-            {{ created }} created. It seats no one and grants nothing yet — add its departments,
-            courses and batches in <a routerLink="/admin/institution">Structure</a>.
+            {{ created }} created. It seats no one yet — add its departments, courses and batches in
+            <a routerLink="/admin/institution">Structure</a>.
           </p>
         }
 
+        @if (appointNote(); as note) {
+          <p class="created-note" role="status">
+            <span class="icon" aria-hidden="true">check_circle</span>
+            {{ note }}
+          </p>
+        }
+
+        @if (appointError(); as problem) {
+          <div class="notice" role="alert">
+            <span class="icon" aria-hidden="true">error</span>
+            <div>{{ problem }}</div>
+          </div>
+        }
+
+        <!-- WHAT THIS NOTICE IS FOR: it explains the columns that are still
+             empty, and nothing else. B1.1 and B1.3 landed in Phase 3, so the
+             sentences about domains and the college admin are gone with the
+             dashes they described; what is left is the two counts, which no
+             endpoint reports and no backlog task promises. -->
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
           <div>
-            Four columns are empty on purpose. Registered email domains are not a column on a
-            college yet (<code>colleges.email_domains</code>, B1.1); the college admin is a faculty
-            account holding <code>admin.*</code> functions scoped to the college, which needs the
-            scoped grants and <code>GET /api/admin/colleges/&#123;id&#125;/admins</code> (B1.3); and
-            the student and faculty lists are programme-wide until <code>scope_filter</code> can
-            narrow them to one college (B1.4). All three land in Phase
-            {{ collegeScopePhase }} — until then a dash here means "nothing stores this", never
-            "none".
+            Students and faculty are not counted per college. <code>scope_filter</code> (B1.4) now
+            narrows every staff list to the caller's own reach, but no response carries a count for
+            a college, so a number here would be whatever the reader happens to be able to see,
+            printed as the college's own. A dash in those two columns means "nothing reports this",
+            never "none".
+            @if (adminsState() === 'off') {
+              The college admin is read through <code>admin.governance</code>, which this session
+              does not hold, so that column is not asked for either.
+            }
+            @if (adminsState() === 'error') {
+              The college admin could not be read: {{ adminsError() }}
+            }
           </div>
         </div>
 
@@ -94,23 +117,24 @@
           <div class="colleges-scroll">
             <table class="dt-table colleges-table">
               <caption class="sr-only">
-                Every college on this deployment, with its departments, its administrator and its
-                status.
+                Every college on this deployment, with its registration domains, its administrator
+                and its status.
               </caption>
               <thead>
                 <tr>
                   <th scope="col">College</th>
-                  <th scope="col">
-                    Domains <span class="col-pending">Phase {{ collegeScopePhase }}</span>
+                  <th scope="col">Domains</th>
+                  <th scope="col" class="num">
+                    Students <span class="col-pending">{{ countUnsourcedNote }}</span>
                   </th>
                   <th scope="col" class="num">
-                    Students <span class="col-pending">Phase {{ collegeScopePhase }}</span>
-                  </th>
-                  <th scope="col" class="num">
-                    Faculty <span class="col-pending">Phase {{ collegeScopePhase }}</span>
+                    Faculty <span class="col-pending">{{ countUnsourcedNote }}</span>
                   </th>
                   <th scope="col">
-                    College admin <span class="col-pending">Phase {{ collegeScopePhase }}</span>
+                    College admin
+                    @if (adminsState() === 'off') {
+                      <span class="col-pending">Governance only</span>
+                    }
                   </th>
                   <th scope="col">Status</th>
                 </tr>
@@ -129,10 +153,37 @@
                         <span class="college-sub">{{ collegeSubLine(college) }}</span>
                       </button>
                     </td>
-                    <td><span class="cell-empty">—</span></td>
+                    <td>
+                      <!-- No domains of its own is a REAL setting, not a gap: the
+                           deployment's provisionable_email_domains applies. A dash
+                           here would read as "this college admits nobody". -->
+                      <span [class.cell-empty]="!hasDomains(college)" class="domains-cell">
+                        {{ domainsLabel(college) }}
+                      </span>
+                    </td>
                     <td class="num"><span class="cell-empty">—</span></td>
                     <td class="num"><span class="cell-empty">—</span></td>
-                    <td><span class="cell-empty">—</span></td>
+                    <td>
+                      @switch (adminsState()) {
+                        @case ('ready') {
+                          @for (admin of adminsFor(college); track admin.user_id) {
+                            @let summary = adminSummary(admin);
+                            <span class="admin-cell">
+                              <span class="admin-name">{{ admin.name }}</span>
+                              <span [class]="'chip ' + summary.tone">{{ summary.label }}</span>
+                            </span>
+                          } @empty {
+                            <span class="cell-empty">Not appointed</span>
+                          }
+                        }
+                        @case ('loading') {
+                          <span class="cell-empty">Reading…</span>
+                        }
+                        @default {
+                          <span class="cell-empty">—</span>
+                        }
+                      }
+                    </td>
                     <td>
                       <span [class]="statusChipClass(college.status)">
                         {{ statusLabel(college.status) }}
@@ -175,16 +226,20 @@
             </div>
           </div>
 
-          <div class="notice warn">
-            <span class="icon" aria-hidden="true">warning</span>
+          <!-- B1.2 and B1.3 landed, so this notice no longer says the boundary
+               does not exist. What it says now is the half that still surprises
+               people: appointing somebody writes eleven grants and five of them
+               hold nothing until a second person approves them. -->
+          <div class="notice accent">
+            <span class="icon" aria-hidden="true">info</span>
             <div>
-              Today not one of these stops at a college. Every <code>admin.*</code> key in the
-              catalogue is <code>CapabilityScope.PROGRAMME</code>, so a grant made in Governance
-              covers every college on this deployment; <code>mentor.leave_approve</code> is
-              <code>SCOPED</code>, which narrows it to the holder's own mentor group — not to a
-              college either. Scope on a grant (B1.2) and the scoped college-admin grant set (B1.3)
-              arrive in Phase {{ collegeScopePhase }}; this card describes the college boundary they
-              create.
+              Appointing a college admin writes the eleven functions below as grants SCOPED to this
+              college (<code>scope_level = college</code>, B1.2), under one recorded reason. Five of
+              them carry a student's own records, so they are written
+              <code>pending_approval</code> and hold nothing until a second holder of
+              <code>admin.governance</code> approves each in
+              <a routerLink="/admin/governance">Roles &amp; functions</a> (B2.4) — a freshly
+              appointed college admin is normally part live, and the table's chip says how much.
             </div>
           </div>
 
@@ -214,8 +269,11 @@
                 }
               </ul>
               <p class="functions-foot">
-                Roles &amp; functions and this platform card stay with the Main Admin;
-                <code>require_admin</code> is the one console gate.
+                These are the keys <code>COLLEGE_ADMIN_CAPABILITIES</code> appoints and no others. A
+                faculty instrument — sanctioning leave, a mentor group, verifying evidence — is a
+                separate grant made in
+                <a routerLink="/admin/governance">Roles &amp; functions</a>; Governance and the
+                platform card stay the Main Admin's.
               </p>
             </div>
           </div>
@@ -254,8 +312,9 @@
                 verification, the region, the retention window and the session policy are facts
                 about the deployment, and
                 <code>GET /api/admin/platform/status</code> reports them from Phase
-                {{ platformStatusPhase }} (B3.7). A value copied from the repository's defaults
-                would be a claim about a host nobody checked.
+                {{ platformStatusPhase }} (B3.7, which ships with the CDK harden deploy, not with
+                Phase 3). A value copied from the repository's defaults would be a claim about a
+                host nobody checked.
               </div>
             </div>
 
@@ -336,31 +395,92 @@
             <label for="college-domains">Registration email domains</label>
             <input
               id="college-domains"
-              [reepPending]="collegeScopePhase"
-              placeholder="bgscet.ac.in"
+              [value]="newCollegeDraft().domains"
+              (input)="setNewCollegeField('domains', $any($event.target).value)"
+              placeholder="bgscet.ac.in, sjbit.ac.in"
               autocomplete="off"
             />
             <p class="help">
-              Applications from these domains can auto-approve; every other domain is held for
-              review. The column is <code>colleges.email_domains</code> (B1.1) — until it exists,
-              the fence is the deployment-wide
-              <code>provisionable_email_domains</code> setting.
+              Optional · <code>colleges.email_domains</code> (B1.1). An applicant on one of these
+              can be provisioned for this college; every other address is refused — including one
+              a registration rule would otherwise auto-approve, which then lands in the review
+              queue carrying the refusal as its reason. This is not the rule engine's own domain
+              condition, which lives on a registration rule. Leave it empty and the deployment's
+              own <code>provisionable_email_domains</code> applies instead — which is what every
+              college gets today. Separate several with commas.
             </p>
           </div>
 
           <div class="field">
             <label for="college-admin">College admin</label>
-            <input
-              id="college-admin"
-              [reepPending]="collegeScopePhase"
-              placeholder="Choose a faculty account or invite one"
-              autocomplete="off"
-            />
-            <p class="help">
-              Receives <code>admin.*</code> functions scoped to this college — the scoped grant set
-              is B1.3.
-            </p>
+            @if (canAppointAdmin()) {
+              <select
+                id="college-admin"
+                [disabled]="facultyLoading() || faculty().length === 0"
+                (change)="setAppointUserId($any($event.target).value)"
+              >
+                <option value="" [selected]="appointUserId() === ''">Nobody yet</option>
+                @for (person of faculty(); track person.user_id) {
+                  <option [value]="person.user_id" [selected]="appointUserId() === person.user_id">
+                    {{ facultyLabel(person) }}
+                  </option>
+                }
+              </select>
+              @if (facultyError(); as problem) {
+                <p class="err" role="alert">
+                  <span class="icon" aria-hidden="true">error</span>
+                  {{ problem }}
+                </p>
+              } @else if (!facultyLoading() && faculty().length === 0) {
+                <p class="help">
+                  No faculty account exists yet. One is created in
+                  <a routerLink="/admin/faculty">Faculty</a>, and this college can be handed over
+                  afterwards.
+                </p>
+              } @else {
+                <p class="help">
+                  Optional · receives the eleven <code>admin.*</code> functions scoped to this
+                  college (B1.3). Their role does not change: they stay a faculty account.
+                </p>
+              }
+            } @else {
+              <!-- NOT a phase: both college-admin endpoints are gated on
+                   admin.governance and the faculty list on the Main Admin, so
+                   this is a permission this session does not hold rather than an
+                   endpoint that does not exist. A "Phase N" label here would be
+                   a promise that a deploy fixes it. -->
+              <input
+                id="college-admin"
+                disabled
+                title="Appointing a college admin needs admin.governance"
+                placeholder="Needs the Governance function"
+                autocomplete="off"
+              />
+              <p class="help">
+                Appointing a college admin is Governance's act, not this screen's:
+                <code>POST /api/admin/colleges/&#123;id&#125;/admins</code> and the faculty list are
+                gated on <code>admin.governance</code> and the Main Admin. The college can be
+                created here and handed over afterwards.
+              </p>
+            }
           </div>
+
+          @if (canAppointAdmin() && appointUserId()) {
+            <div class="field">
+              <label for="college-admin-reason">Reason for the appointment <span class="req">*</span></label>
+              <textarea
+                id="college-admin-reason"
+                rows="2"
+                [value]="appointReason()"
+                (input)="setAppointReason($any($event.target).value)"
+                placeholder="Why this account runs this college"
+              ></textarea>
+              <p class="help">
+                Goes on the audit trail beside all eleven grants. At least
+                {{ minReasonChars }} characters — {{ appointReasonLength() }} so far.
+              </p>
+            </div>
+          }
 
           <div class="field">
             <label for="college-catalogues">Copy catalogues from</label>
@@ -379,8 +499,8 @@
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
             <div>
-              Creating a college seats no one and grants nothing. Departments, courses and batches
-              are added in <a routerLink="/admin/institution">Structure</a>.
+              Creating a college seats no one. Departments, courses and batches are added in
+              <a routerLink="/admin/institution">Structure</a>.
             </div>
           </div>
 

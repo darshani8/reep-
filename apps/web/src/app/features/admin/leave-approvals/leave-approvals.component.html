@@ -39,24 +39,39 @@
   </div>
 
   <div class="filters">
-    <!-- College and department are the app bar's scope control (B1.2 / B1.4).
-         Until a grant carries a scope there is one college and nothing to
-         narrow to, so both pills are disabled rather than offering one option. -->
-    <div class="select filter-pending">
-      <span class="lbl">College</span>
-      <span class="val">All</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="College" [reepPending]="scopeBackendPhase">
-        <option value="">All</option>
-      </select>
-    </div>
+    <!-- COLLEGE IS A READ-OUT, NOT A PICKER (B1.4). /leaves/pending takes no
+         college parameter: the server narrows the queue and states the reach it
+         used in X-Reep-Scope. There is nothing to send, so this states what the
+         grant reaches and offers no menu that could only hide rows. Nothing is
+         drawn at all when the response made no claim. -->
+    @if (scopeChip(); as reach) {
+      <span class="chip {{ reach.tone }}">{{ reach.label }}</span>
+    }
 
-    <div class="select filter-pending">
+    <!-- DEPARTMENT narrows the rows already returned — `requester_department`
+         is on every row — so it is live, and it changes what is drawn and
+         never what may be read. -->
+    <div class="select">
       <span class="lbl">Department</span>
-      <span class="val">All</span>
+      <span class="val">{{ departmentFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Department" [reepPending]="scopeBackendPhase">
-        <option value="">All</option>
+      <select
+        aria-label="Department — narrows the requests shown"
+        (change)="setDepartmentFilter(selectValue($event))"
+      >
+        <option [value]="everyDepartment" [selected]="departmentFilter() === everyDepartment">
+          All
+        </option>
+        @for (department of departments(); track department) {
+          <option [value]="department" [selected]="department === departmentFilter()">
+            {{ department }}
+          </option>
+        }
+        @if (hasUnstatedDepartment()) {
+          <option [value]="noDepartment" [selected]="departmentFilter() === noDepartment">
+            Not on record
+          </option>
+        }
       </select>
     </div>
 
@@ -83,6 +98,12 @@
       </select>
     </div>
   </div>
+
+  @if (scopeNote(); as note) {
+    <div class="notice {{ note.tone }} queue-banner" role="status">
+      <span class="icon" aria-hidden="true">info</span>{{ note.text }}
+    </div>
+  }
 
   @if (error()) {
     <div class="notice queue-banner" role="alert">
@@ -147,7 +168,7 @@
                 } @empty {
                   <tr>
                     <td colspan="5" class="queue-empty">
-                      <strong class="empty-title">Nothing here.</strong>
+                      <strong class="empty-title">{{ emptyTitle() }}</strong>
                       <span class="empty-sub">{{ emptyNote() }}</span>
                     </td>
                   </tr>

@@ -2,37 +2,65 @@
  * Disable faculty — the dialog from `design/admin/OffboardFaculty.html`
  * (spec §27).
  *
- * IT IS BUILT AND IT OPENS, AND IT WRITES NOTHING. `POST
- * /api/admin/users/{id}/disable` is backend task B3.3, which lands in Phase 3,
- * so the confirm carries `[reepPending]="3"`: it is disabled, it says
- * "Available with Phase 3" on itself and in its accessible description, and it
- * cannot be pressed. Leaving the dialog out would make the screen unreviewable
- * against its board; drawing a live button over a 404 is worse.
+ * IT WRITES NOW. `POST /api/admin/users/{id}/disable` landed with B3.3 and this
+ * dialog is its only caller on the console. It posts from here rather than
+ * handing the reason back to the screen, because the three answers that matter
+ * belong on the panel the reader is looking at: the 409 for an account somebody
+ * else already disabled, the 422 for the Main Admin's own account, and the
+ * network failure. A modal that closes itself and drops an error behind it is
+ * how an admin comes to believe a destructive act succeeded.
  *
- * WHAT IT STATES IS THE POINT. Offboarding is the one act on this screen a
- * reader cannot undo by clicking again, so the dialog's job is to say exactly
- * what happens before anything does: sign-in stops on both doors, the mentees
- * are released, the functions are revoked, and the records this person wrote
- * about students stay attached to their name. Those four sentences are B3.3's
- * own contract, quoted from 04-backend-changes.md, not this screen's guess.
+ * THE REASON IS NOT OPTIONAL, AND THE FLOOR IS THE SERVER'S. `DisableIn` folds
+ * whitespace and refuses anything under three characters; `reasonIsUsable`
+ * applies the same rule so the refusal arrives on the field instead of as a
+ * 422. Disabling is the one console action whose effect is invisible from the
+ * console afterwards — the person simply cannot get in — and six months later
+ * the reason is the only thing that says whether it was a resignation, a
+ * secondment or an incident.
+ *
+ * THERE IS NO EFFECTIVE DATE AND THE INPUT SAYS SO. The board draws one; the
+ * endpoint takes `{ reason }` and nothing else, and stamps `disabled_at` at the
+ * moment it runs. Posting a date the server ignores would make the dialog claim
+ * a schedule nothing keeps, so the input stays disabled with the truth written
+ * under it. It is deliberately NOT drawn through PendingControlDirective: that
+ * directive says "available with Phase N", and no phase is bringing this — the
+ * server has no schedule to take.
+ *
+ * WHAT IT STATES IS THE POINT, and every sentence is checked against the
+ * endpoint's own docstring rather than against the board's copy. Two of them
+ * used to be wrong in the same direction — they promised the mentees were
+ * released and the grants revoked, and `disable_account` explicitly does
+ * NEITHER. A dialog that over-states what it is about to do is worse than one
+ * that under-states it: the reader stops checking.
  *
  * THE MENTEE COUNT IS THE ONE NUMBER, and it is nullable for the reason
  * faculty-row.ts gives: `GET /api/admin/mentor-load` needs `admin.analytics`
  * while this screen needs `admin.mentors`, so it can be refused. When it is,
- * the sentence says "their mentees" rather than inventing a zero — "nobody is
- * released" and "we could not count who is released" must not read alike on the
- * screen that releases them.
+ * the sentence says "their mentees" rather than inventing a zero.
  */
 
-import { Component, ElementRef, afterNextRender, computed, input, output, viewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  afterNextRender,
+  computed,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
+import { environment } from '../../../../environments/environment';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
-import type { FacultyRow } from './faculty-row';
+import type { AccountStateApi, FacultyRow } from './faculty-row';
 import { identityLineOf } from './faculty-row';
 
-/** B3.3: `POST …/enable` restores the login within this window. */
+/** B3.3: `POST …/enable` restores the login within this window. Mirrored from
+ *  `admin_faculty.ENABLE_WINDOW_DAYS`; the server is the one that refuses. */
 const REVERSIBLE_FOR_DAYS = 90;
+
+/** `DisableIn._reason` folds whitespace and refuses anything shorter. */
+const MINIMUM_REASON_LENGTH = 3;
 
 interface DisableConsequence {
   icon: string;
@@ -45,14 +73,19 @@ interface DisableConsequence {
 @Component({
   selector: 'app-disable-faculty-dialog',
   standalone: true,
-  imports: [PendingControlDirective, PluralPipe],
+  imports: [PluralPipe],
   templateUrl: './disable-faculty-dialog.component.html',
   styleUrl: './disable-faculty-dialog.scss',
-  host: { '(document:keydown.escape)': 'dismissed.emit()' },
+  host: { '(document:keydown.escape)': 'dismiss()' },
 })
 export class DisableFacultyDialogComponent {
   readonly faculty = input.required<FacultyRow>();
   readonly dismissed = output<void>();
+  /** The server's own `AccountStateOut`, handed up so the screen can show its
+   *  `detail` verbatim and reread the roster. Named for the act rather than
+   *  called `disabled`, which on a component would collide with the DOM
+   *  property of that name at every call site. */
+  readonly accountDisabled = output<AccountStateApi>();
 
   /** `aria-modal` is a claim, not a mechanism. Without moving focus into the
    *  panel the reader stays on the "Disable account" button BEHIND the
@@ -63,8 +96,13 @@ export class DisableFacultyDialogComponent {
 
   readonly titleId = 'disable-faculty-title';
   readonly reversibleForDays = REVERSIBLE_FOR_DAYS;
-  /** The date the office would record against the offboarding. */
+  /** The date the office would record against the offboarding — which is today,
+   *  because the server stamps the moment it runs. */
   readonly today = new Date().toISOString().slice(0, 10);
+
+  readonly reason = signal('');
+  readonly busy = signal(false);
+  readonly error = signal<string | null>(null);
 
   constructor() {
     afterNextRender(() => this.panel().nativeElement.focus());
@@ -74,23 +112,37 @@ export class DisableFacultyDialogComponent {
 
   readonly subLine = computed(() => identityLineOf(this.faculty()));
 
+  /** The server's floor, applied here so a blank reason is refused on the field
+   *  rather than by a 422 the reader has to translate. */
+  readonly reasonIsUsable = computed(
+    () => this.reason().trim().split(/\s+/).join(' ').length >= MINIMUM_REASON_LENGTH,
+  );
+
+  readonly canDisable = computed(() => this.reasonIsUsable() && !this.busy());
+
   readonly consequences = computed<DisableConsequence[]>(() => [
     {
       icon: 'lock',
       isKept: false,
       sentence:
-        'Sign-in stops immediately — REEP password and Google both. Every device is signed out.',
+        'Sign-in stops immediately — REEP password and Google both. Every device it holds is signed out.',
     },
     {
-      icon: 'group_off',
+      icon: 'link',
       isKept: false,
-      sentence: `${this.menteesReleasedPhrase()} released to the unassigned pool, with a history row recording why.`,
+      sentence:
+        'Every activation, reset and onboarding link still outstanding on this account is spent, so nothing in circulation can set a password on it.',
     },
     {
       icon: 'key',
       isKept: false,
       sentence:
-        'Every function granted to this account is revoked, along with its mentor group. The audit log keeps who granted what.',
+        'The functions granted to this account are NOT revoked and its mentor group is NOT released — a disabled account cannot make a request, so nothing is reachable. Revoke what is no longer wanted in Governance.',
+    },
+    {
+      icon: 'diversity_3',
+      isKept: true,
+      sentence: `${this.menteesKeptPhrase()} still filed under them on Mentors & Students, and stay there until the office reassigns them.`,
     },
     {
       icon: 'history_edu',
@@ -100,14 +152,71 @@ export class DisableFacultyDialogComponent {
     },
   ]);
 
+  dismiss(): void {
+    if (this.busy()) return;
+    this.dismissed.emit();
+  }
+
+  setReason(event: Event): void {
+    this.reason.set((event.target as HTMLInputElement).value);
+  }
+
+  /** Post it. One reason, no date — see the header. */
+  async confirm(): Promise<void> {
+    if (!this.canDisable()) return;
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const response = await fetch(
+        `${environment.apiBase}/admin/users/${this.faculty().userId}/disable`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: this.reason().trim() }),
+        },
+      );
+      if (!response.ok) {
+        this.error.set(await this.detailOf(response));
+        return;
+      }
+      this.accountDisabled.emit((await response.json()) as AccountStateApi);
+    } catch {
+      this.error.set('The account could not be reached. Nothing has been changed.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   /** "Their 14 mentees are", or "Their mentees are" when the assignment list
    *  could not be read. Never "Their 0 mentees" from a failed request. The VERB
-   *  travels with the count, because the sentence it opens is about releasing
-   *  them: "Their 1 mentee are released" is the same unfinished-software tell
-   *  as "1 mentees", on the one dialog a reader cannot undo by clicking. */
-  private menteesReleasedPhrase(): string {
+   *  travels with the count, because the sentence it opens is about where they
+   *  stay: "Their 1 mentee are still filed" is the same unfinished-software
+   *  tell as "1 mentees", on the one dialog a reader cannot undo by clicking. */
+  private menteesKeptPhrase(): string {
     const menteeCount = this.faculty().menteeCount;
     if (menteeCount === null) return 'Their mentees are';
     return `Their ${plural(menteeCount, 'mentee')} ${plural(menteeCount, 'is', 'are')}`;
+  }
+
+  /** FastAPI answers a schema error with `detail` as a LIST; rendered raw it
+   *  reads "[object Object]". Its refusals here name the reason — an account
+   *  already disabled, the Main Admin's own — so the server's sentence is kept
+   *  wherever there is one. */
+  private async detailOf(response: Response): Promise<string> {
+    try {
+      const body = (await response.json()) as { detail?: unknown };
+      const detail = body.detail;
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) {
+        const messages = detail
+          .map((entry) => (entry as { msg?: string }).msg)
+          .filter((message): message is string => typeof message === 'string');
+        if (messages.length > 0) return messages.join(' ');
+      }
+    } catch {
+      /* not JSON — fall through to the status */
+    }
+    return `The request was refused (${response.status}).`;
   }
 }

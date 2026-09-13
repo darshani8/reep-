@@ -30,11 +30,12 @@
   max-width: 240px;
 }
 
-/* A filter whose options nothing can compute yet. PendingControlDirective
-   disables the <select> and says which phase it arrives in; this is the
-   matching dimming, because the .btn opacity rule in reep-v2.scss reaches
-   buttons only. */
-.filters .select.is-pending {
+/* A filter that cannot narrow anything because the list it reads was refused —
+   today only Function, when `GET /api/admin/mentor-load` comes back 403. The
+   <select> carries the real `disabled` and the reason in its title; this is the
+   matching dimming, because the opacity rules in reep-v2.scss reach buttons
+   only. It is NOT the pending directive's grey: nothing is being waited for. */
+.filters .select.is-muted {
   opacity: 0.55;
 }
 
@@ -214,6 +215,24 @@
 .card-heading {
   font-size: 12.5px;
   letter-spacing: 0.01em;
+}
+
+/* A checkbox that reads as one line with its own label, for the drawer's
+   "outside the college's domains" tick. `.field label` is the stacked form
+   label, which is why this is a row of its own rather than a bare label. */
+.inline-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.inline-check input {
+  margin: 1px 0 0;
+  flex: none;
 }
 
 .drawer-line {

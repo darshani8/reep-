@@ -138,6 +138,24 @@ def revoke_user_tokens(db: Session, user_id: str, purpose: str) -> int:
     return int(result.rowcount or 0)
 
 
+def revoke_all_user_tokens(db: Session, user_id: str) -> int:
+    """Kill every still-live link and code this user holds, whatever its purpose.
+
+    Offboarding's companion (B3.3). Disabling an account that still holds a live
+    activation or reset link leaves a way to set a password on it — and while
+    every door now refuses a disabled account, a link that outlives the account
+    it belongs to is a loaded gun waiting for the day somebody re-enables it and
+    forgets what was in circulation. Returns how many were killed, which is what
+    the audit row records.
+    """
+    result = db.execute(
+        update(AuthToken)
+        .where(AuthToken.user_id == user_id, AuthToken.consumed_at.is_(None))
+        .values(consumed_at=_now())
+    )
+    return int(result.rowcount or 0)
+
+
 def issue_user_token(
     db: Session,
     user: User,
@@ -546,12 +564,52 @@ def issue_activation(
     is a staff first-password link, and staff accounts are created by a named
     admin who already knows who they are. Handing one to a student would trade
     the mailbox proof for nothing.
+
+    AND IT REFUSES AN ACCOUNT THAT ALREADY HOLDS A PASSWORD (B3.4). FIRST
+    password is the whole of what this link is for. Re-minting one for a faculty
+    member who has already set theirs handed a live account's password to
+    whoever ended up holding the link — a support action ("the email never
+    arrived") that quietly doubles as an account takeover, and one an admin is
+    not supposed to be able to perform at all: the product's rule is that an
+    admin never sets somebody's password. The account's own door is
+    `/auth/forgot`, which mails the ACCOUNT rather than the person asking, so
+    the refusal names it. `routers/passwords.py::activate` refuses the same case
+    on redemption, which is what closes the links already handed out.
     """
     if user.role is Role.STUDENT:
         raise ValueError(
             "Students set their password from the setup link they are emailed "
             "when their registration is approved. Activation links are for "
             "staff accounts."
+        )
+    # AND IT REFUSES A DISABLED ACCOUNT. `disable_account` spends every
+    # outstanding link on the way out, and `routers/passwords.py::activate`
+    # refuses a disabled holder on redemption — so a link minted here for an
+    # offboarded account is one that CANNOT be redeemed, by design, and nothing
+    # said so at the moment it was minted.
+    #
+    # The cost of that silence is paid in front of somebody: the admin opens the
+    # Faculty screen, presses "Activation link" because the person is on the
+    # phone saying they cannot get in, reads out a URL, and it fails for them
+    # with a refusal that names neither the admin's action nor the real reason.
+    # The account is disabled; that is the answer, and it belongs here rather
+    # than three minutes later.
+    #
+    # Refused at this chokepoint and not in the router, so `app.grant_access`
+    # gets the same refusal — the CLI is the path the very first account takes
+    # and it would otherwise print a link nobody can use.
+    if user.disabled_at is not None:
+        raise ValueError(
+            f"{user.email} is disabled, so an activation link for it could not "
+            "be redeemed. Enable the account first; its outstanding links were "
+            "spent when it was disabled, so it will need a fresh one afterwards."
+        )
+    if (user.password_hash or "").startswith("scrypt:"):
+        raise ValueError(
+            f"{user.email} already has a password, so there is no first password "
+            "to set. Ask them to use \"Forgot password?\" on the sign-in screen — "
+            "a reset link goes to their own mailbox, which an activation link "
+            "handed over in person does not."
         )
     raw, row = issue_user_token(
         db,

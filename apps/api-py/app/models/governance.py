@@ -106,18 +106,28 @@ _P = CapabilityScope.PROGRAMME
 
 #: One entry per screen a staff member can reach. Keys mirror the Angular routes
 #: so a reviewer can check the two lists against each other by eye.
+#:
+#: THE TEN `student.*` KEYS WERE DELETED HERE (B2.1, 2026-09-13), and the reason
+#: is the sentence three paragraphs above this one: a row that names a capability
+#: nothing checks is a promise the API does not keep. `student.profile`,
+#: `.records`, `.skilling`, `.uploads`, `.resume`, `.interviews`, `.english`,
+#: `.time_log`, `.mentor_log` and `.jobs` were checked at ZERO call sites in
+#: `app/` and read by nothing in `apps/web/src`. Granting one in Governance cost
+#: the office a decision, a typed reason and an audit row, and changed nothing
+#: anywhere -- which is worse than a missing feature, because it looks like one
+#: that works. What actually decides whether a staff member may open a student's
+#: ledger is rule 2 (`_assert_can_access_student`) plus the screen's own
+#: capability, and what decides whether the STUDENT has a screen at all is a
+#: FeatureOverride below -- which is where these ten names properly live (B2.2).
+#:
+#: Deleting a key does not break a grant that names it: `granted_capabilities`
+#: already drops any key the catalogue no longer defines, so an existing row
+#: goes inert rather than raising. It was already inert; now it says so.
+#:
+#: `tools/ci/check_capability_enforcement.py` is what stops the next one being
+#: added: every key here must be checked somewhere under `app/`, or exempted in
+#: that script with the reason written down.
 CAPABILITIES: Final[tuple[Capability, ...]] = (
-    # -- student records, scoped to the holder's mentor group ----------------
-    Capability("student.profile", "Profile & USN", _S, carries_pii=True),
-    Capability("student.records", "Academic records", _S, carries_pii=True),
-    Capability("student.skilling", "Skilling & badges", _S),
-    Capability("student.uploads", "Documents & uploads", _S, carries_pii=True),
-    Capability("student.resume", "Resume Builder drafts", _S, carries_pii=True),
-    Capability("student.interviews", "Interview results", _S, carries_pii=True),
-    Capability("student.english", "English baseline", _S),
-    Capability("student.time_log", "Time allocation ledger", _S),
-    Capability("student.mentor_log", "Mentor meeting log", _S),
-    Capability("student.jobs", "Job applications", _S),
     # -- faculty tools -------------------------------------------------------
     Capability("mentor.mentees", "Mentee log", _S),
     Capability("mentor.notebook", "Mentor notebook", _S),
@@ -148,6 +158,29 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # time (app/routers/admin_students.py). PROGRAMME and personal: it creates,
     # edits and deletes roster rows - the access control itself.
     Capability("admin.students", "Students", _P, carries_pii=True),
+    # Governance itself: the grants screen, the access groups and the student
+    # feature switches (app/routers/governance.py). B2.6.
+    #
+    # IT IS NOT FLAGGED `carries_pii`, AND THAT IS THE BOOTSTRAP, NOT AN
+    # OVERSIGHT. 04-backend-changes.md asks for this key to be "grantable to one
+    # deputy with a reason and second approval". It cannot be both: the second
+    # approver must be somebody OTHER than the granter who also holds this key
+    # (`_approver_of` in the router), REEP has exactly ONE Main Admin by rule,
+    # and so on a fresh deployment the only account that could approve the
+    # deputy's grant is the account that made it. A `carries_pii` flag here
+    # would make the appointment of the first deputy permanently pending --
+    # four-eyes with one pair of eyes -- and the four-eyes rule would then
+    # protect nothing at all, because no PII grant could ever be approved
+    # either.
+    #
+    # So the deputy is the bootstrap: appointing one takes effect at once, and
+    # from that moment REEP has the two people every `carries_pii` grant needs.
+    # The appointment is still a decision on the trail with a typed reason, made
+    # by the one account that holds this by baseline.
+    #
+    # It reads no student record itself -- it hands out screens -- which is what
+    # `carries_pii` actually means on this dataclass.
+    Capability("admin.governance", "Governance", _P),
     # -- temporary, and the only entry here that is not a screen --------------
     # THIS ONE IS DELETED IN PHASE 5. It gates the 2026-09 admin console while
     # it is being built, so the owner can review it on a production deployment
@@ -173,33 +206,78 @@ CAPABILITIES_BY_KEY: Final[dict[str, Capability]] = {c.key: c for c in CAPABILIT
 class Feature:
     key: str
     label: str
+    #: Does a router actually ASK about this key? B2.2.
+    #:
+    #: It defaults to False, which is the opposite of convenient and is the
+    #: whole point. Between 2026-08 and B2.2 every one of these ten was recorded,
+    #: audited, displayed with a reason — and inert: `feature_enabled()` and
+    #: `features_for()` were written, correct and tested, and NOTHING CALLED
+    #: EITHER. The Governance screen said a feature was off and the student used
+    #: it all afternoon. A switch wired to nothing is worse than a missing one,
+    #: because somebody trusted it.
+    #:
+    #: So the flag is a claim the next person has to make ON PURPOSE, and
+    #: `tests/test_feature_switches.py` makes them back it up: a key marked
+    #: enforced with no call site in `app/` fails, and a key that IS gated but
+    #: still says False fails too. Adding a Feature and forgetting the wiring is
+    #: then a switch the console shows as "not wired yet" and REFUSES to set
+    #: (422 on the override write) — honest, and unusable, rather than a lie the
+    #: office can act on.
+    enforced: bool = False
 
 
 #: Student-facing features. These are SWITCHED OFF, never granted — every
 #: student has them until an override says otherwise.
+#:
+#: `enforced=True` on every row here means every one of them is asked about at
+#: a real call site; the map from key to the endpoints that ask is in
+#: `app/governance.py::require_feature`'s docstring, next to the rule about
+#: which endpoints are deliberately NOT gated.
 FEATURES: Final[tuple[Feature, ...]] = (
-    Feature("student.assistant", "Voice interviewer (Mock Interview)"),
-    Feature("student.agent", "REEP Agent (chat)"),
-    Feature("student.resume", "Resume Builder"),
-    Feature("student.english", "English baseline test"),
-    Feature("student.jobs", "Jobs feed & applications"),
-    Feature("student.leaderboards", "Leaderboards"),
-    Feature("student.uploads", "Document uploads"),
-    Feature("student.time_log", "Time allocation ledger"),
-    Feature("student.skilling", "Skilling & badges"),
-    Feature("student.certifications", "Certifications"),
+    Feature("student.assistant", "Voice interviewer (Mock Interview)", enforced=True),
+    Feature("student.agent", "REEP Agent (chat)", enforced=True),
+    Feature("student.resume", "Resume Builder", enforced=True),
+    Feature("student.english", "English baseline test", enforced=True),
+    Feature("student.jobs", "Jobs feed & applications", enforced=True),
+    Feature("student.leaderboards", "Leaderboards", enforced=True),
+    Feature("student.uploads", "Document uploads", enforced=True),
+    Feature("student.time_log", "Time allocation ledger", enforced=True),
+    Feature("student.skilling", "Skilling & badges", enforced=True),
+    Feature("student.certifications", "Certifications", enforced=True),
+    # ADDED BY B2.2, and the spec is why it was missing. 04-backend-changes.md
+    # names the ten features to gate as "jobs, leaderboards, mock interview,
+    # resume generate, agent, uploads, english, skilling, time-log, mentor-log"
+    # — but the catalogue it was describing has no `student.mentor_log`, and has
+    # `student.certifications`, which that sentence never mentions. Both screens
+    # are real and a student reaches both, so both are switches now: dropping
+    # the mentor log would have left the spec's own list one short, and dropping
+    # certifications would have left a catalogue row that gates nothing, which
+    # is the exact state B2.2 exists to end.
+    Feature("student.mentor_log", "Mentor meeting log", enforced=True),
 )
 
 FEATURES_BY_KEY: Final[dict[str, Feature]] = {f.key: f for f in FEATURES}
 
 
-class FeatureScope(str, enum.Enum):
-    """A rung of the institutional hierarchy.
+class ScopeLevel(str, enum.Enum):
+    """A rung of the institutional hierarchy that something can hang on.
 
     NOT `institution.HierarchyLevel`, which is a different thing with a
     confusingly similar name: that one says which levels a NEW BATCH must name.
-    This one says where a feature override was hung. Ordered most general to most
+    This one says WHERE something was hung. Ordered most general to most
     specific, and `SPECIFICITY` below depends on that order.
+
+    WAS `FeatureScope`, because a feature override was the only thing that hung
+    on a rung. B1.2 hangs capability grants on the same rungs — a grant scoped to
+    a department reaches that department's students and no others — and two
+    enums with identical members, one called Feature- and one called Grant-,
+    would be the same mistake twice. The docstring already described this as "a
+    rung of the institutional hierarchy" before anything but features used it.
+
+    There is no PROGRAMME member and there must not be one. A grant that reaches
+    everything hangs on NO rung, which is `scope_level IS NULL` on the row, not a
+    seventh value here; a feature override always hangs on one. Adding PROGRAMME
+    would make it representable for features, where it means nothing.
     """
 
     COLLEGE = "COLLEGE"
@@ -215,13 +293,13 @@ class FeatureScope(str, enum.Enum):
 #: student and keeps the most specific — which is why an admin can switch a
 #: feature off for a whole specialization and still turn it back on for one
 #: student inside it, without deleting the broader rule.
-SPECIFICITY: Final[dict[FeatureScope, int]] = {
-    FeatureScope.COLLEGE: 0,
-    FeatureScope.DEPARTMENT: 1,
-    FeatureScope.COURSE: 2,
-    FeatureScope.SPECIALIZATION: 3,
-    FeatureScope.COHORT: 4,
-    FeatureScope.STUDENT: 5,
+SPECIFICITY: Final[dict[ScopeLevel, int]] = {
+    ScopeLevel.COLLEGE: 0,
+    ScopeLevel.DEPARTMENT: 1,
+    ScopeLevel.COURSE: 2,
+    ScopeLevel.SPECIALIZATION: 3,
+    ScopeLevel.COHORT: 4,
+    ScopeLevel.STUDENT: 5,
 }
 
 
@@ -270,6 +348,27 @@ class AccessGroupMember(Base):
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+#: A grant takes effect immediately unless the capability carries PII, in which
+#: case a second Main Admin has to agree first (B2.4).
+APPROVAL_ACTIVE: Final[str] = "active"
+APPROVAL_PENDING: Final[str] = "pending_approval"
+APPROVAL_STATES: Final[frozenset[str]] = frozenset({APPROVAL_ACTIVE, APPROVAL_PENDING})
+
+#: How long a grant runs before somebody has to look at it again (B2.4).
+#:
+#: A REVIEW IS NOT AN EXPIRY. An expiry ends the grant on its own; a review only
+#: puts it in front of a person, who extends it or revokes it. Most of the access
+#: that goes wrong in an institution is access that was correct when it was given
+#: and that nobody revisited, so the grant that never lapses is exactly the one
+#: that needs a date on it.
+REVIEW_AFTER_DAYS: Final[int] = 180
+
+#: How far ahead `GET /review` looks. A month is long enough that the office can
+#: act between two of its own meetings, and short enough that the queue is a list
+#: of things to do rather than a second copy of the grants table.
+REVIEW_HORIZON_DAYS: Final[int] = 30
+
+
 class CapabilityGrant(Base):
     """One capability, held by one user or one group, until revoked or expired.
 
@@ -290,9 +389,18 @@ class CapabilityGrant(Base):
             "(subject_kind = 'GROUP' AND subject_group_id IS NOT NULL AND subject_user_id  IS NULL)",
             name="ck_capability_grant_one_subject",
         ),
+        CheckConstraint(
+            "(scope_level IS NULL AND scope_id IS NULL)"
+            " OR (scope_level IS NOT NULL AND scope_id IS NOT NULL)",
+            name="ck_capability_grant_scope_pair",
+        ),
         Index("ix_capgrant_user_live", "subject_user_id", "capability", "revoked_at"),
         Index("ix_capgrant_group_live", "subject_group_id", "capability", "revoked_at"),
         Index("ix_capgrant_capability", "capability"),
+        CheckConstraint(
+            "approval_state IN ('active', 'pending_approval')",
+            name="ck_capability_grant_approval_state",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
@@ -300,6 +408,25 @@ class CapabilityGrant(Base):
     #: capability is a deploy rather than a type migration — the same choice
     #: auth_tokens.purpose makes and for the same reason.
     capability: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    #: WHERE this grant reaches, as a rung of the spine — or NULL for everywhere.
+    #:
+    #: NULL IS PROGRAMME-WIDE AND IS NOT A MISSING VALUE. A grant that reaches
+    #: every college hangs on no rung; representing that as a seventh ScopeLevel
+    #: member would make "PROGRAMME" available to feature overrides, where it
+    #: means nothing. The check constraint below is what stops the two columns
+    #: from disagreeing — a level with no id reaches nothing and an id with no
+    #: level reaches everything, and both are silent.
+    #:
+    #: `scope_id` is deliberately not a foreign key, for the same reason
+    #: `feature_overrides.target_id` is not: it points at one of five tables
+    #: depending on the level, and no database expresses a polymorphic FK.
+    #: Resolution joins explicitly per level in policies.scope_filter.
+    scope_level: Mapped[ScopeLevel | None] = mapped_column(
+        Enum(ScopeLevel, name="governance_scope_level"), nullable=True
+    )
+    scope_id: Mapped[str | None] = mapped_column(String, nullable=True)
+
 
     subject_kind: Mapped[SubjectKind] = mapped_column(
         Enum(SubjectKind, name="governance_subject_kind"), nullable=False
@@ -328,6 +455,41 @@ class CapabilityGrant(Base):
     )
     revoke_reason: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    #: When somebody should LOOK AT THIS AGAIN, which is not when it expires
+    #: (B2.4). An expiry ends a grant; a review date only asks whether it is
+    #: still the right grant. Most of the access that goes wrong in an
+    #: institution is access that was correct when it was given and nobody
+    #: revisited — so the review queue is the point, and a grant with no expiry
+    #: still gets one of these.
+    review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    #: `active` or `pending_approval` (B2.4). A capability the catalogue marks
+    #: `carries_pii` does not take effect until a second Main Admin approves it,
+    #: so the person granting and the person agreeing are two people.
+    #:
+    #: A String with a check constraint rather than a Postgres enum, for the
+    #: reason `capability` above is one: a new state should be a deploy, not a
+    #: type migration. AGENTS.md's three enum gotchas are all about the cost of
+    #: getting that wrong.
+    approval_state: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=APPROVAL_ACTIVE, server_default=APPROVAL_ACTIVE
+    )
+    approved_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    #: The role the subject held WHEN THIS WAS GRANTED (B2.5).
+    #:
+    #: A grant is a decision about a person in a role -- "this MENTOR may read
+    #: the registrations queue". If that account later becomes something else,
+    #: the decision no longer describes anybody, and a grant that silently
+    #: survives a role change is how a demoted account keeps a console screen.
+    #: NULL means "granted before this column existed", and those are honoured:
+    #: the backfill cannot know what role was held at the time, and guessing
+    #: would revoke real access on the deploy that shipped it.
+    role_at_grant: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
 
 class FeatureOverride(Base):
     """A student-facing feature switched off (or back on) at one rung.
@@ -345,8 +507,8 @@ class FeatureOverride(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     feature: Mapped[str] = mapped_column(String(64), nullable=False)
-    scope: Mapped[FeatureScope] = mapped_column(
-        Enum(FeatureScope, name="governance_feature_scope"), nullable=False
+    scope: Mapped[ScopeLevel] = mapped_column(
+        Enum(ScopeLevel, name="governance_scope_level"), nullable=False
     )
     #: The id of the college / department / course / specialization / cohort /
     #: student this hangs on. Not an FK: it points at six different tables
@@ -358,6 +520,14 @@ class FeatureOverride(Base):
         Boolean, nullable=False, default=False, server_default=sql_text("false")
     )
     reason: Mapped[str] = mapped_column(String, nullable=False)
+    #: What the STUDENT is told when they reach the switched-off thing (B2.2).
+    #:
+    #: Separate from `reason`, which is why the office did it and is nobody
+    #: else's business -- "withheld pending the disciplinary meeting" is a true
+    #: reason and not a sentence to put on a student's screen. Null means the
+    #: feature is simply absent from their console, which is the right default:
+    #: a message is a decision to explain, and explaining is not always kind.
+    student_message: Mapped[str | None] = mapped_column(String, nullable=True)
     set_by_user_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )

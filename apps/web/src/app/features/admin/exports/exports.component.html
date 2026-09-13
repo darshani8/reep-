@@ -5,13 +5,22 @@
       <h1 class="dt-title">Exports</h1>
       <p class="dt-sub">
         CSV extracts for accreditation, review meetings and the placement cell. Each file is
-        generated fresh on download and covers the whole programme today — scoping to your grant,
-        the gate on personal fields and the audited history all arrive with the Phase
-        {{ exportsBackendPhase }} exports task.
+        generated fresh on download, covers only the students your Exports function reaches, names
+        them only if you also hold the roster function, and is written to the audited history
+        below.
       </p>
     </div>
     <div class="dt-toolbar">
-      <button type="button" class="btn secondary" [reepPending]="exportsBackendPhase">
+      <!-- Not a phase: 02-admin-console-spec.md §22 lists scheduling as
+           "(optional, later)" and no task in 04-backend-changes.md defines it,
+           so the control is drawn with its real reason rather than a date
+           nothing has agreed to. -->
+      <button
+        type="button"
+        class="btn secondary"
+        disabled
+        title="Scheduled exports are not built — the spec lists them as optional and later, and no backend task defines one"
+      >
         <span class="icon" aria-hidden="true">event_repeat</span> Schedule an export
       </button>
     </div>
@@ -41,14 +50,14 @@
           <h2 class="extract-title">{{ extract.title }}</h2>
           @if (extract.path === null) {
             <span class="chip dot neutral">Not built yet</span>
-          } @else if (extract.carriesNameAndUsn) {
-            <span class="chip dot risk">Carries name &amp; USN</span>
+          } @else if (piiChip(extract); as pii) {
+            <span [class]="'chip dot ' + pii.tone">{{ pii.label }}</span>
           }
         </div>
 
         <p class="extract-desc">{{ extract.description }}</p>
 
-        @if (extract.headerRow; as headerRow) {
+        @if (columnLine(extract); as headerRow) {
           <p class="extract-columns" title="The file's header row">{{ headerRow }}</p>
         } @else {
           <p class="extract-columns extract-columns-unknown">
@@ -72,7 +81,7 @@
         <div class="extract-foot">
           @if (extract.path === null) {
             <span class="extract-last">Not available yet</span>
-            <button type="button" class="btn secondary sm" [reepPending]="exportsBackendPhase">
+            <button type="button" class="btn secondary sm" [reepPending]="unbuiltExtractPhase">
               <span class="icon" aria-hidden="true">download</span> Download CSV
             </button>
           } @else if (!canDownload(extract)) {
@@ -108,10 +117,11 @@
   <div class="notice accent">
     <span class="icon" aria-hidden="true">info</span>
     <div>
-      The Interviews, Registrations and Leave extracts — and the scope filter, the gate that drops
-      personal columns for a caller without the PII-carrying function, and the audited download
-      history below — are the Phase {{ exportsBackendPhase }} exports task (B14); until it lands,
-      those three cards download nothing.
+      The Interviews, Registrations and Leave extracts are the only parts of this screen still
+      waiting on the backend, and each waits on its own area rather than on an exports task: the
+      Interviews file is the summary-only extract that arrives with the interview work (B6.2),
+      Registrations with B11 and Leave with B10. Until then those three cards download nothing.
+      Scoping, the gate that drops personal columns and the audited history below are live.
     </div>
   </div>
 
@@ -119,40 +129,77 @@
     <div class="history-head">
       <div>
         <h2 class="history-title">Download history</h2>
-        <p class="history-sub">who exported what, with which filters — retained 7 years</p>
+        <p class="history-sub">
+          who exported what, with which filters — kept for the life of the deployment, and not
+          removed by a people purge
+        </p>
+        @if (scopeChip(); as scope) {
+          <p class="history-scope">
+            <span [class]="'chip dot ' + scope.tone">{{ scope.label }}</span>
+            <span class="history-scope-text">{{ scopeSentence() }}</span>
+          </p>
+        }
       </div>
-      <!-- `/admin/audit` is roleGuard('ADMIN'); a granted faculty member would
-           be bounced by the guard, so the link is not offered to them. -->
-      @if (isMainAdmin()) {
-        <a class="btn ghost sm" routerLink="/admin/audit">
-          Open audit log <span class="icon" aria-hidden="true">arrow_forward</span>
-        </a>
-      }
+      <div class="history-actions">
+        <button
+          type="button"
+          class="btn ghost sm"
+          [disabled]="historyLoading()"
+          (click)="loadHistory()"
+        >
+          <span class="icon" aria-hidden="true">sync</span>
+          {{ historyLoading() ? 'Refreshing…' : 'Refresh' }}
+        </button>
+        <!-- `/admin/audit` is roleGuard('ADMIN'); a granted faculty member would
+             be bounced by the guard, so the link is not offered to them. -->
+        @if (isMainAdmin()) {
+          <a class="btn ghost sm" routerLink="/admin/audit">
+            Open audit log <span class="icon" aria-hidden="true">arrow_forward</span>
+          </a>
+        }
+      </div>
     </div>
 
-    <div class="notice accent history-empty">
-      <span class="icon" aria-hidden="true">history</span>
-      <div>
-        Nothing is recorded here yet. Every download starts being written to the audit trail — the
-        file, the scope it was run in, the row count and who pressed it — when
-        <code>GET /api/admin/exports/history</code> arrives with the Phase
-        {{ exportsBackendPhase }} exports task.
+    @if (historyError(); as failure) {
+      <div class="notice history-failed" role="alert">
+        <span class="icon" aria-hidden="true">error</span>
+        <div>
+          {{ failure }} Nothing is drawn below — a history that could not be read and a deployment
+          that has exported nothing are not the same thing.
+        </div>
       </div>
-    </div>
+    } @else if (!historyLoaded()) {
+      <div class="notice info history-empty" role="status">
+        <span class="icon" aria-hidden="true">hourglass_empty</span>
+        <div>Reading the download history…</div>
+      </div>
+    } @else if (downloadHistory().length === 0) {
+      <div class="notice accent history-empty" role="status">
+        <span class="icon" aria-hidden="true">history</span>
+        <div>
+          Nothing has been exported here yet. Every download of the files above writes a row —
+          the file, the scope it ran in, how many rows left and whether they carried names. If you
+          have just pressed Download, give it a moment and refresh.
+        </div>
+      </div>
+    }
 
-    <ag-grid-angular
-      class="history-grid"
-      [theme]="gridTheme"
-      [rowData]="downloadHistory()"
-      [columnDefs]="historyColumns"
-      [defaultColDef]="defaultHistoryColumn"
-      [overlayNoRowsTemplate]="historyEmptyOverlay"
-      [domLayout]="'autoHeight'"
-      [suppressCellFocus]="true"
-    />
-    <div class="dt-statusbar">
-      <span>{{ downloadHistory().length | plural: 'download' }} recorded</span>
-      <span class="statusbar-note">the audited history is written by the backend, never here</span>
-    </div>
+    @if (historyError() === null && downloadHistory().length > 0) {
+      <ag-grid-angular
+        class="history-grid"
+        [theme]="gridTheme"
+        [rowData]="downloadHistory()"
+        [columnDefs]="historyColumns"
+        [defaultColDef]="defaultHistoryColumn"
+        [getRowId]="rowId"
+        [overlayNoRowsTemplate]="historyEmptyOverlay"
+        [domLayout]="'autoHeight'"
+        [suppressCellFocus]="true"
+      />
+      <div class="dt-statusbar">
+        <span>{{ historyCountLine() }}</span>
+        <span class="statusbar-note">the history is written by the backend, never here</span>
+      </div>
+    }
   </div>
 </div>

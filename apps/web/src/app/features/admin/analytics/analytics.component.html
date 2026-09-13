@@ -22,9 +22,16 @@
           <span class="icon" aria-hidden="true">download</span> Export
         </a>
       }
-      <button type="button" class="btn primary" [reepPending]="4">
-        <span class="icon" aria-hidden="true">upload_file</span> Import data
-      </button>
+      <!-- The board's primary action, and it is a link rather than a button:
+           the import wizard is its own screen (§11), behind its own capability.
+           Hidden rather than disabled for a reader who does not hold
+           `admin.imports`, because `capabilityGuard` would answer the click
+           with a silent redirect off this screen. -->
+      @if (holds('admin.imports')) {
+        <a class="btn primary" routerLink="/admin/imports">
+          <span class="icon" aria-hidden="true">upload_file</span> Import data
+        </a>
+      }
     </div>
   </div>
 
@@ -35,140 +42,130 @@
   }
 
   <div class="filters">
+    <!-- THREE OF THESE FOUR ARE DISABLED WITH THE REAL REASON, NOT A PHASE.
+         `GET /admin/analytics/kpis` and `/analytics/series` take one parameter
+         between them, `?weeks=`, which is the Period select below. Neither
+         takes a cohort, a course or a track, and both compute their aggregates
+         server-side — so there is nothing for this screen to narrow after the
+         fact either. A phase number here would promise work nobody has
+         scheduled; the sentence in the title is what is actually true. -->
     <div class="select filter-pending">
       <span class="lbl">Batch</span>
       <span class="val">All batches</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Batch" [reepPending]="4">
-        <option>All batches</option>
+      <select
+        aria-label="Batch — the analytics endpoints do not narrow by batch"
+        disabled
+        title="The analytics figures are aggregates computed across the whole of your reach; neither the KPI strip nor the weekly series takes a batch, so there is nothing here to narrow. Batch-level figures are on Mentors &amp; Students and on the batch’s own screen."
+      >
+        <option value="">All batches</option>
       </select>
     </div>
     <div class="select filter-pending">
       <span class="lbl">Course</span>
       <span class="val">All courses</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Course" [reepPending]="4">
-        <option>All courses</option>
+      <select
+        aria-label="Course — the analytics endpoints do not narrow by course"
+        disabled
+        title="The analytics figures are aggregates computed across the whole of your reach; neither the KPI strip nor the weekly series takes a course. What narrows them is the scope your Analytics function was granted."
+      >
+        <option value="">All courses</option>
       </select>
     </div>
     <div class="select filter-pending">
       <span class="lbl">Track</span>
       <span class="val">All tracks</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Track" [reepPending]="4">
-        <option>All tracks</option>
+      <select
+        aria-label="Track — nothing on this board is recorded against a track"
+        disabled
+        title="A track is the interview vocabulary. Neither an attendance record, a ledger entry nor a placement offer carries one, so no figure on this board can be split by track."
+      >
+        <option value="">All tracks</option>
       </select>
     </div>
-    <div class="select filter-pending">
+
+    <!-- LIVE: `?weeks=` on both analytics endpoints, so one control moves the
+         strip and the chart together. -->
+    <div class="select">
       <span class="lbl">Period</span>
-      <span class="val">Last 6 weeks</span>
+      <span class="val">{{ periodLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Period" [reepPending]="4">
-        <option>Last 6 weeks</option>
+      <select
+        aria-label="Period — the window the figures and the weekly chart are taken over"
+        (change)="selectPeriod($event)"
+      >
+        @for (choice of periods; track choice.weeks) {
+          <option [value]="choice.weeks" [selected]="choice.weeks === periodWeeks()">
+            {{ choice.label }}
+          </option>
+        }
       </select>
     </div>
+
+    @if (analyticsBusy()) {
+      <span class="filter-note" role="status">
+        <span class="icon" aria-hidden="true">hourglass_empty</span> Counting…
+      </span>
+    } @else {
+      <span class="filter-note">
+        Every comparison below is against the {{ periodWeeks() }} weeks before this one.
+      </span>
+    }
   </div>
 
-  <!-- The board's six tiles, in the board's order. Three of them are counted
-       from what the console returns today; three carry a dash, because the
-       alternative is a number in a screenshot that nobody computed. -->
+  @if (kpiError()) {
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">error</span>
+      The figures for this window could not be counted, so the tiles below are the last window that
+      answered. {{ kpiError() }}
+    </div>
+  }
+
+  <!-- The KPI strip, in the server's own order. A tile the server could not
+       measure keeps its place and shows a dash and the reason it gave — a
+       confident zero where nothing was counted is the defect this strip was
+       rebuilt to remove. -->
   <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="kpi-head"><div class="eyebrow">Placement rate</div></div>
-      @if (summary(); as figures) {
-        <div class="num">{{ placementRatePercent() }}<span class="unit">%</span></div>
-        <!-- 01-design-system.md §3: Placement is reached from the Analytics
-             tiles, so this figure is the way in rather than a dead number. -->
-        <div class="sub">
-          @if (holds('admin.placement')) {
-            <a routerLink="/admin/placement">
-              {{ figures.placed_students }} of {{ figures.students_total }} with an approved offer
-            </a>
-          } @else {
-            {{ figures.placed_students }} of {{ figures.students_total }} with an approved offer
+    @for (tile of kpiTiles(); track tile.key) {
+      <div class="kpi-card">
+        <div class="kpi-head">
+          <div class="eyebrow">{{ tile.label }}</div>
+          <!-- `.delta` is the design system's own movement treatment
+               (reep-v2.scss), text and colour together: a direction word or a
+               signed figure beside the arrow, never an arrow alone. Absent
+               entirely when the server compared nothing — three of the seven
+               KPIs have no earlier measurement to compare against, and a green
+               arrow drawn from an absence is a lie in a glyph. -->
+          @if (tile.delta; as movement) {
+            <span class="delta {{ movement.tone }}">
+              <span class="icon" aria-hidden="true">{{ movement.icon }}</span>{{ movement.label }}
+            </span>
           }
         </div>
-      } @else {
-        <div class="num">—</div>
-        <div class="sub">{{ summaryPlaceholderNote() }}</div>
-      }
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-head">
-        <div class="eyebrow">Median CTC</div>
-        <span class="chip neutral">Phase 4</span>
-      </div>
-      <div class="num">—</div>
-      <div class="sub">Offer CTC figures arrive with the scoped analytics KPIs (B8.5).</div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-head">
-        <div class="eyebrow">Placement-ready</div>
-        <span class="chip neutral">Phase 4</span>
-      </div>
-      <div class="num">—</div>
-      <div class="sub">Readiness is per student today; the programme roll-up arrives with B8.5.</div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-head"><div class="eyebrow">Attendance</div></div>
-      @if (attendanceAveragePercent() !== null) {
-        <div class="num">{{ attendanceAveragePercent() }}<span class="unit">%</span></div>
-        <!-- `/admin/mentor-load` groups students BY MENTOR and drops the
-             unassigned ones, so this mean is over students who have a mentor
-             and have attendance recorded — not over the roster the header
-             counts. Say which, or the tile is a programme figure that is not
-             one. -->
-        <div class="sub">
-          mean of {{ studentsWithAttendanceRecorded() | plural: 'student' }} with a mentor and
-          attendance recorded
-        </div>
-      } @else {
-        <div class="num">—</div>
-        <div class="sub">No attendance recorded yet.</div>
-      }
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-head">
-        <div class="eyebrow">Mock interviews</div>
-        <span class="chip neutral">Phase 4</span>
-      </div>
-      <div class="num">—</div>
-      <div class="sub">The interview counter and its average score arrive with B8.5.</div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-head"><div class="eyebrow">Pending approvals</div></div>
-      @if (summary(); as figures) {
-        <div class="num">{{ pendingApprovals() }}</div>
-        <div class="sub">
-          @if (holds('admin.registrations')) {
-            <a routerLink="/admin/registrations">{{
-              figures.pending_registrations | plural: 'registration'
-            }}</a>
-          } @else {
-            {{ figures.pending_registrations | plural: 'registration' }}
+        <div class="num">
+          {{ tile.figure }}@if (tile.unitSuffix) {
+            <span class="unit">{{ tile.unitSuffix }}</span>
           }
-          · {{ figures.evidence_awaiting_verification }} evidence
         </div>
-      } @else {
+        <div class="sub">
+          @if (tile.link) {
+            <a [routerLink]="tile.link">{{ tile.linkText }}</a>
+            @if (tile.note) {
+              <span aria-hidden="true"> · </span>
+            }
+          }
+          {{ tile.note }}
+        </div>
+      </div>
+    } @empty {
+      <div class="kpi-card kpi-card--wide">
+        <div class="kpi-head"><div class="eyebrow">Key figures</div></div>
         <div class="num">—</div>
-        <div class="sub">{{ summaryPlaceholderNote() }}</div>
-      }
-    </div>
-  </div>
-
-  <div class="notice accent">
-    <span class="icon" aria-hidden="true">info</span>
-    <span>
-      The batch, course, track and period filters, the week-on-week deltas and the tile sparklines are
-      computed by the scoped analytics KPIs (B8.5) over the nightly snapshots (B8.6), and the college /
-      department scope control arrives with B1.4. Every figure here is programme-wide and counted when
-      the screen loads.
-    </span>
+        <div class="sub">{{ kpiPlaceholderNote() }}</div>
+      </div>
+    }
   </div>
 
   <section class="card chart-card">
@@ -176,48 +173,74 @@
       <div>
         <h2 class="card-heading">Placement health · weekly</h2>
         <p class="card-sub">
-          Attendance on the left axis, ledger hours as bars on the right · click a legend item to toggle
-          a series, hover to focus it, drag the strip to narrow the weeks
+          @if (chartModel(); as model) {
+            {{ model.caption }} ·
+          }
+          @if (chartIsProgrammeWide()) {
+            percentages on the left axis, hours and counts on the right · click a legend item to
+            toggle a series, drag the strip to narrow the weeks
+          } @else {
+            the per-student drill-down is always the last six weeks on record, whatever the Period
+            filter says — it is the one series the roster keeps
+          }
         </p>
       </div>
       <div class="card-actions">
-        @if (weekly(); as series) {
-          @if (series.has_resume) {
-            <a class="btn secondary sm" [href]="cvUrl()">
-              <span class="icon" aria-hidden="true">download</span> Download CV
-            </a>
-          }
+        @if (!chartIsProgrammeWide() && studentHasResume()) {
+          <a class="btn secondary sm" [href]="cvUrl()">
+            <span class="icon" aria-hidden="true">download</span> Download CV
+          </a>
         }
-        @if (studentsWithAMentor().length > 0) {
-          <div class="select">
-            <span class="lbl">Student</span>
-            <span class="val">{{ selectedStudentName() }}</span>
-            <span class="icon" aria-hidden="true">expand_more</span>
-            <select aria-label="Student drawn in the weekly chart" (change)="selectStudent($event)">
-              @for (student of studentsWithAMentor(); track student.student_id) {
-                <option [value]="student.student_id" [selected]="student.student_id === selectedStudentId()">
-                  {{ student.name }}
-                </option>
-              }
-            </select>
-          </div>
-        }
+        <div class="select">
+          <span class="lbl">Drawn for</span>
+          <span class="val">{{ chartSubjectName() }}</span>
+          <span class="icon" aria-hidden="true">expand_more</span>
+          <select
+            aria-label="Who the weekly chart is drawn for"
+            (change)="selectChartSubject($event)"
+          >
+            <option [value]="everyStudent" [selected]="chartIsProgrammeWide()">
+              Every student in reach
+            </option>
+            @for (student of studentsWithAMentor(); track student.student_id) {
+              <option [value]="student.student_id" [selected]="student.student_id === chartSubject()">
+                {{ student.name }}
+              </option>
+            }
+          </select>
+        </div>
       </div>
     </div>
 
-    <div class="notice accent">
-      <span class="icon" aria-hidden="true">insights</span>
-      <span>
-        The batch-wide series the board draws — placement-readiness %, cohort attendance % and approved
-        offers per week — is computed by B8.5 and stored nightly by B8.6. Until then the only real week
-        on this deployment is one student's six, so that is what is drawn here, for the student named
-        above.
-      </span>
-    </div>
+    @if (seriesError()) {
+      <div class="notice" role="alert">
+        <span class="icon" aria-hidden="true">error</span>{{ seriesError() }}
+      </div>
+    }
 
-    @if (weeklyBusy()) {
+    <!-- A line the server could only partly measure says so IN WORDS, in its
+         own sentence, rather than simply stopping part way along the axis.
+         `partial` and `unavailable` are different facts and carry different
+         chips; neither is drawn as a flat zero. -->
+    @for (note of seriesNotes(); track note.key) {
+      <div class="notice accent series-note" role="status">
+        <span class="chip {{ seriesTone(note.source) }}">
+          {{ note.label }} · {{ seriesSourceLabel(note.source) }}
+        </span>
+        <span>
+          {{ note.note }}
+          @if (note.source === 'partial') {
+            The table that would hold that history exists, but nothing writes it on this
+            installation — there is no nightly snapshot job — so those earlier weeks will not fill
+            in on their own.
+          }
+        </span>
+      </div>
+    }
+
+    @if (weeklyBusy() || (analyticsBusy() && !chartModel())) {
       <p class="state-note" role="status">
-        <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the last six weeks…
+        <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the weekly series…
       </p>
     }
 
@@ -227,22 +250,17 @@
       </div>
     }
 
-    @if (weekly(); as series) {
+    @if (chartModel(); as model) {
       <div
         #healthChart
         class="health-chart"
         role="img"
-        [attr.aria-label]="'Weekly attendance and ledger hours for ' + series.name"
+        [attr.aria-label]="'Weekly placement health · ' + model.caption"
       ></div>
-    } @else if (mentorLoadFailed()) {
-      <div class="notice warn" role="alert">
-        <span class="icon" aria-hidden="true">warning</span>
-        The mentorship map did not load, so there is nobody to draw a series for. Reload the screen.
-      </div>
-    } @else if (noStudentHasAMentor()) {
+    } @else if (!analyticsBusy() && !weeklyBusy() && !seriesError() && !weeklyError()) {
       <div class="notice warn">
         <span class="icon" aria-hidden="true">warning</span>
-        No student is assigned to a mentor yet, so there is no six-week series to draw.
+        There is nothing to plot for this window — no student in reach has a measurable week in it.
       </div>
     }
   </section>
@@ -319,11 +337,12 @@
         <div>
           <h2 class="card-heading">Alerts · open</h2>
           <p class="card-sub">
-            What is stored against the alert rules today. The nightly engine that raises them at 02:00
-            arrives with B8.3.
+            Raised against the thresholds set behind Rules, by the sweep
+            <code>python -m app.alerts_job</code>. No nightly schedule is deployed for that sweep
+            yet, so this feed moves when somebody runs it — not at 02:00.
           </p>
         </div>
-        <button type="button" class="btn ghost sm" [reepPending]="4">
+        <button type="button" class="btn ghost sm" (click)="openRules()">
           <span class="icon" aria-hidden="true">tune</span> Rules
         </button>
       </div>
@@ -336,7 +355,8 @@
       } @else if (alertsAreEmpty()) {
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          Nothing open.
+          Nothing open. A batch with no rules set under Rules is never evaluated, so an empty feed
+          may mean nobody has set a threshold rather than that nobody is behind.
         </div>
       } @else {
         <ul class="alert-list">
@@ -353,4 +373,8 @@
       }
     </section>
   </div>
+
+  @if (rulesOpen()) {
+    <app-alert-rules-dialog (dismissed)="closeRules()" />
+  }
 </div>

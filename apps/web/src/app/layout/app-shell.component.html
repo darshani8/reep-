@@ -83,12 +83,24 @@
         Scope · Whole programme
       </span>
 
+      <!-- DEMOTED, NOT PENDING. Phase 4b built the alert ENGINE
+           (`python -m app.alerts_job`, `app/alerts.py`, the thresholds in
+           `PUT /api/admin/alert-rules`), and what it raises is read on
+           Analytics through `GET /api/mentor/alerts`. What does not exist is a
+           per-account notification FEED: that endpoint is staff-only, this
+           bell sits in the shell for every role including students and alumni,
+           and `alerts_job` has no deployed schedule (its own docstring says
+           why, and says the three things that land in the commit that adds
+           one), so a bell wired to it would sit at zero on a deployment where
+           nothing sweeps. Plain `disabled` with the real reason and no phase
+           number — the treatment the Leave queue's Requester filter was given.
+           Wire it when a per-account feed exists AND the sweep is scheduled. -->
       <button
         type="button"
         class="iconbtn appbar__icon"
         disabled
-        aria-label="Notifications (arrives with Phase 4)"
-        title="Notifications arrive with the alerts engine in Phase 4"
+        aria-label="Notifications"
+        title="There is no per-account notification feed. Staff alerts are on Analytics; the sweep that raises them has no deployed schedule yet."
       >
         <span class="icon" aria-hidden="true">notifications</span>
       </button>

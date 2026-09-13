@@ -8,10 +8,18 @@
  * styles, exactly as the roster grid does — and escapes every value it
  * interpolates, because a company name is somebody else's text.
  *
- * TRACK AND CTC ARE HERE AND THEY ARE EMPTY. The board draws both columns and
- * `jobs` answers neither: tracks arrive with B12.1 (Phase 4) and a posting
- * records no pay at all. Each renders an em dash and says so in its header
- * tooltip; the screen repeats it once in a `.notice.accent`.
+ * TRACK IS REAL NOW (B12.1) AND CTC IS STILL EMPTY. `jobs.tracks` decides
+ * which students see a posting, so the column prints the codes — and prints
+ * "Every track" for the empty list rather than a dash, because an empty list is
+ * the WIDEST audience and a dash reads as the narrowest. CTC has no column
+ * anywhere in the schema and no task adds one, so it renders an em dash and
+ * says so in its header tooltip; the screen repeats that once in a
+ * `.notice.accent`.
+ *
+ * THE STATUS COLUMN IS `jobs.status`, NOT THE DEADLINE. `job-posting-row.ts`
+ * argues it: the two candidate feeds filter on the column alone, so a posting
+ * past its date is still on the boards and the cell says "Past deadline" rather
+ * than "Closed".
  */
 
 import type {
@@ -23,6 +31,7 @@ import type {
 } from 'ag-grid-community';
 
 import {
+  EVERY_TRACK,
   INITIALLY_HIDDEN_COLUMN_IDS,
   NOT_READABLE,
   escapeHtml,
@@ -53,9 +62,21 @@ function renderLevelCell(params: ICellRendererParams<JobPostingRow>): string {
   return `<span class="chip">${escapeHtml(row.degreeLevel)}</span>`;
 }
 
-/** The two columns the board draws and nothing answers yet. */
+/** The one column the board draws and nothing answers. */
 function formatNotReadable(): string {
   return NOT_READABLE;
+}
+
+/** The tracks a posting is published to. "Every track" is a STATEMENT, not a
+ *  placeholder, so it is drawn as faint text rather than as chips that would
+ *  read like one named track called "Every track". */
+function renderTracksCell(params: ICellRendererParams<JobPostingRow>): string {
+  const row = params.data;
+  if (!row) return '';
+  if (row.tracks.length === 0) {
+    return `<span style="color: var(--faint);">${EVERY_TRACK}</span>`;
+  }
+  return row.tracks.map((code) => `<span class="chip">${escapeHtml(code)}</span>`).join(' ');
 }
 
 /** A posting's OWN eligibility gate. `GET /api/admin/jobs` answers these per
@@ -104,14 +125,13 @@ export const JOBS_COLUMNS: ColDef<JobPostingRow>[] = [
   },
   {
     colId: 'track',
+    field: 'tracksLabel',
     headerName: 'Track',
-    minWidth: 110,
-    sortable: false,
-    filter: false,
-    floatingFilter: false,
-    valueFormatter: formatNotReadable,
+    minWidth: 140,
+    cellStyle: { display: 'flex', alignItems: 'center', gap: '4px' },
+    cellRenderer: renderTracksCell,
     headerTooltip:
-      'Which tracks a posting is visible to arrives with the scope and track task, B12.1 (Phase 4)',
+      'The specialization codes this posting is published to, matched against the student’s own batch. “Every track” means it names none, which puts it in front of everybody',
   },
   {
     colId: 'ctc',
@@ -138,16 +158,34 @@ export const JOBS_COLUMNS: ColDef<JobPostingRow>[] = [
     type: 'numericColumn',
     minWidth: 110,
     headerTooltip:
-      'Students who have applied. The eligible denominator the board draws arrives with B12.1 (Phase 4)',
+      'Students who have applied. The board draws this over a denominator — the students the posting is open to — which no endpoint counts, so the count stands alone',
   },
   {
     colId: 'status',
     field: 'statusLabel',
     headerName: 'Status',
-    minWidth: 150,
+    minWidth: 160,
     cellRenderer: renderStatusCell,
     headerTooltip:
-      'Read from the closing date. Closing a posting by hand arrives with B12.2 (Phase 4)',
+      'Whether the posting is on the student and alumni boards. Only “Withdrawn” takes it off them — the closing date does not, so “Past deadline” means it is still listed',
+  },
+  {
+    colId: 'college',
+    field: 'collegeLabel',
+    headerName: 'College',
+    minWidth: 160,
+    hide: INITIALLY_HIDDEN_COLUMN_IDS.includes('college'),
+    headerTooltip:
+      'Which college sees the posting. “Every college” means it names none — the widest audience, not the narrowest',
+  },
+  {
+    colId: 'course',
+    field: 'courseLabel',
+    headerName: 'Course',
+    minWidth: 160,
+    hide: INITIALLY_HIDDEN_COLUMN_IDS.includes('course'),
+    headerTooltip:
+      'Which programme sees the posting. “Every course” means it names none',
   },
   {
     colId: 'minCgpa',

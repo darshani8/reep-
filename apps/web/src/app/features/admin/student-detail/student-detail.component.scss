@@ -50,6 +50,36 @@
   margin-top: 12px;
 }
 
+/* --- the nine views ------------------------------------------------------ */
+
+/* A view with no endpoint behind it. `.tab` is the global pill and is NOT
+   redefined; this is the one extra state it does not carry, because nothing
+   else in the app disables a tab. The reason is on the control's `title`, so
+   the answer to "why is this grey" is on the grey thing itself. */
+.tab-unavailable {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --- tables inside a card ------------------------------------------------- */
+
+/* A table is the ONE thing on this screen allowed to be wider than the page,
+   and only inside its own scroller: the panel itself must never scroll
+   sideways. */
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 4px;
+}
+
+/* --- readiness ------------------------------------------------------------ */
+
+.readiness-summary {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
 /* --- the editor --------------------------------------------------------- */
 
 .editor-grid {

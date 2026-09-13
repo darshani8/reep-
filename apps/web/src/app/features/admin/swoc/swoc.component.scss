@@ -24,9 +24,12 @@
   margin-bottom: 12px;
 }
 
-/* A filter whose endpoint is a Phase 3 or Phase 4 task. The <select> inside
-   carries [reepPending], which disables it and names the phase; this dims the
-   pill it sits in so the row reads as "not yet" at a glance. */
+/* A filter that cannot be offered — either because no endpoint answers it
+   (Mentor) or because nothing on the board carries the value it would sort by
+   (Semester, on a board where nothing has been stamped). The <select> inside is
+   plainly `disabled` and carries the real reason in its title; this dims the
+   pill it sits in so the row reads as "not available" at a glance. NO PHASE
+   NUMBER: nothing is on its way. */
 .sw-filter-pending {
   opacity: 0.55;
   cursor: not-allowed;
@@ -36,6 +39,13 @@
   margin: 0 0 0 auto;
   font-size: 11.5px;
   color: var(--faint);
+}
+/* The sentence that says what a semester slice is. It takes the whole row, so
+   it never competes with the count for the right-hand margin. */
+.sw-summary--note {
+  flex: 1 1 100%;
+  margin: 2px 0 0;
+  color: var(--muted);
 }
 
 .panel > .notice {
@@ -194,6 +204,82 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+/* A button holding its panel open. `.on` is this screen's own name: .btn
+   belongs to reep-v2.scss and is used here exactly as it is. */
+.sw-who__actions .on {
+  border-color: var(--brand-purple);
+  color: var(--brand-purple);
+}
+
+/* --- the edit history and the semester view ------------------------------ */
+/* Two panels about the student already selected, so neither is a route and
+   only one is ever open. */
+.sw-panel {
+  padding: 10px 12px;
+  border: 1px solid var(--hairline-26);
+  border-radius: var(--r-control);
+  background: var(--tint-3);
+}
+.sw-panel__title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  margin: 0 0 8px;
+}
+.sw-edits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sw-edit {
+  padding: 8px 10px;
+  border: 1px solid var(--hairline-26);
+  border-radius: var(--r-control);
+  background: var(--surface);
+}
+.sw-edit__line {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.sw-edit__by {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.sw-edit__change {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.sw-semester-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sw-semester {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sw-semester__label {
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .sw-pick-one {

@@ -32,20 +32,26 @@
  *     below reads them. A NARROWED holder sees only their own receipts, by the
  *     endpoint's own rule, which is why the reach is spelled out beside them.
  *
- * WHAT IS STILL NOT BUILT, and how each is rendered:
+ * WHAT CHANGED WITH PHASE 4, AND WHAT IS STILL A DRAWING:
  *
  *   - The board gives every card a row count ("118 rows") and a last-generated
  *     date. There is no report store and no endpoint that counts a file's rows
  *     without generating it, so no count is drawn. The only date on a card is
  *     the one THIS browser remembers about its own downloads, and it says so;
  *     the authoritative dates are in the history grid.
- *   - Interviews, Registrations and Leave are drawn as extracts on the board
- *     and have no endpoint. B14 shipped without them and could not have
- *     shipped with them: the Interviews extract is summary-only from B6.2, and
- *     the other two sit in the same Phase 4 areas as their screens (B11
- *     registrations, B10 leave). Their cards render their empty state with a
- *     disabled control, rather than a live-looking button that 404s in front
- *     of the placement office.
+ *   - INTERVIEWS IS LIVE NOW. B6.7 shipped `GET /api/admin/interviews/
+ *     export.csv` — the summary-only extract B14 names, reading
+ *     `interview_score_summaries` so a file taken in September still contains
+ *     March. It answers to `admin.interviews`, NOT to this screen's
+ *     `admin.exports`, so the card is gated on that key the same way the badge
+ *     report is gated on the office account: a live `<a download>` over a 403
+ *     saves the refusal to disk named `.csv` and records it here as a success.
+ *   - Registrations and Leave are drawn as extracts on the board and have no
+ *     endpoint — and no task defines one. `04-backend-changes.md` §B14 names
+ *     only the Interviews extract; B10 and B11 add screens and decisions, not
+ *     files. So those two cards carry their REAL reason and no phase number:
+ *     naming a phase for a file nobody has specified is the stale promise the
+ *     pending directive's docstring warns about.
  *   - "Schedule an export" is `02-admin-console-spec.md` §22's own "(optional,
  *     later)" — no task in `04-backend-changes.md` defines it and no phase
  *     carries it. It is disabled with THAT as its reason rather than a phase
@@ -77,7 +83,6 @@ import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { plural } from '../../../shared/text/plural.pipe';
 
 /** One extract on the board: a card, and either a file or a stated absence. */
@@ -94,12 +99,27 @@ interface ExtractCard {
   /** The columns this file drops for a caller without the roster function.
    *  The same names `drop_personal` is called with on the server. */
   personalColumns: string[];
-  /** The API path the download link points at; null while it does not exist. */
+  /** The API path the download link points at; null where no endpoint exists. */
   path: string | null;
   filename: string;
+  /** Why there is no file, in words, for a card whose `path` is null. NOT a
+   *  phase number: nothing in `04-backend-changes.md` defines either of the
+   *  two files this applies to, so a date here would be invented. */
+  unavailableReason: string;
   /** `/admin/badges/export.csv` answers to `require_admin`, not to this
    *  screen's `admin.exports` capability. */
   mainAdminOnly: boolean;
+  /** A capability this ONE file needs on top of `admin.exports` — the
+   *  Interviews extract is `admin.interviews`. Undefined where the screen's own
+   *  function is the whole gate. The server re-decides on the request; this
+   *  only decides whether a live link is offered, because `<a download>` saves
+   *  a 403 body to disk under a `.csv` name. */
+  requiresCapability?: string;
+  /** That capability as the console NAMES it — Governance's own word for the
+   *  key, so the card and the Roles &amp; functions screen agree. Written
+   *  beside the key rather than derived from it, because a map from key to
+   *  label maintained on this screen is one more thing to keep in step. */
+  requiresCapabilityLabel?: string;
 }
 
 /** `GET /api/admin/exports/history` — `ExportEventOut` in `routers/console.py`. */
@@ -138,25 +158,17 @@ interface ExportDownloadRow {
   auditTone: 'good' | 'risk';
 }
 
-/**
- * The phase that brings the three extracts the board draws and nothing serves.
- *
- * NOT A GUESS AND NOT B14. B14 (Phase 3) shipped Students, Placement, Ledger,
- * the scope filter, the personal-column rule and the history — it is the task
- * this screen was waiting for and it is done. The three that are still grey
- * each wait on a Phase 4 area rather than on an exports task: the Interviews
- * extract is summary-only from B6.2 (`-interviews`), Registrations is B11 and
- * Leave is B10 (`05-delivery-workflow.md` §1). Leaving them reading "Available
- * with Phase 3" after Phase 3 landed would be the stale reason the directive's
- * docstring warns about — a control that names a date already past.
- */
-const UNBUILT_EXTRACT_PHASE = 4;
-
 /** The function that unlocks the columns which NAME a person, mirroring
  *  `PERSONAL_COLUMN_CAPABILITY` in `apps/api-py/app/exports.py`. The server
  *  decides; this constant only decides what the card SAYS the file will hold,
  *  and it has to be the same key or the label lies about the download. */
 const PERSONAL_COLUMN_CAPABILITY = 'admin.students';
+
+/** The function `GET /api/admin/interviews/export.csv` answers to (`CAPABILITY`
+ *  in `app/routers/interview_records.py`). It is NOT `admin.exports`: a record
+ *  of how a named student performed in a rehearsal is the interview area's to
+ *  hand out, and this screen's own function does not open it. */
+const INTERVIEWS_CAPABILITY = 'admin.interviews';
 
 /** Where this browser remembers its own downloads. Not a record of anything. */
 const LAST_DOWNLOAD_STORAGE_KEY = 'reep.exports.last';
@@ -180,14 +192,13 @@ const HISTORY_LIMIT = 100;
 @Component({
   selector: 'app-admin-exports',
   standalone: true,
-  imports: [RouterLink, AgGridAngular, PendingControlDirective],
+  imports: [RouterLink, AgGridAngular],
   templateUrl: './exports.component.html',
   styleUrl: './exports.component.scss',
 })
 export class AdminExportsComponent implements OnDestroy {
   private readonly auth = inject(AuthService);
 
-  readonly unbuiltExtractPhase = UNBUILT_EXTRACT_PHASE;
   readonly gridTheme = reepGridTheme;
 
   /** `/admin/badges/export.csv` is `require_admin`, and `/admin/audit` is
@@ -196,11 +207,15 @@ export class AdminExportsComponent implements OnDestroy {
    *  rather than as controls that answer 403 or bounce off a guard. */
   readonly isMainAdmin = computed(() => this.auth.session()?.role === 'ADMIN');
 
+  /** The functions this session holds. A LABEL AND A LINK-OR-NO-LINK DECISION,
+   *  never authorisation: every endpoint below re-decides on the request. */
+  private readonly heldCapabilities = computed(() => this.auth.session()?.capabilities ?? []);
+
   /** Whether this caller's files will name the students in them. The session's
    *  capability list is resolved by the API on every `/auth/me`; the server
    *  re-decides on the request itself, so this is a label, never a gate. */
   readonly carriesPersonalColumns = computed(() =>
-    (this.auth.session()?.capabilities ?? []).includes(PERSONAL_COLUMN_CAPABILITY),
+    this.heldCapabilities().includes(PERSONAL_COLUMN_CAPABILITY),
   );
 
   /** Board order, with the badge report last because it is not on the board. */
@@ -216,6 +231,7 @@ export class AdminExportsComponent implements OnDestroy {
       personalColumns: ['name', 'usn'],
       path: '/admin/exports/students.csv',
       filename: 'reep-students-mentor-map.csv',
+      unavailableReason: '',
       mainAdminOnly: false,
     },
     {
@@ -237,6 +253,7 @@ export class AdminExportsComponent implements OnDestroy {
       personalColumns: ['student', 'usn'],
       path: '/admin/exports/placement.csv',
       filename: 'reep-placement-summary.csv',
+      unavailableReason: '',
       mainAdminOnly: false,
     },
     {
@@ -255,17 +272,37 @@ export class AdminExportsComponent implements OnDestroy {
       personalColumns: ['name', 'usn'],
       path: '/admin/exports/ledger.csv',
       filename: 'reep-ledger-compliance.csv',
+      unavailableReason: '',
       mainAdminOnly: false,
     },
     {
       key: 'interviews',
       title: 'Interviews',
-      description: 'Score summaries per session — never transcripts, never audio.',
-      columns: null,
-      personalColumns: [],
-      path: null,
-      filename: '',
+      description:
+        'One row per mock interview: when it ran, which track, how it ended and the four scores. Never a transcript, never a word anybody said, never audio.',
+      // `admin_interviews_export` in `app/routers/interview_records.py`, in
+      // order. A missing score leaves the cell BLANK rather than writing a 0 —
+      // this file is opened in a spreadsheet and averaged, and a zero would
+      // drag a cohort down by the interviews nobody marked.
+      columns: [
+        'name',
+        'usn',
+        'started',
+        'track',
+        'status',
+        'overall',
+        'communication',
+        'domain',
+        'structure',
+        'record',
+      ],
+      personalColumns: ['name', 'usn'],
+      path: '/admin/interviews/export.csv',
+      filename: 'reep-interview-scores.csv',
+      unavailableReason: '',
       mainAdminOnly: false,
+      requiresCapability: INTERVIEWS_CAPABILITY,
+      requiresCapabilityLabel: 'Interviews',
     },
     {
       key: 'registrations',
@@ -275,6 +312,8 @@ export class AdminExportsComponent implements OnDestroy {
       personalColumns: [],
       path: null,
       filename: '',
+      unavailableReason:
+        'No registrations extract is built — the applications queue on the Registrations screen is where this data is read, and no backend task defines a file for it',
       mainAdminOnly: false,
     },
     {
@@ -285,6 +324,8 @@ export class AdminExportsComponent implements OnDestroy {
       personalColumns: [],
       path: null,
       filename: '',
+      unavailableReason:
+        'No leave extract is built — a sanctioned request is printed one at a time on the college’s own form, and no backend task defines a file for the queue',
       mainAdminOnly: false,
     },
     {
@@ -303,6 +344,7 @@ export class AdminExportsComponent implements OnDestroy {
       personalColumns: ['name', 'usn'],
       path: '/admin/badges/export.csv',
       filename: 'reep-cohort-skill-report.csv',
+      unavailableReason: '',
       mainAdminOnly: true,
     },
   ];
@@ -508,9 +550,36 @@ export class AdminExportsComponent implements OnDestroy {
     return `Last downloaded ${stamp} from this browser`;
   }
 
-  /** True where the card has a file AND this caller may actually fetch it. */
+  /** True where the card has a file AND this caller may actually fetch it.
+   *  Both gates are the same argument as the badge report's: `<a download>`
+   *  saves whatever comes back, so a link over a 403 puts the refusal on the
+   *  officer's disk under a `.csv` name and this browser records it as a
+   *  success. */
   canDownload(extract: ExtractCard): boolean {
-    return extract.path !== null && (!extract.mainAdminOnly || this.isMainAdmin());
+    if (extract.path === null) return false;
+    if (extract.mainAdminOnly && !this.isMainAdmin()) return false;
+    const needed = extract.requiresCapability;
+    if (needed !== undefined && !this.heldCapabilities().includes(needed)) return false;
+    return true;
+  }
+
+  /** Why a card that HAS a file is still not offering it, in words. Null where
+   *  the caller can download it, or where the card has no file at all — that
+   *  case is the card's own `unavailableReason`. */
+  blockedReason(extract: ExtractCard): string | null {
+    if (extract.path === null || this.canDownload(extract)) return null;
+    if (extract.mainAdminOnly && !this.isMainAdmin()) {
+      return 'This file answers to the Main Admin account only';
+    }
+    return `This file answers to the ${extract.requiresCapabilityLabel ?? 'required'} function, which this account does not hold`;
+  }
+
+  /** The same fact in the two or three words the card's footer has room for.
+   *  The sentence goes in the `title`; a paragraph in a 12px footer line
+   *  wraps the card out of the grid. */
+  blockedLabel(extract: ExtractCard): string {
+    if (extract.mainAdminOnly) return 'Main Admin only';
+    return `${extract.requiresCapabilityLabel ?? 'Another'} function needed`;
   }
 
   private requestNoteTimer: ReturnType<typeof setTimeout> | null = null;

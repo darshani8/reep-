@@ -152,6 +152,11 @@
 
 .rail-card__head {
   margin-bottom: 12px;
+  /* The Promotion history card puts a count chip beside its heading. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .rail-facts {
@@ -261,5 +266,65 @@
 
   code {
     font-size: 11px;
+  }
+}
+
+/* --- the promotion history card ----------------------------------------
+   Component-scoped names, not globals: `.history-*` is this card's list and
+   belongs to it. `.rail-card__head` already lays the heading out, so the
+   count chip sits in `.rail-card__head` above. */
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.history-row {
+  border-top: 1px solid var(--hairline);
+  padding-top: 10px;
+  font-size: 12.2px;
+  line-height: 1.5;
+
+  &:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
+.history-row__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.history-row__usn {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.history-row__move {
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+
+.history-row__by {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.history-row__reason {
+  margin: 4px 0 0;
+  font-size: 11.8px;
+  color: var(--ink-soft);
+
+  &.muted {
+    color: var(--faint);
   }
 }

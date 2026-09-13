@@ -81,6 +81,62 @@
         </div>
       }
     }
+
+    <!-- ASKED TO COVER (B10.6) — the other side of the Alternate Arrangements
+         table, and a different document from the one above: these are other
+         people's requests, and every one of them arrives as the REDUCED
+         projection. There is no reason on it and no Download PDF beside it;
+         being named as somebody's cover entitles you to the dates and the
+         class, not to why they are away. -->
+    @if ((cover() ?? []).length) {
+      <h2 class="cover-head">
+        Colleagues who named you
+        @if (coverAwaiting() > 0) {
+          · {{ coverAwaiting() }} waiting on you
+        }
+      </h2>
+      @if (coverError()) {
+        <div class="state-note risk" role="alert">
+          <span class="icon" aria-hidden="true">error</span>{{ coverError() }}
+        </div>
+      }
+      @for (brief of cover()!; track brief.id) {
+        <div class="card req-card cover-card">
+          <div class="req-main">
+            <div class="req-top">
+              <strong>{{ brief.requester_name }}</strong>
+              <span class="req-kind">{{ kindLabel(brief.leave_kind) }}</span>
+            </div>
+            <div class="req-dates">
+              {{ dateSpan(brief) }} · {{ coverState(brief) }}
+            </div>
+            @if (brief.alt_row) {
+              <div class="req-dates cover-what">
+                Your row · {{ brief.alt_row.date || 'no date given' }}
+                {{ brief.alt_row.time }} {{ brief.alt_row.cls }} {{ brief.alt_row.remarks }}
+              </div>
+            }
+          </div>
+          @if (hasAccepted(brief)) {
+            <span class="chip good">
+              <span class="icon" aria-hidden="true">how_to_reg</span> You agreed to cover
+            </span>
+          } @else if (coverIsOpen(brief)) {
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="accepting() === brief.id"
+              (click)="acceptCover(brief)"
+            >
+              <span class="icon" aria-hidden="true">how_to_reg</span>
+              {{ accepting() === brief.id ? 'Recording…' : 'I will cover this' }}
+            </button>
+          } @else {
+            <span class="chip neutral">Nothing to do</span>
+          }
+        </div>
+      }
+    }
   } @else {
     <!-- THE FORM -->
     <div class="form-bar">
@@ -357,12 +413,123 @@
       </div>
     </div>
 
+    <!-- ATTACHED PAPERS (B10.3). Beside the form, never on it: the sheet asks
+         for what the college's sheet asks for, and a certificate is what travels
+         WITH an application. Only on a request that exists — there is nothing to
+         attach a document to until it has been signed and sent. -->
+    @if (v) {
+      <div class="attach-block">
+        <div class="attach-head">
+          <strong>Supporting papers</strong>
+          <!-- THE INPUT IS HIDDEN BY GEOMETRY, NEVER `hidden`. `display:none`
+               takes it out of the focus order and a <label> is not tabbable, so
+               the picker becomes mouse-only — the exact bug the 2026-09-10 audit
+               found on /mentor/signature and on /register. The label carries the
+               focus ring, or the focusable invisible input is a trap. -->
+          <label class="btn sm lv-file">
+            <span class="icon" aria-hidden="true">upload_file</span>
+            {{ attachBusy() ? 'Working…' : 'Attach a document' }}
+            <input
+              type="file"
+              class="lv-file__input"
+              accept="application/pdf,image/png,image/jpeg"
+              [disabled]="attachBusy()"
+              (change)="onAttach($event)"
+            />
+          </label>
+        </div>
+
+        @if (attachError()) {
+          <!-- role="alert": inserted by @if after the pick, so without a live
+               region a refused upload tells a screen-reader user nothing. -->
+          <div class="state-note risk" role="alert">
+            <span class="icon" aria-hidden="true">error</span>{{ attachError() }}
+          </div>
+        }
+
+        @if (attachments(); as papers) {
+          @if (papers.length) {
+            <ul class="attach-list">
+              @for (paper of papers; track paper.id) {
+                <li>
+                  <a
+                    class="btn ghost sm"
+                    [href]="attachmentUrl(v!, paper)"
+                    [attr.aria-label]="'Download ' + paper.original_name"
+                    download
+                  >
+                    <span class="icon" aria-hidden="true">download</span> {{ paper.original_name }}
+                  </a>
+                  <span class="attach-meta">
+                    {{ fileSize(paper.size_bytes) }} ·
+                    {{ paper.uploaded_by_name || 'account removed' }} ·
+                    {{ paper.uploaded_at | date: 'd MMM y' }}
+                  </span>
+                  @if (paper.can_delete) {
+                    <button
+                      type="button"
+                      class="btn ghost sm"
+                      [attr.aria-label]="'Remove ' + paper.original_name"
+                      [disabled]="attachBusy()"
+                      (click)="removeAttachment(paper)"
+                    >
+                      <span class="icon" aria-hidden="true">delete</span>
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="form-hint">
+              Nothing attached. Whoever signs this request can read what you put here, and can
+              attach the office's own letter to it.
+            </p>
+          }
+        }
+      </div>
+    }
+
     @if (v?.status === 'REJECTED') {
       <div class="form-actions">
         <button type="button" class="btn" (click)="editAndResubmit(v!)">
           <span class="icon" aria-hidden="true">edit</span> Edit &amp; resubmit
         </button>
         <span class="form-hint">Opens a fresh form with these details; the rejected one stays on record.</span>
+      </div>
+    }
+
+    <!-- WITHDRAW (B10.4). Two taps, like the signature screen's Remove: a
+         withdrawn request cannot be un-withdrawn, and this button sits under a
+         document somebody has already signed their name to. -->
+    @if (v && canWithdraw(v)) {
+      @if (withdrawError()) {
+        <div class="state-note risk" role="alert">
+          <span class="icon" aria-hidden="true">error</span>{{ withdrawError() }}
+        </div>
+      }
+      <div class="form-actions">
+        @if (confirmWithdraw()) {
+          <span class="form-hint">
+            This takes the request back. It cannot be undone — a new form is how you ask again.
+          </span>
+          <button
+            type="button"
+            class="btn danger"
+            [disabled]="withdrawing()"
+            (click)="withdraw()"
+          >
+            <span class="icon" aria-hidden="true">event_busy</span>
+            {{ withdrawing() ? 'Withdrawing…' : 'Yes, withdraw it' }}
+          </button>
+          <button type="button" class="btn" (click)="confirmWithdraw.set(false)">Keep it</button>
+        } @else {
+          <button type="button" class="btn" (click)="confirmWithdraw.set(true)">
+            <span class="icon" aria-hidden="true">event_busy</span> Withdraw this request
+          </button>
+          <span class="form-hint">
+            Only while it is still awaiting a signature. Once it is decided, the decision stands.
+          </span>
+        }
       </div>
     }
 

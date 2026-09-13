@@ -156,3 +156,122 @@ def test_the_notified_statuses_are_the_three_transitions_04_names() -> None:
         LeaveStatus.REJECTED,
     }
     assert LeaveStatus.CANCELLED not in leave_mail._BODIES
+
+
+# ---------------------------------------------------------------------------
+# THE WIRING (stage 4). The module above is correct and was, until this, called
+# by nothing: `notify_transition`'s three call sites are all inside
+# `app/routers/leave.py`, which stage 3 was told to leave alone. These two tests
+# are behavioural on purpose — they drive the real endpoints rather than
+# asserting that a line exists — because "is B10.5 reachable" is a question
+# about the call graph and an import is not an answer to it.
+#
+# NEITHER ENDPOINT CHANGED SHAPE. `notify_transition` returns None when the flag
+# is off (every deployment), never raises, and is called AFTER the commit, so
+# the 201 and the 200 are byte for byte what they were. The default-off case is
+# covered by `test_it_is_off_by_default_and_writes_nothing` above; these two
+# turn it on to prove the wire is there at all.
+# ---------------------------------------------------------------------------
+
+
+@requires_db
+def test_the_submit_endpoint_sends_the_submission_mail(client, make_user, monkeypatch):
+    monkeypatch.setattr(settings, "leave_mail_enabled", True)
+    mail_transport.outbox.clear()
+    applicant = make_user("mail-wire-submit", Role.MENTOR)
+    r = client.post(
+        LEAVES,
+        headers=applicant.headers,
+        json={
+            "from_date": date.today().isoformat(),
+            "to_date": date.today().isoformat(),
+            "reason": REASON,
+            "leave_kind": "CASUAL",
+        },
+    )
+    assert r.status_code == 201, r.text
+    leave_id = r.json()["id"]
+    try:
+        assert len(mail_transport.outbox) == 1, "submitting must reach the applicant"
+        sent = mail_transport.outbox[0]
+        assert REASON not in sent.text and REASON not in sent.subject
+        with SessionLocal() as db:
+            row = db.scalar(
+                select(MailLog).where(MailLog.dedupe_key == f"leave:{leave_id}:SUBMITTED")
+            )
+            assert row is not None and row.kind == MAIL_KIND
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(MailLog).where(MailLog.dedupe_key.like(f"leave:{leave_id}:%")))
+            db.commit()
+
+
+@requires_db
+def test_both_signatures_send_their_own_mail_and_neither_carries_the_reason(
+    client, make_user, monkeypatch
+):
+    """A first signature and a sanction are different messages under different
+    dedupe keys, so a request that is signed twice produces two."""
+    monkeypatch.setattr(settings, "leave_mail_enabled", True)
+    applicant = make_user("mail-wire-app", Role.MENTOR)
+    # Two ADMIN accounts, as `tests/test_leave_paper.py` does it: `decide_leave`
+    # requires two DISTINCT signatures and this test is about the mail, not
+    # about which door each approver came through.
+    first = make_user("mail-wire-one", Role.ADMIN)
+    second = make_user("mail-wire-two", Role.ADMIN)
+    r = client.post(
+        LEAVES,
+        headers=applicant.headers,
+        json={
+            "from_date": date.today().isoformat(),
+            "to_date": date.today().isoformat(),
+            "reason": REASON,
+            "leave_kind": "CASUAL",
+        },
+    )
+    assert r.status_code == 201, r.text
+    leave_id = r.json()["id"]
+    try:
+        mail_transport.outbox.clear()
+        one = client.post(
+            f"{LEAVES}/{leave_id}/decision",
+            headers=first.headers,
+            json={"decision": "APPROVE", "note": None},
+        )
+        assert one.status_code == 200, one.text
+        assert one.json()["status"] == "FIRST_APPROVED"
+        assert len(mail_transport.outbox) == 1
+        assert "first signature" in mail_transport.outbox[0].subject.lower()
+
+        two = client.post(
+            f"{LEAVES}/{leave_id}/decision",
+            headers=second.headers,
+            json={"decision": "APPROVE", "note": None},
+        )
+        assert two.status_code == 200, two.text
+        assert two.json()["status"] == "APPROVED"
+        assert len(mail_transport.outbox) == 2
+        assert "sanctioned" in mail_transport.outbox[1].subject.lower()
+
+        for sent in mail_transport.outbox:
+            assert REASON not in sent.text and REASON not in sent.subject
+        with SessionLocal() as db:
+            keys = set(
+                db.scalars(
+                    select(MailLog.dedupe_key).where(
+                        MailLog.dedupe_key.like(f"leave:{leave_id}:%")
+                    )
+                ).all()
+            )
+        # SUBMITTED is in there too: the submission mail went out before the
+        # outbox was cleared, and its `mail_logs` row is exactly the point —
+        # three transitions, three keys, one message each.
+        assert keys == {
+            f"leave:{leave_id}:SUBMITTED",
+            f"leave:{leave_id}:FIRST_APPROVED",
+            f"leave:{leave_id}:APPROVED",
+        }
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(MailLog).where(MailLog.dedupe_key.like(f"leave:{leave_id}:%")))
+            db.commit()

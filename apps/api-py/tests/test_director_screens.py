@@ -334,8 +334,11 @@ def test_a_faculty_account_becomes_a_mentor_the_moment_the_admin_assigns_a_stude
         # Listed for the admin, with no group and nobody assigned.
         row = next(r for r in client.get(load, headers=admin.headers).json() if r["user_id"] == faculty.user_id)
         assert row["mentor_id"] is None and row["mentee_count"] == 0 and row["mentees"] == []
-        # Rule 2 before: nobody.
-        assert client.get("/api/mentor/mentees", headers=faculty.headers).json() == []
+        # Rule 2 before: nobody. 403 rather than `200 []` since B2.3 — the mentee
+        # log is derived from having mentees and this account has none yet. The
+        # assertion after the assignment below is the other half of the same
+        # sentence, and is the thing this test is named for.
+        assert client.get("/api/mentor/mentees", headers=faculty.headers).status_code == 403
 
         # The faculty member cannot assign themselves (the write is the scope key).
         assert client.post(assign, headers=faculty.headers, json={"mentor_user_id": faculty.user_id}).status_code == 403

@@ -39,6 +39,7 @@ from .models.governance import (
     SubjectKind,
 )
 from .models.institution import Department
+from .mentor_functions import mentor_functions_for
 from .models.user import Student, User
 
 _ALL: Final[frozenset[str]] = frozenset(c.key for c in CAPABILITIES)
@@ -85,7 +86,23 @@ _FACULTY_ONLY: Final[frozenset[str]] = frozenset(
 ROLE_BASELINE: Final[dict[str, frozenset[str]]] = {
     "ADMIN": _ALL - _FACULTY_ONLY,
     "DIRECTOR": frozenset(),
-    "MENTOR": _SCOPED,
+    # B2.3: A FACULTY ACCOUNT IS NOT A MENTOR BY EXISTING, and this line is
+    # where that stopped being only a sentence in AGENTS.md. It was `_SCOPED` —
+    # every SCOPED key in the catalogue — so "is this person staff" and "may this
+    # person read a mentee's ledger" were one question with one answer.
+    #
+    # What is left is what belongs to the PERSON: the assistant, and their own
+    # certificate shelf. The four that belong to a GROUP — the mentee log, the
+    # notebook, evidence verification and leave approval — arrive as derived
+    # grants when they are assigned their first student and go when their last
+    # one is released (app/mentor_functions.py). Every one of those four already
+    # refused a faculty member with no mentees at the endpoint; now Governance
+    # says so too, which is where the office looks to answer "who can see what".
+    #
+    # The ten `student.*` keys left with them. They gate nothing anywhere —
+    # B2.1 deletes them from the catalogue — and no client reads one, so this
+    # removes no access from anybody.
+    "MENTOR": frozenset({"mentor.agent", "mentor.upskilling"}),
     "STUDENT": frozenset(),
     "ALUMNI": frozenset(),
 }
@@ -198,10 +215,21 @@ def reaches_target(
 
 
 def capabilities_for(db: Session, session: dict) -> frozenset[str]:
-    """Everything this session may use: its role's baseline plus its grants."""
+    """Everything this session may use: baseline, functions, and grants.
+
+    Three sources, unioned, and each answers a different question. The BASELINE
+    is what the role carries — the Main Admin's programme keys, a faculty
+    member's own assistant and shelf. The FUNCTIONS are what mentoring somebody
+    brings, derived live from the mentee count rather than stored, so no path
+    that assigns a student can forget to write them (app/mentor_functions.py
+    explains why that is not the design 04 asks for). The GRANTS are what a
+    person decided to hand over, in Governance, with a reason.
+    """
     role = str(session.get("role") or "")
+    user_id = str(session.get("userId") or "")
     baseline = ROLE_BASELINE.get(role, frozenset())
-    return baseline | granted_capabilities(db, str(session.get("userId") or ""))
+    functions = mentor_functions_for(db, user_id) if role == "MENTOR" else frozenset()
+    return baseline | functions | granted_capabilities(db, user_id)
 
 
 def has_capability(db: Session, session: dict, key: str) -> bool:
@@ -244,10 +272,16 @@ def require_capability(
         raise ValueError(f"unknown capability {key!r}")
 
     role = str(session.get("role") or "")
+    user_id = str(session.get("userId") or "")
     if key in ROLE_BASELINE.get(role, frozenset()):
         return
+    # A function is unscoped for the same reason a baseline key is: rule 2's
+    # mentor-group check is already the fence on all four, and it is stricter
+    # than any scope could be — it narrows to THIS mentor's own students rather
+    # than to a department's.
+    if role == "MENTOR" and key in mentor_functions_for(db, user_id):
+        return
 
-    user_id = str(session.get("userId") or "")
     reaches = granted_reaches(db, user_id, key)
     if not reaches:
         raise HTTPException(

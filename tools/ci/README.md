@@ -1,10 +1,18 @@
 # tools/ci — the check CI runs, the copy you run first, and the one that turns CI into a gate
 
-Four files, and the difference between them matters more than the file count. One
-is executed by a workflow on every push and every pull request. Two are executed
-by a developer on a laptop before pushing, and are advisory by construction. One
-is executed by a repository admin, once, from a terminal, and is the reason the
-first one can fail anything at all.
+Eight files, and the difference between the KINDS matters more than the count.
+Five are executed by a workflow on every push and every pull request:
+`check_api_imports.py`, `check_pii_gate.py` and the three design-system guards
+(`check_brand_magenta.py`, `check_style_duplicates.py`, `check_theme_tokens.py`)
+— and a sixth lives next to the code it reads, at
+`apps/api-py/tools/ci/check_capability_enforcement.py`. Two are executed by a
+developer on a laptop before pushing and are advisory by construction. One is
+executed by a repository admin, once, from a terminal, and is the reason the
+others can fail anything at all.
+
+This file documents the three in the second and third groups in depth; the
+design-system guards are described where the rule they defend lives
+(`AGENTS.md`, "Frontend conventions").
 
 Every claim in this file was checked against the scripts on 2026-09-13. Where a
 script does *not* do something a reader would reasonably assume, that is written
@@ -48,12 +56,20 @@ statements cannot separate a third-party package from a first-party or stdlib
 module without reimplementing the resolver, and it never sees
 `importlib.import_module(name)`. Importing asks the question the runtime asks.
 
-Its sibling guard is inline in `.github/workflows/ci.yml` rather than here: the
-**Voice worker (dependency completeness)** job loads `voice_agent.py` from a
-fresh py3.12 environment built from `requirements-voice.txt` alone. Same shape
+It had a sibling, inline in `.github/workflows/ci.yml` rather than here: a
+**Voice worker (dependency completeness)** job that loaded `voice_agent.py` from
+a fresh py3.12 environment built from `requirements-voice.txt` alone. Same shape
 of bug, same shape of proof — that manifest once declared only `livekit-agents`
 while the worker imported four more packages, and it worked locally only because
 those had been pip-installed by hand for something else.
+
+**That job went with the LiveKit stack in 2026-09**, and what it left behind is
+the reason `protect-main.sh` greps `ci.yml` and a test now compares four files:
+`.github/rulesets/main.json` went on asking for `"Voice worker (dependency
+completeness)"` for months afterwards. Had that ruleset ever been applied, every
+pull request would have blocked on a check that could never report — a job is
+matched by its DISPLAY NAME as a string, so deleting one does not retire its
+requirement.
 
 ## `preflight.sh`
 

@@ -282,6 +282,13 @@ class AccessGroupMember(Base):
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+#: A grant takes effect immediately unless the capability carries PII, in which
+#: case a second Main Admin has to agree first (B2.4).
+APPROVAL_ACTIVE: Final[str] = "active"
+APPROVAL_PENDING: Final[str] = "pending_approval"
+APPROVAL_STATES: Final[frozenset[str]] = frozenset({APPROVAL_ACTIVE, APPROVAL_PENDING})
+
+
 class CapabilityGrant(Base):
     """One capability, held by one user or one group, until revoked or expired.
 
@@ -310,6 +317,10 @@ class CapabilityGrant(Base):
         Index("ix_capgrant_user_live", "subject_user_id", "capability", "revoked_at"),
         Index("ix_capgrant_group_live", "subject_group_id", "capability", "revoked_at"),
         Index("ix_capgrant_capability", "capability"),
+        CheckConstraint(
+            "approval_state IN ('active', 'pending_approval')",
+            name="ck_capability_grant_approval_state",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
@@ -364,6 +375,41 @@ class CapabilityGrant(Base):
     )
     revoke_reason: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    #: When somebody should LOOK AT THIS AGAIN, which is not when it expires
+    #: (B2.4). An expiry ends a grant; a review date only asks whether it is
+    #: still the right grant. Most of the access that goes wrong in an
+    #: institution is access that was correct when it was given and nobody
+    #: revisited — so the review queue is the point, and a grant with no expiry
+    #: still gets one of these.
+    review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    #: `active` or `pending_approval` (B2.4). A capability the catalogue marks
+    #: `carries_pii` does not take effect until a second Main Admin approves it,
+    #: so the person granting and the person agreeing are two people.
+    #:
+    #: A String with a check constraint rather than a Postgres enum, for the
+    #: reason `capability` above is one: a new state should be a deploy, not a
+    #: type migration. AGENTS.md's three enum gotchas are all about the cost of
+    #: getting that wrong.
+    approval_state: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=APPROVAL_ACTIVE, server_default=APPROVAL_ACTIVE
+    )
+    approved_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    #: The role the subject held WHEN THIS WAS GRANTED (B2.5).
+    #:
+    #: A grant is a decision about a person in a role -- "this MENTOR may read
+    #: the registrations queue". If that account later becomes something else,
+    #: the decision no longer describes anybody, and a grant that silently
+    #: survives a role change is how a demoted account keeps a console screen.
+    #: NULL means "granted before this column existed", and those are honoured:
+    #: the backfill cannot know what role was held at the time, and guessing
+    #: would revoke real access on the deploy that shipped it.
+    role_at_grant: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
 
 class FeatureOverride(Base):
     """A student-facing feature switched off (or back on) at one rung.
@@ -394,6 +440,14 @@ class FeatureOverride(Base):
         Boolean, nullable=False, default=False, server_default=sql_text("false")
     )
     reason: Mapped[str] = mapped_column(String, nullable=False)
+    #: What the STUDENT is told when they reach the switched-off thing (B2.2).
+    #:
+    #: Separate from `reason`, which is why the office did it and is nobody
+    #: else's business -- "withheld pending the disciplinary meeting" is a true
+    #: reason and not a sentence to put on a student's screen. Null means the
+    #: feature is simply absent from their console, which is the right default:
+    #: a message is a decision to explain, and explaining is not always kind.
+    student_message: Mapped[str | None] = mapped_column(String, nullable=True)
     set_by_user_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )

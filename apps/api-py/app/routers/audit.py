@@ -165,7 +165,27 @@ def _filters(
         else:
             conds.append(AuditEvent.actor_user_id == needle)
     if action:
-        conds.append(AuditEvent.action == action.strip().upper())
+        # CASE-INSENSITIVE, AND THAT IS NOT TIDINESS. This read `== action.strip()
+        # .upper()`, which enshrined one of the two vocabularies actually in the
+        # table: most writers name an action in upper case (`GRANTED`,
+        # `FEATURE_DISABLED`), and `routers/redesign.py`'s six mentor-notebook
+        # writes name it in lower (`created`, `updated`, `published`,
+        # `archived`, `registered`). Upper-casing the needle turned a search for
+        # `created` into `CREATED`, which matches interview-question rows and can
+        # NEVER match a notebook one — so those events listed and opened
+        # perfectly and were unreachable by the filter above them, which is the
+        # shape of bug an operator reports as "the notebook is not audited".
+        #
+        # Fixed on the READER because `audit_events` is append-only: the rows
+        # saying `created` are the record of what happened, and a migration that
+        # rewrote them to `CREATED` would be this module editing the trail it
+        # exists to show. `record_change` now upper-cases what it writes, so the
+        # vocabulary converges going forward; this clause is what keeps every row
+        # written before that reachable, forever.
+        #
+        # `func.upper` on the column is a sequential comparison, and costs
+        # nothing here: there is no index on `audit_events.action` to defeat.
+        conds.append(func.upper(AuditEvent.action) == action.strip().upper())
     if target_type:
         conds.append(AuditEvent.entity_type == target_type.strip())
     if target_id:

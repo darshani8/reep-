@@ -1,5 +1,28 @@
 # The REEP Codebase Bible
 
+> **HISTORICAL RECORD — written against the codebase as it stood in 2026-08, and
+> NOT maintained since. `AGENTS.md` is the current truth; where this book and
+> that file disagree, this book is wrong.**
+>
+> It is kept because the *reasoning* in it is still the reasoning of this
+> codebase, and because a 270,000-word account of why each decision was made is
+> not reproducible by reading the diff. What it describes that no longer exists:
+>
+> - the **LiveKit voice stack** — `voice_agent.py`, `requirements-voice.txt`,
+>   `.venv-voice`, `app/routers/voice.py`, `chat-voice.service.ts` and the
+>   `worker-imports` CI job (removed 2026-09; ~280 references in here);
+> - the **DIRECTOR role** — `require_director`, `/api/director/*`,
+>   `features/director/`, `director@bgscet.ac.in` (removed 2026-09-10; ~117
+>   references);
+> - the **`openai` interview engine** — `app/interview_relay.py` (removed
+>   2026-09; the design record that outlived it is
+>   `docs/interview-engine-v3.md`);
+> - `ThemeService`, `IconComponent` and four of the five `shared/kit/`
+>   components (removed 2026-09 in the redesign's cleanup phase).
+>
+> Chapter 11 ("Voice") is about a subsystem that no longer exists at all. Read it
+> as an account of a design that was tried and replaced, never as a map.
+
 An exhaustive, teaching-first account of the REEP stack: what every module does, why
 every line reads the way it does, which rule each piece of code exists to protect, and
 the naming conventions that keep 34,000 lines legible.

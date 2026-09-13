@@ -470,9 +470,12 @@ half-applied schema and nothing to go back to.
   does not, you will not — it is idempotent, but a step that runs for no reason
   is a step nobody reads the output of.
 - **`python -m app.seed` is not on the menu and never will be.** It creates
-  `director@bgscet.ac.in` behind a password published in `AGENTS.md`, and that
-  account reads every student's record. It refuses on `ENV=prod`; a button for
-  it would be a way around its own guard.
+  `admin@bgscet.ac.in` — the Main Admin, who by rule 2 reads every student's
+  marks, attendance and USN — behind a password published in `AGENTS.md`. It
+  refuses on `ENV=prod`; a button for it would be a way around its own guard.
+  (This named `director@bgscet.ac.in` until Phase 5. That role and that account
+  were removed on 2026-09-10; the argument is unchanged and the account it now
+  names is the one that makes it true.)
 
 ---
 

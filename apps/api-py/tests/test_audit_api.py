@@ -460,3 +460,73 @@ def test_neither_destructor_empties_the_trail():
     assert "AuditEvent" not in retention_src and "redesign_audit_events" not in retention_src, (
         "the audit trail is append-only; nothing on a clock may delete it"
     )
+
+
+# ------------------------------------- the two vocabularies in one table --
+
+
+@requires_db
+def test_an_action_filter_reaches_a_row_written_in_lower_case(client, login):
+    """`audit_events` grew TWO vocabularies and the filter could reach one.
+
+    Most writers name an action in upper case; `routers/redesign.py`'s six
+    mentor-notebook writes named it in lower (`created`, `updated`, `published`,
+    `archived`, `registered`). `_filters` upper-cased the needle, so a search for
+    `created` became `CREATED` — which matches interview-question rows and can
+    never match a notebook one. Those events listed and opened perfectly and were
+    unreachable by the filter directly above them, which an operator reports as
+    "the notebook is not audited".
+
+    Written against a row inserted in lower case ON PURPOSE, because that is what
+    is already in the table: `audit_events` is append-only, the rows saying
+    `created` are the record of what happened, and a migration rewriting them to
+    `CREATED` would be the audit module editing the trail it exists to show. The
+    reader is what has to cope, forever.
+    """
+    from app.models.redesign import AuditEvent
+
+    tag = uuid.uuid4().hex[:10]
+    with SessionLocal() as db:
+        row = AuditEvent(
+            actor_type="USER",
+            entity_type="notebook_entry",
+            entity_id=tag,
+            action="created",  # lower case, exactly as redesign.py writes it
+            metadata_json={"route": "/api/mentor/notebook"},
+        )
+        db.add(row)
+        db.commit()
+        event_id = row.id
+
+    try:
+        headers = login("admin@bgscet.ac.in", "admin123")
+        for needle in ("created", "CREATED", "Created"):
+            r = client.get(
+                "/api/admin/audit",
+                headers=headers,
+                params={"action": needle, "target_id": tag},
+            )
+            assert r.status_code == 200, r.text
+            ids = [item["id"] for item in r.json()["items"]]
+            assert event_id in ids, (
+                f"filtering on {needle!r} did not reach a row stored as 'created'"
+            )
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(AuditEvent).where(AuditEvent.id == event_id))
+            db.commit()
+
+
+@requires_db
+def test_record_change_writes_one_vocabulary_from_now_on(client, login):
+    """The other half: the funnel normalises, so the split stops growing.
+
+    Normalised in `record_change` rather than at each call site because that is
+    the one way in — the next writer does not have to know the convention.
+    """
+    from app.architecture_events import _normalise_action
+
+    assert _normalise_action("created") == "CREATED"
+    assert _normalise_action("  published  ") == "PUBLISHED"
+    assert _normalise_action("GRANTED") == "GRANTED"
+    assert _normalise_action("") == ""

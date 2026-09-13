@@ -130,6 +130,115 @@ Alembic head). Where the kit and the code differ:
 - **B8.4** — `/admin/overview`, `/admin/mail`, `/admin/job-imports` and
   `job_import_runs` removed (Phase 4b, not Phase 5 — verify, do not re-delete).
 
+### The refusals — five things the kit asks for that were NOT built
+
+**This is the part of this file that is worth the most, because it is in no
+spec.** A requirement with no code and no note reads, six months later, as
+something somebody forgot, and the next person builds it. Each of the five below
+was read, understood and *declined*; each reason is written at the place in the
+code where the feature would have gone, and this list is the index to those
+places.
+
+**1 · B4.4 — graduation creates the alumnus's profile row.** *Impossible as
+written.* `alumni_profiles.company` is **NOT NULL**, so the row can only be
+created by inventing a company — and **row existence is the single signal** that
+`GET /api/alumni/profile`'s `created:` flag reports, which is what the entire
+first-login create-profile form branches on. Creating the row at graduation makes
+that form unreachable for every graduate and leaves the office's placeholder
+printed on their profile for ever. *Built instead:* graduation flips the role and
+the status and creates **nothing**; `alumni_profiles.student_id` is nullable and
+filled in when they first save, matched on `user_id` — the fact both rows already
+share. It is a convenience, not the join: alumni history is reachable through
+`students.user_id` without it. → `app/models/alumni.py`
+
+**2 · B6.6 — a bank question id on every interviewer turn** (*and B5.5, which
+depended on it, went with it*). **Nothing injects a question per turn.** The bank
+is rendered into the model's *instructions* once, as a block of `[phase] text`
+lines, with the model told to "rephrase each naturally rather than reciting it …
+a guide to coverage, not a script". The engine never SELECTS a question, so there
+is no "the question it injected" to record: `_TurnRecord` has no slot for one and
+neither engine could fill it. **And the event the kit names does not exist** —
+there is no `reep.transcript.delta` carrying a `question_id`. The nullable column
+*was* added and is **never written**, because it is free to add to an empty
+column and expensive to add later to a table with hundreds of thousands of rows;
+the comment above it says so in capitals. B5.5's `asked_count` fell with it: the
+only way to fill the column is post-hoc matching of the interviewer's words
+against a bank the prompt *orders* rephrased, which is lossy by construction, so
+NULL would mean "unmatched" and never "no question", and any count built on it is
+an **estimate** a screen must label as one. → `app/models/interview.py`
+
+**3 · B10.1 — "Mentor / HOD / Principal / Main Admin" as the signing functions.**
+**Two of those four do not exist in this product.** There is no HOD *account*:
+`departments.head` is a free-text `String`, "as printed on the leave form's
+department line", with no `head_user_id` and no `Role.HOD` — and there is no
+principal concept anywhere. Minting either word here would print a job title on
+the college's own signed form that nothing in the database can substantiate,
+which is worse than the NULL it replaces. *Built instead:* three values, the
+third being **DELEGATE** — a scoped grant of `mentor.leave_approve` made in
+Governance at department or college level, with a reason and an audit row. That
+is a function in every sense that matters here: somebody decided this person
+signs leave for these people. → `app/models/leave.py`
+
+**4 · B10.8 — "refuse to render the PDF when the signer has no signature image
+(422)".** It would **refuse an applicant their own sanctioned leave because a
+different person never uploaded a PNG.** A signature is a name and a time; the
+image is decoration on top of a record that already exists, and
+`tests/test_leave_paper.py` asserts that deleting a signature still returns 200.
+B10.8's other half was declined for the same shape of reason: "print the function
+*instead of* the fixed PROGRAM DIRECTOR label" means whiting that block out and
+reprinting over it — **defacing the office's own form**, whose words are printed
+on the source PDF. *Built instead:* the function joins the attestation line
+*beneath* the block, in blank margin, in 8pt muted type — and only where a
+function was actually recorded, never one guessed from who the signer is today.
+→ `app/leave_paper.py`
+
+**5 · B11.1 — the seat check on the registration queue.** The board draws *"Batch
+is open for seating · 60 of 60 seats · this makes 61 — over-seat needs a
+reason"*. **`cohorts` has no capacity column, and 04 never asked for one** — its
+B11.1 list is domain, USN pattern, matched rule, duplicate account. **Only the
+board drew it.** Inventing a column to satisfy a picture would put a number in
+the schema that nobody had decided, on the screen that decides whether a person
+gets an account at all. *Built instead:* the checks that exist are each
+**one-to-one with a guard in `_provision_student`**, and that is the whole
+contract — a blocked check the reviewer can click past, or a guard with no check
+in front of it, is the queue lying about what the button does. →
+`app/routers/registration.py`
+
+### And two live bugs, which are in no spec either
+
+Neither was on any list. Both were found by reading code a Phase 4 task happened
+to touch, and both are the kind that pass every test in the suite because nothing
+had ever been asked to fail.
+
+**A graduate kept roughly forty student endpoints.** `_require_student` read
+`session["studentId"]` **and nothing else**. `_payload_for` mints that claim for
+*any* account with a `students` row, and graduation deliberately **keeps** the
+row — it is the record of their marks, badges and interviews — while flipping
+`users.role` to ALUMNI. So on the claim alone a graduate held a valid
+`studentId`, and with it results, the ledger, uploads, resume generation and SWOC
+acknowledgements across `student.py`, `student_programme.py` and `badges.py`. The
+Angular `roleGuard('STUDENT')` bounced them off the **screens**, which is the
+worst part of it: the symptom would have been **an API wide open behind a client
+that looked closed**. The role is asked first now and the claim second, so a
+STUDENT-role account with no Student row and an ALUMNI account with one get
+different sentences — they are different problems and the office fixes them
+differently. → `routers/student.py::_require_student`
+
+**Approving a second application carrying the same USN was a 500 that deleted its
+own audit row.** `students.usn` is `unique=True, nullable=True`, and
+`_provision_student` wrote it **with no check at all**. The first approval
+succeeded; the second raised `IntegrityError` **on commit** — a 500, not the 409
+this endpoint promises — and it landed *after* `decide` had already added its
+`record_change` row, so **the rollback took the audit row with it and the trail
+did not even show that anybody had tried.** Two applications can honestly carry
+one USN (a typo, a re-application under a corrected address, two colleges with
+overlapping formats), so this is a refusal a reviewer can act on, not an
+impossible state. It is GUARD 3 now, and what it does *not* close is stated where
+it lives: two approvals racing on two *different* registration rows lock two
+different rows, so the unique index remains the backstop — this turns the case
+that actually happens, where the clash already exists, into an answer somebody
+can read. → `app/routers/registration.py`
+
 ## Phase 5 — the cleanup, and the CI truth
 
 **Deleted, each proven dead by grep before it went:**
@@ -199,6 +308,57 @@ completeness)" for months after that job went.
   reproducible from a diff, but ~280 of its references are to a voice stack that
   does not exist and ~117 to a role that does not. A banner that names what is
   wrong is worth more than a rewrite nobody will finish.
+
+**A second pass went wider than the first, because a grep does not land on a
+README.** Seven more live documents were corrected in place and eight more
+marked:
+
+- **Corrected in place**, because these are documents somebody follows rather
+  than reads: `docs/interview-assistant.md` (the audio download's gate was
+  described as `_require_developer`, "ADMIN only", "a DIRECTOR gets 403" — that
+  helper is gone and so is the role; the gate is the `admin.interview_audio`
+  capability, Main Admin by baseline and a MENTOR only by explicit grant),
+  `docs/deployment-process.md` (a forged-cookie example minting
+  `{"role":"DIRECTOR"}`, a `VOICE_WORKER_SECRET` rotation row for an image that
+  no longer exists, a smoke-test comment claiming a probe proves `OPENAI_API_KEY`
+  reached the task when Nova signs with SigV4 and holds no key),
+  `docs/google-sign-in.md`, `docs/deploy-from-chrome.md`, `docs/aws-deployment.md`
+  and `docs/sentry-playbook.md` (three `features/director/` paths that would send
+  a reader to a directory renamed on 2026-09-10).
+- **Banner'd**: `docs/interview-engine-v3.md` — which is *kept on purpose* and
+  had no warning at all, so a reader met a present-tense spec for an engine
+  deleted in 2026-09; `docs/python-fastapi-migration.md` (the migration is
+  finished); `docs/institutional-spine-build-log.md` (a chronological log whose
+  Round 9 *is* the DIRECTOR removal, so every earlier round is history);
+  `docs/architecture-sketch.html`; `docs/api-v1-redesign.md` and
+  `docs/architecture-redesign-phase4.md` (proposals, never implemented as
+  written); `docs/reep-pod-roadmap.md` (sketches in Prisma);
+  `docs/codebase-mahabharath/FINDINGS.md`; the three
+  `docs/prototypes/admin-faculty-student/` pages; and
+  `docs/spec-implementation-plan.json`, where the banner is a real top-level
+  `STALE` key so it survives any reader that parses rather than displays.
+- **All fifteen chapters of the book now carry their own banner.** Only its
+  `README.md` had one, and **nobody arrives at a 270,000-word book through its
+  front door** — they arrive through a grep, in the middle of chapter 7.
+  Chapter 11 gets a longer one: it is entirely about the LiveKit voice stack, so
+  it names the three things that outlived it and are still true (`Message.channel`
+  stays a plain String so historical `voice` rows read back; the
+  `provider_turn_id` dedup, now pinned by `tests/test_conversation_dedup.py`; and
+  the silent save-nothing failure mode, which is still the worst one in this
+  stack).
+
+One artefact **cannot carry its own banner**: `docs/diagrams/reep-tech-stack-a3`
+is a rendered A3 poster that draws the LiveKit voice worker and the
+`worker-imports` job, and a warning legible at that size would need the sheet
+re-drawn, which is a design job. The note went in `docs/diagrams/README.md`
+instead — the door everyone comes through — which also said "Two A3 sheets" over
+a list of three.
+
+Two words that look stale and are **not**, checked rather than assumed:
+`PROGRAM DIRECTOR` in `docs/design-v4/reep-app-standalone.html` is a job title
+printed on the college's own leave form, and the three Orbitron comments in
+`reep-v2.scss` are the record of why two type tokens were retuned. Neither was
+touched.
 
 ### Not done by this phase
 

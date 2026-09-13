@@ -51,7 +51,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -306,6 +306,27 @@ class GrantIn(BaseModel):
     group_ids: list[str] = Field(default_factory=list)
     reason: str
     expires_at: datetime | None = None
+    # ------------------------------------------------------------- B1.2 --
+    #
+    # HOW FAR THE GRANT REACHES, and the half of B1.2 that was missing.
+    # `capability_grants.scope_level` / `scope_id` have been read by
+    # `governance.granted_reaches` and `policies.scope_filter` since B1.2
+    # landed, and enforced by `require_capability(..., target=...)` at every
+    # call site that names one — but nothing could WRITE them, so every row
+    # this endpoint made was programme-wide and the enforcement only ever saw
+    # `(None, None)`. A rule that cannot be expressed is not a rule; the
+    # console's scope select was correspondingly disabled.
+    #
+    # BOTH OR NEITHER. A level with no id names no target, and an id with no
+    # level cannot be resolved to one — either alone would be stored as a
+    # narrowing and read back as programme-wide, which is the widest possible
+    # reading of a request that asked for the narrowest.
+    #
+    # OMITTED IS PROGRAMME-WIDE, and that is what keeps this additive: every
+    # client that has ever called this endpoint sends neither field and keeps
+    # the grant it has always been given.
+    scope_level: ScopeLevel | None = None
+    scope_id: str | None = None
 
     @field_validator("capability")
     @classmethod
@@ -314,12 +335,46 @@ class GrantIn(BaseModel):
             raise ValueError(f"unknown capability {v!r}")
         return v
 
+    @field_validator("scope_id", mode="before")
+    @classmethod
+    def _blank_is_none(cls, v: object) -> str | None:
+        #: A `<select>` with nothing chosen posts "", not null. Treating that as
+        #: a target id would fail the existence check below with "that target
+        #: does not exist" for somebody who simply did not narrow the grant.
+        text = str(v or "").strip()
+        return text or None
+
+    @model_validator(mode="after")
+    def _scope_pair(self) -> "GrantIn":
+        if (self.scope_level is None) != (self.scope_id is None):
+            raise ValueError(
+                "a scope target needs both a level and an id: name the rung and "
+                "the thing it hangs on, or neither for a programme-wide grant"
+            )
+        return self
+
 
 class GrantOut(BaseModel):
     id: str
     capability: str
     capability_label: str
+    #: The CAPABILITY's declared scope — `SCOPED` or `PROGRAMME`, straight off
+    #: the catalogue — and NOT the grant's reach. The two are different
+    #: questions with confusingly similar names: this one says whether a mentor
+    #: group narrows the key at all, `scope_level` below says how far this
+    #: particular grant was handed over. Unchanged, because every client built
+    #: against it reads it as the first thing.
     scope: str
+    #: B1.2. The reach, and `None` means programme-wide rather than "not asked".
+    #: A grant with no target is the ordinary one and the column is NULL for it,
+    #: so the absent value has exactly one meaning here.
+    scope_level: str | None = None
+    scope_id: str | None = None
+    #: Resolved for the screen, the same way an override's target is. A target
+    #: deleted after the grant was made reads "(removed)" rather than an id
+    #: nobody can look up — and the grant then reaches nothing, which is what
+    #: `reaches_target` already does with it.
+    scope_label: str | None = None
     #: B2.4. The console paints a pending row differently and offers Approve on
     #: it; a client that does not know the field yet simply shows a grant that is
     #: listed and not yet working, which is the truth.
@@ -359,6 +414,13 @@ def _grant_out(db: Session, g: CapabilityGrant) -> GrantOut:
         approved_by=(approver.name or approver.email) if approver else None,
         approved_at=g.approved_at,
         review_at=g.review_at,
+        scope_level=g.scope_level.value if g.scope_level else None,
+        scope_id=g.scope_id,
+        scope_label=(
+            _target_label(db, g.scope_level, g.scope_id)
+            if g.scope_level and g.scope_id
+            else None
+        ),
         subject_kind=g.subject_kind.value,
         subject_id=subject_id,
         subject_label=label,
@@ -423,6 +485,33 @@ def create_grants(
             detail="Name at least one person or access group to grant this to.",
         )
 
+    # B1.2. THE TARGET MUST EXIST AT THE LEVEL GIVEN, checked before a single
+    # row is built. `_target_label` is the same resolver a feature override's
+    # target goes through, reused rather than restated: two existence checks
+    # against the same five tables is how one of them ends up accepting a rung
+    # the other refuses.
+    #
+    # A grant hung on nothing would be stored, listed with an id nobody can look
+    # up, and enforced as reaching NOBODY — `reaches_target` never matches an id
+    # that is in no student's ancestry — so the admin would watch a grant they
+    # made refuse every request, with the console showing it as live. 422 and
+    # not 404: the request is well formed and the caller holds governance; it is
+    # the target that is wrong.
+    #
+    # NOT REFUSED FOR A `PROGRAMME` CAPABILITY, deliberately. That word on the
+    # catalogue means "no mentor GROUP narrows this" (models/governance.py says
+    # so) and never "this cannot be scoped to the spine" — B1.4 narrows
+    # `admin.analytics`, `admin.exports`, `admin.placement`, `admin.mentors`,
+    # `admin.registrations` and `admin.swoc` by exactly these rungs, through
+    # `policies.scope_filter`. Refusing here would make the six keys that most
+    # need a fence the only ones that cannot have one.
+    if body.scope_level is not None and body.scope_id is not None:
+        if _target_label(db, body.scope_level, body.scope_id).startswith("(removed"):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="That target does not exist at the level given.",
+            )
+
     now = _now()
     cap = CAPABILITIES_BY_KEY[body.capability]
     # B2.4. A capability that shows a student's own record needs two people: the
@@ -456,6 +545,16 @@ def create_grants(
                 CapabilityGrant.capability == body.capability,
                 CapabilityGrant.subject_kind == kind,
                 col == subject_id,
+                # B1.2. THE REACH IS PART OF THE PAIR. Without these two clauses
+                # this query asks "does she hold this key anywhere", and the
+                # answer for a mentor already scoped to Mechanical is yes — so
+                # granting her the same key over Civil would silently no-op and
+                # the console would report success over a grant it did not make.
+                # Two rows at different rungs are two different decisions, and
+                # `scope_filter` unions them, which is what "and Civil as well"
+                # means. Re-granting the SAME rung is still the no-op it was.
+                CapabilityGrant.scope_level == body.scope_level,
+                CapabilityGrant.scope_id == body.scope_id,
                 CapabilityGrant.revoked_at.is_(None),
                 or_(CapabilityGrant.expires_at.is_(None), CapabilityGrant.expires_at > now),
             )
@@ -474,6 +573,9 @@ def create_grants(
             capability=body.capability, subject_kind=SubjectKind.USER, subject_user_id=uid,
             reason=reason, granted_by_user_id=session["userId"], expires_at=body.expires_at,
             approval_state=approval_state, review_at=review_at,
+            # B1.2. NULL on both columns is the programme-wide grant this
+            # endpoint has always written; a pair is the narrowing.
+            scope_level=body.scope_level, scope_id=body.scope_id,
             # B2.5. The role this decision was made about. `granted_capabilities`
             # stops counting the row if the account becomes something else.
             role_at_grant=user.role.value,
@@ -490,6 +592,7 @@ def create_grants(
             capability=body.capability, subject_kind=SubjectKind.GROUP, subject_group_id=gid,
             reason=reason, granted_by_user_id=session["userId"], expires_at=body.expires_at,
             approval_state=approval_state, review_at=review_at,
+            scope_level=body.scope_level, scope_id=body.scope_id,
             # `role_at_grant` STAYS NULL ON A GROUP GRANT, and that is right
             # rather than lazy: the decision names "the placement coordinators",
             # not a role, and there is no single account whose role could later
@@ -508,6 +611,12 @@ def create_grants(
             before=None,
             after={
                 "capability": g.capability, "scope": cap.scope.value,
+                # The REACH, beside the capability's declared scope and not
+                # instead of it — "who was handed admin.students" and "how far"
+                # are the two halves of the question somebody asks this trail in
+                # six months, and a row carrying only the first cannot answer it.
+                "scope_level": g.scope_level.value if g.scope_level else None,
+                "scope_id": g.scope_id,
                 "subject_kind": g.subject_kind.value,
                 "subject_id": g.subject_user_id or g.subject_group_id,
                 "reason": reason,

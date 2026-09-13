@@ -430,3 +430,305 @@ _BUCKET = {
     ScopeLevel.COHORT: "cohorts",
     ScopeLevel.STUDENT: "students",
 }
+
+
+# --------------------------------------------------- B1.2, the WRITE path --
+#
+# Everything above proves the reach is READ and enforced correctly. None of it
+# proved a reach could be written: `POST /grants` had no scope fields at all, so
+# every row this API made was programme-wide and the whole apparatus above only
+# ever saw `(None, None)` in production. A rule that cannot be expressed is not
+# a rule, and the console's scope select was disabled to say so.
+
+
+def _admin(login) -> dict:
+    return login("admin@bgscet.ac.in", "admin123")
+
+
+#: The key these tests hang a scope on. `admin.analytics` and NOT
+#: `admin.students`, which is the obvious example and the wrong one: it
+#: `carries_pii`, so B2.4 writes it `pending_approval` and `granted_reaches`
+#: correctly reports no reach at all until a second admin approves it. A scope
+#: test that had to approve its way past that would be testing two things and
+#: would fail for the other one. Approval-plus-scope has its own test below.
+_KEY = "admin.analytics"
+
+
+@requires_db
+def test_a_grant_with_no_scope_is_still_programme_wide(client, login, spine):
+    """THE COMPATIBILITY CASE, and the one that must never change.
+
+    Every client written before these two fields existed posts neither, and the
+    grant it gets must be the one it has always been given. If this ever fails,
+    adding the fields quietly narrowed every existing grant in the product.
+    """
+    r = client.post(
+        "/api/admin/governance/grants",
+        headers=_admin(login),
+        json={
+            "capability": _KEY,
+            "user_ids": [spine["holder"]],
+            "reason": "No scope named, so this reaches the whole programme.",
+        },
+    )
+    assert r.status_code == 201, r.text
+    row = r.json()[0]
+    assert row["scope_level"] is None
+    assert row["scope_id"] is None
+    assert row["scope_label"] is None
+
+    with SessionLocal() as db:
+        assert granted_reaches(db, spine["holder"], _KEY) == [(None, None)]
+        assert scope_filter(db, {"role": "MENTOR", "userId": spine["holder"]},
+                            _KEY).everything
+
+
+@requires_db
+def test_a_department_scoped_grant_is_written_and_read_back(client, login, spine):
+    """The point of the whole task: what the console posts is what enforcement
+    reads. Written through the endpoint and read through `granted_reaches`, so a
+    projection that dropped the columns on the way out would fail here."""
+    r = client.post(
+        "/api/admin/governance/grants",
+        headers=_admin(login),
+        json={
+            "capability": _KEY,
+            "user_ids": [spine["holder"]],
+            "reason": "Only the students in their own department.",
+            "scope_level": "DEPARTMENT",
+            "scope_id": spine["dept_one"],
+        },
+    )
+    assert r.status_code == 201, r.text
+    row = r.json()[0]
+    assert row["scope_level"] == "DEPARTMENT"
+    assert row["scope_id"] == spine["dept_one"]
+    assert row["scope_label"] == "Dept One", "the screen needs a name, not an id"
+    # `scope` is the CAPABILITY's declared scope and is a different question.
+    assert row["scope"] == "PROGRAMME"
+
+    with SessionLocal() as db:
+        assert granted_reaches(db, spine["holder"], _KEY) == [
+            (ScopeLevel.DEPARTMENT, spine["dept_one"])
+        ]
+        session = {"role": "MENTOR", "userId": spine["holder"]}
+        reach = scope_filter(db, session, _KEY)
+        assert not reach.everything
+        assert reach.departments == frozenset({spine["dept_one"]})
+        # And it reaches the students of that department — both of them, the
+        # seated one through the batch and the unseated one through their own
+        # pointer.
+        listed = set(
+            db.scalars(select(Student.id).where(Student.id.in_(reach.student_ids()))).all()
+        )
+        assert {spine["seated"], spine["unseated"]} <= listed
+
+
+@requires_db
+def test_a_scoped_grant_refuses_the_endpoint_outside_its_reach(client, login, spine):
+    """The enforcement half, end to end from the write. A grant over Dept Two
+    must not answer for a student in Dept One — and before this task there was
+    no way to make such a grant at all, so this path was untested from the
+    console's side."""
+    r = client.post(
+        "/api/admin/governance/grants",
+        headers=_admin(login),
+        json={
+            "capability": _KEY,
+            "user_ids": [spine["holder"]],
+            "reason": "Their own department, which holds neither test student.",
+            "scope_level": "DEPARTMENT",
+            "scope_id": spine["dept_two"],
+        },
+    )
+    assert r.status_code == 201, r.text
+
+    session = {"role": "MENTOR", "userId": spine["holder"]}
+    with SessionLocal() as db:
+        # Holds the key...
+        require_capability(db, session, _KEY)
+        # ...and not here.
+        with pytest.raises(HTTPException) as refusal:
+            require_capability(
+                db, session, _KEY,
+                target=ancestry_of_student(db, spine["seated"]),
+            )
+        assert refusal.value.status_code == 403
+        assert "does not reach" in refusal.value.detail
+
+
+@requires_db
+def test_a_level_without_an_id_is_refused(client, login, spine):
+    """BOTH OR NEITHER. A level alone names no target; stored, it would read
+    back as programme-wide — the widest reading of a request that asked for the
+    narrowest."""
+    for body in (
+        {"scope_level": "DEPARTMENT"},
+        {"scope_id": spine["dept_one"]},
+    ):
+        r = client.post(
+            "/api/admin/governance/grants",
+            headers=_admin(login),
+            json={
+                "capability": _KEY,
+                "user_ids": [spine["holder"]],
+                "reason": "Half a scope target is not a scope target.",
+                **body,
+            },
+        )
+        assert r.status_code == 422, (body, r.text)
+
+    with SessionLocal() as db:
+        assert granted_reaches(db, spine["holder"], _KEY) == []
+
+
+@requires_db
+def test_an_empty_scope_id_is_no_scope_rather_than_a_bad_one(client, login, spine):
+    """A `<select>` with nothing chosen posts `""`. That is "not narrowed", and
+    must not become "narrowed to a target that does not exist"."""
+    r = client.post(
+        "/api/admin/governance/grants",
+        headers=_admin(login),
+        json={
+            "capability": _KEY,
+            "user_ids": [spine["holder"]],
+            "reason": "The scope select was left on its blank option.",
+            "scope_level": None,
+            "scope_id": "",
+        },
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()[0]["scope_level"] is None
+
+
+@requires_db
+def test_a_target_that_does_not_exist_is_refused(client, login, spine):
+    """A grant hung on nothing would be listed as live and reach NOBODY — the
+    admin would watch a grant they made refuse every request."""
+    r = client.post(
+        "/api/admin/governance/grants",
+        headers=_admin(login),
+        json={
+            "capability": _KEY,
+            "user_ids": [spine["holder"]],
+            "reason": "This department id belongs to no department.",
+            "scope_level": "DEPARTMENT",
+            "scope_id": str(uuid.uuid4()),
+        },
+    )
+    assert r.status_code == 422, r.text
+    assert "does not exist" in r.text
+    with SessionLocal() as db:
+        assert granted_reaches(db, spine["holder"], _KEY) == []
+
+
+@requires_db
+def test_the_same_key_at_two_rungs_is_two_grants(client, login, spine):
+    """THE DUPLICATE CHECK INCLUDES THE REACH.
+
+    Without that, "and Civil as well" is answered by the no-duplicates rule
+    finding the Mechanical grant and silently doing nothing, while the console
+    reports success. Two rungs are two decisions and `scope_filter` unions them.
+    """
+    def grant(dept: str):
+        return client.post(
+            "/api/admin/governance/grants",
+            headers=_admin(login),
+            json={
+                "capability": _KEY,
+                "user_ids": [spine["holder"]],
+                "reason": "One department at a time, added separately.",
+                "scope_level": "DEPARTMENT",
+                "scope_id": dept,
+            },
+        )
+
+    assert grant(spine["dept_one"]).status_code == 201
+    second = grant(spine["dept_two"])
+    assert second.status_code == 201, second.text
+    assert second.json(), "the second department was swallowed as a duplicate"
+
+    # The SAME rung twice is still the no-op it always was.
+    again = grant(spine["dept_one"])
+    assert again.status_code == 201
+    assert again.json() == []
+
+    with SessionLocal() as db:
+        reach = scope_filter(db, {"role": "MENTOR", "userId": spine["holder"]}, _KEY)
+        assert reach.departments == frozenset({spine["dept_one"], spine["dept_two"]})
+
+
+@requires_db
+def test_the_trail_records_how_far_the_grant_went(client, login, spine):
+    """"Who was handed admin.analytics" and "how far" are the two halves of the
+    question somebody asks this trail in six months."""
+    from app.models.redesign import AuditEvent
+
+    r = client.post(
+        "/api/admin/governance/grants",
+        headers=_admin(login),
+        json={
+            "capability": _KEY,
+            "user_ids": [spine["holder"]],
+            "reason": "Recorded with its reach, not only its name.",
+            "scope_level": "COLLEGE",
+            "scope_id": spine["college"],
+        },
+    )
+    assert r.status_code == 201, r.text
+    grant_id = r.json()[0]["id"]
+
+    with SessionLocal() as db:
+        event = db.scalar(
+            select(AuditEvent).where(
+                AuditEvent.entity_type == "capability_grant",
+                AuditEvent.entity_id == grant_id,
+            )
+        )
+        assert event is not None
+        assert event.after_json["scope_level"] == "COLLEGE"
+        assert event.after_json["scope_id"] == spine["college"]
+
+
+@requires_db
+def test_a_pii_grant_keeps_its_reach_across_the_second_approval(client, login, spine):
+    """B2.4 AND B1.2 TOGETHER, because the interaction is the risk.
+
+    A capability that shows a student's own record is written
+    `pending_approval` and holds nothing until a second holder of
+    `admin.governance` approves it. The approval path rewrites `approval_state`
+    on a row it did not create, and the mistake it invites is re-deriving the
+    row rather than updating it — which would drop a scope the granter chose and
+    silently widen a PII grant to the whole programme at the moment a second
+    person signed it off. That is the worst version of this bug, so it has its
+    own test.
+    """
+    r = client.post(
+        "/api/admin/governance/grants",
+        headers=_admin(login),
+        json={
+            "capability": "admin.students",
+            "user_ids": [spine["holder"]],
+            "reason": "Their own department's students, and nobody else's.",
+            "scope_level": "DEPARTMENT",
+            "scope_id": spine["dept_one"],
+        },
+    )
+    assert r.status_code == 201, r.text
+    row = r.json()[0]
+    assert row["approval_state"] == APPROVAL_PENDING
+    assert row["scope_level"] == "DEPARTMENT"
+
+    with SessionLocal() as db:
+        # Pending means NO reach yet, scope or no scope.
+        assert granted_reaches(db, spine["holder"], "admin.students") == []
+        # Approve it the way the second admin does, on the row itself.
+        grant = db.get(CapabilityGrant, row["id"])
+        grant.approval_state = APPROVAL_ACTIVE
+        grant.approved_at = datetime.now(timezone.utc)
+        db.commit()
+
+    with SessionLocal() as db:
+        assert granted_reaches(db, spine["holder"], "admin.students") == [
+            (ScopeLevel.DEPARTMENT, spine["dept_one"])
+        ], "approval widened a scoped PII grant to the whole programme"

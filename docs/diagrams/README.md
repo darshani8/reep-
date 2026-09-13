@@ -1,6 +1,18 @@
 # Printed posters
 
-Two A3 sheets, each as `.svg` (source of truth), `.pdf` (print) and `.png`
+> **`reep-tech-stack-a3` IS PARTLY STALE and cannot say so on its own face.** The
+> sheet draws the **LiveKit voice worker** ("Voice worker needs its OWN venv on
+> Python 3.12") and the **`worker-imports`** CI job — "the same proof for the
+> voice worker". Both were removed in 2026-09: there is no fourth process and no
+> second venv, the one voice experience is `/student/assistant` (a WebSocket
+> *inside* the API process to Amazon Nova 2 Sonic on Bedrock, no API key), and CI
+> has **five** jobs — `api`, `pii-gate`, `api-imports`, `web`, `cdk`. **DIRECTOR
+> is not a role** either (removed 2026-09-10); there is one office account, role
+> ADMIN. The note is here rather than on the poster because a rendered sheet has
+> no room for a warning that would still be legible at A3, and re-drawing it is a
+> design job, not a docs job. `AGENTS.md` is the current truth.
+
+Three A3 sheets, each as `.svg` (source of truth), `.pdf` (print) and `.png`
 (150 dpi preview):
 
 **`reep-architecture-a3`** — the deployed system: people and roles, the AWS

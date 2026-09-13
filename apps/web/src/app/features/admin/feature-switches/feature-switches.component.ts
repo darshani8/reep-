@@ -1,5 +1,5 @@
 /**
- * Student feature switches — the Main Admin's ten student-facing switches.
+ * Student feature switches — the Main Admin's student-facing switches.
  *
  * Board: docs/redesign-2026-09/design/admin/FeatureSwitches.html
  * Spec:  docs/redesign-2026-09/02-admin-console-spec.md §20
@@ -10,41 +10,45 @@
  * baseline, a feature is allowed until somebody switches it off — and one
  * screen carrying both puts "grant" and "take away" in the same place.
  *
- * THE ENFORCEMENT COLUMN IS THE POINT OF THIS SCREEN, and it is the one column
- * no endpoint answers. `SERVER_ENFORCED_FEATURE_KEYS` below records a hand
- * audit of `apps/api-py/app/` with the command that produced it and the date,
- * because a switch the server never reads is not a switch: it is a row in a
- * table and a promise to a student that nothing keeps. Rendering every key as
- * "Server-enforced" because the column looks better that way is exactly the
- * invented-data failure this phase forbids — the admin would switch the mock
- * interviewer off for a first-semester batch, watch the row save, and find
- * sixty students sitting interviews the next morning.
+ * THE ENFORCEMENT COLUMN IS THE POINT OF THIS SCREEN, and B2.2 made it the
+ * SERVER'S answer rather than this screen's guess. `GET /governance/catalogue`
+ * now serves `enforced` per feature and every override row carries
+ * `feature_enforced`, so the column is read straight off the payload. The Phase
+ * 2 screen carried a hand-audited `SERVER_ENFORCED_FEATURE_KEYS` constant with a
+ * comment saying it was right only on the day it was written; it is deleted, not
+ * edited, because that was always its own terms. A switch the server never reads
+ * is not a switch — it is a row in a table and a promise to a student that
+ * nothing keeps — and rendering every key as "Server-enforced" because the column
+ * looks better that way would let an admin switch the mock interviewer off for a
+ * first-semester batch, watch the row save, and find sixty students sitting
+ * interviews the next morning.
  *
- * WHAT IS REAL TODAY AND WHAT IS NOT. `GET|PUT|DELETE
- * /api/admin/governance/features` and `GET /admin/governance/hierarchy` are on
- * main: the rules list, the scope target with its live student count, the value,
- * the expiry and the twenty-character reason floor are all wired to them, and
- * every write is audited by the router through `record_change`. Three things on
- * the board are not: the per-feature `enforced` flag the catalogue will serve,
- * the STUDENT-FACING MESSAGE a switched-off student is shown, and the actual
- * refusal at the student endpoints — all `B2.2`, Phase 3
- * (docs/redesign-2026-09/04-backend-changes.md). The message field is drawn
- * disabled through `PendingControlDirective`; the enforcement column says
- * "Not wired yet · hidden from students" for every key, truthfully; and the
- * panel warns, before Save, that a rule on an unread key changes nothing a
- * student sees.
+ * SO THE SWITCH IS DISABLED PER ROW, ON THE SERVER'S OWN FACT. `PUT /features`
+ * answers **422** for a feature whose `enforced` is false — in BOTH directions,
+ * because an `enabled: true` row on an unwired key is equally a promise the API
+ * does not keep — so the rule form is drawn disabled for exactly those rows and
+ * says why. Not a phase constant: every feature in today's catalogue is
+ * enforced, so a blanket "Available with Phase 3" would grey out eleven working
+ * switches, and the day a twelfth key is added unwired the screen has to notice
+ * without anybody editing it. REMOVE stays live on an unwired row — DELETE has
+ * no enforcement check and a stale rule must always be clearable.
  *
- * THE COLLEGE FILTER IS THE SCOPE CONTROL (`B1.4`), and it is disabled for the
- * same reason it is disabled on Roles & functions: this screen cannot tell
- * which college a student-level rule belongs to, and a filter that silently
- * ignores half the rules is worse than one that says it is not ready.
+ * THE STUDENT-FACING MESSAGE IS EDITABLE (B2.2). `student_message` is a column,
+ * it is on `OverrideIn`/`OverrideOut`, and the router writes it onto the audit
+ * trail beside the rule, because "what were they told" is the question somebody
+ * asks afterwards. It is NOT `reason`: the reason is the office's note to itself
+ * ("withheld pending the disciplinary meeting" is a true reason and not a
+ * sentence to put on somebody's screen), the message is what the student reads.
+ * Blank is a real choice — the feature is then simply absent from their console.
+ *
+ * THE COLLEGE SELECT IS A SCOPE PICKER AND STAYS DISABLED — see
+ * `COLLEGE_PICKER_IS_THE_SERVERS` below for why that is not a stale phase badge.
  */
 
 import { Component, ElementRef, computed, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // ---- exact snake_case shapes of the governance router's Out models ---------
@@ -52,9 +56,10 @@ import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 interface FeatureOut {
   key: string;
   label: string;
-  /** Added by B2.2. Absent on every deployment until then, which is why the
-   *  enforcement column is read from the audit constant below and not here. */
-  enforced?: boolean;
+  /** Does a router actually ask about this key? B2.2 made the catalogue answer
+   *  it, which is what the Enforcement column reads and what decides whether
+   *  the rule form is writable for this row. */
+  enforced: boolean;
 }
 
 interface CatalogueOut {
@@ -66,11 +71,15 @@ interface OverrideOut {
   id: string;
   feature: string;
   feature_label: string;
+  /** The same fact the catalogue serves, repeated on the row so a rule written
+   *  before a key was un-wired still reads honestly without a second lookup. */
+  feature_enforced: boolean;
   scope: string;
   target_id: string;
   target_label: string;
   enabled: boolean;
   reason: string;
+  student_message: string | null;
   set_by: string | null;
   set_at: string;
   expires_at: string | null;
@@ -117,9 +126,15 @@ interface OverrideRule {
   setByLabel: string;
   changedLabel: string;
   reason: string;
+  /** What the student is shown when this rule refuses them. `null` is a real
+   *  answer and renders as its own sentence, never as an empty quote: the
+   *  feature is simply absent from their console and nobody is told why. */
+  studentMessage: string | null;
 }
 
-/** One row of the switches grid — one per feature, always all ten. */
+/** One row of the switches grid — one per feature the catalogue serves, always
+ *  all of them. The count is the API's, not a number written down here: B2.2
+ *  added `student.mentor_log` to a list this screen used to call "the ten". */
 interface FeatureRow {
   key: string;
   label: string;
@@ -137,39 +152,34 @@ interface FeatureRow {
 type ScreenState = 'loading' | 'ready' | 'error';
 type EnforcementFilter = 'all' | 'enforced' | 'unwired';
 
-/**
- * WHICH SWITCHES THE SERVER ACTUALLY READS. Audited by hand on 2026-09-12
- * against `apps/api-py/app/`, because the catalogue does not report it yet
- * (`enforced` arrives with B2.2):
- *
- *     grep -rn "student\.<key>" apps/api-py/app/ --include=*.py
- *     grep -rn "feature_enabled\|features_for" apps/api-py/app/ --include=*.py
- *
- * The result was the same for all ten keys: the ONLY line that mentions any of
- * them outside the resolution machinery is its own entry in `FEATURES`
- * (`app/models/governance.py`). `governance.feature_enabled()` and
- * `governance.features_for()` are written, correct and tested
- * (`tests/test_governance.py`), and NOTHING CALLS EITHER — no router, no
- * service, and `GET /api/auth/me` does not return a `features` map for a
- * student session. So every switch here is recorded, audited and inert.
- *
- * This list is the screen's source for the Enforcement column and it stays
- * empty until a key is genuinely gated. When B2.2 lands, the catalogue serves
- * `enforced` per feature and this constant is deleted rather than edited: a
- * hand-maintained mirror of the server's behaviour is right only on the day it
- * is written.
- */
-const SERVER_ENFORCED_FEATURE_KEYS: readonly string[] = [];
-
 /** Every feature is ON until a rule switches it off — the model's own default
  *  (`feature_enabled` returns True when no override covers the student). */
 const DEFAULT_VALUE_LABEL = 'On';
 
-/** The student-facing message on a switched-off feature, and the refusal that
- *  makes a switch real — `B2.2`, Phase 3. */
-const FEATURE_ENFORCEMENT_PHASE = 3;
-/** The multi-college scope control — `B1.4`, Phase 3. */
-const SCOPE_CONTROL_PHASE = 3;
+/**
+ * WHY THE COLLEGE SELECT IS STILL GREY, AND WHY IT IS NOT A PHASE BADGE.
+ *
+ * It was drawn through `PendingControlDirective` as "Available with Phase 3".
+ * Phase 3 has landed and it is still grey, so that sentence is now a claim
+ * about a release rather than a fact about a control, and the honest reason has
+ * to replace it: THE SERVER DECIDES REACH (`B1.4`). `GET /governance/features`,
+ * `/catalogue` and `/hierarchy` take no college parameter — they answer with
+ * whatever the caller's own grants reach — so there is nothing for this control
+ * to send, and posting a college the API would ignore is the dead-control
+ * failure `PendingControlDirective` exists to prevent.
+ *
+ * Nor can it honestly become a client-side filter over the rows already
+ * fetched. Every institutional rung resolves up to a college through
+ * `hierarchy.parent_id`, but a STUDENT-scope rule does not: the hierarchy
+ * endpoint does not list students, so a student-level rule has no college this
+ * screen can name — and those are the most specific rules on the board, the
+ * ones that beat every other. A filter that silently dropped them, or silently
+ * kept them under every college, would be worse than one that says plainly that
+ * the list is not narrowed by college.
+ */
+const COLLEGE_PICKER_IS_THE_SERVERS =
+  'Every college your account reaches is shown. Which colleges those are is decided by your ' +
+  'governance grants, not chosen here.';
 
 /** The rungs `GET /admin/governance/hierarchy` serves, in resolution order,
  *  most general first. STUDENT is a real scope on the API and is NOT here:
@@ -284,13 +294,12 @@ function scopeLabelOf(scope: string): string {
   // RouterLink is REQUIRED for the links back to Roles & functions and on to
   // the audit log: a routerLink in a standalone component that does not import
   // it is inert markup that renders and does nothing.
-  imports: [RouterLink, PendingControlDirective, PluralPipe],
+  imports: [RouterLink, PluralPipe],
   templateUrl: './feature-switches.component.html',
   styleUrl: './feature-switches.component.scss',
 })
 export class AdminFeatureSwitchesComponent {
-  readonly featureEnforcementPhase = FEATURE_ENFORCEMENT_PHASE;
-  readonly scopeControlPhase = SCOPE_CONTROL_PHASE;
+  readonly collegePickerNote = COLLEGE_PICKER_IS_THE_SERVERS;
   readonly hierarchyScopes = HIERARCHY_SCOPES;
   readonly rowsPerPageChoices = ROWS_PER_PAGE_CHOICES;
   readonly defaultValueLabel = DEFAULT_VALUE_LABEL;
@@ -343,6 +352,7 @@ export class AdminFeatureSwitchesComponent {
         setByLabel: override.set_by === null ? 'the office' : override.set_by,
         changedLabel: `${dayAndMonthOf(override.set_at)} · ${override.set_by === null ? 'the office' : override.set_by}`,
         reason: override.reason,
+        studentMessage: override.student_message,
       };
       const already = byFeature.get(override.feature);
       if (already === undefined) {
@@ -371,10 +381,14 @@ export class AdminFeatureSwitchesComponent {
         valueLabel: this.valueLabelOf(live),
         valueIsSwitchedOff: live.length > 0 && live.every((rule) => rule.isSwitchedOff),
         valueVaries: this.valuesDisagreeIn(live),
-        isServerEnforced: SERVER_ENFORCED_FEATURE_KEYS.includes(feature.key),
-        enforcementLabel: SERVER_ENFORCED_FEATURE_KEYS.includes(feature.key)
+        // The catalogue's own answer, never a list kept here. `enforced` is
+        // also what `PUT /features` checks before it will accept a rule, so
+        // this one field decides both the column and whether the form below is
+        // writable — the screen and the API cannot disagree about a key.
+        isServerEnforced: feature.enforced,
+        enforcementLabel: feature.enforced
           ? 'Server-enforced'
-          : 'Not wired yet · hidden from students',
+          : 'Not wired yet · cannot be switched',
         changedLabel: this.changedLabelOf(rules),
         rules,
       };
@@ -386,7 +400,11 @@ export class AdminFeatureSwitchesComponent {
       return '—';
     }
     if (rules.length === 1) {
-      return `${rules[0].scopeLabel} · ${rules[0].targetLabel}`;
+      // The API's own count, on the row, because "Batch · 2026 MDM" does not
+      // tell the office whether that is six students or eighty-six. Not summed
+      // across several rules: overlapping rungs would count a student twice and
+      // an invented total is worse than no total.
+      return `${rules[0].scopeLabel} · ${rules[0].targetLabel} · ${rules[0].studentsLabel}`;
     }
     return plural(rules.length, 'rule');
   }
@@ -510,12 +528,12 @@ export class AdminFeatureSwitchesComponent {
       return 'No switches are defined.';
     }
     if (enforced === 0) {
-      return `None of the ${plural(total, 'switch', 'switches')} is read by the API yet.`;
+      return `None of the ${plural(total, 'switch', 'switches')} is enforced by the API yet, so none of them can be set.`;
     }
     if (enforced === total) {
-      return `All ${plural(total, 'switch is', 'switches are')} read by the API.`;
+      return `All ${plural(total, 'switch is', 'switches are')} enforced by the API.`;
     }
-    return `${enforced} of the ${total} switches are read by the API.`;
+    return `${enforced} of the ${total} switches are enforced by the API; the rest cannot be set.`;
   });
 
   /** The office's word for a rung: a COHORT is a Batch on every screen the
@@ -574,6 +592,9 @@ export class AdminFeatureSwitchesComponent {
   readonly formSwitchedOn = signal(false);
   readonly formExpiryDate = signal('');
   readonly formReason = signal('');
+  /** The sentence the student reads at the refusal — audited beside the rule.
+   *  Blank is sent as `null`, which is what the API means by "say nothing". */
+  readonly formStudentMessage = signal('');
   /** The rule being edited, so the panel can say "replace" rather than "add"
    *  and offer Remove. A PUT upserts on (feature, scope, target), so editing a
    *  rule and writing a new one at the same target are the same request. */
@@ -632,6 +653,10 @@ export class AdminFeatureSwitchesComponent {
     if (this.selectedFeatureKey() === null) {
       return false;
     }
+    // The API's 422, made visible before the request rather than after it.
+    if (this.selectedFeatureIsUnwired()) {
+      return false;
+    }
     if (this.formTargetId() === '') {
       return false;
     }
@@ -644,6 +669,9 @@ export class AdminFeatureSwitchesComponent {
   readonly saveBlockedReason = computed(() => {
     if (this.selectedFeatureKey() === null) {
       return 'Pick a feature in the table first.';
+    }
+    if (this.selectedFeatureIsUnwired()) {
+      return 'No part of the API reads this switch, so it cannot be set.';
     }
     if (this.formTargetId() === '') {
       return 'Pick who this applies to.';
@@ -691,8 +719,12 @@ export class AdminFeatureSwitchesComponent {
     return `This writes a new rule. The one on ${rule.scopeLabel} · ${rule.targetLabel} stays until you remove it.`;
   });
 
-  /** The sentence under Save when the selected key is inert. It is the whole
-   *  reason the enforcement column is on this board. */
+  /** Does the selected key gate anything? `false` here is the server's own
+   *  `enforced`, and it disables the rule form rather than merely warning under
+   *  it: `PUT /features` answers 422 for such a key in BOTH directions, so a
+   *  live-looking Save would post a request that can only be refused. REMOVE is
+   *  deliberately NOT disabled by it — DELETE has no enforcement check, and a
+   *  rule left over from when a key was wired must always be clearable. */
   readonly selectedFeatureIsUnwired = computed(() => {
     const row = this.selectedRow();
     if (row === null) {
@@ -711,7 +743,9 @@ export class AdminFeatureSwitchesComponent {
     // have just selected the first one — so on the first press the view child
     // is still undefined and the focus was silently dropped, leaving a keyboard
     // user on the toolbar with a form they were never taken to. Focus after the
-    // render that creates it.
+    // render that creates it. On an unwired feature the select is disabled and
+    // this is a no-op, which is correct: there is nothing in the form to take
+    // anyone to, and the panel's notice says why.
     setTimeout(() => this.scopeSelect()?.nativeElement.focus());
   }
 
@@ -723,6 +757,7 @@ export class AdminFeatureSwitchesComponent {
     this.formSwitchedOn.set(!rule.isSwitchedOff);
     this.formExpiryDate.set(rule.expiryDate);
     this.formReason.set(rule.reason);
+    this.formStudentMessage.set(rule.studentMessage ?? '');
     if (rule.scope === 'STUDENT') {
       this.studentResults.set([]);
       this.studentQuery.set(rule.targetLabel);
@@ -788,10 +823,30 @@ export class AdminFeatureSwitchesComponent {
     this.formSwitchedOn.set(false);
     this.formExpiryDate.set('');
     this.formReason.set('');
+    this.formStudentMessage.set('');
     this.studentQuery.set('');
     this.studentResults.set([]);
     this.studentSearchError.set(null);
   }
+
+  /** Blank is `null`, not `''`. The API's own reading of null is "the feature
+   *  is simply absent from their console", and an empty string would store a
+   *  message that says nothing and print as an empty quotation on the rule. */
+  private studentMessageOrNull(): string | null {
+    const text = this.formStudentMessage().trim();
+    if (text === '') {
+      return null;
+    }
+    return text;
+  }
+
+  /** A message on an `enabled: true` rule is stored and never read: nothing
+   *  refuses the student, so there is no refusal to explain. Said out loud
+   *  rather than silently dropped — dropping a sentence an admin typed is how
+   *  they find out months later that nobody was ever told anything. */
+  readonly studentMessageWillNotBeShown = computed(
+    () => this.formSwitchedOn() && this.formStudentMessage().trim() !== '',
+  );
 
   private expiresAtOrNull(): string | null {
     const day = this.formExpiryDate().trim();
@@ -814,6 +869,7 @@ export class AdminFeatureSwitchesComponent {
       enabled: this.formSwitchedOn(),
       reason: this.formReason().trim(),
       expires_at: this.expiresAtOrNull(),
+      student_message: this.studentMessageOrNull(),
     });
     this.saving.set(false);
     if (saved === null) {

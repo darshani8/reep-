@@ -1053,6 +1053,7 @@ def _apply_rule(db: Session, reg: Registration) -> None:
 def decide(
     registration_id: str,
     body: DecisionIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> RegistrationOut:
@@ -1060,7 +1061,14 @@ def decide(
 
     APPROVE stamps the reviewer AND provisions the account — the User row, the
     Student row seated in the rule's cohort, a profile row, and
-    approved_student_id — all in one transaction. REJECT stamps only."""
+    approved_student_id — all in one transaction. REJECT stamps only.
+
+    AUDITED SINCE B2.7, and the gap it closes was a real one: this is the ONLY
+    path that mints a student account, and the roster IS the access control, yet
+    until now the only record of the decision was the stamp on the application
+    itself — which `reopen` above can clear. `reopen` was audited and the
+    decision it undoes was not, so the trail showed the undo of an act it had
+    never recorded."""
     require_capability(db, session, "admin.registrations")
     # SELECT ... FOR UPDATE, not db.get(). The already-decided check below is a
     # read followed by a write, and two admins clicking Approve at the same
@@ -1078,6 +1086,9 @@ def decide(
             status_code=status.HTTP_409_CONFLICT, detail="Application already decided."
         )
     decision = body.decision.upper()
+    # Read before the mutation below: the audit row's `before` must say what the
+    # application actually was, not what it is usually assumed to have been.
+    status_before = reg.status.value
     user: User | None = None
     if decision == "APPROVE":
         reg.status = RegistrationStatus.APPROVED
@@ -1110,6 +1121,22 @@ def decide(
     reg.reviewed_by_id = session["userId"]
     reg.reviewed_at = datetime.now(timezone.utc)
     reg.review_note = body.note
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="registration", entity_id=reg.id,
+        action="APPROVED" if decision == "APPROVE" else "REJECTED",
+        before={"status": status_before},
+        after={
+            "status": reg.status.value,
+            # The account this decision created, or null for a rejection. It is
+            # the join between "an application was approved" and "this person
+            # can sign in", and nothing else records it.
+            "provisioned_user_id": user.id if user is not None else None,
+            "note": body.note,
+        },
+        event_type=f"registration.{decision.lower()}d",
+        payload={"email": reg.email},
+    )
     db.commit()
     db.refresh(reg)
     # MAIL AFTER THE COMMIT, and never inside it. Both issuers commit their own

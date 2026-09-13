@@ -22,6 +22,7 @@ from .routers import (
     onboarding,
     passwords,
     admin,
+    audit,
     governance,
     agent,
     alumni,
@@ -365,6 +366,11 @@ app.include_router(badge_verification.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")
 app.include_router(interview_bank.router, prefix="/api")
 app.include_router(swoc.router, prefix="/api")
+# B2.7: the audit trail, read back. A READER ONLY — `record_change` writes
+# redesign_audit_events from twenty-seven endpoints and nothing in this module
+# writes a domain row. Mounted last among the admin surfaces because it is about
+# all of them.
+app.include_router(audit.router, prefix="/api")
 
 
 # --- The interview record endpoints (Interview Engine v3 §7) -----------------

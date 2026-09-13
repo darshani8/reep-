@@ -288,16 +288,26 @@ def test_a_grant_never_widens_which_students_a_mentor_reaches(
 ) -> None:
     """THE SAFETY PROPERTY. A capability decides which SCREENS; rule 2 decides
     which STUDENTS. `mentor` here has no Mentor group at all — the account rule 2
-    exists to exclude — and holding a student-record capability must not give
-    them a single student.
+    exists to exclude — and holding a capability that reaches a student's own
+    record must not give them a single student.
+
+    THE CAPABILITY GRANTED HERE CHANGED, THE PROPERTY DID NOT (B2.1). It was
+    `student.records`, one of ten `student.*` keys that were checked at zero call
+    sites anywhere in `app/`; B2.1 deleted them from the catalogue, so granting
+    one is now a 422 and this test could no longer set its scene. `mentor.
+    verifications` is the nearest live equivalent — SCOPED, and it reaches a
+    named student's evidence — and it makes the same point more sharply, because
+    unlike the deleted key it is a capability that really does something.
     """
     stu = make_user(f"gov-out-{uuid.uuid4().hex[:4]}")
     r = client.post(f"{GOV}/grants", headers=admin.headers, json={
-        "capability": "student.records", "user_ids": [mentor.user_id], "reason": REASON})
+        "capability": "mentor.verifications", "user_ids": [mentor.user_id], "reason": REASON})
     cleanup["grants"] += [g["id"] for g in r.json()]
 
     with SessionLocal() as db:
-        assert "student.records" in capabilities_for(db, {"userId": mentor.user_id, "role": "MENTOR"})
+        assert "mentor.verifications" in capabilities_for(
+            db, {"userId": mentor.user_id, "role": "MENTOR"}
+        )
 
     # Rule 2 is unmoved: the groupless mentor still reaches nobody. Asserted
     # through the real endpoint, because that is where the gate actually runs.

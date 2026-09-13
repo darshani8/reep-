@@ -308,7 +308,13 @@ def test_leave_history_follows_the_pending_scope_rule(client, make_user):
 
     assert client.get("/api/leaves/history", headers=student.headers).status_code == 403
     # A MENTOR with no Mentor group sees NOBODY — never the whole programme.
-    assert client.get("/api/leaves/history", headers=mentor_without_group.headers).json() == []
+    #
+    # This asserted `== []` until B2.1 put `mentor.leave_approve` on the three
+    # approver endpoints. B2.3 derives that capability from currently mentoring
+    # somebody, so this account does not hold it and is refused before the query
+    # runs. Same visible records (none), earlier gate, and a 403 that says which
+    # capability is missing instead of an empty list that explains nothing.
+    assert client.get("/api/leaves/history", headers=mentor_without_group.headers).status_code == 403
 
     r = client.get("/api/leaves/history", headers=director.headers)
     assert r.status_code == 200, r.text

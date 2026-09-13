@@ -1309,3 +1309,128 @@ def test_the_dev_session_helper_does_not_retire_the_browsers_session() -> None:
         "app/dev_session.py must refuse outside a development environment — it prints "
         "a bearer token for a whole account."
     )
+
+
+# --------------------------------------------------------------------------- #
+# 34. A capability in the catalogue that nothing checks
+# --------------------------------------------------------------------------- #
+
+def test_every_capability_in_the_catalogue_is_checked_somewhere() -> None:
+    """B2.1: a key `CAPABILITIES` declares must be enforced under `app/`.
+
+    THE INCIDENT. Fourteen of the twenty-nine keys were checked at zero call
+    sites. Ten of them — the `student.*` set — had never been checked anywhere
+    and no client read one. Governance listed them, the Main Admin could grant
+    one to a faculty member with a typed reason, `capability_grants` recorded
+    the act, `/auth/me` reported the key back, the sidebar was unchanged and the
+    API refused exactly as much as it had before. That is not a missing feature:
+    it is a feature that looks delivered, with an audit trail saying so.
+
+    `app/models/governance.py` already said this in words — "a row that names a
+    capability nothing checks is a promise the API does not keep" — and the
+    words did not stop it, because nothing measured them.
+
+    DELETE THIS and the next key added to the catalogue is enforced only if
+    whoever added it remembered, which is exactly the state this found.
+
+    The scan itself lives in `tools/ci/check_capability_enforcement.py` so it can
+    run in CI without pytest; this test is what makes it run at all for someone
+    who only ever runs the suite.
+    """
+    import importlib.util
+
+    script = Path(__file__).resolve().parent.parent / "tools" / "ci" / "check_capability_enforcement.py"
+    assert script.is_file(), f"the capability guard is missing from {script}"
+    spec = importlib.util.spec_from_file_location("check_capability_enforcement", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    keys = module.catalogue_keys()
+    assert keys, "the guard could not read CAPABILITIES; it would pass by finding nothing"
+    sites = module.enforced_keys()
+
+    unenforced = sorted(k for k in keys if k not in sites and k not in module.EXEMPT)
+    assert not unenforced, (
+        "capabilities nothing checks: " + ", ".join(unenforced) + ". Enforce each at "
+        "the endpoint it names, or delete it from CAPABILITIES."
+    )
+
+    # A gate naming a key the catalogue does not define raises ValueError in
+    # `require_capability` — a 500 in the face of a member of staff, on whichever
+    # screen calls it, and only once somebody reaches that screen.
+    unknown = sorted(k for k in sites if k not in keys)
+    assert not unknown, f"gates naming a capability the catalogue does not define: {unknown}"
+
+
+def test_the_only_unenforceable_capability_is_the_client_side_preview_switch() -> None:
+    """The guard's exemption list is one key, and it is `ui.console_v2`.
+
+    An exemption is how the guard above stops being a guard: add a second key to
+    it and "enforce or delete" becomes "enforce, delete, or write your name on a
+    list". `ui.console_v2` qualifies because there is no request to refuse — it
+    selects which admin console the CLIENT renders, off `/auth/me`, and the whole
+    point of it is to keep the OLD console reachable while the new one is
+    reviewed. Refusing something server-side would break the thing it protects.
+
+    Every other key gates an endpoint. If a new one genuinely cannot, that is
+    strong evidence it should be a FeatureOverride or nothing at all, and this
+    assertion is where that conversation has to happen.
+    """
+    import importlib.util
+
+    script = Path(__file__).resolve().parent.parent / "tools" / "ci" / "check_capability_enforcement.py"
+    spec = importlib.util.spec_from_file_location("check_capability_enforcement", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    assert set(module.EXEMPT) == {"ui.console_v2"}, (
+        "the capability enforcement exemption list grew. Read "
+        "tools/ci/check_capability_enforcement.py's docstring before adding to it: "
+        "a key that cannot be enforced is usually a key that should be deleted."
+    )
+    assert len(module.EXEMPT["ui.console_v2"]) > 80, (
+        "the exemption must carry its reason in the source, not in a commit message"
+    )
+
+
+def test_the_capability_guard_resolves_constants_and_looks_inside_helpers() -> None:
+    """The scan must find the sixteen sites that pass a NAME, and the one inside
+    a helper — otherwise it reports working code as unenforced.
+
+    BOTH FALSE ALARMS ARE REAL AND WERE HIT WHILE WRITING IT. Three routers —
+    `admin_students.py`, `swoc.py`, `interview_bank.py` — declare
+    `CAPABILITY = "admin.x"` once and pass the constant at sixteen call sites, so
+    a scan that reads string literals demands they be "enforced" when they are.
+    And `admin.interview_audio` is checked inside `interview_records.py`'s
+    `_require_developer` helper, not in a route handler, so a scan that walks only
+    `@router`-decorated functions reports it missing.
+
+    A guard that cries wolf is a guard somebody switches off, and the switch-off
+    takes the real finding with it. These three keys are the proof it does not.
+    """
+    import importlib.util
+
+    script = Path(__file__).resolve().parent.parent / "tools" / "ci" / "check_capability_enforcement.py"
+    spec = importlib.util.spec_from_file_location("check_capability_enforcement", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    sites = module.enforced_keys()
+
+    for key, router in (
+        ("admin.students", "admin_students.py"),
+        ("admin.swoc", "swoc.py"),
+        ("admin.interview_questions", "interview_bank.py"),
+    ):
+        assert key in sites, f"{key} is enforced through a module constant and was missed"
+        assert any(router in site for site in sites[key]), (
+            f"{key} was resolved, but not to {router} — the constant lookup is wrong"
+        )
+
+    assert "admin.interview_audio" in sites, (
+        "admin.interview_audio is checked inside _require_developer, not in a handler; "
+        "the scan must look at every call, not only decorated functions"
+    )
+    assert any("interview_records.py" in site for site in sites["admin.interview_audio"])

@@ -21,6 +21,10 @@ student (a mentor's own leave) has no group to belong to, so it is decidable by
 the Main Admin only. That is the deliberate reading of "no group => nobody" —
 the alternative, letting group-less mentors keep the staff queue, hands the queue
 straight back to the account this rule is here to keep out.
+
+SINCE B2.1 THE APPROVER'S THREE ENDPOINTS ALSO REQUIRE `mentor.leave_approve`
+(`_require_leave_approver` below). The SUBMIT path does not, and must not: every
+signed-in account applies for its own leave, faculty with no mentees included.
 """
 
 from datetime import date, datetime, timezone
@@ -31,6 +35,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..governance import require_capability
 from ..identity import get_current_session
 from ..models.leave import LeaveDecision, LeaveRequest, LeaveStatus
 from ..models.user import Student, User
@@ -148,6 +153,40 @@ def _leave_out(lr: LeaveRequest, db: Session) -> LeaveOut:
     )
 
 
+def _require_leave_approver(db: Session, session: dict) -> None:
+    """The approver's gate: staff, holding `mentor.leave_approve`.
+
+    COMPOSED WITH `require_mentor`, NOT IN PLACE OF IT. The two answer different
+    questions and both have to pass: `require_mentor` says this is a member of
+    staff, the capability says this member of staff is one of the people who
+    sign leave. Dropping the role gate would make a grant the only fence on an
+    endpoint that reads free-text medical reasons, and rule 2's group check
+    (`_assert_can_decide`) still runs after both.
+
+    B2.3 MADE THIS DERIVED, WHICH IS WHY IT CHANGES ANYTHING AT ALL.
+    `mentor.leave_approve` is not in `ROLE_BASELINE["MENTOR"]`; it is one of the
+    four functions a faculty account holds by currently mentoring somebody
+    (app/mentor_functions.py). So a faculty member with no mentees is refused
+    here with a 403 that says why, where before they got a 200 and an empty
+    queue -- the same outcome, told honestly. The Main Admin holds it by
+    baseline, because it is the second of the two signatures and removing it
+    would break sanctioning outright.
+
+    IT IS NOT ON THE SUBMIT PATH, AND THAT IS THE POINT. `POST /api/leaves` and
+    `GET /api/leaves/mine` are open to every signed-in account, including a
+    faculty member with no mentees, because applying for your own leave is not
+    an approver's act. Putting this on the form is how a new lecturer discovers
+    they cannot ask for a day off.
+
+    CALLED BEFORE ANY id IS LOOKED UP, on the decision path especially. A
+    refusal that depended on whether the leave exists would turn this endpoint
+    into the membership oracle `_assert_can_decide` flattens its 404s to
+    prevent: the answer here is the same for every id, known or invented.
+    """
+    require_mentor(session)
+    require_capability(db, session, "mentor.leave_approve")
+
+
 @router.post("", response_model=LeaveOut, status_code=status.HTTP_201_CREATED)
 def submit_leave(
     body: LeaveIn,
@@ -223,7 +262,7 @@ def _assert_can_decide(session: dict, lr: LeaveRequest, db: Session) -> None:
 def pending_leaves(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[LeaveOut]:
-    require_mentor(session)
+    _require_leave_approver(db, session)
     uid = session["userId"]
     query = (
         select(LeaveRequest)
@@ -264,7 +303,7 @@ def decided_leaves(
     only their own group's, a MENTOR with no group sees nobody, the Main Admin
     see all. Own requests are excluded as they are from /pending — the applicant
     reads those under /mine, and the approvals screen is the other chair."""
-    require_mentor(session)
+    _require_leave_approver(db, session)
     uid = session["userId"]
     query = (
         select(LeaveRequest)
@@ -302,9 +341,13 @@ def decide_leave(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> LeaveOut:
-    # Role first, before any DB read: a non-staff caller must not be able to tell
-    # a real leave id from an invented one by which error comes back.
-    require_mentor(session)
+    # Role AND capability first, before any DB read: neither refusal may depend
+    # on whether this leave id exists, or the endpoint tells a caller which ids
+    # are real by which error comes back. B2.1 added the capability HERE rather
+    # than inside `_assert_can_decide`, which runs after the row is loaded — and
+    # which `leave_paper.py` imports for the PDF, a read this gate has no
+    # business refusing.
+    _require_leave_approver(db, session)
     lr = db.get(LeaveRequest, leave_id)
     if lr is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found.")

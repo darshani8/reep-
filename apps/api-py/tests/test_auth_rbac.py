@@ -126,16 +126,39 @@ def test_pending_leave_is_scoped_to_the_mentor_group(client, login, make_user):
         assert leave_id in [row["id"] for row in rows]
 
         # A MENTOR with no Mentor group: not "the whole programme", not one row.
+        #
+        # THE REFUSAL MOVED ONE GATE EARLIER AND THE PROPERTY IS UNCHANGED
+        # (B2.1). This asserted `== []` and a 404, which is what the SQL scope
+        # rule produced: the account was admitted by `require_mentor`, narrowed
+        # to its own (empty) group, and handed an empty queue. The approver's
+        # endpoints now also require `mentor.leave_approve`, which B2.3 derives
+        # from currently mentoring somebody — so this account is refused before
+        # the query runs. "You do not hold Approve leave" is the same outcome
+        # with the true reason attached, where `200 []` said nothing at all.
         loner = make_user("nogroup", Role.MENTOR)
-        assert client.get("/api/leaves/pending", headers=loner.headers).json() == []
-        # ...and no signature either, with the same 404 an unknown id gets, so the
-        # decision endpoint cannot be used to probe which leave ids exist.
+        assert client.get("/api/leaves/pending", headers=loner.headers).status_code == 403
+        # ...and no signature either. The anti-oracle property this line has
+        # always guarded is INTACT and is now asserted directly rather than
+        # implied: the refusal is decided before any id is looked up, so a real
+        # leave id and an invented one come back identical. (It is a 403 rather
+        # than the old flattened 404 because the caller never got as far as the
+        # row; `_assert_can_decide`'s 404-flattening still governs everyone who
+        # does hold the capability.)
         decision = client.post(
             f"/api/leaves/{leave_id}/decision",
             headers=loner.headers,
             json={"decision": "APPROVE"},
         )
-        assert decision.status_code == 404, decision.text
+        assert decision.status_code == 403, decision.text
+        invented = client.post(
+            "/api/leaves/not-a-real-leave/decision",
+            headers=loner.headers,
+            json={"decision": "APPROVE"},
+        )
+        assert (invented.status_code, invented.json()) == (
+            decision.status_code,
+            decision.json(),
+        ), "the refusal distinguishes a real leave id from an invented one"
     finally:
         with SessionLocal() as db:
             db.execute(delete(LeaveRequest).where(LeaveRequest.id == leave_id))

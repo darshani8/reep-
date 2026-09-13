@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from ..architecture_events import record_change, replay_or_reserve, store_response, utc_now
 from ..db import get_db
+from ..governance import require_capability
 from ..identity import get_current_session
 from ..models.redesign import (
     ActionPriority,
@@ -29,7 +30,6 @@ from ..models.redesign import MembershipRole, TenantMembership
 from ..models.user import Student, User
 from ..policies import (
     assert_student_scope,
-    require_notebook_staff,
     require_staff,
     student_identity,
     tenant_id_for_session,
@@ -167,6 +167,45 @@ def _entry_snapshot(row: MentorNotebookEntry) -> dict[str, Any]:
     }
 
 
+def _require_notebook(db: Session, session: dict) -> None:
+    """The notebook gate: staff, holding `mentor.notebook`.
+
+    B2.1 REPLACED A ROLE GATE WITH THE CAPABILITY; IT DID NOT ADD ONE BESIDE IT,
+    and the difference matters. `policies.require_notebook_staff` admits role
+    MENTOR and nobody else. Compose the two and the Main Admin granted
+    `mentor.notebook` in Governance -- with a reason, on the audit trail --
+    still gets 403, because the role gate refuses before the grant is consulted.
+    Three places in this repository promise that grant works:
+    `require_notebook_staff`'s own docstring ("that grant is the audited way
+    in"), `_FACULTY_ONLY` in app/governance.py ("the Main Admin can GRANT any of
+    them ... to itself when a student's evidence is stuck"), and AGENTS.md. A
+    key that is checked but can never be satisfied is the same lie B2.1 exists
+    to remove, told one layer further in.
+
+    So the capability IS the gate, over a staff floor. `require_staff` stays
+    because "is this a member of staff at all" is a different question from "may
+    you use the notebook", and it must fail closed for a STUDENT or ALUMNI
+    session however a grant row came to exist.
+
+    WHO THIS ADMITS, EXACTLY:
+      * a faculty account with mentees -- `mentor.notebook` is one of the four
+        functions derived from the mentee count (app/mentor_functions.py), so
+        nothing changes for the people who use this screen;
+      * a faculty account with NO mentees -- refused 403 rather than the 404 it
+        used to get from rule 2 one line later. Same outcome, true reason;
+      * the Main Admin, only once someone grants it. Reading, not authoring:
+        `create_entry` and `create_action` keep their own "only an assigned
+        mentor" checks, so standing in for a colleague means reading their
+        record and closing their actions, never writing new entries under a
+        mentor's name.
+
+    Rule 2 is untouched and still runs on every one of the eight routes: the
+    capability says which SCREEN, `assert_student_scope` says which STUDENTS.
+    """
+    require_staff(session)
+    require_capability(db, session, "mentor.notebook")
+
+
 @router.get("/mentor/mentees", response_model=list[MenteeOut])
 def list_mentees(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
@@ -206,7 +245,7 @@ def list_entries(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[NotebookEntryOut]:
-    require_notebook_staff(session)
+    _require_notebook(db, session)
     assert_student_scope(session, student_id, db)
     rows = db.scalars(
         select(MentorNotebookEntry)
@@ -235,7 +274,7 @@ def create_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
-    require_notebook_staff(session)
+    _require_notebook(db, session)
     assert_student_scope(session, student_id, db)
     if session["role"] != "MENTOR" or not session.get("mentorId"):
         raise HTTPException(
@@ -306,7 +345,7 @@ def update_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
-    require_notebook_staff(session)
+    _require_notebook(db, session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],
@@ -374,7 +413,7 @@ def publish_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
-    require_notebook_staff(session)
+    _require_notebook(db, session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],
@@ -436,7 +475,7 @@ def archive_entry(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> NotebookEntryOut | JSONResponse:
-    require_notebook_staff(session)
+    _require_notebook(db, session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],
@@ -485,7 +524,7 @@ def list_actions(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[ActionOut]:
-    require_notebook_staff(session)
+    _require_notebook(db, session)
     assert_student_scope(session, student_id, db)
     rows = db.scalars(
         select(MentorNotebookAction)
@@ -511,7 +550,7 @@ def create_action(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> ActionOut | JSONResponse:
-    require_notebook_staff(session)
+    _require_notebook(db, session)
     assert_student_scope(session, student_id, db)
     if session["role"] != "MENTOR":
         raise HTTPException(status_code=403, detail="Only a mentor can create notebook actions.")
@@ -568,7 +607,7 @@ def create_attachment(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AttachmentOut | JSONResponse:
-    require_notebook_staff(session)
+    _require_notebook(db, session)
     replay = replay_or_reserve(
         db,
         principal_id=session["userId"],

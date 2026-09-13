@@ -106,18 +106,28 @@ _P = CapabilityScope.PROGRAMME
 
 #: One entry per screen a staff member can reach. Keys mirror the Angular routes
 #: so a reviewer can check the two lists against each other by eye.
+#:
+#: THE TEN `student.*` KEYS WERE DELETED HERE (B2.1, 2026-09-13), and the reason
+#: is the sentence three paragraphs above this one: a row that names a capability
+#: nothing checks is a promise the API does not keep. `student.profile`,
+#: `.records`, `.skilling`, `.uploads`, `.resume`, `.interviews`, `.english`,
+#: `.time_log`, `.mentor_log` and `.jobs` were checked at ZERO call sites in
+#: `app/` and read by nothing in `apps/web/src`. Granting one in Governance cost
+#: the office a decision, a typed reason and an audit row, and changed nothing
+#: anywhere -- which is worse than a missing feature, because it looks like one
+#: that works. What actually decides whether a staff member may open a student's
+#: ledger is rule 2 (`_assert_can_access_student`) plus the screen's own
+#: capability, and what decides whether the STUDENT has a screen at all is a
+#: FeatureOverride below -- which is where these ten names properly live (B2.2).
+#:
+#: Deleting a key does not break a grant that names it: `granted_capabilities`
+#: already drops any key the catalogue no longer defines, so an existing row
+#: goes inert rather than raising. It was already inert; now it says so.
+#:
+#: `tools/ci/check_capability_enforcement.py` is what stops the next one being
+#: added: every key here must be checked somewhere under `app/`, or exempted in
+#: that script with the reason written down.
 CAPABILITIES: Final[tuple[Capability, ...]] = (
-    # -- student records, scoped to the holder's mentor group ----------------
-    Capability("student.profile", "Profile & USN", _S, carries_pii=True),
-    Capability("student.records", "Academic records", _S, carries_pii=True),
-    Capability("student.skilling", "Skilling & badges", _S),
-    Capability("student.uploads", "Documents & uploads", _S, carries_pii=True),
-    Capability("student.resume", "Resume Builder drafts", _S, carries_pii=True),
-    Capability("student.interviews", "Interview results", _S, carries_pii=True),
-    Capability("student.english", "English baseline", _S),
-    Capability("student.time_log", "Time allocation ledger", _S),
-    Capability("student.mentor_log", "Mentor meeting log", _S),
-    Capability("student.jobs", "Job applications", _S),
     # -- faculty tools -------------------------------------------------------
     Capability("mentor.mentees", "Mentee log", _S),
     Capability("mentor.notebook", "Mentor notebook", _S),

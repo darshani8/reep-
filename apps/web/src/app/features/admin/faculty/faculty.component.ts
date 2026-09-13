@@ -834,6 +834,14 @@ export class AdminFacultyComponent {
    * right first move for "I left myself signed in on the lab machine". The
    * account can sign in again immediately, so this is a button and not a
    * dialog.
+   *
+   * THE STUDENT SCREEN DOES ASK, on the same endpoint — see
+   * `features/admin/student-detail`, whose button stands alone among disabled
+   * controls where a misclick is likelier, and which has no Disable dialog
+   * beside it to set the gradient. Both readings are defensible and the
+   * divergence is deliberate rather than an oversight; it is cross-referenced
+   * here and there so that whoever settles it changes both, and does not
+   * "fix" one screen into disagreeing with the other a second time.
    */
   async signOutEverywhere(): Promise<void> {
     const faculty = this.openFaculty();

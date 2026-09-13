@@ -627,3 +627,67 @@ def test_sign_out_everywhere_works_from_both_sides_and_changes_nothing_else(
     assert client.post(
         f"{USERS}/{admin.user_id}/sign-out-everywhere", headers=third
     ).status_code == 403
+
+
+@requires_db
+def test_an_activation_link_cannot_be_minted_for_a_disabled_account(
+    client, make_user, swept, house
+):
+    """Disabling spends every outstanding link; minting a fresh one must refuse.
+
+    Found while wiring the Faculty screen, which draws "Activation link" on
+    every row including a disabled one. `routers/passwords.py::activate` already
+    refuses a disabled holder on redemption, so this was never a way back in —
+    it was a link that COULD NOT BE REDEEMED, minted without a word saying so.
+
+    THE COST OF THAT SILENCE IS PAID IN FRONT OF SOMEBODY. The admin presses the
+    button precisely because the person is on the phone saying they cannot get
+    in, reads out a URL, and it fails for them a minute later with a refusal
+    that names neither the admin's action nor the real reason. "The account is
+    disabled" is the answer, and it belongs at the moment of minting.
+
+    Refused in `account_links.issue_activation` rather than in the router, so
+    `app.grant_access` gets it too — the CLI is the path the very first account
+    takes, and it would otherwise print a link nobody can use.
+    """
+    admin = make_user("link-admin", Role.ADMIN)
+    email = _email("offboard-link")
+    swept.append(email)
+
+    created = client.post(
+        "/api/admin/faculty",
+        headers=admin.headers,
+        json={"name": "Offboarded Faculty", "email": email,
+              "department_id": house["department_id"]},
+    )
+    assert created.status_code == 201, created.text
+    user_id = created.json()["user_id"]
+
+    # While active, a link is mintable — the control this test is about.
+    assert client.post(
+        f"{USERS}/{user_id}/activation-link", headers=admin.headers
+    ).status_code == 200
+
+    disabled = client.post(
+        f"{USERS}/{user_id}/disable",
+        headers=admin.headers,
+        json={"reason": "Offboarded, to prove a link cannot follow them out."},
+    )
+    assert disabled.status_code == 200, disabled.text
+
+    refused = client.post(f"{USERS}/{user_id}/activation-link", headers=admin.headers)
+    assert refused.status_code == 422, refused.text
+    detail = refused.json()["detail"]
+    assert "disabled" in detail.lower(), detail
+    assert "enable the account first" in detail.lower(), (
+        "the refusal must say what to do, not only that it refused"
+    )
+
+    # Enabling makes it mintable again: the refusal is about the state, not a
+    # one-way door.
+    assert client.post(
+        f"{USERS}/{user_id}/enable", headers=admin.headers
+    ).status_code == 200
+    assert client.post(
+        f"{USERS}/{user_id}/activation-link", headers=admin.headers
+    ).status_code == 200

@@ -582,6 +582,28 @@ def issue_activation(
             "when their registration is approved. Activation links are for "
             "staff accounts."
         )
+    # AND IT REFUSES A DISABLED ACCOUNT. `disable_account` spends every
+    # outstanding link on the way out, and `routers/passwords.py::activate`
+    # refuses a disabled holder on redemption — so a link minted here for an
+    # offboarded account is one that CANNOT be redeemed, by design, and nothing
+    # said so at the moment it was minted.
+    #
+    # The cost of that silence is paid in front of somebody: the admin opens the
+    # Faculty screen, presses "Activation link" because the person is on the
+    # phone saying they cannot get in, reads out a URL, and it fails for them
+    # with a refusal that names neither the admin's action nor the real reason.
+    # The account is disabled; that is the answer, and it belongs here rather
+    # than three minutes later.
+    #
+    # Refused at this chokepoint and not in the router, so `app.grant_access`
+    # gets the same refusal — the CLI is the path the very first account takes
+    # and it would otherwise print a link nobody can use.
+    if user.disabled_at is not None:
+        raise ValueError(
+            f"{user.email} is disabled, so an activation link for it could not "
+            "be redeemed. Enable the account first; its outstanding links were "
+            "spent when it was disabled, so it will need a fresh one afterwards."
+        )
     if (user.password_hash or "").startswith("scrypt:"):
         raise ValueError(
             f"{user.email} already has a password, so there is no first password "

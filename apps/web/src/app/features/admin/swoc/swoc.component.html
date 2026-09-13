@@ -17,17 +17,15 @@
   </div>
 
   <!-- The board's four filters. Batch is real — the list the screen holds
-       carries each student's batch. Department is the scoped read (B1.2),
-       mentor and semester are the Phase 4 SWOC task (B7.1, B7.4). -->
+       carries each student's batch. Department is now a READ-OUT of the
+       caller's own reach (B1.4): GET /admin/swoc narrows the list server-side
+       and states that reach in X-Reep-Scope, there is no parameter to send, and
+       a row carries no department to filter on here either. Mentor and semester
+       are still the Phase 4 SWOC task (B7.1, B7.4). -->
   <div class="sw-filters">
-    <div class="select sw-filter-pending">
-      <span class="lbl">Department</span>
-      <span class="val">All departments</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Department" [reepPending]="scopeBackendPhase">
-        <option>All departments</option>
-      </select>
-    </div>
+    @if (scopeChip(); as reach) {
+      <span class="chip {{ reach.tone }}">{{ reach.label }}</span>
+    }
 
     <div class="select">
       <span class="lbl">Batch</span>
@@ -64,6 +62,12 @@
       {{ writtenCount() }} with notes · every entry keeps its author, date and viewpoint
     </p>
   </div>
+
+  @if (scopeNote(); as note) {
+    <div class="notice {{ note.tone }}" role="status">
+      <span class="icon" aria-hidden="true">info</span>{{ note.text }}
+    </div>
+  }
 
   @if (error()) {
     <div class="notice sw-alert" role="alert">
@@ -138,15 +142,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="3" class="sw-empty-cell">
-                    @if (error()) {
-                      The list could not be loaded, so nothing is shown here.
-                    } @else if (query() || batchFilter()) {
-                      No student matches this filter.
-                    } @else {
-                      No students yet.
-                    }
-                  </td>
+                  <td colspan="3" class="sw-empty-cell">{{ emptyListNote() }}</td>
                 </tr>
               }
             </tbody>
@@ -160,11 +156,11 @@
 
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          This is every student on the deployment, not a mentor group or a department:
-          <code>GET /api/admin/swoc</code> is not scoped yet, and the row carries no mentor,
-          department or semester to filter on — the scoped read is B1.2 and the mentor scope the
-          Phase 4 SWOC task (B7.1). The acknowledgement column fills with B7.5; nothing records
-          that today, so every row reads as a dash.
+          This is every student your grant reaches — <code>GET /api/admin/swoc</code> is scoped
+          (B1.4) and narrows the students and their entries alike, which is what the pill above
+          states. It is not a mentor group: the row carries no mentor or semester to narrow by, so
+          those two filters wait for the Phase 4 SWOC task (B7.1, B7.4). The acknowledgement column
+          fills with B7.5; nothing records that today, so every row reads as a dash.
         </div>
       }
     </section>

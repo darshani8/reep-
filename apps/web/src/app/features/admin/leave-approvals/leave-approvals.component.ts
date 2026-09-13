@@ -32,6 +32,31 @@
  * built ONLY from what `LeaveOut` already carries — the applicant's own
  * signature, the two-signature status, and the approver printed on a decided
  * request.
+ *
+ * THE SCOPE PILLS, WIRED — AND THEY ARE TWO DIFFERENT FACTS (B1.4). `GET
+ * /leaves/pending` and `GET /leaves/history` take NO college or department
+ * parameter. The server narrows the queue itself (`_narrow_to_scope` in
+ * app/routers/leave.py) and states how far this session's grant reaches in
+ * response headers — `X-Reep-Scope`, plus `X-Reep-Scope-Colleges` and
+ * `X-Reep-Scope-Departments` when the reach names any. So:
+ *
+ *   - COLLEGE is a READ-OUT of that reach, not a picker. There is nothing to
+ *     send, and a menu here would be this screen claiming it can change what
+ *     you may see when all it could ever do is hide rows you are entitled to.
+ *   - DEPARTMENT is a client-side filter over the rows already returned, and it
+ *     narrows WHAT IS DRAWN, never what may be read. It is honest because the
+ *     rows carry it: `LeaveOut.requester_department` is the requester's own
+ *     department. It is NOT the spine department the grant's scope names —
+ *     that one is free text on the `users` row and this one is an id — so the
+ *     two are labelled separately and never added together.
+ *
+ * `scope: none` IS NOT AN EMPTY QUEUE. A grant that reaches nobody answers `[]`
+ * exactly as a quiet Monday does; scope_views.py's own comment is that "may see
+ * everything" and "may see nothing" are opposite facts that must never render
+ * the same, so the empty state says which one this is. A response carrying NO
+ * scope header at all — the MENTOR path, which `_narrow_to_scope` fences by the
+ * mentor's own group and never by a reach — makes no claim on this screen
+ * rather than a guessed one; an absent header is not the word "none".
  */
 
 import { DatePipe } from '@angular/common';
@@ -45,8 +70,27 @@ import { plural } from '../../../shared/text/plural.pipe';
  *  card are B10.1–B10.8, on branch `feat/redesign-p4-leave`. */
 const LEAVE_BACKEND_PHASE = 4;
 
-/** College and department scope for every admin queue is B1.2 / B1.4. */
-const SCOPE_BACKEND_PHASE = 3;
+/** The three words `app/scope_views.py` writes into `X-Reep-Scope`. Three and
+ *  not a boolean: `programme` and `none` are opposite facts, not two ends of
+ *  one scale, and the screen must never render them the same. */
+type ScopeWord = 'programme' | 'narrowed' | 'none';
+
+interface ScopeReach {
+  word: ScopeWord;
+  /** Ids, not names — there is no catalogue on this screen to resolve them
+   *  against, so they are counted and never printed. */
+  colleges: string[];
+  departments: string[];
+}
+
+const SCOPE_HEADER = 'X-Reep-Scope';
+const SCOPE_COLLEGES_HEADER = 'X-Reep-Scope-Colleges';
+const SCOPE_DEPARTMENTS_HEADER = 'X-Reep-Scope-Departments';
+
+/** `MAX_SCOPE_IDS` in app/scope_views.py. The header stops at twenty ids, so a
+ *  count standing exactly on it is a floor and is printed as "20+" rather than
+ *  as a total this screen cannot know. */
+const MAX_SCOPE_IDS = 20;
 
 const MILLISECONDS_IN_A_DAY = 24 * 60 * 60 * 1000;
 
@@ -96,6 +140,15 @@ const KINDS = [
 
 const EVERY_KIND = 'ALL';
 
+/** The department filter's "no department chosen" value. A sentinel and not the
+ *  word "ALL": `requester_department` is free text on the `users` row, so any
+ *  readable word is a department somebody could have typed. */
+const EVERY_DEPARTMENT = '*';
+
+/** The bucket for a requester with no department on their row. `null` and `''`
+ *  are the same fact here — nothing is recorded — so they share one option. */
+const NO_DEPARTMENT = '';
+
 /** `GET /leaves/history` is `.limit(200)` with no paging parameter. The
  *  status bar says "1 to N of N", which is a claim about completeness this
  *  screen cannot make once the cap is reached, so a decided queue sitting
@@ -136,9 +189,10 @@ const EMPTY_NOTE: Record<QueueTab, string> = {
 })
 export class AdminLeaveApprovalsComponent {
   readonly leaveBackendPhase = LEAVE_BACKEND_PHASE;
-  readonly scopeBackendPhase = SCOPE_BACKEND_PHASE;
   readonly kinds = KINDS;
   readonly everyKind = EVERY_KIND;
+  readonly everyDepartment = EVERY_DEPARTMENT;
+  readonly noDepartment = NO_DEPARTMENT;
 
   readonly tabs: { key: QueueTab; label: string }[] = [
     { key: 'pending', label: 'Pending' },
@@ -148,6 +202,10 @@ export class AdminLeaveApprovalsComponent {
 
   readonly tab = signal<QueueTab>('pending');
   readonly kindFilter = signal<string>(EVERY_KIND);
+  readonly departmentFilter = signal<string>(EVERY_DEPARTMENT);
+  /** What the server said this session's grant reaches, off the queue response.
+   *  `null` means the response stated nothing, which is not "nothing". */
+  readonly scope = signal<ScopeReach | null>(null);
   readonly pending = signal<LeaveRow[] | null>(null);
   readonly history = signal<LeaveRow[] | null>(null);
   readonly error = signal<string | null>(null);
@@ -169,12 +227,47 @@ export class AdminLeaveApprovalsComponent {
     };
   });
 
-  /** The rows of the open tab, narrowed by the leave-type filter. */
+  /** The rows of the open tab, narrowed by the type and department filters.
+   *
+   *  BOTH NARROW WHAT IS DRAWN, not what may be read: the server has already
+   *  decided the second, and neither of these two pills can widen it. */
   readonly rows = computed<LeaveRow[]>(() => {
-    const inTab = this.rowsInTab();
+    let inTab = this.rowsInTab();
     const wantedKind = this.kindFilter();
-    if (wantedKind === EVERY_KIND) return inTab;
-    return inTab.filter((row) => row.leave_kind === wantedKind);
+    if (wantedKind !== EVERY_KIND) {
+      inTab = inTab.filter((row) => row.leave_kind === wantedKind);
+    }
+    const wantedDepartment = this.departmentFilter();
+    if (wantedDepartment !== EVERY_DEPARTMENT) {
+      inTab = inTab.filter((row) => this.departmentOf(row) === wantedDepartment);
+    }
+    return inTab;
+  });
+
+  /** Every department named on a loaded request, from BOTH queues so the menu
+   *  does not change shape when the tab does. */
+  readonly departments = computed<string[]>(() => {
+    const names = new Set<string>();
+    for (const row of [...(this.pending() ?? []), ...(this.history() ?? [])]) {
+      const name = this.departmentOf(row);
+      if (name !== NO_DEPARTMENT) names.add(name);
+    }
+    return Array.from(names).sort((left, right) => left.localeCompare(right));
+  });
+
+  /** True when some loaded request has no department, so the menu offers that
+   *  bucket rather than leaving those rows reachable only under "All". */
+  readonly hasUnstatedDepartment = computed(() =>
+    [...(this.pending() ?? []), ...(this.history() ?? [])].some(
+      (row) => this.departmentOf(row) === NO_DEPARTMENT,
+    ),
+  );
+
+  readonly departmentFilterLabel = computed(() => {
+    const wanted = this.departmentFilter();
+    if (wanted === EVERY_DEPARTMENT) return 'All';
+    if (wanted === NO_DEPARTMENT) return 'Not on record';
+    return wanted;
   });
 
   readonly selectedRequest = computed<LeaveRow | null>(() => {
@@ -183,7 +276,61 @@ export class AdminLeaveApprovalsComponent {
     return this.rows().find((row) => row.id === id) ?? null;
   });
 
-  readonly emptyNote = computed(() => EMPTY_NOTE[this.tab()]);
+  /** "Nobody is in your reach" and "nothing is waiting" are the two reasons a
+   *  queue is empty, and they are opposite facts about this account. */
+  readonly emptyTitle = computed(() =>
+    this.scope()?.word === 'none' ? 'Nobody is in your reach.' : 'Nothing here.',
+  );
+
+  readonly emptyNote = computed(() => {
+    if (this.scope()?.word === 'none') {
+      return 'Your grant for leave approvals names no college, department, batch or student, so this queue can never fill — it is not that nothing is waiting.';
+    }
+    return EMPTY_NOTE[this.tab()];
+  });
+
+  /** The College pill: the caller's own reach, as text. */
+  readonly scopeChip = computed<{ label: string; tone: 'neutral' | 'accent' | 'warn' } | null>(
+    () => {
+      const reach = this.scope();
+      if (reach === null) return null;
+      if (reach.word === 'programme') {
+        return { label: 'Reach · every college', tone: 'neutral' };
+      }
+      if (reach.word === 'none') {
+        return { label: 'Reach · nobody', tone: 'warn' };
+      }
+      const parts = [
+        this.idCount(reach.colleges, 'college', 'colleges'),
+        this.idCount(reach.departments, 'department', 'departments'),
+      ].filter((part) => part !== null);
+      if (parts.length === 0) return { label: 'Reach · narrowed', tone: 'accent' };
+      return { label: `Reach · ${parts.join(' · ')}`, tone: 'accent' };
+    },
+  );
+
+  /** The sentence under the filters. It says which of the two pills is a fact
+   *  about permission and which is a fact about what is drawn. */
+  readonly scopeNote = computed<{ text: string; tone: 'accent' | 'warn' } | null>(() => {
+    const reach = this.scope();
+    if (reach === null) return null;
+    if (reach.word === 'programme') {
+      return {
+        tone: 'accent',
+        text: 'Your grant reaches the whole programme — every college and department, staff leave included. The College pill states that; it is a read-out, not a filter, because the queue arrives already cut to what you may see. Department narrows what is drawn here and nothing else.',
+      };
+    }
+    if (reach.word === 'none') {
+      return {
+        tone: 'warn',
+        text: 'Your grant for leave approvals reaches nobody: it names no college, department, batch or student that still exists. The queue below is empty for that reason, not because no request is waiting. A Main Admin can give the grant a scope in Governance.',
+      };
+    }
+    return {
+      tone: 'accent',
+      text: 'Your grant is narrowed, and the server has already cut this queue to it — the College pill counts what it reaches. Department below narrows what is drawn here; it is the department printed on the request, which is the requester\u2019s own, not the one your grant names.',
+    };
+  });
 
   readonly rowRangeLabel = computed(() => {
     const shown = this.rows().length;
@@ -247,6 +394,24 @@ export class AdminLeaveApprovalsComponent {
   setKindFilter(kind: string): void {
     this.kindFilter.set(kind);
     this.clearSelection();
+  }
+
+  setDepartmentFilter(department: string): void {
+    this.departmentFilter.set(department);
+    this.clearSelection();
+  }
+
+  /** One bucket per requester: an absent, null or blank department is the same
+   *  fact and must not become two options that each hold some of the rows. */
+  private departmentOf(row: LeaveRow): string {
+    return (row.requester_department ?? '').trim();
+  }
+
+  /** "3 departments", or "20+ colleges" when the header stood on its cap. */
+  private idCount(ids: string[], one: string, many: string): string | null {
+    if (ids.length === 0) return null;
+    const capped = ids.length >= MAX_SCOPE_IDS ? `${MAX_SCOPE_IDS}+` : `${ids.length}`;
+    return `${capped} ${ids.length === 1 ? one : many}`;
   }
 
   selectRequest(id: string): void {
@@ -608,12 +773,39 @@ export class AdminLeaveApprovalsComponent {
         this.history.set([]);
         return;
       }
+      this.scope.set(this.readScope(pendingResponse) ?? this.readScope(historyResponse));
       this.pending.set((await pendingResponse.json()) as LeaveRow[]);
       this.history.set((await historyResponse.json()) as LeaveRow[]);
     } catch {
       this.error.set('Could not reach the server.');
+      this.scope.set(null);
       this.pending.set([]);
       this.history.set([]);
     }
+  }
+
+  /** The reach the server stated on this response, or `null` when it stated
+   *  none. Readable because the SPA is same-origin through proxy.conf.json —
+   *  a cross-origin fetch would need these three names on the CORS allowlist.
+   *
+   *  AN UNRECOGNISED WORD IS `null`, NOT A GUESS. The one thing this screen
+   *  must never do is read a header it does not understand as "none" and tell
+   *  an approver their grant reaches nobody. */
+  private readScope(response: Response): ScopeReach | null {
+    const word = response.headers.get(SCOPE_HEADER);
+    if (word !== 'programme' && word !== 'narrowed' && word !== 'none') return null;
+    return {
+      word,
+      colleges: this.scopeIds(response.headers.get(SCOPE_COLLEGES_HEADER)),
+      departments: this.scopeIds(response.headers.get(SCOPE_DEPARTMENTS_HEADER)),
+    };
+  }
+
+  private scopeIds(raw: string | null): string[] {
+    if (raw === null) return [];
+    return raw
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
   }
 }

@@ -64,6 +64,8 @@ from datetime import datetime
 from typing import Final, NamedTuple
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import text as sql_text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db import Base
@@ -152,6 +154,24 @@ class College(Base):
     # and fills the rest in later. A required field here would be a required
     # field on the create form, and the form would then invent values.
     contact: Mapped[str | None] = mapped_column(String, nullable=True)
+    #: The email domains an application may be APPROVED INTO for this college.
+    #:
+    #: THE FENCE IS THE TENANT'S, NOT THE DEPLOYMENT'S. Until now the only
+    #: fence was `Settings.provisionable_email_domains`, one list read from the
+    #: environment and applied to every application regardless of which college
+    #: it named. With one college that is the same thing; with two it is a hole,
+    #: because an applicant to college B is admitted on college A's domain. Read
+    #: `provisionable_domains_for` in app/institution_domains.py for how the two
+    #: compose: this list wins where a college has one, and the environment is
+    #: the fallback where it does not.
+    #:
+    #: EMPTY IS A REAL STATE AND MEANS "fall back", not "admit nobody". A
+    #: college created on the console starts here, and a fence that refused
+    #: everything until somebody filled the field in would make "Add college"
+    #: a trap whose only symptom is a 422 on an application days later.
+    email_domains: Mapped[list[str]] = mapped_column(
+        ARRAY(String), nullable=False, default=list, server_default=sql_text("'{}'::text[]")
+    )
     # WHO created it, for the console's audit view. Nullable: `python -m app.seed`
     # and the CLIs have no user. Set by the admin router from the session; never
     # by the client.

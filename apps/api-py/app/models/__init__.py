@@ -1,6 +1,7 @@
 # Importing the model modules registers them on Base.metadata (for create_all
 # and Alembic autogenerate). Add new model modules here as the schema grows.
 from . import academic_history  # noqa: F401
+from . import account_events  # noqa: F401
 from . import academics  # noqa: F401
 from . import agent_run  # noqa: F401
 from . import alert  # noqa: F401

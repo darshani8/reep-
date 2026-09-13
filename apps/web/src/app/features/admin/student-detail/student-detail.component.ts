@@ -18,6 +18,14 @@
  *   GET   /api/mentor/students/{id}/english-baseline the CEFR attempt
  *   GET   /api/admin/cohorts                       the batches, for Move batch
  *   PATCH /api/admin/students/{id}                 Edit profile and Move batch
+ *   POST  /api/admin/users/{user_id}/sign-out-everywhere   retire every session
+ *                                                  this student's account holds
+ *
+ * SIGN OUT EVERYWHERE TAKES THE USER ID AND NOT THE STUDENT ID. The two are
+ * different rows and the route is on `/admin/users`, because a session belongs
+ * to an ACCOUNT and not to a place on a roster; `AdminStudentOut.user_id` is
+ * the one this screen sends. It asks before it posts, because it acts on
+ * somebody else's devices, and the question says what happens to them.
  *
  * THE IDENTITY ROW COMES FROM THE ROSTER, AND THAT IS THE COMPROMISE THIS
  * SCREEN IS WAITING ON. There is no `GET /api/admin/students/{id}` on `main`;
@@ -101,6 +109,25 @@ interface ReadResult<T> {
   refusal: string | null;
 }
 
+/** `admin_faculty.AccountStateOut` — the answer from disable, enable and
+ *  sign-out-everywhere.
+ *
+ *  `detail` is the SERVER'S OWN SENTENCE about what it just did ("Every device
+ *  holding … has been signed out"), and it is shown verbatim: a client that
+ *  composes its own version of that sentence is a second description of one
+ *  act, and the two drift. */
+interface AccountStateOut {
+  user_id: string;
+  email: string;
+  role: string;
+  disabled: boolean;
+  disabled_at: string | null;
+  disable_reason: string | null;
+  token_version: number;
+  links_revoked: number;
+  detail: string;
+}
+
 @Component({
   selector: 'app-admin-student-detail',
   standalone: true,
@@ -144,6 +171,10 @@ export class AdminStudentDetailComponent {
    *  "no sessions in the last six weeks", which is a claim about the student
    *  made out of a read that never happened. */
   readonly weeklyRefusal = signal<string | null>(null);
+
+  /** Whether the Sign out everywhere question is on screen. The button asks
+   *  before it posts because the devices it drops are somebody else's. */
+  readonly confirmingSignOut = signal(false);
 
   // --- the editor ---------------------------------------------------------
 
@@ -479,6 +510,68 @@ export class AdminStudentDetailComponent {
       changes['current_semester'] = this.formSemester();
     }
     return changes;
+  }
+
+  // --- sign out everywhere (B3.6) -----------------------------------------
+
+  /** Asks first. The FACULTY screen calls this same endpoint without asking
+   *  (`features/admin/faculty`, which argues it is reversible and sits beside a
+   *  Disable dialog that sets the gradient). This button stands alone among
+   *  disabled controls, where a misclick is likelier and nothing else nearby
+   *  confirms. Both readings are defensible; the divergence is deliberate and
+   *  cross-referenced so whoever settles it changes both. */
+  askSignOutEverywhere(): void {
+    if (this.student() === null || this.busy()) {
+      return;
+    }
+    this.error.set(null);
+    this.flash.set(null);
+    this.confirmingSignOut.set(true);
+  }
+
+  cancelSignOutEverywhere(): void {
+    this.confirmingSignOut.set(false);
+  }
+
+  /**
+   * `POST /api/admin/users/{user_id}/sign-out-everywhere`.
+   *
+   * THE ACCOUNT'S ID, NOT THE STUDENT'S. A session hangs off `users`, so the
+   * route is on `/admin/users` and the id it wants is `user_id` — sending
+   * `studentId` here reaches a different row's account or, more often, a 404
+   * that reads as a broken button.
+   *
+   * Nothing on this screen is re-read afterwards, deliberately: the endpoint
+   * changes `token_version` and nothing this screen draws. `last_login_at` is
+   * untouched — the student HAS signed in before, and rewriting the header to
+   * say otherwise would be this client inventing a fact the server did not
+   * report. The server's own `detail` is the whole confirmation.
+   */
+  async signOutEverywhere(): Promise<void> {
+    const row = this.student();
+    if (row === null || this.busy()) {
+      return;
+    }
+    this.busy.set(true);
+    this.error.set(null);
+    this.flash.set(null);
+    try {
+      const response = await fetch(
+        `${environment.apiBase}/admin/users/${row.user_id}/sign-out-everywhere`,
+        { method: 'POST', credentials: 'include' },
+      );
+      if (!response.ok) {
+        this.error.set(await this.detailOf(response));
+        return;
+      }
+      const state = (await response.json()) as AccountStateOut;
+      this.confirmingSignOut.set(false);
+      this.flash.set(state.detail);
+    } catch {
+      this.error.set('The server could not be reached. Nothing was changed.');
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   // --- reading ------------------------------------------------------------

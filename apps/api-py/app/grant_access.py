@@ -47,7 +47,12 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from datetime import datetime, timezone
+from types import SimpleNamespace
+
+from .architecture_events import record_change
 from .db import SessionLocal
+from .models.governance import AccessGroupMember, CapabilityGrant, SubjectKind
 from .models.student_profile import StudentProfile
 from .models.user import Mentor, Role, Student, User
 from .config import settings
@@ -139,6 +144,100 @@ def _validate_password_hash(value: str) -> str:
     return candidate
 
 
+
+def _cli_actor() -> tuple[dict, SimpleNamespace]:
+    """A session and a request shaped for `record_change`, from a command line.
+
+    THE AUDIT WRITER IS NOT REIMPLEMENTED HERE, and that is the point of the
+    shim. `record_change` writes the `redesign_audit_events` row AND the outbox
+    event, with the same field names the console's own mutations use, so a role
+    change made from a terminal appears in `GET /api/admin/audit` beside the ones
+    made on screen. A hand-rolled `AuditEvent(...)` in this module would be the
+    second copy that stops matching the first — and the trail that only records
+    what somebody did through a browser is the trail that misses the interesting
+    half.
+
+    `actor_user_id` is NULL because there is no signed-in person: whoever ran
+    this held a shell on the deployment, which is a stronger fact than any user
+    id and one this process cannot name. The route records the command instead,
+    so the row says how it happened.
+    """
+    return (
+        {"userId": None},
+        SimpleNamespace(
+            headers={},
+            url=SimpleNamespace(path="python -m app.grant_access"),
+            state=SimpleNamespace(request_id=None),
+        ),
+    )
+
+
+def _release_governance_on_role_change(
+    db: Session, user: User, *, previous: Role, new: Role
+) -> tuple[int, int]:
+    """A role change ends every grant and every group membership (B2.5).
+
+    A GRANT IS A DECISION ABOUT A PERSON IN A ROLE — "this MENTOR may read the
+    registrations queue". Demote or promote the account and the sentence stops
+    describing anybody, so the grant must stop counting. Two mechanisms do that
+    here and they are not redundant:
+
+      * `role_at_grant` makes the row INERT the moment the role differs, with no
+        write at all. That is the fail-safe: it holds on a deployment where this
+        function never ran, where the role was changed by hand in SQL, or where
+        this process died between the role write and the revocations.
+      * These explicit revocations make it VISIBLE. An inert row still reads as
+        a live grant on the Governance screen and in `GET /grants`, and an office
+        that can see access somebody no longer has will eventually act on it.
+
+    Memberships are DELETED rather than stamped, unlike grants. A membership is
+    not a decision with a reason — `AccessGroupMember` has no `revoked_at` and no
+    `reason` column, because the decision is the GROUP'S grant and that row stays
+    exactly where it is. Removing the person is how they stop inheriting it, and
+    the audit row below is what records that it happened.
+    """
+    now = datetime.now(timezone.utc)
+    session, request = _cli_actor()
+    note = (
+        f"Role changed from {previous.value} to {new.value} by "
+        "`python -m app.grant_access`; a grant describes a person in a role."
+    )
+
+    grants = db.scalars(
+        select(CapabilityGrant).where(
+            CapabilityGrant.subject_kind == SubjectKind.USER,
+            CapabilityGrant.subject_user_id == user.id,
+            CapabilityGrant.revoked_at.is_(None),
+        )
+    ).all()
+    for g in grants:
+        g.revoked_at = now
+        g.revoke_reason = note
+        record_change(
+            db, session=session, request=request, tenant_id=None,
+            entity_type="capability_grant", entity_id=g.id, action="REVOKED",
+            before={"capability": g.capability, "role_at_grant": g.role_at_grant},
+            after={"capability": g.capability, "revoke_reason": note},
+            event_type="governance.capability.revoked",
+            payload={"capability": g.capability, "user_id": user.id},
+        )
+
+    memberships = db.scalars(
+        select(AccessGroupMember).where(AccessGroupMember.user_id == user.id)
+    ).all()
+    for m in memberships:
+        group_id = m.group_id
+        db.delete(m)
+        record_change(
+            db, session=session, request=request, tenant_id=None,
+            entity_type="access_group", entity_id=group_id, action="MEMBER_REMOVED",
+            before={"user_id": user.id, "reason": note}, after=None,
+            event_type="governance.group.member_removed",
+            payload={"user_id": user.id},
+        )
+    return len(grants), len(memberships)
+
+
 def grant(
     db: Session,
     email: str,
@@ -218,6 +317,7 @@ def grant(
     # lowercases before it compares.
     user = db.scalar(select(User).where(func.lower(User.email) == normalised))
     created = user is None
+    released_grants = released_memberships = 0
 
     # A NEW account cannot have a blank name; an EXISTING one keeps the name it
     # has. `--name` is therefore required here and only here. `user.name = name`
@@ -251,6 +351,7 @@ def grant(
         # once the other workers' revocation caches converge. Repeating the
         # same grant remains idempotent.
         role_changed = user.role is not role
+        previous_role = user.role
         # Only when the operator actually supplied one. Omitting --name is how a
         # role is changed without touching the person's name.
         if (name or "").strip():
@@ -258,6 +359,12 @@ def grant(
         user.role = role
         if role_changed:
             user.token_version = (user.token_version or 0) + 1
+            # B2.5. Every capability grant and every access-group membership this
+            # account held described the role it no longer has. Both end here,
+            # and both are audited — see `_release_governance_on_role_change`.
+            released_grants, released_memberships = _release_governance_on_role_change(
+                db, user, previous=previous_role, new=role
+            )
         if password_hash is not None:
             # Re-running with a hash SETS or ROTATES the key; re-running without
             # one leaves whatever key exists alone, so "promote this person"
@@ -303,6 +410,14 @@ def grant(
 
     db.commit()
     db.refresh(user)
+    # Said out loud, because "your Analytics screen is gone" is otherwise a
+    # mystery to the person whose role was changed and to whoever changed it.
+    if released_grants or released_memberships:
+        print(
+            f"  Role change released {released_grants} capability grant(s) and "
+            f"{released_memberships} access-group membership(s). They are revoked, "
+            "not deleted, and re-granted in Governance if they are still wanted."
+        )
     return user, created
 
 

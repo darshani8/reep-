@@ -7,13 +7,20 @@
  * inline styles, exactly as the roster grid on Students & batches does — and
  * escapes every value it interpolates.
  *
- * STATUS AND SIGN-IN ARE HERE AND THEY ARE EMPTY. The board draws both columns
- * and nothing on `main` reports either per faculty account: Active / Invited /
- * Disabled needs the disable columns (`B3.3`) and "has this person ever signed
- * in" needs the login events table (`B15`), both Phase 3. Each renders an em
- * dash and names its task in the header tooltip, and the screen repeats it once
- * in a `.notice.accent`. A plausible "Active · today 09:12" in a screenshot is
- * indistinguishable from working software.
+ * STATUS IS REAL NOW; SIGN-IN IS STILL EMPTY, AND THEY ARE EMPTY FOR DIFFERENT
+ * REASONS. B3.3 landed `users.disabled_at`, and `GET /api/admin/faculty`
+ * carries it, so Status reads the account itself: a `.chip good` "Active" or a
+ * `.chip risk` "Disabled" with the day it happened — text AND colour, never
+ * colour alone. The board's third state, "Invited", is NOT drawn: nothing in
+ * that payload says whether an account has ever redeemed its activation link,
+ * and guessing it from a blank field would be exactly the plausible-looking
+ * cell this file exists to refuse.
+ *
+ * Sign-in stays an em dash. Login events ARE recorded (B15), but the only
+ * endpoint that reads them serves the SIGNED-IN account its own history on My
+ * account; no admin endpoint answers "when did somebody else last sign in", so
+ * there is nothing here to draw. The header tooltip says that, and the screen
+ * repeats it once in a `.notice.accent`.
  *
  * FUNCTIONS IS HALF ANSWERABLE AND SHOWS EXACTLY THAT HALF. The mentor function
  * is real today — it is the `Mentor` group the office creates by assigning the
@@ -26,17 +33,32 @@
 
 import type { ColDef, ICellRendererParams, RowSelectionOptions, SelectionColumnDef } from 'ag-grid-community';
 
-import { NOT_READABLE, escapeHtml, type FacultyRow } from './faculty-row';
+import { NOT_READABLE, dayLabelOf, escapeHtml, type FacultyRow } from './faculty-row';
 
-/** The tasks that will fill the two empty columns, said once here so the header
- *  tooltip and the screen's notice cannot drift apart. */
-export const STATUS_PENDING_REASON =
-  'Active / Invited / Disabled needs the account-disable columns (B3.3) and the sign-in history (B15), both Phase 3.';
+/** Said once here so the header tooltip and the screen's notice cannot drift
+ *  apart. The Status one is no longer about a missing endpoint — it is about
+ *  the one state of the board's three that nothing reports. */
+export const STATUS_UNKNOWN_REASON =
+  'Active and Disabled are read from the account itself. “Invited” — an account that has never redeemed its activation link — is not reported by any endpoint, so it is not shown.';
 export const SIGN_IN_PENDING_REASON =
-  'Last sign-in is read from the login events table, which arrives with B15 (Phase 3).';
+  'Sign-ins are recorded (B15), but the only endpoint that reads them serves the signed-in account its own history on My account. Nothing answers “when did this person last sign in”.';
 
 function renderNotReadable(): string {
   return `<span style="color: var(--faint);">${NOT_READABLE}</span>`;
+}
+
+/** Text AND colour. The reason rides along as the cell's tooltip, because a
+ *  140px column cannot hold "Left the institution, September intake" and the
+ *  office's next question after "disabled" is always "why". */
+function renderStatusCell(params: ICellRendererParams<FacultyRow>): string {
+  const row = params.data;
+  if (!row) return '';
+  if (!row.isDisabled) return `<span class="chip good">Active</span>`;
+  const reason = row.disableReason === null ? '' : ` title="${escapeHtml(row.disableReason)}"`;
+  return (
+    `<span class="chip risk"${reason}>Disabled</span>` +
+    `<span style="margin-left: 6px; font-size: 11px; color: var(--faint);">${escapeHtml(dayLabelOf(row.disabledAt))}</span>`
+  );
 }
 
 function renderFacultyCell(params: ICellRendererParams<FacultyRow>): string {
@@ -149,14 +171,16 @@ export const FACULTY_COLUMNS: ColDef<FacultyRow>[] = [
       'The mentor function is the group the office assigns. HOD, placement officer and verifier arrive with B2.3 (Phase 3).',
   },
   {
+    // Sortable and filterable now that it says something: a roster of two
+    // hundred with three disabled accounts in it is a column you sort by.
+    // `valueGetter` is what the sort, the column filter and the quick filter
+    // all read — the renderer's chip is HTML and none of them can see it.
     colId: 'status',
     headerName: 'Status',
-    width: 140,
-    sortable: false,
-    filter: false,
-    floatingFilter: false,
-    cellRenderer: renderNotReadable,
-    headerTooltip: STATUS_PENDING_REASON,
+    width: 150,
+    valueGetter: (params) => (params.data?.isDisabled ? 'Disabled' : 'Active'),
+    cellRenderer: renderStatusCell,
+    headerTooltip: STATUS_UNKNOWN_REASON,
   },
   {
     colId: 'signIn',

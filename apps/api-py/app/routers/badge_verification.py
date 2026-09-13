@@ -19,12 +19,10 @@ from routers/badges.py — the same builders the student's own screen uses, so a
 mentor can never see a confident number where the student sees a dash.
 """
 
-import csv
-import io
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -50,6 +48,16 @@ from ..models.badge import (
     StudentBadgeStatus,
 )
 from ..document_store import content_disposition, read_bytes
+# B14: one owner for the export rules, shared with routers/console.py.
+from ..exports import (
+    carries_personal_columns,
+    csv_response,
+    drop_personal,
+    record_export,
+    scope_note,
+)
+from ..policies import scope_filter
+from ..scope_views import scope_header
 from ..models.upload import Upload
 from ..models.user import Student, User
 from .badges import BadgeDashboardOut, GrowthOut, compose_badges, compose_growth
@@ -104,8 +112,31 @@ def _pending_row(ev: BadgeEvidence, name: str, usn: str | None) -> PendingEviden
 
 @router.get("/mentor/badge-evidence/pending", response_model=list[PendingEvidenceOut])
 def pending_evidence(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[PendingEvidenceOut]:
+    """The verification queue, narrowed the same way both kinds of holder are.
+
+    SCOPED (B1.4), COMPOSED WITH THE GROUP FENCE AND NOT REPLACING IT. There are
+    two ways to hold `mentor.verifications` and they are narrowed differently
+    ON PURPOSE:
+
+    A MENTOR holds it as a derived FUNCTION of currently mentoring somebody
+    (app/mentor_functions.py), so there is no grant row and `scope_filter`
+    reports `nothing` for them. Their fence is their own group, which is
+    stricter than any scope — this mentor's students, not a department's — and
+    is the same argument `require_capability` makes for leaving a function
+    unscoped. Applying the reach here would empty every faculty member's queue.
+
+    ANYONE ELSE holds it as a GRANT, and that grant now carries a scope. This is
+    where it bites today rather than in some future phase: `_FACULTY_ONLY` keeps
+    `mentor.verifications` out of the Main Admin's baseline precisely so that
+    looking at a stuck student's evidence is an audited grant it makes to
+    itself — and until this line, that grant read every pending claim on the
+    deployment. A grant scoped to the college whose student is stuck now shows
+    that college's queue.
+    """
     # mentor.verifications: verifying a student's evidence is a faculty act.
     # The Main Admin no longer holds it by role - but it stays GRANTABLE, which
     # matters here specifically: when a student's assigned faculty never reviews
@@ -124,6 +155,13 @@ def pending_evidence(
         if not mentor_id:
             return []  # no Mentor group => nobody (never the whole programme)
         query = query.where(Student.mentor_id == mentor_id)
+    else:
+        reach = scope_filter(db, session, "mentor.verifications")
+        scope_header(response, reach)
+        if reach.nothing:
+            return []
+        if not reach.everything:
+            query = query.where(Student.id.in_(reach.student_ids()))
     return [_pending_row(ev, name, usn) for ev, name, usn in db.execute(query).all()]
 
 
@@ -490,7 +528,9 @@ def cohort_view(
 
 @router.get("/admin/badges/export.csv")
 def export_cohort_csv(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> Response:
     """§18's cohort report: one row per student — points, earned count per
     category, mean growth from baseline. A spreadsheet, because that is what a
@@ -507,11 +547,30 @@ def export_cohort_csv(
     reconciliation is the tighter one. If the placement office genuinely needs a
     granted non-admin to pull this, widen BOTH together — the fix is not to give
     the file a weaker lock than the window.
+
+    B14 STILL APPLIES ON TOP OF THAT GATE, and applying it here is not
+    ceremony. `scope_filter` resolves to `everything` for every caller this
+    endpoint currently admits, because `require_admin` admits the Main Admin
+    alone and `admin.exports` is in its baseline — so today this narrows
+    nothing. It is written anyway because the comment above invites exactly one
+    future change ("widen BOTH together"), and a widened gate with no scope
+    underneath it is the whole-programme download this task exists to stop. The
+    receipt and the personal-column rule are not conditional on any of that: the
+    Main Admin's own downloads are the ones most worth having a record of.
     """
     require_admin(session)
-    students = db.execute(
-        select(Student, User.name).join(User, Student.user_id == User.id).order_by(User.name)
-    ).all()
+    reach = scope_filter(db, session, "admin.exports")
+    carried_pii = carries_personal_columns(db, session)
+    students = (
+        []
+        if reach.nothing
+        else db.execute(
+            select(Student, User.name)
+            .join(User, Student.user_id == User.id)
+            .where(Student.id.in_(reach.student_ids()))
+            .order_by(User.name)
+        ).all()
+    )
 
     earned: dict[str, list[StudentBadge]] = defaultdict(list)
     for sb in db.scalars(
@@ -525,17 +584,9 @@ def export_cohort_csv(
     for r in db.scalars(select(CapabilityAssessment)).all():
         assessments[r.student_id][r.capability][r.checkpoint.value] = r.score
 
-    def _cell(value: str) -> str:
-        # CSV formula injection: a name registered as "=HYPERLINK(...)" becomes
-        # a live formula the moment a placement officer opens this export in
-        # Excel/Sheets. The leading apostrophe is the spreadsheet convention
-        # for "this is text" — it is not displayed, only obeyed.
-        return f"'{value}" if value[:1] in ("=", "+", "-", "@", "\t", "\r") else value
-
-    buf = io.StringIO()
-    writer = csv.writer(buf)
     cat_headers = [CATEGORY_LABEL[c] for c in BadgeCategory]
-    writer.writerow(["Name", "USN", "REEP stage", "Points", *cat_headers, "Mean growth from T0"])
+    header = ["Name", "USN", "REEP stage", "Points", *cat_headers, "Mean growth from T0"]
+    body: list[list[object]] = []
     checkpoints = [c.value for c in AssessmentCheckpoint]
     for student, name in students:
         badges = earned.get(student.id, [])
@@ -551,20 +602,27 @@ def export_cohort_csv(
             if baseline is not None and len(assessed) > 1:
                 growths.append(assessed[-1] - baseline)
         mean_growth = round(sum(growths) / len(growths), 2) if growths else ""
-        writer.writerow(
+        body.append(
             [
-                _cell(name),
-                _cell(student.usn or ""),
+                name,
+                student.usn or "",
                 student.current_stage.value,
                 sum(sb.points_awarded for sb in badges),
                 *[per_cat[c] for c in BadgeCategory],
                 mean_growth,
             ]
         )
-    return Response(
-        content=buf.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="reep-cohort-skill-report.csv"'},
+    # Every cell goes through the shared formula-injection guard now, not only
+    # the two that were obviously typed by a person: a REEP stage is an enum
+    # today and a cohort label tomorrow, and the guard costs one comparison.
+    header, body = drop_personal(header, body, ["Name", "USN"], carry=carried_pii)
+    record_export(
+        db, session=session, request=request, kind="badges",
+        filters=scope_note(reach), rows=len(body), carried_pii=carried_pii,
+    )
+    return csv_response(
+        header, body, "reep-cohort-skill-report.csv",
+        reach=reach, carried_pii=carried_pii,
     )
 
 

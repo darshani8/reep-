@@ -274,21 +274,65 @@
                 </div>
                 <div class="domain-row">
                   <span class="domain-key">Registration email domains</span>
-                  <span class="chip dot neutral">None recorded</span>
+                  <span class="domain-summary">{{ domainSummary() }}</span>
+                </div>
+                @if (college.email_domains.length) {
+                  <ul class="domain-list">
+                    @for (domain of college.email_domains; track domain) {
+                      <li class="chip dot good">
+                        <span>{{ domain }}</span>
+                        <button
+                          type="button"
+                          class="domain-drop"
+                          [disabled]="domainBusy()"
+                          [attr.aria-label]="'Remove ' + domain + ' from ' + college.name"
+                          (click)="removeDomain(domain)"
+                        >
+                          <span class="icon" aria-hidden="true">close</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+                <form class="domain-add" (ngSubmit)="addDomain()">
+                  <label class="sr-only" for="college-domain">Add a registration email domain</label>
+                  <input
+                    id="college-domain"
+                    class="ctrl"
+                    type="text"
+                    placeholder="bgscet.ac.in"
+                    autocomplete="off"
+                    [disabled]="domainBusy()"
+                    [value]="domainDraft()"
+                    (input)="domainDraft.set($any($event.target).value)"
+                  />
                   <button
-                    type="button"
+                    type="submit"
                     class="btn ghost sm"
-                    [reepPending]="phaseForCollegeEmailDomains"
+                    [disabled]="domainBusy() || !domainDraft().trim()"
                   >
                     <span class="icon" aria-hidden="true">add</span>Add domain
                   </button>
-                </div>
+                </form>
+                @if (domainError(); as problem) {
+                  <div class="notice risk" role="alert">
+                    <span class="icon" aria-hidden="true">error</span>
+                    <div>{{ problem }}</div>
+                  </div>
+                }
                 <div class="notice accent">
                   <span class="icon" aria-hidden="true">info</span>
                   <div>
-                    Registered email domains arrive with Phase {{ phaseForCollegeEmailDomains }} (B1.1);
-                    until then a registration's address is fenced by the server's provisionable-domains
-                    setting, not by a list held on this college.
+                    This is the fence checked when an application is approved and a roster
+                    row is minted (B1.1) — by a human in Registrations, and by the rule engine
+                    too. <strong>It is not the rule engine's own domain condition</strong>: that
+                    lives on a registration rule and is what decides auto-approval. The two meet
+                    here — a rule that would auto-approve is still refused by this fence, and the
+                    application lands in the review queue carrying the refusal as its reason.
+                    <strong>An empty list is not "no fence"</strong> — it means this college has
+                    named none of its own, and the deployment's provisionable-domains setting
+                    applies instead. Recording domains here takes this college off that shared
+                    list; removing the last one puts it back.
                   </div>
                 </div>
               </div>

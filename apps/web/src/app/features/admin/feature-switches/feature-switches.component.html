@@ -72,16 +72,19 @@
     </div>
 
     <div class="fs-filters">
-      <!-- College is the multi-college scope control (B1.4). Until a caller's
-           grants narrow this console, there is nothing here to choose between —
-           and a filter that quietly ignored student-level rules would be worse
-           than one that says it is not ready. -->
-      <div class="select fs-filter-pending">
+      <!-- THE SERVER DECIDES REACH (B1.4), so this is not a control and is not
+           waiting for a phase: /governance/features, /catalogue and /hierarchy
+           take no college and answer with what the caller's grants reach. It is
+           not a client-side filter either — a STUDENT-scope rule has no college
+           this screen can resolve, and those are the rules that beat every
+           other. See COLLEGE_PICKER_IS_THE_SERVERS in the component; the notice
+           under this row says the same thing in visible text. -->
+      <div class="select fs-filter-locked">
         <span class="lbl">College</span>
-        <span class="val">All colleges</span>
+        <span class="val">All colleges you reach</span>
         <span class="icon" aria-hidden="true">expand_more</span>
-        <select aria-label="College" [reepPending]="scopeControlPhase">
-          <option>All colleges</option>
+        <select disabled [title]="collegePickerNote" [attr.aria-label]="'College — ' + collegePickerNote">
+          <option>All colleges you reach</option>
         </select>
       </div>
 
@@ -122,18 +125,17 @@
       </p>
     </div>
 
-    <!-- The honest headline. The catalogue does not report `enforced` yet
-         (B2.2), so the Enforcement column comes from a hand audit of the API
-         recorded in this component — never from a guess. -->
+    <!-- The honest headline. Enforcement is the catalogue's own `enforced`
+         flag, per feature — never a list kept in this component. -->
     <div class="notice accent fs-note">
       <span class="icon" aria-hidden="true">info</span>
       <div>
         <b>{{ enforcementSummary() }}</b>
-        The resolution machinery is written and tested, but no router calls it and
-        <span class="fs-code">GET /api/auth/me</span> does not return a student's switches yet, so a
-        rule saved here is recorded and audited and changes nothing a student sees. Enforcement, the
-        student-facing message and the per-switch <span class="fs-code">enforced</span> flag arrive
-        with Phase 3.
+        A switch marked <i>Not wired yet</i> cannot be set at all: the API refuses a rule on it in
+        both directions, because an "on" row on a key nothing reads is as much a promise it does not
+        keep as an "off" one. Its rules can still be removed.
+        <br />
+        The list is not narrowed by college. {{ collegePickerNote }}
       </div>
     </div>
 
@@ -255,9 +257,10 @@
             <div class="notice warn">
               <span class="icon" aria-hidden="true">warning</span>
               <div>
-                Nothing in the API reads <span class="fs-code">{{ row.key }}</span> yet. A rule
-                saved here is recorded and audited, and changes nothing a student sees until the
-                switch is enforced.
+                Nothing in the API reads <span class="fs-code">{{ row.key }}</span> yet, so this
+                switch cannot be set — the server refuses a rule on it, on or off, rather than
+                record one that changes nothing a student sees. Any rule already here can still be
+                removed.
               </div>
             </div>
           }
@@ -290,6 +293,22 @@
                     }
                   </div>
                   <p class="fs-rule-reason">{{ rule.reason }}</p>
+                  <!-- The office's note and the student's sentence are two
+                       different things and are never run together: `reason` is
+                       auditable and sometimes unkind, `student_message` is what
+                       the person is shown. `null` is a real answer and gets its
+                       own words, never an empty quotation. -->
+                  @if (rule.studentMessage) {
+                    <p class="fs-rule-message">
+                      <span class="icon" aria-hidden="true">chat_bubble</span>
+                      Students are shown: “{{ rule.studentMessage }}”
+                    </p>
+                  } @else if (rule.isSwitchedOff) {
+                    <p class="fs-rule-message quiet">
+                      <span class="icon" aria-hidden="true">chat_bubble</span>
+                      Students are told nothing — the feature is simply absent.
+                    </p>
+                  }
                   @if (removingRuleId() === rule.id) {
                     <div class="fs-rule-confirm" role="status">
                       <span>
@@ -345,6 +364,7 @@
               id="fs-scope"
               class="ctrl"
               #scopeSelect
+              [disabled]="selectedFeatureIsUnwired()"
               (change)="setFormScope($any($event.target).value)"
             >
               @for (scope of hierarchyScopes; track scope) {
@@ -365,6 +385,7 @@
                   class="ctrl"
                   type="search"
                   placeholder="Name, email or USN"
+                  [disabled]="selectedFeatureIsUnwired()"
                   [value]="studentQuery()"
                   (input)="studentQuery.set($any($event.target).value)"
                   (keydown.enter)="searchStudents()"
@@ -372,7 +393,7 @@
                 <button
                   type="button"
                   class="btn secondary"
-                  [disabled]="searchingStudents()"
+                  [disabled]="searchingStudents() || selectedFeatureIsUnwired()"
                   (click)="searchStudents()"
                 >
                   <span class="icon" aria-hidden="true">search</span> Find
@@ -409,6 +430,7 @@
               <select
                 id="fs-target"
                 class="ctrl"
+                [disabled]="selectedFeatureIsUnwired()"
                 (change)="formTargetId.set($any($event.target).value)"
               >
                 <option value="" [selected]="formTargetId() === ''">Choose one…</option>
@@ -429,7 +451,12 @@
           <div class="fs-pair">
             <div class="field">
               <label for="fs-value">Value</label>
-              <select id="fs-value" class="ctrl" (change)="setFormValue($any($event.target).value)">
+              <select
+                id="fs-value"
+                class="ctrl"
+                [disabled]="selectedFeatureIsUnwired()"
+                (change)="setFormValue($any($event.target).value)"
+              >
                 <option value="off" [selected]="!formSwitchedOn()">Off</option>
                 <option value="on" [selected]="formSwitchedOn()">On</option>
               </select>
@@ -441,6 +468,7 @@
                 id="fs-until"
                 class="ctrl"
                 type="date"
+                [disabled]="selectedFeatureIsUnwired()"
                 [value]="formExpiryDate()"
                 (input)="formExpiryDate.set($any($event.target).value)"
               />
@@ -456,6 +484,7 @@
               rows="3"
               maxlength="400"
               placeholder="Why this is switched off, in a sentence someone can audit in a year."
+              [disabled]="selectedFeatureIsUnwired()"
               [value]="formReason()"
               (input)="formReason.set($any($event.target).value)"
             ></textarea>
@@ -465,23 +494,35 @@
             </span>
           </div>
 
-          <!-- The sentence a switched-off student is shown, and the 403 that
-               shows it, are B2.2: `feature_overrides` has no student_message
-               column and no student endpoint refuses on a switch yet. -->
+          <!-- B2.2 made this real: `student_message` is a column, it travels on
+               OverrideIn/OverrideOut, and `record_change` writes it onto the
+               audit trail beside the rule — "what were they told" is asked
+               afterwards. 500 is the API's own cap (Field(max_length=500)). -->
           <div class="field">
             <label for="fs-message">Student-facing message</label>
             <textarea
               id="fs-message"
               class="ctrl multi"
               rows="2"
-              aria-label="Student-facing message"
+              maxlength="500"
               placeholder="Mock interviews open in November"
-              [reepPending]="featureEnforcementPhase"
+              [disabled]="selectedFeatureIsUnwired()"
+              [value]="formStudentMessage()"
+              (input)="formStudentMessage.set($any($event.target).value)"
             ></textarea>
             <span class="help">
-              What a student reads instead of the screen. Stored and shown once the switches are
-              enforced.
+              What the student reads when this rule refuses them — not the reason above, which is
+              the office's own note. Leave it blank and the feature is simply absent from their
+              console. It goes on the audit trail either way.
             </span>
+            <div role="status">
+              @if (studentMessageWillNotBeShown()) {
+                <span class="help">
+                  This rule switches the feature <b>on</b>, so nothing refuses the student and this
+                  sentence is stored but never shown.
+                </span>
+              }
+            </div>
           </div>
 
           <div class="fs-actions">

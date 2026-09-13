@@ -63,11 +63,13 @@
   max-width: 260px;
 }
 
-/* A filter whose answer needs an unmerged endpoint. The directive disables the
-   real <select> inside — which is what takes it out of the tab order and stops
-   the menu — and this dims the pill it is laid over, so the row does not read
-   as three live filters one of which silently ignores you. */
-.fs-filter-pending {
+/* Not a filter at all: the server decides which colleges this account reaches
+   and takes no college parameter. The native `disabled` on the <select> inside
+   takes it out of the tab order and stops the menu; this dims the pill laid
+   over it, so the row does not read as three live filters one of which silently
+   ignores you. The reason is on the control's title and, in visible text, in
+   the notice below the row. */
+.fs-filter-locked {
   opacity: 0.55;
 }
 
@@ -294,6 +296,27 @@
   margin: 0;
   font-size: 11.5px;
   color: var(--ink-soft);
+}
+
+/* The sentence the STUDENT sees, set apart from the office's reason above it
+   so the two are never read as one paragraph. */
+.fs-rule-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+.fs-rule-message .icon {
+  font-size: 13px;
+  color: var(--faint);
+}
+/* "Nobody is told anything" is a true statement about a rule, not a quotation
+   from it, and is drawn back so it is not mistaken for one. */
+.fs-rule-message.quiet {
+  color: var(--faint);
+  font-style: italic;
 }
 .fs-rule-confirm {
   display: flex;

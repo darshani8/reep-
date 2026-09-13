@@ -132,6 +132,52 @@
   flex-wrap: wrap;
 }
 
+/* One notification switch: the checkbox and its label on the left, the state
+   chip right. Text AND colour — the chip is never the only thing that says
+   whether this is on. */
+.account-pref {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.account-pref__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.account-pref__label input[disabled] {
+  cursor: not-allowed;
+}
+
+/* The sign-ins table. `.dt-table` is global and is not restated; this is the
+   scroll box around it, because four columns of timestamps, doors and user
+   agents do not fit the right column on a laptop and the panel itself must
+   never scroll sideways. */
+.account-signins {
+  overflow-x: auto;
+}
+
+/* A user agent is a long single line. It stays in the DOM in full — a screen
+   reader reads it all — and is clipped visually rather than wrapped, which at
+   this width would give one row four lines of height. */
+.account-signins__device {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-signins__ip {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* The signature on the paper it is printed on. */
 .account-signature__paper {
   background: #fff;

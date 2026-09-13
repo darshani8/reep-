@@ -308,7 +308,13 @@ def test_leave_history_follows_the_pending_scope_rule(client, make_user):
 
     assert client.get("/api/leaves/history", headers=student.headers).status_code == 403
     # A MENTOR with no Mentor group sees NOBODY — never the whole programme.
-    assert client.get("/api/leaves/history", headers=mentor_without_group.headers).json() == []
+    #
+    # This asserted `== []` until B2.1 put `mentor.leave_approve` on the three
+    # approver endpoints. B2.3 derives that capability from currently mentoring
+    # somebody, so this account does not hold it and is refused before the query
+    # runs. Same visible records (none), earlier gate, and a 403 that says which
+    # capability is missing instead of an empty list that explains nothing.
+    assert client.get("/api/leaves/history", headers=mentor_without_group.headers).status_code == 403
 
     r = client.get("/api/leaves/history", headers=director.headers)
     assert r.status_code == 200, r.text
@@ -334,8 +340,11 @@ def test_a_faculty_account_becomes_a_mentor_the_moment_the_admin_assigns_a_stude
         # Listed for the admin, with no group and nobody assigned.
         row = next(r for r in client.get(load, headers=admin.headers).json() if r["user_id"] == faculty.user_id)
         assert row["mentor_id"] is None and row["mentee_count"] == 0 and row["mentees"] == []
-        # Rule 2 before: nobody.
-        assert client.get("/api/mentor/mentees", headers=faculty.headers).json() == []
+        # Rule 2 before: nobody. 403 rather than `200 []` since B2.3 — the mentee
+        # log is derived from having mentees and this account has none yet. The
+        # assertion after the assignment below is the other half of the same
+        # sentence, and is the thing this test is named for.
+        assert client.get("/api/mentor/mentees", headers=faculty.headers).status_code == 403
 
         # The faculty member cannot assign themselves (the write is the scope key).
         assert client.post(assign, headers=faculty.headers, json={"mentor_user_id": faculty.user_id}).status_code == 403

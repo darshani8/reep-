@@ -81,10 +81,12 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketException
 from pydantic import BaseModel
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from .. import conversations as convo
 from ..config import settings
-from ..db import SessionLocal, engine
+from ..db import SessionLocal, engine, get_db
+from ..governance import FEATURE_DISABLED_DEFAULT_MESSAGE, FeatureState, feature_state
 from ..identity import get_current_session, get_ws_session
 from ..interview_audio import recorder_for
 from .. import tracing
@@ -132,6 +134,16 @@ router = APIRouter(prefix="/api/interview", tags=["interview"])
 # has one sentence covering both (CLOSE_MESSAGES in interview.service.ts), and a
 # private-use code the client did not map would degrade to "closed unexpectedly".
 _CLOSE_NOT_A_STUDENT = 1008
+
+# The `student.assistant` switch is off for this student (B2.2). A PRIVATE-USE
+# code of its own rather than sharing 1008, because this refusal carries the
+# office's own sentence in `reason` and the client should print THAT rather than
+# its generic "you are not allowed here" — the whole point of `student_message`
+# is that the student reads the words somebody chose for them. It sits with the
+# other 40xx refusals in interview_core.py's numbering and is declared HERE, next
+# to _CLOSE_NOT_A_STUDENT, for the reason that one is: role and feature scoping
+# are the ROUTER's job in this repo, and neither engine ever learns about them.
+_CLOSE_FEATURE_DISABLED = 4016
 
 # The channel this surface writes under. "interview", NOT "voice": both are
 # spoken, but they are different products with different retention questions, and
@@ -239,7 +251,10 @@ class StatusOut(BaseModel):
 
 
 @router.get("/status", response_model=StatusOut)
-def interview_status(session: dict = Depends(get_current_session)) -> StatusOut:
+def interview_status(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> StatusOut:
     """Why the socket would refuse, in words — the ONLY place a student learns it.
 
     A rejected WebSocket handshake reaches the browser as a bare 1006 with no
@@ -256,6 +271,20 @@ def interview_status(session: dict = Depends(get_current_session)) -> StatusOut:
         return StatusOut(
             available=False,
             reason="Mock interviews are a student feature.",
+            active_sessions=_LIMITER.active,
+            max_sessions=_LIMITER.limit,
+        )
+    # ASKED BEFORE "is the engine configured", and the order is the message.
+    # A student whose office switched mock interviews off must read the sentence
+    # the office wrote, not "Voice service not configured" — which is an
+    # operator's problem, sends them to support, and is not even true for them.
+    switch = feature_state(db, session["studentId"], "student.assistant") if session.get(
+        "studentId"
+    ) else None
+    if switch is not None and not switch.enabled:
+        return StatusOut(
+            available=False,
+            reason=switch.message or FEATURE_DISABLED_DEFAULT_MESSAGE,
             active_sessions=_LIMITER.active,
             max_sessions=_LIMITER.limit,
         )
@@ -665,6 +694,25 @@ def _make_heartbeat(
     return beat
 
 
+def _assistant_switch(student_id: str) -> FeatureState:
+    """`student.assistant` for one student, read on a worker thread.
+
+    Its OWN short-lived Session, for the reason every other database read on
+    this route takes one: the WebSocket handler has no `Depends(get_db)`, because
+    a Session held for the length of an interview pins a pooled connection and
+    keeps an idle transaction open for up to fifteen minutes.
+
+    Failure is NOT caught here. An unreadable feature switch is a database that
+    is not answering, and the very next thing this route does is write an
+    `interview_sessions` row: failing open would start an interview that cannot
+    be recorded, and failing closed with a made-up sentence would tell a student
+    the office switched them off when nobody did. The generic handler already
+    turns this into 1011 "Internal error", which is the truth.
+    """
+    with SessionLocal() as db:
+        return feature_state(db, student_id, "student.assistant")
+
+
 @router.websocket("")
 async def interview(websocket: WebSocket) -> None:
     """One interview, relayed.
@@ -752,6 +800,27 @@ async def interview(websocket: WebSocket) -> None:
             websocket,
             _CLOSE_NOT_A_STUDENT,
             "Your student profile is incomplete; ask the placement cell.",
+        )
+        return
+
+    # The `student.assistant` switch, BEFORE the engine check and before the
+    # limiter — same order as the status probe, and for the same reason: a
+    # student the office switched off must read the office's sentence rather
+    # than an operator's, and a refusal that happens before `try_acquire` can
+    # never leak the slot it did not take. to_thread because this is a SELECT
+    # and this coroutine shares its loop with every live interview's audio.
+    switch = await asyncio.to_thread(_assistant_switch, student_id)
+    if not switch.enabled:
+        log.info(
+            "[conn=%s] WS /api/interview -> %d: student.assistant is switched off for %s",
+            conn_id,
+            _CLOSE_FEATURE_DISABLED,
+            student_id,
+        )
+        await _close_downstream(
+            websocket,
+            _CLOSE_FEATURE_DISABLED,
+            switch.message or FEATURE_DISABLED_DEFAULT_MESSAGE,
         )
         return
 

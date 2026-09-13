@@ -214,6 +214,152 @@ Confirmed live rather than by reading — asking `GET /api/mentor/mentees` as th
 seeded Main Admin answers 403 naming `mentor.mentees`, while the seeded mentor
 gets their one mentee.
 
+### Phase 3 — access became a decision with a reach (2026-09)
+
+Phase 2 drew the whole admin console on the endpoints that existed, and disabled
+every control whose endpoint did not, with the phase it arrives in written on the
+control (`shared/pending/pending.directive.ts` — read its docstring, it is the
+rule). Phase 3 is those endpoints. The theme running through all of it: **access
+stopped being one bit and became a decision with a reach, a reason and an
+expiry.**
+
+**A FACULTY ACCOUNT IS NOT A MENTOR BY EXISTING, and the capability finally says
+so (B2.3).** `ROLE_BASELINE["MENTOR"]` used to be every SCOPED key in the
+catalogue, so "is this person staff" and "may this person read a mentee's ledger"
+were one question with one answer. It is now `{mentor.agent, mentor.upskilling}`
+— the assistant and one's own certificate shelf, which belong to the PERSON. The
+four that belong to a GROUP (`mentor.mentees`, `mentor.notebook`,
+`mentor.verifications`, `mentor.leave_approve`) are **derived, not granted**:
+`app/mentor_functions.py` is a pure function of "do you currently mentor
+anybody". The spec asked for `capability_grants` rows written by
+`ensure_mentor_group` and backfilled by a migration; that was built first and
+thrown away, because **five places set `students.mentor_id`** — three routers,
+`app/seed.py` and `app/grant_access.py` — and a stored grant is correct only
+while every one of them remembers to re-derive. The sixth writer somebody adds
+next year would not fail loudly: a faculty member would simply be unable to open
+their own mentee log, and the row that would explain why is the one nobody wrote.
+What a derived function costs, honestly: no expiry, no independent revocation, no
+record of who could see what last March. The first two are features here and the
+third is the mentor assignment history's job.
+
+**A GRANT HANGS ON A RUNG OF THE SPINE (B1.2).** `capability_grants.scope_level`
+/ `scope_id` are a `ScopeLevel` (COLLEGE → DEPARTMENT → COURSE → SPECIALIZATION →
+COHORT → STUDENT — **renamed from `FeatureScope`**, PG type
+`governance_feature_scope` → `governance_scope_level`, because a grant hangs on
+the same rungs a feature override does and two identical enums is the same
+mistake twice). `governance.granted_reaches` answers "how far does this key
+reach", `reaches_target` compares that against a target's ancestry, and
+`require_capability(db, session, key, target=...)` refuses a holder who has the
+key **somewhere else**. `target` is opt-in and the eighty existing three-argument
+call sites keep their meaning exactly. `policies.scope_filter` is the same answer
+for a LIST, handing out a `Reach` with a subquery per model.
+
+`ancestry_of_student` reads **both** department pointers — `cohorts.department_id`
+and `students.department_id` — and that was a live bug in feature overrides
+before it was a hole here: an override hung on a department reached the seated
+students and silently missed every unseated one, which is every student at a
+college that has not built its batches yet.
+
+**NULL ON BOTH COLUMNS IS PROGRAMME-WIDE, AND THAT IS LOAD-BEARING.** Every grant
+written before B1.2 has NULLs, and if either reader ever read that pair as
+"reaches nothing", every grant in the product would silently stop working on
+deploy — with the screen going *empty* rather than refusing, which nobody reports
+as a permissions bug. `tests/test_phase3_compatibility.py` pins it against a raw
+row.
+
+`POST /api/admin/governance/grants` takes `scope_level` + `scope_id`, **both or
+neither** (a level alone names no target; an id alone cannot be resolved; either
+stored by itself reads back as programme-wide, the widest reading of a request
+that asked for the narrowest). The target is checked through `_target_label`, the
+same resolver a feature override's target goes through — two existence checks
+against the same five tables is how one of them ends up accepting a rung the
+other refuses. **A scope target is NOT refused for a `PROGRAMME` capability**:
+that word on the catalogue means "no mentor GROUP narrows this", and B1.4 narrows
+exactly those six keys by exactly these rungs. And `already_live` compares the
+reach, or "and Civil as well" is answered by the no-duplicates rule finding the
+Mechanical grant and doing nothing while the console reports success.
+
+**THE SERVER NARROWS THE LIST AND SAYS SO IN A HEADER (B1.4).**
+`app/scope_views.py`. 04 asked that every response carry `scope: {college,
+department}`; eleven list endpoints answer a bare `list[...]` and the Phase 2
+console is built against those arrays, so wrapping each in `{scope, rows}` is a
+breaking change to all eleven spent on the least important half of the
+requirement. The answer is response headers — `X-Reep-Scope` (**`programme` |
+`narrowed` | `none`**), `X-Reep-Scope-Colleges`, `X-Reep-Scope-Departments`,
+capped at `MAX_SCOPE_IDS` because a header is not a payload. The three words
+matter: *"may see everything"* and *"may see nothing"* are opposite facts, not
+two ends of a scale, and must never render the same — a `none` reach rendering as
+an empty queue tells the office there is no work rather than that they cannot see
+it. `registrations` gets its projection here rather than in `policies.py`: **a
+registration is not a student yet**, it carries its own spine pointers, and there
+is no `students` row to join to until somebody approves it.
+
+**THE COLLEGE DECIDES WHICH ADDRESSES MAY HOLD AN ACCOUNT (B1.1).**
+`app/institution_domains.py` is the one helper. The `ENV` list is a **FALLBACK,
+not a floor** — a college that has named its own domains is not also subject to
+the deployment's.
+
+**FACULTY ACCOUNTS HAVE A LIFECYCLE (B3.1–B3.6), and disabling demands a reason
+in words.** `POST /api/admin/users/{id}/disable` refuses an empty one:
+disabling is the single console action whose effect is invisible from the console
+afterwards — the person simply cannot get in — and six months later nobody
+remembers whether it was a resignation, a secondment or a security incident. The
+reason is on the row AND on the trail, and the re-enable window is read against
+it. `enable` and `sign-out-everywhere` sit beside it. **There is still no way to
+DELETE a faculty account from the console**, which is unchanged and deliberate;
+emptying a deployment of people is `python -m app.purge_people`.
+
+**GOVERNANCE GREW A SECOND SIGNATURE, AN EXPIRY AND A QUEUE (B2.4–B2.7).** A
+capability that `carries_pii` is written `pending_approval` and **holds nothing**
+until a different holder of `admin.governance` approves it — so a pending grant
+that renders like a live one is an admin believing they granted access that does
+not exist. Grants carry `review_at`; one with **no** expiry is the grant that most
+needs a date, because nothing else will ever bring it back to anybody's
+attention. `role_at_grant` stops a grant counting when the account becomes
+something else (and stays NULL on a group grant, because that decision named "the
+placement coordinators", not a role). `GET /api/admin/audit` is the trail, read
+through the console; listing it writes no event of its own — it would be the most
+frequent action in the table within a week and would bury everything the table
+exists to show — but **the CSV download audits itself**.
+
+**B2.1: ENFORCE EVERY CATALOGUE KEY OR DELETE IT.** A row naming a capability
+nothing checks is a promise the API does not keep, and Governance is where the
+office looks to answer "who can see what". `tools/ci/check_capability_enforcement.py`
+is an AST guard over the routers. The ten `student.*` keys went, because they
+gated nothing anywhere and no client read one.
+
+**B2.2: a feature switch that does nothing must not be settable.** `PUT
+/api/admin/governance/features` answers **422** for a feature whose `enforced` is
+false, in *both* directions — an `enabled=true` row on an unwired key is equally a
+promise, is indistinguishable on screen from a rule that is working, and
+`enabled=true` is the default anyway. 422 and not 403: the caller holds the
+capability and the request is well formed; it is the FEATURE that cannot take a
+rule. `students_affected` is the blast radius and is why the console can say
+"switch off for 86 students" rather than naming a specialization.
+
+**B14/B15: exports leave receipts, and an account can see its own doors.**
+`GET /api/admin/exports/history` is the only B14 endpoint returning JSON, which
+is why `scope` is in its body and in headers on the three CSVs — a JSON envelope
+around a CSV is not a CSV. `GET /api/auth/me` carries `google_linked`,
+`last_sign_ins` and `notification_prefs`, and **all three are `None`/empty
+everywhere else on purpose**: `None` means *not asked*, never "no Google account
+is linked", and a client reading absent as `false` will tell somebody their
+Google sign-in is unlinked on the screen immediately after they used it. A
+preference whose `enforced` is false is one nothing reads yet, shown as such and
+refused by the PUT — the same rule as an unwired feature switch.
+
+**The compatibility guardrails are a test module, not a checklist.**
+`tests/test_phase3_compatibility.py` holds 07 §5: the role is unchanged, a mentor
+with mentees keeps the four functions and one without keeps their own two, **the
+capability and the endpoint give the same answer** (the split that made
+`test_no_director_privilege.py` necessary, in the other direction), a pre-B1.2
+grant still reaches the programme, the Main Admin is never narrowed, student
+routes grew no scope header, disabling one account bumps nobody else's
+`token_version`, and one activation link does not consume another's. The five
+guardrails whose subject is Phase 4 are listed at the foot of that module with
+the reason each cannot be pinned yet — a checklist with five quiet gaps is one
+somebody signs off as complete.
+
 ### The dev MCP surface at `/mcp` (development only)
 
 `app/dev_mcp.py` publishes every GET under `/api` as an MCP tool, so a screen's
@@ -266,6 +412,19 @@ Read the rest of this section as the RECORD of how that was done, because the re
 ### 2. Staff scope is decided by role, not by a missing field
 
 `require_mentor(session)` admits **MENTOR and ADMIN**; `require_admin` admits the Main Admin alone, and it is now the ONE console gate (`require_director` is gone — see “DIRECTOR is not a role” below). To narrow to students, use `_assert_can_access_student(...)` in **`apps/api-py/app/routers/mentor.py`**: a MENTOR sees only students in their own `Mentor` group; the Main Admin sees all. **A MENTOR with no `Mentor` group sees NOBODY** — never the whole programme. Never read "no mentor group" as "whole programme".
+
+**Phase 3 added a THIRD fence beside that one, and it does not replace it.** A
+grant now hangs on a rung of the institutional spine, so a staff member can hold
+a capability *somewhere* and not *here*: `governance.require_capability(db,
+session, key, target=ancestry_of_student(db, sid))` refuses that, and
+`policies.scope_filter(db, session, key)` is the same answer for a list. The two
+fences are checked SEPARATELY AND ON PURPOSE — `app/governance.py` says it in
+one line, "a capability can never relax the student filter". Rule 2 is the
+stricter gate on a mentor's own students and runs regardless; scope narrows a
+grant somebody chose to hand over. A change that reaches one system and not the
+other **opens the other**: that is not a hypothetical, it is what the DIRECTOR
+removal did for a few hours, and `tests/test_no_director_privilege.py` exists
+because of it.
 
 ### Rule 1 applies to telemetry too: Sentry is one init per process, and the scrubbers are the floor
 

@@ -189,20 +189,44 @@ const STUDENT_NAVIGATION: readonly NavigationGroup[] = [
  * (02-admin-console-spec.md, "Faculty screens (no redesign)"); it inherits the
  * shell and the tokens and nothing else.
  *
- * These rows are NOT capability-filtered today, and that is the truth of main
- * rather than an oversight: ROLE_BASELINE['MENTOR'] holds every scoped key, so
- * every faculty account has them all. B2.3 shrinks that baseline, and the same
- * task has to add `capability` to these four rows in the same change — until
- * then a filter here would hide screens people can still open.
+ * THREE ROWS ARE CAPABILITY-FILTERED SINCE B2.3, and the comment that used to
+ * sit here said why they were not: ROLE_BASELINE['MENTOR'] held every scoped
+ * key, so every faculty account had them all and a filter would have hidden
+ * screens people could still open. B2.3 shrank that baseline — the mentee log,
+ * the notebook and evidence verification are derived from mentoring somebody
+ * now (apps/api-py/app/mentor_functions.py) — so without the filter the
+ * opposite would be true: a faculty account with no mentees would see three
+ * links that answer 403.
+ *
+ * LEAVE REQUESTS IS DELIBERATELY NOT FILTERED. That screen is two things: the
+ * approval queue, which `mentor.leave_approve` gates, and the faculty member's
+ * OWN leave request, which nothing gates and nobody should ever lose. Hiding it
+ * from someone with no mentees would take away their ability to ask for leave.
+ * Upskilling and the Agent are baseline and always held.
  */
 const FACULTY_NAVIGATION: readonly NavigationGroup[] = [
   {
     title: '',
     items: [
-      { label: 'Notebook', icon: 'menu_book', path: '/mentor/notebook' },
-      { label: 'Mentee Log', icon: 'groups', path: '/mentor/mentees' },
+      {
+        label: 'Notebook',
+        icon: 'menu_book',
+        path: '/mentor/notebook',
+        capability: 'mentor.notebook',
+      },
+      {
+        label: 'Mentee Log',
+        icon: 'groups',
+        path: '/mentor/mentees',
+        capability: 'mentor.mentees',
+      },
       { label: 'Leave Requests', icon: 'event_available', path: '/mentor/leave' },
-      { label: 'Skill Verifications', icon: 'verified', path: '/mentor/verifications' },
+      {
+        label: 'Skill Verifications',
+        icon: 'verified',
+        path: '/mentor/verifications',
+        capability: 'mentor.verifications',
+      },
       { label: 'Upskilling', icon: 'workspace_premium', path: '/mentor/upskilling' },
     ],
   },

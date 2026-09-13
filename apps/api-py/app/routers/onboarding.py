@@ -67,6 +67,21 @@ _REFUSED = (
 )
 
 
+def _refuse_if_disabled(user: User) -> None:
+    """An offboarded account may not finish setting itself up (B3.3).
+
+    THE SAME OPAQUE SENTENCE as every other refusal on this walk, not the
+    403 the sign-in doors give. Here the caller is holding a link that arrived
+    in the post; telling them "this account is disabled" turns the invite into
+    an oracle for the state of somebody else's account, which is the one thing
+    `_REFUSED` exists to prevent. They cannot sign in either way, and the
+    placement office is who both sentences send them to.
+    """
+    if user.disabled_at is not None:
+        log.warning("onboarding refused for %s: the account is disabled", user.email)
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail=_REFUSED)
+
+
 class OnboardStepOut(BaseModel):
     """Named for its surface, not its shape. `passwords.MessageOut` is a
     different screen's message and one name must mean one shape — the guard in
@@ -96,6 +111,7 @@ def start(body: StartIn, db: Session = Depends(get_db)) -> OnboardStepOut:
     if user is None or user.email.lower() != body.email.strip().lower():
         # Deliberately the SAME refusal as a dead link. See _REFUSED.
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=_REFUSED)
+    _refuse_if_disabled(user)
 
     account_links.issue_onboarding_code(db, user)
     log.info("onboarding code sent for %s", user.email)
@@ -126,6 +142,7 @@ def verify(body: VerifyIn, db: Session = Depends(get_db)) -> TicketOut:
     user = db.get(User, live.user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=_REFUSED)
+    _refuse_if_disabled(user)
 
     if not account_links.consume_user_code(
         db, user.id, PURPOSE_ONBOARD_CODE, body.code.strip()
@@ -166,6 +183,12 @@ def set_first_password(body: SetPasswordIn, db: Session = Depends(get_db)) -> On
                 "a new code."
             ),
         )
+    holder = db.get(User, live.user_id)
+    if holder is not None:
+        # Checked BEFORE the ticket is spent, for the same reason the policy is:
+        # a refusal nothing about this request can change must not cost the
+        # person their ticket.
+        _refuse_if_disabled(holder)
     problem = password_problem(body.password)
     if problem:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=problem)

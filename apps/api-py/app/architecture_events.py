@@ -142,6 +142,25 @@ def store_response(row: ApiIdempotencyKey | None, *, status_code: int, body: dic
         row.last_seen_at = datetime.now(timezone.utc)
 
 
+def _normalise_action(action: str) -> str:
+    """ONE VOCABULARY, decided here because this is the one funnel.
+
+    Callers wrote both cases: most name an action in upper (`GRANTED`,
+    `FEATURE_DISABLED`), `routers/redesign.py`'s six notebook writes named it in
+    lower (`created`, `published`). Nothing refused either, so the table grew two
+    vocabularies and the audit API's filter — which upper-cased the needle —
+    could reach only one of them. A search for `created` became `CREATED` and
+    never matched a notebook row.
+
+    Normalising HERE rather than at each call site is the point: the next writer
+    does not have to know the convention, because there is only one way in. Rows
+    already written keep the case they were written with — `audit_events` is
+    append-only and rewriting it would be editing the record — so
+    `routers/audit.py` compares case-insensitively and says why.
+    """
+    return (action or "").strip().upper()
+
+
 def record_change(
     db: Session, *, session: dict, request: Any, tenant_id: str | None,
     entity_type: str, entity_id: str, action: str,
@@ -151,7 +170,8 @@ def record_change(
     db.add(AuditEvent(
         tenant_id=tenant_id, actor_user_id=session.get("userId"), actor_type="USER",
         request_id=request_id, correlation_id=correlation_id, entity_type=entity_type,
-        entity_id=entity_id, action=action, before_json=before, after_json=after,
+        entity_id=entity_id, action=_normalise_action(action),
+        before_json=before, after_json=after,
         metadata_json={"route": str(request.url.path)},
     ))
     event_id = uuid.uuid4().hex

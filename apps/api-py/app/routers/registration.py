@@ -19,7 +19,16 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Sequence
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -31,6 +40,7 @@ from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.job import DegreeLevel
+from ..institution_domains import college_id_for_cohort, domain_of, provisionable_domains_for
 from ..models.cohort import Cohort
 from ..models.institution import (
     HIERARCHY_LEVELS,
@@ -52,6 +62,8 @@ from ..models.student_profile import StudentProfile
 from ..models.user import Role, Student, User
 from ..student_placement import resolve_student_department
 from ..governance import require_capability
+from ..policies import scope_filter
+from ..scope_views import registration_scope_clause, scope_header
 from ..architecture_events import record_change
 from ..document_store import MAX_BYTES, QuotaRejected, VolumeQuota, save_bytes
 from ..document_store import delete as delete_stored
@@ -799,13 +811,36 @@ def submit(
 
 @router.get("/pending", response_model=list[RegistrationOut])
 def pending(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[RegistrationOut]:
-    """The review queue — applications a human still needs to decide."""
+    """The review queue — applications a human still needs to decide.
+
+    SCOPED BY THE CLAIM (B1.4), through `registration_scope_clause`. An
+    application is not a student yet, so there is no `students` row for
+    `Reach.student_ids()` to narrow: what it hangs under is what the applicant
+    NAMED on the public form, walked up the spine by `_resolve_claim` and stored
+    on the row. See app/scope_views.py for why that projection lives there.
+
+    AN APPLICATION THAT NAMED NOTHING IS THE MAIN ADMIN'S. Every level on the
+    form is optional, so a row with all five pointers null hangs under nothing
+    and is reached by no scoped grant — the same answer `reaches_target` gives
+    any unfiled thing, and the same reason: if "named nothing" were visible to
+    everybody, it would be the way around every scope in the system, and it is
+    a state a public form can produce on purpose.
+    """
     require_capability(db, session, "admin.registrations")
+    reach = scope_filter(db, session, "admin.registrations")
+    scope_header(response, reach)
+    if reach.nothing:
+        return []
     rows = db.scalars(
         select(Registration)
-        .where(Registration.status == RegistrationStatus.PENDING_REVIEW)
+        .where(
+            Registration.status == RegistrationStatus.PENDING_REVIEW,
+            registration_scope_clause(reach),
+        )
         .order_by(Registration.created_at)
     ).all()
     kinds = _doc_kinds(db, [r.id for r in rows])
@@ -907,8 +942,14 @@ def _provision_student(db: Session, reg: Registration) -> Student:
     # settings.provisionable_email_domains explains why a fence HERE is
     # consistent with there deliberately being none on sign-in.
     # ------------------------------------------------------------------ #
-    domain = email.rpartition("@")[2]
-    allowed = settings.provisionable_email_domains
+    # THE COLLEGE'S LIST, not the deployment's (B1.1). An application names a
+    # college on the form, and the rule engine stamps a cohort; either resolves
+    # the tenant whose fence this is. A college with no domains recorded falls
+    # back to the environment, which is what every application was fenced by
+    # before colleges had domains — so day one is unchanged.
+    college_id = reg.college_id or college_id_for_cohort(db, reg.cohort_id)
+    domain = domain_of(email)
+    allowed = provisionable_domains_for(db, college_id)
     if not domain or domain not in allowed:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -1042,10 +1083,45 @@ def _apply_rule(db: Session, reg: Registration) -> None:
 # a flow that no longer exists.
 
 
+def _assert_reachable(db: Session, session: dict, reg: Registration) -> None:
+    """Refuse a decision on an application this caller's grant does not reach.
+
+    THE QUEUE AND THE BUTTON MUST OBEY ONE RULE. Narrowing `pending` alone would
+    leave the act it feeds wide open: a scoped reviewer who cannot SEE an
+    application could still approve it by id — and approving is the one path in
+    REEP that mints a `users` row, which is the access control itself. Written
+    as a re-select through `registration_scope_clause` rather than a second
+    reading of the reach in Python, so the list and the gate are the same
+    predicate by construction.
+
+    403 rather than the 404 rule 2 flattens its refusals to. The caller is a
+    known reviewer and the id came off a screen, so "this one is not yours" is
+    true, safe and actionable; the membership-oracle argument that makes rule 2
+    lie applies to students, not to applications a reviewer was shown a list of.
+    """
+    reach = scope_filter(db, session, "admin.registrations")
+    if reach.everything:
+        return
+    covered = db.scalar(
+        select(Registration.id).where(
+            Registration.id == reg.id, registration_scope_clause(reach)
+        )
+    )
+    if covered is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Your Registrations capability does not reach this application. "
+                "An administrator can widen it in Governance."
+            ),
+        )
+
+
 @router.post("/{registration_id}/decision", response_model=RegistrationOut)
 def decide(
     registration_id: str,
     body: DecisionIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> RegistrationOut:
@@ -1053,7 +1129,14 @@ def decide(
 
     APPROVE stamps the reviewer AND provisions the account — the User row, the
     Student row seated in the rule's cohort, a profile row, and
-    approved_student_id — all in one transaction. REJECT stamps only."""
+    approved_student_id — all in one transaction. REJECT stamps only.
+
+    AUDITED SINCE B2.7, and the gap it closes was a real one: this is the ONLY
+    path that mints a student account, and the roster IS the access control, yet
+    until now the only record of the decision was the stamp on the application
+    itself — which `reopen` above can clear. `reopen` was audited and the
+    decision it undoes was not, so the trail showed the undo of an act it had
+    never recorded."""
     require_capability(db, session, "admin.registrations")
     # SELECT ... FOR UPDATE, not db.get(). The already-decided check below is a
     # read followed by a write, and two admins clicking Approve at the same
@@ -1066,11 +1149,15 @@ def decide(
     )
     if reg is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+    _assert_reachable(db, session, reg)
     if reg.status in (RegistrationStatus.APPROVED, RegistrationStatus.REJECTED):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Application already decided."
         )
     decision = body.decision.upper()
+    # Read before the mutation below: the audit row's `before` must say what the
+    # application actually was, not what it is usually assumed to have been.
+    status_before = reg.status.value
     user: User | None = None
     if decision == "APPROVE":
         reg.status = RegistrationStatus.APPROVED
@@ -1103,6 +1190,22 @@ def decide(
     reg.reviewed_by_id = session["userId"]
     reg.reviewed_at = datetime.now(timezone.utc)
     reg.review_note = body.note
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="registration", entity_id=reg.id,
+        action="APPROVED" if decision == "APPROVE" else "REJECTED",
+        before={"status": status_before},
+        after={
+            "status": reg.status.value,
+            # The account this decision created, or null for a rejection. It is
+            # the join between "an application was approved" and "this person
+            # can sign in", and nothing else records it.
+            "provisioned_user_id": user.id if user is not None else None,
+            "note": body.note,
+        },
+        event_type=f"registration.{decision.lower()}d",
+        payload={"email": reg.email},
+    )
     db.commit()
     db.refresh(reg)
     # MAIL AFTER THE COMMIT, and never inside it. Both issuers commit their own
@@ -1253,6 +1356,7 @@ def reopen(
     )
     if reg is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+    _assert_reachable(db, session, reg)
     if reg.status is not RegistrationStatus.REJECTED:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

@@ -311,7 +311,12 @@
             </div>
           </dl>
           <div class="row-actions">
-            <button type="button" class="btn secondary sm" [reepPending]="3">
+            <button
+              type="button"
+              class="btn secondary sm"
+              [disabled]="student() === null || busy()"
+              (click)="askSignOutEverywhere()"
+            >
               <span class="icon" aria-hidden="true">lock</span> Sign out everywhere
             </button>
             <button type="button" class="btn secondary sm" [reepPending]="4">
@@ -319,6 +324,37 @@
             </button>
             <button type="button" class="btn ghost sm" disabled>Re-send invite</button>
           </div>
+          <!-- This button acts on somebody ELSE's account, so it asks first and
+               the question says what will happen to them. -->
+          @if (confirmingSignOut()) {
+            <div class="notice accent" role="alert">
+              <span class="icon" aria-hidden="true">info</span>
+              <span
+                >Sign {{ studentName() }} out of every device — phone, laptop, the lab machine they
+                left themselves signed in on. They are not locked out: the next time they open REEP
+                they sign in again as usual. Nothing else changes — no password is reset, no
+                account is disabled, and there is nothing to undo.</span
+              >
+            </div>
+            <div class="row-actions" role="group" aria-label="Confirm signing this student out">
+              <button
+                type="button"
+                class="btn danger sm"
+                [disabled]="busy()"
+                (click)="signOutEverywhere()"
+              >
+                <span class="icon" aria-hidden="true">lock</span> Yes, sign them out
+              </button>
+              <button
+                type="button"
+                class="btn ghost sm"
+                [disabled]="busy()"
+                (click)="cancelSignOutEverywhere()"
+              >
+                Cancel
+              </button>
+            </div>
+          }
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
             <span
@@ -326,7 +362,7 @@
               refused for a STUDENT on purpose, and their setup link comes from the onboarding walk,
               which proves the mailbox with a six-digit code before a password is chosen. The Google
               link, the consent grant and today's interview count arrive with the composite read
-              (Phase 4); Sign out everywhere is Phase 3 and the daily-cap reset is Phase 4.</span
+              (Phase 4), and so does the daily-cap reset.</span
             >
           </div>
         </div>

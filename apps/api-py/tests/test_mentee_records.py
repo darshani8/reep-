@@ -130,7 +130,10 @@ def test_a_mentor_removes_only_the_notes_they_wrote(client, make_user, staff):
     # A groupless mentor cannot reach the student at all: 404, never a delete.
     loner = staff("note-del-loner")
     r = client.delete(f"/api/mentor/students/{sid}/notes/{note_id}", headers=loner.headers)
-    assert r.status_code == 404, r.text
+    # 403 since B2.3: a faculty account with no mentees does not hold the mentee
+    # log at all, so the capability gate refuses before rule 2 is reached. It was
+    # 404 while every faculty account held the key through the baseline.
+    assert r.status_code == 403, r.text
 
     # The student is moved to a second mentor, who is now IN scope but did not
     # write the note: 403, and the note is still there.
@@ -257,7 +260,13 @@ def test_a_mentor_with_no_group_sees_nobody(client, make_user, staff):
 
     for path in ("ledger", "ledger/summary", "english-baseline"):
         r = client.get(f"/api/mentor/students/{sid}/{path}", headers=loner.headers)
-        assert r.status_code == 404, f"{path} leaked to a groupless mentor"
+        # 403 since B2.3, 404 before it. THE PROPERTY IS "SEES NOBODY", not a
+        # particular number: this mentor has no mentees, so they no longer hold
+        # the mentee log and the capability gate refuses before rule 2 runs. A
+        # mentor WITH mentees probing someone else's student still gets 404,
+        # which is the case where the code matters — it must not confirm that
+        # the student exists.
+        assert r.status_code == 403, f"{path} leaked to a groupless mentor"
 
 
 @requires_db

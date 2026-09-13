@@ -11,74 +11,123 @@
       </div>
     </div>
     <div class="dt-toolbar">
-      <button type="button" class="btn secondary" [reepPending]="readEndpointPhase">
-        <span class="icon" aria-hidden="true">download</span> Export range
-      </button>
+      <!-- The ONE export on this screen. It is a plain <a href> so the browser
+           streams the file to disk, and it is disabled rather than live when
+           the endpoint would refuse: `/admin/audit/export.csv` answers 413 over
+           10 000 rows, and a refusal reached through `<a download>` lands on
+           the officer's disk named `.csv`. -->
+      @if (exportDisabled()) {
+        <button type="button" class="btn secondary" disabled [title]="exportReason()">
+          <span class="icon" aria-hidden="true">download</span> Export range
+        </button>
+      } @else {
+        <a
+          class="btn secondary"
+          [href]="exportUrl()"
+          download="audit-log.csv"
+          title="Downloads every event matching these filters, and records the download itself."
+        >
+          <span class="icon" aria-hidden="true">download</span> Export range
+        </a>
+      }
     </div>
   </div>
 
   <div class="filters">
-    <div class="select filter-pending">
+    <div class="select">
       <span class="lbl">Actor</span>
-      <span class="val">Anyone</span>
+      <span class="val">{{ actorLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Actor" [reepPending]="readEndpointPhase">
-        <option>Anyone</option>
+      <select aria-label="Actor" (change)="setActor(selectValue($event))">
+        <option value="" [selected]="actorFilter() === ''">Anyone</option>
+        @for (actor of actorOptions(); track actor.key) {
+          <option [value]="actor.key" [selected]="actorFilter() === actor.key">
+            {{ actor.label }}
+          </option>
+        }
       </select>
     </div>
 
-    <div class="select filter-pending">
+    <div class="select">
       <span class="lbl">Action</span>
-      <span class="val">All actions</span>
+      <span class="val">{{ actionLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Action" [reepPending]="readEndpointPhase">
-        <option>All actions</option>
+      <select aria-label="Action" (change)="setAction(selectValue($event))">
+        <option value="" [selected]="actionFilter() === ''">All actions</option>
+        @for (action of actionOptions(); track action) {
+          <option [value]="action" [selected]="actionFilter() === action">{{ action }}</option>
+        }
       </select>
     </div>
 
-    <div class="select filter-pending">
+    <div class="select">
       <span class="lbl">Target</span>
-      <span class="val">All types</span>
+      <span class="val">{{ targetTypeLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Target type" [reepPending]="readEndpointPhase">
-        <option>All types</option>
+      <select aria-label="Target type" (change)="setTargetType(selectValue($event))">
+        <option value="" [selected]="targetTypeFilter() === ''">All types</option>
+        @for (target of targetTypeOptions(); track target) {
+          <option [value]="target" [selected]="targetTypeFilter() === target">{{ target }}</option>
+        }
       </select>
     </div>
 
+    <!-- The one control on this screen that Phase 3 did NOT unlock. There is no
+         college filter on `/api/admin/audit` and an audit row carries no
+         college — see AUDIT_COLLEGE_SCOPE_PHASE. -->
     <div class="select filter-pending">
       <span class="lbl">College</span>
       <span class="val">All colleges</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="College" [reepPending]="readEndpointPhase">
+      <select aria-label="College" [reepPending]="collegeScopePhase">
         <option>All colleges</option>
       </select>
     </div>
 
-    <div class="select filter-pending">
+    <div class="select">
       <span class="lbl">Range</span>
-      <span class="val">Last 7 days</span>
+      <span class="val">{{ rangeLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Date range" [reepPending]="readEndpointPhase">
-        <option>Last 7 days</option>
+      <select aria-label="Date range" (change)="setRange(selectValue($event))">
+        @for (choice of rangeChoices; track choice.key) {
+          <option [value]="choice.key" [selected]="rangeKey() === choice.key">
+            {{ choice.label }}
+          </option>
+        }
       </select>
     </div>
+
+    @if (hasFilters()) {
+      <button type="button" class="btn ghost sm" (click)="clearFilters()">Clear filters</button>
+    }
 
     <span class="filter-hint">Reads are never recorded; not every write is.</span>
   </div>
 
+  @if (error(); as message) {
+    <div class="notice" role="alert">
+      <span class="icon" aria-hidden="true">error</span>
+      <span>{{ message }}</span>
+    </div>
+  }
+
   <div class="notice accent">
     <span class="icon" aria-hidden="true">info</span>
     <span>
-      The trail is already being written, by seven routers and no others. A governance grant, a
-      registration decision, a faculty account, a student or batch edit, a SWOC entry, a
-      question-bank change and the v1 command routes each call
-      <code>architecture_events.record_change</code>, which stores the actor, the route, the entity
-      and the whole before → after pair in <code>redesign_audit_events</code>. Nothing else does:
-      a sign-in, a leave decision, a mentor assignment, an import and an export leave no row today,
-      so an absent event here means "not recorded", never "did not happen". What does not exist yet
-      is the endpoint that reads those rows back (B2.7): until it lands the grid below stays empty
-      and every control on this screen is disabled, because an audit log is the one screen where a
-      sample row would be indistinguishable from something that really happened.
+      <b>An absent event means "not recorded", never "did not happen".</b> The trail is written by
+      the routers that call <code>architecture_events.record_change</code> — governance grants and
+      access groups, feature switches, registration decisions, faculty accounts, student and batch
+      edits, mentor assignment, SWOC entries, the question bank, the mentor notebook, account
+      actions such as sign-out-everywhere, and every CSV download — and it stores the actor, the
+      route, the entity and the whole before → after pair. Nothing else writes a row: a sign-in and
+      a leave decision leave no trace here. Reading this page records nothing; downloading the
+      export records itself. The trail is <b>not scoped to a college</b> — an audit row carries no
+      college, so the Main Admin sees every event and the College filter beside these is inert.
+      <br />
+      One gap to know about while reading the Action filter: the mentor-notebook actions
+      (<code>{{ unfilterableActions.join(', ') }}</code>) are stored in lower case and the endpoint
+      upper-cases whatever this filter sends, so those rows can be listed and opened but not
+      filtered by action.
     </span>
   </div>
 
@@ -88,56 +137,108 @@
         <input
           class="dt-quickfilter"
           type="search"
-          placeholder="Search targets, reasons…"
-          aria-label="Search the audit trail"
-          [reepPending]="readEndpointPhase"
+          placeholder="Filter the events on this page…"
+          aria-label="Filter the events on this page"
+          [value]="quickFilter()"
+          (input)="onQuickFilterInput($event)"
         />
         <span class="gridbar-actions">
           <button
             type="button"
             class="btn secondary sm"
-            aria-label="Choose columns"
-            [reepPending]="readEndpointPhase"
+            aria-label="Choose which columns are shown"
+            [attr.aria-expanded]="columnsPanelOpen()"
+            (click)="toggleColumnsPanel()"
           >
             <span class="icon" aria-hidden="true">table_rows</span>
           </button>
           <button
             type="button"
             class="btn secondary sm"
-            aria-label="Row density"
-            [reepPending]="readEndpointPhase"
+            aria-label="Toggle compact rows"
+            [attr.aria-pressed]="isCompact()"
+            (click)="toggleDensity()"
           >
             <span class="icon" aria-hidden="true">tune</span>
           </button>
-          <button
-            type="button"
-            class="btn secondary sm"
-            aria-label="Export these rows"
-            [reepPending]="readEndpointPhase"
-          >
-            <span class="icon" aria-hidden="true">download</span>
-          </button>
+          <!-- NO EXPORT HERE, the same rule the Registrations queue writes down:
+               the board draws Export once, in the page header, and a second
+               control handing out the same file is how an extract escapes the
+               one place it is accounted for. It matters more here than there,
+               because every download of this file writes an EXPORTED row of its
+               own. One button, one export. -->
         </span>
+
+        @if (columnsPanelOpen()) {
+          <div class="columns-panel">
+            <div class="columns-panel__title">Columns</div>
+            @for (column of toggleableColumns; track column.id) {
+              <label class="columns-panel__row">
+                <input
+                  type="checkbox"
+                  [checked]="isColumnVisible(column.id)"
+                  (change)="toggleColumn(column.id)"
+                />
+                <span>{{ column.label }}</span>
+              </label>
+            }
+          </div>
+        }
       </div>
 
+      <!-- Mounted once and never torn down: an @if around the grid destroys the
+           GridApi the toolbar and the column panel hold, so the loading and the
+           empty cases are said in the status bar and the no-rows overlay. -->
       <ag-grid-angular
         class="audit-grid"
-        [theme]="gridTheme"
-        [rowData]="rows"
+        [theme]="gridTheme()"
+        [rowData]="rows()"
         [columnDefs]="columns"
         [defaultColDef]="defaultColumn"
-        [overlayNoRowsTemplate]="noEventsOverlay"
-        [pagination]="true"
-        [paginationPageSize]="eventsPerPage"
-        [paginationPageSizeSelector]="pageSizes"
+        [getRowId]="rowId"
+        [overlayNoRowsTemplate]="emptyOverlay()"
+        [quickFilterText]="quickFilter()"
+        [rowHeight]="rowHeight()"
+        [pagination]="false"
         [suppressCellFocus]="true"
+        (gridReady)="onGridReady($event)"
+        (cellClicked)="onCellClicked($event)"
       />
 
       <div class="dt-statusbar">
-        <span>Rows: <b>{{ rows.length }}</b></span>
-        <span>Selected: <b>{{ selectedCount }}</b></span>
-        <span class="statusbar-note">
-          counts, filtering and paging all arrive with the read endpoint (B2.7)
+        @if (isLoading()) {
+          <span role="status">Reading the trail…</span>
+        } @else {
+          <span>{{ rowRangeLabel() }}</span>
+        }
+        <span class="pager">
+          <label class="pagesize">
+            <span>Page size</span>
+            <select aria-label="Events per page" (change)="setPageSize(numberValue($event))">
+              @for (size of pageSizes; track size) {
+                <option [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+              }
+            </select>
+          </label>
+          <button
+            type="button"
+            class="btn ghost sm"
+            [disabled]="isFirstPage() || isLoading()"
+            aria-label="Previous page"
+            (click)="goToPreviousPage()"
+          >
+            <span class="icon" aria-hidden="true">chevron_left</span>
+          </button>
+          <span>{{ pagerLabel() }}</span>
+          <button
+            type="button"
+            class="btn ghost sm"
+            [disabled]="isLastPage() || isLoading()"
+            aria-label="Next page"
+            (click)="goToNextPage()"
+          >
+            <span class="icon" aria-hidden="true">chevron_right</span>
+          </button>
         </span>
       </div>
     </section>
@@ -148,68 +249,109 @@
           <h2 class="card-heading" id="audit-event-heading">Event</h2>
           <p class="card-sub">who did it, through which route, and what changed</p>
         </div>
+        @if (openEvent()) {
+          <button
+            type="button"
+            class="btn ghost sm"
+            aria-label="Close this event"
+            (click)="closeDetail()"
+          >
+            <span class="icon" aria-hidden="true">close</span>
+          </button>
+        }
       </div>
 
-      <div class="notice accent">
-        <span class="icon" aria-hidden="true">info</span>
-        <span>No event can be opened yet. This is the shape one takes when B2.7 serves it.</span>
-      </div>
+      @if (panelError(); as message) {
+        <div class="notice" role="alert">
+          <span class="icon" aria-hidden="true">error</span>
+          <span>{{ message }}</span>
+        </div>
+      }
 
-      <dl class="event-facts">
-        <div class="event-fact">
-          <dt class="eyebrow">Actor</dt>
-          <dd class="fact">—</dd>
-        </div>
-        <div class="event-fact">
-          <dt class="eyebrow">Via</dt>
-          <dd class="fact">—</dd>
-        </div>
-        <div class="event-fact">
-          <dt class="eyebrow">Target</dt>
-          <dd class="fact">—</dd>
-        </div>
-        <div class="event-fact">
-          <dt class="eyebrow">Scope check</dt>
-          <dd class="fact">—</dd>
-        </div>
-      </dl>
+      @if (copyNote(); as message) {
+        <p class="copy-note" role="status">{{ message }}</p>
+      }
 
-      <div class="event-block">
-        <div class="eyebrow">Change</div>
-        <div class="diff">
-          <div class="diff-side">
-            <div class="eyebrow">Before</div>
-            <p class="diff-body">—</p>
+      @if (isOpening()) {
+        <p class="panel-state" role="status">Opening the event…</p>
+      } @else if (openEvent(); as event) {
+        <dl class="event-facts">
+          <div class="event-fact">
+            <dt class="eyebrow">Actor</dt>
+            <dd class="fact">{{ actorPanelLabel() }}</dd>
           </div>
-          <div class="diff-side diff-after">
-            <div class="eyebrow">After</div>
-            <p class="diff-body">—</p>
+          <div class="event-fact">
+            <dt class="eyebrow">Occurred</dt>
+            <dd class="fact">{{ occurredAtLabel() }}</dd>
           </div>
+          <div class="event-fact">
+            <dt class="eyebrow">Via</dt>
+            <dd class="fact">{{ event.route || '—' }}</dd>
+          </div>
+          <div class="event-fact">
+            <dt class="eyebrow">Action</dt>
+            <dd class="fact">{{ event.action }}</dd>
+          </div>
+          <div class="event-fact event-fact-wide">
+            <dt class="eyebrow">Target</dt>
+            <dd class="fact">{{ event.target_type }} · {{ event.target_id }}</dd>
+          </div>
+        </dl>
+
+        <div class="event-block">
+          <div class="eyebrow">Change</div>
+          <div class="diff">
+            <div class="diff-side">
+              <div class="eyebrow">Before</div>
+              <pre class="diff-body">{{ beforeText() }}</pre>
+            </div>
+            <div class="diff-side diff-after">
+              <div class="eyebrow">After</div>
+              <pre class="diff-body">{{ afterText() }}</pre>
+            </div>
+          </div>
+          <p class="diff-note">
+            A null side is not an empty object: a creation has no <code>before</code>, a deletion
+            has no <code>after</code>, and an event that changed no fields has neither.
+          </p>
         </div>
-        <p class="diff-note">
-          <code>before_json</code> and <code>after_json</code> are written on every recorded change
-          already; this panel reads them out field by field once they can be fetched.
-        </p>
-      </div>
 
-      <div class="event-block">
-        <div class="eyebrow">Remark</div>
-        <p class="fact">—</p>
-      </div>
+        <div class="event-block">
+          <div class="eyebrow">Metadata</div>
+          <pre class="diff-body">{{ metadataText() }}</pre>
+        </div>
 
-      <div class="event-block">
-        <div class="eyebrow">Related</div>
-        <p class="fact">—</p>
-      </div>
+        <div class="event-block">
+          <div class="eyebrow">Identifiers</div>
+          <p class="fact">Event {{ event.id }}</p>
+          <p class="fact">Request {{ event.request_id || '—' }}</p>
+          <p class="fact">Correlation {{ event.correlation_id || '—' }}</p>
+        </div>
 
-      <div class="event-actions">
-        <button type="button" class="btn secondary" [reepPending]="readEndpointPhase">
-          <span class="icon" aria-hidden="true">content_copy</span> Copy event JSON
-        </button>
-        <button type="button" class="btn ghost" [reepPending]="readEndpointPhase">
-          <span class="icon" aria-hidden="true">open_in_new</span> Open the record
-        </button>
-      </div>
+        <div class="event-actions">
+          <button type="button" class="btn secondary" (click)="copyEventJson()">
+            <span class="icon" aria-hidden="true">content_copy</span> Copy event JSON
+          </button>
+          <button
+            type="button"
+            class="btn ghost"
+            [disabled]="owningScreen() === null"
+            [title]="
+              owningScreen() === null
+                ? 'No console screen administers this kind of record.'
+                : 'Opens the screen this record is administered from.'
+            "
+            (click)="openOwningScreen()"
+          >
+            <span class="icon" aria-hidden="true">open_in_new</span> {{ owningScreenLabel() }}
+          </button>
+        </div>
+      } @else {
+        <div class="notice accent">
+          <span class="icon" aria-hidden="true">info</span>
+          <span>Choose a row in the trail to read the event and its before → after pair.</span>
+        </div>
+      }
     </aside>
   </div>
 </div>

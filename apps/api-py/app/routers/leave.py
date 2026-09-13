@@ -21,17 +21,24 @@ student (a mentor's own leave) has no group to belong to, so it is decidable by
 the Main Admin only. That is the deliberate reading of "no group => nobody" —
 the alternative, letting group-less mentors keep the staff queue, hands the queue
 straight back to the account this rule is here to keep out.
+
+SINCE B2.1 THE APPROVER'S THREE ENDPOINTS ALSO REQUIRE `mentor.leave_approve`
+(`_require_leave_approver` below). The SUBMIT path does not, and must not: every
+signed-in account applies for its own leave, faculty with no mentees included.
 """
 
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..governance import require_capability
 from ..identity import get_current_session
+from ..policies import scope_filter
+from ..scope_views import scope_header
 from ..models.leave import LeaveDecision, LeaveRequest, LeaveStatus
 from ..models.user import Student, User
 # _assert_can_access_student is private to mentor.py on purpose, and importing it
@@ -148,6 +155,40 @@ def _leave_out(lr: LeaveRequest, db: Session) -> LeaveOut:
     )
 
 
+def _require_leave_approver(db: Session, session: dict) -> None:
+    """The approver's gate: staff, holding `mentor.leave_approve`.
+
+    COMPOSED WITH `require_mentor`, NOT IN PLACE OF IT. The two answer different
+    questions and both have to pass: `require_mentor` says this is a member of
+    staff, the capability says this member of staff is one of the people who
+    sign leave. Dropping the role gate would make a grant the only fence on an
+    endpoint that reads free-text medical reasons, and rule 2's group check
+    (`_assert_can_decide`) still runs after both.
+
+    B2.3 MADE THIS DERIVED, WHICH IS WHY IT CHANGES ANYTHING AT ALL.
+    `mentor.leave_approve` is not in `ROLE_BASELINE["MENTOR"]`; it is one of the
+    four functions a faculty account holds by currently mentoring somebody
+    (app/mentor_functions.py). So a faculty member with no mentees is refused
+    here with a 403 that says why, where before they got a 200 and an empty
+    queue -- the same outcome, told honestly. The Main Admin holds it by
+    baseline, because it is the second of the two signatures and removing it
+    would break sanctioning outright.
+
+    IT IS NOT ON THE SUBMIT PATH, AND THAT IS THE POINT. `POST /api/leaves` and
+    `GET /api/leaves/mine` are open to every signed-in account, including a
+    faculty member with no mentees, because applying for your own leave is not
+    an approver's act. Putting this on the form is how a new lecturer discovers
+    they cannot ask for a day off.
+
+    CALLED BEFORE ANY id IS LOOKED UP, on the decision path especially. A
+    refusal that depended on whether the leave exists would turn this endpoint
+    into the membership oracle `_assert_can_decide` flattens its 404s to
+    prevent: the answer here is the same for every id, known or invented.
+    """
+    require_mentor(session)
+    require_capability(db, session, "mentor.leave_approve")
+
+
 @router.post("", response_model=LeaveOut, status_code=status.HTTP_201_CREATED)
 def submit_leave(
     body: LeaveIn,
@@ -219,11 +260,67 @@ def _assert_can_decide(session: dict, lr: LeaveRequest, db: Session) -> None:
         ) from None
 
 
+LEAVE_CAPABILITY = "mentor.leave_approve"
+
+
+def _narrow_to_scope(query, db: Session, session: dict, response: Response):
+    """Narrow an approver's queue to what this session may see. One rule, two
+    halves, and they are composed rather than one replacing the other.
+
+    A MENTOR IS FENCED BY THEIR GROUP AND NOTHING ELSE, exactly as before. That
+    fence is rule 2's and it is STRICTER than any scope could be — it narrows to
+    this mentor's own students, not to a department's — which is the same
+    argument `governance.require_capability` makes for not scoping a capability
+    held as a mentor FUNCTION. It matters here mechanically as well as in
+    principle: `mentor.leave_approve` is a derived function for a faculty member
+    with mentees (app/mentor_functions.py) and therefore has no grant row, so
+    `scope_filter` reports `nothing` for them. Applying the reach to a MENTOR
+    would empty every faculty approver's queue on the deploy that shipped it.
+    Read that sentence before adding a `reach.nothing` early return here.
+
+    EVERYONE ELSE IS FENCED BY THE REACH (B1.4). Today that is the Main Admin,
+    whose baseline resolves to `everything`, so nothing changes for the office
+    account; it becomes load-bearing the moment `mentor.leave_approve` is
+    granted to a non-mentoring account with a scope, which is what B10.7 asks
+    for and what Governance can already express.
+
+    Requests from staff — a faculty member's own leave — belong to no student
+    and so hang under no reach. They stay the Main Admin's, which is what the
+    module docstring already says about "no group => nobody", now said once for
+    both halves: `LeaveRequest.requester_user_id` is matched against the reach's
+    STUDENT users only.
+    """
+    if session["role"] == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            return None  # no Mentor group => nobody (never the whole programme)
+        # Narrowed in SQL, not filtered in Python afterwards: an out-of-group
+        # `reason` should never be read out of the database in the first place.
+        return query.where(
+            LeaveRequest.requester_user_id.in_(
+                select(Student.user_id).where(Student.mentor_id == mentor_id)
+            )
+        )
+    reach = scope_filter(db, session, LEAVE_CAPABILITY)
+    scope_header(response, reach)
+    if reach.everything:
+        return query  # the Main Admin: the whole programme, staff leave included
+    if reach.nothing:
+        return None
+    return query.where(
+        LeaveRequest.requester_user_id.in_(
+            select(Student.user_id).where(Student.id.in_(reach.student_ids()))
+        )
+    )
+
+
 @router.get("/pending", response_model=list[LeaveOut])
 def pending_leaves(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[LeaveOut]:
-    require_mentor(session)
+    _require_leave_approver(db, session)
     uid = session["userId"]
     query = (
         select(LeaveRequest)
@@ -233,18 +330,9 @@ def pending_leaves(
         )
         .order_by(LeaveRequest.created_at)
     )
-    if session["role"] == "MENTOR":
-        mentor_id = session.get("mentorId")
-        if not mentor_id:
-            return []  # no Mentor group => nobody (never the whole programme)
-        # Narrowed in SQL, not filtered in Python afterwards: an out-of-group
-        # `reason` should never be read out of the database in the first place.
-        query = query.where(
-            LeaveRequest.requester_user_id.in_(
-                select(Student.user_id).where(Student.mentor_id == mentor_id)
-            )
-        )
-    # the Main Admin: no narrowing — the whole programme, staff leave included.
+    query = _narrow_to_scope(query, db, session, response)
+    if query is None:
+        return []
 
     rows = db.scalars(query).all()
     # Not decidable by me if I already gave the first signature.
@@ -257,14 +345,20 @@ def pending_leaves(
 
 @router.get("/history", response_model=list[LeaveOut])
 def decided_leaves(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[LeaveOut]:
     """Requests that reached a final decision — the Approved and Rejected tabs of
-    the approvals screen. SAME SCOPE AS /pending, narrowed in SQL: a MENTOR sees
-    only their own group's, a MENTOR with no group sees nobody, the Main Admin
-    see all. Own requests are excluded as they are from /pending — the applicant
-    reads those under /mine, and the approvals screen is the other chair."""
-    require_mentor(session)
+    the approvals screen. SAME SCOPE AS /pending, through the same
+    `_narrow_to_scope` and narrowed in SQL: a MENTOR sees only their own group's,
+    a MENTOR with no group sees nobody, a scoped approver sees their reach, the
+    Main Admin sees all. One function rather than the two copies that stood here
+    — the copies were identical when they were written, which is how they stay
+    identical only until one of them is edited. Own requests are excluded as they
+    are from /pending — the applicant reads those under /mine, and the approvals
+    screen is the other chair."""
+    _require_leave_approver(db, session)
     uid = session["userId"]
     query = (
         select(LeaveRequest)
@@ -278,15 +372,9 @@ def decided_leaves(
         )
         .limit(200)
     )
-    if session["role"] == "MENTOR":
-        mentor_id = session.get("mentorId")
-        if not mentor_id:
-            return []  # no Mentor group => nobody (never the whole programme)
-        query = query.where(
-            LeaveRequest.requester_user_id.in_(
-                select(Student.user_id).where(Student.mentor_id == mentor_id)
-            )
-        )
+    query = _narrow_to_scope(query, db, session, response)
+    if query is None:
+        return []
     return [_leave_out(lr, db) for lr in db.scalars(query).all()]
 
 
@@ -302,9 +390,13 @@ def decide_leave(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> LeaveOut:
-    # Role first, before any DB read: a non-staff caller must not be able to tell
-    # a real leave id from an invented one by which error comes back.
-    require_mentor(session)
+    # Role AND capability first, before any DB read: neither refusal may depend
+    # on whether this leave id exists, or the endpoint tells a caller which ids
+    # are real by which error comes back. B2.1 added the capability HERE rather
+    # than inside `_assert_can_decide`, which runs after the row is loaded — and
+    # which `leave_paper.py` imports for the PDF, a read this gate has no
+    # business refusing.
+    _require_leave_approver(db, session)
     lr = db.get(LeaveRequest, leave_id)
     if lr is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found.")

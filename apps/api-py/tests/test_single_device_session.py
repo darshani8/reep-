@@ -198,8 +198,19 @@ def test_activating_an_account_retires_its_other_devices(client, make_user, logi
 
     # The link is minted the way the console mints it, and the token is read
     # back out of the message — the same route a real staff member takes.
+    #
+    # THE ACCOUNT IS PUT BACK TO "NO PASSWORD YET" FIRST, which it was not
+    # before B3.4. `issue_activation` now REFUSES an account that already holds
+    # a scrypt hash, because an activation link that also sets a new password on
+    # a live account is an account takeover dressed as a support action. This
+    # test is about the sign-in door, not about that refusal, so it uses the
+    # only shape a real activation link is ever minted for: an account created
+    # with the unusable sentinel and no password set yet. `make_user` issues a
+    # real one, hence the reset here.
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == staff.email))
+        user.password_hash = "google-only"
+        db.flush()
         issue_activation(db, user, created_by_user_id=None)
         db.commit()
     entry = mail_transport.outbox[-1]

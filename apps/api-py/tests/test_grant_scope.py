@@ -29,13 +29,20 @@ from conftest import requires_db
 from app.db import SessionLocal
 from app.governance import (
     ancestry_of_student,
+    capabilities_for,
     ancestry_of_user,
     granted_reaches,
     reaches_target,
     require_capability,
 )
 from app.models.cohort import Cohort
-from app.models.governance import CapabilityGrant, ScopeLevel, SubjectKind
+from app.models.governance import (
+    APPROVAL_ACTIVE,
+    APPROVAL_PENDING,
+    CapabilityGrant,
+    ScopeLevel,
+    SubjectKind,
+)
 from app.models.institution import STATUS_ACTIVE, College, Department
 from app.models.job import DegreeLevel
 from app.models.user import Role, Student, User
@@ -274,7 +281,7 @@ def test_the_reach_of_a_department_grant_covers_both_kinds_of_student(spine):
         assert not reach.everything and not reach.nothing
         assert reach.departments == frozenset({spine["dept_one"]})
 
-        visible = set(db.scalars(select(Student.id).where(Student.id.in_(reach.student_ids(db)))).all())
+        visible = set(db.scalars(select(Student.id).where(Student.id.in_(reach.student_ids()))).all())
     assert spine["seated"] in visible, "the seated student is in the granted department"
     assert spine["unseated"] in visible, (
         "the unseated student hangs under the same department through their own pointer"
@@ -287,8 +294,8 @@ def test_a_college_grant_reaches_every_department_under_it(spine):
     with SessionLocal() as db:
         _grant(db, spine["holder"], "admin.students", ScopeLevel.COLLEGE, spine["college"])
         reach = scope_filter(db, session, "admin.students")
-        visible = set(db.scalars(select(Student.id).where(Student.id.in_(reach.student_ids(db)))).all())
-        staff = set(db.scalars(select(User.id).where(User.id.in_(reach.user_ids(db)))).all())
+        visible = set(db.scalars(select(Student.id).where(Student.id.in_(reach.student_ids()))).all())
+        staff = set(db.scalars(select(User.id).where(User.id.in_(reach.user_ids()))).all())
     assert {spine["seated"], spine["unseated"]} <= visible
     assert spine["holder"] in staff, "a college grant covers faculty filed under it"
 
@@ -320,3 +327,106 @@ def test_an_expired_or_revoked_grant_reaches_nothing(spine):
         db.commit()
         assert granted_reaches(db, spine["holder"], "admin.students") == []
         assert scope_filter(db, session, "admin.students").nothing
+
+
+# ------------------------------------------- what the research pass found --
+
+
+@requires_db
+def test_everything_selects_everything_rather_than_nothing(spine):
+    """THE LANDMINE. `Reach(everything=True)` had every bucket empty, so
+    `student_ids()` fell through to the empty-clause branch and returned NO
+    ROWS -- on the theory that every caller checks `.everything` first.
+
+    That is a convention across twelve list endpoints, and the cost of
+    forgetting it once is an EMPTY ROSTER FOR THE MAIN ADMIN: a screen saying
+    the college has no students, which reads as data loss rather than as a
+    permission bug, on the account that holds every capability. A helper whose
+    most dangerous output is produced by its commonest caller omitting one line
+    is built wrong.
+    """
+    with SessionLocal() as db:
+        reach = Reach(everything=True)
+        visible = set(db.scalars(select(Student.id).where(Student.id.in_(reach.student_ids()))).all())
+        staff = set(db.scalars(select(User.id).where(User.id.in_(reach.user_ids()))).all())
+    assert spine["seated"] in visible and spine["unseated"] in visible
+    assert spine["holder"] in staff
+
+
+@requires_db
+def test_a_grant_awaiting_a_second_approval_is_not_live_yet(spine):
+    """FOUR-EYES APPROVAL THAT APPROVES NOTHING. `approval_state` was written on
+    every row, carried a check constraint and a docstring describing the
+    two-person rule for capabilities that carry PII -- and was read by no query,
+    so a grant awaiting approval was fully live the moment it was inserted.
+
+    Both readers are asserted, because they are the same question asked two
+    ways and the bug was that only one of them knew the answer.
+    """
+    session = {"role": "MENTOR", "userId": spine["holder"]}
+    with SessionLocal() as db:
+        row = CapabilityGrant(
+            capability="admin.students", subject_kind=SubjectKind.USER,
+            subject_user_id=spine["holder"], reason="awaiting a second pair of eyes",
+            approval_state=APPROVAL_PENDING,
+        )
+        db.add(row)
+        db.commit()
+
+        assert granted_reaches(db, spine["holder"], "admin.students") == []
+        assert "admin.students" not in capabilities_for(db, session)
+        assert scope_filter(db, session, "admin.students").nothing
+
+        row.approval_state = APPROVAL_ACTIVE
+        db.commit()
+        assert "admin.students" in capabilities_for(db, session)
+
+
+@requires_db
+def test_the_check_and_the_list_agree_at_every_rung(spine):
+    """THE PROPERTY NEITHER IMPLEMENTATION GUARANTEES ON ITS OWN.
+
+    Scope is computed twice, in two languages, in opposite directions:
+    `ancestry_of_student` walks a target UP to its ancestors in Python, and
+    `Reach.student_ids` walks a grant DOWN to its descendants in SQL. Zanzibar
+    derives its Check and its reverse index from one namespace configuration so
+    they cannot disagree; REEP hand-writes both, and nothing makes them agree.
+
+    That is not hypothetical. It has already happened once here, in exactly
+    this shape: `students.department_id` was read by the institution card and
+    not by the ancestry walk, and the hole sat silently in feature overrides for
+    months. This test is the thing that would have caught it -- for every rung a
+    student hangs on, a grant at that rung must both PASS the check and RETURN
+    the student in the list.
+    """
+    with SessionLocal() as db:
+        for student_id in (spine["seated"], spine["unseated"]):
+            ancestry = ancestry_of_student(db, student_id)
+            assert ancestry, "a student in the fixture hangs under nothing"
+            for level, target_id in ancestry:
+                # The check says yes...
+                assert reaches_target([(level, target_id)], ancestry), (
+                    f"check refused {level.value} for the student it came from"
+                )
+                # ...so the list must contain them.
+                reach = Reach(everything=False, **{_BUCKET[level]: frozenset({target_id})})
+                listed = set(
+                    db.scalars(select(Student.id).where(Student.id.in_(reach.student_ids()))).all()
+                )
+                assert student_id in listed, (
+                    f"the check passes at {level.value} but the list leaves the student out — "
+                    "the two implementations of scope have drifted"
+                )
+
+
+#: Which Reach bucket each rung fills. Written out rather than derived from the
+#: enum name so that adding a rung to ScopeLevel without adding a bucket is a
+#: KeyError in this test rather than a silently unchecked level.
+_BUCKET = {
+    ScopeLevel.COLLEGE: "colleges",
+    ScopeLevel.DEPARTMENT: "departments",
+    ScopeLevel.COURSE: "courses",
+    ScopeLevel.SPECIALIZATION: "specializations",
+    ScopeLevel.COHORT: "cohorts",
+    ScopeLevel.STUDENT: "students",
+}

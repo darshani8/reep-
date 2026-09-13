@@ -57,8 +57,23 @@ as a string. So deleting a job does NOT retire its requirement: the ruleset
 asked for "Voice worker (dependency completeness)" for months after that job
 went with the LiveKit stack, which — had the ruleset ever been applied — would
 have blocked every pull request on a check that can never report. Rename or
-remove a job and edit all three files in the same commit. `tools/ci/preflight.sh`
-runs the same five locally, in the order that fails fastest.
+remove a job and edit all three files in the same commit.
+
+**FOUR files, and the agreement is a TEST now, not a habit** (Phase 5).
+`tools/ci/preflight.sh` runs the same five locally, in the order that fails
+fastest — and it ran only FOUR of them until Phase 5, skipping `Infra (CDK synth
+guards)` with a reason written in its own usage text ("it needs its own Python
+3.12 environment and only matters when infra/ is touched"). Both halves were
+true and neither made it optional: a required check runs on every pull request
+whether `infra/` was touched or not, and a local runner that covers four fifths
+of the gate teaches you to trust it and then lets you push into the fifth. It
+now SKIPs that check (exit 2, never a silent pass) when `aws-cdk-lib` is not
+installed. `tests/test_codebase_guards.py` §34 parses `ci.yml`'s job names and
+compares them against the ruleset, against `REQUIRED_CHECKS` and against
+`preflight.sh`, and fails the `api` job when any of the four disagrees —
+`protect-main.sh`'s own grep only ever fired for whoever remembered to run it,
+and said nothing about the committed ruleset, which is how that stale entry
+survived.
 
 The `web` job also runs three static checks over `apps/web/src` before the slow
 steps, each guarding a rule that is invisible at the call site:
@@ -1069,8 +1084,16 @@ login, register and resume-builder surfaces, which sit outside the shell and
 never adopted the component classes, but they are **defined in `reep-theme.scss`
 with the v2 values** rather than overridden from elsewhere. One token, one place.
 `reep-theme.scss`'s dark block is deleted: this is a single committed theme,
-nothing calls `ThemeService.toggle()`, and a palette nobody can reach is a second
-set of colours to keep correct for no one.
+and a palette nobody can reach is a second set of colours to keep correct for no
+one. **Phase 5 deleted `ThemeService` too** — with the dark block gone it was a
+toggle that stamped a `data-theme` attribute no selector in the repository reads,
+which the next person to find it reads as a theme feature that broke. `data-theme`
+is now a static `light` written once on `<html>` in `index.html`; nothing branches
+on it. `IconComponent` (`shared/icon.component.ts`) went in the same pass: the
+app renders icons with the `.icon` class directly and no template ever used
+`<app-icon>`. So did four of the five components in `shared/kit/` — section,
+stat, empty and banner, and `kit/tone.ts` whose `TONE_INK` map only the stat
+read. `kit-page-intro` stays because `features/assistant` imports it.
 
 **Two global stylesheets, and they must not claim each other's names.**
 `reep-v2-resume.scss` loads after `reep-v2.scss`, so it wins on every property it

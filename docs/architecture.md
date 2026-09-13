@@ -1,8 +1,26 @@
 # REEP — Complete Architecture & Tech Stack
 
-> Generated from the code in this repository, not from a whiteboard. Every version,
-> port, table, close code and environment variable below was read out of
-> `apps/api-py`, `apps/web`, `docker-compose*.yml` and `.github/workflows/ci.yml`.
+> **PARTLY STALE — last verified against the code 2026-08. Read `AGENTS.md` first
+> where the two disagree.** It was generated from the repository rather than a
+> whiteboard, and that is exactly why it rots: it describes what was there on the
+> day it was read. Four things have changed underneath it since, each of which
+> appears in the diagrams below as if it still existed:
+>
+> - **The LiveKit voice stack is gone** (2026-09). No `voice-worker` service, no
+>   `Dockerfile.voice`, no `voice_agent.py`, no `/api/voice/*`, no fourth process
+>   and no second venv. The one voice experience is `/student/assistant`, a
+>   WebSocket inside the API process speaking to Amazon Nova 2 Sonic.
+> - **The `worker-imports` CI job went with it.** CI has five jobs: `api`,
+>   `pii-gate`, `api-imports`, `web`, `cdk`.
+> - **DIRECTOR is not a role** (2026-09-10). One office account, role ADMIN;
+>   `require_director` and `/api/director/*` are gone.
+> - **The `openai` interview engine is gone** (2026-09). `interview_relay.py` was
+>   deleted; nothing reads `OPENAI_API_KEY`. The reasoning survives in
+>   `docs/interview-engine-v3.md`, which is a design record, not a description of
+>   running code. `apps/interview-realtime/` was deleted too.
+>
+> Everything else was accurate when written and most of it still is. Corrected in
+> place rather than banner'd: `docs/deployment-env.md`.
 >
 > Companion: `AGENTS.md` (the operating rules), `docs/interview-engine-v3.md`,
 > `docs/google-sign-in.md`, `docs/deployment-env.md`.

@@ -222,6 +222,24 @@ class Department(Base):
     name: Mapped[str] = mapped_column(String)
     # Head of department, as printed on the leave form's department line.
     head: Mapped[str | None] = mapped_column(String, nullable=True)
+    # B9.2. How many students one faculty member in THIS department is expected
+    # to carry. NULL falls back to `settings.mentor_capacity`.
+    #
+    # ADVISORY, AND DELIBERATELY SO. 04 asks for "capacity from a governance
+    # setting", and the temptation that comes with a number is to enforce it.
+    # Two places in this repository argue against that in writing —
+    # `routers/admin_mentoring.py`'s MentorLoadOut ("programme policy, not a per-mentor
+    # fact ... nothing enforces it") and the Angular screen's own header ("an
+    # admin who chooses to overload one faculty member in a thin year should not
+    # have to edit .env first. The rail says 'At capacity' in the risk colour
+    # and lets them") — and both are still right. What was wrong was only that
+    # the number lived in an environment variable, so tuning it for one
+    # department meant a deploy. This column is that fix and nothing more: the
+    # assignment endpoints do not read it, and no request is refused by it.
+    #
+    # There is no `governance_settings` table and this does not invent one. A
+    # capacity is a fact about a department, and departments have a row.
+    mentor_capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # WHO created it, for the console's audit view. Nullable: `python -m app.seed`
     # and the CLIs have no user. Set by the admin router from the session; never
     # by the client.

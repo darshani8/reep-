@@ -235,7 +235,16 @@
                   <div class="sw-entry__meta">
                     <span class="chip accent">{{ sourceLabel(entry.source) }}</span>
                     <span class="sw-entry__by">
-                      {{ entry.author ?? 'Author no longer on the roster' }} ·
+                      <!-- "Author not recorded", NOT "no longer on the roster".
+                           `swoc_entries.author_user_id` is ON DELETE SET NULL,
+                           so removing an account clears the pointer rather than
+                           leaving a dangling one: a null author means nobody was
+                           recorded and cannot mean anybody left. The old string
+                           asserted a departure about rows nobody ever wrote —
+                           the seeded four among them, which are the ones a demo
+                           shows. The seed writes an author now; this is the copy
+                           for the rows written before the column existed. -->
+                      {{ entry.author ?? 'Author not recorded' }} ·
                       {{ when(entry.recorded_at) }}
                     </span>
                     <label class="sw-weight">

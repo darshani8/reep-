@@ -52,6 +52,7 @@ from types import SimpleNamespace
 
 from .architecture_events import record_change
 from .db import SessionLocal
+from .mentor_history import record_mentor_change
 from .models.governance import AccessGroupMember, CapabilityGrant, SubjectKind
 from .models.student_profile import StudentProfile
 from .models.user import Mentor, Role, Student, User
@@ -397,7 +398,20 @@ def grant(
         if mentor_group is not None:
             # Points the student at the mentor's group, which is the only thing
             # that makes them visible to that mentor (rule 2). Idempotent.
+            previous_mentor_id = stu.mentor_id
             stu.mentor_id = mentor_group.id
+            # B9.1. The fifth writer of this pointer, through the same one
+            # function as the other four. `record_mentor_change` does nothing
+            # when the pair is unchanged, which is what keeps this CLI idempotent
+            # in the history as well as on the row.
+            record_mentor_change(
+                db,
+                student_id=stu.id,
+                previous_mentor_id=previous_mentor_id,
+                new_mentor_id=mentor_group.id,
+                by_user_id=None,
+                reason="granted by app.grant_access",
+            )
 
     if role is Role.MENTOR and with_group:
         # The `Mentor` row IS the group: `_assert_can_access_student` narrows a

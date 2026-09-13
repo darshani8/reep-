@@ -150,6 +150,17 @@ VERDICTS: dict[str, str] = {
     # (`by_user_id` is SET NULL, so the act would survive the actor; the row
     # does not survive its subject, because without them it records nothing.)
     "student_semester_history": EMPTY,
+    # B9.1's assignment history, and it is the SAME QUESTION `student_semester_history`
+    # above answered, decided the same way. A row is both a fact about a student
+    # and the office's record of a staff decision — who seated them, who moved
+    # them off, and why. Here the two readings agree, because this module empties
+    # the deployment of PEOPLE: the student the row names is going and the staff
+    # member who decided is going too. (`by_user_id`/`ended_by_user_id` are SET
+    # NULL, so the decision would outlive the decider; the row does not outlive
+    # its subject, because without the student it records nothing.) The office's
+    # record that an assignment happened survives in `redesign_audit_events`,
+    # which is KEPT — the same place the promotion above leaves its act.
+    "mentor_assignments": EMPTY,
     "student_skills": EMPTY,
     "student_badges": EMPTY,
     "student_milestones": EMPTY,
@@ -201,6 +212,11 @@ VERDICTS: dict[str, str] = {
     # -- what staff wrote about them, and staff's own shelf -----------------
     "mentor_notes": EMPTY,
     "swoc_entries": EMPTY,
+    # B7.3. A revision is what one SWOC line said before somebody edited it —
+    # a named judgement about a student, twice over. It cannot outlive the entry
+    # (CASCADE would take it anyway) and there is nothing in it that is not
+    # about a person this module is removing.
+    "swoc_entry_revisions": EMPTY,
     "leave_requests": EMPTY,
     "staff_signatures": EMPTY,
     "staff_upskilling_certs": EMPTY,

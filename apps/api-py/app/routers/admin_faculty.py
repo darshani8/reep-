@@ -21,7 +21,8 @@ gives faculty their access, and an account is the first grant of all.
 WHAT THE ACCOUNT IS. Role MENTOR; the unusable password sentinel, so nothing
 signs in until the person redeems the link and sets their own password (or
 Google, once configured); NO `Mentor` group - a faculty member becomes a
-mentor when the Main Admin assigns them a student (routers/console.py). An
+mentor when the Main Admin assigns them a student
+(routers/admin_mentoring.py). An
 address already in `users` is refused - a MENTOR row must never be attached to
 someone else's account.
 
@@ -61,6 +62,7 @@ from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 from ..institution_domains import domain_of, provisionable_domains_for
+from ..mentor_history import release_mentees_of
 from ..models.user import Role, User
 from ..security import note_revocation
 from ..staff_placement import UNFILED, StaffPlacement, placement_for, placements_for, resolve_department
@@ -611,6 +613,11 @@ class AccountStateOut(BaseModel):
     #: How many live links and codes were killed with the account. Zero is the
     #: usual answer and is worth saying: it means there was nothing outstanding.
     links_revoked: int = 0
+    #: B9.1. How many students were unseated because this faculty account was
+    #: disabled. Zero on every ENABLE and on a faculty member with no group, and
+    #: it is stated rather than omitted for `links_revoked`'s reason: "nobody
+    #: was moved" is a fact the admin wants confirmed, not an absent field.
+    mentees_released: int = 0
     detail: str
 
 
@@ -633,14 +640,26 @@ def disable_account(
     reason a badge exists. Emptying a deployment of people is
     `python -m app.purge_people`, which dry-runs by default and says so.
 
-    WHAT IT DELIBERATELY DOES NOT DO, so the next reader does not assume it did:
-    it does not release their mentees and it does not revoke their capability
-    grants. Both are real follow-ups (B2.5, B9.1) and both belong to modules
-    this one does not own - `console.py` owns the mentor group and
-    `governance.py` owns grants. Neither is a hole: a grant is a permission to
-    make a REQUEST, and a disabled account cannot make one. A mentee still
-    pointing at a disabled mentor is a listing problem for the Mentors &
-    Students screen, not an access one.
+    IT NOW RELEASES THEIR MENTEES (B9.1), which this docstring used to say it
+    deliberately did not. The old sentence was right about ACCESS - a disabled
+    account cannot make a request, so a mentee still pointing at it was never a
+    leak - and wrong about the roster: those students sat in a group nobody can
+    open, invisible in the unassigned pool, and the office found out when one of
+    them asked why their mentor never replied. The release is
+    `mentor_history.release_mentees_of`, which unseats each of them, writes a
+    `faculty_disabled` history row naming this act, and puts them back in the
+    pool the assignment screen draws from. `released` on the response says how
+    many, so the admin sees the consequence in the same breath as the act.
+
+    NO HANDOVER GRANT IS MINTED HERE, unlike every other release. The 90-day
+    window exists so the previous mentor can still be asked about a note they
+    wrote; an offboarded account cannot sign in to answer, and the grant would
+    sit on the Governance screen looking like access somebody forgot to revoke.
+
+    IT STILL DOES NOT REVOKE THEIR CAPABILITY GRANTS, and that half stands
+    (B2.5): a grant is a permission to make a REQUEST and a disabled account
+    cannot make one. `governance.py` owns grants and the office revokes what is
+    no longer needed there, with a reason, on the trail.
 
     REFUSES AN ADMIN, and refuses you. The Main Admin IS the console; disabling
     it locks every human out of the only screen that could switch it back on,
@@ -682,6 +701,15 @@ def disable_account(
     user.disable_reason = body.reason
     user.token_version = int(user.token_version or 0) + 1
     revoked = account_links.revoke_all_user_tokens(db, user.id)
+    # B9.1. Before the audit row, so `released` is on it.
+    released = release_mentees_of(
+        db,
+        faculty_user_id=user.id,
+        by_user_id=session.get("userId"),
+        reason=f"faculty account disabled: {body.reason}",
+        session=session,
+        request=request,
+    )
     record_change(
         db, session=session, request=request, tenant_id=None,
         entity_type="user", entity_id=user.id, action="DISABLE",
@@ -691,9 +719,13 @@ def disable_account(
             "disable_reason": user.disable_reason,
             "token_version": user.token_version,
             "links_revoked": revoked,
+            "mentees_released": len(released),
         },
         event_type="user.disable",
-        payload={"email": user.email, "role": user.role.value, "reason": body.reason},
+        payload={
+            "email": user.email, "role": user.role.value, "reason": body.reason,
+            "mentees_released": len(released),
+        },
     )
     db.commit()
     # AFTER the commit, and carrying `disabled=True`, so this worker refuses the
@@ -707,9 +739,16 @@ def disable_account(
         user_id=user.id, email=user.email, role=user.role.value, disabled=True,
         disabled_at=user.disabled_at, disable_reason=user.disable_reason,
         token_version=user.token_version, links_revoked=revoked,
+        mentees_released=len(released),
         detail=(
             f"{user.email} can no longer sign in, and every device it held has "
             "been signed out. Nothing they wrote has been removed."
+            + (
+                f" {len(released)} student(s) were released back to the "
+                "unassigned pool and need a new faculty member."
+                if released
+                else ""
+            )
         ),
     )
 

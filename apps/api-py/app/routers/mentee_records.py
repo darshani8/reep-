@@ -63,7 +63,9 @@ def read_student_ledger(
     # to look, which is the rule - the admin decides who holds faculty powers,
     # itself included. Additive over the baseline, so faculty are unaffected.
     require_capability(db, session, "mentor.mentees")
-    _assert_can_access_student(session, student_id, db)
+    # B9.1: a GET, so the 90-day handover window applies (read-only by
+    # construction -- this module has no write path, by design).
+    _assert_can_access_student(session, student_id, db, allow_handover=True)
     target = day or date.today()
     return compose_ledger(target, load_day(db, student_id, target))
 
@@ -106,7 +108,9 @@ def read_student_ledger_summary(
     # to look, which is the rule - the admin decides who holds faculty powers,
     # itself included. Additive over the baseline, so faculty are unaffected.
     require_capability(db, session, "mentor.mentees")
-    _assert_can_access_student(session, student_id, db)
+    # B9.1: a GET, so the 90-day handover window applies (read-only by
+    # construction -- this module has no write path, by design).
+    _assert_can_access_student(session, student_id, db, allow_handover=True)
 
     since = date.today() - timedelta(days=days - 1)
     rows = db.scalars(
@@ -157,5 +161,7 @@ def read_student_english_baseline(
     # to look, which is the rule - the admin decides who holds faculty powers,
     # itself included. Additive over the baseline, so faculty are unaffected.
     require_capability(db, session, "mentor.mentees")
-    _assert_can_access_student(session, student_id, db)
+    # B9.1: a GET, so the 90-day handover window applies (read-only by
+    # construction -- this module has no write path, by design).
+    _assert_can_access_student(session, student_id, db, allow_handover=True)
     return compose_english_baseline(db, student_id)

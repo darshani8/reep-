@@ -20,9 +20,31 @@ import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 
-/** One SWOC line, as /student/overview returns it. */
+/**
+ * One SWOC line, as /student/overview returns it — B7.5.
+ *
+ * IT USED TO BE `{ text }` AND THE FOUR BOXES JOINED THE TEXTS WITH A DOT.
+ * That was a fair rendering of a payload that carried nothing else, and it is
+ * why the quadrant now lists its lines instead: `author`, `recorded_at` and
+ * `acknowledged_at` are per ENTRY, and a concatenated string has nowhere to put
+ * them. Nothing about the four tiles, their colours or their order changes — the
+ * board is the same board, each line simply keeps its own footer now.
+ *
+ * `author: null` MEANS NOBODY WAS RECORDED, and that is the only thing it can
+ * mean: `swoc_entries.author_user_id` is ON DELETE SET NULL, so an account going
+ * away clears the pointer rather than leaving a name to fail to resolve. "Author
+ * not recorded" is therefore the honest wording; the admin board's old "Author
+ * no longer on the roster" said somebody left, about rows nobody ever wrote.
+ */
 interface SwocItem {
+  id: string;
+  source: string;
   text: string;
+  weight: number;
+  author: string | null;
+  author_recorded: boolean;
+  recorded_at: string;
+  acknowledged_at: string | null;
 }
 
 interface SwocBoard {
@@ -60,9 +82,27 @@ interface MentorLog {
   meetings: Meeting[];
 }
 
-/** Four SWOC lists arrive as arrays; the card shows one sentence per box. */
-function joinSwoc(items: SwocItem[]): string {
-  return items.length ? items.map((i) => i.text).join(' · ') : 'No entries yet';
+/** The viewpoint, in the student's words rather than the enum's. PM is retired
+ *  from the writer and still legal in storage, so it is answered here rather
+ *  than left to render as a raw token on a seeded deployment. */
+const SOURCE_LABEL: Record<string, string> = {
+  MENTOR: 'Your mentor',
+  PLACEMENT: 'Placement cell',
+  PM: 'Programme',
+};
+
+function sourceLabel(source: string): string {
+  return SOURCE_LABEL[source] ?? 'Placement cell';
+}
+
+/** "12 Mar 2026" — the date a line was written, in the format the meeting log
+ *  above it already uses. An unparseable value renders as nothing rather than
+ *  as "Invalid Date". */
+function when(iso: string): string {
+  const at = new Date(iso);
+  return Number.isNaN(at.getTime())
+    ? ''
+    : at.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 @Component({
@@ -93,16 +133,74 @@ export class MentorLogComponent {
    */
   readonly swoc = signal<SwocBoard | null>(null);
 
+  /** The id of the line currently being acknowledged, so one button spins and
+   *  the other three stay usable. */
+  readonly acknowledging = signal<string | null>(null);
+
   readonly swocBoxes = computed(() => {
     const s = this.swoc();
     if (!s) return null;
+    const box = (cls: string, title: string, items: SwocItem[]) => ({
+      cls: `swoc-box ${cls}`,
+      title,
+      lines: items.map((item) => ({
+        id: item.id,
+        text: item.text,
+        // WHO AND WHEN, on every line — B7.5, and the reason this card stopped
+        // joining the four lists into four sentences. A judgement written about
+        // a student with no name and no date on it is a rumour; these two are
+        // the difference between "someone thinks this" and "your mentor wrote
+        // this on 12 March".
+        by: item.author ?? 'Author not recorded',
+        when: when(item.recorded_at),
+        source: sourceLabel(item.source),
+        acknowledgedOn: item.acknowledged_at ? when(item.acknowledged_at) : null,
+      })),
+    });
     return [
-      { cls: 'swoc-box swoc-s', title: 'Strength', text: joinSwoc(s.strengths) },
-      { cls: 'swoc-box swoc-w', title: 'Weakness', text: joinSwoc(s.weaknesses) },
-      { cls: 'swoc-box swoc-o', title: 'Opportunity', text: joinSwoc(s.opportunities) },
-      { cls: 'swoc-box swoc-c', title: 'Challenge', text: joinSwoc(s.challenges) },
+      box('swoc-s', 'Strength', s.strengths),
+      box('swoc-w', 'Weakness', s.weaknesses),
+      box('swoc-o', 'Opportunity', s.opportunities),
+      box('swoc-c', 'Challenge', s.challenges),
     ];
   });
+
+  /**
+   * "I have read this." — POST /student/swoc/{id}/acknowledge.
+   *
+   * ONE WAY ONLY, and the button disappears once it lands: the endpoint keeps
+   * the FIRST timestamp and there is no un-acknowledge, because "I read it" is
+   * not something a later click makes untrue. The board is patched in place
+   * rather than refetched, so the four tiles do not blink for a one-field
+   * change; a failure leaves the button where it was and says nothing, since
+   * there is nothing the student can do differently.
+   */
+  async acknowledge(id: string): Promise<void> {
+    if (this.acknowledging()) return;
+    this.acknowledging.set(id);
+    try {
+      const res = await fetch(`${environment.apiBase}/student/swoc/${id}/acknowledge`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const saved = (await res.json()) as SwocItem;
+      const board = this.swoc();
+      if (!board) return;
+      const patch = (items: SwocItem[]) =>
+        items.map((item) => (item.id === id ? { ...item, ...saved } : item));
+      this.swoc.set({
+        strengths: patch(board.strengths),
+        weaknesses: patch(board.weaknesses),
+        opportunities: patch(board.opportunities),
+        challenges: patch(board.challenges),
+      });
+    } catch {
+      /* the button stays where it was */
+    } finally {
+      this.acknowledging.set(null);
+    }
+  }
 
   /** Its own fetch, so a failing overview leaves the meeting log intact. */
   private async loadSwoc(): Promise<void> {

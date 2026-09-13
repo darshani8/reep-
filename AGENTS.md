@@ -430,6 +430,35 @@ other **opens the other**: that is not a hypothetical, it is what the DIRECTOR
 removal did for a few hours, and `tests/test_no_director_privilege.py` exists
 because of it.
 
+**THE 90-DAY HANDOVER IS A GRANT, NOT A BRANCH, AND THE ONE BRANCH IT NEEDS IS
+READ-ONLY (B9.1, 2026-09-13).** When a student is released or reassigned,
+`app/mentor_history.py` mints a `mentor.mentees` grant scoped
+`ScopeLevel.STUDENT` to *that student*, expiring in 90 days, `reason="handover"`
+— so expiry and revocation are filtered in SQL by the one `_live_grant_clauses`,
+the Governance screen lists it, and revoking it shuts the door the same hour.
+04 asks for this as "`policies.assert_student_scope` honours it", and
+implemented literally that is a third pass-branch in the function gating **36
+call sites, 15 of which are WRITES** — mentor notes, badge-evidence approval
+that mints an EARNED badge, capability assessments. That function cannot express
+"read only": what it returns to a GET it returns to a POST. So the branch is
+`allow_handover: bool = False`, **keyword-only, default False, passed True at
+GET call sites only** (`mentor.py`'s notes list and the three reads in
+`mentee_records.py`); `_assert_can_access_student` gained the parameter and is
+still the single delegating `return` the AST guard pins.
+**And the grant is what makes the feature visible at all**: `mentor_functions_for`
+derives the four `mentor.*` capabilities live from `mentee_count > 0`, so a
+mentor whose last mentee was just reassigned holds NONE of them and
+`require_capability` answers 403 *before* rule 2 ever runs — a handover honoured
+only inside `assert_student_scope` would be invisible to exactly the person it
+was built for. `capabilities_for` unions grants in, so it works.
+**The branch must never read the window with `reaches_target`.**
+`mentor_history.holds_handover_for` matches the scope pair `(STUDENT, this
+student)` EXACTLY, because a programme-wide `mentor.mentees` grant satisfies
+`reaches_target` for every student alive — and such grants exist (it is how the
+Main Admin reaches a stuck student's evidence). Reading it the loose way would
+turn every one of them into universal access to every student's records,
+silently, on deploy. `tests/test_mentor_assignments.py` pins all four facts.
+
 ### Rule 1 applies to telemetry too: Sentry is one init per process, and the scrubbers are the floor
 
 Sentry is a second HTTP transport out of the process, carrying whatever the SDK
@@ -759,6 +788,108 @@ therefore deliberately NOT a superset of `ROLE_BASELINE["MENTOR"]`, which is wha
 `tests/test_governance.py` now pins, and the `granted` fixture in
 `tests/conftest.py` is how a test takes that same path.
 
+
+**WHO MENTORED WHOM, AND WHY THEY WERE MOVED (B9.1/B9.2, 2026-09-13).**
+`students.mentor_id` stays the current pointer and stays the only thing rule 2
+filters on; `mentor_assignments` (`app/models/mentor_assignment.py`) is history
+BESIDE it — one row per (student, mentor) spell, `to_at IS NULL` meaning open, so
+"one open row per current pair" is a query rather than a convention. 04's column
+list has ONE `by_user_id`/`reason`/`kind`, which cannot describe a period: a
+reassignment would either overwrite who made the original assignment or leave
+the closing act unrecorded, and the second is the question the screen exists to
+answer. So there are two sets — `kind`/`by_user_id`/`reason` for the act that
+OPENED the spell, `end_kind`/`ended_by_user_id`/`end_reason` for the one that
+CLOSED it — and neither is ever rewritten. **`app/mentor_history.py` is the one
+writer**, called by all five places that set the pointer
+(`admin_mentoring.py`, both paths in `admin_students.py`, `app/seed.py`,
+`app/grant_access.py`) plus
+`admin_faculty.disable_account`, which now RELEASES a disabled faculty member's
+mentees with `end_kind=faculty_disabled` and mints no handover grant — an
+offboarded account cannot sign in to be asked about a note it wrote. It flushes
+and never commits, so the pointer and its history land together. Setting the
+same mentor again writes nothing. **The migration seeds one open row per current
+pair and `from_at` is the ACCOUNT's creation time, never `now()`** — `students`
+has no `created_at`, the pairing date is genuinely unknowable, and `now()` would
+tell every reader the whole roster was seated on deploy day; NULL is legal and
+means "since before this was recorded". A student who never had a mentor gets NO
+ROW, because "never had one" and "has had one since forever" must not read the
+same. Read it at `GET /api/admin/students/{id}/mentor-history`.
+
+**`reason` is REQUIRED on `POST /api/admin/students/{id}/mentor`, release
+included, and that landed with its client.** `mentor_id` is rule 2's scope key —
+moving a student changes who may read their marks, attendance, USN, notes and
+interview transcripts — and a release is the move nothing on any screen reports.
+It is a BREAKING change to an endpoint the live Angular screen was posting
+`{mentor_id}` to, so the server field, the reason input (previously
+`[reepPending]="4"`) and the eight test call sites are one commit; shipping the
+server half alone is an assign button that 422s on a working console. On the
+BATCH path (`POST /admin/cohorts/{id}/students/bulk`) `reason` is OPTIONAL, and
+the asymmetry is deliberate: a sentence asked once and applied to thirty people
+describes the batch, not any student in it. **There is still no `student_ids` on
+`BatchActionIn`** — 04 says it is already there and it is not, and the two bulk
+models are separate for `RosterBulkIn`'s written reason.
+
+**And that batch path now applies B1.5 and B1.2, which it never did.** Both
+`PATCH /admin/students/{id}` with `mentor_user_id` and the batch `mentor` action
+set the same column `admin_mentoring.set_student_mentor` guards, and neither called
+`_assert_same_college` nor `require_capability(target=ancestry_of_user(...))` —
+so the roster editor was a way around the cross-college fence on a screen nobody
+thinks of as the assignment screen. That was a present defect, not a Phase-4
+feature. One implementation, imported from `console.py` rather than restated.
+
+**Capacity is a number now, and STILL NOT A RULE.** `departments.mentor_capacity`
+is nullable and falls back to `settings.mentor_capacity`; `mentor-load` returns
+it with `capacity_source` so a programme default is not presented as a
+departmental decision. Nothing refuses an assignment past it — the endpoint and
+the Angular screen both argue in writing that an admin who overloads one faculty
+member in a thin year should not have to edit `.env` first, and both are still
+right. What was wrong was only that the number needed a deploy. There is no
+`governance_settings` table and this does not invent one.
+
+**Mentor mapping moved OUT of `console.py` into
+`app/routers/admin_mentoring.py`.** Same `/admin` prefix, same capabilities,
+same four paths (`GET /mentor-load`, `GET /unassigned-students`,
+`POST /students/{id}/mentor`, `GET /students/{id}/mentor-history`) — a move, not
+a redesign, and `console.py` is 548 lines shorter for it. The reason is not
+tidiness: `console.py` is programme-wide AGGREGATES, and this is the WRITE that
+decides rule 2's scope key. Somebody asking "where is mentor assignment
+decided" has to find it, because the next person to edit it is editing access
+control. `ensure_mentor_group` and `_assert_same_college` moved with it and
+`admin_students.py` imports them from there now. The history is composed once,
+in `compose_mentor_history`, and read by both the per-student endpoint and B4.5's
+Student 360 panel — `mentor_history` there is REAL now, and its `available` flag
+still means "is anything recorded for THIS student", never "does the deployment
+have the feature": an empty list with a faculty member on the card is a pairing
+that predates the table, and a student who was never assigned is a student
+waiting to be seated. The panel says which in words.
+
+**SWOC grew ownership, a viewpoint that means something, history and a semester
+(B7, 2026-09-13).** `_source_for` stamps MENTOR only when the author actually
+mentors THAT student — it read `session["role"]` alone, so one granted lecturer
+filed every line on a department's board as MENTOR, about students they had
+never met, collapsing the two viewpoints the board exists to keep apart. A
+former mentor inside the 90-day window writes as PLACEMENT: the window is a
+READ. `PATCH`/`DELETE` are now the AUTHOR's or the Main Admin's (the role, not
+`admin.swoc` — that key is what everybody on the screen holds, so "author or
+holder" is "anybody" at more length), and an AUTHORLESS line is the office's
+alone, because treating "no author" as "everybody is the author" makes exactly
+the rows nobody is answerable for the easiest to rewrite. `swoc_entry_revisions`
+is the scoped copy of the before/after `redesign_audit_events` has always kept —
+that data is retroactive and its reader is Main-Admin-only, so a History button
+pointed at it would 403 for everybody who can press it; this table starts empty
+and says so. `swoc_entries.updated_at` carries **no `onupdate`** on purpose: it
+would fire when the student acknowledges a line and report it as edited by
+nobody. **`semester` is stamped at write time and NEVER backfilled** — there is
+no semester history anywhere to backfill from, and today's semester on a line
+written last year is a lie on the student's own screen; NULL renders as "semester
+not recorded". `SwocItemOut` gained `id`, `author`, `author_recorded`,
+`recorded_at`, `semester` and `acknowledged_at` plus
+`POST /api/student/swoc/{entry_id}/acknowledge` — additively, because the board
+in `docs/redesign-2026-09/design/` draws none of them and the client
+concatenates a quadrant into one string; **the tile was not invented**.
+`author_recorded` exists because `author: null` meant two opposite things and
+the screen's one string said a person had left the roster about rows nobody ever
+wrote.
 
 **Approval provisions, and two guards make that safe.** `POST
 /api/register/{id}/decision` APPROVE now mints the User + Student + profile.

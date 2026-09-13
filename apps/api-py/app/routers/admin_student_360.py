@@ -39,14 +39,16 @@ scored, and — see `_semester_windows` — the per-semester ACTIVITY counts are
 `null` rather than `0` whenever the dates that would attribute them to a
 semester are not on record.
 
-THE MENTOR-HISTORY PANEL IS EMPTY ON PURPOSE. B9.1 (area 4d) is the task that
-records who mentored a student and when; it has not landed, and there is no
-model to read. The section is rendered with `available: false` and a sentence
-saying no assignment history is recorded yet, rather than left out: a panel that
-is absent reads as a screen that forgot it, and a panel that shows only the
-CURRENT faculty member with no dates reads as "this student has always had this
-mentor", which is a claim this data cannot make. The current assignment IS
-reported, separately and as a present-tense fact.
+THE MENTOR-HISTORY PANEL IS FILLED NOW, and it kept its `available` flag. B9.1
+landed `mentor_assignments`, so the panel reads the real spells — who, from
+when, to when, who moved them and why. `available` stays on the shape rather
+than being dropped because it still carries a fact the entries cannot: an EMPTY
+list is "nothing was recorded", never "this student has never had a mentor", and
+the two are different on a deployment whose oldest pairings predate the table.
+The note says which of those it is in words, and the CURRENT assignment is still
+reported separately as a present-tense fact, because a panel that shows only
+today's faculty member with no dates reads as "this student has always had this
+mentor", which is a claim this data cannot make.
 """
 
 from __future__ import annotations
@@ -78,6 +80,9 @@ from ..models.time_ledger import LedgerDayStatus, TimeLedgerDay
 from ..models.upload import Upload, UploadStatus
 from ..models.user import Mentor, Student, User
 from ..semester_bounds import course_for_cohort
+# B9.1's history, composed ONCE and read here through this module's own two
+# fences. See `compose_mentor_history` for why it is not a second query.
+from .admin_mentoring import MentorAssignmentOut, compose_mentor_history
 from .admin_students import CAPABILITY as STUDENTS_CAPABILITY
 from .admin_students import AdminStudentOut, _one, _student_or_404
 from .mentor import _assert_can_access_student
@@ -248,11 +253,24 @@ class MentorAssignment360Out(BaseModel):
 
 
 class MentorHistory360Out(BaseModel):
-    """The panel B9.1 (area 4d) fills in. Empty and honest until then."""
+    """Every mentor this student has had, newest first (B9.1).
+
+    `available` is NOT "does this deployment have the feature" — it always does
+    now. It is "is there anything recorded for THIS student", which is the
+    question the panel has to answer before it draws a timeline: a student
+    seated before `mentor_assignments` existed carries one seeded row with a
+    NULL `from_at`, a student who has never been assigned carries none at all,
+    and an empty timeline must not be able to say the second when it means the
+    first. `note` says which in words.
+    """
 
     available: bool
     note: str
-    entries: list[dict]
+    #: `admin_mentoring.MentorAssignmentOut`, not a second shape — the history
+    #: card on Mentors & students and this panel draw the same row, and one of
+    #: them growing a field the other lacks is the "one name, two shapes" the
+    #: codebase guard exists to stop.
+    entries: list[MentorAssignmentOut]
 
 
 class AuditRow360Out(BaseModel):
@@ -580,6 +598,35 @@ def _recent_audit(db: Session, student: Student, user: User) -> list[AuditRow360
     ]
 
 
+def _mentor_history_panel(db: Session, student: Student) -> MentorHistory360Out:
+    """B9.1's spells, with the sentence that says what an empty one means.
+
+    THREE STATES, NOT TWO, and the middle one is the reason this is a function
+    rather than a ternary. "Nothing recorded and nobody mentors them" is a
+    student waiting to be seated — the office's cue to assign somebody. "Nothing
+    recorded and somebody DOES mentor them" is a row the history missed, which
+    on this deployment can only mean the seeded spell was removed, and saying
+    "no mentor" there would contradict the panel directly above it. The third is
+    the ordinary one: rows, drawn as a timeline.
+    """
+    entries = compose_mentor_history(db, student.id)
+    if entries:
+        note = ""
+    elif student.mentor_id:
+        note = (
+            "This student has a faculty member assigned, but no assignment "
+            "history was recorded for them. Nothing is missing from the current "
+            "assignment above; only the record of how it came about."
+        )
+    else:
+        note = (
+            "No mentor has ever been assigned to this student. This is not a "
+            "gap in the record — it is a student waiting to be seated with a "
+            "faculty member."
+        )
+    return MentorHistory360Out(available=bool(entries), note=note, entries=entries)
+
+
 # ------------------------------------------------------------ endpoint --
 
 
@@ -658,16 +705,7 @@ def student_360(
             mentor_user_id=group.user_id if group else None,
             mentor_name=faculty_name,
         ),
-        mentor_history=MentorHistory360Out(
-            available=False,
-            note=(
-                "No mentor assignment history is recorded yet. REEP stores only "
-                "the current faculty assignment; who mentored this student "
-                "before, and when each change happened, starts being recorded "
-                "when mentor mapping history ships."
-            ),
-            entries=[],
-        ),
+        mentor_history=_mentor_history_panel(db, student),
         recent_audit=_recent_audit(db, student, user),
     )
 

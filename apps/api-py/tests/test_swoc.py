@@ -113,7 +113,19 @@ def test_the_editor_is_a_capability_the_office_holds_and_faculty_are_granted(cli
         assert client.get(API, headers=mentor.headers).status_code == 200
         r = client.post(f"{API}/{sid}", headers=mentor.headers, json=entry)
         assert r.status_code == 201, r.text
-        assert r.json()["source"] == "MENTOR", "a mentor's entry is a MENTOR entry - derived, never typed"
+        # B7.1 CHANGED THIS LINE AND THE CHANGE IS THE POINT. It used to assert
+        # MENTOR, because `_source_for` stamped on ROLE alone. This faculty
+        # member does not mentor this student — they hold a GRANT on the board —
+        # and the viewpoint is now derived from the relationship, so they write
+        # as PLACEMENT. The board is deliberately un-averaged and disagreement
+        # between viewpoints IS the finding; a granted lecturer filing every
+        # line as MENTOR collapsed two viewpoints into one label, about students
+        # they have never met. The `mentors this student` half is asserted in
+        # tests/test_mentor_assignments.py, where a real pairing exists.
+        assert r.json()["source"] == "PLACEMENT", (
+            "a granted faculty member who does not mentor this student speaks "
+            "for the placement cell, not as their mentor"
+        )
         assert r.json()["author"] == _name(mentor.user_id)
     finally:
         for gid in grant_ids:

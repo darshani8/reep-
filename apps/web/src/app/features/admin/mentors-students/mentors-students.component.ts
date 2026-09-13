@@ -8,11 +8,18 @@
  * students" and "assign students to a mentor" behind a toggle, which is the
  * same operation described twice.
  *
- * "N FREE" IS POLICY, NOT A ROW. The Mentor row has no capacity; the figure is
- * settings.mentor_capacity, returned on every faculty member as `capacity`, and
- * nothing refuses an assignment past it — an admin who chooses to overload one
- * faculty member in a thin year should not have to edit .env first. The rail
- * says "At capacity" in the risk colour and lets them.
+ * "N FREE" IS POLICY, NOT A ROW, AND IT IS STILL ADVISORY. The Mentor row has
+ * no capacity; the figure is returned on every faculty member as `capacity`,
+ * and nothing refuses an assignment past it — an admin who chooses to overload
+ * one faculty member in a thin year should not have to edit .env first. The
+ * rail says "At capacity" in the risk colour and lets them.
+ *
+ * B9.2 changed only WHERE THE NUMBER COMES FROM, which is what that sentence
+ * was really complaining about: `departments.mentor_capacity` now answers it
+ * when the department has named one, falling back to the programme's
+ * `settings.mentor_capacity` otherwise, so tuning it for one department is a
+ * row and not a deploy. `capacity_source` says which, so the screen can avoid
+ * presenting a programme default as a departmental decision.
  *
  * mentor_id IS THE SCOPE KEY. It is what rule 2 filters staff access on, so
  * every write here is Main-Admin-only server-side and a mentor cannot reach
@@ -57,9 +64,19 @@ import { PendingControlDirective } from '../../../shared/pending/pending.directi
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 /**
- * B9.1 (history + the 90-day handover read), B9.2 (required reason, audit,
- * notifications), B9.3 (bulk assign a batch) and B9.4 (filters + pagination)
- * all land on the Phase 4 mentoring branch — 06-phase-prompts.md, Phase 4d.
+ * WHAT PHASE 4d LANDED, AND WHAT IS STILL PENDING HERE.
+ *
+ * Landed on the server and wired on this screen: B9.2's REQUIRED REASON — the
+ * assignment endpoint answers 422 without one, so the input below is live and
+ * guards both the assign and the release buttons. Landed on the server and not
+ * yet drawn: B9.1's history (recorded on every move; the read endpoint is per
+ * STUDENT, and this board's card asks for it per faculty member), B9.3's batch
+ * validation and audit, and B9.4's `cohort_id` / `q` filters.
+ *
+ * B9.2's NOTIFICATIONS DID NOT LAND AND ARE NOT PROMISED. `app/mail_transport.py`
+ * falls back to a console outbox whenever `SES_FROM_ADDRESS` is unset, which is
+ * every deployment today (B3.7) — the help text under the reason input used to
+ * say "both people emailed, from Phase 4" and now says what is actually true.
  */
 const MENTORING_BACKEND_PHASE = 4;
 
@@ -184,6 +201,22 @@ export class AdminMentorsStudentsComponent {
   /** The grid's quick filter, as typed in the card head. */
   readonly poolSearch = signal('');
 
+  /**
+   * B9.2's reason, and it is REQUIRED — `POST /admin/students/{id}/mentor`
+   * answers 422 without one. This input and the server's `reason` field landed
+   * in the same change on purpose: the endpoint was breaking, the live client
+   * posted `{mentor_id}` and nothing else, and shipping either half alone is an
+   * assign button that fails on a working console.
+   *
+   * IT GUARDS THE RELEASE BUTTON AS WELL AS THE ASSIGN BUTTON. Releasing a
+   * student is the move nothing else on any screen reports — the student simply
+   * stops appearing in a group — so it is the one that most needs a sentence
+   * saying why.
+   */
+  readonly assignReason = signal('');
+
+  readonly hasReason = computed(() => this.assignReason().trim().length > 0);
+
   private grid: GridApi<Mentee> | null = null;
 
   readonly selectedMentor = computed(
@@ -196,7 +229,17 @@ export class AdminMentorsStudentsComponent {
   readonly canAssign = computed(() => {
     if (this.selectedMentor() === null) return false;
     if (this.selectedStudentCount() === 0) return false;
+    if (!this.hasReason()) return false;
     return !this.busy();
+  });
+
+  /** Why the primary action is disabled, on the control rather than in a notice
+   *  the reader has to hunt for. Empty when it is enabled. */
+  readonly assignBlockedBecause = computed(() => {
+    if (this.selectedMentor() === null) return 'Pick a faculty member first.';
+    if (this.selectedStudentCount() === 0) return 'Tick at least one student.';
+    if (!this.hasReason()) return 'Say why this student is being seated here.';
+    return '';
   });
 
   /** The primary action's words, which name both halves of the act. */
@@ -342,8 +385,14 @@ export class AdminMentorsStudentsComponent {
     await this.writeMentor(studentIds, mentor, `${seated} assigned to ${mentor.name}`);
   }
 
-  /** Release one student back to the pool. */
+  /** Release one student back to the pool. Needs the same reason an assignment
+   *  does — see `assignReason`. */
   async releaseStudent(student: Mentee): Promise<void> {
+    if (!this.hasReason()) {
+      this.flash.set(null);
+      this.error.set('Say why this student is being released, then press Release again.');
+      return;
+    }
     const mentor = this.selectedMentor();
     const from = mentor === null ? 'their mentor' : mentor.name;
     await this.writeMentor([student.student_id], null, `${student.name} released from ${from}`);
@@ -392,6 +441,9 @@ export class AdminMentorsStudentsComponent {
     await this.refresh();
     if (failure === null) {
       this.flash.set(message);
+      // Cleared only on success. After a failure the words stay in the box, or
+      // the retry costs the admin the sentence they just typed.
+      this.assignReason.set('');
     } else if (!this.loadFailed()) {
       // refresh() clears the error it does not raise; the write's reason is the
       // more specific one, unless the reload failed too and is already saying so.
@@ -401,9 +453,13 @@ export class AdminMentorsStudentsComponent {
   }
 
   private assignmentBody(target: MentorLoad | null): Record<string, string | null> {
-    if (target === null) return { mentor_id: null };
-    if (target.mentor_id !== null) return { mentor_id: target.mentor_id };
-    return { mentor_user_id: target.user_id };
+    // `reason` on every body, release included: the server requires it on all
+    // three shapes, which is the point — a release is the move that leaves no
+    // other trace.
+    const reason = this.assignReason().trim();
+    if (target === null) return { mentor_id: null, reason };
+    if (target.mentor_id !== null) return { mentor_id: target.mentor_id, reason };
+    return { mentor_user_id: target.user_id, reason };
   }
 
   private async refresh(): Promise<void> {

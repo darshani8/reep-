@@ -357,11 +357,21 @@ def test_capacity_comes_from_the_department_and_still_enforces_nothing(
         try:
             rows = client.get(f"{ADMIN_API}/mentor-load", headers=admin.headers).json()
             row = next(r for r in rows if r["user_id"] == faculty.user_id)
-            # 0 falls back, and that is a KNOWN EDGE rather than an accident:
-            # the fallback is `or`, so a department capacity of zero reads as
-            # "not set". It is recorded here because a zero that silently means
-            # the programme default is a lie the screen would print.
-            assert row["capacity"] == programme
+            # ZERO IS HONOURED. This assertion used to read
+            # `row["capacity"] == programme`, recorded as "a KNOWN EDGE rather
+            # than an accident: the fallback is `or`, so a department capacity
+            # of zero reads as 'not set'" — and the same comment went on to say
+            # it was "a lie the screen would print". It was. Sentry's reviewer
+            # found the same thing on the pull request, independently.
+            #
+            # The fallback is `is not None` now, and the SECOND line below is
+            # the one that matters: with `or`, a department that deliberately
+            # said 0 was reported as `programme` — this field exists precisely
+            # "so a programme default is not presented as a departmental
+            # decision", and it was doing the opposite for the one value an
+            # office uses to say "we are taking nobody new this year".
+            assert row["capacity"] == 0
+            assert row["capacity_source"] == "department"
 
             db_capacity = 25 if programme != 25 else 26
             with SessionLocal() as db:

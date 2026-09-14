@@ -94,6 +94,50 @@ h4.stacked .h-sub {
   color: var(--ink);
 }
 
+/* --- B7.5: one line, its author, its date and its acknowledgement ---
+   The lines used to be joined into one sentence per quadrant, which had nowhere
+   to put any of the three. A hairline between them is what keeps two
+   observations from reading as one paragraph now that each carries a footer. */
+.swoc-line + .swoc-line {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline-42);
+}
+.swoc-by {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+/* The name is the half a student reads first — "who said this about me" — so it
+   carries the weight and the rest of the footer stays quiet. */
+.swoc-who {
+  font-weight: 600;
+  color: var(--ink);
+}
+.swoc-read {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--good);
+}
+.swoc-read .icon {
+  font-size: 14px;
+}
+/* Small enough to sit inside a 13px tile without becoming the loudest thing in
+   it: the observation is the content, marking it read is an aside. */
+.swoc-ack {
+  padding: 2px 8px;
+  font-size: 11.5px;
+  min-height: 0;
+}
+.swoc-none {
+  color: var(--muted);
+}
+
 /* --- empty state: icon beside the words --- */
 .log-empty {
   display: flex;

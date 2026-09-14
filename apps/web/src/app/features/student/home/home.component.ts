@@ -114,9 +114,19 @@ interface ReadinessFactor {
   met: boolean;
   detail: string;
   weight: number;
+  /**
+   * FALSE means nothing has been imported or recorded for this check, so `met`
+   * is not an answer. Read this BEFORE `met`: until 2026-09-13 the API returned
+   * 0.0 for a student with no attendance rows and this card drew
+   * "Attendance 0.0% vs required 75.0%" with a red Not-met chip — a failing
+   * grade for an assessment that had not happened. See
+   * `routers/student.py::_attendance_pct`.
+   */
+  measured: boolean;
 }
 interface PlacementReadiness {
-  score: number;
+  /** NULL when not one check could be measured — never 0. */
+  score: number | null;
   band: string;
   summary: string;
   factors: ReadinessFactor[];
@@ -193,8 +203,16 @@ const SWOC_TILES: { key: keyof SwocBoard; label: string; tone: 'good' | 'risk' |
   { key: 'challenges', label: 'Challenge', tone: 'neutral' },
 ];
 
-/** Several lines arrive per quadrant; the tile shows them as one sentence,
- *  the same join the Mentor / TPO Log uses, so the two never disagree. */
+/** Several lines arrive per quadrant; the landing tile shows them as one
+ *  sentence.
+ *
+ *  THE MENTOR / TPO LOG NO LONGER JOINS — B7.5 gave every line its author, its
+ *  date and an acknowledgement, and a concatenated string has nowhere to put any
+ *  of the three, so that screen lists them. This tile stays a summary on
+ *  purpose: it is four boxes on a landing page beside everything else the
+ *  student has to do, and a name and a date per line there is a card that has
+ *  become the board. The two still read the same texts in the same order out of
+ *  the same payload; the Log is simply where the board is read in full. */
 function joinSwoc(items: SwocItem[]): string | null {
   return items.length ? items.map((i) => i.text).join(' · ') : null;
 }
@@ -449,7 +467,19 @@ export class StudentHomeComponent {
   bandChip(band: string): ChipTone {
     if (band === 'Ready' || band === 'On track') return 'good';
     if (band === 'Developing') return 'warn';
+    // "Not assessed yet" is NEUTRAL, not risk. A red chip over a score nobody
+    // could compute is the same false verdict in a colour — and the house rule
+    // is that status is text AND colour together, so the two must agree.
+    if (band.startsWith('Not assessed')) return 'neutral';
     return 'risk';
+  }
+
+  /** The chip beside one factor: met, not met, or not measured at all. */
+  factorChip(f: ReadinessFactor): { tone: ChipTone; icon: string; text: string } {
+    if (!f.measured) return { tone: 'neutral', icon: 'remove', text: 'Not measured' };
+    return f.met
+      ? { tone: 'good', icon: 'check', text: 'Met' }
+      : { tone: 'risk', icon: 'close', text: 'Not met' };
   }
 
   readonly recommendations = computed<Recommendation[] | null>(() => {

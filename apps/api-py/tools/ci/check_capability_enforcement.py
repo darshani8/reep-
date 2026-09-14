@@ -30,18 +30,22 @@ NAME at sixteen call sites. A grep for string literals finds none of them and
 demands they be enforced, which is exactly the false alarm that teaches people
 to switch a guard off.
 
-THE ONE EXEMPTION, AND WHY IT IS NOT A LOOPHOLE.
+THERE ARE NO EXEMPTIONS, AND KEEPING IT THAT WAY IS THE POINT.
 
-    ui.console_v2
+`EXEMPT` is empty. It held exactly one key for the length of the 2026-09
+redesign -- `ui.console_v2`, a switch that selected which admin console the
+CLIENT rendered, off `/auth/me`, with no server request to refuse -- and Phase 5
+deleted the key and the entry together.
 
-is unenforceable BY DESIGN and must stay in the catalogue until Phase 5 deletes
-it. It does not gate an endpoint: it selects which admin console a session
-renders, and it is read by `apps/web/src/app/app.routes.ts` and
-`app-shell.component.ts` off `/auth/me`'s capability list. There is no server
-request to refuse -- refusing one would break the old console, which is the
-thing it exists to keep reachable. Any OTHER key that wants to sit here is
-almost certainly a key that should be deleted instead, so the exemption is a
-dict with a written reason rather than a set of strings.
+An exemption is how this guard stops being a guard: with one on the list,
+"enforce every catalogue key or delete it" becomes "enforce it, delete it, or
+write your name on a list", and the third option is always the cheapest on the
+afternoon somebody needs it. The dict is kept (rather than a set, or nothing at
+all) so that adding a key REQUIRES writing the reason in the source next to it,
+where a reviewer meets it -- not in a commit message nobody reads again. A key
+that genuinely cannot be enforced server-side is strong evidence it should be a
+FeatureOverride or nothing at all, and `tests/test_codebase_guards.py` asserts
+this dict is EMPTY so that conversation happens in review.
 
 Run it:
 
@@ -66,16 +70,9 @@ KEY_POSITION = 2
 KEY_KEYWORD = "key"
 
 #: Keys that cannot be enforced server-side, each with the reason written here
-#: rather than in a commit message. Read the module docstring before adding one.
-EXEMPT: dict[str, str] = {
-    "ui.console_v2": (
-        "Selects a CLIENT RENDERING, not an endpoint: app.routes.ts and "
-        "app-shell.component.ts read it off /auth/me to decide which admin "
-        "console a session sees. There is no request to refuse, and refusing "
-        "one would break the old console this key exists to keep reachable. "
-        "Phase 5 deletes the key and this entry with it."
-    ),
-}
+#: rather than in a commit message. EMPTY since Phase 5, and a test asserts that.
+#: Read the module docstring before adding one -- adding one is the whole risk.
+EXEMPT: dict[str, str] = {}
 
 API = Path(__file__).resolve().parents[2]
 APP = API / "app"

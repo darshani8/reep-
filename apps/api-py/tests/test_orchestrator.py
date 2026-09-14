@@ -89,15 +89,27 @@ def test_readiness_is_deterministic_with_score_and_weakest_factor(monkeypatch):
         res = orchestrator.answer_question(db, sid, "STUDENT", "Am I placement-ready?")
         truth = orchestrator.tools.placement_readiness(db, sid)
 
-    assert f"{truth['score']}/100" in res["answer"]
+    # The score when there is one, the BAND when there is not. A student with no
+    # marks, attendance or certifications on record has `score: None` (07 §5 —
+    # absence is not a low score), and the deterministic summary opens with the
+    # band alone. Asserting "{score}/100" unconditionally would demand the
+    # string "None/100" of the one student the guardrail is about.
+    if truth["score"] is None:
+        assert truth["band"] in res["answer"]
+        assert "None" not in res["answer"]
+    else:
+        assert f"{truth['score']}/100" in res["answer"]
     assert res["sources"] == [
         {"label": "Placement readiness (your record)", "type": "student-record"}
     ]
     # Grounding signal: routed to READINESS and grounded in the student tool.
     assert res["intent"] == orchestrator.READINESS
     assert res["resolved"] is True
-    # An action pointing at the weakest (unmet, highest-weight) factor, when one exists.
-    unmet = [f for f in truth["factors"] if not f["met"]]
+    # An action pointing at the weakest (unmet, highest-weight) factor, when one
+    # exists. MEASURED as well as unmet: a factor with no rows behind it — no
+    # marks imported, no attendance recorded — is not a weakness the student can
+    # act on, and the orchestrator no longer offers one for it.
+    unmet = [f for f in truth["factors"] if f["measured"] and not f["met"]]
     if unmet:
         assert res["actions"], "expected an action toward the weakest factor"
         top = sorted(unmet, key=lambda f: f["weight"], reverse=True)[0]

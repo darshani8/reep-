@@ -390,28 +390,53 @@
                     <label for="course-months">Duration in months</label>
                     <input id="course-months" type="number" min="1" max="120" formControlName="duration_months" />
                   </div>
+                  <!-- B4.1 added `academic_courses.degree_level` and
+                       `.total_semesters` and PHASE 4 HAS LANDED — but it added
+                       READERS only (`app/semester_bounds.py`, Student 360, the
+                       catalogue's course list). `AcademicCourseIn` and
+                       `AcademicCoursePatchIn` are still code, name,
+                       duration_months and status, so there is no request this
+                       form could send; `tests/test_admin_promotion.py` writes
+                       the column through the ORM for exactly that reason.
+                       A phase number here would name a phase that has come and
+                       gone, so these carry the real reason instead. -->
                   <div class="field narrow">
                     <label for="course-degree">Degree level</label>
-                    <select id="course-degree" class="ctrl" [reepPending]="phaseForCourseSemesters">
+                    <select id="course-degree" class="ctrl" disabled [title]="courseShapeReason">
                       <option value="">Not recorded</option>
                     </select>
                   </div>
                   <div class="field narrow">
                     <label for="course-total-semesters">Total semesters</label>
-                    <input id="course-total-semesters" type="number" placeholder="—" [reepPending]="phaseForCourseSemesters" />
+                    <input
+                      id="course-total-semesters"
+                      type="number"
+                      placeholder="—"
+                      disabled
+                      [title]="courseShapeReason"
+                    />
                   </div>
                   <div class="field narrow">
                     <label for="course-semesters-per-year">Semesters per year</label>
-                    <input id="course-semesters-per-year" type="number" placeholder="—" [reepPending]="phaseForCourseSemesters" />
+                    <input
+                      id="course-semesters-per-year"
+                      type="number"
+                      placeholder="—"
+                      disabled
+                      [title]="semestersPerYearReason"
+                    />
                   </div>
                 </form>
 
                 <div class="notice accent">
                   <span class="icon" aria-hidden="true">info</span>
                   <div>
-                    Degree level, total semesters and semesters per year are a course field from
-                    Phase {{ phaseForCourseSemesters }} (B4.1); until then a batch carries its own
-                    degree level and no batch has a semester to inherit.
+                    A course records its degree level and its total semesters, and the semester
+                    ceiling on a student is read from them — but nothing sets them from a screen:
+                    <code>PATCH /api/admin/academic-courses/&#123;id&#125;</code> takes code, name,
+                    duration in months and status, and nothing else. Semesters per year is not
+                    recorded anywhere at all. Until the endpoint takes them, a batch carries its
+                    own degree level and a student's semester is bounded by the programme default.
                   </div>
                 </div>
               </div>
@@ -423,11 +448,17 @@
                 <div class="card-head">
                   <div>
                     <div class="card-title">Specializations · interview track</div>
-                    <div class="dt-sub">track = validated series colour on every chart</div>
+                    <div class="dt-sub">which mock interview a specialization's students sit</div>
                   </div>
                   <div class="dt-toolbar">
-                    <button type="button" class="btn ghost sm" [reepPending]="phaseForInterviewTracks">
-                      Map track
+                    <button
+                      type="button"
+                      class="btn ghost sm"
+                      (click)="toggleTrackPanel()"
+                      [disabled]="!canMapTracks()"
+                      [title]="mapTrackTitle()"
+                    >
+                      <span class="icon" aria-hidden="true">link</span>Map track
                     </button>
                     <button
                       type="button"
@@ -460,7 +491,21 @@
                           <tr>
                             <td class="b-code">{{ s.code }}</td>
                             <td>{{ s.name }}</td>
-                            <td><span class="chip dot neutral">Not mapped</span></td>
+                            <td>
+                              @if (tracks() === null) {
+                                <span class="chip dot neutral" [title]="trackReadNote()"
+                                  >Not read</span
+                                >
+                              } @else if (tracksFor(s.id).length) {
+                                @for (t of tracksFor(s.id); track t.code) {
+                                  <span class="chip accent" [title]="t.code"
+                                    >{{ t.label }}{{ t.enabled ? '' : ' · off' }}</span
+                                  >
+                                }
+                              } @else {
+                                <span class="chip dot neutral">Not mapped</span>
+                              }
+                            </td>
                             <td class="tabular">{{ s.cohort_count }}</td>
                           </tr>
                         }
@@ -469,13 +514,78 @@
                   </div>
                 }
 
-                <div class="notice accent">
-                  <span class="icon" aria-hidden="true">info</span>
-                  <div>
-                    The interview track a specialization maps to, and the chart colour that
-                    follows it, arrive with Phase {{ phaseForInterviewTracks }} (B5.1).
+                @if (trackPanelOpen()) {
+                  <div class="add-form">
+                    <div role="alert">
+                      @if (trackError()) {
+                        <div class="notice">
+                          <span class="icon" aria-hidden="true">error</span>
+                          <div>{{ trackError() }}</div>
+                        </div>
+                      }
+                    </div>
+                    <div class="field">
+                      <label for="track-pick">Interview track</label>
+                      <select
+                        id="track-pick"
+                        class="ctrl"
+                        [value]="trackChoice()"
+                        (change)="pickTrack($any($event.target).value)"
+                      >
+                        <option value="">Choose a track…</option>
+                        @for (t of mappableTracks(); track t.id) {
+                          <option [value]="t.id" [selected]="t.id === trackChoice()">
+                            {{ t.label }} ({{ t.code }})
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="track-target">Maps to</label>
+                      <select
+                        id="track-target"
+                        class="ctrl"
+                        [value]="trackTarget()"
+                        (change)="trackTarget.set($any($event.target).value)"
+                        [disabled]="!trackChoice()"
+                      >
+                        <option value="">Not mapped · every specialization</option>
+                        @for (s of specializations(); track s.id) {
+                          <option [value]="s.id" [selected]="s.id === trackTarget()">
+                            {{ s.code }} · {{ s.name }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="footbar">
+                      <button type="button" class="btn ghost" (click)="toggleTrackPanel()">
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        class="btn secondary"
+                        (click)="saveTrackMapping()"
+                        [disabled]="trackBusy() || !trackChoice()"
+                      >
+                        <span class="icon" aria-hidden="true">save</span>
+                        {{ trackBusy() ? 'Saving…' : 'Save mapping' }}
+                      </button>
+                    </div>
+                    <p class="help">
+                      A track's mapping is the track's own field, so this writes
+                      <code>PATCH /api/admin/interview-questions/tracks/&#123;id&#125;</code>. A
+                      track left unmapped is offered to every student; a track mapped here belongs
+                      to this specialization and to the course and college above it.
+                    </p>
                   </div>
-                </div>
+                }
+
+                @if (tracksChecked() && tracks() === null) {
+                  <div class="notice accent">
+                    <span class="icon" aria-hidden="true">info</span>
+                    <div>{{ trackReadNote() }}</div>
+                  </div>
+                }
 
                 @if (openAdd() === 'specialization') {
                   <div class="add-form">
@@ -579,8 +689,11 @@
                 <div class="notice accent">
                   <span class="icon" aria-hidden="true">info</span>
                   <div>
-                    "Semester x of N" arrives with Phase {{ phaseForCourseSemesters }} (B4.1), which
-                    gives a course its total semesters and a batch the semester it is in.
+                    There is no "semester x of N" column because a batch has no semester: the
+                    semester is a field on the STUDENT, edited on
+                    <a routerLink="/admin/students">Students &amp; batches</a> and moved for a whole
+                    batch by promotion. The N half is the course's total semesters, which nothing
+                    on this screen can set yet.
                   </div>
                 </div>
 

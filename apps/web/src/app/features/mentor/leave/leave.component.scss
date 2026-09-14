@@ -148,3 +148,124 @@
   margin-left: auto;
   text-decoration: none;
 }
+
+/* --- Phase 4: the three things that sit AROUND the form ------------------ */
+/* Nothing here touches `.sheet` or any of its rules. The document is what it
+   was; these are the covering note, the filing clerk and the colleague's
+   answer, drawn beside it. */
+
+.cover-head {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 22px 0 8px;
+}
+
+.cover-card {
+  cursor: default;
+}
+
+.cover-what {
+  color: var(--muted);
+}
+
+.attach-block {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attach-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.attach-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.attach-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.attach-meta {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+/* INVISIBLE BUT FOCUSABLE — signature.component.scss's rule, for the same
+   reason. `hidden` is `display: none`, which takes the input out of the focus
+   order, and a <label> is not tabbable either: the picker would be mouse-only,
+   which is the bug the 2026-09-10 audit found on /mentor/signature and on the
+   public /register. Geometry, never display. */
+.lv-file__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* The ring has to be visible on the label, or the focusable invisible input
+   is a keyboard trap: focus lands somewhere with nothing drawn. */
+.lv-file:focus-within {
+  outline: 2px solid var(--brand-purple);
+  outline-offset: 2px;
+}
+
+.btn.danger {
+  background: var(--risk-bg);
+  color: var(--risk);
+  border-color: transparent;
+}
+
+/* The allowance card (B10.2). A READ beside the list, never a cell on the
+   sheet — see the component docstring. */
+
+.lv-balance {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lv-balance-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.lv-balance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.lv-balance-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.lv-balance-kind {
+  font-weight: 600;
+  min-width: 96px;
+}

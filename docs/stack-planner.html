@@ -122,6 +122,17 @@
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 
+<div style="max-width:1100px;margin:16px auto;padding:14px 18px;border:2px solid #b4341f;border-radius:8px;background:#fdeeea;color:#5a1a0e;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.55">
+  <strong style="display:block;font-size:15px;margin-bottom:6px">PARTLY STALE &mdash; drawn 2026-08. <code>AGENTS.md</code> is the current truth.</strong>
+  The diagram below still shows the <strong>LiveKit voice worker</strong> (<code>Dockerfile.voice</code>,
+  <code>voice_agent.py</code>, <code>.venv-voice</code>, <code>/api/voice/*</code>) and the
+  <strong>&ldquo;Voice worker (dependency completeness)&rdquo;</strong> CI job. Both were removed in 2026-09.
+  There is no fourth process and no second venv: the one voice experience is <code>/student/assistant</code>,
+  a WebSocket <em>inside</em> the API process speaking to Amazon Nova 2 Sonic on Bedrock, with no API key.
+  CI has five jobs &mdash; <code>api</code>, <code>pii-gate</code>, <code>api-imports</code>, <code>web</code>, <code>cdk</code>.
+  The <strong>DIRECTOR role</strong> was removed on 2026-09-10; there is one office account, role ADMIN.
+</div>
+
 <div class="page">
 
   <header class="top">

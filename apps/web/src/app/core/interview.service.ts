@@ -564,23 +564,43 @@ const CLOSE_MESSAGES: ReadonlyMap<number, CloseMessage> = new Map<number, CloseM
       text: 'Please accept the interview terms before starting.',
     },
   ],
+  // 4014 SAID "You withdrew consent" UNTIL B6.1, AND THAT SENTENCE IS NOW FALSE.
+  // A student cannot withdraw: `DELETE /api/interview/consent` is gone and the
+  // two storage scopes are the college's. What reaches this code today is the
+  // other half of the same gate — the acknowledgement the interview was pinned
+  // to was replaced by one covering LESS, which is the college changing its
+  // policy mid-call. Telling a student they did that themselves would send them
+  // looking for a control that does not exist.
   [
     4014,
     {
       tone: 'info',
-      text: 'You withdrew consent, so the interview ended.',
+      text: "Your college's interview settings changed, so this interview ended. You can start a new one.",
     },
   ],
-  // 4015: the daily volume cap — the server counted this student's interviews
-  // over the last 24 h and refused BEFORE anything was billed or written. The
-  // sibling of 4012 (concurrency), with a different sentence: "your other tab
-  // is open" is fixable now, "you have done today's quota" is fixable tomorrow.
+  // 4015: the volume cap — the server counted this student's interviews over the
+  // last 24 h and refused BEFORE anything was billed or written. The sibling of
+  // 4012 (concurrency), with a different sentence: "your other tab is open" is
+  // fixable now, "you have done today's quota" is fixable tomorrow.
   // `warn`, not `error`: nothing is broken, and support cannot raise it.
+  //
+  // B6.4 MADE IT TWO CEILINGS and the server now sends the sentence itself —
+  // the practice allowance and the spend ceiling are different things to be told
+  // and only one of them is the student's own doing. This entry is the fallback
+  // for a close frame that arrives without a reason.
   [
     4015,
     {
       tone: 'warn',
-      text: "You've reached today's mock interview limit. Try again tomorrow.",
+      // `detail: true` for the same reason the session-length codes carry it:
+      // the figure and now the CEILING are both server-side. B6.4 made this two
+      // walls — the practice allowance (completed interviews, the one a college
+      // sets for its students) and the spend ceiling (every attempt, the one
+      // that stops a reconnect loop) — and the server sends the sentence that
+      // names which was hit. The lead below is true of both and stands alone
+      // when a close frame arrives with no reason at all.
+      text: "Your college limits how many mock interviews you can run in a day.",
+      detail: true,
     },
   ],
 ]);

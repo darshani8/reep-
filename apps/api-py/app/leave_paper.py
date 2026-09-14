@@ -20,6 +20,32 @@ is drawn ABOVE the printed label, and the name and time are printed in small
 type beneath it, so an image never stands without the record of who and when.
 No image on file prints the name and time alone; nothing signed prints
 "Not signed" / "Awaiting", as the screen does.
+
+B10.8 ADDS THE FUNCTION TO THAT LINE AND NOTHING ELSE TO THIS FILE. The
+attestation is a name, then the function the signer was acting in, then the
+time - "Asha Rao . Mentor . 10 Sep 2026, 09:00" - and it is drawn where it was
+already drawn, in blank margin, in 8pt muted type. It is NOT part of the form.
+
+TWO THINGS B10.8 IS WRITTEN AS ASKING FOR AND MUST NOT DO:
+
+  * "print the function INSTEAD OF a fixed PROGRAM DIRECTOR label". Those two
+    words are PRINTED ON THE COLLEGE'S OWN PDF. Replacing them means whiting the
+    block out and reprinting over it - defacing the office's form - and
+    `tests/test_leave_paper.py` asserts "PROGRAM" survives in the extracted
+    text. The label stays; the attestation beneath it says who actually signed.
+  * "refuse to render a decided request whose signer has no signature image
+    (422)". That contradicts the paragraph above, contradicts
+    `tests/test_leave_paper.py`'s explicit assertion that deleting a signature
+    still returns 200, and would refuse an APPLICANT their own sanctioned leave
+    because a DIFFERENT person never uploaded a PNG. An image is decoration on
+    top of a record that already exists. If the office wants pressure on
+    signers, that belongs in the console, not in a download.
+
+A function is printed ONLY where one was recorded. Every row decided before
+`leave_requests.first_signed_as` existed has NULL there, and NULL prints the
+line exactly as it printed before - never a function guessed from who the
+signer is today, which would put a job title on a signed form on the strength
+of a mentor group that may have changed since.
 """
 
 from __future__ import annotations
@@ -36,6 +62,8 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph
+
+from .models.leave import SIGNED_AS_DELEGATE, SIGNED_AS_MAIN_ADMIN, SIGNED_AS_MENTOR
 
 TEMPLATE = Path(__file__).resolve().parent / "assets" / "leave_form_template.pdf"
 TEMPLATE_BYTES = 84718  # pinned in tests: the layout below is measured from this exact file
@@ -92,6 +120,23 @@ SANCTIONED_WORDS: dict[str, str] = {
     "CANCELLED": "Cancelled",
 }
 
+#: How each stored function reads on the paper (B10.8). The keys are
+#: `app/models/leave.py`'s SIGNED_AS tuple and `tests/test_leave_chain.py`
+#: compares the two sets, so a fourth function cannot be stamped on a row
+#: without a word for it here - the alternative is a form that prints a raw
+#: database token at somebody's signature.
+#:
+#: "Delegated approver" and not "HOD": there is no HOD account in this product
+#: (`departments.head` is free text) and no principal. What DELEGATE records is
+#: a `mentor.leave_approve` grant the office made in Governance, scoped to a
+#: department or a college - which is a real, revocable, audited decision, and
+#: the nearest true thing to what 04-backend-changes.md asked for.
+SIGNED_AS_LABELS: dict[str, str] = {
+    SIGNED_AS_MENTOR: "Mentor",
+    SIGNED_AS_DELEGATE: "Delegated approver",
+    SIGNED_AS_MAIN_ADMIN: "Main Admin",
+}
+
 
 # ------------------------------------------------------------ helpers --
 
@@ -145,6 +190,53 @@ def _text(c: canvas.Canvas, x: float, baseline: float, text: str, *, size: float
         c.drawRightString(x, _y(baseline), text)
     else:
         c.drawString(x, _y(baseline), text)
+
+
+def _function_label(value: Any) -> str | None:
+    """The printed word for a recorded signing function, or None for none.
+
+    None is the state of every request decided before `first_signed_as` existed
+    and of every step nobody has signed, and it must print as nothing at all -
+    see the module docstring. An unrecognised value prints itself rather than
+    disappearing: a token nobody has a word for is a bug to be seen, not a fact
+    to be dropped off a signed form.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return None
+    return SIGNED_AS_LABELS.get(text, text.replace("_", " ").title())
+
+
+def _attest(c: canvas.Canvas, x: float, baseline: float, name: Any, function: Any, when: str,
+            *, size: float, right_edge: float = 585.0) -> None:
+    """The muted attestation under a signature block: who, in what function, when.
+
+    NO FUNCTION RECORDED PRINTS TODAY'S LINE, BYTE FOR BYTE - the same string at
+    the same size at the same baseline, with no fitting applied. That is the
+    fallback every historical row takes and it must not be re-laid-out by this
+    change.
+
+    The three-part line is shrunk, and only downwards, to keep it inside the
+    page margin: the PROGRAM DIRECTOR block starts at x=444.5 and a name plus a
+    function plus a timestamp is wider than that column in 8pt Times. It is
+    overlay text in blank margin - no coordinate constant and no cell of the
+    form is involved.
+    """
+    label = _function_label(function)
+    if label is None:
+        _text(c, x, baseline, f"{_esc_free(name)} · {when}", size=size, color=MUTED)
+        return
+    text = f"{_esc_free(name)} · {label} · {when}"
+    fitted = size
+    while fitted > 6.0 and c.stringWidth(text, BODY_FONT, fitted) > (right_edge - x):
+        fitted -= 0.25
+    _text(c, x, baseline, text, size=fitted, color=MUTED)
+
+
+def _esc_free(value: Any) -> str:
+    """`_text` draws raw strings (no Paragraph markup), so nothing is escaped
+    here; this only turns None into an empty string."""
+    return "" if value is None else str(value)
 
 
 def _image(c: canvas.Canvas, sig: tuple[bytes, str] | None, x: float, bottom: float,
@@ -244,17 +336,29 @@ def _overlay(leave: Any, staff_signature, director_signature) -> bytes:
     # -- SIGNATURE OF STAFF: image above the label, name and time beneath ------
     if leave.signed_at is not None:
         _image(c, staff_signature, STAFF_X0, STAFF_LABEL_TOP - 3, max_h=40, max_w=150)
-        _text(c, STAFF_X0, STAFF_LABEL_TOP + 27, f"{leave.requester_name} · {_when(leave.signed_at)}",
-              size=8.5, color=MUTED)
+        # NO FUNCTION on the applicant's own blocks, and never their designation:
+        # the applicant signs as themselves, their designation is already in the
+        # table two inches above, and a second copy of it here would read as a
+        # claim about the authority they signed with.
+        _attest(c, STAFF_X0, STAFF_LABEL_TOP + 27, leave.requester_name, None,
+                _when(leave.signed_at), size=8.5)
     else:
         _text(c, STAFF_X0, STAFF_LABEL_TOP + 27, "Not signed", size=8.5, color=MUTED)
 
     # -- PROGRAM DIRECTOR: image above, attestation beneath ---------------------
+    # The LABEL is printed on the college's own form and is not ours to rename
+    # (module docstring). The attestation beneath it names the function.
     if leave.director_name and leave.director_decided_at is not None:
         _image(c, director_signature, DIRECTOR_X0, DIRECTOR_LABEL_TOP - 3,
                max_h=DIRECTOR_LABEL_TOP - 3 - (sbottom + 2), max_w=DIRECTOR_X1 - DIRECTOR_X0)
-        _text(c, DIRECTOR_X0, DIRECTOR_LABEL_BOTTOM + 10.5,
-              f"{leave.director_name} · {_when(leave.director_decided_at)}", size=8, color=MUTED)
+        # Second-then-first, exactly as `_leave_out` chooses `director_name` and
+        # `director_decided_at`: whichever signature decided this request is the
+        # one whose name, time AND function are printed against it. `getattr`
+        # because this renderer's contract is "anything with LeaveOut's fields",
+        # and a caller built before B10.1 has neither column.
+        _attest(c, DIRECTOR_X0, DIRECTOR_LABEL_BOTTOM + 10.5, leave.director_name,
+                getattr(leave, "second_signed_as", None) or getattr(leave, "first_signed_as", None),
+                _when(leave.director_decided_at), size=8)
     else:
         _text(c, DIRECTOR_X0, DIRECTOR_LABEL_BOTTOM + 10.5, "Awaiting", size=8, color=MUTED)
 
@@ -291,8 +395,8 @@ def _overlay(leave: Any, staff_signature, director_signature) -> bytes:
     if leave.signed_at is not None:
         _image(c, staff_signature, FOOT_X0, FOOT_LABEL_TOP - 3,
                max_h=min(34.0, FOOT_LABEL_TOP - 3 - table_bottom - 3), max_w=FOOT_X1 - FOOT_X0)
-        _text(c, FOOT_X0, FOOT_LABEL_BOTTOM + 10.5, f"{leave.requester_name} · {_when(leave.signed_at)}",
-              size=8, color=MUTED)
+        _attest(c, FOOT_X0, FOOT_LABEL_BOTTOM + 10.5, leave.requester_name, None,
+                _when(leave.signed_at), size=8)
     else:
         _text(c, FOOT_X0, FOOT_LABEL_BOTTOM + 10.5, "Not signed", size=8, color=MUTED)
 

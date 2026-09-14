@@ -39,9 +39,11 @@
  *     domains falls back to the deployment's own list
  *     (`app/institution_domains.py`), which this screen cannot see. The server
  *     is the only fence; this one only saves a round trip.
- *   - **Employee ID** and **functions at creation** are still disabled, and
- *     their phase numbers changed rather than their state. See
- *     `EMPLOYEE_ID_PHASE` and `FUNCTIONS_AT_CREATION_PHASE`.
+ *   - **Employee ID** and **functions at creation** are disabled and carry no
+ *     phase number: Phase 4 has landed and reached neither, and neither is
+ *     coming — there is no employee id anywhere in the API, and a function is
+ *     granted with a reason, a scope and an expiry that this wizard does not
+ *     ask for. See `EMPLOYEE_ID_REASON` and `FUNCTIONS_AT_CREATION_REASON`.
  *   - **Mail.** `GET /api/admin/platform/status` (`B3.7`) still does not exist
  *     — nothing under `/api/admin` answers it — so this screen never predicts
  *     whether the invitation can be emailed. The create response's own
@@ -70,7 +72,6 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
 
 // ---- the exact snake_case shapes of the routers' Out models ---------------
@@ -155,26 +156,40 @@ type LoadState = 'loading' | 'ready' | 'error';
 /** Employee ID is drawn on the board (`design/admin/AddFaculty.html`) and
  *  exists nowhere else. There is no `employee_id` column on `users`, no field
  *  for it on `AdminFacultyIn`, and `04-backend-changes.md` never adds one —
- *  B3.5's identity PATCH is name, email, designation and department. So this is
- *  NOT a control waiting on Phase 3: Phase 3 has landed, B3.1–B3.6 with it, and
- *  the box still has nothing behind it. The number moves to the one this
- *  console uses for "not in this release" rather than the control being
- *  deleted, because the board draws it and a reviewer cannot tell a control
- *  that is missing from one that was missed. */
-const EMPLOYEE_ID_PHASE = 4;
+ *  B3.5's identity PATCH is name, email, designation and department. Phase 3
+ *  landed B3.1–B3.6 and Phase 4 has now landed too; `grep employee_id` over
+ *  `apps/api-py/app` still finds nothing.
+ *
+ *  SO IT CARRIES NO PHASE NUMBER. It sat at `[reepPending]="4"` while 4 was
+ *  the answer, and it is not — a control promising a phase that has arrived is
+ *  the stale label commit 45b91a9 fixed. Plain `disabled` with the real reason
+ *  in a `title`, the treatment the Leave approvals "Requester" filter carries.
+ *  The control is kept rather than deleted because the board draws it and a
+ *  reviewer cannot tell a control that is missing from one that was missed. */
+const EMPLOYEE_ID_REASON =
+  'REEP stores no employee id: there is no column for one on a faculty ' +
+  'account and no field for one on the endpoint that creates it, so a number ' +
+  'typed here would be dropped.';
 
 /** B2.3 LANDED, and the functions on step 3 are real — `ensure_mentor_group`
  *  grants the four mentor capabilities on the first student assignment, and
- *  every other function is a scoped grant made in Roles & functions. What did
- *  not land is a way to ask for one HERE. `AdminFacultyIn` is name, email,
- *  designation, department, department_id, allow_external, external_reason;
- *  there is no functions field, and §8 of `02-admin-console-spec.md` never
- *  asked for one — its "Needs" list is B3.1, B3.2, B3.4, B3.7. Wiring these
- *  boxes would also mean writing a grant with no reason and no scope target,
- *  which is exactly the audit row B1.2 and B2.4 exist to require. Disabled, at
- *  the "not in this release" number, with the notice above pointing at the one
- *  screen that records why a function was given. */
-const FUNCTIONS_AT_CREATION_PHASE = 4;
+ *  every other function is a scoped grant made in Roles & functions. What has
+ *  never landed, in Phase 3 or Phase 4, is a way to ask for one HERE.
+ *  `AdminFacultyIn` is name, email, designation, department, department_id,
+ *  allow_external, external_reason; there is no functions field, and §8 of
+ *  `02-admin-console-spec.md` never asked for one — its "Needs" list is B3.1,
+ *  B3.2, B3.4, B3.7.
+ *
+ *  AND IT SHOULD NOT GET ONE HERE. Ticking a box would write a grant with no
+ *  reason, no scope target and no expiry, which is exactly the audit row B1.2
+ *  and B2.4 exist to require; `POST /api/admin/governance/grants` refuses a
+ *  grant without a reason for that reason. So this is a settled NO rather than
+ *  a later phase: plain `disabled` with the reason on it, and the notice above
+ *  pointing at the one screen that records why a function was given. */
+const FUNCTIONS_AT_CREATION_REASON =
+  'A function is granted in Roles & functions, never at account creation: the ' +
+  'grant carries a reason, a scope target and an expiry that this wizard does ' +
+  'not ask for, and those three are the record of who gave it and why.';
 
 /** `AdminFacultyIn._department_id`'s own refusal, copied verbatim. The
  *  consequence is the half that matters and the half a paraphrase drops. */
@@ -240,15 +255,15 @@ const FUNCTION_CHOICES: FunctionChoice[] = [
 @Component({
   selector: 'app-admin-add-faculty',
   standalone: true,
-  imports: [RouterLink, PendingControlDirective, PluralPipe],
+  imports: [RouterLink, PluralPipe],
   templateUrl: './faculty-new.component.html',
   styleUrl: './faculty-new.component.scss',
 })
 export class AdminAddFacultyComponent implements OnInit {
   readonly steps = WIZARD_STEPS;
   readonly functionChoices = FUNCTION_CHOICES;
-  readonly employeeIdPhase = EMPLOYEE_ID_PHASE;
-  readonly functionsAtCreationPhase = FUNCTIONS_AT_CREATION_PHASE;
+  readonly employeeIdReason = EMPLOYEE_ID_REASON;
+  readonly functionsAtCreationReason = FUNCTIONS_AT_CREATION_REASON;
   readonly departmentRequiredMessage = DEPARTMENT_REQUIRED_MESSAGE;
   readonly externalReasonRequiredMessage = EXTERNAL_REASON_REQUIRED_MESSAGE;
   readonly lastStep = LAST_STEP;

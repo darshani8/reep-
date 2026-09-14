@@ -68,6 +68,33 @@ def provisionable_domains_for(db: Session, college_id: str | None) -> frozenset[
     return settings.provisionable_email_domains
 
 
+def college_ids_for_cohorts(db: Session, cohort_ids) -> dict[str, str | None]:
+    """The college each of these batches belongs to — ONE query for a whole page.
+
+    THE JOIN IS WRITTEN ONCE. `college_id_for_cohort` below is the single-row
+    caller, not a second copy: a list endpoint that restated this walk to avoid
+    an N+1 would be a second reading of the spine, and the two disagree the first
+    time a rung moves. The registration queue calls this directly with the
+    distinct cohort ids of the page it is about to answer.
+
+    A cohort that was never filed under a department, or one that has been
+    deleted, is simply absent from the result — the caller's `.get()` answers
+    None, which is the same thing the single-row version says.
+    """
+    ids = [c for c in dict.fromkeys(cohort_ids) if c]
+    if not ids:
+        return {}
+    return {
+        cohort_id: college_id
+        for cohort_id, college_id in db.execute(
+            select(Cohort.id, Department.college_id)
+            .select_from(Cohort)
+            .join(Department, Cohort.department_id == Department.id)
+            .where(Cohort.id.in_(ids))
+        ).all()
+    }
+
+
 def college_id_for_cohort(db: Session, cohort_id: str | None) -> str | None:
     """The college a batch belongs to, through its department.
 
@@ -78,9 +105,4 @@ def college_id_for_cohort(db: Session, cohort_id: str | None) -> str | None:
     """
     if not cohort_id:
         return None
-    return db.scalar(
-        select(Department.college_id)
-        .select_from(Cohort)
-        .join(Department, Cohort.department_id == Department.id)
-        .where(Cohort.id == cohort_id)
-    )
+    return college_ids_for_cohorts(db, [cohort_id]).get(cohort_id)

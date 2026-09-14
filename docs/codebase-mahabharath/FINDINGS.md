@@ -1,3 +1,11 @@
+> **STALE — raised against the tree as it stood in 2026-08, and several of the
+> things they are findings ABOUT no longer exist.** Every `voice_agent.py`,
+> `app/routers/voice.py` and LiveKit reference below points at code removed in
+> 2026-09; DIRECTOR was removed as a role on 2026-09-10. A finding whose
+> subject is deleted is not a finding — do not re-open one from this list
+> without checking the path still exists. Companion to the book in this
+> directory, which carries its own banner for the same reason.
+
 # Open findings raised while writing the Bible
 
 The council's readers flag anything they cannot verify rather than inventing a detail.

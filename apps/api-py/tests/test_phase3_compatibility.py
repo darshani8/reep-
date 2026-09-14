@@ -28,13 +28,29 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
-from conftest import requires_db
+from conftest import TEST_PASSWORD, requires_db
+
+# Fixtures by name, the way test_admin_promotion and test_admin_students already
+# borrow them: the College -> Department -> Batch chain is built THROUGH THE
+# API, so a guardrail about batch operations runs against a batch the console
+# could actually have produced.
+from test_admin_institution import (  # noqa: F401 - fixtures by name
+    _code,
+    chain,
+    director,
+    tracker,
+)
+from test_admin_promotion import (  # noqa: F401 - fixtures and helpers by name
+    _seeded_student,
+    swept,
+)
 
 from app.db import SessionLocal
 from app.governance import ROLE_BASELINE, capabilities_for, granted_reaches
 from app.mentor_functions import MENTOR_FUNCTIONS, mentee_count, mentor_functions_for
+from app.models.academics import SemesterResult
 from app.models.governance import CapabilityGrant, ScopeLevel, SubjectKind
 from app.models.institution import Department
 from app.models.user import Mentor, Role, Student, User
@@ -485,29 +501,360 @@ def test_placement_criteria_defaults_still_answer(client, login):
         ), "the criteria endpoint served a row of zeros, which reads as 'everyone qualifies'"
 
 
+
+# ------------------------------------------------ Phase 4's own guardrails --
+#
+# Everything below this line was listed at the foot of this module as "cannot be
+# pinned yet — its subject is Phase 4". Phase 4 landed (4a semesters and
+# graduation, 4b imports and analytics, 4c interview policy and tracks, 4d
+# mentor history and SWOC, 4e leave, 4f registrations), so the notes became
+# tests. The two that are still notes are still at the foot, with their reasons.
+
+
+@requires_db
+def test_promotion_and_graduation_keep_the_record_they_move(
+    client, login, make_user, chain, tracker, swept
+):
+    """GUARDRAIL: "Records after promotion keep their semester numbers;
+    graduation keeps login and USN."
+
+    Two halves of one worry — that a batch operation which walks a student
+    FORWARD also rewrites what is already behind them.
+
+    The first half has a deeper test next door
+    (`test_admin_promotion.py::test_promote_moves_the_semester_and_rewrites_nothing`
+    snapshots all four semester-bearing tables); what is here is the same claim
+    at compatibility altitude, on a result row that existed before the
+    promotion, because that is the row a student looks at.
+
+    The SECOND half is not held anywhere else and is the reason this test is
+    written rather than cross-referenced. Graduation flips `users.role` and
+    `students.status` and bumps `token_version`, and it would be entirely
+    natural for it to also clear the USN — the student is no longer on the
+    roster. It must not: the USN is how every mark, every attendance record and
+    every uploaded marksheet in this database is identified with the person, and
+    an alumnus asking for a transcript in 2031 is asking about that string. The
+    account must also still be able to SIGN IN afterwards, through the ordinary
+    front door, or "graduation" is indistinguishable from deletion.
+    """
+    h = chain["headers"]
+    cid = chain["cohort"]["id"]
+    account, sid = _seeded_student(client, make_user, swept, chain, "compat", semester=2)
+    swept["emails"].append(account.email)
+
+    usn = f"1MP25COMPAT{uuid.uuid4().hex[:4].upper()}"
+    with SessionLocal() as db:
+        student = db.get(Student, sid)
+        student.usn = usn
+        db.add(SemesterResult(student_id=sid, semester=2, sgpa=8.1, cgpa=7.9))
+        db.commit()
+
+    promoted = client.post(
+        f"/api/admin/cohorts/{cid}/promote", headers=h, json={"effective_on": "2026-08-01"}
+    )
+    assert promoted.status_code == 200, promoted.text
+
+    with SessionLocal() as db:
+        assert db.get(Student, sid).current_semester == 3
+        result = db.scalar(select(SemesterResult).where(SemesterResult.student_id == sid))
+        assert result.semester == 2, (
+            "the promotion walked the RESULT forward too, which turns "
+            "'scored 8.1 in semester 2' into a claim about semester 3"
+        )
+        assert result.sgpa == pytest.approx(8.1)
+
+    graduated = client.post(
+        f"/api/admin/cohorts/{cid}/graduate",
+        headers=h,
+        json={"effective_on": "2026-07-31", "reason": "Course complete."},
+    )
+    assert graduated.status_code == 200, graduated.text
+
+    with SessionLocal() as db:
+        student = db.get(Student, sid)
+        assert student.usn == usn, "graduation cleared the USN the whole record hangs on"
+        assert db.scalar(
+            select(SemesterResult).where(SemesterResult.student_id == sid)
+        ).semester == 2, "graduation rewrote a semester number"
+
+    # And the account still opens. `token_version` was bumped, so the cookie
+    # they were holding is dead — that is the single-device rule doing its job,
+    # not a lockout — and a fresh sign-in is what proves the difference.
+    client.cookies.clear()
+    fresh = login(account.email, TEST_PASSWORD)
+    me = client.get("/api/auth/me", headers=fresh)
+    assert me.status_code == 200, me.text
+    assert me.json()["role"] == "ALUMNI"
+
+
+@requires_db
+def test_the_four_original_track_codes_still_open_an_interview():
+    """GUARDRAIL: "Old interview track codes still open sessions."
+
+    B5.1 moved the Specialization Matrix into `interview_tracks`, a table an
+    admin edits. The four codes a student's bookmarked URL and every deployed
+    Angular bundle already carry — `hr`, `dm`, `ba`, `fa` — must keep resolving
+    on a deployment where nobody has opened the new screen and the table is
+    therefore EMPTY. That is what `SPECIALIZATIONS` is still doing in
+    `interview_matrix.py`: it is the fallback when there is no row, not a
+    leftover.
+
+    A voice is asserted alongside, because an unknown one is not a degraded
+    interview — it is a Bedrock `ValidationException` at the handshake, i.e. an
+    interview that never starts, reported by the student as "it just closed".
+    """
+    from app.interview_matrix import KNOWN_NOVA_VOICES
+    from app.interview_tracks import resolve_specialization
+
+    for code in ("hr", "dm", "ba", "fa"):
+        spec = resolve_specialization(code)
+        assert spec is not None, f"the bookmarked code {code!r} no longer opens an interview"
+        assert spec.persona and not spec.persona.endswith("."), (
+            "persona is a NOUN PHRASE — build_instructions embeds it as "
+            "'you are {persona}' and a sentence there is broken grammar nothing catches"
+        )
+        assert spec.nova_voice in KNOWN_NOVA_VOICES, spec.nova_voice
+        # Case and whitespace are what a hand-typed URL actually carries.
+        assert resolve_specialization(f"  {code.upper()} ") is not None
+
+    # The two NOTs, which are the same as they were before the table existed.
+    assert resolve_specialization(None) is None, "no code is still the generic interview"
+    assert resolve_specialization("not-a-track") is None, "an unknown key is still 4010"
+
+
+@requires_db
+def test_a_consent_row_stays_live_until_the_version_bumps(client, make_user, monkeypatch):
+    """GUARDRAIL: "Existing consent rows still valid until the version bumps."
+
+    B6.1 changed what a consent row MEANS — the two storage scopes are now
+    copied from the college's policy rather than ticked by the student — without
+    changing the version string. A grant written by the old three-tick panel is
+    therefore still this version's grant, and must still open an interview.
+
+    What must ALSO be true is the other direction: the moment
+    `INTERVIEW_CONSENT_VERSION` moves, that row stops being reported as consent
+    — and is NOT revoked. Both halves are here because they look like the same
+    fact and are opposite ones. Reporting a stale grant as live is consent to
+    copy the student never read; stamping `revoked_at` on it to express that
+    would rewrite the answer to "what was this student consented to when
+    interview X ran", which is the one question `interview_sessions.consent_id`
+    exists to keep answerable.
+    """
+    from app.config import settings
+    from app.models.interview import InterviewConsent
+
+    student = make_user("compat-consent")
+    version = settings.interview_consent_version
+
+    granted = client.post(
+        "/api/interview/consent", headers=student.headers, json={"version": version}
+    )
+    assert granted.status_code == 201, granted.text
+
+    live = client.get("/api/interview/consent", headers=student.headers).json()
+    assert live["version"] == version
+    assert live["consent"] is not None
+    # The three booleans survive B6.1 — they are what the policy is copied ONTO.
+    assert live["consent"]["scope_live_ai"] is True
+    for key in ("scope_store_transcript", "scope_store_audio"):
+        assert key in live["consent"], f"{key} disappeared from the grant"
+
+    with SessionLocal() as db:
+        row = db.scalar(
+            select(InterviewConsent).where(InterviewConsent.user_id == student.user_id)
+        )
+        assert row is not None and row.revoked_at is None
+        row_id = row.id
+
+    # The terms change under the row.
+    monkeypatch.setattr(settings, "interview_consent_version", f"{version}-next")
+    after = client.get("/api/interview/consent", headers=student.headers).json()
+    assert after["version"] == f"{version}-next"
+    assert after["consent"] is None, "a grant for last term's copy was reported as consent"
+
+    with SessionLocal() as db:
+        assert db.get(InterviewConsent, row_id).revoked_at is None, (
+            "bumping the version REVOKED the old grant, which rewrites what every "
+            "interview pinned to it was consented under"
+        )
+
+    with SessionLocal() as db:
+        db.execute(delete(InterviewConsent).where(InterviewConsent.user_id == student.user_id))
+        db.commit()
+
+
+@requires_db
+def test_the_daily_cap_is_still_eight_and_a_reset_only_moves_the_window_forward(make_user):
+    """GUARDRAIL: "Daily cap value 8; counted attempts never lost mid-day."
+
+    The number first: 8 is what students were told and what a deployment with no
+    `interview_policies` row still gets, because the ABSENCE of a policy row is
+    the default and no row is seeded.
+
+    The second half is the one with a mechanism behind it.
+    `cap_window_start` is `GREATEST(now - 24 h, the latest reset)` — the reset is
+    an EXTRA lower bound on the rolling window, never a replacement for it.
+    Written the other way round an old reset row would widen the window back
+    open and a student would find themselves counted against attempts from last
+    week; written this way the bound can only ever move forward, which is the
+    only direction "give this student their attempts back" is allowed to move.
+    """
+    from datetime import datetime as _dt
+
+    from app.config import settings
+    from app.interview_policy import cap_window_start, default_policy
+    from app.models.interview import InterviewCapReset
+
+    assert settings.interview_max_per_student_per_day == 8
+    policy = default_policy()
+    assert policy.configured is False and policy.daily_cap == 8
+
+    student = make_user("compat-cap")
+    with SessionLocal() as db:
+        sid = db.scalar(select(Student.id).where(Student.user_id == student.user_id))
+
+    now = _dt.now(timezone.utc)
+    rolling = now - timedelta(hours=24)
+
+    with SessionLocal() as db:
+        assert cap_window_start(db, sid, now) == rolling, "no reset: the plain 24 h window"
+
+    try:
+        # A reset from LAST WEEK must not widen the window back open.
+        with SessionLocal() as db:
+            db.add(InterviewCapReset(
+                student_id=sid, by_user_id=student.user_id,
+                reason="Bedrock outage.", at=now - timedelta(days=7),
+            ))
+            db.commit()
+        with SessionLocal() as db:
+            assert cap_window_start(db, sid, now) == rolling, (
+                "a stale reset widened the window and handed back attempts nobody granted"
+            )
+
+        # A reset an hour ago moves it FORWARD, and only forward.
+        recent = now - timedelta(hours=1)
+        with SessionLocal() as db:
+            db.add(InterviewCapReset(
+                student_id=sid, by_user_id=student.user_id,
+                reason="Browser kept dropping.", at=recent,
+            ))
+            db.commit()
+        with SessionLocal() as db:
+            assert cap_window_start(db, sid, now) == recent
+            assert cap_window_start(db, sid, now) > rolling
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(InterviewCapReset).where(InterviewCapReset.student_id == sid))
+            db.commit()
+
+
+@requires_db
+def test_the_summary_backfill_exists_and_its_dry_run_writes_nothing():
+    """GUARDRAIL: "Interview summaries backfilled before the first purge after
+    deploy."
+
+    This is an OPERATIONAL guarantee and it has a clock on it. B6.2's summary is
+    written at finalization from now on; every interview held before that code
+    shipped has none, and `retention.purge_expired` is deleting those interviews
+    on a rolling 180-day window every night. Each night the backfill does not
+    run, some student's earliest attempts stop being recoverable — silently, and
+    their progress trend simply starts later than their first interview did.
+
+    So what is pinned is that the tool is there and that it is SAFE TO POINT AT
+    PRODUCTION, which is the property that decides whether anybody runs it in
+    the window where it still matters: a dry run reports and writes nothing.
+    Deliberately NOT guarded on `ENV=prod` the way `app.seed` is — it mints no
+    account and writes no student-authored text, only four integers copied from
+    rows already in this database, and production is exactly where it belongs.
+    """
+    from app import backfill_interview_summaries as backfill
+    from app.models.interview import InterviewScoreSummary
+
+    with SessionLocal() as db:
+        before = db.scalar(select(func.count()).select_from(InterviewScoreSummary))
+        counts = backfill.backfill(db, dry_run=True)
+
+    assert set(counts) == {
+        "candidates", "written", "with_scores", "without_scores",
+        "soft_deleted_rescued", "skipped_conflict",
+    }
+    assert counts["written"] == 0, "a dry run wrote rows"
+
+    with SessionLocal() as db:
+        assert db.scalar(select(func.count()).select_from(InterviewScoreSummary)) == before
+
+    assert backfill.main(["--dry-run"]) == 0
+    with SessionLocal() as db:
+        assert db.scalar(select(func.count()).select_from(InterviewScoreSummary)) == before
+
+
+@requires_db
+def test_a_leave_written_before_phase_4e_still_prints_its_paper(client, make_user, tmp_path, monkeypatch):
+    """GUARDRAIL: "Old leave PDFs untouched."
+
+    No leave PDF is ever STORED — `GET /api/leaves/{id}/paper.pdf` re-renders
+    from the row every time — so "untouched" cannot mean an archive of files. It
+    can only mean one thing: a request row written before 4e existed, whose new
+    columns are all NULL, still renders on the college's own form.
+
+    That is not a formality. 4e added leave kinds, credits, an alternate
+    arrangement, balances and attachments, and the overlay's field coordinates
+    are measured against `app/assets/leave_form_template.pdf`. A renderer that
+    assumed any of the new values is present would raise on every historical
+    row, and the first person to find out would be a faculty member printing a
+    leave they took last term.
+    """
+    from app import document_store
+
+    monkeypatch.setattr(document_store, "_store_dir", lambda: tmp_path)
+    faculty = make_user("compat-leave", Role.MENTOR)
+
+    # The PRE-4e request body, exactly: three fields and nothing else.
+    created = client.post(
+        "/api/leaves",
+        headers=faculty.headers,
+        json={
+            "from_date": "2026-03-02",
+            "to_date": "2026-03-03",
+            "reason": "Family function at home.",
+        },
+    )
+    assert created.status_code == 201, created.text
+    leave = created.json()
+    assert leave["leave_kind"] is None and leave["credit"] is None
+
+    paper = client.get(f"/api/leaves/{leave['id']}/paper.pdf", headers=faculty.headers)
+    assert paper.status_code == 200, paper.text
+    assert paper.content.startswith(b"%PDF")
+    assert paper.headers["content-type"].startswith("application/pdf")
+
+
 # --------------------------------------------------------------------------- #
 # WHAT IS DELIBERATELY NOT HERE
 #
-# Five of 07 §5's guardrails have no Phase 3 subject and cannot be pinned yet.
-# They are listed rather than left out silently, because a checklist with five
-# quiet gaps is one somebody signs off as complete:
+# Two of 07 §5's guardrails are still notes rather than tests, and they are
+# written down for the reason the rest of this module exists: a checklist with
+# quiet gaps is one somebody signs off as complete. The other four were notes
+# here until Phase 4 landed and are now the tests above.
 #
-#   - "Records after promotion keep their semester numbers; graduation keeps
-#     login and USN" — batch promotion and graduation are Phase 4. The dialogs
-#     exist on the console and are still `[reepPending]="4"`.
-#   - "Old interview track codes still open sessions; existing consent rows
-#     still valid until the version bumps" — the interview bank's write path is
-#     Phase 4; Phase 3 touched neither `interview_matrix` nor
-#     `INTERVIEW_CONSENT_VERSION`.
-#   - "Daily cap value 8; counted attempts never lost mid-day" — the cap is not
-#     a Phase 3 surface.
-#   - "Interview summaries backfilled before the first purge after deploy" — the
-#     summary table arrives with Phase 4; there is nothing to backfill from.
-#   - "Registration auto-approval behaves as before on day one" — B1.1 fenced
-#     PROVISIONING by college domain, and `tests/test_college_domains.py` holds
-#     that fence from the other side, including that the env list is a FALLBACK
-#     and not a floor. Repeating it here would be a second copy of one claim.
-#   - "Old leave PDFs untouched" — `app/leave_paper.py` and the pinned template
-#     were not opened by any Phase 3 task; `tests/test_codebase_guards.py`
-#     already pins the template by size.
+#   - "Registration auto-approval behaves as before on day one" — held, in
+#     full, by `tests/test_college_domains.py`, which fences B1.1's
+#     PROVISIONING from the other side and includes the fact that most needs
+#     pinning (the deployment's `ENV` domain list is a FALLBACK and not a
+#     floor). A copy here would be a second statement of one claim, and two
+#     statements of a rule are how the rule ends up with two meanings.
+#     4f changed the queue AROUND that rule rather than the rule — `?status=`,
+#     paging, HOLD — and `POST /api/register`'s default listing is required to
+#     answer byte-identically to what it answered before; that belongs with the
+#     registration module's own tests, beside the endpoint.
+#
+#   - "Interview summaries backfilled before the first purge after deploy" is
+#     pinned above only as far as a test CAN pin it: that the tool exists, that
+#     its dry run writes nothing, and that nothing stops it running on
+#     production. Whether somebody actually ran it inside the 180-day window is
+#     not a property of this repository and no test can assert it. It is a
+#     deploy step, and it is written down in
+#     `app/backfill_interview_summaries.py`'s own docstring, which is where the
+#     person doing the deploy will be.
 # --------------------------------------------------------------------------- #

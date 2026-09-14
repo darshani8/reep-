@@ -60,6 +60,33 @@ MAX_UPLOAD_BYTES_PER_STUDENT = 200 * 1024 * 1024  # 200 MB
 MAX_CERTIFICATES_PER_USER = 20
 MAX_CERTIFICATE_BYTES_PER_USER = 100 * 1024 * 1024  # 100 MB
 
+# B10.3's leave attachments, and THE TWO NUMBERS ARE COUNTED AGAINST DIFFERENT
+# OWNERS ON PURPOSE — which is the one thing to read before writing the caller.
+#
+#   * the FILE COUNT is per leave REQUEST. An application is a medical
+#     certificate, maybe an OOD letter, maybe a second page of one; a request
+#     carrying more than a handful is a mis-click or a scanner spraying a page
+#     per file, and the person who hit the limit is helped by being told so on
+#     the request they are looking at. Bounding it per user instead would let
+#     one long-running request exhaust an account's whole allowance and then
+#     refuse a genuine certificate on the next one.
+#   * the BYTE ALLOWANCE is per USER, because the disk does not care which
+#     request the megabytes arrived on. This is the cap that actually stops one
+#     account filling the volume 10 MB at a time, and it is the same bound
+#     MAX_UPLOAD_BYTES_PER_STUDENT provides above, at a size that fits a few
+#     dozen scanned certificates and nothing like a video.
+#
+# So the caller builds ONE VolumeQuota whose `used_files` is counted over this
+# request's `leave_attachments` rows and whose `used_bytes` is summed over that
+# USER's rows across every request. Both counts are the caller's job, as the
+# comment above says, because both need the table this module must not import.
+#
+# Module constants rather than settings, for MAX_UPLOADS_PER_STUDENT's reason:
+# a limit nobody has ever needed to tune per deployment does not earn an entry
+# in both of app/config.py's validator name-lists.
+MAX_LEAVE_ATTACHMENTS_PER_REQUEST = 5
+MAX_LEAVE_ATTACHMENT_BYTES_PER_USER = 50 * 1024 * 1024  # 50 MB
+
 
 class UploadRejected(ValueError):
     """The bytes are not an accepted file (bad type, empty, or too large)."""

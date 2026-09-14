@@ -6,21 +6,36 @@
  * and the brief is `02-admin-console-spec.md` §17. Five decisions in this build
  * are worth reading before changing it.
  *
- * SCOPE IS THE SERVER'S. `GET /api/mentor/interviews` applies rule 2 in SQL —
- * the Main Admin sees all, a mentor only their own group, a mentor with no
- * group nobody. This screen renders whatever it is handed and never widens it.
+ * SCOPE IS THE SERVER'S. `GET /api/admin/interviews` applies BOTH fences in SQL
+ * — rule 2 narrows a mentor to their own group and runs always, and the B1.2
+ * reach narrows a grant somebody chose to hand over — and a caller who is both
+ * gets the intersection. This screen renders whatever it is handed and never
+ * widens it. The route is guarded on the same `admin.interviews` capability the
+ * endpoint checks, so a grant that reports success in Governance opens the door
+ * it names.
  *
- * A SCORE IS NOT IN THE RECORDS PAYLOAD, AND AN EMPTY CELL SAYS SO. The records
- * list carries no score at all, so the Score column is a dash until the student
- * behind a row is opened — `GET /api/mentor/students/{id}/interviews` is the
- * read that carries `overall_score`, and opening one row fills every row of
- * that student at once. A NULLABLE SCORE STAYS A DASH even then: AGENTS.md's
- * rule, and `interview_evaluations.overall_score` is nullable even when the
- * report parsed, so a confident 0 in a 24px numeral would tell the office a
- * student failed something nobody scored. The grid-wide scores, the average and
- * the per-college filters arrive with the records endpoint (B6.7, Phase 4);
- * until then the tiles that need them carry a dash and say which task fills
- * them, because a plausible number here is indistinguishable from a real one.
+ * THE FILTERS ARE THE SERVER'S TOO, AND THAT IS WHY THEY MOVED. Batch, track,
+ * status, date and recorded-only are query parameters on `/api/admin/interviews`
+ * and on its KPI and CSV siblings, so all three answer over the same rows: a
+ * tile can never report a number the grid below it cannot produce, and the
+ * extract is the list the operator was looking at. Filtering in the browser
+ * could never have answered Batch at all — a record row carries no cohort.
+ *
+ * A SCORE IS IN THE PAYLOAD NOW, AND A NULL IS STILL A DASH. `overall_score` is
+ * on every grid row (B6.7), so the Score column and the average tile are read
+ * rather than reconstructed. NULLABLE, AND A NULL RENDERS AS A DASH:
+ * `interview_evaluations.overall_score` is nullable even when the report
+ * parsed, so a confident 0 in a 24px numeral would tell the office a student
+ * failed something nobody scored. The same rule governs the average tile — an
+ * average over no scored interview is `null`, never 0.
+ *
+ * PAGING IS A CURSOR, NOT A PAGE NUMBER. Interviews are written continuously,
+ * so an offset taken against a list that grows at the top silently skips rows.
+ * The server hands back `next_cursor`; "Load more" appends the next page, and
+ * the grid paginates what has been loaded. There is deliberately no total
+ * count anywhere — counting every interview to render "page 3 of 47" costs a
+ * full scan on every keystroke — and the KPI tiles answer the question that
+ * number stands in for, once and properly.
  *
  * "RECORDED" IS READ FROM `audio_recorded`, NEVER FROM A PATH. The flag is the
  * fact; a NULL `audio_path` collapses "capture disabled", "consent refused",
@@ -29,11 +44,18 @@
  * expose one.
  *
  * CONSENT IS SHOWN AS AN ENFORCED FACT, NOT A SWITCH. Nothing on this screen
- * can grant, edit or withdraw a scope — the grant is the student's row and the
- * college's policy, and the only scope this deployment can prove to staff today
- * is the audio one, whose enforcement IS `audio_recorded`. The three scopes as
- * granted, and the policy that set them, arrive with the interview policy
- * (B6.1) and the records endpoint (B6.7).
+ * can grant, edit or withdraw a scope. Since B6.1 what is consented to is the
+ * COLLEGE'S decision and the student's row is an acknowledgement of it, so the
+ * thing this office edits is the POLICY — and it edits it in the panel behind
+ * the Retention card's button, never on a student's row. `DELETE
+ * /api/interview/consent` does not exist and answers 405 for everyone.
+ *
+ * THE POLICY PANEL MUST BE ABLE TO SAY "NOT CONFIGURED". No `interview_policies`
+ * row is ever seeded, and the ABSENCE of one IS the default — a deployment that
+ * never opens this panel behaves exactly as it did before the table existed. So
+ * `default: null` is rendered as "no policy row exists", with the numbers
+ * actually in force shown beside it as the deployment's defaults. Drawing that
+ * state as a row holding the defaults would report a decision nobody made.
  *
  * DOWNLOAD, NOT DELETE. Per the owner's decision a recording can be downloaded
  * to the local machine and there is no delete here — recordings expire on the
@@ -82,7 +104,6 @@ import {
 } from '../../../shared/charts/reep-echarts-theme';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // The design system's chart theme, registered once for this lazily-loaded
@@ -92,7 +113,7 @@ registerReepChartTheme(echarts);
 
 echarts.use([LineChart, GridComponent, TooltipComponent, SVGRenderer]);
 
-/** One interview as `GET /api/mentor/interviews` returns it. */
+/** One interview as `GET /api/admin/interviews` returns it (`InterviewRecordRow`). */
 interface InterviewRecord {
   session_id: string;
   student_id: string;
@@ -103,6 +124,94 @@ interface InterviewRecord {
   audio_recorded: boolean;
   started_at: string;
   ended_at: string | null;
+  /** Nullable, and a null is a real "not scored" — never a zero. */
+  overall_score: number | null;
+  /** NULL means no evaluation row exists at all — still running, or older than
+   *  the scorecard. Distinct from `'unavailable'`, which records that a report
+   *  was attempted and did not arrive. */
+  report_status: string | null;
+}
+
+/** One page of the grid. `next_cursor` is null on the last page, and there is
+ *  no total count by design — see the file header. */
+interface InterviewGridPage {
+  rows: InterviewRecord[];
+  next_cursor: string | null;
+  page_size: number;
+}
+
+/** The tiles, computed over exactly the rows the grid would return. */
+interface InterviewKpis {
+  interviews: number;
+  completed: number;
+  abandoned: number;
+  failed: number;
+  running: number;
+  /** Distinct students, not interviews: "sixty interviews" and "sixty students
+   *  practising" are different facts and the office plans on the second. */
+  students: number;
+  recorded: number;
+  scored: number;
+  /** Null when nothing in this filter has been scored. Never 0.0. */
+  average_overall: number | null;
+}
+
+/** One batch, from `GET /api/admin/cohorts` (`console.CohortOut`). */
+interface CohortOption {
+  id: string;
+  code: string;
+  name: string;
+  batch_label: string;
+  degree_level: string;
+  student_count: number;
+}
+
+/** One college, from `GET /api/admin/colleges` (`admin.CollegeOut`), reduced to
+ *  what the policy panel's picker needs. */
+interface CollegeOption {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+}
+
+/** One stored `interview_policies` row. */
+interface InterviewPolicy {
+  id: string;
+  college_id: string;
+  course_id: string | null;
+  course_name: string | null;
+  store_transcript: boolean;
+  store_audio: boolean;
+  retention_days: number;
+  daily_cap: number;
+  attempt_cap: number;
+  time_limit_seconds: number;
+  updated_by: string | null;
+  updated_by_name: string | null;
+  updated_at: string | null;
+}
+
+/** What a student at this college gets when nothing above applies. `source` is
+ *  'default' | 'college' | 'course'. */
+interface EffectivePolicy {
+  store_transcript: boolean;
+  store_audio: boolean;
+  retention_days: number;
+  daily_cap: number;
+  attempt_cap: number;
+  time_limit_seconds: number;
+  source: string;
+}
+
+/** Everything the policy panel needs for one college in one read. `default` is
+ *  null for a college nobody has configured, which is a REAL answer. */
+interface PolicySheet {
+  college_id: string;
+  college_name: string | null;
+  default: InterviewPolicy | null;
+  courses: InterviewPolicy[];
+  effective_default: EffectivePolicy;
 }
 
 /** One interview as `GET /api/mentor/students/{id}/interviews` returns it —
@@ -202,25 +311,41 @@ const STATUS_LABELS: Record<string, { label: string; tone: 'good' | 'warn' | 'ri
     running: { label: 'Running', tone: 'neutral' },
   };
 
-/** How many records the server returns at most (`_MAX_SESSIONS_LISTED`). The
- *  screen says so when it is holding that many, because "118 sessions" over a
- *  truncated list is a wrong number rather than a missing one. */
-const RECORDS_RETURNED_AT_MOST = 200;
+/** How many interviews one page of `GET /api/admin/interviews` carries. The
+ *  server's own ceiling is `GRID_MAX_PAGE_SIZE`; asking for it means the grid
+ *  usually holds the whole filtered list in one read, and "Load more" follows
+ *  `next_cursor` when it does not. */
+const RECORDS_PER_PAGE = 200;
 
 /** Interviews per page in the grid, and what the page-size selector offers. */
 const INTERVIEWS_PER_PAGE = 10;
 const PAGE_SIZE_CHOICES = [10, 25, 50];
 
-/** The DEFAULT retention clock, in days — `Settings.interview_retention_days`
- *  in `app/config.py`. A deployment can change it and NO ENDPOINT REPORTS IT:
- *  `GET /api/interview/status` carries availability and the session caps and
- *  nothing about retention, and neither staff read returns the row's own
- *  `retention_delete_after`. So every place this number reaches the screen says
- *  "by default" rather than stating this deployment's clock as a fact — a
- *  plausible number about how long a student's voice is kept is exactly the
- *  kind that must not be invented. The deployment's own value arrives with the
- *  interview policy (B6.1). */
+/** The PRODUCT default retention clock, in days — `Settings.interview_retention_days`
+ *  in `app/config.py`. A deployment can change it and no endpoint reports the
+ *  deployment-wide setting, so this number is only ever labelled "by default"
+ *  until a college is chosen in the policy panel: `PolicySheet.effective_default`
+ *  IS that college's clock, read from the server, and the card states it as a
+ *  fact only then. A plausible number about how long a student's voice is kept
+ *  is exactly the kind that must not be invented. */
 const DEFAULT_RETENTION_DAYS = 180;
+
+/** `PolicyIn`'s bounds, mirrored so the form refuses before the request rather
+ *  than after it, and `ck_interview_policy_bounds`'s one cross-field rule:
+ *  `attempt_cap >= daily_cap`, or the daily allowance is unreachable and the
+ *  database refuses the row. */
+const POLICY_BOUNDS = {
+  retention_days: { min: 1, max: 3650 },
+  daily_cap: { min: 1, max: 100 },
+  attempt_cap: { min: 1, max: 500 },
+  time_limit_seconds: { min: 60, max: 3600 },
+} as const;
+
+/** What `?track=` must be to ask for the interviews that ran with no track at
+ *  all (`TRACK_GENERAL` in `app/routers/interview_records.py`). The filter's own
+ *  option value is 'generic', which is this screen's word for the same thing;
+ *  the two are mapped in one place rather than renamed on either side. */
+const GENERIC_TRACK_PARAM = 'general';
 
 /** The date filter's windows, in days. `null` is the whole loaded record. */
 const DATE_WINDOWS: Record<string, number | null> = {
@@ -350,7 +475,7 @@ function formatDurationCell(
 @Component({
   selector: 'app-interview-records',
   standalone: true,
-  imports: [AgGridAngular, PendingControlDirective, PluralPipe],
+  imports: [AgGridAngular, PluralPipe],
   templateUrl: './interviews.component.html',
   styleUrl: './interviews.component.scss',
 })
@@ -361,29 +486,71 @@ export class InterviewRecordsComponent implements OnDestroy {
   readonly interviewsPerPage = INTERVIEWS_PER_PAGE;
   readonly pageSizes = PAGE_SIZE_CHOICES;
   readonly retentionDays = DEFAULT_RETENTION_DAYS;
-  readonly recordsReturnedAtMost = RECORDS_RETURNED_AT_MOST;
+  readonly policyBounds = POLICY_BOUNDS;
 
   readonly records = signal<InterviewRecord[] | null>(null);
   readonly loading = signal(true);
+  readonly loadingMore = signal(false);
+  readonly nextCursor = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
 
-  /** The filters the records payload can honestly answer. Batch and the three
-   *  consent scopes need B6.7; those controls are disabled and say so. */
+  /** Every filter is the SERVER'S: each one re-reads the grid and its tiles, so
+   *  the two can never disagree and the extract is the same list. */
+  readonly cohortFilter = signal<string>('all');
   readonly trackFilter = signal<string>('all');
   readonly statusFilter = signal<string>('all');
   readonly recordingFilter = signal<string>('any');
   readonly dateFilter = signal<string>('all');
   readonly quickFilter = signal('');
 
+  /** The tiles, read rather than recomputed from the loaded page — the page is
+   *  one page and the tiles are about the whole filtered set. */
+  readonly kpis = signal<InterviewKpis | null>(null);
+
+  /** The batches the Batch filter offers. `GET /api/admin/cohorts` is gated on
+   *  `admin.analytics`, NOT on this screen's `admin.interviews`, so a narrow
+   *  grant can hold this screen and be refused the batch list. That is not an
+   *  error to swallow: the filter is disabled and says which key it wants. */
+  readonly cohorts = signal<CohortOption[] | null>(null);
+  readonly cohortsBlocked = signal<string | null>(null);
+
   readonly selectedRows = signal<InterviewRecordRow[]>([]);
   readonly downloading = signal(false);
+  readonly exporting = signal(false);
 
-  /** The score of each interview, once the student behind it has been opened.
-   *  Keyed by session id; a null value is a real "not scored". */
-  private readonly scoreBySession = signal<Record<string, number | null>>({});
-  /** Students whose sessions have been read, so a second click is free. */
+  /** Track codes seen in any page loaded this visit. The four shipped tracks
+   *  are constants, but a college can add its own (B5.1), and a track filter
+   *  that only offers the four would hide every interview held on a fifth. The
+   *  set only grows: narrowing the filter to one track must not empty the list
+   *  of tracks to widen it back to. */
+  private readonly seenTrackCodes = signal<ReadonlySet<string>>(new Set<string>());
+
+  /** Students whose sessions have been read, so a second click is free. They
+   *  are read for the TREND CHART only — the grid's own scores come from the
+   *  records payload. */
   private readonly sessionsByStudent = signal<Record<string, StudentInterviewSession[]>>({});
+
+  // --- the policy panel (B6.1) ----------------------------------------------
+
+  readonly policyOpen = signal(false);
+  readonly colleges = signal<CollegeOption[] | null>(null);
+  readonly collegesBlocked = signal<string | null>(null);
+  readonly policyCollege = signal<string>('');
+  readonly policySheet = signal<PolicySheet | null>(null);
+  /** '' is the college's default row; anything else is that course's override. */
+  readonly policyScope = signal<string>('');
+  readonly policyLoading = signal(false);
+  readonly policySaving = signal(false);
+  readonly policyError = signal<string | null>(null);
+  readonly policyFlash = signal<string | null>(null);
+
+  readonly draftStoreTranscript = signal(true);
+  readonly draftStoreAudio = signal(false);
+  readonly draftRetentionDays = signal(DEFAULT_RETENTION_DAYS);
+  readonly draftDailyCap = signal(8);
+  readonly draftAttemptCap = signal(20);
+  readonly draftTimeLimit = signal(900);
 
   readonly openRecord = signal<InterviewRecordRow | null>(null);
   readonly panelTab = signal<RecordPanelTab>('report');
@@ -407,7 +574,8 @@ export class InterviewRecordsComponent implements OnDestroy {
     // AG Grid 33+ refuses to draw until its modules are registered, and fails
     // as an empty rectangle rather than an exception (shared/grid docstring).
     registerReepGrid();
-    void this.loadRecords();
+    void this.reload();
+    void this.loadCohorts();
 
     // The chart element exists only while a student is open, so the chart is
     // created when it appears and disposed when it goes.
@@ -427,54 +595,74 @@ export class InterviewRecordsComponent implements OnDestroy {
 
   // --- what the header says --------------------------------------------------
 
-  readonly recordsOnScreen = computed<InterviewRecord[]>(() => {
-    const loaded = this.records();
-    if (loaded === null) return [];
-    return loaded.filter((record) => this.recordPassesFilters(record));
-  });
+  /** The page(s) loaded. The server has already applied every filter, so this
+   *  is not filtered again here — a second, browser-side copy of the same six
+   *  rules is how a grid and its own extract come to disagree. */
+  readonly recordsOnScreen = computed<InterviewRecord[]>(() => this.records() ?? []);
 
-  readonly recordsAreTruncated = computed(
-    () => (this.records()?.length ?? 0) >= RECORDS_RETURNED_AT_MOST,
+  readonly hasMorePages = computed(() => this.nextCursor() !== null);
+
+  readonly anyFilterIsSet = computed(
+    () =>
+      this.cohortFilter() !== 'all' ||
+      this.trackFilter() !== 'all' ||
+      this.statusFilter() !== 'all' ||
+      this.recordingFilter() !== 'any' ||
+      this.dateFilter() !== 'all',
   );
 
-  readonly noRecordsAtAll = computed(() => this.records()?.length === 0);
+  readonly noRecordsAtAll = computed(
+    () => this.records()?.length === 0 && !this.anyFilterIsSet(),
+  );
 
   readonly filtersHideEverything = computed(
-    () => !this.noRecordsAtAll() && this.records() !== null && this.recordsOnScreen().length === 0,
+    () => this.records()?.length === 0 && this.anyFilterIsSet(),
   );
 
   // --- the four tiles --------------------------------------------------------
+  //
+  // READ FROM `/interviews/summary`, NOT COUNTED FROM THE LOADED PAGE. The page
+  // is one page; the tiles are about the whole filtered set, and a "Sessions"
+  // number that meant "sessions downloaded so far" would fall as the operator
+  // narrowed a filter and rise as they pressed Load more.
 
-  readonly sessionCount = computed(() => this.recordsOnScreen().length);
+  readonly sessionCount = computed(() => this.kpis()?.interviews ?? 0);
+  readonly studentCount = computed(() => this.kpis()?.students ?? 0);
+  readonly completedCount = computed(() => this.kpis()?.completed ?? 0);
+  readonly abandonedCount = computed(() => this.kpis()?.abandoned ?? 0);
+  readonly failedCount = computed(() => this.kpis()?.failed ?? 0);
+  readonly runningCount = computed(() => this.kpis()?.running ?? 0);
+  readonly scoredCount = computed(() => this.kpis()?.scored ?? 0);
+  readonly recordedCount = computed(() => this.kpis()?.recorded ?? 0);
 
-  readonly sessionsStartedThisMonth = computed<number>(() => {
-    const now = new Date();
-    let started = 0;
-    for (const record of this.recordsOnScreen()) {
-      const when = new Date(record.started_at);
-      if (when.getFullYear() === now.getFullYear() && when.getMonth() === now.getMonth()) {
-        started += 1;
-      }
-    }
-    return started;
+  /** The average over the SCORED interviews only, and a dash when none are.
+   *  Never 0: "nobody has been scored" and "everybody scored nothing" are
+   *  opposite facts, and this is a judgement about people. */
+  readonly averageScoreLabel = computed<string>(() => {
+    const average = this.kpis()?.average_overall ?? null;
+    if (average === null) return '—';
+    return String(Math.round(average));
   });
 
-  readonly completedCount = computed(
-    () => this.recordsOnScreen().filter((record) => record.status === 'completed').length,
-  );
-  readonly abandonedCount = computed(
-    () => this.recordsOnScreen().filter((record) => record.status === 'abandoned').length,
-  );
-  readonly failedCount = computed(
-    () => this.recordsOnScreen().filter((record) => record.status === 'failed').length,
-  );
+  readonly averageScoreNote = computed<string>(() => {
+    const summary = this.kpis();
+    if (summary === null) return 'not read yet';
+    if (summary.average_overall === null) {
+      return summary.interviews === 0
+        ? 'no interviews in this filter'
+        : 'no interview in this filter has been scored';
+    }
+    return `over ${plural(summary.scored, 'scored interview')}`;
+  });
 
   /** Completion over the interviews that have finished one way or another — a
    *  running interview has not failed to complete, it has not finished. */
   readonly completionPercent = computed<number | null>(() => {
-    const finished = this.recordsOnScreen().filter((record) => record.status !== 'running').length;
-    if (finished === 0) return null;
-    return Math.round((this.completedCount() / finished) * 100);
+    const summary = this.kpis();
+    if (summary === null) return null;
+    const finished = summary.interviews - summary.running;
+    if (finished <= 0) return null;
+    return Math.round((summary.completed / finished) * 100);
   });
 
   readonly completionLabel = computed<string>(() => {
@@ -483,29 +671,26 @@ export class InterviewRecordsComponent implements OnDestroy {
     return `${percent}%`;
   });
 
-  readonly recordedCount = computed(
-    () => this.recordsOnScreen().filter((record) => record.audio_recorded).length,
-  );
-
   /** What the status bar says, which is the grid's own count once it has one. */
   readonly rowsOnGrid = computed<number>(
-    () => this.displayedRows()?.length ?? this.sessionCount(),
+    () => this.displayedRows()?.length ?? this.recordsOnScreen().length,
   );
 
+  /** The status bar counts what is ON THE GRID, which is not the recorded tile:
+   *  the tile is about the whole filtered set and this is about the rows in
+   *  front of the reader, after the quick filter and one page of a cursor. */
   readonly recordedOnGrid = computed<number>(() => {
     const shown = this.displayedRows();
-    if (shown === null) return this.recordedCount();
+    if (shown === null) return this.rows().filter((row) => row.audioRecorded).length;
     return shown.filter((row) => row.audioRecorded).length;
   });
 
   // --- the grid --------------------------------------------------------------
 
-  readonly rows = computed<InterviewRecordRow[]>(() => {
-    const scores = this.scoreBySession();
-    return this.recordsOnScreen().map((record) => {
+  readonly rows = computed<InterviewRecordRow[]>(() =>
+    this.recordsOnScreen().map((record) => {
       const track = trackOf(record.specialization);
       const status = statusOf(record.status);
-      const score = record.session_id in scores ? scores[record.session_id] : null;
       return {
         sessionId: record.session_id,
         studentId: record.student_id,
@@ -516,13 +701,13 @@ export class InterviewRecordsComponent implements OnDestroy {
         trackColour: track.colour,
         startedAt: record.started_at,
         durationSeconds: durationSecondsOf(record.started_at, record.ended_at),
-        overallScore: score,
+        overallScore: record.overall_score,
         audioRecorded: record.audio_recorded,
         statusLabel: status.label,
         statusTone: status.tone,
       };
-    });
-  });
+    }),
+  );
 
   readonly columns: ColDef<InterviewRecordRow>[] = [
     {
@@ -564,7 +749,7 @@ export class InterviewRecordsComponent implements OnDestroy {
       filter: 'agNumberColumnFilter',
       cellRenderer: renderScoreCell,
       headerTooltip:
-        'Out of 100, from the practice report. A dash is "not scored" — open a row to read the scores of that student',
+        'Out of 100, from the practice report. A dash is "not scored", which is not the same as a zero',
     },
     {
       field: 'audioRecorded',
@@ -653,6 +838,28 @@ export class InterviewRecordsComponent implements OnDestroy {
     return TRACK_LABELS[chosen]?.label ?? chosen;
   });
 
+  /** The four the matrix ships with, plus any track code an interview in this
+   *  visit was actually held on. A college's own track (B5.1) would otherwise
+   *  be un-filterable on the one screen that lists its interviews. */
+  readonly trackOptions = computed<{ code: string; label: string }[]>(() => {
+    const options = Object.entries(TRACK_LABELS).map(([code, names]) => ({
+      code,
+      label: names.label,
+    }));
+    const known = new Set(options.map((option) => option.code));
+    for (const code of [...this.seenTrackCodes()].sort()) {
+      if (!known.has(code)) options.push({ code, label: trackOf(code).label });
+    }
+    return options;
+  });
+
+  readonly cohortFilterLabel = computed<string>(() => {
+    const chosen = this.cohortFilter();
+    if (chosen === 'all') return 'All batches';
+    const batch = (this.cohorts() ?? []).find((cohort) => cohort.id === chosen);
+    return batch ? `${batch.code} · ${batch.batch_label}` : 'One batch';
+  });
+
   readonly statusFilterLabel = computed<string>(() => {
     const chosen = this.statusFilter();
     if (chosen === 'all') return 'All';
@@ -669,35 +876,54 @@ export class InterviewRecordsComponent implements OnDestroy {
     return `Last ${chosen} days`;
   });
 
+  // EVERY ONE OF THESE RE-READS. The filters are the server's, so a change to
+  // any of them is a new list and a new set of tiles; narrowing them in the
+  // browser instead would leave the tiles counting rows the grid is hiding.
+
+  setCohortFilter(event: Event): void {
+    this.cohortFilter.set((event.target as HTMLSelectElement).value);
+    void this.reload();
+  }
+
   setTrackFilter(event: Event): void {
     this.trackFilter.set((event.target as HTMLSelectElement).value);
+    void this.reload();
   }
 
   setStatusFilter(event: Event): void {
     this.statusFilter.set((event.target as HTMLSelectElement).value);
+    void this.reload();
   }
 
   setDateFilter(event: Event): void {
     this.dateFilter.set((event.target as HTMLSelectElement).value);
+    void this.reload();
   }
 
-  /** The one filter the server applies: `?recorded_only=`. It narrows what is
-   *  READ rather than what is drawn, so it re-reads. */
   setRecordingFilter(event: Event): void {
     this.recordingFilter.set((event.target as HTMLSelectElement).value);
-    void this.loadRecords();
+    void this.reload();
   }
 
-  private recordPassesFilters(record: InterviewRecord): boolean {
+  /** The six filters as the three endpoints take them.
+   *
+   *  ONE BUILDER FOR ALL THREE. The grid, its tiles and its extract must be the
+   *  same list; two query strings written from the same description are how one
+   *  of them quietly forgets a fence. `recorded_only` is the exception and it is
+   *  the CALLER that leaves it out — the CSV is built from the score summaries,
+   *  which outlive the audio, so a recording filter over them would change its
+   *  answer every night at 02:00. */
+  private filterQuery(): URLSearchParams {
+    const query = new URLSearchParams();
+    if (this.cohortFilter() !== 'all') query.set('cohort', this.cohortFilter());
     const track = this.trackFilter();
-    if (track !== 'all' && (record.specialization ?? 'generic') !== track) return false;
-    const status = this.statusFilter();
-    if (status !== 'all' && record.status !== status) return false;
+    if (track !== 'all') query.set('track', track === 'generic' ? GENERIC_TRACK_PARAM : track);
+    if (this.statusFilter() !== 'all') query.set('status', this.statusFilter());
     const windowDays = DATE_WINDOWS[this.dateFilter()];
-    if (windowDays === null || windowDays === undefined) return true;
-    const started = new Date(record.started_at).getTime();
-    if (Number.isNaN(started)) return true;
-    return started >= Date.now() - windowDays * MILLISECONDS_PER_DAY;
+    if (windowDays !== null && windowDays !== undefined) {
+      query.set('from', new Date(Date.now() - windowDays * MILLISECONDS_PER_DAY).toISOString());
+    }
+    return query;
   }
 
   // --- the record panel ------------------------------------------------------
@@ -834,37 +1060,128 @@ export class InterviewRecordsComponent implements OnDestroy {
     // one finishes last and puts its own record back on screen, so the panel
     // describes an interview the operator closed a second ago.
     if (this.openRecord()?.sessionId !== row.sessionId) return;
-    // The row now carries the score the student read brought back.
-    const scored = this.rows().find((candidate) => candidate.sessionId === row.sessionId);
-    if (scored) this.openRecord.set(scored);
     await this.loadReport();
   }
 
   // --- the reads -------------------------------------------------------------
 
-  private async loadRecords(): Promise<void> {
-    this.loading.set(true);
-    this.error.set(null);
-    const recordedOnly = this.recordingFilter() === 'recorded';
-    const query = recordedOnly ? '?recorded_only=true' : '';
+  /** The grid and its tiles, together, because they are one answer. */
+  private async reload(): Promise<void> {
+    this.clearOpenRecord();
+    await Promise.all([this.loadRecords(), this.loadSummary()]);
+  }
+
+  /** One page of `GET /api/admin/interviews`. `cursor` continues the list; its
+   *  absence starts it again. */
+  private async loadRecords(cursor: string | null = null): Promise<void> {
+    if (cursor === null) {
+      this.loading.set(true);
+      this.error.set(null);
+    } else {
+      this.loadingMore.set(true);
+    }
+    const query = this.filterQuery();
+    if (this.recordingFilter() === 'recorded') query.set('recorded_only', 'true');
+    query.set('page_size', String(RECORDS_PER_PAGE));
+    if (cursor !== null) query.set('cursor', cursor);
     try {
-      const response = await fetch(`${environment.apiBase}/mentor/interviews${query}`, {
+      const response = await fetch(`${environment.apiBase}/admin/interviews?${query}`, {
         credentials: 'include',
       });
       if (!response.ok) {
-        this.error.set('Could not load interview records. Reload the page to try again.');
-        this.loading.set(false);
-        return;
+        this.error.set(
+          await detailOf(response, 'Could not load interview records. Reload the page to try again.'),
+        );
+      } else {
+        const page = (await response.json()) as InterviewGridPage;
+        this.records.update((loaded) =>
+          cursor === null ? page.rows : [...(loaded ?? []), ...page.rows],
+        );
+        this.nextCursor.set(page.next_cursor);
+        this.rememberTracks(page.rows);
       }
-      this.records.set((await response.json()) as InterviewRecord[]);
     } catch {
       this.error.set('Could not load interview records. Reload the page to try again.');
     }
     this.loading.set(false);
+    this.loadingMore.set(false);
   }
 
-  /** Every interview of one student, which is the only staff read that carries
-   *  `overall_score`. Read once per student and cached. */
+  /** The next page, appended. The grid keeps its selection because every row
+   *  carries its own id (`getRowId`). */
+  async loadMore(): Promise<void> {
+    const cursor = this.nextCursor();
+    if (cursor === null || this.loadingMore() || this.loading()) return;
+    await this.loadRecords(cursor);
+  }
+
+  private rememberTracks(rows: InterviewRecord[]): void {
+    const codes = new Set(this.seenTrackCodes());
+    let added = false;
+    for (const row of rows) {
+      if (row.specialization && !codes.has(row.specialization)) {
+        codes.add(row.specialization);
+        added = true;
+      }
+    }
+    if (added) this.seenTrackCodes.set(codes);
+  }
+
+  /** The tiles. Same gate, same reach, same filters, same query builder — so a
+   *  tile can never report a number the grid below it cannot produce. */
+  private async loadSummary(): Promise<void> {
+    const query = this.filterQuery();
+    if (this.recordingFilter() === 'recorded') query.set('recorded_only', 'true');
+    try {
+      const response = await fetch(`${environment.apiBase}/admin/interviews/summary?${query}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        // A DASH, NOT A STALE NUMBER. The tiles left showing the previous
+        // filter's counts would be four confident numbers about a list nobody
+        // is looking at.
+        this.kpis.set(null);
+        return;
+      }
+      this.kpis.set((await response.json()) as InterviewKpis);
+    } catch {
+      this.kpis.set(null);
+    }
+  }
+
+  /** The batches the Batch filter offers. A 403 here is a real and reachable
+   *  state — this list is gated on `admin.analytics` and this screen on
+   *  `admin.interviews` — so it disables the filter with the reason rather than
+   *  leaving an empty dropdown that looks like a deployment with no batches. */
+  private async loadCohorts(): Promise<void> {
+    try {
+      const response = await fetch(`${environment.apiBase}/admin/cohorts`, {
+        credentials: 'include',
+      });
+      if (response.status === 403) {
+        this.cohortsBlocked.set(
+          'Filtering by batch needs the Analytics function, which lists the batches. Your grant ' +
+            'covers Interviews only, so every interview you may see is listed here unfiltered.',
+        );
+        this.cohorts.set([]);
+        return;
+      }
+      if (!response.ok) {
+        this.cohortsBlocked.set('The list of batches could not be read, so this filter is off.');
+        this.cohorts.set([]);
+        return;
+      }
+      this.cohorts.set((await response.json()) as CohortOption[]);
+    } catch {
+      this.cohortsBlocked.set('The list of batches could not be read, so this filter is off.');
+      this.cohorts.set([]);
+    }
+  }
+
+  /** EVERY interview of one student, which is what the trend chart is: their
+   *  score across every interview they have taken, not across the page the grid
+   *  happens to be holding. Read once per student and cached. The grid's own
+   *  scores come from the records payload and do not wait for this. */
   private async loadStudentSessions(studentId: string): Promise<void> {
     if (this.sessionsByStudent()[studentId]) return;
     try {
@@ -878,13 +1195,6 @@ export class InterviewRecordsComponent implements OnDestroy {
       }
       const sessions = (await response.json()) as StudentInterviewSession[];
       this.sessionsByStudent.update((known) => ({ ...known, [studentId]: sessions }));
-      this.scoreBySession.update((known) => {
-        const merged = { ...known };
-        for (const session of sessions) {
-          merged[session.id] = session.overall_score;
-        }
-        return merged;
-      });
     } catch {
       this.panelNote.set('Could not reach the server.');
     }
@@ -993,11 +1303,20 @@ export class InterviewRecordsComponent implements OnDestroy {
    *  says what was asked for and warns what may be missing, rather than
    *  counting files nobody counted. */
   private async saveZip(response: Response, count: number): Promise<void> {
+    await this.saveFile(response, 'reep-interview-recordings.zip');
+    this.flash.set(
+      `Saved a zip for the ${plural(count, 'selected recording')}. ` +
+        'Any recording that has expired or is out of your scope is not in it.',
+    );
+  }
+
+  /** Stream a response to a blob and hand it to the browser as a save. */
+  private async saveFile(response: Response, filename: string): Promise<void> {
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'reep-interview-recordings.zip';
+    anchor.download = filename;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -1005,10 +1324,237 @@ export class InterviewRecordsComponent implements OnDestroy {
     // some browsers and save an empty file (features/student/english does the
     // same, and a zip of recordings is the largest blob this app hands over).
     setTimeout(() => URL.revokeObjectURL(url), 0);
-    this.flash.set(
-      `Saved a zip for the ${plural(count, 'selected recording')}. ` +
-        'Any recording that has expired or is out of your scope is not in it.',
-    );
+  }
+
+  // --- the extract -----------------------------------------------------------
+
+  readonly canExport = computed(() => !this.exporting() && !this.loading());
+
+  /** `GET /api/admin/interviews/export.csv` — SUMMARY ROWS ONLY.
+   *
+   *  Fetched rather than linked, so a refusal is a sentence on this screen
+   *  instead of a page of JSON in a new tab. It carries the same filters the
+   *  grid is showing MINUS the recording one, and the flash says so: the file is
+   *  built from `interview_score_summaries`, which outlive the transcripts and
+   *  the audio, so "only the recorded ones" has no meaning over it and a filter
+   *  that silently meant "only the interviews not yet reaped" would change its
+   *  answer every night at 02:00. The same table is why the file can contain
+   *  interviews this grid no longer shows.
+   *
+   *  The receipt is the server's: `record_export` commits and a failure to
+   *  write it fails the download. Nothing here needs to know that beyond not
+   *  pretending the file arrived when it did not. */
+  async exportCsv(): Promise<void> {
+    if (!this.canExport()) return;
+    this.exporting.set(true);
+    this.error.set(null);
+    this.flash.set(null);
+    try {
+      const response = await fetch(
+        `${environment.apiBase}/admin/interviews/export.csv?${this.filterQuery()}`,
+        { credentials: 'include' },
+      );
+      if (!response.ok) {
+        this.error.set(await detailOf(response, 'The extract was refused.'));
+      } else {
+        await this.saveFile(response, 'reep-interviews.csv');
+        this.flash.set(
+          'The interviews extract has been saved, and the download is on the export history. It ' +
+            'is summary rows only — a date, a track, a status and four scores, no transcript and ' +
+            'no report text.' +
+            (this.recordingFilter() === 'recorded'
+              ? ' The recording filter is NOT in it: whether a recording exists is a fact about ' +
+                'the session, and this file is built from the score summaries, which outlive it.'
+              : ''),
+        );
+      }
+    } catch {
+      this.error.set('The extract could not be downloaded. Nothing was saved.');
+    }
+    this.exporting.set(false);
+  }
+
+  // --- the interview policy (B6.1) -------------------------------------------
+
+  /** The stored row the panel is editing, or null for a college nobody has
+   *  configured. NULL IS A REAL ANSWER and the panel renders it as "not
+   *  configured", never as a row holding the defaults: only one of those two is
+   *  a decision somebody made. */
+  readonly policyRow = computed<InterviewPolicy | null>(() => {
+    const sheet = this.policySheet();
+    if (sheet === null) return null;
+    const scope = this.policyScope();
+    if (scope === '') return sheet.default;
+    return sheet.courses.find((row) => row.course_id === scope) ?? null;
+  });
+
+  readonly policyIsConfigured = computed(() => this.policyRow() !== null);
+
+  readonly policyEffective = computed<EffectivePolicy | null>(
+    () => this.policySheet()?.effective_default ?? null,
+  );
+
+  /** This college's clock, once one is on screen. Until then the card can only
+   *  name the product default, and says "by default" where it does. */
+  readonly effectiveRetentionDays = computed<number | null>(
+    () => this.policyEffective()?.retention_days ?? null,
+  );
+
+  /** `ck_interview_policy_bounds`: an attempt ceiling under the daily one makes
+   *  the daily allowance unreachable, so the database refuses the row. Refused
+   *  here too, on the field, rather than as a 500 from a CHECK. */
+  readonly policyCapsAreOrdered = computed(
+    () => this.draftAttemptCap() >= this.draftDailyCap(),
+  );
+
+  readonly canSavePolicy = computed<boolean>(() => {
+    if (this.policyCollege() === '' || this.policySaving() || this.policyLoading()) return false;
+    return this.policyCapsAreOrdered();
+  });
+
+  async togglePolicyPanel(): Promise<void> {
+    this.policyOpen.update((open) => !open);
+    if (!this.policyOpen()) return;
+    this.policyError.set(null);
+    this.policyFlash.set(null);
+    if (this.colleges() === null) await this.loadColleges();
+  }
+
+  /** The colleges the picker offers. Gated on `admin.institution`, not on this
+   *  screen's key, so a 403 is reachable and is said in words. */
+  private async loadColleges(): Promise<void> {
+    try {
+      const response = await fetch(`${environment.apiBase}/admin/colleges`, {
+        credentials: 'include',
+      });
+      if (response.status === 403) {
+        this.collegesBlocked.set(
+          'Editing an interview policy needs the Institution function as well, because the policy ' +
+            'belongs to a college and this screen cannot list colleges without it.',
+        );
+        this.colleges.set([]);
+        return;
+      }
+      if (!response.ok) {
+        this.collegesBlocked.set('The list of colleges could not be read.');
+        this.colleges.set([]);
+        return;
+      }
+      this.colleges.set((await response.json()) as CollegeOption[]);
+    } catch {
+      this.collegesBlocked.set('The list of colleges could not be read.');
+      this.colleges.set([]);
+    }
+  }
+
+  async setPolicyCollege(event: Event): Promise<void> {
+    this.policyCollege.set((event.target as HTMLSelectElement).value);
+    this.policyScope.set('');
+    this.policyFlash.set(null);
+    await this.loadPolicySheet();
+  }
+
+  setPolicyScope(event: Event): void {
+    this.policyScope.set((event.target as HTMLSelectElement).value);
+    this.policyFlash.set(null);
+    this.syncPolicyDraft();
+  }
+
+  private async loadPolicySheet(): Promise<void> {
+    const college = this.policyCollege();
+    if (college === '') {
+      this.policySheet.set(null);
+      return;
+    }
+    this.policyLoading.set(true);
+    this.policyError.set(null);
+    try {
+      const response = await fetch(
+        `${environment.apiBase}/admin/interview-policies/${encodeURIComponent(college)}`,
+        { credentials: 'include' },
+      );
+      if (!response.ok) {
+        this.policySheet.set(null);
+        this.policyError.set(await detailOf(response, 'This college’s policy could not be read.'));
+      } else {
+        this.policySheet.set((await response.json()) as PolicySheet);
+        this.syncPolicyDraft();
+      }
+    } catch {
+      this.policySheet.set(null);
+      this.policyError.set('This college’s policy could not be read.');
+    }
+    this.policyLoading.set(false);
+  }
+
+  /** Fill the form from the stored row, or — when there is none — from the
+   *  numbers actually in force, which the panel labels as exactly that. */
+  private syncPolicyDraft(): void {
+    const stored = this.policyRow();
+    const effective = this.policyEffective();
+    const from = stored ?? effective;
+    if (!from) return;
+    this.draftStoreTranscript.set(from.store_transcript);
+    this.draftStoreAudio.set(from.store_audio);
+    this.draftRetentionDays.set(from.retention_days);
+    this.draftDailyCap.set(from.daily_cap);
+    this.draftAttemptCap.set(from.attempt_cap);
+    this.draftTimeLimit.set(from.time_limit_seconds);
+  }
+
+  /** Write the college's default row, or one course's override.
+   *
+   *  EVERY FIELD IS SENT, and that is safe here precisely because the form
+   *  holds every field: `PolicyIn` treats an omitted field as "keep the number
+   *  already governing these students", so a partial form would be the
+   *  dangerous one. */
+  async savePolicy(): Promise<void> {
+    if (!this.canSavePolicy()) return;
+    const college = encodeURIComponent(this.policyCollege());
+    const scope = this.policyScope();
+    const url =
+      scope === ''
+        ? `${environment.apiBase}/admin/interview-policies/${college}`
+        : `${environment.apiBase}/admin/interview-policies/${college}/${encodeURIComponent(scope)}`;
+    this.policySaving.set(true);
+    this.policyError.set(null);
+    this.policyFlash.set(null);
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          store_transcript: this.draftStoreTranscript(),
+          store_audio: this.draftStoreAudio(),
+          retention_days: this.draftRetentionDays(),
+          daily_cap: this.draftDailyCap(),
+          attempt_cap: this.draftAttemptCap(),
+          time_limit_seconds: this.draftTimeLimit(),
+        }),
+      });
+      if (!response.ok) {
+        this.policyError.set(await detailOf(response, 'The policy was not saved.'));
+      } else {
+        this.policyFlash.set(
+          'Saved. It applies to interviews started from now on — an interview already running ' +
+            'keeps the scopes it opened under, and a retention window already stamped on a past ' +
+            'interview is not re-dated.',
+        );
+        await this.loadPolicySheet();
+      }
+    } catch {
+      this.policyError.set('The policy was not saved.');
+    }
+    this.policySaving.set(false);
+  }
+
+  numberValue(event: Event): number {
+    return Number((event.target as HTMLInputElement).value);
+  }
+
+  checkboxValue(event: Event): boolean {
+    return (event.target as HTMLInputElement).checked;
   }
 
   // --- the trend chart -------------------------------------------------------

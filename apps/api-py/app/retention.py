@@ -47,11 +47,11 @@ from sqlalchemy.orm import Session
 
 from .account_links import sweep_login_codes
 from . import document_store
-from .models.registration import Registration, RegistrationDocument, RegistrationStatus
 from .config import settings
 from .models.agent_run import AgentRun
 from .models.conversation import Conversation, Message
 from .models.interview import InterviewEvaluation, InterviewSession, InterviewTurn
+from .interview_summary import ensure_summary
 from .redaction import REDACTED, redact_pii
 
 log = logging.getLogger("reep.retention")
@@ -471,10 +471,25 @@ def finalize_orphaned_interviews(
             # A column reference, not a Python value — see the docstring.
             ended_at=InterviewSession.heartbeat_at,
         )
+        # RETURNING, added with B6.2. The ids are needed for one reason: this is
+        # the layer that closes the interviews NEITHER of the other two could,
+        # so it is the layer whose sessions would otherwise never get a score
+        # summary — and those summaries are the only part of the record that
+        # survives the 180-day purge. Reading them back costs nothing here
+        # (Postgres has the rows in hand) and the alternative is a trend that
+        # silently loses every interview whose process was killed.
+        .returning(InterviewSession.id)
     )
-    swept = result.rowcount or 0
+    swept_ids = [row[0] for row in result.all()]
+    swept = len(swept_ids)
     if swept:
         db.commit()
+        for session_id in swept_ids:
+            # Each in its own transaction, and each swallowing its own failure:
+            # the sweep above is already committed, and a bookkeeping copy must
+            # never be able to undo a record that has stopped lying about being
+            # `running`.
+            ensure_summary(db, session_id)
         log.warning(
             "Finalized %d orphaned interview session(s): status='running' with "
             "no heartbeat for over %d s. Each one is a relay process that died "

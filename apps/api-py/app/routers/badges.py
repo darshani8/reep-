@@ -22,7 +22,7 @@ from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -138,7 +138,35 @@ class GrowthOut(BaseModel):
 # --- composers (shared with the staff router) --------------------------------
 
 
+def _course_of(student: Student, db: Session) -> str | None:
+    """The `academic_courses` programme this student is on, through their batch.
+
+    None for a student nobody has seated yet, which is an ordinary state and not
+    an error — they simply get the un-narrowed catalogue, exactly as before B13.
+    """
+    if not student.cohort_id:
+        return None
+    from ..models.cohort import Cohort
+
+    return db.scalar(select(Cohort.course_id).where(Cohort.id == student.cohort_id))
+
+
 def compose_badges(student: Student, db: Session) -> BadgeDashboardOut:
+    # B13. WHICH OF THE 48 APPLY HERE, and which certificates count for them.
+    # Both are per-COURSE and both default to "everything", so a deployment
+    # with an empty `badge_course_map` and programme-wide certifications sees
+    # exactly what it saw before this existed.
+    #
+    # Imported from the module that WRITES the table rather than re-derived:
+    # two readings of "does this badge apply to this student" is how a student's
+    # dashboard and the screen that configured it end up disagreeing, with only
+    # the student able to see it.
+    from .admin_catalogue import disabled_badge_codes
+
+    course_id = _course_of(student, db)
+    disabled = disabled_badge_codes(db, course_id)
+    applicable = [b for b in BADGES if b.code not in disabled]
+
     rows = db.scalars(
         select(StudentBadge).where(StudentBadge.student_id == student.id)
     ).all()
@@ -153,9 +181,19 @@ def compose_badges(student: Student, db: Session) -> BadgeDashboardOut:
     for ev in evidence:
         ev_by_code[ev.badge_code].append(ev)
 
+    # A certification pinned to ANOTHER course is not this student's evidence
+    # path, and offering it would send them to buy a certificate their badge
+    # will not accept. NULL on both pointers is programme-wide and always in —
+    # that is what every row written before B13 means.
     certs = db.scalars(
         select(ApprovedCertification)
-        .where(ApprovedCertification.active.is_(True))
+        .where(
+            ApprovedCertification.active.is_(True),
+            or_(
+                ApprovedCertification.course_id.is_(None),
+                ApprovedCertification.course_id == course_id,
+            ),
+        )
         .order_by(ApprovedCertification.name)
     ).all()
     certs_by_code: dict[str, list[ApprovedCertification]] = defaultdict(list)
@@ -165,7 +203,7 @@ def compose_badges(student: Student, db: Session) -> BadgeDashboardOut:
     categories: dict[BadgeCategory, list[BadgeOut]] = defaultdict(list)
     points_total = 0
     earned_total = 0
-    for b in BADGES:
+    for b in applicable:
         row = by_code.get(b.code)
         evs = ev_by_code.get(b.code, [])
         pending = any(e.status == EvidenceStatus.PENDING_VERIFICATION for e in evs)
@@ -243,7 +281,10 @@ def compose_badges(student: Student, db: Session) -> BadgeDashboardOut:
         stage=student.current_stage.value,
         points_total=points_total,
         earned_total=earned_total,
-        badge_total=len(BADGES),
+        # WHAT THIS STUDENT CAN REACH, not what the catalogue holds. A course
+        # with eight badges switched off would otherwise render "3 / 48" with
+        # five of the missing forty-five simply absent from the tiles below.
+        badge_total=len(applicable),
         categories=[
             CategoryOut(
                 key=cat.value,

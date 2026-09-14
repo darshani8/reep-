@@ -1,5 +1,13 @@
 # Chapter 7 — The Staff & Machine API: Mentor, Director, Agent and Voice Endpoints
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 After this chapter you will be able to call, extend or audit every endpoint in REEP that is
 **not** reachable by a student acting on their own records. You will know which of the four
 routers owns which path, which of the two staff role tiers guards it, exactly where in each

@@ -1,19 +1,27 @@
 # tools/ci — the check CI runs, the copy you run first, and the one that turns CI into a gate
 
-Four files, and the difference between them matters more than the file count. One
-is executed by a workflow on every push and every pull request. Two are executed
-by a developer on a laptop before pushing, and are advisory by construction. One
-is executed by a repository admin, once, from a terminal, and is the reason the
-first one can fail anything at all.
+Eight files, and the difference between the KINDS matters more than the count.
+Five are executed by a workflow on every push and every pull request:
+`check_api_imports.py`, `check_pii_gate.py` and the three design-system guards
+(`check_brand_magenta.py`, `check_style_duplicates.py`, `check_theme_tokens.py`)
+— and a sixth lives next to the code it reads, at
+`apps/api-py/tools/ci/check_capability_enforcement.py`. Two are executed by a
+developer on a laptop before pushing and are advisory by construction. One is
+executed by a repository admin, once, from a terminal, and is the reason the
+others can fail anything at all.
 
-Every claim in this file was checked against the scripts on 2026-08-28. Where a
+This file documents the three in the second and third groups in depth; the
+design-system guards are described where the rule they defend lives
+(`AGENTS.md`, "Frontend conventions").
+
+Every claim in this file was checked against the scripts on 2026-09-13. Where a
 script does *not* do something a reader would reasonably assume, that is written
 down here rather than left to be discovered.
 
 | file | what it proves | who runs it | can it block a merge? |
 |---|---|---|---|
 | `check_api_imports.py` | `app/` imports nothing `requirements.txt` fails to declare | CI job **API (dependency completeness)**, every push to `main` and every PR | **not yet** — the job fails, but no check is *required*: `main` has no protection (see `protect-main.sh`) |
-| `preflight.sh` | the four CI jobs, run locally, before you push | a developer, by hand | **no**, and it is not meant to — it is invoked by nothing |
+| `preflight.sh` | all five CI jobs, run locally, before you push | a developer, by hand | **no**, and it is not meant to — it is invoked by nothing |
 | `preflight.ps1` | nothing of its own — it finds `bash` and hands `preflight.sh` the arguments | a developer on Windows | **no** |
 | `protect-main.sh` | nothing; it *applies* branch protection to `main` | a repository admin, by hand, with `gh auth login` | **no** — but every other row's ability to block comes from it |
 
@@ -48,16 +56,24 @@ statements cannot separate a third-party package from a first-party or stdlib
 module without reimplementing the resolver, and it never sees
 `importlib.import_module(name)`. Importing asks the question the runtime asks.
 
-Its sibling guard is inline in `.github/workflows/ci.yml` rather than here: the
-**Voice worker (dependency completeness)** job loads `voice_agent.py` from a
-fresh py3.12 environment built from `requirements-voice.txt` alone. Same shape
+It had a sibling, inline in `.github/workflows/ci.yml` rather than here: a
+**Voice worker (dependency completeness)** job that loaded `voice_agent.py` from
+a fresh py3.12 environment built from `requirements-voice.txt` alone. Same shape
 of bug, same shape of proof — that manifest once declared only `livekit-agents`
 while the worker imported four more packages, and it worked locally only because
 those had been pip-installed by hand for something else.
 
+**That job went with the LiveKit stack in 2026-09**, and what it left behind is
+the reason `protect-main.sh` greps `ci.yml` and a test now compares four files:
+`.github/rulesets/main.json` went on asking for `"Voice worker (dependency
+completeness)"` for months afterwards. Had that ruleset ever been applied, every
+pull request would have blocked on a check that could never report — a job is
+matched by its DISPLAY NAME as a string, so deleting one does not retire its
+requirement.
+
 ## `preflight.sh`
 
-The four CI jobs, run on your machine, in the order that fails fastest:
+All five CI jobs, run on your machine, in the order that fails fastest:
 
 ```
 ./tools/ci/preflight.sh
@@ -70,7 +86,7 @@ app.seed`, then `pytest`, and on the web side runs `tsc --noEmit`, `ng test
 so a red line here and a red job there are recognisably the same thing.
 
 ```
-./tools/ci/preflight.sh --quick         # the two fast checks only; seconds
+./tools/ci/preflight.sh --quick         # the fast checks only; seconds
 ./tools/ci/preflight.sh --keep-going    # run everything even after a failure
 ./tools/ci/preflight.sh --clean-deps    # dependency checks in a THROWAWAY venv, as CI does
 ./tools/ci/preflight.sh --npm-ci        # npm ci first, as the Web job does
@@ -105,14 +121,26 @@ authority is the required status checks on the pull request — once those exist
 ### What it does *not* run
 
 Named here because the gap is the useful part of this section. `preflight.sh`
-runs **four** checks because `ci.yml` defines four jobs. It does not run
-`alembic check`, it does not assert `alembic heads` prints one row, it does not
-attempt the `downgrade -1 && upgrade head` round trip, and it runs no secret
-scan, no `git check-ignore` assertions and no formatter. Those are steps the
-process documents ask for and **no workflow performs them today** — so preflight
-is not lagging CI, it matches it, and both are silent on the schema mistake that
-is the most common one in this repository (a model changed with no revision, or
-two heads after a rebase). Check those by hand until a job exists:
+runs **five** checks because `ci.yml` defines five jobs — and that matched only
+from Phase 5. It ran four for months, arguing in its own usage text that
+`Infra (CDK synth guards)` "needs its own Python 3.12 environment under
+infra/cdk and only matters when infra/ is touched". Both halves were true and
+neither made it optional: it is a REQUIRED status check, so it runs on every
+pull request whether `infra/` was touched or not, and a red one blocks a merge
+about something else entirely. A local runner that covers four fifths of the
+gate is worse than one that covers none — it teaches you to trust it and then
+lets you push into the fifth. `apps/api-py/tests/test_codebase_guards.py` now
+fails the build if `ci.yml`, `.github/rulesets/main.json`, `protect-main.sh` and
+`preflight.sh` ever name different checks.
+
+What is still missing from all five is schema hygiene. Nothing runs
+`alembic check`, nothing asserts `alembic heads` prints one row, nothing attempts
+the `downgrade -1 && upgrade head` round trip, and there is no secret scan, no
+`git check-ignore` assertion and no formatter. Those are steps the process
+documents ask for and **no workflow performs them today** — so preflight is not
+lagging CI, it matches it, and both are silent on the schema mistake that is the
+most common one in this repository (a model changed with no revision, or two
+heads after a rebase). Check those by hand until a job exists:
 
 ```
 cd apps/api-py && python -m alembic check && python -m alembic heads
@@ -122,7 +150,7 @@ cd apps/api-py && python -m alembic check && python -m alembic heads
 
 A wrapper, deliberately not a second implementation: it locates `bash` and
 forwards every argument and the exit code unchanged. A PowerShell port would be a
-third copy of the same four commands, and the copy that drifts from `ci.yml` is
+third copy of the same five commands, and the copy that drifts from `ci.yml` is
 always the one nobody runs often enough to notice.
 
 ```
@@ -137,22 +165,31 @@ a Linux filesystem view makes it invoke `apps/api-py/.venv/Scripts/python.exe`,
 producing a failure that reads as a broken preflight rather than as the wrong
 shell. With no bash found it exits **69** and prints install instructions.
 
-That fallback lists all four checks by hand, each labelled with the CI job it
-stands in for. It listed only three until this commit: **"Voice worker
-(dependency completeness)" was missing**, which is the check whose manifest
-actually shipped incomplete and the one this repository added a guard for first.
-A Windows developer with no Git Bash who followed it had run three of four checks
-believing they ran all four — the exact SKIP-versus-PASS confusion the exit code
-2 exists to prevent. The fourth command is the `ci.yml` **worker-imports** step,
-and it runs against the separate Python 3.12 venv — `.venv-voice`, never `.venv`,
-because `livekit-agents` declares `Requires-Python <3.15` and will not install
-into the 3.14 one.
+That fallback lists all five checks by hand, each labelled with the CI job it
+stands in for, and keeping it honest has already gone wrong twice.
+
+It listed three of four once, missing **"Voice worker (dependency
+completeness)"** — the check whose manifest actually shipped incomplete, and the
+one this repository added a guard for first. A Windows developer with no Git Bash
+who followed it ran three checks believing they had run all four: the exact
+SKIP-versus-PASS confusion exit code 2 exists to prevent.
+
+Then that job was DELETED with the LiveKit stack in 2026-09 and this fallback was
+not touched, so until Phase 5 it told a Windows developer to run `voice_agent.py`
+out of `.venv-voice` — a deleted file, out of a venv nothing creates, against a
+manifest that no longer exists — while saying nothing about Rule 1 or the CDK
+guards, which were two of the five things actually gating their merge. (It also
+printed `cd ..` followed by a literal BEL byte where `\a` in `..\api-py` had been
+eaten by an escape somewhere: the instruction beeped the terminal instead of
+changing directory.) Instructions rot in exactly the direction of the deletion
+that made them wrong, which is why the check-name agreement is now a test rather
+than a habit — see `apps/api-py/tests/test_codebase_guards.py`.
 
 ## `protect-main.sh`
 
 Applies classic branch protection to `main` on `github.com/darshani8/reep-`
 through `gh api -X PUT repos/{owner}/{repo}/branches/{branch}/protection`: the
-four CI jobs required by their exact display names, `strict` (up-to-date)
+five CI jobs required by their exact display names, `strict` (up-to-date)
 branches, a pull request required, stale approvals dismissed, conversation
 resolution required, force pushes and deletion blocked, and — by default — the
 rules applied to administrators.
@@ -178,7 +215,7 @@ and see below for why no workflow should hold a token that could call it.
 **There are now two routes to the same control, and you must take only one.**
 `.github/rulesets/main.json` is the *ruleset* form of this configuration —
 `gh api -X POST repos/darshani8/reep-/rulesets --input .github/rulesets/main.json` —
-and it requires the same four checks with `required_approving_review_count: 0`
+and it requires the same five checks with `required_approving_review_count: 0`
 and `bypass_actors: []`. Classic protection (this script) and rulesets are
 separate systems that GitHub evaluates together, most-restrictive-wins. Applying
 both leaves two places a control can be relaxed and one of them is the place

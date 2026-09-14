@@ -325,16 +325,31 @@ def update_college(
 # including themselves, to anything — Governance stays the Main Admin's and its
 # deputy's), `admin.interview_audio` (a recording is a named student's voice and
 # is its own decision every time, which is why it is the one key the Main Admin
-# holds and grants separately), `ui.console_v2` (a rendering preview, not a
-# function) and every `mentor.*` key (a college admin is not a faculty member of
-# that college's students — the same reasoning `_FACULTY_ONLY` applies to the
-# Main Admin).
+# holds and grants separately) and every `mentor.*` key (a college admin is not
+# a faculty member of that college's students — the same reasoning
+# `_FACULTY_ONLY` applies to the Main Admin). `ui.console_v2` was a fourth, kept
+# out as "a rendering preview, not a function"; Phase 5 deleted the key itself.
 #
-# `admin.interviews` is in 04-backend-changes.md's list for this set and IS NOT
-# IN THE CATALOGUE — B6.7 adds it with the records grid. `admin.interview_questions`
-# is the interview key that exists today and is the one granted. When B6.7 lands,
-# add its key here; the appointment endpoint is idempotent, so re-running it on
-# an existing college admin fills in whatever is missing.
+# `admin.interviews` IS NOW IN THE CATALOGUE and is in the set below (Phase 4c,
+# B6.1/B6.4). It was listed in 04-backend-changes.md for this set for months
+# while the key did not exist, and this comment used to say so — the note is
+# kept in the past tense because the rule it records is the one that matters:
+# a name in this tuple with no catalogue entry is a KeyError in
+# `CAPABILITIES_BY_KEY[key]` below, thrown in front of whoever is appointing a
+# college admin. The key, its first `require_capability` call site
+# (`app/routers/interview_policy.py`) and this line landed in ONE commit, the
+# same rule `admin.imports` was held to. It carries PII, so it is one of the
+# keys that lands `pending_approval`. `admin.interview_questions` is the other
+# interview key and stays: the two are different decisions — who may edit the
+# questions the interviewer asks, and who may set the college's policy and read
+# the records. The appointment endpoint is idempotent, so re-running it on an
+# existing college admin fills in whatever is missing.
+#
+# `admin.imports` (B8.1) IS in the set, by the owner's decision, and it carries
+# PII — so it is one of the seven of thirteen that land `pending_approval` and hold
+# nothing until a second `admin.governance` holder approves them. That is the
+# state `CollegeAdminGrantOut.approval_state` reports per key, for exactly this
+# reason.
 
 #: The functions that make up "runs this college". Ordered as the console's
 #: sidebar orders them, so the screen and this list can be read against each
@@ -350,6 +365,8 @@ COLLEGE_ADMIN_CAPABILITIES: tuple[str, ...] = (
     "admin.placement",
     "admin.swoc",
     "admin.interview_questions",
+    "admin.interviews",
+    "admin.imports",
     "admin.exports",
 )
 
@@ -358,7 +375,7 @@ class CollegeAdminGrantOut(BaseModel):
     capability: str
     label: str
     #: `active` or `pending_approval`. A `carries_pii` capability needs a second
-    #: Main Admin before it does anything (B2.4) and five of the eleven carry
+    #: Main Admin before it does anything (B2.4) and seven of the thirteen carry
     #: it, so a freshly appointed college admin is normally PART live. Reporting
     #: the state per key rather than one boolean for the set is the difference
     #: between "approve these five" and "why does half my console 403".
@@ -397,7 +414,7 @@ def _college_or_404(db: Session, college_id: str) -> College:
 def _college_admin_rows(db: Session, college_id: str) -> list[CollegeAdminOut]:
     """Everybody holding any of the set, scoped to this college.
 
-    ANY rather than ALL, on purpose. A person holding nine of the eleven is a
+    ANY rather than ALL, on purpose. A person holding nine of the thirteen is a
     college admin whose appointment is incomplete or partly revoked, and the one
     screen that could tell the office that is this one; requiring the full set
     would render them as nobody and leave nine live grants invisible here.
@@ -447,7 +464,7 @@ def list_college_admins(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[CollegeAdminOut]:
-    """Who runs this college, and with which of the eleven functions.
+    """Who runs this college, and with which of the thirteen functions.
 
     `require_governance`: this reads WHO HOLDS WHAT, which is the Governance
     screen's subject and not the institution screen's. Gating it on
@@ -478,7 +495,7 @@ def appoint_college_admin(
     again. Two live rows for one pair make revocation a question of which one —
     and here it would also be a question of which reason was the real one.
 
-    THE SECOND-APPROVAL RULE IS NOT BYPASSED. Five of the eleven are
+    THE SECOND-APPROVAL RULE IS NOT BYPASSED. Seven of the thirteen are
     `carries_pii`, so those rows are written `pending_approval` and hold nothing
     until a different holder of `admin.governance` approves each in Governance
     (B2.4). That is the point of appointing somebody through grants rather than

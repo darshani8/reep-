@@ -9,6 +9,7 @@ from sqlalchemy import bindparam, func, select
 from sqlalchemy.orm import Session
 
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
@@ -38,6 +39,15 @@ from ..models.course import Course, Enrollment, ProgressStatus
 from ..models.job import Job, JobApplication
 from ..models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from ..models.mock_test import MockAttempt
+# B6.3. The mock interviewer's four numbers reach the home screen through the
+# SUMMARY table, never through `interview_evaluations`: the summaries outlive
+# the 180-day purge, so a trend, a readiness factor and the Home chart do not
+# quietly lose their oldest points every night. See app/interview_summary.py.
+from ..models.interview import (
+    InterviewEvaluation,
+    InterviewScoreSummary,
+    InterviewSession,
+)
 from ..models.offer import (
     OfferChannel,
     OfferRoleType,
@@ -45,16 +55,25 @@ from ..models.offer import (
     OfferWorkMode,
     PlacementOffer,
 )
-from ..models.placement_criteria import PlacementCriteria
+from ..criteria import (
+    ResolvedCriteria,
+    resolve as resolve_criteria,
+    resolve_for_student as resolve_criteria_for_student,
+    resolve_for_students as resolve_criteria_for_students,
+)
+# B12.1/B12.2. Which postings reach this viewer, decided in one module shared
+# with the alumni board — see `app/jobs_visibility.py` for why the two feeds
+# must not each own a copy of that answer.
+from ..jobs_visibility import audience_for_student, postings_for
 from ..models.student_profile import StudentProfile
 from ..models.resume import Resume, ResumeStatus
 from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, SkillClaim, StudentSkill
-from ..models.swoc import SwocEntry
+from ..models.swoc import SwocEntry, SwocKind, SwocSource
 from ..models.resume_profile import ResumeProfile
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload, UploadKind, UploadStatus
-from ..models.user import LoginDay, Mentor, Student, User
+from ..models.user import LoginDay, Mentor, Role, Student, User
 from ..ratelimit import llm_rate_limited
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -389,11 +408,10 @@ class ProfileOut(BaseModel):
 def my_profile(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> ProfileOut:
-    student_id = session.get("studentId")
-    if not student_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Not a student account."
-        )
+    # Through the one helper rather than a fourth copy of the same two lines:
+    # this was an inline duplicate and therefore the one student endpoint the
+    # B4.4 role check would have missed.
+    student_id = _require_student(session)
     prof = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
     if prof is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile yet.")
@@ -421,6 +439,35 @@ class SemesterResultOut(BaseModel):
 
 
 def _require_student(session: dict) -> str:
+    """The student's own id, or a 403 — and the ROLE is checked, not just the claim.
+
+    THE MOST DANGEROUS LINE IN B4.4. This used to read `session["studentId"]`
+    and nothing else, and `_payload_for` (routers/auth.py) mints that claim for
+    ANY account with a `students` row. Graduation flips `users.role` to ALUMNI
+    and deliberately KEEPS the `students` row — it is the record of their marks,
+    badges and interviews — so on the role check alone a graduate kept a valid
+    `studentId` and with it roughly forty endpoints across this module,
+    student_programme.py and badges.py: results, ledger, uploads, resume
+    generation, SWOC acknowledgements. The Angular `roleGuard('STUDENT')` bounced
+    them off the SCREENS, so the symptom would have been an API wide open behind
+    a client that looked closed.
+
+    It is not only graduation. `registrations`' GUARD 2 refuses to attach a
+    Student row to a staff account precisely because `studentId` would then ride
+    in a MENTOR's session; that guard is one write path, and this is the read
+    side of the same fact. The role is what decides scope (rule 2). The claim
+    only says which row.
+
+    BOTH FACTS ARE REQUIRED AND THE ROLE IS ASKED FIRST, so a STUDENT-role
+    account with no Student row and an ALUMNI account with one get different
+    sentences — they are different problems and the office fixes them
+    differently.
+    """
+    if session.get("role") != Role.STUDENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The student screens are open to current students only.",
+        )
     student_id = session.get("studentId")
     if not student_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a student account.")
@@ -593,9 +640,39 @@ def overview(
 
 
 class SwocItemOut(BaseModel):
+    """One line of the student's own board — B7.5.
+
+    THE FOUR NEW FIELDS ARE ADDITIVE AND THE TILE IS NOT REDRAWN. 04 asks for
+    author, date and an acknowledgement here, and the board in this repository
+    (`docs/redesign-2026-09/design/student/MentorLogRedesign.html`) draws none of
+    them: the SWOC tiles are eyebrow + text, one tile per quadrant, and
+    `03-student-portal-spec.md` says "API unchanged" for that screen. The
+    current client concatenates every entry in a quadrant into ONE STRING
+    (`mentor-log.component.ts`'s `joinSwoc`), so per-entry author, date or an
+    acknowledge button is structurally impossible without a new tile — and
+    inventing one is not this task's to invent. The API carries the facts so the
+    screen can be built when the board says how; nothing that exists changes
+    shape, because every one of these is a new key.
+
+    `id` is here because `POST /student/swoc/{entry_id}/acknowledge` needs one
+    and the student's payload has never exposed it.
+    """
+
+    id: str
     source: str
     text: str
     weight: int
+    #: The author's NAME, with `author_recorded` beside it for the same reason
+    #: the admin board carries the pair — and see that model for why the flag is
+    #: NOT "the account is gone": `author_user_id` is `ON DELETE SET NULL`, so
+    #: `author: null` means nobody was recorded and nothing else. On the
+    #: student's own screen that must render as "Author not recorded"; "written
+    #: by somebody who left" is a sentence about a person who never existed.
+    author: str | None
+    author_recorded: bool
+    recorded_at: datetime
+    semester: int | None
+    acknowledged_at: datetime | None
 
 
 class SwocBoardOut(BaseModel):
@@ -610,8 +687,9 @@ def my_swoc(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> SwocBoardOut:
     student_id = _require_student(session)
-    rows = db.scalars(
-        select(SwocEntry)
+    rows = db.execute(
+        select(SwocEntry, User.name)
+        .outerjoin(User, User.id == SwocEntry.author_user_id)
         .where(SwocEntry.student_id == student_id)
         .order_by(SwocEntry.weight.desc())
     ).all()
@@ -621,9 +699,14 @@ def my_swoc(
         "OPPORTUNITY": [],
         "CHALLENGE": [],
     }
-    for r in rows:
+    for r, author in rows:
         buckets[r.kind.value].append(
-            SwocItemOut(source=r.source.value, text=r.text, weight=r.weight)
+            SwocItemOut(
+                id=r.id, source=r.source.value, text=r.text, weight=r.weight,
+                author=author, author_recorded=r.author_user_id is not None,
+                recorded_at=r.recorded_at, semester=r.semester,
+                acknowledged_at=r.acknowledged_at,
+            )
         )
     return SwocBoardOut(
         strengths=buckets["STRENGTH"],
@@ -633,6 +716,69 @@ def my_swoc(
     )
 
 
+@router.post("/swoc/{entry_id}/acknowledge", response_model=SwocItemOut)
+def acknowledge_swoc(
+    entry_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> SwocItemOut:
+    """"I have read this." — B7.5. The student's own entry, and nobody else's.
+
+    FIRST-PERSON, WITH THE ID FROM THE SESSION AND NEVER FROM THE REQUEST.
+    `_require_student` resolves who is asking, and the entry must carry that
+    student_id or this is a 404 — an entry id is a bare uuid, so without that
+    check the endpoint would acknowledge any line about any student on the
+    deployment, which is a write against somebody else's record.
+
+    IDEMPOTENT, AND IT KEEPS THE FIRST TIMESTAMP. Pressing it twice is a
+    double-tap, not a second reading, and re-stamping would move the date the
+    mentor sees. A line cannot be UN-acknowledged: "I read it" is not a thing a
+    later click makes untrue, and a toggle would let a student quietly undo the
+    one signal this field carries.
+
+    NOT FEATURE-GATED. `governance.require_feature`'s map gates
+    `student.mentor_log` on `GET /student/mentor-meetings` only, and `GET
+    /student/swoc` — which also feeds Home — has never been gated. Acknowledging
+    a line about yourself is closest to that docstring's "artefact the student
+    already produced" exemption; gating it would hide the button on a board the
+    same screen still draws.
+    """
+    student_id = _require_student(session)
+    row = db.execute(
+        select(SwocEntry, User.name)
+        .outerjoin(User, User.id == SwocEntry.author_user_id)
+        .where(SwocEntry.id == entry_id, SwocEntry.student_id == student_id)
+    ).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such entry.")
+    entry, author = row
+    if entry.acknowledged_at is None:
+        entry.acknowledged_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(entry)
+    return SwocItemOut(
+        id=entry.id, source=entry.source.value, text=entry.text, weight=entry.weight,
+        author=author, author_recorded=entry.author_user_id is not None,
+        recorded_at=entry.recorded_at, semester=entry.semester,
+        acknowledged_at=entry.acknowledged_at,
+    )
+
+
+#: B6.3 — where one row of the Home mocks chart came from.
+#:
+#: `mock_attempt` is the staff-logged rehearsal the placement cell has always
+#: recorded by hand; `interview` is a completed mock interview with the AI
+#: interviewer. ONE SERIES, TWO SOURCES, because to a student they are the same
+#: thing — "how have my practice interviews gone" — and two charts side by side
+#: would make them ask which one counts.
+#:
+#: The field DEFAULTS to `mock_attempt`, which is what makes this additive: a
+#: client built before this release reads the same six keys it always did and
+#: simply gains rows.
+MOCK_SOURCE_ATTEMPT = "mock_attempt"
+MOCK_SOURCE_INTERVIEW = "interview"
+
+
 class MockAttemptOut(BaseModel):
     type: str
     taken_on: datetime
@@ -640,19 +786,39 @@ class MockAttemptOut(BaseModel):
     max_score: float | None
     percent: float | None
     notes: str | None
+    source: str = MOCK_SOURCE_ATTEMPT
 
 
 @router.get("/mocks", response_model=list[MockAttemptOut])
 def my_mocks(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[MockAttemptOut]:
+    """Every practice attempt, newest first — staff-logged and AI both (B6.3).
+
+    THE INTERVIEWS COME FROM `interview_score_summaries`, not from
+    `interview_sessions` joined to their evaluations, and the difference shows
+    up six months after a deployment goes live rather than in any test: the
+    summary is the row that survives `retention.purge_expired`, so the oldest
+    points on this chart stay where they are instead of disappearing overnight.
+
+    ONLY COMPLETED INTERVIEWS COUNT HERE, which is deliberately NARROWER than
+    `GET /api/interview/progress`. This is the Home chart — "how have my
+    practice attempts scored" — and an abandoned interview has no score to plot.
+    The progress screen carries every attempt including the abandoned ones,
+    because "three attempts abandoned in the first minute" is the fact a MENTOR
+    needs, and it is a fact about practice habits rather than about performance.
+
+    A scorecard the model never produced leaves `score` NULL. It is not turned
+    into a 0 anywhere on the way here: a missing score and a zero mean opposite
+    things, and this list is charted.
+    """
     student_id = _require_student(session)
     rows = db.scalars(
         select(MockAttempt)
         .where(MockAttempt.student_id == student_id)
         .order_by(MockAttempt.taken_on.desc())
     ).all()
-    return [
+    out = [
         MockAttemptOut(
             type=r.type.value,
             taken_on=r.taken_on,
@@ -664,9 +830,42 @@ def my_mocks(
                 else None
             ),
             notes=r.notes,
+            source=MOCK_SOURCE_ATTEMPT,
         )
         for r in rows
     ]
+    interviews = db.scalars(
+        select(InterviewScoreSummary)
+        .where(
+            InterviewScoreSummary.student_id == student_id,
+            InterviewScoreSummary.status == "completed",
+        )
+        .order_by(InterviewScoreSummary.started_at.desc())
+    ).all()
+    out.extend(
+        MockAttemptOut(
+            # The same word `MockType.INTERVIEW` carries, so the chart's series
+            # key does not fork. `source` is what tells the two apart, and it is
+            # the field a client should branch on — never the type.
+            type="INTERVIEW",
+            taken_on=iv.started_at,
+            score=None if iv.overall_score is None else float(iv.overall_score),
+            # The scorecard is already out of 100, so the percent and the score
+            # are the same number. Stated rather than left for the client to
+            # infer from a null max_score, which would chart as a bare count.
+            max_score=None if iv.overall_score is None else 100.0,
+            percent=None if iv.overall_score is None else float(iv.overall_score),
+            # No notes. The interview's own words are its transcript and its
+            # scorecard, both of which have their own screen with the
+            # calibration copy beside them; a summary sentence pulled onto a
+            # chart tooltip would be the model's judgement with none of that.
+            notes=None,
+            source=MOCK_SOURCE_INTERVIEW,
+        )
+        for iv in interviews
+    )
+    out.sort(key=lambda m: m.taken_on, reverse=True)
+    return out
 
 
 class StudentSkillOut(BaseModel):
@@ -897,7 +1096,14 @@ def my_jobs(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[JobRowOut]:
     """The opportunities feed with a per-row skill match % and the eligibility
-    verdict (per-posting CGPA / live-backlog gates)."""
+    verdict (per-posting CGPA / live-backlog gates).
+
+    NARROWED TO THIS STUDENT'S COLLEGE, COURSE AND TRACK (B12.1), and to the
+    postings that are still open (B12.2). Both rules live in
+    `app/jobs_visibility.py` because the alumni board applies exactly the same
+    ones; read that module before changing what a NULL college means, because
+    the answer is load-bearing for every posting that existed before B12.1.
+    """
     student_id = _require_student(session)
     require_feature(db, student_id, "student.jobs")
 
@@ -928,13 +1134,14 @@ def my_jobs(
             select(JobApplication.job_id).where(JobApplication.student_id == student_id)
         ).all()
     )
-    # Active placement criteria supply the defaults when a posting has no override.
-    crit = db.scalar(
-        select(PlacementCriteria)
-        .where(PlacementCriteria.active.is_(True))
-        .order_by(PlacementCriteria.updated_at.desc())
-        .limit(1)
-    )
+    # B8.2: ONE RESOLVER, and this call site is why it exists. It used to fall
+    # through to `None` when no criteria row was set, which is NO GATE AT ALL —
+    # while `readiness_criteria` two screens away was applying 6.0 CGPA to the
+    # same student. `criteria.resolve_for_student` walks the student's course,
+    # then their college, then the programme row, then the hard-coded defaults;
+    # `app/criteria.py` records that this now gates a deployment which had no
+    # row, and why that is the point rather than a regression.
+    crit = resolve_criteria_for_student(db, student_id)
     gap = db.get(AcademicGap, student_id)
     gap_months = (
         gap.twelfth_to_grad_mo + gap.diploma_to_grad_mo + gap.grad_to_pg_mo + gap.other_mo
@@ -943,17 +1150,20 @@ def my_jobs(
     )
 
     rows: list[JobRowOut] = []
-    for j in db.scalars(select(Job).order_by(Job.posted_on.desc())).all():
+    audience = audience_for_student(db, student_id)
+    for j in db.scalars(postings_for(audience)).all():
         required = set(j.required_skills or [])
         match = round(100 * len(skill_slugs & required) / len(required), 1) if required else 100.0
         # Per-posting override wins; else fall back to the active criteria.
-        min_cgpa = j.min_cgpa if j.min_cgpa is not None else (crit.min_cgpa if crit else None)
+        # The per-posting override still wins; what changed is what it falls
+        # back TO. A posting that names no gate is governed by the criteria that
+        # resolved for this student, which is the same row their readiness card
+        # is scored against.
+        min_cgpa = j.min_cgpa if j.min_cgpa is not None else crit.min_cgpa
         max_backlogs = (
-            j.max_live_backlogs
-            if j.max_live_backlogs is not None
-            else (crit.max_live_backlogs if crit else None)
+            j.max_live_backlogs if j.max_live_backlogs is not None else crit.max_live_backlogs
         )
-        max_gap = crit.max_gap_months if crit else None
+        max_gap = crit.max_gap_months
         reasons: list[str] = []
         # A null CGPA is unassessed (not blocking); only an actual below-cutoff blocks.
         if min_cgpa is not None and latest_cgpa is not None and latest_cgpa < min_cgpa:
@@ -998,7 +1208,17 @@ def apply_to_job(
     # the office's sentence rather than "Job not found" for a posting that is
     # sitting right there.
     require_feature(db, student_id, "student.jobs")
-    job = db.get(Job, job_id)
+    # THE BUTTON OBEYS THE LIST (B12.1/B12.2). The feed above narrows to this
+    # student's college, course and track and to the postings still open;
+    # without the same predicate here that narrowing is decoration, because the
+    # id of a posting for another college is guessable and a closed posting's id
+    # is sitting in the student's own browser from before it closed. Same 404 as
+    # a posting that does not exist, and deliberately the same sentence: "you
+    # may not apply to this" and "this is not for you" are the same fact to the
+    # applicant, and two different answers would say which colleges exist.
+    job = db.scalar(
+        postings_for(audience_for_student(db, student_id)).where(Job.id == job_id)
+    )
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
     existing = db.scalar(
@@ -2499,12 +2719,28 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
         return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} skills") for sid in sids}
 
     if board == "mocks":
+        # B6.3 — BOTH SOURCES, and in the same commit as `my_mocks`. This board
+        # and the Home chart answer the same question in the same word
+        # ("mocks"), so a board counting only the staff-logged rehearsals would
+        # tell a student they had sat 2 while their own home screen showed 9,
+        # with nothing on either screen to explain the gap. Completed interviews
+        # only, which is exactly what `my_mocks` charts.
         rows = db.execute(
             select(MockAttempt.student_id, func.count())
             .where(MockAttempt.student_id.in_(sids))
             .group_by(MockAttempt.student_id)
         ).all()
         counts = {sid: n for sid, n in rows}
+        interview_rows = db.execute(
+            select(InterviewScoreSummary.student_id, func.count())
+            .where(
+                InterviewScoreSummary.student_id.in_(sids),
+                InterviewScoreSummary.status == "completed",
+            )
+            .group_by(InterviewScoreSummary.student_id)
+        ).all()
+        for sid, n in interview_rows:
+            counts[sid] = counts.get(sid, 0) + n
         return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} mocks") for sid in sids}
 
     if board == "vtu":
@@ -2722,14 +2958,32 @@ def set_leaderboard_visibility(
 # STUDENT-only and never touch a model, so they carry no student-data egress.
 
 
-def _attendance_pct(db: Session, student_id: str) -> float:
-    """Overall attendance %, same computation the dashboard/attendance uses."""
+def _attendance_pct(db: Session, student_id: str) -> float | None:
+    """Overall attendance %, or None when NOTHING HAS BEEN RECORDED.
+
+    IT RETURNED 0.0 FOR AN EMPTY TABLE UNTIL 2026-09-13, and that was a live
+    violation of the cross-cutting guardrail (07 §5) the rest of this codebase
+    already keeps in four other places. `attendance_records` has exactly one
+    writer — B8.1's spreadsheet import — so on every deployment where that
+    import has not yet been run, EVERY student was shown "Attendance 0.0% vs
+    required 75.0%" with a red Not-met chip beside it, on their own home screen,
+    for a bar nobody had measured them against. A student reading that has been
+    told they are failing; the true statement is that no attendance has been
+    imported.
+
+    None and 0.0 are opposite facts here and must never render the same:
+    `console.py::MenteeMetricsOut.attendance_percent` and
+    `student_weekly.attendance_percent` already say exactly this, per student
+    and per week. This is the third reader and the one that was wrong.
+    """
     rows = db.execute(
         select(AttendanceRecord.present).where(AttendanceRecord.student_id == student_id)
     ).all()
     total = len(rows)
+    if not total:
+        return None
     present = sum(1 for (p,) in rows if p)
-    return round(100 * present / total, 1) if total else 0.0
+    return round(100 * present / total, 1)
 
 
 def _latest_cgpa(db: Session, student_id: str) -> float | None:
@@ -2742,19 +2996,41 @@ def _latest_cgpa(db: Session, student_id: str) -> float | None:
     return latest.cgpa if latest else None
 
 
-def _live_backlogs(db: Session, student_id: str) -> int:
-    return int(
-        db.scalar(
-            select(func.coalesce(func.sum(SemesterResult.live_backlogs), 0)).where(
-                SemesterResult.student_id == student_id
-            )
+def _live_backlogs(db: Session, student_id: str) -> int | None:
+    """Total live backlogs across every semester result, or None when no result
+    has been recorded.
+
+    THIS ONE FAILED IN THE OTHER DIRECTION and is the more insidious of the
+    pair. `sum()` over no rows is 0, and 0 backlogs PASSES the readiness check —
+    so a student with nothing imported was shown a green Met chip on a fact
+    nobody had established, beside a red one on attendance. Absence read as a
+    pass is still absence read as a measurement, and it is the version nobody
+    reports as a bug.
+
+    Backlogs and CGPA are the same evidence (`semester_results`), so they
+    resolve together: either the marks are in and both are answerable, or
+    neither is.
+    """
+    rows = db.execute(
+        select(SemesterResult.live_backlogs).where(
+            SemesterResult.student_id == student_id
         )
-        or 0
-    )
+    ).all()
+    if not rows:
+        return None
+    return int(sum(int(n or 0) for (n,) in rows))
 
 
-def _cert_completion_pct(db: Session, student_id: str) -> float:
-    """Share of the student's certifications that are COMPLETED."""
+def _cert_completion_pct(db: Session, student_id: str) -> float | None:
+    """Share of the student's certifications that are COMPLETED, or None when
+    none is enrolled.
+
+    `_attendance_pct`'s fix, applied to its neighbour for the same reason: "0%
+    of certifications completed vs required 50%" is a failing grade in a course
+    nobody has put them on. A student with an empty shelf has not fallen behind;
+    there is nothing to be behind on, and the readiness score must not spend a
+    weight on it either way.
+    """
     rows = db.execute(
         select(CertificationProgress.status).where(
             CertificationProgress.student_id == student_id
@@ -2762,7 +3038,7 @@ def _cert_completion_pct(db: Session, student_id: str) -> float:
     ).all()
     total = len(rows)
     if not total:
-        return 0.0
+        return None
     done = sum(1 for (s,) in rows if s == ProgressStatus.COMPLETED)
     return round(100 * done / total, 1)
 
@@ -2770,6 +3046,101 @@ def _cert_completion_pct(db: Session, student_id: str) -> float:
 def _resume_pct(db: Session, student_id: str) -> int:
     row = db.scalar(select(ResumeProfile).where(ResumeProfile.student_id == student_id))
     return _resume_completeness(row.data if row else {})
+
+
+#: B6.3 — how far back a mock-interview score counts towards readiness.
+#:
+#: Ninety days is the spec's number and it is a judgement about SHELF LIFE, not
+#: about the window a student practises in: an interview sat last October says
+#: very little about how somebody presents in February, and a readiness score
+#: standing on it would be quietly out of date on the screen a placement
+#: decision gets argued from. Past the window the factor goes back to
+#: UNMEASURED — which is not the same as failing it, and the machinery below
+#: keeps those apart.
+INTERVIEW_READINESS_WINDOW_DAYS = 90
+
+#: The bar a mock-interview score has to clear to count as met.
+#:
+#: A JUDGEMENT AND NOT A DERIVATION, and it deliberately does not live in
+#: `placement_criteria` with the other four cut-offs. Those four are the
+#: college's (B8.2 made them a table, per course, with history); this one is a
+#: property of a scorecard written by a model REEP chose and is not a rule any
+#: college has set. Putting it in that table would invite an office to tune it
+#: against a scale they have no way to calibrate.
+#:
+#: 60 is the same number `_readiness_band` calls the bottom of "On track", so a
+#: student whose interview score is at their overall band passes this check
+#: rather than dragging it. Move it and a cohort changes band on a deploy.
+MIN_MOCK_INTERVIEW_SCORE = 60
+
+
+def _best_interview_score(db: Session, student_id: str) -> int | None:
+    """The best overall mock-interview score inside the window, or None.
+
+    BEST, NOT LATEST, and the spec says so for a reason worth keeping: this is a
+    practice instrument a student is meant to use repeatedly, and a rule that
+    reads the last attempt punishes exactly the behaviour the product is asking
+    for — sitting one more interview to try something different can only lower
+    your readiness. Best answers "what has this student shown they can do".
+
+    None means NOT ASSESSED and is the whole point of the column being nullable
+    all the way down. A student who has never practised has no interview score;
+    they have not failed one. `build_readiness` carries that through as
+    `measured=False`, which keeps the factor out of the denominator entirely —
+    so not having practised yet cannot lower a readiness score.
+
+    Reads `interview_score_summaries`, never `interview_evaluations`: the
+    summary survives retention and the evaluation does not, so this is the only
+    read that gives the same answer in March about a January interview.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(
+        days=INTERVIEW_READINESS_WINDOW_DAYS
+    )
+    return db.scalar(
+        select(func.max(InterviewScoreSummary.overall_score)).where(
+            InterviewScoreSummary.student_id == student_id,
+            InterviewScoreSummary.started_at >= cutoff,
+        )
+    )
+
+
+#: B7.6. The weight at which a SWOC weakness becomes something to do about it.
+#: The author's own number off the composer's weight picker — see `next_actions`.
+SWOC_ACTION_MIN_WEIGHT = 4
+
+#: How many of them may reach the card at once, so one board cannot take over a
+#: list it is one input to.
+SWOC_MAX_ACTIONS = 2
+
+#: WHOSE OBSERVATION IT WAS, in the student's words rather than the enum's. The
+#: board is deliberately un-averaged — disagreement between viewpoints IS the
+#: finding — so the viewpoint travels with the line onto this card too, and a
+#: student can tell "my mentor said this" from "the placement cell said this".
+#: PM is unreachable from the writer and still legal in storage, so it is
+#: answered here rather than left to a KeyError on a row the seed writes.
+SWOC_ACTION_REASON: dict[SwocSource, str] = {
+    SwocSource.MENTOR: "Flagged by your mentor on your Faculty / TPO Log",
+    SwocSource.PLACEMENT: "Flagged by the placement cell on your Faculty / TPO Log",
+    SwocSource.PM: "Flagged on your Faculty / TPO Log",
+}
+
+
+def _swoc_action_route(entry: SwocEntry) -> str:
+    """Where a flagged weakness sends the student — B7.6's two halves meeting.
+
+    The LINK decides, and the fallback is the board itself. Order matters only
+    where an author named more than one: the skill is the most specific thing a
+    weakness can be about and the posting is the least, so the route follows
+    that. Every one of these is a real route in `app.routes.ts`; a `cta_route`
+    that 404s is a button that reports the product as broken.
+    """
+    if entry.linked_skill_id:
+        return "/student/skilling"
+    if entry.linked_session_id:
+        return "/student/interviews"
+    if entry.linked_job_id:
+        return "/student/jobs"
+    return "/student/mentor-log"
 
 
 class NextActionOut(BaseModel):
@@ -2956,6 +3327,125 @@ def next_actions(
                 )
             )
 
+    # B6.3 — the drill the last mock interview asked for.
+    #
+    # "WHILE IT IS UNADDRESSED" IS DEFINED AS "UNTIL YOU SIT ANOTHER ONE", and
+    # that is the whole of the definition. Nothing records that a student did a
+    # drill — there is no acknowledgement flag, and inventing one would be a
+    # column written by a button nobody presses, which then makes the action
+    # stick forever for everybody who ignores it. Reading the MOST RECENT
+    # completed interview instead means the action is replaced when the student
+    # practises again (with the new drill, or with nothing if that interview
+    # produced none), which is the behaviour a student would describe as "it
+    # went away when I did it".
+    #
+    # The drill is the model's own sentence about this student, so it is shown
+    # to the student and nowhere else — this endpoint is `_require_student` and
+    # first-person throughout.
+    drill_row = db.execute(
+        select(InterviewEvaluation.drill, InterviewSession.started_at)
+        .join(
+            InterviewSession,
+            InterviewEvaluation.interview_session_id == InterviewSession.id,
+        )
+        .where(
+            InterviewSession.student_id == student_id,
+            InterviewSession.status == "completed",
+            InterviewSession.deleted_at.is_(None),
+        )
+        .order_by(InterviewSession.started_at.desc())
+        .limit(1)
+    ).first()
+    if drill_row is not None and (drill_row[0] or "").strip():
+        drill_text = drill_row[0].strip()
+        actions.append(
+            NextActionOut(
+                id="interview-drill",
+                # The model's words, not a paraphrase. A drill rewritten into a
+                # house sentence stops being the thing the student was told at
+                # the end of their interview, which is the only reason it
+                # carries any weight.
+                title=drill_text,
+                reason="From your last mock interview",
+                cta_label="Practise",
+                cta_route="/student/assistant",
+                status="Suggested",
+                deadline=None,
+                priority=3,
+            )
+        )
+
+    # B7.6 — the heavy weaknesses somebody wrote on this student's SWOC board.
+    #
+    # WEIGHT >= 4 IS THE WHOLE FILTER, and it is the author's own judgement
+    # rather than a threshold this function invented: the composer's weight
+    # picker is the one control a mentor has for "this matters". A board with
+    # nine 3s produces no actions, which is correct — the screen exists to carry
+    # observations, not to nag about every one of them.
+    #
+    # THE TWO HEAVIEST ONLY. `actions[:5]` below is a cap on the list, not on any
+    # one source, so six weight-5 weaknesses would push the overdue certification
+    # and the profile fields off a student's next-actions card entirely — the
+    # board would have quietly taken over a list it is one input to.
+    #
+    # "WHILE IT IS UNADDRESSED" IS THE AUTHOR'S TO ANSWER, and unlike B6.3's
+    # drill this one already has a mechanism: the mentor lowers the weight or
+    # deletes the line. That is a real human lifecycle on an existing screen, so
+    # nothing here needs a flag nobody presses. The student's own acknowledgement
+    # deliberately does NOT clear it: "I have read this" is not "I have done
+    # something about it", and letting a tap remove the action would make the one
+    # honest signal the student sends into a way of hiding the line.
+    #
+    # THE ROUTE COMES FROM THE LINK (B7.6's other half), and that is the reason
+    # these two halves are one task. `NextActionOut` requires a `cta_route` and a
+    # sentence about a person has no natural destination; a linked skill,
+    # interview or posting does. With no link the route is the board itself,
+    # where the line is drawn in full beside the meeting it came out of.
+    #
+    # READINESS IS DELIBERATELY NOT TOUCHED, and this is the one place a reader
+    # will look for it. 04 asks for "readiness and next-actions"; adding an
+    # eighth `ReadinessFactorOut` would (a) move `MIN_SCORED_WEIGHT_SHARE`'s bar
+    # under everybody — the comment on that constant spells out what happened the
+    # last time a factor was added and the fraction was not re-derived — and
+    # (b) score a student DOWN for a colleague's written opinion, which has no
+    # cut-off, no import behind it and no way for the student to answer it. Every
+    # other factor is a measurement against a stated threshold. A SWOC line is a
+    # judgement, and turning it into two points of a headline number is a
+    # different product decision from showing it as something to work on.
+    heavy = db.execute(
+        select(SwocEntry)
+        .where(
+            SwocEntry.student_id == student_id,
+            SwocEntry.kind == SwocKind.WEAKNESS,
+            SwocEntry.weight >= SWOC_ACTION_MIN_WEIGHT,
+        )
+        .order_by(SwocEntry.weight.desc(), SwocEntry.recorded_at.desc())
+        .limit(SWOC_MAX_ACTIONS)
+    ).scalars().all()
+    for entry in heavy:
+        actions.append(
+            NextActionOut(
+                id=f"swoc-{entry.id}",
+                # THE AUTHOR'S OWN SENTENCE, for B6.3's reason restated: a line
+                # rewritten into a house phrasing stops being the thing the
+                # student's mentor actually wrote about them, which is the only
+                # reason it carries any weight here.
+                title=entry.text,
+                reason=SWOC_ACTION_REASON[entry.source],
+                cta_label="Open",
+                cta_route=_swoc_action_route(entry),
+                status="Flagged",
+                # NO DEADLINE, and not one derived from `recorded_at` either. A
+                # mentor writing "needs more practice" set no date, and a card
+                # that invents one would age a line into an overdue-looking chip
+                # nobody promised.
+                deadline=None,
+                # A 5 sits with the overdue certification and a 4 with the
+                # in-progress work: the author said which of the two this was.
+                priority=2 if entry.weight >= 5 else 3,
+            )
+        )
+
     actions.sort(key=lambda a: a.priority)
     return NextActionsOut(actions=actions[:5])
 
@@ -2965,16 +3455,80 @@ class ReadinessFactorOut(BaseModel):
     met: bool
     detail: str
     weight: int
+    #: FALSE means nothing has been imported or recorded for this check, so
+    #: `met` is not an answer — it is the absence of one (07 §5's guardrail).
+    #:
+    #: `met` IS STILL PRESENT AND STILL FALSE on an unmeasured factor, and that
+    #: is a compatibility decision rather than an oversight: three callers read
+    #: this shape (the student home card, the staff 360 panel and the
+    #: assistant's readiness answer), and a client that has not learned the new
+    #: field must not start rendering a green "Met" chip over a check nobody has
+    #: run. Reading `met` alone is now WRONG in one direction and it was always
+    #: wrong; reading it alone is no longer DANGEROUS. Every caller in this
+    #: repository branches on `measured` first.
+    measured: bool = True
 
 
 class PlacementReadinessOut(BaseModel):
-    score: int
+    #: NULL when not one check could be measured — never 0. A student on a fresh
+    #: deployment has no marks, no attendance and no certifications imported, and
+    #: a "0/100 — Not ready" in a 27px numeral on their own home screen is the
+    #: product telling them they have failed an assessment that has not happened.
+    #: The score is computed over the MEASURED factors only, so it answers
+    #: "against what is known about you" and rises as the imports land rather
+    #: than being dragged down by their absence.
+    score: int | None
     band: str
     summary: str
     factors: list[ReadinessFactorOut]
 
 
-def _readiness_band(score: int) -> str:
+#: The band when there is not enough on record to score at all. A WORD AND NOT
+#: AN EMPTY STRING, because every consumer renders the band as a chip beside the
+#: score and a blank chip reads as a rendering bug rather than as a statement.
+BAND_NOT_ASSESSED = "Not assessed yet"
+
+#: How much of the readiness weight must be MEASURABLE before a score is
+#: reported at all.
+#:
+#: WITHOUT THIS THE FIX MAKES THE HEADLINE NUMBER WORSE, which is worth spelling
+#: out because it is counter-intuitive. Two of the seven checks read what the
+#: STUDENT has typed (contact details, resume completeness) and are therefore
+#: always measurable; the other five read tables only an import, a staff action
+#: or a mock interview fills. So on a fresh deployment, scoring "over the
+#: measured weight" means scoring over those two alone — and a student who has
+#: not yet typed their phone number lands on **0/100 — Not ready**, in a 27px
+#: numeral, where the old broken arithmetic at least said 17. Both are verdicts
+#: on evidence that does not exist; the new one is simply a harsher way of being
+#: wrong.
+#:
+#: A score over a sixth of the evidence is not a score. Below this share the
+#: honest answer is that there is not enough on record, said in words, with the
+#: per-check chips underneath still showing exactly what is and is not known —
+#: which is more use to a student than any number would be.
+#:
+#: IT IS A JUDGEMENT AND NOT A DERIVATION, and it is expressed as a FRACTION so
+#: that adding a check does not silently move the bar. The judgement is: the two
+#: checks that cannot be missing are nowhere near sufficient on their own, and
+#: EITHER of the imported pairs — marks (6), or two of {attendance 2,
+#: certifications 2, mock interview 2} — crosses it in company with them.
+#:
+#: It read `0.5` while the rule carried six checks weighing 12, and 6/12 was
+#: exactly the attendance-plus-certifications case. B6.3 added a seventh check
+#: worth 2, and leaving the number at 0.5 would have quietly RAISED the bar:
+#: 6/14 is 0.43, so a first-semester student with attendance and certifications
+#: imported but no results yet would have stopped being scored on a deploy that
+#: changed nothing about them. `3/7` is the same judgement over the new total —
+#: every combination that crossed before crosses now, and the only new ones are
+#: the two that pair the mock interview with attendance or certifications, which
+#: is the same shape as the pair that already crossed. Move it and a cohort's
+#: worth of students change band on a deploy, so move it deliberately.
+MIN_SCORED_WEIGHT_SHARE = 3 / 7
+
+
+def _readiness_band(score: int | None) -> str:
+    if score is None:
+        return BAND_NOT_ASSESSED
     if score < 40:
         return "Not ready"
     if score < 60:
@@ -2984,65 +3538,294 @@ def _readiness_band(score: int) -> str:
     return "Ready"
 
 
-@router.get("/placement-readiness", response_model=PlacementReadinessOut)
-def placement_readiness(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> PlacementReadinessOut:
-    """A weighted placement-readiness score against the active PlacementCriteria
-    (or sensible defaults when none is set). Rule-based; no model."""
-    student_id = _require_student(session)
+@dataclass(frozen=True)
+class _ReadinessInputs:
+    """Everything the readiness rule reads about ONE student, already fetched.
 
-    crit = db.scalar(
-        select(PlacementCriteria)
-        .where(PlacementCriteria.active.is_(True))
-        .order_by(PlacementCriteria.updated_at.desc())
-        .limit(1)
+    THE RULE AND THE READS ARE SPLIT SO THE ROLL-UP CANNOT BECOME A SECOND RULE.
+    B8.5's "placement-ready %" is this score over every student in a reach, and
+    the obvious implementation — a SQL expression that joins marks, attendance
+    and certifications and counts the ones over the bar — would be a SECOND
+    definition of placement readiness, in a different language, which would
+    disagree with the student's own screen the first time either was edited.
+    `routers/mentee_records.py` states the rule and `compose_placement_readiness`
+    was already built to it; this only carries it one step further, so the
+    per-student path and the cohort path share the DECISION and differ only in
+    how many rows they fetched to make it.
+
+    Every field is Optional where absence is a real state — see
+    `_attendance_pct` and its neighbours for what None means and why it is not 0.
+    """
+
+    cgpa: float | None
+    backlogs: int | None
+    attendance_pct: float | None
+    cert_pct: float | None
+    has_contacts: bool
+    resume_pct: int
+    #: B6.3 — the best overall mock-interview score inside the 90-day window.
+    #: None is NOT ASSESSED, never a zero, and it is what keeps a student who
+    #: has simply not practised out of the denominator instead of ~14 points
+    #: below where they were yesterday.
+    best_interview_score: int | None = None
+
+
+@dataclass(frozen=True)
+class _ReadinessCriteria:
+    """The four cut-offs, resolved once per request rather than per student."""
+
+    min_cgpa: float
+    max_backlogs: int
+    min_attendance_pct: float
+    min_cert_completion_pct: float
+
+
+def _readiness_criteria_from(resolved: ResolvedCriteria) -> _ReadinessCriteria:
+    """The four cut-offs readiness scores against, out of a resolved set."""
+    return _ReadinessCriteria(
+        min_cgpa=resolved.min_cgpa,
+        max_backlogs=resolved.max_live_backlogs,
+        min_attendance_pct=resolved.min_attendance_pct,
+        min_cert_completion_pct=resolved.min_cert_completion_pct,
     )
-    # Defaults when the Main Admin has set no active criteria.
-    min_cgpa = crit.min_cgpa if crit else 6.0
-    max_backlogs = crit.max_live_backlogs if crit else 0
-    min_att = crit.min_attendance_pct if crit else 75.0
-    min_cert = crit.min_cert_completion_pct if crit else 50.0
 
-    cgpa = _latest_cgpa(db, student_id)
-    backlogs = _live_backlogs(db, student_id)
-    att = _attendance_pct(db, student_id)
-    cert_pct = _cert_completion_pct(db, student_id)
+
+def readiness_criteria(db: Session, student_id: str | None = None) -> _ReadinessCriteria:
+    """The cut-offs one student is scored against — B8.2's resolver (see below).
+
+    THIS WAS THE ONE CALL SITE B8.2 WAS ASKED TO CHANGE, and the sentence that
+    used to be here said so. The four literals it fell back to — 6.0 · 0 · 75 % ·
+    50 % — moved to `criteria.DEFAULTS` unchanged to the digit; what is new is
+    the three rungs above them: the student's COURSE row, then their COLLEGE
+    row, then the programme-wide row.
+
+    `student_id=None` ANSWERS THE PROGRAMME QUESTION, for a caller that is not
+    scoring a particular person. It is not the same as "the defaults": a
+    programme-wide row still answers it.
+    """
+    resolved = (
+        resolve_criteria_for_student(db, student_id)
+        if student_id is not None
+        else resolve_criteria(db)
+    )
+    return _readiness_criteria_from(resolved)
+
+
+def _readiness_inputs(db: Session, student_id: str) -> _ReadinessInputs:
+    """One student's inputs, through the five helpers above — six queries."""
     prof = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
-    has_contacts = bool(prof and prof.phone and prof.linkedin_url)
-    resume_pct = _resume_pct(db, student_id)
+    return _ReadinessInputs(
+        cgpa=_latest_cgpa(db, student_id),
+        backlogs=_live_backlogs(db, student_id),
+        attendance_pct=_attendance_pct(db, student_id),
+        cert_pct=_cert_completion_pct(db, student_id),
+        has_contacts=bool(prof and prof.phone and prof.linkedin_url),
+        resume_pct=_resume_pct(db, student_id),
+        best_interview_score=_best_interview_score(db, student_id),
+    )
 
+
+def readiness_inputs_many(db: Session, student_ids: list[str]) -> dict[str, _ReadinessInputs]:
+    """The same inputs for MANY students: six queries in total, not six each.
+
+    Written because the naive roll-up is six queries per student — 12 000 of
+    them for a two-thousand-student deployment, on a screen the office opens
+    every morning. The ARITHMETIC is not repeated here; only the fetching is.
+
+    A student with no row in a given table gets None (or 0 for the two
+    self-reported measures), which is the same answer the single-student
+    helpers give for the same absence. That equivalence is what
+    `tests/test_readiness_unassessed.py` pins, because the moment the batch
+    reader disagrees with the single reader, a mentor and a student are looking
+    at different numbers again.
+    """
+    if not student_ids:
+        return {}
+
+    latest_sem = (
+        select(
+            SemesterResult.student_id.label("sid"),
+            func.max(SemesterResult.semester).label("sem"),
+        )
+        .where(SemesterResult.student_id.in_(student_ids))
+        .group_by(SemesterResult.student_id)
+        .subquery()
+    )
+    cgpa = {
+        sid: value
+        for sid, value in db.execute(
+            select(SemesterResult.student_id, SemesterResult.cgpa).join(
+                latest_sem,
+                (SemesterResult.student_id == latest_sem.c.sid)
+                & (SemesterResult.semester == latest_sem.c.sem),
+            )
+        ).all()
+    }
+    backlogs = {
+        sid: int(total or 0)
+        for sid, total in db.execute(
+            select(SemesterResult.student_id, func.sum(SemesterResult.live_backlogs))
+            .where(SemesterResult.student_id.in_(student_ids))
+            .group_by(SemesterResult.student_id)
+        ).all()
+    }
+    attendance = {
+        sid: round(100 * int(present or 0) / int(total), 1)
+        for sid, present, total in db.execute(
+            select(
+                AttendanceRecord.student_id,
+                func.count().filter(AttendanceRecord.present.is_(True)),
+                func.count(),
+            )
+            .where(AttendanceRecord.student_id.in_(student_ids))
+            .group_by(AttendanceRecord.student_id)
+        ).all()
+        if int(total or 0) > 0
+    }
+    certs = {
+        sid: round(100 * int(done or 0) / int(total), 1)
+        for sid, done, total in db.execute(
+            select(
+                CertificationProgress.student_id,
+                func.count().filter(CertificationProgress.status == ProgressStatus.COMPLETED),
+                func.count(),
+            )
+            .where(CertificationProgress.student_id.in_(student_ids))
+            .group_by(CertificationProgress.student_id)
+        ).all()
+        if int(total or 0) > 0
+    }
+    contacts = {
+        sid: bool(phone and linkedin)
+        for sid, phone, linkedin in db.execute(
+            select(
+                StudentProfile.student_id, StudentProfile.phone, StudentProfile.linkedin_url
+            ).where(StudentProfile.student_id.in_(student_ids))
+        ).all()
+    }
+    resumes = {
+        sid: _resume_completeness(data or {})
+        for sid, data in db.execute(
+            select(ResumeProfile.student_id, ResumeProfile.data).where(
+                ResumeProfile.student_id.in_(student_ids)
+            )
+        ).all()
+    }
+    # B6.3, and it is the SAME rule `_best_interview_score` states one query at
+    # a time: best-in-window, from the summaries, absent means not assessed. The
+    # `.get(sid)` below is what makes "no row" read as None rather than as 0 —
+    # the equivalence `tests/test_readiness_unassessed.py` pins, because the
+    # moment this reader disagrees with the single-student one a mentor and a
+    # student are looking at different numbers again.
+    interview_cutoff = datetime.now(timezone.utc) - timedelta(
+        days=INTERVIEW_READINESS_WINDOW_DAYS
+    )
+    interviews = {
+        sid: best
+        for sid, best in db.execute(
+            select(
+                InterviewScoreSummary.student_id,
+                func.max(InterviewScoreSummary.overall_score),
+            )
+            .where(
+                InterviewScoreSummary.student_id.in_(student_ids),
+                InterviewScoreSummary.started_at >= interview_cutoff,
+            )
+            .group_by(InterviewScoreSummary.student_id)
+        ).all()
+        if best is not None
+    }
+
+    return {
+        sid: _ReadinessInputs(
+            cgpa=cgpa.get(sid),
+            backlogs=backlogs.get(sid),
+            attendance_pct=attendance.get(sid),
+            cert_pct=certs.get(sid),
+            has_contacts=contacts.get(sid, False),
+            resume_pct=resumes.get(sid, _resume_completeness({})),
+            best_interview_score=interviews.get(sid),
+        )
+        for sid in student_ids
+    }
+
+
+def build_readiness(
+    inputs: _ReadinessInputs, criteria: _ReadinessCriteria
+) -> PlacementReadinessOut:
+    """THE READINESS RULE. One function, no database, two callers.
+
+    Everything above fetches; this decides. Keeping the decision in a pure
+    function is what makes "the mentor sees exactly the student's own number"
+    a property of the call graph rather than a sentence in a docstring.
+    """
+    min_cgpa = criteria.min_cgpa
+    max_backlogs = criteria.max_backlogs
+    min_att = criteria.min_attendance_pct
+    min_cert = criteria.min_cert_completion_pct
+    cgpa = inputs.cgpa
+    backlogs = inputs.backlogs
+    att = inputs.attendance_pct
+    cert_pct = inputs.cert_pct
+    has_contacts = inputs.has_contacts
+    resume_pct = inputs.resume_pct
+    interview = inputs.best_interview_score
+
+    # FIVE OF THE SEVEN CHECKS CAN BE UNMEASURED, AND TWO NEVER CAN. CGPA,
+    # backlogs, attendance and certification completion are read out of tables
+    # that only an IMPORT or a staff action fills, so "no rows" means "nobody
+    # has looked", not "zero". Placement profile and resume completeness are
+    # read out of what the STUDENT has typed, where an empty form genuinely is
+    # the answer — "you have not added your phone number" is measured, and
+    # telling somebody it is unknown would be an excuse for a field they can
+    # fill in right now.
     factors = [
         ReadinessFactorOut(
             label="CGPA",
             met=(cgpa is not None and cgpa >= min_cgpa),
+            measured=cgpa is not None,
             detail=(
                 f"CGPA {cgpa} meets the {min_cgpa} cut-off"
                 if (cgpa is not None and cgpa >= min_cgpa)
                 else (
                     f"CGPA {cgpa} is below the {min_cgpa} cut-off"
                     if cgpa is not None
-                    else "CGPA not yet assessed"
+                    else f"No semester results on record yet — the {min_cgpa} cut-off has nothing to read"
                 )
             ),
             weight=3,
         ),
         ReadinessFactorOut(
             label="Live backlogs",
-            met=(backlogs <= max_backlogs),
-            detail=f"{backlogs} live backlog(s); limit is {max_backlogs}",
+            met=(backlogs is not None and backlogs <= max_backlogs),
+            measured=backlogs is not None,
+            detail=(
+                f"{backlogs} live backlog(s); limit is {max_backlogs}"
+                if backlogs is not None
+                else f"No semester results on record yet; the limit is {max_backlogs}"
+            ),
             weight=3,
         ),
         ReadinessFactorOut(
             label="Attendance",
-            met=(att >= min_att),
-            detail=f"Attendance {att}% vs required {min_att}%",
+            met=(att is not None and att >= min_att),
+            measured=att is not None,
+            detail=(
+                f"Attendance {att}% vs required {min_att}%"
+                if att is not None
+                else f"No attendance recorded yet; {min_att}% is required once it is"
+            ),
             weight=2,
         ),
         ReadinessFactorOut(
             label="Certification completion",
-            met=(cert_pct >= min_cert),
-            detail=f"{cert_pct}% of certifications completed vs required {min_cert}%",
+            met=(cert_pct is not None and cert_pct >= min_cert),
+            measured=cert_pct is not None,
+            detail=(
+                f"{cert_pct}% of certifications completed vs required {min_cert}%"
+                if cert_pct is not None
+                else f"No certifications enrolled yet; {min_cert}% completion is required"
+            ),
             weight=2,
         ),
         ReadinessFactorOut(
@@ -3061,16 +3844,127 @@ def placement_readiness(
             detail=f"Resume profile {resume_pct}% complete (target 70%)",
             weight=1,
         ),
+        # B6.3. WEIGHT 2, AND `measured=False` WHEN THERE IS NO SCORE — which
+        # is the whole design of this factor and not a detail of it. An
+        # unmeasured factor is out of BOTH the numerator and the denominator
+        # (see below), so a student who has never sat a mock interview is not
+        # told they are less placement-ready for it. They are told, on the chip,
+        # that nobody has assessed this yet — which is a thing they can act on
+        # in one click, unlike "your CGPA has not been imported".
+        #
+        # BEST OF THE LAST 90 DAYS, from `interview_score_summaries`: best so
+        # that practising again can never lower a score, the window so that a
+        # reading does not stand on an interview from last October, and the
+        # summaries because they are the rows that survive retention.
+        ReadinessFactorOut(
+            label="Mock interview",
+            met=(interview is not None and interview >= MIN_MOCK_INTERVIEW_SCORE),
+            measured=interview is not None,
+            detail=(
+                f"Best mock-interview score {interview} in the last "
+                f"{INTERVIEW_READINESS_WINDOW_DAYS} days "
+                f"(target {MIN_MOCK_INTERVIEW_SCORE})"
+                if interview is not None
+                else (
+                    "No scored mock interview in the last "
+                    f"{INTERVIEW_READINESS_WINDOW_DAYS} days — practise one and "
+                    f"{MIN_MOCK_INTERVIEW_SCORE} is the target"
+                )
+            ),
+            weight=2,
+        ),
     ]
 
-    total_weight = sum(f.weight for f in factors)
-    met_weight = sum(f.weight for f in factors if f.met)
-    score = round(100 * met_weight / total_weight) if total_weight else 0
+    # THE DENOMINATOR IS THE MEASURED WEIGHT, not the total weight. Dividing by
+    # the total would keep the old behaviour under a new label: a student with
+    # nothing imported would score 2/12 and be told "17/100 — Not ready", which
+    # is the same false verdict the `measured` flag was added to stop, just
+    # reached through arithmetic instead of through a chip.
+    measured = [f for f in factors if f.measured]
+    full_weight = sum(f.weight for f in factors)
+    measured_weight = sum(f.weight for f in measured)
+    met_weight = sum(f.weight for f in measured if f.met)
+    enough = full_weight > 0 and measured_weight / full_weight >= MIN_SCORED_WEIGHT_SHARE
+    score = round(100 * met_weight / measured_weight) if (enough and measured_weight) else None
     band = _readiness_band(score)
-    met_count = sum(1 for f in factors if f.met)
-    summary = f"{score}/100 — {band}. {met_count} of {len(factors)} placement checks met."
+    unmeasured = [f.label for f in factors if not f.measured]
+    if score is None:
+        # Names the missing checks rather than saying "insufficient data": the
+        # student cannot act on either sentence, but their mentor can act on the
+        # first one, and it is the same card.
+        # The labels VERBATIM, not lower-cased: "cgpa" reads as a typo where
+        # "CGPA" reads as a heading, and these are the same words the chips
+        # underneath carry.
+        summary = (
+            f"{band}. Not enough is on record to score this yet — nothing is "
+            f"recorded for {', '.join(unmeasured)}."
+        )
+    else:
+        met_count = sum(1 for f in measured if f.met)
+        summary = f"{score}/100 — {band}. {met_count} of {len(measured)} placement checks met."
+        if unmeasured:
+            summary += (
+                f" {len(unmeasured)} check(s) not measured yet, and are not "
+                "counted either way."
+            )
 
     return PlacementReadinessOut(score=score, band=band, summary=summary, factors=factors)
+
+
+
+def compose_placement_readiness(db: Session, student_id: str) -> PlacementReadinessOut:
+    """The readiness score for one student, computed once and shared.
+
+    THE BUILDER IS SHARED BECAUSE THE VIEW MUST BE. `routers/mentee_records.py`
+    already states the rule this follows: a staff screen reads the STUDENT'S OWN
+    numbers, computed by the same expression, or a mentor ends up looking at a
+    confident 0 where the student sees a dash and acting on it. B4.5's student
+    360 needs this score for a student named in a path, so the endpoint below
+    keeps the session check and the arithmetic lives in `build_readiness`.
+
+    It takes a student id rather than a session on purpose: `_require_student`
+    is the first-person gate and has no business in a builder a staff route
+    calls. Rule 2's gate runs at the staff call site, before this is reached.
+
+    Rule-based; no model, so rule 1's egress gate does not apply to it.
+    """
+    return build_readiness(
+        _readiness_inputs(db, student_id), readiness_criteria(db, student_id)
+    )
+
+
+def compose_readiness_many(
+    db: Session, student_ids: list[str]
+) -> dict[str, PlacementReadinessOut]:
+    """The same score for many students, for B8.5's cohort roll-up.
+
+    Six queries plus the criteria, then `build_readiness` per student — the same
+    function `compose_placement_readiness` calls, so a cohort percentage and the
+    student's own card can never disagree.
+
+    B8.2 MADE THE CRITERIA PER STUDENT, so this can no longer resolve one set
+    for the whole call: two batches in the reach may sit on two courses with two
+    different CGPA cut-offs, and scoring both against one of them would put a
+    number on the office's screen that neither cohort's students see.
+    `criteria.resolve_for_students` batches it by BATCH — one resolve per
+    cohort, not per student — so the cost is unchanged in practice.
+    """
+    inputs = readiness_inputs_many(db, student_ids)
+    gates = resolve_criteria_for_students(db, list(inputs))
+    return {
+        sid: build_readiness(row, _readiness_criteria_from(gates[sid]))
+        for sid, row in inputs.items()
+    }
+
+
+@router.get("/placement-readiness", response_model=PlacementReadinessOut)
+def placement_readiness(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> PlacementReadinessOut:
+    """A weighted placement-readiness score against the criteria that resolve
+    for this student — their course's, their college's, the programme's, or the
+    hard-coded defaults (`app/criteria.py`). Rule-based; no model."""
+    return compose_placement_readiness(db, _require_student(session))
 
 
 class RecommendationOut(BaseModel):

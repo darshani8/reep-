@@ -53,24 +53,43 @@ RULE 1 is not in play here. Nothing in this module talks to a model; it reads
 rows that the relay already wrote.
 """
 
+import base64
+import binascii
 import hashlib
 import hmac
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, tuple_, update
+from sqlalchemy import false as sa_false
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ..architecture_events import record_change
 from ..config import settings
 from ..db import get_db
+from ..exports import (
+    carries_personal_columns,
+    csv_response,
+    drop_personal,
+    record_export,
+    scope_note,
+)
 from ..identity import get_current_session
 from ..document_store import content_disposition
 from ..governance import require_capability
+from ..policies import Reach, scope_filter
+from ..scope_views import scope_header
+# B6.1: the college's policy decides the two storage scopes the acknowledgement
+# records. `default_policy` is aliased at the import so the call site below reads
+# as what it is — the answer for an account with no student row and therefore no
+# college — rather than as a bare `default_policy()` that could be anything's.
+from ..interview_policy import default_policy as interview_policy_defaults
+from ..interview_policy import policy_for_student
 from ..interview_audio import (
     TRACK_MIXED,
     TRACKS,
@@ -81,9 +100,11 @@ from ..interview_audio import (
 from ..models.interview import (
     InterviewConsent,
     InterviewEvaluation,
+    InterviewScoreSummary,
     InterviewSession,
     InterviewTurn,
 )
+from ..models.redesign import AuditEvent
 from ..models.user import Role, Student, User
 
 # _assert_can_access_student is private to mentor.py on purpose, and importing it
@@ -98,6 +119,16 @@ log = logging.getLogger(__name__)
 
 student_router = APIRouter(prefix="/api/interview", tags=["interview-records"])
 staff_router = APIRouter(prefix="/api/mentor", tags=["interview-records"])
+# B6.7 — the records GRID, its KPIs and its extract. A third router in this
+# module rather than a fourth file, because the grid and `all_interviews` below
+# must ask ONE query builder who a caller may see: two grids over the same rows
+# with two copies of rule 2 is two answers, and the day they disagree the
+# narrower one looks like a bug and the wider one is a leak.
+#
+# `app/main.py` discovers every public APIRouter here and mounts it, so this
+# needs no wiring — see the comment above that loop, and note the `/api/`
+# prefix requirement it enforces.
+admin_router = APIRouter(prefix="/api/admin", tags=["interview-records"])
 
 # Newest N interviews, and no pagination. A student sits perhaps a dozen mock
 # interviews in a placement season and the 180-day retention window reaps the
@@ -245,18 +276,32 @@ class ConsentStateOut(BaseModel):
 
 
 class ConsentIn(BaseModel):
-    # The version string the CLIENT DISPLAYED, echoed back. That is the one job
-    # a version string has here: a stale cached SPA must not be able to grant
-    # against copy the student never saw, so the server 422s anything but the
-    # current string rather than accepting it and back-dating the terms.
+    """An ACKNOWLEDGEMENT of the college's policy, not a form (B6.1).
+
+    THE THREE SCOPE FIELDS ARE GONE FROM THIS PAYLOAD AND THE ROW STILL CARRIES
+    THREE. They used to be required, "because a grant states each scope
+    explicitly or it is not a grant" — and that is still true of the ROW. What
+    changed is WHO STATES THEM: B6.1 makes the two storage scopes the college's
+    decision (`interview_policies`), so the server reads them off the policy and
+    writes them here. AGENTS.md's "three separate booleans, because one boolean
+    makes 'they consented' unfalsifiable" survives exactly: three booleans are
+    what gets copied, `interview_sessions.consent_id` still pins the precise row
+    an interview ran under, and "was this student consented, to what wording, at
+    the time of interview X" is still answerable years later.
+
+    A CLIENT THAT STILL SENDS THEM IS NOT REFUSED, and it is not obeyed either.
+    Pydantic ignores unknown fields by default, so a bundle cached from before
+    this release posts its three booleans and gets the policy's — which is the
+    only safe reading, because honouring a stale client's `scope_store_audio:
+    true` over a college that has since turned recording off would record a
+    student the college said not to record.
+
+    The version string keeps its one job: a stale cached SPA must not be able to
+    acknowledge copy the student never saw, so the server 422s anything but the
+    current string rather than back-dating the terms.
+    """
+
     version: str = Field(min_length=1, max_length=64)
-    # All three REQUIRED, with no defaults, because a grant states each scope
-    # explicitly or it is not a grant. Defaulting a missing scope to False would
-    # be worse than 422-ing: it silently records a refusal the student never
-    # made, on a row that is the evidence of what they agreed to.
-    scope_live_ai: bool
-    scope_store_transcript: bool
-    scope_store_audio: bool
 
 
 # ---------------------------------------------------------------------------
@@ -461,6 +506,112 @@ def _may_see_raw_response(session: dict) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# B6.5 — the access log: who opened a student's interview record
+#
+# NO NEW TABLE. Every one of these reads is already an event with an actor, a
+# subject, a time and a route, which is exactly `redesign_audit_events`, and
+# that table already has the index this needs
+# (`ix_redesign_audit_entity_time (entity_type, entity_id, occurred_at)`). A
+# second table would be a second answer to "who has looked at this student",
+# and the trail the office reads at `GET /api/admin/audit` would be missing the
+# half that matters most.
+#
+# WHAT IS LOGGED, AND WHAT DELIBERATELY IS NOT. A row is written when a member
+# of staff opens ONE named student's record BY ID: the record panel, the
+# transcript, the report, a recording, and one row per session inside a bulk
+# zip. A row is NOT written when staff open a LIST — the per-student history,
+# the records grid — and that is a decision, not an oversight (the map's
+# decision 7): one mentor opening the grid would otherwise write two hundred
+# rows, and the student's panel would have to tell them "a mentor saw your name
+# in a list", which is both untrue in spirit and impossible to act on. The
+# panel says "opened your record", and every row behind it is somebody who did.
+#
+# IT IS WRITTEN AFTER THE GATES, ALWAYS. A probe for another group's session id
+# must 404 without leaving a row claiming that record was viewed — the log would
+# then be evidence of an access that did not happen, on a screen the student
+# reads. Every call site below sits after `_assert_can_access_student` AND after
+# `_session_of_student_or_404`.
+#
+# THE ADMIN SIDE NEEDS NO ENDPOINT OF ITS OWN. 04-backend-changes.md asks for
+# the same list "on the admin record panel too", and it is already there:
+# `GET /api/admin/audit?target_type=interview_record&target_id=<session id>` is
+# the trail read through the console, with its own capability, its own paging
+# and its own CSV. A second reader over the same rows would be a second place
+# to keep the vocabulary correct, for one panel.
+# ---------------------------------------------------------------------------
+
+#: The `entity_type` and `action` the trail is filtered by. Plain strings in one
+#: place rather than an enum, the same rule every interview vocabulary follows.
+VIEW_ENTITY_TYPE = "interview_record"
+VIEW_ACTION = "INTERVIEW_RECORD_VIEW"
+
+#: The four things a staff member can open. `record` is the detail panel itself;
+#: the other three are the artefacts. A fifth value is a data change here and a
+#: label change on the student's panel — never a migration.
+VIEW_RECORD = "record"
+VIEW_TRANSCRIPT = "transcript"
+VIEW_REPORT = "report"
+VIEW_AUDIO = "audio"
+
+#: How many entries the student's own panel lists. Newest first; a student with
+#: more than this has a mentor with a habit, and the top of the list says so.
+_MAX_VIEWS_LISTED = 200
+
+
+def _log_record_view(
+    db: Session,
+    *,
+    session: dict,
+    request: Request,
+    row: InterviewSession,
+    what: str,
+) -> None:
+    """Record that this staff account opened this interview record.
+
+    IT COMMITS, because `get_db` never does and these are GET handlers whose
+    transaction is rolled back on the way out — which is how an audited read
+    becomes an unaudited one with nobody editing the audit line. `record_export`
+    met the same problem and says the same thing.
+
+    IT NEVER FAILS THE READ, which is the opposite of `record_export`'s rule and
+    is deliberate. An export is a file that cannot be recalled, so a download
+    with no receipt is worse than no download. This is a mentor opening a
+    transcript on a screen: a failed log line is a gap in a record the student
+    reads, and a 500 in a mentor's face is a gap in the work. The gap is logged
+    at WARNING so it is diagnosable, and the read continues.
+    """
+    try:
+        record_change(
+            db,
+            session=session,
+            request=request,
+            tenant_id=None,
+            entity_type=VIEW_ENTITY_TYPE,
+            entity_id=row.id,
+            action=VIEW_ACTION,
+            before=None,
+            # The subject is on the row so the trail can answer "who looked at
+            # this STUDENT" without joining back to a session that retention may
+            # since have deleted.
+            after={"what": what, "student_id": row.student_id},
+            event_type="interview.record.view",
+            payload={"what": what, "session_id": row.id, "student_id": row.student_id},
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        log.warning(
+            "Could not record the %s view of interview %s by user %s. The read "
+            "itself succeeded; this is a missing line in the access log the "
+            "student can read.",
+            what,
+            row.id,
+            session.get("userId"),
+            exc_info=True,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Student endpoints — own record only, subject taken from the session cookie
 # ---------------------------------------------------------------------------
 
@@ -527,6 +678,231 @@ def my_interview_report(
         )
     row = _session_of_student_or_404(db, session_id, student_id)
     return _report_out(_evaluation_or_404(db, row.id))
+
+
+class RecordViewOut(BaseModel):
+    """One staff account opening one interview record (B6.5).
+
+    `viewer_name` is NULLABLE and null means the account has since been deleted
+    — `redesign_audit_events.actor_user_id` is `ON DELETE SET NULL`, and the
+    trail keeps the event. The client renders that as "a member of staff", never
+    as a blank: a row with no name still says somebody looked, which is the
+    whole question this screen answers.
+    """
+
+    viewer_name: str | None
+    what: str
+    at: datetime
+
+
+@student_router.get(
+    "/sessions/{session_id}/views", response_model=list[RecordViewOut]
+)
+def my_interview_views(
+    session_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[RecordViewOut]:
+    """Who has opened this interview of mine, and what they opened (B6.5).
+
+    THE STUDENT'S OWN, WITH NO `student_id` IN THE PATH — the subject comes from
+    the cookie, like every other route on this router, and
+    `_session_of_student_or_404` is the second check that this session really is
+    theirs. An interview that is not theirs 404s here exactly as it does
+    everywhere else in this module, so this endpoint cannot be used to learn
+    that a session id exists.
+
+    IT LISTS STAFF READS, NOT THE STUDENT'S OWN. Nothing on the student routes
+    writes a view row: a screen that told a student "you opened your own report
+    on Tuesday" would bury the one line they are looking for. So an empty list
+    means nobody on staff has opened it, which is a real and common answer and
+    must render as a sentence rather than as an empty table.
+
+    WHAT IT CANNOT SHOW. A read that happened before this shipped left no row,
+    and the list cannot say so; and a record hard-deleted by retention takes
+    this endpoint's 404 with it, at which point the audit trail still holds the
+    rows but there is no longer a record for the student to ask about.
+    """
+    student_id = _own_student_id(session)
+    if student_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Interview not found."
+        )
+    row = _session_of_student_or_404(db, session_id, student_id)
+    rows = db.execute(
+        select(AuditEvent.after_json, AuditEvent.occurred_at, User.name)
+        .outerjoin(User, AuditEvent.actor_user_id == User.id)
+        .where(
+            AuditEvent.entity_type == VIEW_ENTITY_TYPE,
+            AuditEvent.entity_id == row.id,
+            AuditEvent.action == VIEW_ACTION,
+        )
+        .order_by(AuditEvent.occurred_at.desc())
+        .limit(_MAX_VIEWS_LISTED)
+    ).all()
+    return [
+        RecordViewOut(
+            viewer_name=name,
+            # `.get` rather than `["what"]`: `after_json` is a JSON column and a
+            # row written by an older build (or by hand) is data, not a promise.
+            # A 500 on a student's own privacy screen because one historical row
+            # is shaped differently would be the worst possible failure here.
+            what=str((after or {}).get("what") or VIEW_RECORD),
+            at=occurred_at,
+        )
+        for after, occurred_at, name in rows
+    ]
+
+
+# ---------------------------------------------------------------------------
+# B6.2 — the progress trend, which is the part of an interview that OUTLIVES it
+#
+# `interview_score_summaries` is written at finalization and survives the
+# 180-day purge that takes the transcript and the scorecard. So this endpoint
+# reads the summaries and NEVER `interview_evaluations`: reading the evaluations
+# would give an identical answer in every test and a trend that silently loses
+# its oldest points every night in production, which is the exact failure B6.2
+# was added to prevent.
+#
+# ONE COMPOSER, TWO AUDIENCES. `compose_interview_progress` is what the student
+# reads and what a mentor reads, for `routers/mentee_records.py`'s stated
+# reason: a staff screen must show the STUDENT'S OWN numbers or a mentor ends up
+# acting on a confident figure the student has never seen.
+# ---------------------------------------------------------------------------
+
+
+class InterviewProgressPointOut(BaseModel):
+    """One interview on the trend line.
+
+    EVERY SCORE IS NULLABLE AND A NULL IS A GAP IN THE LINE, never a zero at the
+    origin. An interview that was abandoned in the first minute has no scores
+    and is still a point — "three attempts abandoned" is the fact a mentor most
+    needs — so the client plots the scored ones and renders the rest as a dash.
+    """
+
+    session_id: str | None
+    track_code: str | None
+    started_at: datetime
+    status: str
+    overall_score: int | None
+    communication_score: int | None
+    domain_score: int | None
+    structure_score: int | None
+    #: Is the interview itself still on file — i.e. can this point be opened?
+    #: False means retention has reaped the transcript and the scorecard and
+    #: only these numbers remain, which is the expected end state of every row
+    #: here rather than a fault. The client links the point only when it is
+    #: True; a dead link to a purged record reads as data loss.
+    record_available: bool
+
+
+class InterviewProgressOut(BaseModel):
+    """The trend and its headline numbers, computed here rather than on screen.
+
+    THE AGGREGATES ARE THE SERVER'S because averaging over NULLs is exactly the
+    arithmetic a client gets wrong: `sum/length` across a list where three of
+    seven interviews were never scored reports a number about four interviews as
+    though it were about seven, and it reads as a student who is getting worse.
+    Every aggregate here is taken over the SCORED points only, and every one of
+    them is None when there are none.
+    """
+
+    points: list[InterviewProgressPointOut]
+    #: Every interview on file, including the abandoned ones.
+    attempts: int
+    completed: int
+    #: How many of the points carry an overall score — the denominator of
+    #: `average_overall`, published so a screen can say "averaged over 4 of 7".
+    scored: int
+    best_overall: int | None
+    first_overall: int | None
+    latest_overall: int | None
+    average_overall: float | None
+    #: latest − first, and None unless there are TWO scored interviews. A
+    #: "+0" drawn from one attempt says the student has not improved, which is
+    #: the same false sentence a 0 score would be; `compose_growth` in the badge
+    #: dashboard already refuses to claim growth from a baseline alone.
+    trend: int | None
+
+
+def compose_interview_progress(db: Session, student_id: str) -> InterviewProgressOut:
+    """The student's own trend. Oldest first, because a trend reads left to right.
+
+    Rule-based, no model, so rule 1's egress gate does not apply. Rule 2's gate
+    runs at the staff call site, before this is reached — the same split
+    `compose_placement_readiness` and `compose_ledger` already make.
+    """
+    rows = db.execute(
+        select(InterviewScoreSummary, InterviewSession.id)
+        # LEFT JOIN, and excluding the soft-deleted: a summary whose session is
+        # NULL (reaped) and one whose session is on its way out must both come
+        # back with `record_available=False`, because in both cases there is
+        # nothing left for the student to open.
+        .outerjoin(
+            InterviewSession,
+            (InterviewSession.id == InterviewScoreSummary.session_id)
+            & (InterviewSession.deleted_at.is_(None)),
+        )
+        .where(InterviewScoreSummary.student_id == student_id)
+        .order_by(InterviewScoreSummary.started_at, InterviewScoreSummary.id)
+        .limit(_MAX_SESSIONS_LISTED)
+    ).all()
+
+    points = [
+        InterviewProgressPointOut(
+            session_id=summary.session_id,
+            track_code=summary.track_code,
+            started_at=summary.started_at,
+            status=summary.status,
+            overall_score=summary.overall_score,
+            communication_score=summary.communication_score,
+            domain_score=summary.domain_score,
+            structure_score=summary.structure_score,
+            record_available=live_id is not None,
+        )
+        for summary, live_id in rows
+    ]
+    scored = [p.overall_score for p in points if p.overall_score is not None]
+    return InterviewProgressOut(
+        points=points,
+        attempts=len(points),
+        completed=sum(1 for p in points if p.status == "completed"),
+        scored=len(scored),
+        best_overall=max(scored) if scored else None,
+        first_overall=scored[0] if scored else None,
+        latest_overall=scored[-1] if scored else None,
+        # One decimal, like every other average in this codebase, and None —
+        # never 0.0 — when nothing has been scored.
+        average_overall=round(sum(scored) / len(scored), 1) if scored else None,
+        trend=(scored[-1] - scored[0]) if len(scored) >= 2 else None,
+    )
+
+
+@student_router.get("/progress", response_model=InterviewProgressOut)
+def my_interview_progress(
+    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+) -> InterviewProgressOut:
+    """My mock-interview trend (B6.2/B17).
+
+    A student with no interviews gets a 200 with an empty `points` and every
+    aggregate null. That is the honest answer and it is NOT a 404: "you have not
+    practised yet" is a state the screen renders, and a 404 would make the client
+    guess between that and a broken endpoint.
+    """
+    student_id = _own_student_id(session)
+    if student_id is None:
+        return InterviewProgressOut(
+            points=[],
+            attempts=0,
+            completed=0,
+            scored=0,
+            best_overall=None,
+            first_overall=None,
+            latest_overall=None,
+            average_overall=None,
+            trend=None,
+        )
+    return compose_interview_progress(db, student_id)
 
 
 # ---------------------------------------------------------------------------
@@ -622,18 +998,45 @@ def grant_consent(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> ConsentOut:
-    """Record a grant. A GRANT IS A ROW AND A ROW IS NEVER EDITED.
+    """Record an acknowledgement of the college's policy (B6.1). A GRANT IS A
+    ROW AND A ROW IS NEVER EDITED.
 
-    Changing your mind revokes the live grant and inserts a new one, rather than
-    updating the old row's booleans in place. That is the whole reason this is a
-    table: `interview_sessions.consent_id` pins the exact grant that was live
-    when an interview opened, so "was this student consented, to what, at the
-    time of interview X" is answerable years later. Mutating a grant would
-    rewrite the answer for every interview already pointing at it.
+    Changing what is acknowledged revokes the live row and inserts a new one,
+    rather than updating the old row's booleans in place. That is the whole
+    reason this is a table: `interview_sessions.consent_id` pins the exact grant
+    that was live when an interview opened, so "was this student consented, to
+    what, at the time of interview X" is answerable years later. Mutating a
+    grant would rewrite the answer for every interview already pointing at it.
+
+    THE SCOPES COME FROM THE POLICY, NEVER FROM THE REQUEST (B6.1). The client
+    posts this at Start rather than from a form with three tick boxes; the
+    server resolves `interview_policies` for this student's college and course
+    and copies the two storage scopes onto the row. `scope_live_ai` is written
+    TRUE and has no policy column, because it is not a switch a college owns:
+    the interview IS a live AI conversation, so "no" to it is not an interview
+    with a setting turned off, it is no interview — which is what not pressing
+    Start already means. The column stays, and stays three, so that a reader a
+    year from now can still see that this was disclosed.
+
+    IT IS IDEMPOTENT, AND THAT IS LOAD-BEARING RATHER THAN TIDY. A live row for
+    this version whose scopes already match the policy is RETURNED UNCHANGED —
+    no supersede, no new row. Without that, a student pressing Start in a second
+    tab would stamp `revoked_at` on the very row their running interview is
+    pinned to, and `_make_heartbeat` would close that interview 4014 "Consent
+    withdrawn" — a sentence they did not earn. With it, a supersede happens only
+    when the policy has actually changed, which is precisely when the
+    compatibility board says a running session may end.
+
+    EXISTING ROWS KEEP WORKING. A grant written in 2026-08 from the old
+    three-tick panel is live and this version's; it opens interviews exactly as
+    before. It is superseded the first time its scopes disagree with the college
+    policy, silently, at a Start the student was pressing anyway — which is the
+    compat rule ("existing consent rows keep working for the running version")
+    without a prompt anybody has to read twice.
 
     422 for a version this build does not know (§7.1). That is the one job a
-    version string has: a stale cached SPA must not be able to grant against
-    copy the student never saw.
+    version string has: a stale cached SPA must not be able to acknowledge copy
+    the student never saw.
     """
     if session.get("role") != Role.STUDENT.value:
         raise HTTPException(
@@ -651,7 +1054,28 @@ def grant_consent(
         )
 
     user_id = session["userId"]
+    student_id = session.get("studentId")
+    # No `students` row means no college and no course, so the policy resolves
+    # to `config.py`'s defaults — the same answer the socket would compute for
+    # this account, and the same one it has always used.
+    policy = (
+        policy_for_student(db, student_id)
+        if student_id
+        else interview_policy_defaults()
+    )
     now = datetime.now(timezone.utc)
+    live = _live_consent(db, user_id, current)
+    if (
+        live is not None
+        and bool(live.scope_store_transcript) == policy.store_transcript
+        and bool(live.scope_store_audio) == policy.store_audio
+        and bool(live.scope_live_ai) is True
+    ):
+        # Nothing has changed, so there is nothing new to record. Returning the
+        # STANDING row rather than a fresh one is what keeps a running
+        # interview's `consent_id` alive — see the docstring.
+        return _consent_out(live)
+
     # Supersede, then insert, in ONE transaction — the partial unique index
     # `uq_interview_consent_active` (user_id, version) WHERE revoked_at IS NULL
     # allows exactly one live grant, so the revoke has to be part of the same
@@ -668,9 +1092,9 @@ def grant_consent(
     row = InterviewConsent(
         user_id=user_id,
         version=current,
-        scope_live_ai=body.scope_live_ai,
-        scope_store_transcript=body.scope_store_transcript,
-        scope_store_audio=body.scope_store_audio,
+        scope_live_ai=True,
+        scope_store_transcript=policy.store_transcript,
+        scope_store_audio=policy.store_audio,
         granted_at=now,
         user_agent=_user_agent(request),
         source_ip_hash=_ip_hash(request),
@@ -692,59 +1116,37 @@ def grant_consent(
     return _consent_out(row)
 
 
-@student_router.delete("/consent", response_model=ConsentStateOut)
-def revoke_consent(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> ConsentStateOut:
-    """Withdraw consent: stamp `revoked_at` on EVERY live grant this user holds,
-    of any version.
-
-    Any version, not just the current one, because "I withdraw" is about the
-    person and not about a string. Leaving an old version's grant live would
-    mean a later reader keyed on that version still finds consent, which is the
-    kind of half-revocation that makes a consent record worthless.
-
-    The row is never deleted — the historical fact that consent WAS given is
-    what the interviews conducted under it depend on.
-
-    STUDENT-gated, matching `POST` above and §7.1's table. The asymmetry with
-    `GET /consent` (any signed-in user) is worth naming: if a user's role ever
-    changed after granting, they could read their grant and not withdraw it.
-    Roles here come from the roster seed and do not change at runtime, so this
-    has no live failure mode; the fix, if it ever grows one, is to delete this
-    check and keep the query, which already scopes to the caller's own rows.
-
-    WHAT THIS DOES NOT DO YET: it does not end a live interview. §7.1 pairs
-    revocation with `stop_sessions_for_user(user_id)` closing the socket 4014,
-    and neither that function nor the per-user session registry it needs exists
-    — an engine does not carry a user id today (app/interview_core.py),
-    and consent enforcement is deliberately the LAST step of the rollout (§8.3)
-    so that no student is locked out before the client is posting grants. Until
-    then, revoking mid-interview takes effect on the next interview. Wiring it
-    up is a change to routers/interview.py and the engines, not to this
-    module.
-    """
-    if session.get("role") != Role.STUDENT.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only a student can withdraw consent to a mock interview.",
-        )
-    db.execute(
-        update(InterviewConsent)
-        .where(
-            InterviewConsent.user_id == session["userId"],
-            InterviewConsent.revoked_at.is_(None),
-        )
-        .values(revoked_at=datetime.now(timezone.utc))
-    )
-    db.commit()
-    # The new state, so the client replaces what it holds instead of inferring
-    # it from a 204 and getting the version string wrong.
-    return ConsentStateOut(
-        version=settings.interview_consent_version,
-        consent=None,
-        provider=settings.interview_provider_label,
-    )
+# THERE IS NO `DELETE /api/interview/consent` ANY MORE, AND THE 405 IS THE POINT
+# (B6.1).
+#
+# The route was a student withdrawing consent. What it withdrew — whether the
+# transcript is kept, whether the audio is captured — is now the COLLEGE's
+# decision, taken once in `interview_policies` for everybody on a course, and a
+# button that appeared to let one student overrule it would be a promise the
+# server does not keep. So the handler is DELETED rather than made to answer
+# 403: `admin_students.py` set that precedent and stated the reason —
+# "all three answer 405, never 403, because a capability refusal would mean the
+# endpoint is still there waiting for a grant". A 405 says the operation does
+# not exist here, which is true; a 403 would say it exists and you may not, which
+# is not.
+#
+# 405 CANNOT BE ROLE-CONDITIONAL, whatever 04-backend-changes.md's wording
+# suggests: the status comes from Starlette finding a path with no handler for
+# the method, before any dependency runs. So it is 405 for everyone, which is
+# the honest reading of "the policy is the college's" — a mentor and the Main
+# Admin cannot withdraw a student's acknowledgement either, and neither could
+# they before.
+#
+# WHAT THIS COSTS, WRITTEN DOWN: `revoked_at` used to be stamped from here, and
+# `_make_heartbeat`'s 4014 watches for exactly that. The stamp now comes from
+# `POST /consent` superseding a grant whose scopes no longer match the policy,
+# and 4014 fires only when the superseding row covers LESS — see
+# `routers/interview.py::_successor_covers`. Close 4013 and 4014 keep their
+# meanings; what has gone is the one trigger a student could pull themselves.
+#
+# The rows are untouched. Nothing is deleted, every historical grant stays
+# readable, and `GET /api/interview/consent` still answers what this account
+# holds.
 
 
 # ---------------------------------------------------------------------------
@@ -777,12 +1179,39 @@ def student_interviews(
 
 
 @staff_router.get(
+    "/students/{student_id}/interviews/progress",
+    response_model=InterviewProgressOut,
+)
+def student_interview_progress(
+    student_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> InterviewProgressOut:
+    """This student's mock-interview trend, as THEY see it (B6.2).
+
+    DECLARED BEFORE `/{session_id}`, and the order is load-bearing: FastAPI
+    matches the first route whose path fits, and `progress` is a single path
+    segment. Below the by-id route it would be swallowed by it and answer
+    "Interview not found." for a trend that exists — the same trap
+    `app/main.py` documents for `/admin/interview-questions/tracks`.
+
+    NO VIEW ROW IS WRITTEN (B6.5). This is a trend, not a record: it quotes
+    nothing anybody said and is the same four numbers the student's own home
+    screen shows them. Logging it would put "a mentor opened your record" on
+    their privacy panel every time somebody glanced at a chart.
+    """
+    _assert_can_access_student(session, student_id, db)
+    return compose_interview_progress(db, student_id)
+
+
+@staff_router.get(
     "/students/{student_id}/interviews/{session_id}",
     response_model=InterviewSessionOut,
 )
 def student_interview(
     student_id: str,
     session_id: str,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> InterviewSessionOut:
@@ -790,7 +1219,16 @@ def student_interview(
     # SECOND check: the row's own subject must be the student the gate passed
     # on. Never trust a session id in a path to imply whose interview it is.
     row = _session_of_student_or_404(db, session_id, student_id)
-    return _session_detail(db, row)
+    # The payload is composed BEFORE the log, because `_log_record_view`
+    # COMMITS — which expires every ORM object this handler is holding, so a
+    # read taken afterwards costs a second SELECT to re-load a row that was
+    # already in hand. Nothing about correctness, everything about not making a
+    # mentor's screen do twice the work per interview.
+    out = _session_detail(db, row)
+    # B6.5, and AFTER both gates — a probe for another group's session must 404
+    # without leaving a row claiming that record was opened.
+    _log_record_view(db, session=session, request=request, row=row, what=VIEW_RECORD)
+    return out
 
 
 @staff_router.get(
@@ -800,12 +1238,17 @@ def student_interview(
 def student_interview_transcript(
     student_id: str,
     session_id: str,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[InterviewTurnOut]:
     _assert_can_access_student(session, student_id, db)
     row = _session_of_student_or_404(db, session_id, student_id)
-    return _transcript(db, row.id)
+    turns = _transcript(db, row.id)
+    _log_record_view(
+        db, session=session, request=request, row=row, what=VIEW_TRANSCRIPT
+    )
+    return turns
 
 
 @staff_router.get(
@@ -814,6 +1257,7 @@ def student_interview_transcript(
 def student_interview_report(
     student_id: str,
     session_id: str,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> InterviewReportOut | StaffInterviewReportOut:
@@ -836,10 +1280,13 @@ def student_interview_report(
     row = _session_of_student_or_404(db, session_id, student_id)
     evaluation = _evaluation_or_404(db, row.id)
     report = _report_out(evaluation)
+    raw = evaluation.raw_response
+    # AFTER `_evaluation_or_404` as well, so a request that 404s because no
+    # report exists does not log a report view. The student's panel must list
+    # what was READ, not what was asked for.
+    _log_record_view(db, session=session, request=request, row=row, what=VIEW_REPORT)
     if _may_see_raw_response(session):
-        return StaffInterviewReportOut(
-            **report.model_dump(), raw_response=evaluation.raw_response
-        )
+        return StaffInterviewReportOut(**report.model_dump(), raw_response=raw)
     return report
 
 
@@ -864,6 +1311,93 @@ class InterviewRecordRow(BaseModel):
     audio_recorded: bool
     started_at: datetime
     ended_at: datetime | None
+    #: B6.7. The grid used to carry no score at all, so the Interviews screen
+    #: could draw a list and never an average — `interviews.component.ts:22`
+    #: says so. NULLABLE, and a null renders as a DASH: a missing score and a
+    #: zero mean opposite things to a mentor, and this is the one column on this
+    #: grid where the difference is a judgement about a person.
+    overall_score: int | None = None
+    #: NULL means no evaluation row exists — the interview is still running, or
+    #: predates the scorecard. Distinct from `'unavailable'`, which records that
+    #: a report was attempted and did not arrive.
+    report_status: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# B6.7 — ONE query builder for both grids
+#
+# `/api/mentor/interviews` (role-gated, the screen that shipped) and
+# `/api/admin/interviews` (capability-gated, paginated, filtered) return the
+# same rows to the same people. That has to be a property of the call graph and
+# not a coincidence of two similar `.where()` chains: the day they drift, the
+# narrower one looks like a bug and the wider one is a leak, and nothing on
+# either screen says which is which.
+#
+# BOTH FENCES, SEPARATELY, AND IN THIS FUNCTION. Rule 2 narrows a MENTOR to
+# their own group and is applied ALWAYS — `app/governance.py`'s "a capability
+# can never relax the student filter". The B1.2 reach narrows a GRANT somebody
+# chose to hand over and is applied when a capability was checked. A caller who
+# is both a mentor and a scoped grant holder gets the intersection, which is the
+# only safe reading of two fences.
+# ---------------------------------------------------------------------------
+
+
+def _records_query(session: dict, *, reach: Reach | None):
+    """The interviews this caller may see, as a SELECT of
+    (InterviewSession, student name, USN, report_status, overall_score).
+
+    `reach=None` means "no capability was checked here", which is the honest
+    state of `/api/mentor/interviews`: its gate is `require_mentor`, a ROLE, and
+    `scope_filter` answers "how far does this session's grant for capability K
+    reach" — there is no K. Every caller it admits is fenced anyway, by their
+    own mentor group or by being the Main Admin.
+    """
+    query = (
+        select(
+            InterviewSession,
+            User.name,
+            Student.usn,
+            InterviewEvaluation.report_status,
+            InterviewEvaluation.overall_score,
+        )
+        .join(Student, InterviewSession.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+        .outerjoin(
+            InterviewEvaluation,
+            InterviewEvaluation.interview_session_id == InterviewSession.id,
+        )
+        .where(InterviewSession.deleted_at.is_(None))
+    )
+    if session.get("role") == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            # No `Mentor` group => NOBODY, never the whole programme. Expressed
+            # as an impossible predicate rather than an early `return []` so
+            # that every caller — including the one that goes on to count rows
+            # for a KPI tile — gets the same answer through the same query.
+            return query.where(sa_false())
+        query = query.where(Student.mentor_id == mentor_id)
+    if reach is not None and not reach.everything:
+        if reach.nothing:
+            return query.where(sa_false())
+        query = query.where(Student.id.in_(reach.student_ids()))
+    return query
+
+
+def _record_row(iv, name, usn, report_status, overall_score) -> InterviewRecordRow:
+    return InterviewRecordRow(
+        session_id=iv.id,
+        student_id=iv.student_id,
+        student_name=name,
+        usn=usn,
+        specialization=iv.specialization,
+        status=iv.status,
+        audio_recorded=iv.audio_recorded,
+        started_at=iv.started_at,
+        ended_at=iv.ended_at,
+        overall_score=overall_score,
+        report_status=report_status,
+    )
 
 
 @staff_router.get("/interviews", response_model=list[InterviewRecordRow])
@@ -897,38 +1431,24 @@ def all_interviews(
     which B6.7 adds along with the paginated grid; scope belongs in the same
     commit as the gate, because that is the commit that first admits somebody
     who is neither a mentor nor the office.
+
+    THAT COMMIT HAS LANDED (B6.7) AND THIS ENDPOINT IS UNCHANGED in who it
+    admits and which rows it returns. The capability-gated, scoped, paginated,
+    filterable grid is `GET /api/admin/interviews`; this one keeps its role
+    gate, its 200-row runaway guard and the client that already calls it. Both
+    read `_records_query`, so the one thing the two can never do is disagree
+    about which rows a caller may see. When the Interviews screen moves to the
+    paginated grid, DELETE this — do not leave two endpoints holding two ideas
+    of the same fence.
     """
     require_mentor(session)
-    query = (
-        select(InterviewSession, User.name, Student.usn)
-        .join(Student, InterviewSession.student_id == Student.id)
-        .join(User, Student.user_id == User.id)
-        .where(InterviewSession.deleted_at.is_(None))
-    )
-    if session["role"] == "MENTOR":
-        mentor_id = session.get("mentorId")
-        if not mentor_id:
-            return []  # no Mentor group => nobody
-        query = query.where(Student.mentor_id == mentor_id)
+    query = _records_query(session, reach=None)
     if recorded_only:
         query = query.where(InterviewSession.audio_recorded.is_(True))
     rows = db.execute(
         query.order_by(InterviewSession.started_at.desc(), InterviewSession.id).limit(_MAX_SESSIONS_LISTED)
     ).all()
-    return [
-        InterviewRecordRow(
-            session_id=iv.id,
-            student_id=iv.student_id,
-            student_name=name,
-            usn=usn,
-            specialization=iv.specialization,
-            status=iv.status,
-            audio_recorded=iv.audio_recorded,
-            started_at=iv.started_at,
-            ended_at=iv.ended_at,
-        )
-        for iv, name, usn in rows
-    ]
+    return [_record_row(*row) for row in rows]
 
 
 class BulkAudioIn(BaseModel):
@@ -939,6 +1459,7 @@ class BulkAudioIn(BaseModel):
 @staff_router.post("/interviews/audio.zip")
 def download_selected_audio(
     body: BulkAudioIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> FileResponse:
@@ -970,6 +1491,13 @@ def download_selected_audio(
     fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="reep-recordings-")
     os.close(fd)
     added = 0
+    # B6.5: ONE ROW PER RECORDING THAT ACTUALLY WENT INTO THE ZIP, never one per
+    # request. Forty students' voices leaving in one file is forty students who
+    # should each be able to see it on their own panel, and a single row against
+    # the first session id would hide thirty-nine of them. Collected as the zip
+    # is built — so a session that was skipped for scope or for a missing file
+    # logs nothing — and written after the zip is complete, in one transaction.
+    viewed: list[InterviewSession] = []
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_STORED) as zf:
         for sid in dict.fromkeys(body.session_ids):  # de-dup, preserve order
             row = db.get(InterviewSession, sid)
@@ -988,12 +1516,15 @@ def download_selected_audio(
             arcname = f"{usn}-{download_name(stem, body.track)}"
             zf.write(path, arcname=arcname)
             added += 1
+            viewed.append(row)
     if added == 0:
         os.remove(zip_path)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="None of the selected interviews have a recording you can download.",
         )
+    for row in viewed:
+        _log_record_view(db, session=session, request=request, row=row, what=VIEW_AUDIO)
     return FileResponse(
         zip_path,
         media_type="application/zip",
@@ -1082,6 +1613,7 @@ def _require_developer(session: dict, db: Session) -> dict:
 def student_interview_audio(
     student_id: str,
     session_id: str,
+    request: Request,
     track: str = TRACK_MIXED,
     download: bool = False,
     session: dict = Depends(get_current_session),
@@ -1170,6 +1702,13 @@ def student_interview_audio(
             detail="The stored recording is missing.",
         )
 
+    # B6.5, LAST — after the capability, the group gate, the ownership check,
+    # the track validation and the file actually being on disk. Every one of
+    # those 404s and 422s is a read that did not happen, and a student's panel
+    # saying their voice was played when it was not is the one failure mode of
+    # an access log that is worse than having none.
+    _log_record_view(db, session=session, request=request, row=row, what=VIEW_AUDIO)
+
     # FileResponse, not Response(content=...): a 15-minute track is ~43 MB, where
     # routers/student.py's upload download reads whole files because those are
     # capped at 10 MB. This streams from disk and answers Range requests, which
@@ -1194,4 +1733,569 @@ def student_interview_audio(
                 download_name(stem, track), inline=not download
             )
         },
+    )
+
+
+# ---------------------------------------------------------------------------
+# B6.7 — the records grid, its KPIs and its extract
+#
+# THE CAPABILITY IS `admin.interviews`, AND IT IS WHY THIS SECTION EXISTS AT
+# ALL. `all_interviews` above states the finding this task was written from:
+# scope cannot be applied to an endpoint whose gate is a ROLE, because
+# `policies.scope_filter` answers "how far does this session's grant for
+# capability K reach" and there was no K. Adding the key and adding the scope
+# are one commit, because that is the commit which first admits somebody who is
+# neither a mentor nor the office — a faculty member the Main Admin handed the
+# Interviews screen to, whose grant may reach one department.
+#
+# The key is in the catalogue as `_P` (programme) and `carries_pii=True`: these
+# rows name students and carry scores. `carries_pii` means B2.4's second
+# signature applies to GRANTING it — on a one-admin deployment a grant stays
+# `pending_approval` and holds nothing, which is a real consequence and the
+# Governance screen reports it rather than pretending.
+# ---------------------------------------------------------------------------
+
+CAPABILITY = "admin.interviews"
+
+#: The terminal vocabulary, plain strings — §6.1, and the same rule every other
+#: interview vocabulary follows. A filter naming anything else is a 422 rather
+#: than an empty grid: "no interviews failed today" and "you spelled `failed`
+#: wrong" are opposite facts and an empty table renders them identically.
+GRID_STATUSES = ("running", "completed", "abandoned", "failed")
+
+#: What `?track=` must be to ask for the GENERIC interview, whose
+#: `interview_sessions.specialization` is NULL. Without a word for it there is
+#: no way to filter for the interviews that ran without a track, which is
+#: exactly the set somebody investigating "why did this student get no
+#: scorecard" wants — the generic interview never reaches wrap-up.
+TRACK_GENERAL = "general"
+
+#: Default and maximum page sizes. The 200-row cap `_MAX_SESSIONS_LISTED`
+#: expresses is not raised here, it is REPLACED: the cap was a runaway guard on
+#: an endpoint that could not paginate, and the comment above it said the moment
+#: a real cohort approached it was the moment to add a cursor rather than a
+#: bigger number. This is that cursor.
+GRID_PAGE_SIZE = 50
+GRID_MAX_PAGE_SIZE = 200
+
+
+class InterviewGridOut(BaseModel):
+    """One page of the records grid.
+
+    A CURSOR, NOT `?page=`, and 04-backend-changes.md's `page=&page_size=` is
+    the thing being corrected. Interviews are written continuously, so an offset
+    taken against a list that grows at the top SKIPS rows: a placement officer
+    paging through a morning's interviews would silently never see the ones that
+    were pushed across the page boundary while they read. The query already
+    orders by `(started_at, id)`, which is a total order and therefore a usable
+    keyset — so the page after this one is defined by the last row of this one
+    rather than by a count that has since changed.
+
+    `next_cursor` is null on the last page. There is deliberately NO total
+    count: counting every interview on the deployment to render "page 3 of 47"
+    costs a full scan on every keystroke of a filter, and the KPI endpoint
+    answers the question that number is standing in for, once, and properly.
+    """
+
+    rows: list[InterviewRecordRow]
+    next_cursor: str | None
+    page_size: int
+
+
+class TrackCountOut(BaseModel):
+    """One track's slice of the KPIs. `track_code` is null for the generic
+    interview — the same NULL `interview_sessions.specialization` carries, not a
+    missing value."""
+
+    track_code: str | None
+    interviews: int
+    completed: int
+    #: Over the SCORED interviews of this track only, and null when none are.
+    #: Never 0.0: a track nobody has been scored on and a track everybody failed
+    #: are opposite facts.
+    average_overall: float | None
+
+
+class InterviewKpisOut(BaseModel):
+    """The tiles above the grid, over exactly the rows the grid would return.
+
+    Computed from the SAME `_records_query` the grid uses, filters included, so
+    a tile can never report a number the list below it cannot produce — which is
+    the way KPI endpoints usually go wrong: a second query, written from the
+    same description, that quietly forgets one fence.
+    """
+
+    interviews: int
+    completed: int
+    abandoned: int
+    failed: int
+    running: int
+    #: Distinct students, not interviews. "Sixty interviews" and "sixty students
+    #: practising" are different facts and the office plans on the second.
+    students: int
+    recorded: int
+    scored: int
+    average_overall: float | None
+    by_track: list[TrackCountOut]
+
+
+def _encode_cursor(started_at: datetime, session_id: str) -> str:
+    """`(started_at, id)` as one opaque token.
+
+    Opaque so the client cannot construct one: a hand-made cursor is a client
+    deciding where a scoped list starts, and the shape it would have to know is
+    a shape this endpoint is then unable to change.
+    """
+    raw = f"{started_at.isoformat()}|{session_id}".encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii")
+
+
+def _decode_cursor(cursor: str) -> tuple[datetime, str]:
+    """The other half, or a 422 naming the problem.
+
+    422 AND NOT A SILENT RESET TO PAGE ONE. A cursor that cannot be read means
+    the client and the server disagree about where the list is, and quietly
+    handing back the first page again is how a grid loops forever showing the
+    same fifty rows while the operator scrolls.
+    """
+    try:
+        raw = base64.urlsafe_b64decode(cursor.encode("ascii")).decode("utf-8")
+        stamp, _, session_id = raw.partition("|")
+        at = datetime.fromisoformat(stamp)
+    except (ValueError, UnicodeDecodeError, binascii.Error):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="That page cursor is not one this endpoint issued.",
+        )
+    if not session_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="That page cursor is not one this endpoint issued.",
+        )
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=timezone.utc)
+    return at, session_id
+
+
+def _students_in(reach_field: str, value: str):
+    """The students under one college or one cohort, as a subquery.
+
+    BUILT FROM `Reach` RATHER THAN WRITTEN OUT, and that is the whole point.
+    "Which students are in this college" is already answered by
+    `policies.Reach.student_ids`, including the part everybody gets wrong — a
+    student reaches a department through their BATCH or through
+    `students.department_id`, and a filter that reads only the first one
+    silently drops every unseated student, which is every student at a college
+    that has not built its batches yet. Constructing a one-element reach reuses
+    that expression exactly instead of copying it.
+    """
+    return Reach(everything=False, **{reach_field: frozenset({value})}).student_ids()
+
+
+def _grid_filters(
+    query,
+    *,
+    college: str | None,
+    cohort: str | None,
+    track: str | None,
+    grid_status: str | None,
+    date_from: datetime | None,
+    date_to: datetime | None,
+    recorded_only: bool,
+    started_at,
+    specialization,
+    row_status,
+    student_id,
+    audio_recorded=None,
+):
+    """Apply B6.7's filters to either grid query.
+
+    Takes the COLUMNS as arguments because the same six filters have to narrow
+    two different tables — `interview_sessions` for the grid and its KPIs,
+    `interview_score_summaries` for the extract, which is the table that outlives
+    the sessions. One filter function over two column sets rather than two
+    functions: the extract must return the same interviews the grid shows or the
+    file is not the list the operator was looking at.
+    """
+    if college:
+        query = query.where(student_id.in_(_students_in("colleges", college)))
+    if cohort:
+        query = query.where(student_id.in_(_students_in("cohorts", cohort)))
+    if track:
+        wanted = track.strip().lower()
+        if wanted == TRACK_GENERAL:
+            query = query.where(specialization.is_(None))
+        else:
+            query = query.where(func.lower(specialization) == wanted)
+    if grid_status:
+        query = query.where(row_status == grid_status)
+    if date_from:
+        query = query.where(started_at >= date_from)
+    if date_to:
+        query = query.where(started_at <= date_to)
+    if recorded_only:
+        # `audio_recorded` is optional because the extract's table does not have
+        # the column — whether a recording exists is a fact about the SESSION,
+        # and the summaries outlive it. An assertion rather than a silently
+        # ignored filter: a `?recorded_only=1` that quietly returned everything
+        # would be a reviewer downloading a file they believe is the recorded
+        # subset.
+        assert audio_recorded is not None, (
+            "recorded_only has no meaning over a table with no audio column"
+        )
+        query = query.where(audio_recorded.is_(True))
+    return query
+
+
+def _check_grid_status(grid_status: str | None) -> str | None:
+    if grid_status and grid_status not in GRID_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"status must be one of: {', '.join(GRID_STATUSES)}.",
+        )
+    return grid_status
+
+
+@admin_router.get("/interviews", response_model=InterviewGridOut)
+def admin_interviews(
+    response: Response,
+    college: str | None = None,
+    cohort: str | None = None,
+    track: str | None = None,
+    grid_status: str | None = Query(None, alias="status"),
+    date_from: datetime | None = Query(None, alias="from"),
+    date_to: datetime | None = Query(None, alias="to"),
+    recorded_only: bool = False,
+    cursor: str | None = None,
+    page_size: int = Query(GRID_PAGE_SIZE, ge=1, le=GRID_MAX_PAGE_SIZE),
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> InterviewGridOut:
+    """The records grid: every interview this caller may see, one page at a time.
+
+    THE REACH IS CHECKED FOR `nothing` FIRST AND STATED IN A HEADER. "May see
+    everything" and "may see nothing" are opposite facts, not two ends of a
+    scale (`app/policies.py`), and a `none` reach rendering as an empty grid
+    tells the office there were no interviews rather than that they cannot see
+    them. `X-Reep-Scope` carries `programme` | `narrowed` | `none` on every
+    response, including the empty one.
+
+    RULE 2 STILL APPLIES ON TOP, in `_records_query`: a MENTOR holding this
+    capability sees their own group and no further, and a MENTOR with no group
+    sees nobody. A capability can never relax the student filter.
+
+    NO VIEW ROW IS WRITTEN (B6.5). This is a list, and one officer opening it
+    would otherwise put fifty "somebody opened your record" lines on fifty
+    students' privacy panels for a screen nobody read a word of. The by-id
+    reads are what get logged.
+    """
+    require_capability(db, session, CAPABILITY)
+    reach = scope_filter(db, session, CAPABILITY)
+    scope_header(response, reach)
+    _check_grid_status(grid_status)
+
+    query = _grid_filters(
+        _records_query(session, reach=reach),
+        college=college,
+        cohort=cohort,
+        track=track,
+        grid_status=grid_status,
+        date_from=date_from,
+        date_to=date_to,
+        recorded_only=recorded_only,
+        started_at=InterviewSession.started_at,
+        specialization=InterviewSession.specialization,
+        row_status=InterviewSession.status,
+        audio_recorded=InterviewSession.audio_recorded,
+        student_id=InterviewSession.student_id,
+    )
+    if cursor:
+        at, last_id = _decode_cursor(cursor)
+        # A ROW-VALUE COMPARISON, not `started_at < at OR (= AND id < …)`
+        # spelled out: the two are the same predicate and only one of them
+        # stays correct when somebody edits it. Both columns descend, which is
+        # what makes the tuple comparison the right one — a mixed-direction
+        # order would need the long form and would be wrong the first time two
+        # interviews shared a start time.
+        query = query.where(
+            tuple_(InterviewSession.started_at, InterviewSession.id)
+            < tuple_(at, last_id)
+        )
+
+    rows = db.execute(
+        query.order_by(
+            InterviewSession.started_at.desc(), InterviewSession.id.desc()
+        ).limit(page_size + 1)  # one extra: "is there another page" without a count
+    ).all()
+    has_more = len(rows) > page_size
+    rows = rows[:page_size]
+    out = [_record_row(*row) for row in rows]
+    next_cursor = (
+        _encode_cursor(rows[-1][0].started_at, rows[-1][0].id) if has_more else None
+    )
+    return InterviewGridOut(rows=out, next_cursor=next_cursor, page_size=page_size)
+
+
+@admin_router.get("/interviews/summary", response_model=InterviewKpisOut)
+def admin_interviews_summary(
+    response: Response,
+    college: str | None = None,
+    cohort: str | None = None,
+    track: str | None = None,
+    grid_status: str | None = Query(None, alias="status"),
+    date_from: datetime | None = Query(None, alias="from"),
+    date_to: datetime | None = Query(None, alias="to"),
+    recorded_only: bool = False,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> InterviewKpisOut:
+    """The tiles above the grid, over exactly the rows the grid would return.
+
+    Same gate, same reach, same filters, same `_records_query`. The aggregation
+    happens in Postgres rather than by fetching the rows and counting them in
+    Python: this is the number the office asks for on a deployment where the
+    grid is deliberately paginated, so it must not be the one place that reads
+    every interview into memory.
+    """
+    require_capability(db, session, CAPABILITY)
+    reach = scope_filter(db, session, CAPABILITY)
+    scope_header(response, reach)
+    _check_grid_status(grid_status)
+
+    base = _grid_filters(
+        _records_query(session, reach=reach),
+        college=college,
+        cohort=cohort,
+        track=track,
+        grid_status=grid_status,
+        date_from=date_from,
+        date_to=date_to,
+        recorded_only=recorded_only,
+        started_at=InterviewSession.started_at,
+        specialization=InterviewSession.specialization,
+        row_status=InterviewSession.status,
+        audio_recorded=InterviewSession.audio_recorded,
+        student_id=InterviewSession.student_id,
+    ).subquery()
+
+    totals = db.execute(
+        select(
+            func.count(),
+            func.count().filter(base.c.status == "completed"),
+            func.count().filter(base.c.status == "abandoned"),
+            func.count().filter(base.c.status == "failed"),
+            func.count().filter(base.c.status == "running"),
+            func.count(func.distinct(base.c.student_id)),
+            func.count().filter(base.c.audio_recorded.is_(True)),
+            func.count(base.c.overall_score),
+            func.avg(base.c.overall_score),
+        ).select_from(base)
+    ).one()
+    (
+        interviews,
+        completed,
+        abandoned,
+        failed,
+        running,
+        students,
+        recorded,
+        scored,
+        average,
+    ) = totals
+
+    per_track = db.execute(
+        select(
+            base.c.specialization,
+            func.count(),
+            func.count().filter(base.c.status == "completed"),
+            func.avg(base.c.overall_score),
+        )
+        .select_from(base)
+        .group_by(base.c.specialization)
+        .order_by(func.count().desc(), base.c.specialization)
+    ).all()
+
+    return InterviewKpisOut(
+        interviews=int(interviews or 0),
+        completed=int(completed or 0),
+        abandoned=int(abandoned or 0),
+        failed=int(failed or 0),
+        running=int(running or 0),
+        students=int(students or 0),
+        recorded=int(recorded or 0),
+        scored=int(scored or 0),
+        # NULL out of `avg()` when nothing was scored, carried through as None
+        # rather than coalesced to 0. `func.avg` over an empty set is the one
+        # aggregate that gets this right for free; do not "tidy" it.
+        average_overall=None if average is None else round(float(average), 1),
+        by_track=[
+            TrackCountOut(
+                track_code=code,
+                interviews=int(n or 0),
+                completed=int(done or 0),
+                average_overall=None if avg is None else round(float(avg), 1),
+            )
+            for code, n, done, avg in per_track
+        ],
+    )
+
+
+def _summary_query(session: dict, *, reach: Reach):
+    """The score SUMMARIES this caller may see — the extract's own two fences.
+
+    A separate query from `_records_query` because it reads a different table,
+    and it reads a different table on purpose: `interview_score_summaries`
+    outlives the 180-day purge, so the extract of an academic year still has
+    rows in it next September when the sessions themselves are gone. Both fences
+    are applied here in the same order and for the same reasons; the one thing
+    that must never happen is for this to grow a THIRD idea of who may be in a
+    file that cannot be recalled.
+    """
+    query = (
+        select(InterviewScoreSummary, User.name, Student.usn)
+        .join(Student, InterviewScoreSummary.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+    )
+    if session.get("role") == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            return query.where(sa_false())
+        query = query.where(Student.mentor_id == mentor_id)
+    if not reach.everything:
+        if reach.nothing:
+            return query.where(sa_false())
+        query = query.where(Student.id.in_(reach.student_ids()))
+    return query
+
+
+@admin_router.get("/interviews/export.csv")
+def admin_interviews_export(
+    request: Request,
+    college: str | None = None,
+    cohort: str | None = None,
+    track: str | None = None,
+    grid_status: str | None = Query(None, alias="status"),
+    date_from: datetime | None = Query(None, alias="from"),
+    date_to: datetime | None = Query(None, alias="to"),
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """The interviews extract — SUMMARY ROWS ONLY, and that is B14's rule here.
+
+    NOT ONE WORD ANYBODY SAID LEAVES IN THIS FILE. No transcript, no strengths,
+    no improvements, no `drill`, no `summary` sentence and above all no
+    `raw_response` — the model's private reasoning about a student, which does
+    not travel to the student themselves and certainly does not travel in a
+    spreadsheet. What leaves is what `interview_score_summaries` holds: a date,
+    a track, a status and four integers. An export is the one thing in REEP that
+    cannot be recalled (`app/exports.py`), and the narrowest useful file is the
+    right one.
+
+    IT READS THE SUMMARIES, NOT THE SESSIONS, for B6.2's reason: this is the
+    table that survives retention, so an extract taken in September still
+    contains March, which is precisely when somebody asks for it.
+
+    THE THREE B14 RULES APPLY UNCHANGED and none of them are re-implemented
+    here: `scope_filter` decides who may be in the file, `carries_personal_
+    columns` decides whether it may name them, and `record_export` leaves the
+    receipt. The receipt commits and a failure to write it FAILS the download —
+    that asymmetry with `_log_record_view` above is deliberate and
+    `app/exports.py` argues it.
+
+    `?recorded_only=` IS ABSENT AND THAT IS NOT AN OVERSIGHT: whether a
+    recording exists is a fact about the session, and this file is built from
+    the summaries, which outlive it. A filter that silently meant "only the
+    interviews not yet reaped" would be a filter that changes its answer every
+    night at 02:00.
+    """
+    require_capability(db, session, CAPABILITY)
+    reach = scope_filter(db, session, CAPABILITY)
+    carried_pii = carries_personal_columns(db, session)
+    _check_grid_status(grid_status)
+
+    query = _grid_filters(
+        _summary_query(session, reach=reach),
+        college=college,
+        cohort=cohort,
+        track=track,
+        grid_status=grid_status,
+        date_from=date_from,
+        date_to=date_to,
+        recorded_only=False,
+        started_at=InterviewScoreSummary.started_at,
+        specialization=InterviewScoreSummary.track_code,
+        row_status=InterviewScoreSummary.status,
+        student_id=InterviewScoreSummary.student_id,
+    )
+    rows = (
+        []
+        if reach.nothing
+        else db.execute(
+            query.order_by(
+                InterviewScoreSummary.started_at.desc(), InterviewScoreSummary.id
+            )
+        ).all()
+    )
+
+    header, body = drop_personal(
+        [
+            "Name",
+            "USN",
+            "Started",
+            "Track",
+            "Status",
+            "Overall",
+            "Communication",
+            "Domain",
+            "Structure",
+            "Record",
+        ],
+        [
+            [
+                name,
+                usn or "",
+                s.started_at.isoformat(),
+                s.track_code or TRACK_GENERAL,
+                s.status,
+                # A BLANK CELL FOR A MISSING SCORE, never a 0. This file is
+                # opened in a spreadsheet and averaged; a zero would drag a
+                # cohort's average down by the interviews nobody marked, which
+                # is the same mistake as plotting a NULL at the origin, made
+                # somewhere nobody will ever see this code.
+                "" if s.overall_score is None else s.overall_score,
+                "" if s.communication_score is None else s.communication_score,
+                "" if s.domain_score is None else s.domain_score,
+                "" if s.structure_score is None else s.structure_score,
+                # Says WHY the four numbers may be all there is, so a reader
+                # does not report a missing transcript as a bug.
+                "on file" if s.session_id else "reaped after retention",
+            ]
+            for s, name, usn in rows
+        ],
+        ["Name", "USN"],
+        carry=carried_pii,
+    )
+    record_export(
+        db,
+        session=session,
+        request=request,
+        kind="interviews",
+        filters={
+            **scope_note(reach),
+            "college": college,
+            "cohort": cohort,
+            "track": track,
+            "status": grid_status,
+            "from": date_from.isoformat() if date_from else None,
+            "to": date_to.isoformat() if date_to else None,
+        },
+        rows=len(body),
+        carried_pii=carried_pii,
+    )
+    return csv_response(
+        header,
+        body,
+        "reep-interview-scores.csv",
+        reach=reach,
+        carried_pii=carried_pii,
     )

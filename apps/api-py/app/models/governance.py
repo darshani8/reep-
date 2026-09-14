@@ -158,6 +158,42 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # time (app/routers/admin_students.py). PROGRAMME and personal: it creates,
     # edits and deletes roster rows - the access control itself.
     Capability("admin.students", "Students", _P, carries_pii=True),
+    # B8.1's spreadsheet imports (app/routers/admin_imports.py). PROGRAMME,
+    # because an import is FOR A BATCH and no mentor group narrows a batch - the
+    # rung it hangs on is the college or the batch itself, which is a B1.2 scope
+    # target and not a mentor function.
+    #
+    # `carries_pii` IS TRUE AND THE CONSEQUENCE IS DELIBERATE. A preview names
+    # every student in the batch by USN with their marks or their attendance
+    # beside it, on screen, before anything is written - it is one of the most
+    # concentrated views of student records the console has. So under B2.4 a
+    # grant of this key lands `pending_approval` and HOLDS NOTHING until a
+    # second `admin.governance` holder approves it. On a one-admin deployment it
+    # therefore never activates, which is a real cost and an honest one: the
+    # Colleges screen's admin column already renders "N awaiting approval"
+    # rather than pretending. The way to make it work is to appoint a deputy,
+    # which is what `admin.governance`'s bootstrap note above exists for - not
+    # to drop the flag.
+    Capability("admin.imports", "Data imports", _P, carries_pii=True),
+    # B6.1/B6.4/B6.7's interviews: the college's interview POLICY (what is kept,
+    # for how long, how many attempts a day) and the records grid behind it.
+    # PROGRAMME for the same reason `admin.interview_questions` is: a policy
+    # governs every student on a course, and no mentor GROUP is a rung a policy
+    # could hang on. It is narrowed by B1.2's scope instead — a college-scoped
+    # holder writes their own college's policy and not another's.
+    #
+    # `carries_pii` IS TRUE, and the half that earns it is not the policy row —
+    # it is everything that hangs off this key: the records grid names students
+    # with their scores beside them, and the cap reset names one student and
+    # gives them back attempts. So a grant lands `pending_approval` under B2.4
+    # and holds NOTHING until a second `admin.governance` holder approves it.
+    # On a one-admin deployment it therefore never activates, which is a real
+    # consequence and an honest one; the way to make it work is to appoint a
+    # deputy, not to drop the flag. (04-backend-changes.md B1.3 listed this key
+    # in `COLLEGE_ADMIN_CAPABILITIES` for months while it did not exist —
+    # `app/routers/admin.py` carried the note. It exists now, in the same commit
+    # as its first `require_capability` call site and its place in that set.)
+    Capability("admin.interviews", "Interviews", _P, carries_pii=True),
     # Governance itself: the grants screen, the access groups and the student
     # feature switches (app/routers/governance.py). B2.6.
     #
@@ -181,23 +217,30 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # It reads no student record itself -- it hands out screens -- which is what
     # `carries_pii` actually means on this dataclass.
     Capability("admin.governance", "Governance", _P),
-    # -- temporary, and the only entry here that is not a screen --------------
-    # THIS ONE IS DELETED IN PHASE 5. It gates the 2026-09 admin console while
-    # it is being built, so the owner can review it on a production deployment
-    # before it replaces the screens the office uses every day
-    # (06-phase-prompts.md, Phase 2). The old screens stay reachable until
-    # Phase 3 is accepted; this is the switch that decides which a session sees.
-    #
-    # PROGRAMME, not SCOPED, and that placement is the whole behaviour: _ALL
-    # minus _FACULTY_ONLY is the Main Admin's baseline, so the office account
-    # holds it the moment this line exists and nobody has to grant it anything;
-    # _SCOPED is a MENTOR's baseline and a PROGRAMME capability is not in it, so
-    # a faculty member sees the old console until the Main Admin grants them
-    # this one in Governance -- which is exactly the review loop it is for.
-    #
-    # It carries no PII: it selects a rendering, it does not read a student.
-    Capability("ui.console_v2", "New admin console (preview)", _P),
 )
+
+# `ui.console_v2` STOOD HERE UNTIL PHASE 5, AND ITS DELETION IS THE INVARIANT.
+#
+# It was the one entry that was not a screen: a preview switch the 2026-09
+# console's new screens sat behind, in the Main Admin's baseline, so the owner
+# could review them on the production deployment while the office kept the
+# console it knew. That review is over; the new screens ARE the console, and a
+# switch nobody can turn off is a screen's second gate that only ever refuses.
+#
+# It also cost the catalogue its one exemption. Every OTHER key here is checked
+# by a `require_capability` / `has_capability` / `scope_filter` call site under
+# `app/`, which `tools/ci/check_capability_enforcement.py` proves; this one
+# could not be, because it selected a CLIENT rendering and there was no request
+# to refuse. With it gone that checker's EXEMPT dict is EMPTY, and B2.1's rule
+# -- enforce every catalogue key or delete it -- has no "or write your name on
+# a list" third option any more. `tests/test_codebase_guards.py` pins it empty.
+#
+# Grants naming it may still exist on a deployment. That is safe and was
+# designed for: `granted_capabilities` filters on CAPABILITIES_BY_KEY, so such a
+# row resolves to nothing while every other key the same person holds resolves
+# normally (tests/test_capability_enforcement.py). Do not write a migration to
+# delete those rows -- the audit trail is why the office can answer "who was
+# given what, and when".
 
 CAPABILITIES_BY_KEY: Final[dict[str, Capability]] = {c.key: c for c in CAPABILITIES}
 
@@ -397,6 +440,10 @@ class CapabilityGrant(Base):
         Index("ix_capgrant_user_live", "subject_user_id", "capability", "revoked_at"),
         Index("ix_capgrant_group_live", "subject_group_id", "capability", "revoked_at"),
         Index("ix_capgrant_capability", "capability"),
+        # B1.2's rung. Declared here for the same reason as the constraints
+        # above: it is created by b2c9e04a7731 and, undeclared, `alembic check`
+        # asks to drop it on every single run.
+        Index("ix_capgrant_scope", "scope_level", "scope_id"),
         CheckConstraint(
             "approval_state IN ('active', 'pending_approval')",
             name="ck_capability_grant_approval_state",

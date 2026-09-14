@@ -33,12 +33,31 @@
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
-/* A filter whose endpoint is a Phase 4 task. The <select> inside carries
-   [reepPending], which disables it and names the phase; this dims the pill it
-   sits in so the row reads as "not yet" at a glance. */
+/* A filter that cannot be used: the Track select, which has no endpoint to
+   narrow by, and the Batch or Period select while its list is empty or was
+   refused. The <select> inside is `disabled` with the reason in its title;
+   this dims the pill it sits in so the row reads as "nothing to choose" at a
+   glance rather than as a menu that will not open. */
 .filter-pending {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* --- the by-track split -------------------------------------------------- */
+.track-split {
+  width: 100%;
+}
+.track-split td.num,
+.track-split th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--faint);
 }
 
 /* --- the funnel beside the side cards, as the board splits them ----------- */

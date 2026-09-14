@@ -28,6 +28,7 @@ from sqlalchemy import select
 
 from .config import settings
 from .db import SessionLocal
+from .mentor_history import record_mentor_change
 from .resume_pdf import render_resume_pdf
 from .models.academic_history import AcademicGap, AcademicQualification, QualificationLevel
 from .models.academics import SemesterResult, SubjectMark
@@ -49,7 +50,6 @@ from .models.cohort import Cohort
 from .models.institution import AcademicCourse, AcademicSpecialization, College, Department
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
 from .models.job import DegreeLevel, Job
-from .models.job_import_run import JobImportRun
 from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from .models.mail import MailLog
 from .models.registration import Registration, RegistrationRule, RegistrationStatus
@@ -277,7 +277,21 @@ def main() -> None:
             select(Mentor).join(User, Mentor.user_id == User.id).where(User.email == "mentor@bgscet.ac.in")
         )
         if stu and mentor and stu.mentor_id != mentor.id:
+            previous_mentor_id = stu.mentor_id
             stu.mentor_id = mentor.id
+            # B9.1. The seed is the fourth of the five writers of this pointer,
+            # and it goes through the same one function as the other four —
+            # `app/mentor_history.py` names them by count for the reason this
+            # line exists. No session and no request: there is no HTTP caller to
+            # audit against, which is what the optional arguments are for.
+            record_mentor_change(
+                db,
+                student_id=stu.id,
+                previous_mentor_id=previous_mentor_id,
+                new_mentor_id=mentor.id,
+                by_user_id=None,
+                reason="seeded demo pairing",
+            )
             db.commit()
             print("assigned student to mentor group")
         if stu and mentor and db.scalar(
@@ -364,12 +378,27 @@ def main() -> None:
 
         # Idempotently add a few SWOC entries across the viewpoints.
         if stu and db.scalar(select(SwocEntry).where(SwocEntry.student_id == stu.id)) is None:
+            # EVERY SEEDED LINE NOW HAS AN AUTHOR, and that is a one-line fix to
+            # a demo that told a lie. `author_user_id` was NULL on all four, and
+            # the admin board's copy for a NULL author is "Author no longer on
+            # the roster" — a false statement about a row nobody ever wrote, on
+            # a screen the student's own Faculty / TPO Log reads from. Two
+            # distinct facts (never recorded / recorded but the account is gone)
+            # were collapsing into one string, and the honest fix is to stop
+            # producing the first one in the seed. `semester` is stamped for the
+            # same reason the write path stamps it: at the moment of writing.
+            mentor_user_id = db.scalar(select(User.id).where(User.email == "mentor@bgscet.ac.in"))
+            office_user_id = db.scalar(select(User.id).where(User.email == "admin@bgscet.ac.in"))
             db.add_all(
                 [
-                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.STRENGTH, text="Strong analytical and quantitative skills.", weight=5),
-                    SwocEntry(student_id=stu.id, source=SwocSource.PLACEMENT, kind=SwocKind.WEAKNESS, text="Needs structured problem-solving practice.", weight=4),
-                    SwocEntry(student_id=stu.id, source=SwocSource.PM, kind=SwocKind.OPPORTUNITY, text="Fintech internships opening this quarter.", weight=3),
-                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.CHALLENGE, text="Public speaking under time pressure.", weight=3),
+                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.STRENGTH, text="Strong analytical and quantitative skills.", weight=5, author_user_id=mentor_user_id, semester=stu.current_semester),
+                    SwocEntry(student_id=stu.id, source=SwocSource.PLACEMENT, kind=SwocKind.WEAKNESS, text="Needs structured problem-solving practice.", weight=4, author_user_id=office_user_id, semester=stu.current_semester),
+                    # PM STAYS. It is a legal stored value, the client maps it,
+                    # and dropping a Postgres enum value means recreating the
+                    # type — 04's "PM retired from the writer" is already true
+                    # of the API, where `_source_for` has only two outcomes.
+                    SwocEntry(student_id=stu.id, source=SwocSource.PM, kind=SwocKind.OPPORTUNITY, text="Fintech internships opening this quarter.", weight=3, author_user_id=office_user_id, semester=stu.current_semester),
+                    SwocEntry(student_id=stu.id, source=SwocSource.MENTOR, kind=SwocKind.CHALLENGE, text="Public speaking under time pressure.", weight=3, author_user_id=mentor_user_id, semester=stu.current_semester),
                 ]
             )
             db.commit()
@@ -789,8 +818,18 @@ def main() -> None:
             db.commit()
             print("added registration rules (2)")
 
-        # Idempotently seed two sample applications: one that the narrow rule
-        # auto-approves, one that only the broad rule routes to manual review.
+        # Idempotently seed three sample applications: one the narrow rule
+        # auto-approves, one only the broad rule routes to manual review, and one
+        # a reviewer has HELD.
+        #
+        # THE HELD ONE IS SEEDED FOR THE SAME REASON THE TIME LEDGER IS SEEDED
+        # HALF AN HOUR SHORT: a state nobody can see on a fresh database is a
+        # state nobody reviews. HOLD is one row in one column, the Held tab is
+        # empty without it, and "the tab loads and shows nothing" is
+        # indistinguishable from "the tab is broken" until somebody holds an
+        # application by hand. The note is what a real hold looks like — it says
+        # what the application is waiting on, because a hold with no note is a
+        # PENDING_REVIEW row with extra steps.
         if db.scalar(select(Registration)) is None:
             rules = {r.name: r for r in db.scalars(select(RegistrationRule)).all()}
             auto = rules.get("MBA 2024-26 auto-admit")
@@ -799,34 +838,22 @@ def main() -> None:
                 [
                     Registration(name="Asha Rao", email="1bg24mba045@bgscet.ac.in", usn="1BG24MBA045", degree_level=DegreeLevel.PG, status=RegistrationStatus.AUTO_APPROVED, cohort_id=auto.cohort_id if auto else None, matched_rule_id=auto.id if auto else None, decision_reason="Auto-approved by rule 'MBA 2024-26 auto-admit'."),
                     Registration(name="Ravi Kumar", email="ravi.kumar@bgscet.ac.in", degree_level=DegreeLevel.PG, status=RegistrationStatus.PENDING_REVIEW, matched_rule_id=broad.id if broad else None, decision_reason="Routed by rule 'College domain — route to review' — awaiting review."),
+                    # `held_by_id` is left NULL and `decision_reason` keeps the
+                    # rule engine's own sentence: the seed has no reviewer to
+                    # name, and a hold changes nothing the applicant is told.
+                    Registration(name="Nikhil Shetty", email="nikhil.shetty@bgscet.ac.in", degree_level=DegreeLevel.PG, status=RegistrationStatus.HOLD, matched_rule_id=broad.id if broad else None, decision_reason="Routed by rule 'College domain — route to review' — awaiting review.", hold_note="No CV attached, and the USN on the form is one digit short. Asked him to resend both.", held_at=datetime.now(timezone.utc)),
                 ]
             )
             db.commit()
-            print("added registrations (2: 1 auto-approved, 1 pending review)")
+            print("added registrations (3: 1 auto-approved, 1 pending review, 1 held)")
 
-        # Idempotently seed a completed job-import run and back-link the seeded
-        # jobs to it — the audit row that says "these three came from that sheet".
-        if db.scalar(select(JobImportRun)) is None:
-            base = datetime(2026, 8, 1, tzinfo=timezone.utc)
-            admin_user = db.scalar(select(User).where(User.email == "admin@bgscet.ac.in"))
-            jobs = db.scalars(select(Job)).all()
-            run = JobImportRun(
-                file_name="vacancies_2026_aug.csv",
-                uploaded_by_id=admin_user.id if admin_user else None,
-                started_at=base,
-                finished_at=base + timedelta(minutes=1),
-                rows_seen=4,
-                rows_created=len(jobs),
-                rows_updated=0,
-                errors=[{"row": 4, "column": "min_cgpa", "message": "not a number: 'N/A'"}],
-            )
-            db.add(run)
-            db.flush()  # get run.id
-            for j in jobs:
-                if j.import_run_id is None:
-                    j.import_run_id = run.id
-            db.commit()
-            print(f"added job import run (1, linked {len(jobs)} jobs)")
+        # THERE IS NO JOB-IMPORT SEED ANY MORE. B8.4 deleted `job_import_runs`
+        # and `jobs.import_run_id` with the three endpoints nobody called; this
+        # block used to write one run and back-link every seeded posting to it.
+        # B8.1's `import_runs` is the import provenance now, and it is seeded
+        # nowhere on purpose: an import run is a receipt for a file somebody
+        # chose, and a fabricated one on a fresh database would put a row in the
+        # history grid that no operator can account for.
 
         # Idempotently seed the per-cohort alert thresholds (config in data,
         # never hard-coded). One row per (cohort, rule_key).

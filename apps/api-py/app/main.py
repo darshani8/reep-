@@ -27,15 +27,25 @@ from .routers import (
     agent,
     alumni,
     auth,
+    admin_catalogue,
     badge_verification,
     badges,
     console,
     health,
     interview,
     admin_faculty,
+    admin_imports,
+    admin_interview_tracks,
+    admin_mentoring,
+    admin_promotion,
+    admin_student_360,
     admin_students,
     interview_bank,
+    interview_policy,
+    leave_alternate,
+    leave_attachments,
     leave_paper,
+    leave_policy,
     signature,
     swoc,
     leave,
@@ -338,12 +348,34 @@ app.include_router(mentor.router, prefix="/api")
 # and every endpoint in it goes through _assert_can_access_student (rule 2).
 app.include_router(mentee_records.router, prefix="/api")
 app.include_router(console.router, prefix="/api")
+# B9 - mentor mapping: the load board, the unassigned pool, the assignment
+# itself and the history it leaves. Moved OUT of console.py, which is a file of
+# programme-wide aggregates; this is the write that decides rule 2's scope key,
+# and it needs to be findable by somebody asking where mentor assignment is
+# decided. Same /admin prefix and the same paths - see the module docstring.
+app.include_router(admin_mentoring.router, prefix="/api")
 # Main Admin: the institutional write layer (colleges, departments, batches,
 # seating a student, and the users.designation/department columns that had no
 # writer at all). require_admin inside, same as every other admin surface.
 app.include_router(admin.router, prefix="/api")
 app.include_router(admin_students.router, prefix="/api")
+# B4.3/B4.4 - promote and graduate a whole batch. Its own module beside the
+# roster edits, not inside them: a promotion is not "the single edit,
+# repeated" - it writes a history row per student, reads the course's length
+# and carries an effective date - and `admin_students.py` is already the file
+# every roster change touches.
+app.include_router(admin_promotion.router, prefix="/api")
+# B4.5 — the whole of one student in one read, so the detail screen stops
+# fetching the entire roster to pick a row out of it. Its own module: the
+# roster edits are writes with a domain fence and an audit row on every one,
+# and this is a read that touches ten tables and writes nothing.
+app.include_router(admin_student_360.router, prefix="/api")
 app.include_router(admin_faculty.router, prefix="/api")
+# B8.1 - spreadsheet imports. Its own module for admin_promotion.py's reason:
+# `console.py` and `admin.py` are ~1700 lines each and this is a new surface,
+# not a variation on an existing one. Today it answers the history; preview,
+# apply, the error report and the templates land with the parser.
+app.include_router(admin_imports.router, prefix="/api")
 # Governance: capability grants for staff (deny past the role baseline) and
 # student feature overrides (allow until switched off, at any rung of the
 # hierarchy). Two instruments with OPPOSITE defaults, which is why they are one
@@ -356,16 +388,52 @@ app.include_router(leave.router, prefix="/api")
 app.include_router(staff_upskilling.router, prefix="/api")
 app.include_router(signature.router, prefix="/api")
 app.include_router(leave_paper.router, prefix="/api")
+# B10's three additions, each in its OWN module for leave_paper's reason: the
+# form's submit and decide paths live in routers/leave.py, the owner asked for
+# them to be left exactly as they are, and that file grows nothing. All three
+# import the scope rule from it rather than restating one.
+#   leave_attachments  the papers that came with a request (B10.3)
+#   leave_alternate    who is covering, and their acceptance (B10.6)
+#   leave_policy       allowances and the college calendar (B10.2) — two
+#                      routers, because the office's CRUD is /api/admin/... and
+#                      the person's own two reads are /api/leaves/...
+app.include_router(leave_attachments.router, prefix="/api")
+app.include_router(leave_alternate.router, prefix="/api")
+app.include_router(leave_policy.leave_router, prefix="/api")
+app.include_router(leave_policy.admin_router, prefix="/api")
 app.include_router(alumni.router, prefix="/api")
 # The Skills & Badge dashboard: the student half shares the /student prefix
 # (badges, growth, leaderboards); badge_verification carries the staff review queue,
-# manual awards, assessment entry, cohort views and the certification
-# catalogue, under /mentor and /admin as rule 2 dictates.
+# manual awards, assessment entry and cohort views, under /mentor and /admin as
+# rule 2 dictates.
 app.include_router(badges.router, prefix="/api")
 app.include_router(badge_verification.router, prefix="/api")
+# B13 - the catalogue, per college and per course: the approved certifications
+# (MOVED HERE FROM badge_verification, same URLs), which of the 48 code-defined
+# badges apply to a programme, the stage rules a promotion reads, the copy
+# between two programmes and the subject CSV import. Its own module because it
+# is the one admin surface that names no student at all: every fence in it is
+# `admin.catalogue` plus B1.2's reach, and none of it is rule 2's.
+app.include_router(admin_catalogue.router, prefix="/api")
 app.include_router(registration.router, prefix="/api")
+# B5.1 — the Specialization Matrix as rows. MOUNTED BEFORE THE BANK ROUTER, and
+# the order is load-bearing rather than tidy: both live under
+# /api/admin/interview-questions, and FastAPI matches the first route whose path
+# and method fit. `tracks` is a single path segment, so a request to
+# /admin/interview-questions/tracks would otherwise be matched by the bank's
+# `/{question_id}` routes and answer "Question not found." for a track list.
+app.include_router(admin_interview_tracks.router, prefix="/api")
 app.include_router(interview_bank.router, prefix="/api")
 app.include_router(swoc.router, prefix="/api")
+# B6.1/B6.4 — the college's interview policy, the cap reset and the student's
+# policy card. Its two routers are declared ALREADY PREFIXED (/api/admin and
+# /api/interview), the same shape `interview_records` uses and for the same
+# reason: the student card belongs under /api/interview beside the socket it
+# describes, and mounting it under the `prefix="/api"` the domain routers use
+# would serve it at /api/api/interview/policy — every request 404s, nothing
+# raises, and the only symptom is a Start button that never learns the caps.
+app.include_router(interview_policy.admin_router)
+app.include_router(interview_policy.student_router)
 # B2.7: the audit trail, read back. A READER ONLY — `record_change` writes
 # redesign_audit_events from twenty-seven endpoints and nothing in this module
 # writes a domain row. Mounted last among the admin surfaces because it is about

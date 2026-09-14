@@ -12,7 +12,7 @@ one update.
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -24,10 +24,47 @@ def _uuid() -> str:
 
 class AlumniProfile(Base):
     __tablename__ = "alumni_profiles"
+    __table_args__ = (
+        # NAMED rather than `unique=True` on the column, for College's stated
+        # reason: an unnamed unique constraint is called one thing by
+        # create_all and another by the migration, and a later drop fails on
+        # half the databases.
+        UniqueConstraint("student_id", name="uq_alumni_profile_student"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    )
+    # ------------------------------------------------------------------ #
+    # THE ACADEMIC RECORD THIS ALUMNUS GRADUATED FROM (B4.4). NULLABLE, AND
+    # THE ROW IS STILL NOT CREATED AT GRADUATION.
+    #
+    # 04-backend-changes.md asks graduation to create this row with the link
+    # filled in. It cannot: `company` above is NOT NULL, so the row can only be
+    # created by inventing a company — and ROW EXISTENCE is the single signal
+    # `GET /api/alumni/profile`'s `created:` flag reports, which is what the
+    # whole first-login create-profile form branches on. Creating the row makes
+    # that form unreachable for every graduate and leaves the office's
+    # placeholder printed on their profile for ever.
+    #
+    # So graduation flips the role and the status and creates NOTHING. The
+    # graduate meets the create-profile form, which is what it is for, and this
+    # column is filled in when they first save — matched on `user_id`, the fact
+    # both rows already share. It is a CONVENIENCE, not the join: alumni
+    # history is reachable through `students.user_id` without it.
+    #
+    # ondelete="SET NULL", and this is the deliberate half. `user_id` above
+    # CASCADEs because the profile belongs to the ACCOUNT; this column only
+    # points at the academic record, and destroying that record must never
+    # destroy the person's profile. It is also what stops
+    # `python -m app.purge_students` from dying on a ForeignKeyViolation
+    # halfway through a pass — see that module's `_refuse_unless_every_student
+    # _row_is_doomed`, which refuses before it gets that far, and the comment
+    # there for what a cohort purge now does to a graduate.
+    # ------------------------------------------------------------------ #
+    student_id: Mapped[str | None] = mapped_column(
+        ForeignKey("students.id", ondelete="SET NULL"), nullable=True
     )
 
     # Where they work now — the one field the first-login form requires.

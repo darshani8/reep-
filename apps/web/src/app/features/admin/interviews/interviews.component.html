@@ -7,13 +7,22 @@
       <h1 class="dt-title">Interview records</h1>
       <div class="dt-sub">
         Every mock interview in scope, newest first. Transcripts, reports and recordings are deleted
-        on the deployment's retention clock — {{ retentionDays }} days unless it was changed — and a
-        recording exists only where the student's audio consent allowed one.
+        on the college’s retention clock — {{ retentionDays }} days unless the college set its own,
+        which the Policy panel reads — and a recording exists only where the college’s policy
+        allowed one AND the student acknowledged it. The score summaries outlive all of it, which is
+        why the extract can name an interview this list no longer holds.
       </div>
     </div>
     <div class="dt-toolbar">
-      <button type="button" class="btn secondary" [reepPending]="4">
-        <span class="icon" aria-hidden="true">download</span> Export CSV
+      <button
+        type="button"
+        class="btn secondary"
+        [disabled]="!canExport()"
+        title="Summary rows only — a date, a track, a status and four scores. No transcript, no report text, and the download is recorded on the export history."
+        (click)="exportCsv()"
+      >
+        <span class="icon" aria-hidden="true">download</span>
+        {{ exporting() ? 'Preparing…' : 'Export CSV' }}
       </button>
       <button
         type="button"
@@ -39,12 +48,27 @@
   }
 
   <div class="filters">
-    <div class="select filter-pending">
+    <!-- The batch list is `admin.analytics`, not this screen's key, so the
+         filter is DISABLED WITH THE REASON when a narrower grant cannot read
+         it — never left as an empty dropdown, which reads as a deployment with
+         no batches. -->
+    <div class="select" [class.filter-pending]="cohortsBlocked() !== null">
       <span class="lbl">Batch</span>
-      <span class="val">All batches</span>
+      <span class="val">{{ cohortFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Batch" [reepPending]="4">
-        <option>All batches</option>
+      <select
+        aria-label="Batch"
+        [value]="cohortFilter()"
+        [disabled]="cohortsBlocked() !== null"
+        [attr.title]="cohortsBlocked()"
+        (change)="setCohortFilter($event)"
+      >
+        <option value="all">All batches</option>
+        @for (batch of cohorts() ?? []; track batch.id) {
+          <option [value]="batch.id" [selected]="batch.id === cohortFilter()">
+            {{ batch.code }} · {{ batch.batch_label }}
+          </option>
+        }
       </select>
     </div>
 
@@ -54,11 +78,12 @@
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Track" [value]="trackFilter()" (change)="setTrackFilter($event)">
         <option value="all">All tracks</option>
-        <option value="hr">Human Resources</option>
-        <option value="dm">Digital Marketing</option>
-        <option value="ba">Business Analytics</option>
-        <option value="fa">Financial Analytics</option>
-        <option value="generic">Generic interview</option>
+        @for (track of trackOptions(); track track.code) {
+          <option [value]="track.code" [selected]="track.code === trackFilter()">
+            {{ track.label }}
+          </option>
+        }
+        <option value="generic" [selected]="trackFilter() === 'generic'">Generic interview</option>
       </select>
     </div>
 
@@ -102,6 +127,10 @@
     </div>
   </div>
 
+  <!-- The tiles are `GET /api/admin/interviews/summary`, over exactly the rows
+       the grid would return — same gate, same reach, same filters, same query
+       builder — so a tile can never report a number the list below it cannot
+       produce. -->
   <div class="kpi-row">
     <div class="kpi-card">
       <div class="kpi-head">
@@ -110,10 +139,9 @@
       </div>
       <div class="num">{{ sessionCount() }}</div>
       <div class="sub kpi-note">
-        <span>{{ sessionsStartedThisMonth() }} started this month</span>
-        @if (recordsAreTruncated()) {
-          <span class="chip neutral">newest {{ recordsReturnedAtMost }}</span>
-        }
+        <span>
+          {{ studentCount() | plural: 'student' }} · {{ recordedCount() }} with a recording
+        </span>
       </div>
     </div>
 
@@ -122,8 +150,8 @@
         <div class="eyebrow">Average score</div>
         <span class="icon kpi-icon" aria-hidden="true">insights</span>
       </div>
-      <div class="num">—</div>
-      <div class="sub kpi-note"><span class="chip neutral">Phase 4</span> no score in this payload</div>
+      <div class="num">{{ averageScoreLabel() }}</div>
+      <div class="sub kpi-note">{{ averageScoreNote() }}</div>
     </div>
 
     <div class="kpi-card">
@@ -132,28 +160,28 @@
         <span class="icon kpi-icon" aria-hidden="true">task_alt</span>
       </div>
       <div class="num">{{ completionLabel() }}</div>
-      <div class="sub kpi-note">{{ abandonedCount() }} abandoned · {{ failedCount() }} failed</div>
+      <div class="sub kpi-note">
+        {{ abandonedCount() }} abandoned · {{ failedCount() }} failed · {{ runningCount() }} running
+      </div>
     </div>
 
-    <div class="kpi-card">
+    <!-- DEMOTED, NOT PENDING. A reset IS recorded now — `interview_cap_resets`,
+         written by `POST /api/admin/students/{id}/interview-cap/reset` with a
+         reason in words, and read back on the student's own record — but
+         nothing counts them across a college, and no B6 task adds an endpoint
+         that would. The tile keeps the board's shape and says why it is a dash,
+         with no phase number, because no phase is coming to fill it. -->
+    <div
+      class="kpi-card"
+      title="A reset is recorded against the student it was given to, with the reason, on their Student 360 record. Nothing counts resets across a cohort, so there is no number to put here."
+    >
       <div class="kpi-head">
         <div class="eyebrow">Daily-cap resets</div>
         <span class="icon kpi-icon" aria-hidden="true">history</span>
       </div>
       <div class="num">—</div>
-      <div class="sub kpi-note"><span class="chip neutral">Phase 4</span> resets are not recorded yet</div>
+      <div class="sub kpi-note">counted per student, not across a cohort</div>
     </div>
-  </div>
-
-  <div class="notice accent">
-    <span class="icon" aria-hidden="true">info</span>
-    <span>
-      Average score and daily-cap resets, the batch and consent-scope filters, and the audited
-      summary-only CSV all come from the records endpoint and the interview policy (B6.7, B6.4,
-      B6.1). Until those land, this screen counts only what
-      <code>GET /api/mentor/interviews</code> returns and leaves the rest blank rather than
-      estimating it. Score summaries that outlive the retention clock are B6.2.
-    </span>
   </div>
 
   <div class="board-columns">
@@ -225,10 +253,20 @@
           <span>Rows: <b>{{ rowsOnGrid() }}</b></span>
           <span>Selected: <b>{{ selectedCount() }}</b></span>
           <span>{{ recordedOnGrid() }} with a recording</span>
-          @if (recordsAreTruncated()) {
+          @if (hasMorePages()) {
             <span class="statusbar-note">
-              newest {{ recordsReturnedAtMost }} · server-side paging is B6.7
+              {{ sessionCount() }} match these filters · this list holds the newest
+              {{ recordsOnScreen().length }}
             </span>
+            <button
+              type="button"
+              class="btn secondary sm"
+              [disabled]="loadingMore()"
+              (click)="loadMore()"
+            >
+              <span class="icon" aria-hidden="true">expand_more</span>
+              {{ loadingMore() ? 'Loading…' : 'Load more' }}
+            </button>
           }
         </div>
       } @else {
@@ -293,17 +331,20 @@
             <div class="consent-chips">
               @if (record.audioRecorded) {
                 <span class="chip dot good">
-                  Audio stored — the student granted the audio scope
+                  Audio stored — all three switches were on for this interview
                 </span>
               } @else {
                 <span class="chip dot neutral">
-                  No audio stored — the scope was refused or capture is off
+                  No audio stored — one of the three switches was off
                 </span>
               }
             </div>
             <p class="consent-note">
-              Nothing here can change a scope. A grant is the student's own row, pinned to the
-              interview it authorised, and it is read-only to this office by design.
+              Nothing here can change what was consented to. Capture needs THREE things at once:
+              the deployment's recording switch, the college's policy, and the student's live
+              acknowledgement — and the grant that authorised this interview is pinned to it, so it
+              stays answerable after the student withdraws. The college's half is edited in the
+              Retention card's Policy panel and applies to the next interview, never to this one.
             </p>
           </div>
 
@@ -471,7 +512,8 @@
           ></div>
           <p class="chart-note">
             An interview with no score leaves a gap in the line — a missing score and a zero are
-            opposite facts. Score summaries that outlive the retention clock are B6.2.
+            opposite facts. This line is read from the student’s own interviews, so it covers every
+            one they have taken, not only the ones the filters above are showing.
           </p>
         } @else {
           <div class="notice accent">
@@ -487,35 +529,270 @@
             <h2 class="card-heading">Retention</h2>
             <p class="card-sub">what is kept, and for how long</p>
           </div>
-          <button type="button" class="btn secondary sm" [reepPending]="4">Policy</button>
+          <button
+            type="button"
+            class="btn secondary sm"
+            [attr.aria-expanded]="policyOpen()"
+            (click)="togglePolicyPanel()"
+          >
+            <span class="icon" aria-hidden="true">{{ policyOpen() ? 'close' : 'tune' }}</span>
+            Policy
+          </button>
         </div>
-        <ul class="retention-list">
-          <li>
-            <span class="retention-kind">Transcript</span> · {{ retentionDays }} days by default, then
-            deleted
-          </li>
-          <li>
-            <span class="retention-kind">Practice report</span> · {{ retentionDays }} days by default,
-            then deleted
-          </li>
-          <li>
-            <span class="retention-kind">Audio</span> · the same clock · only where the student granted
-            the audio scope
-          </li>
-          <li><span class="retention-kind">Erasure requests</span> · —</li>
-        </ul>
+
+        @if (effectiveRetentionDays(); as days) {
+          <ul class="retention-list">
+            <li><span class="retention-kind">Transcript</span> · {{ days }} days, then deleted</li>
+            <li>
+              <span class="retention-kind">Practice report</span> · {{ days }} days, then deleted
+            </li>
+            <li>
+              <span class="retention-kind">Audio</span> · the same clock · only where the college's
+              policy and the student's acknowledgement both allow one
+            </li>
+            <li><span class="retention-kind">Score summary</span> · kept — it outlives the rest</li>
+          </ul>
+        } @else {
+          <ul class="retention-list">
+            <li>
+              <span class="retention-kind">Transcript</span> · {{ retentionDays }} days by default,
+              then deleted
+            </li>
+            <li>
+              <span class="retention-kind">Practice report</span> · {{ retentionDays }} days by
+              default, then deleted
+            </li>
+            <li>
+              <span class="retention-kind">Audio</span> · the same clock · only where the college's
+              policy and the student's acknowledgement both allow one
+            </li>
+            <li><span class="retention-kind">Score summary</span> · kept — it outlives the rest</li>
+          </ul>
+        }
+
         <div class="notice accent">
           <span class="icon" aria-hidden="true">shield_person</span>
           <span>
-            {{ retentionDays }} days is the PRODUCT DEFAULT
-            (<code>INTERVIEW_RETENTION_DAYS</code>). This deployment's own figure is set on the
-            server and no endpoint reports it, so the screen names the default rather than
-            stating a number it cannot read; that, and the per-college policy this card edits —
-            the scopes, the cap, the time limit and the erasure queue — are the interview policy
-            (B6.1). A downloaded recording leaves the clock behind entirely: it is a student's
-            voice on your machine.
+            @if (policySheet(); as sheet) {
+              These are {{ sheet.college_name }}’s numbers, read from its interview policy. A
+              downloaded recording leaves the clock behind entirely: it is a student’s voice on
+              your machine.
+            } @else {
+              {{ retentionDays }} days is the PRODUCT DEFAULT
+              (<code>INTERVIEW_RETENTION_DAYS</code>). A college can set its own, and the panel
+              below reads the numbers actually in force there — until one is open this card names
+              the default rather than stating a figure it has not read. A downloaded recording
+              leaves the clock behind entirely: it is a student’s voice on your machine.
+            }
           </span>
         </div>
+
+        @if (policyOpen()) {
+          <div class="policy-panel">
+            @if (collegesBlocked(); as blocked) {
+              <div class="notice" role="alert">
+                <span class="icon" aria-hidden="true">error</span>{{ blocked }}
+              </div>
+            } @else {
+              <div class="field">
+                <label for="policy-college">College</label>
+                <select
+                  id="policy-college"
+                  class="ctrl"
+                  [value]="policyCollege()"
+                  (change)="setPolicyCollege($event)"
+                >
+                  <option value="">Choose a college…</option>
+                  @for (college of colleges() ?? []; track college.id) {
+                    <option [value]="college.id" [selected]="college.id === policyCollege()">
+                      {{ college.name }}
+                    </option>
+                  }
+                </select>
+              </div>
+            }
+
+            @if (policyError()) {
+              <div class="notice" role="alert">
+                <span class="icon" aria-hidden="true">error</span>{{ policyError() }}
+              </div>
+            }
+            @if (policyFlash()) {
+              <div class="notice good" role="status">
+                <span class="icon" aria-hidden="true">check_circle</span>{{ policyFlash() }}
+              </div>
+            }
+
+            @if (policyLoading()) {
+              <p class="state-note" role="status">
+                <span class="icon" aria-hidden="true">hourglass_empty</span>Reading the policy…
+              </p>
+            } @else if (policySheet(); as sheet) {
+              <div class="field">
+                <label for="policy-scope">Applies to</label>
+                <select
+                  id="policy-scope"
+                  class="ctrl"
+                  [value]="policyScope()"
+                  (change)="setPolicyScope($event)"
+                >
+                  <option value="" [selected]="policyScope() === ''">
+                    The whole college (its default)
+                  </option>
+                  @for (override of sheet.courses; track override.id) {
+                    <option [value]="override.course_id" [selected]="override.course_id === policyScope()">
+                      {{ override.course_name ?? 'One course' }}
+                    </option>
+                  }
+                </select>
+                <span class="help">
+                  Only courses that already have their own policy are listed. Giving a course its
+                  first one needs the course catalogue, which this screen does not read.
+                </span>
+              </div>
+
+              <!-- NO ROW IS EVER SEEDED, AND THE ABSENCE OF ONE IS THE DEFAULT.
+                   A college nobody has configured must read as "not configured"
+                   with the numbers in force shown as what they are, never as a
+                   stored row: only one of those two is a decision somebody
+                   made. -->
+              @if (policyIsConfigured()) {
+                @if (policyRow(); as row) {
+                  <p class="policy-state">
+                    <span class="chip dot good">Configured</span>
+                    @if (row.updated_by_name) {
+                      last changed by {{ row.updated_by_name }}
+                    }
+                  </p>
+                }
+              } @else {
+                <div class="notice accent" role="status">
+                  <span class="icon" aria-hidden="true">info</span>
+                  <span>
+                    Not configured. No policy row exists for this college, and that is a real state
+                    rather than a missing one: a deployment that never opens this panel behaves
+                    exactly as it did before the table existed. The numbers below are the ones
+                    actually in force here today — the deployment’s own defaults. Saving creates
+                    this college’s first row.
+                  </span>
+                </div>
+              }
+
+              <label class="policy-check">
+                <input
+                  type="checkbox"
+                  [checked]="draftStoreTranscript()"
+                  (change)="draftStoreTranscript.set(checkboxValue($event))"
+                />
+                <span>
+                  Keep the transcript. Off suppresses both the chat row and the interview turn and
+                  stamps the session as suppressed — “we chose not to keep this” must never look
+                  like “we lost this”. The practice report is still written.
+                </span>
+              </label>
+
+              <label class="policy-check">
+                <input
+                  type="checkbox"
+                  [checked]="draftStoreAudio()"
+                  (change)="draftStoreAudio.set(checkboxValue($event))"
+                />
+                <span>
+                  Allow the student’s voice to be recorded. This is one of THREE switches and the
+                  only one on this screen: nothing is captured unless the deployment also has
+                  recording enabled and the student holds a live acknowledgement covering it.
+                </span>
+              </label>
+
+              <div class="policy-grid">
+                <div class="field">
+                  <label for="policy-retention">Retention (days)</label>
+                  <input
+                    id="policy-retention"
+                    class="ctrl"
+                    type="number"
+                    [min]="policyBounds.retention_days.min"
+                    [max]="policyBounds.retention_days.max"
+                    [value]="draftRetentionDays()"
+                    (input)="draftRetentionDays.set(numberValue($event))"
+                  />
+                </div>
+                <div class="field">
+                  <label for="policy-time-limit">Time limit (seconds)</label>
+                  <input
+                    id="policy-time-limit"
+                    class="ctrl"
+                    type="number"
+                    [min]="policyBounds.time_limit_seconds.min"
+                    [max]="policyBounds.time_limit_seconds.max"
+                    [value]="draftTimeLimit()"
+                    (input)="draftTimeLimit.set(numberValue($event))"
+                  />
+                </div>
+                <div class="field">
+                  <label for="policy-daily-cap">Completed per day</label>
+                  <input
+                    id="policy-daily-cap"
+                    class="ctrl"
+                    type="number"
+                    [min]="policyBounds.daily_cap.min"
+                    [max]="policyBounds.daily_cap.max"
+                    [value]="draftDailyCap()"
+                    (input)="draftDailyCap.set(numberValue($event))"
+                  />
+                </div>
+                <div class="field">
+                  <label for="policy-attempt-cap">Attempts per day</label>
+                  <input
+                    id="policy-attempt-cap"
+                    class="ctrl"
+                    type="number"
+                    [min]="policyBounds.attempt_cap.min"
+                    [max]="policyBounds.attempt_cap.max"
+                    [attr.aria-invalid]="policyCapsAreOrdered() ? null : 'true'"
+                    [value]="draftAttemptCap()"
+                    (input)="draftAttemptCap.set(numberValue($event))"
+                  />
+                </div>
+              </div>
+
+              @if (!policyCapsAreOrdered()) {
+                <div class="notice" role="alert">
+                  <span class="icon" aria-hidden="true">error</span>
+                  Attempts per day cannot be lower than completed per day — the daily allowance
+                  would be unreachable, and the database refuses the row.
+                </div>
+              }
+
+              <p class="policy-note">
+                Two ceilings, and they count different things. <b>Completed per day</b> is the
+                practice allowance over a rolling 24 hours, so a dropped call no longer costs a
+                student a turn. <b>Attempts per day</b> counts every session, finished or not,
+                because each one billed an upstream handshake — a cap that only counted clean
+                finishes is a cap a reconnect loop never hits. Giving one student their attempts
+                back is done on their own record, with a reason.
+              </p>
+
+              <div class="policy-foot">
+                <button
+                  type="button"
+                  class="btn primary sm"
+                  [disabled]="!canSavePolicy()"
+                  (click)="savePolicy()"
+                >
+                  <span class="icon" aria-hidden="true">save</span>
+                  {{ policySaving() ? 'Saving…' : 'Save policy' }}
+                </button>
+              </div>
+
+              <p class="policy-note">
+                A change here applies to interviews started after it. An interview already running
+                keeps the scopes it opened under, and a retention window already stamped on a past
+                interview is never re-dated — a student promised 180 days keeps them.
+              </p>
+            }
+          </div>
+        }
       </section>
     </div>
   </div>

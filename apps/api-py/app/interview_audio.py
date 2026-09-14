@@ -561,7 +561,9 @@ class InterviewRecorder:
 
     Lifecycle, and it is the caller's job in this order:
 
-        recorder = recorder_for(interview_session_id, user_id)   # may be None
+        recorder = recorder_for(                 # may be None — three gates
+            interview_session_id, user_id, policy_allows_audio=policy.store_audio
+        )
         recorder.feed(TRACK_STUDENT, pcm)        # loop thread, never blocks
         result = await recorder.aclose()         # once, idempotent
 
@@ -1254,18 +1256,55 @@ def audio_consent_granted(user_id: str) -> bool:
         return False
 
 
-def recorder_for(interview_session_id: str, user_id: str) -> InterviewRecorder | None:
+def recorder_for(
+    interview_session_id: str,
+    user_id: str,
+    *,
+    policy_allows_audio: bool = True,
+) -> InterviewRecorder | None:
     """A recorder, or None — and None is the answer in every deployment today.
 
-    THE ONLY CONSTRUCTOR CALLERS SHOULD USE. Both gates live here so that "when
+    THE ONLY CONSTRUCTOR CALLERS SHOULD USE. Every gate lives here so that "when
     does REEP record a student's voice?" has one answer in one function, rather
     than a flag checked in one file and a consent row checked in another.
 
-    Order matters for a boring reason: the flag is a memory read and the consent
-    check is a query, so a deployment with recording off (all of them, by
-    default) never touches the database for this at all.
+    THERE ARE NOW THREE, AND THEY BELONG TO THREE DIFFERENT PEOPLE (B6.1):
+
+      * `INTERVIEW_RECORDING_ENABLED` — the OPERATOR's, false by default;
+      * `policy_allows_audio` — the COLLEGE's `interview_policies.store_audio`,
+        false by default, resolved by the caller under the advisory lock that
+        opened the interview and passed in rather than re-read here, so that an
+        edit landing mid-handshake cannot build a recorder the rest of the
+        session does not expect;
+      * `audio_consent_granted(user_id)` — the STUDENT's own live
+        `scope_store_audio` grant of the current version, which since B6.1 is a
+        copy of the college's decision that the student was shown and
+        acknowledged. Both are required even though one is derived from the
+        other: the derivation happens at Start, and a client on a stale bundle
+        that never posts would otherwise keep recording on last term's tick.
+
+    `policy_allows_audio` defaults to True so that the switch it adds is the
+    CALLER's to apply: the voice platform's media bridge has its own per-degree
+    recording policy and applies it beside this call, and the engine tests have
+    no college at all. A default of False would silently disable recording on
+    both.
+
+    Order matters for a boring reason: the two flags are memory reads and the
+    consent check is a query, so a deployment with recording off (all of them,
+    by default) never touches the database for this at all.
     """
     if not settings.interview_recording_enabled:
+        return None
+    if not policy_allows_audio:
+        # INFO for the same reason the consent branch below is: this is the
+        # expected state of a college that has not turned recording on, not a
+        # fault. Logged at all because "recording is enabled and nothing is
+        # being written" is otherwise a silent mystery, and this is now one of
+        # two reasons for it.
+        log.info(
+            "Interview audio recording is enabled but this college's policy "
+            "does not store audio; nothing will be captured."
+        )
         return None
     if not audio_consent_granted(user_id):
         # INFO, not a warning: a student who has not agreed to be recorded is

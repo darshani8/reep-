@@ -22,11 +22,49 @@
     <span class="h-sub">from TPO and mentor inputs</span>
   </h4>
   @if (swocBoxes(); as boxes) {
+    <!-- B7.5. Each line keeps its own author, date and acknowledgement; the
+         four tiles, their colours and their order are the board's and are
+         unchanged. The quadrant used to join its lines into one sentence, which
+         had nowhere to put any of the three. -->
     <div class="swoc-grid">
       @for (box of boxes; track box.title) {
         <div [class]="box.cls">
           <b>{{ box.title }}</b>
-          <div class="swoc-text">{{ box.text }}</div>
+          @for (line of box.lines; track line.id) {
+            <div class="swoc-line">
+              <div class="swoc-text">{{ line.text }}</div>
+              <div class="swoc-by">
+                <span class="swoc-who">{{ line.by }}</span>
+                <span class="swoc-src">· {{ line.source }}</span>
+                @if (line.when) {
+                  <span class="swoc-when">· {{ line.when }}</span>
+                }
+                @if (line.acknowledgedOn) {
+                  <span class="swoc-read">
+                    <span class="icon" aria-hidden="true">check</span>
+                    You read this on {{ line.acknowledgedOn }}
+                  </span>
+                } @else {
+                  <!-- NAMED WITH THE LINE IT ACKNOWLEDGES. Four identical "Mark
+                       as read" buttons are four identical announcements with
+                       nothing saying which observation each one answers — the
+                       accessibility sweep's own finding, in the one shape a
+                       blanket aria-hidden cannot fix. -->
+                  <button
+                    type="button"
+                    class="btn ghost sm swoc-ack"
+                    [attr.aria-label]="'Mark as read: ' + line.text"
+                    [disabled]="acknowledging() === line.id"
+                    (click)="acknowledge(line.id)"
+                  >
+                    {{ acknowledging() === line.id ? 'Marking…' : 'Mark as read' }}
+                  </button>
+                }
+              </div>
+            </div>
+          } @empty {
+            <div class="swoc-text swoc-none">No entries yet</div>
+          }
         </div>
       }
     </div>

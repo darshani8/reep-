@@ -1,6 +1,6 @@
 """Deleting every STUDENT while the faculty stay exactly where they are.
 
-`app.purge_people` is proven by one question — does the delete order satisfy 93
+`app.purge_people` is proven by one question — does the delete order satisfy 180
 real foreign keys. This module has to answer that AND a second one that
 `purge_people` never faces: for every table a student and a staff member can
 BOTH hold rows in, did the right half go?
@@ -422,12 +422,17 @@ def test_it_refuses_when_the_doomed_set_reaches_a_non_student(monkeypatch):
         ids = _seed_one_of_each(db)
         real = purge_students.find_doomed
 
-        def _too_greedy(session):
-            honest = real(session)
+        # **kwargs because `find_doomed` grew `include_former_students` with
+        # the graduation guard (c3a9f1e7d2b4). The stub has no opinion about it:
+        # what is being mis-edited here is WHO is in the set, not which mode
+        # asked for them, and the refusal must be the same in both.
+        def _too_greedy(session, **kwargs):
+            honest = real(session, **kwargs)
             return purge_students.Doomed(
                 user_ids=honest.user_ids + (ids["faculty_user"],),
                 emails=honest.emails,
                 registration_ids=honest.registration_ids,
+                former_student_user_ids=honest.former_student_user_ids,
             )
 
         monkeypatch.setattr(purge_students, "find_doomed", _too_greedy)

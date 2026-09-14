@@ -1,5 +1,13 @@
 # Chapter 2 — Backend Core: Persistence, Storage, Mail, PDF and the Module Conventions
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 After this chapter you will be able to open any of the 69 Python modules under
 `apps/api-py/app/` and know, before you read a line of its logic, where its database
 session came from and who is responsible for committing it; whether a helper is private

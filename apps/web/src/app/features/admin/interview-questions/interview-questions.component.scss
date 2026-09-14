@@ -136,11 +136,48 @@
 }
 
 .bank-voice {
-  width: 120px;
+  width: 150px;
 }
 
 .bank-cap {
-  width: 120px;
+  width: 150px;
+}
+
+/* The card head carries a title, two state chips and two buttons; on a narrow
+   column it wraps, which is why neither group is absolutely placed. */
+.bank-track-chips,
+.bank-track-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bank-track-warnings ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+/* The checkbox reads as one control with its sentence, so the label is the
+   whole row and the tick stays at the top of a wrapped line. */
+.bank-enabled {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.bank-enabled input {
+  margin-top: 2px;
+  flex: none;
+}
+
+.bank-enabled input:disabled {
+  cursor: default;
 }
 
 /* --- the add and bulk panels ---------------------------------------------- */

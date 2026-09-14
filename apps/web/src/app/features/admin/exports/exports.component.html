@@ -49,7 +49,7 @@
         <div class="extract-head">
           <h2 class="extract-title">{{ extract.title }}</h2>
           @if (extract.path === null) {
-            <span class="chip dot neutral">Not built yet</span>
+            <span class="chip dot neutral">Not built</span>
           } @else if (piiChip(extract); as pii) {
             <span [class]="'chip dot ' + pii.tone">{{ pii.label }}</span>
           }
@@ -61,7 +61,7 @@
           <p class="extract-columns" title="The file's header row">{{ headerRow }}</p>
         } @else {
           <p class="extract-columns extract-columns-unknown">
-            No file yet — its columns are settled with the endpoint.
+            No file behind this card, so there are no columns to name.
           </p>
         }
 
@@ -76,25 +76,39 @@
               account is the one that can.
             }
           </p>
+        } @else if (extract.requiresCapability) {
+          <!-- A SECOND FUNCTION, NAMED ON THE CARD. The Interviews file answers
+               to `admin.interviews`, not to the Exports function this screen
+               opens on, so holding Exports is not enough and the card says so
+               rather than offering a link that saves a 403 to disk. -->
+          <p class="extract-gate">
+            <span class="icon" aria-hidden="true">lock</span>
+            @if (canDownload(extract)) {
+              Opened by the {{ extract.requiresCapabilityLabel }} function, which you hold — not by
+              your Exports function.
+            } @else {
+              Opened by the {{ extract.requiresCapabilityLabel }} function, which this account does
+              not hold. Your Exports function does not reach this file.
+            }
+          </p>
         }
 
         <div class="extract-foot">
           @if (extract.path === null) {
-            <span class="extract-last">Not available yet</span>
-            <button type="button" class="btn secondary sm" [reepPending]="unbuiltExtractPhase">
+            <!-- DEMOTED, NOT PENDING. No task in 04-backend-changes.md defines
+                 either of these two files, so the control carries the real
+                 reason and no phase number — a phase here would promise a date
+                 nothing has agreed to. -->
+            <span class="extract-last">No file</span>
+            <button type="button" class="btn secondary sm" disabled [title]="extract.unavailableReason">
               <span class="icon" aria-hidden="true">download</span> Download CSV
             </button>
-          } @else if (!canDownload(extract)) {
-            <!-- `require_admin`, not `admin.exports`: a live link here would
-                 save a 403 body under a .csv name and record it as a
-                 download. Disabled, with the reason on the card. -->
-            <span class="extract-last">Main Admin only</span>
-            <button
-              type="button"
-              class="btn secondary sm"
-              disabled
-              title="This file answers to the Main Admin account only"
-            >
+          } @else if (blockedReason(extract); as blocked) {
+            <!-- A live link here would save a 403 body under a .csv name and
+                 record it as a download. Disabled, with the reason on the
+                 card. -->
+            <span class="extract-last">{{ blockedLabel(extract) }}</span>
+            <button type="button" class="btn secondary sm" disabled [title]="blocked">
               <span class="icon" aria-hidden="true">download</span> Download CSV
             </button>
           } @else {
@@ -117,11 +131,13 @@
   <div class="notice accent">
     <span class="icon" aria-hidden="true">info</span>
     <div>
-      The Interviews, Registrations and Leave extracts are the only parts of this screen still
-      waiting on the backend, and each waits on its own area rather than on an exports task: the
-      Interviews file is the summary-only extract that arrives with the interview work (B6.2),
-      Registrations with B11 and Leave with B10. Until then those three cards download nothing.
-      Scoping, the gate that drops personal columns and the audited history below are live.
+      <b>Four files, and two cards that are drawings.</b> Students, Placement, Ledger and
+      Interviews all download — each scoped to what your functions reach, each dropping the Name
+      and USN columns unless you also hold the roster function, and each writing a row to the
+      history below. The Interviews file is score summaries only: no transcript, no audio, and a
+      blank cell wherever nobody marked a section. Registrations and Leave are on the board and
+      have no file behind them — nothing in the backend plan defines one, so those two cards say
+      that rather than naming a release.
     </div>
   </div>
 

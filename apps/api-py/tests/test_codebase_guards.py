@@ -437,13 +437,20 @@ def test_rule_two_gate_is_a_pure_delegate(monkeypatch) -> None:
     sentinel = object()
     seen: list[tuple] = []
 
-    def fake(session, student_id, db):
-        seen.append((session, student_id, db))
+    def fake(session, student_id, db, *, allow_handover=False):
+        seen.append((session, student_id, db, allow_handover))
         return sentinel
 
     monkeypatch.setattr(mentor, "assert_student_scope", fake)
     assert mentor._assert_can_access_student({"role": "MENTOR"}, "s1", "db") is sentinel
-    assert seen == [({"role": "MENTOR"}, "s1", "db")]
+    # B9.1 added `allow_handover`, and it must arrive at the delegate FALSE
+    # unless a caller typed otherwise: fifteen of this gate's call sites are
+    # writes, and a default that drifted to True would turn a 90-day read into
+    # a 90-day right to write about somebody else's student.
+    assert seen == [({"role": "MENTOR"}, "s1", "db", False)]
+    seen.clear()
+    assert mentor._assert_can_access_student({"role": "MENTOR"}, "s1", "db", allow_handover=True) is sentinel
+    assert seen == [({"role": "MENTOR"}, "s1", "db", True)]
 
     # And structurally: strip the docstring and exactly one statement remains,
     # a `return assert_student_scope(...)`. The mock proves the call happens;
@@ -634,7 +641,12 @@ def test_sentry_never_ships_local_variables_or_request_bodies() -> None:
             "single exception on the interview path ships a student's transcript to "
             "a third party. See this test's docstring."
         )
-    for module in ("main.py", "retention_job.py", "voice_platform/queue/worker.py"):
+    for module in (
+        "main.py",
+        "retention_job.py",
+        "alerts_job.py",
+        "voice_platform/queue/worker.py",
+    ):
         text = (APP / module).read_text(encoding="utf-8")
         assert "sentry_sdk.init(" not in text, f"app/{module} must initialise Sentry through app.observability"
         assert "init_sentry(" in text, f"app/{module} no longer initialises Sentry at all"
@@ -652,6 +664,13 @@ def test_every_reporting_process_names_its_own_service_and_its_own_dsn() -> None
     expectations = {
         "main.py": ("SERVICE_API", "settings.sentry_dsn"),
         "retention_job.py": ("SERVICE_JOBS", "settings.sentry_jobs_dsn"),
+        # B8.3's alert sweep. TWO SCHEDULED JOBS SHARING ONE SENTRY PROJECT is
+        # right and is not the thing this test forbids: `reep-scheduled-jobs` IS
+        # the project for scheduled work, and the two are told apart by the
+        # `job.name` tag `job_run` sets. What is forbidden is either of them
+        # reading SENTRY_DSN, which is in their environment because they run on
+        # the api's task definition with a command override.
+        "alerts_job.py": ("SERVICE_JOBS", "settings.sentry_jobs_dsn"),
         "voice_platform/queue/worker.py": ("SERVICE_INTERVIEW_WORKER", "settings.sentry_interview_worker_dsn"),
     }
     for module, (service, dsn_setting) in expectations.items():
@@ -659,7 +678,7 @@ def test_every_reporting_process_names_its_own_service_and_its_own_dsn() -> None
         assert f"init_sentry({service}, {dsn_setting})" in text, (
             f"app/{module} must call init_sentry({service}, {dsn_setting}) — see this test's docstring"
         )
-    for module in ("retention_job.py", "voice_platform/queue/worker.py"):
+    for module in ("retention_job.py", "alerts_job.py", "voice_platform/queue/worker.py"):
         text = (APP / module).read_text(encoding="utf-8")
         assert "settings.sentry_dsn)" not in text and "settings.sentry_dsn " not in text, (
             f"app/{module} reads the api's DSN; it must read its own"
@@ -829,6 +848,67 @@ def test_the_retention_monitor_keeps_the_same_clock_as_the_scheduler() -> None:
     assert MONITOR_CONFIG["timezone"] == "Etc/UTC"
     for key in ("checkin_margin", "max_runtime", "failure_issue_threshold", "recovery_threshold"):
         assert key in MONITOR_CONFIG, f"{key} is missing — a camelCase key is accepted and ignored by the ingest"
+
+
+def test_the_alert_sweep_has_no_monitor_until_it_has_a_scheduler() -> None:
+    """The twin of the guard above, written BEFORE it is needed.
+
+    `app/alerts_job.py` (B8.3) deliberately ships with no Sentry cron monitor:
+    no EventBridge schedule exists for it yet, because adding one touches
+    `reep-core` and needs the owner's go. A monitor without a scheduler reports
+    MISSED every single night against a job that was never invoked, which is how
+    a Sentry project becomes noise nobody reads — the same failure mode as two
+    clocks for one job, arrived at from the other side.
+
+    So this asserts the pair moves together. Add `MONITOR_CONFIG` to that module
+    and this test immediately demands the matching `cron()` in the stack; add
+    the schedule and nothing here objects. Either way the two cannot ship apart.
+    """
+    import ast
+
+    import app.alerts_job as alerts_job
+
+    config = getattr(alerts_job, "MONITOR_CONFIG", None)
+    stack_path = REPO / "infra" / "cdk" / "reep_core" / "stack.py"
+    stack = stack_path.read_text(encoding="utf-8") if stack_path.exists() else ""
+    scheduled = "app.alerts_job" in stack
+
+    if config is None:
+        assert not scheduled, (
+            "an EventBridge schedule runs `python -m app.alerts_job` and that "
+            "module has no MONITOR_CONFIG — a nightly job nothing watches. Add "
+            "the Sentry monitor, with the SAME cron as the schedule."
+        )
+        # Parsed, not grepped: the module's docstring NAMES `monitor_slug=` in
+        # the paragraph explaining why it does not pass one, and a textual
+        # search cannot tell an explanation from a call.
+        tree = ast.parse((APP / "alerts_job.py").read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "job_run"
+            ):
+                assert not any(k.arg == "monitor_slug" for k in node.keywords), (
+                    "alerts_job passes a monitor_slug with no MONITOR_CONFIG to "
+                    "pin its clock against the scheduler"
+                )
+        return
+
+    assert scheduled, (
+        "app/alerts_job.py declares a Sentry cron monitor but no EventBridge "
+        "schedule invokes it. That monitor reports MISSED every night against a "
+        "job nobody is running. Ship the schedule in the same commit."
+    )
+    anchor_at = stack.find("app.alerts_job")
+    match = re.search(
+        r'schedule_expression="cron\((\d+) (\d+) \* \* \? \*\)"',
+        stack[max(0, anchor_at - 2000) : anchor_at + 2000],
+    )
+    assert match, "the alerts schedule moved or changed shape; update this guard"
+    minute, hour = match.group(1), match.group(2)
+    assert config["schedule"] == {"type": "crontab", "value": f"{minute} {hour} * * *"}
+    assert config["timezone"] == "Etc/UTC"
 
 
 # --------------------------------------------------------------------------- #
@@ -1363,19 +1443,24 @@ def test_every_capability_in_the_catalogue_is_checked_somewhere() -> None:
     assert not unknown, f"gates naming a capability the catalogue does not define: {unknown}"
 
 
-def test_the_only_unenforceable_capability_is_the_client_side_preview_switch() -> None:
-    """The guard's exemption list is one key, and it is `ui.console_v2`.
+def test_no_capability_is_exempt_from_being_enforced() -> None:
+    """The guard's exemption list is EMPTY, and Phase 5 is what emptied it.
 
-    An exemption is how the guard above stops being a guard: add a second key to
-    it and "enforce or delete" becomes "enforce, delete, or write your name on a
-    list". `ui.console_v2` qualifies because there is no request to refuse — it
-    selects which admin console the CLIENT renders, off `/auth/me`, and the whole
-    point of it is to keep the OLD console reachable while the new one is
-    reviewed. Refusing something server-side would break the thing it protects.
+    It held exactly one key for the length of the 2026-09 redesign —
+    `ui.console_v2`, which selected which admin console the CLIENT rendered off
+    `/auth/me` and so had no server request to refuse. The new console is the
+    console now; the key and its exemption went together.
 
-    Every other key gates an endpoint. If a new one genuinely cannot, that is
-    strong evidence it should be a FeatureOverride or nothing at all, and this
-    assertion is where that conversation has to happen.
+    An exemption is how the guard above stops being a guard: with one on the
+    list, "enforce or delete" becomes "enforce, delete, or write your name on a
+    list", and on the afternoon somebody needs it the third option is always the
+    cheapest. Empty, there are only two answers. If a new key genuinely cannot be
+    enforced server-side, that is strong evidence it should be a FeatureOverride
+    or nothing at all, and this assertion is where that conversation happens.
+
+    The dict is still a dict rather than a set or a bare `()`, deliberately:
+    adding a key to it costs writing the reason in the source, next to the key,
+    where a reviewer meets it.
     """
     import importlib.util
 
@@ -1385,13 +1470,15 @@ def test_the_only_unenforceable_capability_is_the_client_side_preview_switch() -
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    assert set(module.EXEMPT) == {"ui.console_v2"}, (
-        "the capability enforcement exemption list grew. Read "
-        "tools/ci/check_capability_enforcement.py's docstring before adding to it: "
-        "a key that cannot be enforced is usually a key that should be deleted."
+    assert module.EXEMPT == {}, (
+        "the capability enforcement exemption list grew back: "
+        f"{sorted(module.EXEMPT)}. Read tools/ci/check_capability_enforcement.py's "
+        "docstring before adding to it — a key that cannot be enforced is almost "
+        "always a key that should be deleted instead."
     )
-    assert len(module.EXEMPT["ui.console_v2"]) > 80, (
-        "the exemption must carry its reason in the source, not in a commit message"
+    assert isinstance(module.EXEMPT, dict), (
+        "EXEMPT must stay a dict: the value is the REASON, and requiring one in "
+        "the source is the only thing standing between an exemption and a habit"
     )
 
 
@@ -1434,3 +1521,114 @@ def test_the_capability_guard_resolves_constants_and_looks_inside_helpers() -> N
         "the scan must look at every call, not only decorated functions"
     )
     assert any("interview_records.py" in site for site in sites["admin.interview_audio"])
+
+
+# --------------------------------------------------------------------------- #
+# §34  The five required status checks are five STRINGS in four files          #
+# --------------------------------------------------------------------------- #
+
+
+def _ci_job_display_names() -> dict[str, str]:
+    """`.github/workflows/ci.yml`'s jobs, as {job id: the name GitHub reports}.
+
+    Parsed with a regex rather than PyYAML on purpose: PyYAML is not declared in
+    `requirements.txt` OR `requirements-dev.txt` — it is in this venv only as
+    somebody's transitive dependency, so a guard that imported it would pass here
+    and fail collection on a clean machine, which is the exact shape of break
+    `api-imports` exists to catch.
+
+    A job with no `name:` is reported by GitHub under its YAML KEY, so that is
+    what this falls back to — getting that backwards would make the guard demand
+    a display name that never appears on any pull request.
+    """
+    text = (REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    body = text.split("\njobs:\n", 1)
+    assert len(body) == 2, "ci.yml has no top-level `jobs:` block; this guard read nothing"
+
+    jobs: dict[str, str] = {}
+    current: str | None = None
+    for line in body[1].splitlines():
+        key = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", line)
+        if key:
+            current = key.group(1)
+            jobs[current] = current  # the fallback, until a `name:` overrides it
+            continue
+        label = re.match(r"^    name:\s*(\S.*?)\s*$", line)
+        if label and current and jobs[current] == current:
+            jobs[current] = label.group(1).strip("\"'")
+    assert jobs, "no jobs parsed out of ci.yml — the guard would pass by finding nothing"
+    return jobs
+
+
+def test_the_five_required_check_names_agree_across_all_four_files() -> None:
+    """CI's job names, the ruleset, protect-main.sh and preflight.sh: one list.
+
+    GITHUB MATCHES A REQUIRED STATUS CHECK BY THE JOB'S DISPLAY NAME, AS A
+    STRING. That is the whole hazard and it is completely silent. Rename
+    "Web (Angular)" to "Web (Angular 20)" in an otherwise ordinary pull request
+    and three things happen at once: the PR reports a green "Web (Angular 20)",
+    the required "Web (Angular)" is never reported at all, and a required check
+    that has never been reported on a branch is a check GitHub has nothing to
+    wait for. The job still runs. The job still passes. It has simply stopped
+    being a gate, and the only place that says so is a settings pane no pull
+    request reviews. A renamed job does not fail — it RETIRES.
+
+    Deleting one is worse in the other direction: the ruleset asked for
+    "Voice worker (dependency completeness)" for months after that job went with
+    the LiveKit stack, and had the ruleset ever been applied it would have
+    blocked every pull request on a check that can never report.
+
+    `protect-main.sh` greps ci.yml for its own five before it calls the API, so
+    half of this was already defended — but only for whoever remembers to run
+    that script, and it says nothing about the committed ruleset payload or about
+    the local runner. This asserts all four in CI, where nobody has to remember.
+
+    The FOURTH file is `tools/ci/preflight.sh`, and it is here because it ran
+    four of the five until Phase 5. A local runner that covers four fifths of the
+    gate is worse than one that covers none: it teaches you to trust it, and then
+    lets you push into the fifth.
+    """
+    import json
+
+    jobs = _ci_job_display_names()
+    ci_names = set(jobs.values())
+    assert len(ci_names) == len(jobs), (
+        f"two CI jobs report the same check name, so one can never be required "
+        f"independently of the other: {sorted(jobs.items())}"
+    )
+
+    ruleset = json.loads((REPO / ".github" / "rulesets" / "main.json").read_text(encoding="utf-8"))
+    checks = [r for r in ruleset["rules"] if r["type"] == "required_status_checks"]
+    assert len(checks) == 1, "main.json declares no single required_status_checks rule"
+    ruleset_names = {c["context"] for c in checks[0]["parameters"]["required_status_checks"]}
+
+    protect = (REPO / "tools" / "ci" / "protect-main.sh").read_text(encoding="utf-8")
+    block = re.search(r"^REQUIRED_CHECKS=\((.*?)^\)", protect, re.S | re.M)
+    assert block, "protect-main.sh has no REQUIRED_CHECKS array for this guard to read"
+    protect_names = set(re.findall(r'"([^"]+)"', block.group(1)))
+    assert protect_names, "REQUIRED_CHECKS parsed empty"
+
+    assert ruleset_names == ci_names, (
+        "the committed ruleset and ci.yml disagree about the required checks.\n"
+        f"  only in .github/rulesets/main.json: {sorted(ruleset_names - ci_names)}\n"
+        f"  only in ci.yml:                     {sorted(ci_names - ruleset_names)}\n"
+        "A required check no job reports is never reported, and GitHub does not "
+        "wait for a check it has never seen on that branch."
+    )
+    assert protect_names == ci_names, (
+        "protect-main.sh's REQUIRED_CHECKS and ci.yml disagree.\n"
+        f"  only in protect-main.sh: {sorted(protect_names - ci_names)}\n"
+        f"  only in ci.yml:          {sorted(ci_names - protect_names)}"
+    )
+
+    # preflight.sh runs these locally. It names each check in the `record` call
+    # that reports it, so the string being present is the same string comparison
+    # the other three make — not a claim in a comment.
+    preflight = (REPO / "tools" / "ci" / "preflight.sh").read_text(encoding="utf-8")
+    unrun = sorted(n for n in ci_names if n not in preflight)
+    assert not unrun, (
+        f"tools/ci/preflight.sh does not run, or does not name, {unrun}. Every "
+        "required check belongs in the local runner: one it does not cover is one "
+        "a developer discovers from a runner after the push, which is what that "
+        "script exists to prevent."
+    )

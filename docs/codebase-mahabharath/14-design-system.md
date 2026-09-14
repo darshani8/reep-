@@ -1,5 +1,13 @@
 # Chapter 14 — The Design System: `reep-v2`, the Tone Vocabulary, and the Colour-Plus-Text Rule
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 > After this chapter you should be able to open a blank component, write markup that looks
 > native to REEP without inventing a single new CSS class, and — given any class name you
 > find in a template — say immediately which of the **five** stylesheet layers owns it and who

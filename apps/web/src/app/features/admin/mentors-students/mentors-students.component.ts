@@ -8,11 +8,20 @@
  * students" and "assign students to a mentor" behind a toggle, which is the
  * same operation described twice.
  *
- * "N FREE" IS POLICY, NOT A ROW. The Mentor row has no capacity; the figure is
- * settings.mentor_capacity, returned on every faculty member as `capacity`, and
- * nothing refuses an assignment past it — an admin who chooses to overload one
- * faculty member in a thin year should not have to edit .env first. The rail
- * says "At capacity" in the risk colour and lets them.
+ * "N FREE" IS POLICY, NOT A ROW, AND IT IS STILL ADVISORY. The Mentor row has
+ * no capacity; the figure is returned on every faculty member as `capacity`,
+ * and nothing refuses an assignment past it — an admin who chooses to overload
+ * one faculty member in a thin year should not have to edit .env first. The
+ * rail says "At capacity" in the risk colour and lets them. No control on this
+ * screen may imply otherwise.
+ *
+ * B9.2 changed only WHERE THE NUMBER COMES FROM, which is what that sentence
+ * was really complaining about: `departments.mentor_capacity` now answers it
+ * when the department has named one, falling back to the programme's
+ * `settings.mentor_capacity` otherwise, so tuning it for one department is a
+ * row and not a deploy. `capacity_source` says which, and the rail prints the
+ * two differently: "25, set by Management Studies" and "25, the programme
+ * default" are different sentences even when the figure matches.
  *
  * mentor_id IS THE SCOPE KEY. It is what rule 2 filters staff access on, so
  * every write here is Main-Admin-only server-side and a mentor cannot reach
@@ -23,14 +32,15 @@
  * roster and a pool that disagree about where a student is are worse than a
  * moment's wait.
  *
- * WHAT THIS SCREEN DELIBERATELY DOES NOT DRAW. The board shows the department /
- * batch / specialization filters, the assignment history with its handover
- * window, the required reason, the notifications and the bulk-assign-a-batch
- * action. Every one of those is a Phase 4 backend task (B9.1–B9.4, B1.5 in
- * Phase 3), so each control renders through PendingControlDirective and the
- * history card renders its EMPTY state with a `.notice.accent` — never a
- * plausible-looking sample row, which on a screenshot is indistinguishable
- * from working software.
+ * WHAT THE SERVER ANSWERS AND WHAT IT DOES NOT. `GET /admin/mentor-load` and
+ * `GET /admin/unassigned-students` both take `?department_id=` and
+ * `?cohort_id=` (B9.4/B1.5), so the board's first two filters are real. Neither
+ * takes a specialization, so the board's third one is disabled with that as its
+ * reason and no phase number on it — the treatment `45b91a9` gave the Faculty
+ * screen's orphan controls. The board's per-FACULTY assignment history is the
+ * same case: `GET /admin/students/{id}/mentor-history` answers for ONE STUDENT,
+ * which is a different query, so the history card is wired per mentee and the
+ * toolbar button says so rather than promising a feed nobody wrote.
  *
  * FACULTY ACCOUNTS MOVED. Creating a faculty login, re-minting an activation
  * link and filing somebody under a department were on this screen; they are
@@ -53,36 +63,50 @@ import type {
 import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 /**
- * B9.1 (history + the 90-day handover read), B9.2 (required reason, audit,
- * notifications), B9.3 (bulk assign a batch) and B9.4 (filters + pagination)
- * all land on the Phase 4 mentoring branch — 06-phase-prompts.md, Phase 4d.
- */
-const MENTORING_BACKEND_PHASE = 4;
-
-/**
- * A refusal names the function that was missing, because the two feeds this
- * screen draws are gated on DIFFERENT capabilities: `/unassigned-students` and
- * the assignment write take `admin.mentors` (the screen's own), while
- * `/mentor-load` takes `admin.analytics` (routers/console.py). The Main Admin
- * holds both, so a faculty account granted only `admin.mentors` in Governance
- * is the one reader who meets this — and "Could not load mentors and students."
- * gives them nothing to take to the office.
+ * A refusal names the function that was missing, because the feeds this screen
+ * draws are gated on THREE DIFFERENT capabilities: `/unassigned-students` and
+ * the assignment write take `admin.mentors` (the screen's own), `/mentor-load`
+ * and `/cohorts` take `admin.analytics` (routers/console.py), and the batch bar
+ * writes through `POST /admin/cohorts/{id}/students/bulk`, which is
+ * `admin.students`. The Main Admin holds all three, so a faculty account
+ * granted only one of them in Governance is the reader who meets these — and
+ * "Could not load mentors and students." gives them nothing to take to the
+ * office.
  */
 const FORBIDDEN_READ =
   'Your account may not read one of these lists. The faculty load needs the ' +
   'admin.analytics function and the student pool needs admin.mentors — ask the Main Admin.';
 const FORBIDDEN_WRITE = 'Your account may not change mentor assignments (admin.mentors).';
+const FORBIDDEN_BATCH =
+  'Your account may not edit the roster, which is what a batch assignment writes (admin.students).';
 
-/** One student, as both `/mentor-load` and `/unassigned-students` return them. */
+/** One student, as `/unassigned-students` returns them. */
 interface Mentee {
   student_id: string;
   name: string;
   usn: string | null;
   stage: string | null;
+}
+
+/**
+ * A mentee as `/mentor-load` returns them — the same person as `Mentee` plus
+ * the three headline metrics and B1.5's flag.
+ *
+ * EVERY METRIC IS NULLABLE OR HAS A STATED ZERO, AND THE DIFFERENCE MATTERS.
+ * `attendance_percent` is null when nothing has been recorded, which is not
+ * 0.0: a 0 in that column draws a student as a total absentee on a deployment
+ * that has simply never imported attendance.
+ */
+interface MenteeMetrics extends Mentee {
+  attendance_percent: number | null;
+  verified_skills: number;
+  logged_hours: number;
+  /** True only when BOTH sides are filed and they differ. False means "not
+   *  something anyone can assert about this pair", never "same department". */
+  cross_department: boolean;
 }
 
 /**
@@ -113,8 +137,43 @@ interface MentorLoad {
   /** Resolved institutional position. See StaffPlacement. */
   placement: StaffPlacement;
   capacity: number;
+  /** 'department' or 'programme' — which of the two named the number above. */
+  capacity_source: string;
   mentee_count: number;
-  mentees: Mentee[];
+  mentees: MenteeMetrics[];
+}
+
+/** A batch, as `GET /admin/cohorts` returns it. */
+interface CohortRow {
+  id: string;
+  code: string;
+  name: string;
+  batch_label: string;
+  degree_level: string;
+  student_count: number;
+}
+
+/**
+ * One spell, as `GET /admin/students/{id}/mentor-history` returns it (B9.1).
+ *
+ * `from_at` NULL is "mentoring since before this was recorded" and must never
+ * render as a blank or as the migration's run date; `to_at` NULL is the current
+ * pair. The two sets of act columns are never rewritten: `kind`/`by_name`/
+ * `reason` describe the act that OPENED the spell, `end_*` the one that closed
+ * it.
+ */
+interface MentorSpell {
+  id: string;
+  mentor_id: string;
+  mentor_name: string | null;
+  from_at: string | null;
+  to_at: string | null;
+  kind: string;
+  by_name: string | null;
+  reason: string | null;
+  end_kind: string | null;
+  ended_by_name: string | null;
+  end_reason: string | null;
 }
 
 const STAGE_LABEL: Record<string, string> = {
@@ -123,6 +182,23 @@ const STAGE_LABEL: Record<string, string> = {
   EXCEL_ADVANCED: 'Excel-Adv',
   ELEVATE: 'Elevate',
 };
+
+/** `app/models/mentor_assignment.py`'s OPEN_KINDS, in the office's words. */
+const OPEN_KIND_LABEL: Record<string, string> = {
+  assign: 'Assigned',
+  reassign: 'Moved here from another faculty member',
+};
+
+/** …and its END_KINDS. `faculty_disabled` mints no handover grant, which is
+ *  why it reads differently from a release: nobody kept read access. */
+const END_KIND_LABEL: Record<string, string> = {
+  release: 'Released to the unassigned pool',
+  reassign: 'Moved on to another faculty member',
+  faculty_disabled: 'Ended — the faculty account was disabled',
+};
+
+/** The filter value meaning "do not send this parameter at all". */
+const EVERYTHING = '';
 
 /** "Dr. Meera Rao" -> "MR", for the rail's avatar. */
 function initialsOf(name: string): string {
@@ -156,13 +232,13 @@ function renderStageCell(params: ICellRendererParams<Mentee, string | null>): st
 @Component({
   selector: 'app-admin-mentors-students',
   standalone: true,
-  imports: [AgGridAngular, PendingControlDirective, PluralPipe],
+  imports: [AgGridAngular, PluralPipe],
   templateUrl: './mentors-students.component.html',
   styleUrl: './mentors-students.component.scss',
 })
 export class AdminMentorsStudentsComponent {
   readonly gridTheme = reepGridTheme;
-  readonly mentoringBackendPhase = MENTORING_BACKEND_PHASE;
+  readonly everything = EVERYTHING;
 
   readonly mentors = signal<MentorLoad[] | null>(null);
   readonly pool = signal<Mentee[] | null>(null);
@@ -184,6 +260,83 @@ export class AdminMentorsStudentsComponent {
   /** The grid's quick filter, as typed in the card head. */
   readonly poolSearch = signal('');
 
+  /**
+   * THE BOARD'S FIRST TWO FILTERS, AND THEY GO TO THE SERVER (B9.4/B1.5).
+   * Both endpoints take `?department_id=` and `?cohort_id=`, applied as extra
+   * predicates over the caller's own reach — so an id outside the grant matches
+   * nothing rather than somebody else's roster, and neither filter can widen
+   * what this account may read.
+   *
+   * A BATCH IS A FACT ABOUT STUDENTS, NOT ABOUT FACULTY. `mentor-load` narrows
+   * only the MENTEE rows by `cohort_id` and deliberately leaves the faculty
+   * list whole; dropping faculty who happen to have nobody in the batch would
+   * turn "show me who is mentoring 2026 MBA" into "hide every faculty member I
+   * could seat them with", on the screen whose whole job is seating them. The
+   * copy under the rail says that, so the two lists do not look inconsistent.
+   */
+  readonly departmentFilter = signal(EVERYTHING);
+  readonly batchFilter = signal(EVERYTHING);
+
+  /**
+   * The batches, for the filter and for the batch bar. `GET /admin/cohorts` is
+   * `admin.analytics`, the same key `mentor-load` takes, so a reader who can
+   * see the rail can see this list; `null` means it did not answer and both
+   * controls that read it say so rather than offering an empty menu.
+   */
+  readonly cohorts = signal<CohortRow[] | null>(null);
+
+  /**
+   * The departments to offer, derived from the faculty rail rather than fetched.
+   *
+   * `GET /admin/departments` is gated on `admin.institution`, a THIRD key this
+   * screen would otherwise not need — a college admin granted Mentors &
+   * students and Analytics would meet a 403 on a filter. The faculty rows
+   * already carry their resolved placement, so the honest set of departments
+   * this screen can narrow BY is the set its own rail is filed under.
+   *
+   * REBUILT ONLY FROM AN UNFILTERED LOAD. Once a department is chosen the
+   * response holds that department alone, so rebuilding from it would collapse
+   * the menu to the one option and strand the reader inside it.
+   */
+  readonly departmentOptions = signal<{ id: string; label: string }[]>([]);
+
+  /**
+   * B9.2's reason, and it is REQUIRED — `POST /admin/students/{id}/mentor`
+   * answers 422 without one. This input and the server's `reason` field landed
+   * in the same change on purpose: the endpoint was breaking, the live client
+   * posted `{mentor_id}` and nothing else, and shipping either half alone is an
+   * assign button that fails on a working console.
+   *
+   * IT GUARDS THE RELEASE BUTTON AS WELL AS THE ASSIGN BUTTON. Releasing a
+   * student is the move nothing else on any screen reports — the student simply
+   * stops appearing in a group — so it is the one that most needs a sentence
+   * saying why.
+   */
+  readonly assignReason = signal('');
+
+  readonly hasReason = computed(() => this.assignReason().trim().length > 0);
+
+  /**
+   * THE HISTORY CARD, PER STUDENT. B9.1 records every assignment, release and
+   * handover, and the read it shipped is `GET /admin/students/{id}/mentor-history`
+   * — one student at a time. The board draws this card per FACULTY MEMBER;
+   * composing that from N per-student calls would answer only for the mentees
+   * they hold NOW, which silently omits everybody they have handed over, and
+   * the handovers are the part anybody opens a history for. So the card asks
+   * the question the server actually answers and names the student it is about.
+   */
+  readonly historyStudent = signal<Mentee | null>(null);
+  readonly history = signal<MentorSpell[] | null>(null);
+  readonly historyError = signal<string | null>(null);
+  readonly historyBusy = signal(false);
+
+  /** The batch bar. Closed until asked for: it writes to every student in a
+   *  batch at once and should not sit open beside the single-student action. */
+  readonly batchOpen = signal(false);
+  readonly batchCohortId = signal(EVERYTHING);
+  readonly batchReason = signal('');
+  readonly batchBusy = signal(false);
+
   private grid: GridApi<Mentee> | null = null;
 
   readonly selectedMentor = computed(
@@ -193,10 +346,55 @@ export class AdminMentorsStudentsComponent {
   readonly unassignedCount = computed(() => (this.pool() ?? []).length);
   readonly selectedStudentCount = computed(() => this.selectedStudentIds().length);
 
+  /** True when either server-side filter is on, so the counts on screen can say
+   *  they are about a slice rather than about the deployment. */
+  readonly narrowed = computed(
+    () => this.departmentFilter() !== EVERYTHING || this.batchFilter() !== EVERYTHING,
+  );
+
+  /**
+   * True while a BATCH is chosen — and this one changes what the rail may
+   * claim. `mentor-load` narrows the MENTEE rows by cohort, so `mentee_count`
+   * is then "how many of this batch they mentor" and not the size of their
+   * group: drawing "3/25" and a quarter-full meter over that is the screen
+   * reporting a load nobody has. While it is on, the rail states the batch
+   * figure in words and the meter is not drawn at all.
+   */
+  readonly batchNarrowed = computed(() => this.batchFilter() !== EVERYTHING);
+
+  /** The mentee list's heading, which must not say "current mentees" when it is
+   *  holding one batch's worth of them. */
+  readonly menteeListLabel = computed(() =>
+    this.batchNarrowed() ? 'Mentees in this batch' : 'Current mentees',
+  );
+
+  readonly departmentFilterLabel = computed(() => {
+    const chosen = this.departmentFilter();
+    if (chosen === EVERYTHING) return 'All departments';
+    return this.departmentOptions().find((one) => one.id === chosen)?.label ?? 'One department';
+  });
+
+  readonly batchFilterLabel = computed(() => {
+    const chosen = this.batchFilter();
+    if (chosen === EVERYTHING) return 'All batches';
+    const batch = (this.cohorts() ?? []).find((one) => one.id === chosen);
+    return batch ? this.batchLabel(batch) : 'One batch';
+  });
+
   readonly canAssign = computed(() => {
     if (this.selectedMentor() === null) return false;
     if (this.selectedStudentCount() === 0) return false;
+    if (!this.hasReason()) return false;
     return !this.busy();
+  });
+
+  /** Why the primary action is disabled, on the control rather than in a notice
+   *  the reader has to hunt for. Empty when it is enabled. */
+  readonly assignBlockedBecause = computed(() => {
+    if (this.selectedMentor() === null) return 'Pick a faculty member first.';
+    if (this.selectedStudentCount() === 0) return 'Tick at least one student.';
+    if (!this.hasReason()) return 'Say why this student is being seated here.';
+    return '';
   });
 
   /** The primary action's words, which name both halves of the act. */
@@ -204,6 +402,23 @@ export class AdminMentorsStudentsComponent {
     const count = this.selectedStudentCount();
     if (count === 0) return 'Assign the selected students';
     return `Assign ${count} selected to ${this.selectedMentorName()}`;
+  });
+
+  /** The batch the bar is pointed at, so its warning can count the students. */
+  readonly batchTarget = computed(
+    () => (this.cohorts() ?? []).find((one) => one.id === this.batchCohortId()) ?? null,
+  );
+
+  readonly canApplyBatch = computed(() => {
+    if (this.batchBusy() || this.busy()) return false;
+    if (this.selectedMentor() === null) return false;
+    return this.batchTarget() !== null;
+  });
+
+  readonly batchBlockedBecause = computed(() => {
+    if (this.selectedMentor() === null) return 'Pick a faculty member on the left first.';
+    if (this.batchTarget() === null) return 'Pick the batch to assign.';
+    return '';
   });
 
   readonly columns: ColDef<Mentee>[] = [
@@ -242,6 +457,7 @@ export class AdminMentorsStudentsComponent {
   constructor() {
     registerReepGrid();
     void this.refresh();
+    void this.loadCohorts();
   }
 
   onGridReady(event: GridReadyEvent<Mentee>): void {
@@ -294,6 +510,28 @@ export class AdminMentorsStudentsComponent {
     return initialsOf(name);
   }
 
+  /** `<select>` hands its value back through the event; read once, here. */
+  selectValue(event: Event): string {
+    return (event.target as HTMLSelectElement).value;
+  }
+
+  async setDepartmentFilter(value: string): Promise<void> {
+    if (value === this.departmentFilter()) return;
+    this.departmentFilter.set(value);
+    await this.refilter();
+  }
+
+  async setBatchFilter(value: string): Promise<void> {
+    if (value === this.batchFilter()) return;
+    this.batchFilter.set(value);
+    await this.refilter();
+  }
+
+  /** "MBA 2024-26 · 32 students" — the batch as both controls print it. */
+  batchLabel(batch: CohortRow): string {
+    return `${batch.name} · ${batch.batch_label}`;
+  }
+
   /** "Associate Professor · Management Studies", or what the roster holds. */
   facultyLine(mentor: MentorLoad): string {
     const parts: string[] = [];
@@ -319,12 +557,32 @@ export class AdminMentorsStudentsComponent {
     return mentor.mentee_count >= mentor.capacity;
   }
 
-  /** The one line under the name that says what the load means. */
+  /**
+   * Where the capacity figure came from, in words. B9.2 returns
+   * `capacity_source` precisely so a programme default is not presented as a
+   * departmental decision — "Management said 25" and "nobody has said anything
+   * and the default is 25" are different facts even when the number matches.
+   */
+  capacityNote(mentor: MentorLoad): string {
+    if (mentor.capacity_source === 'department') {
+      const named = mentor.placement.department_name;
+      return named ? `${mentor.capacity}, set by ${named}` : `${mentor.capacity}, set by the department`;
+    }
+    return `${mentor.capacity}, the programme default`;
+  }
+
+  /** The one line under the name that says what the load means. Nothing here
+   *  refuses an assignment past capacity, so the words never say "full". */
   loadNote(mentor: MentorLoad): string {
     if (mentor.mentor_id === null) return 'Becomes a mentor on first assignment';
-    if (this.isAtCapacity(mentor)) return `At capacity — programme capacity is ${mentor.capacity}`;
+    if (this.batchNarrowed()) {
+      // See `batchNarrowed`: the count is this batch's, so neither "N free" nor
+      // "at capacity" can be said about it without inventing a group size.
+      return `${plural(mentor.mentee_count, 'mentee')} from this batch · whole-group load not shown`;
+    }
+    if (this.isAtCapacity(mentor)) return `At capacity — ${this.capacityNote(mentor)}`;
     const free = mentor.capacity - mentor.mentee_count;
-    return `${plural(free, 'place')} free`;
+    return `${plural(free, 'place')} free of ${this.capacityNote(mentor)}`;
   }
 
   menteeLine(student: Mentee): string {
@@ -332,6 +590,103 @@ export class AdminMentorsStudentsComponent {
     if (student.stage !== null) parts.push(STAGE_LABEL[student.stage] ?? student.stage);
     return parts.join(' · ');
   }
+
+  /**
+   * The three headline metrics `mentor-load` returns for a mentee. A missing
+   * attendance reads as "Attendance not recorded" and never as 0%: nothing
+   * imported and nobody present are opposite facts.
+   */
+  menteeMetrics(student: MenteeMetrics): string {
+    const attendance =
+      student.attendance_percent === null
+        ? 'Attendance not recorded'
+        : `${student.attendance_percent}% attendance`;
+    return [
+      attendance,
+      plural(student.verified_skills, 'verified skill'),
+      `${student.logged_hours.toLocaleString('en')} h logged`,
+    ].join(' · ');
+  }
+
+  // ------------------------------------------------------------- history --
+
+  /** Open one student's spell list. Called from a mentee row, which is the only
+   *  place on this screen that names a single student. */
+  async openHistory(student: Mentee): Promise<void> {
+    this.historyStudent.set(student);
+    this.history.set(null);
+    this.historyError.set(null);
+    this.historyBusy.set(true);
+    try {
+      const response = await fetch(
+        `${environment.apiBase}/admin/students/${student.student_id}/mentor-history`,
+        { credentials: 'include' },
+      );
+      if (!response.ok) {
+        this.historyError.set(
+          response.status === 403
+            ? 'Your account may not read this student’s mentor history (admin.mentors).'
+            : await this.detailOf(response),
+        );
+        return;
+      }
+      this.history.set((await response.json()) as MentorSpell[]);
+    } catch {
+      this.historyError.set('Could not reach the server.');
+    } finally {
+      this.historyBusy.set(false);
+    }
+  }
+
+  closeHistory(): void {
+    this.historyStudent.set(null);
+    this.history.set(null);
+    this.historyError.set(null);
+  }
+
+  /** True while this student's history is the one on screen. */
+  isHistoryOpen(student: Mentee): boolean {
+    return this.historyStudent()?.student_id === student.student_id;
+  }
+
+  spellOpen(spell: MentorSpell): boolean {
+    return spell.to_at === null;
+  }
+
+  openedLabel(spell: MentorSpell): string {
+    return OPEN_KIND_LABEL[spell.kind] ?? spell.kind;
+  }
+
+  endedLabel(spell: MentorSpell): string {
+    if (spell.end_kind === null) return '';
+    return END_KIND_LABEL[spell.end_kind] ?? spell.end_kind;
+  }
+
+  /**
+   * A NULL `from_at` is "since before this was recorded" — the migration seeded
+   * one open row per current pair and dated it from the ACCOUNT's creation
+   * where it could, because `students` has no created_at and `now()` would have
+   * told every reader the whole roster was seated on deploy day.
+   */
+  spellFrom(spell: MentorSpell): string {
+    if (spell.from_at === null) return 'Since before this was recorded';
+    return `From ${this.when(spell.from_at)}`;
+  }
+
+  spellTo(spell: MentorSpell): string {
+    if (spell.to_at === null) return 'Current';
+    return `Until ${this.when(spell.to_at)}`;
+  }
+
+  when(stamp: string): string {
+    return new Date(stamp).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
+  // --------------------------------------------------------- the writes --
 
   /** Move every ticked student in the pool onto the selected faculty member. */
   async assignSelectedStudents(): Promise<void> {
@@ -342,11 +697,82 @@ export class AdminMentorsStudentsComponent {
     await this.writeMentor(studentIds, mentor, `${seated} assigned to ${mentor.name}`);
   }
 
-  /** Release one student back to the pool. */
+  /** Release one student back to the pool. Needs the same reason an assignment
+   *  does — see `assignReason`. */
   async releaseStudent(student: Mentee): Promise<void> {
+    if (!this.hasReason()) {
+      this.flash.set(null);
+      this.error.set('Say why this student is being released, then press Release again.');
+      return;
+    }
     const mentor = this.selectedMentor();
     const from = mentor === null ? 'their mentor' : mentor.name;
     await this.writeMentor([student.student_id], null, `${student.name} released from ${from}`);
+  }
+
+  toggleBatchBar(): void {
+    this.batchOpen.update((open) => !open);
+    this.flash.set(null);
+  }
+
+  /**
+   * THE WHOLE BATCH ONTO ONE FACULTY MEMBER.
+   * `POST /admin/cohorts/{id}/students/bulk` with `action: "mentor"` is the
+   * single assignment repeated through the same helpers, so the same-college
+   * rule and the history row apply per student exactly as they do above. It
+   * touches EVERY student in the batch, including those who already have a
+   * different mentor — the warning beside the control says so, because nothing
+   * on this screen shows a student moving off somebody else's rail.
+   *
+   * `reason` IS OPTIONAL HERE AND REQUIRED ON THE SINGLE ENDPOINT, deliberately
+   * (B9.2): a sentence asked once and applied to thirty people describes the
+   * batch, not any student in it. It is recorded when given.
+   */
+  async applyBatch(): Promise<void> {
+    const mentor = this.selectedMentor();
+    const batch = this.batchTarget();
+    if (mentor === null || batch === null || this.batchBusy()) return;
+    const reason = this.batchReason().trim();
+    this.batchBusy.set(true);
+    this.error.set(null);
+    this.flash.set(null);
+    let failure: string | null = null;
+    let affected = 0;
+    try {
+      const response = await fetch(
+        `${environment.apiBase}/admin/cohorts/${batch.id}/students/bulk`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'mentor',
+            mentor_user_id: mentor.user_id,
+            ...(reason ? { reason } : {}),
+          }),
+        },
+      );
+      if (!response.ok) {
+        failure = response.status === 403 ? FORBIDDEN_BATCH : await this.detailOf(response);
+      } else {
+        affected = ((await response.json()) as { affected: number }).affected;
+      }
+    } catch {
+      failure = 'Could not reach the server — nothing was changed.';
+    }
+    this.liveGrid?.deselectAll();
+    this.selectedStudentIds.set([]);
+    await this.refresh();
+    if (failure === null) {
+      this.flash.set(
+        `${plural(affected, 'student')} in ${this.batchLabel(batch)} assigned to ${mentor.name}.`,
+      );
+      this.batchReason.set('');
+      this.batchOpen.set(false);
+    } else if (!this.loadFailed()) {
+      this.error.set(failure);
+    }
+    this.batchBusy.set(false);
   }
 
   /** Null target releases. A target with no group yet is sent by USER id: the
@@ -377,10 +803,7 @@ export class AdminMentorsStudentsComponent {
           // some of them seated. Stop, then RELOAD — returning without a
           // refresh leaves already-assigned students drawn in the pool, which
           // is the one list on this screen that must not lie.
-          failure =
-            response.status === 403
-              ? FORBIDDEN_WRITE
-              : 'Could not save that change — the lists have been reloaded, so what you see is what was saved.';
+          failure = response.status === 403 ? FORBIDDEN_WRITE : await this.detailOf(response);
           break;
         }
       }
@@ -392,6 +815,9 @@ export class AdminMentorsStudentsComponent {
     await this.refresh();
     if (failure === null) {
       this.flash.set(message);
+      // Cleared only on success. After a failure the words stay in the box, or
+      // the retry costs the admin the sentence they just typed.
+      this.assignReason.set('');
     } else if (!this.loadFailed()) {
       // refresh() clears the error it does not raise; the write's reason is the
       // more specific one, unless the reload failed too and is already saying so.
@@ -401,17 +827,67 @@ export class AdminMentorsStudentsComponent {
   }
 
   private assignmentBody(target: MentorLoad | null): Record<string, string | null> {
-    if (target === null) return { mentor_id: null };
-    if (target.mentor_id !== null) return { mentor_id: target.mentor_id };
-    return { mentor_user_id: target.user_id };
+    // `reason` on every body, release included: the server requires it on all
+    // three shapes, which is the point — a release is the move that leaves no
+    // other trace.
+    const reason = this.assignReason().trim();
+    if (target === null) return { mentor_id: null, reason };
+    if (target.mentor_id !== null) return { mentor_id: target.mentor_id, reason };
+    return { mentor_user_id: target.user_id, reason };
+  }
+
+  // ---------------------------------------------------------- the loads --
+
+  /** A filter changed: drop the ticks (they name rows that may be gone from the
+   *  new slice) and ask the server again. */
+  private async refilter(): Promise<void> {
+    this.liveGrid?.deselectAll();
+    this.selectedStudentIds.set([]);
+    this.flash.set(null);
+    this.busy.set(true);
+    try {
+      await this.refresh();
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  /** The two filters, as the query string both endpoints read. Absent means
+   *  "do not narrow", which is not the same as an empty value. */
+  private filterQuery(): string {
+    const params = new URLSearchParams();
+    if (this.departmentFilter() !== EVERYTHING) {
+      params.set('department_id', this.departmentFilter());
+    }
+    if (this.batchFilter() !== EVERYTHING) params.set('cohort_id', this.batchFilter());
+    const query = params.toString();
+    return query ? `?${query}` : '';
+  }
+
+  private async loadCohorts(): Promise<void> {
+    try {
+      const response = await fetch(`${environment.apiBase}/admin/cohorts`, {
+        credentials: 'include',
+      });
+      // A failure leaves the signal null, which both the filter and the batch
+      // bar render as "the batch list could not be read" — never as an empty
+      // menu, which would read as a college with no batches in it.
+      if (!response.ok) return;
+      this.cohorts.set((await response.json()) as CohortRow[]);
+    } catch {
+      /* left null on purpose — see above */
+    }
   }
 
   private async refresh(): Promise<void> {
     this.error.set(null);
+    const query = this.filterQuery();
     try {
       const [loadResponse, poolResponse] = await Promise.all([
-        fetch(`${environment.apiBase}/admin/mentor-load`, { credentials: 'include' }),
-        fetch(`${environment.apiBase}/admin/unassigned-students`, { credentials: 'include' }),
+        fetch(`${environment.apiBase}/admin/mentor-load${query}`, { credentials: 'include' }),
+        fetch(`${environment.apiBase}/admin/unassigned-students${query}`, {
+          credentials: 'include',
+        }),
       ]);
       if (!loadResponse.ok || !poolResponse.ok) {
         const forbidden = loadResponse.status === 403 || poolResponse.status === 403;
@@ -423,15 +899,39 @@ export class AdminMentorsStudentsComponent {
       this.mentors.set(mentors);
       this.pool.set((await poolResponse.json()) as Mentee[]);
       this.loadFailed.set(false);
+      if (this.departmentFilter() === EVERYTHING) this.rememberDepartments(mentors);
       // Keep a selection across a refresh, and make one on first load so the
       // two cards are never an empty prompt when there is a faculty member.
-      if (this.selectedMentorUserId() === null && mentors.length > 0) {
-        this.selectedMentorUserId.set(mentors[0].user_id);
+      const stillListed = mentors.some((one) => one.user_id === this.selectedMentorUserId());
+      if (!stillListed) {
+        this.selectedMentorUserId.set(mentors.length > 0 ? mentors[0].user_id : null);
       }
+      // The open history names a student who may not be on this slice any more.
+      const student = this.historyStudent();
+      if (student !== null) void this.openHistory(student);
     } catch {
       this.error.set('Could not reach the server.');
       this.failLoad();
     }
+  }
+
+  /** The department menu, from the rail's own placements. Only faculty who are
+   *  FILED contribute one: an unfiled account hangs under nothing, and offering
+   *  a blank option would be a filter that matches by accident. */
+  private rememberDepartments(mentors: MentorLoad[]): void {
+    const byId = new Map<string, string>();
+    for (const mentor of mentors) {
+      const where = mentor.placement;
+      if (!where.filed || where.department_id === null) continue;
+      const college = where.college_code ?? where.college_name;
+      const name = where.department_name ?? where.department_code ?? 'Department';
+      byId.set(where.department_id, college ? `${name} · ${college}` : name);
+    }
+    this.departmentOptions.set(
+      Array.from(byId, ([id, label]) => ({ id, label })).sort((left, right) =>
+        left.label.localeCompare(right.label),
+      ),
+    );
   }
 
   /** Nothing is known, so nothing is drawn: the two lists go back to "not
@@ -440,5 +940,22 @@ export class AdminMentorsStudentsComponent {
     this.mentors.set(null);
     this.pool.set(null);
     this.loadFailed.set(true);
+  }
+
+  /** The server's own sentence where there is one. FastAPI answers a 422 with
+   *  `detail` as a LIST, which renders as "[object Object]" printed straight
+   *  out, so the first message in it is what the admin reads. */
+  private async detailOf(response: Response): Promise<string> {
+    try {
+      const body = await response.json();
+      const detail = body?.detail;
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail) && detail.length && typeof detail[0]?.msg === 'string') {
+        return detail[0].msg;
+      }
+    } catch {
+      /* not JSON — fall through to the status */
+    }
+    return `The request was refused (${response.status}).`;
   }
 }

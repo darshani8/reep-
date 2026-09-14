@@ -106,8 +106,9 @@ person who has to know whether that is the case.
 
 `ops-task.yml` deserves naming separately, because it is the more dangerous
 door and it does not look like it: `grant-access` mints a staff account for any
-Google address the operator types, and a `DIRECTOR` or `ADMIN` created that way
-reads every student's marks, attendance and USN by rule 2. One person typing
+Google address the operator types, and an `ADMIN` created that way
+reads every student's marks, attendance and USN by rule 2 (a granted `MENTOR`
+reads every student a grant reaches). One person typing
 `run` is currently the entire control on that.
 
 **Target state:** a GitHub Environment named `production` with required
@@ -419,9 +420,9 @@ generated the documented way). Then confirm, from the same secret:
   else — including a typo — is treated as production-like by
   `password_login_allowed`'s allowlist, which is the correct direction, but only
   a recognised name gives you the `Secure` cookie and the seed refusal too.
-- `VOICE_WORKER_SECRET` is identical in the API and the worker, if you run the
-  worker at all. Disagreeing values 401 every transcript POST while the worker's
-  own logs look perfectly healthy.
+- (This list carried a `VOICE_WORKER_SECRET` line until Phase 5. The LiveKit
+  voice worker was removed in 2026-09 — there is no second image to agree with,
+  and nothing under `app/` reads that variable.)
 
 **The guard checks shape, never history.** A secret that leaked last week and
 was never rotated passes every one of its tests. §9 is the section for that.
@@ -470,9 +471,12 @@ half-applied schema and nothing to go back to.
   does not, you will not — it is idempotent, but a step that runs for no reason
   is a step nobody reads the output of.
 - **`python -m app.seed` is not on the menu and never will be.** It creates
-  `director@bgscet.ac.in` behind a password published in `AGENTS.md`, and that
-  account reads every student's record. It refuses on `ENV=prod`; a button for
-  it would be a way around its own guard.
+  `admin@bgscet.ac.in` — the Main Admin, who by rule 2 reads every student's
+  marks, attendance and USN — behind a password published in `AGENTS.md`. It
+  refuses on `ENV=prod`; a button for it would be a way around its own guard.
+  (This named `director@bgscet.ac.in` until Phase 5. That role and that account
+  were removed on 2026-09-10; the argument is unchanged and the account it now
+  names is the one that makes it true.)
 
 ---
 
@@ -646,7 +650,7 @@ curl -s https://<domain>/api/auth/sso/status | jq
   is the cheapest read of whether the environment is what you think it is.
 
 ```bash
-curl -s https://<domain>/api/interview/status | jq   # OPENAI_API_KEY reached the task
+curl -s https://<domain>/api/interview/status | jq   # the interview engine is reachable
 curl -s https://<domain>/ | grep -o 'main-[A-Za-z0-9]*\.js'
 ```
 
@@ -679,8 +683,9 @@ a deploy:
   never started and you are looking at the old build (§5.1);
 - `Dropped interview turn` — the silent save-nothing failure, and the one AI
   tripwire with a CloudWatch alarm behind it;
-- `POST /api/voice/transcript -> HTTP 401` — a `VOICE_WORKER_SECRET` mismatch,
-  if you run the worker;
+  (this line read `OPENAI_API_KEY reached the task` until Phase 5; the `openai`
+  engine was deleted in 2026-09 and Nova signs with SigV4, so what this probe
+  now proves is a region and a task role, not a key);
 - `reep.access` lines carrying `rid=` — the traceability thread
   (`docs/aws-deployment.md` §5).
 
@@ -784,7 +789,7 @@ green table as a good deploy.
 exception: CloudWatch holds raw logs and infra metrics, and no alarm in the table
 above fires on a Python traceback. Open the issue stream filtered to **first seen
 after this deploy** and look for *new issue types*, not for volume — a route that
-500s for DIRECTORs only will never move `reep-alb-5xx`'s threshold of ten in five
+500s for the Main Admin only will never move `reep-alb-5xx`'s threshold of ten in five
 minutes, and that is exactly the class of bug rule 2 is about. Any Sentry event
 carries the `X-Request-ID` that ties it to the `reep.access` line in `/reep/api`.
 
@@ -902,7 +907,7 @@ them by sha. A force push does not un-publish; only rotation ends the exposure.
 
 `AUTH_SECRET` signs the HS256 `reep_session` cookie and derives the OAuth
 flow-cookie key. **Whoever knows it is every user.** A forged
-`{"role":"DIRECTOR"}` claim reads every student's marks, attendance and USN,
+`{"role":"ADMIN"}` claim reads every student's marks, attendance and USN,
 with no login, no Google round trip and no database row involved.
 
 Sessions are stateless 12-hour JWTs and `POST /api/auth/logout` only deletes a
@@ -936,9 +941,8 @@ cookie. **There is no waiting it out that is shorter than rotating.**
 | Leaked | Do |
 |---|---|
 | `DATABASE_URL` / RDS password | Rotate the master password, update the secret, roll the service. Blast radius is whoever can reach the VPC — the instance is in private subnets and 5432 is not public. Check RDS logs for connections you cannot account for. |
-| `VOICE_WORKER_SECRET` | Rotate **in both images at once**. Disagreeing values 401 every transcript POST while the worker looks healthy — `docs/deployment-env.md` calls this the single most confusing failure in the stack. |
 | `GOOGLE_CLIENT_SECRET` | Rotate in the Google console, update the secret, roll. Sign-in is down until both sides match; plan the minute. |
-| `OPENAI_API_KEY`, provider keys | Revoke at the provider **first**. The API degrades to `interview unavailable` and closes the socket 4001 — a visible, safe failure, which is why revocation-first is safe here and not for `AUTH_SECRET`. |
+| Provider keys (`GROQ_API_KEY`, `MISTRAL_API_KEY`, …) | Revoke at the provider **first**. The API degrades — the assistant and the resume polish fall back, and an unreachable interview engine closes the socket 4001 — a visible, safe failure, which is why revocation-first is safe here and not for `AUTH_SECRET`. |
 | An AWS access key | Revoke in IAM. Note that the deploy path uses OIDC and stores no key, so a leaked AWS key came from somewhere that should not have had one — find that first. |
 
 ### 10.3 Then clean up, then close the hole
@@ -992,7 +996,7 @@ cookie. **There is no waiting it out that is shorter than rotating.**
 ### 10.4 Unauthorised access to student data
 
 The incident this codebase is actually shaped around: a rule-2 regression, a
-DIRECTOR account minted by `ops-task.yml`'s `grant-access` for the wrong address,
+staff account minted by `ops-task.yml`'s `grant-access` for the wrong address,
 a leaked `AUTH_SECRET` used before it was rotated, or a mentor who could see a
 cohort that was not theirs. What is exposed is a named student's marks,
 attendance, USN, interview transcripts and — where

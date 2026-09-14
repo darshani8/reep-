@@ -93,8 +93,50 @@ def tenant_id_for_session(session: dict, db: Session) -> str | None:
     return next(iter(tenant_ids), None)
 
 
-def assert_student_scope(session: dict, student_id: str, db: Session) -> Student:
-    """Return a student only when the current role is allowed to access it."""
+def assert_student_scope(
+    session: dict, student_id: str, db: Session, *, allow_handover: bool = False
+) -> Student:
+    """Return a student only when the current role is allowed to access it.
+
+    ------------------------------------------------------------------------
+    `allow_handover` — B9.1's 90-day window, AND WHY IT IS A KEYWORD
+    ------------------------------------------------------------------------
+
+    This function gates THIRTY-SIX call sites and FIFTEEN OF THEM ARE WRITES:
+    adding and deleting mentor notes, resolving alerts, reviewing uploads and
+    skill claims, approving badge evidence (which MINTS an EARNED badge),
+    manual awards, recording capability assessments, six notebook mutations.
+    It has no idea which it is serving — a branch that returns the student
+    returns it to a POST exactly as readily as to a GET.
+
+    So the handover cannot be a branch that is simply "on": that would turn a
+    90-day READ into a 90-day right to write about a student who is now
+    somebody else's. It is a parameter, it is keyword-only, it defaults to
+    FALSE, and it is passed True at GET call sites only. Every existing caller
+    keeps today's behaviour exactly, and opening the window for a write is
+    something a person has to type on purpose.
+
+    WHAT IT CHECKS IS A GRANT, NOT THIS TABLE'S `to_at`. `app/mentor_history.py`
+    mints a `mentor.mentees` grant scoped to the one student with a 90-day
+    expiry when a mentee is released, and `holds_handover_for` asks whether that
+    grant is live. Reading the window off `mentor_assignments.to_at` instead
+    would leave the door open after an administrator revoked the grant in
+    Governance, which is two sources of truth for one permission.
+
+    THE GRANT MUST NAME THIS EXACT STUDENT. `holds_handover_for` refuses to use
+    `reaches_target`, which a PROGRAMME-WIDE `mentor.mentees` grant satisfies
+    for every student alive — see its docstring. Rule 2 and the capability fence
+    are checked separately on purpose (app/governance.py: "a capability can
+    never relax the student filter"), and this is the one place where a careless
+    reading would collapse them.
+
+    IT ALSO REACHES A STUDENT'S RECORDED VOICE, and that is worth naming rather
+    than discovering: `routers/interview_records.py`'s audio download goes
+    through this gate. It carries a second `admin.interview_audio` check, which
+    a MENTOR holds only by an explicit grant, so a handover alone does not open
+    it — but the next person to relax that second check should know this one is
+    behind it.
+    """
     require_staff(session)
     tenant_id = tenant_id_for_session(session, db)
     student = db.get(Student, student_id)
@@ -115,8 +157,27 @@ def assert_student_scope(session: dict, student_id: str, db: Session) -> Student
     if session["role"] == "MENTOR" and (
         not session.get("mentorId") or student.mentor_id != session["mentorId"]
     ):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not in your mentor scope.")
+        # THE HANDOVER IS ASKED LAST, and it is asked of the GRANT rather than
+        # of this session's claim. `Mentor` rows are never deleted, so a
+        # released mentor's cookie still carries a live `mentorId` — keying the
+        # window on "this session has a mentorId" would be true for every
+        # faculty member who has ever had one mentee. The grant names a user and
+        # a student, which is the pair that actually decides this.
+        if not (
+            allow_handover
+            and _holds_handover(db, str(session.get("userId") or ""), student.id)
+        ):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not in your mentor scope.")
     return student
+
+
+def _holds_handover(db: Session, user_id: str, student_id: str) -> bool:
+    """Imported inside the call for `scope_filter`'s reason: `mentor_history`
+    reaches into `governance`, which reaches into `mentor_functions`, and a
+    module-level import here closes the cycle."""
+    from .mentor_history import holds_handover_for
+
+    return holds_handover_for(db, user_id, student_id)
 
 
 def student_identity(session: dict) -> str:

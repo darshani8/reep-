@@ -305,7 +305,13 @@ class ApprovedCertification(Base):
     """
 
     __tablename__ = "approved_certifications"
-    __table_args__ = (Index("ix_approvedcert_badge", "badge_code"),)
+    __table_args__ = (
+        Index("ix_approvedcert_badge", "badge_code"),
+        # Each FK LEADS its own index, which is what makes it usable for the
+        # lookup (test_every_foreign_key_column_is_indexed).
+        Index("ix_approvedcert_college", "college_id"),
+        Index("ix_approvedcert_course", "course_id"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String)
@@ -324,6 +330,26 @@ class ApprovedCertification(Base):
     is_free: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     url: Mapped[str | None] = mapped_column(String, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # ------------------------------------------------------------------ #
+    # WHO THIS ROW IS FOR (B13). Both NULLABLE, and **NULL MEANS
+    # PROGRAMME-WIDE** — the row is visible to every college and every course.
+    #
+    # That is the meaning every row written before B13 already has, and it is
+    # why neither column is NOT NULL with a fabricated default: a default
+    # pointing at the first college on the deployment is how a SECOND college
+    # silently inherits the first's catalogue, which is the exact failure this
+    # scoping exists to prevent.
+    #
+    # No `ondelete` on either, like every other pointer into the spine: the
+    # database refuses to delete a college or a course that still has
+    # catalogue rows filed under it. The console archives; it does not delete.
+    # ------------------------------------------------------------------ #
+    college_id: Mapped[str | None] = mapped_column(
+        ForeignKey("colleges.id"), nullable=True
+    )
+    course_id: Mapped[str | None] = mapped_column(
+        ForeignKey("academic_courses.id"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

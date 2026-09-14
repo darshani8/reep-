@@ -42,7 +42,7 @@ import uuid
 from datetime import date, datetime, timezone
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 
 from conftest import TEST_PASSWORD, requires_db
 
@@ -55,6 +55,7 @@ from app.models.job import DegreeLevel
 from app.models.leave import LeaveRequest, LeaveStatus
 from app.models.registration import Registration, RegistrationStatus
 from app.models.swoc import SwocEntry
+from app.models.mentor_assignment import MentorAssignment
 from app.models.user import Mentor, Role, Student, User
 from app.seed_roster import SSO_ONLY_PASSWORD_HASH
 
@@ -246,14 +247,17 @@ def _file_under(user_id: str, department_id: str | None) -> None:
 def _undo(student_ids: list[str], faculty_user_ids: list[str]) -> None:
     """Put everything this test touched back, in the order the keys allow.
 
-    THREE POINTERS WITH NO `ON DELETE` BETWEEN THEM, and the teardown order is
-    forced by all three. `students.mentor_id` -> `mentors.id` and
+    FOUR POINTERS WITH NO `ON DELETE` BETWEEN THEM, and the teardown order is
+    forced by all four. `students.mentor_id` -> `mentors.id` and
     `mentors.user_id` -> `users.id` mean an assignment left behind takes
     `make_user`'s own teardown down with it; `users.department_id` ->
     `departments.id` means a faculty account still FILED under this fixture's
-    department blocks the fixture from deleting it. Both failures surface as an
-    IntegrityError in somebody else's traceback, which is why this is one
-    function called from a `finally` rather than three lines per test.
+    department blocks the fixture from deleting it; and B9.1's
+    `mentor_assignments` points at BOTH the student and the mentor group with
+    no cascade either, deliberately — the database refuses to delete either out
+    from under a recorded spell. All of them surface as an IntegrityError in
+    somebody else's traceback, which is why this is one function called from a
+    `finally` rather than four lines per test.
     """
     with SessionLocal() as db:
         for sid in student_ids:
@@ -261,6 +265,24 @@ def _undo(student_ids: list[str], faculty_user_ids: list[str]) -> None:
             if student is not None:
                 student.mentor_id = None
         db.flush()
+        # Children before parents, as both purge modules order it.
+        group_ids = [
+            gid for (gid,) in db.execute(
+                select(Mentor.id).where(Mentor.user_id.in_(faculty_user_ids))
+            ).all()
+        ]
+        db.execute(
+            delete(MentorAssignment).where(
+                or_(
+                    MentorAssignment.student_id.in_(student_ids or [""]),
+                    MentorAssignment.mentor_id.in_(group_ids or [""]),
+                )
+            )
+        )
+        # And the handover grants a release minted along the way.
+        db.execute(
+            delete(CapabilityGrant).where(CapabilityGrant.subject_user_id.in_(faculty_user_ids))
+        )
         db.execute(delete(Mentor).where(Mentor.user_id.in_(faculty_user_ids)))
         for uid in faculty_user_ids:
             user = db.get(User, uid)
@@ -290,6 +312,15 @@ SCOPED_LISTS = [
 # scope of a list that is empty for a different reason, which is a test that
 # passes whatever the fence does. It gets its own two tests below — one for the
 # faculty rows, one (`cross_department`) for the mentee rows.
+
+# THE JOBS SHEET IS NOT IN THAT TABLE EITHER, and for a sharper reason than
+# mentor-load's: `GET /api/admin/jobs` became scopeable in B12.1 and its rows
+# carry NO STUDENT AT ALL, so there is no `student_id` for `ids_of` to read.
+# Its reach is projected onto `jobs` by `scope_views.job_scope_clause`, whose
+# NULL rule is the deliberate opposite of every other projection's — a posting
+# naming no college is visible to everybody — and that is a property this
+# table's one assertion ("the other department is not in this list") cannot
+# express. It is pinned in `tests/test_jobs_scope.py` instead.
 
 
 @requires_db
@@ -688,7 +719,7 @@ def test_a_mentor_from_another_college_is_refused(client, make_user, spine):
     try:
         r = client.post(
             f"/api/admin/students/{spine['student_here']}/mentor",
-            headers=admin.headers, json={"mentor_user_id": outsider.user_id},
+            headers=admin.headers, json={"mentor_user_id": outsider.user_id, "reason": "test assignment"},
         )
         assert r.status_code == 422, r.text
         assert "college" in r.json()["detail"].lower()
@@ -713,7 +744,7 @@ def test_a_cross_department_pair_inside_one_college_is_allowed(client, make_user
     try:
         r = client.post(
             f"/api/admin/students/{spine['student_here']}/mentor",
-            headers=admin.headers, json={"mentor_user_id": faculty.user_id},
+            headers=admin.headers, json={"mentor_user_id": faculty.user_id, "reason": "test assignment"},
         )
         assert r.status_code == 204, r.text
         with SessionLocal() as db:
@@ -737,7 +768,7 @@ def test_an_unfiled_faculty_account_can_still_be_assigned(client, make_user, spi
     try:
         r = client.post(
             f"/api/admin/students/{spine['student_here']}/mentor",
-            headers=admin.headers, json={"mentor_user_id": faculty.user_id},
+            headers=admin.headers, json={"mentor_user_id": faculty.user_id, "reason": "test assignment"},
         )
         assert r.status_code == 204, r.text
     finally:
@@ -760,7 +791,7 @@ def test_an_existing_cross_department_pair_is_kept_and_flagged(client, make_user
     try:
         assert client.post(
             f"/api/admin/students/{spine['student_here']}/mentor",
-            headers=admin.headers, json={"mentor_user_id": faculty.user_id},
+            headers=admin.headers, json={"mentor_user_id": faculty.user_id, "reason": "test assignment"},
         ).status_code == 204
 
         rows = client.get("/api/admin/mentor-load", headers=admin.headers).json()
@@ -785,7 +816,7 @@ def test_a_same_department_pair_is_not_flagged(client, make_user, spine):
     try:
         assert client.post(
             f"/api/admin/students/{spine['student_here']}/mentor",
-            headers=admin.headers, json={"mentor_user_id": faculty.user_id},
+            headers=admin.headers, json={"mentor_user_id": faculty.user_id, "reason": "test assignment"},
         ).status_code == 204
         rows = client.get("/api/admin/mentor-load", headers=admin.headers).json()
         row = next(r for r in rows if r["user_id"] == faculty.user_id)
@@ -811,7 +842,7 @@ def test_an_unfiled_pair_is_not_flagged_as_crossing_a_department(client, make_us
     try:
         assert client.post(
             f"/api/admin/students/{spine['student_here']}/mentor",
-            headers=admin.headers, json={"mentor_user_id": faculty.user_id},
+            headers=admin.headers, json={"mentor_user_id": faculty.user_id, "reason": "test assignment"},
         ).status_code == 204
         rows = client.get("/api/admin/mentor-load", headers=admin.headers).json()
         row = next(r for r in rows if r["user_id"] == faculty.user_id)

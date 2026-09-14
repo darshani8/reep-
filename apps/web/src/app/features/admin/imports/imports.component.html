@@ -4,14 +4,23 @@
       <div class="crumb"><span>Operations</span><span class="sep">/</span><span>Data imports</span></div>
       <h1 class="dt-title">Data imports</h1>
       <div class="dt-sub">
-        Attendance and marks enter REEP here — validated before anything is written. Placement
-        criteria are set per course.
+        Attendance and marks enter REEP here — read and judged on the server before anything is
+        written. Placement criteria are set per course beside them.
       </div>
     </div>
     <div class="dt-toolbar">
-      <button type="button" class="btn secondary" [reepPending]="importsPhase">
-        <span class="icon" aria-hidden="true">download</span> Download templates
-      </button>
+      <!-- The blank workbook for the chosen dataset, built from the parser's
+           own column constant — so the file REEP hands out and the file REEP
+           accepts cannot drift apart. A same-origin link, so the session
+           cookie carries it; there is nothing to POST. -->
+      <a
+        class="btn secondary"
+        [href]="templateUrl()"
+        [attr.aria-label]="'Download the ' + datasetLabel() + ' template'"
+        download
+      >
+        <span class="icon" aria-hidden="true">download</span> Download template
+      </a>
       <button
         type="button"
         class="btn secondary"
@@ -29,8 +38,8 @@
     </div>
   }
 
-  <!-- The board's picker row. Course narrows the batches; the batch, the
-       semester and the dataset are what an import run is FOR. -->
+  <!-- The board's picker row. Course narrows the batches AND the criteria card;
+       the batch, the semester and the dataset are what an import run is FOR. -->
   <div class="pickers">
     <div class="select">
       <span class="lbl">Dataset</span>
@@ -114,6 +123,15 @@
           }
         </div>
 
+        @if (!semesterIsRequired()) {
+          <p class="wizard-hint">
+            <span class="icon" aria-hidden="true">info</span>
+            An attendance file needs no semester. <code>attendance_records</code> has no semester
+            column, so the value is recorded on the run as provenance and written nowhere — which is
+            why a dry run cannot answer "which semester was this attendance for" from anything else.
+          </p>
+        }
+
         <div class="wizard-file">
           <label class="btn secondary wizard-file__label">
             <span class="icon" aria-hidden="true">upload_file</span>
@@ -136,7 +154,34 @@
               <span class="icon" aria-hidden="true">close</span> Remove
             </button>
           }
+          <!-- The separate press that sends the file to be READ. It is not
+               joined to Import rows on purpose: what this writes is a run and
+               its judged lines, and not one row of a student's record — which
+               is what makes "the rows I reviewed are the rows that were
+               written" true on the next press. -->
+          <button
+            type="button"
+            class="btn primary wizard-file__check"
+            [disabled]="previewBusy() || checkBlockedBecause() !== null"
+            [attr.title]="checkBlockedBecause()"
+            (click)="checkFile()"
+          >
+            <span class="icon" aria-hidden="true">task_alt</span>
+            {{ previewBusy() ? 'Reading on the server…' : 'Check file' }}
+          </button>
         </div>
+
+        @if (checkBlockedBecause(); as blocked) {
+          <p class="wizard-hint" role="status">
+            <span class="icon" aria-hidden="true">info</span>{{ blocked }}
+          </p>
+        }
+
+        @if (previewError()) {
+          <p class="wizard-error" role="alert">
+            <span class="icon" aria-hidden="true">error</span>{{ previewError() }}
+          </p>
+        }
 
         @if (wizardStatus()) {
           <p class="wizard-status" role="status">{{ wizardStatus() }}</p>
@@ -147,15 +192,31 @@
       <div class="card preview-card">
         <div class="card-head">
           <h2 class="card-title">{{ previewCardTitle() }}</h2>
+          @if (previewRun(); as run) {
+            <span class="card-sub">
+              {{ run.cohort_label || 'batch deleted' }}@if (run.semester) {
+                · semester {{ run.semester }}
+              }
+            </span>
+          }
         </div>
 
-        <div class="notice accent preview-note">
-          <span class="icon" aria-hidden="true">info</span>
-          This grid stays empty on purpose. Nothing in REEP reads an import file yet: the preview,
-          the error report, the templates and “Import rows” are all B8.1 (Phase 4), which validates
-          the file on the server against the batch’s roster. The browser never opens the file, so
-          no row here has been checked by anything.
-        </div>
+        @if (!previewRun()) {
+          <div class="notice accent preview-note">
+            <span class="icon" aria-hidden="true">info</span>
+            This grid fills in when you press Check file. The browser never opens the spreadsheet —
+            every verdict below is reached on the server, against this batch's roster, this
+            deployment's subject catalogue and this course's semester count.
+          </div>
+        }
+
+        @if (runFailedToParse()) {
+          <div class="notice" role="alert">
+            <span class="icon" aria-hidden="true">error</span>
+            {{ previewRun()?.error || 'This file could not be read.' }} The attempt is in Recent
+            imports below, so "I uploaded it and nothing happened" has an answer.
+          </div>
+        }
 
         <div class="dt-frame preview-frame">
           <ag-grid-angular
@@ -208,21 +269,70 @@
           </div>
         </div>
 
+        @if (previewIsTruncated()) {
+          <div class="notice accent" role="status">
+            <span class="icon" aria-hidden="true">info</span>
+            The server judged all {{ previewRun()?.rows_total }} lines and is showing the first
+            {{ previewRowCount() }} here. Import rows writes every accepted line, not only the ones
+            drawn; the error report carries every flagged and refused line in full.
+          </div>
+        }
+
+        @if (applyError()) {
+          <div class="notice" role="alert">
+            <span class="icon" aria-hidden="true">error</span>{{ applyError() }}
+          </div>
+        }
+        @if (applyFlash()) {
+          <div class="notice good" role="status">
+            <span class="icon" aria-hidden="true">check_circle</span>{{ applyFlash() }}
+          </div>
+        }
+
         <div class="preview-actions">
-          @if (hasPreviewRows()) {
-            <!-- The board's three counts. They appear only once the server has
-                 returned verdicts, never as a number this screen made up. -->
-            <span class="chip dot neutral">{{ previewRowCount() | plural: 'row' }} read</span>
+          @if (previewRun(); as run) {
+            <!-- The board's counts, and they only ever appear once the server
+                 has returned verdicts. Read, accepted, flagged, refused and
+                 written are five different numbers and this screen prints them
+                 as five. -->
+            <span class="chip dot neutral">{{ run.rows_total | plural: 'line' }} read</span>
+            <span class="chip dot good">{{ run.rows_ok }} ok</span>
+            <span class="chip dot warn">{{ run.rows_warning }} flagged</span>
+            <span class="chip dot risk">{{ run.rows_rejected }} refused</span>
+            @if (alreadyImported()) {
+              <span class="chip dot good">{{ run.rows_applied }} written</span>
+            } @else {
+              <span class="chip neutral">{{ rowsToWrite() }} would be written</span>
+            }
           }
           <span class="preview-rule">
-            Same student + semester rows are updated, never duplicated · audited
+            A flagged line overwrites what is on file and is written · a refused line is skipped ·
+            every apply is audited
           </span>
           <span class="preview-actions__end">
-            <button type="button" class="btn secondary" [reepPending]="importsPhase">
-              <span class="icon" aria-hidden="true">description</span> Error report
-            </button>
-            <button type="button" class="btn primary" [reepPending]="importsPhase">
-              <span class="icon" aria-hidden="true">check_circle</span> Import rows
+            @if (reportBlockedBecause(); as blocked) {
+              <button type="button" class="btn secondary" disabled [title]="blocked">
+                <span class="icon" aria-hidden="true">description</span> Error report
+              </button>
+            } @else {
+              <a
+                class="btn secondary"
+                [href]="errorsUrl()"
+                aria-label="Download the error report for this run"
+                download
+              >
+                <span class="icon" aria-hidden="true">description</span> Error report
+              </a>
+            }
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="applyBusy() || importBlockedBecause() !== null"
+              [attr.title]="importBlockedBecause()"
+              (click)="importRows()"
+            >
+              <span class="icon" aria-hidden="true">check_circle</span>
+              {{ applyBusy() ? 'Writing…' : alreadyImported() ? 'Imported' : 'Import rows' }}
             </button>
           </span>
         </div>
@@ -232,7 +342,15 @@
       <div class="card history-card">
         <div class="card-head">
           <h2 class="card-title">Recent imports</h2>
+          <span class="card-sub">
+            Every run in your reach, newest first — including files that could not be read at all.
+          </span>
         </div>
+        @if (recentImportsError()) {
+          <div class="notice" role="alert">
+            <span class="icon" aria-hidden="true">error</span>{{ recentImportsError() }}
+          </div>
+        }
         <div class="dt-frame">
           <ag-grid-angular
             class="history-ag"
@@ -240,7 +358,7 @@
             [rowData]="recentImports()"
             [columnDefs]="recentImportColumns"
             [defaultColDef]="defaultColumn"
-            [overlayNoRowsTemplate]="recentImportsEmptyOverlay"
+            [overlayNoRowsTemplate]="recentImportsEmptyOverlay()"
             [suppressCellFocus]="true"
           />
         </div>
@@ -252,29 +370,14 @@
       <div class="card criteria-card">
         <div class="card-head">
           <h2 class="card-title">{{ criteriaCardTitle() }}</h2>
-          @if (criteriaState() === 'ready') {
-            <span class="chip accent">
-              <span class="icon" aria-hidden="true">lock</span> Read-only
-            </span>
+          @if (criteriaRung(); as rung) {
+            <span class="chip accent">{{ rung }}</span>
           }
         </div>
 
         @switch (criteriaState()) {
           @case ('loading') {
             <p class="criteria-state" role="status">Loading…</p>
-          }
-          @case ('none') {
-            <!-- NO NUMBERS HERE. `GET /api/admin/criteria` answered 404, so this
-                 screen has no criteria to show, and the built-in fallbacks are
-                 not one set: readiness scoring falls back to its own constants
-                 while job eligibility applies no academic gate at all. Printing
-                 either set as "the criteria" would be a value the office reads
-                 as the record. -->
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              No active placement criteria are set, so there is nothing to show here. Setting them
-              from this console is B8.2 (Phase 4).
-            </div>
           }
           @case ('refused') {
             <div class="notice" role="alert">
@@ -284,37 +387,112 @@
               <span class="icon" aria-hidden="true">sync</span> Try again
             </button>
           }
-          @case ('ready') {
+          @default {
+            @if (criteriaState() === 'none') {
+              <!-- NO NUMBERS ARE PRE-FILLED. `GET /api/admin/criteria` answered
+                   404, which means nothing has been SET at any rung. The engine
+                   still has an answer — `app/criteria.py`'s built-in defaults,
+                   the last rung of its chain — but nobody in this office chose
+                   those numbers, and typing them into these boxes would make
+                   them look like the record and then save them back as one. -->
+              <div class="notice accent">
+                <span class="icon" aria-hidden="true">info</span>
+                No placement criteria have been set for {{ criteriaTargetLabel() }}. Readiness
+                scoring and job eligibility are both falling back to one set of built-in defaults
+                in the code — the same set, so the two screens agree — which is not a set anybody
+                here chose. Type the gates below and save to replace them.
+              </div>
+            }
+
+            @if (criteriaError()) {
+              <div class="notice" role="alert">
+                <span class="icon" aria-hidden="true">error</span>{{ criteriaError() }}
+              </div>
+            }
+            @if (criteriaFlash()) {
+              <div class="notice good" role="status">
+                <span class="icon" aria-hidden="true">check_circle</span>{{ criteriaFlash() }}
+              </div>
+            }
+
             <div class="criteria-fields">
-              @for (criteriaField of criteriaFields(); track criteriaField.inputId) {
-                <div class="field synced criteria-field">
-                  <label [attr.for]="criteriaField.inputId">{{ criteriaField.label }}</label>
+              <div class="field criteria-field">
+                <label for="criteria-name">Name this set</label>
+                <input
+                  type="text"
+                  id="criteria-name"
+                  class="ctrl"
+                  placeholder="Default"
+                  [value]="criteriaName()"
+                  (input)="setCriteriaName($event)"
+                />
+              </div>
+              @for (criteriaField of criteriaFields(); track criteriaField.key) {
+                <div class="field criteria-field">
+                  <label [attr.for]="criteriaField.inputId">
+                    {{ criteriaField.label }}{{ criteriaField.suffix }}
+                  </label>
                   <input
-                    type="text"
+                    type="number"
+                    inputmode="decimal"
+                    class="ctrl"
                     [id]="criteriaField.inputId"
+                    [step]="criteriaField.step"
                     [value]="criteriaField.value"
-                    readonly
+                    (input)="setCriteriaField(criteriaField.key, $event)"
                   />
                 </div>
               }
+              <div class="field criteria-field">
+                <label for="criteria-effective-from">Effective from</label>
+                <input
+                  type="date"
+                  id="criteria-effective-from"
+                  class="ctrl"
+                  [value]="criteriaEffectiveFrom()"
+                  (input)="setCriteriaEffectiveFrom($event)"
+                />
+              </div>
             </div>
+
             <p class="criteria-rule">
-              Applies to readiness scoring and job eligibility for every batch. One set is active
-              across the whole programme today; criteria per course, with the history behind that
-              button, are B8.2 (Phase 4).
+              Save writes a NEW set for <b>{{ criteriaTargetLabel() }}</b> and marks the one it
+              replaces superseded — it is never edited in place, so a verdict given last term stays
+              explicable. A field left blank keeps the number governing these students now. Two
+              thresholds are not on this card and are carried over untouched: REEP completion and
+              the core-certificate requirement.
             </p>
           }
         }
 
         <div class="criteria-actions">
-          <button type="button" class="btn ghost sm" [reepPending]="criteriaWritePhase">
+          <button
+            type="button"
+            class="btn ghost sm"
+            [disabled]="criteriaState() === 'loading'"
+            (click)="openHistory()"
+          >
             <span class="icon" aria-hidden="true">history</span> History
           </button>
-          <button type="button" class="btn secondary sm" [reepPending]="criteriaWritePhase">
-            <span class="icon" aria-hidden="true">save</span> Save
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="criteriaSaving() || criteriaState() === 'loading' || criteriaState() === 'refused'"
+            (click)="saveCriteria()"
+          >
+            <span class="icon" aria-hidden="true">save</span>
+            {{ criteriaSaving() ? 'Saving…' : 'Save' }}
           </button>
         </div>
       </div>
     </div>
   </div>
+
+  @if (historyOpen()) {
+    <app-criteria-history-dialog
+      [courseId]="courseId()"
+      [courseLabel]="courseLabel()"
+      (dismissed)="closeHistory()"
+    />
+  }
 </div>

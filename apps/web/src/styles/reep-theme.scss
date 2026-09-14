@@ -39,12 +39,17 @@
  * leaving one screen unstyled. New code should use the honest names in
  * reep-v2.scss (--brand-purple, --ink, --surface, …).
  *
- * SINGLE THEME. The `:root[data-theme='dark']` block that used to follow is
- * deleted: the v2 design is one committed visual world, nothing in the UI calls
- * ThemeService.toggle(), and a dark palette nobody can reach is a second set of
- * colours to keep correct for no one. ThemeService still stamps the attribute,
- * and bar-chart.component.ts still reads it — both now resolve to this one
- * palette, which is the intent.
+ * SINGLE THEME. The `:root[data-theme='dark']` block that used to follow was
+ * deleted in 2026-08: the v2 design is one committed visual world, nothing in
+ * the UI called ThemeService.toggle(), and a dark palette nobody can reach is a
+ * second set of colours to keep correct for no one.
+ *
+ * PHASE 5 DELETED THE SERVICE TOO (core/theme.service.ts). It was the last
+ * writer of `data-theme`, and with the dark block gone it toggled an attribute
+ * no selector in this repository reads — a switch wired to nothing, which the
+ * next person to find it reads as a theme feature that broke. `data-theme` is
+ * now a STATIC `light` written once on <html> in index.html. Nothing branches on
+ * it; it is there so a token that ever needs a scheme selector again has one.
  */
 
 :root {

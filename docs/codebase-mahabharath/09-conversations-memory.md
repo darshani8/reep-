@@ -1,5 +1,13 @@
 # Chapter 9 — Conversations, Memory & Governance
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 *Server-owned state, retention, redaction and feedback*
 
 After this chapter you will be able to open any assistant surface in REEP — typed chat, the SSE stream, the structured `/ask` path, or a live voice call — and say exactly where its conversation came from, which row each turn became, what text is stored raw and what is scrubbed, when (and whether) any of it is ever deleted, and how a director would find out whether the assistant is doing any good. You will be able to add a new assistant endpoint without reintroducing the **P0** — the team's label for a top-severity security defect — that this design was built to close: any signed-in student could read *and append to* another student's assistant thread by substituting their own user id into a client-chosen key. And you will know which of the governance promises in this codebase are enforced by Postgres, which are enforced by convention, and which are — today — enforced by nothing at all.

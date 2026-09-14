@@ -75,6 +75,7 @@ import asyncio
 import logging
 import uuid
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketException
@@ -90,8 +91,24 @@ from ..governance import FEATURE_DISABLED_DEFAULT_MESSAGE, FeatureState, feature
 from ..identity import get_current_session, get_ws_session
 from ..interview_audio import recorder_for
 from .. import tracing
-from ..interview_matrix import Specialization, get_specialization
-from ..interview_bank import with_question_bank
+from ..interview_matrix import Specialization
+# B6.1/B6.4 — the college's policy and the two cap ceilings. A SERVICE MODULE,
+# not a router: `app/routers/interview_policy.py` serves the same answer over
+# HTTP and both read `app/interview_policy.py`, so the socket and the card can
+# never disagree about what a college decided. Rule 1 is untouched — a policy is
+# staff-authored numbers and nothing here reaches a model.
+from ..interview_policy import (
+    EffectivePolicy,
+    cap_message,
+    evaluate_caps,
+    policy_for_student,
+)
+from ..interview_tracks import resolve_specialization
+# B6.2. The four numbers are copied out of the record at finalization, because
+# `retention.purge_expired` deletes the record and keeping the trend is the
+# other promise. One builder, used by all three finalization layers and by the
+# backfill — see app/interview_summary.py for why it is not four copies.
+from ..interview_summary import ensure_summary
 from ..interview_core import (
     _CLOSE_CONSENT_REQUIRED,
     _CLOSE_CONSENT_REVOKED,
@@ -203,7 +220,7 @@ class _ConsentRequired(Exception):
 
 
 class _DailyCapReached(Exception):
-    """This student has already run today's quota of interviews, so 4015.
+    """This student has hit ONE OF TWO ceilings, so 4015.
 
     The VOLUME half of the per-user cap (the _LIMITER's 4012 is the concurrency
     half): 2 concurrent slots with no volume ceiling was ~96 billable sessions a
@@ -212,7 +229,25 @@ class _DailyCapReached(Exception):
     exception cannot be ignored by accident — and raised from `_open_records`
     BEFORE anything is written or any upstream socket opens, so a refused
     attempt costs nothing and records nothing.
+
+    B6.4 MADE IT TWO CEILINGS AND THE EXCEPTION CARRIES WHICH. 04 asks for the
+    cap to count `status='completed'` only, which on its own deletes the abuse
+    control this class was written for — a reconnect loop never reaches
+    `completed`. So `daily_cap` is the student's practice allowance, counted on
+    completions, and `attempt_cap` is the spend ceiling, counted on every row;
+    `which` says which one refused and `message` is the sentence the student
+    reads, because "you have used your 8 practice interviews" and "too many
+    attempts in the last 24 hours" are different things to be told and only one
+    of them is the student's fault.
     """
+
+    def __init__(self, count: int, *, which: str = "daily", message: str = ""):
+        super().__init__(count)
+        self.count = count
+        self.which = which
+        self.message = message or (
+            "You've reached today's mock interview limit. Try again tomorrow."
+        )
 
 
 class _UserSessionCapReached(Exception):
@@ -334,8 +369,33 @@ def interview_status(
     )
 
 
-def _make_turn_writer(conversation_id: str, interview_session_id: str):
+def _make_turn_writer(
+    conversation_id: str,
+    interview_session_id: str,
+    *,
+    store_transcript: bool = True,
+):
     """A SYNCHRONOUS writer for one interview's turns, bound to BOTH its records.
+
+    `store_transcript=False` IS THE COLLEGE SAYING DO NOT KEEP THE WORDS (B6.1),
+    and it is the FIRST enforcement of that scope — the boolean has been
+    recorded on every consent row since 2026-08 and read by nothing, so the copy
+    on the assistant screen promised something no code decided. It suppresses
+    BOTH rows, not one: keeping `interview_turns` and dropping `messages` would
+    leave the student's own words in the reviewable record while the chat
+    history claimed they were gone, which is the more dishonest half of the two.
+    The REPORT is still written — a scorecard is what the student and their
+    mentor read, and it quotes nobody.
+
+    Suppression is a decision taken ONCE, at open, and passed in: re-reading the
+    policy per turn would let an edit that lands mid-interview keep half of one
+    transcript. `interview_sessions.transcript_suppressed` records that the same
+    decision was taken, because `turns_emitted` > `turns_persisted` is
+    AGENTS.md's runbook signal for dropped writes and this would otherwise fire
+    it on every interview at such a college.
+
+    The keyword defaults to True so that every existing caller — the platform
+    media bridge and the engine tests — keeps exactly the behaviour it had.
 
     Synchronous on purpose: app/conversations.py is synchronous SQLAlchemy, and
     the relay runs this on a worker thread (asyncio.to_thread) so a round trip to
@@ -381,6 +441,13 @@ def _make_turn_writer(conversation_id: str, interview_session_id: str):
     def write(
         sender: str, text: str, provider_turn_id: str, record: _TurnRecord
     ) -> None:
+        if not store_transcript:
+            # Nothing is written and nothing is raised: the engine's contract is
+            # fire-and-forget, and a refusal here would look to it exactly like
+            # a failed write. The turn still HAPPENED — `turns_emitted` counts
+            # it, and `transcript_suppressed` on the session is what tells the
+            # runbook why `turns_persisted` stayed at zero.
+            return
         try:
             with engine.connect() as conn, conn.begin():
                 db = SessionLocal(
@@ -610,10 +677,69 @@ def _make_finalizer(interview_session_id: str):
                     # An evaluation already exists, so the scorecard did settle
                     # and this session simply did not know. The real row wins.
                     db.rollback()
+
+            # B6.2, AND IT IS THIRD FOR A REASON. The summary copies the
+            # terminal STATUS (written by the UPDATE above) and the four SCORES
+            # (written by `_make_report_writer`, which the relay awaits before
+            # this runs, or by the courtesy row just above). Taken any earlier
+            # it would record a status that is about to change, or NULL scores
+            # for an interview that was in fact marked — and a NULL here is not
+            # a gap to be filled in later, it is a permanent claim that the
+            # model never scored this interview.
+            #
+            # It cannot raise: `ensure_summary` swallows and logs. Losing this
+            # copy costs a trend point that the backfill can recover for 180
+            # days; losing the UPDATE above costs a record that says `running`
+            # forever, which is what all three finalization layers exist to
+            # prevent.
+            ensure_summary(db, interview_session_id)
         finally:
             db.close()
 
     return finalize
+
+
+def _successor_covers(
+    db: Session, consent_id: str, scopes: tuple[bool, bool, bool]
+) -> bool:
+    """Does this user still hold a live grant covering everything the revoked
+    one covered?
+
+    Only ever called when the pinned grant has gone away, so the cost is paid
+    once per interview at most. The comparison is per-scope and one-directional:
+    a successor may grant MORE (that is a widening, and no reason to end a call)
+    and may not grant LESS. Any version, deliberately — the acknowledgement the
+    student just posted carries the CURRENT version string, which is not the one
+    a long-running interview may have opened under, and refusing a newer version
+    here would end a call for having agreed to newer terms.
+
+    THE FAIL-OPEN PROPERTY LIVES IN THE CALLER, NOT HERE. This function never
+    swallows an error: anything that raises propagates through the heartbeat to
+    the relay's "heartbeat not written" warning and the interview continues,
+    which is the asymmetry `_open_records` is deliberately on the other side of.
+    What it must never do is INVENT a successor, so a query that comes back
+    empty means there is none — and that ends the call, because by then the
+    query did come back and it said the scope is gone.
+    """
+    owner = db.scalar(
+        select(InterviewConsent.user_id).where(InterviewConsent.id == consent_id)
+    )
+    if owner is None:
+        # The row was deleted outright rather than revoked. Nothing can cover
+        # what nobody can read, and the interview must not continue on it.
+        return False
+    live_ai, transcript, audio = scopes
+    query = select(InterviewConsent.id).where(
+        InterviewConsent.user_id == owner,
+        InterviewConsent.revoked_at.is_(None),
+    )
+    if live_ai:
+        query = query.where(InterviewConsent.scope_live_ai.is_(True))
+    if transcript:
+        query = query.where(InterviewConsent.scope_store_transcript.is_(True))
+    if audio:
+        query = query.where(InterviewConsent.scope_store_audio.is_(True))
+    return db.scalar(query.limit(1)) is not None
 
 
 def _make_heartbeat(
@@ -621,6 +747,7 @@ def _make_heartbeat(
     *,
     consent_id: str | None = None,
     on_consent_revoked: Callable[[], None] | None = None,
+    consent_scopes: tuple[bool, bool, bool] | None = None,
 ):
     """Stamp heartbeat_at — and notice a consent grant that has gone away (4014).
 
@@ -662,6 +789,32 @@ def _make_heartbeat(
     want, and it is honest for them: they have no consent row to watch. It is
     never the shape a real interview gets — `_open_records` refuses without a
     grant, so a live session always has an id to pass here.
+
+    B6.1 ADDED A THIRD ARGUMENT AND IT IS THE DIFFERENCE BETWEEN "SUPERSEDED"
+    AND "WITHDRAWN". The student now posts an ACKNOWLEDGEMENT of the college's
+    policy at every Start, and `POST /api/interview/consent` supersedes the live
+    grant when its scopes differ — which stamps `revoked_at` on exactly the row
+    a running interview is pinned to. Watching only "is the pinned row revoked"
+    would then let a second tab's Start end the interview in the first with
+    "Consent withdrawn", a sentence the student did not earn.
+
+    So when the pinned grant is gone, this asks a second question: does this
+    user still hold a LIVE grant covering every scope this interview is running
+    under? If they do, the acknowledgement was replaced by an equal-or-wider one
+    and the call continues. If they do not, a scope this interview depends on is
+    gone and the session ends 4014 — which is the compatibility board's rule
+    ("a policy change stops a running session with 4014 only when it removes a
+    scope") expressed as a property of the grant rather than as a second read of
+    the policy table on every heartbeat of every live interview.
+
+    Passing no `consent_scopes` keeps the OLD behaviour exactly — any revocation
+    of the pinned row stops the session — which is what the platform media
+    bridge and the existing tests ask for.
+
+    THE SECOND QUERY RUNS ONLY WHEN THE FIRST SAID THE ROW IS GONE, so the steady
+    state is still one indexed SELECT a minute, and the fail-OPEN property is
+    unchanged: anything that raises propagates to the relay's "heartbeat not
+    written" warning and the interview continues.
     """
 
     def beat() -> None:
@@ -686,8 +839,23 @@ def _make_heartbeat(
                 )
                 .limit(1)
             )
-            if still_live is None:
+            if still_live is not None:
+                return
+            if consent_scopes is None:
                 on_consent_revoked()
+                return
+            if _successor_covers(db, consent_id, consent_scopes):
+                # Superseded by an acknowledgement that grants at least as much.
+                # INFO because it is the ordinary shape of a student pressing
+                # Start in another tab, and because "the pinned grant is gone
+                # and the interview continued" is otherwise a mystery.
+                log.info(
+                    "Interview %s: its consent grant was superseded by a live "
+                    "grant covering the same scopes; the session continues.",
+                    interview_session_id,
+                )
+                return
+            on_consent_revoked()
         finally:
             db.close()
 
@@ -888,14 +1056,23 @@ async def interview(websocket: WebSocket) -> None:
     # generic one was assessed against the wrong bar with no sign of it.
     # Checked AFTER the limiter so a bad param never holds a slot.
     spec_key = websocket.query_params.get("specialization")
-    specialization = get_specialization(spec_key)
-    if specialization is not None:
-        # The admin's question bank for this track, if any - resolved LIVE so a
-        # question added this morning is asked this afternoon, and read OFF the
-        # loop: it is a SELECT, and the handshake deadline is no place for one.
-        # The engine, the caps, the recorder and the writers never learn
-        # whether the bank was empty; they get a Specialization either way.
-        specialization = await asyncio.to_thread(with_question_bank, specialization)
+    # ONE CALL, ON A WORKER THREAD, and the shape of this line is the point.
+    # It used to be a synchronous in-memory dict lookup followed by
+    # `asyncio.to_thread(with_question_bank, ...)` for the question bank,
+    # because the first cost nothing and the second was a SELECT. B5.1 makes the
+    # track itself a row, so the lookup is a SELECT too — and leaving it here on
+    # the loop would put a database round trip back on the coroutine every live
+    # interview's audio shares, which shows up as OTHER people's interviews
+    # stuttering rather than as anything wrong with this one. So both reads move
+    # across together: `resolve_specialization` opens one session, reads the
+    # track and its bank, and hands back the same frozen Specialization the
+    # engine has always taken (app/interview_tracks.py). Resolved LIVE, never
+    # cached, so a question — or a persona — an admin changes this morning is
+    # used this afternoon. The engine, the caps, the recorder and the writers
+    # never learn whether the row came from the table or from the constant.
+    specialization = await asyncio.to_thread(
+        resolve_specialization, spec_key, student_id=student_id
+    )
     if spec_key and specialization is None:
         log.warning(
             "[conn=%s] WS /api/interview -> %d: unknown specialization %r",
@@ -917,7 +1094,7 @@ async def interview(websocket: WebSocket) -> None:
         # the same rule POST /api/agent/ask and POST /api/voice/token follow.
         # to_thread because get_or_create is synchronous SQLAlchemy and this
         # coroutine is on the loop shared with every other live interview.
-        conversation_id, interview_session_id, consent_id = await asyncio.to_thread(
+        opened = await asyncio.to_thread(
             _open_records,
             user_id,
             Role(session["role"]),
@@ -925,6 +1102,10 @@ async def interview(websocket: WebSocket) -> None:
             conn_id,
             specialization,
         )
+        conversation_id = opened.conversation_id
+        interview_session_id = opened.interview_session_id
+        consent_id = opened.consent_id
+        policy = opened.policy
     except _ConsentRequired as exc:
         # 4013, and BEFORE the generic handler below on purpose: this is a
         # refusal, not a fault, and reporting it as 1011 "Internal error" would
@@ -978,21 +1159,22 @@ async def interview(websocket: WebSocket) -> None:
         # student meeting this cap honestly is rare — the expected causes are a
         # retry loop, a shared cookie, or a script, and the operator should see
         # which student id it is.
+        #
+        # WHICH CEILING TRIPPED IS LOGGED AND IS SAID OUT LOUD (B6.4). The
+        # sentence comes off the exception rather than being written here,
+        # because it is the same sentence the platform media bridge has to send
+        # and a second copy of it is a second copy to forget to update.
         _LIMITER.release(user_id)
         log.warning(
-            "[conn=%s] WS /api/interview -> %d: student %s has run %s "
-            "interviews in 24 h (cap %d)",
+            "[conn=%s] WS /api/interview -> %d: student %s tripped the %s "
+            "ceiling at %s in 24 h",
             conn_id,
             _CLOSE_DAILY_CAP,
             student_id,
-            exc,
-            settings.interview_max_per_student_per_day,
+            exc.which,
+            exc.count,
         )
-        await _close_downstream(
-            websocket,
-            _CLOSE_DAILY_CAP,
-            "You've reached today's mock interview limit. Try again tomorrow.",
-        )
+        await _close_downstream(websocket, _CLOSE_DAILY_CAP, exc.message)
         return
     except Exception:
         _LIMITER.release(user_id)
@@ -1015,7 +1197,19 @@ async def interview(websocket: WebSocket) -> None:
     # there is deliberately no try around it. to_thread because the consent
     # check it performs is a query, and this coroutine shares a loop with every
     # other live interview's audio.
-    recorder = await asyncio.to_thread(recorder_for, interview_session_id, user_id)
+    # B6.1 adds the COLLEGE's switch to the two that were already there, and it
+    # is passed rather than read inside `recorder_for` so that the decision is
+    # the one taken under the advisory lock a moment ago. All three must be
+    # true: the operator's INTERVIEW_RECORDING_ENABLED, the college's
+    # `store_audio`, and the student's own live `scope_store_audio` grant. A
+    # policy that turned recording on over a student who was never told would be
+    # the one failure this whole area exists to prevent.
+    recorder = await asyncio.to_thread(
+        recorder_for,
+        interview_session_id,
+        user_id,
+        policy_allows_audio=policy.store_audio,
+    )
 
     # Captured on the loop, because the only thread that may hand work back to
     # an event loop is one holding a reference to it — asyncio.get_running_loop()
@@ -1077,7 +1271,11 @@ async def interview(websocket: WebSocket) -> None:
     relay = engine_cls(
         websocket,
         conn_id,
-        on_turn=_make_turn_writer(conversation_id, interview_session_id),
+        on_turn=_make_turn_writer(
+            conversation_id,
+            interview_session_id,
+            store_transcript=policy.store_transcript,
+        ),
         specialization=specialization,
         on_report=_make_report_writer(interview_session_id),
         on_finalize=_make_finalizer(interview_session_id),
@@ -1085,8 +1283,15 @@ async def interview(websocket: WebSocket) -> None:
             interview_session_id,
             consent_id=consent_id,
             on_consent_revoked=_consent_withdrawn,
+            consent_scopes=opened.consent_scopes,
         ),
         recorder=recorder,
+        # B6.1: the college's session length. The engine floors it at Bedrock's
+        # own 8-minute stream wall (`_effective_cap`), so this can only ever
+        # SHORTEN an interview — which is the only direction a policy is allowed
+        # to move it, because a number here that outlived the provider's wall
+        # would end the interview mid-verdict.
+        max_seconds=policy.time_limit_seconds,
     )
     relay_box.append(relay)
     _LIVE_SESSIONS.add(relay)
@@ -1153,13 +1358,43 @@ async def interview(websocket: WebSocket) -> None:
             )
 
 
+@dataclass(frozen=True, slots=True)
+class _OpenedInterview:
+    """What one opened interview is running under.
+
+    A RECORD RATHER THAN A LONGER TUPLE, and the reason is the call site: this
+    used to be `(conversation_id, interview_session_id, consent_id)` unpacked in
+    two places — here and `voice_platform/api/media_bridge.py` — and B6.1 adds
+    four more facts that the socket has to carry from the advisory-locked
+    transaction all the way to the engine. A seven-tuple is a positional
+    argument list nobody can read, and the first person to reorder it breaks the
+    platform path silently.
+
+    `policy` is resolved ONCE, inside the lock, and is then the ONLY answer this
+    interview uses. Re-reading it after the lock would let an edit that lands
+    mid-handshake apply to half of one interview — the transcript suppressed but
+    the recorder already built, or a retention window that disagrees with the
+    stamp on the row.
+    """
+
+    conversation_id: str
+    interview_session_id: str
+    consent_id: str
+    policy: EffectivePolicy
+    #: The three booleans the pinned acknowledgement actually carries. The
+    #: heartbeat compares a SUCCESSOR against these, so that superseding an
+    #: acknowledgement with an identical one cannot end a live call — see
+    #: `_make_heartbeat`.
+    consent_scopes: tuple[bool, bool, bool]
+
+
 def _open_records(
     user_id: str,
     role: Role,
     student_id: str,
     conn_id: str,
     specialization: Specialization | None,
-) -> tuple[str, str, str]:
+) -> _OpenedInterview:
     """The conversation AND the interview_sessions row, in one session, one hop.
 
     Opened together because a turn write needs both ids and because
@@ -1204,6 +1439,13 @@ def _open_records(
         # hashtext(student_id) scopes the queueing to one student — two
         # different students never wait on each other.
         db.execute(select(func.pg_advisory_xact_lock(func.hashtext(student_id))))
+        # THE COLLEGE'S POLICY, READ INSIDE THE LOCK (B6.1). Two indexed SELECTs
+        # (the student's ancestry, then the row) and it inherits this function's
+        # fail-closed property for free: an unreachable database raises here,
+        # the socket closes 1011, and no interview runs under a policy nobody
+        # could read. Resolved ONCE and carried on the return value — see
+        # `_OpenedInterview` for why it is never re-read.
+        policy = policy_for_student(db, student_id)
         consent = db.scalar(
             select(InterviewConsent)
             .where(
@@ -1224,25 +1466,33 @@ def _open_records(
             # open across a revocation.
             raise _ConsentRequired(settings.interview_consent_version)
         now = datetime.now(timezone.utc)
-        # The daily VOLUME cap (audit H: unbounded Realtime spend), checked
-        # AFTER consent — a student who has not agreed should meet the consent
-        # panel, not a quota sentence — and BEFORE any write, so a refused
-        # attempt leaves no row. One COUNT on the exact composite index
+        # The VOLUME cap (audit H: unbounded Realtime spend), checked AFTER
+        # consent — a student who has not agreed should meet the consent panel,
+        # not a quota sentence — and BEFORE any write, so a refused attempt
+        # leaves no row. Two COUNTs on the exact composite index
         # ix_interview_session_student_started; a rolling 24 h window rather
-        # than a calendar day, so midnight is not a reset button. EVERY row
-        # counts — abandoned and failed included — because each one billed an
-        # upstream handshake, and a cap that only counts clean finishes is a
-        # cap a crash loop never hits.
-        ran_today = db.scalar(
-            select(func.count())
-            .select_from(InterviewSession)
-            .where(
-                InterviewSession.student_id == student_id,
-                InterviewSession.started_at >= now - timedelta(days=1),
+        # than a calendar day, so midnight is not a reset button.
+        #
+        # B6.4 MADE IT TWO CEILINGS, AND BOTH HALVES OF THIS COMMENT STILL
+        # HOLD. The one this code was written with counted EVERY row —
+        # abandoned and failed included — "because each one billed an upstream
+        # handshake, and a cap that only counts clean finishes is a cap a crash
+        # loop never hits". 04-backend-changes.md asks for completions only,
+        # which would delete exactly that. So there are two: `daily_cap`
+        # completions (the practice allowance — an interview that dropped out
+        # at minute two no longer costs the student a turn, which is the point
+        # of B6.4) and `attempt_cap` rows of any status (the spend ceiling,
+        # higher by construction). The window's lower bound is reset-aware
+        # (B6.4's `interview_cap_resets`), and it is an EXTRA bound on the
+        # rolling window rather than a replacement for it, so a reset can only
+        # ever move it forward.
+        verdict = evaluate_caps(db, student_id, policy, now)
+        if not verdict.allowed:
+            raise _DailyCapReached(
+                verdict.completed if verdict.which == "daily" else verdict.attempts,
+                which=verdict.which or "daily",
+                message=cap_message(verdict, policy),
             )
-        )
-        if (ran_today or 0) >= settings.interview_max_per_student_per_day:
-            raise _DailyCapReached(ran_today)
         # The CROSS-WORKER concurrency check (see _UserSessionCapReached): the
         # per-process _LIMITER already refused same-worker duplicates before we
         # got here, so this catches the tab that landed on ANOTHER worker.
@@ -1270,14 +1520,35 @@ def _open_records(
             started_at=now,
             heartbeat_at=now,
             # STORED rather than computed at read time, so changing the setting
-            # never retroactively re-dates an interview a student was already
-            # promised 180 days for.
-            retention_until=now
-            + timedelta(days=settings.interview_retention_days),
+            # — or, since B6.1, the college's `retention_days` — never
+            # retroactively re-dates an interview a student was already promised
+            # 180 days for. That promise is the reason this column exists, and
+            # it is why `PUT /api/admin/interview-policies/...` says in so many
+            # words that lowering the number applies to interviews held AFTER
+            # the save rather than sweeping the ones already taken.
+            retention_until=now + timedelta(days=policy.retention_days),
+            # B6.1: the college has turned the transcript off, so the turn
+            # writer will skip both rows. RECORDED ON THE SESSION because
+            # `turns_emitted` > `turns_persisted` is AGENTS.md's runbook signal
+            # for dropped writes, and without this flag every interview at such
+            # a college would fire it — the runbook would then be noise and stop
+            # being read at all. "We chose not to keep this" and "we lost this"
+            # must not look the same.
+            transcript_suppressed=not policy.store_transcript,
         )
         db.add(row)
         db.commit()
-        return conversation_id, row.id, consent.id
+        return _OpenedInterview(
+            conversation_id=conversation_id,
+            interview_session_id=row.id,
+            consent_id=consent.id,
+            policy=policy,
+            consent_scopes=(
+                bool(consent.scope_live_ai),
+                bool(consent.scope_store_transcript),
+                bool(consent.scope_store_audio),
+            ),
+        )
     finally:
         db.close()
 
@@ -1316,6 +1587,14 @@ def _finalize_if_running(
                 conn_id,
                 interview_session_id,
             )
+        # B6.2 again, and unconditionally rather than under `if result.rowcount`.
+        # This layer runs on EVERY exit, including the ordinary one where Layer 1
+        # already closed the row and updated nothing here — and Layer 1's own
+        # summary write can have failed (it swallows, by design). A second
+        # attempt costs one indexed SELECT on a socket that has already closed
+        # and is the difference between "the trend point is missing until
+        # somebody runs the backfill" and "it is there".
+        ensure_summary(db, interview_session_id)
     finally:
         db.close()
 

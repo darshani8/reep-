@@ -10,9 +10,46 @@
  *
  * THE FORM IS THE SOURCE OF TRUTH FOR WHAT IT ASKS. Fields the printed sheet
  * does not have are not added to it — no employee id, no phone number, no leave
- * balance, no supporting-document upload. A leave form that collects more than
- * the college's own form is a different document with the college's letterhead
- * on it.
+ * balance cell. A leave form that collects more than the college's own form is
+ * a different document with the college's letterhead on it. (The allowance is
+ * READ on the dashboard, beside the list of requests. That is not a field on
+ * the sheet and nothing is collected by it; it is there because REEP can now
+ * REFUSE a form for want of days, and a refusal whose number the applicant
+ * cannot see anywhere is a refusal they cannot act on.)
+ *
+ * THREE THINGS ARRIVED BESIDE THE FORM IN PHASE 4, AND NONE OF THEM IS ON IT.
+ * The sheet's fields, its Sign button, `signAndSubmit`'s payload and the
+ * submit endpoint are byte for byte what they were — the owner's instruction,
+ * restated in five places in this repository. What is new sits AROUND the
+ * document, where a covering note and a filing clerk would be:
+ *
+ *   - ATTACHED PAPERS (B10.3). A supporting document is not a field on the
+ *     form; it is the medical certificate that travels WITH it. It is offered
+ *     only on a request that already exists, so nothing about signing changed,
+ *     and `document_store` decides the types and the sizes — this screen
+ *     restates neither and prints the server's own refusal.
+ *   - WITHDRAW (B10.4). `POST /leaves/{id}/cancel`, the applicant's own, and
+ *     only while the request is still awaiting a signature. Two-tapped, like
+ *     the signature screen's Remove, because a request cannot be un-withdrawn.
+ *   - ASKED TO COVER (B10.6). The other side of the Alternate Arrangements
+ *     table: which colleagues have named THIS account, from
+ *     `/leaves/alternate/mine`. It answers the reduced projection — the dates,
+ *     the printed option, the state and the one row addressed to you — and
+ *     carries no `reason`, because a colleague asked to take a Tuesday class
+ *     is not thereby entitled to somebody's diagnosis.
+ *
+ * THE OTHER HALF OF B10.6 HAS NO CONTROL HERE, AND THAT IS NOT AN OVERSIGHT.
+ * A row is linked to an account by `POST /leaves/{id}/alternate/assign`, which
+ * is the applicant's own act — and to offer it this screen would have to list
+ * the applicant's colleagues. Every faculty listing in the API is
+ * `require_admin` (`admin_faculty.list_faculty`, `admin_mentoring.mentor_load`),
+ * so a MENTOR applicant can reach none of them, and a staff directory a faculty
+ * account may read is a scope decision nobody has made — who, exactly: their
+ * department, their college, the deployment? Rather than invent one, or make
+ * the applicant type a user id, the control is absent and this is the note
+ * saying so. Until it exists the list below is empty for everybody, which is
+ * why it is drawn only when it has rows: an empty "Colleagues who named you"
+ * heading would be this screen reporting a feature it cannot offer.
  *
  * APPROVALS ARE NOT HERE. This screen is a faculty member applying for
  * themselves; the queue that decides these lives in the admin area, because the
@@ -44,6 +81,15 @@ interface AltRow {
   cls: string;
   time: string;
   remarks: string;
+  /** B10.6 added these two to the STORED row, and they are read-only here.
+   *  They are optional because every row written before B10.6 — and every row
+   *  whose typed name was never linked to an account — has neither, and because
+   *  `submit_leave` stores whatever this form sends: an `accepted_at` the
+   *  applicant could post would be a colleague's agreement forged on their
+   *  behalf. This form never sends them (`signAndSubmit` builds its own five
+   *  fields), and the server ignores them if it ever did. */
+  user_id?: string | null;
+  accepted_at?: string | null;
 }
 
 interface LeaveRow {
@@ -63,6 +109,47 @@ interface LeaveRow {
   director_name: string | null;
   director_decided_at: string | null;
   director_note: string | null;
+}
+
+/** One allowance, as `GET /api/leaves/balances` answers it. `remaining_days`
+ *  may be NEGATIVE — leave past an allowance happens and the office signs it —
+ *  so it is printed as it arrives and never clamped. */
+interface BalanceRow {
+  kind: string;
+  entitled_days: number;
+  consumed_days: number;
+  remaining_days: number;
+}
+
+interface BalanceSet {
+  academic_year: string;
+  balances: BalanceRow[];
+}
+
+/** One paper attached to a request (B10.3). `can_delete` is the SERVER's
+ *  answer — the uploader's own, or the Main Admin's — because a client that
+ *  re-derives that rule draws a bin that 403s. */
+interface LeaveAttachment {
+  id: string;
+  original_name: string;
+  mime_type: string;
+  size_bytes: number;
+  uploaded_at: string;
+  uploaded_by_name: string | null;
+  can_delete: boolean;
+}
+
+/** The reduced projection (`LeaveBrief` in app/routers/leave.py): what somebody
+ *  who is neither the applicant nor an approver may see. IT HAS NO `reason`
+ *  FIELD, and that absence is the fence — not the call site. */
+interface LeaveBrief {
+  id: string;
+  from_date: string;
+  to_date: string;
+  leave_kind: string | null;
+  status: string;
+  requester_name: string;
+  alt_row: AltRow | null;
 }
 
 /** What "Save draft" keeps, in this browser only. */
@@ -175,12 +262,43 @@ export class LeaveComponent {
     };
   });
 
+  /// B10.3 — the papers on the request being read, and nothing at all while
+  /// composing: there is no request to attach one to until it is signed.
+  readonly attachments = signal<LeaveAttachment[] | null>(null);
+  readonly attachError = signal<string | null>(null);
+  readonly attachBusy = signal(false);
+
+  /// B10.4 — withdrawing is two taps, because it cannot be undone.
+  readonly confirmWithdraw = signal(false);
+  readonly withdrawing = signal(false);
+  readonly withdrawError = signal<string | null>(null);
+
+  /// B10.2 — the caller's OWN allowances for the current academic year, which
+  /// is what `submit_refusal` measures a new request against. An EMPTY list is
+  /// not a zero balance: it means the office has recorded no allowance, and
+  /// then nothing is checked at all. The card says which.
+  readonly balances = signal<BalanceSet | null>(null);
+
+  /// B10.6 — requests that name THIS account in their alternate table.
+  readonly cover = signal<LeaveBrief[] | null>(null);
+  readonly coverError = signal<string | null>(null);
+  readonly accepting = signal<string | null>(null);
+
   readonly canSubmit = computed(
     () => !!this.fFrom() && !!this.fTo() && !!this.fPurpose().trim() && !this.submitting(),
   );
 
+  /// The colleagues still waiting on an answer, which is what the dashboard
+  /// heading counts. An accepted row stays on the list — "you agreed to cover
+  /// this" is worth reading right up to the day.
+  readonly coverAwaiting = computed(
+    () => (this.cover() ?? []).filter((brief) => this.coverIsOpen(brief)).length,
+  );
+
   constructor() {
     void this.load();
+    void this.loadCover();
+    void this.loadBalances();
   }
 
   chip(status: string): Chip {
@@ -258,6 +376,11 @@ export class LeaveComponent {
   open(row: LeaveRow): void {
     this.viewing.set(row);
     this.composing.set(false);
+    this.confirmWithdraw.set(false);
+    this.withdrawError.set(null);
+    this.attachError.set(null);
+    this.attachments.set(null);
+    void this.loadAttachments(row.id);
   }
 
   setAltCell(i: number, key: keyof AltRow, value: string): void {
@@ -350,6 +473,218 @@ export class LeaveComponent {
       this.formError.set('Could not reach the server.');
     } finally {
       this.submitting.set(false);
+    }
+  }
+
+  // ------------------------------------------------ B10.3 · attached papers --
+
+  /** GET /api/leaves/{id}/attachments/{aid}/file. Served `Content-Disposition:
+   *  attachment` whatever this link asks for. */
+  attachmentUrl(row: LeaveRow, paper: LeaveAttachment): string {
+    return `${environment.apiBase}/leaves/${row.id}/attachments/${paper.id}/file`;
+  }
+
+  fileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} kB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  /** The papers on one request.
+   *
+   *  A FAILED READ LEAVES THE SIGNAL AT `null`, never at `[]`: the template
+   *  branches on it, and `[]` draws "Nothing attached" — which would tell the
+   *  applicant their certificate is gone when all that happened is that the
+   *  request did not arrive. And the answer is dropped if the reader has opened
+   *  a different request since, because a list of papers under the wrong form
+   *  is worse than none. */
+  private async loadAttachments(id: string): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/leaves/${id}/attachments`, {
+        credentials: 'include',
+      });
+      if (this.viewing()?.id !== id) return;
+      if (!res.ok) return;
+      this.attachments.set((await res.json()) as LeaveAttachment[]);
+    } catch {
+      /* left as null: not answered is not the same as nothing attached */
+    }
+  }
+
+  /**
+   * Attach one document to the request being read.
+   *
+   * THE LIMITS ARE NOT RESTATED HERE. Which types are accepted and how large a
+   * file may be are `app/document_store.py`'s, decided from the file's own
+   * magic bytes; the count and the byte allowance are the router's. A copy of
+   * any of those numbers in this screen is a copy that stops tracking them, so
+   * a refusal is printed in the server's own words.
+   */
+  async onAttach(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // The input is cleared whatever happens, or picking the same file twice in
+    // a row fires no change event and the button reads as broken.
+    input.value = '';
+    const row = this.viewing();
+    if (!file || row === null) return;
+    this.attachBusy.set(true);
+    this.attachError.set(null);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch(`${environment.apiBase}/leaves/${row.id}/attachments`, {
+        method: 'POST',
+        credentials: 'include',
+        // NO Content-Type header: the browser sets it with the multipart
+        // boundary, and setting it by hand produces a body FastAPI cannot parse.
+        body,
+      });
+      if (!res.ok) {
+        this.attachError.set(await detailOf(res));
+        return;
+      }
+      await this.loadAttachments(row.id);
+    } catch {
+      this.attachError.set('Could not reach the server.');
+    } finally {
+      this.attachBusy.set(false);
+    }
+  }
+
+  async removeAttachment(paper: LeaveAttachment): Promise<void> {
+    const row = this.viewing();
+    if (row === null) return;
+    if (!window.confirm(`Remove ${paper.original_name} from this request?`)) return;
+    this.attachBusy.set(true);
+    this.attachError.set(null);
+    try {
+      const res = await fetch(
+        `${environment.apiBase}/leaves/${row.id}/attachments/${paper.id}`,
+        { method: 'DELETE', credentials: 'include' },
+      );
+      if (!res.ok) {
+        this.attachError.set(await detailOf(res));
+        return;
+      }
+      await this.loadAttachments(row.id);
+    } catch {
+      this.attachError.set('Could not reach the server.');
+    } finally {
+      this.attachBusy.set(false);
+    }
+  }
+
+  // ----------------------------------------------------- B10.4 · withdraw --
+
+  /** Only while it is still awaiting a signature. A decided request is not
+   *  withdrawn, it is decided, and a cancelled one is already gone. */
+  canWithdraw(row: LeaveRow): boolean {
+    return row.status === 'SUBMITTED' || row.status === 'FIRST_APPROVED';
+  }
+
+  async withdraw(): Promise<void> {
+    const row = this.viewing();
+    if (row === null || !this.canWithdraw(row)) return;
+    this.withdrawing.set(true);
+    this.withdrawError.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/leaves/${row.id}/cancel`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        this.withdrawError.set(await detailOf(res));
+        return;
+      }
+      const updated = (await res.json()) as LeaveRow;
+      this.viewing.set(updated);
+      this.rows.update((list) => (list ?? []).map((r) => (r.id === updated.id ? updated : r)));
+      this.confirmWithdraw.set(false);
+    } catch {
+      this.withdrawError.set('Could not reach the server.');
+    } finally {
+      this.withdrawing.set(false);
+    }
+  }
+
+  // ------------------------------------------------- B10.2 · allowances --
+
+  private async loadBalances(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/leaves/balances`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      this.balances.set((await res.json()) as BalanceSet);
+    } catch {
+      /* left as null: not answered is not "no allowance", and the card that
+         draws those two differently must not be shown for the wrong one. */
+    }
+  }
+
+  // --------------------------------------------- B10.6 · asked to cover --
+
+  private async loadCover(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/leaves/alternate/mine`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        this.cover.set([]);
+        return;
+      }
+      this.cover.set((await res.json()) as LeaveBrief[]);
+    } catch {
+      this.cover.set([]);
+    }
+  }
+
+  /** Is there still anything to agree to? A withdrawn or decided request is on
+   *  the list because "you no longer need to cover this" is what a colleague
+   *  most needs to know — but there is nothing left to accept. */
+  coverIsOpen(brief: LeaveBrief): boolean {
+    return brief.status === 'SUBMITTED' || brief.status === 'FIRST_APPROVED';
+  }
+
+  /** What the colleague is being told about this request, in one phrase. */
+  coverState(brief: LeaveBrief): string {
+    switch (brief.status) {
+      case 'APPROVED':
+        return 'Sanctioned — the cover is needed.';
+      case 'REJECTED':
+        return 'Not sanctioned — no cover is needed.';
+      case 'CANCELLED':
+        return 'Withdrawn — no cover is needed.';
+      case 'FIRST_APPROVED':
+        return 'One signature in, awaiting the second.';
+      default:
+        return 'Awaiting its first signature.';
+    }
+  }
+
+  hasAccepted(brief: LeaveBrief): boolean {
+    return !!brief.alt_row?.accepted_at;
+  }
+
+  async acceptCover(brief: LeaveBrief): Promise<void> {
+    this.accepting.set(brief.id);
+    this.coverError.set(null);
+    try {
+      const res = await fetch(`${environment.apiBase}/leaves/${brief.id}/alternate/accept`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        this.coverError.set(await detailOf(res));
+        return;
+      }
+      const updated = (await res.json()) as LeaveBrief;
+      this.cover.update((list) => (list ?? []).map((b) => (b.id === updated.id ? updated : b)));
+    } catch {
+      this.coverError.set('Could not reach the server.');
+    } finally {
+      this.accepting.set(null);
     }
   }
 

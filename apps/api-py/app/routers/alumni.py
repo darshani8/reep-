@@ -2,8 +2,13 @@
 sheet.
 
 ALUMNI only, and their OWN row only: an alumnus is neither staff (rule 2's gate
-never admits them) nor a student (no Student row, so every /student endpoint
-already refuses them). The two surfaces here are deliberately small:
+never admits them) nor a student. That second half USED to rest on "no Student
+row", and B4.4 ended it — a graduated batch keeps its `students` rows, because
+they are the record of the marks, badges and interviews those people earned
+here, so a graduate's session carries a perfectly valid `studentId` claim. What
+refuses them the student endpoints now is the ROLE check inside
+`routers/student.py::_require_student` and its twin in `student_programme.py`.
+The two surfaces here are deliberately small:
 
   * GET/POST /alumni/profile — `created: false` from the GET is what sends the
     client to the first-login create form; the POST upserts (company required,
@@ -27,7 +32,9 @@ from ..document_store import MAX_BYTES, UploadRejected, content_disposition
 from ..document_store import delete as document_store_delete
 from ..document_store import QuotaRejected, VolumeQuota, read_bytes, save_bytes
 from ..models.alumni import AlumniProfile
-from ..models.job import Job
+# B12.1/B12.2. The one answer to "which postings does this viewer see", shared
+# with the student feed — see `app/jobs_visibility.py`.
+from ..jobs_visibility import audience_for_alumnus, postings_for
 
 router = APIRouter(prefix="/alumni", tags=["alumni"])
 
@@ -227,7 +234,23 @@ class JobSheetRowOut(BaseModel):
 def jobs_sheet(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[JobSheetRowOut]:
+    """Every OPEN posting an alumnus may see.
+
+    SCOPED THROUGH THE LINKED STUDENT ROW (B12.1) when there is one — an
+    alumnus who graduated here has `alumni_profiles.student_id` filled in by the
+    first-login form (B4.4) and gets their old college's board. An alumnus with
+    no link has no college, no course and no track, and sees the whole open
+    board, which is what this screen has always shown them. Showing them nothing
+    until somebody links them would empty a working screen for the role with
+    three pages in total.
+
+    Still no match % and no eligibility verdict: those are computed from a
+    Student's skills and marks, and the fact that a graduate now keeps their
+    `students` row does not make their two-year-old CGPA the right thing to
+    score an alumni job board against.
+    """
     require_alumni(session)
+    audience = audience_for_alumnus(db, session["userId"])
     return [
         JobSheetRowOut(
             id=j.id,
@@ -240,5 +263,5 @@ def jobs_sheet(
             closes_on=j.closes_on.isoformat() if j.closes_on else None,
             posted_on=j.posted_on.isoformat() if j.posted_on else None,
         )
-        for j in db.scalars(select(Job).order_by(Job.posted_on.desc())).all()
+        for j in db.scalars(postings_for(audience)).all()
     ]

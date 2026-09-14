@@ -1,4 +1,5 @@
 {
+  "STALE": "Generated before the 2026-09 changes. The stack described here is the pre-migration one (Prisma / NestJS apps/api / Next.js), all deleted; DIRECTOR was removed as a role on 2026-09-10; the LiveKit voice stack was removed in 2026-09. Kept as the record of the survey and the plan it produced. Current truth is AGENTS.md.",
   "summary": "Exhaustive survey of the REEP codebase against the full product spec, then a critiqued implementation plan",
   "agentCount": 17,
   "logs": [

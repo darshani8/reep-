@@ -25,18 +25,26 @@
     </div>
   </div>
 
-  <!-- The board's four tabs. Only PENDING_REVIEW is listable today: GET
-       /register/pending returns that status and nothing else, HOLD is a status
-       B11.2 adds, and there is no by-status queue for the other two. Each
-       unbuilt tab is disabled and says when it arrives, rather than opening an
-       empty list that reads as "nobody was ever auto-approved". -->
+  <!-- The board's four tabs, live since B11.2. Three of them were disabled
+       because GET /register/pending answered one hard-coded status; `?status=`
+       is that gap closed, and HOLD is the status the Held tab needed.
+
+       ONLY PENDING CARRIES A NUMBER. That queue is unbounded, so the rows
+       loaded ARE the rows waiting; the other three are bounded pages, where the
+       same count would draw "Rejected · 200" over a table of four thousand. See
+       `tabLabel`. -->
   <div class="tabs queue-tabs" role="group" aria-label="Registration queues">
-    <button type="button" class="tab active" aria-current="true">
-      Pending · {{ waitingCount() }}
-    </button>
-    <button type="button" class="tab" [reepPending]="backendPhase">Auto-approved</button>
-    <button type="button" class="tab" [reepPending]="backendPhase">Held</button>
-    <button type="button" class="tab" [reepPending]="backendPhase">Rejected</button>
+    @for (tab of queueTabs; track tab.key) {
+      <button
+        type="button"
+        class="tab"
+        [class.active]="activeTab() === tab.key"
+        [attr.aria-current]="activeTab() === tab.key ? 'true' : null"
+        (click)="setTab(tab.key)"
+      >
+        {{ tabLabel(tab) }}
+      </button>
+    }
   </div>
 
   <div class="filters">
@@ -64,14 +72,17 @@
       </select>
     </div>
 
-    <!-- Domain check needs the college's registered domains (B11.1); until that
-         list exists there is nothing to compare an address against. -->
-    <div class="select filter-pending">
+    <!-- Domain check, live since B11.1. The verdict is the server's `domain`
+         check — the same `domain_verdict` GUARD 1 calls on Approve — so
+         "Off-domain" here is exactly the set Approve would refuse. -->
+    <div class="select">
       <span class="lbl">Domain check</span>
-      <span class="val">All</span>
+      <span class="val">{{ domainFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Domain check" [reepPending]="backendPhase">
-        <option value="">All</option>
+      <select aria-label="Domain check" (change)="setDomainFilter(selectValue($event))">
+        @for (option of domainFilters; track option.key) {
+          <option [value]="option.key" [selected]="option.key === domainFilter()">{{ option.label }}</option>
+        }
       </select>
     </div>
 
@@ -121,26 +132,52 @@
           (input)="onQuickFilterInput($event)"
         />
 
-        <button
-          type="button"
-          class="btn secondary sm"
-          [disabled]="!hasDecisionTarget() || deciding()"
-          (click)="approveTargets()"
-        >
-          <span class="icon" aria-hidden="true">task_alt</span> Approve
-        </button>
-        <!-- Hold is a registration status B11.2 adds, with POST /{id}/hold. -->
-        <button type="button" class="btn secondary sm" [reepPending]="backendPhase">
-          <span class="icon" aria-hidden="true">pending</span> Hold
-        </button>
-        <button
-          type="button"
-          class="btn secondary sm"
-          [disabled]="!hasDecisionTarget() || deciding()"
-          (click)="rejectTargets()"
-        >
-          <span class="icon" aria-hidden="true">cancel</span> Reject
-        </button>
+        <!-- The verbs this tab's rows can actually take. A decided application
+             answers 409 to both Approve and Reject, so the buttons that would
+             earn that are disabled rather than drawn and then refused; the
+             Rejected and Held tabs get Reopen instead, which is the one act
+             their rows DO accept. -->
+        @if (canDecide()) {
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="approveTargets()"
+          >
+            <span class="icon" aria-hidden="true">task_alt</span> Approve
+          </button>
+        }
+        @if (canHold()) {
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="holdTargets()"
+          >
+            <span class="icon" aria-hidden="true">pending</span> Hold
+          </button>
+        }
+        @if (canDecide()) {
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="rejectTargets()"
+          >
+            <span class="icon" aria-hidden="true">cancel</span> Reject
+          </button>
+        }
+        @if (canReopen()) {
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasDecisionTarget() || deciding()"
+            (click)="reopenTargets()"
+          >
+            <span class="icon" aria-hidden="true">undo</span>
+            {{ activeTab() === 'HOLD' ? 'Release hold' : 'Reopen' }}
+          </button>
+        }
 
         <span class="gridbar-end">
           <button
@@ -290,23 +327,71 @@
           </div>
         </dl>
 
+        <!-- THE HOLD NOTE, AND ONLY WHERE THERE IS ONE. It is the whole reason
+             HOLD exists as a status: without the words, a held application is a
+             pending application with a different tab. `hold_note` is staff-only
+             — `PublicRegistrationOut` does not declare it — so this is the one
+             place it is ever read, and the line under it says plainly that the
+             applicant was told nothing, because a reviewer who assumes they
+             were will not tell them. -->
+        @if (reviewed.application.hold_note; as note) {
+          <div class="panel-hold">
+            <div class="eyebrow">On hold</div>
+            <p class="hold-note">{{ note }}</p>
+            <p class="hold-meta">
+              Held {{ reviewed.application.held_at | date: 'd MMM y, HH:mm' }} · internal to the
+              office. Nothing was emailed and the applicant's own page is unchanged.
+            </p>
+          </div>
+        }
+
         <div class="panel-checks">
           <div class="eyebrow">Checks</div>
-          @for (check of checks(); track check.headline) {
-            <div class="panel-check panel-check--{{ check.tone }}">
-              <span class="icon" aria-hidden="true">{{ check.icon }}</span>
-              <div>
-                <div class="check-headline">{{ check.headline }}</div>
-                <div class="check-detail">{{ check.detail }}</div>
+          <!-- NO CHECKLIST ON A DECIDED APPLICATION, and it is SAID rather than
+               left blank. `checks` comes back null for the Auto-approved and
+               Rejected tabs, which the contract defines as NOT COMPUTED rather
+               than "nothing to report" — every line below is written in the
+               future tense about a decision that has already been taken, and a
+               silent gap where a checklist usually sits reads as a clean bill of
+               health for a row nobody checked. -->
+          @if (checks().length === 0) {
+            <p class="checks-none">
+              No checklist: it is computed for applications still waiting on a decision, and this one
+              has been decided.
+            </p>
+          } @else {
+            @for (check of checks(); track check.headline) {
+              <div class="panel-check panel-check--{{ check.tone }}">
+                <span class="icon" aria-hidden="true">{{ check.icon }}</span>
+                <div>
+                  <div class="check-headline">{{ check.headline }}</div>
+                  <div class="check-detail">{{ check.detail }}</div>
+                </div>
               </div>
+            }
+            @if (blockingChecks().length) {
+              <div class="notice warn">
+                <span class="icon" aria-hidden="true">block</span>
+                Approve will refuse this application while the {{ blockingChecks().length === 1 ? 'line' : 'lines' }}
+                marked above stand. Fix the application or reject it — the server answers the same
+                refusal, so approving anyway only returns the error.
+              </div>
+            }
+            <!-- THE SEAT COUNT IS NOT COMING, and this notice used to promise it
+                 under B11.1. `cohorts` has no capacity column, 04 §B11.1 asks for
+                 none, and only the board draws the check — so the line was wrong
+                 the day it was written. A nullable capacity would also render as
+                 "no check" on every batch nobody has filled in, which is every
+                 batch on day one: grey exactly where it would matter. Seating
+                 capacity is a course-shape decision and belongs with the
+                 catalogue, not with the review queue. -->
+            <div class="notice accent">
+              <span class="icon" aria-hidden="true">info</span>
+              The first lines are the server's own checks — the same guards Approve applies. The
+              batch and the attachments are read from this application. There is no seat check:
+              batches carry no capacity, so nothing here counts seats.
             </div>
           }
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">info</span>
-            These are the checks the application itself carries. The domain against the college's
-            registered domains, the duplicate-account check and the batch's seat count are B11.1,
-            which lands in Phase {{ backendPhase }}; nothing reports them yet.
-          </div>
         </div>
       } @else if (hasDecisionTarget()) {
         <div class="panel-head">
@@ -342,7 +427,7 @@
             id="decision-note"
             class="ctrl multi"
             rows="3"
-            placeholder="Required for Reject · emailed with a rejection, recorded either way"
+            placeholder="Required for Reject and for Hold · a rejection emails it, a hold does not"
             [value]="decisionNote()"
             [disabled]="!hasDecisionTarget()"
             [attr.aria-describedby]="noteError() ? 'decision-note-error' : null"
@@ -362,29 +447,56 @@
           their record and emails the onboarding link; a note you type is kept on the decision, not
           emailed. Reject emails your reason and can be undone from the notice at the top of this
           screen; an approved application cannot, because someone has already been told to sign in.
+          <!-- HOLD IS INTERNAL and this sentence is the reason the reviewer can
+               be trusted with it: a note they believe was emailed is a note
+               that leaves the applicant waiting for a message nobody sent. -->
+          Hold parks it here with your note and sends the applicant nothing at all — they can still
+          attach the document you are waiting for.
         </div>
 
         <div class="panel-actions">
-          <button
-            type="button"
-            class="btn danger"
-            [disabled]="!hasDecisionTarget() || deciding()"
-            (click)="rejectTargets()"
-          >
-            <span class="icon" aria-hidden="true">cancel</span> Reject
-          </button>
-          <button type="button" class="btn secondary" [reepPending]="backendPhase">
-            <span class="icon" aria-hidden="true">pending</span> Hold
-          </button>
-          <button
-            type="button"
-            class="btn primary"
-            [disabled]="!hasDecisionTarget() || deciding()"
-            (click)="approveTargets()"
-          >
-            <span class="icon" aria-hidden="true">how_to_reg</span>
-            {{ deciding() ? 'Working…' : approveButtonLabel() }}
-          </button>
+          @if (canDecide()) {
+            <button
+              type="button"
+              class="btn danger"
+              [disabled]="!hasDecisionTarget() || deciding()"
+              (click)="rejectTargets()"
+            >
+              <span class="icon" aria-hidden="true">cancel</span> Reject
+            </button>
+          }
+          @if (canHold()) {
+            <button
+              type="button"
+              class="btn secondary"
+              [disabled]="!hasDecisionTarget() || deciding()"
+              (click)="holdTargets()"
+            >
+              <span class="icon" aria-hidden="true">pending</span> Hold
+            </button>
+          }
+          @if (canReopen()) {
+            <button
+              type="button"
+              class="btn secondary"
+              [disabled]="!hasDecisionTarget() || deciding()"
+              (click)="reopenTargets()"
+            >
+              <span class="icon" aria-hidden="true">undo</span>
+              {{ activeTab() === 'HOLD' ? 'Release hold' : 'Reopen' }}
+            </button>
+          }
+          @if (canDecide()) {
+            <button
+              type="button"
+              class="btn primary"
+              [disabled]="!hasDecisionTarget() || deciding()"
+              (click)="approveTargets()"
+            >
+              <span class="icon" aria-hidden="true">how_to_reg</span>
+              {{ deciding() ? 'Working…' : approveButtonLabel() }}
+            </button>
+          }
         </div>
       </div>
     </aside>
@@ -403,9 +515,15 @@
         <header class="dialog-head">
           <div>
             <h2 class="dialog-title" id="seating-rules-title">Seating rules</h2>
+            <!-- WHAT A RULE IS, IN THE ORDER THAT MATTERS. The engine runs on
+                 the PUBLIC form, before anybody has read anything, and an
+                 auto-approving rule ends with an account that exists. That is
+                 the sentence an author needs before they type, not after. -->
             <p class="dialog-sub">
-              The order the rule engine evaluates when an application is submitted. Read-only:
-              creating and editing rules is B11.3, in Phase {{ backendPhase }}.
+              The order the engine evaluates when an application arrives on the public form. The
+              lowest priority among the rules that match wins; equal priorities are settled by which
+              rule is older. A rule that auto-approves creates the account itself — that application
+              never reaches the queue.
             </p>
           </div>
           <button type="button" class="btn ghost sm" aria-label="Close the seating rules" (click)="closeSeatingRules()">
@@ -419,54 +537,259 @@
               <span class="icon" aria-hidden="true">error</span>{{ seatingRulesError() }}
             </div>
           }
-          @if (seatingRules() === null) {
+          @if (ruleFlash()) {
+            <div class="notice good" role="status">
+              <span class="icon" aria-hidden="true">check_circle</span>{{ ruleFlash() }}
+            </div>
+          }
+
+          @if (ruleFormOpen()) {
+            <!-- ONE FORM, TWO VERBS: `editingRuleId` decides POST or PATCH, and
+                 the fields are the same either way. Every condition is optional
+                 and an empty one is a WILDCARD, which is why the auto-approve
+                 switch carries its own warning rather than a label. -->
+            <div class="rule-form">
+              <div class="eyebrow">{{ editingRuleId() === null ? 'New rule' : 'Edit rule' }}</div>
+
+              @if (ruleFormError()) {
+                <div class="notice" role="alert">
+                  <span class="icon" aria-hidden="true">error</span>{{ ruleFormError() }}
+                </div>
+              }
+
+              <div class="rule-grid">
+                <div class="field">
+                  <label for="rule-name">Name</label>
+                  <input
+                    id="rule-name"
+                    class="ctrl"
+                    type="text"
+                    maxlength="200"
+                    placeholder="MBA 2026-28 auto-admit"
+                    [value]="ruleDraft().name"
+                    (input)="onRuleField('name', $event)"
+                  />
+                  <span class="field-help">Shown beside every application this rule routes.</span>
+                </div>
+
+                <div class="field">
+                  <label for="rule-priority">Priority</label>
+                  <input
+                    id="rule-priority"
+                    class="ctrl"
+                    type="number"
+                    min="0"
+                    step="1"
+                    [value]="ruleDraft().priority"
+                    (input)="onRuleField('priority', $event)"
+                  />
+                  <span class="field-help">Lowest wins. Ties go to the older rule.</span>
+                </div>
+
+                <div class="field">
+                  <label for="rule-domain">Email domain</label>
+                  <input
+                    id="rule-domain"
+                    class="ctrl"
+                    type="text"
+                    maxlength="200"
+                    placeholder="bgscet.ac.in"
+                    [value]="ruleDraft().emailDomain"
+                    (input)="onRuleField('emailDomain', $event)"
+                  />
+                  <span class="field-help">
+                    The part after the @. Leave empty to match any domain.
+                  </span>
+                </div>
+
+                <div class="field">
+                  <label for="rule-degree">Degree level</label>
+                  <select
+                    id="rule-degree"
+                    class="ctrl"
+                    (change)="onRuleChoice('degreeLevel', selectValue($event))"
+                  >
+                    @for (level of ruleDegreeLevels; track level.key) {
+                      <option [value]="level.key" [selected]="level.key === ruleDraft().degreeLevel">
+                        {{ level.label }}
+                      </option>
+                    }
+                  </select>
+                </div>
+
+                <div class="field wide">
+                  <label for="rule-usn">USN pattern</label>
+                  <input
+                    id="rule-usn"
+                    class="ctrl"
+                    type="text"
+                    placeholder="^1BG2[0-9]MBA[0-9]{3}$"
+                    [value]="ruleDraft().usnPattern"
+                    (input)="onRuleField('usnPattern', $event)"
+                  />
+                  <!-- NO CLIENT-SIDE REGEX CHECK. The server runs this pattern on
+                       the one unauthenticated endpoint in the app and refuses a
+                       quantified group, an over-long pattern and anything that
+                       will not compile — with a message written for whoever typed
+                       it. A second opinion here would be the one that is wrong. -->
+                  <span class="field-help">
+                    A regular expression the USN must satisfy. Leave empty to match any USN. The
+                    server checks it when you save and says exactly what is wrong with it.
+                  </span>
+                </div>
+
+                <div class="field wide">
+                  <label for="rule-batch">Seats in</label>
+                  <select id="rule-batch" class="ctrl" (change)="onRuleChoice('cohortId', selectValue($event))">
+                    <option value="" [selected]="ruleDraft().cohortId === ''">No batch</option>
+                    @for (batch of ruleBatchOptions(); track batch.id) {
+                      <option [value]="batch.id" [selected]="batch.id === ruleDraft().cohortId">
+                        {{ batch.label }}
+                      </option>
+                    }
+                  </select>
+                  <span class="field-help">
+                    The batch an application this rule matches is seated in — whether or not the rule
+                    auto-approves.
+                  </span>
+                </div>
+              </div>
+
+              <label class="rule-switch">
+                <input
+                  type="checkbox"
+                  [checked]="ruleDraft().autoApprove"
+                  (change)="onRuleSwitch('autoApprove', $event)"
+                />
+                <span>
+                  <b>Auto-approve a matching application</b>
+                  <span class="field-help">
+                    Creates the login, seats the student and emails the onboarding link with no
+                    human in the loop. The application never appears in the queue. The college's
+                    registered email domains still apply — an address outside them is sent for
+                    review instead.
+                  </span>
+                </span>
+              </label>
+
+              <label class="rule-switch">
+                <input
+                  type="checkbox"
+                  [checked]="ruleDraft().enabled"
+                  (change)="onRuleSwitch('enabled', $event)"
+                />
+                <span>
+                  <b>Enabled</b>
+                  <span class="field-help">A disabled rule stays here and is never evaluated.</span>
+                </span>
+              </label>
+            </div>
+          } @else if (seatingRules() === null) {
             <p class="queue-state" role="status">Loading the seating rules…</p>
           } @else {
-            <table class="dt-table">
-              <thead>
-                <tr>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Rule</th>
-                  <th scope="col">Matches</th>
-                  <th scope="col">Seats in</th>
-                  <th scope="col">Decision</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (rule of seatingRules(); track rule.id) {
+            @if (rulesScope() === 'narrowed') {
+              <p class="rules-scope">
+                Narrowed to the batches your Registrations capability reaches. Rules seated in
+                another college, and rules that name no batch at all, are not listed here and are
+                not yours to edit.
+              </p>
+            }
+            <div class="rules-scroll">
+              <table class="dt-table">
+                <thead>
                   <tr>
-                    <td>{{ rule.priority }}</td>
-                    <td>
-                      {{ rule.name }}
-                      @if (!rule.enabled) {
-                        <span class="chip dot neutral">Off</span>
-                      }
-                    </td>
-                    <td>{{ rule.conditions }}</td>
-                    <td>{{ rule.seatsIn }}</td>
-                    <td>
-                      @if (rule.autoApprove) {
-                        <span class="chip dot good">Auto-approves</span>
-                      } @else {
-                        <span class="chip dot warn">Waits for review</span>
-                      }
-                    </td>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Rule</th>
+                    <th scope="col">Matches</th>
+                    <th scope="col">Seats in</th>
+                    <th scope="col">Decision</th>
+                    <th scope="col">Actions</th>
                   </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="5">No seating rules are on record; every application waits for a decision.</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (rule of seatingRules(); track rule.id) {
+                    <tr>
+                      <td>{{ rule.priority }}</td>
+                      <td>
+                        {{ rule.name }}
+                        @if (!rule.enabled) {
+                          <span class="chip dot neutral">Off</span>
+                        }
+                      </td>
+                      <td>{{ rule.conditions }}</td>
+                      <td>{{ rule.seatsIn }}</td>
+                      <td>
+                        @if (rule.autoApprove) {
+                          <span class="chip dot good">Auto-approves</span>
+                        } @else {
+                          <span class="chip dot warn">Waits for review</span>
+                        }
+                      </td>
+                      <td class="rule-actions">
+                        <button
+                          type="button"
+                          class="btn ghost sm"
+                          [disabled]="ruleBusyId() !== null"
+                          [attr.aria-label]="'Edit the rule ' + rule.name"
+                          (click)="editRule(rule)"
+                        >
+                          <span class="icon" aria-hidden="true">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn ghost sm"
+                          [disabled]="ruleBusyId() !== null"
+                          (click)="toggleRuleEnabled(rule)"
+                        >
+                          {{ rule.enabled ? 'Disable' : 'Enable' }}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn ghost sm"
+                          [disabled]="ruleBusyId() !== null"
+                          [attr.aria-label]="'Delete the rule ' + rule.name"
+                          (click)="deleteRule(rule)"
+                        >
+                          <span class="icon" aria-hidden="true">delete</span>
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6">No seating rules are on record; every application waits for a decision.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <!-- DISABLE IS THE REVERSIBLE ONE, and the table has to say so where
+                 the two buttons sit side by side. `matched_rule_id` is ON DELETE
+                 SET NULL: deleting a rule blanks the Rule column on every
+                 application it ever routed, and only the audit trail keeps what
+                 the rule said. -->
+            <p class="rules-foot">
+              Disable stops a rule firing and keeps it here, with every application it routed still
+              pointing at it. Delete removes it for good — applications it routed will stop showing
+              which rule did it.
+            </p>
           }
         </div>
 
         <footer class="dialog-foot">
-          <button type="button" class="btn secondary" (click)="closeSeatingRules()">Close</button>
-          <button type="button" class="btn secondary" [reepPending]="backendPhase">
-            <span class="icon" aria-hidden="true">add</span> New rule
-          </button>
+          @if (ruleFormOpen()) {
+            <button type="button" class="btn secondary" [disabled]="ruleSaving()" (click)="closeRuleForm()">
+              Cancel
+            </button>
+            <button type="button" class="btn primary" [disabled]="ruleSaving()" (click)="saveRule()">
+              <span class="icon" aria-hidden="true">save</span>
+              {{ ruleSaving() ? 'Saving…' : editingRuleId() === null ? 'Create rule' : 'Save rule' }}
+            </button>
+          } @else {
+            <button type="button" class="btn secondary" (click)="closeSeatingRules()">Close</button>
+            <button type="button" class="btn secondary" (click)="newRule()">
+              <span class="icon" aria-hidden="true">add</span> New rule
+            </button>
+          }
         </footer>
       </div>
     </div>

@@ -34,6 +34,7 @@ from app import set_password as sp
 from app.config import Settings, settings
 from app.db import SessionLocal
 from app.grant_access import SSO_ONLY_PASSWORD_HASH
+from app.models.mentor_assignment import MentorAssignment
 from app.models.user import LoginDay, Role, User
 from app.routers import auth as auth_router
 from app.security import verify_password
@@ -531,12 +532,24 @@ def granted():
             stu_ids = db.scalars(select(Student.id).where(Student.user_id == uid)).all()
             if stu_ids:
                 db.execute(delete(StudentProfile).where(StudentProfile.student_id.in_(stu_ids)))
+                # B9.1. `mentor_assignments` points at the student with no
+                # `ondelete` — the database refuses to delete somebody out from
+                # under a recorded spell — and `app.grant_access` writes one
+                # whenever `--mentor` seats a student, which is what this module
+                # exercises. Children before parents, same as the rest of this
+                # teardown and as both purge modules.
+                db.execute(
+                    delete(MentorAssignment).where(MentorAssignment.student_id.in_(stu_ids))
+                )
                 db.execute(delete(Student).where(Student.id.in_(stu_ids)))
         for uid in ids:
             group_ids = db.scalars(select(Mentor.id).where(Mentor.user_id == uid)).all()
             if group_ids:
                 db.execute(
                     update(Student).where(Student.mentor_id.in_(group_ids)).values(mentor_id=None)
+                )
+                db.execute(
+                    delete(MentorAssignment).where(MentorAssignment.mentor_id.in_(group_ids))
                 )
                 db.execute(delete(Mentor).where(Mentor.id.in_(group_ids)))
         for uid in ids:

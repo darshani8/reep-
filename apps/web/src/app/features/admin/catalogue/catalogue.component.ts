@@ -5,13 +5,27 @@
  * tabs over two different kinds of thing, and only two of the four have a
  * backend today. What each one is, and why it renders the way it does:
  *
- *  SUBJECTS are the curriculum — seeded code, grouped by semester, with the
- *  certifications mapped to each and how many students are enrolled. READ-ONLY
- *  here, and the honest shape today: a subject carries a code, a stage, a
- *  dimension, a semester and a delivery model, and a four-field form cannot
- *  supply those without inventing them. There is no write endpoint and this
- *  screen does not pretend there is one; the board's "Import subjects" is
- *  B13 and is drawn disabled.
+ *  SUBJECTS are the curriculum, grouped by semester, with the certifications
+ *  mapped to each and how many students are enrolled. There is still no
+ *  per-subject form, and the reason is unchanged: a subject carries a code, a
+ *  stage, a dimension, a semester and a delivery model, and a four-field form
+ *  cannot supply those without inventing them. What B13 added is the way an
+ *  office actually maintains a curriculum — "Import subjects", a CSV through
+ *  `POST /admin/catalogue/subjects/import`, whose `dry_run` DEFAULTS TO TRUE
+ *  on the server because its input is a file somebody exported from a
+ *  spreadsheet. The panel follows that: the Import button does nothing until a
+ *  dry run has reported, every row is listed including the failures, and a
+ *  subject code being global across the deployment means a scoped grant is
+ *  refused rather than writing a row every other college would then see.
+ *
+ *  B13 ALSO MOVED THE CERTIFICATION LIST ONTO THIS SCREEN'S OWN FUNCTION.
+ *  The three `/admin/approved-certifications` handlers were `require_admin`
+ *  while the screen itself opened on the grantable `admin.catalogue`, and this
+ *  file carried a signal and a paragraph apologising for the split. They are
+ *  `require_capability(db, session, "admin.catalogue")` now, so a 403 there
+ *  means the grant does not REACH the row — the defensive branch stays,
+ *  because a refusal must not render as "no certifications", but its sentence
+ *  says the true thing.
  *
  *  CERTIFICATIONS ↔ BADGES is the Approved Certification Catalogue
  *  (framework §12), the list administration genuinely maintains: which
@@ -29,9 +43,34 @@
  *  Category and Points are read off the badge (never typed), so the two can
  *  never disagree with the catalogue.
  *
- *  STAGE RULES and the college/course scope controls are B13 (Phase 4). There
- *  is no endpoint and no table, so the tab renders its empty state and a note
- *  saying what will fill it — never a plausible-looking row.
+ *  STAGE RULES are real: `GET/PUT/DELETE /admin/catalogue/stage-rules`, one
+ *  row per (course, semester), and `POST /admin/cohorts/{id}/promote` reads
+ *  them. The PUT is an UPSERT because `uq_stage_rule_course_semester` makes a
+ *  second rule for one semester an IntegrityError — the unique key IS the
+ *  identity of the thing being edited — and the DELETE is a real delete,
+ *  because nothing hangs off a rule and a promotion with no rule simply leaves
+ *  the stage alone. The tab keeps THREE states apart: not read, read and
+ *  empty, and read with rows. The first two must never render the same
+ *  sentence.
+ *
+ *  THE TWO SCOPE PILLS filter on `college_id` / `course_id`, which every
+ *  certification row now carries — and BOTH NULL IS PROGRAMME-WIDE, so
+ *  neither pill hides such a row. That is the same reading
+ *  `list_approved_certifications` gives `?course_id=` ("the course's own rows
+ *  PLUS the programme-wide ones"), and a client filter that read it any other
+ *  way would disagree with the endpoint beside it and empty the grid on the
+ *  day somebody first picked a college. The college list is learned from the
+ *  course rows rather than fetched: `GET /admin/colleges` is
+ *  `admin.institution`, a different function from this screen's.
+ *
+ *  "COPY TO COURSE…" IS ONE FLAT SEARCHABLE LIST, NOT THE BOARD'S TWO-STEP.
+ *  The endpoint is `{from_course, to_course, parts[]}` — the owner's settled
+ *  decision — so a college select followed by a course select would be two
+ *  controls and two round trips to answer one question on a deployment with
+ *  one college. Every row carries its college's name and the search matches
+ *  it. The copy is additive and never overwrites; the dry run is offered
+ *  first, because the useful moment to learn that eleven of twelve rows
+ *  already exist is before the copy.
  *
  *  INTERVIEW TRACKS are real and READ-ONLY here: the four tracks the mock
  *  interviewer runs, from `GET /api/admin/interview-questions/tracks`. That
@@ -49,9 +88,9 @@
  */
 
 import { Component, computed, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
 
 /** A certification mapped to a taught subject, as the subjects table shows it. */
@@ -80,6 +119,70 @@ interface Subject {
   certifications: SubjectCertification[];
 }
 
+/** One programme, from `GET /api/admin/catalogue/courses` (B13).
+ *
+ *  FLAT AND ACROSS COLLEGES, which is the owner's settled decision (7) and the
+ *  endpoint's own docstring: the board draws a college select and then a
+ *  course select, two controls and two round trips to answer one question on a
+ *  deployment that has one college. The college's NAME is on every row, so one
+ *  search box finds "MBA" and "BGSCET" equally. */
+interface CatalogueCourse {
+  id: string;
+  code: string;
+  name: string;
+  department_id: string | null;
+  department: string | null;
+  college_id: string | null;
+  college: string | null;
+  degree_level: string | null;
+  total_semesters: number | null;
+  certifications: number;
+  badge_overrides: number;
+  stage_rules: number;
+}
+
+/** "Semester N of this course is stage S" — `GET/PUT /admin/catalogue/stage-rules`. */
+interface StageRule {
+  id: string;
+  course_id: string;
+  semester: number;
+  stage: string;
+}
+
+/** One part of a catalogue copy, as the server counts it. `skipped` is
+ *  reported rather than swallowed: "copied 0, skipped 12" and "copied 0" are
+ *  different answers and only one of them means the copy did nothing. */
+interface CopyPartResult {
+  part: string;
+  copied: number;
+  skipped: number;
+}
+
+interface CopyResult {
+  from_course: string;
+  to_course: string;
+  dry_run: boolean;
+  parts: CopyPartResult[];
+}
+
+/** One line of a subject-import report. `outcome` is `create`, `update` or
+ *  `error` — three words and not a boolean, because "this row would CHANGE an
+ *  existing subject" is the one an office reader needs before saying yes. */
+interface SubjectImportRow {
+  line: number;
+  code: string;
+  outcome: string;
+  detail: string | null;
+}
+
+interface SubjectImportResult {
+  dry_run: boolean;
+  created: number;
+  updated: number;
+  errors: number;
+  rows: SubjectImportRow[];
+}
+
 /** A row of the Approved Certification Catalogue. */
 interface ApprovedCertification {
   id: string;
@@ -96,6 +199,19 @@ interface ApprovedCertification {
   url: string | null;
   active: boolean;
   claims: number;
+  /** B13's scope, resolved by the server. BOTH NULL IS PROGRAMME-WIDE and is
+   *  what every row written before B13 means, so a scope filter must keep such
+   *  a row visible — `list_approved_certifications` does exactly that for
+   *  `?course_id=`, and the two filters on this screen follow it rather than
+   *  inventing a second reading. `scope_label` is the sentence to render: it
+   *  says "Programme-wide" rather than leaving a blank cell, because a blank
+   *  in a scope column reads as "not set yet" on a row whose scope IS set, and
+   *  set wide. */
+  college_id: string | null;
+  college: string | null;
+  course_id: string | null;
+  course: string | null;
+  scope_label: string;
 }
 
 /** One of the 48 code-defined badges. */
@@ -137,9 +253,55 @@ const READINESS_CATEGORY = 'READINESS';
 /** How many certification chips a grid row shows before it counts the rest. */
 const CERTIFICATION_CHIPS_PER_ROW = 2;
 
-/** The phase that makes the college/course scope, "Copy to course…", the
- *  subject import and the stage rules real (B13, 06-phase-prompts.md). */
-const CATALOGUE_SCOPING_PHASE = 4;
+/** B13 LANDED AND ALL FOUR OF THESE ARE REAL NOW. What used to be one phase
+ *  constant on four disabled controls is four wired endpoints:
+ *
+ *    GET  /admin/catalogue/courses          the flat course list, across colleges
+ *    POST /admin/catalogue/subjects/import  "Import subjects", DRY RUN BY DEFAULT
+ *    POST /admin/catalogue/copy             "Copy to course…", `?dry_run=`
+ *    GET/PUT/DELETE /admin/catalogue/stage-rules
+ *
+ *  The constant is deleted rather than renumbered: a phase badge pointing at a
+ *  phase that has arrived is the stale label commit 45b91a9 fixed.
+ *
+ *  THE COPY IS ONE FLAT SEARCHABLE COURSE PICKER, NOT THE BOARD'S TWO-STEP.
+ *  The endpoint is `{from_course, to_course, parts[]}` (the owner's settled
+ *  decision 7, and the endpoint's own docstring), and every course row carries
+ *  its college's name — so one search box over one list answers "which MBA,
+ *  whose?" in one control instead of two selects and two round trips on a
+ *  deployment that has one college. */
+
+/** The parts a copy knows how to move. Named, in the server's own spelling and
+ *  order, because `CopyPart` is a `Literal` there and a part the server does
+ *  not recognise is a 422 rather than a silent no-op reported as success. */
+const COPY_PARTS: { key: string; label: string; help: string }[] = [
+  {
+    key: 'certifications',
+    label: 'Approved certifications',
+    help: 'Rows pinned to the source course. Programme-wide rows are not copied — they already apply.',
+  },
+  {
+    key: 'badges',
+    label: 'Badge map',
+    help:
+      'Which of the 48 badges are switched off for the course. No control on this screen ' +
+      'writes one of those rows; this moves the ones that exist.',
+  },
+  {
+    key: 'stage_rules',
+    label: 'Stage rules',
+    help: 'Which REEP stage each semester of the course sits in.',
+  },
+];
+
+/** The four stages a rule may name — `models/badge.py::Stage`, the same list
+ *  `STAGE_LABEL` above renders. Written once and read by both. */
+const STAGE_VALUES = ['REBOOT', 'EXCEL', 'EXCEL_ADVANCED', 'ELEVATE'];
+
+/** The columns `POST /admin/catalogue/subjects/import` requires, in the
+ *  server's own spelling (`REQUIRED_SUBJECT_COLUMNS`). Shown on the panel so a
+ *  sheet is fixed before it is uploaded rather than after the 422. */
+const SUBJECT_IMPORT_COLUMNS = 'code, name, stage, dimension, semester, model_type';
 
 function titleCase(value: string): string {
   return value
@@ -152,13 +314,55 @@ function titleCase(value: string): string {
 @Component({
   selector: 'app-admin-catalogue',
   standalone: true,
-  imports: [PendingControlDirective, PluralPipe],
+  imports: [RouterLink, PluralPipe],
   templateUrl: './catalogue.component.html',
   styleUrl: './catalogue.component.scss',
 })
 export class AdminCatalogueComponent {
   readonly apiBase = environment.apiBase;
-  readonly scopingPhase = CATALOGUE_SCOPING_PHASE;
+  readonly copyParts = COPY_PARTS;
+  readonly stageValues = STAGE_VALUES;
+  readonly subjectImportColumns = SUBJECT_IMPORT_COLUMNS;
+
+  // ---- B13: the courses a catalogue can be scoped, copied or ruled by ----
+  /** Every programme this account's grant reaches, flat and across colleges.
+   *  NULL means the read has not happened or did not succeed — never `[]`,
+   *  which means "read, and this grant reaches none". */
+  readonly courses = signal<CatalogueCourse[] | null>(null);
+
+  /** The two scope pills. EMPTY IS "ALL", and neither hides a PROGRAMME-WIDE
+   *  certification: `list_approved_certifications` reads `?course_id=` as "the
+   *  course's own rows PLUS the programme-wide ones", because that is the set
+   *  that actually applies to a student on that course, and a client filter
+   *  that read it any other way would disagree with the endpoint beside it. */
+  readonly collegeFilter = signal('');
+  readonly courseFilter = signal('');
+
+  // ---- B13: stage rules --------------------------------------------------
+  readonly stageRules = signal<StageRule[] | null>(null);
+  readonly stageRuleCourse = signal('');
+  readonly stageRuleSemester = signal(1);
+  readonly stageRuleStage = signal(STAGE_VALUES[0]);
+  readonly stageBusy = signal(false);
+  readonly stageError = signal<string | null>(null);
+
+  // ---- B13: subject import ----------------------------------------------
+  readonly importOpen = signal(false);
+  readonly importFileName = signal<string | null>(null);
+  readonly importResult = signal<SubjectImportResult | null>(null);
+  readonly importBusy = signal(false);
+  readonly importError = signal<string | null>(null);
+  private importFile: File | null = null;
+
+  // ---- B13: copy ---------------------------------------------------------
+  readonly copyOpen = signal(false);
+  readonly copyQuery = signal('');
+  readonly copyFrom = signal('');
+  readonly copyTo = signal('');
+  readonly copySelectedParts = signal<string[]>(COPY_PARTS.map((part) => part.key));
+  readonly copyPreview = signal<CopyResult | null>(null);
+  readonly copyBusy = signal(false);
+  readonly copyError = signal<string | null>(null);
 
   readonly tab = signal<Tab>('subjects');
   readonly subjects = signal<Subject[] | null>(null);
@@ -199,6 +403,12 @@ export class AdminCatalogueComponent {
   readonly formProvider = signal('');
   readonly formBadgeCode = signal('');
   readonly formUrl = signal('');
+  /** B13's scope on the ADD form. Empty is programme-wide, which is what every
+   *  row written before B13 means and what this form has always sent — and
+   *  which `_resolve_certification_scope` REFUSES from a narrowed holder, with
+   *  a sentence telling them to name the course. So the control exists rather
+   *  than the 403 being the first time anybody hears about it. */
+  readonly formCourseId = signal('');
   readonly formError = signal<string | null>(null);
   readonly saving = signal(false);
   readonly busyCertificationId = signal<string | null>(null);
@@ -222,12 +432,20 @@ export class AdminCatalogueComponent {
     return this.skillAreas().find((area) => area.value === value)?.label ?? value;
   });
 
+  /** The certifications the two scope pills leave standing. EVERY reader goes
+   *  through here — the grid's chips, the Claims column and the drawer — so a
+   *  narrowed screen cannot show one number in a cell and a different list
+   *  behind it. */
+  readonly scopedCertifications = computed(() =>
+    (this.certifications() ?? []).filter((row) => this.certificationInScope(row)),
+  );
+
   readonly activeCertifications = computed(() =>
-    (this.certifications() ?? []).filter((certification) => certification.active),
+    this.scopedCertifications().filter((certification) => certification.active),
   );
 
   readonly removedCertifications = computed(() =>
-    (this.certifications() ?? []).filter((certification) => !certification.active),
+    this.scopedCertifications().filter((certification) => !certification.active),
   );
 
   /** The badge rows the grid shows, after the quick filter and the two live
@@ -310,14 +528,14 @@ export class AdminCatalogueComponent {
   }
 
   certificationsFor(badgeCode: string): ApprovedCertification[] {
-    const rows = (this.certifications() ?? []).filter((row) => row.badge_code === badgeCode);
+    const rows = this.scopedCertifications().filter((row) => row.badge_code === badgeCode);
     const active = rows.filter((row) => row.active);
     const removed = rows.filter((row) => !row.active);
     return [...active, ...removed];
   }
 
   activeCertificationsFor(badgeCode: string): ApprovedCertification[] {
-    return (this.certifications() ?? []).filter(
+    return this.scopedCertifications().filter(
       (row) => row.badge_code === badgeCode && row.active,
     );
   }
@@ -368,6 +586,9 @@ export class AdminCatalogueComponent {
     this.formError.set(null);
     if (tab === 'tracks' && this.tracks() === null && !this.tracksNeedQuestionBank()) {
       void this.loadTracks();
+    }
+    if (tab === 'stages' && this.stageRules() === null) {
+      void this.loadStageRules();
     }
   }
 
@@ -435,6 +656,11 @@ export class AdminCatalogueComponent {
           badge_code: this.formBadgeCode(),
           stage: badge?.stage ?? 'EXCEL',
           url: url || null,
+          // BOTH OMITTED IS PROGRAMME-WIDE and the server derives the college
+          // from the course, so only the course is sent — sending a college
+          // beside it is the contradiction `_resolve_certification_scope`
+          // answers with a 422.
+          course_id: this.formCourseId() || null,
         }),
       });
       if (!response.ok) {
@@ -481,6 +707,12 @@ export class AdminCatalogueComponent {
             is_free: certification.is_free,
             url: certification.url,
             active,
+            // THE SCOPE IS ECHOED BACK UNCHANGED. `ApprovedCertificationIn` is
+            // a whole-row body, so omitting these two would rewrite the row as
+            // programme-wide — a certification quietly widened to every
+            // college by the button that was meant to retire it.
+            college_id: certification.college_id,
+            course_id: certification.course_id,
           }),
         },
       );
@@ -534,6 +766,10 @@ export class AdminCatalogueComponent {
         this.badges.set(badges);
         if (!this.formBadgeCode() && badges.length) this.formBadgeCode.set(badges[0].code);
       }
+      // B13's flat course list. Not in the Promise.all above and never allowed
+      // to fail the screen: the two scope pills, the copy picker and the stage
+      // rules all need it, and none of them is worth blanking the subjects for.
+      await this.loadCourses();
     } catch {
       this.error.set('Could not reach the server.');
       this.loadFailed.set(true);
@@ -565,6 +801,358 @@ export class AdminCatalogueComponent {
     } catch {
       this.error.set('Could not reach the server.');
       this.tracksFailed.set(true);
+    }
+  }
+
+
+  // =======================================================================
+  // B13 — scope, stage rules, subject import and the catalogue copy
+  // =======================================================================
+
+  /** The colleges to offer in the College pill, learned from the course list
+   *  rather than fetched: `GET /admin/colleges` is `admin.institution`, a
+   *  different function from this screen's, and asking for it would 403 a
+   *  granted holder out of a filter they can otherwise use. */
+  readonly collegeOptions = computed(() => {
+    const byId = new Map<string, string>();
+    for (const course of this.courses() ?? []) {
+      if (course.college_id) byId.set(course.college_id, course.college ?? course.college_id);
+    }
+    return [...byId].map(([id, name]) => ({ id, name }));
+  });
+
+  /** The courses the Course pill offers, narrowed by the College pill so the
+   *  two cannot name a contradiction. */
+  readonly courseOptions = computed(() => {
+    const college = this.collegeFilter();
+    return (this.courses() ?? []).filter((c) => !college || c.college_id === college);
+  });
+
+  collegeFilterLabel(): string {
+    const id = this.collegeFilter();
+    if (!id) return 'All colleges';
+    return this.collegeOptions().find((c) => c.id === id)?.name ?? id;
+  }
+
+  courseFilterLabel(): string {
+    const id = this.courseFilter();
+    if (!id) return 'All courses';
+    return (this.courses() ?? []).find((c) => c.id === id)?.code ?? id;
+  }
+
+  /** Changing the college clears a course under a different one, rather than
+   *  leaving a pair that names two places at once. */
+  setCollegeFilter(id: string): void {
+    this.collegeFilter.set(id);
+    const course = (this.courses() ?? []).find((c) => c.id === this.courseFilter());
+    if (course && id && course.college_id !== id) this.courseFilter.set('');
+  }
+
+  /** Does this certification apply where the two pills are pointed?
+   *
+   *  A PROGRAMME-WIDE ROW ALWAYS DOES, which is the endpoint's own reading and
+   *  the reading every pre-B13 row carries. Hiding those would empty the grid
+   *  on the day somebody first picked a college. */
+  private certificationInScope(row: ApprovedCertification): boolean {
+    const course = this.courseFilter();
+    const college = this.collegeFilter();
+    if (!course && !college) return true;
+    if (row.course_id === null && row.college_id === null) return true;
+    if (course) return row.course_id === course;
+    return row.college_id === college;
+  }
+
+  /** True when either pill is pointed somewhere — the grid says so in words
+   *  above the table, because a narrowed list that looks like the whole list
+   *  is how somebody concludes a certification was deleted. */
+  readonly scopeIsNarrowed = computed(() => !!this.collegeFilter() || !!this.courseFilter());
+
+  // ---- stage rules -------------------------------------------------------
+
+  /** The rules for the course the tab has picked, in semester order. */
+  readonly visibleStageRules = computed(() => {
+    const course = this.stageRuleCourse();
+    const rules = this.stageRules() ?? [];
+    return rules
+      .filter((rule) => !course || rule.course_id === course)
+      .slice()
+      .sort((a, b) => a.semester - b.semester);
+  });
+
+  courseLabel(courseId: string): string {
+    const course = (this.courses() ?? []).find((c) => c.id === courseId);
+    if (!course) return courseId;
+    return course.college ? `${course.code} · ${course.college}` : course.code;
+  }
+
+  /** Upsert. The server keys on (course, semester) because
+   *  `uq_stage_rule_course_semester` makes a second rule for one semester an
+   *  IntegrityError, so editing semester 3 is the same request as creating it. */
+  async saveStageRule(): Promise<void> {
+    const course_id = this.stageRuleCourse();
+    if (!course_id) {
+      this.stageError.set('Pick the programme this rule is for.');
+      return;
+    }
+    const semester = Number(this.stageRuleSemester());
+    if (!Number.isInteger(semester) || semester < 1 || semester > 20) {
+      this.stageError.set('The semester must be a whole number between 1 and 20.');
+      return;
+    }
+    this.stageBusy.set(true);
+    this.stageError.set(null);
+    this.flash.set(null);
+    try {
+      const response = await fetch(`${this.apiBase}/admin/catalogue/stage-rules`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id, semester, stage: this.stageRuleStage() }),
+      });
+      if (!response.ok) {
+        this.stageError.set(await this.detailOf(response, 'Could not save that rule.'));
+        return;
+      }
+      const saved = (await response.json()) as StageRule;
+      this.stageRules.update((rules) => {
+        const rest = (rules ?? []).filter(
+          (rule) => !(rule.course_id === saved.course_id && rule.semester === saved.semester),
+        );
+        return [...rest, saved];
+      });
+      this.flash.set(
+        `Semester ${saved.semester} of ${this.courseLabel(saved.course_id)} is ` +
+          `${this.stageLabel(saved.stage)}.`,
+      );
+    } catch {
+      this.stageError.set('Could not reach the server.');
+    } finally {
+      this.stageBusy.set(false);
+    }
+  }
+
+  /** A real DELETE, not a deactivation: nothing hangs off a stage rule, and a
+   *  promotion with no rule for that semester simply leaves the stage alone —
+   *  which is the same thing as never having had one. */
+  async deleteStageRule(rule: StageRule): Promise<void> {
+    this.stageBusy.set(true);
+    this.stageError.set(null);
+    this.flash.set(null);
+    try {
+      const response = await fetch(`${this.apiBase}/admin/catalogue/stage-rules/${rule.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        this.stageError.set(await this.detailOf(response, 'Could not remove that rule.'));
+        return;
+      }
+      this.stageRules.update((rules) => (rules ?? []).filter((r) => r.id !== rule.id));
+      this.flash.set(`Semester ${rule.semester} no longer names a stage.`);
+    } catch {
+      this.stageError.set('Could not reach the server.');
+    } finally {
+      this.stageBusy.set(false);
+    }
+  }
+
+  // ---- subject import ----------------------------------------------------
+
+  toggleImport(): void {
+    const opening = !this.importOpen();
+    this.importOpen.set(opening);
+    this.importError.set(null);
+    if (!opening) {
+      this.importResult.set(null);
+      this.importFile = null;
+      this.importFileName.set(null);
+    }
+  }
+
+  pickImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.importFile = file;
+    this.importFileName.set(file?.name ?? null);
+    // A new file invalidates the report of the previous one. Leaving it on
+    // screen would let somebody read "12 create, 0 error" about a sheet they
+    // have already replaced and then press Import.
+    this.importResult.set(null);
+    this.importError.set(null);
+  }
+
+  /** DRY RUN FIRST, ALWAYS, and the server agrees: `dry_run` defaults to true
+   *  on this endpoint alone, because its input is a file somebody exported
+   *  from a spreadsheet and the commonest mistake is the wrong file. The
+   *  "Import" button only appears once a dry run has reported. */
+  async runImport(dryRun: boolean): Promise<void> {
+    const file = this.importFile;
+    if (!file) {
+      this.importError.set('Choose a CSV first.');
+      return;
+    }
+    this.importBusy.set(true);
+    this.importError.set(null);
+    this.flash.set(null);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const response = await fetch(
+        `${this.apiBase}/admin/catalogue/subjects/import?dry_run=${dryRun}`,
+        { method: 'POST', credentials: 'include', body },
+      );
+      if (!response.ok) {
+        this.importError.set(await this.detailOf(response, 'That file could not be read.'));
+        return;
+      }
+      const result = (await response.json()) as SubjectImportResult;
+      this.importResult.set(result);
+      if (!result.dry_run) {
+        this.flash.set(
+          `${result.created} subject${result.created === 1 ? '' : 's'} added, ` +
+            `${result.updated} updated.`,
+        );
+        await this.load();
+      }
+    } catch {
+      this.importError.set('Could not reach the server.');
+    } finally {
+      this.importBusy.set(false);
+    }
+  }
+
+  // ---- the catalogue copy ------------------------------------------------
+
+  toggleCopy(): void {
+    const opening = !this.copyOpen();
+    this.copyOpen.set(opening);
+    this.copyError.set(null);
+    this.copyPreview.set(null);
+    if (!opening) return;
+    this.copyQuery.set('');
+    if (this.courseFilter()) this.copyTo.set(this.courseFilter());
+  }
+
+  /** ONE FLAT SEARCHABLE LIST ACROSS COLLEGES (owner decision 7). The needle
+   *  is matched against the code, the name, the department AND the college, so
+   *  "MBA" and "BGSCET" both find the same row. */
+  readonly copyCandidates = computed(() => {
+    const needle = this.copyQuery().trim().toLowerCase();
+    const rows = this.courses() ?? [];
+    if (!needle) return rows;
+    return rows.filter((course) =>
+      `${course.code} ${course.name} ${course.department ?? ''} ${course.college ?? ''}`
+        .toLowerCase()
+        .includes(needle),
+    );
+  });
+
+  copyCourseLine(course: CatalogueCourse): string {
+    const where = [course.college, course.department].filter(Boolean).join(' · ');
+    const counts =
+      `${course.certifications} certification${course.certifications === 1 ? '' : 's'} · ` +
+      `${course.badge_overrides} badge override${course.badge_overrides === 1 ? '' : 's'} · ` +
+      `${course.stage_rules} stage rule${course.stage_rules === 1 ? '' : 's'}`;
+    return where ? `${where} — ${counts}` : counts;
+  }
+
+  toggleCopyPart(key: string): void {
+    this.copySelectedParts.update((parts) =>
+      parts.includes(key) ? parts.filter((p) => p !== key) : [...parts, key],
+    );
+    // The preview counted the parts that were ticked when it ran, so it is no
+    // longer about the request that would be sent.
+    this.copyPreview.set(null);
+  }
+
+  copyPartIsOn(key: string): boolean {
+    return this.copySelectedParts().includes(key);
+  }
+
+  readonly sourceCourse = computed(
+    () => (this.courses() ?? []).find((c) => c.id === this.copyFrom()) ?? null,
+  );
+
+  readonly destinationCourse = computed(
+    () => (this.courses() ?? []).find((c) => c.id === this.copyTo()) ?? null,
+  );
+
+  readonly canRunCopy = computed(
+    () =>
+      !!this.copyFrom() &&
+      !!this.copyTo() &&
+      this.copyFrom() !== this.copyTo() &&
+      this.copySelectedParts().length > 0,
+  );
+
+  /** `?dry_run=true` answers with the same counts and writes nothing, because
+   *  the useful moment to learn that eleven of twelve rows already exist is
+   *  before the copy, not after it. The copy itself is ADDITIVE and never
+   *  overwrites: a row the destination already has is skipped and counted. */
+  async runCopy(dryRun: boolean): Promise<void> {
+    if (!this.canRunCopy()) return;
+    this.copyBusy.set(true);
+    this.copyError.set(null);
+    this.flash.set(null);
+    try {
+      const response = await fetch(`${this.apiBase}/admin/catalogue/copy?dry_run=${dryRun}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from_course: this.copyFrom(),
+          to_course: this.copyTo(),
+          parts: this.copySelectedParts(),
+        }),
+      });
+      if (!response.ok) {
+        this.copyError.set(await this.detailOf(response, 'That copy could not be made.'));
+        return;
+      }
+      const result = (await response.json()) as CopyResult;
+      this.copyPreview.set(result);
+      if (!result.dry_run) {
+        const copied = result.parts.reduce((total, part) => total + part.copied, 0);
+        this.flash.set(
+          `${copied} row${copied === 1 ? '' : 's'} copied into ${this.courseLabel(result.to_course)}.`,
+        );
+        await this.load();
+        await this.loadStageRules();
+      }
+    } catch {
+      this.copyError.set('Could not reach the server.');
+    } finally {
+      this.copyBusy.set(false);
+    }
+  }
+
+  // ---- reads -------------------------------------------------------------
+
+  /** The flat course list and the stage rules. Their own try/catch: both are
+   *  `admin.catalogue`, the same key the screen opens on, so a failure here is
+   *  a failure and not a refusal — but it must not blank the subjects and the
+   *  badges, which loaded perfectly well. */
+  private async loadCourses(): Promise<void> {
+    try {
+      const response = await fetch(`${this.apiBase}/admin/catalogue/courses`, {
+        credentials: 'include',
+      });
+      if (!response.ok) return;
+      this.courses.set((await response.json()) as CatalogueCourse[]);
+    } catch {
+      /* the pills stay on "All", and every control that needs a course says so */
+    }
+  }
+
+  private async loadStageRules(): Promise<void> {
+    try {
+      const response = await fetch(`${this.apiBase}/admin/catalogue/stage-rules`, {
+        credentials: 'include',
+      });
+      if (!response.ok) return;
+      this.stageRules.set((await response.json()) as StageRule[]);
+    } catch {
+      /* the tab distinguishes "not read" from "none on record" */
     }
   }
 

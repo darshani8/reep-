@@ -23,15 +23,24 @@
  *                                                       specializations →
  *                                                       batches
  *   GET    /api/admin/mentor-load                       every faculty account
+ *   GET    /api/admin/cohorts/{id}/promotion-history    what has been done to
+ *                                                       THIS batch
  *
- * WHAT IS NOT, AND WHY IT IS DRAWN EMPTY RATHER THAN FILLED. The board's grid
- * carries Readiness, CGPA and Attendance columns, its batch card carries
- * "results imported" and "last promotion", and its second card is a promotion
- * history. Nothing on `main` reports any of those: readiness inputs are B6.3,
- * marks and attendance imports are B8.1, and promotion history is written by
- * the promote endpoint, B4.3 — all Phase 4. So those cells render an em dash
- * and the screen says, once, in a `.notice.accent`, what will fill them. A
- * plausible number in a screenshot is indistinguishable from working software.
+ * THE PROMOTION HISTORY CARD IS LIVE (B4.3/B4.4). It is asked per batch,
+ * because that is the only shape the endpoint answers, and it has four states
+ * that are four different facts: no batch chosen, reading, read and empty, and
+ * REFUSED. The endpoint deliberately refuses a holder who reaches only part of
+ * a batch rather than returning the part they may see — so a refusal that
+ * rendered as "nothing on record" would report the opposite of the truth.
+ *
+ * WHAT IS STILL AN EM DASH, AND WHY IT IS NOT A PHASE. Readiness, CGPA and
+ * Attendance are on the board's grid and are NOT on `GET /api/admin/students`:
+ * that endpoint answers identity, seating and stage. All three are real and
+ * readable per student — on Student 360, one request per student — and a
+ * roster that fetched them would be one request per ROW on every page. So the
+ * three cells render an em dash, the `.notice.accent` points at the screen that
+ * does answer them, and no number is invented: a plausible number in a
+ * screenshot is indistinguishable from working software.
  *
  * THE SELECTION ACTIONS ARE REAL, one PATCH per student. B9.3 will make
  * "assign N selected" a single audited request; until it exists the honest
@@ -97,6 +106,35 @@ import {
   type StudentDraft,
 } from './roster-row';
 
+/** One row of `GET /api/admin/cohorts/{id}/promotion-history`
+ *  (`admin_promotion.SemesterHistoryOut`). `kind` is the vocabulary of
+ *  `app/models/semester_history.py` — `promote`, `graduate`, `hold_back`,
+ *  `ungraduate` — and is rendered through `PROMOTION_KIND_LABELS` rather than
+ *  printed raw; an unknown kind falls back to the stored word, because a new
+ *  verdict the server learned is better shown as itself than as "Other". */
+interface PromotionHistoryApiRow {
+  id: string;
+  student_id: string;
+  student_name: string;
+  usn: string | null;
+  from_semester: number;
+  to_semester: number;
+  effective_on: string;
+  kind: string;
+  reason: string | null;
+  by_user_id: string | null;
+  by_name: string | null;
+  created_at: string;
+}
+
+/** Text AND colour together, never colour alone (01 §4). */
+const PROMOTION_KIND_LABELS: Record<string, { label: string; tone: 'good' | 'neutral' | 'warn' }> = {
+  promote: { label: 'Promoted', tone: 'good' },
+  graduate: { label: 'Graduated', tone: 'good' },
+  hold_back: { label: 'Held back', tone: 'warn' },
+  ungraduate: { label: 'Graduation reversed', tone: 'warn' },
+};
+
 // ------------------------------------------------------------- the screen --
 
 @Component({
@@ -124,12 +162,19 @@ export class AdminStudentsComponent {
    *
    * `canOpenDetail` is a CONVENIENCE AND NOT A PERMISSION — /admin/students/:id
    * decides for itself, and so does every endpoint behind it. What it buys is
-   * that the roster does not draw a link the guard would refuse: this screen is
-   * gated on `admin.students` alone and Student 360 on that plus
-   * `ui.console_v2`, so the two do not admit the same people.
+   * that the roster does not draw a link the guard would refuse.
+   *
+   * It read `ui.console_v2` until Phase 5, because Student 360 was one of the
+   * redesigned screens and carried the preview switch as well as this screen's
+   * key. With the switch deleted the two routes name the SAME capability, so
+   * this is true for everyone who got as far as reading the roster. It is kept
+   * reading the key rather than hard-coded to `true` deliberately: it is a
+   * MIRROR of /admin/students/:id's route guard, and a mirror that stops
+   * tracking its subject is worse than no mirror. Change that guard and change
+   * this line in the same edit.
    */
   readonly gridContext = computed<RosterGridContext>(() => ({
-    canOpenDetail: (this.auth.session()?.capabilities ?? []).includes('ui.console_v2'),
+    canOpenDetail: (this.auth.session()?.capabilities ?? []).includes('admin.students'),
   }));
 
   readonly stages = STAGES;
@@ -176,6 +221,20 @@ export class AdminStudentsComponent {
    *  college with no faculty, so each failure is said once, where it bites. */
   readonly hierarchyUnavailable = signal(false);
   readonly facultyUnavailable = signal(false);
+
+  // --- the promotion history card ----------------------------------------
+  //
+  // `GET /api/admin/cohorts/{id}/promotion-history` answers per BATCH, so the
+  // card has three states and they are three different facts: no batch chosen
+  // (there is nothing to ask about), the batch has no rows (nothing has been
+  // promoted or graduated yet) and the read was refused (this account may not
+  // see it). The endpoint refuses a holder who reaches only PART of a batch
+  // rather than handing back the part they may see, for exactly that reason —
+  // so a refusal must never render as "no promotions on record".
+
+  readonly promotionHistory = signal<PromotionHistoryApiRow[]>([]);
+  readonly promotionHistoryState = signal<'no-batch' | 'loading' | 'ready' | 'refused'>('no-batch');
+  readonly promotionHistoryError = signal<string | null>(null);
 
   // --- the grid ----------------------------------------------------------
 
@@ -615,6 +674,53 @@ export class AdminStudentsComponent {
     }
   }
 
+  /**
+   * What has been done to THIS batch — `GET /admin/cohorts/{id}/promotion-history`.
+   *
+   * Newest first, as the server returns it. It is asked only when exactly one
+   * batch is in view, because that is the only shape the endpoint answers;
+   * "All batches" and "No batch yet" are not a cohort id and must not be sent
+   * as one.
+   */
+  async loadPromotionHistory(): Promise<void> {
+    const batch = this.selectedBatch();
+    if (batch === null) {
+      this.promotionHistory.set([]);
+      this.promotionHistoryError.set(null);
+      this.promotionHistoryState.set('no-batch');
+      return;
+    }
+    this.promotionHistoryState.set('loading');
+    this.promotionHistoryError.set(null);
+    try {
+      const response = await fetch(
+        `${environment.apiBase}/admin/cohorts/${batch.id}/promotion-history`,
+        { credentials: 'include' },
+      );
+      if (!response.ok) throw new Error(await this.detailOf(response));
+      this.promotionHistory.set((await response.json()) as PromotionHistoryApiRow[]);
+      this.promotionHistoryState.set('ready');
+    } catch (failure) {
+      this.promotionHistory.set([]);
+      this.promotionHistoryError.set(
+        failure instanceof Error ? failure.message : 'Could not read this batch’s history.',
+      );
+      this.promotionHistoryState.set('refused');
+    }
+  }
+
+  /**
+   * A promotion or a graduation has actually been written.
+   *
+   * The grid and the history card were both read BEFORE it, so both are re-read
+   * here. The dialog stays open on its result panel — it is showing the
+   * server's own counts, which are the only record of what landed — and closes
+   * itself when the reader dismisses it.
+   */
+  onBatchWriteCompleted(): void {
+    void Promise.all([this.reloadRoster(), this.loadPromotionHistory()]);
+  }
+
   // ======================================================= the filters ====
 
   setBatchFilter(batchId: string): void {
@@ -622,6 +728,7 @@ export class AdminStudentsComponent {
     this.confirmBatchRemoval.set(false);
     this.openDialog.set(null);
     void this.reloadRoster();
+    void this.loadPromotionHistory();
   }
 
   setDepartmentFilter(departmentId: string): void {
@@ -976,6 +1083,36 @@ export class AdminStudentsComponent {
   }
 
   // ============================================================ helpers ====
+
+  /** A history row's verdict as words AND a tone, never a colour alone. An
+   *  unrecognised `kind` is printed as the server stored it rather than being
+   *  flattened into "Other": a verdict this client has not learned yet is
+   *  still a real one. */
+  promotionKind(kind: string): { label: string; tone: 'good' | 'neutral' | 'warn' } {
+    return PROMOTION_KIND_LABELS[kind] ?? { label: kind, tone: 'neutral' };
+  }
+
+  /** "semester 3 → 4", or "semester 6" when a move does not change it —
+   *  which is what a graduation and a reversal both look like. */
+  promotionMove(row: PromotionHistoryApiRow): string {
+    if (row.from_semester === row.to_semester) return `semester ${row.to_semester}`;
+    return `semester ${row.from_semester} → ${row.to_semester}`;
+  }
+
+  /** Who ordered it. NULL is not "nobody" — it is an actor whose account has
+   *  since been removed, or a row written before the column was filled — so it
+   *  says that rather than leaving a blank the reader has to interpret. */
+  promotionActor(row: PromotionHistoryApiRow): string {
+    return row.by_name ?? 'Actor no longer on the roster';
+  }
+
+  when(stamp: string): string {
+    return new Date(stamp).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
 
   /** Read a control's value without reaching for `any` in the template. */
   inputValue(event: Event): string {

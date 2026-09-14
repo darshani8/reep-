@@ -9,19 +9,31 @@
       </div>
     </div>
     <div class="dt-toolbar">
-      <!-- There is no SWOC export on main; it arrives with the Phase 4 SWOC task. -->
-      <button type="button" class="btn secondary" [reepPending]="swocBackendPhase">
+      <!-- DEMOTED, NOT PENDING. There is no SWOC export anywhere in the API:
+           /admin/exports/ serves students.csv, placement.csv and ledger.csv,
+           and nothing serves written notes about named students as a file. No
+           phase number, because nothing is on its way — plain `disabled` with
+           the real reason in the title, the treatment 45b91a9 gave the Faculty
+           screen's orphan controls. -->
+      <button
+        type="button"
+        class="btn secondary"
+        disabled
+        title="There is no SWOC export. The console's CSVs are the roster, placement and the time ledger, on the Exports screen; written notes about named students are not among them."
+      >
         <span class="icon" aria-hidden="true">download</span> Export
       </button>
     </div>
   </div>
 
-  <!-- The board's four filters. Batch is real — the list the screen holds
-       carries each student's batch. Department is now a READ-OUT of the
-       caller's own reach (B1.4): GET /admin/swoc narrows the list server-side
-       and states that reach in X-Reep-Scope, there is no parameter to send, and
-       a row carries no department to filter on here either. Mentor and semester
-       are still the Phase 4 SWOC task (B7.1, B7.4). -->
+  <!-- The board's four filters, and what each one actually is.
+       Department is a READ-OUT of the caller's own reach (B1.4): GET /admin/swoc
+       narrows the list server-side and states that reach in X-Reep-Scope, there
+       is no parameter to send, and a row carries no department to filter on
+       here either. Batch narrows the list the screen already holds — every row
+       carries its batch. Semester goes to the SERVER (?semester=) and narrows
+       the ENTRIES. Mentor is disabled: no row carries a mentor and the endpoint
+       takes no such parameter. -->
   <div class="sw-filters">
     @if (scopeChip(); as reach) {
       <span class="chip {{ reach.tone }}">{{ reach.label }}</span>
@@ -31,7 +43,7 @@
       <span class="lbl">Batch</span>
       <span class="val">{{ batchFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Batch" (change)="batchFilter.set($any($event.target).value)">
+      <select aria-label="Batch" (change)="batchFilter.set(selectValue($event))">
         <option value="" [selected]="batchFilter() === ''">All batches</option>
         @for (batch of batches(); track batch) {
           <option [value]="batch" [selected]="batchFilter() === batch">{{ batch }}</option>
@@ -39,28 +51,65 @@
       </select>
     </div>
 
+    <!-- DEMOTED, NOT PENDING. `SwocStudentRow` is student, USN, batch and the
+         entries — no mentor — and GET /admin/swoc takes no mentor parameter, so
+         this menu could only have hidden students without saying why. No B7
+         task added one. Plain `disabled`, the real reason in the title, no
+         phase number. -->
     <div class="select sw-filter-pending">
       <span class="lbl">Mentor</span>
       <span class="val">All mentors</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Mentor" [reepPending]="swocBackendPhase">
+      <select
+        aria-label="Mentor — this board cannot be narrowed to one mentor's group"
+        disabled
+        title="A SWOC row carries the student, their USN and their batch, and no mentor — so this board cannot be cut to one mentor's group. The Mentee Log is the per-group screen."
+      >
         <option>All mentors</option>
       </select>
     </div>
 
-    <div class="select sw-filter-pending">
+    <div class="select" [class.sw-filter-pending]="semesterOptions().length === 0">
       <span class="lbl">Semester</span>
-      <span class="val">All semesters</span>
+      <span class="val">{{ semesterFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Semester" [reepPending]="swocBackendPhase">
-        <option>All semesters</option>
-      </select>
+      @if (semesterOptions().length === 0) {
+        <select
+          aria-label="Semester — no line on this board carries one yet"
+          disabled
+          title="No line on this board carries a semester yet. The semester is stamped when a line is written and is never backfilled, so lines written before that existed have none."
+        >
+          <option>All semesters</option>
+        </select>
+      } @else {
+        <select
+          aria-label="Semester — narrows the lines, not the students"
+          (change)="setSemesterFilter(selectValue($event))"
+        >
+          <option [value]="allSemesters" [selected]="semesterFilter() === allSemesters">
+            All semesters
+          </option>
+          @for (semester of semesterOptions(); track semester) {
+            <option [value]="semester" [selected]="isSemesterFilter(semester)">
+              Semester {{ semester }}
+            </option>
+          }
+        </select>
+      }
     </div>
 
     <p class="sw-summary">
       {{ studentCount() | plural: 'student' }} ·
       {{ writtenCount() }} with notes · every entry keeps its author, date and viewpoint
     </p>
+
+    @if (semesterFilter() !== allSemesters) {
+      <p class="sw-summary sw-summary--note">
+        Showing lines written in {{ semesterFilterLabel().toLowerCase() }}. Everybody stays on the
+        list — a student nobody wrote about that term has an empty board rather than disappearing —
+        and a line whose semester was never recorded is in no semester, so it is not in this slice.
+      </p>
+    }
   </div>
 
   @if (scopeNote(); as note) {
@@ -109,7 +158,8 @@
         <div class="sw-rows">
           <table class="dt-table">
             <caption class="sr-only">
-              Students, the lines written about each and whether they have acknowledged them
+              Students, the lines written about each and how many of those the student has
+              acknowledged
             </caption>
             <thead>
               <tr>
@@ -138,7 +188,17 @@
                     </button>
                   </td>
                   <td class="sw-num">{{ student.entries.length }}</td>
-                  <td class="sw-num sw-unknown" title="Not recorded yet">—</td>
+                  <!-- B7.5. A real count now: how many of the lines on this
+                       student's board they have said they read. A student with
+                       nothing written about them has nothing to acknowledge, so
+                       that row is a dash and not a zero. -->
+                  @if (student.entries.length === 0) {
+                    <td class="sw-num sw-unknown" title="Nothing written, so nothing to acknowledge">
+                      —
+                    </td>
+                  } @else {
+                    <td class="sw-num">{{ ackCount(student) }}/{{ student.entries.length }}</td>
+                  }
                 </tr>
               } @empty {
                 <tr>
@@ -156,11 +216,9 @@
 
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          This is every student your grant reaches — <code>GET /api/admin/swoc</code> is scoped
-          (B1.4) and narrows the students and their entries alike, which is what the pill above
-          states. It is not a mentor group: the row carries no mentor or semester to narrow by, so
-          those two filters wait for the Phase 4 SWOC task (B7.1, B7.4). The acknowledgement column
-          fills with B7.5; nothing records that today, so every row reads as a dash.
+          This is every student your grant reaches — <code>GET /api/admin/swoc</code> is scoped and
+          narrows the students and their entries alike, which is what the pill above states. It is
+          not a mentor group: the row carries no mentor, so this board cannot be cut to one.
         </div>
       }
     </section>
@@ -177,28 +235,135 @@
             <p class="sw-who__meta">
               {{ student.batch ?? 'No batch' }} ·
               @if (student.entries.length) {
-                {{ student.entries.length | plural: 'line' }} on their landing
+                {{ student.entries.length | plural: 'line' }} on their landing ·
+                {{ ackCount(student) }} acknowledged
               } @else {
                 nothing written yet
               }
             </p>
           </div>
           <div class="sw-who__actions">
-            <button type="button" class="btn secondary sm" [reepPending]="swocBackendPhase">
+            <button
+              type="button"
+              class="btn secondary sm"
+              [class.on]="historyOpen()"
+              [attr.aria-expanded]="historyOpen()"
+              aria-controls="sw-history"
+              [disabled]="historyBusy()"
+              (click)="toggleHistory()"
+            >
               <span class="icon" aria-hidden="true">history</span> Edit history
             </button>
-            <button type="button" class="btn secondary sm" [reepPending]="swocBackendPhase">
+            <button
+              type="button"
+              class="btn secondary sm"
+              [class.on]="semesterViewOpen()"
+              [attr.aria-expanded]="semesterViewOpen()"
+              aria-controls="sw-semesters"
+              (click)="toggleSemesterView()"
+            >
               <span class="icon" aria-hidden="true">schedule</span> Semester view
             </button>
           </div>
         </div>
 
+        <!-- B7.3's edit history, scoped exactly as the board is: the same
+             admin.swoc key and the same student ancestry. It is deliberately
+             NOT a link to the Main-Admin-only audit trail, which would answer
+             403 for everybody who can press this. -->
+        @if (historyOpen()) {
+          <section class="sw-panel" id="sw-history" aria-labelledby="sw-history-title">
+            <h3 class="sw-panel__title" id="sw-history-title">
+              Every edit to {{ student.name }}'s lines
+            </h3>
+            @if (historyBusy()) {
+              <div class="notice info" role="status">
+                <span class="icon" aria-hidden="true">hourglass_empty</span>Loading…
+              </div>
+            } @else if (historyError()) {
+              <div class="notice" role="alert">
+                <span class="icon" aria-hidden="true">error</span>{{ historyError() }}
+              </div>
+            } @else if (revisions(); as edits) {
+              @if (edits.length === 0) {
+                <p class="sw-foot">
+                  No edit recorded. That means nothing has been rewritten SINCE THIS RECORD BEGAN,
+                  not that no line was ever changed — this table started empty, so a line edited
+                  before it existed has nothing in it. The Main Admin has the older trail on the
+                  Audit screen.
+                </p>
+              } @else {
+                <ol class="sw-edits">
+                  @for (edit of edits; track edit.id) {
+                    <li class="sw-edit">
+                      <p class="sw-edit__line">“{{ revisionLine(edit) }}”</p>
+                      <p class="sw-edit__by">
+                        {{ edit.by ?? 'Editor not recorded' }} · {{ when(edit.changed_at) }}
+                      </p>
+                      @for (change of changesIn(edit); track change.field) {
+                        <p class="sw-edit__change">
+                          <span class="chip neutral">{{ change.field }}</span>
+                          {{ change.from }} → {{ change.to }}
+                        </p>
+                      } @empty {
+                        <p class="sw-edit__change">Nothing this screen prints changed.</p>
+                      }
+                    </li>
+                  }
+                </ol>
+              }
+            }
+          </section>
+        }
+
+        <!-- B7.4's semester view: this student's lines grouped by the semester
+             each was stamped with AT WRITE TIME. "Not recorded" is a group of
+             its own and never folded into a number — a line written before the
+             column existed belongs to no semester, and putting it in the
+             current one would invent a fact on the student's own screen. -->
+        @if (semesterViewOpen()) {
+          <section class="sw-panel" id="sw-semesters" aria-labelledby="sw-semesters-title">
+            <h3 class="sw-panel__title" id="sw-semesters-title">
+              {{ student.name }}'s lines by semester
+            </h3>
+            @if (semesterBreakdown().length === 0) {
+              <p class="sw-foot">Nothing written about this student yet.</p>
+            } @else {
+              <ul class="sw-semester-list">
+                @for (group of semesterBreakdown(); track group.key) {
+                  <li class="sw-semester">
+                    <span class="sw-semester__label">{{ group.label }}</span>
+                    <span class="chip neutral">{{ group.count | plural: 'line' }}</span>
+                    @if (group.key) {
+                      <button
+                        type="button"
+                        class="btn ghost sm"
+                        (click)="setSemesterFilter(group.key)"
+                      >
+                        Show the whole board for this semester
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+              @if (semesterFilter() !== allSemesters) {
+                <p class="sw-foot">
+                  The board is filtered to {{ semesterFilterLabel().toLowerCase() }}, so this
+                  breakdown counts that slice. Clear the semester filter to count every line.
+                </p>
+              }
+            }
+          </section>
+        }
+
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          Each entry below carries the author, the date and the viewpoint the API stamped. The
-          semester view, the student's acknowledgement, the per-entry edit history, the links to
-          skills, interviews and jobs, and the rule that only the author or an admin may edit a line
-          are the Phase 4 SWOC task (B7) — nothing on this screen stands in for them.
+          Each line below carries the author, the semester it was written in, the date and the
+          viewpoint the API stamped — and whether the student has acknowledged it. A line belongs to
+          whoever wrote it: its author may edit or remove it, the Main Admin may edit any, and a
+          line nobody is recorded as having written is the office's alone. If you disagree with a
+          colleague's line, add your own — this board keeps every viewpoint instead of averaging
+          them.
         </div>
 
         <div class="sw-quads">
@@ -234,10 +399,8 @@
                   ></textarea>
                   <div class="sw-entry__meta">
                     <span class="chip accent">{{ sourceLabel(entry.source) }}</span>
-                    <span class="sw-entry__by">
-                      {{ entry.author ?? 'Author no longer on the roster' }} ·
-                      {{ when(entry.recorded_at) }}
-                    </span>
+                    <span class="chip {{ ackChip(entry).tone }}">{{ ackChip(entry).label }}</span>
+                    <span class="sw-entry__by">{{ entryBy(entry) }}</span>
                     <label class="sw-weight">
                       <span class="sr-only">Weight — heavier lines show first</span>
                       <select
@@ -306,7 +469,8 @@
 
         <p class="sw-foot">
           Edits save when you click away from a line. Ctrl+Enter saves a new entry. The student sees
-          changes immediately.
+          changes immediately, and the semester on a new line is stamped from the student's current
+          semester at the moment it is written.
         </p>
       } @else {
         <div class="sw-pick-one">

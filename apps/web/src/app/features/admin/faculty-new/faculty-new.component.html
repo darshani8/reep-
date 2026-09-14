@@ -184,15 +184,16 @@
                 <label for="faculty-employee-id">Employee ID (optional)</label>
                 <input
                   id="faculty-employee-id"
-                  [reepPending]="employeeIdPhase"
+                  disabled
+                  [title]="employeeIdReason"
                   placeholder="e.g. BGS-F-0231"
                   autocomplete="off"
                 />
                 <p class="help">
-                  Still disabled, and no longer waiting on Phase 3: the faculty identity work
-                  (B3.1–B3.6) has landed and there is still no employee id — no column on the
-                  account, no field on the endpoint, and none asked for. An enabled box here would
-                  take a number and drop it.
+                  Disabled, and waiting on no phase. The faculty identity work (B3.1–B3.6) and
+                  Phase 4 have both landed and there is still no employee id — no column on the
+                  account, no field on <code>POST /api/admin/faculty</code>, and none asked for.
+                  An enabled box here would take a number and drop it.
                 </p>
               </div>
             </div>
@@ -378,8 +379,8 @@
         <div class="notice accent">
           <span class="icon" aria-hidden="true">key</span>
           <div>
-            <strong>This wizard grants no functions, and these boxes are still disabled.</strong>
-            B2.3 has landed and the functions below are real — but they are granted somewhere else.
+            <strong>This wizard grants no functions, and these boxes are disabled for good.</strong>
+            The functions below are real — but they are granted somewhere else.
             <code>POST /api/admin/faculty</code> creates the account as Faculty with no mentor group
             and nothing granted, and it has no field to ask for one. A grant also carries a reason,
             a scope target and an expiry that this wizard never asks for, so a tick here could not
@@ -392,7 +393,7 @@
           @for (choice of functionChoices; track choice.label) {
             <li class="function-row">
               <label class="check">
-                <input type="checkbox" [reepPending]="functionsAtCreationPhase" />
+                <input type="checkbox" disabled [title]="functionsAtCreationReason" />
                 <span class="function-name">{{ choice.label }}</span>
               </label>
               <p class="function-desc">{{ choice.description }}</p>

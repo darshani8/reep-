@@ -200,8 +200,13 @@ export class RegistrationComponent {
     this.photoFile.set((ev.target as HTMLInputElement).files?.[0] ?? null);
   }
 
-  /// Auto-approved is the only "account is active immediately" branch; every
-  /// other terminal state on submission is a human-review hold.
+  /// Auto-approved is the only branch a seating rule decided without a human;
+  /// every other terminal state on submission is a human-review hold.
+  ///
+  /// IT IS NOT "ACTIVE IMMEDIATELY", and the card no longer says so (B11.4).
+  /// Approval mints the account with an unusable password sentinel and emails a
+  /// setup link; the applicant still has to confirm the address with a
+  /// six-digit code and set a password before they can sign in.
   readonly approved = computed(() => this.result()?.status === 'AUTO_APPROVED');
 
   async submit(event: Event): Promise<void> {
@@ -282,7 +287,20 @@ export class RegistrationComponent {
     } catch {
       /* no JSON body — fall through to the status-based message */
     }
-    if (res.status === 409) return 'An application with this email already exists.';
+    // NOT "an application with this email already exists" (B11.4). That is
+    // verbatim the sentence the server deleted from its own 409 on purpose: it
+    // turned the most public screen in the product into a "has X applied to this
+    // college" lookup for anyone holding a list of names, and applying somewhere
+    // is not something an applicant chose to publish. Restoring it as a
+    // client-side fallback restores the oracle — a body with no `detail` is the
+    // one case where this screen speaks for the server, so it must say what the
+    // server would have said.
+    if (res.status === 409) {
+      return (
+        'This application could not be accepted. If you have already applied, ' +
+        'or you think this is a mistake, contact the placement office.'
+      );
+    }
     if (res.status === 422) return 'Please check the form — some details are not valid.';
     return 'Something went wrong submitting your registration. Please try again.';
   }

@@ -1,5 +1,13 @@
 # Chapter 4 — Migrations & Alembic: How the Schema Got Here and How to Change It
 
+> **HISTORICAL — this book was written against the codebase as it stood in 2026-08
+> and has not been maintained since. `AGENTS.md` is the current truth; where this
+> chapter and that file disagree, this chapter is wrong.** It is kept for the
+> *reasoning*, which is still this codebase's reasoning. `README.md` in this
+> directory lists everything the book describes that no longer exists — the
+> LiveKit voice stack, the DIRECTOR role, the `openai` interview engine,
+> `ThemeService` / `IconComponent` / four of the five `shared/kit/` components.
+
 After this chapter you will be able to add a migration to REEP that applies cleanly on a
 fresh clone, on a colleague's half-built dev database and on the live server; you will
 know which of Alembic's defaults this project relies on and which it deliberately does not

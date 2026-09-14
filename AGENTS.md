@@ -30,11 +30,15 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 - `python -m app.seed` **refuses to run when `ENV=prod`.** It creates the logins above — including the Main Admin, who by rule 2 below reads every student's marks, attendance and USN — behind passwords published in this file. Those accounts must never exist on a production host, so there is no override flag.
 - `python -m app.seed_kb` is the production-safe seed: the grounded assistant's Knowledge Base, no accounts. Production needs it (without it the assistant has nothing to ground against) and never needs the demo users, which is why they no longer travel together.
 
-**Handing a deployment over: `python -m app.purge_people`.** The counterpart to the seeds — it empties a deployment of PEOPLE (every account except the Main Admin, every record those accounts produced, every transcript and every recording, and the documents and audio on the volume) while leaving the institution and the catalogues standing: colleges, departments, courses, specializations, batches, job postings, the badge and certification catalogues and the Knowledge Base. It exists because nothing else can do it: `grant_access` creates and updates accounts and cannot remove one, the Main Admin console has no screen at all for deleting a faculty account, and the Ops task menu is a FIXED LIST because free text there is RCE on the cluster. **Every one of the 93 tables carries a written verdict in `VERDICTS`, and a table nobody classified ABORTS THE RUN** — not kept (which leaves a student's records behind) and not emptied (which destroys a catalogue somebody added last week); `tests/test_purge_people.py` fails in CI first, so the next person to add a model is made to decide. **Files go before rows**, because a row is the last pointer to a student's resume and a named student's recorded voice, and a delete that loses the pointer first leaves bytes nobody can find — `retention._delete_interview_audio`'s reasoning, applied to the five document stores and the S3 recordings. It refuses unless there is EXACTLY ONE ADMIN: zero would lock every human out of the console, and picking between two would be this module choosing which colleague keeps their account. **Dry run is the default**; `--apply` also demands `--i-understand-this-is-permanent`, and the Ops task's `purge-people` demands a typed sentence of its own on top of the menu's `confirm: run`, because that box is muscle memory by the time anyone reaches this task and nothing else on the menu destroys anything. The delete order satisfies 93 real foreign keys — several with no `ON DELETE` at all (`login_days.user_id`, `mentors.user_id`, `students.user_id`, and the four `created_by_user_id` columns on the KEPT institutional spine, which are nulled first) — and the test proves it by running the real delete against the real schema inside a transaction it rolls back, which is why `_delete_rows` is factored out of `execute` without a commit.
+**Handing a deployment over: `python -m app.purge_people`.** The counterpart to the seeds — it empties a deployment of PEOPLE (every account except the Main Admin, every record those accounts produced, every transcript and every recording, and the documents and audio on the volume) while leaving the institution and the catalogues standing: colleges, departments, courses, specializations, batches, job postings, the badge and certification catalogues and the Knowledge Base. It exists because nothing else can do it: `grant_access` creates and updates accounts and cannot remove one, the Main Admin console has no screen at all for deleting a faculty account, and the Ops task menu is a FIXED LIST because free text there is RCE on the cluster. **Every one of the 109 tables carries a written verdict in `VERDICTS`, and a table nobody classified ABORTS THE RUN** — not kept (which leaves a student's records behind) and not emptied (which destroys a catalogue somebody added last week); `tests/test_purge_people.py` fails in CI first, so the next person to add a model is made to decide. **Files go before rows**, because a row is the last pointer to a student's resume and a named student's recorded voice, and a delete that loses the pointer first leaves bytes nobody can find — `retention._delete_interview_audio`'s reasoning, applied to the five document stores and the S3 recordings. It refuses unless there is EXACTLY ONE ADMIN: zero would lock every human out of the console, and picking between two would be this module choosing which colleague keeps their account. **Dry run is the default**; `--apply` also demands `--i-understand-this-is-permanent`, and the Ops task's `purge-people` demands a typed sentence of its own on top of the menu's `confirm: run`, because that box is muscle memory by the time anyone reaches this task and nothing else on the menu destroys anything. The delete order satisfies 180 real foreign keys — several with no `ON DELETE` at all (`login_days.user_id`, `mentors.user_id`, `students.user_id`, and the four `created_by_user_id` columns on the KEPT institutional spine, which are nulled first) — and the test proves it by running the real delete against the real schema inside a transaction it rolls back, which is why `_delete_rows` is factored out of `execute` without a commit.
 
-**Clearing a demonstration cohort: `python -m app.purge_students`.** The narrow counterpart, and the one that gets run on a deployment that is STAYING IN USE: it deletes every account whose role is STUDENT, everything those accounts produced, and everything staff wrote ABOUT them — while every MENTOR, ALUMNI and ADMIN account, their signatures, their upskilling shelf, their governance grants and their own leave requests stay exactly where they are. `purge_people` cannot express that, because its verdicts are whole-table (`students: EMPTY`, `users: SURVIVOR`): running it to clear a cohort deletes every faculty account on the way through. So here a verdict is THREE values and not two — "delete the student rows" is a different sentence in a table only a student can own (`resumes`) and in one shared with staff (`leave_requests`, `conversations`, `agent_runs`, `login_days`). 38 tables are emptied outright, 33 are untouched, 21 are scoped, and **`STUDENT_VERDICTS`'s key set is checked against `purge_people.VERDICTS`**, so the next person to add a model is stopped by BOTH destructors rather than the one they happened to read. **The doomed set is read ONCE, before anything is deleted**, and held as literal ids: as a live subquery over `users` it would be right only by accident, because the accounts go near the END of the pass and any table ordered after them would match nothing and silently leave its rows behind. `registrations` is the one table scoped by something other than an account — an application that was APPROVED, or that carries a doomed address, goes; the office's PENDING queue survives, because an approved application left behind makes `POST /api/register`'s duplicate guard refuse that address forever with no account left to explain why. The three file stores are `purge_people`'s own functions handed a subset, never a copy. Dry run is the default, the Ops task's `purge-students` demands the typed sentence `DELETE EVERY STUDENT` (deliberately NOT `purge-people`'s, so the words name the act), and `execute` refuses to commit if the number of non-student accounts changed.
+**Clearing a demonstration cohort: `python -m app.purge_students`.** The narrow counterpart, and the one that gets run on a deployment that is STAYING IN USE: it deletes every account whose role is STUDENT, everything those accounts produced, and everything staff wrote ABOUT them — while every MENTOR, ALUMNI and ADMIN account, their signatures, their upskilling shelf, their governance grants and their own leave requests stay exactly where they are. `purge_people` cannot express that, because its verdicts are whole-table (`students: EMPTY`, `users: SURVIVOR`): running it to clear a cohort deletes every faculty account on the way through. So here a verdict is THREE values and not two — "delete the student rows" is a different sentence in a table only a student can own (`resumes`) and in one shared with staff (`leave_requests`, `conversations`, `agent_runs`, `login_days`). 46 tables are emptied outright, 39 are untouched, 24 are scoped, and **`STUDENT_VERDICTS`'s key set is checked against `purge_people.VERDICTS`**, so the next person to add a model is stopped by BOTH destructors rather than the one they happened to read. **The doomed set is read ONCE, before anything is deleted**, and held as literal ids: as a live subquery over `users` it would be right only by accident, because the accounts go near the END of the pass and any table ordered after them would match nothing and silently leave its rows behind. `registrations` is the one table scoped by something other than an account — an application that was APPROVED, or that carries a doomed address, goes; the office's PENDING queue survives, because an approved application left behind makes `POST /api/register`'s duplicate guard refuse that address forever with no account left to explain why. The three file stores are `purge_people`'s own functions handed a subset, never a copy. Dry run is the default, the Ops task's `purge-students` demands the typed sentence `DELETE EVERY STUDENT` (deliberately NOT `purge-people`'s, so the words name the act), and `execute` refuses to commit if the number of non-student accounts changed.
 
 **Tests:** `cd apps/api-py && .venv/Scripts/python -m pytest` (the backend suite). Front end: `cd apps/web && npx ng build`.
+
+**ONE THING AT A TIME TOUCHES ONE DATABASE.** `tests/conftest.py` says it in its first paragraph and the consequence is nowhere: the integration tests hit the SEEDED DEV DATABASE — the same `reep_py` a running `uvicorn` is using, the same one `python -m app.seed` wrote. So **two pytest runs at once, or a pytest run beside a live API, corrupt each other's fixtures**, and the failures that come out of it are the expensive kind: they look completely real, they name a plausible cause, and every one of them passes when you re-run it on its own. The two that cost an afternoon were a purge-plan count off by one (the other run's throwaway student was in the table when the plan was taken) and a fixture student answering 404 (the other run's teardown had deleted them mid-test). Nothing in the suite is isolated by a transaction — `make_user` and its friends commit, because the endpoints under test commit.
+
+The workaround is one environment variable and no code: give each concurrent run **its own database**. `createdb reep_alice`, `DATABASE_URL="postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_alice" .venv/Scripts/python -m alembic upgrade head`, then the same `DATABASE_URL` on `python -m app.seed` and on every `pytest`, `alembic` and script invocation for that run. Two agents, two humans, or a human and a CI container on one machine are three separate databases, not one shared one. `alembic check` and `alembic current` read the database too, so they belong to whichever run owns it.
 
 **CI has five jobs** (`api`, `pii-gate`, `api-imports`, `web`, `cdk`), and one of
 them exists because a manifest shipped incomplete. `api-imports` proves
@@ -53,8 +57,23 @@ as a string. So deleting a job does NOT retire its requirement: the ruleset
 asked for "Voice worker (dependency completeness)" for months after that job
 went with the LiveKit stack, which — had the ruleset ever been applied — would
 have blocked every pull request on a check that can never report. Rename or
-remove a job and edit all three files in the same commit. `tools/ci/preflight.sh`
-runs the same five locally, in the order that fails fastest.
+remove a job and edit all three files in the same commit.
+
+**FOUR files, and the agreement is a TEST now, not a habit** (Phase 5).
+`tools/ci/preflight.sh` runs the same five locally, in the order that fails
+fastest — and it ran only FOUR of them until Phase 5, skipping `Infra (CDK synth
+guards)` with a reason written in its own usage text ("it needs its own Python
+3.12 environment and only matters when infra/ is touched"). Both halves were
+true and neither made it optional: a required check runs on every pull request
+whether `infra/` was touched or not, and a local runner that covers four fifths
+of the gate teaches you to trust it and then lets you push into the fifth. It
+now SKIPs that check (exit 2, never a silent pass) when `aws-cdk-lib` is not
+installed. `tests/test_codebase_guards.py` §34 parses `ci.yml`'s job names and
+compares them against the ruleset, against `REQUIRED_CHECKS` and against
+`preflight.sh`, and fails the `api` job when any of the four disagrees —
+`protect-main.sh`'s own grep only ever fired for whoever remembered to run it,
+and said nothing about the committed ruleset, which is how that stale entry
+survived.
 
 The `web` job also runs three static checks over `apps/web/src` before the slow
 steps, each guarding a rule that is invisible at the call site:
@@ -127,7 +146,11 @@ The interview now leaves a **record of its own**, in four tables (`app/models/in
 
 **Consent is a row and the socket enforces it.** No live `interview_consents` grant for the current `INTERVIEW_CONSENT_VERSION` and the interview never opens — close **4013**, refused before anything is written; revoked while it runs and the heartbeat notices within a minute — close **4014**. Three separate booleans (live AI, store transcript, store audio), because they are three different disclosures and one boolean makes "they consented" unfalsifiable. `interview_sessions.consent_id` pins the exact grant, so *"was this student consented, to what wording, at the time of interview X"* stays answerable after it has been revoked. Opening fails **closed** and the mid-interview check fails **open**, deliberately: "we could not check whether they agreed" must never start an interview, and a database hiccup must never end one that a real grant authorised.
 
-**Audio: off, and "off" is two independent switches.** Nothing is captured unless `INTERVIEW_RECORDING_ENABLED=true` *and* the student holds a live grant whose `scope_store_audio` is true — a separate, unticked checkbox whose copy says plainly that staff can listen. Neither is true in a default deployment. When both are, `app/interview_audio.py` writes two WAV files per interview (one per speaker, never mixed — the two directions are not time-aligned), capped by `INTERVIEW_RECORDING_MAX_BYTES` with a truncation flag rather than a silent cut, retrievable only by whoever holds `admin.interview_audio` (the Main Admin by baseline; a MENTOR only by an explicit grant) and deleted on the same 180-day clock. Branch on `interview_sessions.audio_recorded`, **never** on `audio_path IS NOT NULL` — a NULL path collapses four different facts into one. This overrides `docs/interview-engine-v3.md` §8.4, which argued against capture; read that section anyway, because it is why every guard above exists.
+**WHAT IS CONSENTED TO IS THE COLLEGE'S NOW, AND THE ROW IS AN ACKNOWLEDGEMENT (B6.1, 2026-09-13).** `interview_policies` (`app/models/interview_policy.py`, resolved by `app/interview_policy.py`) holds one row per `(college, course)` — `store_transcript`, `store_audio`, `retention_days`, `daily_cap`, `attempt_cap`, `time_limit_seconds` — edited through `PUT /api/admin/interview-policies/{college}[/{course}]` behind the new `admin.interviews` capability. **No row is seeded and the absence of one IS the default**: a deployment that never opens the policy screen behaves exactly as it did before the table existed, and the console's "not configured" state stays reachable rather than being a row holding the defaults. The client posts `POST /api/interview/consent` at Start with **the version string and nothing else**; the server copies the policy's two storage scopes onto the row and writes `scope_live_ai` true. **The three booleans survive** — they are what gets copied — and a stale bundle that still sends its own is neither refused nor obeyed. The POST is **idempotent when nothing changed**, and that is load-bearing: superseding an identical acknowledgement would stamp `revoked_at` on the row a RUNNING interview is pinned to and close it 4014 from a second tab. **`DELETE /api/interview/consent` is GONE and answers 405 for everyone** — deleted rather than made to 403, `admin_students.py`'s precedent, because a capability refusal would mean the endpoint is still there waiting for a grant. 4014 therefore fires when the pinned grant is superseded by one covering LESS (`_successor_covers` in `routers/interview.py`), which is the compatibility board's "a policy change stops a running session with 4014 only when it removes a scope". `store_transcript=false` suppresses **both** the `messages` row and the `interview_turns` row and stamps `interview_sessions.transcript_suppressed` — without that flag `turns_emitted` > `turns_persisted` would fire the runbook above on every interview at such a college, and "we chose not to keep this" must never look like "we lost this". The report is still written.
+
+**Two ceilings, not one (B6.4).** `daily_cap` counts **completed** interviews in the rolling 24 h — a dropped call no longer costs a student a turn — and `attempt_cap` counts **every session row**, because each one billed an upstream handshake and "a cap that only counts clean finishes is a cap a crash loop never hits". `ck_interview_policy_bounds` refuses `attempt_cap < daily_cap`, which would make the allowance unreachable. The deployment defaults are `INTERVIEW_MAX_PER_STUDENT_PER_DAY` (8) and `INTERVIEW_MAX_ATTEMPTS_PER_STUDENT_PER_DAY` (20). `POST /api/admin/students/{id}/interview-cap/reset {reason}` writes `interview_cap_resets` (reason mandatory, in words, B3.1's rule — this is the other console action whose effect is invisible a day later) and the count's window becomes `GREATEST(now - 24 h, the latest reset)` — an **extra lower bound**, so a second reset can only move it forward and a student mid-day never loses attempts already counted.
+
+**Audio: off, and "off" is now THREE independent switches** (it was two until B6.1). Nothing is captured unless `INTERVIEW_RECORDING_ENABLED=true` (the operator's), *and* the college's `interview_policies.store_audio` is true, *and* the student holds a live grant whose `scope_store_audio` is true — which since B6.1 is a copy of the college's decision that the student was shown and acknowledged, no longer a checkbox they tick. All three are read in `recorder_for`, the one function that answers "when does REEP record a student's voice"; the college's is passed in from the advisory-locked transaction that opened the interview rather than re-read, so an edit landing mid-handshake cannot build a recorder the rest of the session does not expect. The panel's copy says plainly that staff can listen. NONE of the three is true in a default deployment. When all three are, `app/interview_audio.py` writes two WAV files per interview (one per speaker, never mixed — the two directions are not time-aligned), capped by `INTERVIEW_RECORDING_MAX_BYTES` with a truncation flag rather than a silent cut, retrievable only by whoever holds `admin.interview_audio` (the Main Admin by baseline; a MENTOR only by an explicit grant) and deleted on the same 180-day clock. Branch on `interview_sessions.audio_recorded`, **never** on `audio_path IS NOT NULL` — a NULL path collapses four different facts into one. This overrides `docs/interview-engine-v3.md` §8.4, which argued against capture; read that section anyway, because it is why every guard above exists.
 
 **The LiveKit voice stack was REMOVED in 2026-09.** `voice_agent.py`, `app/routers/voice.py` (`/api/voice/*`), `requirements-voice.txt`, the `chat-voice.service.ts` client, the orb's voice overlay, the CI `worker-imports` job and both `livekit-*` dependencies are gone, along with the fourth process and its separate Python 3.12 venv. It was a four-stage cascade (Groq Whisper -> Groq Llama -> TTS) over LiveKit's WebRTC transport, and it was superseded by the mock interviewer, which is genuinely speech-to-speech. **The one voice experience now is `/student/assistant`** (Amazon Nova 2 Sonic, in-process, no extra venv). Three things survived the removal on purpose: `Message.channel` is still a plain String column, so historical `voice` rows read back unchanged and the runbook query above still groups by it; `conversations.append_message`'s `provider_turn_id` dedup is still the interview's first dedup layer, now pinned by `tests/test_conversation_dedup.py` instead of through the deleted endpoint; and `AgentHistoryService` (`apps/web/src/app/core/`) carries the three non-voice members the interview screen needs — `chatHistory`, `loadHistory()`, `clearConversation()` — out of the 840-line service that was deleted.
 
@@ -360,6 +383,132 @@ guardrails whose subject is Phase 4 are listed at the foot of that module with
 the reason each cannot be pinned yet — a checklist with five quiet gaps is one
 somebody signs off as complete.
 
+### Phase 4 — the console's promises came due (2026-09-13)
+
+Phase 2 drew the whole admin console and disabled every control whose endpoint
+did not exist yet, with the phase written on the control. Phase 4 is those
+endpoints, in six areas at once — **4a** semesters, promotion and graduation
+(B4) plus the catalogue copy (B13); **4b** spreadsheet imports, placement
+criteria, the alert engine and analytics (B8) with jobs and placement (B12);
+**4c** interview tracks, the college's interview policy and the interview
+record (B5/B6/B17); **4d** mentor assignment history and SWOC ownership
+(B9/B7); **4e** the leave chain, balances, attachments and the paper (B10);
+**4f** the registration queue, its checks, HOLD and the rules CRUD (B11). The
+areas that changed a rule already have their own sections above; what follows is
+the part that has no other home.
+
+**81 disabled controls went to 1, and the survivor is honest.** A
+`[reepPending]` badge is truthful exactly while the endpoint is missing; the
+moment it lands, that badge is the stale label `45b91a9` had just finished
+removing from the Faculty screen. So every control was taken back to its router
+and decided by READING THE ROUTER, never by trusting a template comment that may
+predate it. **Five groups were DEMOTED rather than wired** — plain `disabled`
+with the real reason in a `title`, no phase number, because a phase number
+promises a date and these are not waiting for one:
+
+  * **Student 360's "Hold back"**. `KIND_HOLD_BACK` exists in
+    `app/models/semester_history.py` and **nothing writes it**: a student is
+    held back through `PromoteIn.hold_back`, on the batch dialog, not from their
+    own panel. A button calling a writer that does not exist is worse than a
+    disabled one.
+  * **Student 360's SWOC, Leave and Uploads tabs.** Every one of those endpoints
+    is a programme-wide QUEUE, not one person's file. Wiring them would have made
+    a per-student screen fetch and filter a roster.
+  * **Analytics' Batch / Course / Track filters.** Neither analytics endpoint
+    takes a cohort and both aggregate server-side, so there is nothing to narrow
+    client-side either — and a Track is the INTERVIEW vocabulary: no attendance
+    record, ledger entry or offer carries one.
+  * **The roster's Readiness / CGPA / Attendance columns.** All three are real,
+    but only on `GET /admin/students/{id}/360` — one request per student, so a
+    roster that filled them would be one request per ROW. The tooltips point at
+    360.
+  * **The shell's notifications bell.** There is no per-account feed at all.
+
+**Building the wiring found two real defects that no test had.** `placement`
+called a `selectValue` helper that did not exist, so the screen's own filter was
+a template reference to nothing; and BOTH batch dialogs emitted a `completed`
+output that no parent bound, which meant the grid behind a successful promote or
+graduate went on rendering the PRE-WRITE read — the admin pressed the button, it
+worked, and the screen said it had not. Neither is visible from a router and
+neither is visible from a board. They are visible from pressing the button.
+
+**THE FOUR REFUSALS, and the reason each is not the obvious answer.** These
+matter more than the list above, because a task refused with no record is a task
+somebody re-opens next quarter and re-refuses at the same cost.
+
+**B4.4's alumni-profile auto-create is IMPOSSIBLE, not merely unwise.**
+Graduation was asked to create the graduate's `alumni_profiles` row so they
+arrive as a finished alumnus. `alumni_profiles.company` is **NOT NULL**, so such
+a row must invent an employer for somebody who has not told us one — and worse,
+**row EXISTENCE is what `GET /api/alumni/profile`'s `created:` flag reports**,
+and that flag is the entire branch behind the first-login create-profile form.
+Minting the row does not pre-fill the form; it DELETES the form, permanently,
+for every graduate. So graduation flips the role and the status and stops there,
+and the graduate meets the create-profile form, which is what it is for. What
+was added instead is a nullable `alumni_profiles.student_id`, which the form
+fills in, so the alumnus and the record they left behind are joinable without
+either one being guessed.
+
+**B6.6's `interview_turns.question_id` cannot be filled by anything, and B5.5
+depends on it.** The column is there — free on an empty nullable column, costly
+to add later to a table with hundreds of thousands of rows — and **nothing
+writes it**. The question bank is rendered into the INSTRUCTIONS once, as a
+block of `[phase] text` lines with the model explicitly told to rephrase rather
+than recite; the engine never SELECTS a question, so there is no "the question
+it injected" to record, `_TurnRecord` has no slot for one and neither engine
+could fill it. 04's B5.5 (`asked_count` / `avg_score` per question) is built on
+that column and is therefore refused with it. If it is ever filled it will be by
+POST-HOC matching of the interviewer's words against the bank, which is lossy
+BY CONSTRUCTION because the prompt orders the rephrasing — NULL would then mean
+"unmatched", never "not asked", and every count built on it is an ESTIMATE the
+screen must label as one. The alternative, a `mark_question` tool call inside
+the turn loop, puts a round trip on the hot path the deterministic word gate
+exists to keep off, and the local engine has no equivalent, so the two engines
+would stop sharing one contract.
+
+**B10.1's HOD and Principal signing functions have nobody to name.** There is no
+HOD ACCOUNT in this product — `departments.head` is FREE TEXT, a name typed on a
+form, with no `users` row behind it — and no principal concept at all. A
+"function-based signing chain" over those two would be a vocabulary whose values
+can never be resolved to a person who can sign in, which is how a leave request
+ends up in a state only a database edit can leave. What B10.1's real bug turned
+out to be is narrower and provable: `_assert_can_decide` resolved the requester
+to a `Student` row, so a FACULTY member's own leave was decidable by ADMIN
+alone — and `grant_access` permits exactly one ADMIN while `decide_leave`
+requires two DISTINCT signatures. Every staff leave request on every real
+deployment reached FIRST_APPROVED and could never reach APPROVED, silently,
+behind a live "Mark Sanctioned" button. The third door is a SCOPED GRANT of
+`mentor.leave_approve` at `ScopeLevel.DEPARTMENT` or `COLLEGE`, made in
+Governance with a reason and an audit row. `leave_requests.first_signed_as` /
+`second_signed_as` record the function the signer was ACTING IN, as a plain
+`String` and not an enum, precisely because that vocabulary is the part still
+being argued about and must stay a data change.
+
+**B10.8's "refuse to render" clause is refused.** B10.8 asks that the paper
+print the signer's function, and it does — as a third element on the attestation
+line already drawn in the blank margin, "Asha Rao · Mentor · 10 Sep 2026, 09:00",
+never as part of the form. Two things it is written as asking for must not
+happen. Printing the function INSTEAD OF the fixed "PROGRAM DIRECTOR" label
+means whiting out and reprinting over the college's own PDF — defacing the
+office's form — and the test asserts that label survives. And **refusing (422) to
+render a decided request whose signer has no signature image** would refuse an
+APPLICANT their own sanctioned leave because a DIFFERENT person never uploaded a
+PNG. A signature image is decoration on top of a record that already exists; if
+the office wants pressure on signers, that belongs on a console screen, not in a
+download. A function prints only where one was recorded — every row decided
+before the column existed has NULL, and NULL prints the line exactly as it
+printed before, never a function guessed from a mentor group that may have
+changed since.
+
+**One live defect fixed in passing, because it was the same guardrail.**
+`_attendance_pct` returned `0.0` for an empty table, and `attendance_records`
+has exactly one writer — B8.1's spreadsheet import. So on every deployment where
+that import had not been run, every student's own home screen read **"Attendance
+0.0% vs required 75.0%"** with a red Not-met chip, for a bar nobody had measured
+them against. It answers `None` now, and `None` renders as a dash. That is 07
+§5's "screens say 'no import yet' instead of zeros", met on the screen where
+being told you are failing costs the most.
+
 ### The dev MCP surface at `/mcp` (development only)
 
 `app/dev_mcp.py` publishes every GET under `/api` as an MCP tool, so a screen's
@@ -425,6 +574,35 @@ grant somebody chose to hand over. A change that reaches one system and not the
 other **opens the other**: that is not a hypothetical, it is what the DIRECTOR
 removal did for a few hours, and `tests/test_no_director_privilege.py` exists
 because of it.
+
+**THE 90-DAY HANDOVER IS A GRANT, NOT A BRANCH, AND THE ONE BRANCH IT NEEDS IS
+READ-ONLY (B9.1, 2026-09-13).** When a student is released or reassigned,
+`app/mentor_history.py` mints a `mentor.mentees` grant scoped
+`ScopeLevel.STUDENT` to *that student*, expiring in 90 days, `reason="handover"`
+— so expiry and revocation are filtered in SQL by the one `_live_grant_clauses`,
+the Governance screen lists it, and revoking it shuts the door the same hour.
+04 asks for this as "`policies.assert_student_scope` honours it", and
+implemented literally that is a third pass-branch in the function gating **36
+call sites, 15 of which are WRITES** — mentor notes, badge-evidence approval
+that mints an EARNED badge, capability assessments. That function cannot express
+"read only": what it returns to a GET it returns to a POST. So the branch is
+`allow_handover: bool = False`, **keyword-only, default False, passed True at
+GET call sites only** (`mentor.py`'s notes list and the three reads in
+`mentee_records.py`); `_assert_can_access_student` gained the parameter and is
+still the single delegating `return` the AST guard pins.
+**And the grant is what makes the feature visible at all**: `mentor_functions_for`
+derives the four `mentor.*` capabilities live from `mentee_count > 0`, so a
+mentor whose last mentee was just reassigned holds NONE of them and
+`require_capability` answers 403 *before* rule 2 ever runs — a handover honoured
+only inside `assert_student_scope` would be invisible to exactly the person it
+was built for. `capabilities_for` unions grants in, so it works.
+**The branch must never read the window with `reaches_target`.**
+`mentor_history.holds_handover_for` matches the scope pair `(STUDENT, this
+student)` EXACTLY, because a programme-wide `mentor.mentees` grant satisfies
+`reaches_target` for every student alive — and such grants exist (it is how the
+Main Admin reaches a stuck student's evidence). Reading it the loose way would
+turn every one of them into universal access to every student's records,
+silently, on deploy. `tests/test_mentor_assignments.py` pins all four facts.
 
 ### Rule 1 applies to telemetry too: Sentry is one init per process, and the scrubbers are the floor
 
@@ -756,6 +934,108 @@ therefore deliberately NOT a superset of `ROLE_BASELINE["MENTOR"]`, which is wha
 `tests/conftest.py` is how a test takes that same path.
 
 
+**WHO MENTORED WHOM, AND WHY THEY WERE MOVED (B9.1/B9.2, 2026-09-13).**
+`students.mentor_id` stays the current pointer and stays the only thing rule 2
+filters on; `mentor_assignments` (`app/models/mentor_assignment.py`) is history
+BESIDE it — one row per (student, mentor) spell, `to_at IS NULL` meaning open, so
+"one open row per current pair" is a query rather than a convention. 04's column
+list has ONE `by_user_id`/`reason`/`kind`, which cannot describe a period: a
+reassignment would either overwrite who made the original assignment or leave
+the closing act unrecorded, and the second is the question the screen exists to
+answer. So there are two sets — `kind`/`by_user_id`/`reason` for the act that
+OPENED the spell, `end_kind`/`ended_by_user_id`/`end_reason` for the one that
+CLOSED it — and neither is ever rewritten. **`app/mentor_history.py` is the one
+writer**, called by all five places that set the pointer
+(`admin_mentoring.py`, both paths in `admin_students.py`, `app/seed.py`,
+`app/grant_access.py`) plus
+`admin_faculty.disable_account`, which now RELEASES a disabled faculty member's
+mentees with `end_kind=faculty_disabled` and mints no handover grant — an
+offboarded account cannot sign in to be asked about a note it wrote. It flushes
+and never commits, so the pointer and its history land together. Setting the
+same mentor again writes nothing. **The migration seeds one open row per current
+pair and `from_at` is the ACCOUNT's creation time, never `now()`** — `students`
+has no `created_at`, the pairing date is genuinely unknowable, and `now()` would
+tell every reader the whole roster was seated on deploy day; NULL is legal and
+means "since before this was recorded". A student who never had a mentor gets NO
+ROW, because "never had one" and "has had one since forever" must not read the
+same. Read it at `GET /api/admin/students/{id}/mentor-history`.
+
+**`reason` is REQUIRED on `POST /api/admin/students/{id}/mentor`, release
+included, and that landed with its client.** `mentor_id` is rule 2's scope key —
+moving a student changes who may read their marks, attendance, USN, notes and
+interview transcripts — and a release is the move nothing on any screen reports.
+It is a BREAKING change to an endpoint the live Angular screen was posting
+`{mentor_id}` to, so the server field, the reason input (previously
+`[reepPending]="4"`) and the eight test call sites are one commit; shipping the
+server half alone is an assign button that 422s on a working console. On the
+BATCH path (`POST /admin/cohorts/{id}/students/bulk`) `reason` is OPTIONAL, and
+the asymmetry is deliberate: a sentence asked once and applied to thirty people
+describes the batch, not any student in it. **There is still no `student_ids` on
+`BatchActionIn`** — 04 says it is already there and it is not, and the two bulk
+models are separate for `RosterBulkIn`'s written reason.
+
+**And that batch path now applies B1.5 and B1.2, which it never did.** Both
+`PATCH /admin/students/{id}` with `mentor_user_id` and the batch `mentor` action
+set the same column `admin_mentoring.set_student_mentor` guards, and neither called
+`_assert_same_college` nor `require_capability(target=ancestry_of_user(...))` —
+so the roster editor was a way around the cross-college fence on a screen nobody
+thinks of as the assignment screen. That was a present defect, not a Phase-4
+feature. One implementation, imported from `console.py` rather than restated.
+
+**Capacity is a number now, and STILL NOT A RULE.** `departments.mentor_capacity`
+is nullable and falls back to `settings.mentor_capacity`; `mentor-load` returns
+it with `capacity_source` so a programme default is not presented as a
+departmental decision. Nothing refuses an assignment past it — the endpoint and
+the Angular screen both argue in writing that an admin who overloads one faculty
+member in a thin year should not have to edit `.env` first, and both are still
+right. What was wrong was only that the number needed a deploy. There is no
+`governance_settings` table and this does not invent one.
+
+**Mentor mapping moved OUT of `console.py` into
+`app/routers/admin_mentoring.py`.** Same `/admin` prefix, same capabilities,
+same four paths (`GET /mentor-load`, `GET /unassigned-students`,
+`POST /students/{id}/mentor`, `GET /students/{id}/mentor-history`) — a move, not
+a redesign, and `console.py` is 548 lines shorter for it. The reason is not
+tidiness: `console.py` is programme-wide AGGREGATES, and this is the WRITE that
+decides rule 2's scope key. Somebody asking "where is mentor assignment
+decided" has to find it, because the next person to edit it is editing access
+control. `ensure_mentor_group` and `_assert_same_college` moved with it and
+`admin_students.py` imports them from there now. The history is composed once,
+in `compose_mentor_history`, and read by both the per-student endpoint and B4.5's
+Student 360 panel — `mentor_history` there is REAL now, and its `available` flag
+still means "is anything recorded for THIS student", never "does the deployment
+have the feature": an empty list with a faculty member on the card is a pairing
+that predates the table, and a student who was never assigned is a student
+waiting to be seated. The panel says which in words.
+
+**SWOC grew ownership, a viewpoint that means something, history and a semester
+(B7, 2026-09-13).** `_source_for` stamps MENTOR only when the author actually
+mentors THAT student — it read `session["role"]` alone, so one granted lecturer
+filed every line on a department's board as MENTOR, about students they had
+never met, collapsing the two viewpoints the board exists to keep apart. A
+former mentor inside the 90-day window writes as PLACEMENT: the window is a
+READ. `PATCH`/`DELETE` are now the AUTHOR's or the Main Admin's (the role, not
+`admin.swoc` — that key is what everybody on the screen holds, so "author or
+holder" is "anybody" at more length), and an AUTHORLESS line is the office's
+alone, because treating "no author" as "everybody is the author" makes exactly
+the rows nobody is answerable for the easiest to rewrite. `swoc_entry_revisions`
+is the scoped copy of the before/after `redesign_audit_events` has always kept —
+that data is retroactive and its reader is Main-Admin-only, so a History button
+pointed at it would 403 for everybody who can press it; this table starts empty
+and says so. `swoc_entries.updated_at` carries **no `onupdate`** on purpose: it
+would fire when the student acknowledges a line and report it as edited by
+nobody. **`semester` is stamped at write time and NEVER backfilled** — there is
+no semester history anywhere to backfill from, and today's semester on a line
+written last year is a lie on the student's own screen; NULL renders as "semester
+not recorded". `SwocItemOut` gained `id`, `author`, `author_recorded`,
+`recorded_at`, `semester` and `acknowledged_at` plus
+`POST /api/student/swoc/{entry_id}/acknowledge` — additively, because the board
+in `docs/redesign-2026-09/design/` draws none of them and the client
+concatenates a quadrant into one string; **the tile was not invented**.
+`author_recorded` exists because `author: null` meant two opposite things and
+the screen's one string said a person had left the roster about rows nobody ever
+wrote.
+
 **Approval provisions, and two guards make that safe.** `POST
 /api/register/{id}/decision` APPROVE now mints the User + Student + profile.
 Because the roster IS the access control and the form is public, provisioning
@@ -768,6 +1048,7 @@ property's docstring says why.
 ## Backend conventions
 
 - **Models** live in `apps/api-py/app/models/` and are the schema's source of truth; each new module is imported in `models/__init__.py` so Alembic autogenerate sees it.
+- **An index created in a migration must ALSO be declared on the model**, and this is not tidiness. Three Phase 3 indexes (`ix_capgrant_scope`, `ix_login_events_user_at`, `ix_users_disabled_at`) lived only in their migrations, so `alembic check` asked to DROP all three on every single run — which is how a real drop goes unnoticed, in the noise. Declaring them was not free: it immediately failed `tests/test_codebase_guards.py::test_no_index_duplicates_the_prefix_of_another`, because `login_events.user_id` also carried `index=True` and `ix_login_events_user_id` was a second btree buying nothing that `(user_id, at)` did not already give. That redundancy was real in every database and **invisible to the guard, which reads the models** — an undeclared index is a hole the schema guards see straight through. Dropped by `f3a8d61c07be`; the FK stays indexed by the composite, which leads with it. Note `ix_users_disabled_at` is PARTIAL — the `postgresql_where` predicate is part of the declaration, or the two definitions differ and the drift comes back.
 - **Alembic enum gotchas** (hit these repeatedly): (a) adding an enum *column* to an existing table does not auto-`CREATE TYPE` — create it first; (b) a *new table* reusing an *existing* enum must use `postgresql.ENUM(..., name='x', create_type=False)` in the migration (autogenerate emits a bare `sa.Enum` that errors "type already exists" — hand-fix it); (c) two columns sharing one enum reuse a single `Enum` instance.
 - **Universal LLM adapter** (`app/ai/llm.py`) is OpenAI-compatible and auto-selects the first configured provider (Sakana → Groq → Mistral → OpenRouter → Gemini → Cohere), or an explicit `LLM_BASE_URL`+`LLM_MODEL`+`LLM_API_KEY`. One set of keys, any provider, no code change.
 - **Knowledge Base = pgvector.** The docker image is `pgvector/pgvector:pg17` (stock PG17 + `CREATE EXTENSION vector`); `KnowledgeChunk.embedding` is a dimensionless `vector`. Retrieval (`app/knowledge.py`) is HYBRID — Postgres full-text blended with pgvector cosine (`embedding <=> :q`), gated by a distance floor so an off-topic query still hits the honest "no approved answer" fallback. The embedder (`app/ai/embeddings.py`) mirrors the LLM adapter: explicit `EMBEDDING_*`, else auto-select Mistral (`mistral-embed`) — and **no embedder configured ⇒ full-text only** (the KB always works). The KB is APPROVED public policy text, so embedding it is outside the student-data egress gate.
@@ -803,8 +1084,16 @@ login, register and resume-builder surfaces, which sit outside the shell and
 never adopted the component classes, but they are **defined in `reep-theme.scss`
 with the v2 values** rather than overridden from elsewhere. One token, one place.
 `reep-theme.scss`'s dark block is deleted: this is a single committed theme,
-nothing calls `ThemeService.toggle()`, and a palette nobody can reach is a second
-set of colours to keep correct for no one.
+and a palette nobody can reach is a second set of colours to keep correct for no
+one. **Phase 5 deleted `ThemeService` too** — with the dark block gone it was a
+toggle that stamped a `data-theme` attribute no selector in the repository reads,
+which the next person to find it reads as a theme feature that broke. `data-theme`
+is now a static `light` written once on `<html>` in `index.html`; nothing branches
+on it. `IconComponent` (`shared/icon.component.ts`) went in the same pass: the
+app renders icons with the `.icon` class directly and no template ever used
+`<app-icon>`. So did four of the five components in `shared/kit/` — section,
+stat, empty and banner, and `kit/tone.ts` whose `TONE_INK` map only the stat
+read. `kit-page-intro` stays because `features/assistant` imports it.
 
 **Two global stylesheets, and they must not claim each other's names.**
 `reep-v2-resume.scss` loads after `reep-v2.scss`, so it wins on every property it

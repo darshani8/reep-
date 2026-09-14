@@ -100,6 +100,22 @@ pypdf==6.18.0
 # imports it at module scope. That takes the whole suite down, not one test.
 numpy==2.3.5
 
+# XLSX for the office's spreadsheet imports (B8.1): reading the workbook a
+# registrar uploads to `POST /api/admin/imports/preview`, and writing the blank
+# templates `GET /api/admin/imports/templates/{kind}.xlsx` hands back. CSV is
+# stdlib; .xlsx is not, and .xlsx is what an examination section actually sends.
+#
+# A RUNTIME dependency, not a dev one, and this pin lands BEFORE the parser that
+# needs it. That ordering is the whole lesson of the `api-imports` CI job: the
+# parse happens inside a REQUEST HANDLER, so an undeclared openpyxl would let
+# the image build, the API boot and every test pass, and would surface as a
+# ModuleNotFoundError in front of the first person who ever imported a file — or
+# as a pytest COLLECTION error the moment a test module imports the parser at
+# module scope, which takes the whole suite down rather than one test. A lazy
+# import does not make an undeclared dependency acceptable; it only moves the
+# crash. Verified with `python tools/ci/check_api_imports.py`.
+openpyxl==3.1.5
+
 # AI agent framework (Google Agent Development Kit) — pairs natively with Gemini
 google-adk==2.7.0
 # Lets ADK reach non-Gemini providers (Groq, Mistral, OpenRouter, …)

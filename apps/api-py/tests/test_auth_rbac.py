@@ -47,8 +47,14 @@ def test_student_forbidden_from_mentor_area(client, login):
 
 @requires_db
 def test_student_forbidden_from_director_area(client, login):
+    # B8.4 DELETED `/api/admin/overview`, which this used to ask for, and these
+    # two tests were RE-POINTED rather than removed: they are the only place in
+    # this module where a STUDENT is proved out of the admin surface, and
+    # deleting them would have traded a dead endpoint for a live hole in the
+    # coverage. `/analytics-summary` is the surviving equivalent — the same
+    # programme aggregates, through `scope_filter`, with the scope header.
     h = login("student@bgscet.ac.in", "student123")
-    assert client.get("/api/admin/overview", headers=h).status_code == 403
+    assert client.get("/api/admin/analytics-summary", headers=h).status_code == 403
 
 
 @requires_db
@@ -61,8 +67,9 @@ def test_mentor_forbidden_from_director_only(client, login):
 
 @requires_db
 def test_director_can_read_overview(client, login):
+    # Re-pointed by B8.4 — see the note on the student half above.
     h = login("admin@bgscet.ac.in", "admin123")
-    assert client.get("/api/admin/overview", headers=h).status_code == 200
+    assert client.get("/api/admin/analytics-summary", headers=h).status_code == 200
 
 
 @requires_db

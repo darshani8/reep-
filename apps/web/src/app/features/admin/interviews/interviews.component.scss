@@ -25,9 +25,11 @@
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
-/* A filter whose endpoint is a Phase 4 task. The <select> inside carries
-   [reepPending], which disables it and names the phase; this dims the pill it
-   sits in so the row reads as "not yet" at a glance. */
+/* A filter this session cannot use. The <select> inside is plainly `disabled`
+   and carries the reason in its title; this dims the pill it sits in so the
+   row reads as unavailable at a glance rather than as an empty dropdown. The
+   only one today is Batch, whose list of batches is gated on a capability this
+   screen does not require. */
 .filter-pending {
   opacity: 0.55;
   cursor: not-allowed;
@@ -321,4 +323,65 @@
 .retention-list .retention-kind {
   font-weight: 700;
   color: var(--ink-soft);
+}
+
+/* --- the interview policy panel (B6.1) ----------------------------------- */
+/* It lives inside the Retention card rather than in a dialog: the numbers it
+   edits are the ones the list above states, and a modal would put the two on
+   different screens. */
+.policy-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 420px) {
+  .policy-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A checkbox and its sentence read as one control, so the label is the whole
+   row and the tick stays at the top of a wrapped line. */
+.policy-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  cursor: pointer;
+}
+.policy-check input {
+  margin-top: 2px;
+  flex: none;
+}
+
+.policy-state {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.policy-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--faint);
+}
+
+.policy-foot {
+  display: flex;
+  justify-content: flex-end;
 }

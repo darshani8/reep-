@@ -26,16 +26,19 @@ A table in the metadata that nobody classified ABORTS THE RUN — it is not
 quietly kept (which would leave a student's records behind) and not quietly
 emptied (which would destroy a catalogue somebody added last week). The next
 person to add a table is made to decide, by a test that fails in CI and by this
-module refusing to run. That is the whole reason the verdicts are a dict of 93
-entries rather than a pair of prefixes and a `startswith`.
+module refusing to run. That is the whole reason the verdicts are a dict of 109
+entries — one per table, `len(VERDICTS)` — rather than a pair of prefixes and a
+`startswith`. (109 is the table count; the 180 below is the foreign-key count.
+They were both written as "93" for months, which is how a stale number spreads.)
 
 SECOND, THE FILES GO BEFORE THE ROWS. A row is the last pointer to a student's
 resume, a faculty member's signature and a named student's recorded voice.
 Delete the row first and a failed file delete leaves bytes on the volume that
 nobody can find again — the one outcome that cannot be repaired afterwards.
-This is `retention._delete_interview_audio`'s reasoning, applied to the other
-five stores, and it is why `_destroy_files` runs first and why anything it
-could not destroy is reported rather than swallowed.
+This is `retention._delete_interview_audio`'s reasoning, applied to every other
+store in `FILE_COLUMNS` (six of them since B10.3's leave attachments), and it is
+why `_destroy_files` runs first and why anything it could not destroy is
+reported rather than swallowed.
 
 THIRD, IT REFUSES TO LEAVE NOBODY BEHIND. The survivor is found by role, and
 the run aborts unless there is EXACTLY ONE ADMIN. Zero means this deployment
@@ -94,8 +97,29 @@ VERDICTS: dict[str, str] = {
     "courses": KEEP,
     "skills": KEEP,
     "jobs": KEEP,
-    "job_import_runs": KEEP,  # provenance for the postings above, names no student
     "interview_bank_questions": KEEP,
+    # B5.1 made the Specialization Matrix a table an admin edits, and B6.1 made
+    # the interview's storage and caps a college's decision. Both are the
+    # office's own configuration and name nobody: a persona, a framework list, a
+    # syllabus, a retention number. They sit with `interview_bank_questions`
+    # above because they are the same kind of thing — staff-authored text the
+    # next intake is interviewed against.
+    "interview_tracks": KEEP,
+    "interview_policies": KEEP,
+    # B13's per-course catalogue. Neither table names a person: one says which
+    # of the 48 code-defined badges apply to a programme, the other which REEP
+    # stage a semester of it sits in. Both are the office's own configuration
+    # and outlive every intake, exactly like `approved_certifications` above.
+    "badge_course_map": KEEP,
+    "stage_rules": KEEP,
+    # B10.2's calendar. It names NOBODY: a date, a word ("holiday" / "working")
+    # and a label somebody in the office typed once for the whole college. It
+    # sits with the catalogues for exactly the reason they are here — the next
+    # intake's leave is counted against these same days, and emptying it would
+    # silently change the arithmetic on every request made afterwards. (The
+    # BALANCES are per-person and are emptied below; the two tables live in one
+    # module and get opposite verdicts, which is the distinction worth checking.)
+    "academic_calendar": KEEP,
     "placement_criteria": KEEP,
     "registration_rules": KEEP,
     "alert_rule_configs": KEEP,
@@ -130,6 +154,24 @@ VERDICTS: dict[str, str] = {
     "email_verifications": EMPTY,
     # -- a student's own records --------------------------------------------
     "student_profiles": EMPTY,
+    # The record of a promotion or a graduation. It is BOTH a fact about a
+    # student and the office's record of an academic act, and here the two
+    # readings agree: this module empties the deployment of people, so the
+    # student it names is going and the staff member who decided is going too.
+    # (`by_user_id` is SET NULL, so the act would survive the actor; the row
+    # does not survive its subject, because without them it records nothing.)
+    "student_semester_history": EMPTY,
+    # B9.1's assignment history, and it is the SAME QUESTION `student_semester_history`
+    # above answered, decided the same way. A row is both a fact about a student
+    # and the office's record of a staff decision — who seated them, who moved
+    # them off, and why. Here the two readings agree, because this module empties
+    # the deployment of PEOPLE: the student the row names is going and the staff
+    # member who decided is going too. (`by_user_id`/`ended_by_user_id` are SET
+    # NULL, so the decision would outlive the decider; the row does not outlive
+    # its subject, because without the student it records nothing.) The office's
+    # record that an assignment happened survives in `redesign_audit_events`,
+    # which is KEPT — the same place the promotion above leaves its act.
+    "mentor_assignments": EMPTY,
     "student_skills": EMPTY,
     "student_badges": EMPTY,
     "student_milestones": EMPTY,
@@ -141,6 +183,25 @@ VERDICTS: dict[str, str] = {
     "attendance_records": EMPTY,
     "subject_marks": EMPTY,
     "semester_results": EMPTY,
+    # B8.1's imports. The RUN is staff-authored — a filename, a batch, a date
+    # and who read it — and the temptation is to KEEP it as office provenance
+    # the way `export_events` two groups down is kept. It goes, for a reason
+    # that is about the rows and not the run: `import_rows` holds every line of
+    # the spreadsheet VERBATIM — a USN, a name, marks, attendance — so a KEPT
+    # import history would be a complete copy of the academic records this
+    # module has just deleted, sitting in a table nobody thinks of as student
+    # data. And a run left standing over an emptied deployment names a batch
+    # with nobody in it and counts nobody's rows.
+    #
+    # The office's record that an import happened survives where the office's
+    # acts belong: `redesign_audit_events`, which is KEPT.
+    "import_runs": EMPTY,
+    "import_rows": EMPTY,
+    # B8.6's nightly roll-up. Derived entirely from the people being deleted,
+    # so keeping it leaves "41 students placed" standing over a deployment with
+    # no students in it — a number on the Analytics screen that is not wrong
+    # about anything so much as about nobody. Regenerated by the next run.
+    "analytics_snapshots": EMPTY,
     "enrollments": EMPTY,
     "lab_sessions": EMPTY,
     "schedule_items": EMPTY,
@@ -162,7 +223,21 @@ VERDICTS: dict[str, str] = {
     # -- what staff wrote about them, and staff's own shelf -----------------
     "mentor_notes": EMPTY,
     "swoc_entries": EMPTY,
+    # B7.3. A revision is what one SWOC line said before somebody edited it —
+    # a named judgement about a student, twice over. It cannot outlive the entry
+    # (CASCADE would take it anyway) and there is nothing in it that is not
+    # about a person this module is removing.
+    "swoc_entry_revisions": EMPTY,
     "leave_requests": EMPTY,
+    # B10.3. A medical certificate or an OOD letter belonging to one
+    # application, and FILE-BACKED — see FILE_COLUMNS below, which is what makes
+    # the bytes go before the row that points at them.
+    "leave_attachments": EMPTY,
+    # B10.2. One person's allowance for one kind of leave in one year. Keyed on
+    # `users.id` because staff hold balances too, which is also why it cannot be
+    # read as a catalogue: the row is about a person, and the person is going.
+    # Its sibling `academic_calendar` is KEPT, up with the catalogues.
+    "leave_balances": EMPTY,
     "staff_signatures": EMPTY,
     "staff_upskilling_certs": EMPTY,
     "redesign_mentor_notebook_entries": EMPTY,
@@ -174,6 +249,18 @@ VERDICTS: dict[str, str] = {
     "interview_turns": EMPTY,
     "interview_evaluations": EMPTY,
     "interview_consents": EMPTY,
+    # B6.2's summary is built to OUTLIVE the interview it summarises — the
+    # retention job deletes the transcript, the audio and the scorecard on the
+    # 180-day clock and deliberately never touches this table. That is about a
+    # CLOCK, and it is not a reason to keep the row here: every row names a
+    # student by a NOT NULL foreign key, and "61, then 68, then 74" about
+    # somebody who has been removed from the deployment is the student record
+    # this module exists to remove. Surviving retention and surviving a purge
+    # are different questions with different answers.
+    "interview_score_summaries": EMPTY,
+    # An admin gave a named student their practice attempts back, and said why.
+    # The student is going; the row would name nobody.
+    "interview_cap_resets": EMPTY,
     "platform_call_sessions": EMPTY,
     "conversations": EMPTY,
     "messages": EMPTY,
@@ -221,6 +308,7 @@ FILE_COLUMNS: dict[str, str] = {
     "staff_signatures": "stored_name",
     "staff_upskilling_certs": "stored_name",
     "alumni_profiles": "resume_stored_name",
+    "leave_attachments": "stored_name",
 }
 
 #: KEPT tables that point at `users` with no ON DELETE clause. The institution
@@ -470,7 +558,7 @@ def _delete_rows(db: Session, plan: Plan) -> None:
 
     SEPARATE FROM `execute` AND WITHOUT A COMMIT ON PURPOSE. This is the half
     whose correctness is a property of the ORDER, and the only honest way to
-    test an order against 93 real foreign keys is to run it against the real
+    test an order against 180 real foreign keys is to run it against the real
     schema and roll back — which a function that commits cannot offer.
     tests/test_purge_people.py does exactly that.
     """

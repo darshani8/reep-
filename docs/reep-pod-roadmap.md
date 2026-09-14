@@ -1,3 +1,9 @@
+> **A ROADMAP, AND ITS SKETCHES ARE IN THE WRONG ORM.** The `prisma` blocks
+> below are shorthand from the pre-migration stack: **Prisma is gone**, along
+> with the Next.js app and the NestJS `apps/api`. The schema's source of truth
+> is SQLAlchemy 2.0 models under `apps/api-py/app/models/`, migrated with
+> Alembic. Read the sketches as field lists, never as files to write.
+
 # REEP ← pod.ai — field-level models + build roadmap
 
 Two parts:

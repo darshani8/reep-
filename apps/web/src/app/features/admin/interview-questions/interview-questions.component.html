@@ -81,19 +81,28 @@
         }
       </div>
 
-      <!-- The board groups these tracks under a course ("MBA · BGSCET") and
-           offers "Add track". Neither can be answered today: the four tracks
-           are code, and no row says which course they belong to. -->
+      <!-- A TRACK IS A ROW NOW (B5.1). `GET/POST/PATCH/DELETE
+           /api/admin/interview-questions/tracks`. A code with no row is still
+           listed and still runs interviews — it is the constant in
+           app/interview_matrix.py — and its card says so rather than offering a
+           PATCH with no id. -->
       <div class="notice accent bank-rail-note">
         <span class="icon" aria-hidden="true">info</span>
         <span>
-          These are the four tracks the interviewer ships with. Grouping them under a course and
-          specialization, and adding your own, arrives with admin-managed tracks in Phase 4 (B5.1).
+          A track carries the interviewer’s persona, the frameworks it works through, its voice
+          and its sample question. One added here belongs to no college, so every college sees it;
+          one already tied to a college is marked on its card.
         </span>
       </div>
 
-      <button type="button" class="btn ghost sm bank-add-track" [reepPending]="backendPhase">
-        <span class="icon" aria-hidden="true">add</span> Add track
+      <button
+        type="button"
+        class="btn ghost sm bank-add-track"
+        [attr.aria-expanded]="addTrackOpen()"
+        (click)="toggleAddTrackForm()"
+      >
+        <span class="icon" aria-hidden="true">{{ addTrackOpen() ? 'close' : 'add' }}</span>
+        {{ addTrackOpen() ? 'Close' : 'Add track' }}
       </button>
     </div>
 
@@ -103,19 +112,62 @@
       <div class="card bank-track-card">
         <div class="card-head">
           <h2 class="card-title">Track · {{ selectedTrackLabel() }}</h2>
-          <button type="button" class="btn secondary sm" [reepPending]="backendPhase">
-            <span class="icon" aria-hidden="true">save</span> Save
-          </button>
-        </div>
-
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          <span>
-            This track’s persona, frameworks, voice and session cap live in the interviewer’s own
-            code today, so these four fields are empty and cannot be saved until admin-managed
-            tracks land in Phase 4 (B5.1).
+          <span class="bank-track-chips">
+            @if (selectedTrackIsProgrammeWide()) {
+              <span class="chip neutral">Programme-wide</span>
+            } @else {
+              <span class="chip good">Tied to one college</span>
+            }
+            @if (selectedTrack(); as track) {
+              @if (track.enabled) {
+                <span class="chip dot good">Offered</span>
+              } @else {
+                <span class="chip dot warn">Not offered</span>
+              }
+            }
+          </span>
+          <span class="bank-track-actions">
+            <button
+              type="button"
+              class="btn danger sm"
+              [disabled]="!canEditTrack() || busy()"
+              [attr.title]="trackEditBlockedReason()"
+              (click)="removeTrack()"
+            >
+              <span class="icon" aria-hidden="true">delete</span> Remove
+            </button>
+            <button
+              type="button"
+              class="btn secondary sm"
+              [disabled]="!canSaveTrack()"
+              [attr.title]="trackSaveBlockedReason()"
+              (click)="saveTrack()"
+            >
+              <span class="icon" aria-hidden="true">save</span> Save
+            </button>
           </span>
         </div>
+
+        @if (trackEditBlockedReason(); as reason) {
+          <div class="notice accent" role="status">
+            <span class="icon" aria-hidden="true">info</span>
+            <span>{{ reason }}</span>
+          </div>
+        }
+
+        @if (trackWarnings().length) {
+          <div class="notice bank-track-warnings" role="status">
+            <span class="icon" aria-hidden="true">info</span>
+            <div>
+              <strong>Saved, with a note:</strong>
+              <ul>
+                @for (note of trackWarnings(); track note) {
+                  <li>{{ note }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
 
         <div class="field bank-persona">
           <label for="bank-persona-field">Interviewer persona</label>
@@ -123,26 +175,205 @@
             id="bank-persona-field"
             class="ctrl"
             rows="2"
-            [reepPending]="backendPhase"
+            [disabled]="!canEditTrack() || busy()"
+            [value]="draftPersona()"
+            (input)="draftPersona.set(textAreaValue($event))"
           ></textarea>
-          <span class="help">Sent as the system instruction for this track</span>
+          <span class="help">
+            A NOUN PHRASE, not a sentence — it is embedded as “you are {{ personaExample }}”, so a
+            full stop composes into “you are a sharp CFO..”
+          </span>
+        </div>
+
+        <div class="field bank-persona">
+          <label for="bank-sample-field">Sample question</label>
+          <textarea
+            id="bank-sample-field"
+            class="ctrl"
+            rows="2"
+            [disabled]="!canEditTrack() || busy()"
+            [value]="draftSample()"
+            (input)="draftSample.set(textAreaValue($event))"
+          ></textarea>
+          <span class="help">
+            The question PROBING works in early, rephrased naturally rather than recited
+          </span>
         </div>
 
         <div class="bank-track-row">
           <div class="field bank-frameworks">
             <label for="bank-frameworks-field">Frameworks</label>
-            <input id="bank-frameworks-field" class="ctrl" type="text" [reepPending]="backendPhase" />
+            <input
+              id="bank-frameworks-field"
+              class="ctrl"
+              type="text"
+              [disabled]="!canEditTrack() || busy()"
+              [value]="draftFrameworks()"
+              (input)="draftFrameworks.set(inputValue($event))"
+            />
+            <span class="help">Comma separated · worked through one at a time</span>
           </div>
           <div class="field bank-voice">
             <label for="bank-voice-field">Voice</label>
-            <input id="bank-voice-field" class="ctrl" type="text" [reepPending]="backendPhase" />
+            <select
+              id="bank-voice-field"
+              class="ctrl"
+              [disabled]="!canEditTrack() || busy()"
+              (change)="draftVoice.set(selectValue($event))"
+            >
+              <option value="" [selected]="draftVoice() === ''">Deployment default</option>
+              @for (voice of novaVoices; track voice) {
+                <option [value]="voice" [selected]="voice === draftVoice()">{{ voice }}</option>
+              }
+            </select>
+            <span class="help">Amazon Nova 2 Sonic voices only</span>
           </div>
           <div class="field bank-cap">
             <label for="bank-cap-field">Session cap</label>
-            <input id="bank-cap-field" class="ctrl" type="text" [reepPending]="backendPhase" />
+            <input
+              id="bank-cap-field"
+              class="ctrl"
+              type="text"
+              disabled
+              title="A session cap is not a property of a track. The time limit and the daily and attempt ceilings are the college’s interview policy — they are set on Interview records → Policy."
+            />
+            <span class="help">Set per college, on Interview records → Policy</span>
           </div>
         </div>
+
+        <div class="field bank-persona">
+          <label for="bank-syllabus-field">Syllabus</label>
+          <input
+            id="bank-syllabus-field"
+            class="ctrl"
+            type="text"
+            [disabled]="!canEditTrack() || busy()"
+            [value]="draftSyllabus()"
+            (input)="draftSyllabus.set(inputValue($event))"
+          />
+          <span class="help">
+            Comma separated, and optional — only Digital Marketing ships with one
+          </span>
+        </div>
+
+        <label class="bank-enabled">
+          <input
+            type="checkbox"
+            [disabled]="!canEditTrack() || busy()"
+            [checked]="draftEnabled()"
+            (change)="draftEnabled.set(checkboxValue($event))"
+          />
+          <span>
+            Offered to students. Unticking retires the track without deleting it — which is what a
+            track that has already been interviewed on must have, because every past record is
+            filed under its code.
+          </span>
+        </label>
       </div>
+
+      <!-- ---------------------------------------------------- add a track -->
+      @if (addTrackOpen()) {
+        <div class="card bank-form-card">
+          <div class="card-head">
+            <h2 class="card-title">Add a track</h2>
+          </div>
+
+          <p class="bank-hint">
+            The code is what <code>?specialization=</code> carries on the interview socket and what
+            every past interview is filed under, so it is a slug and it cannot be changed later.
+            The track is created programme-wide.
+          </p>
+
+          <div class="bank-form-row">
+            <div class="field bank-phase-field">
+              <label for="bank-new-track-code">Code</label>
+              <input
+                id="bank-new-track-code"
+                class="ctrl"
+                type="text"
+                placeholder="ops"
+                [value]="newTrackCode()"
+                (input)="newTrackCode.set(inputValue($event))"
+              />
+            </div>
+            <div class="field bank-text-field">
+              <label for="bank-new-track-label">Name</label>
+              <input
+                id="bank-new-track-label"
+                class="ctrl"
+                type="text"
+                placeholder="Operations"
+                [value]="newTrackLabel()"
+                (input)="newTrackLabel.set(inputValue($event))"
+              />
+            </div>
+            <div class="field bank-voice">
+              <label for="bank-new-track-voice">Voice</label>
+              <select
+                id="bank-new-track-voice"
+                class="ctrl"
+                (change)="newTrackVoice.set(selectValue($event))"
+              >
+                <option value="" [selected]="newTrackVoice() === ''">Deployment default</option>
+                @for (voice of novaVoices; track voice) {
+                  <option [value]="voice" [selected]="voice === newTrackVoice()">{{ voice }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="field bank-persona">
+            <label for="bank-new-track-persona">Interviewer persona</label>
+            <textarea
+              id="bank-new-track-persona"
+              class="ctrl"
+              rows="2"
+              placeholder="an exacting but fair Head of Operations"
+              [value]="newTrackPersona()"
+              (input)="newTrackPersona.set(textAreaValue($event))"
+            ></textarea>
+            <span class="help">A noun phrase — it is embedded as “you are {{ personaExample }}”</span>
+          </div>
+
+          <div class="field bank-persona">
+            <label for="bank-new-track-sample">Sample question</label>
+            <textarea
+              id="bank-new-track-sample"
+              class="ctrl"
+              rows="2"
+              placeholder="Walk me through how you would cut a supplier’s lead time by a week."
+              [value]="newTrackSample()"
+              (input)="newTrackSample.set(textAreaValue($event))"
+            ></textarea>
+          </div>
+
+          <div class="field bank-persona">
+            <label for="bank-new-track-frameworks">Frameworks</label>
+            <input
+              id="bank-new-track-frameworks"
+              class="ctrl"
+              type="text"
+              placeholder="SIPOC, Little’s Law, OEE, root-cause analysis"
+              [value]="newTrackFrameworks()"
+              (input)="newTrackFrameworks.set(inputValue($event))"
+            />
+            <span class="help">
+              Comma separated. Four or more, or the interview runs out of frameworks before wrap-up.
+            </span>
+          </div>
+
+          <div class="bank-form-foot">
+            <button
+              type="button"
+              class="btn secondary"
+              [disabled]="!canCreateTrack()"
+              (click)="createTrack()"
+            >
+              <span class="icon" aria-hidden="true">add</span> Create track
+            </button>
+          </div>
+        </div>
+      }
 
       <!-- ------------------------------------------------- add a question -->
       @if (addFormOpen()) {
@@ -360,10 +591,10 @@
                     <th class="bank-phase">Phase</th>
                     <th>Question</th>
                     @if (isColumnVisible('asked')) {
-                      <th class="bank-metric">Asked</th>
+                      <th class="bank-metric" [attr.title]="notMeasuredReason">Asked</th>
                     }
                     @if (isColumnVisible('averageScore')) {
-                      <th class="bank-metric">Avg score</th>
+                      <th class="bank-metric" [attr.title]="notMeasuredReason">Avg score</th>
                     }
                     @if (isColumnVisible('status')) {
                       <th class="bank-status">Status</th>
@@ -524,10 +755,12 @@
         </div>
 
         <p class="bank-foot">
-          Asked and Avg score read “{{ notMeasuredYet }}” because no interview turn yet records the
-          question that produced it — linking the two is a Phase 4 task (B5.5). Every edit here is
-          audited, and order matters: the interviewer works these in from the top, one at a time,
-          and never asks the next until the student has answered.
+          Asked and Avg score read “{{ notMeasuredYet }}”, and they always will: the interviewer is
+          free-style, so it works a question in, rephrases it and follows up on the answer, and no
+          turn it produces can be attributed to one row here. Attributing them was examined and
+          found to be impossible without scripting the interview, which is the one thing this bank
+          is not. Every edit here is audited, and order matters: the interviewer works these in
+          from the top, one at a time, and never asks the next until the student has answered.
         </p>
       </div>
     </div>

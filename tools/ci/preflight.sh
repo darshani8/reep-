@@ -9,6 +9,16 @@
 # the SAME command .github/workflows/ci.yml runs, in the order that fails
 # fastest, so the answer is available before the push instead of after it.
 #
+# ALL FIVE, NOT FOUR. This script ran four of the five required checks until
+# Phase 5 and said so in its own usage text, with a reason: "Infra (CDK synth
+# guards) needs its own Python 3.12 environment under infra/cdk and only matters
+# when infra/ is touched." Both halves are true and neither makes it optional —
+# it is REQUIRED, so it runs on every pull request whether infra/ was touched or
+# not, and a red one blocks a merge about something else entirely. A local runner
+# that covers four fifths of the gate teaches you to trust it and then lets you
+# push into the fifth. It SKIPs (never silently passes) when the CDK library is
+# not installed, and a SKIP is exit code 2.
+#
 # WHAT THIS IS NOT. It is not a gate, and nothing on a laptop is one: this file
 # is invoked by nothing, it is trivially skipped, and its exit code is read by no
 # one but you. The authority is the required status checks on the pull request.
@@ -36,6 +46,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd -- "$SCRIPT_DIR/../.." && pwd)
 API_DIR="$REPO_ROOT/apps/api-py"
 WEB_DIR="$REPO_ROOT/apps/web"
+CDK_DIR="$REPO_ROOT/infra/cdk"
 
 # ---------------------------------------------------------------------------
 # Options
@@ -53,8 +64,8 @@ usage() {
 tools/ci/preflight.sh - the CI jobs that gate main, run locally, before you push.
 
   --quick          Run only the fast checks: "API (dependency completeness)",
-                   Rule 1, the design-system guards and the Angular typecheck.
-                   Seconds, not minutes.
+                   Rule 1, the CDK synth guards and the design-system guards
+                   plus the Angular typecheck. Seconds, not minutes.
                    NOT SUFFICIENT FOR A PULL REQUEST - it does not run pytest,
                    ng test or ng build, and those are inside required checks
                    that run whether you did or not.
@@ -73,16 +84,26 @@ tools/ci/preflight.sh - the CI jobs that gate main, run locally, before you push
   --no-color       Plain output. NO_COLOR in the environment does the same.
   -h, --help       This text.
 
-Checks, in the order they run, named exactly as the CI jobs are named:
+ALL FIVE required checks run here, named exactly as the CI jobs are named, in
+the order that fails fastest:
 
-  1. API (dependency completeness)             seconds
+  1. API (dependency completeness)                  seconds
   2. Rule 1 (every model call declares its cargo)   seconds
-  3. Web (Angular)                             design guards, typecheck, tests, build
-  4. API (FastAPI + Postgres)                  migrations, seed, pytest - needs Postgres
+  3. Infra (CDK synth guards)                       seconds - needs infra/cdk deps
+  4. Web (Angular)                                  design guards, typecheck, tests, build
+  5. API (FastAPI + Postgres)                       migrations, seed, pytest - needs Postgres
 
-  Infra (CDK synth guards) is the fifth required check and is NOT run here: it
-  needs its own Python 3.12 environment under infra/cdk and only matters when
-  infra/ is touched. Run it with: cd infra/cdk && python -m pytest -q
+  Those five strings are also the five required status checks in
+  .github/rulesets/main.json and tools/ci/protect-main.sh's REQUIRED_CHECKS, and
+  GitHub matches a required check by the job's DISPLAY NAME as a string. Rename a
+  job and all four files change in the same commit; apps/api-py/tests/
+  test_codebase_guards.py fails the build if they ever disagree.
+
+  Check 3 needs aws-cdk-lib, which is NOT in either api venv - it lives under
+  infra/cdk on Python 3.12. Without it the check reports SKIP and this script
+  exits 2, because a check that did not run is not a check that passed:
+      cd infra/cdk && python3.12 -m venv .venv
+      infra/cdk/.venv/bin/pip install -r requirements-dev.txt
 USAGE
 }
 
@@ -151,6 +172,7 @@ now() { date +%s; }
 
 PY=""            # apps/api-py/.venv interpreter
 PY_VERSION=""
+CDK_PY=""        # an interpreter that can import aws_cdk (infra/cdk/.venv, usually)
 NODE_MODULES=0
 DB_HOST="127.0.0.1"
 DB_PORT="5433"
@@ -168,6 +190,18 @@ venv_python() {  # venv dir -> prints interpreter path, or returns 1
 PY=$(venv_python "$API_DIR/.venv" || true)
 [ -n "$PY" ] && PY_VERSION=$("$PY" -c 'import platform; print(platform.python_version())' 2>/dev/null || echo "?")
 [ -d "$WEB_DIR/node_modules" ] && NODE_MODULES=1
+
+# The CDK guards need aws-cdk-lib, which is deliberately NOT in either api venv:
+# the cdk job pins Python 3.12 while the API is on 3.14, and infra/cdk carries
+# its own requirements file. Look for infra/cdk/.venv first, then fall back to
+# whatever python3 already has the library — some machines install it globally —
+# rather than declaring the check impossible because one directory is absent.
+CDK_PY=""
+cdk_candidate=$(venv_python "$CDK_DIR/.venv" || true)
+for candidate in "$cdk_candidate" python3 "$PY"; do
+  [ -n "$candidate" ] || continue
+  if "$candidate" -c 'import aws_cdk' >/dev/null 2>&1; then CDK_PY="$candidate"; break; fi
+done
 
 # Ask the APPLICATION which database it means, exactly the way
 # apps/api-py/tests/conftest.py asks. Hard-coding 5433 here would let preflight
@@ -226,6 +260,13 @@ else
   printf '  %-16s %sMISSING%s\n' "web deps" "$YELLOW" "$RESET"
   note "cd apps/web && npm ci"
 fi
+if [ -n "$CDK_PY" ]; then
+  printf '  %-16s %s\n' "cdk deps" "${CDK_PY#$REPO_ROOT/}"
+else
+  printf '  %-16s %sMISSING%s\n' "cdk deps" "$YELLOW" "$RESET"
+  note "cd infra/cdk && python3.12 -m venv .venv    # the cdk job pins 3.12"
+  note "infra/cdk/.venv/bin/pip install -r requirements-dev.txt"
+fi
 if [ "$DB_UP" -eq 1 ]; then
   printf '  %-16s %s:%s reachable\n' "postgres" "$DB_HOST" "$DB_PORT"
 else
@@ -278,7 +319,7 @@ clean_venv() {  # base_interpreter name -> prints the new interpreter's path
 check_api_imports() {
   local name="API (dependency completeness)" t0 rc=0 interp="" note_text=""
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
-  banner "1/4  $name"
+  banner "1/5  $name"
   if [ -z "$PY" ]; then
     record "$name" SKIP 0 "no apps/api-py/.venv - see the setup commands above"; return
   fi
@@ -333,7 +374,7 @@ check_api_imports() {
 check_rule_one() {
   local name="Rule 1 (every model call declares its cargo)" t0 rc=0
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
-  banner "2/4  $name"
+  banner "2/5  $name"
   t0=$(now)
 
   # Deliberately the system python3 rather than the venv: the check imports
@@ -352,7 +393,49 @@ check_rule_one() {
 }
 
 # ===========================================================================
-# 3. Web (Angular)
+# 3. Infra (CDK synth guards)
+#
+# The fifth required check, and the one this script did not run for months. Its
+# absence was argued for in writing — "it needs its own Python 3.12 environment
+# and only matters when infra/ is touched" — and both halves of that are true
+# and neither makes it optional. It is a REQUIRED STATUS CHECK: it runs on every
+# pull request whether infra/ was touched or not, so a red one blocks a merge
+# that has nothing to do with infrastructure, and the developer finds out from a
+# runner instead of from here. That is the exact gap preflight exists to close.
+#
+# What it gates is what the Terraform cutover left behind (docs/cdk-cutover.md):
+# the import phase must add nothing CloudFormation cannot adopt, no
+# MasterUserPassword may ever appear in a synthesised template, the ECS half of
+# harden must stay separable from the database half, and every resource in all
+# three stacks must be Retain. `Template.from_stack` synthesises in-process, so
+# there are no AWS credentials involved and nothing is contacted.
+#
+# It SKIPS rather than failing when aws-cdk-lib is not installed, and a SKIP sets
+# ANY_MISSING, so this script cannot exit 0 having quietly not asked.
+# ===========================================================================
+
+check_cdk() {
+  local name="Infra (CDK synth guards)" t0 rc=0
+  if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
+  banner "3/5  $name"
+  if [ ! -d "$CDK_DIR" ]; then
+    record "$name" SKIP 0 "no infra/cdk directory in this checkout"; return
+  fi
+  if [ -z "$CDK_PY" ]; then
+    record "$name" SKIP 0 "aws-cdk-lib is not importable - see the setup commands above"; return
+  fi
+  t0=$(now)
+
+  ( cd "$CDK_DIR" && run "$CDK_PY" -m pytest -q ) || rc=1
+  if [ "$rc" -eq 0 ]; then
+    record "$name" PASS $(( $(now) - t0 )) ""
+  else
+    record "$name" FAIL $(( $(now) - t0 )) "a CDK synth guard failed - run it again in infra/cdk to read the assertion"
+  fi
+}
+
+# ===========================================================================
+# 4. Web (Angular)
 #
 # Four steps in CI: npm ci, tsc --noEmit, ng test, ng build. The build is not a
 # formality — it enforces the production bundle budget, which is set close
@@ -368,7 +451,7 @@ check_web() {
   local name="Web (Angular)" t0 rc=0 note_text=""
   if [ "$QUICK" -eq 1 ]; then name="Web (Angular) - guards and typecheck only"; fi
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
-  banner "3/4  $name"
+  banner "4/5  $name"
   if [ "$NODE_MODULES" -eq 0 ] && [ "$NPM_CI" -eq 0 ]; then
     record "$name" SKIP 0 "no apps/web/node_modules - run: cd apps/web && npm ci"; return
   fi
@@ -421,7 +504,7 @@ check_web() {
 }
 
 # ===========================================================================
-# 4. API (FastAPI + Postgres)
+# 5. API (FastAPI + Postgres)
 #
 # REEP_REQUIRE_DB=1 is exported here for the same reason ci.yml sets it: almost
 # every test covering conversations, voice, retention and RBAC is @requires_db,
@@ -435,7 +518,7 @@ check_web() {
 check_api_tests() {
   local name="API (FastAPI + Postgres)" t0 rc=0
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
-  banner "4/4  $name"
+  banner "5/5  $name"
   if [ -z "$PY" ]; then
     record "$name" SKIP 0 "no apps/api-py/.venv - see the setup commands above"; return
   fi
@@ -486,15 +569,17 @@ check_api_tests() {
 STARTED=$(now)
 
 if [ "$QUICK" -eq 1 ]; then
-  # The fast pair, and nothing else. The two that did not run are RECORDED as
-  # not-run, so they cannot be read in the summary as two that passed.
+  # The fast ones, and nothing else. What did not run is RECORDED as not-run, so
+  # it cannot be read in the summary as something that passed.
   check_api_imports
   check_rule_one
+  check_cdk
   check_web
   record "API (FastAPI + Postgres)" SKIP 0 "--quick"
 else
   check_api_imports
   check_rule_one
+  check_cdk
   check_web
   check_api_tests
 fi

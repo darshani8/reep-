@@ -91,6 +91,10 @@ def _grant(user_id: str, *, version: str | None = None, revoked=None, audio=Fals
 
 
 def _open(subject):
+    """`_open_records` returns an `_OpenedInterview` RECORD since B6.1 — it now
+    also carries the college's resolved policy and the pinned acknowledgement's
+    scopes. The tests below read it by name rather than unpacking a tuple whose
+    length is going to keep changing."""
     return _open_records(
         subject.user_id, Role.STUDENT, subject.student_id, "c0ffeec0ffee", None
     )
@@ -177,7 +181,10 @@ class TestTheOpenGate:
         answer it after the grant has been revoked and re-given twice.
         """
         grant_id = _grant(student.user_id)
-        conversation_id, interview_session_id, consent_id = _open(student)
+        opened = _open(student)
+        conversation_id = opened.conversation_id
+        interview_session_id = opened.interview_session_id
+        consent_id = opened.consent_id
 
         assert consent_id == grant_id
         with SessionLocal() as db:
@@ -201,7 +208,7 @@ class TestTheOpenGate:
         _grant(student.user_id, revoked=datetime.now(timezone.utc))
         live = _grant(student.user_id)
 
-        _, _, consent_id = _open(student)
+        consent_id = _open(student).consent_id
         assert consent_id == live
 
 
@@ -214,7 +221,8 @@ class TestTheOpenGate:
 class TestTheRunningGate:
     def _running_session(self, student) -> tuple[str, str]:
         grant_id = _grant(student.user_id)
-        _, interview_session_id, consent_id = _open(student)
+        opened = _open(student)
+        interview_session_id, consent_id = opened.interview_session_id, opened.consent_id
         assert consent_id == grant_id
         return interview_session_id, grant_id
 

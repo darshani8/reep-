@@ -9,20 +9,37 @@
       </div>
     </div>
     <div class="dt-toolbar">
-      <!-- Balances, kinds and the academic year per department are B10.2; the
-           holiday calendar the "working days" count reads is the same task. -->
-      <button type="button" class="btn secondary" [reepPending]="leaveBackendPhase">
+      <!-- Both write through endpoints that are `require_admin` server-side, so
+           an approver who is not the office gets them disabled with the reason
+           on the control rather than a dialog whose every button answers 403.
+           A plain `disabled` and no phase number: this is not waiting on a
+           task, it is not this account's to press. -->
+      <button
+        type="button"
+        class="btn secondary"
+        [disabled]="!isMainAdmin()"
+        [attr.title]="isMainAdmin() ? null : 'Leave policy is the Main Admin’s to edit.'"
+        (click)="openPolicy()"
+      >
         <span class="icon" aria-hidden="true">description</span> Leave policy
       </button>
-      <button type="button" class="btn secondary" [reepPending]="leaveBackendPhase">
+      <button
+        type="button"
+        class="btn secondary"
+        [disabled]="!isMainAdmin()"
+        [attr.title]="isMainAdmin() ? null : 'The academic calendar is the Main Admin’s to edit.'"
+        (click)="openCalendar()"
+      >
         <span class="icon" aria-hidden="true">calendar_today</span> Calendar
       </button>
     </div>
   </div>
 
-  <!-- The board's four queues. CANCELLED is in the status enum and nothing
-       writes it — POST /leaves/{id}/cancel is B10.4 — so the tab says when it
-       arrives instead of opening a list that is empty for the wrong reason. -->
+  <!-- The board's four queues, all four live. Cancelled reads
+       /leaves/history?status=CANCELLED, which is its own request: the default
+       history is APPROVED and REJECTED and /pending is SUBMITTED and
+       FIRST_APPROVED, so a withdrawn row is in neither and this tab could not
+       have been lit by filtering the arrays already loaded. -->
   <div class="tabs queue-tabs" role="group" aria-label="Leave queues">
     @for (queue of tabs; track queue.key) {
       <button
@@ -35,15 +52,16 @@
         {{ queue.label }} · {{ counts()[queue.key] }}
       </button>
     }
-    <button type="button" class="tab" [reepPending]="leaveBackendPhase">Cancelled</button>
   </div>
 
   <div class="filters">
-    <!-- COLLEGE IS A READ-OUT, NOT A PICKER (B1.4). /leaves/pending takes no
-         college parameter: the server narrows the queue and states the reach it
-         used in X-Reep-Scope. There is nothing to send, so this states what the
-         grant reaches and offers no menu that could only hide rows. Nothing is
-         drawn at all when the response made no claim. -->
+    <!-- COLLEGE IS A READ-OUT, NOT A PICKER (B1.4). Neither queue endpoint
+         takes a college parameter: the server narrows both and states the reach
+         it used in X-Reep-Scope. There is nothing to send, so this states what
+         the grant reaches and offers no menu that could only hide rows. Nothing
+         is drawn at all when the response made no claim. (The Calendar dialog
+         does take a college id — that one is a college's own decision to
+         record, not a filter over what this account may read.) -->
     @if (scopeChip(); as reach) {
       <span class="chip {{ reach.tone }}">{{ reach.label }}</span>
     }
@@ -75,13 +93,22 @@
       </select>
     </div>
 
-    <!-- The queue carries the requester's name, designation and department but
-         not their role, so faculty and students cannot be told apart here. -->
+    <!-- DEMOTED, NOT PENDING. `LeaveOut` carries the requester's name,
+         designation and department and NOT their role, so faculty and students
+         genuinely cannot be told apart from a queue row — and no B10 task adds
+         a role to that payload. It carried the Phase 4 pending badge while
+         Phase 4 was the answer; it is not, so the phase number would be a
+         promise nothing keeps. Plain `disabled` with the real reason in the title, the
+         treatment the Faculty screen's orphan controls were given. -->
     <div class="select filter-pending">
       <span class="lbl">Requester</span>
       <span class="val">Faculty &amp; students</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Requester" [reepPending]="leaveBackendPhase">
+      <select
+        aria-label="Requester — faculty and students cannot be told apart on this queue"
+        disabled
+        title="A leave request carries the requester’s name, designation and department, but not their role — so this queue cannot separate faculty from students."
+      >
         <option value="">Faculty &amp; students</option>
       </select>
     </div>
@@ -198,22 +225,30 @@
       <div class="card policy-card">
         <div class="policy-head">
           <h2 class="policy-title">Leave policy</h2>
-          <button type="button" class="btn ghost sm" [reepPending]="leaveBackendPhase">
+          <button
+            type="button"
+            class="btn ghost sm"
+            [disabled]="!isMainAdmin()"
+            [attr.title]="isMainAdmin() ? null : 'Leave policy is the Main Admin’s to edit.'"
+            (click)="openPolicy()"
+          >
             <span class="icon" aria-hidden="true">edit</span> Edit
           </button>
         </div>
         <ul class="policy-list">
-          <li><span class="policy-key">Signatures</span> · two distinct approvers; you cannot sign twice, and you cannot decide your own request.</li>
-          <li><span class="policy-key">Who sees a request</span> · a mentor sees their own group only; the Main Admin sees every request, staff leave included.</li>
+          <li><span class="policy-key">Signatures</span> · two distinct approvers; you cannot sign twice, and you cannot decide your own request. Each one records the function it was given in — mentor, delegated approver, or the Main Admin.</li>
+          <li><span class="policy-key">Who sees a request</span> · a mentor sees their own group only; a scoped grant of <code>mentor.leave_approve</code> reaches a department or a college; the Main Admin sees every request, staff leave included.</li>
+          <li><span class="policy-key">Allowances</span> · recorded per person, per printed option, per academic year, behind Edit. An account with no allowance recorded is not measured against one, which is not a balance of zero.</li>
           <li><span class="policy-key">Refusing</span> · this console will not send a refusal without remarks, and the applicant reads them.</li>
         </ul>
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          The first two lines are the rule the API enforces today, not a stored policy; the third is
-          this screen's own — <code>POST /leaves/&hellip;/decision</code> accepts a refusal with no note,
-          so a refusal made elsewhere can still arrive wordless. Per-department policy — who signs
-          each step, the leave kinds, the balances per academic year and the cancellation window —
-          is B10.1 and B10.2 in Phase {{ leaveBackendPhase }}.
+          The first three lines are the rule the API enforces; the fourth is this screen's own —
+          <code>POST /leaves/&hellip;/decision</code> accepts a refusal with no note, so a refusal
+          made elsewhere can still arrive wordless. There is no stored rule for WHO signs each step:
+          a second signature for staff leave exists only where the office has granted
+          <code>mentor.leave_approve</code> a scope in Governance, and until it has, a staff request
+          can reach its first signature and go no further.
         </div>
       </div>
     </div>
@@ -269,27 +304,94 @@
           </div>
         </dl>
 
-        @if (request.alt_rows.length) {
+        @if (altRows().length) {
           <div class="alt-block">
             <div class="eyebrow">Classes covered</div>
             <ul class="alt-list">
-              @for (cover of request.alt_rows; track $index) {
+              @for (cover of altRows(); track cover.index) {
                 <li>
                   <span class="alt-when">{{ cover.date || '—' }} {{ cover.time }}</span>
-                  <span class="alt-who">{{ cover.staff_name || 'Not named' }}</span>
+                  <span class="alt-who">
+                    {{ cover.staff_name || cover.user_name || 'Not named' }}
+                    @if (cover.accepted_at) {
+                      <span class="chip good">
+                        <span class="icon" aria-hidden="true">how_to_reg</span> Accepted
+                      </span>
+                    } @else if (cover.user_id) {
+                      <span class="chip warn">Asked · no reply yet</span>
+                    }
+                  </span>
                   <span class="alt-what">{{ cover.cls }} {{ cover.remarks }}</span>
                 </li>
               }
             </ul>
+            @if (alternate() === null) {
+              <p class="panel-hint">
+                Only the printed table is shown. Whether each colleague has agreed to cover is read
+                from a separate endpoint this account was not given.
+              </p>
+            }
           </div>
         }
 
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          Leave balance after this request, how many colleagues are already away that week and the
-          supporting attachment are B10.2 and B10.3, and the named alternate accepting the cover is
-          B10.6 — all Phase {{ leaveBackendPhase }}; nothing on this deployment records them yet.
-        </div>
+        <!-- ------------------------------------------- the applicant's allowance -->
+        @if (balanceSet(); as allowance) {
+          <div class="alt-block">
+            <div class="eyebrow">Allowance · {{ allowance.academic_year }}</div>
+            @if (allowance.balances.length) {
+              <ul class="balance-list">
+                @for (balance of allowance.balances; track balance.kind) {
+                  <li>
+                    <span class="balance-kind">{{ kindLabel(balance.kind) }}</span>
+                    <span class="chip {{ balance.remaining_days < 0 ? 'risk' : 'neutral' }}">
+                      {{ balance.remaining_days }} left
+                    </span>
+                    <span class="balance-detail">
+                      {{ balance.consumed_days }} of {{ balance.entitled_days }} taken
+                    </span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="panel-hint">
+                The office has recorded no allowance for this applicant in {{ allowance.academic_year }},
+                so nothing is measured against one. That is not a balance of zero — a zero would
+                refuse every request of that type.
+              </p>
+            }
+          </div>
+        }
+
+        <!-- ------------------------------------------------------ attachments -->
+        @if (attachments(); as papers) {
+          <div class="alt-block">
+            <div class="eyebrow">Attached papers</div>
+            @if (papers.length) {
+              <ul class="attach-list">
+                @for (paper of papers; track paper.id) {
+                  <li>
+                    <a
+                      class="btn ghost sm"
+                      [href]="attachmentUrl(request, paper)"
+                      [attr.aria-label]="'Download ' + paper.original_name"
+                      download
+                    >
+                      <span class="icon" aria-hidden="true">download</span>
+                      {{ paper.original_name }}
+                    </a>
+                    <span class="attach-meta">
+                      {{ fileSize(paper.size_bytes) }} ·
+                      {{ paper.uploaded_by_name || 'account removed' }} ·
+                      {{ paper.uploaded_at | date: 'd MMM y' }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="panel-hint">Nothing was attached to this request.</p>
+            }
+          </div>
+        }
 
         <div class="reason">
           <div class="eyebrow">Reason · visible to approvers only</div>
@@ -322,12 +424,19 @@
               </li>
             }
           </ol>
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">info</span>
-            Which function holds each step — mentor, HOD, principal — and the name against the first
-            signature are B10.1 in Phase {{ leaveBackendPhase }}; today the form records two distinct
-            staff signatures and prints the deciding one on the paper.
-          </div>
+          <!-- Only where a signature actually exists. A SUBMITTED request has
+               none yet, and a CANCELLED one may never have had one — telling
+               either that "it was decided before REEP recorded a function" is a
+               sentence about something that did not happen. -->
+          @if (!request.first_signed_as && hasASignature(request)) {
+            <div class="notice accent">
+              <span class="icon" aria-hidden="true">info</span>
+              No function is recorded against this request's signatures. It was decided before REEP
+              began recording one, and guessing it from who the signer is today would put a claim
+              about their authority onto a form somebody already signed. The paper prints the name
+              and the time alone, exactly as it always did.
+            </div>
+          }
         </div>
 
         @if (canDecide()) {
@@ -417,4 +526,11 @@
       }
     </aside>
   </div>
+
+  @if (policyOpen()) {
+    <app-leave-policy-dialog (dismissed)="closeDialogs()" />
+  }
+  @if (calendarOpen()) {
+    <app-leave-calendar-dialog [colleges]="colleges()" (dismissed)="closeDialogs()" />
+  }
 </div>

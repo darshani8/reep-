@@ -129,11 +129,17 @@
     </a>
   </div>
 
+  <!-- NOT A PHASE. The marks and attendance imports landed (Data imports) and
+       readiness is computed per student — but `GET /api/admin/students` does
+       not carry any of the three, and asking Student 360 once per row would be
+       one request per student on every page of the roster. So the three
+       columns stay an em dash HERE and the sentence points at the screen that
+       does answer them, rather than promising a phase that has already been. -->
   <div class="notice accent columns-note">
     <span class="icon" aria-hidden="true">info</span>
-    Readiness, CGPA and Attendance read “{{ notReadable }}” because nothing reports them per student yet:
-    readiness inputs are B6.3 and the marks and attendance imports are B8.1, both Phase 4. Everything
-    else on this grid is live.
+    Readiness, CGPA and Attendance read “{{ notReadable }}” on this grid: the roster endpoint answers
+    identity, seating and stage, and none of those three is on it. All three are read per student on
+    Student 360 — open a row. Everything else on this grid is live.
   </div>
 
   <div class="roster">
@@ -303,16 +309,77 @@
         }
       </section>
 
+      <!-- LIVE: GET /api/admin/cohorts/{id}/promotion-history. Four states,
+           and they are four different facts — no batch chosen, still reading,
+           read and empty, refused. The endpoint deliberately refuses a holder
+           who reaches only PART of a batch rather than returning the part they
+           may see, so a refusal must never be drawn as "nothing on record". -->
       <section class="card rail-card">
         <div class="rail-card__head">
           <h2 class="card-heading">Promotion history</h2>
+          @if (promotionHistoryState() === 'ready' && promotionHistory().length > 0) {
+            <span class="chip neutral">{{ promotionHistory().length | plural: 'move' }}</span>
+          }
         </div>
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">history</span>
-          No promotions or graduations are on record. The endpoints that write a history row per student
-          are B4.3 (promote) and B4.4 (graduate), both Phase 4 — the same tasks that fill “results
-          imported” and “last promotion” on the card above.
-        </div>
+
+        @switch (promotionHistoryState()) {
+          @case ('no-batch') {
+            <div class="notice accent">
+              <span class="icon" aria-hidden="true">history</span>
+              Pick one batch above to read what has been done to it. A promotion and a graduation are
+              recorded per batch, so there is no whole-roster version of this list.
+            </div>
+          }
+          @case ('loading') {
+            <p class="rail-hint" role="status">
+              <span class="icon" aria-hidden="true">hourglass_top</span>
+              Reading this batch’s history…
+            </p>
+          }
+          @case ('refused') {
+            <div class="notice" role="alert">
+              <span class="icon" aria-hidden="true">block</span>
+              {{ promotionHistoryError() }} This is not “nothing on record” — it is a read this
+              account was refused, which happens when a grant reaches only part of the batch.
+            </div>
+          }
+          @default {
+            @if (promotionHistory().length === 0) {
+              <div class="notice accent">
+                <span class="icon" aria-hidden="true">history</span>
+                Nothing has been promoted, held back or graduated in this batch yet. A row lands here
+                the moment one is, naming the student, the move, the date and who ordered it.
+              </div>
+            } @else {
+              <ol class="history-list">
+                @for (row of promotionHistory(); track row.id) {
+                  <li class="history-row">
+                    <div class="history-row__head">
+                      <span class="chip {{ promotionKind(row.kind).tone }}">
+                        {{ promotionKind(row.kind).label }}
+                      </span>
+                      <strong>{{ row.student_name }}</strong>
+                      @if (row.usn) {
+                        <span class="history-row__usn">{{ row.usn }}</span>
+                      }
+                    </div>
+                    <div class="history-row__move">
+                      {{ promotionMove(row) }} · effective {{ when(row.effective_on) }}
+                    </div>
+                    <div class="history-row__by">
+                      Recorded by {{ promotionActor(row) }} on {{ when(row.created_at) }}
+                    </div>
+                    @if (row.reason) {
+                      <p class="history-row__reason">“{{ row.reason }}”</p>
+                    } @else {
+                      <p class="history-row__reason muted">No reason was recorded.</p>
+                    }
+                  </li>
+                }
+              </ol>
+            }
+          }
+        }
       </section>
 
       <div class="notice good">
@@ -325,12 +392,25 @@
 
   <!-- =================================================== the dialogs === -->
 
+  <!-- `completed` fires once the write has LANDED, and it is bound: without it
+       the grid and the history card behind this dialog stay at the read they
+       were taken from, which is a screen quietly showing the old semester. It
+       does not close the dialog — the result panel is carrying the server's own
+       counts and the reader dismisses it. -->
   @if (openDialog() === 'promote' && batchSummary(); as summary) {
-    <app-promote-batch-dialog [batch]="summary" (dismissed)="closeDialog()" />
+    <app-promote-batch-dialog
+      [batch]="summary"
+      (completed)="onBatchWriteCompleted()"
+      (dismissed)="closeDialog()"
+    />
   }
 
   @if (openDialog() === 'graduate' && batchSummary(); as summary) {
-    <app-graduate-batch-dialog [batch]="summary" (dismissed)="closeDialog()" />
+    <app-graduate-batch-dialog
+      [batch]="summary"
+      (completed)="onBatchWriteCompleted()"
+      (dismissed)="closeDialog()"
+    />
   }
 
   @if (openDialog() === 'edit') {

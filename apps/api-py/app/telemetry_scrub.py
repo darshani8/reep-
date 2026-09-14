@@ -77,7 +77,13 @@ QUERY_ALLOW = frozenset(
 #: The cost is honest: the SES-failure line uses the same logger, so muting the
 #: module also mutes the breadcrumb an operator wants when a student says the
 #: link never arrived. The MailLog row and the CloudWatch line still carry it.
-MUTED_LOGGERS = frozenset({"app.mail_transport"})
+#: `app.leave_mail` joins it for a related but not identical reason (B10.5). It
+#: composes the body one frame above `app.mail_transport`, about a LEAVE
+#: REQUEST — whose `reason` is the form's "Purpose" cell, free text and
+#: routinely medical. The module deliberately keeps that field out of every
+#: message it builds, and the mute is the layer that holds when somebody adds a
+#: debug line while chasing "why did this mail not go".
+MUTED_LOGGERS = frozenset({"app.mail_transport", "app.leave_mail"})
 
 #: Header names the SDK already substitutes under send_default_pii=False. They
 #: are removed here as well so the invariant holds if that flag is ever changed

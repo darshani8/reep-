@@ -19,13 +19,14 @@ import uuid
 import socket
 
 import pytest
-from sqlalchemy import delete, text
+from sqlalchemy import delete, or_, select, text, update
 from sqlalchemy.engine.url import make_url
 
 from app.db import SessionLocal
 from app.models.conversation import Conversation
 from app.models.governance import CapabilityGrant
-from app.models.user import LoginDay, Role, Student, User
+from app.models.mentor_assignment import MentorAssignment
+from app.models.user import LoginDay, Mentor, Role, Student, User
 from app.security import hash_password
 
 
@@ -169,6 +170,46 @@ def make_user(client):
         for uid in created:
             db.execute(delete(Conversation).where(Conversation.owner_user_id == uid))
             db.execute(delete(LoginDay).where(LoginDay.user_id == uid))
+            # B9.1. `mentor_assignments` names a student AND two staff accounts,
+            # and its `student_id`/`mentor_id` carry NO `ondelete` on purpose —
+            # the database REFUSES to delete a student or a mentor group out
+            # from under a spell, which is exactly what this teardown was doing
+            # silently before the table existed. Children first, as both purge
+            # modules do it: the assignment rows, then the group, then the
+            # student, then the account.
+            student_ids = [
+                sid for (sid,) in db.execute(
+                    select(Student.id).where(Student.user_id == uid)
+                ).all()
+            ]
+            group_ids = [
+                gid for (gid,) in db.execute(
+                    select(Mentor.id).where(Mentor.user_id == uid)
+                ).all()
+            ]
+            if student_ids or group_ids:
+                db.execute(
+                    delete(MentorAssignment).where(
+                        or_(
+                            MentorAssignment.student_id.in_(student_ids or [""]),
+                            MentorAssignment.mentor_id.in_(group_ids or [""]),
+                        )
+                    )
+                )
+            # A handover grant is minted by a RELEASE and keyed on the faculty
+            # account, so it outlives the account the same way any grant does.
+            db.execute(delete(CapabilityGrant).where(CapabilityGrant.subject_user_id == uid))
+            # UN-SEAT BEFORE DELETING THE GROUP. `students.mentor_id` has no
+            # `ondelete`, so a group this fixture made cannot go while ANY
+            # student still points at it — including one created by a later
+            # `make_user` call in the same test, which this loop has not reached
+            # yet. Nulling first makes the order of `created` irrelevant.
+            if group_ids:
+                db.execute(
+                    update(Student).where(Student.mentor_id.in_(group_ids)).values(mentor_id=None)
+                )
+                db.flush()
+            db.execute(delete(Mentor).where(Mentor.user_id == uid))
             db.execute(delete(Student).where(Student.user_id == uid))
             db.execute(delete(User).where(User.id == uid))
         db.commit()

@@ -47,17 +47,14 @@
   margin-bottom: 10px;
 }
 
-/* College, course and track are B12.1 (Phase 4). They are drawn as the board
-   draws them and disabled by the pending directive, which sets the native
-   `disabled` on this button — this is only the dress that goes with it. */
-.jobs-filter--pending {
-  font: inherit;
-  cursor: default;
-}
-
-.jobs-filter--pending:disabled {
+/* A narrowing select that has nothing to offer: every posting on this sheet
+   names the same college, or none names a track at all. The <select> inside is
+   `disabled` with the reason in its title; this dims the pill it sits in so the
+   row reads as "nothing to choose" at a glance rather than as a menu that will
+   not open. */
+.jobs-filter--empty {
   opacity: 0.55;
-  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .jobs-stats {
@@ -72,6 +69,14 @@
 .jobs-stats b {
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+}
+
+/* Past deadline and still on the boards. TEXT AND COLOUR TOGETHER: the words
+   beside the number say it as well, so the colour is emphasis and never the
+   only carrier of the fact. */
+.jobs-stats__warn,
+.jobs-stats__warn b {
+  color: var(--warn);
 }
 
 .jobs-gaps {

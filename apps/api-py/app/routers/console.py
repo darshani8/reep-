@@ -8,13 +8,13 @@ from datetime import date, datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
+from sqlalchemy import true as sa_true
 from sqlalchemy.orm import Session
 
-from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 
-from ..models.alert import Alert, AlertRuleConfig, AlertRuleKey, AlertSeverity
+from ..models.alert import AlertRuleConfig, AlertRuleKey, AlertSeverity
 from ..models.attendance import AttendanceRecord
 from ..models.badge import (
     BADGE_BY_CODE,
@@ -26,6 +26,7 @@ from ..models.badge import (
     StudentBadgeStatus,
 )
 from ..models.skill import Skill, StudentSkill
+from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.time_ledger import (
     PRODUCTIVE,
     LedgerDayStatus,
@@ -36,31 +37,46 @@ from ..models.certification import Certification
 from ..models.cohort import Cohort
 from ..models.course import Course, Enrollment
 from ..models.job import DegreeLevel, Job, JobApplication
-from ..models.job_import_run import JobImportRun
-from ..models.mail import MailLog
 from ..models.offer import OfferStatus, PlacementOffer
 from ..models.placement_criteria import PlacementCriteria
-from ..models.institution import Department
-from ..models.registration import Registration, RegistrationStatus
+from ..models.institution import (
+    AcademicCourse,
+    AcademicSpecialization,
+    College,
+    Department,
+)
+from ..criteria import (
+    SOURCE_COLLEGE as CRITERIA_SOURCE_COLLEGE,
+    SOURCE_COURSE as CRITERIA_SOURCE_COURSE,
+    SOURCE_PROGRAMME as CRITERIA_SOURCE_PROGRAMME,
+    ResolvedCriteria,
+    from_row as criteria_from_row,
+    as_payload as criteria_payload,
+    resolve as resolve_criteria,
+)
+from ..models.registration import PENDING_QUEUE_STATUSES, Registration
 from ..models.resume import Resume
 from ..models.user import Mentor, Role, Student, User
-from ..staff_placement import UNFILED, placements_for
 # Rule 2's gate, imported rather than reimplemented — see its docstring for why
 # there is exactly one of it.
 from .mentor import _assert_can_access_student
-# The response shape is defined once, next to the endpoints that own faculty.
-# Redefining it here would be the "one name, two shapes" the guard in
-# tests/test_codebase_guards.py exists to stop.
-from .admin_faculty import StaffPlacementOut
+# B8.5's cohort roll-up is the STUDENT'S OWN readiness rule applied to many
+# students, imported rather than reimplemented in SQL — see
+# `routers/student.py::_ReadinessInputs` for why the fetch and the decision
+# were split rather than a second expression written here.
+from .student import compose_readiness_many
 from ..resume_pdf import render_resume_pdf
 from ..architecture_events import record_change
-from ..governance import ancestry_of_student, ancestry_of_user, require_capability
-from ..models.governance import ScopeLevel
+from ..governance import require_capability
 from ..policies import scope_filter
 # B1.4. The projection of ONE reach onto `registrations`, and the response
 # header that states the caller's scope. See app/scope_views.py for why
 # neither belongs in policies.py.
-from ..scope_views import registration_scope_clause, scope_header
+from ..scope_views import job_scope_clause, registration_scope_clause, scope_header
+# B12.1/B12.2. `jobs.status`' vocabulary and the track normalisation live beside
+# the feeds that read them, not here: the console is the one WRITER of both and
+# a second spelling of "open" would be invisible until a student's board emptied.
+from ..jobs_visibility import STATUS_CLOSED, STATUS_OPEN, normalise_track
 # B14. What an extract may carry and the receipt it leaves are decided in ONE
 # module, shared with the badge export in routers/badge_verification.py — an
 # export rule written twice is an export rule applied once.
@@ -76,66 +92,24 @@ from ..models.account_events import ExportEvent
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-class OverviewOut(BaseModel):
-    total_students: int
-    by_stage: dict[str, int]
-    pending_offers: int
-    approved_offers: int
-    placed_students: int
-    placement_percent: float
-    open_alerts: int
-
-
-@router.get("/overview", response_model=OverviewOut)
-def overview(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> OverviewOut:
-    require_capability(db, session, "admin.analytics")
-
-    total = db.scalar(select(func.count()).select_from(Student)) or 0
-    by_stage = {
-        stage.value: count
-        for stage, count in db.execute(
-            select(Student.current_stage, func.count()).group_by(Student.current_stage)
-        ).all()
-    }
-    pending = (
-        db.scalar(
-            select(func.count())
-            .select_from(PlacementOffer)
-            .where(PlacementOffer.status == OfferStatus.PENDING_APPROVAL)
-        )
-        or 0
-    )
-    approved = (
-        db.scalar(
-            select(func.count())
-            .select_from(PlacementOffer)
-            .where(PlacementOffer.status == OfferStatus.APPROVED)
-        )
-        or 0
-    )
-    placed = (
-        db.scalar(
-            select(func.count(func.distinct(PlacementOffer.student_id))).where(
-                PlacementOffer.status == OfferStatus.APPROVED
-            )
-        )
-        or 0
-    )
-    open_alerts = (
-        db.scalar(select(func.count()).select_from(Alert).where(Alert.resolved_at.is_(None))) or 0
-    )
-
-    return OverviewOut(
-        total_students=total,
-        by_stage=by_stage,
-        pending_offers=pending,
-        approved_offers=approved,
-        placed_students=placed,
-        placement_percent=round(100 * placed / total, 1) if total else 0.0,
-        open_alerts=open_alerts,
-    )
+# ---------------------------------------------------------------------------
+# B8.4 REMOVED `GET /overview`, `GET /mail` and `GET /job-imports` from this
+# module (2026-09-13), and the reason is worth leaving behind.
+#
+# All three were reachable, capability-gated and correct, and NOTHING CALLED
+# ANY OF THEM: no Angular caller, and no client of any kind. `/overview` in
+# particular computed five programme-wide counts with NO `scope_filter` on it
+# at all, so it was the one admin aggregate a scoped grant could not narrow —
+# a B1.4 hole kept open by an endpoint nobody was using. Its replacement is
+# `GET /analytics-summary` below, which answers the same question through the
+# reach and stamps the scope header.
+#
+# `MailLog` and `app/mailer.py` are UNTOUCHED: the mail is still recorded and
+# still deduplicated: only the read endpoint is gone. `job_import_runs` went
+# with its endpoint, and took `jobs.import_run_id` with it (migration
+# f1a7c93d5e26) — B8.1's `import_runs` is the import provenance now, for the
+# datasets an office actually imports.
+# ---------------------------------------------------------------------------
 
 
 class CohortOut(BaseModel):
@@ -170,6 +144,15 @@ def cohorts(
 
 
 class CriteriaOut(BaseModel):
+    """The gates that apply, and — since B8.2 — where they came from.
+
+    THE FIRST NINE FIELDS ARE UNCHANGED, names and types, because
+    `features/admin/imports/import-dataset.ts::PlacementCriteriaOut` and the
+    Jobs sheet's posting form both read this shape today. Everything B8.2 adds
+    is a new OPTIONAL field, so a client that has not been rebuilt reads exactly
+    what it read before.
+    """
+
     name: str
     active: bool
     min_cgpa: float
@@ -179,6 +162,33 @@ class CriteriaOut(BaseModel):
     min_reep_completion_pct: float
     min_cert_completion_pct: float
     require_core_certs: bool
+    # ------------------------------------------------------------- B8.2 ----
+    id: str | None = None
+    #: `course`, `college` or `programme` — which rung of the chain answered.
+    #: Never `defaults` on this endpoint: see the handler's docstring.
+    source: str | None = None
+    college_id: str | None = None
+    course_id: str | None = None
+    effective_from: date | None = None
+
+
+def _criteria_out(resolved: ResolvedCriteria) -> CriteriaOut:
+    return CriteriaOut(
+        name=resolved.name or "Default",
+        active=resolved.active,
+        min_cgpa=resolved.min_cgpa,
+        max_live_backlogs=resolved.max_live_backlogs,
+        max_gap_months=resolved.max_gap_months,
+        min_attendance_pct=resolved.min_attendance_pct,
+        min_reep_completion_pct=resolved.min_reep_completion_pct,
+        min_cert_completion_pct=resolved.min_cert_completion_pct,
+        require_core_certs=resolved.require_core_certs,
+        id=resolved.criteria_id,
+        source=resolved.source,
+        college_id=resolved.college_id,
+        course_id=resolved.course_id,
+        effective_from=resolved.effective_from,
+    )
 
 
 @router.get("/criteria", response_model=CriteriaOut)
@@ -188,67 +198,256 @@ class CriteriaOut(BaseModel):
 # admin.analytics to. It is PROGRAMME scope — no mentor group narrows it — which
 # is why the console paints that grant red and demands a reason.
 def criteria(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    course_id: str | None = None,
+    college_id: str | None = None,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> CriteriaOut:
+    """The criteria the office has SET for this course, or 404 (B8.2).
+
+    `?course_id=` / `?college_id=` walk `app/criteria.py`'s chain — course row,
+    then college row, then the programme-wide row — so the screen can ask "what
+    applies to the MBA" and get the row that actually governs it. Neither
+    parameter given is the old question and the old answer: the programme-wide
+    row.
+
+    THE 404 STAYS, AND IT IS NOT THE SAME AS THE RESOLVER'S FALLBACK. This
+    endpoint answers "what has somebody SET", and when the answer is nothing the
+    honest reply is 404 — which the client already renders as "no criteria set
+    yet" rather than as a row (`imports.component.ts` treats 404 as
+    `criteriaState='none'`). The hard-coded defaults in `criteria.DEFAULTS` are
+    what the ENGINE falls back to when it has to give a student a verdict; they
+    are not something the office chose, and serving them here would make this
+    screen show a configuration nobody typed. `tests/test_phase3_compatibility.py`
+    pins the other half of the same sentence: whatever is served must never be a
+    row of zeros.
+    """
     require_capability(db, session, "admin.analytics")
-    c = db.scalar(
-        select(PlacementCriteria)
-        .where(PlacementCriteria.active.is_(True))
-        .order_by(PlacementCriteria.updated_at.desc())
-        .limit(1)
-    )
-    if c is None:
+    resolved = resolve_criteria(db, college_id=college_id, course_id=course_id)
+    if resolved.is_default:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="No active placement criteria set."
         )
-    return CriteriaOut(
-        name=c.name,
-        active=c.active,
-        min_cgpa=c.min_cgpa,
-        max_live_backlogs=c.max_live_backlogs,
-        max_gap_months=c.max_gap_months,
-        min_attendance_pct=c.min_attendance_pct,
-        min_reep_completion_pct=c.min_reep_completion_pct,
-        min_cert_completion_pct=c.min_cert_completion_pct,
-        require_core_certs=c.require_core_certs,
-    )
+    return _criteria_out(resolved)
 
 
-class MailLogOut(BaseModel):
-    id: str
-    kind: str
-    recipient: str
-    subject: str | None
-    status: str
-    error: str | None
-    sent_at: datetime
+class CriteriaIn(BaseModel):
+    """A new set of gates. Every threshold is optional and falls back to the
+    RESOLVED set it replaces, so the screen can save one changed number without
+    re-sending the other six and without a PATCH/PUT split."""
+
+    name: str = "Default"
+    college_id: str | None = None
+    course_id: str | None = None
+    effective_from: date | None = None
+    min_cgpa: float | None = Field(default=None, ge=0, le=10)
+    max_live_backlogs: int | None = Field(default=None, ge=0)
+    max_gap_months: int | None = Field(default=None, ge=0)
+    min_attendance_pct: float | None = Field(default=None, ge=0, le=100)
+    min_reep_completion_pct: float | None = Field(default=None, ge=0, le=100)
+    min_cert_completion_pct: float | None = Field(default=None, ge=0, le=100)
+    require_core_certs: bool | None = None
 
 
-@router.get("/mail", response_model=list[MailLogOut])
-def mail_log(
-    kind: str | None = None,
+@router.post("/criteria", response_model=CriteriaOut, status_code=status.HTTP_201_CREATED)
+def set_criteria(
+    body: CriteriaIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
-) -> list[MailLogOut]:
-    """Ops audit view: what the mailer was asked to send, most recent first.
-    Optionally filter by `kind` (e.g. 'job-alert')."""
+) -> CriteriaOut:
+    """Write a set of placement gates for a course, a college, or the programme.
+
+    A NEW ROW EVERY TIME, NEVER AN EDIT IN PLACE. `placement_criteria` is the
+    rule a student's eligibility verdict was decided under, and a verdict
+    somebody was given in March must stay explicable in September. Superseding
+    by INSERT plus `effective_from` is what makes the History list a history
+    rather than a list with one row in it; editing in place would leave
+    `updated_at` as the only trace and nothing to say what the numbers were.
+
+    THE PREVIOUS ROW AT THE SAME RUNG IS DEACTIVATED, not deleted. Two live rows
+    at one rung would be resolved by `updated_at` and the loser would sit in the
+    list looking live. `active=False` is what the history renders as
+    "superseded".
+
+    THE SCOPE FENCE IS THE REACH. A college admin holding a college-scoped
+    `admin.analytics` may write their own college's gates and not another's, and
+    not the PROGRAMME-WIDE row — which governs every college on the deployment
+    and is therefore the Main Admin's alone. That refusal is a 403 and says so.
+    """
     require_capability(db, session, "admin.analytics")
-    query = select(MailLog)
-    if kind:
-        query = query.where(MailLog.kind == kind)
-    rows = db.scalars(query.order_by(MailLog.sent_at.desc()).limit(100)).all()
-    return [
-        MailLogOut(
-            id=m.id,
-            kind=m.kind,
-            recipient=m.recipient,
-            subject=m.subject,
-            status=m.status.value,
-            error=m.error,
-            sent_at=m.sent_at,
+    reach = scope_filter(db, session, "admin.analytics")
+    if not reach.everything:
+        if body.college_id is None and body.course_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "The programme-wide criteria apply to every college on this "
+                    "deployment, so only the Main Admin may set them. Name a "
+                    "college or a course instead."
+                ),
+            )
+        if body.college_id and body.college_id not in reach.colleges:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your Analytics capability does not reach that college.",
+            )
+        if body.course_id:
+            # THE COURSE IS CHECKED THROUGH ITS OWN COLLEGE, not by taking the
+            # caller's word that it is theirs. A college-scoped holder naming
+            # another college's course would otherwise write gates for students
+            # they cannot see — the scope check reduced to "did you also send a
+            # college_id", which is a fence with a gate in it.
+            owning_college = db.scalar(
+                select(Department.college_id)
+                .select_from(AcademicCourse)
+                .join(Department, AcademicCourse.department_id == Department.id)
+                .where(AcademicCourse.id == body.course_id)
+            )
+            if body.course_id not in reach.courses and owning_college not in reach.colleges:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Your Analytics capability does not reach that course.",
+                )
+    if body.college_id and db.get(College, body.college_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="College not found.")
+    if body.course_id and db.get(AcademicCourse, body.course_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
+
+    # What this set replaces — so an omitted threshold keeps the number that was
+    # already governing these students rather than snapping to the fallback.
+    current = resolve_criteria(db, college_id=body.college_id, course_id=body.course_id)
+    values = {
+        field: (
+            getattr(body, field)
+            if getattr(body, field) is not None
+            else getattr(current, field)
         )
-        for m in rows
+        for field in (
+            "min_cgpa",
+            "max_live_backlogs",
+            "max_gap_months",
+            "min_attendance_pct",
+            "min_reep_completion_pct",
+            "min_cert_completion_pct",
+            "require_core_certs",
+        )
+    }
+
+    superseded = db.scalars(
+        select(PlacementCriteria).where(
+            PlacementCriteria.active.is_(True),
+            PlacementCriteria.college_id.is_(body.college_id)
+            if body.college_id is None
+            else PlacementCriteria.college_id == body.college_id,
+            PlacementCriteria.course_id.is_(body.course_id)
+            if body.course_id is None
+            else PlacementCriteria.course_id == body.course_id,
+        )
+    ).all()
+    for row in superseded:
+        row.active = False
+
+    written = PlacementCriteria(
+        name=body.name,
+        active=True,
+        college_id=body.college_id,
+        course_id=body.course_id,
+        effective_from=body.effective_from,
+        created_by=session.get("userId"),
+        **values,
+    )
+    db.add(written)
+    db.flush()
+    record_change(
+        db,
+        session=session,
+        request=request,
+        tenant_id=None,
+        entity_type="placement_criteria",
+        entity_id=written.id,
+        action="CRITERIA_SET",
+        before={"superseded": [row.id for row in superseded], **criteria_payload(current)},
+        after={
+            "name": body.name,
+            "college_id": body.college_id,
+            "course_id": body.course_id,
+            "effective_from": body.effective_from.isoformat() if body.effective_from else None,
+            **values,
+        },
+        event_type="criteria.set",
+        payload={"criteria_id": written.id, "college_id": body.college_id,
+                 "course_id": body.course_id},
+    )
+    db.commit()
+    db.refresh(written)
+    return _criteria_out(_criteria_resolved_row(written))
+
+
+#: How many sets of gates the History list answers with. A rung acquires one row
+#: per policy change, so a decade of them fits.
+MAX_CRITERIA_HISTORY = 100
+
+
+class CriteriaHistoryRow(CriteriaOut):
+    updated_at: datetime
+    created_by: str | None = None
+    created_by_name: str | None = None
+
+
+@router.get("/criteria/history", response_model=list[CriteriaHistoryRow])
+def criteria_history(
+    course_id: str | None = None,
+    college_id: str | None = None,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[CriteriaHistoryRow]:
+    """Every set of gates ever written for this rung, newest first (B8.2).
+
+    UNFILTERED IT IS THE WHOLE TABLE, which is the answer the office's History
+    button wants: "what have we ever set, and when". `?course_id=` / `?college_id=`
+    narrow to one rung. Superseded rows are IN the list and marked `active:
+    false` — a history that hid them would be a list of one row.
+    """
+    require_capability(db, session, "admin.analytics")
+    query = select(PlacementCriteria, User.name).outerjoin(
+        User, PlacementCriteria.created_by == User.id
+    )
+    if course_id:
+        query = query.where(PlacementCriteria.course_id == course_id)
+    if college_id:
+        query = query.where(PlacementCriteria.college_id == college_id)
+    rows = db.execute(
+        query.order_by(
+            PlacementCriteria.effective_from.desc().nullslast(),
+            PlacementCriteria.updated_at.desc(),
+        ).limit(MAX_CRITERIA_HISTORY)
+    ).all()
+    return [
+        CriteriaHistoryRow(
+            **_criteria_out(_criteria_resolved_row(row)).model_dump(),
+            updated_at=row.updated_at,
+            created_by=row.created_by,
+            created_by_name=name,
+        )
+        for row, name in rows
     ]
+
+
+def _criteria_resolved_row(row: PlacementCriteria) -> ResolvedCriteria:
+    """One stored row, in the resolver's shape, labelled by the rung it hangs on.
+
+    Goes through `criteria.from_row` rather than building the dataclass here,
+    so the write endpoint and the resolver cannot disagree about what a row
+    means — the same discipline as one fallback chain.
+    """
+    if row.course_id:
+        source = CRITERIA_SOURCE_COURSE
+    elif row.college_id:
+        source = CRITERIA_SOURCE_COLLEGE
+    else:
+        source = CRITERIA_SOURCE_PROGRAMME
+    return criteria_from_row(row, source)
 
 
 class AlertRuleOut(BaseModel):
@@ -333,496 +532,6 @@ def upsert_alert_rule(
     db.commit()
     db.refresh(row)
     return _alert_rule_out(row)
-
-
-class JobImportRunOut(BaseModel):
-    id: str
-    file_name: str | None
-    uploaded_by_id: str | None
-    started_at: datetime
-    finished_at: datetime | None
-    rows_seen: int
-    rows_created: int
-    rows_updated: int
-    error_count: int
-
-
-@router.get("/job-imports", response_model=list[JobImportRunOut])
-def job_imports(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> list[JobImportRunOut]:
-    """Audit view of bulk job-vacancy imports — counts and per-run error totals,
-    most recent first."""
-    require_capability(db, session, "admin.jobs")
-    rows = db.scalars(select(JobImportRun).order_by(JobImportRun.started_at.desc()).limit(50)).all()
-    return [
-        JobImportRunOut(
-            id=r.id,
-            file_name=r.file_name,
-            uploaded_by_id=r.uploaded_by_id,
-            started_at=r.started_at,
-            finished_at=r.finished_at,
-            rows_seen=r.rows_seen,
-            rows_created=r.rows_created,
-            rows_updated=r.rows_updated,
-            error_count=len(r.errors or []),
-        )
-        for r in rows
-    ]
-
-
-# --- mentorship map -------------------------------------------------------
-# The analytics screen draws mentors as an inner ring and their mentees as an
-# outer one, then re-scales a linked bar chart by whichever metric is selected.
-# All three metrics are returned together, ONE query each over the whole cohort
-# rather than per student: the alternative is a chart that fires N+1 requests as
-# the reader clicks around it, which is how a dashboard becomes the slowest page
-# in the product.
-
-
-class MenteeMetricsOut(BaseModel):
-    student_id: str
-    name: str
-    usn: str | None
-    stage: str | None
-    # Percent of recorded sessions attended. None when nothing is recorded —
-    # distinct from 0, which would draw a student as a total absentee.
-    attendance_percent: float | None
-    verified_skills: int
-    # Hours logged in the time ledger, all time.
-    logged_hours: float
-    # B1.5. TRUE when this pair spans two departments. The pair is KEPT and
-    # flagged, never broken: `set_student_mentor` refuses a NEW cross-COLLEGE
-    # assignment, and everything already on the roster was assigned under the
-    # old rule by somebody who meant it. Breaking those on deploy would empty
-    # real mentor groups, which is rule 2's input — a mentor with no group sees
-    # nobody — so the office would discover the change as mentors losing their
-    # mentees rather than as a policy taking effect.
-    #
-    # False when either side is unfiled, and that is not the same fact: an
-    # unfiled faculty account or an unseated student hangs under nothing, so
-    # "different departments" is not something anyone can assert about the pair.
-    # The Faculty screen already has a list of the unfiled; this column is not
-    # a second one.
-    cross_department: bool = False
-
-
-class MentorLoadOut(BaseModel):
-    # NULL until the Main Admin assigns this faculty member their first
-    # student: every MENTOR-role account is listed here, and the assignment is
-    # what creates the `Mentor` row (the group rule 2 filters on). Consumers
-    # that key on mentor_id skip the null rows; the assignment screen keys on
-    # user_id and sends mentor_user_id instead.
-    mentor_id: str | None
-    # The USER id, beside the mentor id: department and designation below are
-    # columns on `users`, and the console edits them through
-    # PATCH /api/admin/users/{user_id}/institutional-identity. Without this the
-    # screen could read the two fields and had no way to address the row that
-    # holds them — which is how "(synced)" stayed a promise for a year.
-    user_id: str
-    name: str
-    # The mentor's institutional identity, as the roster holds it. Nullable for
-    # the same reason it is on the leave form: the roster does not carry it for
-    # every row, and the screen says "not on record" rather than inventing one.
-    department: str | None
-    designation: str | None
-    # WHERE THEY ARE FILED, resolved through `users.department_id`.
-    #
-    # `department` above is free text and answers "what does the leave form
-    # print". This answers "which department, and therefore which college, does
-    # this person belong to" — a question the free-text line cannot answer,
-    # because "DMS" and "Dept of Management Studies" are one department to a
-    # reader and two to a GROUP BY. Students have carried this since
-    # `students.cohort_id`; staff did not until now.
-    placement: StaffPlacementOut = StaffPlacementOut()
-    # settings.mentor_capacity — programme policy, not a per-mentor fact. The
-    # assignment screen derives "N free" from it; nothing enforces it.
-    capacity: int
-    mentee_count: int
-    mentees: list[MenteeMetricsOut]
-
-
-#: The capability `mentor-load` is gated on, named once so the gate and the
-#: scope that narrows it can never read two different grants.
-#:
-#: IT IS `admin.analytics`, AND THAT IS A DEFECT ON THE OWNER'S LIST rather
-#: than a decision recorded here. The three screens of ONE workflow — see who
-#: is loaded, see who is unassigned, assign somebody — are gated on two
-#: different capabilities: this one on Analytics, `unassigned_students` and
-#: `set_student_mentor` on `admin.mentors`. Scope makes that visible in a way
-#: the bare capability check never did: a college admin granted Mentors &
-#: students for their college can open the picker and perform the assignment
-#: and cannot see the load board, while an Analytics grant reads the mentor map
-#: — names, USNs, attendance — of everyone it reaches. Reconciling them is a
-#: change to who holds what on a live deployment, which is the owner's call and
-#: not this task's; naming the constant is what makes the disagreement one line
-#: to fix rather than three greps.
-MENTOR_LOAD_CAPABILITY = "admin.analytics"
-
-
-def _student_department_expr():
-    """The department a student sits in, in SQL: the batch's, else their own.
-
-    The same precedence as `governance.ancestry_of_student` and
-    `policies.Reach.student_ids` — the batch wins where there is one, the
-    student's own pointer stands alone for an unseated student. Two lines of SQL
-    repeated rather than a scope rule repeated: what may be seen is still
-    decided once, in `scope_filter`; this only says where a row sits so an
-    optional `?department_id=` can narrow WITHIN that answer.
-    """
-    batch = select(Cohort.department_id).where(Cohort.id == Student.cohort_id).scalar_subquery()
-    return func.coalesce(batch, Student.department_id)
-
-
-def _departments_of(db: Session, college_id: str) -> list[str]:
-    return list(db.scalars(select(Department.id).where(Department.college_id == college_id)).all())
-
-
-@router.get("/mentor-load", response_model=list[MentorLoadOut])
-def mentor_load(
-    response: Response,
-    college_id: str | None = None,
-    department_id: str | None = None,
-    session: dict = Depends(get_current_session),
-    db: Session = Depends(get_db),
-) -> list[MentorLoadOut]:
-    """Every FACULTY account this caller may see, with their assigned students
-    and each student's three headline metrics.
-
-    NOT "Main Admin only", which is what this docstring said and the code has
-    never done: the gate is `MENTOR_LOAD_CAPABILITY`, a GRANTABLE capability, so
-    any faculty account the Main Admin grants it reaches this endpoint. That
-    sentence mattered while the answer was the whole programme either way; with
-    B1.4 it is the difference between a screen and a data leak, and a docstring
-    that names the wrong gate is how the next reader decides no scope is needed
-    here.
-
-    SCOPED (B1.4). Faculty rows come from `reach.user_ids()` and mentee rows
-    from `reach.student_ids()`, both narrowed in SQL. Narrowing only the faculty
-    would have been the more obvious half and the wrong one: a mentor group can
-    span departments (see `cross_department`), so a college admin reading a
-    faculty member inside their college would otherwise read that faculty
-    member's mentees in a college they hold nothing for.
-
-    `?college_id=` and `?department_id=` narrow WITHIN the reach and cannot
-    widen it: they are applied as additional predicates over the reach's own, so
-    asking for a department the caller does not hold returns no rows rather than
-    somebody else's. Re-validation is the shape of the query rather than a
-    second check that could one day disagree with the first.
-
-    Every MENTOR-role user is a row, including one who has never been assigned
-    a student: that is the account the Main Admin needs to see in order to
-    assign one, and until then `mentor_id` is null and rule 2 shows them
-    nobody. A faculty account is not a mentor by existing; it becomes one when
-    the office hands it a student."""
-    require_capability(db, session, MENTOR_LOAD_CAPABILITY)
-    reach = scope_filter(db, session, MENTOR_LOAD_CAPABILITY)
-    scope_header(response, reach)
-    if reach.nothing:
-        return []
-
-    faculty_where = [User.role == Role.MENTOR, User.id.in_(reach.user_ids())]
-    student_where = [Student.id.in_(reach.student_ids())]
-    if department_id:
-        faculty_where.append(User.department_id == department_id)
-        student_where.append(_student_department_expr() == department_id)
-    if college_id:
-        in_college = _departments_of(db, college_id)
-        faculty_where.append(User.department_id.in_(in_college))
-        student_where.append(_student_department_expr().in_(in_college))
-
-    mentors = db.execute(
-        select(
-            Mentor.id, User.id, User.name, User.department, User.designation,
-            User.department_id,
-        )
-        .select_from(User)
-        .outerjoin(Mentor, Mentor.user_id == User.id)
-        .where(*faculty_where)
-        .order_by(User.name)
-    ).all()
-
-    students = db.execute(
-        select(
-            Student.id, User.name, Student.usn, Student.current_stage, Student.mentor_id,
-            _student_department_expr().label("department_id"),
-        )
-        .join(User, Student.user_id == User.id)
-        .where(*student_where)
-        .order_by(User.name)
-    ).all()
-
-    # Attendance: present and total per student, in one pass.
-    att = {
-        sid: (present or 0, total or 0)
-        for sid, present, total in db.execute(
-            select(
-                AttendanceRecord.student_id,
-                func.count().filter(AttendanceRecord.present.is_(True)),
-                func.count(),
-            ).group_by(AttendanceRecord.student_id)
-        ).all()
-    }
-    skills = {
-        sid: n
-        for sid, n in db.execute(
-            select(StudentSkill.student_id, func.count())
-            .where(StudentSkill.verified.is_(True))
-            .group_by(StudentSkill.student_id)
-        ).all()
-    }
-    # Cells store HALF hours, so the sum is halved once here rather than in the
-    # client, where every consumer would have to remember.
-    hours = {
-        sid: (half or 0) / 2
-        for sid, half in db.execute(
-            select(TimeLedgerDay.student_id, func.sum(TimeLedgerCell.half_hours))
-            .join(TimeLedgerCell, TimeLedgerCell.ledger_day_id == TimeLedgerDay.id)
-            .group_by(TimeLedgerDay.student_id)
-        ).all()
-    }
-
-    # mentor_id -> the department that faculty account is filed under, so a
-    # mentee row can be compared against it without a second query per pair.
-    faculty_department = {mid: dept for mid, _uid, _n, _d, _g, dept in mentors if mid}
-
-    def metrics(sid: str, name: str, usn, stage, mentor_id, department_id) -> MenteeMetricsOut:
-        present, total = att.get(sid, (0, 0))
-        mentor_department = faculty_department.get(mentor_id)
-        return MenteeMetricsOut(
-            student_id=sid,
-            name=name,
-            usn=usn,
-            stage=stage.value if stage is not None and hasattr(stage, "value") else stage,
-            attendance_percent=round(100 * present / total, 1) if total else None,
-            verified_skills=skills.get(sid, 0),
-            logged_hours=hours.get(sid, 0.0),
-            # Both sides must resolve before this can be asserted — see the
-            # field's own note. `and` rather than `!=` on two possibly-None
-            # values, which would call every unfiled pair cross-department.
-            cross_department=bool(
-                department_id and mentor_department and department_id != mentor_department
-            ),
-        )
-
-    by_mentor: dict[str, list[MenteeMetricsOut]] = {}
-    for sid, name, usn, stage, mentor_id, department_id in students:
-        if mentor_id:
-            by_mentor.setdefault(mentor_id, []).append(
-                metrics(sid, name, usn, stage, mentor_id, department_id)
-            )
-
-    # One query for every faculty member's placement, not one per row.
-    placements = placements_for(db, [uid for _mid, uid, *_ in mentors])
-
-    return [
-        MentorLoadOut(
-            mentor_id=mid,
-            user_id=uid,
-            name=name,
-            department=department,
-            designation=designation,
-            placement=StaffPlacementOut.of(placements.get(uid, UNFILED)),
-            capacity=settings.mentor_capacity,
-            mentee_count=len(by_mentor.get(mid, [])),
-            mentees=by_mentor.get(mid, []),
-        )
-        for mid, uid, name, department, designation, _department_id in mentors
-    ]
-
-
-class UnassignedStudentOut(BaseModel):
-    student_id: str
-    name: str
-    usn: str | None
-    stage: str | None
-
-
-@router.get("/unassigned-students", response_model=list[UnassignedStudentOut])
-def unassigned_students(
-    response: Response,
-    college_id: str | None = None,
-    department_id: str | None = None,
-    session: dict = Depends(get_current_session),
-    db: Session = Depends(get_db),
-) -> list[UnassignedStudentOut]:
-    """Students with no mentor yet — the pool the assignment screen draws from.
-
-    SCOPED (B1.4) by `admin.mentors`, the capability that gates it. `?department_id=`
-    is the picker's default filter (B1.5): the assignment it feeds refuses a
-    mentor from another COLLEGE outright, and offering the same-department pool
-    first is how an admin stops proposing pairs the next screen will reject. It
-    narrows within the reach and can never widen it — the two predicates are
-    ANDed, so an id outside the caller's grant simply matches nothing.
-    """
-    require_capability(db, session, "admin.mentors")
-    reach = scope_filter(db, session, "admin.mentors")
-    scope_header(response, reach)
-    if reach.nothing:
-        return []
-    where = [Student.mentor_id.is_(None), Student.id.in_(reach.student_ids())]
-    if department_id:
-        where.append(_student_department_expr() == department_id)
-    if college_id:
-        where.append(_student_department_expr().in_(_departments_of(db, college_id)))
-    rows = db.execute(
-        select(Student.id, User.name, Student.usn, Student.current_stage)
-        .join(User, Student.user_id == User.id)
-        .where(*where)
-        .order_by(User.name)
-    ).all()
-    return [
-        UnassignedStudentOut(
-            student_id=sid,
-            name=name,
-            usn=usn,
-            stage=stage.value if stage is not None and hasattr(stage, "value") else stage,
-        )
-        for sid, name, usn, stage in rows
-    ]
-
-
-class AssignMentorIn(BaseModel):
-    # Null releases the student back to the unassigned pool. An explicit null is
-    # the un-assign action, so this is Optional rather than absent-means-keep.
-    mentor_id: str | None = None
-    # The faculty member's USER id, for one who has no `Mentor` row yet: the
-    # assignment creates it. This is how a faculty account becomes a mentor -
-    # by the Main Admin's act on the assignment screen, not by a flag at
-    # account creation.
-    mentor_user_id: str | None = None
-
-
-def ensure_mentor_group(db: Session, faculty_user_id: str) -> str:
-    """The `Mentor` row for a faculty account, created on first use.
-
-    A faculty account with no group yet: the assignment is what makes them a
-    mentor. The row is created here, once, and never for anyone who is not a
-    MENTOR-role account - a student handed a group would be rule 2 edited by a
-    form. ONE IMPLEMENTATION: the single assignment above and the batch action
-    in admin_students.py both come through here.
-    """
-    faculty = db.get(User, faculty_user_id)
-    if faculty is None or faculty.role is not Role.MENTOR:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not a faculty account.")
-    group = db.scalar(select(Mentor).where(Mentor.user_id == faculty.id))
-    if group is None:
-        group = Mentor(user_id=faculty.id)
-        db.add(group)
-        db.flush()
-    return group.id
-
-
-def _college_of_student(db: Session, student_id: str) -> str | None:
-    return dict(ancestry_of_student(db, student_id)).get(ScopeLevel.COLLEGE)
-
-
-def _college_of_faculty(db: Session, user_id: str) -> str | None:
-    return dict(ancestry_of_user(db, user_id)).get(ScopeLevel.COLLEGE)
-
-
-def _assert_same_college(db: Session, student: Student, mentor_user_id: str) -> None:
-    """B1.5. A mentor must be in the student's own college. 422 when they are not.
-
-    422 rather than 403: the caller holds the capability and is allowed to make
-    assignments — this particular pair is the thing that is wrong, and the
-    message says which two institutions it spans so the admin can pick somebody
-    else rather than go asking for a wider grant.
-
-    IT REFUSES ONLY WHEN BOTH SIDES RESOLVE. An unfiled faculty account
-    (`users.department_id IS NULL`, a first-class state the Faculty screen keeps
-    a list of) and an unseated student both hang under no college, and "these
-    two are in different colleges" is not something anybody can assert about
-    such a pair. Refusing there would make filing a precondition for mentoring
-    on a deployment that has not finished filing anyone — which is every
-    deployment on the day the spine arrives — and the failure would read as the
-    assign button being broken.
-
-    THE COLLEGE, NOT THE DEPARTMENT. A cross-DEPARTMENT pair inside one college
-    is ordinary and stays legal: the placement cell mentors across departments
-    routinely, the picker merely offers same-department first, and
-    `MenteeMetricsOut.cross_department` flags the ones that span. A college is
-    the tenant, and a mentor in another tenant reading a student's marks,
-    attendance and USN through rule 2 is the thing this refuses.
-    """
-    student_college = _college_of_student(db, student.id)
-    mentor_college = _college_of_faculty(db, mentor_user_id)
-    if not student_college or not mentor_college or student_college == mentor_college:
-        return
-    raise HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        detail=(
-            "A faculty member can only mentor students in their own college. "
-            "This student and this faculty account are filed under different "
-            "colleges — pick a faculty member from the student's college, or "
-            "file the account under it first."
-        ),
-    )
-
-
-@router.post("/students/{student_id}/mentor", status_code=status.HTTP_204_NO_CONTENT)
-def set_student_mentor(
-    student_id: str,
-    body: AssignMentorIn,
-    request: Request,
-    session: dict = Depends(get_current_session),
-    db: Session = Depends(get_db),
-) -> None:
-    """Assign a student to a mentor, or release them.
-
-    Deliberately not available to a MENTOR by role: mentor_id is what rule 2's
-    scope gate filters on, so a mentor who could set it could assign themselves
-    any student in the programme and then read everything about them. Who
-    mentors whom is an administrative decision, not a mentoring one.
-
-    SCOPED (B1.4/B1.2). The capability is checked twice and they are different
-    questions: once bare, for "may you assign at all", and once with the
-    STUDENT'S ancestry as `target`, for "may you assign THIS one". A college
-    admin can move students inside their college and is refused one in another.
-    The faculty member is checked the same way, because an assignment is a
-    statement about two people: a grant that reaches the student and not the
-    mentor would let a scoped admin hand a student to staff they hold nothing
-    for.
-
-    SAME COLLEGE (B1.5): `_assert_same_college`. Existing pairs are untouched —
-    nothing here rewrites a row it was not asked to.
-
-    AUDITED, with the previous mentor in `before`. "Who moved this student, and
-    off whom" is the first question asked when a mentee disappears from a
-    group, and until now the only record was the row itself, which by then
-    holds the answer to neither.
-    """
-    require_capability(db, session, "admin.mentors")
-    student = db.get(Student, student_id)
-    if student is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
-    require_capability(
-        db, session, "admin.mentors", target=ancestry_of_student(db, student_id)
-    )
-    mentor_id = body.mentor_id
-    if mentor_id is None and body.mentor_user_id is not None:
-        mentor_id = ensure_mentor_group(db, body.mentor_user_id)
-    if mentor_id is not None and db.get(Mentor, mentor_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mentor not found.")
-
-    if mentor_id is not None:
-        faculty_user_id = db.scalar(select(Mentor.user_id).where(Mentor.id == mentor_id))
-        if faculty_user_id:
-            require_capability(
-                db, session, "admin.mentors", target=ancestry_of_user(db, faculty_user_id)
-            )
-            _assert_same_college(db, student, faculty_user_id)
-
-    before = student.mentor_id
-    student.mentor_id = mentor_id
-    record_change(
-        db, session=session, request=request, tenant_id=None,
-        entity_type="student", entity_id=student.id, action="MENTOR_ASSIGNED",
-        before={"mentor_id": before}, after={"mentor_id": mentor_id},
-        event_type="student.mentor.assigned",
-        payload={"student_id": student.id, "mentor_id": mentor_id, "released": mentor_id is None},
-    )
-    db.commit()
 
 
 # --- catalogue ------------------------------------------------------------
@@ -918,25 +627,87 @@ class JobSheetOut(BaseModel):
     # postings are working, and a posting nobody applied to looks identical to a
     # healthy one without this.
     applicants: int
+    # B12.1. Where the posting is offered. NULL on either means EVERY college /
+    # every course — see `app/jobs_visibility.py` for why that is the reading
+    # rather than "nobody", and the labels so the grid can print a name without
+    # a second round trip per row.
+    college_id: str | None
+    college_name: str | None
+    course_id: str | None
+    course_name: str | None
+    tracks: list[str]
+    # B12.2. `open` or `closed`, as the office asserts it. NOT derived from
+    # `closes_on`, which the grid already reads and which answers the other
+    # question — see `close_job` below.
+    status: str
 
 
 @router.get("/jobs", response_model=list[JobSheetOut])
 def jobs_sheet(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[JobSheetOut]:
-    """Every posting on the board, newest first, with its application count."""
+    """Every posting this caller may see, newest first, with its application count.
+
+    SCOPED (B1.4) FOR THE FIRST TIME, because until B12.1 there was nothing to
+    scope by: `console.placement`'s docstring said in as many words that jobs
+    carry no institution and therefore could not be one of B1.4's targets. They
+    carry one now, and the projection is `scope_views.job_scope_clause` — read
+    its docstring before changing what a NULL college means here, because it is
+    the deliberate opposite of the import-run rule directly above it.
+    """
     require_capability(db, session, "admin.jobs")
+    reach = scope_filter(db, session, "admin.jobs")
+    scope_header(response, reach)
+    if reach.nothing:
+        return []
     counts = {
         jid: n
         for jid, n in db.execute(
             select(JobApplication.job_id, func.count()).group_by(JobApplication.job_id)
         ).all()
     }
-    rows = db.scalars(select(Job).order_by(Job.posted_on.desc())).all()
-    return [_job_sheet_row(j, counts.get(j.id, 0)) for j in rows]
+    rows = db.scalars(
+        select(Job).where(job_scope_clause(reach)).order_by(Job.posted_on.desc())
+    ).all()
+    labels = _spine_labels(db, rows)
+    return [_job_sheet_row(j, counts.get(j.id, 0), labels) for j in rows]
 
 
-def _job_sheet_row(j: Job, applicants: int) -> JobSheetOut:
+def _spine_labels(db: Session, rows) -> dict[str, str]:
+    """`{id: name}` for every college and course the given postings name.
+
+    Two queries for the page rather than two per row, and `id -> name` in one
+    dict because the two id spaces are both uuid hex and cannot collide. A
+    posting naming a college that has since been archived still resolves, which
+    is why this reads the rows rather than trusting a join that a narrowed
+    query would have dropped.
+    """
+    college_ids = {j.college_id for j in rows if j.college_id}
+    course_ids = {j.course_id for j in rows if j.course_id}
+    labels: dict[str, str] = {}
+    if college_ids:
+        labels |= {
+            cid: name
+            for cid, name in db.execute(
+                select(College.id, College.name).where(College.id.in_(college_ids))
+            ).all()
+        }
+    if course_ids:
+        labels |= {
+            cid: name
+            for cid, name in db.execute(
+                select(AcademicCourse.id, AcademicCourse.name).where(
+                    AcademicCourse.id.in_(course_ids)
+                )
+            ).all()
+        }
+    return labels
+
+
+def _job_sheet_row(j: Job, applicants: int, labels: dict[str, str] | None = None) -> JobSheetOut:
+    labels = labels or {}
     return JobSheetOut(
         id=j.id,
         title=j.title,
@@ -950,6 +721,12 @@ def _job_sheet_row(j: Job, applicants: int) -> JobSheetOut:
         min_cgpa=j.min_cgpa,
         max_live_backlogs=j.max_live_backlogs,
         applicants=applicants,
+        college_id=j.college_id,
+        college_name=labels.get(j.college_id) if j.college_id else None,
+        course_id=j.course_id,
+        course_name=labels.get(j.course_id) if j.course_id else None,
+        tracks=list(j.tracks or []),
+        status=j.status,
     )
 
 
@@ -967,6 +744,13 @@ class JobIn(BaseModel):
     closes_on: date | None = None
     apply_url: str | None = Field(default=None, max_length=1000)
     required_skills: list[str] = Field(default_factory=list, max_length=30)
+    # B12.1. All three OPTIONAL, and omitting them is a real choice rather than
+    # an unfinished form: a posting with no college, no course and no track is
+    # published to everybody, which is what every posting on every deployment is
+    # today. The form's help text says so; `app/jobs_visibility.py` is why.
+    college_id: str | None = None
+    course_id: str | None = None
+    tracks: list[str] = Field(default_factory=list, max_length=20)
 
 
 @router.post("/jobs", response_model=JobSheetOut, status_code=status.HTTP_201_CREATED)
@@ -990,6 +774,31 @@ def create_job(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="The apply link must start with http:// or https://.",
         )
+    # B12.1. A NAMED RUNG MUST EXIST. An id that resolves to nothing is stored
+    # as a posting nobody can see — every feed matches a college the viewer
+    # cannot have — which reads on the sheet as a posting that published fine
+    # and on every student's screen as nothing at all. The same reasoning as
+    # `_target_label` on a governance grant: two existence checks against the
+    # same table is how one of them ends up accepting a rung the other refuses,
+    # so the message names the rung rather than the column.
+    if body.college_id and db.get(College, body.college_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="That college is not on the roll.",
+        )
+    if body.course_id and db.get(AcademicCourse, body.course_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="That course is not in the catalogue.",
+        )
+    # Normalised here, at the ONE writer, so the feeds compare a plain equality
+    # against a stored value rather than lowering both sides per row on a column
+    # no index could then serve. Duplicates collapse and order is kept.
+    tracks: list[str] = []
+    for raw in body.tracks:
+        code = normalise_track(raw)
+        if code and code not in tracks:
+            tracks.append(code)
     now = datetime.now(timezone.utc)
     closes = (
         datetime(body.closes_on.year, body.closes_on.month, body.closes_on.day, 23, 59, tzinfo=timezone.utc)
@@ -1005,11 +814,15 @@ def create_job(
         required_skills=[skill.strip() for skill in body.required_skills if skill.strip()],
         posted_on=now,
         closes_on=closes,
+        college_id=body.college_id,
+        course_id=body.course_id,
+        tracks=tracks,
+        status=STATUS_OPEN,
     )
     db.add(job)
     db.commit()
     db.refresh(job)
-    return _job_sheet_row(job, 0)
+    return _job_sheet_row(job, 0, _spine_labels(db, [job]))
 
 
 @router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -1044,6 +857,73 @@ def delete_job(
     db.commit()
 
 
+@router.post("/jobs/{job_id}/close", response_model=JobSheetOut)
+def close_job(
+    job_id: str,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> JobSheetOut:
+    """Withdraw a posting from the two candidate boards (B12.2).
+
+    THE COLUMN AND THE DATE ANSWER DIFFERENT QUESTIONS, and this is the decision
+    the jobs grid's own comment asked for. `closes_on` is the deadline printed
+    on the posting, which the grid already derives a state from; `status` is the
+    office saying the recruiter has withdrawn it, which a date cannot express
+    and cannot be back-dated into without lying about when applications closed.
+    So the column does NOT override the date and is not derived from it: the
+    feeds filter on `status = 'open'` alone (`app/jobs_visibility.py` says why
+    filtering on both would remove postings students can see today), and the
+    grid goes on printing the date beside it.
+
+    NOT A DELETE, and the difference is the whole point. `DELETE /admin/jobs/
+    {id}` still refuses with 409 once anybody has applied, because the
+    applications are part of those students' records; closing is the action that
+    was missing for exactly that posting — the one that has done its work and
+    must come off the board without taking a student's history with it.
+
+    IDEMPOTENT. Closing a closed posting returns it unchanged and writes no
+    second audit event: the control is a toolbar button over a grid selection
+    and a double-tap is a double-tap, not a second decision.
+
+    ONE-WAY ON PURPOSE, FOR NOW — there is no reopen, because the board draws no
+    control for one and inventing an endpoint with no caller is what B8.4 spent
+    this phase deleting. A posting closed in error is republished, which leaves
+    the applications against the original where they belong.
+    """
+    require_capability(db, session, "admin.jobs")
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Posting not found.")
+    # The same fence the list applies: a narrowed holder who cannot see a
+    # posting must not be able to close it by typing its id. `reaches_target`
+    # has no shape for a posting (it is not a rung of the spine), so the reach
+    # is asked the same question the sheet asks, through the same clause.
+    reach = scope_filter(db, session, "admin.jobs")
+    if reach.nothing or db.scalar(
+        select(Job.id).where(Job.id == job_id, job_scope_clause(reach))
+    ) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Posting not found.")
+
+    applicants = (
+        db.scalar(
+            select(func.count()).select_from(JobApplication).where(JobApplication.job_id == job_id)
+        )
+        or 0
+    )
+    if job.status != STATUS_CLOSED:
+        job.status = STATUS_CLOSED
+        record_change(
+            db, session=session, request=request, tenant_id=None,
+            entity_type="job", entity_id=job.id, action="JOB_CLOSED",
+            before={"status": STATUS_OPEN}, after={"status": STATUS_CLOSED},
+            event_type="job.closed",
+            payload={"job_id": job.id, "company": job.company, "applicants": applicants},
+        )
+        db.commit()
+        db.refresh(job)
+    return _job_sheet_row(job, applicants, _spine_labels(db, [job]))
+
 
 # --- the analytics header and stat tiles ------------------------------------
 
@@ -1072,6 +952,10 @@ def _modal_semester(db: Session, reach=None) -> int | None:
 
 class AnalyticsSummaryOut(BaseModel):
     students_total: int
+    #: Applications still waiting on a human: PENDING_REVIEW **or** HOLD
+    #: (B11.2). A hold is a bookmark with a note, not an outcome, so the work is
+    #: still owed; counting only PENDING_REVIEW would make this tile fall the
+    #: moment somebody pressed Hold and report progress that nobody made.
     pending_registrations: int
     mentors_total: int
     # Assigned students per mentor. None with no mentors — an average over
@@ -1128,9 +1012,16 @@ def analytics_summary(
 
     in_reach = Student.id.in_(reach.student_ids())
     total = count(select(Student.id).where(in_reach))
+    # PENDING_REVIEW **OR** HOLD, through the one `PENDING_QUEUE_STATUSES` the
+    # model declares (B11.2). A held application is work the office still owes
+    # somebody — parked with a note, not finished — and counting only
+    # PENDING_REVIEW would drop this tile the moment a reviewer pressed Hold,
+    # reporting a queue getting shorter when nothing had been decided. The
+    # Registrations screen splits the two into tabs because it has room to; this
+    # tile is one number and must mean "waiting on us".
     pending_regs = count(
         select(Registration.id).where(
-            Registration.status == RegistrationStatus.PENDING_REVIEW,
+            Registration.status.in_(PENDING_QUEUE_STATUSES),
             registration_scope_clause(reach),
         )
     )
@@ -1328,6 +1219,591 @@ def student_weekly(
     )
 
 
+# --------------------------------------------------------------------------- #
+# B8.5 — the weekly series and the KPI strip
+#
+# WHY EVERY NUMBER HERE IS NULLABLE AND EVERY SERIES CARRIES ITS OWN SOURCE.
+# The Analytics board asks for four weekly series and six KPIs. Three of the
+# series and three of the KPIs are answerable from the tables that exist; the
+# rest are not, and each is not-answerable for a DIFFERENT reason. The shape
+# below makes the reason travel with the number, because the alternative — a
+# zero, or a series of zeros — is indistinguishable on a chart from a real
+# collapse, and the office would act on it.
+#
+# READINESS HAS NO HISTORY, and that is the sharp one. `placement_readiness` is
+# computed from the state of a student's records AS THEY ARE NOW: there is no
+# record of what their CGPA or attendance was in week 7, so "readiness % in week
+# 7" cannot be recovered from any table in this database. It is answerable for
+# the CURRENT week and for no other, until `analytics_snapshots` (B8.6) has been
+# written for a few weeks by a nightly job — which is an EventBridge schedule,
+# i.e. an infrastructure change nobody has approved. So this endpoint computes
+# every point it can and marks the readiness series `partial`, with the last
+# point filled and a sentence saying why the rest are empty. It does NOT read
+# `analytics_snapshots`: nothing writes that table yet, and a read path against
+# an empty table is a chart that silently shows nothing.
+#
+# SCOPED (B1.4), through the same reach as the tiles beside them. The ratios on
+# this screen must be reproducible from each other; a series narrowed
+# differently from `analytics-summary` would draw an attendance line that does
+# not match the attendance the same reader sees on the roster.
+# --------------------------------------------------------------------------- #
+
+#: The longest window the series will answer for. Twelve weeks is the board's
+#: default; the cap is here because `?weeks=` is a query parameter and an
+#: unbounded one is a full table scan of `attendance_records` an anonymous
+#: typo can ask for.
+MAX_SERIES_WEEKS = 52
+
+#: A readiness score at or above this is "placement ready" — the floor of
+#: `routers/student.py::_readiness_band`'s top band, named once here so the
+#: cohort percentage and the word on the student's own card cannot drift.
+PLACEMENT_READY_SCORE = 80
+
+#: Above this many students in reach, the readiness roll-up is not attempted.
+#: `compose_readiness_many` is six queries however large the set, so the bound
+#: is on the Python pass and the memory it holds, not on the database. Reported
+#: as unavailable WITH the count rather than silently truncated: a percentage
+#: over the first two thousand students of a larger set is a number nobody can
+#: reproduce.
+MAX_READINESS_ROLLUP = 5000
+
+
+#: The four lines, in the order the board draws them. Named once so the
+#: refused/empty branch below hands back the SAME four series, dashed — a chart
+#: that loses its legend when a reader has no access reads as a screen that
+#: failed to load rather than as an answer.
+_SERIES_SHAPE = (
+    ("attendance_pct", "Attendance %", "percent"),
+    ("skilling_hours", "Skilling hours", "hours"),
+    ("offers", "Offers approved", "count"),
+    ("readiness_pct", "Placement ready %", "percent"),
+)
+
+
+class SeriesOut(BaseModel):
+    key: str
+    label: str
+    #: `percent`, `hours` or `count` — the client picks an axis from this rather
+    #: than from the key, so a fifth series does not need a client change to
+    #: render with the right suffix.
+    unit: str
+    #: One point per week, oldest first, aligned to `weeks`. NULL means NOT
+    #: MEASURED for that week — no sessions recorded, no readiness history —
+    #: never zero. A zero here is a real zero.
+    points: list[float | None]
+    #: `live` (recomputed from rows now), `partial` (only some weeks can be
+    #: answered) or `unavailable` (nothing can answer it). Three words, for
+    #: `scope_views`' reason: "measured and zero" and "not measurable" are
+    #: opposite facts and must not render the same.
+    source: str
+    #: Present whenever `source` is not `live`, and shown on the chart.
+    note: str | None = None
+
+
+class AnalyticsSeriesOut(BaseModel):
+    weeks: list[WeekOut]
+    series: list[SeriesOut]
+    #: How many students the reach covers — the denominator every percentage
+    #: above was taken over, so the reader can tell a flat line from an empty one.
+    students_in_reach: int
+    generated_at: datetime
+
+
+def _week_starts(weeks: int, today: date) -> list[date]:
+    """The ISO Monday of each week in the window, oldest first, this week last."""
+    this_monday = today - timedelta(days=today.weekday())
+    return [this_monday - timedelta(weeks=weeks - 1 - i) for i in range(weeks)]
+
+
+@router.get("/analytics/series", response_model=AnalyticsSeriesOut)
+def analytics_series(
+    response: Response,
+    weeks: int = 12,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> AnalyticsSeriesOut:
+    """The Analytics board's weekly lines: attendance %, skilling hours, offers
+    and (for this week only) placement readiness.
+
+    Same gate and same reach as `analytics-summary`, deliberately: these are the
+    same students counted a different way, and two capabilities over one screen
+    is how a reader ends up with a chart they can see and a tile they cannot.
+    """
+    require_capability(db, session, "admin.analytics")
+    reach = scope_filter(db, session, "admin.analytics")
+    scope_header(response, reach)
+
+    weeks = max(1, min(int(weeks), MAX_SERIES_WEEKS))
+    today = datetime.now(timezone.utc).date()
+    starts = _week_starts(weeks, today)
+    window_start = starts[0]
+    # `WeekOut` is the shape `student_weekly` already returns, reused rather
+    # than restated: the drill-down chart and this cohort chart label their
+    # weeks identically or a reader clicking from one to the other cannot line
+    # them up. The `%-d` directive is a glibc extension and raises on Windows —
+    # `test_no_platform_specific_strftime` pins that.
+    labels = [
+        WeekOut(label=f"{d.day} {d:%b}", start=d, end=d + timedelta(days=6)) for d in starts
+    ]
+
+    student_ids = (
+        []
+        if reach.nothing
+        else list(db.scalars(select(Student.id).where(Student.id.in_(reach.student_ids()))).all())
+    )
+
+    if not student_ids:
+        # NO LINE IS DRAWN OVER NOBODY, and the two ways of getting here are
+        # given DIFFERENT sentences on purpose. `reach.nothing` is "you may see
+        # nothing" — the header beside it says `none` — and an empty reach that
+        # resolves to no students is "there is nothing here yet". Those are
+        # opposite facts (app/scope_views.py), and four flat zero lines would
+        # render them identically, and identically to a real collapse.
+        refused = (
+            "Your access does not reach any students, so there is nothing to plot."
+            if reach.nothing
+            else "No students are in scope yet, so there is nothing to plot."
+        )
+        return AnalyticsSeriesOut(
+            weeks=labels,
+            series=[
+                SeriesOut(key=key, label=label, unit=unit, points=[None] * weeks,
+                          source="unavailable", note=refused)
+                for key, label, unit in _SERIES_SHAPE
+            ],
+            students_in_reach=0,
+            generated_at=datetime.now(timezone.utc),
+        )
+
+    def bucket(d: date) -> int | None:
+        idx = (d - window_start).days // 7
+        return idx if 0 <= idx < weeks else None
+
+    # --- attendance: present and total per week, over the reach --------------
+    present = [0] * weeks
+    total = [0] * weeks
+    for session_date, was_present, n in db.execute(
+        select(
+            AttendanceRecord.session_date,
+            AttendanceRecord.present,
+            func.count(),
+        )
+        .where(
+            AttendanceRecord.student_id.in_(reach.student_ids()),
+            AttendanceRecord.session_date
+            >= datetime(window_start.year, window_start.month, window_start.day, tzinfo=timezone.utc),
+        )
+        .group_by(AttendanceRecord.session_date, AttendanceRecord.present)
+    ).all():
+        idx = bucket(session_date.date())
+        if idx is None:
+            continue
+        total[idx] += int(n)
+        if was_present:
+            present[idx] += int(n)
+    attendance_points: list[float | None] = [
+        round(100 * present[i] / total[i], 1) if total[i] else None for i in range(weeks)
+    ]
+
+    # --- skilling hours: time_sheet_entries, the SKILLING head ---------------
+    # AGENTS.md names this table for exactly this question ("how many minutes of
+    # SKILLING has this student logged this week", which the dashboard chart and
+    # the weekly target ask). The Time Allocation Ledger answers a different one
+    # — what the 24 hours of Thursday looked like — and summing it here would
+    # put sleep and leisure into a line labelled Skilling.
+    minutes = [0] * weeks
+    for day, mins in db.execute(
+        select(TimeSheetEntry.day, func.sum(TimeSheetEntry.minutes))
+        .where(
+            TimeSheetEntry.student_id.in_(reach.student_ids()),
+            TimeSheetEntry.activity == DayActivity.SKILLING,
+            TimeSheetEntry.day >= window_start,
+        )
+        .group_by(TimeSheetEntry.day)
+    ).all():
+        idx = bucket(day)
+        if idx is not None:
+            minutes[idx] += int(mins or 0)
+    # A week with no entries is 0 hours and NOT null, and that is the deliberate
+    # opposite of the attendance line above. The time sheet is a SELF-REPORT: a
+    # week in which nobody logged anything is a measurement of the cohort, and a
+    # true one. Attendance is a RECORD somebody else keeps, and a week with no
+    # sessions in it is a week nobody wrote down, which is not 0%.
+    hours_points: list[float | None] = [round(m / 60, 1) for m in minutes]
+
+    # --- offers approved per week -------------------------------------------
+    offers = [0] * weeks
+    for decided_at, n in db.execute(
+        select(PlacementOffer.decided_at, func.count())
+        .where(
+            PlacementOffer.student_id.in_(reach.student_ids()),
+            PlacementOffer.status == OfferStatus.APPROVED,
+            PlacementOffer.decided_at.is_not(None),
+            PlacementOffer.decided_at
+            >= datetime(window_start.year, window_start.month, window_start.day, tzinfo=timezone.utc),
+        )
+        .group_by(PlacementOffer.decided_at)
+    ).all():
+        idx = bucket(decided_at.date())
+        if idx is not None:
+            offers[idx] += int(n)
+    offer_points: list[float | None] = [float(n) for n in offers]
+
+    # --- readiness: this week only ------------------------------------------
+    readiness_points: list[float | None] = [None] * weeks
+    readiness_note = (
+        "Placement readiness is computed from a student's records as they stand "
+        "today, so earlier weeks cannot be recovered. This line fills in once "
+        "the nightly analytics snapshot (B8.6) has been running."
+    )
+    readiness_source = "partial"
+    if len(student_ids) > MAX_READINESS_ROLLUP:
+        readiness_source = "unavailable"
+        readiness_note = (
+            f"{len(student_ids)} students are in reach, above the "
+            f"{MAX_READINESS_ROLLUP} this roll-up will compute live. Narrow the "
+            "scope, or wait for the nightly snapshot (B8.6)."
+        )
+    elif student_ids:
+        scores = [
+            r.score for r in compose_readiness_many(db, student_ids).values()
+            if r.score is not None
+        ]
+        # NOT `len(student_ids)` as the denominator: a student whose score is
+        # None has nothing imported, and counting them as "not ready" is the
+        # same false verdict `build_readiness` exists to avoid, moved up one
+        # level to a cohort. The tile reports the share of the students who
+        # CAN be scored, and `students_in_reach` beside it is what makes the
+        # difference visible.
+        if scores:
+            ready = sum(1 for s in scores if s >= PLACEMENT_READY_SCORE)
+            readiness_points[-1] = round(100 * ready / len(scores), 1)
+            readiness_note = (
+                f"{len(scores)} of {len(student_ids)} students have enough on "
+                "record to be scored. Earlier weeks need the nightly snapshot "
+                "(B8.6)."
+            )
+        else:
+            readiness_note = (
+                "No student in reach has marks, attendance or certifications on "
+                "record yet, so nobody can be scored. Run an import (B8.1)."
+            )
+
+    return AnalyticsSeriesOut(
+        weeks=labels,
+        series=[
+            SeriesOut(key="attendance_pct", label="Attendance %", unit="percent",
+                      points=attendance_points, source="live"),
+            SeriesOut(key="skilling_hours", label="Skilling hours", unit="hours",
+                      points=hours_points, source="live"),
+            SeriesOut(key="offers", label="Offers approved", unit="count",
+                      points=offer_points, source="live"),
+            SeriesOut(key="readiness_pct", label="Placement ready %", unit="percent",
+                      points=readiness_points, source=readiness_source, note=readiness_note),
+        ],
+        students_in_reach=len(student_ids),
+        generated_at=datetime.now(timezone.utc),
+    )
+
+
+#: The KPI strip's shape, for the refused-reach branch below — the SAME keys in
+#: the SAME order, so a reader whose access reaches nothing sees the strip they
+#: would otherwise see, every tile dashed, rather than an empty row that reads
+#: as a screen that failed to load.
+_KPI_SHAPE = (
+    ("placement_rate", "Placement rate", "percent"),
+    ("median_ctc", "Median CTC", "inr"),
+    ("highest_ctc", "Highest CTC", "inr"),
+    ("placement_ready_pct", "Placement ready %", "percent"),
+    ("attendance_avg", "Attendance average", "percent"),
+    ("mock_interviews", "Mock interviews", "count"),
+    ("pending_approvals", "Pending approvals", "count"),
+)
+
+
+class KpiOut(BaseModel):
+    key: str
+    label: str
+    unit: str
+    #: NULL means NOT MEASURED. Every consumer renders it as a dash — the
+    #: Analytics screen already does this for the tiles it cannot compute, and
+    #: its header comment says so ("A TILE NOBODY COMPUTES SHOWS A DASH").
+    value: float | None
+    #: The same measure over the PREVIOUS window of the same length, and their
+    #: difference. `delta` is NULL whenever either end is, which is not the same
+    #: as a delta of zero: "unchanged" and "we cannot compare" are different
+    #: sentences and an arrow drawn for the second one is a lie in a glyph.
+    previous: float | None = None
+    delta: float | None = None
+    #: Why this is null, when it is. Rendered under the dash.
+    note: str | None = None
+
+
+class AnalyticsKpisOut(BaseModel):
+    #: The window both halves of every delta were taken over.
+    weeks: int
+    period_start: date
+    previous_period_start: date
+    kpis: list[KpiOut]
+    generated_at: datetime
+
+
+def _median(values: list[int]) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2:
+        return float(ordered[mid])
+    return (ordered[mid - 1] + ordered[mid]) / 2
+
+
+@router.get("/analytics/kpis", response_model=AnalyticsKpisOut)
+def analytics_kpis(
+    response: Response,
+    weeks: int = 12,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> AnalyticsKpisOut:
+    """The KPI strip above the charts, each with its delta against the previous
+    window of the same length.
+
+    THREE OF THE SIX CANNOT HAVE A DELTA AND SAY SO. Placement-ready %, pending
+    approvals and the mock-interview count are all "how many right now" —
+    nothing records what the queue depth or the readiness share WAS twelve weeks
+    ago, so their `previous` and `delta` are null rather than compared against a
+    number computed a different way. A delta is a promise that two numbers were
+    measured the same way; a screen that draws a green arrow from an absence is
+    worse than one that draws nothing.
+    """
+    require_capability(db, session, "admin.analytics")
+    reach = scope_filter(db, session, "admin.analytics")
+    scope_header(response, reach)
+
+    weeks = max(1, min(int(weeks), MAX_SERIES_WEEKS))
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    period_start = today - timedelta(weeks=weeks)
+    previous_start = today - timedelta(weeks=2 * weeks)
+    period_start_at = datetime(period_start.year, period_start.month, period_start.day, tzinfo=timezone.utc)
+    previous_start_at = datetime(previous_start.year, previous_start.month, previous_start.day, tzinfo=timezone.utc)
+
+    def envelope(kpis: list[KpiOut]) -> AnalyticsKpisOut:
+        return AnalyticsKpisOut(
+            weeks=weeks,
+            period_start=period_start,
+            previous_period_start=previous_start,
+            kpis=kpis,
+            generated_at=now,
+        )
+
+    if reach.nothing:
+        refused = "Your access does not reach any students."
+        return envelope(
+            [
+                KpiOut(key=key, label=label, unit=unit, value=None, note=refused)
+                for key, label, unit in _KPI_SHAPE
+            ]
+        )
+
+    student_ids = list(db.scalars(select(Student.id).where(Student.id.in_(reach.student_ids()))).all())
+    eligible = len(student_ids)
+    if not eligible:
+        # The strip keeps its shape rather than emptying — see `_KPI_SHAPE`.
+        return envelope(
+            [
+                KpiOut(
+                    key=key, label=label, unit=unit, value=None,
+                    note="No students are in scope yet.",
+                )
+                for key, label, unit in _KPI_SHAPE
+            ]
+        )
+
+    def delta(value: float | None, previous: float | None) -> float | None:
+        if value is None or previous is None:
+            return None
+        return round(value - previous, 1)
+
+    # --- placement rate: distinct placed students, as at each window's END ---
+    def placed_by(at: datetime | None) -> int:
+        stmt = select(func.count(func.distinct(PlacementOffer.student_id))).where(
+            PlacementOffer.status == OfferStatus.APPROVED,
+            PlacementOffer.student_id.in_(reach.student_ids()),
+        )
+        if at is not None:
+            stmt = stmt.where(
+                PlacementOffer.decided_at.is_not(None), PlacementOffer.decided_at < at
+            )
+        return int(db.scalar(stmt) or 0)
+
+    rate_now = round(100 * placed_by(None) / eligible, 1) if eligible else None
+    # The denominator is TODAY's roster at both ends, because the roster as it
+    # stood twelve weeks ago is not recorded either. So this delta answers "how
+    # many more of the students I have now had been placed by then", which is
+    # the honest reading and is stated in the note rather than left to be
+    # guessed from an arrow.
+    rate_then = round(100 * placed_by(period_start_at) / eligible, 1) if eligible else None
+
+    # --- CTC over offers approved IN each window ----------------------------
+    def ctcs(start: datetime, end: datetime | None) -> list[int]:
+        stmt = select(PlacementOffer.ctc_inr).where(
+            PlacementOffer.status == OfferStatus.APPROVED,
+            PlacementOffer.student_id.in_(reach.student_ids()),
+            PlacementOffer.decided_at.is_not(None),
+            PlacementOffer.decided_at >= start,
+            PlacementOffer.ctc_inr > 0,
+        )
+        if end is not None:
+            stmt = stmt.where(PlacementOffer.decided_at < end)
+        return [int(v) for v in db.scalars(stmt).all() if v]
+
+    this_window = ctcs(period_start_at, None)
+    last_window = ctcs(previous_start_at, period_start_at)
+
+    # --- attendance average over each window --------------------------------
+    def attendance_avg(start: datetime, end: datetime | None) -> float | None:
+        stmt = select(
+            func.count().filter(AttendanceRecord.present.is_(True)), func.count()
+        ).where(
+            AttendanceRecord.student_id.in_(reach.student_ids()),
+            AttendanceRecord.session_date >= start,
+        )
+        if end is not None:
+            stmt = stmt.where(AttendanceRecord.session_date < end)
+        row = db.execute(stmt).first()
+        if row is None or not row[1]:
+            return None
+        return round(100 * int(row[0] or 0) / int(row[1]), 1)
+
+    # --- placement-ready % (now only) ---------------------------------------
+    ready_pct: float | None = None
+    ready_note: str | None = None
+    if not student_ids:
+        ready_note = "No students in reach."
+    elif len(student_ids) > MAX_READINESS_ROLLUP:
+        ready_note = (
+            f"{len(student_ids)} students are in reach, above the "
+            f"{MAX_READINESS_ROLLUP} this roll-up computes live."
+        )
+    else:
+        scores = [
+            r.score for r in compose_readiness_many(db, student_ids).values()
+            if r.score is not None
+        ]
+        if scores:
+            ready_pct = round(
+                100 * sum(1 for s in scores if s >= PLACEMENT_READY_SCORE) / len(scores), 1
+            )
+            ready_note = (
+                f"Of the {len(scores)} students with enough on record to be scored, "
+                f"out of {len(student_ids)} in reach. No comparison period: "
+                "readiness has no history until the nightly snapshot (B8.6) runs."
+            )
+        else:
+            ready_note = (
+                "Nobody in reach has marks, attendance or certifications on record, "
+                "so no readiness score can be computed. Run an import (B8.1)."
+            )
+
+    # The same `PENDING_QUEUE_STATUSES` the summary tile counts, for the same
+    # reason: a held application is still an approval this office owes somebody.
+    # Two KPIs answering "pending" from two different status sets is how the
+    # Analytics screen ends up contradicting itself by four.
+    pending = int(
+        db.scalar(
+            select(func.count()).select_from(
+                select(Registration.id)
+                .where(
+                    Registration.status.in_(PENDING_QUEUE_STATUSES),
+                    registration_scope_clause(reach),
+                )
+                .subquery()
+            )
+        )
+        or 0
+    ) + int(
+        db.scalar(
+            select(func.count())
+            .select_from(BadgeEvidence)
+            .where(
+                BadgeEvidence.status == EvidenceStatus.PENDING_VERIFICATION,
+                BadgeEvidence.student_id.in_(reach.student_ids()),
+            )
+        )
+        or 0
+    )
+
+    median_now = _median(this_window)
+    median_then = _median(last_window)
+    highest_now = float(max(this_window)) if this_window else None
+    attendance_now = attendance_avg(period_start_at, None)
+    attendance_then = attendance_avg(previous_start_at, period_start_at)
+
+    return envelope(
+        [
+            KpiOut(
+                key="placement_rate", label="Placement rate", unit="percent",
+                value=rate_now, previous=rate_then, delta=delta(rate_now, rate_then),
+                note=(
+                    "Both ends use today's roster as the denominator; the roster "
+                    "as it stood earlier is not recorded."
+                ),
+            ),
+            KpiOut(
+                key="median_ctc", label="Median CTC", unit="inr",
+                value=median_now, previous=median_then,
+                delta=delta(median_now, median_then),
+                note=None if median_now is not None else (
+                    "No offer was approved with a CTC in this window."
+                ),
+            ),
+            KpiOut(
+                key="highest_ctc", label="Highest CTC", unit="inr",
+                value=highest_now,
+                note=None if highest_now is not None else (
+                    "No offer was approved with a CTC in this window."
+                ),
+            ),
+            KpiOut(
+                key="placement_ready_pct", label="Placement ready %", unit="percent",
+                value=ready_pct, note=ready_note,
+            ),
+            KpiOut(
+                key="attendance_avg", label="Attendance average", unit="percent",
+                value=attendance_now, previous=attendance_then,
+                delta=delta(attendance_now, attendance_then),
+                note=None if attendance_now is not None else (
+                    "No attendance has been recorded in this window. Run an import (B8.1)."
+                ),
+            ),
+            KpiOut(
+                key="mock_interviews", label="Mock interviews", unit="count",
+                value=None,
+                note=(
+                    "Not reported here on purpose. The one definition of a mock "
+                    "interview — `interview_sessions` plus the legacy "
+                    "`mock_attempts`, distinguished by source — is B6.3's, and a "
+                    "second one written here would disagree with the interview "
+                    "records screen the first time either moved."
+                ),
+            ),
+            KpiOut(
+                key="pending_approvals", label="Pending approvals", unit="count",
+                value=float(pending),
+                note=(
+                    "Applications awaiting review — held ones included, because "
+                    "a hold is a note, not a decision — plus evidence awaiting "
+                    "verification. No comparison period: queue depth is not "
+                    "recorded over time."
+                ),
+            ),
+        ]
+    )
+
+
+
+
 @router.get("/students/{student_id}/resume.pdf")
 def student_resume_pdf(
     student_id: str,
@@ -1389,15 +1865,75 @@ class RecruiterOut(BaseModel):
     count: int
 
 
+class TrackSplitOut(BaseModel):
+    """One row of the by-track split: how many, and how many placed.
+
+    `code` is NULL for the students whose batch names no specialization, and
+    that row is CARRIED rather than dropped — the columns have to sum to the
+    funnel or the screen is quietly reporting a smaller programme than it has.
+    """
+
+    code: str | None
+    name: str
+    eligible: int
+    placed: int
+
+
+class FunnelGapOut(BaseModel):
+    """A stage the funnel names and cannot count, with the reason in words.
+
+    A funnel that silently draws four stages where the board asks for five
+    reads as a programme where nobody was interviewed. A stage that is `null`
+    with a sentence attached reads as what it is: not recorded.
+    """
+
+    stage: str
+    reason: str
+
+
 class PlacementOut(BaseModel):
     semester: int | None
-    # The funnel. Four stages, because four are recorded: nothing in the schema
-    # says who was interviewed, and a tile for it would be a permanent dash.
-    eligible: int  # students in the programme
+    # ------------------------------------------------------------ the funnel
+    # FIVE STAGES NAMED, FOUR COUNTED, ALL FOUR DISTINCT STUDENTS (B12.3).
+    # `offers` and `approved` below are still counts of OFFERS and are kept
+    # because the status donut is arithmetic over them; the funnel reads the
+    # `_students` figures beside them, because a funnel captioned "distinct
+    # students" that draws a count of offers is a wrong number, not a missing
+    # one.
+    eligible: int  # students in reach
     applied: int  # distinct students with at least one job application
+    interviewed: int | None  # see `unavailable` — nothing records a recruiter round
+    offered_students: int  # distinct students holding a submitted offer
+    approved_students: int  # ...and holding an approved one: PLACED
     offers: int  # offers submitted for approval (pending, approved or refused)
     approved: int  # offers approved — the ones that count towards placement
-    approved_students: int
+    #: Every stage above whose value is `null`, and why. Empty when the funnel
+    #: is complete, so a client can branch on the list rather than on which
+    #: field happens to be None this release.
+    unavailable: list[FunnelGapOut]
+    # -------------------------------------------------------------- the KPIs
+    #: placed / eligible, as a percentage. NULL — never 0.0 — when nobody is
+    #: eligible: "0% placed" and "there is nobody to place" are opposite facts
+    #: and a screen must not print the first for the second. Same rule as every
+    #: nullable score on the English baseline.
+    placement_rate_pct: float | None
+    median_ctc_inr: int | None
+    highest_ctc_inr: int | None
+    #: How many offers the two CTC figures were taken over. A median is a
+    #: statement about a set, and a screen that prints one without saying over
+    #: what invites the reader to assume it is over all of them.
+    ctc_offers_counted: int
+    #: Distinct students holding more than one offer that has not been refused.
+    multiple_offer_students: int
+    # ------------------------------------------------------------- the split
+    by_track: list[TrackSplitOut]
+    #: The offer years this reach has records in, newest first — what the
+    #: screen's Period filter is built from, so it cannot offer a year with
+    #: nothing behind it.
+    years: list[int]
+    #: The year `?year=` narrowed the offer figures to, echoed back; NULL is
+    #: the whole record.
+    year: int | None
     recent: list[PlacementOfferRowOut]
     top_recruiters: list[RecruiterOut]
 
@@ -1406,21 +1942,131 @@ class PlacementOut(BaseModel):
 RECENT_OFFERS = 25
 
 
+#: The one funnel stage this product cannot count, and the sentence that says
+#: why. A constant rather than a literal at two call sites, because the empty
+#: reach returns it too and the two must not drift into two different
+#: explanations of the same dash.
+_INTERVIEWED_GAP = FunnelGapOut(
+    stage="interviewed",
+    reason=(
+        "No recruiter interview round is recorded anywhere in REEP. The mock "
+        "interviewer's sessions are rehearsals, not hiring rounds, and counting "
+        "them here would put a practice figure in a placement funnel."
+    ),
+)
+
+
+def _placement_by_track(db: Session, students, in_year) -> list[TrackSplitOut]:
+    """How many students each track holds, and how many of them are placed.
+
+    A TRACK IS THE STUDENT'S ACADEMIC SPECIALIZATION, not the posting's. The
+    board asks "which specialization placed a student", and the only way to
+    answer that for EVERY offer is through the student's own batch: an offer
+    carries a nullable `job_id`, so an off-campus offer has no posting and
+    therefore no `jobs.tracks` to read, and a posting for two tracks would count
+    one placement twice. The student's batch names exactly one specialization
+    and names it for the eligible side of the ratio as well, which is what makes
+    "placed / eligible" a ratio rather than two numbers about different sets.
+
+    THE UNFILED ROW IS CARRIED. A student whose batch names no specialization —
+    or who has no batch — lands under `code = null`, because the split is drawn
+    beside a funnel and columns that do not sum to it read as missing students.
+
+    GROUPED BY (code, name), NOT BY ID. `academic_specializations.code` is
+    unique only WITHIN a course, so a deployment teaching Finance under both an
+    MBA and an MCA has two rows spelling "FIN". Grouping by id would draw them
+    as two rows the screen cannot tell apart; grouping by the pair merges the
+    ones a reader would call the same track and keeps apart the ones that only
+    share a code. The split is normally read under a batch or a course filter,
+    where the question does not arise at all.
+    """
+    def grouped(*extra, join_offers: bool):
+        query = (
+            select(
+                AcademicSpecialization.code,
+                AcademicSpecialization.name,
+                func.count(func.distinct(Student.id)),
+            )
+            .select_from(Student)
+            .outerjoin(Cohort, Student.cohort_id == Cohort.id)
+            .outerjoin(
+                AcademicSpecialization,
+                Cohort.specialization_id == AcademicSpecialization.id,
+            )
+        )
+        if join_offers:
+            query = query.join(PlacementOffer, PlacementOffer.student_id == Student.id)
+        return db.execute(
+            query.where(Student.id.in_(students), *extra).group_by(
+                AcademicSpecialization.code, AcademicSpecialization.name
+            )
+        ).all()
+
+    rolls = grouped(join_offers=False)
+    placed = {
+        (code, name): n
+        for code, name, n in grouped(
+            PlacementOffer.status == OfferStatus.APPROVED, in_year, join_offers=True
+        )
+    }
+    rows = [
+        TrackSplitOut(
+            code=code,
+            # The label the screen prints. "Not filed" rather than an empty
+            # string, so the row reads as a statement about those students
+            # rather than as a rendering fault.
+            name=name or "Not filed",
+            eligible=n,
+            placed=placed.get((code, name), 0),
+        )
+        for code, name, n in rolls
+    ]
+    # Biggest track first, the unfiled row last whatever its size: it is the
+    # one row that is not a track.
+    rows.sort(key=lambda r: (r.code is None, -r.eligible, r.code or ""))
+    return rows
+
+
 @router.get("/placement", response_model=PlacementOut)
 def placement(
     response: Response,
+    cohort_id: str | None = None,
+    year: int | None = None,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> PlacementOut:
-    """The placement funnel and the recent offers.
+    """The placement funnel, the yearly KPIs, the by-track split and the recent offers.
 
-    SCOPED (B1.4) through the student, which is the only route there is: an
-    offer hangs on a `students` row and a `jobs` row, and JOBS CARRY NO
-    INSTITUTION AT ALL (`app/models/job.py` has no college, department or course
-    column and no join path to one). 04-backend-changes.md lists jobs among
-    B1.4's scope targets and they cannot be one until B12.1 adds those columns;
-    the posting sheet is therefore programme-wide on purpose and says so here
-    rather than growing a column this task invented.
+    SCOPED (B1.4) through the student, which is still the only route there is:
+    an offer hangs on a `students` row, and although B12.1 has now given `jobs`
+    a college and a course, an offer's `job_id` is NULLABLE — an off-campus
+    offer a student typed in themselves has no posting behind it — so narrowing
+    through the posting would silently drop exactly the offers nobody else
+    records. The student is the join that always lands.
+
+    `?cohort_id=` NARROWS WITHIN THE REACH AND CANNOT WIDEN IT, as
+    `mentor_load`'s two filters do: it is an extra predicate over the reach's
+    own, so asking for a batch the caller does not hold returns zeros rather
+    than somebody else's figures. Re-validation is the shape of the query rather
+    than a second check that could one day disagree with the first.
+
+    `?year=` NARROWS THE OFFERS, NOT THE ROLL. The KPIs are "yearly" in the
+    sense the board's Period filter means: offers submitted in that calendar
+    year, over the students on the roll TODAY. Ageing the denominator as well
+    would need a roll-as-of-date that nothing records, and inventing one would
+    make last year's rate move every time somebody is added to a batch.
+
+    FOUR OF THE FIVE FUNNEL STAGES ARE COUNTED AND THE FIFTH IS NAMED. Nothing
+    in this schema records a recruiter's interview round: `interview_sessions`
+    is the REEP MOCK interviewer, a rehearsal a student can sit four times in an
+    afternoon with no recruiter involved, and drawing it between "applied" and
+    "offered" would put a rehearsal count in a hiring funnel — a wrong number
+    rather than a missing one, which is the distinction the placement screen's
+    own header comment refuses to blur. `interviewed` is therefore `null` with
+    its reason in `unavailable`, and it stays that way until something records a
+    round. "Shortlisted", the board's sixth stage, has the same problem and is
+    not named at all: a stage that will never be counted is not a gap, it is a
+    feature nobody has asked to build.
 
     The funnel's stages are all narrowed by one reach, so the ratios between
     them stay readable. `top_recruiters` counts only offers inside it, which
@@ -1432,58 +2078,124 @@ def placement(
     scope_header(response, reach)
     if reach.nothing:
         return PlacementOut(
-            semester=None, eligible=0, applied=0, offers=0, approved=0,
-            approved_students=0, recent=[], top_recruiters=[],
+            semester=None, eligible=0, applied=0, interviewed=None,
+            offered_students=0, approved_students=0, offers=0, approved=0,
+            unavailable=[_INTERVIEWED_GAP], placement_rate_pct=None,
+            median_ctc_inr=None, highest_ctc_inr=None, ctc_offers_counted=0,
+            multiple_offer_students=0, by_track=[], years=[], year=year,
+            recent=[], top_recruiters=[],
         )
-    submitted = PlacementOffer.status != OfferStatus.DRAFT
-    mine = PlacementOffer.student_id.in_(reach.student_ids())
 
-    eligible = (
-        db.scalar(
-            select(func.count())
-            .select_from(Student)
-            .where(Student.id.in_(reach.student_ids()))
-        )
-        or 0
+    # The roll this whole payload is about, written ONCE: every count below
+    # narrows to these students, so a `?cohort_id=` that reached the funnel but
+    # not the split would produce a screen whose columns do not add up.
+    students = select(Student.id).where(Student.id.in_(reach.student_ids()))
+    if cohort_id:
+        students = students.where(Student.cohort_id == cohort_id)
+    mine = PlacementOffer.student_id.in_(students)
+    submitted = PlacementOffer.status != OfferStatus.DRAFT
+    # Offers the office has not refused — the set "how many students hold an
+    # offer" is asked about. A REJECTED row is one the office declined to
+    # record, not one a recruiter withdrew, and counting it would tell a student
+    # they hold an offer the same screen refused.
+    standing = PlacementOffer.status.in_((OfferStatus.PENDING_APPROVAL, OfferStatus.APPROVED))
+    in_year = (
+        func.extract("year", PlacementOffer.created_at) == year if year else sa_true()
     )
+
+    eligible = db.scalar(select(func.count()).select_from(students.subquery())) or 0
     applied = (
         db.scalar(
             select(func.count(func.distinct(JobApplication.student_id))).where(
-                JobApplication.student_id.in_(reach.student_ids())
+                JobApplication.student_id.in_(students)
             )
         )
         or 0
     )
     offers = (
-        db.scalar(select(func.count()).select_from(PlacementOffer).where(submitted, mine)) or 0
+        db.scalar(
+            select(func.count()).select_from(PlacementOffer).where(submitted, mine, in_year)
+        )
+        or 0
     )
     approved = (
         db.scalar(
             select(func.count())
             .select_from(PlacementOffer)
-            .where(PlacementOffer.status == OfferStatus.APPROVED, mine)
+            .where(PlacementOffer.status == OfferStatus.APPROVED, mine, in_year)
+        )
+        or 0
+    )
+    offered_students = (
+        db.scalar(
+            select(func.count(func.distinct(PlacementOffer.student_id))).where(
+                submitted, mine, in_year
+            )
         )
         or 0
     )
     approved_students = (
         db.scalar(
             select(func.count(func.distinct(PlacementOffer.student_id))).where(
-                PlacementOffer.status == OfferStatus.APPROVED, mine
+                PlacementOffer.status == OfferStatus.APPROVED, mine, in_year
             )
         )
         or 0
     )
+
+    # THE CTC FIGURES ARE TAKEN OVER APPROVED OFFERS WITH A CTC ON THEM.
+    # `ctc_inr` defaults to 0 and the student's own offer form does not demand
+    # it, so a zero means "not stated" far more often than it means an unpaid
+    # role — and a median dragged to the floor by blanks is worse than a dash.
+    # `ctc_offers_counted` travels beside them so the screen can say over how
+    # many, which is the sentence that makes a median honest.
+    priced = (PlacementOffer.status == OfferStatus.APPROVED, mine, in_year, PlacementOffer.ctc_inr > 0)
+    ctc_offers_counted = (
+        db.scalar(select(func.count()).select_from(PlacementOffer).where(*priced)) or 0
+    )
+    median_ctc = highest_ctc = None
+    if ctc_offers_counted:
+        median_ctc = db.scalar(
+            select(
+                func.percentile_cont(0.5).within_group(PlacementOffer.ctc_inr.asc())
+            ).where(*priced)
+        )
+        highest_ctc = db.scalar(select(func.max(PlacementOffer.ctc_inr)).where(*priced))
+
+    held = (
+        select(PlacementOffer.student_id)
+        .where(standing, mine, in_year)
+        .group_by(PlacementOffer.student_id)
+        .having(func.count() > 1)
+        .subquery()
+    )
+    multiple_offer_students = db.scalar(select(func.count()).select_from(held)) or 0
+
+    by_track = _placement_by_track(db, students, in_year)
+
+    # NOT narrowed by `in_year`, deliberately: this is the list the Period
+    # filter is built from, and a filter that offers only the year already
+    # selected cannot be used to leave it.
+    offer_year = func.extract("year", PlacementOffer.created_at)
+    years = [
+        int(y)
+        for y in db.scalars(
+            select(offer_year).where(submitted, mine).distinct().order_by(offer_year.desc())
+        ).all()
+        if y is not None
+    ]
+
     recent = db.execute(
         select(PlacementOffer, User.name, Student.usn)
         .join(Student, PlacementOffer.student_id == Student.id)
         .join(User, Student.user_id == User.id)
-        .where(submitted, mine)
+        .where(submitted, mine, in_year)
         .order_by(PlacementOffer.created_at.desc())
         .limit(RECENT_OFFERS)
     ).all()
     recruiters = db.execute(
         select(PlacementOffer.organisation, func.count())
-        .where(PlacementOffer.status == OfferStatus.APPROVED, mine)
+        .where(PlacementOffer.status == OfferStatus.APPROVED, mine, in_year)
         .group_by(PlacementOffer.organisation)
         .order_by(func.count().desc(), PlacementOffer.organisation)
         .limit(10)
@@ -1492,9 +2204,21 @@ def placement(
         semester=_modal_semester(db, reach),
         eligible=eligible,
         applied=applied,
+        interviewed=None,
+        offered_students=offered_students,
+        approved_students=approved_students,
         offers=offers,
         approved=approved,
-        approved_students=approved_students,
+        unavailable=[_INTERVIEWED_GAP],
+        # A rate over nobody is not 0% — see the field's own note.
+        placement_rate_pct=round(100 * approved_students / eligible, 1) if eligible else None,
+        median_ctc_inr=int(round(median_ctc)) if median_ctc is not None else None,
+        highest_ctc_inr=int(highest_ctc) if highest_ctc is not None else None,
+        ctc_offers_counted=ctc_offers_counted,
+        multiple_offer_students=multiple_offer_students,
+        by_track=by_track,
+        years=years,
+        year=year,
         recent=[
             PlacementOfferRowOut(
                 id=o.id,
@@ -1513,7 +2237,6 @@ def placement(
         ],
         top_recruiters=[RecruiterOut(organisation=org, count=n) for org, n in recruiters],
     )
-
 
 # --- the badge catalogue, for the certification form ------------------------
 
@@ -1623,10 +2346,27 @@ def export_students_csv(
 @router.get("/exports/placement.csv")
 def export_placement_csv(
     request: Request,
+    cohort_id: str | None = None,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> Response:
-    """Every submitted offer: student, company, role, CTC and the decision."""
+    """Every submitted offer: student, company, role, CTC and the decision.
+
+    `?cohort_id=` (B12.3) NARROWS WITHIN THE REACH, exactly as it does on
+    `GET /admin/placement`, and it is a PARAMETER HERE RATHER THAN A SECOND
+    ENDPOINT UNDER `/admin/placement/`. 04-backend-changes.md asks B12.3 for a
+    batch-scoped `offers.csv`; this file already is that file. It applies B14's
+    three rules — `scope_filter`, `carries_personal_columns`/`drop_personal`,
+    and a receipt in `export_events` — and a second route would be a second
+    implementation of all three, which `tests/test_exports.py` enforces from a
+    list that the new one would have to be added to and kept on. Two exports of
+    the same rows under two capabilities is how one of them stops dropping the
+    USN column.
+
+    The batch is recorded ON THE RECEIPT beside the scope, because "who
+    downloaded the placement file" and "which batch did they download" are the
+    same question to whoever reads that table afterwards.
+    """
     require_capability(db, session, "admin.exports")
     reach = scope_filter(db, session, "admin.exports")
     carried_pii = carries_personal_columns(db, session)
@@ -1640,6 +2380,8 @@ def export_placement_csv(
     )
     if not reach.everything:
         query = query.where(Student.id.in_(reach.student_ids()))
+    if cohort_id:
+        query = query.where(Student.cohort_id == cohort_id)
     rows = [] if reach.nothing else db.execute(query).all()
 
     header, body = drop_personal(
@@ -1663,7 +2405,8 @@ def export_placement_csv(
     )
     record_export(
         db, session=session, request=request, kind="placement",
-        filters=scope_note(reach), rows=len(body), carried_pii=carried_pii,
+        filters=scope_note(reach) | ({"cohort_id": cohort_id} if cohort_id else {}),
+        rows=len(body), carried_pii=carried_pii,
     )
     return csv_response(
         header, body, "reep-placement-summary.csv",

@@ -10,8 +10,13 @@
             <!-- The pipe prints the count with the noun, so the verb after it cannot
                  go through the pipe as well; it agrees on its own. -->
             {{ unassignedCount() | plural: 'student' }}
-            {{ unassignedCount() === 1 ? 'has' : 'have' }} no mentor and cannot be
-            reviewed until they do.
+            {{ unassignedCount() === 1 ? 'has' : 'have' }} no mentor
+            @if (narrowed()) {
+              in this view
+            }
+            and cannot be reviewed until they do.
+          } @else if (narrowed()) {
+            Every student in this view has a mentor.
           } @else {
             Every student has a mentor.
           }
@@ -19,10 +24,31 @@
       </div>
     </div>
     <div class="dt-toolbar">
-      <button type="button" class="btn secondary" [reepPending]="mentoringBackendPhase">
+      <!-- DEMOTED, NOT PENDING. B9.1 landed and every move is recorded — but the
+           read it shipped is GET /admin/students/{id}/mentor-history, which
+           answers for ONE STUDENT. A per-faculty feed is a different query and
+           nothing wrote it; composing one from the mentees this faculty member
+           holds NOW would silently omit everybody they have handed over, which
+           is the half anyone opens a history for. So this is plain `disabled`
+           with the real reason in the title and NO phase number on it — a phase
+           number here would be a promise nothing keeps. The history is on the
+           mentee rows, where the server can answer it. -->
+      <button
+        type="button"
+        class="btn secondary"
+        disabled
+        title="Assignment history is recorded per student, not per faculty member — open it from a mentee’s row in the list on the left."
+      >
         <span class="icon" aria-hidden="true">history</span> Assignment history
       </button>
-      <button type="button" class="btn secondary" [reepPending]="mentoringBackendPhase">
+      <button
+        type="button"
+        class="btn secondary"
+        [class.toggled]="batchOpen()"
+        [attr.aria-expanded]="batchOpen()"
+        aria-controls="batch-bar"
+        (click)="toggleBatchBar()"
+      >
         <span class="icon" aria-hidden="true">groups</span> Bulk assign batch
       </button>
     </div>
@@ -34,34 +60,188 @@
     </div>
   }
 
-  <!-- The board's three filters. Scoping the rail and the pool to one
-       department, batch or specialization is B9.4 (and the same-college rule
-       is B1.5), so each one is disabled and says which phase brings it. -->
+  <!-- THE BATCH BAR. `POST /admin/cohorts/{id}/students/bulk` with
+       action: "mentor" — the single assignment repeated through the same
+       helpers, so the same-college rule and the per-student history row apply
+       exactly as they do below. It is closed until asked for, because it writes
+       to every student in a batch at once. -->
+  @if (batchOpen()) {
+    <section class="card batch-bar" id="batch-bar" aria-labelledby="batch-bar-title">
+      <div class="card-head">
+        <h2 class="card-heading" id="batch-bar-title">Assign a whole batch</h2>
+        <button type="button" class="iconbtn" (click)="toggleBatchBar()" aria-label="Close the batch bar">
+          <span class="icon" aria-hidden="true">close</span>
+        </button>
+      </div>
+
+      @if (cohorts() === null) {
+        <div class="notice warn" role="status">
+          <span class="icon" aria-hidden="true">warning</span>
+          The batch list could not be read, so there is nothing to pick. Reading batches needs the
+          admin.analytics function.
+        </div>
+      } @else {
+        <div class="batch-bar__row">
+          <div class="select">
+            <span class="lbl">Batch</span>
+            <span class="val">
+              @if (batchTarget(); as batch) {
+                {{ batchLabel(batch) }}
+              } @else {
+                Pick a batch
+              }
+            </span>
+            <span class="icon" aria-hidden="true">expand_more</span>
+            <select
+              aria-label="The batch to assign"
+              (change)="batchCohortId.set(selectValue($event))"
+            >
+              <option [value]="everything" [selected]="batchCohortId() === everything">
+                Pick a batch
+              </option>
+              @for (batch of cohorts(); track batch.id) {
+                <option [value]="batch.id" [selected]="batch.id === batchCohortId()">
+                  {{ batchLabel(batch) }} · {{ batch.student_count | plural: 'student' }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="field batch-bar__reason">
+            <label for="batch-reason">Reason (optional)</label>
+            <input
+              id="batch-reason"
+              type="text"
+              placeholder="Why this batch is being seated here"
+              maxlength="400"
+              [value]="batchReason()"
+              (input)="batchReason.set($any($event.target).value)"
+              aria-describedby="batch-reason-help"
+            />
+            <!-- OPTIONAL HERE AND REQUIRED ON THE SINGLE ASSIGNMENT, and that
+                 asymmetry is B9.2's own decision rather than an oversight. -->
+            <span class="help" id="batch-reason-help">
+              A sentence asked once and applied to everybody in the batch describes the batch, not
+              any student in it — so this one is optional. It is recorded when given.
+            </span>
+          </div>
+
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="!canApplyBatch()"
+            [attr.title]="batchBlockedBecause() || null"
+            (click)="applyBatch()"
+          >
+            <span class="icon" aria-hidden="true">groups</span>
+            Assign to {{ selectedMentorName() }}
+          </button>
+        </div>
+
+        @if (batchTarget(); as batch) {
+          <div class="notice warn" role="status">
+            <span class="icon" aria-hidden="true">warning</span>
+            This moves <strong>every one</strong> of the
+            {{ batch.student_count | plural: 'student' }} in {{ batchLabel(batch) }} onto
+            {{ selectedMentorName() }} — including any who already have a different faculty member.
+            Each move is recorded on that student's own assignment history.
+          </div>
+        }
+      }
+    </section>
+  }
+
+  <!-- The board's three filters. The first two are real: both feeds take
+       ?department_id= and ?cohort_id= (B9.4/B1.5) and apply them over the
+       caller's own reach, so neither can widen what this account may read. -->
   <div class="filters">
-    <div class="select filter-pending">
+    <div class="select" [class.filter-pending]="departmentOptions().length === 0">
       <span class="lbl">Department</span>
-      <span class="val">All departments</span>
+      <span class="val">{{ departmentFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Department" [reepPending]="mentoringBackendPhase">
-        <option>All departments</option>
-      </select>
+      <!-- The menu is built from the faculty rail's own resolved placements:
+           GET /admin/departments is gated on admin.institution, a third key this
+           screen does not otherwise need, and a filter that 403s for a college
+           admin is worse than one drawn from what is already on screen. Nothing
+           filed means nothing to offer, so it is disabled and says that. -->
+      @if (departmentOptions().length === 0) {
+        <select
+          aria-label="Department — narrows both lists"
+          disabled
+          title="No faculty member on this list is filed under a department yet, so there is nothing to narrow by. Filing is done on the Faculty screen."
+        >
+          <option>All departments</option>
+        </select>
+      } @else {
+        <select
+          aria-label="Department — narrows both lists"
+          (change)="setDepartmentFilter(selectValue($event))"
+        >
+          <option [value]="everything" [selected]="departmentFilter() === everything">
+            All departments
+          </option>
+          @for (department of departmentOptions(); track department.id) {
+            <option [value]="department.id" [selected]="department.id === departmentFilter()">
+              {{ department.label }}
+            </option>
+          }
+        </select>
+      }
     </div>
-    <div class="select filter-pending">
+
+    <div class="select" [class.filter-pending]="cohorts() === null">
       <span class="lbl">Batch</span>
-      <span class="val">All batches</span>
+      <span class="val">{{ batchFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Batch" [reepPending]="mentoringBackendPhase">
-        <option>All batches</option>
-      </select>
+      @if (cohorts() === null) {
+        <select
+          aria-label="Batch — narrows the students"
+          disabled
+          title="The batch list could not be read, so there is nothing to narrow by. Reading batches needs the admin.analytics function."
+        >
+          <option>All batches</option>
+        </select>
+      } @else {
+        <select
+          aria-label="Batch — narrows the students"
+          (change)="setBatchFilter(selectValue($event))"
+        >
+          <option [value]="everything" [selected]="batchFilter() === everything">All batches</option>
+          @for (batch of cohorts(); track batch.id) {
+            <option [value]="batch.id" [selected]="batch.id === batchFilter()">
+              {{ batchLabel(batch) }}
+            </option>
+          }
+        </select>
+      }
     </div>
+
+    <!-- DEMOTED, NOT PENDING. Neither /mentor-load nor /unassigned-students
+         takes a specialization, and no Phase 4 task added one: a batch is the
+         narrowest rung either feed answers, and a batch already names one
+         specialization. Plain `disabled` with the real reason in the title and
+         no phase number — the Leave approvals "Requester" treatment. -->
     <div class="select filter-pending">
       <span class="lbl">Specialization</span>
       <span class="val">All</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Specialization" [reepPending]="mentoringBackendPhase">
+      <select
+        aria-label="Specialization — neither list can be narrowed by one"
+        disabled
+        title="Neither of these lists can be narrowed by specialization; a batch is the narrowest slice they answer, and a batch already names one."
+      >
         <option>All</option>
       </select>
     </div>
+
+    @if (narrowed()) {
+      <p class="filters__note">
+        Both lists are cut by the server. A batch narrows the STUDENTS and leaves the faculty rail
+        whole, so a faculty member with nobody in this batch is still here to seat somebody with —
+        and the count beside each name is then this batch's share of their group, not its size, so
+        the load bar is not drawn.
+      </p>
+    }
   </div>
 
   <!-- A load that did not answer is its own state. Falling through to the
@@ -83,14 +263,27 @@
     </div>
   } @else if (mentors()?.length === 0) {
     <div class="card" role="status">
-      No faculty on the roster yet, so there is nobody to assign students to.
+      <!-- A BATCH DOES NOT EMPTY THIS LIST. `mentor-load` narrows the MENTEE
+           rows by cohort and leaves the faculty list whole, so an empty rail
+           under a batch filter is a roster with nobody on it, not a filter
+           hiding people. Only the department filter can have cut it. -->
+      @if (departmentFilter() !== everything) {
+        No faculty member is filed under this department. Choose "All departments" to see the whole
+        roster; filing an account under a department is done on the Faculty screen.
+      } @else {
+        No faculty on the roster yet, so there is nobody to assign students to.
+      }
     </div>
   } @else if (mentors(); as facultyOnRoster) {
     <div class="mapping">
-      <!-- Left: the faculty rail, with load against the programme capacity. -->
+      <!-- Left: the faculty rail, with load against the capacity the server
+           resolved — the department's where it named one, the programme's
+           otherwise. Nothing refuses an assignment past it. -->
       <section class="card rail-card" aria-labelledby="mentor-rail-title">
         <div class="card-head">
-          <h2 class="card-heading" id="mentor-rail-title">Mentors · all departments</h2>
+          <h2 class="card-heading" id="mentor-rail-title">
+            Mentors · {{ departmentFilterLabel() }}
+          </h2>
           <span class="chip neutral">{{ facultyOnRoster.length }}</span>
         </div>
 
@@ -108,37 +301,76 @@
                 <span class="mentor-row__name">{{ mentor.name }}</span>
                 <span class="mentor-row__line">{{ facultyLine(mentor) }}</span>
                 <span class="mentor-row__line">{{ loadNote(mentor) }}</span>
-                <span class="meter">
-                  <span
-                    [class.at-capacity]="isAtCapacity(mentor)"
-                    [style.width.%]="loadPercent(mentor)"
-                  ></span>
-                </span>
+                <!-- NOT DRAWN UNDER A BATCH FILTER. The count is then this
+                     batch's share of the group, so a bar measuring it against
+                     the capacity would report a load nobody has. -->
+                @if (!batchNarrowed()) {
+                  <span class="meter">
+                    <span
+                      [class.at-capacity]="isAtCapacity(mentor)"
+                      [style.width.%]="loadPercent(mentor)"
+                    ></span>
+                  </span>
+                }
               </span>
-              <span class="mentor-row__count">{{ mentor.mentee_count }}/{{ mentor.capacity }}</span>
+              <span class="mentor-row__count">
+                @if (batchNarrowed()) {
+                  {{ mentor.mentee_count }}
+                } @else {
+                  {{ mentor.mentee_count }}/{{ mentor.capacity }}
+                }
+              </span>
             </button>
           }
         </div>
 
         @if (selectedMentor(); as mentor) {
-          <h3 class="list-lbl">Current mentees · {{ mentor.mentee_count }}</h3>
+          <h3 class="list-lbl">{{ menteeListLabel() }} · {{ mentor.mentee_count }}</h3>
           <ul class="mentee-list">
             @for (student of mentor.mentees; track student.student_id) {
               <li class="mentee">
-                <span class="mentee__name">{{ student.name }}</span>
-                <span class="mentee__line">{{ menteeLine(student) }}</span>
-                <button
-                  type="button"
-                  class="btn ghost sm"
-                  [attr.aria-label]="'Release ' + student.name + ' from ' + mentor.name"
-                  [disabled]="busy()"
-                  (click)="releaseStudent(student)"
-                >
-                  <span class="icon" aria-hidden="true">person_remove</span>
-                </button>
+                <span class="mentee__body">
+                  <span class="mentee__name">{{ student.name }}</span>
+                  <span class="mentee__line">{{ menteeLine(student) }}</span>
+                  <span class="mentee__line">{{ menteeMetrics(student) }}</span>
+                  @if (student.cross_department) {
+                    <!-- B1.5. The pair is kept and flagged, never broken: it was
+                         made under the old rule by somebody who meant it, and a
+                         cross-DEPARTMENT pair inside one college stays legal. -->
+                    <span class="mentee__flag"><span class="chip warn">Different department</span></span>
+                  }
+                </span>
+                <span class="mentee__actions">
+                  <button
+                    type="button"
+                    class="btn ghost sm"
+                    [class.on]="isHistoryOpen(student)"
+                    [attr.aria-label]="'Assignment history for ' + student.name"
+                    [disabled]="historyBusy()"
+                    (click)="openHistory(student)"
+                  >
+                    <span class="icon" aria-hidden="true">history</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost sm"
+                    [attr.aria-label]="'Release ' + student.name + ' from ' + mentor.name"
+                    [disabled]="busy()"
+                    (click)="releaseStudent(student)"
+                  >
+                    <span class="icon" aria-hidden="true">person_remove</span>
+                  </button>
+                </span>
               </li>
             } @empty {
-              <li class="mentee-empty">No mentees yet — add students from the pool.</li>
+              <li class="mentee-empty">
+                @if (batchNarrowed()) {
+                  Nobody from this batch is in their group. They may mentor students in others —
+                  choose "All batches" to see the whole group.
+                } @else {
+                  No mentees yet — add students from the pool.
+                }
+              </li>
             }
           </ul>
         }
@@ -165,7 +397,12 @@
 
           @if (unassignedCount() === 0) {
             <div class="notice good" role="status">
-              <span class="icon" aria-hidden="true">check_circle</span>Every student has a mentor.
+              <span class="icon" aria-hidden="true">check_circle</span>
+              @if (narrowed()) {
+                Every student in this view has a mentor.
+              } @else {
+                Every student has a mentor.
+              }
             </div>
           } @else {
             <ag-grid-angular
@@ -187,17 +424,12 @@
             </div>
           }
 
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">info</span>
-            Specialization, semester and how long a student has waited join these columns — and the
-            pool narrows to the mentor's own department — when B1.5 and B9.4 land in Phase 4.
-          </div>
-
           <div class="assign-bar">
             <button
               type="button"
               class="btn primary"
               [disabled]="!canAssign()"
+              [attr.title]="assignBlockedBecause() || null"
               (click)="assignSelectedStudents()"
             >
               <span class="icon" aria-hidden="true">arrow_forward</span>{{ assignActionLabel() }}
@@ -208,9 +440,22 @@
                 id="assign-reason"
                 type="text"
                 placeholder="Why this seating"
-                [reepPending]="mentoringBackendPhase"
+                maxlength="400"
+                [value]="assignReason()"
+                (input)="assignReason.set($any($event.target).value)"
+                [attr.aria-invalid]="hasReason() ? null : 'true'"
+                [attr.aria-describedby]="'assign-reason-help'"
               />
-              <span class="help">Recorded in the audit log, and both people emailed, from Phase 4.</span>
+              <!-- NO PROMISE OF AN EMAIL. This said "and both people emailed,
+                   from Phase 4" while nothing could send one: app/mail_transport
+                   falls back to a console outbox whenever SES_FROM_ADDRESS is
+                   unset, which is every deployment today (B3.7). A screen that
+                   tells an admin two people were notified, when nobody was, is
+                   worse than a screen that says nothing. -->
+              <span class="help" id="assign-reason-help">
+                Required. Recorded against this student's assignment history and on the audit
+                trail — it is the only record of why they were moved.
+              </span>
             </div>
           </div>
 
@@ -221,20 +466,87 @@
           }
         </section>
 
-        <!-- History is B9.1. The empty state says what will fill it; a sample
-             row here would be indistinguishable from working software. -->
+        <!-- THE HISTORY CARD, PER STUDENT (B9.1). The board draws it per faculty
+             member; the endpoint answers per student, and a per-faculty list
+             composed from the mentees they hold NOW would omit every student
+             they have handed over — the half anybody opens a history for. So
+             the card asks the question the server answers and names whose it
+             is. -->
         <section class="card history-card" aria-labelledby="history-title">
           <div class="card-head">
             <h2 class="card-heading" id="history-title">
-              Recent changes for {{ selectedMentorName() }}
+              @if (historyStudent(); as student) {
+                Assignment history · {{ student.name }}
+              } @else {
+                Assignment history
+              }
             </h2>
+            @if (historyStudent() !== null) {
+              <button type="button" class="iconbtn" (click)="closeHistory()" aria-label="Close this history">
+                <span class="icon" aria-hidden="true">close</span>
+              </button>
+            }
           </div>
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">history</span>
-            No assignment history is recorded yet. B9.1 (Phase 4) writes a row for every move —
-            who, when, by whom and why — and opens the 90-day handover window in which the
-            previous mentor keeps reading that student's notes.
-          </div>
+
+          @if (historyStudent() === null) {
+            <p class="history-empty">
+              Every assignment, release and handover is recorded — who, when, by whom and why — and a
+              release opens the 90-day window in which the previous faculty member can still READ
+              that student's notes. Press the history button on a mentee to read theirs.
+            </p>
+          } @else if (historyBusy()) {
+            <div class="notice info" role="status">
+              <span class="icon" aria-hidden="true">hourglass_empty</span>Loading…
+            </div>
+          } @else if (historyError()) {
+            <div class="notice" role="alert">
+              <span class="icon" aria-hidden="true">error</span>{{ historyError() }}
+            </div>
+          } @else if (history(); as spells) {
+            @if (spells.length === 0) {
+              <p class="history-empty">
+                Nothing recorded for this student. That means no assignment has been WRITTEN DOWN,
+                not that they have never had a mentor: a pairing made before this record existed
+                carries one row reading "since before this was recorded", so an empty list here is
+                a student who has not been seated with anybody yet.
+              </p>
+            } @else {
+              <ol class="spells">
+                @for (spell of spells; track spell.id) {
+                  <li class="spell">
+                    <div class="spell__head">
+                      <span class="spell__who">{{ spell.mentor_name ?? 'Faculty account removed' }}</span>
+                      @if (spellOpen(spell)) {
+                        <span class="chip good">Current</span>
+                      } @else {
+                        <span class="chip neutral">Ended</span>
+                      }
+                    </div>
+                    <p class="spell__when">{{ spellFrom(spell) }} · {{ spellTo(spell) }}</p>
+                    <p class="spell__act">
+                      {{ openedLabel(spell) }} by {{ spell.by_name ?? 'somebody no longer on the roster' }}
+                      @if (spell.reason) {
+                        — “{{ spell.reason }}”
+                      } @else {
+                        — no reason recorded
+                      }
+                    </p>
+                    @if (spell.end_kind) {
+                      <p class="spell__act">
+                        {{ endedLabel(spell) }}
+                        @if (spell.ended_by_name) {
+                          by {{ spell.ended_by_name }}
+                        }
+                        @if (spell.end_reason) {
+                          — “{{ spell.end_reason }}”
+                        }
+                      </p>
+                    }
+                  </li>
+                }
+              </ol>
+            }
+          }
         </section>
       </div>
     </div>

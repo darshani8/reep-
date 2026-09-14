@@ -77,8 +77,19 @@ def mentees(
     ]
 
 
-def _assert_can_access_student(session: dict, student_id: str, db: Session) -> Student:
+def _assert_can_access_student(
+    session: dict, student_id: str, db: Session, *, allow_handover: bool = False
+) -> Student:
     """Rule 2's gate. ONE NAME, ONE IMPLEMENTATION -- this delegates.
+
+    `allow_handover` (B9.1) is a PARAMETER and not a second body, which is what
+    keeps `tests/test_codebase_guards.py`'s AST guard satisfied: this function
+    is still one `return assert_student_scope(...)` and every question it can
+    answer is still answered there. It defaults to False, so all 36 call sites
+    keep exactly today's behaviour, and it is passed True only where the request
+    is a GET. Read `policies.assert_student_scope` for why it cannot be on by
+    default: fifteen of those call sites are WRITES, and this function cannot
+    tell them apart.
 
     This used to be a second, independent implementation of "may this staff
     member see this student", alongside `policies.assert_student_scope` which
@@ -107,7 +118,7 @@ def _assert_can_access_student(session: dict, student_id: str, db: Session) -> S
     does not fetch it a second time. Existing callers ignore it and are
     unaffected.
     """
-    return assert_student_scope(session, student_id, db)
+    return assert_student_scope(session, student_id, db, allow_handover=allow_handover)
 
 
 class NoteOut(BaseModel):
@@ -158,7 +169,12 @@ def list_notes(
     # mentees - and grants itself the capability in Governance if it needs to
     # look. Additive over the baseline, so faculty access is unchanged.
     require_capability(db, session, "mentor.mentees")
-    _assert_can_access_student(session, student_id, db)
+    # B9.1. A GET, so the handover window applies: a mentor who handed this
+    # student over in the last 90 days can still READ what they wrote about
+    # them. The POST and DELETE below are deliberately NOT passed the flag --
+    # the window is a read, and the note they wrote in March is what the
+    # incoming mentor rings them about.
+    _assert_can_access_student(session, student_id, db, allow_handover=True)
     rows = db.scalars(
         select(MentorNote)
         .where(MentorNote.student_id == student_id, MentorNote.deleted_at.is_(None))

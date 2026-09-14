@@ -343,15 +343,15 @@ export const routes: Routes = [
           ),
       },
       // Colleges (02-admin-console-spec.md §3): the tenant list, the registered
-      // email domains and the platform card. TWO capabilities, and the pair is
-      // the point: `ui.console_v2` says the redesigned screen exists at all —
-      // it is the preview switch the owner reviews this release behind, in the
-      // Main Admin's baseline and nobody else's — and `admin.institution` says
-      // this reader may open it. The sidebar row is gated on the same pair, so
-      // a row that renders is a row that navigates. Phase 5 deletes the switch.
+      // email domains and the platform card. ONE capability since Phase 5.
+      // It carried `ui.console_v2` as well — the preview switch the owner
+      // reviewed the redesigned console behind — and that key is deleted, so
+      // `admin.institution` is the whole question now. The sidebar row is gated
+      // on the same key, which is what keeps a row that renders a row that
+      // navigates.
       {
         path: 'admin/colleges',
-        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.institution')],
+        canActivate: [capabilityGuard('admin.institution')],
         loadComponent: () =>
           import('./features/admin/colleges/colleges.component').then(
             (m) => m.AdminCollegesComponent,
@@ -371,9 +371,16 @@ export const routes: Routes = [
       },
       // Interview Records: every mock interview with the student named and a
       // download for each recording. Lazy like the rest.
+      //
+      // A CAPABILITY, NOT A ROLE, SINCE B6.7. `admin.interviews` is what
+      // `GET /api/admin/interviews` checks, and a route still guarded on
+      // `roleGuard('ADMIN')` would mean a faculty member the Main Admin handed
+      // the screen to holds the key and cannot open the door — a grant that
+      // reports success in Governance and does nothing, which is the worst
+      // shape of permissions bug because nothing anywhere says no.
       {
         path: 'admin/interviews',
-        canActivate: [roleGuard('ADMIN')],
+        canActivate: [capabilityGuard('admin.interviews')],
         loadComponent: () =>
           import('./features/admin/interviews/interviews.component').then(
             (m) => m.InterviewRecordsComponent,
@@ -400,9 +407,13 @@ export const routes: Routes = [
       // Student 360 (§6): one student across every semester. AFTER the roster
       // route, though the order is not what separates them — both are full-path
       // matches, so `admin/students` never swallows `admin/students/5`.
+      //
+      // It carries the SAME key as the roster since Phase 5 removed the preview
+      // switch, so anyone who can read the roster can open a row. That is what
+      // `RosterGridContext.canOpenDetail` mirrors — see students.component.ts.
       {
         path: 'admin/students/:id',
-        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.students')],
+        canActivate: [capabilityGuard('admin.students')],
         loadComponent: () =>
           import('./features/admin/student-detail/student-detail.component').then(
             (m) => m.AdminStudentDetailComponent,
@@ -413,7 +424,7 @@ export const routes: Routes = [
       // screens split, the permission did not.
       {
         path: 'admin/faculty/new',
-        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.mentors')],
+        canActivate: [capabilityGuard('admin.mentors')],
         loadComponent: () =>
           import('./features/admin/faculty-new/faculty-new.component').then(
             (m) => m.AdminAddFacultyComponent,
@@ -421,17 +432,27 @@ export const routes: Routes = [
       },
       {
         path: 'admin/faculty',
-        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.mentors')],
+        canActivate: [capabilityGuard('admin.mentors')],
         loadComponent: () =>
           import('./features/admin/faculty/faculty.component').then((m) => m.AdminFacultyComponent),
       },
       // Data imports & criteria (§11): attendance and marks uploads, and the
-      // placement criteria per course. `admin.institution` until B8.1 gives
-      // imports a key of their own — the screen edits the institution's data
-      // and the office account holds that key already.
+      // placement criteria per course. `admin.imports` is the screen's own key
+      // since B8.1 (Phase 4b) — it stood on `admin.institution` while the
+      // endpoints did not exist, which admitted anyone who could edit a batch
+      // to a screen that reads every student's marks. The key `carries_pii`,
+      // so a grant of it needs a second Main Admin's signature (B2.4).
+      //
+      // THE GUARD IS A FILTER AND NOT THE FENCE. `require_capability` in
+      // app/routers/admin_imports.py is what refuses the request; this only
+      // keeps the nav item and the URL from leading somewhere that will 403.
+      // The criteria card on this screen still reads `admin.analytics` and the
+      // component says so in its own refusal message — two keys on one screen
+      // is deliberate: reading the gates is the analytics function, uploading a
+      // roster's marks is not.
       {
         path: 'admin/imports',
-        canActivate: [capabilityGuard('ui.console_v2'), capabilityGuard('admin.institution')],
+        canActivate: [capabilityGuard('admin.imports')],
         loadComponent: () =>
           import('./features/admin/imports/imports.component').then((m) => m.AdminImportsComponent),
       },
@@ -464,7 +485,7 @@ export const routes: Routes = [
       // route it; the Main Admin's alone, exactly as Governance is.
       {
         path: 'admin/governance/features',
-        canActivate: [capabilityGuard('ui.console_v2'), roleGuard('ADMIN')],
+        canActivate: [roleGuard('ADMIN')],
         loadComponent: () =>
           import('./features/admin/feature-switches/feature-switches.component').then(
             (m) => m.AdminFeatureSwitchesComponent,
@@ -476,7 +497,7 @@ export const routes: Routes = [
       // nobody holds refuses everyone including the office account.
       {
         path: 'admin/audit',
-        canActivate: [capabilityGuard('ui.console_v2'), roleGuard('ADMIN')],
+        canActivate: [roleGuard('ADMIN')],
         loadComponent: () =>
           import('./features/admin/audit/audit.component').then((m) => m.AdminAuditLogComponent),
       },

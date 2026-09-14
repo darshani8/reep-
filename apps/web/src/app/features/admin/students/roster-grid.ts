@@ -8,11 +8,13 @@
  * Analytics does — and escapes every value it interpolates, because a student's
  * name is somebody else's text.
  *
- * READINESS, CGPA AND ATTENDANCE ARE HERE AND THEY ARE EMPTY. The board draws
- * the three columns; no endpoint on `main` reports any of them per student
- * (readiness inputs are B6.3, the marks and attendance imports are B8.1, both
- * Phase 4), so each renders an em dash and says which task will fill it in its
- * header tooltip. The screen repeats that once in a `.notice.accent`. A
+ * READINESS, CGPA AND ATTENDANCE ARE HERE AND THEY ARE EMPTY, AND THAT IS NOT
+ * A PHASE. The board draws the three columns; `GET /api/admin/students` does
+ * not carry any of them — it answers identity, seating and stage. All three
+ * exist and are read per student on Student 360, one request per student, so a
+ * roster that filled these cells would issue one request per ROW on every page.
+ * Each therefore renders an em dash and its header tooltip says where the
+ * number actually lives. The screen repeats that once in a `.notice.accent`. A
  * plausible number in a screenshot is indistinguishable from working software.
  */
 
@@ -48,12 +50,14 @@ function renderStudentCell(params: ICellRendererParams<RosterRow>): string {
     `<span style="font-size: 11px; color: var(--faint); overflow: hidden; text-overflow: ellipsis;">` +
     `${escapeHtml(row.email)}</span>`;
 
-  // THE NAME IS A LINK ONLY WHEN THE READER CAN FOLLOW IT. This roster is
-  // guarded by `admin.students` alone, while Student 360 is a new screen and
-  // carries `ui.console_v2` as well, so a faculty member granted the roster and
-  // not the preview would have seen a purple link on every row that bounced
-  // them back to their own home — the dead link the navigation model exists to
-  // make impossible. For them the name is plain text.
+  // THE NAME IS A LINK ONLY WHEN THE READER CAN FOLLOW IT. Both this roster and
+  // Student 360 are guarded by `admin.students` since Phase 5 removed the
+  // `ui.console_v2` preview switch, so today every reader who sees this grid can
+  // follow the link. The branch stays because it mirrors the route guard: while
+  // the two differed, a faculty member granted the roster and not the preview
+  // saw a purple link on every row that bounced them back to their own home —
+  // the dead link the navigation model exists to make impossible. For a reader
+  // who cannot follow it, the name is plain text.
   const name = (params.context as RosterGridContext | undefined)?.canOpenDetail
     ? // A real anchor, so the keyboard reaches it and the status bar shows where
       // it goes; the click is intercepted into the router so the SPA does not
@@ -195,7 +199,8 @@ export const ROSTER_COLUMNS: ColDef<RosterRow>[] = [
     filter: false,
     floatingFilter: false,
     valueFormatter: formatNotReadable,
-    headerTooltip: 'Placement readiness per student arrives with the readiness inputs, B6.3 (Phase 4)',
+    headerTooltip:
+      'Not on the roster endpoint. Placement readiness is computed per student and is read on Student 360 — open the row.',
   },
   {
     colId: 'cgpa',
@@ -207,7 +212,8 @@ export const ROSTER_COLUMNS: ColDef<RosterRow>[] = [
     filter: false,
     floatingFilter: false,
     valueFormatter: formatNotReadable,
-    headerTooltip: 'Marks are recorded by the results import, B8.1 (Phase 4)',
+    headerTooltip:
+      'Not on the roster endpoint. Marks are imported on Data imports and read per student on Student 360 — open the row.',
   },
   {
     colId: 'attendance',
@@ -219,7 +225,8 @@ export const ROSTER_COLUMNS: ColDef<RosterRow>[] = [
     filter: false,
     floatingFilter: false,
     valueFormatter: formatNotReadable,
-    headerTooltip: 'Attendance is recorded by the attendance import, B8.1 (Phase 4)',
+    headerTooltip:
+      'Not on the roster endpoint. Attendance is imported on Data imports and read per student on Student 360 — open the row.',
   },
   {
     colId: 'batch',

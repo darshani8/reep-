@@ -61,7 +61,19 @@ def question_bank_for(track: str) -> tuple[str, ...]:
 def with_question_bank(spec: Specialization) -> Specialization:
     """`spec` carrying the admin's bank for its track; `spec` itself when there
     is none. Appended after anything the code already put there, so a track
-    that ships with questions keeps them first."""
+    that ships with questions keeps them first.
+
+    NOT THE LIVE HANDSHAKE PATH ANY MORE (B5.1/B5.2). `/api/interview` goes
+    through `app.interview_tracks.resolve_specialization`, which reads the TRACK
+    ROW and its bank in one session on one worker thread and narrows the bank by
+    `track_id` and by college. This stays because it is the code-only half of
+    that answer — it takes a `Specialization` the caller already has and asks
+    only "what does the office want covered on this code" — and because
+    `tests/test_interview_bank.py` pins the wire through it. If you are adding a
+    third reader of the bank, add it to `interview_tracks` instead: two readers
+    with different filters is how a question stops being asked on one path and
+    keeps being asked on the other, with nothing on any screen to say so.
+    """
     bank = question_bank_for(spec.key)
     if not bank:
         return spec

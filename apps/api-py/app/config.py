@@ -135,6 +135,21 @@ class Settings(BaseSettings):
     # SES authenticates through the task role, so there is no key to paste.
     ses_from_address: str = ""
     ses_region: str = ""  # falls back to AWS_REGION, then ap-south-1
+    # B10.5's leave notifications, and they are OFF by default on purpose.
+    #
+    # B3.7 (SES in production) has not shipped. With `ses_from_address` blank —
+    # every machine this has ever run on — `mail_transport.send` logs the message
+    # and appends it to a bounded in-memory `outbox`, which reaches NOBODY. A
+    # leave notification that is on by default therefore writes a `mail_logs` row
+    # saying SENT for a message the applicant never received, and the row is the
+    # only thing anyone would look at afterwards. The exact shape of the failure
+    # that killed PENDING_VERIFICATION.
+    #
+    # So this stays false until an operator has a transport AND wants the mail,
+    # and no screen may say "the applicant has been emailed" while it is false.
+    # Turning it on with SES configured is one line; turning it on without SES is
+    # the mistake this default exists to prevent.
+    leave_mail_enabled: bool = False
     # Link lifetimes, from the agreed plan: activation 7 days (a new staff
     # member may not check mail today); reset 1 hour (the account exists and
     # may already be under attack); an application's confirmation 24 hours.
@@ -462,10 +477,28 @@ class Settings(BaseSettings):
     # in _open_records with one indexed COUNT over the student's sessions in the
     # last 24 h, refused with close 4015 BEFORE any upstream socket opens or row
     # is written. 8 is a full afternoon of honest practice; a student who hits
-    # it is looping, sharing a cookie, or being scripted. Abandoned and failed
-    # sessions COUNT toward it on purpose — a cap that only counts clean
-    # finishes is a cap a crash loop never hits.
+    # it is looping, sharing a cookie, or being scripted.
+    #
+    # B6.4 SPLIT IT IN TWO AND THIS IS NOW THE PRACTICE ALLOWANCE, counted on
+    # COMPLETED interviews only: an interview that dropped out at minute two no
+    # longer costs a student a turn. Abandoned and failed sessions used to count
+    # here, and the reason they did has not gone away — "a cap that only counts
+    # clean finishes is a cap a crash loop never hits" — so it moved to the
+    # setting below, which is the one that still counts everything.
+    #
+    # Both are the DEPLOYMENT's answer and both are overridable per college
+    # (`interview_policies`, B6.1). A college that has decided nothing gets
+    # exactly these numbers, which is what makes the absence of a policy row the
+    # default rather than a row somebody has to create.
     interview_max_per_student_per_day: int = 8
+    # The SPEND ceiling: every `interview_sessions` row in the same rolling 24 h,
+    # finished or not. Higher than the allowance above by construction — the
+    # policy table's CHECK refuses the other order, because a spend ceiling below
+    # the practice cap makes the practice cap unreachable and the student's
+    # allowance silently becomes the ceiling. 20 leaves room for a bad network
+    # morning (a dozen dropped handshakes and eight real interviews) and still
+    # bounds a reconnect loop at a number somebody would notice on an invoice.
+    interview_max_attempts_per_student_per_day: int = 20
 
     # The deterministic answer gate — a word count, not a model call, because
     # this runs on the hot path between the student finishing and the
@@ -781,6 +814,7 @@ class Settings(BaseSettings):
         "interview_audio_min_free_bytes",
         "interview_temperature",
         "auth_revocation_cache_seconds",
+        "leave_mail_enabled",
         mode="before",
     )
     @classmethod

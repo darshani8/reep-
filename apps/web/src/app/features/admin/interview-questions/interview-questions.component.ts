@@ -23,18 +23,45 @@
  * `admin.interview_questions`, with no audit row and no flag — it routes around
  * the control §22 exists to impose. An extract of this bank belongs there.
  *
- * WHAT THE BOARD DRAWS THAT NOTHING CAN ANSWER YET, drawn disabled and said
- * once in a notice rather than filled with a plausible number:
- *   · the track's persona, frameworks, voice and session cap, and "Add track" —
- *     admin-managed tracks, B5.1, Phase 4. Today the four tracks come from
- *     `interview_matrix.SPECIALIZATIONS`, which is code, and the rail cannot
- *     group them under a course because no row says which course they belong
- *     to.
- *   · the Asked and Avg score columns — question effectiveness, B5.5, Phase 4
- *     (04-backend-changes.md §B5.5 — B5.4 is "One catalogue").
- *     A turn does not yet record the question that produced it, so both cells
- *     read as a dash. A zero there would say "asked, and every student failed
- *     it", which is a different sentence entirely.
+ * A TRACK IS A ROW NOW. `/api/admin/interview-questions/tracks` is a full
+ * GET/POST/PATCH/DELETE surface behind the same `admin.interview_questions`
+ * key, so the persona, the frameworks, the voice, the sample question, the
+ * syllabus and whether the track is offered at all are edited here. Four things
+ * about it are load-bearing and none of them are visible at the call site:
+ *
+ *   · A CODE WITH NO ROW IS STILL LISTED, with `source: 'code'` and `id: null`.
+ *     It is the constant in `app/interview_matrix.py`, `resolve_specialization`
+ *     still falls back to it, and it is running interviews right now — so it is
+ *     shown, and shown as not editable, rather than hidden or offered a PATCH
+ *     with no id to send.
+ *   · THE VOICE IS A CLOSED SET. Nova answers an unknown `voiceId` with a
+ *     ValidationException that kills the stream during the handshake — an
+ *     interview that never starts, for every student on the track, with nothing
+ *     on any screen naming the cause. The field is a `<select>` over
+ *     `KNOWN_NOVA_VOICES` for that reason and not for tidiness; the server
+ *     refuses the same set, and this is the half that stops it being typed.
+ *   · THE PERSONA IS A NOUN PHRASE. `build_instructions` embeds it as "you are
+ *     {persona}", so a trailing full stop composes into "you are a sharp CFO.."
+ *     and an imperative composes into nonsense. The server refuses both; the
+ *     help text under the field is what stops an admin meeting that refusal.
+ *   · A USED TRACK IS RETIRED, NEVER DELETED. `interview_sessions` files every
+ *     interview under the track CODE, so deleting a used row orphans a cohort's
+ *     records from their own track. The server refuses it and the card offers
+ *     the checkbox instead.
+ *
+ * THE SESSION CAP IS NOT ON THIS SCREEN AND IT IS NOT PENDING. A cap is not a
+ * property of a track: the time limit and the daily and attempt ceilings are
+ * `interview_policies`, one row per (college, course), edited on Interview
+ * records → Policy. The field the board draws here is disabled and says that,
+ * with no phase number, because no phase is going to move it.
+ *
+ * THE ASKED AND AVG SCORE COLUMNS READ AS A DASH PERMANENTLY. Attributing a
+ * turn to the question that produced it (B6.6) was examined in Phase 4 and
+ * found impossible without scripting the interview: nothing injects a question
+ * per turn, because the interviewer works the bank in freely and rephrases. A
+ * zero there would say "asked, and every student failed it", which is a
+ * different sentence entirely, so the cells stay a dash and the footnote says
+ * why rather than promising a phase.
  *
  * Reached by the `admin.interview_questions` capability: the Main Admin by
  * baseline, a mentor only when granted — which is how faculty are given this.
@@ -43,16 +70,44 @@
 import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
-/** One interview track, from the matrix that runs the interviews. */
+/** One interview track, as `GET /api/admin/interview-questions/tracks` returns
+ *  it. The first five fields are the shape this screen was built against and
+ *  are unchanged; everything below them arrived with B5.1. */
 interface InterviewTrack {
   key: string;
   label: string;
   phases: string[];
   count: number;
   enabled_count: number;
+  /** Null for a track that is still only the constant in the matrix — see
+   *  `source`. Everything that writes needs an id. */
+  id: string | null;
+  code: string;
+  persona: string;
+  frameworks: string[];
+  sample_question: string;
+  nova_voice: string;
+  syllabus: string[];
+  enabled: boolean;
+  position: number;
+  college_id: string | null;
+  course_id: string | null;
+  specialization_id: string | null;
+  /** `table` — a row, editable. `code` — the matrix constant, which still runs
+   *  real interviews and must therefore be shown. */
+  source: string;
+  /** Does this session's grant reach this track? A convenience for the form,
+   *  never the fence — `require_capability(..., target=…)` on the server is. */
+  editable: boolean;
+}
+
+/** What a create or an edit answers with: the row, plus anything worth saying
+ *  about it that was not worth refusing over. */
+interface TrackWriteResult {
+  track: InterviewTrack;
+  warnings: string[];
 }
 
 /** One question in the bank, in the order the interviewer works it in. */
@@ -88,9 +143,47 @@ const PHASE_LABEL: Record<string, string> = {
   wrap_up: 'Wrap-up',
 };
 
-/** Admin-managed tracks (B5.1) and question effectiveness (B5.5) both land on
- *  the Phase 4 interviews branch — 06-phase-prompts.md. */
-const INTERVIEW_BANK_BACKEND_PHASE = 4;
+/** The voices Amazon Nova 2 Sonic accepts (`KNOWN_NOVA_VOICES` in
+ *  `app/interview_matrix.py`), sorted as the server sorts them in its refusal.
+ *  COPIED DELIBERATELY, and the server is still the one that refuses: this list
+ *  only stops the admin typing a voice that would end the stream during the
+ *  handshake. An entry added here that Nova does not know is refused by the
+ *  PATCH; one missing here is a voice this form cannot offer — which is why the
+ *  empty option ("deployment default") always exists. */
+const NOVA_VOICES: readonly string[] = [
+  'ambre',
+  'amy',
+  'arjun',
+  'beatrice',
+  'carlos',
+  'carolina',
+  'florian',
+  'kiara',
+  'lennart',
+  'leo',
+  'lorenzo',
+  'lupe',
+  'matthew',
+  'olivia',
+  'tiffany',
+  'tina',
+];
+
+/** One of the matrix's own four, shown under the persona field so the grammar
+ *  rule is visible rather than discovered through a 422. */
+const PERSONA_EXAMPLE = 'an empathetic yet compliant Chief Human Resources Officer';
+
+/** Why Asked and Avg score are a dash, on the two column headers. */
+const NOT_MEASURED_REASON =
+  'The interviewer is free-style: it works a question in, rephrases it and follows up on the ' +
+  'answer, so no turn it produces can be attributed to one row in this bank.';
+
+/** The server's own bounds on a new track (`AdminTrackIn`), so the form refuses
+ *  before the request rather than after it. */
+const MINIMUM_TRACK_CODE_CHARS = 2;
+const MINIMUM_TRACK_LABEL_CHARS = 2;
+const MINIMUM_PERSONA_CHARS = 3;
+const MINIMUM_SAMPLE_QUESTION_CHARS = 12;
 
 /** The design system fixes one categorical colour per track (01 §1): FIN is
  *  cat-1, HR cat-2, MKT cat-3, BA cat-4. The class is the track's name, so the
@@ -121,16 +214,18 @@ const NOT_MEASURED_YET = '—';
 @Component({
   selector: 'app-interview-questions',
   standalone: true,
-  imports: [PendingControlDirective, PluralPipe],
+  imports: [PluralPipe],
   templateUrl: './interview-questions.component.html',
   styleUrl: './interview-questions.component.scss',
 })
 export class InterviewQuestionsComponent {
-  readonly backendPhase = INTERVIEW_BANK_BACKEND_PHASE;
   readonly optionalColumns = OPTIONAL_COLUMNS;
   readonly pageSizes = PAGE_SIZES;
   readonly maximumQuestionChars = MAXIMUM_QUESTION_CHARS;
   readonly notMeasuredYet = NOT_MEASURED_YET;
+  readonly notMeasuredReason = NOT_MEASURED_REASON;
+  readonly novaVoices = NOVA_VOICES;
+  readonly personaExample = PERSONA_EXAMPLE;
 
   readonly tracks = signal<InterviewTrack[] | null>(null);
   readonly selectedTrackKey = signal<string>('hr');
@@ -143,6 +238,29 @@ export class InterviewQuestionsComponent {
   readonly addFormOpen = signal(false);
   readonly newQuestionPhase = signal('probing');
   readonly newQuestionText = signal('');
+
+  /** The track card's draft — the selected track's fields as the form holds
+   *  them, filled from the server on every load and every track change. Kept as
+   *  separate signals rather than one object so a field binding is one read:
+   *  the inputs are uncontrolled `[value]` + `(input)`, exactly like the bulk
+   *  panel's. */
+  readonly draftPersona = signal('');
+  readonly draftSample = signal('');
+  readonly draftFrameworks = signal('');
+  readonly draftVoice = signal('');
+  readonly draftSyllabus = signal('');
+  readonly draftEnabled = signal(true);
+  /** What the server said about the last save that it did not refuse over. */
+  readonly trackWarnings = signal<string[]>([]);
+
+  /** Add a track. */
+  readonly addTrackOpen = signal(false);
+  readonly newTrackCode = signal('');
+  readonly newTrackLabel = signal('');
+  readonly newTrackPersona = signal('');
+  readonly newTrackSample = signal('');
+  readonly newTrackFrameworks = signal('');
+  readonly newTrackVoice = signal('');
 
   /** Add many, from a paste or from a .txt / .csv read in the browser. */
   readonly bulkOpen = signal(false);
@@ -190,6 +308,69 @@ export class InterviewQuestionsComponent {
   });
 
   readonly trackCount = computed(() => (this.tracks() ?? []).length);
+
+  /** No college pointer means every college sees this track. Read from the
+   *  pointer rather than from a name, because the list endpoint carries ids and
+   *  this screen's capability does not reach the college catalogue — "one
+   *  college" is the true thing it can say without inventing which. */
+  readonly selectedTrackIsProgrammeWide = computed(
+    () => (this.selectedTrack()?.college_id ?? null) === null,
+  );
+
+  /** May this session edit the selected track AT ALL — is there a row, and does
+   *  the grant reach it. Never the fence: `require_capability(..., target=…)`
+   *  is, and this only decides what the form offers. */
+  readonly canEditTrack = computed<boolean>(() => {
+    const track = this.selectedTrack();
+    if (track === null) return false;
+    return track.id !== null && track.editable;
+  });
+
+  /** The sentence that goes on the disabled controls and in the card's notice.
+   *  Null when the track is editable, so the template renders neither. */
+  readonly trackEditBlockedReason = computed<string | null>(() => {
+    const track = this.selectedTrack();
+    if (track === null) return null;
+    if (track.id === null) {
+      return (
+        'This track still lives in the interviewer’s own code rather than in a row, so there is ' +
+        'nothing here to edit — and it is running interviews exactly as it is. Adding a track ' +
+        'with the same code takes it over.'
+      );
+    }
+    if (!track.editable) {
+      return 'Your grant does not reach the college this track belongs to, so it is read-only here.';
+    }
+    return null;
+  });
+
+  readonly canSaveTrack = computed<boolean>(() => {
+    if (!this.canEditTrack() || this.busy()) return false;
+    if (this.draftPersona().trim().length < MINIMUM_PERSONA_CHARS) return false;
+    return this.draftSample().trim().length >= MINIMUM_SAMPLE_QUESTION_CHARS;
+  });
+
+  /** Why Save is grey, on Save itself. A disabled control whose reason is
+   *  somewhere else is a control the reader argues with. */
+  readonly trackSaveBlockedReason = computed<string | null>(() => {
+    const blocked = this.trackEditBlockedReason();
+    if (blocked !== null) return blocked;
+    if (this.draftPersona().trim().length < MINIMUM_PERSONA_CHARS) {
+      return 'The persona is what the interviewer is told it is, so it cannot be empty.';
+    }
+    if (this.draftSample().trim().length < MINIMUM_SAMPLE_QUESTION_CHARS) {
+      return `The sample question needs at least ${MINIMUM_SAMPLE_QUESTION_CHARS} characters — under that it is a prompt rather than a question a student can be asked.`;
+    }
+    return null;
+  });
+
+  readonly canCreateTrack = computed<boolean>(() => {
+    if (this.busy()) return false;
+    if (this.newTrackCode().trim().length < MINIMUM_TRACK_CODE_CHARS) return false;
+    if (this.newTrackLabel().trim().length < MINIMUM_TRACK_LABEL_CHARS) return false;
+    if (this.newTrackPersona().trim().length < MINIMUM_PERSONA_CHARS) return false;
+    return this.newTrackSample().trim().length >= MINIMUM_SAMPLE_QUESTION_CHARS;
+  });
 
   readonly questionsAcrossTracks = computed(() => {
     let total = 0;
@@ -321,7 +502,136 @@ export class InterviewQuestionsComponent {
     this.bulkSkipped.set([]);
     this.selectedQuestionIds.set(new Set<string>());
     this.pageIndex.set(0);
+    this.syncTrackDraft();
     await this.loadQuestions();
+  }
+
+  // -------------------------------------------------------- the track --
+
+  toggleAddTrackForm(): void {
+    this.addTrackOpen.update((open) => !open);
+    if (this.addTrackOpen()) {
+      this.addFormOpen.set(false);
+      this.bulkOpen.set(false);
+    }
+  }
+
+  /** Save the four fields the card holds.
+   *
+   *  `label` and the three spine pointers are NOT SENT. The card has no field
+   *  for either, and on `AdminTrackPatch` an explicitly-sent null spine pointer
+   *  is how a track is WIDENED — so a form that posted its whole state would
+   *  quietly move a college's track to every college the first time somebody
+   *  pressed Save on it. Only what the card edits travels. */
+  async saveTrack(): Promise<void> {
+    const track = this.selectedTrack();
+    if (track === null || track.id === null || !this.canSaveTrack()) return;
+    await this.whileBusy(async () => {
+      const response = await fetch(
+        `${environment.apiBase}/admin/interview-questions/tracks/${track.id}`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            persona: this.draftPersona().trim(),
+            sample_question: this.draftSample().trim(),
+            frameworks: splitList(this.draftFrameworks()),
+            nova_voice: this.draftVoice(),
+            syllabus: splitList(this.draftSyllabus()),
+            enabled: this.draftEnabled(),
+          }),
+        },
+      );
+      if (!response.ok) throw new Error(await this.detailOf(response));
+      const result = (await response.json()) as TrackWriteResult;
+      this.applyTrack(result);
+      this.flash.set('Track saved.');
+    });
+  }
+
+  /** Create a track, programme-wide. The code is a slug and cannot be changed
+   *  afterwards — it is what `?specialization=` carries and what every past
+   *  interview is filed under — so the server's own refusal is the message. */
+  async createTrack(): Promise<void> {
+    if (!this.canCreateTrack()) return;
+    await this.whileBusy(async () => {
+      const response = await this.postJson(
+        `${environment.apiBase}/admin/interview-questions/tracks`,
+        {
+          code: this.newTrackCode().trim().toLowerCase(),
+          label: this.newTrackLabel().trim(),
+          persona: this.newTrackPersona().trim(),
+          sample_question: this.newTrackSample().trim(),
+          frameworks: splitList(this.newTrackFrameworks()),
+          nova_voice: this.newTrackVoice(),
+        },
+      );
+      if (!response.ok) throw new Error(await this.detailOf(response));
+      const result = (await response.json()) as TrackWriteResult;
+      const created = result.track.key;
+      this.newTrackCode.set('');
+      this.newTrackLabel.set('');
+      this.newTrackPersona.set('');
+      this.newTrackSample.set('');
+      this.newTrackFrameworks.set('');
+      this.newTrackVoice.set('');
+      this.addTrackOpen.set(false);
+      await this.loadTracks();
+      this.selectedTrackKey.set(created);
+      this.syncTrackDraft();
+      this.trackWarnings.set(result.warnings ?? []);
+      this.flash.set('Track created. It has no questions yet — add some below.');
+      await this.loadQuestions();
+    });
+  }
+
+  /** Remove a track NO INTERVIEW HAS EVER BEEN HELD ON. The server refuses one
+   *  that has been used and says so in words; the checkbox on the card is the
+   *  answer in that case, and the questions survive either way
+   *  (`interview_bank_questions.track_id` is ON DELETE SET NULL). */
+  async removeTrack(): Promise<void> {
+    const track = this.selectedTrack();
+    if (track === null || track.id === null || !this.canEditTrack() || this.busy()) return;
+    const confirmed = confirm(
+      `Remove the ${track.label} track? Its questions stay in the bank. A track any student has ` +
+        'already been interviewed on cannot be removed — untick “Offered to students” instead.',
+    );
+    if (!confirmed) return;
+    await this.whileBusy(async () => {
+      const response = await fetch(
+        `${environment.apiBase}/admin/interview-questions/tracks/${track.id}`,
+        { method: 'DELETE', credentials: 'include' },
+      );
+      if (!response.ok) throw new Error(await this.detailOf(response));
+      this.trackWarnings.set([]);
+      await this.loadTracks();
+      this.syncTrackDraft();
+      this.flash.set('Track removed. Its questions are still in the bank.');
+      await this.loadQuestions();
+    });
+  }
+
+  /** Put one written row back into the list and into the card's draft. */
+  private applyTrack(result: TrackWriteResult): void {
+    this.tracks.update((list) =>
+      (list ?? []).map((row) => (row.key === result.track.key ? result.track : row)),
+    );
+    this.trackWarnings.set(result.warnings ?? []);
+    this.syncTrackDraft();
+  }
+
+  /** Fill the card from the server's copy of the selected track. Called on
+   *  every load and every track change, so an abandoned edit is never carried
+   *  across to another track — which would read as that track's own text. */
+  private syncTrackDraft(): void {
+    const track = this.selectedTrack();
+    this.draftPersona.set(track?.persona ?? '');
+    this.draftSample.set(track?.sample_question ?? '');
+    this.draftFrameworks.set((track?.frameworks ?? []).join(', '));
+    this.draftVoice.set(track?.nova_voice ?? '');
+    this.draftSyllabus.set((track?.syllabus ?? []).join(', '));
+    this.draftEnabled.set(track?.enabled ?? true);
   }
 
   // ------------------------------------------------------- one at a time --
@@ -554,6 +864,10 @@ export class InterviewQuestionsComponent {
     return Number(this.selectValue(event));
   }
 
+  checkboxValue(event: Event): boolean {
+    return (event.target as HTMLInputElement).checked;
+  }
+
   // ------------------------------------------------------------ plumbing --
 
   private rowMatches(row: QuestionRow, needle: string): boolean {
@@ -669,6 +983,7 @@ export class InterviewQuestionsComponent {
       if (loaded.length > 0 && !loaded.some((track) => track.key === this.selectedTrackKey())) {
         this.selectedTrackKey.set(loaded[0].key);
       }
+      this.syncTrackDraft();
     } catch {
       this.error.set('Could not load the interview tracks. Reload the page to try again.');
       this.tracks.set([]);
@@ -707,4 +1022,14 @@ export class InterviewQuestionsComponent {
     }
     return `The request was refused (${response.status}).`;
   }
+}
+
+/** A comma- or newline-separated field as the list the API takes. Empty entries
+ *  are dropped here as well as on the server, so a trailing comma is not a
+ *  blank framework the interviewer would try to work through. */
+function splitList(text: string): string[] {
+  return text
+    .split(/[,\n]/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 }

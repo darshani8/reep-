@@ -37,23 +37,34 @@
  * course clears it. The server checks the same thing (a 422 from
  * _resolve_ancestry); the cascade just makes it unreachable from here.
  *
- * WHAT THE BOARD DRAWS THAT MAIN CANNOT ANSWER YET, and how it renders. Three
- * of the board's facts have no column behind them on `main`, so not one of
- * them is invented here — each is the empty state plus one sentence naming the
- * task that fills it:
+ * WHAT THE BOARD DRAWS, AND WHAT IS BEHIND EACH PIECE OF IT (2026-09-13).
+ * Three of the board's facts had no endpoint when this screen was built.
+ * Phase 3 and Phase 4 have both landed and they did not land equally:
  *
- *   - the college's registration email domains (B1.1, Phase 3) — "Add domain"
- *     is drawn through PendingControlDirective;
- *   - the course's degree level, total semesters and semesters per year
- *     (B4.1, Phase 4) — three pending inputs, and the batches grid therefore
- *     has NO "semester x of N" column, because neither half of that fraction
- *     exists;
- *   - the specialization's interview track and its chart colour (B5.1,
- *     Phase 4) — the Track column reads "Not mapped" on every row.
+ *   - the college's registration email domains (B1.1) are REAL —
+ *     `colleges.email_domains`, read and written through
+ *     `PATCH /api/admin/colleges/{id}`;
+ *   - the specialization's INTERVIEW TRACK is REAL (B5.1). The mapping is the
+ *     TRACK's field, not the specialization's, so the Track column is read
+ *     from `GET /api/admin/interview-questions/tracks` and "Map track" writes
+ *     `PATCH .../tracks/{id}` with `{specialization_id}`. That endpoint asks
+ *     for a different capability from this screen's, so the column has THREE
+ *     states and not two — see the B5.1 block below;
+ *   - the course's DEGREE LEVEL and TOTAL SEMESTERS are columns that exist and
+ *     are read, with no endpoint that writes them, and SEMESTERS PER YEAR is
+ *     not a field anywhere. Those three boxes are plainly `disabled` with the
+ *     reason on them and carry NO phase number — see `COURSE_SHAPE_REASON` and
+ *     `SEMESTERS_PER_YEAR_REASON`. The batches grid still has no "semester x
+ *     of N" column, and now for a sharper reason: a batch has no semester at
+ *     all, a STUDENT does.
+ *
+ * The board's "chart colour" per track is drawn nowhere here, because there is
+ * no colour on `interview_tracks` and none anywhere in `apps/api-py/app`. The
+ * card's subtitle says what the mapping actually decides instead.
  *
  * Degree level on a BATCH is real today (`cohorts.degree_level`) and stays an
  * ordinary control on the batch form. It is the COURSE-level one the board
- * shows that has to wait.
+ * shows that has nothing to write to.
  */
 
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
@@ -64,11 +75,11 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { HierarchyLevel, HierarchySchemaService } from '../../../core/hierarchy-schema.service';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // ---- exact snake_case shapes of the admin router's Out models -------------
@@ -146,6 +157,35 @@ interface AdminCohortOut {
   missing_levels: string[];
 }
 
+/** One row of `GET /api/admin/interview-questions/tracks` (B5.1), cut down to
+ *  what this card needs. The full `AdminTrackOut` carries the persona, the
+ *  frameworks, the Nova voice and the syllabus — those belong to the Question
+ *  bank screen, and reading fields this card never renders would invite
+ *  editing them from a screen whose capability is a different one.
+ *
+ *  `id` IS NULLABLE AND THAT IS THE WHOLE FILTER. A null id is a track that is
+ *  still only a constant in `app/interview_matrix.py` (`source: 'code'`): it
+ *  runs real interviews and there is no row to PATCH, so it can be shown and
+ *  never mapped. `editable` is the server's own answer to "does this session's
+ *  grant reach this track" — a convenience for the form, never the fence; the
+ *  endpoint refuses regardless. */
+interface AdminTrackOut {
+  id: string | null;
+  code: string;
+  label: string;
+  enabled: boolean;
+  specialization_id: string | null;
+  source: string;
+  editable: boolean;
+}
+
+/** The shape `PATCH /tracks/{id}` answers with: the row, plus advice that was
+ *  not worth refusing over (`AdminTrackWriteResult`). */
+interface AdminTrackWriteResult {
+  track: AdminTrackOut;
+  warnings: string[];
+}
+
 type ScreenState = 'loading' | 'ready' | 'error';
 
 /** The three optional-level keys the form binds; anything else is a bug in HIERARCHY_LEVELS. */
@@ -157,14 +197,61 @@ const LEVEL_OPTIONS: Record<string, 'courses' | 'specializations'> = {
 /** The two values PATCH accepts for any level's `status` (_SETTABLE_STATUSES). */
 const COURSE_STATUSES = ['ACTIVE', 'ARCHIVED'];
 
-/** The phase whose backend task fills each part of the board main cannot answer. */
-const PHASE_FOR_COURSE_SEMESTERS = 4;
-const PHASE_FOR_INTERVIEW_TRACKS = 4;
+/** The course's DEGREE LEVEL and TOTAL SEMESTERS, and why they are grey with
+ *  Phase 4 merged.
+ *
+ *  B4.1 landed and both are real columns on `academic_courses` — read by
+ *  `app/semester_bounds.py` for a student's semester ceiling, by Student 360
+ *  and by the catalogue's course list. What B4.1 did NOT add is a writer:
+ *  `AcademicCourseIn` and `AcademicCoursePatchIn` in `app/routers/admin.py`
+ *  are still `code`, `name`, `duration_months`, `status`, and nothing else
+ *  under `/api/admin` sets either column — `tests/test_admin_promotion.py`
+ *  writes `total_semesters` through the ORM session precisely because there is
+ *  no endpoint to write it through.
+ *
+ *  SO THE PHASE NUMBER COMES OFF. These sat at `[reepPending]="4"`; Phase 4
+ *  has come and gone past them, and a control promising a phase that has
+ *  arrived is the stale label commit 45b91a9 fixed. Plain `disabled` with the
+ *  real reason in a `title`, the treatment the Leave approvals "Requester"
+ *  filter carries. */
+const COURSE_SHAPE_REASON =
+  'A course stores its degree level and its total semesters, but no endpoint ' +
+  'sets them: PATCH /api/admin/academic-courses/{id} takes the code, the ' +
+  'name, the duration in months and the status only.';
+
+/** SEMESTERS PER YEAR IS NOT A DIFFERENT PHASE, IT IS NOT A FIELD.
+ *
+ *  There is no `semesters_per_year` column anywhere in `apps/api-py/app`, and
+ *  04-backend-changes.md never asks for one — the 4a decisions go the other
+ *  way and strike `duration_years` for the same reason, that one fact stored
+ *  twice is one fact that drifts. `duration_months` and `total_semesters` are
+ *  how a programme's shape is recorded; a third number derived from them would
+ *  round 18 months into the wrong answer. The box stays because the board
+ *  draws it, and says what it is. */
+/** The three reasons `tracks()` can be null. They are separate sentences on
+ *  purpose: a refusal is a fact about this account's grant that the reader can
+ *  act on, a failure is worth retrying, and "not attempted" is neither. None
+ *  of them may render as "Not mapped", which is a claim about the data. */
+const TRACKS_NOT_READ_NOTE =
+  'The interview tracks have not been read yet, so this column is not ' +
+  'reporting whether a specialization is mapped.';
+const TRACKS_REFUSED_NOTE =
+  'The interview tracks are read through the Question bank, which is a ' +
+  'different function from this screen\'s. Ask the Main Admin for ' +
+  'admin.interview_questions in Roles & functions.';
+const TRACKS_FAILED_NOTE =
+  'The interview tracks could not be read, so this column is not reporting ' +
+  'whether a specialization is mapped. Reload the screen to try again.';
+
+const SEMESTERS_PER_YEAR_REASON =
+  'REEP does not record semesters per year. A programme\'s shape is its ' +
+  'duration in months and its total semesters; a third number derived from ' +
+  'those two is a fact stored twice.';
 
 @Component({
   selector: 'app-admin-institution',
   standalone: true,
-  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, PendingControlDirective, PluralPipe],
+  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, PluralPipe],
   templateUrl: './institution.component.html',
   styleUrl: './institution.component.scss',
 })
@@ -236,9 +323,177 @@ export class AdminInstitutionComponent implements OnDestroy {
     }
   }
 
-  readonly phaseForCourseSemesters = PHASE_FOR_COURSE_SEMESTERS;
-  readonly phaseForInterviewTracks = PHASE_FOR_INTERVIEW_TRACKS;
+  readonly courseShapeReason = COURSE_SHAPE_REASON;
+  readonly semestersPerYearReason = SEMESTERS_PER_YEAR_REASON;
   readonly courseStatuses = COURSE_STATUSES;
+
+
+  // ======================================================================
+  // B5.1 — which interview a specialization's students sit
+  //
+  // THE MAPPING IS THE TRACK'S FIELD, NOT THE SPECIALIZATION'S.
+  // `interview_tracks.specialization_id` is a nullable pointer on the track
+  // row, so the write is `PATCH /api/admin/interview-questions/tracks/{id}`
+  // with `{specialization_id}` and the server derives the course and the
+  // college above it (`_resolve_spine`). There is no column on
+  // `academic_specializations` for this and the card must not invent one: a
+  // second place holding the same pairing is a second place to edit and one
+  // to forget.
+  //
+  // THE READ IS A DIFFERENT CAPABILITY FROM THIS SCREEN'S.
+  // `/admin/interview-questions/tracks` asks for `admin.interview_questions`
+  // while this screen opens on `admin.institution`, so a granted faculty
+  // member reaches the structure and is refused the tracks. That is a fact
+  // about the grant, not a failure, and it must not render as "Not mapped" —
+  // "we did not read this" and "nothing is mapped" are opposite facts about
+  // every row in the column. `tracks()` stays NULL when the read did not
+  // happen and the cells say "Not read" with the reason on them.
+  // ======================================================================
+
+  /** Every track this session may see, or NULL when the read did not happen —
+   *  refused, failed, or not yet attempted. Never `[]` for those: an empty
+   *  array means "read, and there are none". */
+  readonly tracks = signal<AdminTrackOut[] | null>(null);
+  /** Why `tracks()` is null, in the words the cells and the notice both use. */
+  readonly trackReadNote = signal<string>(TRACKS_NOT_READ_NOTE);
+  /** The read has FINISHED, whatever it answered. The notice waits for this so
+   *  the half-second before the fetch resolves does not announce "the tracks
+   *  have not been read" about a read that is in flight. */
+  readonly tracksChecked = signal(false);
+  readonly trackPanelOpen = signal(false);
+  /** The track being mapped — its `id`, so a constant-only track cannot be
+   *  chosen at all. */
+  readonly trackChoice = signal<string>('');
+  /** The specialization it maps to; empty string is "not mapped". */
+  readonly trackTarget = signal<string>('');
+  readonly trackBusy = signal(false);
+  readonly trackError = signal<string | null>(null);
+
+  /** The tracks this card can actually write: a row (not a constant) that the
+   *  server says this session's grant reaches. */
+  readonly mappableTracks = computed(() =>
+    (this.tracks() ?? []).filter((t) => t.id !== null && t.editable),
+  );
+
+  readonly canMapTracks = computed(() => this.mappableTracks().length > 0);
+
+  /** The disabled button's own sentence. Three different reasons reach here
+   *  and they are not interchangeable: not read at all, read and empty, read
+   *  and every row belongs to somebody else's college. */
+  mapTrackTitle(): string {
+    if (this.tracks() === null) return this.trackReadNote();
+    if (!this.mappableTracks().length) {
+      return (
+        'No interview track is yours to edit here. The four shipped tracks are ' +
+        'constants in code until the office saves one as a row on the Question ' +
+        'bank screen, and a track filed under another college is not reached by ' +
+        'your grant.'
+      );
+    }
+    return 'Map an interview track to one of this course\'s specializations';
+  }
+
+  /** The tracks mapped to one specialization. Empty is a real answer and the
+   *  template distinguishes it from `tracks() === null`. */
+  tracksFor(specializationId: string): AdminTrackOut[] {
+    return (this.tracks() ?? []).filter((t) => t.specialization_id === specializationId);
+  }
+
+  toggleTrackPanel(): void {
+    const opening = !this.trackPanelOpen();
+    this.trackPanelOpen.set(opening);
+    this.trackError.set(null);
+    if (!opening) return;
+    const first = this.mappableTracks()[0];
+    this.pickTrack(first?.id ?? '');
+  }
+
+  /** Choosing a track PRE-FILLS its current mapping, so the panel opens on the
+   *  truth rather than on "Not mapped" — saving without touching the second
+   *  select would otherwise unmap a track the admin only meant to look at. */
+  pickTrack(trackId: string): void {
+    this.trackChoice.set(trackId);
+    const track = this.mappableTracks().find((t) => t.id === trackId) ?? null;
+    this.trackTarget.set(track?.specialization_id ?? '');
+    this.trackError.set(null);
+  }
+
+  /** One PATCH for both directions.
+   *
+   *  CLEARING SENDS `course_id: null` TOO. `_resolve_spine` merges what was
+   *  not sent with the row as it stands, so clearing the specialization alone
+   *  would leave the course pointer the specialization had derived and the
+   *  track would still be narrowed — to the course this time, silently, with
+   *  the cell reading "Not mapped". Both pointers go together; the college, if
+   *  the admin filed one, is not touched. */
+  async saveTrackMapping(): Promise<void> {
+    const trackId = this.trackChoice();
+    if (!trackId) return;
+    const target = this.trackTarget();
+    this.trackBusy.set(true);
+    this.trackError.set(null);
+    this.flash.set(null);
+    try {
+      const res = await fetch(
+        `${environment.apiBase}/admin/interview-questions/tracks/${trackId}`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            target ? { specialization_id: target } : { specialization_id: null, course_id: null },
+          ),
+        },
+      );
+      if (!res.ok) {
+        this.trackError.set(await this.detailOf(res));
+        return;
+      }
+      const saved = (await res.json()) as AdminTrackWriteResult;
+      this.tracks.update((list) =>
+        (list ?? []).map((t) => (t.id === saved.track.id ? saved.track : t)),
+      );
+      const spec = this.specializations().find((sp) => sp.id === target);
+      this.flash.set(
+        spec
+          ? `${saved.track.label} is the interview for ${spec.code}.`
+          : `${saved.track.label} is offered to every specialization again.`,
+      );
+      this.trackPanelOpen.set(false);
+    } catch {
+      this.trackError.set('Could not reach the server.');
+    } finally {
+      this.trackBusy.set(false);
+    }
+  }
+
+  /** Read once, at load. Its own try/catch and never `this.error`: the tracks
+   *  are one column of one card, and a screen that refused to draw the
+   *  institution because the Question bank said 403 would be reporting an
+   *  outage that is not happening. */
+  private async loadTracks(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/admin/interview-questions/tracks`, {
+        credentials: 'include',
+      });
+      if (res.status === 403) {
+        this.tracks.set(null);
+        this.trackReadNote.set(TRACKS_REFUSED_NOTE);
+        return;
+      }
+      if (!res.ok) {
+        this.tracks.set(null);
+        this.trackReadNote.set(TRACKS_FAILED_NOTE);
+        return;
+      }
+      this.tracks.set((await res.json()) as AdminTrackOut[]);
+    } catch {
+      this.tracks.set(null);
+      this.trackReadNote.set(TRACKS_FAILED_NOTE);
+    } finally {
+      this.tracksChecked.set(true);
+    }
+  }
 
   // ---- screen -------------------------------------------------------------
   readonly state = signal<ScreenState>('loading');
@@ -380,6 +635,11 @@ export class AdminInstitutionComponent implements OnDestroy {
       this.levels.set(levels);
       this.batchForm = this.buildBatchForm(levels);
       this.colleges.set(colleges);
+      // Deliberately NOT in the Promise.all above and deliberately not
+      // awaited-into the failure path: `loadTracks` swallows its own errors
+      // because a 403 from the Question bank is a fact about this account's
+      // grant, not a reason to tell an admin the institution could not load.
+      void this.loadTracks();
       this.incomplete.set(incomplete);
       this.unassigned.set(unassigned);
       if (colleges.length && !this.selectedCollegeId()) {

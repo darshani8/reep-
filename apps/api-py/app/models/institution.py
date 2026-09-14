@@ -63,12 +63,13 @@ import uuid
 from datetime import datetime
 from typing import Final, NamedTuple
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy import text as sql_text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db import Base
+from .job import DegreeLevel
 
 
 def _uuid() -> str:
@@ -221,6 +222,24 @@ class Department(Base):
     name: Mapped[str] = mapped_column(String)
     # Head of department, as printed on the leave form's department line.
     head: Mapped[str | None] = mapped_column(String, nullable=True)
+    # B9.2. How many students one faculty member in THIS department is expected
+    # to carry. NULL falls back to `settings.mentor_capacity`.
+    #
+    # ADVISORY, AND DELIBERATELY SO. 04 asks for "capacity from a governance
+    # setting", and the temptation that comes with a number is to enforce it.
+    # Two places in this repository argue against that in writing —
+    # `routers/admin_mentoring.py`'s MentorLoadOut ("programme policy, not a per-mentor
+    # fact ... nothing enforces it") and the Angular screen's own header ("an
+    # admin who chooses to overload one faculty member in a thin year should not
+    # have to edit .env first. The rail says 'At capacity' in the risk colour
+    # and lets them") — and both are still right. What was wrong was only that
+    # the number lived in an environment variable, so tuning it for one
+    # department meant a deploy. This column is that fix and nothing more: the
+    # assignment endpoints do not read it, and no request is refused by it.
+    #
+    # There is no `governance_settings` table and this does not invent one. A
+    # capacity is a fact about a department, and departments have a row.
+    mentor_capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # WHO created it, for the console's audit view. Nullable: `python -m app.seed`
     # and the CLIs have no user. Set by the admin router from the session; never
     # by the client.
@@ -277,6 +296,39 @@ class AcademicCourse(Base):
     # fills the rest in later. A required field here would be a required field on
     # the create form, and the form would then invent a value.
     duration_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # ------------------------------------------------------------------ #
+    # THE SHAPE OF THE PROGRAMME (B4.1). What a batch inherits and what a
+    # student's semester is bounded by.
+    #
+    # THERE IS NO `duration_years`, though 04-backend-changes.md asks for one.
+    # `duration_months` above already exists, is already on the admin form and
+    # is already printed; a second duration column is one fact stored twice,
+    # and 18-month programmes round wrong in years. Years are derived where a
+    # screen wants them.
+    #
+    # BOTH NULLABLE, like `duration_months` and for the same reason: an admin
+    # creates the course with a code and a name and fills the rest in later.
+    # A course with no `total_semesters` keeps the old flat semester bound
+    # (admin_students.MAX_SEMESTER) rather than refusing every edit, and
+    # `GET /api/admin/cohorts/incomplete` is where an unfilled one surfaces.
+    #
+    # `degree_level` REUSES THE EXISTING `degree_level` PG TYPE — the one
+    # `cohorts.degree_level` and `jobs` already use. Gotchas (a) and (b)
+    # together: adding an enum COLUMN does not CREATE TYPE, and the type is
+    # already there, so the migration hand-writes
+    # postgresql.ENUM(..., create_type=False) exactly as fea4515cdba5 does.
+    # A second `academic_course_degree_level` type holding the same two members
+    # would be the same mistake twice.
+    #
+    # It does not replace `cohorts.degree_level`, which stays written: the
+    # batch is where admissions records the fact, and a course that names a
+    # level is what a batch is CHECKED against, the way _resolve_ancestry
+    # checks a shallower level the client also sent.
+    # ------------------------------------------------------------------ #
+    degree_level: Mapped[DegreeLevel | None] = mapped_column(
+        Enum(DegreeLevel, name="degree_level", create_type=False), nullable=True
+    )
+    total_semesters: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # WHO created it, for the console's audit view. Nullable: `python -m app.seed`
     # and the CLIs have no user. Set by the admin router from the session; never
     # by the client.

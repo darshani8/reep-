@@ -51,7 +51,7 @@ from .models.governance import (
     ScopeLevel,
     SubjectKind,
 )
-from .models.institution import Department
+from .models.institution import AcademicCourse, Department
 from .mentor_functions import mentor_functions_for
 from .models.user import Student, User
 
@@ -453,6 +453,51 @@ def ancestry_of_student(db: Session, student_id: str) -> list[tuple[ScopeLevel, 
     return [(scope, tid) for scope, tid in pairs if tid]
 
 
+def ancestry_of_cohort(db: Session, cohort_id: str) -> list[tuple[ScopeLevel, str]]:
+    """Every (rung, id) pair a BATCH hangs under — B8.1's target.
+
+    An import names a batch, not a student, so the fence on
+    `POST /admin/imports/preview` has to be able to ask "does this holder's
+    grant reach this batch" before a single line of the file is read. The
+    student ancestry cannot answer it: a batch with nobody seated in it yet is
+    exactly the batch a new cohort's first results file is imported into, and
+    walking its students would find none and refuse the office.
+
+    THE THREE ANCESTOR POINTERS ARE READ OFF THE COHORT ROW, never re-derived.
+    `cohorts.department_id`, `course_id` and `specialization_id` have exactly
+    one writer — `_resolve_ancestry` in routers/admin.py — which is what makes
+    reading them here reading a value that walk already checked. The college is
+    reached through the DEPARTMENT only, for `ancestry_of_student`'s reason: a
+    course carries no college, so chaining through one resolves nothing.
+
+    A batch filed under nothing hangs under nothing and no scoped grant reaches
+    it, which is `reaches_target`'s rule and not a special case here.
+    """
+    row = db.execute(
+        select(
+            Cohort.id,
+            Cohort.department_id,
+            Cohort.course_id,
+            Cohort.specialization_id,
+        ).where(Cohort.id == cohort_id)
+    ).first()
+    if row is None:
+        return []
+    college_id = (
+        db.scalar(select(Department.college_id).where(Department.id == row.department_id))
+        if row.department_id
+        else None
+    )
+    pairs = [
+        (ScopeLevel.COHORT, row.id),
+        (ScopeLevel.SPECIALIZATION, row.specialization_id),
+        (ScopeLevel.COURSE, row.course_id),
+        (ScopeLevel.DEPARTMENT, row.department_id),
+        (ScopeLevel.COLLEGE, college_id),
+    ]
+    return [(scope, tid) for scope, tid in pairs if tid]
+
+
 def ancestry_of_user(db: Session, user_id: str) -> list[tuple[ScopeLevel, str]]:
     """Where a STAFF account sits: its department, and that department's college.
 
@@ -466,6 +511,57 @@ def ancestry_of_user(db: Session, user_id: str) -> list[tuple[ScopeLevel, str]]:
         return []
     college_id = db.scalar(select(Department.college_id).where(Department.id == department_id))
     pairs = [(ScopeLevel.DEPARTMENT, department_id), (ScopeLevel.COLLEGE, college_id)]
+    return [(scope, tid) for scope, tid in pairs if tid]
+
+
+def ancestry_of_interview_track(
+    db: Session,
+    *,
+    college_id: str | None,
+    course_id: str | None,
+    specialization_id: str | None,
+) -> list[tuple[ScopeLevel, str]]:
+    """Where an INTERVIEW TRACK hangs — B5.1's target.
+
+    Takes the three pointers rather than a row id, because the write path checks
+    the reach of the values being SUBMITTED, before anything is stored: an
+    endpoint that could only ask "may you edit the row as it is today" would let
+    a college-scoped holder move a track into another college and then be unable
+    to move it back.
+
+    THE COURSE REACHES A DEPARTMENT AND THROUGH IT A COLLEGE, which is the one
+    place this differs from `ancestry_of_cohort` directly above. A cohort names
+    its department itself, so that function walks department → college and says
+    a course carries no college. A track does not name a department at all, and
+    `academic_courses.department_id` is NOT NULL — so the walk course →
+    department → college always lands, and it is the same walk
+    `scope_views.job_scope_clause` already makes for a posting. Without it a
+    department-scoped holder could hold a key over a course they own and be
+    refused the track hung on it.
+
+    AN EMPTY LIST IS PROGRAMME-WIDE AND IS REACHED BY NO SCOPED GRANT. That is
+    `reaches_target`'s rule, not a special case, and here it is the rule doing
+    exactly what it should: the four seeded tracks are programme-wide on any
+    multi-college deployment, editing one changes the interview for every
+    college, and a college admin must not be able to do that from their own
+    screen. They can add their college's own row instead, which shadows it.
+    """
+    if course_id:
+        department_id = db.scalar(
+            select(AcademicCourse.department_id).where(AcademicCourse.id == course_id)
+        )
+    else:
+        department_id = None
+    if not college_id and department_id:
+        college_id = db.scalar(
+            select(Department.college_id).where(Department.id == department_id)
+        )
+    pairs = [
+        (ScopeLevel.SPECIALIZATION, specialization_id),
+        (ScopeLevel.COURSE, course_id),
+        (ScopeLevel.DEPARTMENT, department_id),
+        (ScopeLevel.COLLEGE, college_id),
+    ]
     return [(scope, tid) for scope, tid in pairs if tid]
 
 

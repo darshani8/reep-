@@ -1,7 +1,13 @@
 """Interview records — the durable artefact of a mock interview (Interview
 Engine v3, §6).
 
-Four tables, and they are **in addition to `messages`, never instead of it**.
+Six tables now, and they are **in addition to `messages`, never instead of it**.
+Four of them are the record of an interview (`interview_sessions`,
+`interview_turns`, `interview_evaluations`, `interview_consents`) and two arrived
+with Phase 4c: `interview_score_summaries`, the four numbers that deliberately
+OUTLIVE the record, and `interview_cap_resets`, an admin giving a student their
+practice attempts back. Both are at the foot of this module with their reasoning.
+
 Every interview turn still writes its `messages` row with `channel='interview'`,
 so `GET /api/agent/history` and the AGENTS.md runbook query
 (`select channel, count(*), max(created_at) from messages group by channel;`)
@@ -177,6 +183,24 @@ class InterviewSession(Base):
     turns_emitted: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     turns_persisted: Mapped[int] = mapped_column(
         Integer, default=0, server_default="0"
+    )
+    # ...and the one thing that makes that pair readable once a college can turn
+    # the transcript OFF (B6.1, `interview_policies.store_transcript`).
+    #
+    # A policy that suppresses the transcript suppresses the `interview_turns`
+    # rows, so `turns_emitted = 12, turns_persisted = 0` — which is EXACTLY the
+    # shape AGENTS.md's runbook tells an operator means writes are failing. The
+    # runbook would then fire on every interview at such a college and stop
+    # being read at all, which is worse than not having it. This flag is the
+    # difference between "we chose not to keep this" and "we lost this", and any
+    # health query over the pair must exclude rows where it is true.
+    #
+    # On the SESSION and not derived from the policy at read time, on purpose:
+    # the policy can be edited afterwards, and this has to keep answering what
+    # was true when the interview ran — the same reasoning as
+    # `retention_until` below and `consent_id` above.
+    transcript_suppressed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
     )
     # The WebSocket close code the student's browser actually saw (1000, 4008,
     # 4011, …). Nullable while the interview is running.
@@ -394,6 +418,37 @@ class InterviewTurn(Base):
     message_id: Mapped[str | None] = mapped_column(
         ForeignKey("messages.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # B6.6: the bank question this interviewer turn was asking, WHEN THAT CAN BE
+    # KNOWN — and today it cannot be, for anybody.
+    #
+    # READ THIS BEFORE BUILDING ANYTHING ON IT. Nothing writes this column. The
+    # question bank is rendered into the INSTRUCTIONS once, as a block of
+    # "[phase] text" lines with the model told to "rephrase each naturally
+    # rather than reciting it … a guide to coverage, not a script"
+    # (`app/interview_matrix.py`, `app/interview_bank.py`). The engine never
+    # SELECTS a question, so there is no "the question it injected" to record:
+    # `_TurnRecord` has no slot for one and neither engine could fill it. The
+    # column is here because it is free to add to an empty-valued nullable
+    # column and expensive to add later to a table with hundreds of thousands of
+    # rows — not because the mechanism exists.
+    #
+    # If it is ever filled, it will be by POST-HOC matching of the interviewer's
+    # words against the track's bank on the writer's worker thread, which is
+    # lossy BY CONSTRUCTION because the prompt orders the rephrasing. Then NULL
+    # means "unmatched", never "no question", and any count built on it
+    # (04's B5.5 `asked_count`) is an ESTIMATE that the screen must label as one.
+    # The alternative — a `mark_question` tool call inside the turn loop — puts a
+    # round trip on the hot path the word gate was made deterministic to avoid,
+    # and the local engine has no equivalent, so the two engines would stop
+    # sharing one contract.
+    #
+    # SET NULL: deleting a retired question must never delete the record of an
+    # interview in which it was asked.
+    question_id: Mapped[str | None] = mapped_column(
+        ForeignKey("interview_bank_questions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, server_default=func.now()
     )
@@ -566,3 +621,138 @@ class InterviewConsent(Base):
     # the same machine when a grant is disputed; not enough to become a location
     # log on a student.
     source_ip_hash: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class InterviewScoreSummary(Base):
+    """The four numbers and the date, kept AFTER the interview itself is gone
+    (B6.2).
+
+    THE POINT OF THIS TABLE IS THAT IT OUTLIVES ITS PARENT. `interview_turns`
+    holds the student's own words and `interview_evaluations.raw_response` holds
+    the model's private reasoning about them; both are deleted on the 180-day
+    clock, and that clock is a promise. But "you scored 61, then 68, then 74" is
+    a trend a student and their mentor need for longer than six months, and it
+    names nothing anybody said. So the scores are copied out at finalization and
+    kept, and the transcript goes.
+
+    WHICH MAKES `session_id` THE ONE COLUMN THAT HAD TO BE GOT RIGHT.
+    `retention.purge_expired` hard-deletes `interview_sessions` and lets the
+    database cascade to the turns and the evaluation. With the default FK
+    behaviour or CASCADE here, the summary would go in the same statement and
+    B6.2 would silently do nothing at all — the table would look correct in
+    every test that does not run a purge, and would be empty in production after
+    six months. It is `ON DELETE SET NULL` and nullable: a NULL session means
+    "the interview it summarises has been reaped", which is the expected end
+    state of every row here, not a fault.
+
+    `student_id` is the opposite decision and is a real FK with CASCADE. The
+    summary IS the student's record; it must die with the student, and the row
+    would name nobody without them. The same split `interview_sessions` already
+    makes between `student_id` (CASCADE) and `consent_id` (SET NULL).
+
+    EVERY SCORE IS NULLABLE, and for `interview_evaluations`' reason: a missing
+    score and a zero mean opposite things to whoever reads this screen. A trend
+    line must SKIP a NULL, never plot it at the origin.
+    """
+
+    __tablename__ = "interview_score_summaries"
+    __table_args__ = (
+        # One summary per interview, which is what makes the write idempotent:
+        # the finalizer, a retry and the backfill can all attempt it and the
+        # loser's IntegrityError is the no-op it should be. NULLs are distinct
+        # in Postgres, so this constrains nothing once the session is reaped —
+        # correctly, because by then there is no interview left to duplicate.
+        UniqueConstraint("session_id", name="uq_interview_summary_session"),
+        # "this student's scores, oldest first" — the trend, and the only read
+        # pattern this table has. Leads with student_id, which is also what
+        # indexes that foreign key.
+        Index("ix_interview_summary_student_started", "student_id", "started_at"),
+        # The same bound `interview_evaluations` carries, for the same reason:
+        # it bounds a value and never demands one.
+        CheckConstraint(
+            "(overall_score IS NULL OR overall_score BETWEEN 0 AND 100) AND "
+            "(communication_score IS NULL OR communication_score BETWEEN 0 AND 100) AND "
+            "(domain_score IS NULL OR domain_score BETWEEN 0 AND 100) AND "
+            "(structure_score IS NULL OR structure_score BETWEEN 0 AND 100)",
+            name="ck_interview_summary_scores",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    student_id: Mapped[str] = mapped_column(
+        ForeignKey("students.id", ondelete="CASCADE")
+    )
+    session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("interview_sessions.id", ondelete="SET NULL"), nullable=True
+    )
+    # The track CODE, copied rather than joined — `interview_tracks` rows can be
+    # renamed, re-scoped or disabled, and a summary that changed its mind about
+    # which interview it was would be worse than useless on a trend. NULL is the
+    # generic interview, exactly as on `interview_sessions.specialization`.
+    track_code: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Copied from the session for the same reason, and because the whole table
+    # has to answer "when" long after the session row is gone.
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # The session's terminal status: 'completed' | 'abandoned' | 'failed'. A
+    # plain String, §6.1, and a summary IS written for the interviews that did
+    # not finish — "three attempts abandoned in the first minute" is a fact a
+    # mentor should be able to see, and a table of completions only would hide
+    # exactly the student who needs help.
+    status: Mapped[str] = mapped_column(String)
+    # Named to match `interview_evaluations` COLUMN FOR COLUMN, rather than 04's
+    # shorthand (`overall`, `communication`, …). The backfill and the finalizer
+    # both copy one into the other, and a rename across that copy is precisely
+    # where a mis-mapped column goes unnoticed for months.
+    overall_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    communication_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    domain_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    structure_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, server_default=func.now()
+    )
+
+
+class InterviewCapReset(Base):
+    """"Give this student their practice attempts back", with a reason (B6.4).
+
+    The daily cap is a rolling 24-hour count, so there is nothing to zero: the
+    reset is a LOWER BOUND on the window the count is taken over, and the count
+    becomes `started_at >= GREATEST(now - 24h, the latest reset)`. Written that
+    way — an extra bound on the existing window rather than a replacement for it
+    — a second reset can only ever move the bound forward, and an old row can
+    never widen the window back open.
+
+    THE REASON IS NOT OPTIONAL, and the precedent is B3.1's disable: this is an
+    action whose effect is invisible from the console a day later (the window
+    has rolled past it anyway), and six months on nobody remembers whether it
+    was a Bedrock outage, a browser that kept dropping, or a favour. The CHECK
+    refuses whitespace so an empty box cannot satisfy it.
+    """
+
+    __tablename__ = "interview_cap_resets"
+    __table_args__ = (
+        # "the latest reset for this student" — the only read there is. Leads
+        # with student_id, which indexes that foreign key.
+        Index("ix_interview_cap_reset_student_at", "student_id", "at"),
+        Index("ix_interview_cap_resets_by_user_id", "by_user_id"),
+        CheckConstraint("length(btrim(reason)) > 0", name="ck_interview_cap_reset_reason"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    # CASCADE: a reset names a student and records nothing without them.
+    student_id: Mapped[str] = mapped_column(
+        ForeignKey("students.id", ondelete="CASCADE")
+    )
+    # The bound. Ordinarily "now", but settable so an admin can say "from the
+    # start of today" without arithmetic in the client.
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, server_default=func.now()
+    )
+    # Who did it. SET NULL rather than a plain string here, unlike the catalogue
+    # tables: this row is EMPTIED by both destructors anyway, so it costs
+    # `purge_people` nothing, and referential integrity is worth having on a row
+    # that grants somebody extra access to a billed upstream service.
+    by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    reason: Mapped[str] = mapped_column(Text)

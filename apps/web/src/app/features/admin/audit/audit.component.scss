@@ -23,9 +23,9 @@
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
-/* The College pill, and only it. The <select> inside carries [reepPending],
-   which disables it and names the phase; this dims the pill it sits in so the
-   one filter the trail cannot answer reads as "not yet" at a glance. */
+/* The College pill, and only it. The <select> inside is plainly `disabled`
+   and carries the reason in its title; this dims the pill it sits in so the
+   one filter the trail cannot answer reads as unavailable at a glance. */
 .filter-pending {
   opacity: 0.55;
   cursor: not-allowed;

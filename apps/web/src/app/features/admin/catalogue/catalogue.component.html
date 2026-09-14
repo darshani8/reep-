@@ -6,13 +6,14 @@
       </div>
       <h1 class="dt-title">Catalogue</h1>
       <div class="dt-sub">
-        Subjects, approved certifications and the badges they unlock. Programme-wide today — scoping
-        a catalogue to one college and one course is a Phase 4 change.
+        Subjects, approved certifications, the badges they unlock and the stage each semester sits
+        in — programme-wide, or scoped to one college and one course.
       </div>
     </div>
     <div class="dt-toolbar">
-      <button type="button" class="btn secondary" [reepPending]="scopingPhase">
-        <span class="icon" aria-hidden="true">upload_file</span>Import subjects
+      <button type="button" class="btn secondary" (click)="toggleImport()">
+        <span class="icon" aria-hidden="true">upload_file</span>
+        {{ importOpen() ? 'Close import' : 'Import subjects' }}
       </button>
       @if (!certificationsAreMainAdminOnly()) {
         @if (formOpen()) {
@@ -103,23 +104,45 @@
     </button>
   </div>
 
-  <!-- Scope. Both controls are B13: the catalogue is one programme-wide list
-       today, so they are drawn where the board draws them and disabled. -->
+  <!-- Scope (B13). A certification carries `college_id` / `course_id`, and
+       BOTH NULL IS PROGRAMME-WIDE — so neither pill hides a programme-wide
+       row, which is the same reading `list_approved_certifications` gives
+       `?course_id=`. The college list is learned from the course rows rather
+       than fetched: `GET /admin/colleges` is `admin.institution`, a different
+       function from this screen's. -->
   <div class="cat-filters">
-    <span class="select cat-select is-pending">
+    <span class="select cat-select">
       <span class="lbl">College</span>
-      <span class="val">All colleges</span>
+      <span class="val">{{ collegeFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Scope the catalogue to a college" [reepPending]="scopingPhase">
-        <option>All colleges</option>
+      <select
+        aria-label="Scope the catalogue to a college"
+        [value]="collegeFilter()"
+        (change)="setCollegeFilter($any($event.target).value)"
+      >
+        <option value="">All colleges</option>
+        @for (college of collegeOptions(); track college.id) {
+          <option [value]="college.id" [selected]="college.id === collegeFilter()">
+            {{ college.name }}
+          </option>
+        }
       </select>
     </span>
-    <span class="select cat-select is-pending">
+    <span class="select cat-select">
       <span class="lbl">Course</span>
-      <span class="val">All courses</span>
+      <span class="val">{{ courseFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
-      <select aria-label="Scope the catalogue to a course" [reepPending]="scopingPhase">
-        <option>All courses</option>
+      <select
+        aria-label="Scope the catalogue to a course"
+        [value]="courseFilter()"
+        (change)="courseFilter.set($any($event.target).value)"
+      >
+        <option value="">All courses</option>
+        @for (course of courseOptions(); track course.id) {
+          <option [value]="course.id" [selected]="course.id === courseFilter()">
+            {{ course.code }} — {{ course.name }}
+          </option>
+        }
       </select>
     </span>
     @if (tab() === 'badges') {
@@ -168,10 +191,126 @@
       </span>
     }
     <span class="cat-filters-note">
-      One catalogue, every college and course. Scoping and “Copy to course…” arrive with Phase
-      {{ scopingPhase }}.
+      @if (scopeIsNarrowed()) {
+        Narrowed — programme-wide rows are still shown, because they apply here too.
+      } @else {
+        Every college and course, programme-wide rows included.
+      }
     </span>
   </div>
+
+  <!-- B13: the subject import. `POST /admin/catalogue/subjects/import`, whose
+       `dry_run` DEFAULTS TO TRUE on the server — the only write in this
+       router that does, because its input is a file somebody exported from a
+       spreadsheet. The panel follows it: nothing is written until a dry run
+       has reported and the office has read it. -->
+  @if (importOpen()) {
+    <div class="card cat-form">
+      <h2 class="cat-card-title">Import subjects</h2>
+      <p class="cat-help">
+        A CSV with these columns, in any order:
+        <span class="cat-mono">{{ subjectImportColumns }}</span
+        >. A subject code is global across the deployment, so this is a programme-wide change and a
+        scoped grant is refused.
+      </p>
+
+      <div class="cat-import-pick">
+        <!-- Hidden with GEOMETRY, never `display:none`/`hidden`: that takes the
+             input out of the focus order and makes the picker mouse-only. The
+             label carries the focus ring through :focus-within. -->
+        <label class="cat-filelabel" for="subject-csv">
+          <span class="icon" aria-hidden="true">upload_file</span>
+          Choose a CSV
+          <input
+            id="subject-csv"
+            class="cat-fileinput"
+            type="file"
+            accept=".csv,text/csv"
+            (change)="pickImportFile($event)"
+          />
+        </label>
+        <span class="cat-filename">{{ importFileName() ?? 'No file chosen' }}</span>
+      </div>
+
+      <div role="alert">
+        @if (importError()) {
+          <div class="notice cat-note">
+            <span class="icon" aria-hidden="true">error</span>
+            <div>{{ importError() }}</div>
+          </div>
+        }
+      </div>
+
+      @if (importResult(); as report) {
+        <div class="notice cat-note" [class.good]="report.errors === 0" role="status">
+          <span class="icon" aria-hidden="true">{{ report.errors ? 'error' : 'check' }}</span>
+          <div>
+            <strong>{{ report.dry_run ? 'Dry run' : 'Imported' }}</strong> ·
+            {{ report.created }} to add, {{ report.updated }} to update,
+            {{ report.errors }} in error.
+            @if (report.dry_run && report.errors === 0) {
+              Nothing has been written yet.
+            }
+          </div>
+        </div>
+        @if (report.rows.length) {
+          <div class="cat-scroll">
+            <table class="dt-table">
+              <caption class="sr-only">Every row of the file, in file order</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Line</th>
+                  <th scope="col">Code</th>
+                  <th scope="col">Outcome</th>
+                  <th scope="col">Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of report.rows; track row.line) {
+                  <tr>
+                    <td class="tabular">{{ row.line }}</td>
+                    <td>{{ row.code || '—' }}</td>
+                    <td>
+                      <span
+                        class="chip dot"
+                        [class.risk]="row.outcome === 'error'"
+                        [class.good]="row.outcome === 'create'"
+                        [class.warn]="row.outcome === 'update'"
+                        >{{ row.outcome }}</span
+                      >
+                    </td>
+                    <td>{{ row.detail ?? '' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      <div class="footbar">
+        <button type="button" class="btn ghost" (click)="toggleImport()">Cancel</button>
+        <button
+          type="button"
+          class="btn secondary"
+          (click)="runImport(true)"
+          [disabled]="importBusy() || !importFileName()"
+        >
+          <span class="icon" aria-hidden="true">visibility</span>
+          {{ importBusy() ? 'Reading…' : 'Dry run' }}
+        </button>
+        <button
+          type="button"
+          class="btn primary"
+          (click)="runImport(false)"
+          [disabled]="importBusy() || !importResult()?.dry_run"
+          title="A dry run has to report first — that is what the file is checked against."
+        >
+          <span class="icon" aria-hidden="true">check</span>Import
+        </button>
+      </div>
+    </div>
+  }
 
   @switch (tab()) {
     <!-- ---------------------------------------------------------------- -->
@@ -188,7 +327,7 @@
               (input)="query.set($any($event.target).value)"
             />
             <span class="cat-gridbar-note">
-              Read-only: the curriculum is seeded from the programme design.
+              Edited as a whole sheet — "Import subjects", above.
             </span>
           </div>
           <div class="cat-scroll">
@@ -280,8 +419,10 @@
           </div>
         </div>
         <p class="cat-foot">
-          Subjects are the seeded curriculum — code, stage, dimension and delivery model come from
-          the programme design, not from this screen.
+          A subject carries a code, a stage, a dimension, a semester and a delivery model, which is
+          more than a form on this screen could ask for without inventing an answer — so the
+          curriculum is maintained as a CSV through “Import subjects”, dry run first. A subject
+          code is global across the deployment, so an import is a programme-wide change.
         </p>
       </div>
     }
@@ -293,10 +434,10 @@
           <span class="icon" aria-hidden="true">lock</span>
           <div>
             The 48 badges are defined in code, so none can be added, edited or retired here — what
-            this screen maintains is which approved certifications count towards each. “Claims”
-            counts the evidence students have filed against those certifications; a per-badge earned
-            count, the college/course scope and “Copy to course…” arrive with Phase
-            {{ scopingPhase }}.
+            this screen maintains is which approved certifications count towards each, and for
+            which programme. “Claims” counts the evidence students have filed against those
+            certifications; a per-badge EARNED count is the one number on this board no endpoint
+            computes, so the column says Claims and means it.
           </div>
         </div>
 
@@ -304,8 +445,11 @@
           <div class="notice accent cat-note">
             <span class="icon" aria-hidden="true">shield_person</span>
             <div>
-              The Approved Certification Catalogue is the Main Admin's list, so the mapping below
-              reads as empty for this account. The badges themselves are shown in full.
+              The Approved Certification Catalogue refused this account, so the mapping below reads
+              as empty. B13 moved that list onto this screen's own function
+              (<span class="cat-mono">admin.catalogue</span>) — a refusal now means the grant does
+              not reach it, not that it belongs to somebody else. The badges themselves are shown
+              in full.
             </div>
           </div>
         } @else if (loadFailed()) {
@@ -363,6 +507,29 @@
                 </select>
               </div>
               <div class="field">
+                <label for="certification-scope">Applies to</label>
+                <select
+                  id="certification-scope"
+                  class="ctrl"
+                  [value]="formCourseId()"
+                  (change)="formCourseId.set($any($event.target).value)"
+                >
+                  <option value="">Every college and course</option>
+                  @for (course of courseOptions(); track course.id) {
+                    <option [value]="course.id" [selected]="course.id === formCourseId()">
+                      {{ course.code }} — {{ course.name }}
+                      @if (course.college) {
+                        · {{ course.college }}
+                      }
+                    </option>
+                  }
+                </select>
+                <span class="help">
+                  The college is derived from the course. A grant narrowed to one college cannot
+                  write a programme-wide row and will say so.
+                </span>
+              </div>
+              <div class="field">
                 <label for="certification-url"
                   >Link <span class="cat-optional">(optional)</span></label
                 >
@@ -415,10 +582,167 @@
                   [value]="query()"
                   (input)="query.set($any($event.target).value)"
                 />
-                <button type="button" class="btn secondary sm" [reepPending]="scopingPhase">
-                  <span class="icon" aria-hidden="true">content_copy</span>Copy to course…
+                <button type="button" class="btn secondary sm" (click)="toggleCopy()">
+                  <span class="icon" aria-hidden="true">content_copy</span>
+                  {{ copyOpen() ? 'Close copy' : 'Copy to course…' }}
                 </button>
               </div>
+              @if (copyOpen()) {
+                <!-- B13's copy. `POST /admin/catalogue/copy
+                     {from_course, to_course, parts[]}` — the endpoint's settled
+                     shape, so the board's two-step (college, then course) is
+                     ONE FLAT SEARCHABLE LIST here: every row carries its
+                     college's name, and the needle matches it. -->
+                <div class="cat-copy">
+                  <h3 class="cat-card-title">Copy a catalogue between programmes</h3>
+                  <p class="cat-help">
+                    Additive and never overwriting: a row the destination already has is skipped
+                    and counted. The dry run says how many of each before anything is written.
+                  </p>
+
+                  @if (courses(); as rows) {
+                    @if (rows.length < 2) {
+                      <div class="notice accent cat-note">
+                        <span class="icon" aria-hidden="true">info</span>
+                        <div>
+                          A copy needs two programmes and this account reaches
+                          {{ rows.length }}. Courses are added in
+                          <a routerLink="/admin/institution">Structure</a>.
+                        </div>
+                      </div>
+                    }
+                  } @else {
+                    <div class="notice cat-note" role="alert">
+                      <span class="icon" aria-hidden="true">error</span>
+                      <div>
+                        The programme list could not be read, so there is nothing to copy between.
+                        Reload the screen to try again.
+                      </div>
+                    </div>
+                  }
+
+                  <input
+                    type="search"
+                    class="dt-quickfilter"
+                    placeholder="Find a programme — code, name, department or college…"
+                    aria-label="Search programmes across every college"
+                    [value]="copyQuery()"
+                    (input)="copyQuery.set($any($event.target).value)"
+                  />
+
+                  <div class="cat-copy-pair">
+                    <div class="field">
+                      <label for="copy-from">Copy from</label>
+                      <select
+                        id="copy-from"
+                        class="ctrl"
+                        [value]="copyFrom()"
+                        (change)="copyFrom.set($any($event.target).value)"
+                      >
+                        <option value="">Choose a programme…</option>
+                        @for (course of copyCandidates(); track course.id) {
+                          <option [value]="course.id" [selected]="course.id === copyFrom()">
+                            {{ course.code }} — {{ course.name }}
+                            @if (course.college) {
+                              · {{ course.college }}
+                            }
+                          </option>
+                        }
+                      </select>
+                      @if (copyFrom()) {
+                        <span class="help">{{ copyCourseLine(sourceCourse()!) }}</span>
+                      }
+                    </div>
+                    <div class="field">
+                      <label for="copy-to">Copy into</label>
+                      <select
+                        id="copy-to"
+                        class="ctrl"
+                        [value]="copyTo()"
+                        (change)="copyTo.set($any($event.target).value)"
+                      >
+                        <option value="">Choose a programme…</option>
+                        @for (course of copyCandidates(); track course.id) {
+                          <option [value]="course.id" [selected]="course.id === copyTo()">
+                            {{ course.code }} — {{ course.name }}
+                            @if (course.college) {
+                              · {{ course.college }}
+                            }
+                          </option>
+                        }
+                      </select>
+                      @if (copyTo()) {
+                        <span class="help">{{ copyCourseLine(destinationCourse()!) }}</span>
+                      }
+                    </div>
+                  </div>
+
+                  <fieldset class="cat-copy-parts">
+                    <legend>What to copy</legend>
+                    @for (part of copyParts; track part.key) {
+                      <label class="check">
+                        <input
+                          type="checkbox"
+                          [checked]="copyPartIsOn(part.key)"
+                          (change)="toggleCopyPart(part.key)"
+                        />
+                        <span>{{ part.label }}</span>
+                        <span class="help">{{ part.help }}</span>
+                      </label>
+                    }
+                  </fieldset>
+
+                  <div role="alert">
+                    @if (copyError()) {
+                      <div class="notice cat-note">
+                        <span class="icon" aria-hidden="true">error</span>
+                        <div>{{ copyError() }}</div>
+                      </div>
+                    }
+                  </div>
+
+                  @if (copyPreview(); as preview) {
+                    <div class="notice cat-note" role="status" [class.good]="!preview.dry_run">
+                      <span class="icon" aria-hidden="true">{{
+                        preview.dry_run ? 'visibility' : 'check'
+                      }}</span>
+                      <div>
+                        <strong>{{ preview.dry_run ? 'Dry run' : 'Copied' }}</strong> ·
+                        @for (part of preview.parts; track part.part) {
+                          {{ part.part }}: {{ part.copied }} copied, {{ part.skipped }} already
+                          there{{ $last ? '' : ' · ' }}
+                        }
+                        @if (preview.dry_run) {
+                          — nothing has been written.
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <div class="footbar">
+                    <button type="button" class="btn ghost" (click)="toggleCopy()">Cancel</button>
+                    <button
+                      type="button"
+                      class="btn secondary"
+                      (click)="runCopy(true)"
+                      [disabled]="copyBusy() || !canRunCopy()"
+                    >
+                      <span class="icon" aria-hidden="true">visibility</span>
+                      {{ copyBusy() ? 'Counting…' : 'Dry run' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn primary"
+                      (click)="runCopy(false)"
+                      [disabled]="copyBusy() || !canRunCopy() || !copyPreview()?.dry_run"
+                      title="A dry run has to report first — it is what says how many rows are already there."
+                    >
+                      <span class="icon" aria-hidden="true">content_copy</span>Copy
+                    </button>
+                  </div>
+                </div>
+              }
+
               <div class="cat-scroll">
                 <table class="dt-table cat-table">
                   <thead>
@@ -572,7 +896,12 @@
                       </div>
                       <div class="cat-meta">
                         {{ certification.provider }} ·
-                        {{ certification.claims | plural: 'claim' }}
+                        {{ certification.claims | plural: 'claim' }} ·
+                        <!-- `scope_label` is the server's own sentence and says
+                             "Programme-wide" rather than leaving a blank: a
+                             blank in a scope column reads as "not set yet" on a
+                             row whose scope IS set, and set wide. -->
+                        <span class="chip dot neutral">{{ certification.scope_label }}</span>
                         @if (!certification.active) {
                           · <span class="chip neutral">Removed</span>
                         }
@@ -633,7 +962,11 @@
                 <label>Scope</label>
                 <div class="ctrl">Programme-wide · every college and course</div>
                 <span class="help"
-                  >Per-college and per-course scope arrives with Phase {{ scopingPhase }}.</span
+                  >A badge's DEFINITION is code and programme-wide. Two things around it are
+                  scoped: each certification mapped to it, which names its own college or course
+                  above; and whether the badge applies to a given programme at all
+                  (<span class="cat-mono">badge_course_map</span>), which no control on this screen
+                  edits — “Copy to course…” moves those rows, nothing here writes one.</span
                 >
               </div>
 
@@ -642,9 +975,12 @@
                 <div class="notice accent cat-note">
                   <span class="icon" aria-hidden="true">info</span>
                   <div>
-                    The stage rule that requires this badge, the job postings that prefer it and its
-                    weight in the readiness score are computed by the Phase {{ scopingPhase }}
-                    catalogue task. Nothing here is guessed in the meantime.
+                    Which semester of a programme sits in which stage is on the
+                    <button type="button" class="cat-linkish" (click)="setTab('stages')">
+                      Stage rules
+                    </button>
+                    tab. The job postings that prefer this badge and its weight in a readiness
+                    score are computed by nothing today, so neither is claimed here.
                   </div>
                 </div>
               </div>
@@ -666,22 +1002,144 @@
     @case ('stages') {
       <div role="tabpanel" aria-label="Stage rules">
         <div class="card">
-          <div class="empty">
-            <span class="icon" aria-hidden="true">flag</span>
-            No stage rules are on record.
-          </div>
-          <div class="notice accent cat-note">
-            <span class="icon" aria-hidden="true">info</span>
+          <div class="card-head">
             <div>
-              A stage rule says which semester moves a batch into Reboot, Excel, Excel-Adv or
-              Elevate, and which badge each stage requires. The table behind it (<span
-                class="cat-mono"
-                >stage_rules</span
-              >) is part of the Phase {{ scopingPhase }}
-              catalogue task, and promotion reads it there. Until then a student's stage is set one
-              account at a time on Students &amp; batches.
+              <div class="card-title">Stage rules</div>
+              <div class="dt-sub">semester N of this programme is Reboot, Excel, Excel-Adv or Elevate</div>
             </div>
           </div>
+
+          <p class="cat-help">
+            <code>POST /api/admin/cohorts/&#123;id&#125;/promote</code> reads these: it moves the
+            semester, and changes the stage only where a rule names one. A programme with no rules
+            is promoted with its students' stages left exactly as they are — a documented no-op,
+            not a failure.
+          </p>
+
+          <div role="alert">
+            @if (stageError()) {
+              <div class="notice cat-note">
+                <span class="icon" aria-hidden="true">error</span>
+                <div>{{ stageError() }}</div>
+              </div>
+            }
+          </div>
+
+          <div class="cat-stage-form">
+            <div class="field">
+              <label for="stage-course">Programme</label>
+              <select
+                id="stage-course"
+                class="ctrl"
+                [value]="stageRuleCourse()"
+                (change)="stageRuleCourse.set($any($event.target).value)"
+              >
+                <option value="">Choose a programme…</option>
+                @for (course of courseOptions(); track course.id) {
+                  <option [value]="course.id" [selected]="course.id === stageRuleCourse()">
+                    {{ course.code }} — {{ course.name }}
+                    @if (course.college) {
+                      · {{ course.college }}
+                    }
+                  </option>
+                }
+              </select>
+            </div>
+            <div class="field narrow">
+              <label for="stage-semester">Semester</label>
+              <input
+                id="stage-semester"
+                type="number"
+                min="1"
+                max="20"
+                [value]="stageRuleSemester()"
+                (input)="stageRuleSemester.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="field narrow">
+              <label for="stage-stage">Stage</label>
+              <select
+                id="stage-stage"
+                class="ctrl"
+                [value]="stageRuleStage()"
+                (change)="stageRuleStage.set($any($event.target).value)"
+              >
+                @for (stage of stageValues; track stage) {
+                  <option [value]="stage" [selected]="stage === stageRuleStage()">
+                    {{ stageLabel(stage) }}
+                  </option>
+                }
+              </select>
+            </div>
+            <button
+              type="button"
+              class="btn secondary"
+              (click)="saveStageRule()"
+              [disabled]="stageBusy() || !stageRuleCourse()"
+            >
+              <span class="icon" aria-hidden="true">save</span>
+              {{ stageBusy() ? 'Saving…' : 'Set rule' }}
+            </button>
+          </div>
+
+          @if (stageRules() === null) {
+            <div class="notice accent cat-note">
+              <span class="icon" aria-hidden="true">info</span>
+              <div>
+                The stage rules have not been read — this is not "there are none". Reload the
+                screen to try again.
+              </div>
+            </div>
+          } @else if (visibleStageRules().length === 0) {
+            <div class="empty">
+              <span class="icon" aria-hidden="true">flag</span>
+              @if (stageRuleCourse()) {
+                No stage rule on {{ courseLabel(stageRuleCourse()) }} yet. Promotion will move its
+                semester and leave every student's stage alone.
+              } @else {
+                No stage rules are on record on any programme this account reaches.
+              }
+            </div>
+          } @else {
+            <div class="cat-scroll">
+              <table class="dt-table">
+                <caption class="sr-only">Stage rules, by semester</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Programme</th>
+                    <th scope="col">Semester</th>
+                    <th scope="col">Stage</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (rule of visibleStageRules(); track rule.id) {
+                    <tr>
+                      <td>{{ courseLabel(rule.course_id) }}</td>
+                      <td class="tabular">{{ rule.semester }}</td>
+                      <td><span class="chip accent">{{ stageLabel(rule.stage) }}</span></td>
+                      <td>
+                        <button
+                          type="button"
+                          class="btn ghost sm"
+                          (click)="deleteStageRule(rule)"
+                          [disabled]="stageBusy()"
+                          [attr.aria-label]="
+                            'Remove the rule for semester ' +
+                            rule.semester +
+                            ' of ' +
+                            courseLabel(rule.course_id)
+                          "
+                        >
+                          <span class="icon" aria-hidden="true">delete</span>Remove
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         </div>
       </div>
     }
@@ -747,9 +1205,9 @@
           <div class="notice accent cat-note">
             <span class="icon" aria-hidden="true">info</span>
             <div>
-              Read-only here. The four tracks come from the matrix that runs the mock interviews;
-              their questions are edited on the Question bank screen, and tracks that belong to a
-              college and a course arrive with Phase {{ scopingPhase }}.
+              Read-only here. These are the tracks that run the mock interviews; their persona,
+              questions and the specialization each belongs to are edited on the Question bank and
+              Structure screens, not on this one.
             </div>
           </div>
         } @else if (tracksFailed()) {

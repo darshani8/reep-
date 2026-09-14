@@ -5,23 +5,26 @@
  * the brief is `02-admin-console-spec.md` §15. Four decisions in this build are
  * worth reading before changing it.
  *
- * THE FUNNEL DRAWS THE STAGES THE PAYLOAD CAN ANSWER, AND NAMES THE REST.
- * The board's funnel is six stages of DISTINCT STUDENTS — eligible, applied,
- * shortlisted, interviewed, offer received, placed. `GET /api/admin/placement`
- * counts three of those as distinct students today (`eligible`, `applied`,
- * `approved_students`); nothing on main records a shortlist or an interview
- * round, and `offers` is a count of OFFERS, not of the students holding them,
- * so drawing it in a funnel captioned "distinct students" would be a wrong
- * number rather than a missing one. Three stages are drawn, the other three are
- * named in the notice as `B12.3`, and nothing is guessed.
+ * THE FUNNEL DRAWS THE STAGES THE PAYLOAD COUNTS, AND THE PAYLOAD NAMES THE
+ * REST. The board's funnel is six stages of DISTINCT STUDENTS — eligible,
+ * applied, shortlisted, interviewed, offer received, placed. B12.3 made four of
+ * them real (`eligible`, `applied`, `offered_students`, `approved_students`),
+ * and it did NOT invent the fifth: `interviewed` comes back `null` with its
+ * reason in `unavailable[]`, because nothing in REEP records a recruiter's
+ * round and the mock interviewer's sessions are rehearsals a student can sit
+ * four times in an afternoon. THE SCREEN RENDERS THAT LIST RATHER THAN ITS OWN
+ * SENTENCE: a client that hard-coded which stage is missing would go on saying
+ * it after somebody built the thing that fills it. "Shortlisted" is not in the
+ * list at all and is not drawn — a stage nobody will ever count is not a gap,
+ * it is a feature nobody asked for.
  *
- * A TILE NOBODY COMPUTES SHOWS A DASH. Placement rate is `approved_students`
- * over `eligible`, which is arithmetic on two figures the payload returns.
- * Median CTC, Highest and Multiple offers are not derivable from the newest
- * twenty-five offers the payload carries — a median of a page is not a median —
- * so those three tiles carry an em dash and a Phase 4 chip. The same holds for
- * the by-track split, which needs the offer-to-specialization link `B12.3`
- * adds.
+ * THE KPI TILES ARE THE SERVER'S FIGURES, INCLUDING ITS NULLS. `placement_rate_
+ * pct` is null — never 0.0 — when nobody is eligible, and the tile prints a
+ * dash for it, because "0% placed" and "there is nobody to place" are opposite
+ * facts. The CTC pair is taken over APPROVED offers that carry a CTC, and
+ * `ctc_offers_counted` travels with it so the tile can say over how many; a
+ * median printed without that number invites the reader to assume it is over
+ * all of them.
  *
  * THE STATUS DONUT IS ARITHMETIC, NOT AN ESTIMATE. `offers` is every submitted
  * offer, `approved` is the approved ones and `GET /api/mentor/offers/pending`
@@ -44,6 +47,22 @@
  * `require_admin` — the path says mentor, the guard says Main Admin, and the
  * guard is what governs. Kept there so there is one implementation of "approve
  * an offer".
+ *
+ * TWO OF THE BOARD'S THREE FILTERS ARE PARAMETERS ON THE ONE ENDPOINT, AND THE
+ * THIRD IS NOT A FILTER AT ALL. `?cohort_id=` and `?year=` narrow the whole
+ * payload server-side — every count, the split and the recent list move
+ * together, which is what keeps the funnel's columns adding up — so both are
+ * re-read rather than filtered here. `?track=` DOES NOT EXIST: the payload
+ * answers the track question as a SPLIT (`by_track`, placed over eligible per
+ * specialization) and narrowing to one track client-side would leave the funnel
+ * and the KPIs describing the whole reach beside a caption naming one track.
+ * That select is therefore disabled with the real reason on it and no phase
+ * number — nothing is coming to make it a parameter.
+ *
+ * THE BATCH LIST IS A SECOND FUNCTION. `GET /api/admin/cohorts` checks
+ * `admin.analytics`, not this screen's `admin.placement`, so a granted faculty
+ * member can be refused it — the select then says so rather than standing
+ * empty, and the payload is still the whole reach.
  */
 
 import { Component, ElementRef, OnDestroy, computed, effect, signal, viewChild } from '@angular/core';
@@ -75,7 +94,6 @@ import {
 } from '../../../shared/charts/reep-echarts-theme';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // The design system's chart theme, registered once for this lazily-loaded
@@ -113,16 +131,60 @@ interface OfferAwaitingDecision {
   status: string;
 }
 
-/** `GET /api/admin/placement`. */
+/** One funnel stage the payload NAMES and cannot count, with the reason in
+ *  words. `FunnelGapOut` in `app/routers/console.py`. */
+interface FunnelGap {
+  stage: string;
+  reason: string;
+}
+
+/** One row of the by-track split. `code` is null for the students whose batch
+ *  names no specialization — carried, never dropped, because a split drawn
+ *  beside a funnel whose columns do not sum to it reads as missing students. */
+interface TrackSplit {
+  code: string | null;
+  name: string;
+  eligible: number;
+  placed: number;
+}
+
+/** `PlacementOut` in `app/routers/console.py`. */
 interface PlacementFigures {
   semester: number | null;
   eligible: number;
   applied: number;
+  /** Null while nothing records a recruiter's round — the reason is in
+   *  `unavailable`. NEVER rendered as a zero. */
+  interviewed: number | null;
+  offered_students: number;
+  approved_students: number;
   offers: number;
   approved: number;
-  approved_students: number;
+  unavailable: FunnelGap[];
+  /** Null — never 0.0 — when nobody is eligible. */
+  placement_rate_pct: number | null;
+  median_ctc_inr: number | null;
+  highest_ctc_inr: number | null;
+  ctc_offers_counted: number;
+  multiple_offer_students: number;
+  by_track: TrackSplit[];
+  /** The offer years this reach has records in, newest first — what the Period
+   *  filter is built from, so it cannot offer a year with nothing behind it. */
+  years: number[];
+  /** The year the figures were narrowed to, echoed back; null is the whole
+   *  record. */
+  year: number | null;
   recent: SubmittedOffer[];
   top_recruiters: { organisation: string; count: number }[];
+}
+
+/** `CohortOut` in `app/routers/console.py` — the Batch filter's options. */
+interface CohortOption {
+  id: string;
+  code: string;
+  name: string;
+  batch_label: string;
+  student_count: number;
 }
 
 /** One row of the Offers grid, reduced to what the board draws. */
@@ -148,6 +210,11 @@ interface FunnelStage {
   label: string;
   students: number;
 }
+
+/** What the Batch and Period selects offer when nothing is chosen. Empty
+ *  strings, so the `<select>` values and the signals are the same vocabulary. */
+const EVERY_BATCH = '';
+const WHOLE_RECORD = '';
 
 const ROLE_LABEL: Record<string, string> = {
   FULL_TIME: 'Full-time',
@@ -237,10 +304,10 @@ function renderStatusCell(params: ICellRendererParams<OfferGridRow>): string {
   return `<span class="chip dot ${row.statusTone}">${row.statusLabel}</span>`;
 }
 
-/** The offer-letter column the board draws. `GET /api/admin/placement` returns
- *  no upload reference and no admin endpoint serves one, so every cell is a
- *  dash until B12.3 — a plausible file name here would be a fabricated record
- *  of a document nobody attached. */
+/** The offer-letter column the board draws. Nothing in REEP records one: the
+ *  offer carries no upload reference and no endpoint serves a file, and no
+ *  backend task adds either. Every cell is a dash — a plausible file name here
+ *  would be a fabricated record of a document nobody attached. */
 function renderEvidenceCell(): string {
   return `<span style="${FAINT_TEXT}">—</span>`;
 }
@@ -260,7 +327,7 @@ function formatOfferDate(params: ValueFormatterParams<OfferGridRow, string | nul
 @Component({
   selector: 'app-admin-placement',
   standalone: true,
-  imports: [RouterLink, AgGridAngular, PendingControlDirective, PluralPipe],
+  imports: [RouterLink, AgGridAngular, PluralPipe],
   templateUrl: './placement.component.html',
   styleUrl: './placement.component.scss',
 })
@@ -273,14 +340,38 @@ export class AdminPlacementComponent implements OnDestroy {
   readonly offersPerPage = OFFERS_PER_PAGE;
   readonly pageSizes = PAGE_SIZE_CHOICES;
 
-  /** Every submitted offer this deployment can export today. The board's
-   *  "Export offers" is this file; the batch-scoped `offers.csv` is B12.3. */
-  readonly offersCsvUrl = `${environment.apiBase}/admin/exports/placement.csv`;
-
   readonly figures = signal<PlacementFigures | null>(null);
   readonly offersAwaitingDecision = signal<OfferAwaitingDecision[] | null>(null);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
+
+  // --- the board's two live filters ----------------------------------------
+
+  /** The batch the payload is narrowed to, or EVERY_BATCH. Both filters are
+   *  PARAMETERS: choosing one re-reads `/admin/placement`, because every count
+   *  on this screen has to move together or the funnel stops adding up. */
+  readonly cohortFilter = signal<string>(EVERY_BATCH);
+  readonly yearFilter = signal<string>(WHOLE_RECORD);
+
+  /** The batches the Batch select offers, or null when `/admin/cohorts` has
+   *  not answered. It checks `admin.analytics`, not `admin.placement`. */
+  readonly cohorts = signal<CohortOption[] | null>(null);
+  /** Why the Batch select is grey, or null while it works. */
+  readonly cohortsUnavailable = signal<string | null>(null);
+
+  /** Every submitted offer this reach can export, narrowed to the same batch
+   *  the screen is showing. The board's "Export offers" IS this file:
+   *  `GET /admin/exports/placement.csv?cohort_id=` is B12.3's batch-scoped
+   *  offers extract, already carrying B14's scope filter, its personal-column
+   *  gate and its receipt — a second endpoint would be a second copy of all
+   *  three. The YEAR is deliberately not sent: the CSV takes no `?year=`, and a
+   *  filename promising one year over a file holding every year is the kind of
+   *  wrong label an export cannot be recalled to fix. */
+  readonly offersCsvUrl = computed(() => {
+    const base = `${environment.apiBase}/admin/exports/placement.csv`;
+    const cohortId = this.cohortFilter();
+    return cohortId === EVERY_BATCH ? base : `${base}?cohort_id=${encodeURIComponent(cohortId)}`;
+  });
 
   readonly deciding = signal(false);
   readonly rejectionOpen = signal(false);
@@ -302,6 +393,7 @@ export class AdminPlacementComponent implements OnDestroy {
     registerReepGrid();
     void this.loadPlacementFigures();
     void this.loadOffersAwaitingDecision();
+    void this.loadCohorts();
 
     // Each chart element exists only while there is something to draw, so the
     // chart is created when it appears and disposed when it goes.
@@ -337,17 +429,38 @@ export class AdminPlacementComponent implements OnDestroy {
     return 'Loading the placement figures…';
   });
 
-  /** The three stages `GET /api/admin/placement` counts as distinct students.
-   *  Shortlisted, interviewed and offer-received are named in the notice. */
+  /** The stages `GET /api/admin/placement` counts as distinct students.
+   *
+   *  `interviewed` is in the payload as a NULLABLE field and is drawn only if
+   *  it is ever filled in — it is not special-cased here, because the day
+   *  something records a recruiter round the stage should appear without this
+   *  file being edited. While it is null the payload's own `unavailable[]`
+   *  explains it, under the chart. */
   readonly funnelStages = computed<FunnelStage[]>(() => {
     const placement = this.figures();
     if (!placement) return [];
-    return [
+    const stages: FunnelStage[] = [
       { label: 'Eligible students', students: placement.eligible },
       { label: 'Applied to ≥1 job', students: placement.applied },
-      { label: 'Placed (approved offer)', students: placement.approved_students },
     ];
+    if (placement.interviewed !== null) {
+      stages.push({ label: 'Interviewed', students: placement.interviewed });
+    }
+    stages.push({ label: 'Holding an offer', students: placement.offered_students });
+    stages.push({ label: 'Placed (approved offer)', students: placement.approved_students });
+    return stages;
   });
+
+  /** The stages the SERVER says it cannot count, with its own reason for each.
+   *  Rendered verbatim rather than restated: a sentence written here would
+   *  outlive the gap it explains. */
+  readonly funnelGaps = computed<FunnelGap[]>(() => this.figures()?.unavailable ?? []);
+
+  /** The gap's stage name as a heading — "interviewed" comes back in the
+   *  payload's own lower-case vocabulary. */
+  gapTitle(gap: FunnelGap): string {
+    return gap.stage.charAt(0).toUpperCase() + gap.stage.slice(1);
+  }
 
   /** The chart is a `role="img"`, so its accessible name has to carry the
    *  numbers the bars draw — without this a screen reader is told a funnel
@@ -374,11 +487,13 @@ export class AdminPlacementComponent implements OnDestroy {
     return Math.round((placement.applied / placement.eligible) * 100);
   });
 
-  readonly placementRatePercent = computed<number | null>(() => {
-    const placement = this.figures();
-    if (!placement || placement.eligible === 0) return null;
-    return Math.round((placement.approved_students / placement.eligible) * 100);
-  });
+  /** THE SERVER'S FIGURE, not a second calculation of it. `placement_rate_pct`
+   *  is null when nobody is eligible and a number otherwise, which is exactly
+   *  the distinction this screen has to draw — and computing it here as well
+   *  is how the tile and the CSV end up rounding differently. */
+  readonly placementRatePercent = computed<number | null>(
+    () => this.figures()?.placement_rate_pct ?? null,
+  );
 
   /** The two conversion figures under the funnel that this payload can answer.
    *  The board's "Shortlist -> interview" and "Interview -> offer" need the two
@@ -402,6 +517,152 @@ export class AdminPlacementComponent implements OnDestroy {
     const placementRate = this.placementRatePercent();
     if (placementRate === null) return '—';
     return `${placementRate}%`;
+  });
+
+  // --- the three KPI tiles B12.3 filled in ---------------------------------
+
+  /** The median and the highest, over APPROVED offers that carry a CTC. Null
+   *  when none of them does — `ctc_inr` defaults to 0 and the student's own
+   *  offer form does not demand it, so a zero means "not stated" far more often
+   *  than it means an unpaid role, and a median dragged to the floor by blanks
+   *  is worse than a dash. */
+  readonly medianCtcLabel = computed<string>(() => {
+    const median = this.figures()?.median_ctc_inr;
+    return median === null || median === undefined ? '—' : ctcInLakhs(median);
+  });
+
+  readonly highestCtcLabel = computed<string>(() => {
+    const highest = this.figures()?.highest_ctc_inr;
+    return highest === null || highest === undefined ? '—' : ctcInLakhs(highest);
+  });
+
+  /** Over how many offers the two figures above were taken. A median is a
+   *  statement about a set, and one printed without saying over what invites
+   *  the reader to assume it is over all of them. */
+  readonly ctcCountedLabel = computed<string>(() => {
+    const placement = this.figures();
+    if (!placement) return '';
+    if (placement.ctc_offers_counted === 0) {
+      return 'No approved offer records a CTC';
+    }
+    return `over ${plural(placement.ctc_offers_counted, 'approved offer')}`;
+  });
+
+  /** The KPI card's heading. The board says "This year", which was true while
+   *  the Period filter did nothing; it is now whatever the reader chose, and a
+   *  heading that says otherwise is a caption on the wrong numbers. */
+  readonly kpiCardHeading = computed<string>(() => {
+    const year = this.yearFilter();
+    return year === WHOLE_RECORD ? 'Offers on record' : `Offers in ${year}`;
+  });
+
+  readonly kpiCardPeriod = computed<string>(() => {
+    const year = this.yearFilter();
+    if (year === WHOLE_RECORD) return 'every offer ever submitted, over the students on the roll today';
+    return `offers submitted in ${year}, over the students on the roll today`;
+  });
+
+  readonly multipleOffersLabel = computed<string>(() => {
+    const placement = this.figures();
+    if (!placement) return '—';
+    return `${placement.multiple_offer_students}`;
+  });
+
+  // --- the by-track split ---------------------------------------------------
+
+  readonly trackSplit = computed<TrackSplit[]>(() => this.figures()?.by_track ?? []);
+
+  readonly noTrackSplitYet = computed(
+    () => this.figures() !== null && this.trackSplit().length === 0,
+  );
+
+  /** "12 of 30" and the percentage beside it — or a dash where the track holds
+   *  nobody, for the same reason the placement tile shows one. */
+  trackRateLabel(row: TrackSplit): string {
+    if (row.eligible === 0) return '—';
+    return `${Math.round((row.placed / row.eligible) * 100)}%`;
+  }
+
+  /** The chip's tone AND its words. A track with nobody on it is neutral, not
+   *  "at risk": there is nothing to be at risk about. */
+  trackTone(row: TrackSplit): 'good' | 'warn' | 'neutral' {
+    if (row.eligible === 0) return 'neutral';
+    const rate = row.placed / row.eligible;
+    if (rate >= 0.5) return 'good';
+    return 'warn';
+  }
+
+  // --- the two live filters -------------------------------------------------
+
+  readonly cohortOptions = computed<CohortOption[]>(() => this.cohorts() ?? []);
+
+  readonly cohortFilterLabel = computed<string>(() => {
+    const chosen = this.cohortFilter();
+    if (chosen === EVERY_BATCH) return 'All batches';
+    return this.cohortOptions().find((cohort) => cohort.id === chosen)?.name ?? 'All batches';
+  });
+
+  /** Why the Batch select is grey, or null. Two different facts and two
+   *  different sentences: the list was refused, or there is no batch to pick. */
+  readonly cohortFilterDisabledReason = computed<string | null>(() => {
+    const refused = this.cohortsUnavailable();
+    if (refused !== null) return refused;
+    if (this.cohorts() === null) return 'Reading the batch list…';
+    if (this.cohortOptions().length === 0) {
+      return 'No batch has been created yet, so there is nothing to narrow to.';
+    }
+    return null;
+  });
+
+  /** The years the reach has offers in. Built from the payload, so the select
+   *  cannot offer a year with nothing behind it — and it is NOT narrowed by the
+   *  year already chosen, or the filter could not be used to leave it. */
+  readonly yearOptions = computed<number[]>(() => this.figures()?.years ?? []);
+
+  readonly yearFilterLabel = computed<string>(() => {
+    const chosen = this.yearFilter();
+    return chosen === WHOLE_RECORD ? 'Whole record' : chosen;
+  });
+
+  readonly yearFilterDisabledReason = computed<string | null>(() => {
+    if (this.figures() === null) return 'Reading the placement figures…';
+    if (this.yearOptions().length === 0) {
+      return 'No offer has been submitted yet, so there is no year to narrow to.';
+    }
+    return null;
+  });
+
+  /** The house `(change)` helper — the same three lines the Jobs sheet, the
+   *  Audit trail and the Leave queue carry. Reading `$event.target.value` in
+   *  the template would need a cast the template language cannot express. */
+  selectValue(event: Event): string {
+    const target = event.target as HTMLSelectElement;
+    return target.value;
+  }
+
+  /** Both filters are PARAMETERS, so choosing one re-reads the payload: the
+   *  funnel, the KPIs, the split and the recent list all move together, which
+   *  is what stops a caption naming one batch over figures about every batch. */
+  async setCohortFilter(cohortId: string): Promise<void> {
+    if (cohortId === this.cohortFilter()) return;
+    this.cohortFilter.set(cohortId);
+    await this.loadPlacementFigures();
+  }
+
+  async setYearFilter(year: string): Promise<void> {
+    if (year === this.yearFilter()) return;
+    this.yearFilter.set(year);
+    await this.loadPlacementFigures();
+  }
+
+  /** What the header says the figures below are ABOUT. A batch and a year are
+   *  narrowings the reader chose and must be able to see they chose. */
+  readonly narrowingSentence = computed<string>(() => {
+    const parts: string[] = [];
+    if (this.cohortFilter() !== EVERY_BATCH) parts.push(this.cohortFilterLabel());
+    if (this.yearFilter() !== WHOLE_RECORD) parts.push(`offers submitted in ${this.yearFilter()}`);
+    if (parts.length === 0) return '';
+    return parts.join(' · ');
   });
 
   /** The board's first drop-off line: eligible students with no application. */
@@ -541,7 +802,8 @@ export class AdminPlacementComponent implements OnDestroy {
       sortable: false,
       filter: false,
       cellRenderer: renderEvidenceCell,
-      headerTooltip: 'The offer letter travels with the scoped placement payload (B12.3)',
+      headerTooltip:
+        'Nothing in REEP records an offer letter — no upload reference on the offer, no endpoint that serves one — so every cell is a dash rather than a plausible file name',
     },
     {
       field: 'statusLabel',
@@ -694,18 +956,55 @@ export class AdminPlacementComponent implements OnDestroy {
 
   // --- the two reads ---------------------------------------------------------
 
+  /** Read the payload for whatever the two filters currently say. THE OLD
+   *  FIGURES ARE LEFT ON SCREEN while this is in flight and are replaced only
+   *  on success: blanking them would make every narrowing flash an empty
+   *  funnel, and a failure would leave the screen looking like a deployment
+   *  with no offers rather than one that could not be asked. */
   private async loadPlacementFigures(): Promise<void> {
+    const query = new URLSearchParams();
+    if (this.cohortFilter() !== EVERY_BATCH) query.set('cohort_id', this.cohortFilter());
+    if (this.yearFilter() !== WHOLE_RECORD) query.set('year', this.yearFilter());
+    const typed = query.toString();
+    const suffix = typed === '' ? '' : `?${typed}`;
     try {
-      const response = await fetch(`${environment.apiBase}/admin/placement`, {
+      const response = await fetch(`${environment.apiBase}/admin/placement${suffix}`, {
         credentials: 'include',
       });
       if (!response.ok) {
-        this.error.set('Could not load the placement figures.');
+        this.error.set(await detailOf(response, 'Could not load the placement figures.'));
         return;
       }
       this.figures.set((await response.json()) as PlacementFigures);
+      this.error.set(null);
     } catch {
       this.error.set('Could not reach the server.');
+    }
+  }
+
+  /** The Batch select's options. `GET /api/admin/cohorts` checks
+   *  `admin.analytics`, which this screen does not require, so a refusal is an
+   *  expected state and not an error banner — the select says why it is grey
+   *  and every figure on the screen is still the whole reach. */
+  private async loadCohorts(): Promise<void> {
+    try {
+      const response = await fetch(`${environment.apiBase}/admin/cohorts`, {
+        credentials: 'include',
+      });
+      if (response.status === 403) {
+        this.cohortsUnavailable.set(
+          'The batch list answers to the Analytics function, which this account does not hold — these figures cover everything your Placement function reaches.',
+        );
+        return;
+      }
+      if (!response.ok) {
+        this.cohortsUnavailable.set('The batch list could not be read.');
+        return;
+      }
+      this.cohorts.set((await response.json()) as CohortOption[]);
+      this.cohortsUnavailable.set(null);
+    } catch {
+      this.cohortsUnavailable.set('The batch list could not be read.');
     }
   }
 

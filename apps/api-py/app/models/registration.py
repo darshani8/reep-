@@ -29,12 +29,43 @@ def _uuid() -> str:
 
 
 class RegistrationStatus(str, enum.Enum):
+    # TWO OF THESE SIX ARE DEAD AND CANNOT BE REMOVED. Nothing has written
+    # DRAFT (it is only this column's default, and `submit()` always names
+    # PENDING_REVIEW explicitly) and nothing has written PENDING_VERIFICATION
+    # since migration 9b2d47f0ce15 retired the confirm-before-review gate.
+    # They stay because Postgres cannot drop a value from an enum without
+    # recreating the type and rewriting every column that uses it —
+    # `Role.DIRECTOR` is the repo's precedent for "a value survives as a value".
+    # Treat them as unreachable, not as states to handle.
     DRAFT = "DRAFT"
     PENDING_VERIFICATION = "PENDING_VERIFICATION"
     PENDING_REVIEW = "PENDING_REVIEW"
+    #: B11.2. A reviewer has read this application and parked it with a note —
+    #: waiting on a missing document, a USN to confirm, a call to the applicant.
+    #: INTERNAL: no mail leaves, `decision_reason` is untouched, and the
+    #: applicant's own result card cannot tell HOLD from PENDING_REVIEW (it
+    #: branches on AUTO_APPROVED and calls everything else "held for review").
+    #: Still decidable and still counted as waiting work — see
+    #: PENDING_QUEUE_STATUSES.
+    HOLD = "HOLD"
     AUTO_APPROVED = "AUTO_APPROVED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+
+#: What "an application still waiting on a human" means, in ONE place, because
+#: two readers ask it: the Analytics "pending registrations" tile
+#: (`routers/console.py`) and the decidable-status guard on
+#: `POST /{id}/decision`. A HOLD is in it deliberately — the work is parked, not
+#: finished — and a tile that silently dropped the moment somebody held a row
+#: would report an office getting through its queue when nothing had happened.
+#: The review QUEUE's default page is PENDING_REVIEW alone and that is not a
+#: contradiction: the queue has a Held tab to send those rows to, and the tile
+#: has no second number.
+PENDING_QUEUE_STATUSES: tuple[RegistrationStatus, ...] = (
+    RegistrationStatus.PENDING_REVIEW,
+    RegistrationStatus.HOLD,
+)
 
 
 # One shared instance so the (already-existing) degree_level type is referenced
@@ -130,6 +161,28 @@ class Registration(Base):
     reviewed_by_id: Mapped[str | None] = mapped_column(String, nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_note: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    # --- the HOLD stamp (B11.2) -------------------------------------------
+    # Separate from the three above, not a reuse of them: `reviewed_*` means
+    # DECIDED, and `reopen` clears it precisely because a decision was undone.
+    # A hold is not a decision, and a held application that reported itself as
+    # reviewed would be a row claiming an outcome nobody reached.
+    #
+    # `held_by_id` is a PLAIN STRING, the house style `reviewed_by_id` set two
+    # lines up ("a plain column (audit stamp), as on Upload") — and there is a
+    # second reason here: a real FK to `users` on a table `purge_people` EMPTIES
+    # is fine, but the same shape on a KEPT table is what `CREATED_BY_COLUMNS`
+    # exists to unpick, and the next person to copy this pattern onto
+    # `registration_rules` would not notice the difference.
+    #
+    # `hold_note` is the reviewer's own words and is REQUIRED by the endpoint:
+    # a HOLD carrying no note is indistinguishable from PENDING_REVIEW on every
+    # screen, so the note is not decoration, it is the whole feature. It never
+    # reaches the applicant — `PublicRegistrationOut` does not declare it, and
+    # `_public_out_one` narrows by `model_fields`.
+    hold_note: Mapped[str | None] = mapped_column(String, nullable=True)
+    held_by_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    held_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Set once the application became a Student. A string, not a relation.
     approved_student_id: Mapped[str | None] = mapped_column(String, nullable=True)

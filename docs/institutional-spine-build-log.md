@@ -1,5 +1,14 @@
 # Institutional spine — build log
 
+> **A CHRONOLOGICAL LOG. Each round describes the code as it stood the day that
+> round was written, and a later round supersedes an earlier one — which is the
+> point of keeping it, and also the trap.** Round 9 is *"DIRECTOR is not a role"*;
+> every mention of `require_director`, a DIRECTOR-gated endpoint or a
+> `director@bgscet.ac.in` account in the rounds BEFORE it is history, not a
+> description of the product. `require_admin` is the one console gate now.
+> Where this log and `AGENTS.md` disagree, `AGENTS.md` is current.
+>
+
 Every file changed in this workstream is recorded here **before** it is written, with the reasoning
 that produced the change. The purpose is that a developer who has never seen this work can read one
 file, understand why each decision went the way it did, and — more importantly — see which

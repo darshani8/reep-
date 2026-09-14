@@ -33,6 +33,12 @@
  *     field is a picker over `GET /api/admin/faculty` plus the reason the
  *     endpoint records.
  *
+ * The THIRD greyed field, "Copy catalogues from", is a different answer and
+ * Phase 4 is the reason it is now final rather than pending: B13 shipped `POST
+ * /api/admin/catalogue/copy`, and its shape settles the question — a catalogue
+ * is copied between COURSES, and a college being created has none. See
+ * `CATALOGUE_COPY_REASON`.
+ *
  * BOTH ADMIN ENDPOINTS ARE GATED ON `admin.governance`, NOT ON THIS SCREEN'S
  * `admin.institution` (`require_governance` in `app/routers/governance.py`),
  * and that is deliberate on the API's side: who holds what is Governance's
@@ -85,7 +91,6 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
-import { PendingControlDirective } from '../../../shared/pending/pending.directive';
 import { plural } from '../../../shared/text/plural.pipe';
 
 /** `CollegeOut` in `app/routers/admin.py`, snake_case exactly as it arrives. */
@@ -153,12 +158,22 @@ interface PlatformFact {
   reports: string;
 }
 
-/** Copying a catalogue between colleges is `B13`, Phase 4 — the only control on
- *  this screen still waiting for an endpoint. `POST
- *  /api/admin/catalogue/copy {from_course, to_course, parts[]}` does not exist
- *  on main, and the board's field names a COLLEGE where the task names a
- *  COURSE, so there is not even a shape to send yet. It stays disabled. */
-const CATALOGUE_COPY_PHASE = 4;
+/** Copying a catalogue. `B13` LANDED and `POST /api/admin/catalogue/copy` is
+ *  real — but its shape is `{from_course, to_course, parts[]}` (the owner's
+ *  settled decision), and this panel is CREATING a college. A college being
+ *  created has no departments, so no courses, so no `to_course`: there is
+ *  nothing this field could name on the receiving end, and there will not be
+ *  until Structure has been used.
+ *
+ *  SO IT IS NOT A PHASE, IT IS THE WRONG SCREEN. The control stays because the
+ *  board draws it, disabled with the real reason rather than a phase number —
+ *  a "Phase 4" badge on a screen running Phase 4 is the stale label commit
+ *  45b91a9 fixed — and the help text points at the Catalogue screen, where
+ *  "Copy to course…" does the real thing against two real courses. */
+const CATALOGUE_COPY_REASON =
+  'A catalogue is copied from one COURSE to another, and a college being ' +
+  'created has no courses yet. Add its departments and courses in Structure, ' +
+  'then copy on the Catalogue screen.';
 
 /** `GET /api/admin/platform/status` is `B3.7`, and `05-delivery-workflow.md`
  *  schedules it in PHASE 5 ("Cleanup + hardening … CDK harden (B3.7) with the
@@ -215,14 +230,14 @@ interface AdminSummary {
 @Component({
   selector: 'app-admin-colleges',
   standalone: true,
-  imports: [RouterLink, PendingControlDirective],
+  imports: [RouterLink],
   templateUrl: './colleges.component.html',
   styleUrl: './colleges.component.scss',
 })
 export class AdminCollegesComponent implements OnInit {
   private readonly auth = inject(AuthService);
 
-  readonly catalogueCopyPhase = CATALOGUE_COPY_PHASE;
+  readonly catalogueCopyReason = CATALOGUE_COPY_REASON;
   readonly platformStatusPhase = PLATFORM_STATUS_PHASE;
   readonly countUnsourcedNote = COUNT_UNSOURCED_NOTE;
   readonly minReasonChars = MIN_REASON_CHARS;

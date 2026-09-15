@@ -54,6 +54,7 @@ from .architecture_events import record_change
 from .db import SessionLocal
 from .mentor_history import record_mentor_change
 from .models.governance import AccessGroupMember, CapabilityGrant, SubjectKind
+from .models.institution import Department
 from .models.student_profile import StudentProfile
 from .models.user import Mentor, Role, Student, User
 from .config import settings
@@ -248,6 +249,8 @@ def grant(
     with_group: bool = False,
     password_hash: str | None = None,
     mentor_email: str | None = None,
+    department_id: str | None = None,
+    require_department: bool = False,
 ) -> tuple[User, bool]:
     """Create or update the user row that permits `email` to sign in.
 
@@ -287,6 +290,38 @@ def grant(
             "DIRECTOR is not granted: REEP has one Main Admin (ADMIN), and faculty are "
             "MENTOR - the Main Admin gives them console screens in Governance"
         )
+    # WHERE THIS PERSON BELONGS, REQUIRED ON A NEW ACCOUNT AND ONLY ON A NEW ONE.
+    #
+    # This tool was the last door into the roster that placed nobody. The console
+    # already refuses: `AdminFacultyIn.department_id` is `str` with no default,
+    # and the public registration form requires College and Department. Only this
+    # path could mint an account belonging to no institution at all -- and it
+    # silently did, which is not a tidiness problem. A student with no department
+    # resolves to no college, no batch and therefore no `default_track`, so the
+    # interview picker stays on "General interview", and a general interview has
+    # no wrap-up phase and can NEVER be scored. The student takes five mock
+    # interviews, every one comes back with a dash where the score goes, and
+    # nothing anywhere says why.
+    #
+    # ONE LEVEL AND NOT TWO, because `departments.college_id` is NOT NULL: naming
+    # a department names a college, and asking for both invites them to disagree.
+    # It is the same single-pointer shape `users.department_id` and
+    # `students.cohort_id` already use -- the ancestors are reached through the
+    # join and stored on nothing.
+    #
+    # NOT required on an update. Re-running with a different --role is the
+    # supported way to promote somebody, and demanding a department to do it
+    # would either block the promotion or make the operator retype a value that
+    # is already on the row -- which is how `--name` renames people who only
+    # needed a role change.
+    department: Department | None = None
+    if department_id is not None and str(department_id).strip():
+        department = db.get(Department, str(department_id).strip())
+        if department is None:
+            raise ValueError(
+                f"no department with id {department_id!r}. List them with "
+                "`GET /api/admin/departments`, or on the Catalogue screen."
+            )
     if role is not Role.STUDENT and role not in _GRANTABLE_ROLES:
         raise ValueError(f"{role.value} cannot be granted here")
     if role is Role.ADMIN:
@@ -332,6 +367,27 @@ def grant(
             "Omit --name only to update an account that is already there."
         )
 
+    # REQUIRED AT THE OPERATOR BOUNDARY, NOT IN THE LIBRARY, and the line is
+    # drawn here on purpose. `main()` passes require_department=True, so every
+    # human-facing door now demands a filing: this tool, the console's
+    # `AdminFacultyIn.department_id` (`str`, no default) and the public
+    # registration form. What stays permissive is the in-process caller --
+    # `seed_roster` files a whole batch by USN through its own path, and the
+    # suite builds fixture accounts that never reach a screen.
+    #
+    # The honest cost: a future in-process caller could still mint an unfiled
+    # account. That is a narrower hole than the one this closes, and closing it
+    # here instead would have meant a blind refactor of a dozen fixtures in four
+    # test modules to invent Department rows they do not otherwise need.
+    if require_department and user is None and department is None:
+        raise ValueError(
+            "a new account needs --department-id: an account filed under no "
+            "department resolves to no college and no batch, and for a STUDENT "
+            "that means the mock interview never preselects a track and can "
+            "never be scored. List them with `GET /api/admin/departments`. "
+            "Omit it only to update an account that is already there."
+        )
+
     if user is None:
         user = User(
             id=uuid.uuid4().hex,
@@ -341,6 +397,11 @@ def grant(
             # The sentinel unless the operator brought a key. Google sign-in
             # works either way; the hash only adds a second door.
             password_hash=password_hash or SSO_ONLY_PASSWORD_HASH,
+            department_id=department.id if department else None,
+            # The free-text line the leave form prints, filled from the chosen
+            # department's NAME so the two can never disagree on paper. Exactly
+            # what routers/admin_faculty.py::create_faculty does.
+            department=department.name if department else None,
         )
         db.add(user)
     else:
@@ -371,6 +432,12 @@ def grant(
             # one leaves whatever key exists alone, so "promote this person"
             # never silently revokes their password.
             user.password_hash = password_hash
+        if department is not None:
+            # Same contract as the hash above: supplied, it MOVES them; omitted,
+            # it leaves the filing alone. A role change must not clear a
+            # department the operator never mentioned.
+            user.department_id = department.id
+            user.department = department.name
 
     if role is Role.STUDENT:
         # The trio, exactly as seed_roster builds it. flush() before each
@@ -388,10 +455,28 @@ def grant(
             )
         stu = db.scalar(select(Student).where(Student.user_id == user.id))
         if stu is None:
-            stu = Student(user_id=user.id, usn=wanted_usn)
+            # `students.department_id` as well as `users.department_id`, and it is
+            # not redundant: 31f7a4c60b12 added it because a student with no batch
+            # had NO institutional pointer at all, and Batch is optional at
+            # registration while Department is not. This is the pointer the
+            # student's own profile card and `governance.ancestry_of_student`
+            # read when there is no cohort yet, which for a granted test account
+            # is always.
+            stu = Student(
+                user_id=user.id,
+                usn=wanted_usn,
+                department_id=department.id if department else None,
+            )
             db.add(stu)
         elif not stu.usn:
             stu.usn = wanted_usn
+        if department is not None and stu.department_id is None:
+            # Fill a gap, never overwrite a seating somebody already chose: the
+            # batch wins over this pointer wherever it has one
+            # (student_placement.resolve_student_department), so moving a seated
+            # student from here would put the two into a disagreement this tool
+            # is not the right place to settle.
+            stu.department_id = department.id
         db.flush()
         if db.scalar(select(StudentProfile).where(StudentProfile.student_id == stu.id)) is None:
             db.add(StudentProfile(student_id=stu.id))
@@ -485,6 +570,17 @@ def main() -> int:
         "leaves it alone.",
     )
     parser.add_argument(
+        "--department-id",
+        default=None,
+        metavar="ID",
+        help="REQUIRED to create an account; optional to update one. The "
+        "department this person belongs to, which names their college too "
+        "(departments.college_id is NOT NULL). An account filed nowhere "
+        "resolves to no college and no batch, and for a STUDENT that means the "
+        "mock interview can never preselect a track or produce a score. List "
+        "ids with `GET /api/admin/departments`.",
+    )
+    parser.add_argument(
         "--mentor",
         default=None,
         metavar="EMAIL",
@@ -510,6 +606,9 @@ def main() -> int:
                 with_group=args.with_group,
                 password_hash=args.password_hash,
                 mentor_email=args.mentor,
+                department_id=args.department_id,
+                # The operator boundary. See grant()'s refusal.
+                require_department=True,
             )
         except ValueError as exc:
             # Reachable from a library caller; argparse's `choices` catches the

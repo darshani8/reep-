@@ -258,6 +258,24 @@ class CoreStack(Stack):
         # backup plan would stop being a mirror of what exists, and
         # CloudFormation refuses an import template that adds a resource it
         # cannot adopt.
+        # THE IDENTITY LEDGER'S BUCKET (app/export_identity.py). Harden-only,
+        # like every other resource this stack ADDS rather than mirrors: the
+        # import phase must stay a strict subset of it.
+        #
+        # Its own bucket and never a prefix under an existing one. Every other
+        # store here carries a lifecycle rule -- alb-logs expires at 90 days --
+        # and a prefix would inherit whatever the parent bucket's rules become.
+        # A ledger that quietly acquires an expiry is worse than no ledger,
+        # because it reads as protection right up until the day it is asked for
+        # something older than the rule nobody remembered setting.
+        identity_ledger = harden and flag("identityLedger", True)
+        # GOVERNANCE, matching `vaultLockCompliance`'s default posture. Compliance
+        # mode cannot be undone by anybody including root, which is the correct
+        # end state and the wrong thing to switch on in the same change that
+        # creates the bucket: a misconfigured retention would be permanent too.
+        # Flip it once a few days of objects have been read back.
+        identity_ledger_compliance = flag("identityLedgerCompliance", False)
+        identity_ledger_years = int(opt("identityLedgerYears", 10))
         archive_retention_days = int(opt("archiveRetentionDays", DEFAULT_ARCHIVE_RETENTION_DAYS)) if harden else 0
         if archive_retention_days and not retention_days < archive_retention_days <= MAX_ARCHIVE_RETENTION_DAYS:
             raise ValueError(
@@ -530,6 +548,42 @@ class CoreStack(Stack):
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             removal_policy=RemovalPolicy.RETAIN,
         )
+        ledger_bucket = None
+        if identity_ledger:
+            ledger_bucket = s3.Bucket(
+                self,
+                "IdentityLedgerBucket",
+                bucket_name=f"{project}-identity-ledger-{self.account}",
+                # VERSIONED, and it is not optional. A day's object is rewritten
+                # by a re-run, so the versions ARE the history -- without them
+                # the module's "it never deletes anything" promise is only true
+                # of the object name.
+                versioned=True,
+                # OBJECT LOCK CAN ONLY BE SET AT CREATION. It cannot be added to
+                # a bucket afterwards, so a ledger bucket created without it has
+                # to be replaced -- copying every object, under a new name, by
+                # hand. That is the whole reason this is here on day one rather
+                # than deferred to "when we need it".
+                object_lock_enabled=True,
+                object_lock_default_retention=(
+                    s3.ObjectLockRetention.compliance(Duration.days(365 * identity_ledger_years))
+                    if identity_ledger_compliance
+                    else s3.ObjectLockRetention.governance(Duration.days(365 * identity_ledger_years))
+                ),
+                encryption=s3.BucketEncryption.S3_MANAGED,
+                enforce_ssl=True,
+                block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+                removal_policy=RemovalPolicy.RETAIN,
+                # NO LIFECYCLE RULE, deliberately. See the knob's comment: the
+                # absence of one is the feature.
+            )
+            CfnOutput(
+                self,
+                "IdentityLedgerBucketName",
+                value=ledger_bucket.bucket_name,
+                description="IDENTITY_LEDGER_BUCKET for the api task",
+            )
+
         alb_logs_bucket = s3.Bucket(
             self,
             "AlbLogsBucket",
@@ -833,6 +887,20 @@ class CoreStack(Stack):
             )
         ]
         inline: dict[str, iam.PolicyDocument] = {"invoke-nova": iam.PolicyDocument(statements=task_statements)}
+        if ledger_bucket is not None:
+            # PUT ONLY. No Delete, no PutBucketLifecycle, no PutObjectRetention:
+            # the writer must not be able to weaken the thing that is protecting
+            # its own output. Object Lock is the control; a process that could
+            # shorten it is not a control.
+            inline["write-identity-ledger"] = iam.PolicyDocument(
+                statements=[
+                    iam.PolicyStatement(
+                        actions=["s3:PutObject"],
+                        resources=[ledger_bucket.arn_for_objects("*")],
+                    )
+                ]
+            )
+
         if harden and ses_identity_domain:
             # Activation, reset and confirmation mail (app/mail_transport.py).
             # Scoped to the college's verified identity, and only from the
@@ -1013,6 +1081,25 @@ class CoreStack(Stack):
         cluster = ecs.Cluster(self, "Cluster", cluster_name=project, vpc=ivpc, container_insights=True)
         if harden_ecs and ses_from_address:
             api_environment["SES_FROM_ADDRESS"] = ses_from_address
+        if harden_ecs and ledger_bucket is not None:
+            # `harden_ecs`, NOT `harden`, and deliberately the same split
+            # `SES_FROM_ADDRESS` uses one line up -- which looks like two gates
+            # for one feature and is not. A TASK DEFINITION IS IMMUTABLE: adding
+            # an environment variable registers a new revision and the service
+            # rolls onto it. Step 9a of the cutover (`hardenEcs=false`) exists so
+            # that an ECS circuit-breaker rollback cannot undo a Multi-AZ
+            # conversion in the same update, so the task definition has to come
+            # out of that phase byte-identical to the import mirror.
+            # test_the_database_half_does_not_touch_the_ecs_trio pins it, and it
+            # caught this line when it was written on `harden`.
+            #
+            # The IAM grant above stays on `harden` because it is INERT without
+            # this variable: a task that holds s3:PutObject and does not know the
+            # bucket name writes nothing. Granting early is free; setting the
+            # environment early costs an API roll at the worst possible moment.
+            # The asymmetry is the point, not an oversight.
+            api_environment["IDENTITY_LEDGER_BUCKET"] = ledger_bucket.bucket_name
+            api_environment["IDENTITY_LEDGER_REGION"] = self.region
 
         def _api_task_def(cid: str, family: str, image_tag: str) -> tuple[ecs.FargateTaskDefinition, ecs.ContainerDefinition]:
             """One api task definition. ONE helper for the three families
@@ -1241,6 +1328,66 @@ class CoreStack(Stack):
                 ),
             ),
         )
+
+        if harden_ecs and ledger_bucket is not None:
+            # GATED ON `harden_ecs`, THE SAME CONDITION AS THE BUCKET VARIABLE,
+            # and not merely on the bucket existing. The bucket is created in the
+            # harden phase while the variable arrives with the ECS half, so a
+            # schedule gated on the bucket alone is live between step 9a and 9b
+            # with a task that does not know where to write -- and an unconfigured
+            # `app.export_identity` used to print the ledger to stdout, which on
+            # Fargate is the `/reep/api` log group. Nightly, every password hash
+            # and Google subject, into a place read by anyone holding
+            # `logs:FilterLogEvents`. Found by Seer in review on PR #45.
+            #
+            # `run()` now refuses an unconfigured export outright, so this gate is
+            # the second of two locks rather than the only one. Both are kept:
+            # this one stops the job existing before it can work, that one stops
+            # it leaking however it is invoked.
+            #
+            # THE IDENTITY LEDGER, DAILY AT 23:30 IST -- deliberately BEFORE the
+            # retention sweep at 03:00, not after. The sweep is the one scheduled
+            # destructor in the product, and a ledger written after it is a
+            # ledger that never saw whatever it removed. Ordering two schedules
+            # by their cron is weaker than a dependency and it is what is
+            # available; the gap is five and a half hours, which is far more than
+            # either job takes.
+            #
+            # 18:00 UTC also clears both RDS windows and the 19:00 backup job,
+            # for test_backup_schedule_clears_the_rds_windows's reason: a job
+            # placed inside one of those windows fails every time it collides and
+            # nothing reports it.
+            #
+            # It reuses the api task definition and therefore the scheduler role's
+            # existing ecs:RunTask on `{project}-api:*`. A second family would
+            # need a second grant, which is a thing to forget.
+            scheduler.CfnSchedule(
+                self,
+                "IdentityLedgerSchedule",
+                name=f"{project}-identity-ledger-daily",
+                schedule_expression="cron(0 18 * * ? *)",  # 23:30 IST
+                flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(mode="OFF"),
+                target=scheduler.CfnSchedule.TargetProperty(
+                    arn=cluster.cluster_arn,
+                    role_arn=scheduler_role.role_arn,
+                    ecs_parameters=scheduler.CfnSchedule.EcsParametersProperty(
+                        task_definition_arn=task_def.task_definition_arn,
+                        launch_type="FARGATE",
+                        network_configuration=scheduler.CfnSchedule.NetworkConfigurationProperty(
+                            awsvpc_configuration=scheduler.CfnSchedule.AwsVpcConfigurationProperty(
+                                subnets=[s.ref for s in private_subnets],
+                                security_groups=[api_sg.ref],
+                                assign_public_ip="DISABLED",
+                            )
+                        ),
+                    ),
+                    input=json.dumps(
+                        {"containerOverrides": [{"name": "api", "command": ["python", "-m", "app.export_identity"]}]},
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    ),
+                ),
+            )
 
         # ------------------------------------------------------------- edge --
         spa_fallback = cloudfront.Function(

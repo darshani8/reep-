@@ -40,7 +40,7 @@ plus one this module needs and `purge_people` does not.**
 FIRST, EVERY TABLE HAS A WRITTEN VERDICT — and here a verdict is not two
 values but three, because "delete the student rows" is a different sentence in
 a table only a student can own (`resumes`) and in a table shared with staff
-(`leave_requests`). `STUDENT_VERDICTS` below says which, for all 110 tables, and
+(`leave_requests`). `STUDENT_VERDICTS` below says which, for all 111 tables, and
 an unclassified table ABORTS THE RUN exactly as it does next door. The key set
 is checked against `purge_people.VERDICTS`, so the next person to add a model
 is stopped by BOTH destructors rather than by the one they happened to read.
@@ -97,6 +97,7 @@ from .purge_people import (
     VERDICTS,
     PurgeRefused,
     _tables_in_delete_order,
+    known_tables,
     destroy_document_files,
     destroy_interview_audio,
     destroy_s3_recordings,
@@ -142,7 +143,7 @@ def by_parent(table: str, column: str) -> tuple[str, str, str]:
     return ("via", table, column)
 
 
-#: What happens to each of the 110 tables. `KEEP` is untouched; `ALL` is emptied;
+#: What happens to each of the 111 tables. `KEEP` is untouched; `ALL` is emptied;
 #: anything else is a scope, and the row survives unless the scope names it.
 #: Grouped by the REASON, because the reason is what a reviewer has to check.
 STUDENT_VERDICTS: dict[str, object] = {
@@ -418,10 +419,27 @@ STUDENT_VERDICTS: dict[str, object] = {
     # the name and keep the fact — remove the person, keep the record.
     "redesign_audit_events": KEEP,
     "redesign_api_idempotency_keys": by_user("principal_id"),
+    # -- a migration's receipt, which HAS no model ---------------------------
+    # `students_orphaned_cohort_ids` is migration `d5a1c8b30f47`'s rescue table
+    # and has no model by design (`PRESERVED_DATA_TABLES`), which is why the
+    # model-driven sweep in both destructors could not see it.
+    #
+    # ALL and not a scope, even though this is the narrow purge: every row is a
+    # `students.id`, so the table holds nothing but students by construction
+    # and there is no staff row in it to spare. It cannot be scoped anyway —
+    # `by_user` needs a column naming a `users.id` and this table has a
+    # `students.id`, which is a different key.
+    #
+    # The cost of that is stated plainly: a deployment that clears one cohort
+    # loses this receipt for the students who REMAIN as well. It is a list of
+    # unresolvable batch ids from a one-off migration, not a record anybody
+    # reads twice, and the alternative — a scope this module has no key to
+    # express — would be a predicate that quietly matched nothing.
+    "students_orphaned_cohort_ids": ALL,
 }
 
 
-def check_verdicts() -> None:
+def check_verdicts(db: Session | None = None) -> None:
     """Every table classified, every named column real, and the same table set
     `purge_people` knows about.
 
@@ -429,8 +447,13 @@ def check_verdicts() -> None:
     than on a production console. The third check is the one worth explaining:
     a new model classified in one destructor and forgotten in the other is the
     failure this pairing exists to prevent, and it is silent in every other way.
+
+    `known_tables` is `purge_people`'s, deliberately the same function and not a
+    second copy of the same set expression: the two destructors disagreeing
+    about which tables EXIST is the drift the third check below is here to
+    catch, and it could not catch it if each one computed that set its own way.
     """
-    known = {t.name for t in Base.metadata.sorted_tables} - {"alembic_version"}
+    known = known_tables(db)
     unclassified = sorted(known - set(STUDENT_VERDICTS))
     if unclassified:
         raise PurgeRefused(
@@ -455,6 +478,19 @@ def check_verdicts() -> None:
         )
 
     for name, verdict in STUDENT_VERDICTS.items():
+        # A preserved rescue table has no model, so there are no columns to
+        # check. It also cannot carry a scope — a scope names a column, and the
+        # only way to name one here is through `Base.metadata` — so ALL or KEEP
+        # is the whole vocabulary available to it, and both are checked above by
+        # being in this dict at all.
+        if name not in Base.metadata.tables:
+            if isinstance(verdict, tuple):
+                raise PurgeRefused(
+                    f"{name} has no model, so its verdict cannot be a scope: a "
+                    "scope names a column and there is no table to resolve it "
+                    "against. Use ALL or KEEP."
+                )
+            continue
         columns = Base.metadata.tables[name].columns
         if isinstance(verdict, tuple) and verdict[0] in ("user", "email"):
             if verdict[1] not in columns:
@@ -565,12 +601,16 @@ def predicate(name: str, doomed: Doomed):
     AFTER the child (children first), so the parent rows are still there to be
     joined against when the child is deleted, and materialising them too would
     pull whole tables into memory for no gain."""
-    table = Base.metadata.tables[name]
     verdict = STUDENT_VERDICTS[name]
     if verdict == KEEP:
         raise PurgeRefused(f"{name} is KEEP and has no doomed rows.")
     if verdict == ALL:
         return None
+    # AFTER the two verdicts that need no column. A preserved rescue table has
+    # no model to look up, and reaching for one before answering ALL would make
+    # this raise KeyError on the one table the sweep was blind to in the first
+    # place.
+    table = Base.metadata.tables[name]
     if verdict == ACCOUNTS:
         return table.c.id.in_(doomed.user_ids)
     if verdict == ("registrations",):
@@ -728,7 +768,10 @@ def _scoped(stmt, name: str, doomed: Doomed):
 
 
 def build_plan(db: Session, *, include_former_students: bool = False) -> Plan:
-    check_verdicts()
+    # WITH the connection, for `purge_people.build_plan`'s reason: this path
+    # ends in a delete, so "is every table classified" is a question for the
+    # database rather than for `app/models/`.
+    check_verdicts(db)
     doomed = find_doomed(db, include_former_students=include_former_students)
     _refuse_unless_only_students(db, doomed)
     _refuse_unless_every_student_row_is_doomed(db, doomed)

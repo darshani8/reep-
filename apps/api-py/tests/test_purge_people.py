@@ -25,7 +25,7 @@ import pathlib
 import re
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import column as sa_column, func, select, table as sa_table
 
 from conftest import requires_db
 
@@ -41,8 +41,18 @@ def test_every_table_has_a_verdict():
 
 
 def test_the_verdicts_cover_the_whole_schema_exactly():
-    known = {t.name for t in Base.metadata.sorted_tables} - {"alembic_version"}
+    # `known_tables()` and NOT `Base.metadata` — that is the whole of the fix
+    # this assertion is testing. The models are not the schema: a table created
+    # by a migration and deliberately given no model is absent from the
+    # metadata, so comparing against it asked "is every MODEL classified" while
+    # reading as "is every TABLE classified".
+    known = purge_people.known_tables()
     assert set(purge_people.VERDICTS) == known
+    assert "students_orphaned_cohort_ids" in known, (
+        "the preserved rescue tables must be inside the coverage question, not "
+        "beside it — they are exactly the tables nobody maintains a model for"
+    )
+    assert "students_orphaned_cohort_ids" not in {t.name for t in Base.metadata.sorted_tables}
     # The institution is kept, the people are not. Spot-check both directions so
     # a mass find-and-replace cannot flip every verdict and stay green.
     assert purge_people.VERDICTS["cohorts"] == purge_people.KEEP
@@ -133,7 +143,7 @@ def test_the_created_by_columns_are_all_on_kept_tables():
     table is emptied anyway is a leftover that will confuse the next reader."""
     for name, column in purge_people.CREATED_BY_COLUMNS:
         assert purge_people.VERDICTS[name] == purge_people.KEEP, name
-        assert column in Base.metadata.tables[name].c
+        assert column in purge_people.table_for(name).c
 
 
 def _plan_with_one_admin(db):
@@ -178,7 +188,7 @@ def test_the_delete_order_survives_every_foreign_key():
         for name, verdict in purge_people.VERDICTS.items():
             if verdict == purge_people.KEEP:
                 kept_before[name] = db.scalar(
-                    select(func.count()).select_from(Base.metadata.tables[name])
+                    select(func.count()).select_from(purge_people.table_for(name))
                 )
         try:
             purge_people._null_created_by(db, plan)
@@ -193,14 +203,14 @@ def test_the_delete_order_survives_every_foreign_key():
             # Every EMPTY table is empty.
             for name, verdict in purge_people.VERDICTS.items():
                 if verdict == purge_people.EMPTY:
-                    n = db.scalar(select(func.count()).select_from(Base.metadata.tables[name]))
+                    n = db.scalar(select(func.count()).select_from(purge_people.table_for(name)))
                     assert n == 0, f"{name} still holds {n} row(s)"
 
             # Every KEPT table is untouched. This is the half that makes the
             # purge usable: an office that has to retype its whole hierarchy
             # afterwards will simply not run it.
             for name, before in kept_before.items():
-                after = db.scalar(select(func.count()).select_from(Base.metadata.tables[name]))
+                after = db.scalar(select(func.count()).select_from(purge_people.table_for(name)))
                 assert after == before, f"{name} lost rows: {before} -> {after}"
         finally:
             db.rollback()
@@ -213,7 +223,7 @@ def test_the_plan_counts_what_the_delete_deletes():
     with SessionLocal() as db:
         plan = _plan_with_one_admin(db)
         before = {
-            name: db.scalar(select(func.count()).select_from(Base.metadata.tables[name]))
+            name: db.scalar(select(func.count()).select_from(purge_people.table_for(name)))
             for name in plan.rows
         }
         try:
@@ -222,7 +232,7 @@ def test_the_plan_counts_what_the_delete_deletes():
             for name, planned in plan.rows.items():
                 # users keeps one row; every other planned table goes to zero.
                 expected = 1 if name == "users" else 0
-                after = db.scalar(select(func.count()).select_from(Base.metadata.tables[name]))
+                after = db.scalar(select(func.count()).select_from(purge_people.table_for(name)))
                 assert after == expected
                 assert before[name] - after == planned, name
         finally:
@@ -350,3 +360,86 @@ def test_apply_alone_is_refused():
     """The second flag is the whole confirmation. --apply on its own must not
     delete anything, and must say why it did not."""
     assert purge_people.main(["--apply"]) == 2
+
+
+@requires_db
+def test_the_preserved_rescue_table_is_actually_emptied():
+    """The blind spot this pair of guards had, proved end to end.
+
+    `students_orphaned_cohort_ids` is written by migration `d5a1c8b30f47` to
+    preserve `cohort_id`s it was about to null, and it has NO MODEL by design
+    (`migrations/env.py::_PRESERVED_DATA_TABLES` — it is an operator's receipt,
+    not part of the schema). Everything in `purge_people` walked
+    `Base.metadata`, so the table was invisible to all of it: not classified by
+    `check_verdicts`, whose "a table nobody classified ABORTS THE RUN" promise
+    was therefore only ever about tables somebody had written a model for, and
+    never reached by `_delete_rows`.
+
+    What that left behind is the part worth stating: a list of `students.id`
+    values, surviving a pass whose entire purpose is to remove every trace of
+    the people those ids identify — in the one table nobody thinks to look at.
+
+    Verdict-level coverage is asserted above. This runs the REAL delete against
+    the REAL schema and rolls back, because a verdict that no code path acts on
+    is the same blind spot one level up.
+    """
+    # The module's own resolver for the reads, so this test fails if that stops
+    # answering for a model-less table. Columns are spelled out only for the
+    # INSERT, which is the one operation neither destructor performs and which
+    # a bare `TableClause` therefore has no need to know about.
+    receipts = purge_people.table_for("students_orphaned_cohort_ids")
+    writable = sa_table(
+        "students_orphaned_cohort_ids", sa_column("student_id"), sa_column("cohort_id")
+    )
+    with SessionLocal() as db:
+        plan = _plan_with_one_admin(db)
+        try:
+            db.execute(
+                writable.insert().values(student_id="stu-ghost", cohort_id="coh-ghost")
+            )
+            assert db.scalar(select(func.count()).select_from(receipts)) >= 1
+
+            purge_people._null_created_by(db, plan)
+            purge_people._delete_rows(db, plan)
+
+            n = db.scalar(select(func.count()).select_from(receipts))
+            assert n == 0, f"the rescue table still holds {n} row(s) after the purge"
+        finally:
+            db.rollback()
+
+
+def test_the_preserved_table_list_matches_the_migration_environment():
+    """ONE FACT, TWO FILES, PINNED — the pattern `test_codebase_guards.py` uses
+    for the `postgresql-client` pin against `engine_version`.
+
+    `migrations/env.py::_PRESERVED_DATA_TABLES` keeps these tables OUT of
+    autogenerate, so nobody proposes `op.drop_table` on an operator's receipt.
+    `purge_people.PRESERVED_DATA_TABLES` puts them INTO the delete order and the
+    coverage question. They are the same fact written twice, and the two ends
+    fail in opposite, silent ways: a name only env.py knows is a table the
+    destructors go back to ignoring, and a name only this module knows is a
+    table autogenerate offers to drop.
+
+    Parsed from the source rather than imported, because importing
+    `migrations/env.py` runs Alembic's context at module scope.
+    """
+    import ast
+
+    repo_env = pathlib.Path(__file__).resolve().parents[1] / "migrations" / "env.py"
+    tree = ast.parse(repo_env.read_text(encoding="utf-8"))
+    found: tuple[str, ...] | None = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "_PRESERVED_DATA_TABLES"
+            for t in node.targets
+        ):
+            found = tuple(ast.literal_eval(node.value))
+    assert found is not None, (
+        "migrations/env.py no longer declares _PRESERVED_DATA_TABLES as a literal; "
+        "re-pin this guard rather than deleting it"
+    )
+    assert set(found) == set(purge_people.PRESERVED_DATA_TABLES), (
+        "migrations/env.py and purge_people disagree about which tables are "
+        f"preserved: env.py={sorted(found)}, "
+        f"purge_people={sorted(purge_people.PRESERVED_DATA_TABLES)}"
+    )

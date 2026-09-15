@@ -483,6 +483,29 @@ promises a date and these are not waiting for one:
     360.
   * **The shell's notifications bell.** There is no per-account feed at all.
 
+**THE DEMOTED CONTROLS ARE GONE (2026-09-15), AND SO ARE THE APP BAR'S SEARCH
+AND BELL.** Every control above, and every other one that was `disabled`
+unconditionally with its reason in a `title` — Analytics' Batch/Course/Track
+filters, the Jobs sheet's "Import postings" and its CTC/Openings fields, Assign
+faculty's "Assignment history" button and Specialization filter, the Leave
+queue's Requester filter, Exports' "Schedule an export" and its two "Not built"
+cards, Placement's Track filter, the audit trail's College filter, the feature
+switches' College picker, SWOC's Export and Mentor filter, the question bank's
+Session cap, Interview records' "Daily-cap resets" tile, Student 360's "Hold
+back", "Re-send invite" and its three tabs that opened nothing, College
+structure's Degree level / Total semesters / Semesters per year, Colleges' "Copy
+catalogues from", the Add-faculty wizard's Employee ID and its whole Functions
+step, Governance's derived Review select, Faculty's two "Grant function"
+buttons and its empty History tab — was deleted, template and constant both.
+The board-fidelity argument ("a reviewer cannot tell a control that is missing
+from one that was missed") lost to the owner's rule for the console: a grey
+control that can never work is the first thing a first-day clerk presses, and
+the reason on it is exactly the explaining they refused. Nothing that could do
+anything went: the check that gates each of these commits counts `(click)`,
+`routerLink`, `(change)`, `(input)`, `(submit)`, `[href]`, `download=` and
+`formControlName` per template against HEAD and refuses a decrease. The
+reasoning each control carried is in this paragraph's commit, not in a tooltip.
+
 **Building the wiring found two real defects that no test had.** `placement`
 called a `selectValue` helper that did not exist, so the screen's own filter was
 a template reference to nothing; and BOTH batch dialogs emitted a `completed`

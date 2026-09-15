@@ -31,22 +31,6 @@
       </div>
     </div>
     <div class="dt-toolbar">
-      <!-- DEMOTED, NOT PENDING. A student is held back by being left OUT of
-           their batch's promotion — `hold_back` on `POST /admin/cohorts/{id}/
-           promote` — and nothing writes a per-student hold-back: the
-           `hold_back` kind exists on `student_semester_history` and has no
-           writer anywhere in the API. The only thing this button could do on
-           its own is set the semester by hand, which is Edit profile. Plain
-           `disabled` with the real reason: no task is coming to fill it, and a
-           phase number would be a promise nothing keeps. -->
-      <button
-        type="button"
-        class="btn secondary"
-        disabled
-        title="A student is held back by leaving them out of their batch's promotion — the hold-back list on Promote batch. There is no per-student hold-back; to correct one student's semester, use Edit profile."
-      >
-        <span class="icon" aria-hidden="true">history</span> Hold back
-      </button>
       <a class="btn secondary" routerLink="/admin/audit">
         <span class="icon" aria-hidden="true">description</span> What changed
       </a>
@@ -84,28 +68,17 @@
       </div>
     }
 
-    <!-- The board's nine views. Six read an endpoint that names this student;
-         the other three have no by-id read at all and this screen does not
-         widen to a roster to fake one, so they are disabled with that reason on
-         the control — a plain `disabled` and no phase number, because nothing
-         is coming to fill them. -->
     <div class="tabs" role="group" aria-label="Student views">
       @for (view of tabs; track view.key) {
-        @if (view.reason === null) {
-          <button
-            type="button"
-            class="tab"
-            [class.active]="tab() === view.key"
-            [attr.aria-current]="tab() === view.key ? 'true' : null"
-            (click)="setTab(view.key)"
-          >
-            {{ view.label }}
-          </button>
-        } @else {
-          <button type="button" class="tab tab-unavailable" disabled [attr.title]="view.reason">
-            {{ view.label }}
-          </button>
-        }
+        <button
+          type="button"
+          class="tab"
+          [class.active]="tab() === view.key"
+          [attr.aria-current]="tab() === view.key ? 'true' : null"
+          (click)="setTab(view.key)"
+        >
+          {{ view.label }}
+        </button>
       }
     </div>
 
@@ -427,10 +400,6 @@
                   (click)="askCapReset()"
                 >
                   <span class="icon" aria-hidden="true">sync</span> Reset daily cap
-                </button>
-                <button type="button" class="btn ghost sm" disabled
-                  title="An activation link is refused for a STUDENT on purpose — their setup link comes from the onboarding walk, which proves the mailbox with a six-digit code before a password is chosen.">
-                  Re-send invite
                 </button>
               </div>
 

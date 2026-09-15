@@ -8,22 +8,6 @@
         the placement cell, seen by the student with author and date.
       </div>
     </div>
-    <div class="dt-toolbar">
-      <!-- DEMOTED, NOT PENDING. There is no SWOC export anywhere in the API:
-           /admin/exports/ serves students.csv, placement.csv and ledger.csv,
-           and nothing serves written notes about named students as a file. No
-           phase number, because nothing is on its way — plain `disabled` with
-           the real reason in the title, the treatment 45b91a9 gave the Faculty
-           screen's orphan controls. -->
-      <button
-        type="button"
-        class="btn secondary"
-        disabled
-        title="There is no SWOC export. The console's CSVs are the roster, placement and the time ledger, on Download reports; written notes about named students are not among them."
-      >
-        <span class="icon" aria-hidden="true">download</span> Export
-      </button>
-    </div>
   </div>
 
   <!-- The board's four filters, and what each one actually is.
@@ -48,24 +32,6 @@
         @for (batch of batches(); track batch) {
           <option [value]="batch" [selected]="batchFilter() === batch">{{ batch }}</option>
         }
-      </select>
-    </div>
-
-    <!-- DEMOTED, NOT PENDING. `SwocStudentRow` is student, USN, batch and the
-         entries — no mentor — and GET /admin/swoc takes no mentor parameter, so
-         this menu could only have hidden students without saying why. No B7
-         task added one. Plain `disabled`, the real reason in the title, no
-         phase number. -->
-    <div class="select sw-filter-pending">
-      <span class="lbl">Mentor</span>
-      <span class="val">All mentors</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Mentor — this board cannot be narrowed to one mentor's group"
-        disabled
-        title="A SWOC row carries the student, their USN and their batch, and no mentor — so this board cannot be cut to one mentor's group. The Mentee Log is the per-group screen."
-      >
-        <option>All mentors</option>
       </select>
     </div>
 

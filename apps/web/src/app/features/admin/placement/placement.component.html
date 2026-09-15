@@ -75,26 +75,6 @@
       </select>
     </div>
 
-    <!-- DEMOTED, NOT PENDING. `GET /api/admin/placement` takes no `?track=`
-         and no task adds one: the payload answers the track question as the
-         By track split below, placed over eligible per specialization.
-         Narrowing here client-side would leave the funnel and the KPIs
-         describing the whole reach under a caption naming one track. Plain
-         `disabled` with the real reason in the title, and no phase number —
-         the treatment the Leave queue's Requester filter was given. -->
-    <div class="select filter-pending">
-      <span class="lbl">Track</span>
-      <span class="val">All tracks</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Track — this screen answers the track question as a split, not a filter"
-        disabled
-        title="The placement figures are not narrowed by track — the By track card below is how this screen answers that question, placed over eligible for every specialization at once."
-      >
-        <option value="">All tracks</option>
-      </select>
-    </div>
-
     <div class="select" [class.filter-pending]="yearFilterDisabledReason() !== null">
       <span class="lbl">Period</span>
       <span class="val">{{ yearFilterLabel() }}</span>

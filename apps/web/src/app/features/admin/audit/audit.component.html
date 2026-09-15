@@ -72,27 +72,6 @@
       </select>
     </div>
 
-    <!-- The one control on this screen with nothing behind it, and no phase
-         will change that on its own. `redesign_audit_events` carries no
-         college: its only tenancy column is `tenant_id`, it is nullable, and
-         nothing has ever set it. Scoping the trail needs a college STAMPED AT
-         WRITE TIME by `record_change` — a change to the writer and the table,
-         not to the reader. Phase 4 shipped neither, so a phase number here
-         would be a promise nothing keeps: plain `disabled` with the real
-         reason, the Leave approvals "Requester" treatment. -->
-    <div class="select filter-pending">
-      <span class="lbl">College</span>
-      <span class="val">All colleges</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="College — the audit trail is not scoped by college"
-        disabled
-        [title]="collegeScopeReason"
-      >
-        <option>All colleges</option>
-      </select>
-    </div>
-
     <div class="select">
       <span class="lbl">When</span>
       <span class="val">{{ rangeLabel() }}</span>

@@ -93,26 +93,6 @@
       </select>
     </div>
 
-    <!-- DEMOTED, NOT PENDING. `LeaveOut` carries the requester's name,
-         designation and department and NOT their role, so faculty and students
-         genuinely cannot be told apart from a queue row — and no B10 task adds
-         a role to that payload. It carried the Phase 4 pending badge while
-         Phase 4 was the answer; it is not, so the phase number would be a
-         promise nothing keeps. Plain `disabled` with the real reason in the title, the
-         treatment the Faculty screen's orphan controls were given. -->
-    <div class="select filter-pending">
-      <span class="lbl">Requester</span>
-      <span class="val">Faculty &amp; students</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Requester — faculty and students cannot be told apart on this queue"
-        disabled
-        title="A leave request carries the requester’s name, designation and department, but not their role — so this queue cannot separate faculty from students."
-      >
-        <option value="">Faculty &amp; students</option>
-      </select>
-    </div>
-
     <div class="select">
       <span class="lbl">Type</span>
       <span class="val">{{ kindFilterLabel() }}</span>

@@ -627,19 +627,6 @@
               />
               <span class="help">Optional. Left empty it stays until it is revoked.</span>
             </div>
-            <!-- READ-ONLY, AND NOT A PENDING CONTROL. The review date is real
-                 and shown — the API derives it — but POST /grants does not
-                 accept one, so a live select here would post a value the server
-                 drops in silence. It is changed after the fact with Extend. -->
-            <div class="field">
-              <label for="gov-review">Review</label>
-              <select id="gov-review" class="ctrl" disabled aria-describedby="gov-review-help">
-                <option>{{ reviewDerivedLabel() }}</option>
-              </select>
-              <span class="help" id="gov-review-help">
-                Set by the API, not chosen here. Change it with Extend once the grant exists.
-              </span>
-            </div>
           </div>
 
           <div class="field">

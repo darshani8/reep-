@@ -65,6 +65,36 @@ it and are worth knowing about:
   time". The mechanism died; the argument did not. Read it before changing the
   arc.
 
+### The bar, and where the interview is opened from (2026-09-15)
+
+**The persona is a Tier-1 multinational's campus round.** `_INTERVIEWER_PERSONA`
+in `app/interview_core.py` now describes a senior interviewer on the
+campus-hiring panel of a top-tier employer running a structured,
+competency-based interview: specific, evidence-backed, structured answers
+(STAR for behavioural, hypothesis → analysis → recommendation for case and
+technical), quantified where a number exists, one brief probe of a generic
+answer, calm and courteous throughout. The mechanics every engine and test
+relies on are unchanged — one question at a time, no interrupting, one
+sentence of micro-feedback, the blindness paragraph verbatim — and it is still
+one string imported by both engines, never copied. The OPENING directive in
+`app/interview_matrix.py` names the panel in the same breath as the persona.
+
+**The room is a shared component, and the orb opens it.**
+`apps/web/src/app/shared/interview-room/` is the stage (the design system's
+dark stage: the interviewer's briefing card, the orb, the status pill, the
+live caption, the four-stage stepper, the clock, the mic meter), the round
+picker, the consent dialog, the transcript and the report. `/student/assistant`
+renders it in `page` mode under its heading and the saved conversation; the
+floating dock in the shell (`layout/agent-dock.component.ts`) renders it in
+`dock` mode as the "Mock interview" tab beside the "Ask REEP" tab (the typed
+agent, itself now `shared/agent-chat/`), so an interview can be started from
+any screen. Both tabs are `@defer`red: the shell is in the initial bundle and
+the room pulls the audio pipeline and the visualizer behind it. The room
+mirrors a three-word state and its clock into `AgentDockService` so the orb
+can pulse and carry "Live · 04:12" without importing `InterviewService`; the
+room is the only writer and clears it in `ngOnDestroy`, which is also where the
+microphone is released — so closing the dock over a live interview asks first.
+
 ### Nova 2 Sonic — what is different, and what is not
 
 **Not different:** the persona (imported verbatim from `interview_core.py`, so

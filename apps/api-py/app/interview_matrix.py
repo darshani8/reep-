@@ -420,12 +420,13 @@ def _phase_directive(spec: Specialization, phase: InterviewPhase) -> str:
     if phase is InterviewPhase.OPENING:
         return (
             f"Open the interview the way a real one begins: greet the student "
-            f"briefly, introduce yourself in one sentence as {spec.persona}, "
-            "set expectations in one short sentence (a focused conversation of "
-            "about 15 minutes with a few questions and honest feedback at the "
-            "end), then ask the student to introduce themselves and say what "
-            f"drew them to {spec.label}. Ask nothing else yet -- no domain "
-            "questions in this phase."
+            f"briefly, introduce yourself in one sentence as {spec.persona} "
+            "on the campus-hiring panel of a leading multinational, set "
+            "expectations in one short sentence (a focused, structured "
+            "conversation of about 15 minutes with a few questions and honest "
+            "feedback at the end), then ask the student to introduce "
+            f"themselves and say what drew them to {spec.label}. Ask nothing "
+            "else yet -- no domain questions in this phase."
         )
     if phase is InterviewPhase.PROBING:
         if spec.syllabus:

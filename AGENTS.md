@@ -151,7 +151,7 @@ No `interview` rows, or a stale `max(created_at)`, means turns are being dropped
 
 ### The assistant screen is the mock interviewer (2026-08)
 
-`/student/assistant` is the realtime mock interviewer: a WebSocket to `/api/interview` relaying 24 kHz PCM to a speech-to-speech model and back. It runs **inside the API process** — it is not a fifth process, and it needs no extra venv. Readiness is asked of the engine that is actually running (see below), and blank means `GET /api/interview/status` reports unavailable and the socket closes 4001, with nothing else in the dashboard affected. Full notes: `docs/interview-assistant.md`.
+`/student/assistant` is the realtime mock interviewer — and since 2026-09-15 so is the "Mock interview" tab of the floating dock on every student screen; both render `shared/interview-room/`. It is a WebSocket to `/api/interview` relaying 24 kHz PCM to a speech-to-speech model and back. It runs **inside the API process** — it is not a fifth process, and it needs no extra venv. Readiness is asked of the engine that is actually running (see below), and blank means `GET /api/interview/status` reports unavailable and the socket closes 4001, with nothing else in the dashboard affected. Full notes: `docs/interview-assistant.md`.
 
 **Two engines, one setting, one contract.** `INTERVIEW_ENGINE` picks between **`nova`** (the default — `app/interview_nova.py` → **Amazon Nova 2 Sonic** on Bedrock, `amazon.nova-2-sonic-v1:0` over `InvokeModelWithBidirectionalStream`) and `local` (`app/interview_local.py` → nothing leaves the machine). Both take the same constructor and return the same `(code, reason)` from `run()`, and both emit the same DOWNSTREAM event names, so the router, the caps, the recorder, the writers, the three close layers and the Angular client never learn which one spoke. What they share — the persona, the payload records, the close codes, both concurrency caps, the scorecard parse — lives in **`app/interview_core.py`**, imported and never copied: a parallel `_TurnRecord` would drift the moment either side gained a field, silently. An unrecognised value falls back to the default **with a warning**: `INTERVIEW_ENGINE=loca` must not quietly leave the machine.
 
@@ -1276,8 +1276,20 @@ per line with a comment saying which screen will want it. Put a glyph there when
 you are about to build the screen that uses it; the alternative is discovering
 on the day that the button is blank.
 
-The floating **agent orb** and its voice overlay live in the SHELL
-(`layout/agent-orb.component.ts`), not in a route, because they are on every
-screen. Drag and tap are one gesture separated by a 4px threshold; the pointer
+The floating **agent orb** and the **dock** it opens live in the SHELL
+(`layout/agent-orb.component.ts`, `layout/agent-dock.component.ts`), not in a
+route, because they are on every screen. **The dock is BOTH assistants under
+one button (2026-09-15)**: "Ask REEP" is the typed agent
+(`shared/agent-chat/`, the same component `/student/agent`, `/mentor/agent` and
+`/admin/agent` render) and, for a student, "Mock interview" is the interview
+room (`shared/interview-room/`, the same component `/student/assistant`
+renders) on the design system's dark stage, calibrated to a Tier-1
+multinational's campus round (`_INTERVIEWER_PERSONA`). The pages stay as deep
+links. Both tabs are `@defer`red — the room pulls `InterviewService` and the
+visualizer, and the shell is in the initial bundle — and the inactive tab is
+`hidden`, never destroyed, because destroying the room ends the interview.
+Closing the dock over a live one asks first (`AgentDockService.requestClose`).
+The orb reads the interview's state from that service, which the room mirrors
+into it, and never imports `InterviewService` itself. Drag and tap are one gesture separated by a 4px threshold; the pointer
 listeners go on `document` (a pointer leaving the 58px box mid-drag stops
 delivering events to it) and are removed on pointerup **and** in `ngOnDestroy`.

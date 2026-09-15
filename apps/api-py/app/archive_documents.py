@@ -56,13 +56,21 @@ from .document_archive import AUDIO_ROOT, DOCUMENTS_ROOT
 
 log = logging.getLogger("reep.archive_documents")
 
-#: Files the sweep must never upload. `interview_audio` writes `<name>.partial`
-#: and renames on success, so a `.partial` on disk is either a recording in
-#: flight or the wreckage of a process that died mid-write. Neither is a
-#: finished artefact, and in a bucket where every object is locked for years a
-#: truncated upload cannot be replaced or removed — which is exactly the trap
-#: `AGENTS.md` records about porting the `.partial` rule to S3.
-_SKIP_SUFFIXES = (".partial",)
+#: Files the sweep must never upload: a recording in flight, or the wreckage of
+#: a process that died mid-write. Neither is a finished artefact, and in a
+#: bucket where every object is locked for years a truncated upload cannot be
+#: replaced or removed -- exactly the trap `AGENTS.md` records about porting
+#: the `.partial` rule to S3.
+#:
+#: THE FIRST VERSION OF THIS TUPLE HELD `.partial` ALONE AND NEVER FIRED ONCE.
+#: `interview_audio._PARTIAL_SUFFIX` is `.part`, not `.partial` -- the comment
+#: here was written from the AGENTS.md prose rather than from the constant, so
+#: the guard read correctly, tested green, and matched nothing. Every truncated
+#: mixdown on disk at 20:30 UTC was eligible for upload into a bucket that
+#: cannot delete it. Both spellings are listed now and
+#: `tests/test_document_archive.py` compares this tuple against the store's own
+#: constant, so the two cannot drift again.
+_SKIP_SUFFIXES = (".part", ".partial")
 
 
 def _store_roots() -> list[tuple[str, Path]]:
@@ -88,18 +96,53 @@ def _store_roots() -> list[tuple[str, Path]]:
 
 
 def _files_on_disk(directory: Path) -> list[Path]:
-    """Regular files directly in `directory`. Both stores are FLAT by design —
-    `document_store` names every file `uuid4().hex + ext` and `interview_audio`
-    names its two `<session>.<track>.wav` — so this does not recurse. A
-    subdirectory appearing under either root is something this module did not
-    put there and must not guess about."""
+    """Every regular file under `directory`, RECURSIVELY.
+
+    IT USED TO REFUSE TO RECURSE, on the stated grounds that "both stores are
+    FLAT by design". That was true of the two stores this module was written
+    against and false of the volume it sweeps: `voice_platform.api.call_close`'s
+    `platform_audio_dir()` is `interview_audio._store_root() / "platform"`, a
+    real subdirectory holding the platform's stereo call recordings. A
+    non-recursive listing skipped every one of them SILENTLY -- the sweep
+    reported a healthy pass having never seen the files.
+
+    A docstring that asserts a layout is not a guarantee of one. Recursing costs
+    nothing here (both roots are small) and removes the class of bug where a new
+    writer adds a folder and the archive quietly stops covering it.
+    """
     if not directory.is_dir():
         return []
     return sorted(
         p
-        for p in directory.iterdir()
+        for p in directory.rglob("*")
         if p.is_file() and not p.name.endswith(_SKIP_SUFFIXES)
     )
+
+
+def _key_parts(path: Path, directory: Path, root: str) -> tuple[str, str] | None:
+    """`(archive root, stored_name)` for a file, carrying any subdirectory into
+    the ROOT rather than into the name.
+
+    `document_archive.key_for` refuses a `stored_name` containing a separator,
+    and that guard must stay: in a bucket where every object is locked for
+    years, an object written to the wrong key cannot be moved or removed. So a
+    nested file keeps a bare name and its folder is appended to the root --
+    `interview-audio/platform/<name>`, never a path smuggled through as a name.
+
+    Returns None for a path that escapes the root. `rglob` cannot produce one,
+    which is exactly why it is checked: this computes a key that is immutable
+    once written.
+    """
+    try:
+        rel = path.relative_to(directory)
+    except ValueError:
+        log.error("Refusing to archive %s: outside the store root %s", path, directory)
+        return None
+    if any(part in ("..", "") for part in rel.parts[:-1]):
+        log.error("Refusing to archive %s: unsafe subdirectory", path)
+        return None
+    sub = rel.parent.as_posix()
+    return (root if sub == "." else f"{root}/{sub}"), path.name
 
 
 def _archived_names(root: str, client) -> set[str]:
@@ -172,14 +215,26 @@ def run(*, dry_run: bool = False) -> dict[str, int]:
             continue
         for path in files:
             summary["seen"] += 1
-            if path.name in have:
+            parts = _key_parts(path, directory, root)
+            if parts is None:
+                summary["failed"] += 1
+                continue
+            file_root, stored_name = parts
+            # `have` holds names RELATIVE TO THE ROOT PREFIX, so a nested file's
+            # entry there is "platform/<name>" while its key is built from the
+            # deeper root. Rebuilding the same relative string is what makes the
+            # membership test agree with the key that would be written.
+            rel_key = stored_name if file_root == root else f"{file_root[len(root) + 1:]}/{stored_name}"
+            if rel_key in have:
                 summary["already"] += 1
                 continue
             if dry_run:
-                log.info("%s: would archive %s", root, path.name)
+                log.info("%s: would archive %s", file_root, stored_name)
                 summary["archived"] += 1
                 continue
-            if document_archive.archive_file(path, stored_name=path.name, root=root, client=client):
+            if document_archive.archive_file(
+                path, stored_name=stored_name, root=file_root, client=client
+            ):
                 summary["archived"] += 1
             else:
                 summary["failed"] += 1

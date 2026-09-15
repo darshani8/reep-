@@ -14,6 +14,7 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import retention
+from . import document_archive
 from .config import settings
 from .db import SessionLocal
 from .observability import SERVICE_API, init_sentry
@@ -183,6 +184,32 @@ async def lifespan(_app: FastAPI):
             "outbound mail: NO TRANSPORT (SES_FROM_ADDRESS blank) — activation, reset and "
             "confirmation emails are logged here and kept in app.mail_transport.outbox; "
             "activation links can still be issued on screen"
+        )
+    # The permanent document archive, said at boot for the mail transport's
+    # reason and a sharper one. A blank bucket is a SUPPORTED configuration and
+    # the API works perfectly without it -- uploads store, download and delete
+    # exactly as before. What it silently costs is the only copy of an uploaded
+    # file that outlives `backupRetentionDays`, and the failure is invisible
+    # from every screen in the product: nothing 500s, nothing looks wrong, and
+    # the loss is discovered the first time somebody asks for a document that
+    # was deleted more than 35 days ago -- by which point it is unrecoverable
+    # everywhere.
+    #
+    # `archive_bytes` returns False and logs nothing on this path, deliberately,
+    # because a line per upload would be noise. So this is the one place the
+    # absence is stated, and `python -m app.archive_documents` repeats it nightly.
+    if document_archive.archive_enabled():
+        log.info(
+            "document archive: %s — every stored file is copied there as it is accepted",
+            settings.document_archive_bucket.strip(),
+        )
+    else:
+        log.warning(
+            "document archive: NOT CONFIGURED (DOCUMENT_ARCHIVE_BUCKET blank) — uploaded "
+            "marksheets, certificates, resumes, signatures and recordings have NO copy "
+            "outliving the volume's %d-day backup lifecycle, and a file deleted from the "
+            "website is unrecoverable after it",
+            35,
         )
     boot_failures = settings.production_boot_failures()
     if boot_failures:

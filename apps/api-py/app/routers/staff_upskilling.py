@@ -25,7 +25,7 @@ from ..db import get_db
 from ..identity import get_current_session
 from ..document_store import MAX_BYTES, UploadRejected, content_disposition
 from ..document_store import delete as document_store_delete
-from ..document_manifest import release, save_and_record
+from ..document_manifest import DocumentFacts, release, save_and_record
 from ..models.archived_document import DocumentOwnerKind
 from ..document_store import (
     MAX_CERTIFICATE_BYTES_PER_USER,
@@ -206,7 +206,20 @@ def delete_certificate(
     # was the suggested fix: swallowing it would drop the manifest row silently
     # and that row is the only thing that can ever name the archived bytes.
     # The failure must stay loud. Moving it earlier makes it harmless as well.
-    release(db, cert.stored_name, reason="staff deleted certificate")
+    release(
+        db,
+        cert.stored_name,
+        reason="staff deleted certificate",
+        facts=DocumentFacts(
+            kind=DocumentOwnerKind.STAFF_CERTIFICATE,
+            owner_id=cert.user_id,
+            original_name=cert.original_name,
+            title=cert.title,
+            mime_type=cert.mime_type,
+            size_bytes=cert.size_bytes,
+            recorded_at=cert.uploaded_at,
+        ),
+    )
     document_store_delete(cert.stored_name)
     db.delete(cert)
     db.commit()

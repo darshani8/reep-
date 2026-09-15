@@ -38,6 +38,7 @@ release would trade the thing that matters for the thing that does not.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -87,7 +88,48 @@ def save_and_record(
     return stored_name, mime, size
 
 
-def release(db: Session, stored_name: str | None, *, reason: str) -> None:
+@dataclass(frozen=True)
+class DocumentFacts:
+    """What the LIVE row knows about a file, for a release that finds no
+    manifest row.
+
+    WHY THIS EXISTS. Migration `b7e4d21af905` writes no backfill, and its
+    reasoning is sound: a row seeded for every existing file would carry
+    `recorded_at = ` the deploy date, telling every future reader that the whole
+    store arrived that day -- `mentor_assignments`' lesson. The consequence it
+    accepted is that a file stored BEFORE the manifest existed loses its name
+    the moment somebody deletes it, and on a running college that is every file
+    there is on day one.
+
+    That consequence is avoidable, and the avoidance needs no invention: at the
+    moment of release the LIVE ROW IS STILL THERE, holding the real owner, the
+    real filename and the real upload timestamp. Passing them in is a backfill
+    of exactly the rows that need one, from exact data, at the only moment the
+    data is both available and about to be destroyed.
+
+    `recorded_at` is REQUIRED here rather than optional for that reason. Every
+    one of the six stores carries its own timestamp (`uploads.uploaded_at`,
+    `alumni_profiles.created_at`, ...), so a caller always has a true answer,
+    and a default would quietly reintroduce the deploy-day lie this class exists
+    to avoid.
+    """
+
+    kind: "DocumentOwnerKind"
+    owner_id: str | None
+    original_name: str
+    mime_type: str
+    size_bytes: int
+    recorded_at: datetime
+    title: str | None = None
+
+
+def release(
+    db: Session,
+    stored_name: str | None,
+    *,
+    reason: str,
+    facts: DocumentFacts | None = None,
+) -> None:
     """Stamp `released_at` — the live row no longer points at this file.
 
     Idempotent and silent about a name it does not know. Two callers make that
@@ -98,17 +140,49 @@ def release(db: Session, stored_name: str | None, *, reason: str) -> None:
 
     NEVER DELETES THE ROW. The point of the manifest is that it outlives the
     thing it describes.
+
+    `facts` closes the pre-migration gap. When no manifest row exists and the
+    caller can describe the file from the live row it is about to destroy, the
+    row is CREATED here and released in the same breath -- see `DocumentFacts`.
+    Callers that cannot describe it (the purge modules, which walk bare
+    `stored_name` columns across every table) pass nothing and get the old
+    log-and-continue behaviour, because a row invented without an owner is
+    worse than no row.
     """
     if not stored_name:
         return
     row = db.scalar(select(ArchivedDocument).where(ArchivedDocument.stored_name == stored_name))
+    now = datetime.now(timezone.utc)
     if row is None:
-        # A file stored before this table existed, or one written by a path
-        # that does not go through `save_and_record`. Worth a line in the log —
-        # it is how the second case is ever noticed — and never worth an
-        # exception on a delete the user asked for.
-        log.info("Released %s, which has no manifest row (%s)", stored_name, reason)
+        if facts is None:
+            # A file stored before this table existed, released by a caller that
+            # cannot describe it. Worth a line in the log -- it is how a path
+            # that skipped `save_and_record` would ever be noticed -- and never
+            # worth an exception on a delete the user asked for.
+            log.info("Released %s, which has no manifest row (%s)", stored_name, reason)
+            return
+        db.add(
+            ArchivedDocument(
+                stored_name=stored_name,
+                kind=facts.kind,
+                owner_id=facts.owner_id,
+                original_name=facts.original_name,
+                title=facts.title,
+                mime_type=facts.mime_type,
+                size_bytes=facts.size_bytes,
+                recorded_at=facts.recorded_at,
+                released_at=now,
+                # Marked, because this row was written at RELEASE and not at
+                # store. Everything on it is exact -- it was copied off the live
+                # row -- but a reader counting "files stored in March" must be
+                # able to tell a row that watched the upload from one that
+                # reconstructed it.
+                released_reason=f"{reason} (recorded at release; predates the manifest)",
+            )
+        )
+        db.flush()
+        log.info("Backfilled and released %s (%s)", stored_name, reason)
         return
     if row.released_at is None:
-        row.released_at = datetime.now(timezone.utc)
+        row.released_at = now
         row.released_reason = reason

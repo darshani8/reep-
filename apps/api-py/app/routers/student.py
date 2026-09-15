@@ -16,7 +16,7 @@ from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
 from ..governance import require_feature
 from ..identity import get_current_session
-from ..document_manifest import release, save_and_record
+from ..document_manifest import DocumentFacts, release, save_and_record
 from ..models.archived_document import DocumentOwnerKind
 from ..document_store import (
     MAX_BYTES,
@@ -2508,7 +2508,22 @@ def delete_upload(
     # file itself is already in the permanent archive and stays there; this
     # marks the manifest row so a restore can tell "the student removed this"
     # from "this is still on their shelf".
-    release(db, upload.stored_name, reason="student deleted upload")
+    release(
+        db,
+        upload.stored_name,
+        reason="student deleted upload",
+        # The live row is still here, so a file stored before the manifest
+        # existed is recorded from exact data rather than losing its name.
+        facts=DocumentFacts(
+            kind=DocumentOwnerKind.STUDENT_UPLOAD,
+            owner_id=upload.student_id,
+            original_name=upload.original_name,
+            title=upload.title,
+            mime_type=upload.mime_type,
+            size_bytes=upload.size_bytes,
+            recorded_at=upload.uploaded_at,
+        ),
+    )
     document_store_delete(upload.stored_name)
     db.delete(upload)
     db.commit()

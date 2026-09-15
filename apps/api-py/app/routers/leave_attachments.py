@@ -75,7 +75,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..document_manifest import release, save_and_record
+from ..document_manifest import DocumentFacts, release, save_and_record
 from ..models.archived_document import DocumentOwnerKind
 from ..document_store import (
     MAX_BYTES,
@@ -363,7 +363,19 @@ def delete_attachment(
     # was the suggested fix: swallowing it would drop the manifest row silently
     # and that row is the only thing that can ever name the archived bytes.
     # The failure must stay loud. Moving it earlier makes it harmless as well.
-    release(db, row.stored_name, reason="attachment removed from leave request")
+    release(
+        db,
+        row.stored_name,
+        reason="attachment removed from leave request",
+        facts=DocumentFacts(
+            kind=DocumentOwnerKind.LEAVE_ATTACHMENT,
+            owner_id=row.uploaded_by_user_id,
+            original_name=row.original_name,
+            mime_type=row.mime_type,
+            size_bytes=row.size_bytes,
+            recorded_at=row.uploaded_at,
+        ),
+    )
     document_store_delete(row.stored_name)
     db.delete(row)
     db.commit()

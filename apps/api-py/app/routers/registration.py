@@ -88,7 +88,7 @@ from ..scope_views import (
     scope_header,
 )
 from ..architecture_events import record_change
-from ..document_manifest import release, save_and_record
+from ..document_manifest import DocumentFacts, release, save_and_record
 from ..models.archived_document import DocumentOwnerKind
 from ..document_store import MAX_BYTES, QuotaRejected, VolumeQuota, sniff
 from ..document_store import delete as delete_stored
@@ -2010,7 +2010,19 @@ async def attach_document(
         # Released BEFORE the unlink -- routers/student.py's delete carries the
         # full reasoning: a SELECT between an irreversible delete and the commit
         # turns any query failure into destroyed bytes plus a surviving row.
-        release(db, existing.stored_name, reason="registration document replaced")
+        release(
+            db,
+            existing.stored_name,
+            reason="registration document replaced",
+            facts=DocumentFacts(
+                kind=DocumentOwnerKind.REGISTRATION_DOCUMENT,
+                owner_id=None,
+                original_name=existing.original_name,
+                mime_type=existing.mime_type,
+                size_bytes=existing.size_bytes,
+                recorded_at=reg.created_at,
+            ),
+        )
         try:
             delete_stored(existing.stored_name)
         except FileNotFoundError:

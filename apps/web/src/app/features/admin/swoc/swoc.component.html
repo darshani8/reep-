@@ -1,20 +1,23 @@
 <div class="panel" data-p="swoc">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Interviews</span><span class="sep">/</span><span>SWOC notes</span></div>
+      <div class="crumb">
+        <span>Interviews</span><span class="sep">/</span><span>SWOC notes</span>
+      </div>
       <h1 class="dt-title">SWOC notes</h1>
-      <div class="dt-sub">Strengths, weaknesses, opportunities and challenges, per student.</div>
+      @if (rows()) {
+        <div class="dt-sub">
+          {{ studentCount() | plural: 'student' }} · {{ writtenCount() }} with notes
+        </div>
+      }
     </div>
   </div>
 
-  <!-- The board's four filters, and what each one actually is.
-       Department is a READ-OUT of the caller's own reach (B1.4): GET /admin/swoc
-       narrows the list server-side and states that reach in X-Reep-Scope, there
-       is no parameter to send, and a row carries no department to filter on
-       here either. Batch narrows the list the screen already holds — every row
-       carries its batch. Semester goes to the SERVER (?semester=) and narrows
-       the ENTRIES. Mentor is disabled: no row carries a mentor and the endpoint
-       takes no such parameter. -->
+  <!-- The reach chip is a READ-OUT of the caller's own grant (B1.4): GET
+       /admin/swoc narrows the list server-side and states that reach in
+       X-Reep-Scope. Batch narrows the list the screen already holds. Semester
+       goes to the SERVER (?semester=) and narrows the ENTRIES, not the
+       students. -->
   <div class="sw-filters">
     @if (scopeChip(); as reach) {
       <span class="chip {{ reach.tone }}">{{ reach.label }}</span>
@@ -32,23 +35,12 @@
       </select>
     </div>
 
-    <div class="select" [class.sw-filter-pending]="semesterOptions().length === 0">
-      <span class="lbl">Semester</span>
-      <span class="val">{{ semesterFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      @if (semesterOptions().length === 0) {
-        <select
-          aria-label="Semester — no line on this board carries one yet"
-          disabled
-          title="No line on this board carries a semester yet."
-        >
-          <option>All semesters</option>
-        </select>
-      } @else {
-        <select
-          aria-label="Semester — narrows the lines, not the students"
-          (change)="setSemesterFilter(selectValue($event))"
-        >
+    @if (semesterOptions().length > 0) {
+      <div class="select">
+        <span class="lbl">Semester</span>
+        <span class="val">{{ semesterFilterLabel() }}</span>
+        <span class="icon" aria-hidden="true">expand_more</span>
+        <select aria-label="Semester" (change)="setSemesterFilter(selectValue($event))">
           <option [value]="allSemesters" [selected]="semesterFilter() === allSemesters">
             All semesters
           </option>
@@ -58,28 +50,9 @@
             </option>
           }
         </select>
-      }
-    </div>
-
-    <p class="sw-summary">
-      {{ studentCount() | plural: 'student' }} ·
-      {{ writtenCount() }} with notes · every entry keeps its author, date and viewpoint
-    </p>
-
-    @if (semesterFilter() !== allSemesters) {
-      <p class="sw-summary sw-summary--note">
-        Showing lines written in {{ semesterFilterLabel().toLowerCase() }}. Everybody stays on the
-        list — a student nobody wrote about that term has an empty board rather than disappearing —
-        and a line whose semester was never recorded is in no semester, so it is not in this slice.
-      </p>
+      </div>
     }
   </div>
-
-  @if (scopeNote(); as note) {
-    <div class="notice {{ note.tone }}" role="status">
-      <span class="icon" aria-hidden="true">info</span>{{ note.text }}
-    </div>
-  }
 
   @if (error()) {
     <div class="notice sw-alert" role="alert">
@@ -95,10 +68,10 @@
   }
 
   <div class="sw-board">
-    <!-- The students -->
+    <!-- ------------------------------------------------- the students -->
     <section class="card sw-list" aria-labelledby="sw-list-title">
       <div class="card-head">
-        <h2 class="card-heading" id="sw-list-title">Students</h2>
+        <h2 class="card-title" id="sw-list-title">Students</h2>
         <span class="chip neutral">{{ filtered().length }}</span>
       </div>
 
@@ -114,86 +87,59 @@
       </label>
 
       @if (rows() === null) {
-        <div class="notice info" role="status">
-          <span class="icon" aria-hidden="true">hourglass_empty</span>Loading…
-        </div>
+        <p class="sw-state" role="status">Loading…</p>
       } @else {
         <div class="sw-rows">
-          <table class="dt-table">
-            <caption class="sr-only">
-              Students, the lines written about each and how many of those the student has
-              acknowledged
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Student</th>
-                <th scope="col" class="sw-num">Notes</th>
-                <th scope="col" class="sw-num">Ack.</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (student of filtered(); track student.student_id) {
-                <tr [class.selected]="isSelected(student)">
-                  <td>
-                    <button
-                      type="button"
-                      class="sw-pick"
-                      [attr.aria-pressed]="isSelected(student)"
-                      (click)="selectStudent(student)"
-                    >
-                      <span class="avatar">{{ initials(student.name) }}</span>
-                      <span class="sw-pick__main">
-                        <span class="sw-pick__name">{{ student.name }}</span>
-                        <span class="sw-pick__meta">
-                          {{ student.usn ?? 'No USN' }}@if (student.batch) { · {{ student.batch }} }
-                        </span>
-                      </span>
-                    </button>
-                  </td>
-                  <td class="sw-num">{{ student.entries.length }}</td>
-                  <!-- B7.5. A real count now: how many of the lines on this
-                       student's board they have said they read. A student with
-                       nothing written about them has nothing to acknowledge, so
-                       that row is a dash and not a zero. -->
-                  @if (student.entries.length === 0) {
-                    <td class="sw-num sw-unknown" title="Nothing written, so nothing to acknowledge">
-                      —
-                    </td>
-                  } @else {
-                    <td class="sw-num">{{ ackCount(student) }}/{{ student.entries.length }}</td>
+          @for (student of filtered(); track student.student_id) {
+            <button
+              type="button"
+              class="sw-pick"
+              [class.selected]="isSelected(student)"
+              [attr.aria-pressed]="isSelected(student)"
+              (click)="selectStudent(student)"
+            >
+              <span class="avatar">{{ initials(student.name) }}</span>
+              <span class="sw-pick__main">
+                <span class="sw-pick__name">{{ student.name }}</span>
+                <span class="sw-pick__meta">
+                  {{ student.usn ?? 'No USN' }}
+                  @if (student.batch) {
+                    · {{ student.batch }}
                   }
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="3" class="sw-empty-cell">{{ emptyListNote() }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+                </span>
+              </span>
+              <!-- B7.5. A student with nothing written has nothing to
+                   acknowledge, so that row is a dash and not a zero. -->
+              <span class="sw-pick__count">
+                @if (student.entries.length === 0) {
+                  —
+                } @else {
+                  {{ student.entries.length | plural: 'note' }} · {{ ackCount(student) }} read
+                }
+              </span>
+              <span class="icon" aria-hidden="true">chevron_right</span>
+            </button>
+          } @empty {
+            <p class="sw-state">{{ emptyListNote() }}</p>
+          }
         </div>
-
-        <p class="sw-foot">
-          {{ filtered().length }} of {{ studentCount() | plural: 'student' }} shown ·
-          {{ writtenInView() | plural: 'of those has notes' : 'of those have notes' }}
-        </p>
-
+        @if (filtered().length !== studentCount()) {
+          <p class="sw-foot">{{ filtered().length }} of {{ studentCount() }}</p>
+        }
       }
     </section>
 
-    <!-- The editor -->
+    <!-- --------------------------------------------------- the editor -->
     <section class="card sw-editor" aria-labelledby="sw-editor-title">
       @if (selected(); as student) {
         <div class="sw-who">
           <span class="avatar lg">{{ initials(student.name) }}</span>
           <div class="sw-who__main">
-            <h2 class="card-heading" id="sw-editor-title">
-              {{ student.name }} · <span class="sw-usn">{{ student.usn ?? 'No USN' }}</span>
-            </h2>
+            <h2 class="card-title" id="sw-editor-title">{{ student.name }}</h2>
             <p class="sw-who__meta">
-              {{ student.batch ?? 'No batch' }} ·
+              {{ student.usn ?? 'No USN' }} · {{ student.batch ?? 'No batch' }} ·
               @if (student.entries.length) {
-                {{ student.entries.length | plural: 'line' }} on their landing ·
-                {{ ackCount(student) }} acknowledged
+                {{ student.entries.length | plural: 'note' }} · {{ ackCount(student) }} read
               } @else {
                 nothing written yet
               }
@@ -219,36 +165,27 @@
               aria-controls="sw-semesters"
               (click)="toggleSemesterView()"
             >
-              <span class="icon" aria-hidden="true">schedule</span> Semester view
+              <span class="icon" aria-hidden="true">schedule</span> By semester
             </button>
           </div>
         </div>
 
         <!-- B7.3's edit history, scoped exactly as the board is: the same
-             admin.swoc key and the same student ancestry. It is deliberately
-             NOT a link to the Main-Admin-only audit trail, which would answer
-             403 for everybody who can press this. -->
+             admin.swoc key and the same student ancestry. Deliberately NOT a
+             link to the Main-Admin-only audit trail, which would answer 403
+             for everybody who can press this. -->
         @if (historyOpen()) {
           <section class="sw-panel" id="sw-history" aria-labelledby="sw-history-title">
-            <h3 class="sw-panel__title" id="sw-history-title">
-              Every edit to {{ student.name }}'s lines
-            </h3>
+            <h3 class="sw-panel__title" id="sw-history-title">Edit history</h3>
             @if (historyBusy()) {
-              <div class="notice info" role="status">
-                <span class="icon" aria-hidden="true">hourglass_empty</span>Loading…
-              </div>
+              <p class="sw-state" role="status">Loading…</p>
             } @else if (historyError()) {
               <div class="notice" role="alert">
                 <span class="icon" aria-hidden="true">error</span>{{ historyError() }}
               </div>
             } @else if (revisions(); as edits) {
               @if (edits.length === 0) {
-                <p class="sw-foot">
-                  No edit recorded. That means nothing has been rewritten SINCE THIS RECORD BEGAN,
-                  not that no line was ever changed — this table started empty, so a line edited
-                  before it existed has nothing in it. The Main Admin has the older trail on the
-                  Audit screen.
-                </p>
+                <p class="sw-foot">No edit recorded.</p>
               } @else {
                 <ol class="sw-edits">
                   @for (edit of edits; track edit.id) {
@@ -263,7 +200,7 @@
                           {{ change.from }} → {{ change.to }}
                         </p>
                       } @empty {
-                        <p class="sw-edit__change">Nothing this screen prints changed.</p>
+                        <p class="sw-edit__change">Nothing shown here changed.</p>
                       }
                     </li>
                   }
@@ -275,50 +212,33 @@
 
         <!-- B7.4's semester view: this student's lines grouped by the semester
              each was stamped with AT WRITE TIME. "Not recorded" is a group of
-             its own and never folded into a number — a line written before the
-             column existed belongs to no semester, and putting it in the
-             current one would invent a fact on the student's own screen. -->
+             its own and never folded into a number. -->
         @if (semesterViewOpen()) {
           <section class="sw-panel" id="sw-semesters" aria-labelledby="sw-semesters-title">
-            <h3 class="sw-panel__title" id="sw-semesters-title">
-              {{ student.name }}'s lines by semester
-            </h3>
+            <h3 class="sw-panel__title" id="sw-semesters-title">By semester</h3>
             @if (semesterBreakdown().length === 0) {
-              <p class="sw-foot">Nothing written about this student yet.</p>
+              <p class="sw-foot">Nothing written yet.</p>
             } @else {
               <ul class="sw-semester-list">
                 @for (group of semesterBreakdown(); track group.key) {
                   <li class="sw-semester">
                     <span class="sw-semester__label">{{ group.label }}</span>
-                    <span class="chip neutral">{{ group.count | plural: 'line' }}</span>
+                    <span class="chip neutral">{{ group.count | plural: 'note' }}</span>
                     @if (group.key) {
                       <button
                         type="button"
                         class="btn ghost sm"
                         (click)="setSemesterFilter(group.key)"
                       >
-                        Show the whole board for this semester
+                        Show only this semester
                       </button>
                     }
                   </li>
                 }
               </ul>
-              @if (semesterFilter() !== allSemesters) {
-                <p class="sw-foot">
-                  The board is filtered to {{ semesterFilterLabel().toLowerCase() }}, so this
-                  breakdown counts that slice. Clear the semester filter to count every line.
-                </p>
-              }
             }
           </section>
         }
-
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          <div>
-            Each line shows its author, semester, date and viewpoint, and whether the student has acknowledged it. Its author or the Main Admin may edit it.
-          </div>
-        </div>
 
         <div class="sw-quads">
           @for (quadrant of quadrants; track quadrant.key) {
@@ -328,7 +248,9 @@
               [attr.aria-labelledby]="'sw-quad-' + quadrant.key"
             >
               <header class="sw-quad__head">
-                <h3 class="sw-quad__title" [id]="'sw-quad-' + quadrant.key">{{ quadrant.label }}</h3>
+                <h3 class="sw-quad__title" [id]="'sw-quad-' + quadrant.key">
+                  {{ quadrant.label }}
+                </h3>
                 <button
                   type="button"
                   class="btn ghost sm"
@@ -356,7 +278,7 @@
                     <span class="chip {{ ackChip(entry).tone }}">{{ ackChip(entry).label }}</span>
                     <span class="sw-entry__by">{{ entryBy(entry) }}</span>
                     <label class="sw-weight">
-                      <span class="sr-only">Weight — heavier lines show first</span>
+                      <span class="sr-only">Weight</span>
                       <select
                         class="ctrl sw-weight__select"
                         #weightPicker
@@ -382,13 +304,15 @@
                   </div>
                 </article>
               } @empty {
-                <p class="sw-none">Not added yet</p>
+                <p class="sw-none">Nothing yet</p>
               }
 
               @if (composerFor() === quadrant.key) {
                 <div class="sw-composer">
                   <div class="field">
-                    <label [attr.for]="'sw-draft-' + quadrant.key">Add to {{ quadrant.label.toLowerCase() }}</label>
+                    <label [attr.for]="'sw-draft-' + quadrant.key">
+                      New {{ quadrant.label.toLowerCase() }} note
+                    </label>
                     <textarea
                       class="multi"
                       rows="3"
@@ -403,16 +327,21 @@
                   </div>
                   <div class="sw-composer__foot">
                     <span class="sw-count">{{ draftLength() }}/{{ maxEntryChars }}</span>
-                    <button type="button" class="btn ghost sm" [disabled]="busy()" (click)="closeComposer()">
+                    <button
+                      type="button"
+                      class="btn ghost sm"
+                      [disabled]="busy()"
+                      (click)="closeComposer()"
+                    >
                       Cancel
                     </button>
                     <button
                       type="button"
-                      class="btn primary"
+                      class="btn primary sm"
                       [disabled]="!canSaveDraft()"
                       (click)="addEntry(quadrant.key)"
                     >
-                      <span class="icon" aria-hidden="true">save</span> Save entry
+                      <span class="icon" aria-hidden="true">save</span> Save
                     </button>
                   </div>
                 </div>
@@ -420,17 +349,8 @@
             </section>
           }
         </div>
-
-        <p class="sw-foot">
-          Edits save when you click away from a line. Ctrl+Enter saves a new entry. The student sees
-          changes immediately, and the semester on a new line is stamped from the student's current
-          semester at the moment it is written.
-        </p>
       } @else {
-        <div class="sw-pick-one">
-          <h2 class="card-heading" id="sw-editor-title">Pick a student</h2>
-          <p class="sw-foot">Choose someone on the left to write or update their lines.</p>
-        </div>
+        <p class="sw-state sw-pick-one" id="sw-editor-title">No student picked.</p>
       }
     </section>
   </div>

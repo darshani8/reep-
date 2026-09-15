@@ -46,16 +46,27 @@
  * CONSENT IS SHOWN AS AN ENFORCED FACT, NOT A SWITCH. Nothing on this screen
  * can grant, edit or withdraw a scope. Since B6.1 what is consented to is the
  * COLLEGE'S decision and the student's row is an acknowledgement of it, so the
- * thing this office edits is the POLICY — and it edits it in the panel behind
- * the Retention card's button, never on a student's row. `DELETE
+ * thing this office edits is the POLICY — and it edits it on the policy card
+ * at the foot of the screen, never on a student's row. `DELETE
  * /api/interview/consent` does not exist and answers 405 for everyone.
  *
- * THE POLICY PANEL MUST BE ABLE TO SAY "NOT CONFIGURED". No `interview_policies`
+ * THE POLICY CARD MUST BE ABLE TO SAY "NOT CONFIGURED". No `interview_policies`
  * row is ever seeded, and the ABSENCE of one IS the default — a deployment that
- * never opens this panel behaves exactly as it did before the table existed. So
- * `default: null` is rendered as "no policy row exists", with the numbers
- * actually in force shown beside it as the deployment's defaults. Drawing that
- * state as a row holding the defaults would report a decision nobody made.
+ * never touches the card behaves exactly as it did before the table existed. So
+ * `default: null` is rendered as "Not configured", with the numbers actually in
+ * force in the boxes as the deployment's defaults. Drawing that state as a row
+ * holding the defaults would report a decision nobody made.
+ *
+ * ONE COLUMN, TOP TO BOTTOM (2026-09-15). The side column — a record panel, a
+ * progress card and a retention card with the policy behind a toggle — is
+ * gone. The open record is a card under the list, with its report or
+ * transcript on the left and the student's score-over-time chart on the
+ * right; the policy is its own card, always open, with the college picker on
+ * it. Every control the board had is here; what left is the prose — the
+ * consent note, the chart note, the retention list and the two policy
+ * paragraphs — the Transcript/Report buttons on the grid bar that duplicated
+ * the record's own tabs, and the Batch filter for a session whose grant cannot
+ * read the batch list, which was a grey control with the reason in a tooltip.
  *
  * DOWNLOAD, NOT DELETE. Per the owner's decision a recording can be downloaded
  * to the local machine and there is no delete here — recordings expire on the
@@ -533,7 +544,6 @@ export class InterviewRecordsComponent implements OnDestroy {
 
   // --- the policy panel (B6.1) ----------------------------------------------
 
-  readonly policyOpen = signal(false);
   readonly colleges = signal<CollegeOption[] | null>(null);
   readonly collegesBlocked = signal<string | null>(null);
   readonly policyCollege = signal<string>('');
@@ -576,6 +586,7 @@ export class InterviewRecordsComponent implements OnDestroy {
     registerReepGrid();
     void this.reload();
     void this.loadCohorts();
+    void this.loadColleges();
 
     // The chart element exists only while a student is open, so the chart is
     // created when it appears and disposed when it goes.
@@ -1159,21 +1170,18 @@ export class InterviewRecordsComponent implements OnDestroy {
         credentials: 'include',
       });
       if (response.status === 403) {
-        this.cohortsBlocked.set(
-          'Filtering by batch needs the Analytics function, which lists the batches. Your grant ' +
-            'covers Interviews only, so every interview you may see is listed here unfiltered.',
-        );
+        this.cohortsBlocked.set('Filtering by batch needs the Analytics function.');
         this.cohorts.set([]);
         return;
       }
       if (!response.ok) {
-        this.cohortsBlocked.set('The list of batches could not be read, so this filter is off.');
+        this.cohortsBlocked.set('The list of batches could not be read.');
         this.cohorts.set([]);
         return;
       }
       this.cohorts.set((await response.json()) as CohortOption[]);
     } catch {
-      this.cohortsBlocked.set('The list of batches could not be read, so this filter is off.');
+      this.cohortsBlocked.set('The list of batches could not be read.');
       this.cohorts.set([]);
     }
   }
@@ -1304,10 +1312,7 @@ export class InterviewRecordsComponent implements OnDestroy {
    *  counting files nobody counted. */
   private async saveZip(response: Response, count: number): Promise<void> {
     await this.saveFile(response, 'reep-interview-recordings.zip');
-    this.flash.set(
-      `Saved a zip for the ${plural(count, 'selected recording')}. ` +
-        'Any recording that has expired or is out of your scope is not in it.',
-    );
+    this.flash.set(`Saved a zip for ${plural(count, 'recording')}. An expired or out-of-scope one is not in it.`);
   }
 
   /** Stream a response to a blob and hand it to the browser as a save. */
@@ -1359,13 +1364,8 @@ export class InterviewRecordsComponent implements OnDestroy {
       } else {
         await this.saveFile(response, 'reep-interviews.csv');
         this.flash.set(
-          'The interviews extract has been saved, and the download is on the export history. It ' +
-            'is summary rows only — a date, a track, a status and four scores, no transcript and ' +
-            'no report text.' +
-            (this.recordingFilter() === 'recorded'
-              ? ' The recording filter is NOT in it: whether a recording exists is a fact about ' +
-                'the session, and this file is built from the score summaries, which outlive it.'
-              : ''),
+          'Saved. Summary rows only, and on the export history.' +
+            (this.recordingFilter() === 'recorded' ? ' The recording filter is not applied to it.' : ''),
         );
       }
     } catch {
@@ -1394,12 +1394,6 @@ export class InterviewRecordsComponent implements OnDestroy {
     () => this.policySheet()?.effective_default ?? null,
   );
 
-  /** This college's clock, once one is on screen. Until then the card can only
-   *  name the product default, and says "by default" where it does. */
-  readonly effectiveRetentionDays = computed<number | null>(
-    () => this.policyEffective()?.retention_days ?? null,
-  );
-
   /** `ck_interview_policy_bounds`: an attempt ceiling under the daily one makes
    *  the daily allowance unreachable, so the database refuses the row. Refused
    *  here too, on the field, rather than as a 500 from a CHECK. */
@@ -1412,14 +1406,6 @@ export class InterviewRecordsComponent implements OnDestroy {
     return this.policyCapsAreOrdered();
   });
 
-  async togglePolicyPanel(): Promise<void> {
-    this.policyOpen.update((open) => !open);
-    if (!this.policyOpen()) return;
-    this.policyError.set(null);
-    this.policyFlash.set(null);
-    if (this.colleges() === null) await this.loadColleges();
-  }
-
   /** The colleges the picker offers. Gated on `admin.institution`, not on this
    *  screen's key, so a 403 is reachable and is said in words. */
   private async loadColleges(): Promise<void> {
@@ -1428,10 +1414,7 @@ export class InterviewRecordsComponent implements OnDestroy {
         credentials: 'include',
       });
       if (response.status === 403) {
-        this.collegesBlocked.set(
-          'Editing an interview policy needs the Institution function as well, because the policy ' +
-            'belongs to a college and this screen cannot list colleges without it.',
-        );
+        this.collegesBlocked.set('Editing a policy needs the Institution function as well.');
         this.colleges.set([]);
         return;
       }
@@ -1536,11 +1519,7 @@ export class InterviewRecordsComponent implements OnDestroy {
       if (!response.ok) {
         this.policyError.set(await detailOf(response, 'The policy was not saved.'));
       } else {
-        this.policyFlash.set(
-          'Saved. It applies to interviews started from now on — an interview already running ' +
-            'keeps the scopes it opened under, and a retention window already stamped on a past ' +
-            'interview is not re-dated.',
-        );
+        this.policyFlash.set('Saved. Applies to interviews started from now on.');
         await this.loadPolicySheet();
       }
     } catch {

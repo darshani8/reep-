@@ -49,19 +49,26 @@
  *     records from their own track. The server refuses it and the card offers
  *     the checkbox instead.
  *
- * THE SESSION CAP IS NOT ON THIS SCREEN AND IT IS NOT PENDING. A cap is not a
- * property of a track: the time limit and the daily and attempt ceilings are
- * `interview_policies`, one row per (college, course), edited on Interview
- * records → Policy. The field the board draws here is disabled and says that,
- * with no phase number, because no phase is going to move it.
+ * THE SESSION CAP IS NOT ON THIS SCREEN. A cap is not a property of a track:
+ * the time limit and the daily and attempt ceilings are `interview_policies`,
+ * one row per (college, course), edited on Interview records.
  *
- * THE ASKED AND AVG SCORE COLUMNS READ AS A DASH PERMANENTLY. Attributing a
- * turn to the question that produced it (B6.6) was examined in Phase 4 and
- * found impossible without scripting the interview: nothing injects a question
- * per turn, because the interviewer works the bank in freely and rephrases. A
- * zero there would say "asked, and every student failed it", which is a
- * different sentence entirely, so the cells stay a dash and the footnote says
- * why rather than promising a phase.
+ * THERE IS NO "ASKED" OR "AVG SCORE" COLUMN (2026-09-15). Both were drawn and
+ * both read a permanent dash with a tooltip saying why: attributing a turn to
+ * the question that produced it (B6.6) was examined in Phase 4 and found
+ * impossible without scripting the interview, because the interviewer works
+ * the bank in freely and rephrases. A column that can never hold a number is
+ * the grey control the owner's rule for the console refuses, so the two went,
+ * and the column chooser and density toggle whose only job was to hide them
+ * went with them. The reasoning stays here; if the column ever comes back it
+ * will be as an ESTIMATE the screen labels as one.
+ *
+ * ONE COLUMN, TOP TO BOTTOM (2026-09-15). The 290px track rail is a row of
+ * pill tabs, and under it come one card for the track and one for its
+ * questions; the add-one and add-many forms open inside the questions card
+ * rather than as cards of their own. Every control the board had is here;
+ * what left is the help text under each field (the placeholder carries the
+ * example instead), the footnote and the duplicate "Add many" button.
  *
  * Reached by the `admin.interview_questions` capability: the Main Admin by
  * baseline, a mentor only when granted — which is how faculty are given this.
@@ -129,13 +136,6 @@ interface QuestionRow {
   number: number;
 }
 
-/** A column the reader can put away. The three the board shows on the right of
- *  the grid are the ones worth hiding; Phase and Question are the grid. */
-interface OptionalColumn {
-  id: 'asked' | 'averageScore' | 'status';
-  label: string;
-}
-
 const PHASE_LABEL: Record<string, string> = {
   opening: 'Opening',
   probing: 'Probing',
@@ -169,14 +169,10 @@ const NOVA_VOICES: readonly string[] = [
   'tina',
 ];
 
-/** One of the matrix's own four, shown under the persona field so the grammar
- *  rule is visible rather than discovered through a 422. */
+/** One of the matrix's own four, the persona field's placeholder, so the
+ *  grammar rule (a noun phrase) is visible rather than discovered through a
+ *  422. */
 const PERSONA_EXAMPLE = 'an empathetic yet compliant Chief Human Resources Officer';
-
-/** Why Asked and Avg score are a dash, on the two column headers. */
-const NOT_MEASURED_REASON =
-  'The interviewer is free-style: it works a question in, rephrases it and follows up on the ' +
-  'answer, so no turn it produces can be attributed to one row in this bank.';
 
 /** The server's own bounds on a new track (`AdminTrackIn`), so the form refuses
  *  before the request rather than after it. */
@@ -195,21 +191,12 @@ const TRACK_DOT_CLASS: Record<string, string> = {
   ba: 'bank-dot--analytics',
 };
 
-const OPTIONAL_COLUMNS: OptionalColumn[] = [
-  { id: 'asked', label: 'Asked' },
-  { id: 'averageScore', label: 'Avg score' },
-  { id: 'status', label: 'Status' },
-];
-
 const PAGE_SIZES = [10, 25, 50, 100];
 
 /** The server's own floor and ceiling (`BankQuestionIn`), stated here so the
  *  form refuses before the request rather than after it. */
 const MINIMUM_QUESTION_CHARS = 8;
 const MAXIMUM_QUESTION_CHARS = 600;
-
-/** A number nobody has computed is a dash, never a zero. */
-const NOT_MEASURED_YET = '—';
 
 @Component({
   selector: 'app-interview-questions',
@@ -219,11 +206,8 @@ const NOT_MEASURED_YET = '—';
   styleUrl: './interview-questions.component.scss',
 })
 export class InterviewQuestionsComponent {
-  readonly optionalColumns = OPTIONAL_COLUMNS;
   readonly pageSizes = PAGE_SIZES;
   readonly maximumQuestionChars = MAXIMUM_QUESTION_CHARS;
-  readonly notMeasuredYet = NOT_MEASURED_YET;
-  readonly notMeasuredReason = NOT_MEASURED_REASON;
   readonly novaVoices = NOVA_VOICES;
   readonly personaExample = PERSONA_EXAMPLE;
 
@@ -271,9 +255,6 @@ export class InterviewQuestionsComponent {
   readonly quickFilter = signal('');
   readonly pageSize = signal(PAGE_SIZES[0]);
   readonly pageIndex = signal(0);
-  readonly isCompact = signal(false);
-  readonly columnsPanelOpen = signal(false);
-  readonly hiddenColumnIds = signal<ReadonlySet<string>>(new Set<string>());
   readonly selectedQuestionIds = signal<ReadonlySet<string>>(new Set<string>());
 
   /** Bumped when an inline edit was REFUSED, and read by the grid's `track`
@@ -332,14 +313,10 @@ export class InterviewQuestionsComponent {
     const track = this.selectedTrack();
     if (track === null) return null;
     if (track.id === null) {
-      return (
-        'This track still lives in the interviewer’s own code rather than in a row, so there is ' +
-        'nothing here to edit — and it is running interviews exactly as it is. Adding a track ' +
-        'with the same code takes it over.'
-      );
+      return 'Built-in track, not editable here. A track added with the same code takes it over.';
     }
     if (!track.editable) {
-      return 'Your grant does not reach the college this track belongs to, so it is read-only here.';
+      return 'Read-only: your access does not reach this track’s college.';
     }
     return null;
   });
@@ -356,10 +333,10 @@ export class InterviewQuestionsComponent {
     const blocked = this.trackEditBlockedReason();
     if (blocked !== null) return blocked;
     if (this.draftPersona().trim().length < MINIMUM_PERSONA_CHARS) {
-      return 'The persona is what the interviewer is told it is, so it cannot be empty.';
+      return 'Interviewer role is required.';
     }
     if (this.draftSample().trim().length < MINIMUM_SAMPLE_QUESTION_CHARS) {
-      return `The sample question needs at least ${MINIMUM_SAMPLE_QUESTION_CHARS} characters — under that it is a prompt rather than a question a student can be asked.`;
+      return `Sample question needs at least ${MINIMUM_SAMPLE_QUESTION_CHARS} characters.`;
     }
     return null;
   });
@@ -443,17 +420,6 @@ export class InterviewQuestionsComponent {
     return 'Clear the search to reorder — the order covers the whole track';
   });
 
-  /** Tick, #, Phase, Question and the actions are always drawn; the other
-   *  three can be put away, and the empty row has to span whatever is left. */
-  readonly columnCount = computed(() => {
-    const alwaysDrawn = 5;
-    let optional = 0;
-    for (const column of OPTIONAL_COLUMNS) {
-      if (this.isColumnVisible(column.id)) optional += 1;
-    }
-    return alwaysDrawn + optional;
-  });
-
   readonly addToggleLabel = computed(() => (this.addFormOpen() ? 'Close' : 'Add question'));
   readonly addToggleIcon = computed(() => (this.addFormOpen() ? 'close' : 'add'));
 
@@ -475,10 +441,6 @@ export class InterviewQuestionsComponent {
   trackDotClass(trackKey: string): string {
     const colour = TRACK_DOT_CLASS[trackKey] ?? '';
     return `bank-dot ${colour}`.trim();
-  }
-
-  isColumnVisible(columnId: string): boolean {
-    return !this.hiddenColumnIds().has(columnId);
   }
 
   isRowSelected(question: BankQuestion): boolean {
@@ -581,7 +543,7 @@ export class InterviewQuestionsComponent {
       this.selectedTrackKey.set(created);
       this.syncTrackDraft();
       this.trackWarnings.set(result.warnings ?? []);
-      this.flash.set('Track created. It has no questions yet — add some below.');
+      this.flash.set('Track created.');
       await this.loadQuestions();
     });
   }
@@ -593,10 +555,7 @@ export class InterviewQuestionsComponent {
   async removeTrack(): Promise<void> {
     const track = this.selectedTrack();
     if (track === null || track.id === null || !this.canEditTrack() || this.busy()) return;
-    const confirmed = confirm(
-      `Remove the ${track.label} track? Its questions stay in the bank. A track any student has ` +
-        'already been interviewed on cannot be removed — untick “Offered to students” instead.',
-    );
+    const confirmed = confirm(`Remove the ${track.label} track? Its questions stay in the bank.`);
     if (!confirmed) return;
     await this.whileBusy(async () => {
       const response = await fetch(
@@ -607,7 +566,7 @@ export class InterviewQuestionsComponent {
       this.trackWarnings.set([]);
       await this.loadTracks();
       this.syncTrackDraft();
-      this.flash.set('Track removed. Its questions are still in the bank.');
+      this.flash.set('Track removed.');
       await this.loadQuestions();
     });
   }
@@ -721,7 +680,7 @@ export class InterviewQuestionsComponent {
       // the grid as though the bank held it.
       this.refreshRows();
       this.error.set(
-        `A question needs at least ${MINIMUM_QUESTION_CHARS} characters. The question has been put back as it was.`,
+        `A question needs at least ${MINIMUM_QUESTION_CHARS} characters. Put back as it was.`,
       );
       return;
     }
@@ -748,9 +707,7 @@ export class InterviewQuestionsComponent {
   }
 
   async removeQuestion(question: BankQuestion): Promise<void> {
-    const confirmed = confirm(
-      'Remove this question from the bank? Students will no longer be asked it.',
-    );
+    const confirmed = confirm('Remove this question?');
     if (!confirmed) return;
     await this.whileBusy(async () => {
       const response = await fetch(
@@ -793,26 +750,6 @@ export class InterviewQuestionsComponent {
 
   goToNextPage(): void {
     this.pageIndex.set(Math.min(this.pageCount() - 1, this.currentPage() + 1));
-  }
-
-  toggleDensity(): void {
-    this.isCompact.update((compact) => !compact);
-  }
-
-  toggleColumnsPanel(): void {
-    this.columnsPanelOpen.update((open) => !open);
-  }
-
-  toggleColumn(columnId: string): void {
-    this.hiddenColumnIds.update((hidden) => {
-      const next = new Set(hidden);
-      if (next.has(columnId)) {
-        next.delete(columnId);
-      } else {
-        next.add(columnId);
-      }
-      return next;
-    });
   }
 
   toggleRowSelection(question: BankQuestion): void {
@@ -933,13 +870,13 @@ export class InterviewQuestionsComponent {
   private bulkFlashFor(addedCount: number, skippedCount: number): string {
     const added = `${plural(addedCount, 'question')} added.`;
     if (skippedCount === 0) return added;
-    return `${added} ${plural(skippedCount, 'line')} skipped — see below.`;
+    return `${added} ${plural(skippedCount, 'line')} skipped.`;
   }
 
   private selectionFlashFor(count: number, enabled: boolean): string {
     const questions = plural(count, 'question');
     if (enabled) return `${questions} enabled.`;
-    return `${questions} paused — they stay in the bank and are left out of interviews.`;
+    return `${questions} paused.`;
   }
 
   private async whileBusy(work: () => Promise<void>): Promise<void> {

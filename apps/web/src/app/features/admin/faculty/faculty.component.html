@@ -67,11 +67,11 @@
          It greys out when the assignment list was refused, because filtering on
          a fact nobody could read would quietly hide people. -->
     <div class="select" [class.is-muted]="!mentorGroupsAreReadable()">
-      <span class="lbl">Function</span>
+      <span class="lbl">Mentor group</span>
       <span class="val">{{ functionFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select
-        aria-label="Function"
+        aria-label="Mentor group"
         [disabled]="!mentorGroupsAreReadable()"
         [title]="mentorGroupsAreReadable() ? '' : 'The mentor assignment list could not be read with this account’s access.'"
         (change)="setFunctionFilter(selectValue($event))"
@@ -106,7 +106,7 @@
   @if (!isLoading() && !directoryRefused() && !mentorGroupsAreReadable()) {
     <div class="notice warn" role="status">
       <span class="icon" aria-hidden="true">warning</span>
-      The mentor groups could not be read with this account’s access, so Functions reads
+      The mentor groups could not be read with this account’s access, so Mentor group reads
       “{{ notReadable }}”.
     </div>
   }
@@ -249,7 +249,7 @@
 
         <div class="tabs">
           <button type="button" class="tab" [class.active]="activeTab() === 'profile'" (click)="showTab('profile')">Profile</button>
-          <button type="button" class="tab" [class.active]="activeTab() === 'functions'" (click)="showTab('functions')">Functions</button>
+          <button type="button" class="tab" [class.active]="activeTab() === 'functions'" (click)="showTab('functions')">Access</button>
           <button type="button" class="tab" [class.active]="activeTab() === 'sessions'" (click)="showTab('sessions')">Sessions</button>
         </div>
 

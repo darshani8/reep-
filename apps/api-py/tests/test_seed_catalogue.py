@@ -26,6 +26,7 @@ from app import seed_catalogue as sc
 from app.db import SessionLocal
 from app.interview_matrix import SPECIALIZATIONS
 from app.models.cohort import Cohort
+from app.models.job import DegreeLevel
 from app.models.institution import (
     AcademicCourse,
     AcademicSpecialization,
@@ -169,9 +170,10 @@ def _throwaway() -> sc.Catalogue:
             sc.Course(
                 code="gen",
                 name="General",
+                degree_level=DegreeLevel.PG,
                 specializations=(sc.Spec(code="hr", name="Human Resources"),),
             ),
-            sc.Course(code="solo", name="Solo Programme"),
+            sc.Course(code="solo", name="Solo Programme", degree_level=DegreeLevel.UG),
         ),
         batches=("2025-27",),
     )
@@ -264,6 +266,68 @@ def test_a_leaf_without_a_specialization_still_gets_a_batch(swept) -> None:
         assert row is not None
         assert row.specialization_id is None
         assert row.course_id is not None
+        # The three NOT NULL columns the first version of this module omitted.
+        assert row.degree_level is DegreeLevel.UG, "the course's own level, not a default"
+        assert row.start_date is not None and row.end_date is not None
+        assert row.start_date < row.end_date
+
+
+# ------------------------------------------- the columns CI caught me missing --
+
+
+def test_every_course_declares_a_degree_level() -> None:
+    """`cohorts.degree_level` is NOT NULL, and it is not bookkeeping.
+
+    CAUGHT BY CI, not by reading: the first version of this module omitted it
+    and every batch insert failed. But the insert failing is the SMALL half --
+    the column gates which vacancies a batch sees (`models/cohort.py`'s first
+    line), so a value defaulted here rather than declared would have shown a
+    cohort somebody else's jobs, with nothing on any screen to explain it.
+    There is deliberately no default on `Course`, so a new college cannot be
+    added without someone stating this.
+    """
+    for cat in sc.CATALOGUES.values():
+        for course in cat.courses:
+            assert isinstance(course.degree_level, DegreeLevel), course
+
+
+def test_an_mba_is_postgraduate() -> None:
+    """Every BGSCET course is an MBA, so every one of them is PG."""
+    assert all(c.degree_level is DegreeLevel.PG for c in BGSCET.courses)
+
+
+def test_batch_dates_span_the_label() -> None:
+    start, end = sc.batch_dates("2025-27")
+    assert (start.year, start.month, start.day) == (2025, 7, 1)
+    assert (end.year, end.month, end.day) == (2027, 6, 30)
+
+
+def test_a_four_digit_end_year_reads_the_same() -> None:
+    assert sc.batch_dates("2025-2027") == sc.batch_dates("2025-27")
+
+
+def test_the_end_is_the_day_before_the_year_would_restart() -> None:
+    """Subtracting a day rather than naming month-1, so the convention can be
+    moved to January without the arithmetic becoming month zero."""
+    start, end = sc.batch_dates("2025-27")
+    assert (end + __import__("datetime").timedelta(days=1)).month == start.month
+
+
+@pytest.mark.parametrize("bad", ["2025", "abc-27", "2025-2025", "2025-2099", ""])
+def test_a_label_that_is_not_a_programme_is_refused(bad: str) -> None:
+    """A batch carrying dates nobody meant is worse than one that failed to
+    write: status filters, promotion and graduation all read them, and nothing
+    on screen would say the span came from a parse that gave up."""
+    with pytest.raises(ValueError):
+        sc.batch_dates(bad)
+
+
+def test_every_declared_batch_label_parses() -> None:
+    """The labels in this file are the ones that will actually be written."""
+    for cat in sc.CATALOGUES.values():
+        for label in cat.batches:
+            start, end = sc.batch_dates(label)
+            assert start < end
 
 
 # ------------------------------------------------------------------- the CLI --
@@ -274,3 +338,53 @@ def test_an_unknown_college_is_refused_rather_than_defaulted() -> None:
     unpicks by hand -- there is no destructor for one."""
     assert sc.main(["--college", "NOPE"]) == 2
     assert sc.main([]) == 2
+
+
+def test_every_required_cohort_column_is_supplied() -> None:
+    """THE GUARD THAT WOULD HAVE CAUGHT THIS BEFORE CI DID.
+
+    The first version of this module supplied five of `cohorts`' required
+    columns. CI found it, but only by failing an INSERT -- which names whichever
+    column Postgres reached first (`degree_level`) and said nothing about
+    `start_date` and `end_date`, so fixing what the error named would have left
+    two still missing and cost a second round.
+
+    This reads the requirement off `Cohort.__table__` instead of restating it,
+    so it cannot go stale: a column added to that table with no default fails
+    HERE, in the `api` job, naming itself. `cohorts` has already grown
+    `degree_level` and `status` in separate rounds, which is the evidence that
+    it will grow again.
+
+    A column with a Python-side or server-side default is excluded on purpose --
+    the row is valid without it, which is what a default means.
+    """
+    cat = sc.CATALOGUES["1MP"]
+    course, spec = sc.leaves(cat)[0]
+    supplied = set(
+        sc.cohort_fields(cat, course, spec, "2025-27", "dep", "crs", "spc")
+    )
+    required = {
+        c.name
+        for c in Cohort.__table__.columns
+        if not c.nullable
+        and c.default is None
+        and c.server_default is None
+        and not c.primary_key
+    }
+    missing = required - supplied
+    assert not missing, (
+        f"seed_catalogue.cohort_fields does not supply {sorted(missing)}, which "
+        "cohorts requires. Every batch insert would fail -- and the error names "
+        "only the first one Postgres reaches."
+    )
+
+
+def test_the_supplied_fields_are_all_real_columns() -> None:
+    """The other direction: a typo'd key is a TypeError at `Cohort(**fields)`,
+    raised inside a transaction with the real cause several frames up."""
+    cat = sc.CATALOGUES["1MP"]
+    course, spec = sc.leaves(cat)[0]
+    supplied = set(
+        sc.cohort_fields(cat, course, spec, "2025-27", "dep", "crs", "spc")
+    )
+    assert not supplied - {c.name for c in Cohort.__table__.columns}

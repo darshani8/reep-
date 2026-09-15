@@ -1,4 +1,4 @@
-"""Leave notifications (B10.5) — and they SHIP OFF.
+"""Leave notifications (B10.5) — and the DEFAULT is off, not the deployment.
 
 One function, `notify_transition(db, lr)`, which mails the APPLICANT that their
 request has moved. Three transitions are worth a message and they are the three
@@ -6,16 +6,24 @@ request has moved. Three transitions are worth a message and they are the three
 it.
 
 ==============================================================================
-OFF BY DEFAULT, AND THE DEFAULT IS THE DESIGN
+OFF BY DEFAULT, AND THE DEFAULT IS ABOUT THE TRANSPORT, NOT ABOUT THE FEATURE
 ==============================================================================
 
-`settings.leave_mail_enabled` is false, and until B3.7 (SES in production) ships
-it must stay false on every deployment. With `SES_FROM_ADDRESS` blank —
-which is every machine this has ever run on — `mail_transport.send` logs the
-message and appends it to a bounded in-memory `outbox` that reaches NOBODY. A
-notification switched on over that transport writes a `mail_logs` row reading
-SENT for a message the applicant never received, and that row is the only thing
-anybody looks at afterwards. It is the exact shape of the failure that killed
+`settings.leave_mail_enabled` defaults to false. It used to say here that it
+must stay false on EVERY deployment until B3.7 (SES in production) shipped.
+B3.7 shipped on 2026-09-15 — the api task carries a real `SES_FROM_ADDRESS`,
+the identity is verified and the account holds production access — so
+production sets `LEAVE_MAIL_ENABLED=true` from the task definition (infra/cdk's
+`leaveMailEnabled`, which the CDK app refuses to synthesise without a sender,
+so the switch cannot get ahead of the transport).
+
+The default stays false because of what it protects, which was never
+production: a machine with `SES_FROM_ADDRESS` blank — every development box,
+every CI run — where `mail_transport.send` logs the message and appends it to a
+bounded in-memory `outbox` that reaches NOBODY. A notification switched on over
+THAT transport writes a `mail_logs` row reading SENT for a message the
+applicant never received, and that row is the only thing anybody looks at
+afterwards. It is the exact shape of the failure that killed
 `PENDING_VERIFICATION`: a step nobody could pass, reported as a step that
 worked.
 

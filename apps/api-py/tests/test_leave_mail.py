@@ -2,14 +2,18 @@
 
 Four things, and the first is the one that matters most.
 
-1. OFF BY DEFAULT. B3.7 (SES in production) has not shipped, so
-   `mail_transport.send` logs the message into a bounded in-memory `outbox` that
-   reaches NOBODY. A notification switched on over that transport writes a
-   `mail_logs` row reading SENT for a message the applicant never received — and
-   that row is the only thing anyone looks at afterwards. It is the shape of the
-   failure that killed `PENDING_VERIFICATION`, and `test_it_is_off_by_default`
-   is what keeps the default honest. No screen may say "the applicant has been
-   emailed" while it is false.
+1. OFF BY DEFAULT — the DEFAULT, which is not the same as the deployment. B3.7
+   shipped on 2026-09-15 and production now sets `LEAVE_MAIL_ENABLED=true` from
+   the task definition over a verified SES identity. What the default protects
+   is a machine WITHOUT a transport: with `SES_FROM_ADDRESS` blank, which is
+   every development box and every run of this suite, `mail_transport.send`
+   logs the message into a bounded in-memory `outbox` that reaches NOBODY, so a
+   notification switched on there writes a `mail_logs` row reading SENT for a
+   message the applicant never received — and that row is the only thing anyone
+   looks at afterwards. It is the shape of the failure that killed
+   `PENDING_VERIFICATION`, and `test_it_is_off_by_default` is what keeps the
+   default honest. No screen may say "the applicant has been emailed" while it
+   is false.
 2. THE `reason` NEVER TRAVELS. It is the form's "Purpose" cell — free text,
    routinely medical, the whole subject of rule 2's fence over this area. The
    tests below search the entire outbound message, subject and body, for the
@@ -77,8 +81,10 @@ def test_it_is_off_by_default_and_writes_nothing(request_row):
     """The state of every deployment until an operator turns it on WITH a
     transport behind it."""
     assert settings.leave_mail_enabled is False, (
-        "B3.7 has not shipped; mail turned on here lands in an in-memory outbox "
-        "and the MailLog row says SENT about a message nobody received"
+        "the DEFAULT must stay off: this suite runs with no transport, so mail "
+        "turned on here lands in an in-memory outbox and the MailLog row says "
+        "SENT about a message nobody received. Production turns it on through "
+        "the task definition, over a transport that exists."
     )
     with SessionLocal() as db:
         assert notify_transition(db, _load(db, request_row)) is None

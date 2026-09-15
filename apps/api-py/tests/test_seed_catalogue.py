@@ -26,6 +26,8 @@ from app import seed_catalogue as sc
 from app.db import SessionLocal
 from app.interview_matrix import SPECIALIZATIONS
 from app.models.cohort import Cohort
+from sqlalchemy.exc import IntegrityError
+
 from app.models.job import DegreeLevel
 from app.models.institution import (
     AcademicCourse,
@@ -388,3 +390,83 @@ def test_the_supplied_fields_are_all_real_columns() -> None:
         sc.cohort_fields(cat, course, spec, "2025-27", "dep", "crs", "spc")
     )
     assert not supplied - {c.name for c in Cohort.__table__.columns}
+
+
+# ------------------------------------------------------ the select/insert race --
+
+
+class _FakeNested:
+    """A `begin_nested()` context manager. Does not swallow the exception."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class _RacingSession:
+    """A session where somebody else inserts between our SELECT and our INSERT.
+
+    `scalar` answers None first (nothing there yet) and a row afterwards (the
+    other run committed), and `flush` raises the unique-constraint error.
+    """
+
+    def __init__(self, second_answer):
+        self.answers = [None, second_answer]
+        self.rolled_back_to_savepoint = False
+
+    def scalar(self, *_a, **_k):
+        return self.answers.pop(0) if self.answers else None
+
+    def begin_nested(self):
+        self.rolled_back_to_savepoint = True
+        return _FakeNested()
+
+    def add(self, _row):
+        pass
+
+    def flush(self):
+        raise IntegrityError("INSERT", {}, Exception("duplicate key"))
+
+
+def test_losing_the_race_returns_the_other_runs_row() -> None:
+    """Two runs both find nothing and both insert; the loser must not crash.
+
+    The Ops task serialises its own button (`concurrency: ops-task`), but this
+    module is runnable as a one-off ECS task with a command override, which
+    nothing serialises -- and this file's docstring promises idempotency without
+    that caveat.
+    """
+    winner = object()
+    db = _RacingSession(winner)
+    row, created = sc._get_or_create(db, College, College.code == "X", code="X", name="X")
+    assert row is winner
+    assert created is False
+
+
+def test_the_insert_is_wrapped_in_a_savepoint() -> None:
+    """NOT a bare try/except, and this is the whole reason the fix is eight
+    lines rather than three.
+
+    Postgres ABORTS a transaction on error and refuses every later statement in
+    it, so catching IntegrityError and re-querying inside the same transaction
+    raises again -- code that looks like recovery and turns one clear failure
+    into a confusing one. `begin_nested()` issues a SAVEPOINT so the rollback
+    undoes only the failed INSERT.
+    """
+    db = _RacingSession(object())
+    sc._get_or_create(db, College, College.code == "X", code="X", name="X")
+    assert db.rolled_back_to_savepoint, "the insert ran outside a savepoint"
+
+
+def test_an_integrity_error_that_is_not_the_race_is_re_raised() -> None:
+    """A re-select finding NOTHING means we did not lose a race.
+
+    Some other constraint fired -- a `cohorts.code` collision with another
+    college's batch, say -- and reporting that as "already existed" would hide
+    exactly the mistake worth catching.
+    """
+    db = _RacingSession(None)
+    with pytest.raises(IntegrityError):
+        sc._get_or_create(db, College, College.code == "X", code="X", name="X")

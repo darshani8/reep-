@@ -448,14 +448,16 @@
         } @else if (selectedCount() > 1) {
           <div class="notice accent" role="status">
             <span class="icon" aria-hidden="true">info</span>
-            {{ selectedCount() | plural: 'interview' }} selected,
-            {{ selectedRecordedCount() }} with a recording. Download them together, or tick a
-            single row to open its record.
+            <div>
+              {{ selectedCount() | plural: 'interview' }} selected, {{ selectedRecordedCount() }} with a recording.
+            </div>
           </div>
         } @else {
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
-            Tick one interview to read its report, its transcript and the consent it ran under.
+            <div>
+              Tick one interview to open it.
+            </div>
           </div>
         }
       </section>
@@ -495,7 +497,9 @@
         } @else {
           <div class="notice accent">
             <span class="icon" aria-hidden="true">insights</span>
-            Open one interview to draw that student's score across every interview they have taken.
+            <div>
+              Open one interview to draw that student’s scores.
+            </div>
           </div>
         }
       </section>
@@ -549,19 +553,13 @@
 
         <div class="notice accent">
           <span class="icon" aria-hidden="true">shield_person</span>
-          <span>
+          <div>
             @if (policySheet(); as sheet) {
-              These are {{ sheet.college_name }}’s numbers, read from its interview policy. A
-              downloaded recording leaves the clock behind entirely: it is a student’s voice on
-              your machine.
+              These are {{ sheet.college_name }}’s numbers.
             } @else {
-              {{ retentionDays }} days is the PRODUCT DEFAULT
-              (<code>INTERVIEW_RETENTION_DAYS</code>). A college can set its own, and the panel
-              below reads the numbers actually in force there — until one is open this card names
-              the default rather than stating a figure it has not read. A downloaded recording
-              leaves the clock behind entirely: it is a student’s voice on your machine.
+              {{ retentionDays }} days is the default until a college sets its own.
             }
-          </span>
+          </div>
         </div>
 
         @if (policyOpen()) {
@@ -645,13 +643,9 @@
               } @else {
                 <div class="notice accent" role="status">
                   <span class="icon" aria-hidden="true">info</span>
-                  <span>
-                    Not configured. No policy row exists for this college, and that is a real state
-                    rather than a missing one: a deployment that never opens this panel behaves
-                    exactly as it did before the table existed. The numbers below are the ones
-                    actually in force here today — the deployment’s own defaults. Saving creates
-                    this college’s first row.
-                  </span>
+                  <div>
+                    Not configured. The numbers below are the deployment’s defaults; saving creates this college’s own.
+                  </div>
                 </div>
               }
 

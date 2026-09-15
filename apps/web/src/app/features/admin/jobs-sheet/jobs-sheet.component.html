@@ -168,14 +168,9 @@
 
   <div class="notice accent jobs-gaps">
     <span class="icon" aria-hidden="true">info</span>
-    <span>
-      <b>Only “Withdrawn” takes a posting off the student and alumni boards.</b> Those feeds read
-      the posting’s open-or-withdrawn state and never its closing date, so a row reading “Past
-      deadline” is still being applied to — close it to take it down, which keeps every
-      application against it. CTC reads “{{ notReadable }}” and “Applied” is the applicant count
-      alone rather than the board’s “6 / 13”: nothing in REEP records a posting’s pay or its
-      number of openings, and no backend task adds either.
-    </span>
+    <div>
+      Only <b>Close posting</b> takes a posting off the student and alumni boards; a posting past its deadline is still open to applications.
+    </div>
   </div>
 
   <div class="jobs-body">
@@ -509,12 +504,9 @@
 
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          <span>
-            Publishing puts the opening on the student and alumni boards at once. Once anyone has
-            applied it can no longer be removed — tick it in the sheet and use <b>Close posting</b>
-            instead, which takes it off both boards and keeps every application against it. There
-            is no reopen: a posting closed by mistake is published again.
-          </span>
+          <div>
+            Publishing puts the opening on the student and alumni boards. Once anyone has applied it can only be closed, not removed; there is no reopen.
+          </div>
         </div>
 
         @if (formError()) {

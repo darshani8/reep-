@@ -28,11 +28,9 @@
     <div class="dialog-body">
       <div class="notice accent">
         <span class="icon" aria-hidden="true">schedule</span>
-        <span>
-          The sweep that raises alerts is <code>python -m app.alerts_job</code>. It is complete and
-          it runs on demand; <b>no nightly schedule is deployed for it yet</b>, so what you save
-          here changes what the next run finds, not what appears tonight.
-        </span>
+        <div>
+          Saved rules apply at the next alert check.
+        </div>
       </div>
 
       @if (error()) {
@@ -168,11 +166,9 @@
 
       <div class="notice accent">
         <span class="icon" aria-hidden="true">info</span>
-        <span>
-          A rule that has been set can be switched off but not removed — there is no endpoint that
-          deletes a configuration row. "Switched off" and "Not set" are shown apart above because
-          they are different states, and neither of them raises anything.
-        </span>
+        <div>
+          A rule can be switched off but not removed.
+        </div>
       </div>
     </div>
 

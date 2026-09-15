@@ -629,17 +629,6 @@
                   </div>
                 }
 
-                <div class="notice accent">
-                  <span class="icon" aria-hidden="true">info</span>
-                  <div>
-                    There is no "semester x of N" column because a batch has no semester: the
-                    semester is a field on the STUDENT, edited on
-                    <a routerLink="/admin/students">Students &amp; batches</a> and moved for a whole
-                    batch by promotion. The N half is the course's total semesters, which nothing
-                    on this screen can set yet.
-                  </div>
-                </div>
-
                 <!-- Seating: who is in this batch, and who is in none. -->
                 @if (seatingBatch(); as sb) {
                   <div class="card seating">

@@ -216,15 +216,6 @@
           <li><span class="policy-key">Allowances</span> · recorded per person, per printed option, per academic year, behind Edit. An account with no allowance recorded is not measured against one, which is not a balance of zero.</li>
           <li><span class="policy-key">Refusing</span> · this console will not send a refusal without remarks, and the applicant reads them.</li>
         </ul>
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          The first three lines are the rule the API enforces; the fourth is this screen's own —
-          <code>POST /leaves/&hellip;/decision</code> accepts a refusal with no note, so a refusal
-          made elsewhere can still arrive wordless. There is no stored rule for WHO signs each step:
-          a second signature for staff leave exists only where the office has granted
-          <code>mentor.leave_approve</code> a scope in Governance, and until it has, a staff request
-          can reach its first signature and go no further.
-        </div>
       </div>
     </div>
 
@@ -406,10 +397,9 @@
           @if (!request.first_signed_as && hasASignature(request)) {
             <div class="notice accent">
               <span class="icon" aria-hidden="true">info</span>
-              No function is recorded against this request's signatures. It was decided before REEP
-              began recording one, and guessing it from who the signer is today would put a claim
-              about their authority onto a form somebody already signed. The paper prints the name
-              and the time alone, exactly as it always did.
+              <div>
+                No signing role was recorded for this request.
+              </div>
             </div>
           }
         </div>

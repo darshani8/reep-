@@ -113,11 +113,6 @@
       <span class="icon" aria-hidden="true">info</span>
       <div>
         <b>{{ enforcementSummary() }}</b>
-        A switch marked <i>Not wired yet</i> cannot be set at all: the API refuses a rule on it in
-        both directions, because an "on" row on a key nothing reads is as much a promise it does not
-        keep as an "off" one. Its rules can still be removed.
-        <br />
-        The list is not narrowed by college. {{ collegePickerNote }}
       </div>
     </div>
 
@@ -239,10 +234,7 @@
             <div class="notice warn">
               <span class="icon" aria-hidden="true">warning</span>
               <div>
-                Nothing in the API reads <span class="fs-code">{{ row.key }}</span> yet, so this
-                switch cannot be set — the server refuses a rule on it, on or off, rather than
-                record one that changes nothing a student sees. Any rule already here can still be
-                removed.
+                This switch is not wired yet, so it cannot be set. Existing rules can still be removed.
               </div>
             </div>
           }
@@ -529,8 +521,7 @@
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
             <div>
-              Pick a feature in the table to read its rules and switch it off for a college,
-              department, course, specialization, batch or one student.
+              Pick a feature in the table.
             </div>
           </div>
         }

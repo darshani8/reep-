@@ -65,9 +65,7 @@
           <div class="notice accent gov-note">
             <span class="icon" aria-hidden="true">how_to_reg</span>
             <div>
-              Approving makes it live. The API refuses an approval from the person who made the
-              grant — a function that shows a student's own record needs a second pair of eyes,
-              and one person doing both is not that.
+              Approving makes it live. You cannot approve a grant you made yourself.
             </div>
           </div>
         }
@@ -273,16 +271,6 @@
 
       <!-- A grant's REACH and its function's SCOPE are two different questions
            with confusingly similar names, so they are two columns. -->
-      <div class="notice accent gov-note">
-        <span class="icon" aria-hidden="true">info</span>
-        <div>
-          <strong>Function scope</strong> is what the function itself reaches — whether a mentor
-          group narrows it at all. <strong>Reach</strong> is how far this particular grant was
-          handed over: a college, department, course, specialization or batch, or everything the
-          function reaches. The College and Department filters above show every grant that
-          touches that rung, including the un-narrowed ones, because those reach it too.
-        </div>
-      </div>
 
       <div class="gov-board">
         <div class="dt-frame gov-grid-frame">
@@ -657,9 +645,7 @@
             <div class="notice warn gov-note">
               <span class="icon" aria-hidden="true">shield_person</span>
               <div>
-                This function shows a student's own record, so it needs two people. The grant is
-                written, listed and audited at once — and <strong>holds nothing</strong> until a
-                different holder of Governance approves it. You cannot approve your own.
+                This access shows a student’s own record, so another holder of Who can do what must approve it before it works.
               </div>
             </div>
           }
@@ -703,14 +689,6 @@
     <!-- =================================================== REVIEW ======= -->
     @if (tab() === 'review') {
       <div role="tabpanel" id="gov-pane-review" aria-labelledby="gov-tab-review">
-      <div class="notice accent gov-note">
-        <span class="icon" aria-hidden="true">rate_review</span>
-        <div>
-          Two lists, not one, because they need opposite actions. A grant
-          <strong>awaiting approval holds nothing</strong> and somebody is waiting on you; a
-          grant <strong>running out</strong> is working today and will stop.
-        </div>
-      </div>
 
       <section class="gov-review-block" aria-labelledby="gov-review-pending-title">
         <h2 class="gov-card-title" id="gov-review-pending-title">

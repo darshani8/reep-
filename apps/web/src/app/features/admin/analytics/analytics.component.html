@@ -186,11 +186,6 @@
         </span>
         <span>
           {{ note.note }}
-          @if (note.source === 'partial') {
-            The table that would hold that history exists, but nothing writes it on this
-            installation — there is no nightly snapshot job — so those earlier weeks will not fill
-            in on their own.
-          }
         </span>
       </div>
     }
@@ -312,8 +307,9 @@
       } @else if (alertsAreEmpty()) {
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          Nothing open. A batch with no rules set under Rules is never evaluated, so an empty feed
-          may mean nobody has set a threshold rather than that nobody is behind.
+          <div>
+            Nothing open.
+          </div>
         </div>
       } @else {
         <ul class="alert-list">

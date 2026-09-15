@@ -128,19 +128,6 @@
     </a>
   </div>
 
-  <!-- NOT A PHASE. The marks and attendance imports landed (Data imports) and
-       readiness is computed per student — but `GET /api/admin/students` does
-       not carry any of the three, and asking Student 360 once per row would be
-       one request per student on every page of the roster. So the three
-       columns stay an em dash HERE and the sentence points at the screen that
-       does answer them, rather than promising a phase that has already been. -->
-  <div class="notice accent columns-note">
-    <span class="icon" aria-hidden="true">info</span>
-    Readiness, CGPA and Attendance read “{{ notReadable }}” on this grid: the roster endpoint answers
-    identity, seating and stage, and none of those three is on it. All three are read per student on
-    Student 360 — open a row. Everything else on this grid is live.
-  </div>
-
   <div class="roster">
     <!-- ---------------------------------------------------------- grid -->
     <div class="dt-frame roster-grid">
@@ -325,8 +312,9 @@
           @case ('no-batch') {
             <div class="notice accent">
               <span class="icon" aria-hidden="true">history</span>
-              Pick one batch above to read what has been done to it. A promotion and a graduation are
-              recorded per batch, so there is no whole-roster version of this list.
+              <div>
+                Pick one batch above.
+              </div>
             </div>
           }
           @case ('loading') {
@@ -338,16 +326,18 @@
           @case ('refused') {
             <div class="notice" role="alert">
               <span class="icon" aria-hidden="true">block</span>
-              {{ promotionHistoryError() }} This is not “nothing on record” — it is a read this
-              account was refused, which happens when a grant reaches only part of the batch.
+              <div>
+                {{ promotionHistoryError() }}
+              </div>
             </div>
           }
           @default {
             @if (promotionHistory().length === 0) {
               <div class="notice accent">
                 <span class="icon" aria-hidden="true">history</span>
-                Nothing has been promoted, held back or graduated in this batch yet. A row lands here
-                the moment one is, naming the student, the move, the date and who ordered it.
+                <div>
+                  Nothing has been promoted, held back or graduated in this batch yet.
+                </div>
               </div>
             } @else {
               <ol class="history-list">

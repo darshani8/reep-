@@ -430,11 +430,7 @@
         <div class="notice accent cat-note">
           <span class="icon" aria-hidden="true">lock</span>
           <div>
-            The 48 badges are defined in code, so none can be added, edited or retired here — what
-            this screen maintains is which approved certifications count towards each, and for
-            which programme. “Claims” counts the evidence students have filed against those
-            certifications; a per-badge EARNED count is the one number on this board no endpoint
-            computes, so the column says Claims and means it.
+            Badges cannot be added or edited here. This screen decides which certifications count towards each.
           </div>
         </div>
 
@@ -969,12 +965,11 @@
                 <div class="notice accent cat-note">
                   <span class="icon" aria-hidden="true">info</span>
                   <div>
-                    Which semester of a programme sits in which stage is on the
+                    Which semester sits in which stage is on the
                     <button type="button" class="cat-linkish" (click)="setTab('stages')">
                       Stage rules
                     </button>
-                    tab. The job postings that prefer this badge and its weight in a readiness
-                    score are computed by nothing today, so neither is claimed here.
+                    tab.
                   </div>
                 </div>
               </div>
@@ -1194,9 +1189,7 @@
           <div class="notice accent cat-note">
             <span class="icon" aria-hidden="true">info</span>
             <div>
-              Read-only here. These are the tracks that run the mock interviews; their persona,
-              questions and the specialization each belongs to are edited on Interview questions and
-              Structure screens, not on this one.
+              Read-only here. Tracks are edited on Interview questions.
             </div>
           </div>
         } @else if (tracksFailed()) {

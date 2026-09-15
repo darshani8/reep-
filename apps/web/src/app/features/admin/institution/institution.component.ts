@@ -75,7 +75,6 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
@@ -224,7 +223,7 @@ const TRACKS_FAILED_NOTE =
 @Component({
   selector: 'app-admin-institution',
   standalone: true,
-  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, PluralPipe],
+  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, PluralPipe],
   templateUrl: './institution.component.html',
   styleUrl: './institution.component.scss',
 })

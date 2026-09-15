@@ -205,16 +205,6 @@
             <div class="kpi-sub">students holding more than one</div>
           </div>
         </div>
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          <span>
-            All four figures are computed over <b>every</b> offer in reach, not over the
-            twenty-five rows below — a median of a page is not a median. The CTC pair counts only
-            approved offers that state a CTC: a blank one means “not recorded” far more often than
-            it means an unpaid role, and counting blanks as zero would drag the median to the
-            floor. A dash is a figure nobody could compute, never a zero.
-          </span>
-        </div>
       </section>
 
       <section class="card side-card">
@@ -234,11 +224,9 @@
         } @else if (offerSplitUnavailable()) {
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
-            <span>
-              The waiting-offer list did not answer on this account, so how many of these offers are
-              still waiting is not known here — and "not approved" is the remainder after that number.
-              The split is withheld rather than drawn off a guess.
-            </span>
+            <div>
+              The waiting-offer count could not be read on this account, so the split is not shown.
+            </div>
           </div>
         } @else if (noOffersYet()) {
           <div class="notice accent">

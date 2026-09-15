@@ -96,26 +96,6 @@
     </div>
   }
 
-  <div class="notice accent">
-    <span class="icon" aria-hidden="true">info</span>
-    <span>
-      <b>An absent event means "not recorded", never "did not happen".</b> The trail is written by
-      the routers that call <code>architecture_events.record_change</code> — governance grants and
-      access groups, feature switches, registration decisions, faculty accounts, student and batch
-      edits, mentor assignment, SWOC entries, the question bank, the mentor notebook, account
-      actions such as sign-out-everywhere, and every CSV download — and it stores the actor, the
-      route, the entity and the whole before → after pair. Nothing else writes a row: a sign-in and
-      a leave decision leave no trace here. Reading this page records nothing; downloading the
-      export records itself. The trail is <b>not scoped to a college</b> — an audit row carries no
-      college, so the Main Admin sees every event and the College filter beside these is inert.
-      <br />
-      One gap to know about while reading the Action filter: the mentor-notebook actions
-      (<code>{{ unfilterableActions.join(', ') }}</code>) are stored in lower case and the endpoint
-      upper-cases whatever this filter sends, so those rows can be listed and opened but not
-      filtered by action.
-    </span>
-  </div>
-
   <div class="board-columns">
     <section class="card grid-card">
       <div class="dt-gridbar">

@@ -26,9 +26,9 @@ A table in the metadata that nobody classified ABORTS THE RUN — it is not
 quietly kept (which would leave a student's records behind) and not quietly
 emptied (which would destroy a catalogue somebody added last week). The next
 person to add a table is made to decide, by a test that fails in CI and by this
-module refusing to run. That is the whole reason the verdicts are a dict of 110
+module refusing to run. That is the whole reason the verdicts are a dict of 111
 entries — one per table, `len(VERDICTS)` — rather than a pair of prefixes and a
-`startswith`. (109 is the table count; the 180 below is the foreign-key count.
+`startswith`. (111 is the table count; the 180 below is the foreign-key count.
 They were both written as "93" for months, which is how a stale number spreads.)
 
 SECOND, THE FILES GO BEFORE THE ROWS. A row is the last pointer to a student's
@@ -63,7 +63,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, inspect as sa_inspect, select, table as sa_table, update
 from sqlalchemy.orm import Session
 
 from .db import Base, SessionLocal
@@ -319,7 +319,40 @@ VERDICTS: dict[str, str] = {
     "export_events": KEEP,
     "redesign_domain_jobs": EMPTY,
     "redesign_api_idempotency_keys": EMPTY,
+    # -- a migration's receipt, which HAS no model ---------------------------
+    # `students_orphaned_cohort_ids` is a rescue table written by migration
+    # `d5a1c8b30f47` before it nulled a batch of unresolvable `cohort_id`s, so
+    # that an operator could put them back. It has no model BY DESIGN (see
+    # `_PRESERVED_DATA_TABLES` in migrations/env.py: it is an operator's
+    # receipt, not part of the schema) and it is therefore the one table the
+    # model-driven sweep below could not see.
+    #
+    # EMPTY, because it is a receipt ABOUT STUDENTS: every row is a
+    # `students.id` beside the batch that student was in. Once this module has
+    # run there is no student left for it to describe, so keeping it would
+    # leave a list of the identifiers of people a purge was asked to remove —
+    # in the one table nobody thought to look at, because it is not in
+    # `app/models/`.
+    "students_orphaned_cohort_ids": EMPTY,
 }
+
+#: Tables that exist in the database but have NO MODEL, mirroring
+#: `_PRESERVED_DATA_TABLES` in `migrations/env.py`.
+#:
+#: WHY THIS LIST HAS TO EXIST HERE TOO. Every other reader in this module walks
+#: `Base.metadata`, which is the models — so a table a MIGRATION created is
+#: invisible to all of them: to the delete pass, which would silently leave its
+#: rows; and to `check_verdicts`, whose "a table nobody classified ABORTS THE
+#: RUN" promise was only ever true of tables somebody had written a model for.
+#: That is the narrower promise the module docstring used to make without
+#: saying so.
+#:
+#: `check_verdicts(db)` now also asks the LIVE DATABASE what tables it has, so
+#: a preserved table nobody added here is still caught — at runtime, by the
+#: refusal, rather than by trusting this tuple to be complete. This list is what
+#: keeps the same check honest with no database in hand (the unit tests), and
+#: what puts the rescue tables into the delete order.
+PRESERVED_DATA_TABLES: tuple[str, ...] = ("students_orphaned_cohort_ids",)
 
 #: `table -> column` holding a document_store name. The bytes live on the EFS
 #: volume and no database delete touches them, so these are collected and
@@ -366,20 +399,66 @@ class Plan:
         return sum(self.rows.values())
 
 
+def table_for(name: str):
+    """The Core object to count or delete rows in `name` with.
+
+    A preserved rescue table has no model, so `Base.metadata.tables` cannot
+    answer for it. A bare `TableClause` can, and is enough: everything either
+    destructor does to such a table is WHOLE-TABLE — `SELECT count(*)` and
+    `DELETE FROM` — and needs no column to be declared. Anything that does need
+    a column (a scope, a nulled FK) is refused for these tables where it is
+    written, not silently approximated here.
+    """
+    mapped = Base.metadata.tables.get(name)
+    return mapped if mapped is not None else sa_table(name)
+
+
 def _tables_in_delete_order():
     """Children first. `sorted_tables` is topological with parents first, which
-    is the order to CREATE in; deleting wants the reverse."""
-    return list(reversed(Base.metadata.sorted_tables))
+    is the order to CREATE in; deleting wants the reverse.
+
+    The preserved rescue tables come FIRST and are `TableClause`s rather than
+    mapped tables, because they have no model to map. First is safe and not
+    merely convenient: a rescue table is written by `CREATE TABLE ... AS`, so it
+    carries no foreign keys in either direction — nothing references it and it
+    references nothing — which puts it outside the topological order entirely
+    rather than somewhere in it.
+    """
+    preserved = [table_for(name) for name in PRESERVED_DATA_TABLES]
+    return preserved + list(reversed(Base.metadata.sorted_tables))
 
 
-def check_verdicts() -> None:
+def known_tables(db: Session | None = None) -> set[str]:
+    """Every table this module must have a verdict for.
+
+    THE MODELS ARE NOT THE SCHEMA, which is the assumption this used to make.
+    `Base.metadata` is what `app/models/` declares; a table created by a
+    MIGRATION and deliberately given no model — see `PRESERVED_DATA_TABLES` —
+    is not in it, so the "a table nobody classified ABORTS THE RUN" promise
+    silently did not cover exactly the tables nobody was maintaining a model
+    for. `students_orphaned_cohort_ids` sat outside both destructors that way.
+
+    So: the models, plus the preserved tables named above, plus — when a
+    connection is in hand, which it always is on the path that actually
+    destroys anything — WHAT THE DATABASE ITSELF REPORTS. The last of those is
+    the one that cannot go stale, and it is why a second rescue table added by
+    a future migration is refused rather than skipped even if nobody thinks to
+    update the tuple.
+    """
+    known = {t.name for t in Base.metadata.sorted_tables} | set(PRESERVED_DATA_TABLES)
+    if db is not None:
+        known |= set(sa_inspect(db.get_bind()).get_table_names())
+    return known - {"alembic_version"}
+
+
+def check_verdicts(db: Session | None = None) -> None:
     """Every table classified, and no verdict for a table that is gone.
 
     Pinned by tests/test_purge_people.py so the failure lands in CI rather than
     on a production console at the moment somebody is trying to hand a
     deployment over.
     """
-    known = {t.name for t in Base.metadata.sorted_tables}
+    known = known_tables(db)
     unclassified = sorted(known - set(VERDICTS) - {"alembic_version"})
     if unclassified:
         raise PurgeRefused(
@@ -423,7 +502,10 @@ def find_survivor(db: Session) -> tuple[str, str]:
 
 
 def build_plan(db: Session) -> Plan:
-    check_verdicts()
+    # WITH the connection: this is the path that ends in a delete, so the
+    # question "is every table in this database classified" must be asked of
+    # the database and not of `app/models/`.
+    check_verdicts(db)
     survivor_id, survivor_email = find_survivor(db)
     plan = Plan(survivor_id=survivor_id, survivor_email=survivor_email)
 

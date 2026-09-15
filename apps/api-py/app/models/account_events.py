@@ -21,7 +21,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, func, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -95,7 +96,17 @@ class ExportEvent(Base):
     #: The query that decided which rows left the building. JSON because the
     #: filters differ per extract and a column per filter would be a migration
     #: every time one is added — which is how the record stops being kept.
-    filters: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    #:
+    #: `JSONB` and not `JSON` (e1c4b7a209d6): the natural question to ask an
+    #: audit column is "which exports carried this filter", and `json` stores
+    #: raw text — no containment, no GIN index, and not even an equality
+    #: operator, so `SELECT DISTINCT filters` is an error rather than an answer.
+    #: The `server_default` is declared here because the database has carried one
+    #: since this column was created and the model never said so; `alembic check`
+    #: does not compare server defaults, so the two disagreed silently.
+    filters: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
+    )
     #: How many rows. The number that makes "an export happened" into "an export
     #: of 412 students happened", which is the difference between a log line and
     #: a fact somebody can act on.

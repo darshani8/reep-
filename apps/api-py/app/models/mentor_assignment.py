@@ -61,7 +61,7 @@ not be able to say the second.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -82,6 +82,19 @@ END_FACULTY_DISABLED = "faculty_disabled"  # the faculty account was offboarded
 
 OPEN_KINDS: tuple[str, ...] = (KIND_ASSIGN, KIND_REASSIGN)
 END_KINDS: tuple[str, ...] = (END_RELEASE, END_REASSIGN, END_FACULTY_DISABLED)
+
+#: Stamped by migration `e1c4b7a209d6` on a spell it closed because a SECOND
+#: open spell existed for that student -- which the writer's read-then-write
+#: could produce under concurrency until `uq_mentor_assignment_one_open_spell`
+#: forbade it.
+#:
+#: DELIBERATELY NOT IN `END_KINDS`. That tuple is the vocabulary of human acts,
+#: and no operator ever released, reassigned or offboarded anybody here; a
+#: repair that borrowed one of those words would put a decision in somebody's
+#: mouth on the screen that reports it. A reader that renders `END_KINDS` and
+#: nothing else should show this spell as closed without a reason it can name,
+#: which is the truth.
+END_DUPLICATE_OPEN = "duplicate_open"
 
 #: 04's four, as one set, for the API edge and for anybody grepping the spec.
 ASSIGNMENT_KINDS: tuple[str, ...] = (
@@ -116,6 +129,31 @@ class MentorAssignment(Base):
         # question. Same shape for the mentor side.
         Index("ix_mentor_assignment_student_open", "student_id", "to_at"),
         Index("ix_mentor_assignment_mentor_open", "mentor_id", "to_at"),
+        # ONE OPEN SPELL PER STUDENT, as a constraint and not a sentence
+        # (e1c4b7a209d6). The paragraph above says `to_at IS NULL` is what makes
+        # "one open row per current pair" checkable by a query; nothing checked
+        # it, and Postgres accepted a second open row for the same student.
+        #
+        # `record_mentor_change` reads the open row, closes it, opens the next --
+        # a read-then-write, so two concurrent assignments for one student both
+        # see no open row and both insert. The console posts one request per
+        # ticked student on a batch save, which is that shape exactly.
+        #
+        # PARTIAL, and the predicate is the whole point: a plain
+        # `UNIQUE (student_id, to_at)` permits this duplicate rather than
+        # forbidding it, because NULLs are distinct in Postgres, so the pairs
+        # (student, NULL) and (student, NULL) do not collide. Same shape as
+        # `uq_interview_consent_active` and the three other "one live row" rules.
+        #
+        # Declared here as well as in the migration: an index that exists only in
+        # a migration is drift, and `alembic check` asking to drop it every run is
+        # how a real drop goes unnoticed.
+        Index(
+            "uq_mentor_assignment_one_open_spell",
+            "student_id",
+            unique=True,
+            postgresql_where=text("to_at IS NULL"),
+        ),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)

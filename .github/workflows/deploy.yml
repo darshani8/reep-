@@ -78,16 +78,69 @@ jobs:
       # Tagged with the commit AND latest: `latest` is what the task definition
       # references (so the migration task below picks up this build), and the
       # sha tag is what makes "which commit is live" answerable afterwards.
+      # MULTI-ARCH, and the arm64 half is what makes `-c apiArm64=true` possible
+      # (reep_core/stack.py, docs/cost-review-2026-09.md): Graviton Fargate is
+      # ~20% cheaper for the same vCPU and the same memory.
+      #
+      # BOTH architectures, never arm64 alone. The manifest is what makes the
+      # switch reversible: rolling back is the CDK flag on its own, with no
+      # rebuild and no retag, because the image ECS pulls already answers for
+      # either platform. An arm64-only image would have been one line shorter
+      # and would have made the rollback a release.
+      #
+      # QEMU rather than a native arm64 runner, deliberately. Every C and Rust
+      # extension this image installs publishes a cp314 or abi3 manylinux
+      # aarch64 wheel (verified against PyPI for all 40, psycopg, cryptography,
+      # awscrt, pillow, numpy, pydantic-core, grpcio and uvloop among them), so
+      # emulation unpacks wheels rather than compiling and costs minutes, not
+      # hours. `ubuntu-24.04-arm` would be faster and is a fine swap later — but
+      # it is a runner label whose availability depends on the plan, and a
+      # deploy path that fails with "no runner matching labels" on the evening
+      # somebody needs to ship is a worse trade than a slower build.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
       - name: Build and push the image
         run: |
           IMAGE="${{ vars.ECR_REPOSITORY || '445363794125.dkr.ecr.ap-south-1.amazonaws.com/reep/api' }}"
           # GIT_SHA becomes SENTRY_RELEASE inside the image (apps/api-py/Dockerfile):
           # the same string the SPA reports and the same string the source maps
           # are uploaded under, so one deploy is one release across both halves.
-          docker build --build-arg GIT_SHA="${{ github.sha }}" \
-            -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" apps/api-py
-          docker push "$IMAGE:${{ github.sha }}"
-          docker push "$IMAGE:latest"
+          #
+          # buildx pushes both architectures and the manifest list in ONE
+          # invocation: `docker push` cannot publish a manifest list, so the
+          # build and the push are no longer two steps.
+          # --provenance=false: buildx otherwise attaches SBOM/provenance
+          # attestations, which land in the manifest list as extra entries whose
+          # platform reads `unknown/unknown`. ECR stores them happily and some
+          # pull paths do not, so the failure would be a task that cannot start
+          # — at 3am, on the roll, not here. Nothing in this deploy consumes an
+          # attestation, so the honest setting is off.
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --provenance=false \
+            --build-arg GIT_SHA="${{ github.sha }}" \
+            -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" \
+            --push apps/api-py
+
+      # A manifest that lost an architecture is a task that cannot start, and
+      # the failure lands at PULL time on the next roll rather than here. Assert
+      # it while the evidence is still in front of us.
+      - name: Both architectures are in the manifest
+        run: |
+          IMAGE="${{ vars.ECR_REPOSITORY || '445363794125.dkr.ecr.ap-south-1.amazonaws.com/reep/api' }}"
+          PLATFORMS=$(docker buildx imagetools inspect "$IMAGE:${{ github.sha }}" --raw \
+            | jq -r '.manifests[] | select(.platform.os=="linux") | "\(.platform.os)/\(.platform.architecture)"' \
+            | sort -u | tr '\n' ' ')
+          echo "manifest carries: $PLATFORMS"
+          case "$PLATFORMS" in
+            *linux/amd64*) ;;
+            *) echo "::error::linux/amd64 missing from the manifest"; exit 1 ;;
+          esac
+          case "$PLATFORMS" in
+            *linux/arm64*) ;;
+            *) echo "::error::linux/arm64 missing — do NOT set apiArm64=true on this image"; exit 1 ;;
+          esac
 
       # Migrations run on the image just pushed, BEFORE the service rolls, so
       # the new code never meets an old schema. A failed migration fails the

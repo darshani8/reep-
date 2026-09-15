@@ -9,8 +9,14 @@
       "args": ["-y", "@upstash/context7-mcp"]
     },
     "postgres": {
-      "command": "postgres-mcp",
-      "args": ["--access-mode=restricted"],
+      "command": "uvx",
+      "args": [
+        "--python", "3.12",
+        "--with", "mcp<2",
+        "--from", "postgres-mcp",
+        "postgres-mcp",
+        "--access-mode=restricted"
+      ],
       "env": {
         "DATABASE_URI": "postgresql://reep:reep_dev_password@localhost:5433/reep_py"
       }

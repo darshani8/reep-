@@ -55,14 +55,14 @@ on:
         #
         # `all` stays absent: it would sweep reep-core into a voice-platform
         # deploy, which is the bare deploy again wearing a different label.
-        options: [voice-platform, edge-waf, dr-vault, core-9a, core-9b]
+        options: [voice-platform, edge-waf, dr-vault, core-9a, core-9b, core-nat-instance, core-nat-retire]
       action:
         description: "What to do"
         type: choice
         default: diff
         options: [diff, deploy]
       confirm:
-        description: 'For deploy: type "deploy" — except core-9b, which wants MULTI-AZ IS AVAILABLE'
+        description: 'For deploy: type "deploy" — core-9b wants MULTI-AZ IS AVAILABLE, core-nat-retire wants EGRESS IS PROVEN'
         required: false
         default: ""
 
@@ -104,7 +104,25 @@ jobs:
           # it says is how a human confirms they went and looked, and it is the
           # only check available -- this workflow's role holds CDK bootstrap
           # rights, not rds:DescribeDBInstances, so the job cannot read it.
-          if [ "$STACK" = "core-9b" ]; then
+          # core-nat-retire deletes the NAT GATEWAY, which is the step that
+          # actually stops the ~$43.6/month -- and the step that cannot be
+          # undone cheaply: a re-created gateway gets a NEW public address, so
+          # anything that ever allowlisted the old one breaks. Its precondition
+          # is the same shape as 9b's: nothing in this repository, this
+          # workflow's role, the template or the diff can tell you whether the
+          # NAT INSTANCE is actually forwarding packets. Only a live check can
+          # -- run `curl -sS https://checkip.amazonaws.com` from a task (the
+          # ops-task menu is the easy way) and confirm it answers at all.
+          if [ "$STACK" = "core-nat-retire" ]; then
+            if [ "$CONFIRM" != "EGRESS IS PROVEN" ]; then
+              echo "::error::Before core-nat-retire: run core-nat-instance FIRST and prove egress still works."
+              echo "::error::From a task in a private subnet, an outbound HTTPS call must succeed."
+              echo "::error::Deleting the gateway before that is an outage with a slow undo."
+              echo "::error::Then type exactly: EGRESS IS PROVEN"
+              echo "::error::Nothing was changed."
+              exit 1
+            fi
+          elif [ "$STACK" = "core-9b" ]; then
             if [ "$CONFIRM" != "MULTI-AZ IS AVAILABLE" ]; then
               echo "::error::Before 9b: open RDS -> reep-postgres in ap-south-1."
               echo "::error::Multi-AZ must read Yes, AND Status must be 'available' -- not 'modifying'."
@@ -172,6 +190,16 @@ jobs:
             core-9a)        echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
                             echo "context=-c hardenEcs=false" >> "$GITHUB_OUTPUT" ;;
             core-9b)        echo "stacks=reep-core" >> "$GITHUB_OUTPUT" ;;
+            # The NAT swap, split for the reason 9a/9b is split: the first step
+            # is reversible because it LEAVES THE GATEWAY STANDING, the second
+            # is the one that removes it. Both flags are set here, beside the
+            # stack name, never left to whoever is running the workflow.
+            core-nat-instance)
+                            echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
+                            echo "context=-c natInstance=true" >> "$GITHUB_OUTPUT" ;;
+            core-nat-retire)
+                            echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
+                            echo "context=-c natInstance=true -c natGateway=false" >> "$GITHUB_OUTPUT" ;;
             *)              echo "::error::Unknown stack: $STACK"; exit 1 ;;
           esac
       # The context flag travels with BOTH verbs. A `diff` of core-9a run

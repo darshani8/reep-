@@ -19,12 +19,12 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    JSON,
     String,
     UniqueConstraint,
     func,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db import Base
@@ -130,7 +130,7 @@ class User(Base):
     #: else. Empty object means "every default", which is what every account has
     #: today.
     notification_prefs: Mapped[dict] = mapped_column(
-        JSON, nullable=False, default=dict, server_default=text("'{}'::json")
+        JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
     )
     # Bumped on logout; carried in the session JWT and compared on the way back
     # in. See app/security.py — this column is the whole of the revocation

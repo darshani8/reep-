@@ -196,12 +196,30 @@ def test_the_sweep_never_deletes_anything(monkeypatch, tmp_path, configured) -> 
     assert "documents/gone-from-disk.pdf" in client.keys
 
 
-def test_a_partial_recording_is_never_uploaded(monkeypatch, tmp_path, configured) -> None:
-    """`interview_audio` writes `<name>.partial` and renames on success, so a
-    `.partial` is a recording in flight or the wreckage of one. In a bucket
-    where every object is locked for years a truncated upload cannot be
-    replaced or removed."""
-    _store(tmp_path, "done.wav", "half.wav.partial")
+def test_the_skip_list_matches_the_stores_own_constant() -> None:
+    """THE GUARD THAT NEVER FIRED.
+
+    `_SKIP_SUFFIXES` held `.partial` alone, written from AGENTS.md's prose about
+    the docker-compose sidecar rather than from the recorder's own constant --
+    which is `.part`. So the guard read correctly, tested green against a
+    fixture named `.partial`, and matched nothing a real recorder ever wrote.
+    Every truncated mixdown on disk at sweep time was eligible for upload into a
+    bucket that cannot delete it.
+
+    Comparing against the constant is what makes the two unable to drift; a
+    second hand-written literal would only relocate the same mistake.
+    """
+    from app.interview_audio import _PARTIAL_SUFFIX
+
+    assert _PARTIAL_SUFFIX in archive_documents._SKIP_SUFFIXES
+
+
+@pytest.mark.parametrize("name", ["sess.mix.wav.part", "sess.mix.wav.partial"])
+def test_an_in_flight_recording_is_never_uploaded(name, monkeypatch, tmp_path, configured) -> None:
+    """Both spellings, because the recorder writes one and the prose says the
+    other. In a bucket where every object is locked for years a truncated
+    upload cannot be replaced or removed."""
+    _store(tmp_path, "done.wav", name)
     client = FakeS3()
     monkeypatch.setattr(document_archive, "_client", lambda: client)
     monkeypatch.setattr(archive_documents, "_store_roots", lambda: [("documents", tmp_path / "uploads")])
@@ -209,6 +227,56 @@ def test_a_partial_recording_is_never_uploaded(monkeypatch, tmp_path, configured
     archive_documents.run()
 
     assert [p["Key"] for p in client.puts] == ["documents/done.wav"]
+
+
+def test_a_nested_recording_is_archived_under_its_folder(monkeypatch, tmp_path, configured) -> None:
+    """THE SUBDIRECTORY THE SWEEP USED TO SKIP SILENTLY.
+
+    `_files_on_disk` did not recurse, on the stated grounds that both stores are
+    flat. `voice_platform.api.call_close.platform_audio_dir()` is
+    `interview_audio._store_root() / "platform"` -- a real subdirectory holding
+    the platform's stereo call recordings -- so every one of them was skipped
+    while the sweep reported a healthy pass.
+
+    The folder rides in the ROOT, never in the stored_name: `key_for` refuses a
+    name containing a separator, and that guard must stay, because an object
+    written to the wrong key in this bucket cannot be moved or removed.
+    """
+    store = _store(tmp_path, "flat.wav")
+    nested = store / "platform"
+    nested.mkdir()
+    (nested / "call-77.stereo.wav").write_bytes(b"stereo bytes")
+
+    client = FakeS3()
+    monkeypatch.setattr(document_archive, "_client", lambda: client)
+    monkeypatch.setattr(archive_documents, "_store_roots", lambda: [("interview-audio", store)])
+
+    summary = archive_documents.run()
+
+    assert summary["seen"] == 2
+    assert sorted(p["Key"] for p in client.puts) == [
+        "interview-audio/flat.wav",
+        "interview-audio/platform/call-77.stereo.wav",
+    ]
+
+
+def test_a_nested_file_already_archived_is_not_re_uploaded(monkeypatch, tmp_path, configured) -> None:
+    """The membership test has to rebuild the same relative key the writer
+    would use, or every nested file is re-PUT on every single sweep -- which on
+    a versioned, Object-Locked bucket means a new version a night, forever."""
+    store = _store(tmp_path)
+    nested = store / "platform"
+    nested.mkdir()
+    (nested / "call-77.stereo.wav").write_bytes(b"stereo bytes")
+
+    client = FakeS3(keys=["interview-audio/platform/call-77.stereo.wav"])
+    monkeypatch.setattr(document_archive, "_client", lambda: client)
+    monkeypatch.setattr(archive_documents, "_store_roots", lambda: [("interview-audio", store)])
+
+    summary = archive_documents.run()
+
+    assert summary == {"seen": 1, "already": 1, "archived": 0, "failed": 0}
+    assert client.puts == []
 
 
 def test_one_listing_serves_the_whole_store(monkeypatch, tmp_path, configured) -> None:

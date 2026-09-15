@@ -10,12 +10,15 @@ file keeps its name, and that nothing here ever deletes a row.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from app import document_archive, document_manifest, document_store
 from app.document_store import VolumeQuota
+from app.document_manifest import DocumentFacts
 from app.models.archived_document import ArchivedDocument, DocumentOwnerKind
 
 PDF = b"%PDF-1.7 a marksheet"
@@ -179,3 +182,75 @@ def test_nothing_in_the_module_deletes_a_row() -> None:
     source = (document_manifest.__file__ and open(document_manifest.__file__).read()) or ""
     assert "db.delete(" not in source
     assert "delete(ArchivedDocument" not in source
+
+
+# ------------------------------------- releasing a file that predates the table --
+
+FACTS = DocumentFacts(
+    kind=DocumentOwnerKind.STUDENT_UPLOAD,
+    owner_id="stu-legacy",
+    original_name="semester-3-marksheet.pdf",
+    title="Semester 3 marksheet",
+    mime_type="application/pdf",
+    size_bytes=4096,
+    recorded_at=datetime(2025, 7, 14, 9, 30, tzinfo=timezone.utc),
+)
+
+
+def test_a_file_older_than_the_manifest_is_recorded_when_it_is_released(db) -> None:
+    """THE GAP THE MIGRATION'S "no backfill" DELIBERATELY LEFT, closed at the
+    only moment it can be closed honestly.
+
+    Seeding a row per existing file at migration time would stamp every one with
+    the deploy date. But at RELEASE the live row is still there, holding the real
+    owner, filename and upload time -- so the row is written from exact data, for
+    exactly the files that need it, at the moment the data is about to be
+    destroyed. Without this, every file on a running college's volume loses its
+    name the first time somebody deletes it.
+    """
+    document_manifest.release(db, "legacy-file.pdf", reason="student deleted upload", facts=FACTS)
+
+    row = _rows(db)[0]
+    assert row.stored_name == "legacy-file.pdf"
+    assert row.owner_id == "stu-legacy"
+    assert row.original_name == "semester-3-marksheet.pdf"
+    assert row.title == "Semester 3 marksheet"
+    # Compared without tzinfo: this fixture is SQLite, which stores a
+    # `DateTime(timezone=True)` as a naive value, while Postgres round-trips the
+    # offset. What is under test is that the UPLOAD's date is kept rather than
+    # today's, and that survives either backend.
+    assert row.recorded_at.replace(tzinfo=None) == FACTS.recorded_at.replace(
+        tzinfo=None
+    ), "the upload's real date, not today"
+    assert row.released_at is not None
+
+
+def test_a_backfilled_row_says_that_it_was_backfilled(db) -> None:
+    """Everything on it is exact, but a reader counting "files stored in July"
+    must be able to tell a row that watched the upload from one that
+    reconstructed it afterwards."""
+    document_manifest.release(db, "legacy-file.pdf", reason="student deleted upload", facts=FACTS)
+    assert "predates the manifest" in _rows(db)[0].released_reason
+
+
+def test_facts_are_ignored_when_the_row_already_exists(db) -> None:
+    """The ordinary path must not be rewritten by a caller's description of it.
+    A row written at store time is the better witness; `facts` is a fallback,
+    never a correction."""
+    stored_name, _, _ = _save(db, owner="stu-1", name="real.pdf", title="Real")
+    document_manifest.release(db, stored_name, reason="student deleted upload", facts=FACTS)
+
+    row = _rows(db)[0]
+    assert row.original_name == "real.pdf"
+    assert row.owner_id == "stu-1"
+    assert row.title == "Real"
+
+
+def test_a_caller_that_cannot_describe_the_file_writes_no_row(db, caplog) -> None:
+    """`purge_people` walks bare `stored_name` columns across every table and
+    cannot say who owned what. A row invented without an owner is worse than no
+    row -- it would read as a real record of a file nobody can trace."""
+    with caplog.at_level("INFO"):
+        document_manifest.release(db, "unknown.pdf", reason="purge_people")
+    assert _rows(db) == []
+    assert "unknown.pdf" in caplog.text

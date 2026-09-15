@@ -219,3 +219,71 @@ def test_every_platform_setting_is_published_to_ssm() -> None:
             "PLATFORM_DYNAMO_PG_TABLE", "PLATFORM_CLOUDWATCH_NAMESPACE",
         )
     }
+
+
+def test_zero_is_a_value_and_not_an_absence_in_the_context_reader() -> None:
+    """`infra/cdk/app.py`'s `_number`, and the bug it was extracted to fix.
+
+    `int(try_get_context(key) or default)` is the obvious spelling and it is
+    WRONG for every knob whose "off" is 0. cdk.json stores JSON integers, so
+    `recordingRetentionDays: 0` arrives as the int `0`, which is falsy -- `or`
+    then replaced the operator's explicit "never expire" with 180 and the stack
+    synthesised the very lifecycle rule they had turned off. Valid template,
+    successful deploy, student voice deleted on a clock somebody believed was
+    disabled.
+
+    IT WAS INVISIBLE FROM EVERY OTHER TEST IN THIS FILE, which is why it is
+    tested here by name. `_template()` above constructs the stack directly with
+    `recording_retention_days=90`, and the zero case constructs it with `0` --
+    neither goes anywhere near app.py, so the whole suite was green while the
+    deployed value was silently 180.
+    """
+    import importlib.util
+    import pathlib
+
+    src = (pathlib.Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8")
+    # Execute just the helper, not the module: importing app.py would build the
+    # whole App and synthesise three stacks as a side effect.
+    start = src.index("def _number(")
+    end = src.index("retention = _number(")
+    namespace: dict = {}
+    body = src[start:end].replace("app.node.try_get_context(key)", "_ctx.get(key)")
+    exec("def _mk(_ctx):\n" + "\n".join("    " + line for line in body.splitlines()) + "\n    return _number", namespace)
+    make = namespace["_mk"]
+
+    assert make({"recordingRetentionDays": 0})("recordingRetentionDays", 180) == 0, (
+        "a JSON 0 in cdk.json must survive as 0 -- `or default` turns the "
+        "operator's explicit 'never expire' back into an expiry"
+    )
+    assert make({"recordingRetentionDays": 90})("recordingRetentionDays", 180) == 90
+    assert make({})("recordingRetentionDays", 180) == 180
+    assert make({"recordingRetentionDays": ""})("recordingRetentionDays", 180) == 180
+    assert make({"recordingRetentionDays": "0"})("recordingRetentionDays", 180) == 0
+
+
+def test_the_committed_context_really_switches_the_expiry_off() -> None:
+    """The end-to-end version of the test above: read cdk.json as deployed and
+    confirm the value the stack would be handed leaves no lifecycle rule.
+
+    Asserting the helper alone would not have caught the original bug either,
+    because the bug was the CALL SITE's `or`. This reads the committed number
+    and drives the real stack with it.
+    """
+    import json
+    import pathlib
+
+    ctx = json.loads(
+        (pathlib.Path(__file__).resolve().parents[1] / "cdk.json").read_text(encoding="utf-8")
+    )["context"]
+    days = ctx.get("recordingRetentionDays")
+    assert days == 0, f"cdk.json says recordingRetentionDays={days}; this test pins the 'off' choice"
+
+    app = cdk.App()
+    stack = VoicePlatformStack(
+        app,
+        "test-voice-platform-committed",
+        project="reep",
+        recording_retention_days=days,
+        env=cdk.Environment(account="123456789012", region="ap-south-1"),
+    )
+    assert "LifecycleConfiguration" not in _bucket(Template.from_stack(stack), "Recordings")

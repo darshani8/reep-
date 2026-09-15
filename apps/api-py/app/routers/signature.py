@@ -27,7 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..document_manifest import release, save_and_record
+from ..document_manifest import DocumentFacts, release, save_and_record
 from ..models.archived_document import DocumentOwnerKind
 from ..document_store import (
     QuotaRejected,
@@ -130,7 +130,19 @@ def upload_signature(
         # keep the old name. The manifest is what remembers it -- see
         # models/archived_document.py, where this constraint is the worked
         # example of why that table exists.
-        release(db, old, reason="signature replaced")
+        release(
+            db,
+            old,
+            reason="signature replaced",
+            facts=DocumentFacts(
+                kind=DocumentOwnerKind.STAFF_SIGNATURE,
+                owner_id=row.user_id,
+                original_name=f"signature{'.png' if row.mime_type == 'image/png' else '.jpg'}",
+                mime_type=row.mime_type,
+                size_bytes=row.size_bytes,
+                recorded_at=row.uploaded_at,
+            ),
+        )
         row.stored_name = stored_name
         row.mime_type = mime
         row.size_bytes = size
@@ -178,7 +190,19 @@ def remove_signature(
         # Released before the unlink -- routers/student.py's delete carries the
         # full reasoning: a SELECT between an irreversible delete and the commit
         # turns any query failure into destroyed bytes plus a surviving row.
-        release(db, row.stored_name, reason="signature removed")
+        release(
+            db,
+            row.stored_name,
+            reason="signature removed",
+            facts=DocumentFacts(
+                kind=DocumentOwnerKind.STAFF_SIGNATURE,
+                owner_id=row.user_id,
+                original_name=f"signature{'.png' if row.mime_type == 'image/png' else '.jpg'}",
+                mime_type=row.mime_type,
+                size_bytes=row.size_bytes,
+                recorded_at=row.uploaded_at,
+            ),
+        )
         try:
             delete_stored(row.stored_name)
         except FileNotFoundError:

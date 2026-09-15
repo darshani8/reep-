@@ -21,6 +21,7 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import select
 
+from app.config import settings
 from app.db import SessionLocal
 from app.models.archived_document import ArchivedDocument, DocumentOwnerKind
 from app.models.user import Role
@@ -153,3 +154,63 @@ def test_the_manifest_row_rolls_back_with_a_refused_upload(client, make_user):
     )
     assert r.status_code == 422, r.text
     assert len(_manifest_for(DocumentOwnerKind.STAFF_CERTIFICATE, mentor.user_id)) == before
+
+
+@requires_db
+def test_a_refused_field_never_leaves_an_unnameable_object(client, make_user):
+    """The alumni profile was the one endpoint of the six that could still raise
+    between the store write and the commit.
+
+    `joined_on` was parsed AFTER the resume was stored, which was harmless until
+    `save_bytes` gained the permanent archive: the 422 rolls the request back,
+    but the bytes have already been written to the volume AND PUT into an
+    Object-Locked bucket, while the manifest row that would have named them
+    rolls back with the request. An unnameable object, kept for a decade,
+    because a date was mistyped.
+
+    THE ASSERTION IS ON THE FILE, NOT ON THE MANIFEST, and the first version of
+    this test got that wrong. Counting manifest rows passes with the bug
+    present, because the row rolls back either way -- the test was vacuous and
+    was caught by re-running it against the unfixed code. What the archive
+    copies is whatever `save_bytes` wrote, so the only honest question is
+    whether anything was written at all.
+    """
+    alum = make_user("perm-alum", Role.ALUMNI)
+    store = settings.uploads_path
+    before = {p.name for p in store.iterdir()} if store.is_dir() else set()
+
+    r = client.post(
+        "/api/alumni/profile",
+        headers=alum.headers,
+        files={"resume": ("cv.pdf", _PDF, "application/pdf")},
+        data={"company": "Acme", "joined_on": "not-a-date"},
+    )
+    assert r.status_code == 422, r.text
+    assert "Date of joining" in r.text
+
+    after = {p.name for p in store.iterdir()} if store.is_dir() else set()
+    assert after == before, (
+        f"the refused request still wrote {after - before} to the store; those "
+        "bytes are in the permanent archive with no manifest row naming them"
+    )
+    assert _manifest_for(DocumentOwnerKind.ALUMNI_RESUME, alum.user_id) == []
+
+
+@requires_db
+def test_a_valid_alumni_profile_still_records_its_resume(client, make_user):
+    """The other half: moving the parse earlier must not have broken the
+    ordinary path, where the date IS valid and the resume IS stored."""
+    alum = make_user("perm-alum-ok", Role.ALUMNI)
+
+    r = client.post(
+        "/api/alumni/profile",
+        headers=alum.headers,
+        files={"resume": ("cv.pdf", _PDF, "application/pdf")},
+        data={"company": "Acme", "joined_on": "2026-01-15"},
+    )
+    assert r.status_code in (200, 201), r.text
+
+    rows = _manifest_for(DocumentOwnerKind.ALUMNI_RESUME, alum.user_id)
+    assert len(rows) == 1
+    assert rows[0].original_name == "cv.pdf"
+    assert rows[0].released_at is None

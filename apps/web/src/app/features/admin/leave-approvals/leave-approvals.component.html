@@ -1,12 +1,9 @@
 <div class="panel" data-p="leave-approvals">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Operations</span><span class="sep">/</span><span>Leave approvals</span></div>
-      <h1 class="dt-title">Leave approvals</h1>
-      <div class="dt-sub">
-        Two distinct signatures sanction a leave: whoever signs first, then whoever sanctions. You
-        never see a request you have already signed.
-      </div>
+      <div class="crumb"><span>Every day</span><span class="sep">/</span><span>Leave requests</span></div>
+      <h1 class="dt-title">Leave requests</h1>
+      <div class="dt-sub">Requests waiting for a signature.</div>
     </div>
     <div class="dt-toolbar">
       <!-- Both write through endpoints that are `require_admin` server-side, so
@@ -90,26 +87,6 @@
             Not on record
           </option>
         }
-      </select>
-    </div>
-
-    <!-- DEMOTED, NOT PENDING. `LeaveOut` carries the requester's name,
-         designation and department and NOT their role, so faculty and students
-         genuinely cannot be told apart from a queue row — and no B10 task adds
-         a role to that payload. It carried the Phase 4 pending badge while
-         Phase 4 was the answer; it is not, so the phase number would be a
-         promise nothing keeps. Plain `disabled` with the real reason in the title, the
-         treatment the Faculty screen's orphan controls were given. -->
-    <div class="select filter-pending">
-      <span class="lbl">Requester</span>
-      <span class="val">Faculty &amp; students</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Requester — faculty and students cannot be told apart on this queue"
-        disabled
-        title="A leave request carries the requester’s name, designation and department, but not their role — so this queue cannot separate faculty from students."
-      >
-        <option value="">Faculty &amp; students</option>
       </select>
     </div>
 
@@ -215,9 +192,7 @@
       @if (historyCapped()) {
         <div class="notice accent" role="status">
           <span class="icon" aria-hidden="true">info</span>
-          The decided queue is showing the most recent {{ historyCap }} requests — the server's own
-          limit, and there is no paging parameter to ask for older ones. No B10 task adds one, so
-          the row count below is what this screen can see, not what the college has decided.
+          Showing the most recent {{ historyCap }} decided requests.
         </div>
       }
 
@@ -241,15 +216,6 @@
           <li><span class="policy-key">Allowances</span> · recorded per person, per printed option, per academic year, behind Edit. An account with no allowance recorded is not measured against one, which is not a balance of zero.</li>
           <li><span class="policy-key">Refusing</span> · this console will not send a refusal without remarks, and the applicant reads them.</li>
         </ul>
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          The first three lines are the rule the API enforces; the fourth is this screen's own —
-          <code>POST /leaves/&hellip;/decision</code> accepts a refusal with no note, so a refusal
-          made elsewhere can still arrive wordless. There is no stored rule for WHO signs each step:
-          a second signature for staff leave exists only where the office has granted
-          <code>mentor.leave_approve</code> a scope in Governance, and until it has, a staff request
-          can reach its first signature and go no further.
-        </div>
       </div>
     </div>
 
@@ -431,10 +397,9 @@
           @if (!request.first_signed_as && hasASignature(request)) {
             <div class="notice accent">
               <span class="icon" aria-hidden="true">info</span>
-              No function is recorded against this request's signatures. It was decided before REEP
-              began recording one, and guessing it from who the signer is today would put a claim
-              about their authority onto a form somebody already signed. The paper prints the name
-              and the time alone, exactly as it always did.
+              <div>
+                No signing role was recorded for this request.
+              </div>
             </div>
           }
         </div>

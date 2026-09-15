@@ -4,8 +4,8 @@
  * A 52px app bar, a 220px sidebar of grouped pill items, and a scrolling main
  * area the child route renders into. The navigation switches on the session's
  * role: students get the student items with their identity card on top, staff
- * get the faculty pages, the Main Admin gets the console's six groups, alumni
- * get profile and jobs.
+ * get the faculty pages, the Main Admin gets the console in plain words (Home
+ * first), alumni get profile and jobs.
  *
  * Every visual token lives globally in src/styles/reep-v2.scss — AGENTS.md's
  * rule is that the design system is global CSS classes and a component does not
@@ -40,7 +40,7 @@ import type { Role } from '../core/session';
 import { AgentOrbComponent } from './agent-orb.component';
 
 /** One row in the sidebar. */
-interface NavigationItem {
+export interface NavigationItem {
   /** What the person reads. The product's vocabulary, not the schema's. */
   readonly label: string;
   /** Material Symbols ligature. Every glyph here must be in the subset
@@ -67,7 +67,7 @@ interface NavigationItem {
 }
 
 /** A titled run of rows. A blank title renders the rows with no heading. */
-interface NavigationGroup {
+export interface NavigationGroup {
   readonly title: string;
   readonly items: readonly NavigationItem[];
 }
@@ -88,66 +88,151 @@ interface NavigationGroup {
  */
 
 /**
- * The Main Admin console, in the groups the approved boards use
- * (docs/redesign-2026-09/01-design-system.md §3).
+ * The Main Admin console, IN THE WORDS THE OFFICE USES.
  *
- * Placement is deliberately not a row: it is reached from Jobs & placement and
- * from the Analytics tiles, which is how the boards route it.
+ * The boards (docs/redesign-2026-09/01-design-system.md §3) grouped these as
+ * Overview · Institution · Operations · Student insight · Governance · Tools,
+ * and named the rows "Mentor mapping", "Roles & functions", "Exports". Those
+ * are this codebase's words. The person at the desk is not an engineer, and a
+ * label they have to decode is a screen they do not open — so every row is
+ * the thing itself, in plain words, and every group is a noun a first-day
+ * clerk knows. Same eighteen screens as before, plus Home and Placement:
+ * Placement was reachable only from the Jobs sheet's buttons, which for the
+ * one account that decides offers is a screen hidden behind another one.
+ *
+ * Nothing here explains anything. A row is a name and a destination; if the
+ * name needs a tooltip, the name is wrong.
  */
-const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
+export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
   {
-    title: 'Overview',
-    items: [{ label: 'Analytics', icon: 'insights', path: '/admin', exact: true }],
-  },
-  {
-    title: 'Institution',
+    title: '',
     items: [
-      { label: 'Colleges', icon: 'apartment', path: '/admin/colleges', capability: 'admin.institution' },
-      { label: 'Structure', icon: 'school', path: '/admin/institution' },
-      { label: 'Faculty', icon: 'shield_person', path: '/admin/faculty', capability: 'admin.mentors' },
-      { label: 'Students & batches', icon: 'how_to_reg', path: '/admin/students' },
-      { label: 'Mentor mapping', icon: 'group', path: '/admin/mentors' },
-      { label: 'Catalogue', icon: 'menu_book', path: '/admin/catalogue' },
+      { label: 'Home', icon: 'home', path: '/admin', exact: true, mainAdminOnly: true },
+      {
+        label: 'Charts & numbers',
+        icon: 'insights',
+        path: '/admin/analytics',
+        capability: 'admin.analytics',
+      },
     ],
   },
   {
-    title: 'Operations',
-    items: [
-      { label: 'Registrations', icon: 'pending_actions', path: '/admin/registrations' },
-      { label: 'Data imports', icon: 'upload', path: '/admin/imports', capability: 'admin.imports' },
-      { label: 'Leave approvals', icon: 'event_available', path: '/admin/leave-approvals' },
-      { label: 'Jobs & placement', icon: 'work', path: '/admin/jobs' },
-      { label: 'Exports', icon: 'download', path: '/admin/exports' },
-    ],
-  },
-  {
-    title: 'Student insight',
-    items: [
-      { label: 'Question bank', icon: 'edit_note', path: '/admin/interview-questions' },
-      { label: 'Interview records', icon: 'mic', path: '/admin/interviews' },
-      { label: 'SWOC notes', icon: 'rate_review', path: '/admin/swoc' },
-    ],
-  },
-  {
-    title: 'Governance',
+    title: 'People',
     items: [
       {
-        label: 'Roles & functions',
+        label: 'New applications',
+        icon: 'pending_actions',
+        path: '/admin/registrations',
+        capability: 'admin.registrations',
+      },
+      {
+        label: 'Students & batches',
+        icon: 'how_to_reg',
+        path: '/admin/students',
+        capability: 'admin.students',
+      },
+      {
+        label: 'Faculty',
+        icon: 'shield_person',
+        path: '/admin/faculty',
+        capability: 'admin.mentors',
+      },
+      {
+        label: 'Assign faculty',
+        icon: 'group',
+        path: '/admin/mentors',
+        capability: 'admin.mentors',
+      },
+    ],
+  },
+  {
+    title: 'Every day',
+    items: [
+      {
+        label: 'Leave requests',
+        icon: 'event_available',
+        path: '/admin/leave-approvals',
+        mainAdminOnly: true,
+      },
+      {
+        label: 'Upload spreadsheets',
+        icon: 'upload',
+        path: '/admin/imports',
+        capability: 'admin.imports',
+      },
+      { label: 'Job postings', icon: 'work', path: '/admin/jobs', capability: 'admin.jobs' },
+      {
+        label: 'Placement & offers',
+        icon: 'verified',
+        path: '/admin/placement',
+        capability: 'admin.placement',
+      },
+      {
+        label: 'Download reports',
+        icon: 'download',
+        path: '/admin/exports',
+        capability: 'admin.exports',
+      },
+    ],
+  },
+  {
+    title: 'Interviews',
+    items: [
+      {
+        label: 'Interview questions',
+        icon: 'edit_note',
+        path: '/admin/interview-questions',
+        capability: 'admin.interview_questions',
+      },
+      {
+        label: 'Interview records',
+        icon: 'mic',
+        path: '/admin/interviews',
+        capability: 'admin.interviews',
+      },
+      { label: 'SWOC notes', icon: 'rate_review', path: '/admin/swoc', capability: 'admin.swoc' },
+    ],
+  },
+  {
+    title: 'College setup',
+    items: [
+      {
+        label: 'Colleges',
+        icon: 'apartment',
+        path: '/admin/colleges',
+        capability: 'admin.institution',
+      },
+      {
+        label: 'College structure',
+        icon: 'school',
+        path: '/admin/institution',
+        capability: 'admin.institution',
+      },
+      {
+        label: 'Catalogue',
+        icon: 'menu_book',
+        path: '/admin/catalogue',
+        capability: 'admin.catalogue',
+      },
+    ],
+  },
+  {
+    title: 'Settings',
+    items: [
+      {
+        label: 'Who can do what',
         icon: 'admin_panel_settings',
         path: '/admin/governance',
         mainAdminOnly: true,
       },
       {
-        label: 'Audit log',
+        label: 'What changed',
         icon: 'history',
         path: '/admin/audit',
         mainAdminOnly: true,
       },
+      { label: 'Ask REEP', icon: 'smart_toy', path: '/admin/agent', mainAdminOnly: true },
     ],
-  },
-  {
-    title: 'Tools',
-    items: [{ label: 'REEP Agent', icon: 'smart_toy', path: '/admin/agent' }],
   },
 ];
 
@@ -256,35 +341,60 @@ const ALUMNI_NAVIGATION: readonly NavigationGroup[] = [
  * exists to prevent. The Main Admin does not read this list at all; its own
  * rows are in ADMIN_NAVIGATION.
  */
-const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
+export const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
   capability: string | readonly string[];
 })[] = [
-  { capability: 'admin.analytics', path: '/admin', label: 'Analytics', icon: 'insights' },
+  {
+    capability: 'admin.analytics',
+    path: '/admin/analytics',
+    label: 'Charts & numbers',
+    icon: 'insights',
+  },
   {
     capability: 'admin.registrations',
     path: '/admin/registrations',
-    label: 'Registrations',
+    label: 'New applications',
     icon: 'pending_actions',
   },
-  { capability: 'admin.mentors', path: '/admin/mentors', label: 'Mentor mapping', icon: 'group' },
+  { capability: 'admin.mentors', path: '/admin/mentors', label: 'Assign faculty', icon: 'group' },
   {
     capability: 'admin.students',
     path: '/admin/students',
     label: 'Students & batches',
     icon: 'how_to_reg',
   },
-  { capability: 'admin.institution', path: '/admin/institution', label: 'Structure', icon: 'school' },
-  { capability: 'admin.catalogue', path: '/admin/catalogue', label: 'Catalogue', icon: 'menu_book' },
-  { capability: 'admin.jobs', path: '/admin/jobs', label: 'Jobs & placement', icon: 'work' },
-  { capability: 'admin.placement', path: '/admin/placement', label: 'Placement', icon: 'verified' },
+  {
+    capability: 'admin.institution',
+    path: '/admin/institution',
+    label: 'College structure',
+    icon: 'school',
+  },
+  {
+    capability: 'admin.catalogue',
+    path: '/admin/catalogue',
+    label: 'Catalogue',
+    icon: 'menu_book',
+  },
+  { capability: 'admin.jobs', path: '/admin/jobs', label: 'Job postings', icon: 'work' },
+  {
+    capability: 'admin.placement',
+    path: '/admin/placement',
+    label: 'Placement & offers',
+    icon: 'verified',
+  },
   {
     capability: 'admin.interview_questions',
     path: '/admin/interview-questions',
-    label: 'Question bank',
+    label: 'Interview questions',
     icon: 'edit_note',
   },
   { capability: 'admin.swoc', path: '/admin/swoc', label: 'SWOC notes', icon: 'rate_review' },
-  { capability: 'admin.exports', path: '/admin/exports', label: 'Exports', icon: 'download' },
+  {
+    capability: 'admin.exports',
+    path: '/admin/exports',
+    label: 'Download reports',
+    icon: 'download',
+  },
 
   // The 2026-09 console's screens. Each names the screen's own key, exactly as
   // its route guard does, so a row that renders is a row that navigates. Each
@@ -298,7 +408,7 @@ const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
   {
     capability: 'admin.imports',
     path: '/admin/imports',
-    label: 'Data imports',
+    label: 'Upload spreadsheets',
     icon: 'upload',
   },
   {

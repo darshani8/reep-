@@ -1,12 +1,9 @@
 <div class="panel" data-p="colleges">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Institution</span><span class="sep">/</span><span>Colleges</span></div>
+      <div class="crumb"><span>College setup</span><span class="sep">/</span><span>Colleges</span></div>
       <h1 class="dt-title">Colleges</h1>
-      <p class="dt-sub">
-        Each college is a tenant: its own registration domains, departments, admins and catalogues.
-        The Main Admin sees every college; a college admin sees one.
-      </p>
+      <p class="dt-sub">Every college on this deployment.</p>
     </div>
     <div class="dt-toolbar">
       <!-- The panel this button opens is rendered inside the ready state, so the
@@ -72,7 +69,7 @@
           <p class="created-note" role="status">
             <span class="icon" aria-hidden="true">check_circle</span>
             {{ created }} created. It seats no one yet — add its departments, courses and batches in
-            <a routerLink="/admin/institution">Structure</a>.
+            <a routerLink="/admin/institution">College structure</a>.
           </p>
         }
 
@@ -95,23 +92,19 @@
              sentences about domains and the college admin are gone with the
              dashes they described; what is left is the two counts, which no
              endpoint reports and no backlog task promises. -->
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          <div>
-            Students and faculty are not counted per college. <code>scope_filter</code> (B1.4) now
-            narrows every staff list to the caller's own reach, but no response carries a count for
-            a college, so a number here would be whatever the reader happens to be able to see,
-            printed as the college's own. A dash in those two columns means "nothing reports this",
-            never "none".
-            @if (adminsState() === 'off') {
-              The college admin is read through <code>admin.governance</code>, which this session
-              does not hold, so that column is not asked for either.
-            }
-            @if (adminsState() === 'error') {
-              The college admin could not be read: {{ adminsError() }}
-            }
+        @if (adminsState() === 'off' || adminsState() === 'error') {
+          <div class="notice accent" role="status">
+            <span class="icon" aria-hidden="true">info</span>
+            <div>
+              @if (adminsState() === 'off') {
+                This session cannot read college admins, so that column is not shown.
+              }
+              @if (adminsState() === 'error') {
+                The college admin could not be read: {{ adminsError() }}
+              }
+            </div>
           </div>
-        </div>
+        }
 
         <div class="dt-frame">
           <div class="colleges-scroll">
@@ -124,12 +117,6 @@
                 <tr>
                   <th scope="col">College</th>
                   <th scope="col">Domains</th>
-                  <th scope="col" class="num">
-                    Students <span class="col-pending">{{ countUnsourcedNote }}</span>
-                  </th>
-                  <th scope="col" class="num">
-                    Faculty <span class="col-pending">{{ countUnsourcedNote }}</span>
-                  </th>
                   <th scope="col">
                     College admin
                     @if (adminsState() === 'off') {
@@ -161,8 +148,6 @@
                         {{ domainsLabel(college) }}
                       </span>
                     </td>
-                    <td class="num"><span class="cell-empty">—</span></td>
-                    <td class="num"><span class="cell-empty">—</span></td>
                     <td>
                       @switch (adminsState()) {
                         @case ('ready') {
@@ -192,7 +177,7 @@
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="6">
+                    <td colspan="4">
                       <p class="empty">
                         <span class="icon" aria-hidden="true">apartment</span>
                         @if (colleges().length === 0) {
@@ -219,10 +204,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">What a college admin can do inside {{ selectedCollegeName() }}</h2>
-              <p class="card-sub">
-                a college admin is a person holding <code>admin.*</code> functions scoped to the
-                college — not a second role
-              </p>
+              <p class="card-sub">a person given this college’s screens — not a second role</p>
             </div>
           </div>
 
@@ -233,13 +215,10 @@
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
             <div>
-              Appointing a college admin writes the eleven functions below as grants SCOPED to this
-              college (<code>scope_level = college</code>, B1.2), under one recorded reason. Five of
-              them carry a student's own records, so they are written
-              <code>pending_approval</code> and hold nothing until a second holder of
-              <code>admin.governance</code> approves each in
-              <a routerLink="/admin/governance">Roles &amp; functions</a> (B2.4) — a freshly
-              appointed college admin is normally part live, and the table's chip says how much.
+              Appointing a college admin gives them the eleven screens below, for this college only.
+              Five of them read students' own records, so each waits for a second approval in
+              <a routerLink="/admin/governance">Who can do what</a>; the table's chip says how many
+              are live.
             </div>
           </div>
 
@@ -272,67 +251,13 @@
                 These are the keys <code>COLLEGE_ADMIN_CAPABILITIES</code> appoints and no others. A
                 faculty instrument — sanctioning leave, a mentor group, verifying evidence — is a
                 separate grant made in
-                <a routerLink="/admin/governance">Roles &amp; functions</a>; Governance and the
+                <a routerLink="/admin/governance">Who can do what</a>; Governance and the
                 platform card stay the Main Admin's.
               </p>
             </div>
           </div>
         </div>
 
-        @if (isMainAdmin()) {
-          <div class="card platform-card">
-            <div class="card-head">
-              <div>
-                <h2 class="card-title">Platform · Main Admin only</h2>
-                <!-- The board's sub-line asserts a deployment fact ("the harden
-                     phase is not deployed"). This browser cannot know that, and
-                     the notice directly below says so — so the sub-line states
-                     what the card IS instead of what the host is. -->
-                <p class="card-sub">
-                  deployment facts, read from the host and never changed from here
-                </p>
-              </div>
-              <!-- A LINK to the runbook, never a button that deploys: nothing in
-                   this app may start an infrastructure change. -->
-              <a
-                class="btn secondary"
-                [href]="hardenRunbookUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span class="icon" aria-hidden="true">open_in_new</span> Deploy harden phase
-                (runbook)
-              </a>
-            </div>
-
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              <div>
-                Nothing below is read by this browser. Mail transport, the sender's SES
-                verification, the region, the retention window and the session policy are facts
-                about the deployment, and
-                <code>GET /api/admin/platform/status</code> reports them from Phase
-                {{ platformStatusPhase }} (B3.7, which ships with the CDK harden deploy — Phase 3
-                and Phase 4 have both been and gone without it). The voice platform's own
-                <code>/api/platform/admin/status</code> is a different endpoint about different
-                facts and is not read here. A value copied from the repository's defaults would be
-                a claim about a host nobody checked.
-              </div>
-            </div>
-
-            <dl class="platform-rows">
-              @for (fact of platformFacts; track fact.label) {
-                <div class="platform-row">
-                  <dt>{{ fact.label }}</dt>
-                  <dd>
-                    <span class="chip dot neutral">Not reported yet</span>
-                    <span class="platform-reports">{{ fact.reports }}</span>
-                  </dd>
-                </div>
-              }
-            </dl>
-          </div>
-        }
       </div>
 
       @if (addPanelOpen()) {
@@ -403,13 +328,8 @@
               autocomplete="off"
             />
             <p class="help">
-              Optional · <code>colleges.email_domains</code> (B1.1). An applicant on one of these
-              can be provisioned for this college; every other address is refused — including one
-              a registration rule would otherwise auto-approve, which then lands in the review
-              queue carrying the refusal as its reason. This is not the rule engine's own domain
-              condition, which lives on a registration rule. Leave it empty and the deployment's
-              own <code>provisionable_email_domains</code> applies instead — which is what every
-              college gets today. Separate several with commas.
+              Optional. Only an address on one of these domains can be approved onto this college.
+              Separate several with commas.
             </p>
           </div>
 
@@ -441,8 +361,8 @@
                 </p>
               } @else {
                 <p class="help">
-                  Optional · receives the eleven <code>admin.*</code> functions scoped to this
-                  college (B1.3). Their role does not change: they stay a faculty account.
+                  Optional. They get the eleven screens below, for this college only, and stay a
+                  faculty account.
                 </p>
               }
             } @else {
@@ -454,15 +374,12 @@
               <input
                 id="college-admin"
                 disabled
-                title="Appointing a college admin needs admin.governance"
-                placeholder="Needs the Governance function"
+                title="A college admin is appointed in Who can do what"
+                placeholder="Appointed in Who can do what"
                 autocomplete="off"
               />
               <p class="help">
-                Appointing a college admin is Governance's act, not this screen's:
-                <code>POST /api/admin/colleges/&#123;id&#125;/admins</code> and the faculty list are
-                gated on <code>admin.governance</code> and the Main Admin. The college can be
-                created here and handed over afterwards.
+                Create the college here; appoint its admin in Who can do what.
               </p>
             }
           </div>
@@ -477,42 +394,15 @@
                 (input)="setAppointReason($any($event.target).value)"
                 placeholder="Why this account runs this college"
               ></textarea>
-              <p class="help">
-                Goes on the audit trail beside all eleven grants. At least
-                {{ minReasonChars }} characters — {{ appointReasonLength() }} so far.
-              </p>
+              <p class="help">At least {{ minReasonChars }} characters — {{ appointReasonLength() }} so far.</p>
             </div>
           }
-
-          <!-- B13 landed and `POST /api/admin/catalogue/copy` is real, but it
-               copies FROM one course TO another and a college being created
-               has no courses yet — there is no `to_course` to name on this
-               panel, and there will not be one until departments and courses
-               are added. So this is not a later phase, it is the wrong screen:
-               plain `disabled` with the real reason, and a link to where the
-               copy is actually made. -->
-          <div class="field">
-            <label for="college-catalogues">Copy catalogues from</label>
-            <input
-              id="college-catalogues"
-              disabled
-              [title]="catalogueCopyReason"
-              placeholder="Copied on Catalogue, once this college has a course"
-              autocomplete="off"
-            />
-            <p class="help">
-              A catalogue is copied between COURSES — certifications, the badge map and stage
-              rules, on <a routerLink="/admin/catalogue">Catalogue</a>'s "Copy to course…". A
-              college being created has no course to copy into yet, so the copy is made after its
-              departments and courses exist.
-            </p>
-          </div>
 
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
             <div>
               Creating a college seats no one. Departments, courses and batches are added in
-              <a routerLink="/admin/institution">Structure</a>.
+              <a routerLink="/admin/institution">College structure</a>.
             </div>
           </div>
 

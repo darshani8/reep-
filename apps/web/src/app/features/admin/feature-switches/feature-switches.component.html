@@ -2,15 +2,12 @@
   <div class="dt-header">
     <div>
       <div class="crumb">
-        <a routerLink="/admin/governance">Governance</a>
+        <a routerLink="/admin/governance">Who can do what</a>
         <span class="sep">/</span>
         <span>Student feature switches</span>
       </div>
       <h1 class="dt-title">Student feature switches</h1>
-      <div class="dt-sub">
-        A switch is real only when the server checks it. A switch nothing reads is shown as such,
-        and no student is ever told about one.
-      </div>
+      <div class="dt-sub">Turn a student feature on or off.</div>
     </div>
     <div class="dt-toolbar">
       <button
@@ -19,7 +16,7 @@
         [disabled]="state() !== 'ready'"
         (click)="startNewOverride()"
       >
-        <span class="icon" aria-hidden="true">add</span> Add override
+        <span class="icon" aria-hidden="true">add</span> Add a rule
       </button>
     </div>
   </div>
@@ -52,47 +49,32 @@
          groups are three panes of ONE screen, so all three links land on it and
          each says so in its accessible name. -->
     <div class="tabs fs-tabs">
-      <a class="tab fs-tablink" routerLink="/admin/governance" aria-label="Grants, on Roles and functions">
+      <a class="tab fs-tablink" routerLink="/admin/governance" aria-label="Grants, on Who can do what">
         Grants
       </a>
       <a
         class="tab fs-tablink"
         routerLink="/admin/governance"
-        aria-label="Functions catalogue, on Roles and functions"
+        aria-label="Functions catalogue, on Who can do what"
       >
         Functions catalogue
       </a>
-      <a class="tab fs-tablink" routerLink="/admin/governance" aria-label="Groups, on Roles and functions">
+      <a class="tab fs-tablink" routerLink="/admin/governance" aria-label="Groups, on Who can do what">
         Groups
       </a>
       <span class="tab active" aria-current="page">Student feature switches</span>
       <a class="tab fs-tablink" routerLink="/admin/audit">
-        Audit<span class="icon" aria-hidden="true">open_in_new</span>
+        What changed<span class="icon" aria-hidden="true">open_in_new</span>
       </a>
     </div>
 
     <div class="fs-filters">
-      <!-- THE SERVER DECIDES REACH (B1.4), so this is not a control and is not
-           waiting for a phase: /governance/features, /catalogue and /hierarchy
-           take no college and answer with what the caller's grants reach. It is
-           not a client-side filter either — a STUDENT-scope rule has no college
-           this screen can resolve, and those are the rules that beat every
-           other. See COLLEGE_PICKER_IS_THE_SERVERS in the component; the notice
-           under this row says the same thing in visible text. -->
-      <div class="select fs-filter-locked">
-        <span class="lbl">College</span>
-        <span class="val">All colleges you reach</span>
-        <span class="icon" aria-hidden="true">expand_more</span>
-        <select disabled [title]="collegePickerNote" [attr.aria-label]="'College — ' + collegePickerNote">
-          <option>All colleges you reach</option>
-        </select>
-      </div>
 
       <div class="select fs-scope-filter">
-        <span class="lbl">Override scope</span>
+        <span class="lbl">Applies to</span>
         <span class="val">{{ scopeFilterLabel() }}</span>
         <span class="icon" aria-hidden="true">expand_more</span>
-        <select aria-label="Override scope" (change)="setScopeFilter($any($event.target).value)">
+        <select aria-label="Applies to" (change)="setScopeFilter($any($event.target).value)">
           <option value="" [selected]="scopeFilter() === ''">All</option>
           @for (scope of hierarchyScopes; track scope) {
             <option [value]="scope" [selected]="scopeFilter() === scope">
@@ -131,11 +113,6 @@
       <span class="icon" aria-hidden="true">info</span>
       <div>
         <b>{{ enforcementSummary() }}</b>
-        A switch marked <i>Not wired yet</i> cannot be set at all: the API refuses a rule on it in
-        both directions, because an "on" row on a key nothing reads is as much a promise it does not
-        keep as an "off" one. Its rules can still be removed.
-        <br />
-        The list is not narrowed by college. {{ collegePickerNote }}
       </div>
     </div>
 
@@ -147,7 +124,7 @@
               <tr>
                 <th class="pinned fs-feature-col">Feature</th>
                 <th>Default</th>
-                <th class="fs-scope-col">Override scope</th>
+                <th class="fs-scope-col">Applies to</th>
                 <th>Value</th>
                 <th class="fs-enforcement-col">Enforcement</th>
                 <th>Changed</th>
@@ -257,10 +234,7 @@
             <div class="notice warn">
               <span class="icon" aria-hidden="true">warning</span>
               <div>
-                Nothing in the API reads <span class="fs-code">{{ row.key }}</span> yet, so this
-                switch cannot be set — the server refuses a rule on it, on or off, rather than
-                record one that changes nothing a student sees. Any rule already here can still be
-                removed.
+                This switch is not wired yet, so it cannot be set. Existing rules can still be removed.
               </div>
             </div>
           }
@@ -488,10 +462,7 @@
               [value]="formReason()"
               (input)="formReason.set($any($event.target).value)"
             ></textarea>
-            <span class="help">
-              At least {{ minReason() | plural: 'character' }}. It is written onto the audit trail
-              and read by whoever reviews this rule later.
-            </span>
+            <span class="help">At least {{ minReason() | plural: 'character' }}.</span>
           </div>
 
           <!-- B2.2 made this real: `student_message` is a column, it travels on
@@ -510,17 +481,10 @@
               [value]="formStudentMessage()"
               (input)="formStudentMessage.set($any($event.target).value)"
             ></textarea>
-            <span class="help">
-              What the student reads when this rule refuses them — not the reason above, which is
-              the office's own note. Leave it blank and the feature is simply absent from their
-              console. It goes on the audit trail either way.
-            </span>
+            <span class="help">What the student reads when this rule refuses them. Blank hides the feature silently.</span>
             <div role="status">
               @if (studentMessageWillNotBeShown()) {
-                <span class="help">
-                  This rule switches the feature <b>on</b>, so nothing refuses the student and this
-                  sentence is stored but never shown.
-                </span>
+                <span class="help">This rule switches the feature <b>on</b>, so this message is never shown.</span>
               }
             </div>
           </div>
@@ -547,8 +511,7 @@
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
             <div>
-              Pick a feature in the table to read its rules and switch it off for a college,
-              department, course, specialization, batch or one student.
+              Pick a feature in the table.
             </div>
           </div>
         }

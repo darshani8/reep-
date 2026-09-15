@@ -256,6 +256,24 @@ whatever the `navigation()` computed returns. That is what makes the answer to
 tree; the old template had the four roles' items interleaved in one block with
 role conditions on each, and adding a screen meant finding the right `@if`.
 
+**THE MAIN ADMIN LANDS ON A LIST OF TASKS, AND THE SIDEBAR IS IN PLAIN WORDS
+(2026-09-15).** `/admin` is `features/admin/home` — what is waiting (five live
+counts, each a button to its queue: applications, leave, students without a
+faculty member, offers, access reviews) and every screen as a button whose
+label is the task ("Approve new students", "Post a job"). Analytics moved to
+`/admin/analytics` with every control it had; `HOME_FOR_ROLE` still says
+`/admin`, which is why the landing changed in the route table and not in the
+two home maps `test_codebase_guards.py` compares. `ADMIN_NAVIGATION` no longer
+uses the boards' words — "Mentor mapping" is "Assign faculty", "Roles &
+functions" is "Who can do what", "Exports" is "Download reports" — and the
+groups are nouns (People, Every day, Interviews, College setup, Settings). Same
+eighteen screens, plus Home and a Placement row that used to be reachable only
+through the Jobs sheet. **The rule that produced this: nothing on the console
+explains itself.** No tooltip that says what a screen is for, no "how to use
+this" card, no tutorial; if a label needs decoding, change the label. The
+owner's words were that a screen which has to be explained is a screen that
+was not built.
+
 An item with `path: null` renders as a LABELLED, NON-CLICKABLE row carrying its
 `arrivesIn` badge ("Available with Phase 2"). This is deliberate and it is the
 opposite of the usual instinct, which is to leave an unbuilt screen out until it
@@ -464,6 +482,29 @@ promises a date and these are not waiting for one:
     roster that filled them would be one request per ROW. The tooltips point at
     360.
   * **The shell's notifications bell.** There is no per-account feed at all.
+
+**THE DEMOTED CONTROLS ARE GONE (2026-09-15), AND SO ARE THE APP BAR'S SEARCH
+AND BELL.** Every control above, and every other one that was `disabled`
+unconditionally with its reason in a `title` — Analytics' Batch/Course/Track
+filters, the Jobs sheet's "Import postings" and its CTC/Openings fields, Assign
+faculty's "Assignment history" button and Specialization filter, the Leave
+queue's Requester filter, Exports' "Schedule an export" and its two "Not built"
+cards, Placement's Track filter, the audit trail's College filter, the feature
+switches' College picker, SWOC's Export and Mentor filter, the question bank's
+Session cap, Interview records' "Daily-cap resets" tile, Student 360's "Hold
+back", "Re-send invite" and its three tabs that opened nothing, College
+structure's Degree level / Total semesters / Semesters per year, Colleges' "Copy
+catalogues from", the Add-faculty wizard's Employee ID and its whole Functions
+step, Governance's derived Review select, Faculty's two "Grant function"
+buttons and its empty History tab — was deleted, template and constant both.
+The board-fidelity argument ("a reviewer cannot tell a control that is missing
+from one that was missed") lost to the owner's rule for the console: a grey
+control that can never work is the first thing a first-day clerk presses, and
+the reason on it is exactly the explaining they refused. Nothing that could do
+anything went: the check that gates each of these commits counts `(click)`,
+`routerLink`, `(change)`, `(input)`, `(submit)`, `[href]`, `download=` and
+`formControlName` per template against HEAD and refuses a decrease. The
+reasoning each control carried is in this paragraph's commit, not in a tooltip.
 
 **Building the wiring found two real defects that no test had.** `placement`
 called a `selectValue` helper that did not exist, so the screen's own filter was

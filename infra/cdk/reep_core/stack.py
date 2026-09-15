@@ -43,6 +43,14 @@ WHAT `harden` ADDS, and why each is here rather than in Terraform:
   * RDS automated retention and the AWS Backup rule read ONE number
     (`backupRetentionDays`). They were 14 and 35 — two answers to "how far
     back can we go", and the honest one was the shorter.
+  * An ARCHIVE TIER above it (`archiveRetentionDays`, off unless set): a
+    second plan, monthly, with an RDS-ONLY selection and a lifecycle measured
+    in years. 35 days is RDS's ceiling on its own automated backups, not AWS
+    Backup's — so without this every copy of the database in both regions
+    expired on day 36 and a loss discovered five weeks later was unrecoverable
+    everywhere at once. It is a second PLAN because a selection is plan-scoped:
+    on the daily plan the same rule would keep every student's uploaded
+    document for years as well. See the constant for what that costs.
   * Multi-AZ on by default (`-c dbMultiAz=false` to opt out — it doubles the
     instance cost, and that is a decision, so it is written down here).
   * The task role may send mail through SES for the college's verified
@@ -143,6 +151,29 @@ DEREGISTRATION_DELAY_SECONDS = 600
 #: read it, and the vault lock's minimum is derived from it.
 DEFAULT_BACKUP_RETENTION_DAYS = 35
 
+#: THE ARCHIVE TIER, AND WHY IT IS A SECOND NUMBER RATHER THAN A BIGGER ONE.
+#: `backupRetentionDays` is capped at 35 below because RDS refuses more on its
+#: automated backups — so every copy of the database, in both regions, expired
+#: on day 36 and a record deleted, corrupted or mis-migrated five weeks ago was
+#: gone everywhere at once. AWS Backup has no such ceiling: a second rule with
+#: its own lifecycle is the whole fix, and it is the only one that reaches the
+#: WHOLE database rather than a chosen subset of columns.
+#:
+#: ZERO IS OFF, and that is the code default rather than a year, so a synth
+#: with no context renders the stack that exists today. cdk.json turns it on,
+#: the way `blueGreen` is turned on: the number is a decision, so it is written
+#: down where a decision is read.
+#:
+#: WHAT IT COSTS BESIDES MONEY, said here because nothing else will say it: a
+#: student erased by `python -m app.purge_students` stays restorable, and fully
+#: identified, for as long as this number runs — in a vault whose governance
+#: lock neither destructor can reach. That is a records-retention decision for
+#: the college, not a default, which is the other reason it is a separate key.
+DEFAULT_ARCHIVE_RETENTION_DAYS = 0
+
+#: AWS Backup's own ceiling on a lifecycle (100 years).
+MAX_ARCHIVE_RETENTION_DAYS = 36500
+
 #: CloudFront's managed policy ids, the same three cdn.tf hardcodes.
 _CACHE_OPTIMIZED = "658327ea-f89d-4fab-a63d-7e88639e58f6"
 _CACHE_DISABLED = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
@@ -222,6 +253,20 @@ class CoreStack(Stack):
             retention_days = int(opt("liveBackupRetentionDays", 14))
         if not 1 <= retention_days <= 35:
             raise ValueError(f"backupRetentionDays must be 1..35 (RDS refuses more), not {retention_days}")
+        # The archive tier is harden-only. THE IMPORT MIRROR CARRIES THE LIVE
+        # VALUES (see the block above): an import template that grew a second
+        # backup plan would stop being a mirror of what exists, and
+        # CloudFormation refuses an import template that adds a resource it
+        # cannot adopt.
+        archive_retention_days = int(opt("archiveRetentionDays", DEFAULT_ARCHIVE_RETENTION_DAYS)) if harden else 0
+        if archive_retention_days and not retention_days < archive_retention_days <= MAX_ARCHIVE_RETENTION_DAYS:
+            raise ValueError(
+                f"archiveRetentionDays must be greater than backupRetentionDays "
+                f"({retention_days}) and at most {MAX_ARCHIVE_RETENTION_DAYS}, not "
+                f"{archive_retention_days}. Shorter than the daily rule is not an "
+                "archive, and the DR vault's lock refuses a copy whose lifecycle is "
+                "below its minimum retention."
+            )
         allocated_storage = str(opt("liveAllocatedStorage", 20))
         # hardenEcs=false: the database/backup half of harden without the ECS
         # half, so an ECS circuit-breaker rollback cannot also undo a Multi-AZ
@@ -654,6 +699,79 @@ class CoreStack(Stack):
                 resources=[db_arn, data_fs.attr_arn],
             ),
         )
+        if archive_retention_days:
+            # THE ARCHIVE TIER. A SECOND PLAN, NOT A SECOND RULE, and the
+            # difference is the whole reason this is fifteen lines instead of
+            # three.
+            #
+            # A SELECTION IS PLAN-SCOPED, NOT RULE-SCOPED. The daily selection
+            # above covers the database AND the EFS file system, so a monthly
+            # rule added to that plan would inherit both — and a multi-year
+            # lifecycle over EFS means every student's resume, marksheet,
+            # certificate, staff signature and (where it is switched on)
+            # recorded voice sits in a locked vault for years, outliving
+            # INTERVIEW_RETENTION_DAYS, the recordings lifecycle, and the
+            # "files go before rows" rule both purge modules are built on.
+            # Nothing would report that: the plan would be green.
+            #
+            # NO `move_to_cold_storage_after_days`, DELIBERATELY. AWS Backup
+            # supports cold storage for DynamoDB, EFS, SAP HANA, Timestream and
+            # VMware — not RDS — and the documentation is explicit that "if a
+            # resource does not support transition to cold storage, AWS Backup
+            # ignores this setting". A cold-storage clause here would
+            # synthesise, deploy, report success and do nothing, which is the
+            # same silent shape as the Sunday backup that failed for weeks.
+            #
+            # THE WINDOWS ARE EXPLICIT BECAUSE ONE JOB RUNS PER RESOURCE. AWS
+            # Backup allows a single concurrent backup job per resource, so a
+            # monthly job landing on top of the daily does not run twice — it
+            # queues, and is CANCELLED if the queue outlasts its start window.
+            # That would be a failed job on the one day a month the multi-year
+            # point was meant to be taken. 16:00 UTC (21:30 IST) is three hours
+            # ahead of the daily rule and clear of both RDS windows;
+            # test_backup_schedule_clears_the_rds_windows checks every rule,
+            # this one included.
+            archive_rule = backup.CfnBackupPlan.BackupRuleResourceTypeProperty(
+                rule_name=f"monthly-{archive_retention_days}d",
+                target_backup_vault=vault.attr_backup_vault_name,
+                schedule_expression="cron(0 16 1 * ? *)",  # 1st of the month, 21:30 IST
+                start_window_minutes=60,
+                completion_window_minutes=180,
+                lifecycle=backup.CfnBackupPlan.LifecycleResourceTypeProperty(delete_after_days=archive_retention_days),
+                copy_actions=(
+                    [
+                        backup.CfnBackupPlan.CopyActionResourceTypeProperty(
+                            destination_backup_vault_arn=dr_vault_arn,
+                            # The DR vault's lock sets a MINIMUM retention, and a
+                            # copy whose lifecycle is SHORTER than it fails the
+                            # copy job. The archive number is longer than the
+                            # daily one by construction (validated above), so it
+                            # clears that floor.
+                            lifecycle=backup.CfnBackupPlan.LifecycleResourceTypeProperty(delete_after_days=archive_retention_days),
+                        )
+                    ]
+                    if dr_vault_arn
+                    else None
+                ),
+            )
+            archive_plan = backup.CfnBackupPlan(
+                self,
+                "ArchiveBackupPlan",
+                backup_plan=backup.CfnBackupPlan.BackupPlanResourceTypeProperty(
+                    backup_plan_name=f"{project}-archive", backup_plan_rule=[archive_rule]
+                ),
+            )
+            backup.CfnBackupSelection(
+                self,
+                "ArchiveBackupSelection",
+                backup_plan_id=archive_plan.attr_backup_plan_id,
+                backup_selection=backup.CfnBackupSelection.BackupSelectionResourceTypeProperty(
+                    selection_name=f"{project}-db-archive",
+                    iam_role_arn=backup_role.role_arn,
+                    # THE DATABASE ALONE. See the plan comment above.
+                    resources=[db_arn],
+                ),
+            )
         if harden:
             # A backup that has never been restored is a hope. Weekly, AWS
             # restores the newest recovery point into a throwaway instance,
@@ -1349,6 +1467,39 @@ class CoreStack(Stack):
                     threshold=1, periods=1, op=cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
                     missing=cw.TreatMissingData.NOT_BREACHING,
                 )
+            # A FAILURE ALARM CANNOT SEE A JOB THAT NEVER STARTED. The three
+            # above fire on NumberOfBackupJobs*Failed and treat missing data as
+            # NOT breaching — correct for them, because a day with no failures
+            # publishes no datapoint. The consequence is that a plan which stops
+            # running ENTIRELY is the one state none of them reports: no jobs,
+            # no failures, no metric, three green alarms and a vault quietly
+            # going stale. That is the shape of the 2026-09-07 incident with the
+            # alarm already deployed.
+            #
+            # AWS Backup emits a metric only when the value is nonzero, so
+            # "nothing completed" IS missing data, and BREACHING is what makes
+            # the absence legible. A period of 24 h matches the daily rule; a
+            # single missed day raises it.
+            #
+            # WHAT THIS STILL CANNOT SEE, so nobody reads more into it than it
+            # says: with the daily rule writing into the same vault, the metric
+            # stays nonzero even if the MONTHLY rule never fires. A per-rule
+            # "did not fire" alarm is not expressible as a metric alarm on a
+            # shared vault — it would need its own vault or an EventBridge
+            # check. What guarantees the monthly rule is well formed is the
+            # synth guard, not this.
+            alarm(
+                "BackupJobsSilentAlarm",
+                name=f"{project}-backup-no-job-completed",
+                description=(
+                    "No AWS Backup job completed in 24 hours. The plan is not failing — it is not "
+                    "running. Check the Backup console and the plan's selections."
+                ),
+                metric=cw.Metric(namespace="AWS/Backup", metric_name="NumberOfBackupJobsCompleted", statistic="Sum",
+                                 period=Duration.hours(24), dimensions_map={"BackupVaultName": f"{project}-vault"}),
+                threshold=1, periods=1, op=cw.ComparisonOperator.LESS_THAN_THRESHOLD,
+                missing=cw.TreatMissingData.BREACHING,
+            )
 
         observer_principal_obj: iam.IPrincipal = (
             iam.ArnPrincipal(observer_principal) if observer_principal else iam.AccountRootPrincipal()

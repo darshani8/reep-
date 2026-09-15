@@ -1,0 +1,100 @@
+@if (open()) {
+  <section
+    #panel
+    class="dock"
+    [class.dock--room]="mode() === 'interview' && isStudent()"
+    role="dialog"
+    aria-label="REEP assistant"
+    (keydown.escape)="requestClose()"
+  >
+    <header class="dock__bar">
+      <div class="dock__tabs" role="tablist" aria-label="Assistant">
+        <button
+          type="button"
+          role="tab"
+          class="dock__tab"
+          [class.dock__tab--on]="mode() === 'ask'"
+          [attr.aria-selected]="mode() === 'ask'"
+          aria-controls="dock-panel-ask"
+          (click)="show('ask')"
+        >
+          <span class="icon" aria-hidden="true">chat_bubble</span>Ask REEP
+        </button>
+        @if (isStudent()) {
+          <button
+            type="button"
+            role="tab"
+            class="dock__tab"
+            [class.dock__tab--on]="mode() === 'interview'"
+            [attr.aria-selected]="mode() === 'interview'"
+            aria-controls="dock-panel-room"
+            (click)="show('interview')"
+          >
+            <span class="icon" aria-hidden="true">mic</span>Mock interview
+            @if (live()) {
+              <span class="dock__live">Live</span>
+            }
+          </button>
+        }
+      </div>
+      <div class="dock__actions">
+        <a
+          class="dock__iconbtn"
+          [routerLink]="pageRoute()"
+          aria-label="Open as a page"
+          title="Open as a page"
+          (click)="requestClose()"
+        >
+          <span class="icon" aria-hidden="true">open_in_new</span>
+        </a>
+        <button
+          type="button"
+          class="dock__iconbtn"
+          aria-label="Close"
+          title="Close"
+          (click)="requestClose()"
+        >
+          <span class="icon" aria-hidden="true">close</span>
+        </button>
+      </div>
+    </header>
+
+    @if (confirmClose()) {
+      <div class="dock__confirm" role="alertdialog" aria-label="An interview is running">
+        <span class="dock__confirm-text">An interview is running. Closing ends it.</span>
+        <button type="button" class="dock__confirm-btn dock__confirm-btn--end" (click)="closeNow()">
+          End and close
+        </button>
+        <button type="button" class="dock__confirm-btn" (click)="keepGoing()">Keep going</button>
+      </div>
+    }
+
+    <div class="dock__body">
+      <div id="dock-panel-ask" class="dock__panel" role="tabpanel" [hidden]="mode() !== 'ask'">
+        @defer (when askSeen()) {
+          <app-agent-chat variant="dock" />
+        } @placeholder {
+          <p class="dock__loading">Loading…</p>
+        } @loading (minimum 200ms) {
+          <p class="dock__loading">Loading…</p>
+        }
+      </div>
+      @if (isStudent()) {
+        <div
+          id="dock-panel-room"
+          class="dock__panel dock__panel--room"
+          role="tabpanel"
+          [hidden]="mode() !== 'interview'"
+        >
+          @defer (when roomSeen()) {
+            <app-interview-room variant="dock" />
+          } @placeholder {
+            <p class="dock__loading">Loading…</p>
+          } @loading (minimum 200ms) {
+            <p class="dock__loading">Loading the interview room…</p>
+          }
+        </div>
+      }
+    </div>
+  </section>
+}

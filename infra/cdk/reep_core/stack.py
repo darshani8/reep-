@@ -111,6 +111,7 @@ from aws_cdk import (
     aws_s3 as s3,
     aws_scheduler as scheduler,
     aws_secretsmanager as sm,
+    aws_ses as ses,
     aws_sns as sns,
     aws_sns_subscriptions as subs,
 )
@@ -376,6 +377,38 @@ class CoreStack(Stack):
         dr_vault_arn: str = opt("drVaultArn", "")
         ses_identity_domain: str = opt("sesIdentityDomain", "")
         ses_from_address: str = opt("sesFromAddress", "")
+        ses_configuration_set: str = opt("sesConfigurationSet", "")
+        ses_notifications_email: str = opt("sesNotificationsEmail", alert_email)
+        # sesManaged: does THIS TEMPLATE own the SES identity, the configuration
+        # set, its event destination, the notifications topic and the two
+        # reputation alarms? It DEFAULTS OFF and must stay off until those five
+        # resources have been adopted with `cdk import`, because they already
+        # exist -- they were made by hand on 2026-09-09/10, before any of this
+        # was in a repository -- and CloudFormation cannot CREATE an SES
+        # identity that is already verified. The failure if this is flipped
+        # early is loud (AlreadyExists, rolled back), which is the good half;
+        # the bad half is that a rollback of reep-core is a rollback of the
+        # whole api. docs/ses-mail.md is the adoption runbook, and it is one
+        # read-only command plus one `cdk import`.
+        #
+        # RECREATING THE IDENTITY IS NOT AN ALTERNATIVE TO IMPORTING IT.
+        # SES-managed DKIM mints NEW tokens on create, so a delete-and-recreate
+        # publishes three CNAMEs nobody has added yet and mail stops until DNS
+        # propagates -- on a domain whose DNS this team does not hold.
+        ses_managed = flag("sesManaged", False)
+        # leaveMailEnabled: B10.5's notifications to the applicant. A DEPLOYMENT
+        # decision, so it lives here rather than in app/config.py's default,
+        # which stays false for every machine that has no transport.
+        leave_mail_enabled = flag("leaveMailEnabled", False)
+        if leave_mail_enabled and not ses_from_address:
+            # The one combination that is worse than either half: leave mail on
+            # over the console transport writes a mail_logs row reading SENT
+            # about a message that reached NOBODY, and that row is the only
+            # thing anyone looks at afterwards. Refused at synth, where it is
+            # free, rather than discovered from a mail_logs table months later.
+            raise ValueError("leaveMailEnabled needs sesFromAddress -- mail switched on with no transport records SENT for messages nobody receives")
+        if ses_managed and not (ses_identity_domain and ses_configuration_set):
+            raise ValueError("sesManaged needs both sesIdentityDomain and sesConfigurationSet -- the mirror must name what it is adopting")
         vault_lock_compliance = flag("vaultLockCompliance", False)
         # Identifiers only the live account knows (name_prefix / bucket_prefix
         # gave them random suffixes). tools/import_map.py fills these from the
@@ -1263,6 +1296,18 @@ class CoreStack(Stack):
         cluster = ecs.Cluster(self, "Cluster", cluster_name=project, vpc=ivpc, container_insights=True)
         if harden_ecs and ses_from_address:
             api_environment["SES_FROM_ADDRESS"] = ses_from_address
+            # Both of these are NESTED under a sender on purpose, not merely
+            # ordered after it. SES_CONFIGURATION_SET without a sender is inert
+            # noise; LEAVE_MAIL_ENABLED without one is the mail_logs lie the
+            # constructor already refuses. Nesting makes the invariant a shape
+            # rather than a second rule somebody has to remember.
+            if ses_configuration_set:
+                # Named on every send so the bounce/complaint stream cannot be
+                # lost by an edit to the identity's default. app/config.py's
+                # `ses_configuration_set` carries the full reasoning.
+                api_environment["SES_CONFIGURATION_SET"] = ses_configuration_set
+            if leave_mail_enabled:
+                api_environment["LEAVE_MAIL_ENABLED"] = "true"
         if harden_ecs and ledger_bucket is not None:
             # `harden_ecs`, NOT `harden`, and deliberately the same split
             # `SES_FROM_ADDRESS` uses one line up -- which looks like two gates
@@ -1726,14 +1771,19 @@ class CoreStack(Stack):
         alarm_action = cw_actions.SnsAction(alerts)
 
         def alarm(cid: str, *, name: str, metric: cw.Metric, threshold: float, periods: int, op: cw.ComparisonOperator,
-                  missing: cw.TreatMissingData | None = None, description: str | None = None, ok: bool = False) -> cw.Alarm:
+                  missing: cw.TreatMissingData | None = None, description: str | None = None, ok: bool = False,
+                  action: cw_actions.SnsAction | None = None) -> cw.Alarm:
+            # `action` overrides the ops topic for the two SES reputation
+            # alarms, which live were pointed at the mail topic instead. See
+            # where they are declared for why that is mirrored and not fixed.
+            destination = action or alarm_action
             a = cw.Alarm(
                 self, cid, alarm_name=name, alarm_description=description, metric=metric, threshold=threshold,
                 evaluation_periods=periods, comparison_operator=op, treat_missing_data=missing,
             )
-            a.add_alarm_action(alarm_action)
+            a.add_alarm_action(destination)
             if ok:
-                a.add_ok_action(alarm_action)
+                a.add_ok_action(destination)
             return a
 
         dropped = logs.MetricFilter(
@@ -1897,6 +1947,135 @@ class CoreStack(Stack):
                 threshold=1, periods=1, op=cw.ComparisonOperator.LESS_THAN_THRESHOLD,
                 missing=cw.TreatMissingData.BREACHING,
             )
+
+        # -------------------------------------------------------------- ses --
+        # THE MAIL PATH EXISTED FOR SIX DAYS BEFORE ANY OF IT WAS IN A
+        # REPOSITORY. The identity, its DKIM, the configuration set, the event
+        # destination, the notifications topic and the two reputation alarms
+        # were all made by hand in the console on 2026-09-09/10, and until this
+        # block none of them appeared in any template or any file: the api's
+        # `send-mail` policy and `SES_FROM_ADDRESS` were the only managed half,
+        # so `cdk deploy` could rebuild the PERMISSION to send and nothing that
+        # makes sending work. A new region, a new account, or a rebuild after a
+        # mistake reproduced an api that was allowed to mail and could not.
+        #
+        # These are therefore a MIRROR of what is live, property by property,
+        # and deliberately not an improvement on it. Two values look wrong here
+        # and are left alone because changing them is a separate decision with
+        # its own consequence: `tls_policy="OPTIONAL"` (REQUIRE would refuse
+        # delivery to a receiver with no STARTTLS rather than fall back), and
+        # `reputation_metrics_enabled=False` (True publishes the per-set
+        # reputation metrics, which is what would move the two alarms below off
+        # INSUFFICIENT_DATA). Adopting first and arguing second is what keeps
+        # the adoption a no-op.
+        if ses_managed:
+            # The topic SES publishes every bounce, complaint, delivery, reject
+            # and send to. Separate from `reep-alerts` because it is an EVENT
+            # stream, not an alert: one message per message sent.
+            ses_topic = sns.Topic(self, "SesNotifications", topic_name=f"{project}-ses-notifications")
+            if harden and ses_notifications_email:
+                # Import-hostile, exactly as the alerts subscription is, so the
+                # adoption run must not carry it: `cdk import` refuses a change
+                # set that also creates something. docs/ses-mail.md spells the
+                # two commands out rather than leaving the flag to memory.
+                ses_topic.add_subscription(subs.EmailSubscription(ses_notifications_email))
+
+            configuration_set = ses.CfnConfigurationSet(
+                self,
+                "SesConfigurationSet",
+                name=ses_configuration_set,
+                delivery_options=ses.CfnConfigurationSet.DeliveryOptionsProperty(tls_policy="OPTIONAL"),
+                reputation_options=ses.CfnConfigurationSet.ReputationOptionsProperty(reputation_metrics_enabled=False),
+                sending_options=ses.CfnConfigurationSet.SendingOptionsProperty(sending_enabled=True),
+            )
+
+            # NO `MailFromAttributes` AND NO `DkimSigningAttributes`, both on
+            # purpose. There is no custom MAIL FROM domain live; declaring one
+            # here would publish a subdomain whose MX and SPF records nobody has
+            # added, and `BehaviorOnMxFailure` decides only whether that failure
+            # is loud. And DKIM is SES-managed (`SigningAttributesOrigin:
+            # AWS_SES`): naming signing attributes is how a deploy rotates the
+            # keys, which republishes three CNAMEs and stops mail until DNS
+            # catches up. What is declared is the fact that signing is ON.
+            identity = ses.CfnEmailIdentity(
+                self,
+                "SesIdentity",
+                email_identity=ses_identity_domain,
+                dkim_attributes=ses.CfnEmailIdentity.DkimAttributesProperty(signing_enabled=True),
+                feedback_attributes=ses.CfnEmailIdentity.FeedbackAttributesProperty(email_forwarding_enabled=True),
+                configuration_set_attributes=ses.CfnEmailIdentity.ConfigurationSetAttributesProperty(
+                    configuration_set_name=ses_configuration_set
+                ),
+            )
+            identity.add_dependency(configuration_set)
+
+            # THE IDENTITY DEFAULT AND THE PER-SEND NAME ARE BOTH DECLARED, AND
+            # THEY ARE NOT REDUNDANT. `configuration_set_attributes` above makes
+            # this set the identity's default, which is what carried the event
+            # stream before `SES_CONFIGURATION_SET` reached the task; the api
+            # now also names it on every call. Belt and braces is right here
+            # because the two fail in opposite directions: an edit to the
+            # identity kills the default silently, and a set that stops existing
+            # makes a named send fail loudly. Neither alone covers both.
+            event_destination = ses.CfnConfigurationSetEventDestination(
+                self,
+                "SesEventDestination",
+                configuration_set_name=ses_configuration_set,
+                event_destination=ses.CfnConfigurationSetEventDestination.EventDestinationProperty(
+                    name="sns-bounces-complaints",
+                    enabled=True,
+                    # DELIVERY, REJECT and SEND ride along with the two that
+                    # matter: without SEND and DELIVERY a silent failure and a
+                    # healthy quiet week publish the same nothing.
+                    matching_event_types=["BOUNCE", "COMPLAINT", "DELIVERY", "REJECT", "SEND"],
+                    sns_destination=ses.CfnConfigurationSetEventDestination.SnsDestinationProperty(
+                        topic_arn=ses_topic.topic_arn
+                    ),
+                ),
+            )
+            event_destination.add_dependency(configuration_set)
+
+            # AWS SUSPENDS SENDING ABOVE ~5% BOUNCES AND ~0.1% COMPLAINTS, and
+            # it does so for the whole account -- activation links, reset links
+            # and sign-in codes with it, which is every door into the product
+            # that is not Google. Hence an alarm on each, at exactly the two
+            # numbers AWS publishes.
+            #
+            # `MISSING`, NOT `BREACHING`, and this is the opposite call from
+            # BackupJobsSilentAlarm above. That alarm treats absence as failure
+            # because a backup plan that stops running is the incident. Here
+            # absence means nobody was mailed this hour, which on a college's
+            # volume is most hours -- a quiet inbox is not a reputation problem,
+            # and an alarm that shouts on every quiet hour is an alarm somebody
+            # filters. What makes this legible rather than dishonest is that the
+            # thing it cannot see (no mail going out at all) is not a mail
+            # failure: a student who never asked for a reset was never failed.
+            #
+            # These fire into the MAIL topic rather than `reep-alerts`, which is
+            # what is live and is mirrored rather than fixed. It is arguably
+            # wrong -- an alarm arrives among per-message event JSON -- but
+            # moving it is a change to where a human looks, not a template
+            # detail, and it does not belong in the commit that adopts the
+            # resources.
+            ses_alarm_action = cw_actions.SnsAction(ses_topic)
+            for cid, suffix, metric_name, threshold, what in (
+                ("SesBounceRateAlarm", "ses-bounce-rate", "Reputation.BounceRate", 0.05, "bounce"),
+                ("SesComplaintRateAlarm", "ses-complaint-rate", "Reputation.ComplaintRate", 0.001, "complaint"),
+            ):
+                alarm(
+                    cid,
+                    name=f"{project}-{suffix}",
+                    description=(
+                        f"SES {what} rate is above the level AWS suspends sending at. Sending is suspended for the "
+                        "ACCOUNT, so activation links, password resets and sign-in codes all stop. Check the "
+                        f"{project}-ses-notifications topic for which addresses are failing."
+                    ),
+                    metric=cw.Metric(namespace="AWS/SES", metric_name=metric_name, statistic="Average",
+                                     period=Duration.hours(1)),
+                    threshold=threshold, periods=1, op=cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
+                    missing=cw.TreatMissingData.MISSING,
+                    action=ses_alarm_action,
+                )
 
         observer_principal_obj: iam.IPrincipal = (
             iam.ArnPrincipal(observer_principal) if observer_principal else iam.AccountRootPrincipal()

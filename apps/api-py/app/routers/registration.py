@@ -2001,16 +2001,20 @@ async def attach_document(
     if existing is not None:
         # Replace in place: old bytes go first, so a failure between the two
         # writes leaves the row pointing at the NEW file, never at nothing.
+        # The third replace-in-place store, after the staff signature and the
+        # alumni resume: one document per (registration, kind), so the
+        # superseded file is a pointer about to be overwritten below and no row
+        # is left naming the old bytes. The manifest is where they keep their
+        # name -- models/archived_document.py.
+        #
+        # Released BEFORE the unlink -- routers/student.py's delete carries the
+        # full reasoning: a SELECT between an irreversible delete and the commit
+        # turns any query failure into destroyed bytes plus a surviving row.
+        release(db, existing.stored_name, reason="registration document replaced")
         try:
             delete_stored(existing.stored_name)
         except FileNotFoundError:
             pass
-        # The third replace-in-place store, after the staff signature and the
-        # alumni resume: one document per (registration, kind), so the
-        # superseded file is a pointer about to be overwritten on the line
-        # below and no row is left naming the old bytes. The manifest is where
-        # they keep their name -- models/archived_document.py.
-        release(db, existing.stored_name, reason="registration document replaced")
         existing.original_name = file.filename or stored_name
         existing.stored_name = stored_name
         existing.mime_type = mime

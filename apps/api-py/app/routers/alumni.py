@@ -192,13 +192,18 @@ def save_profile(
         # new ones, so a crash between the two leaves a dangling file, never a
         # row naming bytes that are gone.
         if prof.resume_stored_name:
-            document_store_delete(prof.resume_stored_name)
             # THIS IS THE CASE A `deleted_at` COLUMN CANNOT EXPRESS. One
             # profile holds exactly one resume, so the superseded file is not a
-            # row to flag -- it is a pointer about to be overwritten on the
-            # line below, after which nothing in the database names the old
-            # bytes at all. The manifest is where they keep their name.
+            # row to flag -- it is a pointer about to be overwritten below,
+            # after which nothing in the database names the old bytes at all.
+            # The manifest is where they keep their name.
+            #
+            # Released BEFORE the unlink -- routers/student.py's delete carries
+            # the full reasoning: a SELECT between an irreversible delete and
+            # the commit turns any query failure into destroyed bytes plus a
+            # row that survives pointing at them.
             release(db, prof.resume_stored_name, reason="resume replaced")
+            document_store_delete(prof.resume_stored_name)
         stored_name, mime, size = stored
         prof.resume_original_name = resume.filename
         prof.resume_stored_name = stored_name

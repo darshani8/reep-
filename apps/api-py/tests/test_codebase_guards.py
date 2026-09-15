@@ -2049,6 +2049,60 @@ def test_the_manifest_owner_is_not_a_foreign_key() -> None:
     )
 
 
+def test_the_manifest_is_released_before_the_bytes_are_destroyed() -> None:
+    """`release()` runs a SELECT. It must never sit between an irreversible
+    `unlink` and the commit.
+
+    THE FAILURE THIS PINS IS ASYMMETRIC, WHICH IS WHY IT IS ORDER AND NOT A
+    TRY/EXCEPT. Every delete endpoint here destroys bytes and then commits a
+    row deletion. Putting a query in that gap means ANY failure of it -- a lock
+    timeout, a connection blip, or `archived_documents` not existing yet because
+    deploy.yml's `run_migrations` input was left off on the deploy that shipped
+    the code -- rolls the transaction back with the file already gone, leaving
+    a row on the student's screen whose download 404s. Ahead of the unlink the
+    same failure destroys nothing: the request 500s and the person retries.
+
+    Swallowing the exception instead would drop the manifest row silently, and
+    that row is the only thing that can ever name the archived bytes. The
+    failure has to stay loud; moving it earlier makes it harmless as well.
+
+    Found by Seer in review on PR #48, which reported it as a rolling-deploy
+    hazard. The deploy window is the narrow case; the general one is that a
+    query between a destructive act and its commit is a way to lose the act's
+    record while keeping its damage.
+    """
+    _DESTROYERS = {"document_store_delete", "delete_stored"}
+    offenders: dict[str, str] = {}
+
+    for path in sorted((APP / "routers").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            releases: list[int] = []
+            destroys: list[int] = []
+            for node in ast.walk(fn):
+                if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+                    continue
+                if node.func.id == "release":
+                    releases.append(node.lineno)
+                elif node.func.id in _DESTROYERS:
+                    destroys.append(node.lineno)
+            if not releases or not destroys:
+                continue
+            # Every destroying call must come after the release that covers it.
+            if min(destroys) < max(releases):
+                offenders[f"{path.name}::{fn.name}"] = (
+                    f"release at {releases}, destroy at {destroys}"
+                )
+
+    assert not offenders, (
+        "these handlers destroy bytes before recording the release: "
+        f"{offenders}. Move release() ahead of the unlink — a query in that gap "
+        "loses the record and keeps the damage."
+    )
+
+
 # ---------------------------------------------------------------------------#
 # §37  The console's buttons: a glyph the font has, a gate the route checks   #
 # ---------------------------------------------------------------------------#

@@ -48,7 +48,30 @@ def _flag(key: str, default: bool) -> bool:
     return str(v).strip().lower() in ("1", "true", "yes", "on")
 
 
-retention = int(app.node.try_get_context("backupRetentionDays") or 35)
+def _number(key: str, default: int) -> int:
+    """A numeric context value, where ZERO IS A VALUE AND NOT AN ABSENCE.
+
+    `int(try_get_context(key) or default)` is the obvious spelling and it is
+    WRONG for every knob whose "off" is 0. cdk.json stores JSON integers, so
+    `recordingRetentionDays: 0` arrives as the int `0`, which is falsy -- `or`
+    then silently replaces the operator's explicit "never expire" with the
+    default, and the stack synthesises a lifecycle rule the operator turned
+    off. Nothing reports it: the template is valid, the deploy succeeds, and
+    student voice is deleted on a clock somebody believed they had disabled.
+
+    It is worse than an ordinary falsy-zero bug because it is INVISIBLE FROM
+    THE TESTS. `infra/cdk/tests/*` construct the stacks directly with keyword
+    arguments, so nothing that exercises the stack reaches this expression.
+    That is why this helper is a named function with its own test rather than
+    an inline fix at the one call site that needed it.
+    """
+    v = app.node.try_get_context(key)
+    if v is None or v == "":
+        return default
+    return int(v)
+
+
+retention = _number("backupRetentionDays", 35)
 
 VoicePlatformStack(
     app,
@@ -56,7 +79,7 @@ VoicePlatformStack(
     project=project,
     api_task_role_name=app.node.try_get_context("apiTaskRoleName"),
     github_deploy_role_name=app.node.try_get_context("githubDeployRoleName"),
-    recording_retention_days=int(app.node.try_get_context("recordingRetentionDays") or 180),
+    recording_retention_days=_number("recordingRetentionDays", 180),
     env=cdk.Environment(account=account, region=home_region),
     description="REEP voice-assistant platform: S3, SQS, Lambda, DynamoDB, IAM, SSM",
 )

@@ -135,20 +135,46 @@ class Settings(BaseSettings):
     # SES authenticates through the task role, so there is no key to paste.
     ses_from_address: str = ""
     ses_region: str = ""  # falls back to AWS_REGION, then ap-south-1
-    # B10.5's leave notifications, and they are OFF by default on purpose.
+    # The configuration set every message is sent UNDER, and the reason it is a
+    # setting rather than a fact about the identity.
     #
-    # B3.7 (SES in production) has not shipped. With `ses_from_address` blank —
-    # every machine this has ever run on — `mail_transport.send` logs the message
-    # and appends it to a bounded in-memory `outbox`, which reaches NOBODY. A
-    # leave notification that is on by default therefore writes a `mail_logs` row
-    # saying SENT for a message the applicant never received, and the row is the
-    # only thing anyone would look at afterwards. The exact shape of the failure
-    # that killed PENDING_VERIFICATION.
+    # SES applies a configuration set two ways: the one named on the send call,
+    # or the identity's DEFAULT. Production has `reep-transactional` set as the
+    # default on the `sast-skills.com` identity, which is why bounce, complaint
+    # and delivery events reach the `reep-ses-notifications` topic today with
+    # this field blank. But a default is a property of the IDENTITY, edited in a
+    # different console screen from the one anyone looks at when they think
+    # about mail — and the failure when it goes is the quiet kind: every send
+    # still succeeds, the event destination stops firing, and both reputation
+    # alarms sit at INSUFFICIENT_DATA looking exactly like a quiet week. Nothing
+    # errors and nothing is logged. Naming the set on the CALL makes that
+    # unsurvivable by accident, because SES REFUSES a send naming a
+    # configuration set that does not exist: the tracking cannot be lost
+    # silently, only loudly.
     #
-    # So this stays false until an operator has a transport AND wants the mail,
-    # and no screen may say "the applicant has been emailed" while it is false.
-    # Turning it on with SES configured is one line; turning it on without SES is
-    # the mistake this default exists to prevent.
+    # Blank = name nothing and let the identity's default decide, which is what
+    # dev and CI want and what every deployment did before this existed.
+    ses_configuration_set: str = ""
+    # B10.5's leave notifications. They still ship OFF, and the default is still
+    # the design — but the REASON changed on 2026-09-15, so read this and not
+    # the sentence it replaced.
+    #
+    # B3.7 has shipped. The api task carries a real `SES_FROM_ADDRESS` and mail
+    # leaves through a verified identity holding production access, so the old
+    # note — "this stays false until an operator has a transport" — is spent.
+    # Production turns it on from the task definition (infra/cdk's
+    # `leaveMailEnabled`), and the CDK app REFUSES to synthesise that flag
+    # without a sender, so the switch and the transport cannot come apart.
+    #
+    # The DEFAULT stays false, and that is not leftover caution: it is the right
+    # value for every machine WITHOUT a transport. With `ses_from_address` blank
+    # — every development box, every CI run — `mail_transport.send` logs the
+    # message and appends it to a bounded in-memory `outbox` that reaches
+    # NOBODY. A leave notification on by default there writes a `mail_logs` row
+    # saying SENT for a message the applicant never received, and that row is
+    # the only thing anyone looks at afterwards: the exact shape of the failure
+    # that killed PENDING_VERIFICATION. No screen may say "the applicant has
+    # been emailed" while this is false.
     leave_mail_enabled: bool = False
     # Link lifetimes, from the agreed plan: activation 7 days (a new staff
     # member may not check mail today); reset 1 hour (the account exists and

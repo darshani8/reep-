@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """CDK entry point — four stacks, three regions.
 
-    reep-voice-platform   ap-south-1      the voice-assistant platform (S3, SQS, Lambda, DynamoDB, OpenSearch, SSM)
+    reep-voice-platform   ap-south-1      the voice-assistant platform (S3, SQS, Lambda, DynamoDB, SSM)
     reep-core             ap-south-1      everything infra/aws/ was: VPC, ALB, ECS, RDS, EFS, S3, CloudFront, backup, IAM
     reep-edge-waf         us-east-1       the CloudFront-scope WAF
     reep-dr-vault         ap-southeast-1  the cross-region backup copy target
@@ -58,7 +58,7 @@ VoicePlatformStack(
     github_deploy_role_name=app.node.try_get_context("githubDeployRoleName"),
     recording_retention_days=int(app.node.try_get_context("recordingRetentionDays") or 180),
     env=cdk.Environment(account=account, region=home_region),
-    description="REEP voice-assistant platform: S3, SQS, Lambda, DynamoDB, OpenSearch Serverless, IAM, SSM",
+    description="REEP voice-assistant platform: S3, SQS, Lambda, DynamoDB, IAM, SSM",
 )
 
 EdgeWafStack(

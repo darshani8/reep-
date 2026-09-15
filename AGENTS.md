@@ -256,6 +256,24 @@ whatever the `navigation()` computed returns. That is what makes the answer to
 tree; the old template had the four roles' items interleaved in one block with
 role conditions on each, and adding a screen meant finding the right `@if`.
 
+**THE MAIN ADMIN LANDS ON A LIST OF TASKS, AND THE SIDEBAR IS IN PLAIN WORDS
+(2026-09-15).** `/admin` is `features/admin/home` — what is waiting (five live
+counts, each a button to its queue: applications, leave, students without a
+faculty member, offers, access reviews) and every screen as a button whose
+label is the task ("Approve new students", "Post a job"). Analytics moved to
+`/admin/analytics` with every control it had; `HOME_FOR_ROLE` still says
+`/admin`, which is why the landing changed in the route table and not in the
+two home maps `test_codebase_guards.py` compares. `ADMIN_NAVIGATION` no longer
+uses the boards' words — "Mentor mapping" is "Assign faculty", "Roles &
+functions" is "Who can do what", "Exports" is "Download reports" — and the
+groups are nouns (People, Every day, Interviews, College setup, Settings). Same
+eighteen screens, plus Home and a Placement row that used to be reachable only
+through the Jobs sheet. **The rule that produced this: nothing on the console
+explains itself.** No tooltip that says what a screen is for, no "how to use
+this" card, no tutorial; if a label needs decoding, change the label. The
+owner's words were that a screen which has to be explained is a screen that
+was not built.
+
 An item with `path: null` renders as a LABELLED, NON-CLICKABLE row carrying its
 `arrivesIn` badge ("Available with Phase 2"). This is deliberate and it is the
 opposite of the usual instinct, which is to leave an unbuilt screen out until it

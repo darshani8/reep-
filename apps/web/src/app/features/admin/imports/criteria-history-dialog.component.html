@@ -15,8 +15,6 @@
           } @else {
             Every set of gates ever written, at every rung, newest first.
           }
-          Saving never edits a row in place — it writes a new one and marks the old one superseded,
-          so a verdict given last term is still explicable.
         </p>
       </div>
       <button
@@ -45,10 +43,9 @@
       @if (isEmpty()) {
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          No placement criteria have ever been written here. Until a set is saved, readiness scoring
-          and job eligibility both fall back to one set of built-in defaults in the code — which is
-          an answer, but not one anybody in this office chose, which is why it is never printed as
-          "the criteria".
+          <div>
+            No placement criteria set yet; built-in defaults apply.
+          </div>
         </div>
       }
 

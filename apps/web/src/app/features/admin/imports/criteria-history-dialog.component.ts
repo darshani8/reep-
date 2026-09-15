@@ -101,7 +101,7 @@ export class CriteriaHistoryDialogComponent {
       /* not JSON — fall through to the status */
     }
     if (response.status === 403) {
-      return 'The criteria history needs the Analytics function as well as Data imports. Ask the Main Admin to grant admin.analytics in Roles & functions.';
+      return 'The criteria history needs the Analytics function as well as Upload spreadsheets. Ask the Main Admin to grant admin.analytics in Who can do what.';
     }
     return `The request was refused (${response.status}).`;
   }

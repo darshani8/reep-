@@ -152,55 +152,11 @@ interface CollegeAdminFunction {
   capabilityKeys: string;
 }
 
-/** One line of the platform card: what the deployment will report, once it can. */
-interface PlatformFact {
-  label: string;
-  reports: string;
-}
-
-/** Copying a catalogue. `B13` LANDED and `POST /api/admin/catalogue/copy` is
- *  real — but its shape is `{from_course, to_course, parts[]}` (the owner's
- *  settled decision), and this panel is CREATING a college. A college being
- *  created has no departments, so no courses, so no `to_course`: there is
- *  nothing this field could name on the receiving end, and there will not be
- *  until Structure has been used.
- *
- *  SO IT IS NOT A PHASE, IT IS THE WRONG SCREEN. The control stays because the
- *  board draws it, disabled with the real reason rather than a phase number —
- *  a "Phase 4" badge on a screen running Phase 4 is the stale label commit
- *  45b91a9 fixed — and the help text points at the Catalogue screen, where
- *  "Copy to course…" does the real thing against two real courses. */
-const CATALOGUE_COPY_REASON =
-  'A catalogue is copied from one COURSE to another, and a college being ' +
-  'created has no courses yet. Add its departments and courses in Structure, ' +
-  'then copy on the Catalogue screen.';
-
-/** `GET /api/admin/platform/status` is `B3.7`, and `05-delivery-workflow.md`
- *  schedules it in PHASE 5 ("Cleanup + hardening … CDK harden (B3.7) with the
- *  owner"), not Phase 3. The notice used to say Phase 3; it shipped with the
- *  Phase 2 board and Phase 3 has now come and gone without it, which is exactly
- *  the stale number that reads as a bug. The card reports nothing either way —
- *  only the date on the promise changed. */
-const PLATFORM_STATUS_PHASE = 5;
-
-/** Under the Students and Faculty headers, in place of a phase badge.
- *
- *  NOT `[reepPending]` AND NOT A PHASE. `B1.4` narrowed every staff list to the
- *  caller's reach, so "Phase 3" here has arrived and these columns are still
- *  empty: no response carries a per-college count and no backlog item adds one.
- *  Counting `GET /api/admin/students` client-side would print a number that is
- *  the READER's reach rather than the college's, under a header that claims
- *  otherwise. So the header states the truth and the cell stays a dash. */
-const COUNT_UNSOURCED_NOTE = 'No per-college count';
-
 /** `MIN_REASON_CHARS` in `app/routers/governance.py`. Checked here so the panel
  *  can say why "Create college" is not available BEFORE the college is written
  *  — a 422 from the appointment after the college exists is a half-done act the
  *  reader has to unpick. The server checks it again and is the authority. */
 const MIN_REASON_CHARS = 20;
-
-/** The cutover runbook the harden phase is deployed from, in the repository. */
-const HARDEN_RUNBOOK_URL = 'https://github.com/darshani8/reep-/blob/main/docs/cdk-cutover.md';
 
 /** `require_governance` (`app/routers/governance.py`) gates both college-admin
  *  endpoints. Held here to decide whether to ASK, never whether to allow. */
@@ -237,11 +193,7 @@ interface AdminSummary {
 export class AdminCollegesComponent implements OnInit {
   private readonly auth = inject(AuthService);
 
-  readonly catalogueCopyReason = CATALOGUE_COPY_REASON;
-  readonly platformStatusPhase = PLATFORM_STATUS_PHASE;
-  readonly countUnsourcedNote = COUNT_UNSOURCED_NOTE;
   readonly minReasonChars = MIN_REASON_CHARS;
-  readonly hardenRunbookUrl = HARDEN_RUNBOOK_URL;
 
   readonly state = signal<ScreenState>('loading');
   readonly loadError = signal<string | null>(null);
@@ -385,32 +337,6 @@ export class AdminCollegesComponent implements OnInit {
     'Grant a function to anybody, including themselves — admin.governance is not in the set',
     'Play back an interview recording — admin.interview_audio is its own decision',
     'Change platform settings — mail, region, retention',
-  ];
-
-  /** What `GET /api/admin/platform/status` will report, row by row. Values are
-   *  deliberately absent: this browser knows none of them. */
-  readonly platformFacts: PlatformFact[] = [
-    {
-      label: 'Mail transport',
-      reports: 'Amazon SES, or the console transport that writes invites and codes to the API log',
-    },
-    {
-      label: 'Sender',
-      reports: 'the From address, and whether SES has verified it',
-    },
-    {
-      label: 'Region · Rule 1',
-      reports: 'the region the API runs in, and whether student data may reach a remote model',
-    },
-    {
-      label: 'Interview retention',
-      reports: 'how long transcripts and audio are kept before the sweeper deletes them',
-    },
-    {
-      label: 'Sessions',
-      reports:
-        'session lifetime — one device per account, and the Main Admin door’s emailed code, are enforced in code today',
-    },
   ];
 
   ngOnInit(): void {
@@ -659,7 +585,7 @@ export class AdminCollegesComponent implements OnInit {
       const live = admin.capabilities.length - pending;
       this.appointNote.set(
         pending > 0
-          ? `${admin.name} was appointed: ${live} of ${admin.capabilities.length} functions are live and ${pending} carry a student's own records, so they hold nothing until a second holder of admin.governance approves each in Roles & functions.`
+          ? `${admin.name} was appointed: ${live} of ${admin.capabilities.length} functions are live and ${pending} carry a student's own records, so they hold nothing until a second holder of admin.governance approves each in Who can do what.`
           : `${admin.name} was appointed with ${plural(admin.capabilities.length, 'function')}.`,
       );
     } catch {

@@ -20,12 +20,11 @@
  *   POST  /api/admin/users/{id}/enable              within 90 days of that
  *   POST  /api/admin/users/{id}/sign-out-everywhere retire every session
  *
- * WHAT IS STILL NOT, AND WHY IT IS DRAWN RATHER THAN LEFT OUT. One control
- * stays disabled and one column stays an em dash: "Grant function" and Sign-in.
- * Each has its reason on the constant that carries it, and NEITHER reason is a
- * missing endpoint any more — see GRANT_FUNCTION_REASON and faculty-grid.ts's
- * SIGN_IN_PENDING_REASON. Nothing on this screen names a phase, because nothing
- * left on it is waiting for one.
+ * WHAT IS NOT HERE. "Grant function" (a disabled button pointing at
+ * Governance) and the Sign-in column (always a dash: no admin endpoint reads
+ * another account's sign-ins) were drawn for board fidelity and removed on
+ * 2026-09-15 — a control that can never work is the first one a first-day
+ * clerk presses. Nothing on this screen names a phase.
  *
  * "Review expiring grants" WAS the third, on the grounds that B2.4's endpoint
  * existed but nothing drew its queue. Governance drew it, so the button is a
@@ -77,8 +76,6 @@ import {
   FACULTY_COLUMNS,
   FACULTY_ROW_SELECTION,
   FACULTY_SELECTION_COLUMN,
-  SIGN_IN_PENDING_REASON,
-  STATUS_UNKNOWN_REASON,
   TOGGLEABLE_FACULTY_COLUMNS,
 } from './faculty-grid';
 import {
@@ -115,35 +112,6 @@ type StatusFilter = '' | 'active' | 'disabled';
  *  officer and verifier are capability grants and live in Governance. */
 type FunctionFilter = '' | 'mentor' | 'none';
 
-/**
- * "Grant function", on the toolbar and in the drawer — STILL DISABLED, and no
- * longer because the endpoint is missing.
- *
- * B2.3 landed: `POST /api/admin/governance/grants` takes a function, a scope, a
- * reason and an expiry, and the Governance screen posts to it today. What this
- * button would need is that whole composer — the capability picker, the scope
- * target, the mandatory reason, the expiry — rendered a second time inside a
- * 380px drawer. A second grant composer is a second place for the rules to be
- * wrong, and this screen is not the one that owns them.
- *
- * So the control stays drawn and disabled, and the notice beside it names
- * Governance as where a function is granted. Wiring it means moving the
- * composer into a shared component first, not adding a POST here.
- *
- * NOT THROUGH PendingControlDirective, and that changed when Phase 3 shipped.
- * The directive says "Available with Phase N", which was true while B2.3 was
- * the blocker. B2.3 has landed and the blocker is now a CLIENT refactor that no
- * phase in the kit schedules — so a phase number here would promise that some
- * deploy fixes it, which is the stale-label failure the directive itself exists
- * to avoid. It is a plain `disabled` with the real reason in its title, the
- * same shape the disable dialog's effective date and the grant form's review
- * select take for the same kind of reason.
- */
-/** Why "Grant function" cannot be pressed, shown on the control itself. */
-const GRANT_FUNCTION_REASON =
-  'Functions are granted in Governance, which owns the reason, the scope target and ' +
-  'the expiry a grant carries. This screen would need that whole composer a second time.';
-
 
 /** B3.3's window, mirrored from `admin_faculty.ENABLE_WINDOW_DAYS`. The server
  *  is the authority — it refuses past it, with a sentence this screen shows
@@ -172,9 +140,6 @@ export class AdminFacultyComponent {
   readonly gridTheme = reepGridTheme;
   readonly pageSizes = PAGE_SIZES;
   readonly notReadable = NOT_READABLE;
-  readonly statusUnknownReason = STATUS_UNKNOWN_REASON;
-  readonly signInPendingReason = SIGN_IN_PENDING_REASON;
-  readonly grantFunctionReason = GRANT_FUNCTION_REASON;
   readonly enableWindowDays = ENABLE_WINDOW_DAYS;
 
   // --- what the server said ----------------------------------------------

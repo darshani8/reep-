@@ -1,19 +1,16 @@
 <div class="panel" data-p="registrations">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Operations</span><span class="sep">/</span><span>Registrations</span></div>
-      <h1 class="dt-title">Registrations</h1>
+      <div class="crumb"><span>People</span><span class="sep">/</span><span>New applications</span></div>
+      <h1 class="dt-title">New applications</h1>
       <!-- THE COPY FIX (B11.4). Approval provisions the User, the Student and
            the profile, moves the CV and photo onto their uploads and emails the
            onboarding link. This line used to say approval provisioned nothing. -->
-      <div class="dt-sub">
-        Applications from the public form. Approval provisions the account and emails the onboarding
-        link — nothing exists before approval.
-      </div>
+      <div class="dt-sub">Students who applied through the sign-up form.</div>
     </div>
     <div class="dt-toolbar">
       <button type="button" class="btn secondary" (click)="openSeatingRules()">
-        <span class="icon" aria-hidden="true">settings</span> Seating rules
+        <span class="icon" aria-hidden="true">settings</span> Auto-approve rules
       </button>
       <!-- THE ONE EXPORT ON THIS SCREEN, and the only grid Export in the
            console: the board puts it here and spec §10 lists it. Everywhere
@@ -385,12 +382,6 @@
                  batch on day one: grey exactly where it would matter. Seating
                  capacity is a course-shape decision and belongs with the
                  catalogue, not with the review queue. -->
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              The first lines are the server's own checks — the same guards Approve applies. The
-              batch and the attachments are read from this application. There is no seat check:
-              batches carry no capacity, so nothing here counts seats.
-            </div>
           }
         </div>
       } @else if (hasDecisionTarget()) {
@@ -406,8 +397,9 @@
         </div>
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          A decision note applies to every application in the selection. Untick all but one to read a
-          single applicant's details and checks.
+          <div>
+            A decision note applies to every application in the selection.
+          </div>
         </div>
       } @else {
         <div class="panel-empty">
@@ -443,15 +435,9 @@
 
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          Approve creates the login, seats the student in the batch above, moves the CV and photo onto
-          their record and emails the onboarding link; a note you type is kept on the decision, not
-          emailed. Reject emails your reason and can be undone from the notice at the top of this
-          screen; an approved application cannot, because someone has already been told to sign in.
-          <!-- HOLD IS INTERNAL and this sentence is the reason the reviewer can
-               be trusted with it: a note they believe was emailed is a note
-               that leaves the applicant waiting for a message nobody sent. -->
-          Hold parks it here with your note and sends the applicant nothing at all — they can still
-          attach the document you are waiting for.
+          <div>
+            Approve creates the login and emails the student a setup link; your note is kept, not emailed. Reject emails your reason and can be undone from the notice at the top. Hold keeps it here with your note and sends nothing.
+          </div>
         </div>
 
         <div class="panel-actions">
@@ -514,19 +500,14 @@
       >
         <header class="dialog-head">
           <div>
-            <h2 class="dialog-title" id="seating-rules-title">Seating rules</h2>
+            <h2 class="dialog-title" id="seating-rules-title">Auto-approve rules</h2>
             <!-- WHAT A RULE IS, IN THE ORDER THAT MATTERS. The engine runs on
                  the PUBLIC form, before anybody has read anything, and an
                  auto-approving rule ends with an account that exists. That is
                  the sentence an author needs before they type, not after. -->
-            <p class="dialog-sub">
-              The order the engine evaluates when an application arrives on the public form. The
-              lowest priority among the rules that match wins; equal priorities are settled by which
-              rule is older. A rule that auto-approves creates the account itself — that application
-              never reaches the queue.
-            </p>
+            <p class="dialog-sub">Lowest priority wins; ties go to the older rule.</p>
           </div>
-          <button type="button" class="btn ghost sm" aria-label="Close the seating rules" (click)="closeSeatingRules()">
+          <button type="button" class="btn ghost sm" aria-label="Close the rules" (click)="closeSeatingRules()">
             <span class="icon" aria-hidden="true">close</span>
           </button>
         </header>

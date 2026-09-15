@@ -539,6 +539,79 @@ def test_task_role_may_send_mail_only_for_the_verified_identity(hardened: Templa
     )
 
 
+def test_the_task_role_may_also_send_under_the_configuration_set(hardened: Template) -> None:
+    """The permission whose absence took all mail down for eighty minutes.
+
+    2026-09-15: `SES_CONFIGURATION_SET` reached the task in the same deploy that
+    introduced it, so every send named `reep-transactional` while the role held
+    only the identity. Every one was refused, `deliver_once` swallowed the
+    exception into `mail_logs.error` without logging, and the endpoints above
+    kept answering 200 -- so a rejected applicant got no rejection and nothing
+    anywhere said why.
+
+    Two halves, and the test asserts BOTH, because each is load-bearing in a
+    different direction: the identity statement keeps its `ses:FromAddress`
+    condition (drop it and a compromised task can spoof any sender at the
+    domain), and the configuration-set statement must NOT carry one (that key
+    is absent when SES evaluates the set, and a StringEquals on an absent key
+    denies -- which is the outage again, arrived at from the other side).
+    """
+    role = next(
+        r for r in _core("harden", sesFromAddress="reep@bgscet.ac.in",
+                         sesIdentityDomain="bgscet.ac.in").to_json()["Resources"].values()
+        if r["Type"] == "AWS::IAM::Role" and r["Properties"].get("RoleName") == "reep-api-task"
+    )
+    send_mail = next(p for p in role["Properties"]["Policies"] if p["PolicyName"] == "send-mail")
+    by_sid = {s.get("Sid"): s for s in send_mail["PolicyDocument"]["Statement"]}
+
+    assert set(by_sid) == {"SendFromVerifiedIdentity", "SendUnderConfigurationSet"}, (
+        "the send-mail policy must name the identity AND the configuration set; a send that names a "
+        "set is authorised against both"
+    )
+    identity = by_sid["SendFromVerifiedIdentity"]
+    assert identity["Resource"] == "arn:aws:ses:ap-south-1:123456789012:identity/bgscet.ac.in"
+    assert identity["Condition"] == {"StringEquals": {"ses:FromAddress": "reep@bgscet.ac.in"}}
+
+    configuration_set = by_sid["SendUnderConfigurationSet"]
+    assert configuration_set["Resource"] == (
+        "arn:aws:ses:ap-south-1:123456789012:configuration-set/reep-transactional"
+    )
+    assert "Condition" not in configuration_set, (
+        "ses:FromAddress is not in context when SES evaluates the configuration set, so a condition "
+        "on it denies every send -- this is the 2026-09-15 outage rewritten as a passing-looking policy"
+    )
+
+
+def test_a_configuration_set_on_the_task_is_never_ungranted() -> None:
+    """The two halves of this feature ship together or not at all.
+
+    The variable and the grant are set from the same context key, so the state
+    that caused the outage -- the task naming a set the role cannot use -- is
+    not reachable from any combination of context. Pinned rather than left to
+    the reading, because the variable and the policy are 200 lines apart.
+    """
+    template = _core("harden", sesFromAddress="reep@bgscet.ac.in",
+                     sesIdentityDomain="bgscet.ac.in").to_json()["Resources"]
+    task_definition = next(r for r in template.values() if r["Type"] == "AWS::ECS::TaskDefinition")
+    env = {e["Name"]: e.get("Value") for e in task_definition["Properties"]["ContainerDefinitions"][0]["Environment"]}
+    named_set = env.get("SES_CONFIGURATION_SET")
+
+    role = next(r for r in template.values()
+                if r["Type"] == "AWS::IAM::Role" and r["Properties"].get("RoleName") == "reep-api-task")
+    send_mail = next(p for p in role["Properties"]["Policies"] if p["PolicyName"] == "send-mail")
+    granted = {
+        s["Resource"] for s in send_mail["PolicyDocument"]["Statement"]
+        if isinstance(s.get("Resource"), str) and ":configuration-set/" in s["Resource"]
+    }
+
+    if named_set:
+        assert any(r.endswith(f":configuration-set/{named_set}") for r in granted), (
+            f"the task is told to send under {named_set!r} and the role cannot use it -- every send fails silently"
+        )
+    else:
+        assert not granted, "a configuration set is granted that nothing names"
+
+
 # ------------------------------------------------------ ses (the mail path) --
 
 

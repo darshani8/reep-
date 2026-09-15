@@ -1,7 +1,7 @@
 <div class="panel" data-p="students">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Institution</span><span class="sep">/</span><span>Students &amp; batches</span></div>
+      <div class="crumb"><span>People</span><span class="sep">/</span><span>Students &amp; batches</span></div>
       <h1 class="dt-title">Students &amp; batches</h1>
       <div class="dt-sub">{{ summaryLine() }}</div>
     </div>
@@ -50,9 +50,8 @@
   @if (hierarchyUnavailable()) {
     <div class="notice warn" role="status">
       <span class="icon" aria-hidden="true">warning</span>
-      The institution structure could not be read (<code>GET /api/register/hierarchy</code>), so the
-      Department, Course, Batch and Specialization pickers are empty and no batch can be acted on. The
-      roster itself is unaffected.
+      The college structure could not be read, so the Department, Course, Batch and Specialization
+      pickers are empty.
     </div>
   }
 
@@ -127,19 +126,6 @@
     <a class="btn ghost filters-end" routerLink="/admin/registrations">
       <span class="icon" aria-hidden="true">how_to_reg</span> Students arrive from Registrations
     </a>
-  </div>
-
-  <!-- NOT A PHASE. The marks and attendance imports landed (Data imports) and
-       readiness is computed per student — but `GET /api/admin/students` does
-       not carry any of the three, and asking Student 360 once per row would be
-       one request per student on every page of the roster. So the three
-       columns stay an em dash HERE and the sentence points at the screen that
-       does answer them, rather than promising a phase that has already been. -->
-  <div class="notice accent columns-note">
-    <span class="icon" aria-hidden="true">info</span>
-    Readiness, CGPA and Attendance read “{{ notReadable }}” on this grid: the roster endpoint answers
-    identity, seating and stage, and none of those three is on it. All three are read per student on
-    Student 360 — open a row. Everything else on this grid is live.
   </div>
 
   <div class="roster">
@@ -289,7 +275,7 @@
             <div><dt>Department</dt><dd>{{ batch.departmentName }}</dd></div>
             <div><dt>Current semester</dt><dd>{{ semesterLabel() }}</dd></div>
             <div><dt>Students</dt><dd>{{ batchRosterCount() }}</dd></div>
-            <div><dt>Unseated</dt><dd>{{ batchUnseatedCount() }} without a faculty member</dd></div>
+            <div><dt>No faculty member</dt><dd>{{ batchUnseatedCount() }}</dd></div>
             @if (rosterIsNarrowed()) {
               <div><dt>In view</dt><dd>{{ studentCount() }} after the filters</dd></div>
             }
@@ -301,8 +287,8 @@
         } @else {
           <dl class="rail-facts">
             <div><dt>Students in view</dt><dd>{{ studentCount() }}</dd></div>
-            <div><dt>Seated</dt><dd>{{ seatedCount() }} with a faculty member</dd></div>
-            <div><dt>Unseated</dt><dd>{{ unseatedCount() }}</dd></div>
+            <div><dt>With a faculty member</dt><dd>{{ seatedCount() }}</dd></div>
+            <div><dt>No faculty member</dt><dd>{{ unseatedCount() }}</dd></div>
             <div><dt>Batches</dt><dd>{{ batches().length }}</dd></div>
           </dl>
           <p class="rail-hint">Pick one batch above to act on it, promote it or graduate it.</p>
@@ -326,8 +312,9 @@
           @case ('no-batch') {
             <div class="notice accent">
               <span class="icon" aria-hidden="true">history</span>
-              Pick one batch above to read what has been done to it. A promotion and a graduation are
-              recorded per batch, so there is no whole-roster version of this list.
+              <div>
+                Pick one batch above.
+              </div>
             </div>
           }
           @case ('loading') {
@@ -339,16 +326,18 @@
           @case ('refused') {
             <div class="notice" role="alert">
               <span class="icon" aria-hidden="true">block</span>
-              {{ promotionHistoryError() }} This is not “nothing on record” — it is a read this
-              account was refused, which happens when a grant reaches only part of the batch.
+              <div>
+                {{ promotionHistoryError() }}
+              </div>
             </div>
           }
           @default {
             @if (promotionHistory().length === 0) {
               <div class="notice accent">
                 <span class="icon" aria-hidden="true">history</span>
-                Nothing has been promoted, held back or graduated in this batch yet. A row lands here
-                the moment one is, naming the student, the move, the date and who ordered it.
+                <div>
+                  Nothing has been promoted, held back or graduated in this batch yet.
+                </div>
               </div>
             } @else {
               <ol class="history-list">
@@ -419,7 +408,7 @@
         <header class="dialog-head">
           <div>
             <h2 class="dialog-title" id="edit-student-title">Edit {{ draft().name }}</h2>
-            <p class="dialog-sub">Saved through PATCH /api/admin/students. Nothing here sets a password.</p>
+            <p class="dialog-sub">Nothing here sets a password.</p>
           </div>
           <button type="button" class="btn ghost sm" aria-label="Close this dialog" (click)="closeDialog()">
             <span class="icon" aria-hidden="true">close</span>
@@ -457,7 +446,7 @@
                   <option [value]="department.id" [selected]="department.id === draft().departmentId">{{ department.label }}</option>
                 }
               </select>
-              <span class="help">The batch decides the department whenever the batch names one; this is what files a student who has no batch.</span>
+              <span class="help">The batch decides the department whenever it names one.</span>
             </label>
             <label class="field">
               <span>Faculty member</span>
@@ -527,12 +516,10 @@
               @if (facultyUnavailable()) {
                 <span class="err" role="status">
                   <span class="icon" aria-hidden="true">warning</span>
-                  The faculty list could not be read. <code>GET /api/admin/mentor-load</code> requires the
-                  <code>admin.analytics</code> capability, which this screen's <code>admin.students</code>
-                  grant does not include — so only “release them” can be chosen here.
+                  The faculty list could not be read, so only “release them” can be chosen here.
                 </span>
               } @else {
-                <span class="help">A faculty account becomes a mentor on its first assignment; there is no flag to set.</span>
+                <span class="help">A faculty account becomes a mentor on its first assignment.</span>
               }
             </label>
           } @else {
@@ -548,11 +535,6 @@
             </label>
           }
 
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">info</span>
-            This writes one PATCH per ticked student. A single audited bulk request is backend task B9.3;
-            until it lands, the count in the confirmation is what actually landed.
-          </div>
         </div>
 
         <footer class="dialog-foot">
@@ -604,8 +586,7 @@
               @if (facultyUnavailable()) {
                 <span class="err" role="status">
                   <span class="icon" aria-hidden="true">warning</span>
-                  The faculty list could not be read (<code>/api/admin/mentor-load</code> needs
-                  <code>admin.analytics</code>).
+                  The faculty list could not be read.
                 </span>
               }
             </label>

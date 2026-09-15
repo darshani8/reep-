@@ -1,14 +1,9 @@
 <div class="panel" data-p="interview-questions">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Interviews</span><span class="sep">/</span><span>Question bank</span></div>
-      <h1 class="dt-title">Interview question bank</h1>
-      <div class="dt-sub">
-        What the mock interviewer covers on each track. It stays free-style — these are worked in,
-        in this order, at the phase you pin them to, rephrased naturally, with follow-ups on what
-        the student actually says. You decide what is covered; the interviewer decides how it is
-        asked.
-      </div>
+      <div class="crumb"><span>Interviews</span><span class="sep">/</span><span>Interview questions</span></div>
+      <h1 class="dt-title">Interview questions</h1>
+      <div class="dt-sub">What the mock interviewer asks, per track.</div>
     </div>
 
     <div class="dt-toolbar">
@@ -18,7 +13,7 @@
         [attr.aria-expanded]="bulkOpen()"
         (click)="toggleBulkPanel()"
       >
-        <span class="icon" aria-hidden="true">upload_file</span> Bulk import
+        <span class="icon" aria-hidden="true">upload_file</span> Add many
       </button>
       <!-- ONE PRIMARY PER VIEW (01-design-system.md §4): this one. -->
       <button
@@ -86,14 +81,6 @@
            listed and still runs interviews — it is the constant in
            app/interview_matrix.py — and its card says so rather than offering a
            PATCH with no id. -->
-      <div class="notice accent bank-rail-note">
-        <span class="icon" aria-hidden="true">info</span>
-        <span>
-          A track carries the interviewer’s persona, the frameworks it works through, its voice
-          and its sample question. One added here belongs to no college, so every college sees it;
-          one already tied to a college is marked on its card.
-        </span>
-      </div>
 
       <button
         type="button"
@@ -170,7 +157,7 @@
         }
 
         <div class="field bank-persona">
-          <label for="bank-persona-field">Interviewer persona</label>
+          <label for="bank-persona-field">Interviewer role</label>
           <textarea
             id="bank-persona-field"
             class="ctrl"
@@ -179,10 +166,7 @@
             [value]="draftPersona()"
             (input)="draftPersona.set(textAreaValue($event))"
           ></textarea>
-          <span class="help">
-            A NOUN PHRASE, not a sentence — it is embedded as “you are {{ personaExample }}”, so a
-            full stop composes into “you are a sharp CFO..”
-          </span>
+          <span class="help">A noun phrase, e.g. “{{ personaExample }}”.</span>
         </div>
 
         <div class="field bank-persona">
@@ -195,9 +179,7 @@
             [value]="draftSample()"
             (input)="draftSample.set(textAreaValue($event))"
           ></textarea>
-          <span class="help">
-            The question PROBING works in early, rephrased naturally rather than recited
-          </span>
+          <span class="help">Asked early in the interview.</span>
         </div>
 
         <div class="bank-track-row">
@@ -228,17 +210,6 @@
             </select>
             <span class="help">Amazon Nova 2 Sonic voices only</span>
           </div>
-          <div class="field bank-cap">
-            <label for="bank-cap-field">Session cap</label>
-            <input
-              id="bank-cap-field"
-              class="ctrl"
-              type="text"
-              disabled
-              title="A session cap is not a property of a track. The time limit and the daily and attempt ceilings are the college’s interview policy — they are set on Interview records → Policy."
-            />
-            <span class="help">Set per college, on Interview records → Policy</span>
-          </div>
         </div>
 
         <div class="field bank-persona">
@@ -251,9 +222,7 @@
             [value]="draftSyllabus()"
             (input)="draftSyllabus.set(inputValue($event))"
           />
-          <span class="help">
-            Comma separated, and optional — only Digital Marketing ships with one
-          </span>
+          <span class="help">Comma separated, optional.</span>
         </div>
 
         <label class="bank-enabled">
@@ -323,7 +292,7 @@
           </div>
 
           <div class="field bank-persona">
-            <label for="bank-new-track-persona">Interviewer persona</label>
+            <label for="bank-new-track-persona">Interviewer role</label>
             <textarea
               id="bank-new-track-persona"
               class="ctrl"
@@ -332,7 +301,7 @@
               [value]="newTrackPersona()"
               (input)="newTrackPersona.set(textAreaValue($event))"
             ></textarea>
-            <span class="help">A noun phrase — it is embedded as “you are {{ personaExample }}”</span>
+            <span class="help">A noun phrase, e.g. “{{ personaExample }}”.</span>
           </div>
 
           <div class="field bank-persona">
@@ -357,9 +326,7 @@
               [value]="newTrackFrameworks()"
               (input)="newTrackFrameworks.set(inputValue($event))"
             />
-            <span class="help">
-              Comma separated. Four or more, or the interview runs out of frameworks before wrap-up.
-            </span>
+            <span class="help">Comma separated, four or more.</span>
           </div>
 
           <div class="bank-form-foot">
@@ -510,7 +477,7 @@
             />
 
             <button type="button" class="btn secondary sm" (click)="toggleBulkPanel()">
-              <span class="icon" aria-hidden="true">content_copy</span> Bulk paste
+              <span class="icon" aria-hidden="true">content_copy</span> Add many
             </button>
             <button
               type="button"

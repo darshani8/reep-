@@ -2,7 +2,7 @@
   <div class="dt-header">
     <div>
       <div class="crumb">
-        <span>Institution</span><span class="sep">/</span><a routerLink="/admin/faculty">Faculty</a
+        <span>People</span><span class="sep">/</span><a routerLink="/admin/faculty">Faculty</a
         ><span class="sep">/</span><span>Add faculty member</span>
       </div>
       <h1 class="dt-title">Add faculty member</h1>
@@ -71,7 +71,7 @@
               <div>
                 No college exists on this deployment yet, so there is nowhere to file a faculty
                 member. Add one on
-                <a routerLink="/admin/institution">Institution structure</a> first.
+                <a routerLink="/admin/institution">College structure</a> first.
               </div>
             </div>
           } @else {
@@ -151,7 +151,7 @@
                 <div>
                   This college or department is <strong>archived</strong>. The account can still be
                   filed there — the API accepts it — but the office has closed that department.
-                  Un-archive it on <a routerLink="/admin/institution">Institution structure</a>, or
+                  Un-archive it on <a routerLink="/admin/institution">College structure</a>, or
                   choose a current one.
                 </div>
               </div>
@@ -162,7 +162,7 @@
                 <span class="icon" aria-hidden="true">warning</span>
                 <div>
                   This college has no departments yet. Add one on
-                  <a routerLink="/admin/institution">Institution structure</a>, then come back —
+                  <a routerLink="/admin/institution">College structure</a>, then come back —
                   a faculty member cannot be filed under a college alone.
                 </div>
               </div>
@@ -221,7 +221,7 @@
                   <p class="next-step">3 · Functions</p>
                   <p class="next-desc">
                     Mentor is granted when the Main Admin assigns their first student. Every other
-                    function is a scoped grant made in Roles &amp; functions.
+                    function is a scoped grant made in Who can do what.
                   </p>
                 </div>
                 <div>
@@ -384,7 +384,7 @@
             <code>POST /api/admin/faculty</code> creates the account as Faculty with no mentor group
             and nothing granted, and it has no field to ask for one. A grant also carries a reason,
             a scope target and an expiry that this wizard never asks for, so a tick here could not
-            write the row <a routerLink="/admin/governance">Roles &amp; functions</a> writes — and
+            write the row <a routerLink="/admin/governance">Who can do what</a> writes — and
             that row is the only record of who granted a function, why, and until when.
           </div>
         </div>
@@ -405,7 +405,7 @@
           <span class="icon" aria-hidden="true">group</span>
           <div>
             A faculty account is not a mentor by existing. It sees nobody until the Main Admin
-            assigns it a student on <a routerLink="/admin/mentors">Mentor mapping</a> — that first
+            assigns it a student on <a routerLink="/admin/mentors">Assign faculty</a> — that first
             assignment is what creates the mentor group.
           </div>
         </div>
@@ -482,8 +482,8 @@
               <li>Sign in, once the link is redeemed and a password is set.</li>
               <li>Nothing else: no mentees, no console screens, no functions.</li>
               <li>
-                Give it work on <a routerLink="/admin/mentors">Mentor mapping</a> (students) or in
-                <a routerLink="/admin/governance">Roles &amp; functions</a> (a console screen).
+                Give it work on <a routerLink="/admin/mentors">Assign faculty</a> (students) or in
+                <a routerLink="/admin/governance">Who can do what</a> (a console screen).
               </li>
             </ul>
           </div>

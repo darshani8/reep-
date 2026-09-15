@@ -213,7 +213,7 @@ export const ROSTER_COLUMNS: ColDef<RosterRow>[] = [
     floatingFilter: false,
     valueFormatter: formatNotReadable,
     headerTooltip:
-      'Not on the roster endpoint. Marks are imported on Data imports and read per student on Student 360 — open the row.',
+      'Not on the roster endpoint. Marks are uploaded on Upload spreadsheets and read per student — open the row.',
   },
   {
     colId: 'attendance',
@@ -226,7 +226,7 @@ export const ROSTER_COLUMNS: ColDef<RosterRow>[] = [
     floatingFilter: false,
     valueFormatter: formatNotReadable,
     headerTooltip:
-      'Not on the roster endpoint. Attendance is imported on Data imports and read per student on Student 360 — open the row.',
+      'Not on the roster endpoint. Attendance is uploaded on Upload spreadsheets and read per student — open the row.',
   },
   {
     colId: 'batch',

@@ -659,7 +659,7 @@ export class AdminCollegesComponent implements OnInit {
       const live = admin.capabilities.length - pending;
       this.appointNote.set(
         pending > 0
-          ? `${admin.name} was appointed: ${live} of ${admin.capabilities.length} functions are live and ${pending} carry a student's own records, so they hold nothing until a second holder of admin.governance approves each in Roles & functions.`
+          ? `${admin.name} was appointed: ${live} of ${admin.capabilities.length} functions are live and ${pending} carry a student's own records, so they hold nothing until a second holder of admin.governance approves each in Who can do what.`
           : `${admin.name} was appointed with ${plural(admin.capabilities.length, 'function')}.`,
       );
     } catch {

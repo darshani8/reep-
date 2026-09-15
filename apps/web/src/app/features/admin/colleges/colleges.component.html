@@ -1,7 +1,7 @@
 <div class="panel" data-p="colleges">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Institution</span><span class="sep">/</span><span>Colleges</span></div>
+      <div class="crumb"><span>College setup</span><span class="sep">/</span><span>Colleges</span></div>
       <h1 class="dt-title">Colleges</h1>
       <p class="dt-sub">
         Each college is a tenant: its own registration domains, departments, admins and catalogues.
@@ -72,7 +72,7 @@
           <p class="created-note" role="status">
             <span class="icon" aria-hidden="true">check_circle</span>
             {{ created }} created. It seats no one yet — add its departments, courses and batches in
-            <a routerLink="/admin/institution">Structure</a>.
+            <a routerLink="/admin/institution">College structure</a>.
           </p>
         }
 
@@ -238,7 +238,7 @@
               them carry a student's own records, so they are written
               <code>pending_approval</code> and hold nothing until a second holder of
               <code>admin.governance</code> approves each in
-              <a routerLink="/admin/governance">Roles &amp; functions</a> (B2.4) — a freshly
+              <a routerLink="/admin/governance">Who can do what</a> (B2.4) — a freshly
               appointed college admin is normally part live, and the table's chip says how much.
             </div>
           </div>
@@ -272,7 +272,7 @@
                 These are the keys <code>COLLEGE_ADMIN_CAPABILITIES</code> appoints and no others. A
                 faculty instrument — sanctioning leave, a mentor group, verifying evidence — is a
                 separate grant made in
-                <a routerLink="/admin/governance">Roles &amp; functions</a>; Governance and the
+                <a routerLink="/admin/governance">Who can do what</a>; Governance and the
                 platform card stay the Main Admin's.
               </p>
             </div>
@@ -512,7 +512,7 @@
             <span class="icon" aria-hidden="true">info</span>
             <div>
               Creating a college seats no one. Departments, courses and batches are added in
-              <a routerLink="/admin/institution">Structure</a>.
+              <a routerLink="/admin/institution">College structure</a>.
             </div>
           </div>
 

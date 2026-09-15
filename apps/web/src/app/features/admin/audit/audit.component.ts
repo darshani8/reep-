@@ -280,18 +280,18 @@ const KNOWN_TARGET_TYPES: string[] = [
  * reason on it, rather than navigating somewhere that does not hold the record.
  */
 const TARGET_SCREENS: Record<string, { path: string; label: string; byId?: boolean }> = {
-  access_group: { path: '/admin/governance', label: 'Governance' },
-  audit_export: { path: '/admin/exports', label: 'Exports' },
-  capability_grant: { path: '/admin/governance', label: 'Governance' },
-  cohort: { path: '/admin/institution', label: 'Institution' },
-  export: { path: '/admin/exports', label: 'Exports' },
+  access_group: { path: '/admin/governance', label: 'Who can do what' },
+  audit_export: { path: '/admin/exports', label: 'Download reports' },
+  capability_grant: { path: '/admin/governance', label: 'Who can do what' },
+  cohort: { path: '/admin/institution', label: 'College structure' },
+  export: { path: '/admin/exports', label: 'Download reports' },
   faculty: { path: '/admin/faculty', label: 'Faculty' },
   feature_override: { path: '/admin/governance/features', label: 'Feature switches' },
-  interview_question: { path: '/admin/interview-questions', label: 'Question bank' },
-  registration: { path: '/admin/registrations', label: 'Registrations' },
-  roster: { path: '/admin/students', label: 'Students' },
+  interview_question: { path: '/admin/interview-questions', label: 'Interview questions' },
+  registration: { path: '/admin/registrations', label: 'New applications' },
+  roster: { path: '/admin/students', label: 'Students & batches' },
   student: { path: '/admin/students', label: 'the student', byId: true },
-  swoc_entry: { path: '/admin/swoc', label: 'SWOC' },
+  swoc_entry: { path: '/admin/swoc', label: 'SWOC notes' },
   user: { path: '/admin/faculty', label: 'Faculty' },
 };
 

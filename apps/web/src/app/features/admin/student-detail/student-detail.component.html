@@ -2,7 +2,7 @@
   <div class="dt-header">
     <div>
       <div class="crumb">
-        <span>Institution</span><span class="sep">/</span>
+        <span>People</span><span class="sep">/</span>
         <a routerLink="/admin/students">Students &amp; batches</a><span class="sep">/</span>
         <span>{{ usnLabel() }}</span>
       </div>
@@ -48,7 +48,7 @@
         <span class="icon" aria-hidden="true">history</span> Hold back
       </button>
       <a class="btn secondary" routerLink="/admin/audit">
-        <span class="icon" aria-hidden="true">description</span> Audit trail
+        <span class="icon" aria-hidden="true">description</span> What changed
       </a>
       <button
         type="button"
@@ -564,7 +564,7 @@
                   <span class="avatar lg" aria-hidden="true">{{ mentorInitials() }}</span>
                   <div class="mentor-who">
                     <div class="mentor-name">{{ name }}</div>
-                    <div class="soft">faculty · assigned on Mentor mapping</div>
+                    <div class="soft">faculty member</div>
                   </div>
                   <a class="btn ghost sm" routerLink="/admin/mentors">
                     <span class="icon" aria-hidden="true">group</span> Reassign
@@ -577,7 +577,7 @@
                 </div>
                 <div class="row-actions">
                   <a class="btn secondary sm" routerLink="/admin/mentors">
-                    <span class="icon" aria-hidden="true">group</span> Assign on Mentor mapping
+                    <span class="icon" aria-hidden="true">group</span> Assign a faculty member
                   </a>
                 </div>
               }
@@ -1096,7 +1096,7 @@
             </div>
             <div class="card-actions">
               <a class="btn ghost sm" routerLink="/admin/audit">
-                <span class="icon" aria-hidden="true">arrow_forward</span> Audit trail
+                <span class="icon" aria-hidden="true">arrow_forward</span> What changed
               </a>
             </div>
           </div>

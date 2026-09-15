@@ -1,0 +1,266 @@
+# Does AWS still look like this repository?
+#
+# WHY THIS EXISTS. On 2026-09-08 commit ecdb37b removed the OpenSearch
+# Serverless collection from reep_voice_platform/stack.py — $361/month for two
+# indexes nothing read, proven dead before anything was deleted. It was
+# reviewed and merged the same day. It was never deployed. Seven days later the
+# collection was still ACTIVE, still burning $11.87/day, and every signal a
+# human might have looked at said the work was done: CI green, PR merged, the
+# file gone from the repository.
+#
+# TWO DIFFERENT QUESTIONS, AND ONLY ONE OF THEM WAS EVER ASKED. `docs/cdk-cutover.md`
+# step 5 runs `detect-stack-drift`, which asks "does AWS match the template
+# CloudFormation last deployed?" — and on 2026-09-15 the honest answer was YES.
+# The deployed template still declared the collection, and AWS still had it;
+# nothing had drifted. The question nobody asked is the one this workflow asks:
+# **does the deployed template still match `main`?** That is `cdk diff`, and it
+# would have gone red on 2026-09-09, the morning after the merge.
+#
+# So both run here, and they are reported separately because they fail for
+# opposite reasons and have opposite fixes:
+#
+#   cdk diff   repo -> AWS   something was merged and not deployed.  Fix: deploy.
+#   detect-drift  AWS -> template  somebody changed AWS by hand.     Fix: reconcile.
+#
+# READ-ONLY. Nothing here deploys. `cdk diff` renders a changeset and throws it
+# away; `detect-stack-drift` is an inspection. The workflow reports and stops —
+# deploying is a human decision and keeps its confirmation box in cdk-deploy.yml.
+# The reason is not timidity: `core-9b`'s precondition cannot be read from this
+# repository at all (see cdk-deploy.yml), so an auto-deploy here could run the
+# one update the cutover split exists to prevent.
+
+name: Infra drift
+
+on:
+  schedule:
+    # 02:30 UTC = 08:00 IST, so a disagreement is on somebody's screen at the
+    # start of the working day rather than discovered a week later. Deliberately
+    # NOT in the 01:00 IST dump window or the 03:00 IST retention sweep.
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  # Shares no group with cdk-deploy.yml: a diff during a deploy is a confusing
+  # report, not a broken stack, and blocking a deploy behind a read-only check
+  # would be the worse trade.
+  group: infra-drift
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    name: Deployed infrastructure vs main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: infra/cdk/requirements-dev.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install the CDK library and CLI
+        working-directory: infra/cdk
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          npm install -g aws-cdk
+          cdk --version
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN || 'arn:aws:iam::445363794125:role/reep-github-deploy' }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
+          role-session-name: reep-drift-${{ github.run_id }}
+
+      # `cdk diff` exits 1 when a stack differs and 0 when it does not, so the
+      # exit code IS the answer and `|| true` would throw it away. Each stack is
+      # diffed separately: one stack differing must not hide the other three,
+      # which is exactly how a $361/month collection stays invisible behind a
+      # noisy core diff.
+      #
+      # reep-core is diffed WITH `-c hardenEcs=false` as well as without. The
+      # two render different task definitions (cdk-deploy.yml, step 9a/9b), and
+      # diffing only the bare form would report the ECS half as drift on every
+      # single run — a check that cries wolf daily is a check nobody reads.
+      - name: cdk diff every stack against main
+        id: diff
+        working-directory: infra/cdk
+        run: |
+          set -uo pipefail
+          : > /tmp/drift.md
+          differs=0
+          diff_one() {
+            local label="$1"; shift
+            echo "::group::cdk diff $label"
+            if cdk diff "$@" --no-color > "/tmp/diff-$label.txt" 2>&1; then
+              echo "  no difference"
+            else
+              differs=1
+              echo "  DIFFERS"
+              {
+                echo "### \`$label\` — deployed template differs from \`main\`"
+                echo
+                echo '```'
+                # 200 lines is enough to see what moved without pasting a whole
+                # template into an issue body GitHub will then truncate.
+                head -c 60000 "/tmp/diff-$label.txt" | head -200
+                echo '```'
+                echo
+              } >> /tmp/drift.md
+            fi
+            cat "/tmp/diff-$label.txt"
+            echo "::endgroup::"
+          }
+
+          diff_one reep-voice-platform reep-voice-platform
+          diff_one reep-edge-waf       reep-edge-waf
+          diff_one reep-dr-vault       reep-dr-vault
+          diff_one reep-core-9a        reep-core -c hardenEcs=false
+          diff_one reep-core           reep-core
+
+          echo "differs=$differs" >> "$GITHUB_OUTPUT"
+
+      # AWS vs its own template. Separate question, separate section, and
+      # NOT_CHECKED rows are dropped because they are resource types
+      # CloudFormation cannot drift-check, not findings (cdk-cutover.md §5).
+      - name: CloudFormation drift detection
+        id: cfn
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          drifted=0
+          for stack in reep-core reep-voice-platform; do
+            id=$(aws cloudformation detect-stack-drift --stack-name "$stack" \
+                   --query StackDriftDetectionId --output text 2>/dev/null) || {
+              echo "::warning::could not start drift detection on $stack (missing cloudformation:DetectStackDrift?)"
+              continue; }
+            for _ in $(seq 1 60); do
+              status=$(aws cloudformation describe-stack-drift-detection-status \
+                         --stack-drift-detection-id "$id" \
+                         --query DetectionStatus --output text)
+              [ "$status" != DETECTION_IN_PROGRESS ] && break
+              sleep 5
+            done
+            n=$(aws cloudformation describe-stack-resource-drifts --stack-name "$stack" \
+                  --stack-resource-drift-status-filters MODIFIED DELETED \
+                  --query 'length(StackResourceDrifts)' --output text)
+            echo "$stack: $n drifted resource(s)"
+            if [ "$n" != "0" ] && [ "$n" != "None" ]; then
+              drifted=1
+              {
+                echo "### \`$stack\` — AWS differs from its deployed template"
+                echo
+                echo '```'
+                aws cloudformation describe-stack-resource-drifts --stack-name "$stack" \
+                  --stack-resource-drift-status-filters MODIFIED DELETED \
+                  --query 'StackResourceDrifts[].{Id:LogicalResourceId,Status:StackResourceDriftStatus,Diffs:PropertyDifferences[].PropertyPath}' \
+                  --output table
+                echo '```'
+                echo
+              } >> /tmp/drift.md
+            fi
+          done
+          echo "drifted=$drifted" >> "$GITHUB_OUTPUT"
+
+      # GROSS spend, and gross is the whole point. This account's promotional
+      # credits were absorbing ~75% of the bill, so the OpenSearch collection
+      # cost $0.00 net for its entire life and appeared in no net-cost view at
+      # all. RECORD_TYPE=Usage is what makes a credited resource visible before
+      # the credits run out rather than after.
+      - name: Gross spend by service (credits excluded)
+        id: cost
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          end=$(date -u +%F)
+          start=$(date -u -d '14 days ago' +%F)
+          if ! aws ce get-cost-and-usage --region us-east-1 \
+                --time-period Start="$start",End="$end" \
+                --granularity MONTHLY --metrics UnblendedCost \
+                --filter '{"Dimensions":{"Key":"RECORD_TYPE","Values":["Usage"]}}' \
+                --group-by Type=DIMENSION,Key=SERVICE \
+                --query 'ResultsByTime[].Groups[].[Keys[0],Metrics.UnblendedCost.Amount]' \
+                --output text > /tmp/cost.txt 2>/tmp/cost.err; then
+            echo "::warning::no ce:GetCostAndUsage grant on this role — gross-spend check skipped."
+            echo "::warning::To enable it, add ce:GetCostAndUsage to reep-github-deploy. Until then this section is BLANK, not clean."
+            sed -n '1,3p' /tmp/cost.err || true
+            exit 0
+          fi
+          sort -k2 -gr /tmp/cost.txt | head -20 | awk '{printf "  %-46s %10.2f\n", $1, $2}'
+          {
+            echo "### Gross spend, last 14 days (credits excluded)"
+            echo
+            echo '```'
+            sort -k2 -gr /tmp/cost.txt | head -20 | awk '{printf "%-46s %10.2f\n", $1, $2}'
+            echo '```'
+          } >> /tmp/cost.md
+
+      - name: Report
+        uses: actions/github-script@v7
+        env:
+          DIFFERS: ${{ steps.diff.outputs.differs }}
+          DRIFTED: ${{ steps.cfn.outputs.drifted }}
+        with:
+          script: |
+            const fs = require('fs');
+            const read = p => { try { return fs.readFileSync(p, 'utf8'); } catch { return ''; } };
+            const differs = process.env.DIFFERS === '1';
+            const drifted = process.env.DRIFTED === '1';
+            const TITLE = 'Infra drift: deployed AWS does not match `main`';
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'infra-drift', per_page: 10,
+            });
+            const existing = open.find(i => i.title === TITLE);
+
+            if (!differs && !drifted) {
+              if (existing) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number,
+                  body: `Clean as of ${new Date().toISOString()} — every stack matches \`main\` and no resource has drifted. Closing.`,
+                });
+                await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: existing.number, state: 'closed',
+                });
+              }
+              core.info('No drift.');
+              return;
+            }
+
+            const body = [
+              'Something in AWS does not match this repository.',
+              '',
+              differs ? '**A stack differs from `main`** — most likely something was merged and never deployed. Deploy it from the **CDK deploy** workflow.' : '',
+              drifted ? '**A resource differs from its deployed template** — something was changed in AWS by hand. Reconcile it.' : '',
+              '',
+              read('/tmp/drift.md'),
+              read('/tmp/cost.md'),
+              '',
+              `<sub>Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}</sub>`,
+            ].filter(Boolean).join('\n');
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title: TITLE, body, labels: ['infra-drift'],
+              });
+            }
+            // Red, so it shows up beside CI rather than only in an issue.
+            core.setFailed('Deployed infrastructure does not match main.');

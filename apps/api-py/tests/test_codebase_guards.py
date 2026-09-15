@@ -598,6 +598,66 @@ def test_the_alb_keeps_an_interview_socket_open_longer_than_the_interview() -> N
     )
 
 
+def test_the_mail_failure_alarm_still_matches_the_line_the_mailer_writes() -> None:
+    """INCIDENT (2026-09-15): eighty minutes of total mail failure, unreported.
+
+    Every outbound message was refused -- the api task role had lost permission
+    to send under its configuration set -- and nothing said so.
+    `mailer.deliver_once` swallows the driver's exception on purpose, so a
+    decision stands whether or not its mail went; the endpoints answered 200,
+    and the only witness was a `mail_logs.error` column nothing reads. A
+    rejected applicant, who is not a user and has no other channel, received
+    nothing. It was found because a person said the mail had not arrived.
+
+    The fix is a log line and a metric filter on it. That pair is a STRING
+    MATCH ACROSS TWO LANGUAGES IN TWO DIRECTORIES, and the way it breaks is
+    silent in the worst direction: reword the message and the alarm still
+    deploys, still shows green, and never fires again. Nothing else compares
+    them, so this does.
+
+    READ WITH `ast`, NOT A REGEX, and the first version of this guard used one.
+    Seer caught it: `literal("\\"Mail send failed\\"")` -- the same string in a
+    different quoting style -- captures `\\"Mail send failed\\` and the
+    comparison below then disagrees. The consequence it predicted (a silent
+    pass) is not the one that happens; the test goes RED on a reformatting that
+    changed nothing, which is its own kind of useless, because a guard that
+    cries wolf at a quoting change is a guard somebody loosens. Parsing the
+    source properly costs four lines and removes both failure modes.
+    """
+    from app.mailer import MAIL_SEND_FAILED
+
+    tree = ast.parse(CDK_CORE.read_text(encoding="utf-8"))
+    patterns = [
+        call.keywords
+        for call in ast.walk(tree)
+        if isinstance(call, ast.Call)
+        for kw in call.keywords
+        if kw.arg == "filter_name"
+        and isinstance(kw.value, ast.Constant)
+        and kw.value.value == "mail-send-failed"
+    ]
+    assert patterns, "the mail-send-failed metric filter is gone from infra/cdk -- the alarm has nothing to match"
+    assert len(patterns) == 1, "two filters claim the name mail-send-failed; one of them is feeding nothing"
+
+    declared = {kw.arg: kw.value for kw in patterns[0]}
+    call = declared.get("filter_pattern")
+    assert isinstance(call, ast.Call) and call.args, "filter_pattern is not a FilterPattern.literal(...) call"
+    arg = call.args[0]
+    assert isinstance(arg, ast.Constant) and isinstance(arg.value, str), (
+        "the filter pattern is computed rather than literal; this guard can no longer read it"
+    )
+
+    # CloudWatch matches an exact phrase only when the pattern is QUOTED, so the
+    # quotes are part of the contract and not decoration: `Mail send failed`
+    # unquoted is a three-term AND that also matches a line saying mail did not
+    # fail. Comparing the quoted form keeps that from being loosened silently.
+    assert arg.value == f'"{MAIL_SEND_FAILED}"', (
+        f"the metric filter matches {arg.value!r} and app/mailer.py logs {MAIL_SEND_FAILED!r}. "
+        'The filter must be exactly \'"<the constant>"\', quotes included, or outbound mail '
+        "fails silently again."
+    )
+
+
 def test_stop_timeout_is_within_fargates_ceiling() -> None:
     """Fargate refuses a task definition with stopTimeout > 120. A larger
     number here is not a longer grace period — it is a deploy that fails at

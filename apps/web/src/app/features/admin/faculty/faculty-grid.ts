@@ -156,7 +156,7 @@ export const FACULTY_COLUMNS: ColDef<FacultyRow>[] = [
   },
   {
     colId: 'functions',
-    headerName: 'Functions',
+    headerName: 'Mentor group',
     width: 165,
     sortable: false,
     filter: false,
@@ -194,6 +194,6 @@ export const FACULTY_COLUMNS: ColDef<FacultyRow>[] = [
 export const TOGGLEABLE_FACULTY_COLUMNS = [
   { id: 'department', label: 'Department' },
   { id: 'designation', label: 'Designation' },
-  { id: 'functions', label: 'Functions' },
+  { id: 'functions', label: 'Mentor group' },
   { id: 'status', label: 'Status' },
 ];

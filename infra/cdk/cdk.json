@@ -14,7 +14,7 @@
   },
   "context": {
     "project": "reep",
-    "recordingRetentionDays": 180,
+    "recordingRetentionDays": 0,
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:checkSecretUsage": true,
     "@aws-cdk/aws-iam:minimizePolicies": true,
@@ -24,6 +24,9 @@
     "phase": "harden",
     "sesIdentityDomain": "sast-skills.com",
     "sesFromAddress": "no-reply@sast-skills.com",
+    "sesConfigurationSet": "reep-transactional",
+    "sesManaged": false,
+    "leaveMailEnabled": true,
     "backupRetentionDays": 35,
     "archiveRetentionDays": 365,
     "dbMultiAz": true,

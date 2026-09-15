@@ -2,13 +2,10 @@
   <div class="dt-header">
     <div>
       <div class="crumb">
-        <span>Governance</span><span class="sep">/</span><span>Audit log</span>
+        <span>Settings</span><span class="sep">/</span><span>What changed</span>
       </div>
-      <h1 class="dt-title">Audit log</h1>
-      <div class="dt-sub">
-        The writes the API records: who, what, to whom, and what changed. The trail is append-only —
-        nothing on this screen can edit or delete an event.
-      </div>
+      <h1 class="dt-title">What changed</h1>
+      <div class="dt-sub">Every change made in this console, newest first.</div>
     </div>
     <div class="dt-toolbar">
       <!-- The ONE export on this screen. It is a plain <a href> so the browser
@@ -35,7 +32,7 @@
 
   <div class="filters">
     <div class="select">
-      <span class="lbl">Actor</span>
+      <span class="lbl">Who</span>
       <span class="val">{{ actorLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Actor" (change)="setActor(selectValue($event))">
@@ -49,7 +46,7 @@
     </div>
 
     <div class="select">
-      <span class="lbl">Action</span>
+      <span class="lbl">What</span>
       <span class="val">{{ actionLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Action" (change)="setAction(selectValue($event))">
@@ -61,7 +58,7 @@
     </div>
 
     <div class="select">
-      <span class="lbl">Target</span>
+      <span class="lbl">On what</span>
       <span class="val">{{ targetTypeLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Target type" (change)="setTargetType(selectValue($event))">
@@ -72,29 +69,8 @@
       </select>
     </div>
 
-    <!-- The one control on this screen with nothing behind it, and no phase
-         will change that on its own. `redesign_audit_events` carries no
-         college: its only tenancy column is `tenant_id`, it is nullable, and
-         nothing has ever set it. Scoping the trail needs a college STAMPED AT
-         WRITE TIME by `record_change` — a change to the writer and the table,
-         not to the reader. Phase 4 shipped neither, so a phase number here
-         would be a promise nothing keeps: plain `disabled` with the real
-         reason, the Leave approvals "Requester" treatment. -->
-    <div class="select filter-pending">
-      <span class="lbl">College</span>
-      <span class="val">All colleges</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="College — the audit trail is not scoped by college"
-        disabled
-        [title]="collegeScopeReason"
-      >
-        <option>All colleges</option>
-      </select>
-    </div>
-
     <div class="select">
-      <span class="lbl">Range</span>
+      <span class="lbl">When</span>
       <span class="val">{{ rangeLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Date range" (change)="setRange(selectValue($event))">
@@ -119,26 +95,6 @@
       <span>{{ message }}</span>
     </div>
   }
-
-  <div class="notice accent">
-    <span class="icon" aria-hidden="true">info</span>
-    <span>
-      <b>An absent event means "not recorded", never "did not happen".</b> The trail is written by
-      the routers that call <code>architecture_events.record_change</code> — governance grants and
-      access groups, feature switches, registration decisions, faculty accounts, student and batch
-      edits, mentor assignment, SWOC entries, the question bank, the mentor notebook, account
-      actions such as sign-out-everywhere, and every CSV download — and it stores the actor, the
-      route, the entity and the whole before → after pair. Nothing else writes a row: a sign-in and
-      a leave decision leave no trace here. Reading this page records nothing; downloading the
-      export records itself. The trail is <b>not scoped to a college</b> — an audit row carries no
-      college, so the Main Admin sees every event and the College filter beside these is inert.
-      <br />
-      One gap to know about while reading the Action filter: the mentor-notebook actions
-      (<code>{{ unfilterableActions.join(', ') }}</code>) are stored in lower case and the endpoint
-      upper-cases whatever this filter sends, so those rows can be listed and opened but not
-      filtered by action.
-    </span>
-  </div>
 
   <div class="board-columns">
     <section class="card grid-card">
@@ -286,7 +242,7 @@
       } @else if (openEvent(); as event) {
         <dl class="event-facts">
           <div class="event-fact">
-            <dt class="eyebrow">Actor</dt>
+            <dt class="eyebrow">Who</dt>
             <dd class="fact">{{ actorPanelLabel() }}</dd>
           </div>
           <div class="event-fact">
@@ -298,11 +254,11 @@
             <dd class="fact">{{ event.route || '—' }}</dd>
           </div>
           <div class="event-fact">
-            <dt class="eyebrow">Action</dt>
+            <dt class="eyebrow">What</dt>
             <dd class="fact">{{ event.action }}</dd>
           </div>
           <div class="event-fact event-fact-wide">
-            <dt class="eyebrow">Target</dt>
+            <dt class="eyebrow">On what</dt>
             <dd class="fact">{{ event.target_type }} · {{ event.target_id }}</dd>
           </div>
         </dl>

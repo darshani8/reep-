@@ -26,7 +26,7 @@ A table in the metadata that nobody classified ABORTS THE RUN — it is not
 quietly kept (which would leave a student's records behind) and not quietly
 emptied (which would destroy a catalogue somebody added last week). The next
 person to add a table is made to decide, by a test that fails in CI and by this
-module refusing to run. That is the whole reason the verdicts are a dict of 109
+module refusing to run. That is the whole reason the verdicts are a dict of 110
 entries — one per table, `len(VERDICTS)` — rather than a pair of prefixes and a
 `startswith`. (109 is the table count; the 180 below is the foreign-key count.
 They were both written as "93" for months, which is how a stale number spreads.)
@@ -91,6 +91,28 @@ VERDICTS: dict[str, str] = {
     "academic_courses": KEEP,
     "academic_specializations": KEEP,
     "cohorts": KEEP,
+    # -- the archive's index, which BOTH destructors must leave standing ----
+    #
+    # KEEP, and this is the one entry whose reasoning runs against the grain of
+    # this module. `archived_documents` names files belonging to people this
+    # run is deleting, so the obvious verdict is EMPTY -- and EMPTY would
+    # destroy the only thing that can ever say whose file a given object in the
+    # permanent archive was. The bytes survive in an Object-Locked bucket no
+    # destructor can reach; emptying the index leaves a bucket of uuids and no
+    # way to answer "which of these was this student's marksheet", which is
+    # `retention._delete_interview_audio`'s "a delete that loses the pointer
+    # first leaves bytes nobody can find" arriving the other way round.
+    #
+    # It is also why a `deleted_at` flag on the six document tables was NOT the
+    # answer here: a flag on a row in a table this module EMPTIES protects
+    # nothing at all. See models/archived_document.py.
+    #
+    # What it costs, said plainly: after `purge_people`, this table still holds
+    # a file name, a file size, a document title and a bare account id for
+    # every person the run removed. It holds no marks, no attendance, no USN,
+    # no address and no contents. That is a deliberate trade and the reason the
+    # table carries nothing more.
+    "archived_documents": KEEP,
     # -- catalogues and configuration the office maintains ------------------
     "approved_certifications": KEEP,
     "certifications": KEEP,
@@ -533,11 +555,27 @@ def _destroy_files(db: Session, plan: Plan) -> list[str]:
         ).all()
     ]
 
-    return (
+    failures = (
         destroy_document_files(documents)
         + destroy_interview_audio(audio)
         + destroy_s3_recordings(keys)
     )
+    # The manifest SURVIVES this run (`VERDICTS["archived_documents"] is KEEP`),
+    # so the files whose rows are about to go keep their names. Stamping the
+    # release is what makes those rows honest afterwards: without it every
+    # entry reads as still referenced by a table that no longer has the row.
+    #
+    # After the deletes and not before, and best-effort by the same contract
+    # `document_manifest.release` states: this is bookkeeping about bytes that
+    # are already gone, and it must never be the reason a purge stops halfway.
+    from .document_manifest import release
+
+    for _label, stored in documents:
+        try:
+            release(db, stored, reason="purge_people")
+        except Exception:  # noqa: BLE001 — reported, never fatal to a purge
+            log.exception("Could not mark %s released in the manifest", stored)
+    return failures
 
 
 def _null_created_by(db: Session, plan: Plan) -> None:

@@ -2,14 +2,12 @@
   <div class="dt-header">
     <div>
       <div class="crumb">
-        <span>Operations</span><span class="sep">/</span><span>Jobs &amp; placement</span>
-        <span class="sep">/</span><span>Placement</span>
+        <span>Every day</span><span class="sep">/</span><span>Placement &amp; offers</span>
       </div>
-      <h1 class="dt-title">Placement</h1>
+      <h1 class="dt-title">Placement &amp; offers</h1>
       <div class="dt-sub">
         @if (figures(); as placement) {
-          One funnel for the programme and the offer decisions behind it. Approving an offer marks the
-          student placed and counts towards placement.
+          Who got placed, and the offers waiting for a decision.
           @if (placement.semester !== null) {
             · Semester {{ placement.semester }}
           }
@@ -73,26 +71,6 @@
             {{ cohort.name }}
           </option>
         }
-      </select>
-    </div>
-
-    <!-- DEMOTED, NOT PENDING. `GET /api/admin/placement` takes no `?track=`
-         and no task adds one: the payload answers the track question as the
-         By track split below, placed over eligible per specialization.
-         Narrowing here client-side would leave the funnel and the KPIs
-         describing the whole reach under a caption naming one track. Plain
-         `disabled` with the real reason in the title, and no phase number —
-         the treatment the Leave queue's Requester filter was given. -->
-    <div class="select filter-pending">
-      <span class="lbl">Track</span>
-      <span class="val">All tracks</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Track — this screen answers the track question as a split, not a filter"
-        disabled
-        title="The placement figures are not narrowed by track — the By track card below is how this screen answers that question, placed over eligible for every specialization at once."
-      >
-        <option value="">All tracks</option>
       </select>
     </div>
 
@@ -227,16 +205,6 @@
             <div class="kpi-sub">students holding more than one</div>
           </div>
         </div>
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          <span>
-            All four figures are computed over <b>every</b> offer in reach, not over the
-            twenty-five rows below — a median of a page is not a median. The CTC pair counts only
-            approved offers that state a CTC: a blank one means “not recorded” far more often than
-            it means an unpaid role, and counting blanks as zero would drag the median to the
-            floor. A dash is a figure nobody could compute, never a zero.
-          </span>
-        </div>
       </section>
 
       <section class="card side-card">
@@ -256,11 +224,9 @@
         } @else if (offerSplitUnavailable()) {
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
-            <span>
-              The waiting-offer list did not answer on this account, so how many of these offers are
-              still waiting is not known here — and "not approved" is the remainder after that number.
-              The split is withheld rather than drawn off a guess.
-            </span>
+            <div>
+              The waiting-offer count could not be read on this account, so the split is not shown.
+            </div>
           </div>
         } @else if (noOffersYet()) {
           <div class="notice accent">
@@ -341,10 +307,7 @@
     <div class="card-head">
       <div>
         <h2 class="card-heading">Offers</h2>
-        <p class="card-sub">
-          Tick the offers waiting for a decision, then approve or reject them · the student is told
-          either way, and a rejection carries your remarks
-        </p>
+        <p class="card-sub">Tick offers, then approve or reject them; the student is told either way.</p>
       </div>
       <div class="card-actions">
         <button

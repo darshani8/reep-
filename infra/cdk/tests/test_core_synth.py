@@ -55,6 +55,13 @@ def hardened() -> Template:
         sesIdentityDomain="bgscet.ac.in",
         sesFromAddress="reep@bgscet.ac.in",
         alertEmail="ops@bgscet.ac.in",
+        # Deliberately ON in the fixture every whole-template guard reads, so
+        # the SES resources are covered by the Retain rule, the tag plan and the
+        # import-subset rule without any of those tests naming SES. sesManaged
+        # DEFAULTS OFF in cdk.json; test_the_ses_resources_stay_out_until_they_
+        # are_adopted is what pins that, and it is the one that matters until
+        # the adoption in docs/ses-mail.md has been run.
+        sesManaged=True,
     )
 
 
@@ -532,6 +539,332 @@ def test_task_role_may_send_mail_only_for_the_verified_identity(hardened: Templa
     )
 
 
+def test_the_task_role_may_also_send_under_the_configuration_set(hardened: Template) -> None:
+    """The permission whose absence took all mail down for eighty minutes.
+
+    2026-09-15: `SES_CONFIGURATION_SET` reached the task in the same deploy that
+    introduced it, so every send named `reep-transactional` while the role held
+    only the identity. Every one was refused, `deliver_once` swallowed the
+    exception into `mail_logs.error` without logging, and the endpoints above
+    kept answering 200 -- so a rejected applicant got no rejection and nothing
+    anywhere said why.
+
+    Two halves, and the test asserts BOTH, because each is load-bearing in a
+    different direction: the identity statement keeps its `ses:FromAddress`
+    condition (drop it and a compromised task can spoof any sender at the
+    domain), and the configuration-set statement must NOT carry one (that key
+    is absent when SES evaluates the set, and a StringEquals on an absent key
+    denies -- which is the outage again, arrived at from the other side).
+    """
+    role = next(
+        r for r in _core("harden", sesFromAddress="reep@bgscet.ac.in",
+                         sesIdentityDomain="bgscet.ac.in").to_json()["Resources"].values()
+        if r["Type"] == "AWS::IAM::Role" and r["Properties"].get("RoleName") == "reep-api-task"
+    )
+    send_mail = next(p for p in role["Properties"]["Policies"] if p["PolicyName"] == "send-mail")
+    by_sid = {s.get("Sid"): s for s in send_mail["PolicyDocument"]["Statement"]}
+
+    assert set(by_sid) == {"SendFromVerifiedIdentity", "SendUnderConfigurationSet"}, (
+        "the send-mail policy must name the identity AND the configuration set; a send that names a "
+        "set is authorised against both"
+    )
+    identity = by_sid["SendFromVerifiedIdentity"]
+    assert identity["Resource"] == "arn:aws:ses:ap-south-1:123456789012:identity/bgscet.ac.in"
+    assert identity["Condition"] == {"StringEquals": {"ses:FromAddress": "reep@bgscet.ac.in"}}
+
+    configuration_set = by_sid["SendUnderConfigurationSet"]
+    assert configuration_set["Resource"] == (
+        "arn:aws:ses:ap-south-1:123456789012:configuration-set/reep-transactional"
+    )
+    assert "Condition" not in configuration_set, (
+        "ses:FromAddress is not in context when SES evaluates the configuration set, so a condition "
+        "on it denies every send -- this is the 2026-09-15 outage rewritten as a passing-looking policy"
+    )
+
+
+def test_a_configuration_set_on_the_task_is_never_ungranted() -> None:
+    """The two halves of this feature ship together or not at all.
+
+    The variable and the grant are set from the same context key, so the state
+    that caused the outage -- the task naming a set the role cannot use -- is
+    not reachable from any combination of context. Pinned rather than left to
+    the reading, because the variable and the policy are 200 lines apart.
+    """
+    template = _core("harden", sesFromAddress="reep@bgscet.ac.in",
+                     sesIdentityDomain="bgscet.ac.in").to_json()["Resources"]
+    task_definition = next(r for r in template.values() if r["Type"] == "AWS::ECS::TaskDefinition")
+    env = {e["Name"]: e.get("Value") for e in task_definition["Properties"]["ContainerDefinitions"][0]["Environment"]}
+    named_set = env.get("SES_CONFIGURATION_SET")
+
+    role = next(r for r in template.values()
+                if r["Type"] == "AWS::IAM::Role" and r["Properties"].get("RoleName") == "reep-api-task")
+    send_mail = next(p for p in role["Properties"]["Policies"] if p["PolicyName"] == "send-mail")
+    granted = {
+        s["Resource"] for s in send_mail["PolicyDocument"]["Statement"]
+        if isinstance(s.get("Resource"), str) and ":configuration-set/" in s["Resource"]
+    }
+
+    if named_set:
+        assert any(r.endswith(f":configuration-set/{named_set}") for r in granted), (
+            f"the task is told to send under {named_set!r} and the role cannot use it -- every send fails silently"
+        )
+    else:
+        assert not granted, "a configuration set is granted that nothing names"
+
+
+def test_a_mail_send_that_fails_raises_an_alarm(hardened: Template) -> None:
+    """The alarm the 2026-09-15 outage did not have.
+
+    Eighty minutes of total mail failure produced no alarm, no log line and no
+    failed request: `deliver_once` swallows the driver's exception so a decision
+    stands whether or not its mail went, and the only witness was a
+    `mail_logs.error` column nothing reads.
+
+    NOT_BREACHING is right here and would be wrong for the backup sweep: no
+    failures publishes no datapoint, and a quiet hour means mail is FINE. The
+    state this cannot see -- the api not running at all -- belongs to
+    `reep-no-healthy-api`, which treats missing data as breaching for exactly
+    that reason.
+    """
+    hardened.has_resource_properties(
+        "AWS::Logs::MetricFilter",
+        {
+            "FilterName": "mail-send-failed",
+            "FilterPattern": '"Mail send failed"',
+            "MetricTransformations": Match.array_with(
+                [Match.object_like({"MetricNamespace": "REEP/Mail", "MetricName": "MailSendFailed"})]
+            ),
+        },
+    )
+    hardened.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmName": "reep-mail-send-failed",
+            "Namespace": "REEP/Mail",
+            "MetricName": "MailSendFailed",
+            "Threshold": 1,
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )
+
+
+# ------------------------------------------------------ ses (the mail path) --
+
+
+def test_the_ses_resources_stay_out_until_they_are_adopted() -> None:
+    """`sesManaged` defaults OFF, and the default is load-bearing.
+
+    The identity, the configuration set, its event destination, the
+    notifications topic and both reputation alarms EXIST -- made by hand in the
+    console on 2026-09-09/10, before any of this was in a repository. A
+    CloudFormation CREATE for an SES identity that is already verified fails
+    with AlreadyExists and rolls the stack back, and a rollback of reep-core is
+    a rollback of the whole api. So they appear only once somebody has run the
+    adoption in docs/ses-mail.md and flipped the key.
+    """
+    default_harden = _core("harden")
+    types = {r["Type"] for r in default_harden.to_json()["Resources"].values()}
+    assert not {t for t in types if t.startswith("AWS::SES::")}, (
+        "an SES resource synthesised with sesManaged off -- `cdk deploy` would try to CREATE what already exists"
+    )
+    # And the half that was always managed is still there: a template that can
+    # rebuild the PERMISSION to send but not the identity is the state this
+    # whole block exists to stop being the only one available.
+    default_harden.has_resource_properties(
+        "AWS::IAM::Role",
+        {"RoleName": "reep-api-task", "Policies": Match.array_with([Match.object_like({"PolicyName": "send-mail"})])},
+    )
+
+
+def test_the_ses_mirror_is_what_is_live_and_not_an_improvement_on_it(hardened: Template) -> None:
+    """Property for property, including the two that look wrong.
+
+    `cdk import` does not compare properties -- it adopts whatever the template
+    says -- so the FIRST DEPLOY after the adoption is what sends these. A mirror
+    that quietly raised TlsPolicy to REQUIRE would change how mail is delivered
+    in the commit that was supposed to change nothing.
+    """
+    hardened.has_resource_properties(
+        "AWS::SES::ConfigurationSet",
+        {
+            "Name": "reep-transactional",
+            "DeliveryOptions": {"TlsPolicy": "OPTIONAL"},
+            "ReputationOptions": {"ReputationMetricsEnabled": False},
+            "SendingOptions": {"SendingEnabled": True},
+        },
+    )
+    hardened.has_resource_properties(
+        "AWS::SES::ConfigurationSetEventDestination",
+        {
+            "ConfigurationSetName": "reep-transactional",
+            "EventDestination": Match.object_like(
+                {
+                    "Name": "sns-bounces-complaints",
+                    "Enabled": True,
+                    # SEND and DELIVERY ride along with the two that matter:
+                    # without them a silent failure and a healthy quiet week
+                    # publish the same nothing.
+                    "MatchingEventTypes": ["BOUNCE", "COMPLAINT", "DELIVERY", "REJECT", "SEND"],
+                }
+            ),
+        },
+    )
+    hardened.has_resource_properties("AWS::SNS::Topic", {"TopicName": "reep-ses-notifications"})
+
+
+def test_the_identity_signs_with_dkim_and_declares_neither_signing_keys_nor_a_mail_from() -> None:
+    """The two omissions, and each is a way to stop mail with a green deploy.
+
+    `DkimSigningAttributes` is how a deploy ROTATES SES-managed keys: three new
+    CNAMEs published to a zone this team does not hold, and nothing delivers
+    until somebody else adds them. `MailFromAttributes` publishes a subdomain
+    whose MX and SPF records nobody has added either. Neither is live, and
+    neither may arrive in a template whose whole job is to adopt.
+    """
+    identity = next(
+        r
+        for r in _core("harden", sesManaged=True).to_json()["Resources"].values()
+        if r["Type"] == "AWS::SES::EmailIdentity"
+    )
+    props = identity["Properties"]
+    assert props["EmailIdentity"] == "sast-skills.com"
+    assert props["DkimAttributes"] == {"SigningEnabled": True}
+    assert props["FeedbackAttributes"] == {"EmailForwardingEnabled": True}
+    # The identity default AND the per-send name are both declared on purpose:
+    # an edit to the identity kills the default silently, a missing set makes a
+    # named send fail loudly, and neither alone covers both directions.
+    assert props["ConfigurationSetAttributes"] == {"ConfigurationSetName": "reep-transactional"}
+    assert "DkimSigningAttributes" not in props, "a deploy would rotate the DKIM keys and stop mail until DNS catches up"
+    assert "MailFromAttributes" not in props, "a deploy would publish a MAIL FROM subdomain with no MX or SPF behind it"
+
+
+def test_the_reputation_alarms_sit_at_the_numbers_aws_suspends_sending_at(hardened: Template) -> None:
+    """5% bounces and 0.1% complaints, per AWS, and MISSING is not BREACHING.
+
+    The backup alarms treat absence as failure because a plan that stops running
+    IS the incident. Absence here means nobody was mailed this hour, which on a
+    college's volume is most hours -- an alarm that shouts on every quiet hour
+    is one somebody filters.
+    """
+    for name, metric, threshold in (
+        ("reep-ses-bounce-rate", "Reputation.BounceRate", 0.05),
+        ("reep-ses-complaint-rate", "Reputation.ComplaintRate", 0.001),
+    ):
+        hardened.has_resource_properties(
+            "AWS::CloudWatch::Alarm",
+            {
+                "AlarmName": name,
+                "Namespace": "AWS/SES",
+                "MetricName": metric,
+                "Threshold": threshold,
+                "ComparisonOperator": "GreaterThanThreshold",
+                "Period": 3600,
+                "TreatMissingData": "missing",
+            },
+        )
+
+
+def test_the_task_definition_carries_the_whole_mail_trio(hardened: Template) -> None:
+    """A sender, the configuration set named on every send, and the leave switch.
+
+    SES_CONFIGURATION_SET is the one that reads as redundant: the set is already
+    the identity's default. It is not redundant, it is the half that cannot be
+    lost quietly -- SES refuses a send naming a set that does not exist, where
+    an identity whose default was edited away keeps sending and stops reporting.
+    """
+    for name, value in (
+        ("SES_FROM_ADDRESS", "reep@bgscet.ac.in"),
+        ("SES_CONFIGURATION_SET", "reep-transactional"),
+        ("LEAVE_MAIL_ENABLED", "true"),
+    ):
+        hardened.has_resource_properties(
+            "AWS::ECS::TaskDefinition",
+            {
+                "ContainerDefinitions": Match.array_with(
+                    [Match.object_like({"Environment": Match.array_with([{"Name": name, "Value": value}])})]
+                )
+            },
+        )
+
+
+def test_leave_mail_without_a_sender_is_refused_at_synth() -> None:
+    """The one combination worse than either half.
+
+    Mail switched on over the console transport writes a `mail_logs` row reading
+    SENT about a message that reached NOBODY, and that row is the only thing
+    anyone looks at afterwards -- the shape of the failure that killed
+    PENDING_VERIFICATION. Refused here, where it costs nothing, rather than
+    found in a mail_logs table months later.
+    """
+    with pytest.raises(ValueError):
+        _core("harden", leaveMailEnabled=True, sesFromAddress="")
+
+
+def test_adopting_ses_without_naming_what_it_adopts_is_refused() -> None:
+    with pytest.raises(ValueError):
+        _core("harden", sesManaged=True, sesIdentityDomain="")
+    with pytest.raises(ValueError):
+        _core("harden", sesManaged=True, sesConfigurationSet="")
+
+
+def test_the_mail_variables_are_held_back_from_step_9a() -> None:
+    """Same rule as SES_FROM_ADDRESS, for the same reason, and worth its own name.
+
+    A task definition is IMMUTABLE: adding an environment variable registers a
+    new revision the service rolls onto. Step 9a exists so an ECS
+    circuit-breaker rollback cannot undo a Multi-AZ conversion in the same
+    update. `test_the_database_half_does_not_touch_the_ecs_trio` proves the
+    whole resource byte for byte; this one says WHICH variables and why, so the
+    next person adding one reads a reason rather than a diff.
+    """
+    step_9a = _core("harden", hardenEcs="false", sesManaged=True, leaveMailEnabled=True)
+    task_definitions = [r for r in step_9a.to_json()["Resources"].values() if r["Type"] == "AWS::ECS::TaskDefinition"]
+    assert task_definitions
+    for task_definition in task_definitions:
+        for container in task_definition["Properties"]["ContainerDefinitions"]:
+            names = {e["Name"] for e in container.get("Environment", [])}
+            assert not names & {"SES_FROM_ADDRESS", "SES_CONFIGURATION_SET", "LEAVE_MAIL_ENABLED"}, (
+                "a mail variable reached step 9a -- that is an api roll during the Multi-AZ conversion"
+            )
+
+
+def test_the_ses_import_map_names_every_resource_the_adoption_must_carry() -> None:
+    """The map and the template cannot drift apart silently.
+
+    A logical id in the map that the template does not render is a `cdk import`
+    that adopts NOTHING for that resource, and a first deploy that tries to
+    create it beside the real one. The SUBSCRIPTION is deliberately absent: an
+    AWS::SNS::Subscription cannot be imported, so the adoption run must not
+    carry it -- which is why docs/ses-mail.md writes both commands out instead
+    of leaving the flag to memory.
+    """
+    template = _core("harden", sesManaged=True, sesNotificationsEmail="ops@bgscet.ac.in").to_json()["Resources"]
+    mapped = json.loads((Path(__file__).resolve().parents[1] / "ses-import-map.json").read_text(encoding="utf-8"))
+
+    importable = {
+        lid: r["Type"]
+        for lid, r in template.items()
+        if (r["Type"].startswith("AWS::SES::") or lid.startswith("Ses")) and r["Type"] != "AWS::SNS::Subscription"
+    }
+    assert set(mapped) == set(importable), f"map and template disagree: {sorted(set(mapped) ^ set(importable))}"
+
+    # The identifier KEYS are the registry's, not a guess: eight of the first
+    # cutover map's thirty were wrong. These were read out of
+    # `get-template-summary --query ResourceIdentifierSummaries`.
+    keys = {
+        "AWS::SES::EmailIdentity": {"EmailIdentity"},
+        "AWS::SES::ConfigurationSet": {"Name"},
+        # Composite, and the half that gets dropped is ConfigurationSetName.
+        "AWS::SES::ConfigurationSetEventDestination": {"Id", "ConfigurationSetName"},
+        "AWS::SNS::Topic": {"TopicArn"},
+        "AWS::CloudWatch::Alarm": {"AlarmName"},
+    }
+    for lid, cfn_type in importable.items():
+        assert set(mapped[lid]) == keys[cfn_type], f"{lid} ({cfn_type}) carries the wrong identifier keys"
+        assert all(str(v).strip() for v in mapped[lid].values()), f"{lid} has a blank identifier"
+
+
 # ------------------------------------------------- the identity ledger --
 
 
@@ -826,6 +1159,163 @@ def test_the_dump_schedule_runs_the_dump(hardened: Template) -> None:
         and r["Properties"]["Name"] == "reep-db-dump-daily"
     )
     assert "app.backup_database" in sched["Properties"]["Target"]["Input"]
+
+
+# --------------------------------------------- the permanent document archive --
+
+
+def _cron_minutes(expr: str) -> int:
+    """Minutes past midnight UTC for a `cron(m h ...)` expression.
+
+    Deliberately finer than the `hour()` lambda the ledger's ordering test uses.
+    That comparison is enough while the jobs sit whole hours apart, and it
+    silently stops meaning anything the day two of them land in the same hour --
+    which is a plausible edit, since every one of these schedules is placed
+    against the RDS backup window rather than against a clean hour.
+    """
+    m = re.match(r"cron\((\d+) (\d+)", expr)
+    assert m, expr
+    return int(m.group(2)) * 60 + int(m.group(1))
+
+
+
+def test_the_document_archive_is_versioned_and_object_locked(hardened: Template) -> None:
+    """The one bucket in this stack that holds FILE BYTES for years.
+
+    Until it existed, an uploaded marksheet's only copy beyond the EFS volume
+    was the daily backup plan, bounded by `backupRetentionDays` -- 35, RDS's
+    ceiling. The archive backup selection that reaches past 35 days names the
+    DATABASE ALONE on purpose, and both pg_dump tiers carry rows and never
+    bytes. So a file deleted from the website was gone in both regions on day
+    36. Object Lock cannot be added after creation, which is why this is asserted
+    on the bucket that exists rather than deferred.
+    """
+    buckets = _dump_buckets(hardened, "reep-documents-archive-")
+    assert len(buckets) == 1, "expected exactly one reep-documents-archive-* bucket"
+    b = buckets[0]
+    assert b["VersioningConfiguration"] == {"Status": "Enabled"}
+    assert b["ObjectLockEnabled"] is True
+    assert b["ObjectLockConfiguration"]["Rule"]["DefaultRetention"]["Mode"] == "GOVERNANCE"
+    assert b["ObjectLockConfiguration"]["Rule"]["DefaultRetention"]["Days"] >= 365
+
+
+def test_the_document_archive_has_no_lifecycle_rule(hardened: Template) -> None:
+    """The ledger bucket's rule and the dump archive's, for the same reason, and
+    here the absence protects the only copy of a scanned certificate rather than
+    a re-derivable dump. A rule acquired by accident is that promise expiring in
+    the one direction S3 never reports."""
+    assert "LifecycleConfiguration" not in _dump_buckets(hardened, "reep-documents-archive-")[0]
+
+
+def test_the_import_phase_has_no_document_archive(imported: Template) -> None:
+    """Resources this stack ADDS never appear in the mirror."""
+    names = [
+        str(r["Properties"].get("BucketName", ""))
+        for r in imported.to_json()["Resources"].values()
+        if r["Type"] == "AWS::S3::Bucket"
+    ]
+    assert not [n for n in names if n.startswith("reep-documents-archive-")]
+
+
+def test_the_task_may_write_documents_and_never_read_them(hardened: Template) -> None:
+    """PutObject to write, ListBucket to ask, s3:GetObject NOWHERE -- and here
+    the rule bites hardest of the three buckets it applies to.
+
+    This one holds every marksheet, certificate, photograph, CV, staff signature
+    and recorded interview in the deployment, as ORIGINAL BYTES rather than a
+    dump that would need restoring. A task that can read it is one compromise
+    away from exfiltrating every document the college holds.
+
+    The trap is `head_object`, the obvious way for the sweep to ask which
+    objects already exist: S3 authorises HeadObject with s3:GetObject and has no
+    separate permission for it. `archive_documents` lists instead.
+    """
+    role = next(
+        r
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::IAM::Role"
+        and r["Properties"].get("RoleName") == "reep-api-task"
+    )
+    policies = {p["PolicyName"]: p for p in role["Properties"]["Policies"]}
+    acts = [
+        a
+        for st in policies["write-document-archive"]["PolicyDocument"]["Statement"]
+        for a in (st["Action"] if isinstance(st["Action"], list) else [st["Action"]])
+    ]
+    assert sorted(acts) == ["s3:ListBucket", "s3:PutObject"]
+
+    for name, policy in policies.items():
+        for st in policy["PolicyDocument"]["Statement"]:
+            a = st["Action"] if isinstance(st["Action"], list) else [st["Action"]]
+            resources = st.get("Resource", [])
+            resources = resources if isinstance(resources, list) else [resources]
+            if any("documents-archive" in str(r) for r in resources):
+                assert not [
+                    x for x in a if x.startswith(("s3:Get", "s3:Delete"))
+                ], f"policy {name} can read or delete an archived document: {a}"
+
+
+def test_the_archive_sweep_runs_strictly_before_the_retention_sweep(hardened: Template) -> None:
+    """THE ORDERING THAT CANNOT BE RECOVERED FROM.
+
+    `app/retention.py` DELETES interview audio off the volume on its own nightly
+    clock. An archive pass that ran after it has permanently missed every
+    recording that expired that night -- the bytes are gone and no row points at
+    them, so there is no second chance and no way to notice. Both jobs are green.
+
+    This is a stronger version of the ordering the ledger and the dump schedules
+    already argue for, where running late costs a day of freshness rather than
+    the artefact.
+    """
+    schedules = {
+        r["Properties"]["Name"]: r["Properties"]["ScheduleExpression"]
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::Scheduler::Schedule"
+    }
+    archive = _cron_minutes(schedules["reep-document-archive-daily"])
+    sweep = _cron_minutes(schedules["reep-retention-daily"])
+    assert archive < sweep, (
+        f"the document archive sweep runs at {archive} min UTC and the retention "
+        f"sweep at {sweep}. Retention deletes interview audio; archiving after it "
+        "loses every recording that expired that night, permanently and silently."
+    )
+
+
+def test_the_archive_schedule_runs_the_sweep(hardened: Template) -> None:
+    """A schedule pointing at the wrong module is a green job that archives
+    nothing."""
+    sched = next(
+        r
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::Scheduler::Schedule"
+        and r["Properties"]["Name"] == "reep-document-archive-daily"
+    )
+    assert "app.archive_documents" in sched["Properties"]["Target"]["Input"]
+
+
+def test_the_interview_audio_directory_is_named_and_not_inferred(hardened: Template) -> None:
+    """`interview_audio._store_root()`'s fallback derives the audio store from
+    UPLOAD_DIR's PARENT, so it lands on the EFS mount only because UPLOAD_DIR
+    happens to be /data/uploads. app/config.py records what that coincidence
+    cost when it broke: recordings landed in the container's writable layer and
+    were destroyed on every redeploy, silently. Naming it makes the mount a
+    statement rather than an accident of another variable."""
+    env = {
+        v["Name"]: v["Value"]
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::ECS::TaskDefinition"
+        for c in r["Properties"]["ContainerDefinitions"]
+        for v in c.get("Environment", [])
+    }
+    assert env["INTERVIEW_AUDIO_DIR"] == "/data/interview-audio"
+    assert env["INTERVIEW_AUDIO_DIR"].startswith("/data/"), "must be on the EFS mount"
+
+
+def test_an_unbounded_document_retention_is_refused() -> None:
+    """It is an Object Lock retention in years and cannot be shortened on
+    objects already written."""
+    with pytest.raises(ValueError):
+        _core("harden", documentArchiveYears=0)
 
 
 def test_a_daily_tier_no_longer_than_the_snapshots_is_refused() -> None:

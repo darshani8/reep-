@@ -115,11 +115,6 @@ function formatBatch(params: ValueFormatterParams<RosterRow, string | null>): st
   return params.value ?? 'No batch';
 }
 
-/** The three columns the board draws and nothing answers yet. */
-function formatNotReadable(): string {
-  return NOT_READABLE;
-}
-
 export const ROSTER_ROW_SELECTION: RowSelectionOptions<RosterRow> = {
   mode: 'multiRow',
   checkboxes: true,
@@ -189,44 +184,6 @@ export const ROSTER_COLUMNS: ColDef<RosterRow>[] = [
     minWidth: 170,
     flex: 1,
     cellRenderer: renderMentorCell,
-  },
-  {
-    colId: 'readiness',
-    field: 'readiness',
-    headerName: 'Readiness',
-    minWidth: 120,
-    sortable: false,
-    filter: false,
-    floatingFilter: false,
-    valueFormatter: formatNotReadable,
-    headerTooltip:
-      'Not on the roster endpoint. Placement readiness is computed per student and is read on Student 360 — open the row.',
-  },
-  {
-    colId: 'cgpa',
-    field: 'cgpa',
-    headerName: 'CGPA',
-    type: 'numericColumn',
-    minWidth: 100,
-    sortable: false,
-    filter: false,
-    floatingFilter: false,
-    valueFormatter: formatNotReadable,
-    headerTooltip:
-      'Not on the roster endpoint. Marks are imported on Data imports and read per student on Student 360 — open the row.',
-  },
-  {
-    colId: 'attendance',
-    field: 'attendancePercent',
-    headerName: 'Attend.',
-    type: 'numericColumn',
-    minWidth: 110,
-    sortable: false,
-    filter: false,
-    floatingFilter: false,
-    valueFormatter: formatNotReadable,
-    headerTooltip:
-      'Not on the roster endpoint. Attendance is imported on Data imports and read per student on Student 360 — open the row.',
   },
   {
     colId: 'batch',

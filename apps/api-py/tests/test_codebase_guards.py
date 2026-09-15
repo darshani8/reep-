@@ -598,6 +598,66 @@ def test_the_alb_keeps_an_interview_socket_open_longer_than_the_interview() -> N
     )
 
 
+def test_the_mail_failure_alarm_still_matches_the_line_the_mailer_writes() -> None:
+    """INCIDENT (2026-09-15): eighty minutes of total mail failure, unreported.
+
+    Every outbound message was refused -- the api task role had lost permission
+    to send under its configuration set -- and nothing said so.
+    `mailer.deliver_once` swallows the driver's exception on purpose, so a
+    decision stands whether or not its mail went; the endpoints answered 200,
+    and the only witness was a `mail_logs.error` column nothing reads. A
+    rejected applicant, who is not a user and has no other channel, received
+    nothing. It was found because a person said the mail had not arrived.
+
+    The fix is a log line and a metric filter on it. That pair is a STRING
+    MATCH ACROSS TWO LANGUAGES IN TWO DIRECTORIES, and the way it breaks is
+    silent in the worst direction: reword the message and the alarm still
+    deploys, still shows green, and never fires again. Nothing else compares
+    them, so this does.
+
+    READ WITH `ast`, NOT A REGEX, and the first version of this guard used one.
+    Seer caught it: `literal("\\"Mail send failed\\"")` -- the same string in a
+    different quoting style -- captures `\\"Mail send failed\\` and the
+    comparison below then disagrees. The consequence it predicted (a silent
+    pass) is not the one that happens; the test goes RED on a reformatting that
+    changed nothing, which is its own kind of useless, because a guard that
+    cries wolf at a quoting change is a guard somebody loosens. Parsing the
+    source properly costs four lines and removes both failure modes.
+    """
+    from app.mailer import MAIL_SEND_FAILED
+
+    tree = ast.parse(CDK_CORE.read_text(encoding="utf-8"))
+    patterns = [
+        call.keywords
+        for call in ast.walk(tree)
+        if isinstance(call, ast.Call)
+        for kw in call.keywords
+        if kw.arg == "filter_name"
+        and isinstance(kw.value, ast.Constant)
+        and kw.value.value == "mail-send-failed"
+    ]
+    assert patterns, "the mail-send-failed metric filter is gone from infra/cdk -- the alarm has nothing to match"
+    assert len(patterns) == 1, "two filters claim the name mail-send-failed; one of them is feeding nothing"
+
+    declared = {kw.arg: kw.value for kw in patterns[0]}
+    call = declared.get("filter_pattern")
+    assert isinstance(call, ast.Call) and call.args, "filter_pattern is not a FilterPattern.literal(...) call"
+    arg = call.args[0]
+    assert isinstance(arg, ast.Constant) and isinstance(arg.value, str), (
+        "the filter pattern is computed rather than literal; this guard can no longer read it"
+    )
+
+    # CloudWatch matches an exact phrase only when the pattern is QUOTED, so the
+    # quotes are part of the contract and not decoration: `Mail send failed`
+    # unquoted is a three-term AND that also matches a line saying mail did not
+    # fail. Comparing the quoted form keeps that from being loosened silently.
+    assert arg.value == f'"{MAIL_SEND_FAILED}"', (
+        f"the metric filter matches {arg.value!r} and app/mailer.py logs {MAIL_SEND_FAILED!r}. "
+        'The filter must be exactly \'"<the constant>"\', quotes included, or outbound mail '
+        "fails silently again."
+    )
+
+
 def test_stop_timeout_is_within_fargates_ceiling() -> None:
     """Fargate refuses a task definition with stopTimeout > 120. A larger
     number here is not a longer grace period — it is a deploy that fails at
@@ -1862,3 +1922,237 @@ def test_the_sweep_path_uses_no_raw_sql() -> None:
             "the identity guards above read the syntax tree and cannot see inside "
             "a string."
         )
+
+
+# ---------------------------------------------------------------------------#
+# §36  A file never reaches the permanent archive without a name              #
+# ---------------------------------------------------------------------------#
+#
+# `app/document_archive.py` copies every stored file into a versioned,
+# Object-Locked bucket with no lifecycle rule, so the bytes outlive the
+# database. The key is the `stored_name`, a bare `uuid4().hex`. The only thing
+# that ever knows whose file that was is the `archived_documents` row written
+# beside it, and the only writer of that row is
+# `document_manifest.save_and_record`.
+#
+# A router that calls `document_store.save_bytes` directly therefore puts a
+# file into a permanent archive that nothing can ever name — undiscoverable,
+# undeletable, and indistinguishable from every other uuid in the bucket.
+#
+# THIS IS THE SAME FAILURE THE QUOTA HAD, ONE LAYER UP. `document_store`'s own
+# docstring records it: the comment claimed enforcement lived in "the single
+# caller of save_bytes", and three writers later `routers/alumni.py` had no
+# quota check at all. The fix then was to move the arithmetic into the store
+# and refuse a caller that brings no `VolumeQuota`. The store cannot host this
+# one — a manifest row needs a `Session` and the store holds no ORM, which is
+# what lets it be tested with four integers — so the enforcement is this guard.
+
+
+def test_no_router_stores_a_file_without_recording_it() -> None:
+    """`document_manifest.save_and_record` is the only spelling routers use."""
+    offenders: dict[str, list[str]] = {}
+    for path in sorted((APP / "routers").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        hits: list[str] = []
+        for node in ast.walk(tree):
+            # `from ..document_store import save_bytes`
+            if isinstance(node, ast.ImportFrom) and node.module and "document_store" in node.module:
+                hits += [f"import {a.name}" for a in node.names if a.name == "save_bytes"]
+            # `document_store.save_bytes(...)`
+            if (
+                isinstance(node, ast.Attribute)
+                and node.attr == "save_bytes"
+                and isinstance(node.value, ast.Name)
+                and node.value.id.endswith("document_store")
+            ):
+                hits.append("document_store.save_bytes")
+        if hits:
+            offenders[path.name] = hits
+
+    assert not offenders, (
+        f"these routers store a file without recording it: {offenders}. "
+        "Use document_manifest.save_and_record — a file written straight to the "
+        "store is copied into the permanent archive under a bare uuid that "
+        "nothing in the database names, so a restore can never tell whose it was."
+    )
+
+
+def test_the_manifest_is_the_only_writer_of_the_archive_row() -> None:
+    """One writer, so `save_and_record` cannot be bypassed by constructing the
+    row by hand somewhere the guard above does not look."""
+    writers = [
+        path.relative_to(APP).as_posix()
+        for path in sorted(APP.rglob("*.py"))
+        if path.name not in {"archived_document.py", "document_manifest.py"}
+        and "ArchivedDocument(" in path.read_text(encoding="utf-8")
+    ]
+    assert not writers, (
+        f"{writers} construct an ArchivedDocument directly. The manifest row and "
+        "the stored file are written together by document_manifest.save_and_record "
+        "or they drift apart."
+    )
+
+
+def test_both_destructors_keep_the_manifest() -> None:
+    """KEEP in both, and asserted rather than left to a reading of the dicts.
+
+    This is the one verdict whose reasoning runs against the grain of those
+    modules: `archived_documents` names files belonging to the very people a
+    purge is removing, so EMPTY is the instinctive answer — and EMPTY destroys
+    the only thing that can say whose file a given object in the Object-Locked
+    bucket was. The bytes survive either way; the name does not.
+    """
+    from app import purge_people, purge_students
+
+    assert purge_people.VERDICTS["archived_documents"] == purge_people.KEEP
+    assert purge_students.STUDENT_VERDICTS["archived_documents"] == purge_students.KEEP
+
+
+def test_the_manifest_carries_no_academic_record() -> None:
+    """It is an index into an archive, not a second copy of the student record.
+
+    It survives both destructors, so every column on it is a column that
+    outlives a purge. A name, a size, a type, an owner id and two timestamps
+    are what an operator needs to find a file; marks, attendance, a USN or an
+    address would make this table a quiet way for those to survive a deletion
+    somebody asked for.
+    """
+    from app.models.archived_document import ArchivedDocument
+
+    columns = {c.name for c in ArchivedDocument.__table__.columns}
+    assert columns == {
+        "id",
+        "stored_name",
+        "kind",
+        "owner_id",
+        "original_name",
+        "title",
+        "mime_type",
+        "size_bytes",
+        "recorded_at",
+        "released_at",
+        "released_reason",
+    }, f"the manifest grew a column: {sorted(columns)}"
+
+
+def test_the_manifest_owner_is_not_a_foreign_key() -> None:
+    """An FK would mirror the ON DELETE CASCADE the columns it shadows carry,
+    so the manifest would be destroyed at the exact moment it becomes the only
+    remaining record of the file — when the account goes. `export_identity`
+    makes the same argument about labels rather than foreign keys."""
+    from app.models.archived_document import ArchivedDocument
+
+    owner = ArchivedDocument.__table__.c["owner_id"]
+    assert not owner.foreign_keys, (
+        "archived_documents.owner_id gained a foreign key. It must outlive the "
+        "row it names; a cascade here empties the manifest during purge_people."
+    )
+
+
+# ---------------------------------------------------------------------------#
+# §37  The console's buttons: a glyph the font has, a gate the route checks   #
+# ---------------------------------------------------------------------------#
+#
+# Two facts about the Main Admin console live in TypeScript DATA rather than
+# in templates, and both were invisible to every existing check.
+#
+# ICONS. The icon font is SUBSET to tools/fonts/icon-names.txt (plus the
+# declared extras), and a glyph outside it renders as NOTHING — no box, no
+# word, an empty 22px square where the button's picture should be.
+# `collect-icon-names.py` reads TEMPLATES, so the ligatures the sidebar and the
+# Home carry as `icon: 'xyz'` in a `.ts` file are exactly the ones it cannot
+# find. Both files are read here as text and every `icon:` literal is checked
+# against the subset.
+#
+# GATES. The shell's own rule is that a navigation row is gated on EXACTLY what
+# its route guard checks — gated on less, the row is a link the guard bounces
+# back to /admin with nothing on screen saying so. Ten rows had no gate at all
+# on 2026-09-15 (harmless only because the Main Admin holds every admin.* key
+# by baseline) and the vitest spec beside the shell found it by comparing the
+# rows against Home. This is the same comparison against the route table:
+# `capabilityGuard('k')` on a route means `capability: 'k'` on its row and
+# button; `roleGuard('ADMIN')` means `mainAdminOnly: true`.
+
+_SHELL_TS = WEB_SRC / "app" / "layout" / "app-shell.component.ts"
+_HOME_TS = WEB_SRC / "app" / "features" / "admin" / "home" / "home.component.ts"
+_ROUTES_TS = WEB_SRC / "app" / "app.routes.ts"
+
+
+def _icon_subset() -> set[str]:
+    fonts = REPO / "tools" / "fonts"
+    names: set[str] = set()
+    for file in ("icon-names.txt", "icon-names.extra.txt"):
+        for line in (fonts / file).read_text(encoding="utf-8").splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line:
+                names.add(line)
+    return names
+
+
+def test_every_console_icon_is_in_the_font_subset() -> None:
+    subset = _icon_subset()
+    offenders: list[str] = []
+    for path in (_SHELL_TS, _HOME_TS):
+        text = path.read_text(encoding="utf-8")
+        for n, line in enumerate(text.splitlines(), 1):
+            for glyph in re.findall(r"\bicon:\s*'([a-z0-9_]+)'", line):
+                if glyph not in subset:
+                    offenders.append(f"{path.relative_to(REPO)}:{n}: '{glyph}'")
+    assert not offenders, (
+        "a glyph outside tools/fonts/icon-names.txt renders as nothing at all — "
+        "add it to icon-names.extra.txt and regenerate the font:\n  " + "\n  ".join(offenders)
+    )
+
+
+def _route_gates() -> dict[str, str]:
+    """`/admin/...` -> the gate its route declares, as the capability key or `admin`.
+
+    Read per route: the slice between one `path:` and the next is that route's
+    own object, so a redirect (no `canActivate`) contributes nothing and cannot
+    swallow the guard of the route after it.
+    """
+    text = _ROUTES_TS.read_text(encoding="utf-8")
+    gates: dict[str, str] = {}
+    starts = [m for m in re.finditer(r"path:\s*'(admin[^']*)'", text)]
+    for i, m in enumerate(starts):
+        stop = starts[i + 1].start() if i + 1 < len(starts) else len(text)
+        body = text[m.end() : stop]
+        guard = re.search(r"canActivate:\s*\[(capabilityGuard\('([a-z._]+)'\)|roleGuard\('ADMIN'\))\]", body)
+        if guard:
+            gates["/" + m.group(1)] = guard.group(2) or "admin"
+    return gates
+
+
+def _declared_gates(text: str) -> dict[str, str]:
+    """Every `{ ... path: '/admin/x' ... }` object in a TS data block -> its gate."""
+    out: dict[str, str] = {}
+    for m in re.finditer(r"\{[^{}]*\}", text):
+        body = m.group(0)
+        path = re.search(r"path:\s*'(/admin[^']*)'", body)
+        if not path:
+            continue
+        cap = re.search(r"capability:\s*'([a-z._]+)'", body)
+        main = re.search(r"mainAdminOnly:\s*true", body)
+        out[path.group(1)] = cap.group(1) if cap else ("admin" if main else "none")
+    return out
+
+
+def test_every_sidebar_row_and_home_button_is_gated_exactly_as_its_route() -> None:
+    routes = _route_gates()
+    assert routes, "could not read the admin routes' guards out of app.routes.ts"
+    offenders: list[str] = []
+    for path in (_SHELL_TS, _HOME_TS):
+        text = path.read_text(encoding="utf-8")
+        for target, gate in _declared_gates(text).items():
+            expected = routes.get(target)
+            if expected is None:
+                offenders.append(f"{path.name}: {target} is not a guarded admin route")
+            elif gate != expected:
+                offenders.append(
+                    f"{path.name}: {target} is gated '{gate}', its route checks '{expected}'"
+                )
+    assert not offenders, (
+        "a row or button gated on less than its route guard is a link the guard "
+        "bounces; on more, a screen the account may open but cannot find:\n  "
+        + "\n  ".join(offenders)
+    )

@@ -1,7 +1,7 @@
 <div class="panel" data-p="faculty">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Institution</span><span class="sep">/</span><span>Faculty</span></div>
+      <div class="crumb"><span>People</span><span class="sep">/</span><span>Faculty</span></div>
       <h1 class="dt-title">Faculty</h1>
       <div class="dt-sub">{{ summaryLine() }}</div>
     </div>
@@ -14,7 +14,7 @@
         routerLink="/admin/governance"
         [queryParams]="{ tab: 'review' }"
       >
-        <span class="icon" aria-hidden="true">pending_actions</span> Review expiring grants
+        <span class="icon" aria-hidden="true">pending_actions</span> Review expiring access
       </a>
       <a class="btn primary" routerLink="/admin/faculty/new">
         <span class="icon" aria-hidden="true">person_add</span> Add faculty
@@ -67,11 +67,11 @@
          It greys out when the assignment list was refused, because filtering on
          a fact nobody could read would quietly hide people. -->
     <div class="select" [class.is-muted]="!mentorGroupsAreReadable()">
-      <span class="lbl">Function</span>
+      <span class="lbl">Mentor group</span>
       <span class="val">{{ functionFilterLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select
-        aria-label="Function"
+        aria-label="Mentor group"
         [disabled]="!mentorGroupsAreReadable()"
         [title]="mentorGroupsAreReadable() ? '' : 'The mentor assignment list could not be read with this account’s access.'"
         (change)="setFunctionFilter(selectValue($event))"
@@ -96,15 +96,8 @@
     </div>
 
     <a class="btn ghost filters-end" routerLink="/admin/mentors">
-      <span class="icon" aria-hidden="true">diversity_3</span> Assign students on Mentor mapping
+      <span class="icon" aria-hidden="true">diversity_3</span> Assign students
     </a>
-  </div>
-
-  <div class="notice accent columns-note">
-    <span class="icon" aria-hidden="true">info</span>
-    Sign-in reads “{{ notReadable }}”: {{ signInPendingReason }} {{ statusUnknownReason }}
-    Functions shows the mentor group the office has assigned — HOD, placement officer and verifier are
-    grants and are made in Governance. Everything else on this grid is live.
   </div>
 
   <!-- Only once the reads have finished, and only when the DIRECTORY itself was
@@ -113,9 +106,8 @@
   @if (!isLoading() && !directoryRefused() && !mentorGroupsAreReadable()) {
     <div class="notice warn" role="status">
       <span class="icon" aria-hidden="true">warning</span>
-      The mentor assignment list could not be read with this account’s access, so Functions reads
-      “{{ notReadable }}” rather than “No mentor group”. It is served by
-      <code>GET /api/admin/mentor-load</code>, which asks for the analytics function.
+      The mentor groups could not be read with this account’s access, so Mentor group reads
+      “{{ notReadable }}”.
     </div>
   }
 
@@ -131,11 +123,6 @@
           (input)="onQuickFilterInput($event)"
         />
 
-        <!-- Grants are made in Governance; see GRANT_FUNCTION_PHASE. -->
-        <button type="button" class="btn secondary sm" disabled [title]="grantFunctionReason">
-          <span class="icon" aria-hidden="true">key</span>
-          Grant function
-        </button>
         <button
           type="button"
           class="btn secondary sm"
@@ -262,9 +249,8 @@
 
         <div class="tabs">
           <button type="button" class="tab" [class.active]="activeTab() === 'profile'" (click)="showTab('profile')">Profile</button>
-          <button type="button" class="tab" [class.active]="activeTab() === 'functions'" (click)="showTab('functions')">Functions</button>
+          <button type="button" class="tab" [class.active]="activeTab() === 'functions'" (click)="showTab('functions')">Access</button>
           <button type="button" class="tab" [class.active]="activeTab() === 'sessions'" (click)="showTab('sessions')">Sessions</button>
-          <button type="button" class="tab" [class.active]="activeTab() === 'history'" (click)="showTab('history')">History</button>
         </div>
 
         <div class="drawer-body">
@@ -318,10 +304,7 @@
                     />
                     <span>This address is outside the college’s domains</span>
                   </label>
-                  <span class="help">
-                    Leave it clear unless it is deliberate — a typo in a domain mints an account on an
-                    address the institution does not control.
-                  </span>
+                  <span class="help">Leave it clear unless it is deliberate.</span>
                 </div>
 
                 @if (draft().allowExternal) {
@@ -390,34 +373,23 @@
                 </a>
               </div>
 
-              <button type="button" class="btn secondary" disabled [title]="grantFunctionReason">
-                <span class="icon" aria-hidden="true">key</span> Grant function
-              </button>
-
               <div class="notice accent">
                 <span class="icon" aria-hidden="true">info</span>
-                The mentor function is a group the office creates by assigning the first student. HOD,
-                placement officer and verifier are grants with a scope, a reason and an expiry, and they
-                are made on <a routerLink="/admin/governance">Governance</a> — this drawer does not carry
-                a second copy of that form.
+                <div>
+                  Access is given on <a routerLink="/admin/governance">Who can do what</a>.
+                </div>
               </div>
             }
 
             @case ('sessions') {
               <div class="drawer-card card">
                 <h2 class="card-heading">Activation link</h2>
-                <p class="drawer-line">
-                  Minting a new link supersedes every older one, so what you hand over is the only link that
-                  works. It is how “the email never arrived” is closed on the call, not a stopgap.
-                </p>
+                <p class="drawer-line">A new link replaces every older one.</p>
                 @if (faculty.isDisabled) {
-                  <p class="drawer-line faint-line">
-                    This account is disabled, so a link minted now cannot be redeemed until it is enabled
-                    again — disabling killed every link that was outstanding.
-                  </p>
+                  <p class="drawer-line faint-line">This account is disabled, so a link cannot be used until it is enabled again.</p>
                 }
                 <button type="button" class="btn secondary" [disabled]="busy()" (click)="mintActivationLink()">
-                  <span class="icon" aria-hidden="true">link</span> Mint activation link
+                  <span class="icon" aria-hidden="true">link</span> Make a sign-in link
                 </button>
 
                 @if (activationLink(); as minted) {
@@ -443,36 +415,16 @@
 
               <div class="drawer-card card">
                 <h2 class="card-heading">Sessions</h2>
-                <p class="drawer-line">
-                  Retires every device this account is signed in on. Nothing else changes — no password
-                  reset, no disable — so it is the safe first move while the facts are still unclear.
-                </p>
+                <p class="drawer-line">Signs this account out of every device. Nothing else changes.</p>
                 <button type="button" class="btn secondary" [disabled]="busy()" (click)="signOutEverywhere()">
                   <span class="icon" aria-hidden="true">logout</span> Sign out everywhere
                 </button>
               </div>
 
-              <p class="drawer-line faint-line">
-                Passwords are never set by an admin — an active account resets through “Forgot password”.
-                REEP holds one live session per account, so a new sign-in retires the previous device.
-              </p>
+              <p class="drawer-line faint-line">An admin never sets a password; an active account uses “Forgot password”.</p>
 
-              <div class="notice accent">
-                <span class="icon" aria-hidden="true">history</span>
-                Sign-ins are recorded (B15), but the only endpoint that reads them serves the signed-in
-                account its own history on My account. Nothing answers “when did this person last sign
-                in”, so no list is drawn here.
-              </div>
             }
 
-            @case ('history') {
-              <div class="notice accent">
-                <span class="icon" aria-hidden="true">history</span>
-                Every change to this account is already written to the audit trail by the server; the
-                console can read it back when the audit log endpoint lands (B2.7, Phase 3). Nothing is
-                shown here rather than a partial history that looks complete.
-              </div>
-            }
           }
         </div>
 
@@ -498,8 +450,9 @@
       <aside class="drawer drawer--empty">
         <div class="notice accent">
           <span class="icon" aria-hidden="true">person</span>
-          Pick a faculty member to edit where they are filed, hand over an activation link, or disable
-          the account.
+          <div>
+            Pick a faculty member.
+          </div>
         </div>
       </aside>
     }

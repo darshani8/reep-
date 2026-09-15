@@ -1,12 +1,9 @@
 <div class="panel" data-p="imports">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Operations</span><span class="sep">/</span><span>Data imports</span></div>
-      <h1 class="dt-title">Data imports</h1>
-      <div class="dt-sub">
-        Attendance and marks enter REEP here — read and judged on the server before anything is
-        written. Placement criteria are set per course beside them.
-      </div>
+      <div class="crumb"><span>Every day</span><span class="sep">/</span><span>Upload spreadsheets</span></div>
+      <h1 class="dt-title">Upload spreadsheets</h1>
+      <div class="dt-sub">Marks and attendance, from a spreadsheet.</div>
     </div>
     <div class="dt-toolbar">
       <!-- The blank workbook for the chosen dataset, built from the parser's
@@ -42,7 +39,7 @@
        the batch, the semester and the dataset are what an import run is FOR. -->
   <div class="pickers">
     <div class="select">
-      <span class="lbl">Dataset</span>
+      <span class="lbl">File contains</span>
       <span class="val">{{ datasetLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Dataset to import" (change)="chooseDataset(selectValue($event))">
@@ -204,17 +201,18 @@
         @if (!previewRun()) {
           <div class="notice accent preview-note">
             <span class="icon" aria-hidden="true">info</span>
-            This grid fills in when you press Check file. The browser never opens the spreadsheet —
-            every verdict below is reached on the server, against this batch's roster, this
-            deployment's subject catalogue and this course's semester count.
+            <div>
+              Press Check file to see the rows.
+            </div>
           </div>
         }
 
         @if (runFailedToParse()) {
           <div class="notice" role="alert">
             <span class="icon" aria-hidden="true">error</span>
-            {{ previewRun()?.error || 'This file could not be read.' }} The attempt is in Recent
-            imports below, so "I uploaded it and nothing happened" has an answer.
+            <div>
+              {{ previewRun()?.error || 'This file could not be read.' }}
+            </div>
           </div>
         }
 
@@ -272,9 +270,9 @@
         @if (previewIsTruncated()) {
           <div class="notice accent" role="status">
             <span class="icon" aria-hidden="true">info</span>
-            The server judged all {{ previewRun()?.rows_total }} lines and is showing the first
-            {{ previewRowCount() }} here. Import rows writes every accepted line, not only the ones
-            drawn; the error report carries every flagged and refused line in full.
+            <div>
+              Checked all {{ previewRun()?.rows_total }} lines; showing the first {{ previewRowCount() }}. Import rows writes every accepted line.
+            </div>
           </div>
         }
 
@@ -397,10 +395,9 @@
                    them look like the record and then save them back as one. -->
               <div class="notice accent">
                 <span class="icon" aria-hidden="true">info</span>
-                No placement criteria have been set for {{ criteriaTargetLabel() }}. Readiness
-                scoring and job eligibility are both falling back to one set of built-in defaults
-                in the code — the same set, so the two screens agree — which is not a set anybody
-                here chose. Type the gates below and save to replace them.
+                <div>
+                  No placement criteria set for {{ criteriaTargetLabel() }} yet; built-in defaults apply.
+                </div>
               </div>
             }
 

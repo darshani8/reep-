@@ -40,7 +40,7 @@ plus one this module needs and `purge_people` does not.**
 FIRST, EVERY TABLE HAS A WRITTEN VERDICT — and here a verdict is not two
 values but three, because "delete the student rows" is a different sentence in
 a table only a student can own (`resumes`) and in a table shared with staff
-(`leave_requests`). `STUDENT_VERDICTS` below says which, for all 109 tables, and
+(`leave_requests`). `STUDENT_VERDICTS` below says which, for all 110 tables, and
 an unclassified table ABORTS THE RUN exactly as it does next door. The key set
 is checked against `purge_people.VERDICTS`, so the next person to add a model
 is stopped by BOTH destructors rather than by the one they happened to read.
@@ -142,7 +142,7 @@ def by_parent(table: str, column: str) -> tuple[str, str, str]:
     return ("via", table, column)
 
 
-#: What happens to each of the 109 tables. `KEEP` is untouched; `ALL` is emptied;
+#: What happens to each of the 110 tables. `KEEP` is untouched; `ALL` is emptied;
 #: anything else is a scope, and the row survives unless the scope names it.
 #: Grouped by the REASON, because the reason is what a reviewer has to check.
 STUDENT_VERDICTS: dict[str, object] = {
@@ -152,6 +152,28 @@ STUDENT_VERDICTS: dict[str, object] = {
     "academic_courses": KEEP,
     "academic_specializations": KEEP,
     "cohorts": KEEP,
+    # -- the archive's index, which BOTH destructors must leave standing ----
+    #
+    # KEEP, and this is the one entry whose reasoning runs against the grain of
+    # this module. `archived_documents` names files belonging to people this
+    # run is deleting, so the obvious verdict is EMPTY -- and EMPTY would
+    # destroy the only thing that can ever say whose file a given object in the
+    # permanent archive was. The bytes survive in an Object-Locked bucket no
+    # destructor can reach; emptying the index leaves a bucket of uuids and no
+    # way to answer "which of these was this student's marksheet", which is
+    # `retention._delete_interview_audio`'s "a delete that loses the pointer
+    # first leaves bytes nobody can find" arriving the other way round.
+    #
+    # It is also why a `deleted_at` flag on the six document tables was NOT the
+    # answer here: a flag on a row in a table this module EMPTIES protects
+    # nothing at all. See models/archived_document.py.
+    #
+    # What it costs, said plainly: after `purge_people`, this table still holds
+    # a file name, a file size, a document title and a bare account id for
+    # every person the run removed. It holds no marks, no attendance, no USN,
+    # no address and no contents. That is a deliberate trade and the reason the
+    # table carries nothing more.
+    "archived_documents": KEEP,
     # -- catalogues and configuration the office maintains ------------------
     "approved_certifications": KEEP,
     "certifications": KEEP,
@@ -776,11 +798,23 @@ def _destroy_files(db: Session, plan: Plan) -> list[str]:
         ).all()
     ]
 
-    return (
+    failures = (
         destroy_document_files(documents)
         + destroy_interview_audio(audio)
         + destroy_s3_recordings(keys)
     )
+    # `purge_people._destroy_files`'s reasoning, applied to the subset: the
+    # manifest is KEEP in both destructors, so stamping the release is what
+    # stops every one of these rows reading as still referenced by a student
+    # row that no longer exists. Best-effort, after the deletes, never fatal.
+    from .document_manifest import release
+
+    for _label, stored in documents:
+        try:
+            release(db, stored, reason="purge_students")
+        except Exception:  # noqa: BLE001 — reported, never fatal to a purge
+            log.exception("Could not mark %s released in the manifest", stored)
+    return failures
 
 
 def _null_created_by(db: Session, plan: Plan) -> None:

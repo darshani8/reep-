@@ -25,13 +25,14 @@ from ..db import get_db
 from ..identity import get_current_session
 from ..document_store import MAX_BYTES, UploadRejected, content_disposition
 from ..document_store import delete as document_store_delete
+from ..document_manifest import release, save_and_record
+from ..models.archived_document import DocumentOwnerKind
 from ..document_store import (
     MAX_CERTIFICATE_BYTES_PER_USER,
     MAX_CERTIFICATES_PER_USER,
     QuotaRejected,
     VolumeQuota,
     read_bytes,
-    save_bytes,
 )
 from ..models.staff_upskilling import StaffUpskillingCertificate
 from ..governance import require_capability
@@ -125,7 +126,15 @@ def upload_certificate(
     # RAM (routers/student.py create_upload, same reasoning).
     content = file.file.read(MAX_BYTES + 1)
     try:
-        stored_name, mime, size = save_bytes(content, quota=quota)
+        stored_name, mime, size = save_and_record(
+            db,
+            content,
+            quota=quota,
+            kind=DocumentOwnerKind.STAFF_CERTIFICATE,
+            owner_id=user_id,
+            original_name=file.filename or "certificate",
+            title=title.strip() or (file.filename or "Certificate"),
+        )
     except QuotaRejected as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc))
     except UploadRejected as exc:
@@ -185,6 +194,7 @@ def delete_certificate(
     if cert is None or cert.user_id != session["userId"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")
     document_store_delete(cert.stored_name)
+    release(db, cert.stored_name, reason="staff deleted certificate")
     db.delete(cert)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -9,10 +9,7 @@
     <header class="dialog-head">
       <div>
         <h2 class="dialog-title" [id]="titleId">Academic calendar</h2>
-        <p class="dialog-sub">
-          The days the college is shut. A leave span is counted day by day and only these are
-          subtracted, so this is what makes a long weekend one day of leave instead of three.
-        </p>
+        <p class="dialog-sub">The days the college is shut; only these are subtracted from a leave span.</p>
       </div>
       <button
         type="button"
@@ -93,11 +90,9 @@
 
       <div class="notice accent">
         <span class="icon" aria-hidden="true">info</span>
-        Only a day marked shut is subtracted from a leave span. "Open" is recorded for the office's
-        own reading — a Saturday the college is working, say — and changes no count, because REEP
-        has no weekday rule to override: nothing here records which days the college normally works,
-        and a server that quietly skipped Sundays would disagree with the day count the applicant
-        was shown on their own form.
+        <div>
+          Only a day marked shut is subtracted from a leave span.
+        </div>
       </div>
 
       <h3 class="section-head">
@@ -156,9 +151,6 @@
     </div>
 
     <footer class="dialog-foot">
-      <span class="dialog-sub">
-        A person reads their own college's calendar at <code>GET /api/leaves/calendar</code>.
-      </span>
       <button type="button" class="btn secondary" (click)="dismissed.emit()">Close</button>
     </footer>
   </div>

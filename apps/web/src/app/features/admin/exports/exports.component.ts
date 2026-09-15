@@ -305,30 +305,6 @@ export class AdminExportsComponent implements OnDestroy {
       requiresCapabilityLabel: 'Interviews',
     },
     {
-      key: 'registrations',
-      title: 'Registrations',
-      description: 'Applications with the domain check, the decision and who decided it.',
-      columns: null,
-      personalColumns: [],
-      path: null,
-      filename: '',
-      unavailableReason:
-        'No registrations extract is built — the applications queue on the Registrations screen is where this data is read, and no backend task defines a file for it',
-      mainAdminOnly: false,
-    },
-    {
-      key: 'leave',
-      title: 'Leave',
-      description: 'Requests with both signatures and the balance left after each one.',
-      columns: null,
-      personalColumns: [],
-      path: null,
-      filename: '',
-      unavailableReason:
-        'No leave extract is built — a sanctioned request is printed one at a time on the college’s own form, and no backend task defines a file for the queue',
-      mainAdminOnly: false,
-    },
-    {
       key: 'badges',
       title: 'Skills & badges',
       description:

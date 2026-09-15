@@ -112,6 +112,7 @@ from aws_cdk import (
     aws_s3 as s3,
     aws_scheduler as scheduler,
     aws_secretsmanager as sm,
+    aws_ses as ses,
     aws_sns as sns,
     aws_sns_subscriptions as subs,
     aws_ssm as ssm,
@@ -204,6 +205,20 @@ DUMP_LIFECYCLE_LAG_DAYS = 7
 #: years is long enough to be useful and short enough not to be a promise
 #: nobody agreed to. It costs a few dollars a year at this data volume.
 DEFAULT_DUMP_ARCHIVE_YEARS = 10
+
+#: How long an uploaded DOCUMENT is locked in the permanent archive, in years.
+#:
+#: THE SAME PLACEHOLDER CAVEAT `DEFAULT_DUMP_ARCHIVE_YEARS` CARRIES, and the
+#: same unanswered question: "how long must a graduate's academic record remain
+#: retrievable" is a records-retention policy and not an engineering choice.
+#: The difference is what the number governs. That one bounds a `pg_dump` --
+#: rows, re-derivable in principle from a later dump. This one bounds the only
+#: copy of a scanned marksheet a student has since deleted, which nothing
+#: regenerates. It is deliberately the same ten so the two tiers expire
+#: together: a deployment holding the rows that describe a certificate for a
+#: decade and the certificate itself for one year has a record that decays into
+#: a set of dangling pointers.
+DEFAULT_DOCUMENT_ARCHIVE_YEARS = 10
 
 #: CloudFront's managed policy ids, the same three cdn.tf hardcodes.
 _CACHE_OPTIMIZED = "658327ea-f89d-4fab-a63d-7e88639e58f6"
@@ -365,6 +380,42 @@ class CoreStack(Stack):
                 "archive, and the DR vault's lock refuses a copy whose lifecycle is "
                 "below its minimum retention."
             )
+        # THE PERMANENT DOCUMENT ARCHIVE (app/document_archive.py). The FILE
+        # half of the two tiers above, and the only one of the three that
+        # carries bytes.
+        #
+        # WHY IT IS NOT COVERED BY ANYTHING ALREADY HERE. The daily backup
+        # selection below reaches the EFS file system, so an uploaded file had
+        # exactly one copy beyond the volume and that copy expires at
+        # `backupRetentionDays` -- 35, because RDS refuses more and both halves
+        # read one number. The ARCHIVE selection that reaches past 35 days
+        # deliberately names `[db_arn]` and nothing else, for the reason
+        # written at that selection: a multi-year lifecycle over EFS would keep
+        # every recorded interview for years too. And both `pg_dump` tiers and
+        # the identity ledger carry Postgres rows, never file bytes. So a
+        # marksheet deleted from the website was recoverable for 35 days and
+        # then gone in both regions at once, with nothing on any screen saying
+        # so. A college keeps a student's academic record for decades; 35 days
+        # is not a retention policy, it is the absence of one.
+        #
+        # ITS OWN BUCKET, for the ledger's reason stated above: a prefix under
+        # an existing bucket inherits whatever that bucket's lifecycle becomes,
+        # and a permanent archive that quietly acquires an expiry reads as
+        # protection right up until the day it is asked for something older
+        # than the rule nobody remembered setting.
+        document_archive = harden and flag("documentArchive", True)
+        # GOVERNANCE, matching the ledger and the dump archive. Compliance mode
+        # is the correct end state and the wrong thing to switch on in the
+        # change that creates the bucket: a retention typed wrong would be
+        # permanent too, on objects nobody -- including root -- could remove.
+        document_archive_compliance = flag("documentArchiveCompliance", False)
+        document_archive_years = int(opt("documentArchiveYears", DEFAULT_DOCUMENT_ARCHIVE_YEARS))
+        if not 1 <= document_archive_years <= 100:
+            raise ValueError(
+                f"documentArchiveYears must be 1..100, not {document_archive_years}. "
+                "It is an Object Lock retention in years and cannot be shortened "
+                "on objects already written."
+            )
         allocated_storage = str(opt("liveAllocatedStorage", 20))
         # hardenEcs=false: the database/backup half of harden without the ECS
         # half, so an ECS circuit-breaker rollback cannot also undo a Multi-AZ
@@ -401,6 +452,38 @@ class CoreStack(Stack):
         dr_vault_arn: str = opt("drVaultArn", "")
         ses_identity_domain: str = opt("sesIdentityDomain", "")
         ses_from_address: str = opt("sesFromAddress", "")
+        ses_configuration_set: str = opt("sesConfigurationSet", "")
+        ses_notifications_email: str = opt("sesNotificationsEmail", alert_email)
+        # sesManaged: does THIS TEMPLATE own the SES identity, the configuration
+        # set, its event destination, the notifications topic and the two
+        # reputation alarms? It DEFAULTS OFF and must stay off until those five
+        # resources have been adopted with `cdk import`, because they already
+        # exist -- they were made by hand on 2026-09-09/10, before any of this
+        # was in a repository -- and CloudFormation cannot CREATE an SES
+        # identity that is already verified. The failure if this is flipped
+        # early is loud (AlreadyExists, rolled back), which is the good half;
+        # the bad half is that a rollback of reep-core is a rollback of the
+        # whole api. docs/ses-mail.md is the adoption runbook, and it is one
+        # read-only command plus one `cdk import`.
+        #
+        # RECREATING THE IDENTITY IS NOT AN ALTERNATIVE TO IMPORTING IT.
+        # SES-managed DKIM mints NEW tokens on create, so a delete-and-recreate
+        # publishes three CNAMEs nobody has added yet and mail stops until DNS
+        # propagates -- on a domain whose DNS this team does not hold.
+        ses_managed = flag("sesManaged", False)
+        # leaveMailEnabled: B10.5's notifications to the applicant. A DEPLOYMENT
+        # decision, so it lives here rather than in app/config.py's default,
+        # which stays false for every machine that has no transport.
+        leave_mail_enabled = flag("leaveMailEnabled", False)
+        if leave_mail_enabled and not ses_from_address:
+            # The one combination that is worse than either half: leave mail on
+            # over the console transport writes a mail_logs row reading SENT
+            # about a message that reached NOBODY, and that row is the only
+            # thing anyone looks at afterwards. Refused at synth, where it is
+            # free, rather than discovered from a mail_logs table months later.
+            raise ValueError("leaveMailEnabled needs sesFromAddress -- mail switched on with no transport records SENT for messages nobody receives")
+        if ses_managed and not (ses_identity_domain and ses_configuration_set):
+            raise ValueError("sesManaged needs both sesIdentityDomain and sesConfigurationSet -- the mirror must name what it is adopting")
         vault_lock_compliance = flag("vaultLockCompliance", False)
         # Identifiers only the live account knows (name_prefix / bucket_prefix
         # gave them random suffixes). tools/import_map.py fills these from the
@@ -915,6 +998,54 @@ class CoreStack(Stack):
                 description="DB_DUMP_ARCHIVE_BUCKET for the api task",
             )
 
+        document_archive_bucket = None
+        if document_archive:
+            # THE PERMANENT DOCUMENT ARCHIVE: every uploaded file and every
+            # finished interview recording, written once as it is stored and
+            # never removed. See the knob's comment above for why nothing
+            # already in this stack covers it.
+            #
+            # NO LIFECYCLE RULE AT ALL -- the ledger's deliberate absence and the
+            # monthly dump archive's, for the same reason. This is the copy that
+            # outlives the 35-day ceiling, and a rule it acquires by accident is
+            # that promise quietly expiring, in the one direction S3 never
+            # reports: an expiration aimed at an object whose lock has not
+            # lapsed deletes nothing, forever, behind a console showing a rule
+            # that looks like it works.
+            #
+            # VERSIONED, and not optional. `document_store` mints a fresh
+            # `uuid4().hex` for every file, so a key is written once and a
+            # second PUT to the same key cannot happen through the app -- but
+            # versioning is what makes that a property of the BUCKET rather than
+            # of the current shape of one module, and it is what the sweep's
+            # "writes only, never deletes" promise rests on.
+            document_archive_bucket = s3.Bucket(
+                self,
+                "DocumentArchiveBucket",
+                bucket_name=f"{project}-documents-archive-{self.account}",
+                versioned=True,
+                # OBJECT LOCK CAN ONLY BE SET AT CREATION, the ledger's rule: a
+                # bucket created without it has to be REPLACED, copying every
+                # object by hand under a new name. That is the whole reason it
+                # is here on day one rather than deferred.
+                object_lock_enabled=True,
+                object_lock_default_retention=(
+                    s3.ObjectLockRetention.compliance(Duration.days(365 * document_archive_years))
+                    if document_archive_compliance
+                    else s3.ObjectLockRetention.governance(Duration.days(365 * document_archive_years))
+                ),
+                encryption=s3.BucketEncryption.S3_MANAGED,
+                enforce_ssl=True,
+                block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+                removal_policy=RemovalPolicy.RETAIN,
+            )
+            CfnOutput(
+                self,
+                "DocumentArchiveBucketName",
+                value=document_archive_bucket.bucket_name,
+                description="DOCUMENT_ARCHIVE_BUCKET for the api task",
+            )
+
         alb_logs_bucket = s3.Bucket(
             self,
             "AlbLogsBucket",
@@ -1268,21 +1399,98 @@ class CoreStack(Stack):
                     ]
                 )
 
+        if document_archive_bucket is not None:
+            # PUT AND LIST, NEVER GET, and here the rule bites hardest of the
+            # three. This bucket accumulates every marksheet, certificate,
+            # photograph, CV, staff signature and recorded interview the college
+            # holds, in their original bytes -- not a dump that needs restoring,
+            # but files a browser opens. A task that can READ it is one
+            # compromise away from exfiltrating every document in the
+            # deployment, past rule 1 and past every control on the database.
+            #
+            # `archive_documents` must ask which objects already exist, and the
+            # obvious `head_object` is authorised by `s3:GetObject` -- S3 has no
+            # separate permission for it -- so the sweep uses `list_objects_v2`,
+            # which returns key names and never contents. No Delete and no
+            # PutObjectRetention either: the writer must not be able to weaken
+            # the lock protecting its own output.
+            inline["write-document-archive"] = iam.PolicyDocument(
+                statements=[
+                    iam.PolicyStatement(
+                        actions=["s3:PutObject"],
+                        resources=[document_archive_bucket.arn_for_objects("*")],
+                    ),
+                    iam.PolicyStatement(
+                        actions=["s3:ListBucket"],
+                        resources=[document_archive_bucket.bucket_arn],
+                    ),
+                ]
+            )
+
         if harden and ses_identity_domain:
             # Activation, reset and confirmation mail (app/mail_transport.py).
             # Scoped to the college's verified identity, and only from the
             # configured sender, so a compromised task cannot spoof the domain.
-            inline["send-mail"] = iam.PolicyDocument(
-                statements=[
+            send_mail_statements = [
+                iam.PolicyStatement(
+                    sid="SendFromVerifiedIdentity",
+                    actions=["ses:SendEmail", "ses:SendRawEmail"],
+                    resources=[f"arn:aws:ses:{self.region}:{self.account}:identity/{ses_identity_domain}"],
+                    conditions=(
+                        {"StringEquals": {"ses:FromAddress": ses_from_address}} if ses_from_address else None
+                    ),
+                )
+            ]
+            if ses_configuration_set:
+                # A SEND THAT NAMES A CONFIGURATION SET IS AUTHORISED AGAINST
+                # THE SET AS WELL AS THE IDENTITY, AND THE STATEMENT ABOVE DOES
+                # NOT COVER IT.
+                #
+                # INCIDENT, 2026-09-15, 16:24 to 17:45. `SES_CONFIGURATION_SET`
+                # reached the task in the same deploy that introduced it, so
+                # from that minute every application send named
+                # `reep-transactional` and every one was refused: the role held
+                # the identity and nothing else. ALL outbound mail was down for
+                # eighty minutes -- activation links, password resets, sign-in
+                # codes, leave notifications.
+                #
+                # IT WAS SILENT IN BOTH DIRECTIONS, which is why it lasted.
+                # `mailer.deliver_once` catches the driver's exception, writes
+                # it to `mail_logs.error` and LOGS NOTHING; the endpoints above
+                # answer 200 because a decision must stand whether or not its
+                # mail went. A registration was rejected at 17:27 and the
+                # applicant -- who is not a user and has no other channel --
+                # received nothing. It surfaced because a human said so, not
+                # because anything reported it.
+                #
+                # WHAT LET IT PAST VERIFICATION, and the lesson worth more than
+                # the fix: the sends that "proved SES worked" were made with
+                # ACCOUNT ROOT credentials, which bypass IAM entirely. They
+                # exercised the identity, the DKIM, the domain, the
+                # configuration set and the delivery path, and never once
+                # exercised the thing that was broken. A mail test that does not
+                # run AS THE TASK ROLE proves nothing about whether the product
+                # can send. `POST /api/auth/forgot` against the live host does,
+                # and is what finally showed it -- no SES datapoint at 17:35
+                # before this statement existed, Send and Delivery at 17:51
+                # after it.
+                #
+                # NO `ses:FromAddress` CONDITION HERE, deliberately. That key is
+                # evaluated where SES resolves the sender -- the identity -- and
+                # a StringEquals on a key that is absent DENIES. The fence is
+                # not weakened by leaving it off: a send still has to satisfy
+                # the identity statement, which still pins the From address.
+                # This statement on its own permits sending as nobody.
+                send_mail_statements.append(
                     iam.PolicyStatement(
+                        sid="SendUnderConfigurationSet",
                         actions=["ses:SendEmail", "ses:SendRawEmail"],
-                        resources=[f"arn:aws:ses:{self.region}:{self.account}:identity/{ses_identity_domain}"],
-                        conditions=(
-                            {"StringEquals": {"ses:FromAddress": ses_from_address}} if ses_from_address else None
-                        ),
+                        resources=[
+                            f"arn:aws:ses:{self.region}:{self.account}:configuration-set/{ses_configuration_set}"
+                        ],
                     )
-                ]
-            )
+                )
+            inline["send-mail"] = iam.PolicyDocument(statements=send_mail_statements)
         api_task_role = iam.Role(self, "ApiTaskRole", role_name=f"{project}-api-task", assumed_by=ecs_tasks, inline_policies=inline)
 
         # -------------------------------------------------------------- alb --
@@ -1448,6 +1656,18 @@ class CoreStack(Stack):
         cluster = ecs.Cluster(self, "Cluster", cluster_name=project, vpc=ivpc, container_insights=True)
         if harden_ecs and ses_from_address:
             api_environment["SES_FROM_ADDRESS"] = ses_from_address
+            # Both of these are NESTED under a sender on purpose, not merely
+            # ordered after it. SES_CONFIGURATION_SET without a sender is inert
+            # noise; LEAVE_MAIL_ENABLED without one is the mail_logs lie the
+            # constructor already refuses. Nesting makes the invariant a shape
+            # rather than a second rule somebody has to remember.
+            if ses_configuration_set:
+                # Named on every send so the bounce/complaint stream cannot be
+                # lost by an edit to the identity's default. app/config.py's
+                # `ses_configuration_set` carries the full reasoning.
+                api_environment["SES_CONFIGURATION_SET"] = ses_configuration_set
+            if leave_mail_enabled:
+                api_environment["LEAVE_MAIL_ENABLED"] = "true"
         if harden_ecs and ledger_bucket is not None:
             # `harden_ecs`, NOT `harden`, and deliberately the same split
             # `SES_FROM_ADDRESS` uses one line up -- which looks like two gates
@@ -1480,6 +1700,35 @@ class CoreStack(Stack):
             api_environment["DB_DUMP_REGION"] = self.region
             if dump_archive_bucket is not None:
                 api_environment["DB_DUMP_ARCHIVE_BUCKET"] = dump_archive_bucket.bucket_name
+        if harden_ecs and document_archive_bucket is not None:
+            # `harden_ecs` and not `harden`, the ledger's rule and the same
+            # two-gates-for-one-feature shape: the GRANT can go early because it
+            # is inert without the name (a task holding s3:PutObject that cannot
+            # name a bucket writes nothing), while the VARIABLE registers a new
+            # task-definition revision the service rolls onto, which step 9a
+            # exists to keep out of the Multi-AZ conversion.
+            api_environment["DOCUMENT_ARCHIVE_BUCKET"] = document_archive_bucket.bucket_name
+        if harden_ecs:
+            # INTERVIEW_AUDIO_DIR, SET EXPLICITLY AND NOT LEFT TO THE FALLBACK.
+            # `interview_audio._store_root()` falls back to
+            # `settings.uploads_path.parent / "interview-audio"`, which resolves
+            # to /data/interview-audio here only because UPLOAD_DIR happens to
+            # be /data/uploads and /data happens to be the EFS mount.
+            # app/config.py records what that coincidence cost the last time it
+            # broke: the fallback landed in the container's WRITABLE LAYER, so
+            # consented recordings were destroyed on every redeploy, silently.
+            # Naming it makes the mount an explicit statement rather than an
+            # accident of another variable, and docker-compose.prod.yml already
+            # sets it for exactly this reason.
+            #
+            # GATED ON `harden_ecs` LIKE EVERY OTHER VARIABLE HERE, and not
+            # because it needs a grant -- it needs nothing. A task definition is
+            # IMMUTABLE: any added variable registers a new revision. The import
+            # mirror must stay byte-identical to what Terraform left behind, and
+            # step 9a (`hardenEcs=false`) must not roll the service while the
+            # database is converting to Multi-AZ. A variable whose value is a
+            # constant is still a new revision.
+            api_environment["INTERVIEW_AUDIO_DIR"] = "/data/interview-audio"
 
         def _api_task_def(cid: str, family: str, image_tag: str) -> tuple[ecs.FargateTaskDefinition, ecs.ContainerDefinition]:
             """One api task definition. ONE helper for the three families
@@ -1834,6 +2083,75 @@ class CoreStack(Stack):
                 ),
             )
 
+        if harden_ecs and document_archive_bucket is not None:
+            # THE DOCUMENT ARCHIVE SWEEP, DAILY AT 02:00 IST.
+            #
+            # WHY A SWEEP EXISTS AT ALL, when `document_store.save_bytes`
+            # already PUTs every file as it is stored: that inline write is
+            # BEST-EFFORT by contract and raises nothing, because an S3 blip
+            # must never be the reason a student is told their valid certificate
+            # was rejected. This job is what makes the promise hold anyway -- it
+            # uploads whatever the bucket does not already have, so an inline
+            # failure costs hours rather than the file.
+            #
+            # It is also the ONLY writer that archives INTERVIEW AUDIO. The
+            # recorder writes its WAVs incrementally and closes them in `run()`'s
+            # `finally`; during a live interview there is no complete file to
+            # upload, and a mid-call PUT would ship a truncated container into a
+            # bucket where it could never be replaced or removed.
+            #
+            # 20:30 UTC, and the ordering against the other four clocks is the
+            # whole reason it is not simply "some quiet hour":
+            #   * AFTER the identity ledger (18:00) and the logical dump
+            #     (19:30), which are small and must not queue behind a sweep
+            #     that walks the entire volume.
+            #   * STRICTLY BEFORE the retention sweep (21:30). This is the
+            #     ordering that matters most and it is not the ledger's polite
+            #     version of it: `retention.purge_expired` DELETES interview
+            #     audio off the volume, so an archive pass that ran after it has
+            #     permanently missed every recording that expired that night --
+            #     there is no second chance, because the bytes are gone and no
+            #     row points at them. An hour of clearance on a job that reads
+            #     files and uploads the new ones.
+            #   * CLEAR OF THE RDS WINDOW (20:30-21:30) in the only sense that
+            #     applies: this job never touches the database. It is listed
+            #     here so the next person adding a schedule sees all five in one
+            #     place, which is what
+            #     test_backup_schedule_clears_the_rds_windows exists to protect.
+            #
+            # It reuses the api task definition and so the scheduler role's
+            # existing ecs:RunTask on `{project}-api:*`, and it runs in the same
+            # subnets and security group because it needs the EFS mount -- which
+            # is the one way this job differs from the other three, all of which
+            # only need the database or nothing at all.
+            scheduler.CfnSchedule(
+                self,
+                "DocumentArchiveSchedule",
+                name=f"{project}-document-archive-daily",
+                schedule_expression="cron(30 20 * * ? *)",  # 02:00 IST
+                flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(mode="OFF"),
+                target=scheduler.CfnSchedule.TargetProperty(
+                    arn=cluster.cluster_arn,
+                    role_arn=scheduler_role.role_arn,
+                    ecs_parameters=scheduler.CfnSchedule.EcsParametersProperty(
+                        task_definition_arn=task_def.task_definition_arn,
+                        launch_type="FARGATE",
+                        network_configuration=scheduler.CfnSchedule.NetworkConfigurationProperty(
+                            awsvpc_configuration=scheduler.CfnSchedule.AwsVpcConfigurationProperty(
+                                subnets=[s.ref for s in private_subnets],
+                                security_groups=[api_sg.ref],
+                                assign_public_ip="DISABLED",
+                            )
+                        ),
+                    ),
+                    input=json.dumps(
+                        {"containerOverrides": [{"name": "api", "command": ["python", "-m", "app.archive_documents"]}]},
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    ),
+                ),
+            )
+
         # ------------------------------------------------------------- edge --
         spa_fallback = cloudfront.Function(
             self,
@@ -1921,14 +2239,19 @@ class CoreStack(Stack):
         alarm_action = cw_actions.SnsAction(alerts)
 
         def alarm(cid: str, *, name: str, metric: cw.Metric, threshold: float, periods: int, op: cw.ComparisonOperator,
-                  missing: cw.TreatMissingData | None = None, description: str | None = None, ok: bool = False) -> cw.Alarm:
+                  missing: cw.TreatMissingData | None = None, description: str | None = None, ok: bool = False,
+                  action: cw_actions.SnsAction | None = None) -> cw.Alarm:
+            # `action` overrides the ops topic for the two SES reputation
+            # alarms, which live were pointed at the mail topic instead. See
+            # where they are declared for why that is mirrored and not fixed.
+            destination = action or alarm_action
             a = cw.Alarm(
                 self, cid, alarm_name=name, alarm_description=description, metric=metric, threshold=threshold,
                 evaluation_periods=periods, comparison_operator=op, treat_missing_data=missing,
             )
-            a.add_alarm_action(alarm_action)
+            a.add_alarm_action(destination)
             if ok:
-                a.add_ok_action(alarm_action)
+                a.add_ok_action(destination)
             return a
 
         dropped = logs.MetricFilter(
@@ -1950,6 +2273,62 @@ class CoreStack(Stack):
             threshold=1, periods=1, op=cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
             missing=cw.TreatMissingData.NOT_BREACHING,
         )
+        # THE SAME SHAPE AS THE DROPPED TURNS ABOVE, AND FOR THE SAME REASON:
+        # a write the product deliberately does not let fail is a write nobody
+        # hears about when it does.
+        #
+        # 2026-09-15: every outbound message was refused for eighty minutes --
+        # the task role had lost permission to send under its configuration set
+        # -- and NOTHING reported it. `mailer.deliver_once` swallows the driver's
+        # exception so a decision stands whether or not its mail went, the
+        # endpoints answered 200, and the only witness was a `mail_logs.error`
+        # column nothing reads. A rejected applicant, who has no other channel,
+        # got nothing. It surfaced because a person said so.
+        #
+        # WHY NOT AN ALARM ON THE ROW. `mail_logs` is in a private subnet and
+        # CloudWatch cannot query it; an alarm over it would need a scheduled
+        # task, which is one more thing that fails silently. The log line is
+        # already leaving the process for CloudWatch, so the filter is free.
+        #
+        # NOT_BREACHING, unlike the backup sweep's silent alarm: no failures
+        # publishes no datapoint, and a quiet hour here means mail is fine. The
+        # state this cannot see -- the api not running at all -- is what
+        # `reep-no-healthy-api` is for.
+        # HARDEN ONLY, unlike the dropped-turns pair directly above, and the
+        # difference is not style: that filter EXISTS IN TERRAFORM, so the
+        # import mirror legitimately claims it. This one never did. Rendering
+        # it in `phase=import` asks `tools/import_map.py` to find a live
+        # address for a resource that was never managed, which is the whole
+        # point of that tool's other direction -- eight of its tests fail on it,
+        # correctly, and that is how this gate was found.
+        if harden:
+            mail_failed = logs.MetricFilter(
+                self,
+                "MailSendFailedFilter",
+                log_group=log_group,
+                filter_name="mail-send-failed",
+                # The literal is `app.mailer.MAIL_SEND_FAILED`, and
+                # tests/test_codebase_guards.py compares the two so that
+                # renaming the message cannot quietly unhook this alarm.
+                filter_pattern=logs.FilterPattern.literal('"Mail send failed"'),
+                metric_namespace="REEP/Mail",
+                metric_name="MailSendFailed",
+                metric_value="1",
+                default_value=0,
+            )
+            alarm(
+                "MailSendFailedAlarm",
+                name=f"{project}-mail-send-failed",
+                description=(
+                    "Outbound mail is being refused. Activation links, password resets, sign-in codes and "
+                    "rejection notices are not arriving, and every endpoint above still answers 200. Check "
+                    "the api task role's send-mail policy and the SES identity, then mail_logs for the "
+                    "FAILED rows."
+                ),
+                metric=mail_failed.metric(statistic="Sum", period=Duration.minutes(5)),
+                threshold=1, periods=1, op=cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+                missing=cw.TreatMissingData.NOT_BREACHING,
+            )
         alarm(
             "Alb5xxAlarm",
             name=f"{project}-alb-5xx",
@@ -2092,6 +2471,135 @@ class CoreStack(Stack):
                 threshold=1, periods=1, op=cw.ComparisonOperator.LESS_THAN_THRESHOLD,
                 missing=cw.TreatMissingData.BREACHING,
             )
+
+        # -------------------------------------------------------------- ses --
+        # THE MAIL PATH EXISTED FOR SIX DAYS BEFORE ANY OF IT WAS IN A
+        # REPOSITORY. The identity, its DKIM, the configuration set, the event
+        # destination, the notifications topic and the two reputation alarms
+        # were all made by hand in the console on 2026-09-09/10, and until this
+        # block none of them appeared in any template or any file: the api's
+        # `send-mail` policy and `SES_FROM_ADDRESS` were the only managed half,
+        # so `cdk deploy` could rebuild the PERMISSION to send and nothing that
+        # makes sending work. A new region, a new account, or a rebuild after a
+        # mistake reproduced an api that was allowed to mail and could not.
+        #
+        # These are therefore a MIRROR of what is live, property by property,
+        # and deliberately not an improvement on it. Two values look wrong here
+        # and are left alone because changing them is a separate decision with
+        # its own consequence: `tls_policy="OPTIONAL"` (REQUIRE would refuse
+        # delivery to a receiver with no STARTTLS rather than fall back), and
+        # `reputation_metrics_enabled=False` (True publishes the per-set
+        # reputation metrics, which is what would move the two alarms below off
+        # INSUFFICIENT_DATA). Adopting first and arguing second is what keeps
+        # the adoption a no-op.
+        if ses_managed:
+            # The topic SES publishes every bounce, complaint, delivery, reject
+            # and send to. Separate from `reep-alerts` because it is an EVENT
+            # stream, not an alert: one message per message sent.
+            ses_topic = sns.Topic(self, "SesNotifications", topic_name=f"{project}-ses-notifications")
+            if harden and ses_notifications_email:
+                # Import-hostile, exactly as the alerts subscription is, so the
+                # adoption run must not carry it: `cdk import` refuses a change
+                # set that also creates something. docs/ses-mail.md spells the
+                # two commands out rather than leaving the flag to memory.
+                ses_topic.add_subscription(subs.EmailSubscription(ses_notifications_email))
+
+            configuration_set = ses.CfnConfigurationSet(
+                self,
+                "SesConfigurationSet",
+                name=ses_configuration_set,
+                delivery_options=ses.CfnConfigurationSet.DeliveryOptionsProperty(tls_policy="OPTIONAL"),
+                reputation_options=ses.CfnConfigurationSet.ReputationOptionsProperty(reputation_metrics_enabled=False),
+                sending_options=ses.CfnConfigurationSet.SendingOptionsProperty(sending_enabled=True),
+            )
+
+            # NO `MailFromAttributes` AND NO `DkimSigningAttributes`, both on
+            # purpose. There is no custom MAIL FROM domain live; declaring one
+            # here would publish a subdomain whose MX and SPF records nobody has
+            # added, and `BehaviorOnMxFailure` decides only whether that failure
+            # is loud. And DKIM is SES-managed (`SigningAttributesOrigin:
+            # AWS_SES`): naming signing attributes is how a deploy rotates the
+            # keys, which republishes three CNAMEs and stops mail until DNS
+            # catches up. What is declared is the fact that signing is ON.
+            identity = ses.CfnEmailIdentity(
+                self,
+                "SesIdentity",
+                email_identity=ses_identity_domain,
+                dkim_attributes=ses.CfnEmailIdentity.DkimAttributesProperty(signing_enabled=True),
+                feedback_attributes=ses.CfnEmailIdentity.FeedbackAttributesProperty(email_forwarding_enabled=True),
+                configuration_set_attributes=ses.CfnEmailIdentity.ConfigurationSetAttributesProperty(
+                    configuration_set_name=ses_configuration_set
+                ),
+            )
+            identity.add_dependency(configuration_set)
+
+            # THE IDENTITY DEFAULT AND THE PER-SEND NAME ARE BOTH DECLARED, AND
+            # THEY ARE NOT REDUNDANT. `configuration_set_attributes` above makes
+            # this set the identity's default, which is what carried the event
+            # stream before `SES_CONFIGURATION_SET` reached the task; the api
+            # now also names it on every call. Belt and braces is right here
+            # because the two fail in opposite directions: an edit to the
+            # identity kills the default silently, and a set that stops existing
+            # makes a named send fail loudly. Neither alone covers both.
+            event_destination = ses.CfnConfigurationSetEventDestination(
+                self,
+                "SesEventDestination",
+                configuration_set_name=ses_configuration_set,
+                event_destination=ses.CfnConfigurationSetEventDestination.EventDestinationProperty(
+                    name="sns-bounces-complaints",
+                    enabled=True,
+                    # DELIVERY, REJECT and SEND ride along with the two that
+                    # matter: without SEND and DELIVERY a silent failure and a
+                    # healthy quiet week publish the same nothing.
+                    matching_event_types=["BOUNCE", "COMPLAINT", "DELIVERY", "REJECT", "SEND"],
+                    sns_destination=ses.CfnConfigurationSetEventDestination.SnsDestinationProperty(
+                        topic_arn=ses_topic.topic_arn
+                    ),
+                ),
+            )
+            event_destination.add_dependency(configuration_set)
+
+            # AWS SUSPENDS SENDING ABOVE ~5% BOUNCES AND ~0.1% COMPLAINTS, and
+            # it does so for the whole account -- activation links, reset links
+            # and sign-in codes with it, which is every door into the product
+            # that is not Google. Hence an alarm on each, at exactly the two
+            # numbers AWS publishes.
+            #
+            # `MISSING`, NOT `BREACHING`, and this is the opposite call from
+            # BackupJobsSilentAlarm above. That alarm treats absence as failure
+            # because a backup plan that stops running is the incident. Here
+            # absence means nobody was mailed this hour, which on a college's
+            # volume is most hours -- a quiet inbox is not a reputation problem,
+            # and an alarm that shouts on every quiet hour is an alarm somebody
+            # filters. What makes this legible rather than dishonest is that the
+            # thing it cannot see (no mail going out at all) is not a mail
+            # failure: a student who never asked for a reset was never failed.
+            #
+            # These fire into the MAIL topic rather than `reep-alerts`, which is
+            # what is live and is mirrored rather than fixed. It is arguably
+            # wrong -- an alarm arrives among per-message event JSON -- but
+            # moving it is a change to where a human looks, not a template
+            # detail, and it does not belong in the commit that adopts the
+            # resources.
+            ses_alarm_action = cw_actions.SnsAction(ses_topic)
+            for cid, suffix, metric_name, threshold, what in (
+                ("SesBounceRateAlarm", "ses-bounce-rate", "Reputation.BounceRate", 0.05, "bounce"),
+                ("SesComplaintRateAlarm", "ses-complaint-rate", "Reputation.ComplaintRate", 0.001, "complaint"),
+            ):
+                alarm(
+                    cid,
+                    name=f"{project}-{suffix}",
+                    description=(
+                        f"SES {what} rate is above the level AWS suspends sending at. Sending is suspended for the "
+                        "ACCOUNT, so activation links, password resets and sign-in codes all stop. Check the "
+                        f"{project}-ses-notifications topic for which addresses are failing."
+                    ),
+                    metric=cw.Metric(namespace="AWS/SES", metric_name=metric_name, statistic="Average",
+                                     period=Duration.hours(1)),
+                    threshold=threshold, periods=1, op=cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
+                    missing=cw.TreatMissingData.MISSING,
+                    action=ses_alarm_action,
+                )
 
         observer_principal_obj: iam.IPrincipal = (
             iam.ArnPrincipal(observer_principal) if observer_principal else iam.AccountRootPrincipal()

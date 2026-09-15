@@ -2,7 +2,7 @@
   <div class="dt-header">
     <div>
       <div class="crumb">
-        <span>Institution</span><span class="sep">/</span><a routerLink="/admin/faculty">Faculty</a
+        <span>People</span><span class="sep">/</span><a routerLink="/admin/faculty">Faculty</a
         ><span class="sep">/</span><span>Add faculty member</span>
       </div>
       <h1 class="dt-title">Add faculty member</h1>
@@ -17,7 +17,7 @@
   </div>
 
   <div class="card wizard-card">
-    <ol class="wizard-steps wizard-rail" aria-label="Add faculty member: four steps">
+    <ol class="wizard-steps wizard-rail" aria-label="Add faculty member: three steps">
       @for (wizardStep of steps; track wizardStep.number) {
         <li
           class="step"
@@ -71,7 +71,7 @@
               <div>
                 No college exists on this deployment yet, so there is nowhere to file a faculty
                 member. Add one on
-                <a routerLink="/admin/institution">Institution structure</a> first.
+                <a routerLink="/admin/institution">College structure</a> first.
               </div>
             </div>
           } @else {
@@ -96,11 +96,6 @@
                   Choose the college this person teaches in.
                 </p>
               }
-              <p class="help">
-                Every college on this deployment is listed, and it stays that way on purpose: this
-                whole screen is the Main Admin's (<code>require_admin</code>), so B1.4's scope
-                would narrow nothing here while reading as a fence that is doing work.
-              </p>
             </div>
 
             <div class="field">
@@ -131,11 +126,7 @@
                   {{ departmentRequiredMessage }}
                 </p>
               }
-              <p class="help">
-                The server refuses a faculty account without one (B3.1): the department is how this
-                login reaches its college, and the college is what decides which addresses may hold
-                it. Accounts created before that rule are listed for filing on the Faculty screen.
-              </p>
+              <p class="help">A faculty account must belong to a department.</p>
             </div>
 
             @if (departmentsError(); as message) {
@@ -151,7 +142,7 @@
                 <div>
                   This college or department is <strong>archived</strong>. The account can still be
                   filed there — the API accepts it — but the office has closed that department.
-                  Un-archive it on <a routerLink="/admin/institution">Institution structure</a>, or
+                  Un-archive it on <a routerLink="/admin/institution">College structure</a>, or
                   choose a current one.
                 </div>
               </div>
@@ -162,7 +153,7 @@
                 <span class="icon" aria-hidden="true">warning</span>
                 <div>
                   This college has no departments yet. Add one on
-                  <a routerLink="/admin/institution">Institution structure</a>, then come back —
+                  <a routerLink="/admin/institution">College structure</a>, then come back —
                   a faculty member cannot be filed under a college alone.
                 </div>
               </div>
@@ -180,31 +171,6 @@
                 />
                 <p class="help">Printed on the college’s leave form beside their signature.</p>
               </div>
-              <div class="field employee-field">
-                <label for="faculty-employee-id">Employee ID (optional)</label>
-                <input
-                  id="faculty-employee-id"
-                  disabled
-                  [title]="employeeIdReason"
-                  placeholder="e.g. BGS-F-0231"
-                  autocomplete="off"
-                />
-                <p class="help">
-                  Disabled, and waiting on no phase. The faculty identity work (B3.1–B3.6) and
-                  Phase 4 have both landed and there is still no employee id — no column on the
-                  account, no field on <code>POST /api/admin/faculty</code>, and none asked for.
-                  An enabled box here would take a number and drop it.
-                </p>
-              </div>
-            </div>
-
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              <div>
-                The department decides who this person can see: their HOD, the batches they may
-                mentor, and the leave approvals they receive. It can be changed later from the
-                Faculty screen.
-              </div>
             </div>
 
             <div class="card next-card">
@@ -221,7 +187,7 @@
                   <p class="next-step">3 · Functions</p>
                   <p class="next-desc">
                     Mentor is granted when the Main Admin assigns their first student. Every other
-                    function is a scoped grant made in Roles &amp; functions.
+                    function is a scoped grant made in Who can do what.
                   </p>
                 </div>
                 <div>
@@ -277,21 +243,14 @@
               Type a full email address — this is the address they sign in with.
             </p>
           }
-          <p class="help">
-            The address is lower-cased and must be free: an address already on any account is
-            refused, so a faculty row can never be attached to someone else’s login.
-          </p>
+          <p class="help">Must not already be on another account.</p>
           @if (collegeDomains().length > 0) {
             <p class="help">
               {{ selectedCollege()?.code }} admits addresses on
               <strong>{{ collegeDomains().join(', ') }}</strong>.
             </p>
           } @else {
-            <p class="help">
-              {{ selectedCollege()?.code }} has recorded no domains of its own, so the deployment’s
-              own list is what fences this address. That list is not on any endpoint this screen
-              reads — the server checks it when the account is created.
-            </p>
+            <p class="help">{{ selectedCollege()?.code }} has no domains of its own, so the deployment’s list applies.</p>
           }
         </div>
 
@@ -299,11 +258,7 @@
           <div class="notice warn" role="status">
             <span class="icon" aria-hidden="true">shield_person</span>
             <div>
-              <strong>{{ emailDomain() }}</strong> is not one of this college’s domains
-              ({{ collegeDomains().join(', ') }}). The server refuses it unless the box below is
-              ticked with a reason. Check the address first — a typo in a domain mints a REEP
-              account on an address the institution does not control, and the roster is the access
-              control.
+              <strong>{{ emailDomain() }}</strong> is not one of this college’s domains ({{ collegeDomains().join(', ') }}). Tick the box below and give a reason to allow it.
             </div>
           </div>
         }
@@ -318,11 +273,7 @@
             />
             <span>Allow an address outside the college domain</span>
           </label>
-          <p class="help">
-            A visiting lecturer on a personal address is a real case, so the fence has a gate — but
-            only a deliberate one. The tick, the reason, the address’s domain and the college’s own
-            list are all written into the audit row for this account (B3.2).
-          </p>
+          <p class="help">For a visiting lecturer on a personal address. The reason is recorded.</p>
         </div>
 
         @if (draft().allowExternal) {
@@ -344,10 +295,7 @@
                 {{ externalReasonRequiredMessage }}
               </p>
             }
-            <p class="help">
-              Written to the audit row verbatim. It is the answer to “why does this account exist on
-              that address”, asked six months from now.
-            </p>
+            <p class="help">Recorded on the account.</p>
           </div>
         }
 
@@ -373,48 +321,9 @@
       </section>
     }
 
-    <!-- ------------------------------------------------- 3 · Functions -->
+    <!-- ---------------------------------------------------- 3 · Invite -->
     @if (step() === 3) {
-      <section class="wizard-body" aria-label="Step 3: functions">
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">key</span>
-          <div>
-            <strong>This wizard grants no functions, and these boxes are disabled for good.</strong>
-            The functions below are real — but they are granted somewhere else.
-            <code>POST /api/admin/faculty</code> creates the account as Faculty with no mentor group
-            and nothing granted, and it has no field to ask for one. A grant also carries a reason,
-            a scope target and an expiry that this wizard never asks for, so a tick here could not
-            write the row <a routerLink="/admin/governance">Roles &amp; functions</a> writes — and
-            that row is the only record of who granted a function, why, and until when.
-          </div>
-        </div>
-
-        <ul class="function-list">
-          @for (choice of functionChoices; track choice.label) {
-            <li class="function-row">
-              <label class="check">
-                <input type="checkbox" disabled [title]="functionsAtCreationReason" />
-                <span class="function-name">{{ choice.label }}</span>
-              </label>
-              <p class="function-desc">{{ choice.description }}</p>
-            </li>
-          }
-        </ul>
-
-        <div class="notice info">
-          <span class="icon" aria-hidden="true">group</span>
-          <div>
-            A faculty account is not a mentor by existing. It sees nobody until the Main Admin
-            assigns it a student on <a routerLink="/admin/mentors">Mentor mapping</a> — that first
-            assignment is what creates the mentor group.
-          </div>
-        </div>
-      </section>
-    }
-
-    <!-- ---------------------------------------------------- 4 · Invite -->
-    @if (step() === 4) {
-      <section class="wizard-body" aria-label="Step 4: invite">
+      <section class="wizard-body" aria-label="Step 3: invite">
         @if (created(); as account) {
           <div class="notice good" role="status">
             <span class="icon" aria-hidden="true">check_circle</span>
@@ -432,27 +341,14 @@
               <div class="notice good" role="status">
                 <span class="icon" aria-hidden="true">mail</span>
                 <div>
-                  <strong>The activation link was emailed</strong> to {{ account.email }} and expires
-                  in {{ account.expires_in_hours | plural: 'hour' }}. It is deliberately not shown
-                  here as well, and it cannot be read back — if the mail never arrives, mint a fresh
-                  one with <strong>Activation link</strong> on the
-                  <a routerLink="/admin/faculty">Faculty</a> screen.
+                  <strong>The sign-in link was emailed</strong> to {{ account.email }} and expires in {{ account.expires_in_hours | plural: 'hour' }}. If it never arrives, make a new one on the <a routerLink="/admin/faculty">Faculty</a> screen.
                 </div>
               </div>
             } @else {
               <div class="notice warn" role="status">
                 <span class="icon" aria-hidden="true">warning</span>
                 <div>
-                  <strong>No mail was sent</strong> — this deployment has no mail transport
-                  configured, so the link below is the only way {{ account.name }} gets in. Hand it
-                  over yourself. It expires in
-                  {{ account.expires_in_hours | plural: 'hour' }}.
-                  @if (account.shown_once) {
-                    It is shown <strong>once</strong>: only its fingerprint is stored, so leaving
-                    this page loses it and the
-                    <a routerLink="/admin/faculty">Faculty</a> screen mints a new one rather than
-                    repeating this one.
-                  }
+                  <strong>No mail was sent.</strong> The link below is the only way {{ account.name }} gets in — hand it over yourself. It expires in {{ account.expires_in_hours | plural: 'hour' }} and is shown once.
                 </div>
               </div>
 
@@ -482,8 +378,8 @@
               <li>Sign in, once the link is redeemed and a password is set.</li>
               <li>Nothing else: no mentees, no console screens, no functions.</li>
               <li>
-                Give it work on <a routerLink="/admin/mentors">Mentor mapping</a> (students) or in
-                <a routerLink="/admin/governance">Roles &amp; functions</a> (a console screen).
+                Give it work on <a routerLink="/admin/mentors">Assign faculty</a> (students) or in
+                <a routerLink="/admin/governance">Who can do what</a> (a console screen).
               </li>
             </ul>
           </div>
@@ -491,11 +387,8 @@
           <div class="notice accent">
             <span class="icon" aria-hidden="true">mail</span>
             <div>
-              Creating the account mints an activation link. The server emails it when this
-              deployment has a mail transport and tells this screen, afterwards, whether it managed
-              to; a status endpoint that could answer that beforehand is B3.7 and does not exist, so
-              nothing here promises an email. When no mail went out the link is shown on the next
-              screen — once, because only its fingerprint is stored — to hand over yourself.
+              Creating the account makes a sign-in link. It is emailed when this deployment can
+              send mail; otherwise the link is shown once, on the next screen, for you to hand over.
             </div>
           </div>
 

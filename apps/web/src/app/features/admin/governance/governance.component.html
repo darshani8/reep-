@@ -1,11 +1,9 @@
 <div class="panel" data-p="governance">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Governance</span><span class="sep">/</span><span>Roles &amp; functions</span></div>
-      <h1 class="dt-title">Roles &amp; functions</h1>
-      <div class="dt-sub">
-        Role is who someone is. A function is what they may do, where, and until when.
-      </div>
+      <div class="crumb"><span>Settings</span><span class="sep">/</span><span>Who can do what</span></div>
+      <h1 class="dt-title">Who can do what</h1>
+      <div class="dt-sub">Who may open which screen, and until when.</div>
     </div>
     <div class="dt-toolbar">
       <!-- B2.4's GET /review, live. Two lists — waiting on a second admin, and
@@ -17,7 +15,7 @@
         }
       </button>
       <button type="button" class="btn secondary" (click)="focusGrantForm()">
-        <span class="icon" aria-hidden="true">key</span> Grant function
+        <span class="icon" aria-hidden="true">key</span> Give access
       </button>
     </div>
   </div>
@@ -67,9 +65,7 @@
           <div class="notice accent gov-note">
             <span class="icon" aria-hidden="true">how_to_reg</span>
             <div>
-              Approving makes it live. The API refuses an approval from the person who made the
-              grant — a function that shows a student's own record needs a second pair of eyes,
-              and one person doing both is not that.
+              Approving makes it live. You cannot approve a grant you made yourself.
             </div>
           </div>
         }
@@ -96,10 +92,7 @@
                 [value]="actionReview()"
                 (change)="actionReview.set($any($event.target).value)"
               />
-              <span class="help">
-                Optional if you set an expiry. A grant with no expiry is brought back by this
-                date and nothing else.
-              </span>
+              <span class="help">Optional if you set an expiry.</span>
             </div>
           </div>
         }
@@ -177,7 +170,7 @@
         [attr.aria-selected]="tab() === 'catalogue'"
         (click)="tab.set('catalogue')"
       >
-        Functions catalogue<span class="gov-tab-count">· {{ functionCatalogue().length }}</span>
+        Access types<span class="gov-tab-count">· {{ functionCatalogue().length }}</span>
       </button>
       <button
         type="button"
@@ -199,7 +192,7 @@
         Student feature switches<span class="icon" aria-hidden="true">open_in_new</span>
       </a>
       <a class="tab gov-tablink" routerLink="/admin/audit">
-        Audit<span class="icon" aria-hidden="true">open_in_new</span>
+        What changed<span class="icon" aria-hidden="true">open_in_new</span>
       </a>
     </div>
 
@@ -238,7 +231,7 @@
         </div>
 
         <div class="select gov-function-filter">
-          <span class="lbl">Function</span>
+          <span class="lbl">Access</span>
           <span class="val">{{ functionFilterLabel() }}</span>
           <span class="icon" aria-hidden="true">expand_more</span>
           <select aria-label="Function" (change)="setFunctionFilter($any($event.target).value)">
@@ -275,16 +268,6 @@
 
       <!-- A grant's REACH and its function's SCOPE are two different questions
            with confusingly similar names, so they are two columns. -->
-      <div class="notice accent gov-note">
-        <span class="icon" aria-hidden="true">info</span>
-        <div>
-          <strong>Function scope</strong> is what the function itself reaches — whether a mentor
-          group narrows it at all. <strong>Reach</strong> is how far this particular grant was
-          handed over: a college, department, course, specialization or batch, or everything the
-          function reaches. The College and Department filters above show every grant that
-          touches that rung, including the un-narrowed ones, because those reach it too.
-        </div>
-      </div>
 
       <div class="gov-board">
         <div class="dt-frame gov-grid-frame">
@@ -302,7 +285,7 @@
               [disabled]="selectedGrantIds().length === 0"
               (click)="startActionForSelection('revoke')"
             >
-              <span class="icon" aria-hidden="true">block</span> Revoke
+              <span class="icon" aria-hidden="true">block</span> Remove access
             </button>
             <!-- B2.4's POST /grants/{id}/extend, live. Batched the same way the
                  revoke is: one reason, applied to each row in turn. -->
@@ -342,8 +325,8 @@
                       <span>Person / group</span>
                     </label>
                   </th>
-                  <th>Function</th>
-                  <th>Function scope</th>
+                  <th>Access</th>
+                  <th>Scope</th>
                   <th>Reach</th>
                   <th>Granted by</th>
                   <th>Expires</th>
@@ -403,7 +386,7 @@
                           Extend
                         </button>
                         <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
-                          Revoke
+                          Remove access
                         </button>
                       </span>
                     </td>
@@ -563,7 +546,7 @@
           }
 
           <div class="field">
-            <label for="gov-function">Function</label>
+            <label for="gov-function">Access</label>
             <select
               id="gov-function"
               #functionSelect
@@ -609,10 +592,7 @@
                 </option>
               }
             </select>
-            <span class="help" id="gov-scope-help">
-              How far this grant reaches. A student-level target is storable through the API but
-              is not offered here — a college of students is not a dropdown.
-            </span>
+            <span class="help" id="gov-scope-help">How far this grant reaches.</span>
           </div>
 
           <div class="gov-two">
@@ -626,19 +606,6 @@
                 (change)="grantExpiry.set($any($event.target).value)"
               />
               <span class="help">Optional. Left empty it stays until it is revoked.</span>
-            </div>
-            <!-- READ-ONLY, AND NOT A PENDING CONTROL. The review date is real
-                 and shown — the API derives it — but POST /grants does not
-                 accept one, so a live select here would post a value the server
-                 drops in silence. It is changed after the fact with Extend. -->
-            <div class="field">
-              <label for="gov-review">Review</label>
-              <select id="gov-review" class="ctrl" disabled aria-describedby="gov-review-help">
-                <option>{{ reviewDerivedLabel() }}</option>
-              </select>
-              <span class="help" id="gov-review-help">
-                Set by the API, not chosen here. Change it with Extend once the grant exists.
-              </span>
             </div>
           </div>
 
@@ -672,9 +639,7 @@
             <div class="notice warn gov-note">
               <span class="icon" aria-hidden="true">shield_person</span>
               <div>
-                This function shows a student's own record, so it needs two people. The grant is
-                written, listed and audited at once — and <strong>holds nothing</strong> until a
-                different holder of Governance approves it. You cannot approve your own.
+                This access shows a student’s own record, so another holder of Who can do what must approve it before it works.
               </div>
             </div>
           }
@@ -718,14 +683,6 @@
     <!-- =================================================== REVIEW ======= -->
     @if (tab() === 'review') {
       <div role="tabpanel" id="gov-pane-review" aria-labelledby="gov-tab-review">
-      <div class="notice accent gov-note">
-        <span class="icon" aria-hidden="true">rate_review</span>
-        <div>
-          Two lists, not one, because they need opposite actions. A grant
-          <strong>awaiting approval holds nothing</strong> and somebody is waiting on you; a
-          grant <strong>running out</strong> is working today and will stop.
-        </div>
-      </div>
 
       <section class="gov-review-block" aria-labelledby="gov-review-pending-title">
         <h2 class="gov-card-title" id="gov-review-pending-title">
@@ -742,7 +699,7 @@
               <thead>
                 <tr>
                   <th class="pinned gov-who-col">Person / group</th>
-                  <th>Function</th>
+                  <th>Access</th>
                   <th>Reach</th>
                   <th>Granted by</th>
                   <th>Reason</th>
@@ -778,7 +735,7 @@
                           <span class="icon" aria-hidden="true">how_to_reg</span> Approve
                         </button>
                         <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
-                          Revoke
+                          Remove access
                         </button>
                       </span>
                     </td>
@@ -810,7 +767,7 @@
               <thead>
                 <tr>
                   <th class="pinned gov-who-col">Person / group</th>
-                  <th>Function</th>
+                  <th>Access</th>
                   <th>Reach</th>
                   <th>Expires</th>
                   <th>Review</th>
@@ -852,7 +809,7 @@
                           <span class="icon" aria-hidden="true">schedule</span> Extend
                         </button>
                         <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
-                          Revoke
+                          Remove access
                         </button>
                       </span>
                     </td>
@@ -876,26 +833,12 @@
     <!-- ============================================ FUNCTIONS CATALOGUE == -->
     @if (tab() === 'catalogue') {
       <div role="tabpanel" id="gov-pane-catalogue" aria-labelledby="gov-tab-catalogue">
-      @if (!anyEnforcementIsReported()) {
-        <div class="notice accent gov-note">
-          <span class="icon" aria-hidden="true">info</span>
-          <div>
-            B2.1 answered "is this function actually checked" somewhere other than this payload:
-            the ten <code class="gov-key">student.*</code> keys no call site checked were
-            <strong>deleted</strong>, and <code class="gov-key">tools/ci/check_capability_enforcement.py</code>
-            now fails CI if a key reaches no check anywhere under <code class="gov-key">app/</code>.
-            So the catalogue is enforced by construction — but <code class="gov-key">/catalogue</code>
-            reports no per-function flag, and this column will only say what the payload carries.
-            A list kept by hand here would be right on the day somebody wrote it.
-          </div>
-        </div>
-      }
 
       <div class="dt-frame">
         <table class="dt-table gov-table">
           <thead>
             <tr>
-              <th class="pinned gov-fn-col">Function</th>
+              <th class="pinned gov-fn-col">Access</th>
               <th>Key</th>
               <th>Scope</th>
               <th>Personal data</th>
@@ -1073,10 +1016,7 @@
               [value]="memberReason()"
               (input)="memberReason.set($any($event.target).value)"
             ></textarea>
-            <span class="help">
-              Joining hands over every function the group holds, so it asks for the same reason a
-              grant does — at least {{ minReason() | plural: 'character' }}.
-            </span>
+            <span class="help">At least {{ minReason() | plural: 'character' }}.</span>
           </div>
           <div class="gov-actions">
             <button

@@ -195,9 +195,6 @@ export interface RosterRow {
   statusTone: string;
   lastLoginAt: string | null;
   /** Columns the board draws and no endpoint answers yet — see the file note. */
-  readiness: null;
-  cgpa: null;
-  attendancePercent: null;
 }
 
 /** The edit form behind the pencil on a row. */

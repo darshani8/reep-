@@ -1,8 +1,11 @@
 <div class="desktop-frame">
   <!-- The app bar. 52px, the titlebar gradient, one hairline at the bottom.
-       Brand mark and console name on the left; the admin's environment pill,
-       search and the scope readout in the middle; the account block on the
-       right. -->
+       Brand mark and console name on the left; the admin's environment pill
+       and the scope readout in the middle; the account block on the right.
+       The ⌘K search and the notifications bell the boards drew were disabled
+       controls with nothing behind them (no search API, no per-account feed)
+       and were removed on 2026-09-15: a control that can never work is the
+       first one a first-day clerk presses. -->
   <header class="appbar">
     <a class="appbar__brand" routerLink="/" aria-label="REEP home">
       <span class="brandmark" aria-hidden="true">R</span>
@@ -17,27 +20,6 @@
              `development` on a laptop; it is never a guess. -->
         <span class="envpill">{{ environmentLabel() | uppercase }}</span>
       }
-
-      <!-- SEARCH STAYS DISABLED, AND ITS REASON NO LONGER NAMES A PHASE.
-           It used to read "arrives with the console's Phase 2 screens", and
-           Phase 2 has shipped — a control promising a phase that already
-           landed reads as a feature that broke rather than one not built yet.
-           The truthful reason is that nothing owns it: the ⌘K field is in
-           01-design-system.md §45 and the acceptance checklist as app-bar
-           furniture, and no task in 04-backend-changes.md provides a
-           cross-entity search API, in this phase or a later one. So the
-           sentence says that, and points at the two screens that do answer
-           "find this person" today. -->
-      <button
-        type="button"
-        class="appbar__search"
-        disabled
-        title="Search is not built: no task in the console plan provides a cross-entity search API. Find a student on Students &amp; batches, a faculty member on Faculty."
-      >
-        <span class="icon" aria-hidden="true">search</span>
-        <span class="appbar__search-text">Search students, faculty, batches, jobs…</span>
-        <span class="kbd" aria-hidden="true">⌘K</span>
-      </button>
 
       <!-- THE SCOPE READOUT. This was a disabled picker reading
            "Scope | BGSCET · All departments", which was invented twice over:
@@ -75,35 +57,11 @@
            A chip and not `.select`: the pill's chevron is a menu affordance
            and there is no menu to open. Statement, not control — so no
            aria-disabled either, because nothing here is a disabled widget. -->
-      <span
-        class="chip neutral appbar__scope"
-        title="This console is the Main Admin's: every college, department and batch. A narrowed reach belongs to a scoped grant on a faculty account, and each API response states its own."
-      >
+      <span class="chip neutral appbar__scope">
         <span class="icon" aria-hidden="true">apartment</span>
         Scope · Whole programme
       </span>
 
-      <!-- DEMOTED, NOT PENDING. Phase 4b built the alert ENGINE
-           (`python -m app.alerts_job`, `app/alerts.py`, the thresholds in
-           `PUT /api/admin/alert-rules`), and what it raises is read on
-           Analytics through `GET /api/mentor/alerts`. What does not exist is a
-           per-account notification FEED: that endpoint is staff-only, this
-           bell sits in the shell for every role including students and alumni,
-           and `alerts_job` has no deployed schedule (its own docstring says
-           why, and says the three things that land in the commit that adds
-           one), so a bell wired to it would sit at zero on a deployment where
-           nothing sweeps. Plain `disabled` with the real reason and no phase
-           number — the treatment the Leave queue's Requester filter was given.
-           Wire it when a per-account feed exists AND the sweep is scheduled. -->
-      <button
-        type="button"
-        class="iconbtn appbar__icon"
-        disabled
-        aria-label="Notifications"
-        title="There is no per-account notification feed. Staff alerts are on Analytics; the sweep that raises them has no deployed schedule yet."
-      >
-        <span class="icon" aria-hidden="true">notifications</span>
-      </button>
       <a
         class="iconbtn appbar__icon"
         href="https://github.com/darshani8/reep-/blob/main/AGENTS.md"

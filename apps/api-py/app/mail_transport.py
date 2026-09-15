@@ -11,17 +11,33 @@ is effectively free); it is that SES needs NO CREDENTIAL. It authenticates
 through the same task role that already reaches Bedrock for the interviewer,
 so there is nothing to paste, leak or rotate — where every other provider adds
 an API key someone has to store, and puts student email addresses in a third
-party's systems. `SES_FROM_ADDRESS` is the only setting; the region falls back
-to the AWS environment like everything else here.
+party's systems. There are three settings and no credential among them:
+`SES_FROM_ADDRESS`, `SES_CONFIGURATION_SET`, and `SES_REGION`, which falls
+back to the AWS environment like everything else here.
 
-THE SES SANDBOX. A new SES account can only send to addresses it has verified.
-Leaving the sandbox means verifying the bgscet.ac.in domain (DKIM/SPF — an IT
-task) and requesting production access, which takes a day or two. Start that
-early. Nothing here is blocked on it: the on-screen activation link and the
-console transport below both work without SES.
+WHERE THIS STANDS (2026-09-15). The sandbox is behind us. `sast-skills.com` is
+verified with DKIM signing, the account holds production access in ap-south-1,
+and `SES_FROM_ADDRESS=no-reply@sast-skills.com` reached the running api task at
+13:55 UTC that day — before which every task in every revision booted saying
+"NO TRANSPORT" and this module's console path was the whole story. The
+institution's own `bgscet.ac.in` was NOT taken to verification: the deployment
+sends as sast-skills.com by decision, and docs/ses-mail.md records why and what
+moving would cost. Nothing here was ever blocked on any of it — the on-screen
+activation link and the console transport below both work without SES, which is
+why an unverified domain was never an outage.
 
-THE CONSOLE TRANSPORT IS NOT A STUB. With `SES_FROM_ADDRESS` blank — every
-development machine, CI, and a fresh deployment before IT has answered — a
+THE CONFIGURATION SET IS NAMED ON THE CALL, NOT INHERITED. `send()` passes
+`settings.ses_configuration_set` when it is set, and the alternative is worse
+than it looks: SES also applies the set attached to the IDENTITY as its
+default, so tracking that is inherited disappears the day someone edits the
+identity, with every send still succeeding and both reputation alarms sitting at
+INSUFFICIENT_DATA looking like a quiet week. A named set cannot fail quietly —
+SES refuses a send naming one that does not exist. The setting's own comment in
+config.py carries the full reasoning.
+
+THE CONSOLE TRANSPORT IS NOT A STUB, AND IT IS NOT LEGACY EITHER. With
+`SES_FROM_ADDRESS` blank — every development machine, every CI run, and any
+deployment that has not been given an identity — a
 message is logged in full and kept in `outbox`, a bounded in-memory list. A
 developer reads the activation link out of the uvicorn log; the test suite
 reads it out of `outbox`. It is bounded and only ever filled when no real
@@ -38,6 +54,7 @@ from __future__ import annotations
 import logging
 from collections import deque
 from dataclasses import dataclass
+from typing import Any
 
 from .config import settings
 
@@ -90,13 +107,21 @@ def send(to: str, subject: str, text: str) -> None:
     import boto3
 
     client = boto3.client("sesv2", region_name=_region())
-    client.send_email(
-        FromEmailAddress=settings.ses_from_address.strip(),
-        Destination={"ToAddresses": [to]},
-        Content={
+    request: dict[str, Any] = {
+        "FromEmailAddress": settings.ses_from_address.strip(),
+        "Destination": {"ToAddresses": [to]},
+        "Content": {
             "Simple": {
                 "Subject": {"Data": subject, "Charset": "UTF-8"},
                 "Body": {"Text": {"Data": text, "Charset": "UTF-8"}},
             }
         },
-    )
+    }
+    # Omitted when blank rather than sent as "": SES reads an empty
+    # ConfigurationSetName as a set that does not exist and refuses the send,
+    # which would turn "this deployment does not name one" into a hard mail
+    # outage on every dev machine. Blank means defer to the identity's default.
+    configuration_set = settings.ses_configuration_set.strip()
+    if configuration_set:
+        request["ConfigurationSetName"] = configuration_set
+    client.send_email(**request)

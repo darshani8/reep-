@@ -289,7 +289,9 @@ export const routes: Routes = [
         path: 'mentor/signature',
         canActivate: [roleGuard('MENTOR', 'ADMIN')],
         loadComponent: () =>
-          import('./features/mentor/signature/signature.component').then((m) => m.SignatureComponent),
+          import('./features/mentor/signature/signature.component').then(
+            (m) => m.SignatureComponent,
+          ),
       },
       {
         path: 'mentor/leave',
@@ -308,8 +310,21 @@ export const routes: Routes = [
       { path: 'mentor/assistant', redirectTo: 'mentor/agent' },
 
       // --- admin (the Main Admin; the console the placement office runs on) ---
+      //
+      // THE LANDING IS A LIST OF TASKS, NOT A CHART. `/admin` was Analytics,
+      // which is the right first screen for somebody who knows the console and
+      // the wrong one for somebody who does not. Home is what is waiting and
+      // every task as a button; Analytics kept every control it had and moved
+      // one segment down. `HOME_FOR_ROLE` and `_HOME_FOR_ROLE` still say
+      // `/admin`, which is why the landing changed here and not there.
       {
         path: 'admin',
+        canActivate: [roleGuard('ADMIN')],
+        loadComponent: () =>
+          import('./features/admin/home/home.component').then((m) => m.AdminHomeComponent),
+      },
+      {
+        path: 'admin/analytics',
         // A capability, not a role: the Main Admin holds admin.analytics through
         // the baseline, and a MENTOR reaches this only when granted it.
         canActivate: [capabilityGuard('admin.analytics')],
@@ -357,6 +372,17 @@ export const routes: Routes = [
             (m) => m.AdminCollegesComponent,
           ),
       },
+      // Set up a college: the spine typed once and written in one press, on
+      // the same five POSTs College structure makes. The same key as the two
+      // screens it replaces the fifteen forms of.
+      {
+        path: 'admin/setup',
+        canActivate: [capabilityGuard('admin.institution')],
+        loadComponent: () =>
+          import('./features/admin/college-setup/college-setup.component').then(
+            (m) => m.AdminCollegeSetupComponent,
+          ),
+      },
       // The institution console: College -> Department -> Course ->
       // Specialization -> Batch, and seating. First and only caller of
       // /api/admin/*. Lazy like every other route (AGENTS.md: one re-eager-ed
@@ -402,7 +428,9 @@ export const routes: Routes = [
         path: 'admin/students',
         canActivate: [capabilityGuard('admin.students')],
         loadComponent: () =>
-          import('./features/admin/students/students.component').then((m) => m.AdminStudentsComponent),
+          import('./features/admin/students/students.component').then(
+            (m) => m.AdminStudentsComponent,
+          ),
       },
       // Student 360 (§6): one student across every semester. AFTER the roster
       // route, though the order is not what separates them — both are full-path
@@ -541,9 +569,7 @@ export const routes: Routes = [
         path: 'admin/exports',
         canActivate: [capabilityGuard('admin.exports')],
         loadComponent: () =>
-          import('./features/admin/exports/exports.component').then(
-            (m) => m.AdminExportsComponent,
-          ),
+          import('./features/admin/exports/exports.component').then((m) => m.AdminExportsComponent),
       },
 
       // --- alumni ---

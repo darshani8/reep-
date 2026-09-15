@@ -1,28 +1,9 @@
 <div class="panel" data-p="exports">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Operations</span><span class="sep">/</span><span>Exports</span></div>
-      <h1 class="dt-title">Exports</h1>
-      <p class="dt-sub">
-        CSV extracts for accreditation, review meetings and the placement cell. Each file is
-        generated fresh on download, covers only the students your Exports function reaches, names
-        them only if you also hold the roster function, and is written to the audited history
-        below.
-      </p>
-    </div>
-    <div class="dt-toolbar">
-      <!-- Not a phase: 02-admin-console-spec.md §22 lists scheduling as
-           "(optional, later)" and no task in 04-backend-changes.md defines it,
-           so the control is drawn with its real reason rather than a date
-           nothing has agreed to. -->
-      <button
-        type="button"
-        class="btn secondary"
-        disabled
-        title="Scheduled exports are not built — the spec lists them as optional and later, and no backend task defines one"
-      >
-        <span class="icon" aria-hidden="true">event_repeat</span> Schedule an export
-      </button>
+      <div class="crumb"><span>Every day</span><span class="sep">/</span><span>Download reports</span></div>
+      <h1 class="dt-title">Download reports</h1>
+      <p class="dt-sub">CSV files, each covering only the students you can see.</p>
     </div>
   </div>
 
@@ -131,13 +112,7 @@
   <div class="notice accent">
     <span class="icon" aria-hidden="true">info</span>
     <div>
-      <b>Four files, and two cards that are drawings.</b> Students, Placement, Ledger and
-      Interviews all download — each scoped to what your functions reach, each dropping the Name
-      and USN columns unless you also hold the roster function, and each writing a row to the
-      history below. The Interviews file is score summaries only: no transcript, no audio, and a
-      blank cell wherever nobody marked a section. Registrations and Leave are on the board and
-      have no file behind them — nothing in the backend plan defines one, so those two cards say
-      that rather than naming a release.
+      Each file covers only the students your access reaches. The Interviews file is score summaries only: no transcript, no audio.
     </div>
   </div>
 
@@ -170,7 +145,7 @@
              be bounced by the guard, so the link is not offered to them. -->
         @if (isMainAdmin()) {
           <a class="btn ghost sm" routerLink="/admin/audit">
-            Open audit log <span class="icon" aria-hidden="true">arrow_forward</span>
+            What changed <span class="icon" aria-hidden="true">arrow_forward</span>
           </a>
         }
       </div>
@@ -193,9 +168,7 @@
       <div class="notice accent history-empty" role="status">
         <span class="icon" aria-hidden="true">history</span>
         <div>
-          Nothing has been exported here yet. Every download of the files above writes a row —
-          the file, the scope it ran in, how many rows left and whether they carried names. If you
-          have just pressed Download, give it a moment and refresh.
+          Nothing has been downloaded yet.
         </div>
       </div>
     }

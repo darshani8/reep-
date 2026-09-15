@@ -41,10 +41,7 @@
             aria-describedby="disable-faculty-reason-help"
             (input)="setReason($event)"
           />
-          <span class="help" id="disable-faculty-reason-help">
-            Required. It is stored on the account and in the audit trail, and it is what answers “why
-            is this person locked out” six months from now.
-          </span>
+          <span class="help" id="disable-faculty-reason-help">Required.</span>
         </div>
         <!-- DISABLED ON PURPOSE, and not through the pending directive: the
              endpoint takes a reason and nothing else, and stamps the moment it
@@ -60,10 +57,7 @@
             [value]="today"
             aria-describedby="disable-faculty-effective-help"
           />
-          <span class="help" id="disable-faculty-effective-help">
-            Immediately. Offboarding cannot be scheduled — it takes effect the moment you press the
-            button below.
-          </span>
+          <span class="help" id="disable-faculty-effective-help">Takes effect immediately.</span>
         </div>
       </div>
 

@@ -892,9 +892,9 @@ export class GovernanceComponent {
       return count > 1 ? `Send for approval · ${count}` : 'Send for approval';
     }
     if (count > 1) {
-      return `Grant to ${count}`;
+      return `Give access to ${count}`;
     }
-    return 'Grant function';
+    return 'Give access';
   });
 
   /** The review date the API will derive, said in words rather than guessed as
@@ -1072,7 +1072,7 @@ export class GovernanceComponent {
       case 'extend':
         return `Extend ${plural(count, 'grant')}`;
       case 'revoke':
-        return `Revoke ${plural(count, 'function')}`;
+        return count > 1 ? `Remove access · ${count}` : 'Remove access';
       default:
         return '';
     }
@@ -1085,7 +1085,7 @@ export class GovernanceComponent {
       case 'extend':
         return this.actionBusy() ? 'Extending…' : 'Extend';
       default:
-        return this.actionBusy() ? 'Revoking…' : 'Revoke';
+        return this.actionBusy() ? 'Removing…' : 'Remove access';
     }
   });
 

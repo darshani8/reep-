@@ -828,6 +828,163 @@ def test_the_dump_schedule_runs_the_dump(hardened: Template) -> None:
     assert "app.backup_database" in sched["Properties"]["Target"]["Input"]
 
 
+# --------------------------------------------- the permanent document archive --
+
+
+def _cron_minutes(expr: str) -> int:
+    """Minutes past midnight UTC for a `cron(m h ...)` expression.
+
+    Deliberately finer than the `hour()` lambda the ledger's ordering test uses.
+    That comparison is enough while the jobs sit whole hours apart, and it
+    silently stops meaning anything the day two of them land in the same hour --
+    which is a plausible edit, since every one of these schedules is placed
+    against the RDS backup window rather than against a clean hour.
+    """
+    m = re.match(r"cron\((\d+) (\d+)", expr)
+    assert m, expr
+    return int(m.group(2)) * 60 + int(m.group(1))
+
+
+
+def test_the_document_archive_is_versioned_and_object_locked(hardened: Template) -> None:
+    """The one bucket in this stack that holds FILE BYTES for years.
+
+    Until it existed, an uploaded marksheet's only copy beyond the EFS volume
+    was the daily backup plan, bounded by `backupRetentionDays` -- 35, RDS's
+    ceiling. The archive backup selection that reaches past 35 days names the
+    DATABASE ALONE on purpose, and both pg_dump tiers carry rows and never
+    bytes. So a file deleted from the website was gone in both regions on day
+    36. Object Lock cannot be added after creation, which is why this is asserted
+    on the bucket that exists rather than deferred.
+    """
+    buckets = _dump_buckets(hardened, "reep-documents-archive-")
+    assert len(buckets) == 1, "expected exactly one reep-documents-archive-* bucket"
+    b = buckets[0]
+    assert b["VersioningConfiguration"] == {"Status": "Enabled"}
+    assert b["ObjectLockEnabled"] is True
+    assert b["ObjectLockConfiguration"]["Rule"]["DefaultRetention"]["Mode"] == "GOVERNANCE"
+    assert b["ObjectLockConfiguration"]["Rule"]["DefaultRetention"]["Days"] >= 365
+
+
+def test_the_document_archive_has_no_lifecycle_rule(hardened: Template) -> None:
+    """The ledger bucket's rule and the dump archive's, for the same reason, and
+    here the absence protects the only copy of a scanned certificate rather than
+    a re-derivable dump. A rule acquired by accident is that promise expiring in
+    the one direction S3 never reports."""
+    assert "LifecycleConfiguration" not in _dump_buckets(hardened, "reep-documents-archive-")[0]
+
+
+def test_the_import_phase_has_no_document_archive(imported: Template) -> None:
+    """Resources this stack ADDS never appear in the mirror."""
+    names = [
+        str(r["Properties"].get("BucketName", ""))
+        for r in imported.to_json()["Resources"].values()
+        if r["Type"] == "AWS::S3::Bucket"
+    ]
+    assert not [n for n in names if n.startswith("reep-documents-archive-")]
+
+
+def test_the_task_may_write_documents_and_never_read_them(hardened: Template) -> None:
+    """PutObject to write, ListBucket to ask, s3:GetObject NOWHERE -- and here
+    the rule bites hardest of the three buckets it applies to.
+
+    This one holds every marksheet, certificate, photograph, CV, staff signature
+    and recorded interview in the deployment, as ORIGINAL BYTES rather than a
+    dump that would need restoring. A task that can read it is one compromise
+    away from exfiltrating every document the college holds.
+
+    The trap is `head_object`, the obvious way for the sweep to ask which
+    objects already exist: S3 authorises HeadObject with s3:GetObject and has no
+    separate permission for it. `archive_documents` lists instead.
+    """
+    role = next(
+        r
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::IAM::Role"
+        and r["Properties"].get("RoleName") == "reep-api-task"
+    )
+    policies = {p["PolicyName"]: p for p in role["Properties"]["Policies"]}
+    acts = [
+        a
+        for st in policies["write-document-archive"]["PolicyDocument"]["Statement"]
+        for a in (st["Action"] if isinstance(st["Action"], list) else [st["Action"]])
+    ]
+    assert sorted(acts) == ["s3:ListBucket", "s3:PutObject"]
+
+    for name, policy in policies.items():
+        for st in policy["PolicyDocument"]["Statement"]:
+            a = st["Action"] if isinstance(st["Action"], list) else [st["Action"]]
+            resources = st.get("Resource", [])
+            resources = resources if isinstance(resources, list) else [resources]
+            if any("documents-archive" in str(r) for r in resources):
+                assert not [
+                    x for x in a if x.startswith(("s3:Get", "s3:Delete"))
+                ], f"policy {name} can read or delete an archived document: {a}"
+
+
+def test_the_archive_sweep_runs_strictly_before_the_retention_sweep(hardened: Template) -> None:
+    """THE ORDERING THAT CANNOT BE RECOVERED FROM.
+
+    `app/retention.py` DELETES interview audio off the volume on its own nightly
+    clock. An archive pass that ran after it has permanently missed every
+    recording that expired that night -- the bytes are gone and no row points at
+    them, so there is no second chance and no way to notice. Both jobs are green.
+
+    This is a stronger version of the ordering the ledger and the dump schedules
+    already argue for, where running late costs a day of freshness rather than
+    the artefact.
+    """
+    schedules = {
+        r["Properties"]["Name"]: r["Properties"]["ScheduleExpression"]
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::Scheduler::Schedule"
+    }
+    archive = _cron_minutes(schedules["reep-document-archive-daily"])
+    sweep = _cron_minutes(schedules["reep-retention-daily"])
+    assert archive < sweep, (
+        f"the document archive sweep runs at {archive} min UTC and the retention "
+        f"sweep at {sweep}. Retention deletes interview audio; archiving after it "
+        "loses every recording that expired that night, permanently and silently."
+    )
+
+
+def test_the_archive_schedule_runs_the_sweep(hardened: Template) -> None:
+    """A schedule pointing at the wrong module is a green job that archives
+    nothing."""
+    sched = next(
+        r
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::Scheduler::Schedule"
+        and r["Properties"]["Name"] == "reep-document-archive-daily"
+    )
+    assert "app.archive_documents" in sched["Properties"]["Target"]["Input"]
+
+
+def test_the_interview_audio_directory_is_named_and_not_inferred(hardened: Template) -> None:
+    """`interview_audio._store_root()`'s fallback derives the audio store from
+    UPLOAD_DIR's PARENT, so it lands on the EFS mount only because UPLOAD_DIR
+    happens to be /data/uploads. app/config.py records what that coincidence
+    cost when it broke: recordings landed in the container's writable layer and
+    were destroyed on every redeploy, silently. Naming it makes the mount a
+    statement rather than an accident of another variable."""
+    env = {
+        v["Name"]: v["Value"]
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::ECS::TaskDefinition"
+        for c in r["Properties"]["ContainerDefinitions"]
+        for v in c.get("Environment", [])
+    }
+    assert env["INTERVIEW_AUDIO_DIR"] == "/data/interview-audio"
+    assert env["INTERVIEW_AUDIO_DIR"].startswith("/data/"), "must be on the EFS mount"
+
+
+def test_an_unbounded_document_retention_is_refused() -> None:
+    """It is an Object Lock retention in years and cannot be shortened on
+    objects already written."""
+    with pytest.raises(ValueError):
+        _core("harden", documentArchiveYears=0)
+
+
 def test_a_daily_tier_no_longer_than_the_snapshots_is_refused() -> None:
     """35 days of physical snapshots already exist. A logical tier that expires
     no later adds nothing they do not already give, and would read on a diagram

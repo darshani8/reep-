@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
 
+from . import document_archive
 from .config import settings
 
 # First bytes -> (mime, extension). Order matters only in that each signature is
@@ -216,6 +217,19 @@ def save_bytes(content: bytes, *, quota: VolumeQuota) -> tuple[str, str, int]:
     mime, ext = _sniff(content)
     stored_name = uuid.uuid4().hex + ext
     (_store_dir() / stored_name).write_bytes(content)
+    # THE PERMANENT COPY, AND THIS IS THE ONE CHOKE POINT THAT REACHES ALL SIX
+    # STORES. Student uploads, alumni resumes, staff upskilling certificates,
+    # staff signatures, leave attachments and registration documents every one
+    # arrive through this function, so archiving here is the difference between
+    # a rule and a convention — the same argument VolumeQuota above makes about
+    # the quota, which was a convention in the callers until a writer forgot it.
+    #
+    # AFTER the volume write and never before: the live store is what the
+    # website reads, and a file that reached S3 but not the disk is a 404 on
+    # the student's own screen. BEST-EFFORT by contract (archive_bytes raises
+    # nothing) because S3 must not be on the critical path of an upload, and
+    # `python -m app.archive_documents` is what makes the promise hold anyway.
+    document_archive.archive_bytes(stored_name, content, content_type=mime)
     return stored_name, mime, len(content)
 
 

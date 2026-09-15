@@ -598,6 +598,38 @@ def test_the_alb_keeps_an_interview_socket_open_longer_than_the_interview() -> N
     )
 
 
+def test_the_mail_failure_alarm_still_matches_the_line_the_mailer_writes() -> None:
+    """INCIDENT (2026-09-15): eighty minutes of total mail failure, unreported.
+
+    Every outbound message was refused -- the api task role had lost permission
+    to send under its configuration set -- and nothing said so.
+    `mailer.deliver_once` swallows the driver's exception on purpose, so a
+    decision stands whether or not its mail went; the endpoints answered 200,
+    and the only witness was a `mail_logs.error` column nothing reads. A
+    rejected applicant, who is not a user and has no other channel, received
+    nothing. It was found because a person said the mail had not arrived.
+
+    The fix is a log line and a metric filter on it. That pair is a STRING
+    MATCH ACROSS TWO LANGUAGES IN TWO DIRECTORIES, and the way it breaks is
+    silent in the worst direction: reword the message and the alarm still
+    deploys, still shows green, and never fires again. Nothing else compares
+    them, so this does.
+    """
+    from app.mailer import MAIL_SEND_FAILED
+
+    pattern = re.search(
+        r'filter_name="mail-send-failed",.*?filter_pattern=logs\.FilterPattern\.literal\(\s*[\'"](.+?)[\'"]\s*\)',
+        CDK_CORE.read_text(encoding="utf-8"),
+        re.DOTALL,
+    )
+    assert pattern, "the mail-send-failed metric filter is gone from infra/cdk -- the alarm has nothing to match"
+    literal = pattern.group(1).strip().strip('"')
+    assert literal == MAIL_SEND_FAILED, (
+        f"the metric filter matches {literal!r} and app/mailer.py logs {MAIL_SEND_FAILED!r}. "
+        "They must be the same string, or outbound mail fails silently again."
+    )
+
+
 def test_stop_timeout_is_within_fargates_ceiling() -> None:
     """Fargate refuses a task definition with stopTimeout > 120. A larger
     number here is not a longer grace period — it is a deploy that fails at

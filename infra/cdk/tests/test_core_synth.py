@@ -612,6 +612,43 @@ def test_a_configuration_set_on_the_task_is_never_ungranted() -> None:
         assert not granted, "a configuration set is granted that nothing names"
 
 
+def test_a_mail_send_that_fails_raises_an_alarm(hardened: Template) -> None:
+    """The alarm the 2026-09-15 outage did not have.
+
+    Eighty minutes of total mail failure produced no alarm, no log line and no
+    failed request: `deliver_once` swallows the driver's exception so a decision
+    stands whether or not its mail went, and the only witness was a
+    `mail_logs.error` column nothing reads.
+
+    NOT_BREACHING is right here and would be wrong for the backup sweep: no
+    failures publishes no datapoint, and a quiet hour means mail is FINE. The
+    state this cannot see -- the api not running at all -- belongs to
+    `reep-no-healthy-api`, which treats missing data as breaching for exactly
+    that reason.
+    """
+    hardened.has_resource_properties(
+        "AWS::Logs::MetricFilter",
+        {
+            "FilterName": "mail-send-failed",
+            "FilterPattern": '"Mail send failed"',
+            "MetricTransformations": Match.array_with(
+                [Match.object_like({"MetricNamespace": "REEP/Mail", "MetricName": "MailSendFailed"})]
+            ),
+        },
+    )
+    hardened.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmName": "reep-mail-send-failed",
+            "Namespace": "REEP/Mail",
+            "MetricName": "MailSendFailed",
+            "Threshold": 1,
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )
+
+
 # ------------------------------------------------------ ses (the mail path) --
 
 

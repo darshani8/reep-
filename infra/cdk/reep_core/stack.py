@@ -2078,6 +2078,62 @@ class CoreStack(Stack):
             threshold=1, periods=1, op=cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
             missing=cw.TreatMissingData.NOT_BREACHING,
         )
+        # THE SAME SHAPE AS THE DROPPED TURNS ABOVE, AND FOR THE SAME REASON:
+        # a write the product deliberately does not let fail is a write nobody
+        # hears about when it does.
+        #
+        # 2026-09-15: every outbound message was refused for eighty minutes --
+        # the task role had lost permission to send under its configuration set
+        # -- and NOTHING reported it. `mailer.deliver_once` swallows the driver's
+        # exception so a decision stands whether or not its mail went, the
+        # endpoints answered 200, and the only witness was a `mail_logs.error`
+        # column nothing reads. A rejected applicant, who has no other channel,
+        # got nothing. It surfaced because a person said so.
+        #
+        # WHY NOT AN ALARM ON THE ROW. `mail_logs` is in a private subnet and
+        # CloudWatch cannot query it; an alarm over it would need a scheduled
+        # task, which is one more thing that fails silently. The log line is
+        # already leaving the process for CloudWatch, so the filter is free.
+        #
+        # NOT_BREACHING, unlike the backup sweep's silent alarm: no failures
+        # publishes no datapoint, and a quiet hour here means mail is fine. The
+        # state this cannot see -- the api not running at all -- is what
+        # `reep-no-healthy-api` is for.
+        # HARDEN ONLY, unlike the dropped-turns pair directly above, and the
+        # difference is not style: that filter EXISTS IN TERRAFORM, so the
+        # import mirror legitimately claims it. This one never did. Rendering
+        # it in `phase=import` asks `tools/import_map.py` to find a live
+        # address for a resource that was never managed, which is the whole
+        # point of that tool's other direction -- eight of its tests fail on it,
+        # correctly, and that is how this gate was found.
+        if harden:
+            mail_failed = logs.MetricFilter(
+                self,
+                "MailSendFailedFilter",
+                log_group=log_group,
+                filter_name="mail-send-failed",
+                # The literal is `app.mailer.MAIL_SEND_FAILED`, and
+                # tests/test_codebase_guards.py compares the two so that
+                # renaming the message cannot quietly unhook this alarm.
+                filter_pattern=logs.FilterPattern.literal('"Mail send failed"'),
+                metric_namespace="REEP/Mail",
+                metric_name="MailSendFailed",
+                metric_value="1",
+                default_value=0,
+            )
+            alarm(
+                "MailSendFailedAlarm",
+                name=f"{project}-mail-send-failed",
+                description=(
+                    "Outbound mail is being refused. Activation links, password resets, sign-in codes and "
+                    "rejection notices are not arriving, and every endpoint above still answers 200. Check "
+                    "the api task role's send-mail policy and the SES identity, then mail_logs for the "
+                    "FAILED rows."
+                ),
+                metric=mail_failed.metric(statistic="Sum", period=Duration.minutes(5)),
+                threshold=1, periods=1, op=cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+                missing=cw.TreatMissingData.NOT_BREACHING,
+            )
         alarm(
             "Alb5xxAlarm",
             name=f"{project}-alb-5xx",

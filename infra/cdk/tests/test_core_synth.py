@@ -532,6 +532,112 @@ def test_task_role_may_send_mail_only_for_the_verified_identity(hardened: Templa
     )
 
 
+# ------------------------------------------------- the identity ledger --
+
+
+def test_the_ledger_bucket_is_versioned_and_object_locked(hardened: Template) -> None:
+    """Both, at creation, or the bucket cannot do its job.
+
+    OBJECT LOCK CANNOT BE ADDED LATER. A ledger bucket created without it has to
+    be replaced -- every object copied, under a new name, by hand -- which is
+    why this is asserted rather than left to a follow-up. Versioning is the
+    other half: a day's object is rewritten by a re-run, so the versions ARE the
+    history.
+    """
+    hardened.has_resource_properties(
+        "AWS::S3::Bucket",
+        {
+            "BucketName": Match.string_like_regexp(r"^reep-identity-ledger-"),
+            "VersioningConfiguration": {"Status": "Enabled"},
+            "ObjectLockEnabled": True,
+            "ObjectLockConfiguration": Match.object_like(
+                {"Rule": {"DefaultRetention": Match.object_like({"Mode": "GOVERNANCE"})}}
+            ),
+        },
+    )
+
+
+def test_the_ledger_bucket_has_no_lifecycle_rule(hardened: Template) -> None:
+    """The absence of an expiry is the whole feature.
+
+    Every other store in this stack carries one -- alb-logs expires at 90 days
+    -- and the ledger exists precisely because `backupRetentionDays` caps every
+    database artefact at 35. A lifecycle rule here would re-impose the ceiling
+    this bucket was created to escape, and it would read as protection right up
+    until somebody asked for something older than it.
+    """
+    buckets = [
+        r["Properties"]
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::S3::Bucket"
+        and str(r["Properties"].get("BucketName", "")).startswith("reep-identity-ledger-")
+    ]
+    assert len(buckets) == 1, "expected exactly one identity ledger bucket"
+    assert "LifecycleConfiguration" not in buckets[0]
+
+
+def test_the_import_phase_has_no_ledger_bucket(imported: Template) -> None:
+    """It is a resource this stack ADDS, so the mirror must not carry it."""
+    names = [
+        str(r["Properties"].get("BucketName", ""))
+        for r in imported.to_json()["Resources"].values()
+        if r["Type"] == "AWS::S3::Bucket"
+    ]
+    assert not [n for n in names if n.startswith("reep-identity-ledger-")]
+
+
+def test_the_task_may_write_the_ledger_and_never_weaken_it(hardened: Template) -> None:
+    """PutObject only.
+
+    A writer that could delete its own output, or shorten its own retention, is
+    not being protected by Object Lock -- it is being asked politely. The grant
+    carries no Delete*, no PutBucketLifecycle and no PutObjectRetention, and
+    this test is what keeps a later convenience from adding one.
+    """
+    role = next(
+        r for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::IAM::Role" and r["Properties"].get("RoleName") == "reep-api-task"
+    )
+    policy = next(
+        p for p in role["Properties"]["Policies"] if p["PolicyName"] == "write-identity-ledger"
+    )
+    actions = [
+        a
+        for st in policy["PolicyDocument"]["Statement"]
+        for a in (st["Action"] if isinstance(st["Action"], list) else [st["Action"]])
+    ]
+    assert actions == ["s3:PutObject"], actions
+
+
+def test_the_ledger_runs_before_the_retention_sweep(hardened: Template) -> None:
+    """Ordering is the only dependency two schedules can have, so it is asserted.
+
+    `app/retention.py` is the one scheduled destructor in the product. A ledger
+    written AFTER it is a ledger that never saw whatever it removed, and nothing
+    would report the difference -- both jobs would be green.
+    """
+    schedules = {
+        r["Properties"]["Name"]: r["Properties"]["ScheduleExpression"]
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::Scheduler::Schedule"
+    }
+    ledger = schedules["reep-identity-ledger-daily"]
+    sweep = schedules["reep-retention-daily"]
+    hour = lambda expr: int(re.match(r"cron\((\d+) (\d+)", expr).group(2))
+    assert hour(ledger) < hour(sweep), f"ledger {ledger} must run before sweep {sweep}"
+
+
+def test_the_ledger_schedule_runs_the_ledger(hardened: Template) -> None:
+    """The command is the contract: a schedule pointing at the wrong module is a
+    green job that writes nothing."""
+    sched = next(
+        r for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::Scheduler::Schedule"
+        and r["Properties"]["Name"] == "reep-identity-ledger-daily"
+    )
+    assert "app.export_identity" in sched["Properties"]["Target"]["Input"]
+
+
 def test_secrets_are_referenced_never_written(imported: Template, hardened: Template) -> None:
     for t in (imported, hardened):
         types = {r["Type"] for r in t.to_json()["Resources"].values()}

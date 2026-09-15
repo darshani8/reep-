@@ -680,6 +680,32 @@ class Settings(BaseSettings):
     # database is half a plan.
     db_dump_region: str = ""
 
+    # ---------------------------------------------------------------- #
+    # THE PERMANENT DOCUMENT ARCHIVE (app/document_archive.py). The file half
+    # of the two tiers above, and the only one of the three that carries
+    # BYTES.
+    #
+    # THIS IS NOT A BACKUP SETTING AND MUST NOT BORROW A BACKUP'S LIFECYCLE —
+    # the identity ledger's rule, and for the identical reason. Until this
+    # bucket existed, every uploaded file's only copy was the EFS volume,
+    # whose one backup plan is bounded by `backupRetentionDays`; the archive
+    # backup rule that reaches past 35 days selects the DATABASE ALONE, and
+    # the two `pg_dump` tiers carry rows and never file bytes. So a marksheet
+    # deleted from the website was unrecoverable on day 36, in both regions at
+    # once. Its own bucket, versioned, Object-Locked and with NO LIFECYCLE
+    # RULE AT ALL — the absence is the feature, exactly as it is on the ledger
+    # and the monthly dump archive.
+    #
+    # Blank is supported and means the deployment has no permanent copy of its
+    # files. `python -m app.archive_documents` says so on every run rather
+    # than letting a reader assume one exists.
+    document_archive_bucket: str = ""
+    document_archive_prefix: str = ""
+    # Blank falls back to the ordinary AWS environment. Named separately for
+    # the ledger's reason: a copy of the college's documents in the same
+    # region as the volume holding them is half a plan.
+    document_archive_region: str = ""
+
     platform_aws_region: str = ""
     platform_ug_queue_url: str = ""
     platform_pg_queue_url: str = ""

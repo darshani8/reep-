@@ -8,13 +8,29 @@
  * level here is created, listed and edited through those endpoints; nothing
  * is built through a seed.
  *
- * THE TREE IS THE DRILL-DOWN, NOT A TREE WIDGET. The board draws one rail of
- * indented rows, and that is what this renders: colleges always, the selected
- * college's departments under it, the selected department's courses under
- * that, and the selected course's specializations under that. Each level is
- * still one fetch keyed on its parent — /colleges/{id}/departments,
- * /departments/{id}/academic-courses — so the rail shows exactly what the API
- * can answer and never a branch nobody asked for.
+ * ONE COLLEGE AT A TIME, TOP TO BOTTOM (2026-09-15). The screen used to be a
+ * rail of indented tree rows beside a stack of detail cards, with the add
+ * forms opening inside the rail. It is now the setup screen's shape: the
+ * college is picked in ONE select at the top (`?college=<id>` preselects it,
+ * which is how the Colleges card's "Open" lands here), and under it come five
+ * sections in the spine's own order — the college and its email domains, its
+ * departments, the picked department's courses (the picked course editable in
+ * place), the picked course's specializations with their mock interview, and
+ * the picked department's batches with seating. A department or course is a
+ * bordered row that opens on press. Each level is still one fetch keyed on its
+ * parent — /colleges/{id}/departments, /departments/{id}/academic-courses —
+ * so the screen shows exactly what the API can answer and never a branch
+ * nobody asked for.
+ *
+ * THIS SCREEN SEES AND CHANGES; IT DOES NOT ADD. The inline "Add college",
+ * "Add department", "Add course" and "Add specialization" forms it carried
+ * were the same five POSTs the setup flow makes, typed one at a time on a
+ * second screen, and the owner named the repetition. Each "Add a …" here is
+ * now a link into `/admin/setup?college=<id>&step=<n>`, which loads this
+ * college and opens on that step. What stays is everything the setup flow
+ * cannot do: edit or archive a course, map a mock interview, edit a batch,
+ * add a NON-standard batch (a section, odd dates — the setup flow only writes
+ * one per leaf on the academic year), seat students, and the email domains.
  *
  * THE BATCH FORM'S VALIDATORS COME FROM THE SERVER. `HierarchySchemaService`
  * fetches which of Course / Specialization is required; `buildBatchForm`
@@ -67,7 +83,7 @@
  * shows that has nothing to write to.
  */
 
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import {
   FormControl,
@@ -75,7 +91,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
@@ -224,12 +240,15 @@ const TRACKS_FAILED_NOTE =
 @Component({
   selector: 'app-admin-institution',
   standalone: true,
-  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, PluralPipe],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink, PluralPipe],
   templateUrl: './institution.component.html',
   styleUrl: './institution.component.scss',
 })
 export class AdminInstitutionComponent implements OnDestroy {
   private readonly schema = inject(HierarchySchemaService);
+  /** `?college=<id>`: the Colleges card's "Open" names the college to pick.
+   *  Read once; an id that is not on the list falls back to the first. */
+  private readonly wantedCollegeId = inject(ActivatedRoute).snapshot.queryParamMap.get('college');
 
   /** Read by the template so the phase sentence is written once, here. */
   // ------------------------------------------------------- B1.1 domains --
@@ -495,13 +514,13 @@ export class AdminInstitutionComponent implements OnDestroy {
   );
 
   // ---- the rail's finder --------------------------------------------------
-  /** What was typed into "Find a department, course or batch…".
+  /** What was typed into the finder.
    *
-   *  IT DOES NOT FILTER COLLEGES, and the placeholder says so. Filtering the
-   *  top level too reads as a bug the moment anyone uses it: typing a
-   *  department's name hides the college it is under, and the branch the admin
-   *  was looking for goes with it. The colleges are a handful of rows; the
-   *  levels below them are the ones worth searching. */
+   *  IT DOES NOT FILTER COLLEGES: the college is picked in its own select, and
+   *  the finder narrows the departments, courses, specializations and batches
+   *  under it. Filtering the top level too reads as a bug the moment anyone
+   *  uses it — typing a department's name would hide the college it is under,
+   *  and the branch the admin was looking for goes with it. */
   readonly finderText = signal('');
 
   readonly visibleDepartments = computed(() =>
@@ -516,13 +535,6 @@ export class AdminInstitutionComponent implements OnDestroy {
   readonly visibleBatches = computed(() =>
     this.batches().filter((b) => this.rowMatchesFinder(b.code, `${b.name} ${b.batch_label}`)),
   );
-  readonly railIsEmpty = computed(() => {
-    if (!this.finderText().trim()) return false;
-    if (this.visibleDepartments().length) return false;
-    if (this.visibleCourses().length) return false;
-    if (this.visibleSpecializations().length) return false;
-    return this.visibleBatches().length === 0;
-  });
 
   // ---- batches ------------------------------------------------------------
   readonly batches = signal<AdminCohortOut[]>([]);
@@ -563,13 +575,6 @@ export class AdminInstitutionComponent implements OnDestroy {
   readonly courseError = signal<string | null>(null);
   readonly courseSaveBlocked = computed(() => this.busy() || !this.courseFormIsComplete());
   private readonly courseFormIsComplete = signal(false);
-
-  // ---- inline "add" drafts ------------------------------------------------
-  readonly collegeDraft = signal({ code: '', name: '', campus: '' });
-  readonly departmentDraft = signal({ code: '', name: '', head: '' });
-  readonly courseDraft = signal({ code: '', name: '', duration_months: '' });
-  readonly specializationDraft = signal({ code: '', name: '' });
-  readonly openAdd = signal<'college' | 'department' | 'course' | 'specialization' | null>(null);
 
   readonly degreeLevels = ['UG', 'PG'];
 
@@ -614,7 +619,8 @@ export class AdminInstitutionComponent implements OnDestroy {
       this.incomplete.set(incomplete);
       this.unassigned.set(unassigned);
       if (colleges.length && !this.selectedCollegeId()) {
-        await this.pickCollege(colleges[0].id);
+        const wanted = colleges.find((c) => c.id === this.wantedCollegeId);
+        await this.pickCollege((wanted ?? colleges[0]).id);
       }
       this.state.set('ready');
     } catch (e) {
@@ -739,104 +745,12 @@ export class AdminInstitutionComponent implements OnDestroy {
     }
   }
 
-  /** The rail's finder: does this row's code or name contain what was typed? */
+  /** The finder: does this row's code or name contain what was typed? */
   private rowMatchesFinder(code: string, name: string): boolean {
     const typed = this.finderText().trim().toLowerCase();
     if (!typed) return true;
     if (code.toLowerCase().includes(typed)) return true;
     return name.toLowerCase().includes(typed);
-  }
-
-  // =========================================================================
-  // inline creates — one small form per level, same shape each time
-  // =========================================================================
-
-  toggleAdd(which: 'college' | 'department' | 'course' | 'specialization'): void {
-    this.openAdd.update((cur) => (cur === which ? null : which));
-  }
-
-  setDraft(
-    which: 'college' | 'department' | 'course' | 'specialization',
-    field: string,
-    value: string,
-  ): void {
-    const target = {
-      college: this.collegeDraft,
-      department: this.departmentDraft,
-      course: this.courseDraft,
-      specialization: this.specializationDraft,
-    }[which] as ReturnType<typeof signal<Record<string, string>>>;
-    target.update((d) => ({ ...d, [field]: value }));
-  }
-
-  async addCollege(): Promise<void> {
-    const d = this.collegeDraft();
-    const created = await this.post<CollegeOut>('/admin/colleges', {
-      code: d.code,
-      name: d.name,
-      campus: d.campus || null,
-    });
-    if (!created) return;
-    this.colleges.update((list) => [...list, created]);
-    this.collegeDraft.set({ code: '', name: '', campus: '' });
-    this.openAdd.set(null);
-    this.flash.set(`Added college ${created.code}`);
-    await this.pickCollege(created.id);
-  }
-
-  async addDepartment(): Promise<void> {
-    const college = this.selectedCollegeId();
-    if (!college) return;
-    const d = this.departmentDraft();
-    const created = await this.post<DepartmentOut>(`/admin/colleges/${college}/departments`, {
-      code: d.code,
-      name: d.name,
-      head: d.head || null,
-    });
-    if (!created) return;
-    this.departments.update((list) => [...list, created]);
-    this.departmentDraft.set({ code: '', name: '', head: '' });
-    this.openAdd.set(null);
-    this.flash.set(`Added department ${created.code}`);
-    await this.pickDepartment(created.id);
-    await this.refreshCounts();
-  }
-
-  async addCourse(): Promise<void> {
-    const department = this.selectedDepartmentId();
-    if (!department) return;
-    const d = this.courseDraft();
-    const created = await this.post<AcademicCourseOut>(
-      `/admin/departments/${department}/academic-courses`,
-      {
-        code: d.code,
-        name: d.name,
-        duration_months: d.duration_months ? Number(d.duration_months) : null,
-      },
-    );
-    if (!created) return;
-    this.courses.update((list) => [...list, created]);
-    this.courseDraft.set({ code: '', name: '', duration_months: '' });
-    this.openAdd.set(null);
-    this.flash.set(`Added course ${created.code}`);
-    await this.pickCourse(created.id);
-  }
-
-  async addSpecialization(): Promise<void> {
-    const course = this.selectedCourseId();
-    if (!course) return;
-    const d = this.specializationDraft();
-    const created = await this.post<AcademicSpecializationOut>(
-      `/admin/academic-courses/${course}/academic-specializations`,
-      { code: d.code, name: d.name },
-    );
-    if (!created) return;
-    this.rememberSpecializationCodes([created]);
-    this.specializations.update((list) => [...list, created]);
-    this.specializationDraft.set({ code: '', name: '' });
-    this.openAdd.set(null);
-    this.flash.set(`Added specialization ${created.code}`);
-    await this.refreshCounts();
   }
 
   // =========================================================================
@@ -1204,12 +1118,12 @@ export class AdminInstitutionComponent implements OnDestroy {
     return parts.length ? parts.join(' · ') : '—';
   }
 
-  /** The rail's count line for a department: "4 batches". */
+  /** The department row's count: "4 batches". */
   batchCountOf(d: DepartmentOut): string {
     return plural(d.cohort_count, 'batch', 'batches');
   }
 
-  /** The rail's line for a course: "24 months · 4 specializations".
+  /** The course row's count: "24 months · 4 specializations".
    *
    *  The board writes this row as "PG · 2 yrs · 4 sems". Level and semesters
    *  are B4.1 and are not shown at all rather than guessed; `duration_months`
@@ -1229,12 +1143,6 @@ export class AdminInstitutionComponent implements OnDestroy {
       .map((lv) => lv.label),
   );
 
-  /** The batch codes under the selected department, for the rail's leaf row. */
-  readonly batchCodesInDepartment = computed(() =>
-    this.visibleBatches()
-      .map((b) => b.code)
-      .join(' · '),
-  );
 
   // =========================================================================
   // http

@@ -80,6 +80,10 @@
               <dd>{{ college.campus || '—' }}</dd>
             </div>
             <div>
+              <dt>Contact</dt>
+              <dd>{{ college.contact || '—' }}</dd>
+            </div>
+            <div>
               <dt>Email domains</dt>
               <dd>{{ college.email_domains.join(', ') || '—' }}</dd>
             </div>
@@ -118,6 +122,17 @@
                 placeholder="Mahalakshmipuram, Bengaluru"
                 [value]="campus()"
                 (input)="setCampus($any($event.target).value)"
+                autocomplete="off"
+              />
+            </div>
+            <div class="field grow">
+              <label for="setup-contact">Contact</label>
+              <input
+                id="setup-contact"
+                class="ctrl"
+                placeholder="Office email or phone"
+                [value]="contact()"
+                (input)="setContact($any($event.target).value)"
                 autocomplete="off"
               />
             </div>

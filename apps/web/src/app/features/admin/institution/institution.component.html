@@ -1,8 +1,8 @@
 <div class="panel" data-p="institution">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Institution</span><span class="sep">/</span><span>Structure</span></div>
-      <h1 class="dt-title">Institution structure</h1>
+      <div class="crumb"><span>College setup</span><span class="sep">/</span><span>College structure</span></div>
+      <h1 class="dt-title">College structure</h1>
       <div class="dt-sub">
         College · Department · Course · Specialization · Batch.
         @if (levels().length) {
@@ -323,16 +323,8 @@
                 <div class="notice accent">
                   <span class="icon" aria-hidden="true">info</span>
                   <div>
-                    This is the fence checked when an application is approved and a roster
-                    row is minted (B1.1) — by a human in Registrations, and by the rule engine
-                    too. <strong>It is not the rule engine's own domain condition</strong>: that
-                    lives on a registration rule and is what decides auto-approval. The two meet
-                    here — a rule that would auto-approve is still refused by this fence, and the
-                    application lands in the review queue carrying the refusal as its reason.
-                    <strong>An empty list is not "no fence"</strong> — it means this college has
-                    named none of its own, and the deployment's provisionable-domains setting
-                    applies instead. Recording domains here takes this college off that shared
-                    list; removing the last one puts it back.
+                    Only an address on one of these domains can be approved onto this college.
+                    Leave the list empty and the deployment's own list applies.
                   </div>
                 </div>
               </div>
@@ -390,55 +382,8 @@
                     <label for="course-months">Duration in months</label>
                     <input id="course-months" type="number" min="1" max="120" formControlName="duration_months" />
                   </div>
-                  <!-- B4.1 added `academic_courses.degree_level` and
-                       `.total_semesters` and PHASE 4 HAS LANDED — but it added
-                       READERS only (`app/semester_bounds.py`, Student 360, the
-                       catalogue's course list). `AcademicCourseIn` and
-                       `AcademicCoursePatchIn` are still code, name,
-                       duration_months and status, so there is no request this
-                       form could send; `tests/test_admin_promotion.py` writes
-                       the column through the ORM for exactly that reason.
-                       A phase number here would name a phase that has come and
-                       gone, so these carry the real reason instead. -->
-                  <div class="field narrow">
-                    <label for="course-degree">Degree level</label>
-                    <select id="course-degree" class="ctrl" disabled [title]="courseShapeReason">
-                      <option value="">Not recorded</option>
-                    </select>
-                  </div>
-                  <div class="field narrow">
-                    <label for="course-total-semesters">Total semesters</label>
-                    <input
-                      id="course-total-semesters"
-                      type="number"
-                      placeholder="—"
-                      disabled
-                      [title]="courseShapeReason"
-                    />
-                  </div>
-                  <div class="field narrow">
-                    <label for="course-semesters-per-year">Semesters per year</label>
-                    <input
-                      id="course-semesters-per-year"
-                      type="number"
-                      placeholder="—"
-                      disabled
-                      [title]="semestersPerYearReason"
-                    />
-                  </div>
                 </form>
 
-                <div class="notice accent">
-                  <span class="icon" aria-hidden="true">info</span>
-                  <div>
-                    A course records its degree level and its total semesters, and the semester
-                    ceiling on a student is read from them — but nothing sets them from a screen:
-                    <code>PATCH /api/admin/academic-courses/&#123;id&#125;</code> takes code, name,
-                    duration in months and status, and nothing else. Semesters per year is not
-                    recorded anywhere at all. Until the endpoint takes them, a batch carries its
-                    own degree level and a student's semester is bounded by the programme default.
-                  </div>
-                </div>
               </div>
             }
 
@@ -572,10 +517,8 @@
                       </button>
                     </div>
                     <p class="help">
-                      A track's mapping is the track's own field, so this writes
-                      <code>PATCH /api/admin/interview-questions/tracks/&#123;id&#125;</code>. A
-                      track left unmapped is offered to every student; a track mapped here belongs
-                      to this specialization and to the course and college above it.
+                      An unmapped track is offered to every student; a mapped one only to this
+                      specialization.
                     </p>
                   </div>
                 }
@@ -686,17 +629,6 @@
                   </div>
                 }
 
-                <div class="notice accent">
-                  <span class="icon" aria-hidden="true">info</span>
-                  <div>
-                    There is no "semester x of N" column because a batch has no semester: the
-                    semester is a field on the STUDENT, edited on
-                    <a routerLink="/admin/students">Students &amp; batches</a> and moved for a whole
-                    batch by promotion. The N half is the course's total semesters, which nothing
-                    on this screen can set yet.
-                  </div>
-                </div>
-
                 <!-- Seating: who is in this batch, and who is in none. -->
                 @if (seatingBatch(); as sb) {
                   <div class="card seating">
@@ -712,7 +644,7 @@
 
                     <div class="seat-add">
                       <div class="field">
-                        <label for="seat-pick">Seat a student</label>
+                        <label for="seat-pick">Add a student to this batch</label>
                         <select
                           id="seat-pick"
                           class="ctrl"
@@ -721,7 +653,7 @@
                           [disabled]="busy() || unseated().length === 0"
                         >
                           <option value="">
-                            {{ unseated().length ? '— Choose a student not yet in any batch —' : 'Every student is already seated in a batch' }}
+                            {{ unseated().length ? '— Choose a student not yet in any batch —' : 'Every student is already in a batch' }}
                           </option>
                           @for (s of unseated(); track s.student_id) {
                             <option [value]="s.student_id">{{ s.name }}{{ s.usn ? ' · ' + s.usn : '' }}</option>
@@ -729,7 +661,7 @@
                         </select>
                       </div>
                       <button type="button" class="btn secondary" (click)="seat()" [disabled]="busy() || !seatPick()">
-                        <span class="icon" aria-hidden="true">person_add</span>Seat
+                        <span class="icon" aria-hidden="true">person_add</span>Add
                       </button>
                     </div>
 
@@ -757,7 +689,7 @@
                                 <td>{{ stageLabel(s.current_stage) }}</td>
                                 <td>
                                   <button type="button" class="btn ghost sm" (click)="release(s)" [disabled]="busy()">
-                                    <span class="icon" aria-hidden="true">person_remove</span>Release
+                                    <span class="icon" aria-hidden="true">person_remove</span>Remove
                                   </button>
                                 </td>
                               </tr>

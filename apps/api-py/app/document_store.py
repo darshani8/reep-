@@ -190,6 +190,29 @@ def _sniff(content: bytes) -> tuple[str, str]:
     raise UploadRejected("Unsupported file type — only PDF, PNG and JPEG are accepted.")
 
 
+def sniff(content: bytes) -> tuple[str, str]:
+    """What these bytes actually are, WITHOUT storing them. `(mime, extension)`.
+
+    For the two callers that accept a narrower set than this store does -- a
+    registration document that must be a photograph, a staff signature that
+    must be an image -- and which therefore have to know the type before they
+    can decide.
+
+    THEY USED TO STORE FIRST AND DELETE ON THE WAY OUT, and that stopped being
+    survivable when `save_bytes` gained the archive. Storing a file now copies
+    it into a versioned, Object-Locked bucket with no lifecycle rule, and the
+    `delete_stored` that followed could not reach it -- so every wrong-type
+    upload left an object in the permanent archive whose manifest row was then
+    rolled back with the failed request. An unnamed object in a bucket nothing
+    is allowed to delete from, which is exactly what
+    `tests/test_codebase_guards.py` §36 exists to prevent.
+
+    Asking first costs one pass over the first eight bytes and means nothing
+    is written at all.
+    """
+    return _sniff(content)
+
+
 def _store_dir() -> Path:
     d = settings.uploads_path
     d.mkdir(parents=True, exist_ok=True)

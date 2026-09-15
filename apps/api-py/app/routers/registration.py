@@ -88,7 +88,9 @@ from ..scope_views import (
     scope_header,
 )
 from ..architecture_events import record_change
-from ..document_store import MAX_BYTES, QuotaRejected, VolumeQuota, save_bytes
+from ..document_manifest import release, save_and_record
+from ..models.archived_document import DocumentOwnerKind
+from ..document_store import MAX_BYTES, QuotaRejected, VolumeQuota, sniff
 from ..document_store import delete as delete_stored
 from ..models.upload import Upload, UploadKind
 
@@ -1956,20 +1958,40 @@ async def attach_document(
             detail="That file is larger than " + str(MAX_BYTES // (1024 * 1024)) + " MB.",
         )
     quota = VolumeQuota.single_slot(noun=kind)
+    # THE TYPE IS DECIDED BEFORE ANYTHING IS STORED. This used to store the
+    # file, read the sniffed mime off the result and `delete_stored` it again
+    # when the kind was wrong -- which stopped being survivable when
+    # `save_bytes` gained the permanent archive: the delete cannot reach an
+    # Object-Locked bucket, so every wrong-type upload left an unnamed object
+    # there while its manifest row rolled back with the failed request.
     try:
-        stored_name, mime, size = save_bytes(content, quota=quota)
+        sniffed, _ext = sniff(content)
+    except ValueError as exc:
+        # The store could not recognise the bytes at all (not PDF/PNG/JPEG).
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(exc))
+    if sniffed not in allowed_mimes:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="The " + kind + " must be " + wanted + ".",
+        )
+    try:
+        stored_name, mime, size = save_and_record(
+            db,
+            content,
+            quota=quota,
+            kind=DocumentOwnerKind.REGISTRATION_DOCUMENT,
+            # NONE, AND STATED RATHER THAN OMITTED. An applicant has no account
+            # yet -- that is the whole shape of the registration flow -- so the
+            # address on the `registrations` row is the only identity there is,
+            # and inventing an owner id here would be inventing a user.
+            owner_id=None,
+            original_name=file.filename or "document",
+        )
     except QuotaRejected as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc))
     except ValueError as exc:
         # The store could not recognise the bytes at all (not PDF/PNG/JPEG).
         raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(exc))
-    if mime not in allowed_mimes:
-        delete_stored(stored_name)
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="The " + kind + " must be " + wanted + ".",
-        )
-
     existing = db.scalar(
         select(RegistrationDocument).where(
             RegistrationDocument.registration_id == reg.id,
@@ -1983,6 +2005,12 @@ async def attach_document(
             delete_stored(existing.stored_name)
         except FileNotFoundError:
             pass
+        # The third replace-in-place store, after the staff signature and the
+        # alumni resume: one document per (registration, kind), so the
+        # superseded file is a pointer about to be overwritten on the line
+        # below and no row is left naming the old bytes. The manifest is where
+        # they keep their name -- models/archived_document.py.
+        release(db, existing.stored_name, reason="registration document replaced")
         existing.original_name = file.filename or stored_name
         existing.stored_name = stored_name
         existing.mime_type = mime

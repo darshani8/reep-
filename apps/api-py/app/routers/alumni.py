@@ -30,8 +30,10 @@ from ..db import get_db
 from ..identity import get_current_session
 from ..document_store import MAX_BYTES, UploadRejected, content_disposition
 from ..document_store import delete as document_store_delete
-from ..document_store import QuotaRejected, VolumeQuota, read_bytes, save_bytes
+from ..document_store import QuotaRejected, VolumeQuota, read_bytes
+from ..document_manifest import release, save_and_record
 from ..models.alumni import AlumniProfile
+from ..models.archived_document import DocumentOwnerKind
 # B12.1/B12.2. The one answer to "which postings does this viewer see", shared
 # with the student feed — see `app/jobs_visibility.py`.
 from ..jobs_visibility import audience_for_alumnus, postings_for
@@ -151,8 +153,13 @@ def save_profile(
             # silent about who is counting, which is how this endpoint came to
             # have no quota at all while the store's comment still claimed a
             # single writer.
-            stored = save_bytes(
-                content, quota=VolumeQuota.single_slot("resume")
+            stored = save_and_record(
+                db,
+                content,
+                quota=VolumeQuota.single_slot("resume"),
+                kind=DocumentOwnerKind.ALUMNI_RESUME,
+                owner_id=session["userId"],
+                original_name=resume.filename or "resume",
             )  # (stored_name, mime, size)
         except QuotaRejected as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc))
@@ -186,6 +193,12 @@ def save_profile(
         # row naming bytes that are gone.
         if prof.resume_stored_name:
             document_store_delete(prof.resume_stored_name)
+            # THIS IS THE CASE A `deleted_at` COLUMN CANNOT EXPRESS. One
+            # profile holds exactly one resume, so the superseded file is not a
+            # row to flag -- it is a pointer about to be overwritten on the
+            # line below, after which nothing in the database names the old
+            # bytes at all. The manifest is where they keep their name.
+            release(db, prof.resume_stored_name, reason="resume replaced")
         stored_name, mime, size = stored
         prof.resume_original_name = resume.filename
         prof.resume_stored_name = stored_name

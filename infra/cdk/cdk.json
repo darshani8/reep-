@@ -14,7 +14,7 @@
   },
   "context": {
     "project": "reep",
-    "recordingRetentionDays": 180,
+    "recordingRetentionDays": 0,
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:checkSecretUsage": true,
     "@aws-cdk/aws-iam:minimizePolicies": true,

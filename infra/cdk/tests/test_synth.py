@@ -62,36 +62,76 @@ def test_recordings_bucket_is_private_encrypted_and_expires_on_a_clock() -> None
     )
 
 
-def test_uploads_is_versioned_and_recordings_deliberately_is_not() -> None:
-    """Versioning is a data-loss guard on one bucket and a privacy leak on the other.
+def _bucket(t: Template, logical_prefix: str) -> dict:
+    """One bucket's properties, found by LOGICAL ID.
 
-    Neither bucket is in any backup plan — the plan's single selection covers
-    the database and EFS and nothing in S3 — so an overwritten candidate roster
-    in `uploads` had no second copy anywhere. Versioning fixes that.
-
-    `recordings` must NOT follow. It expires student voice on a clock the
-    student consented to, and on a versioned bucket a lifecycle expiration only
-    writes a delete marker: the audio survives as a non-current version. Turning
-    versioning on there would silently keep student voice past its retention,
-    which is the one thing the recording design promises it will not do. This
-    asserts the asymmetry so a later "make the buckets consistent" tidy-up has
-    to read this docstring first.
+    The previous version of this helper told the two buckets apart by which one
+    carried a `LifecycleConfiguration`, which stopped working the moment
+    `recordings` lost its expiry: both assertions then ran against `uploads`
+    and one of them still passed. A template-shape heuristic that identifies a
+    resource by a property under test is a test that quietly changes subject.
     """
-    t = _template()
-    buckets = t.find_resources("AWS::S3::Bucket")
-    versioned = {
-        logical_id: body.get("Properties", {}).get("VersioningConfiguration", {}).get("Status")
-        for logical_id, body in buckets.items()
-    }
-    by_role = {
-        ("recordings" if "LifecycleConfiguration" in body.get("Properties", {}) else "uploads"): logical_id
-        for logical_id, body in buckets.items()
-    }
-    assert versioned[by_role["uploads"]] == "Enabled", "the uploads bucket is the only copy of a candidate roster"
-    assert versioned.get(by_role["recordings"]) is None, (
-        "the recordings bucket must stay unversioned — a non-current version outlives the "
-        "lifecycle delete marker, so versioning keeps student audio past its consented retention"
+    matches = [
+        body["Properties"]
+        for logical_id, body in t.find_resources("AWS::S3::Bucket").items()
+        if logical_id.startswith(logical_prefix)
+    ]
+    assert len(matches) == 1, f"expected exactly one {logical_prefix}* bucket, got {len(matches)}"
+    return matches[0]
+
+
+def test_both_buckets_are_versioned_because_neither_is_in_a_backup_plan() -> None:
+    """Versioning is the only thing standing behind either bucket's contents.
+
+    Neither is in any backup plan -- the core stack's daily selection covers
+    the database and EFS, and nothing in S3 -- so an overwritten candidate
+    roster in `uploads` had no second copy anywhere.
+
+    `recordings` NOW FOLLOWS, AND THAT REVERSES WHAT THIS TEST USED TO ASSERT.
+    The old version pinned the asymmetry, on the grounds that a non-current
+    version outlives a lifecycle delete marker and would therefore keep student
+    voice past the retention the student consented to. That was right while the
+    consented clock was the governing promise. The college's rule is now that
+    nothing in storage is deleted, so the clock is not the governing promise
+    and versioning is what makes the new one true -- `RecordingStore.delete`
+    issues a real `delete_object`, which on a versioned bucket removes the
+    recording from every view while keeping the bytes.
+
+    The obligation that comes with it is recorded on the bucket and repeated
+    here because it is a product change, not an infra one: the consent panel
+    still tells students their recording is destroyed after the policy's
+    `retention_days`, and that copy is now inaccurate.
+    """
+    assert _bucket(_template(), "Uploads")["VersioningConfiguration"] == {"Status": "Enabled"}
+    assert _bucket(_template(), "Recordings")["VersioningConfiguration"] == {"Status": "Enabled"}
+
+
+def test_a_retention_of_zero_leaves_no_lifecycle_rule_at_all() -> None:
+    """The deployment default, and the identity ledger's deliberate absence for
+    the same reason: this is a copy meant to outlive every bounded tier, and a
+    rule it acquires by accident is that promise quietly expiring in the one
+    direction S3 never reports."""
+    app = cdk.App()
+    stack = VoicePlatformStack(
+        app,
+        "test-voice-platform-forever",
+        project="reep",
+        recording_retention_days=0,
+        env=cdk.Environment(account="123456789012", region="ap-south-1"),
     )
+    assert "LifecycleConfiguration" not in _bucket(Template.from_stack(stack), "Recordings")
+
+
+def test_a_deployment_that_keeps_the_clock_must_expire_both_versions() -> None:
+    """If a deployment does turn the clock back on, it has to mean it. On a
+    versioned bucket an expiration writes a delete MARKER and leaves the
+    version stored and billed, so a rule without `NoncurrentVersionExpiration`
+    frees nothing while looking right in the console -- the same half-rule the
+    core stack's daily dump bucket guards against."""
+    rules = _bucket(_template(), "Recordings")["LifecycleConfiguration"]["Rules"]
+    assert len(rules) == 1
+    assert rules[0]["ExpirationInDays"] == 90
+    assert rules[0]["NoncurrentVersionExpiration"]["NoncurrentDays"] == 90
 
 
 def test_the_lambda_is_the_queue_package_with_both_queue_urls() -> None:

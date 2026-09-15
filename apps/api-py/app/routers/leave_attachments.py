@@ -75,6 +75,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..document_manifest import release, save_and_record
+from ..models.archived_document import DocumentOwnerKind
 from ..document_store import (
     MAX_BYTES,
     MAX_LEAVE_ATTACHMENT_BYTES_PER_USER,
@@ -84,7 +86,6 @@ from ..document_store import (
     VolumeQuota,
     content_disposition,
     read_bytes,
-    save_bytes,
 )
 from ..document_store import delete as document_store_delete
 from ..identity import get_current_session
@@ -263,7 +264,14 @@ def upload_attachment(
     # cap, so one extra byte trips it without buffering an unbounded body in RAM.
     content = file.file.read(MAX_BYTES + 1)
     try:
-        stored_name, mime, size = save_bytes(content, quota=quota)
+        stored_name, mime, size = save_and_record(
+            db,
+            content,
+            quota=quota,
+            kind=DocumentOwnerKind.LEAVE_ATTACHMENT,
+            owner_id=user_id,
+            original_name=file.filename or "attachment",
+        )
     except QuotaRejected as exc:
         # 409 (shelf full) or 413 (allowance). CAUGHT FIRST: QuotaRejected is
         # deliberately not a subclass of UploadRejected, and reversing these two
@@ -343,6 +351,7 @@ def delete_attachment(
             ),
         )
     document_store_delete(row.stored_name)
+    release(db, row.stored_name, reason="attachment removed from leave request")
     db.delete(row)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

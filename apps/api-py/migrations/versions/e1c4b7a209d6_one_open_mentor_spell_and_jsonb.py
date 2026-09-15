@@ -96,16 +96,24 @@ have disagreed silently since the column was created; declaring it on the model
 in this revision is what stops that being rediscovered a third time.
 """
 
-from __future__ import annotations
+from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "e1c4b7a209d6"
-down_revision = "b7e4d21af905"
-branch_labels = None
-depends_on = None
+# The ANNOTATED form, which is the template every other revision in this
+# directory uses. It is not decoration: `_revisions()` in
+# `tests/test_codebase_guards.py` reads these lines with
+# `^revision:\s*str\s*=` and treats a file it cannot parse as a hard failure
+# rather than skipping it — "a guard that silently skips what it cannot parse
+# is worse than no guard, because the green tick is read as coverage". Written
+# as a bare `revision = "..."` this migration is invisible to both the
+# one-head and the down-revision-exists guards.
+revision: str = "e1c4b7a209d6"
+down_revision: Union[str, None] = "b7e4d21af905"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 #: Stamped on a spell closed by the repair below. Not a member of `END_KINDS`:

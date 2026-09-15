@@ -75,7 +75,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..document_manifest import release, save_and_record
+from ..document_manifest import DocumentFacts, release, save_and_record
 from ..models.archived_document import DocumentOwnerKind
 from ..document_store import (
     MAX_BYTES,
@@ -350,8 +350,33 @@ def delete_attachment(
                 "Ask the office if it needs to go."
             ),
         )
+    # RELEASED BEFORE THE BYTES GO, NOT AFTER, AND THE ORDER IS THE WHOLE POINT.
+    # `release` runs a SELECT against `archived_documents`. Between an
+    # irreversible `unlink` and the commit, ANY failure of that query -- a lock
+    # timeout, a connection blip, or the table not existing yet because
+    # deploy.yml's `run_migrations` was left off -- rolls the transaction back
+    # with the file already destroyed, leaving a row whose download 404s. Ahead
+    # of the unlink, the same failure destroys nothing: the request 500s and
+    # the person retries.
+    #
+    # Deliberately NOT a `try/except OperationalError` around the call, which
+    # was the suggested fix: swallowing it would drop the manifest row silently
+    # and that row is the only thing that can ever name the archived bytes.
+    # The failure must stay loud. Moving it earlier makes it harmless as well.
+    release(
+        db,
+        row.stored_name,
+        reason="attachment removed from leave request",
+        facts=DocumentFacts(
+            kind=DocumentOwnerKind.LEAVE_ATTACHMENT,
+            owner_id=row.uploaded_by_user_id,
+            original_name=row.original_name,
+            mime_type=row.mime_type,
+            size_bytes=row.size_bytes,
+            recorded_at=row.uploaded_at,
+        ),
+    )
     document_store_delete(row.stored_name)
-    release(db, row.stored_name, reason="attachment removed from leave request")
     db.delete(row)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

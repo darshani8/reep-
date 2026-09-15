@@ -31,7 +31,7 @@ from ..identity import get_current_session
 from ..document_store import MAX_BYTES, UploadRejected, content_disposition
 from ..document_store import delete as document_store_delete
 from ..document_store import QuotaRejected, VolumeQuota, read_bytes
-from ..document_manifest import release, save_and_record
+from ..document_manifest import DocumentFacts, release, save_and_record
 from ..models.alumni import AlumniProfile
 from ..models.archived_document import DocumentOwnerKind
 # B12.1/B12.2. The one answer to "which postings does this viewer see", shared
@@ -138,6 +138,26 @@ def save_profile(
             detail="Upload your current resume to create your profile.",
         )
 
+    # PARSED BEFORE ANYTHING IS STORED, AND THAT ORDER IS THE POINT.
+    # A blank field clears the date; a malformed one is refused rather than
+    # silently dropped, so the form cannot appear to save a value it discarded.
+    # It used to be parsed AFTER the resume was stored, which was harmless until
+    # `save_bytes` gained the permanent archive: the 422 below rolls the request
+    # back, but the bytes have already been PUT into an Object-Locked bucket and
+    # the manifest row that would have named them rolls back with the request.
+    # An unnameable object, kept for a decade, because a date was mistyped.
+    # This is `document_store.sniff`'s change applied to the one endpoint of the
+    # six that can still raise between the store write and the commit.
+    parsed_joined_on = None
+    if joined_on.strip():
+        try:
+            parsed_joined_on = date.fromisoformat(joined_on.strip())
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Date of joining must be a valid date.",
+            )
+
     stored = None
     if resume is not None and resume.filename:
         # read(MAX+1), never read(): save_bytes refuses anything past the
@@ -174,31 +194,37 @@ def save_profile(
 
     prof.company = company
     prof.designation = designation.strip() or None
-    # A blank field clears the date; a malformed one is refused rather than
-    # silently dropped, so the form cannot appear to save a value it discarded.
-    if joined_on.strip():
-        try:
-            prof.joined_on = date.fromisoformat(joined_on.strip())
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="Date of joining must be a valid date.",
-            )
-    else:
-        prof.joined_on = None
+    prof.joined_on = parsed_joined_on
     prof.graduation_year = graduation_year
     if stored is not None:
         # Replacing the resume: drop the old bytes BEFORE the row points at the
         # new ones, so a crash between the two leaves a dangling file, never a
         # row naming bytes that are gone.
         if prof.resume_stored_name:
-            document_store_delete(prof.resume_stored_name)
             # THIS IS THE CASE A `deleted_at` COLUMN CANNOT EXPRESS. One
             # profile holds exactly one resume, so the superseded file is not a
-            # row to flag -- it is a pointer about to be overwritten on the
-            # line below, after which nothing in the database names the old
-            # bytes at all. The manifest is where they keep their name.
-            release(db, prof.resume_stored_name, reason="resume replaced")
+            # row to flag -- it is a pointer about to be overwritten below,
+            # after which nothing in the database names the old bytes at all.
+            # The manifest is where they keep their name.
+            #
+            # Released BEFORE the unlink -- routers/student.py's delete carries
+            # the full reasoning: a SELECT between an irreversible delete and
+            # the commit turns any query failure into destroyed bytes plus a
+            # row that survives pointing at them.
+            release(
+                db,
+                prof.resume_stored_name,
+                reason="resume replaced",
+                facts=DocumentFacts(
+                    kind=DocumentOwnerKind.ALUMNI_RESUME,
+                    owner_id=prof.user_id,
+                    original_name=prof.resume_original_name or "resume",
+                    mime_type=prof.resume_mime_type or "application/pdf",
+                    size_bytes=prof.resume_size_bytes or 0,
+                    recorded_at=prof.created_at,
+                ),
+            )
+            document_store_delete(prof.resume_stored_name)
         stored_name, mime, size = stored
         prof.resume_original_name = resume.filename
         prof.resume_stored_name = stored_name

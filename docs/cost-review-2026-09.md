@@ -7,16 +7,18 @@ not from a pricing calculator.
 
 ## The headline
 
-**The bill is ~$514/month at list price. $361 of it — 70% — is an OpenSearch
-Serverless collection that nothing reads, whose removal was merged to `main` on
-2026-09-08 and never deployed.**
+**The bill was ~$514/month at list price. $361 of it — 70% — was an OpenSearch
+Serverless collection that nothing read, whose removal had been merged to `main`
+on 2026-09-08 and never deployed. It was deployed on 2026-09-15; the collection
+is gone and the run rate is now ~$153/month.**
 
 Commit `ecdb37b` ("infra: remove OpenSearch — $361/month for two indexes nothing
 read") deleted the collection from `reep_voice_platform/stack.py`, deleted
 `storage/opensearch.py`, and dropped `platform_call_sessions.opensearch_synced`.
-It was reviewed and merged the same day. As of this review the collection
-`reep-voice` is still `ACTIVE`, still in the deployed `reep-voice-platform`
-stack's 34 resources, and still billing **$11.87/day**.
+It was reviewed and merged the same day. At the start of this review the
+collection `reep-voice` was still `ACTIVE`, still one of the deployed
+`reep-voice-platform` stack's 34 resources, and still billing **$11.87/day** —
+ten days after it went live and seven days after the fix was on `main`.
 
 The evidence that it does nothing, gathered independently of the commit message:
 
@@ -125,21 +127,49 @@ its job.
 
 ## What to do, in order
 
-### 1. Deploy `ecdb37b` — $361/month, no risk
+### 1. Deploy `ecdb37b` — $361/month — **DONE, 2026-09-15 16:12 UTC**
 
-The code is already on `main`. The collection has no readers, no writers and no
-documents. Run the **CDK deploy** workflow:
+Deployed from `main` through `cdk-deploy.yml` (`voice-platform` / `deploy`), not
+by deleting the collection by hand: hand-deleting would have left AWS and
+CloudFormation disagreeing, which is the second failure this review is about.
 
-> stack: `voice-platform` · action: `diff` — read it, confirm the only removals
-> are `AWS::OpenSearchServerless::{Collection,AccessPolicy,SecurityPolicy}`
-> then re-run with action: `deploy`, confirm `deploy`.
+**The diff was proven before it ran, not read afterwards.** The repo's template
+was synthesised in-process and compared against the deployed template fetched
+with `cloudformation get-template`, first by resource, then by property:
 
-`deletionProtection` on the collection is `DISABLED`, so nothing blocks it. This
-is the single highest-value action available and it takes about four minutes.
+| | |
+|---|---:|
+| Deployed resources before | 34 |
+| Resources after | 29 |
+| Removed | `Search` (Collection), `SearchAccess`, `SearchEncryption`, `SearchNetwork`, `ParamPLATFORM_OPENSEARCH_ENDPOINT` |
+| Added | 0 |
+| Unchanged | 28 |
+
+The one property change outside those five was the `aoss:APIAccessAll` statement
+dropping off the `reep-api-task` policy — dead the moment the collection was.
+**The `CandidateIngest` Lambda's asset hash was identical** before and after, so
+no unrelated code change rode along on the deploy.
+
+Verified after: `ListCollections` returns empty, no `OpenSearchServerless`
+resource remains in the stack, both DynamoDB tables and all four SQS queues
+survive, the remaining eight `PLATFORM_*` SSM parameters survive, and the api
+service is `ACTIVE` at 2/2 with **both ALB targets healthy**. The api never read
+the deleted parameter — `ssm_config.LOADABLE` has no `PLATFORM_OPENSEARCH_ENDPOINT`
+key — so nothing about its boot changed.
 
 This review also removed two stale `OpenSearch` mentions in `infra/cdk/app.py`,
 one of which is the `description=` passed to `VoicePlatformStack` — that string
 is deployed CloudFormation metadata, so it was itself a live repo-vs-AWS diff.
+
+**Also done:** `/aws/rds/instance/reep-postgres/postgresql` and the voice
+platform's bucket-notification Lambda log group had **no retention at all** and
+grew forever. Both are 30 days now, matching `/reep/api`'s existing choice.
+Neither held anything older than 30 days, so nothing was lost.
+
+**An orphan sweep found nothing else**: no unattached EBS volumes, no EBS
+snapshots, no AMIs, one target group, one transient ECS-managed ENI. The single
+manual RDS snapshot, `reep-postgres-pre-cdk-20260907` (20 GB, ~$0.19/month), is
+the pre-cutover undo and was deliberately **kept**.
 
 ### 2. Put a guardrail under it — before the credits expire
 

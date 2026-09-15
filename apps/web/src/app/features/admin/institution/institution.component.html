@@ -16,6 +16,9 @@
     </div>
     @if (state() === 'ready') {
       <div class="dt-toolbar">
+        <a class="btn secondary" routerLink="/admin/setup">
+          <span class="icon" aria-hidden="true">add_circle</span>Set up a college
+        </a>
         <button type="button" class="btn secondary" (click)="toggleAdd('college')">
           <span class="icon" aria-hidden="true">add</span>Add college
         </button>

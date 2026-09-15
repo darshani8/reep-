@@ -614,19 +614,47 @@ def test_the_mail_failure_alarm_still_matches_the_line_the_mailer_writes() -> No
     silent in the worst direction: reword the message and the alarm still
     deploys, still shows green, and never fires again. Nothing else compares
     them, so this does.
+
+    READ WITH `ast`, NOT A REGEX, and the first version of this guard used one.
+    Seer caught it: `literal("\\"Mail send failed\\"")` -- the same string in a
+    different quoting style -- captures `\\"Mail send failed\\` and the
+    comparison below then disagrees. The consequence it predicted (a silent
+    pass) is not the one that happens; the test goes RED on a reformatting that
+    changed nothing, which is its own kind of useless, because a guard that
+    cries wolf at a quoting change is a guard somebody loosens. Parsing the
+    source properly costs four lines and removes both failure modes.
     """
     from app.mailer import MAIL_SEND_FAILED
 
-    pattern = re.search(
-        r'filter_name="mail-send-failed",.*?filter_pattern=logs\.FilterPattern\.literal\(\s*[\'"](.+?)[\'"]\s*\)',
-        CDK_CORE.read_text(encoding="utf-8"),
-        re.DOTALL,
+    tree = ast.parse(CDK_CORE.read_text(encoding="utf-8"))
+    patterns = [
+        call.keywords
+        for call in ast.walk(tree)
+        if isinstance(call, ast.Call)
+        for kw in call.keywords
+        if kw.arg == "filter_name"
+        and isinstance(kw.value, ast.Constant)
+        and kw.value.value == "mail-send-failed"
+    ]
+    assert patterns, "the mail-send-failed metric filter is gone from infra/cdk -- the alarm has nothing to match"
+    assert len(patterns) == 1, "two filters claim the name mail-send-failed; one of them is feeding nothing"
+
+    declared = {kw.arg: kw.value for kw in patterns[0]}
+    call = declared.get("filter_pattern")
+    assert isinstance(call, ast.Call) and call.args, "filter_pattern is not a FilterPattern.literal(...) call"
+    arg = call.args[0]
+    assert isinstance(arg, ast.Constant) and isinstance(arg.value, str), (
+        "the filter pattern is computed rather than literal; this guard can no longer read it"
     )
-    assert pattern, "the mail-send-failed metric filter is gone from infra/cdk -- the alarm has nothing to match"
-    literal = pattern.group(1).strip().strip('"')
-    assert literal == MAIL_SEND_FAILED, (
-        f"the metric filter matches {literal!r} and app/mailer.py logs {MAIL_SEND_FAILED!r}. "
-        "They must be the same string, or outbound mail fails silently again."
+
+    # CloudWatch matches an exact phrase only when the pattern is QUOTED, so the
+    # quotes are part of the contract and not decoration: `Mail send failed`
+    # unquoted is a three-term AND that also matches a line saying mail did not
+    # fail. Comparing the quoted form keeps that from being loosened silently.
+    assert arg.value == f'"{MAIL_SEND_FAILED}"', (
+        f"the metric filter matches {arg.value!r} and app/mailer.py logs {MAIL_SEND_FAILED!r}. "
+        'The filter must be exactly \'"<the constant>"\', quotes included, or outbound mail '
+        "fails silently again."
     )
 
 

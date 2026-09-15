@@ -3,10 +3,7 @@
     <div>
       <div class="crumb"><span>Interviews</span><span class="sep">/</span><span>SWOC notes</span></div>
       <h1 class="dt-title">SWOC notes</h1>
-      <div class="dt-sub">
-        Strengths, weaknesses, opportunities and challenges per student — written by the mentor or
-        the placement cell, seen by the student with author and date.
-      </div>
+      <div class="dt-sub">Strengths, weaknesses, opportunities and challenges, per student.</div>
     </div>
   </div>
 
@@ -180,12 +177,6 @@
           {{ writtenInView() | plural: 'of those has notes' : 'of those have notes' }}
         </p>
 
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          This is every student your grant reaches — <code>GET /api/admin/swoc</code> is scoped and
-          narrows the students and their entries alike, which is what the pill above states. It is
-          not a mentor group: the row carries no mentor, so this board cannot be cut to one.
-        </div>
       }
     </section>
 

@@ -50,9 +50,8 @@
   @if (hierarchyUnavailable()) {
     <div class="notice warn" role="status">
       <span class="icon" aria-hidden="true">warning</span>
-      The institution structure could not be read (<code>GET /api/register/hierarchy</code>), so the
-      Department, Course, Batch and Specialization pickers are empty and no batch can be acted on. The
-      roster itself is unaffected.
+      The college structure could not be read, so the Department, Course, Batch and Specialization
+      pickers are empty.
     </div>
   }
 
@@ -419,7 +418,7 @@
         <header class="dialog-head">
           <div>
             <h2 class="dialog-title" id="edit-student-title">Edit {{ draft().name }}</h2>
-            <p class="dialog-sub">Saved through PATCH /api/admin/students. Nothing here sets a password.</p>
+            <p class="dialog-sub">Nothing here sets a password.</p>
           </div>
           <button type="button" class="btn ghost sm" aria-label="Close this dialog" (click)="closeDialog()">
             <span class="icon" aria-hidden="true">close</span>
@@ -527,9 +526,7 @@
               @if (facultyUnavailable()) {
                 <span class="err" role="status">
                   <span class="icon" aria-hidden="true">warning</span>
-                  The faculty list could not be read. <code>GET /api/admin/mentor-load</code> requires the
-                  <code>admin.analytics</code> capability, which this screen's <code>admin.students</code>
-                  grant does not include — so only “release them” can be chosen here.
+                  The faculty list could not be read, so only “release them” can be chosen here.
                 </span>
               } @else {
                 <span class="help">A faculty account becomes a mentor on its first assignment; there is no flag to set.</span>
@@ -548,11 +545,6 @@
             </label>
           }
 
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">info</span>
-            This writes one PATCH per ticked student. A single audited bulk request is backend task B9.3;
-            until it lands, the count in the confirmation is what actually landed.
-          </div>
         </div>
 
         <footer class="dialog-foot">
@@ -604,8 +596,7 @@
               @if (facultyUnavailable()) {
                 <span class="err" role="status">
                   <span class="icon" aria-hidden="true">warning</span>
-                  The faculty list could not be read (<code>/api/admin/mentor-load</code> needs
-                  <code>admin.analytics</code>).
+                  The faculty list could not be read.
                 </span>
               }
             </label>

@@ -3,9 +3,7 @@
     <div>
       <div class="crumb"><span>Settings</span><span class="sep">/</span><span>Who can do what</span></div>
       <h1 class="dt-title">Who can do what</h1>
-      <div class="dt-sub">
-        Role is who someone is. A function is what they may do, where, and until when.
-      </div>
+      <div class="dt-sub">Who may open which screen, and until when.</div>
     </div>
     <div class="dt-toolbar">
       <!-- B2.4's GET /review, live. Two lists — waiting on a second admin, and
@@ -863,20 +861,6 @@
     <!-- ============================================ FUNCTIONS CATALOGUE == -->
     @if (tab() === 'catalogue') {
       <div role="tabpanel" id="gov-pane-catalogue" aria-labelledby="gov-tab-catalogue">
-      @if (!anyEnforcementIsReported()) {
-        <div class="notice accent gov-note">
-          <span class="icon" aria-hidden="true">info</span>
-          <div>
-            B2.1 answered "is this function actually checked" somewhere other than this payload:
-            the ten <code class="gov-key">student.*</code> keys no call site checked were
-            <strong>deleted</strong>, and <code class="gov-key">tools/ci/check_capability_enforcement.py</code>
-            now fails CI if a key reaches no check anywhere under <code class="gov-key">app/</code>.
-            So the catalogue is enforced by construction — but <code class="gov-key">/catalogue</code>
-            reports no per-function flag, and this column will only say what the payload carries.
-            A list kept by hand here would be right on the day somebody wrote it.
-          </div>
-        </div>
-      }
 
       <div class="dt-frame">
         <table class="dt-table gov-table">

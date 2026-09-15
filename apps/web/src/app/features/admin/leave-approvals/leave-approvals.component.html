@@ -3,10 +3,7 @@
     <div>
       <div class="crumb"><span>Every day</span><span class="sep">/</span><span>Leave requests</span></div>
       <h1 class="dt-title">Leave requests</h1>
-      <div class="dt-sub">
-        Two distinct signatures sanction a leave: whoever signs first, then whoever sanctions. You
-        never see a request you have already signed.
-      </div>
+      <div class="dt-sub">Requests waiting for a signature.</div>
     </div>
     <div class="dt-toolbar">
       <!-- Both write through endpoints that are `require_admin` server-side, so
@@ -195,9 +192,7 @@
       @if (historyCapped()) {
         <div class="notice accent" role="status">
           <span class="icon" aria-hidden="true">info</span>
-          The decided queue is showing the most recent {{ historyCap }} requests — the server's own
-          limit, and there is no paging parameter to ask for older ones. No B10 task adds one, so
-          the row count below is what this screen can see, not what the college has decided.
+          Showing the most recent {{ historyCap }} decided requests.
         </div>
       }
 

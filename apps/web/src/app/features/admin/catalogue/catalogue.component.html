@@ -5,10 +5,7 @@
         <span>College setup</span><span class="sep">/</span><span>Catalogue</span>
       </div>
       <h1 class="dt-title">Catalogue</h1>
-      <div class="dt-sub">
-        Subjects, approved certifications, the badges they unlock and the stage each semester sits
-        in — programme-wide, or scoped to one college and one course.
-      </div>
+      <div class="dt-sub">Subjects, certificates, badges and stage rules.</div>
     </div>
     <div class="dt-toolbar">
       <button type="button" class="btn secondary" (click)="toggleImport()">
@@ -445,11 +442,8 @@
           <div class="notice accent cat-note">
             <span class="icon" aria-hidden="true">shield_person</span>
             <div>
-              The Approved Certification Catalogue refused this account, so the mapping below reads
-              as empty. B13 moved that list onto this screen's own function
-              (<span class="cat-mono">admin.catalogue</span>) — a refusal now means the grant does
-              not reach it, not that it belongs to somebody else. The badges themselves are shown
-              in full.
+              The approved certification list refused this account, so the mapping below reads as
+              empty. The badges themselves are shown in full.
             </div>
           </div>
         } @else if (loadFailed()) {
@@ -1010,10 +1004,7 @@
           </div>
 
           <p class="cat-help">
-            <code>POST /api/admin/cohorts/&#123;id&#125;/promote</code> reads these: it moves the
-            semester, and changes the stage only where a rule names one. A programme with no rules
-            is promoted with its students' stages left exactly as they are — a documented no-op,
-            not a failure.
+            Promoting a batch changes a student's stage only where a rule names one.
           </p>
 
           <div role="alert">
@@ -1152,10 +1143,8 @@
             <div class="notice accent cat-note">
               <span class="icon" aria-hidden="true">info</span>
               <div>
-                The interview tracks are read through Interview questions, and this account does not
-                hold that function. Ask the Main Admin for
-                <span class="cat-mono">admin.interview_questions</span>
-                in Who can do what.
+                This account cannot open Interview questions. Ask the Main Admin for access in
+                Who can do what.
               </div>
             </div>
           </div>

@@ -34,7 +34,7 @@
 
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
@@ -56,6 +56,7 @@ interface CollegeOut {
   code: string;
   name: string;
   campus: string | null;
+  contact: string | null;
   email_domains: string[];
 }
 interface DepartmentOut {
@@ -164,6 +165,14 @@ const newKey = (): string => `n${++nextKey}`;
 })
 export class AdminCollegeSetupComponent {
   private readonly auth = inject(AuthService);
+  /** `?college=<id>`: the Colleges card's "Continue setup" names the college
+   *  to load on step 1, exactly as picking it in the select would. */
+  private readonly wantedCollegeId = inject(ActivatedRoute).snapshot.queryParamMap.get('college');
+  /** `?step=<2..5>` with `?college=`: College structure's "Add a department" /
+   *  "Add a course" / "Add a specialization" land on that step with the college
+   *  loaded, so adding one row is not six presses of Continue. Ignored without
+   *  a college, because step 1 is where a NEW college is typed. */
+  private readonly wantedStep = Number(inject(ActivatedRoute).snapshot.queryParamMap.get('step'));
 
   readonly steps = STEPS;
   readonly lastStep = LAST_STEP;
@@ -178,6 +187,7 @@ export class AdminCollegeSetupComponent {
   readonly code = signal('');
   readonly name = signal('');
   readonly campus = signal('');
+  readonly contact = signal('');
   readonly domains = signal('');
 
   // ---- steps 2–4: the rows ---------------------------------------------------
@@ -317,6 +327,9 @@ export class AdminCollegeSetupComponent {
   }
   setCampus(v: string): void {
     this.campus.set(v);
+  }
+  setContact(v: string): void {
+    this.contact.set(v);
   }
   setDomains(v: string): void {
     this.domains.set(v);
@@ -492,6 +505,7 @@ export class AdminCollegeSetupComponent {
     this.code.set('');
     this.name.set('');
     this.campus.set('');
+    this.contact.set('');
     this.domains.set('');
     this.labelOverride.set({});
     this.includeOverride.set({});
@@ -555,7 +569,7 @@ export class AdminCollegeSetupComponent {
       code: this.code().trim(),
       name: this.name().trim(),
       campus: this.campus().trim() || null,
-      contact: null,
+      contact: this.contact().trim() || null,
       email_domains: parseDomains(this.domains()),
     };
     const res = await this.post<CollegeOut>('/admin/colleges', body);
@@ -712,6 +726,11 @@ export class AdminCollegeSetupComponent {
     const list = await this.get<CollegeOut[]>('/admin/colleges');
     this.collegesFailed.set(list === null);
     this.colleges.set(list ?? []);
+    const wanted = this.wantedCollegeId;
+    if (wanted && !this.pickedCollegeId() && (list ?? []).some((c) => c.id === wanted)) {
+      await this.pickCollege(wanted);
+      if (this.wantedStep >= 2 && this.wantedStep < LAST_STEP) this.step.set(this.wantedStep);
+    }
   }
 
   /** Best-effort: a session without the question-bank key sees no chips. */

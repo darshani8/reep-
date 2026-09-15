@@ -1,50 +1,53 @@
 <div class="panel" data-p="institution">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>College setup</span><span class="sep">/</span><span>College structure</span></div>
+      <div class="crumb">
+        <span>College setup</span><span class="sep">/</span><span>College structure</span>
+      </div>
       <h1 class="dt-title">College structure</h1>
       <div class="dt-sub">
-        College · Department · Course · Specialization · Batch.
-        @if (levels().length) {
-          @if (requiredLabels().length) {
-            New batches must name {{ requiredLabels().join(' and ') }}.
-          } @else {
-            Course and Specialization are optional for now.
+        @if (selectedCollege(); as college) {
+          {{ college.name }} · {{ college.department_count | plural: 'department' }}
+          @if (selectedDepartment(); as d) {
+            · {{ d.code }}: {{ batches().length | plural: 'batch' : 'batches' }}
           }
+        } @else {
+          College · Department · Course · Specialization · Batch
+        }
+        @if (requiredLabels().length) {
+          · New batches must name {{ requiredLabels().join(' and ') }}.
         }
       </div>
     </div>
     @if (state() === 'ready') {
       <div class="dt-toolbar">
-        <a class="btn secondary" routerLink="/admin/setup">
+        <a class="btn primary" routerLink="/admin/setup">
           <span class="icon" aria-hidden="true">add_circle</span>Set up a college
         </a>
-        <button type="button" class="btn secondary" (click)="toggleAdd('college')">
-          <span class="icon" aria-hidden="true">add</span>Add college
-        </button>
-        <button
-          type="button"
-          class="btn primary"
-          (click)="openCreateBatch()"
-          [disabled]="!selectedDepartmentId() || batchMode() !== 'closed'"
-        >
-          <span class="icon" aria-hidden="true">add</span>Add batch
-        </button>
       </div>
     }
   </div>
 
   <div role="alert">
     @if (error()) {
-      <div class="notice"><span class="icon" aria-hidden="true">error</span><div>{{ error() }}</div></div>
+      <div class="notice">
+        <span class="icon" aria-hidden="true">error</span>
+        <div>{{ error() }}</div>
+      </div>
     }
   </div>
   <div role="status">
     @if (flash()) {
-      <div class="notice good"><span class="icon" aria-hidden="true">check</span><div>{{ flash() }}</div></div>
+      <div class="notice good">
+        <span class="icon" aria-hidden="true">check</span>
+        <div>{{ flash() }}</div>
+      </div>
     }
     @if (state() === 'loading') {
-      <div class="notice info"><span class="icon" aria-hidden="true">hourglass_empty</span><div>Loading…</div></div>
+      <div class="notice info">
+        <span class="icon" aria-hidden="true">hourglass_empty</span>
+        <div>Loading…</div>
+      </div>
     }
   </div>
 
@@ -63,8 +66,7 @@
           <span class="icon" aria-hidden="true">warning</span>
           <div>
             {{ incomplete().length | plural: 'batch is' : 'batches are' }}
-            missing a level that is now required. They still open and still save — fill the
-            level in when you know it.
+            missing a level that is now required.
           </div>
         </div>
       }
@@ -75,7 +77,12 @@
             {{ unassigned().length | plural: 'batch has' : 'batches have' }}
             no department. File
             @for (b of unassigned(); track b.id) {
-              <button type="button" class="link-btn" (click)="fileUnassigned(b)" [disabled]="busy()">
+              <button
+                type="button"
+                class="link-btn"
+                (click)="fileUnassigned(b)"
+                [disabled]="busy()"
+              >
                 {{ b.code }}</button
               >{{ $last ? '' : ',' }}
             }
@@ -88,197 +95,73 @@
         <div class="card">
           <div class="empty">
             <span class="icon" aria-hidden="true">school</span>
-            No colleges are on record yet. Everything below hangs off a college.
+            No college yet.
           </div>
           <div class="footbar">
-            <button type="button" class="btn secondary" (click)="toggleAdd('college')">
-              <span class="icon" aria-hidden="true">add</span>Add the first college
-            </button>
+            <a class="btn primary" routerLink="/admin/setup">
+              <span class="icon" aria-hidden="true">add_circle</span>Set up the first college
+            </a>
           </div>
-          @if (openAdd() === 'college') {
-            <ng-container *ngTemplateOutlet="collegeForm" />
-          }
         </div>
       } @else {
-        <div class="inst-grid">
-          <!-- ================= the rail ================= -->
-          <div class="card tree-card">
-            @if (openAdd() === 'college') {
-              <ng-container *ngTemplateOutlet="collegeForm" />
-            }
-
-            <div class="tree-find">
-              <span class="icon" aria-hidden="true">search</span>
-              <input
-                id="tree-find"
-                type="search"
-                class="ctrl"
-                placeholder="Find a department, course or batch…"
-                aria-label="Find a department, course or batch"
-                [value]="finderText()"
-                (input)="finderText.set($any($event.target).value)"
-              />
-            </div>
-
-            <div class="rail">
-              @for (college of colleges(); track college.id) {
-                <button
-                  type="button"
-                  class="tree-row"
-                  [class.selected]="college.id === selectedCollegeId()"
-                  [attr.aria-expanded]="college.id === selectedCollegeId()"
-                  (click)="pickCollege(college.id)"
+        <div class="structure">
+          <!-- ============================== which college, and the finder -->
+          <div class="card pick-card">
+            <div class="pick-bar">
+              <div class="field grow">
+                <label for="pick-college">College</label>
+                <select
+                  id="pick-college"
+                  class="ctrl"
+                  (change)="pickCollege($any($event.target).value || null)"
                 >
-                  <span class="icon" aria-hidden="true">{{
-                    college.id === selectedCollegeId() ? 'expand_more' : 'chevron_right'
-                  }}</span>
-                  <span class="label">{{ college.code }} · {{ college.name }}</span>
-                  <span class="count">{{ college.department_count | plural: 'department' }}</span>
-                </button>
-
-                @if (college.id === selectedCollegeId()) {
-                  @for (department of visibleDepartments(); track department.id) {
-                    <button
-                      type="button"
-                      class="tree-row depth-1"
-                      [class.selected]="department.id === selectedDepartmentId()"
-                      [attr.aria-expanded]="department.id === selectedDepartmentId()"
-                      (click)="pickDepartment(department.id)"
-                    >
-                      <span class="icon" aria-hidden="true">{{
-                        department.id === selectedDepartmentId() ? 'expand_more' : 'chevron_right'
-                      }}</span>
-                      <span class="label">{{ department.code }} · {{ department.name }}</span>
-                      <span class="count">{{ batchCountOf(department) }}</span>
-                    </button>
-
-                    @if (department.id === selectedDepartmentId()) {
-                      @for (course of visibleCourses(); track course.id) {
-                        <button
-                          type="button"
-                          class="tree-row depth-2"
-                          [class.selected]="course.id === selectedCourseId()"
-                          [attr.aria-expanded]="course.id === selectedCourseId()"
-                          (click)="pickCourse(course.id)"
-                        >
-                          <span class="icon" aria-hidden="true">{{
-                            course.id === selectedCourseId() ? 'expand_more' : 'chevron_right'
-                          }}</span>
-                          <span class="label">{{ course.code }} · {{ course.name }}</span>
-                          <span class="count">{{ specializationCountOf(course) }}</span>
-                        </button>
-
-                        @if (course.id === selectedCourseId()) {
-                          @for (spec of visibleSpecializations(); track spec.id) {
-                            <div class="tree-row depth-3 tree-static">
-                              <span class="icon" aria-hidden="true">chevron_right</span>
-                              <span class="label">{{ spec.code }} · {{ spec.name }}</span>
-                            </div>
-                          }
-                        }
-                      }
-
-                      @if (visibleBatches().length) {
-                        <div class="tree-row depth-2 tree-static">
-                          <span class="icon" aria-hidden="true">school</span>
-                          <span class="label">Batches: {{ batchCodesInDepartment() }}</span>
-                        </div>
-                      }
-                    }
+                  @for (college of colleges(); track college.id) {
+                    <option [value]="college.id" [selected]="college.id === selectedCollegeId()">
+                      {{ college.code }} · {{ college.name }}
+                    </option>
                   }
-                }
-              }
-
-              @if (railIsEmpty()) {
-                <div class="empty">Nothing here matches “{{ finderText() }}”.</div>
-              }
-            </div>
-
-            <div class="tree-actions">
-              <button
-                type="button"
-                class="btn ghost sm"
-                (click)="toggleAdd('department')"
-                [disabled]="!selectedCollegeId()"
-              >
-                <span class="icon" aria-hidden="true">add</span>Add department
-              </button>
-              <button
-                type="button"
-                class="btn ghost sm"
-                (click)="toggleAdd('course')"
-                [disabled]="!selectedDepartmentId()"
-              >
-                <span class="icon" aria-hidden="true">add</span>Add course
-              </button>
-            </div>
-
-            @if (openAdd() === 'department') {
-              <div class="add-form">
-                <div class="field">
-                  <label for="dep-code">Code</label>
-                  <input id="dep-code" [value]="departmentDraft().code" (input)="setDraft('department', 'code', $any($event.target).value)" placeholder="MBA" />
-                </div>
-                <div class="field">
-                  <label for="dep-name">Name</label>
-                  <input id="dep-name" [value]="departmentDraft().name" (input)="setDraft('department', 'name', $any($event.target).value)" placeholder="Department of Management Studies" />
-                </div>
-                <div class="field">
-                  <label for="dep-head">Head (optional)</label>
-                  <input id="dep-head" [value]="departmentDraft().head" (input)="setDraft('department', 'head', $any($event.target).value)" />
-                </div>
-                <div class="footbar">
-                  <button type="button" class="btn ghost" (click)="toggleAdd('department')">Cancel</button>
-                  <button type="button" class="btn secondary" (click)="addDepartment()" [disabled]="busy() || !departmentDraft().code || !departmentDraft().name">
-                    <span class="icon" aria-hidden="true">save</span>Add department
-                  </button>
-                </div>
+                </select>
               </div>
-            }
-
-            @if (openAdd() === 'course') {
-              <div class="add-form">
-                <div class="field">
-                  <label for="crs-code">Code</label>
-                  <input id="crs-code" [value]="courseDraft().code" (input)="setDraft('course', 'code', $any($event.target).value)" placeholder="MBA" />
-                </div>
-                <div class="field">
-                  <label for="crs-name">Name</label>
-                  <input id="crs-name" [value]="courseDraft().name" (input)="setDraft('course', 'name', $any($event.target).value)" placeholder="Master of Business Administration" />
-                </div>
-                <div class="field">
-                  <label for="crs-months">Duration in months (optional)</label>
-                  <input id="crs-months" type="number" min="1" max="120" [value]="courseDraft().duration_months" (input)="setDraft('course', 'duration_months', $any($event.target).value)" />
-                </div>
-                <div class="footbar">
-                  <button type="button" class="btn ghost" (click)="toggleAdd('course')">Cancel</button>
-                  <button type="button" class="btn secondary" (click)="addCourse()" [disabled]="busy() || !courseDraft().code || !courseDraft().name">
-                    <span class="icon" aria-hidden="true">save</span>Add course
-                  </button>
-                </div>
+              <div class="field grow find">
+                <label for="tree-find">Find</label>
+                <span class="icon" aria-hidden="true">search</span>
+                <input
+                  id="tree-find"
+                  type="search"
+                  class="ctrl"
+                  placeholder="Department, course, specialization or batch"
+                  [value]="finderText()"
+                  (input)="finderText.set($any($event.target).value)"
+                />
               </div>
-            }
+            </div>
           </div>
 
-          <!-- ================= the detail column ================= -->
-          <div class="inst-detail">
-            <!-- College -->
-            @if (selectedCollege(); as college) {
-              <div class="card">
-                <div class="card-head">
-                  <div class="card-title">College · {{ college.code }}</div>
-                  <span class="chip dot" [class.good]="college.status === 'ACTIVE'" [class.neutral]="college.status !== 'ACTIVE'">
-                    {{ college.status === 'ACTIVE' ? 'Active' : 'Archived' }}
-                  </span>
+          @if (selectedCollege(); as college) {
+            <!-- ========================================== 1 · the college -->
+            <section class="card" aria-labelledby="sec-college">
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title" id="sec-college">{{ college.name }}</h2>
+                  <div class="card-sub">
+                    {{ college.code }}
+                    @if (college.campus) {
+                      · {{ college.campus }}
+                    }
+                    ·
+                    {{ college.department_count | plural: 'department' }}
+                  </div>
                 </div>
-                <div class="dt-sub college-name">
-                  {{ college.name }}@if (college.campus) { · {{ college.campus }} } ·
-                  {{ college.department_count | plural: 'department' }}
-                </div>
-                <div class="domain-row">
-                  <span class="domain-key">Registration email domains</span>
-                  <span class="domain-summary">{{ domainSummary() }}</span>
-                </div>
+                <span
+                  class="chip dot"
+                  [class.good]="college.status === 'ACTIVE'"
+                  [class.neutral]="college.status !== 'ACTIVE'"
+                >
+                  {{ college.status === 'ACTIVE' ? 'Active' : 'Archived' }}
+                </span>
+              </div>
+              <div class="domains">
+                <span class="domain-key">Email domains</span>
                 @if (college.email_domains.length) {
                   <ul class="domain-list">
                     @for (domain of college.email_domains; track domain) {
@@ -296,9 +179,14 @@
                       </li>
                     }
                   </ul>
+                } @else {
+                  <!-- An empty list is a real setting — the deployment's own
+                       list applies — never "nobody may join". Same words as the
+                       Colleges card. -->
+                  <span class="domain-summary">Deployment list</span>
                 }
                 <form class="domain-add" (ngSubmit)="addDomain()">
-                  <label class="sr-only" for="college-domain">Add a registration email domain</label>
+                  <label class="sr-only" for="college-domain">Add an email domain</label>
                   <input
                     id="college-domain"
                     class="ctrl"
@@ -317,86 +205,180 @@
                     <span class="icon" aria-hidden="true">add</span>Add domain
                   </button>
                 </form>
-                @if (domainError(); as problem) {
-                  <div class="notice risk" role="alert">
-                    <span class="icon" aria-hidden="true">error</span>
-                    <div>{{ problem }}</div>
-                  </div>
-                }
-                <div class="notice accent">
-                  <span class="icon" aria-hidden="true">info</span>
-                  <div>
-                    Only an address on one of these domains can be approved onto this college.
-                    Leave the list empty and the deployment's own list applies.
-                  </div>
-                </div>
               </div>
-            }
-
-            <!-- Course -->
-            @if (selectedCourse(); as course) {
-              <div class="card">
-                <div class="card-head">
-                  <div class="card-title">Course · {{ course.code }}</div>
-                  <div class="dt-toolbar">
-                    <button
-                      type="button"
-                      class="btn danger sm"
-                      (click)="archiveCourse()"
-                      [disabled]="busy() || course.status === 'ARCHIVED'"
-                    >
-                      Archive
-                    </button>
-                    <button
-                      type="button"
-                      class="btn secondary sm"
-                      (click)="saveCourse()"
-                      [disabled]="courseSaveBlocked()"
-                    >
-                      <span class="icon" aria-hidden="true">check</span>Save changes
-                    </button>
-                  </div>
+              @if (domainError(); as problem) {
+                <div class="notice risk" role="alert">
+                  <span class="icon" aria-hidden="true">error</span>
+                  <div>{{ problem }}</div>
                 </div>
+              }
+            </section>
 
-                @if (courseError()) {
-                  <div class="notice" role="alert">
-                    <span class="icon" aria-hidden="true">error</span><div>{{ courseError() }}</div>
-                  </div>
-                }
-
-                <form class="course-form" [formGroup]="courseForm">
-                  <div class="field narrow">
-                    <label for="course-code">Code</label>
-                    <input id="course-code" formControlName="code" />
-                  </div>
-                  <div class="field grow">
-                    <label for="course-name">Name</label>
-                    <input id="course-name" formControlName="name" />
-                  </div>
-                  <div class="field narrow">
-                    <label for="course-status">Status</label>
-                    <select id="course-status" class="ctrl" formControlName="status">
-                      @for (s of courseStatuses; track s) {
-                        <option [value]="s">{{ s === 'ACTIVE' ? 'Active' : 'Archived' }}</option>
+            <!-- ======================================= 2 · departments -->
+            <section class="card" aria-labelledby="sec-departments">
+              <div class="card-head">
+                <h2 class="card-title" id="sec-departments">Departments</h2>
+                <a
+                  class="btn secondary sm"
+                  routerLink="/admin/setup"
+                  [queryParams]="{ college: college.id, step: 2 }"
+                >
+                  <span class="icon" aria-hidden="true">add</span>Add a department
+                </a>
+              </div>
+              <div class="pick-list">
+                @for (department of visibleDepartments(); track department.id) {
+                  <button
+                    type="button"
+                    class="pick-row"
+                    [class.selected]="department.id === selectedDepartmentId()"
+                    [attr.aria-pressed]="department.id === selectedDepartmentId()"
+                    (click)="pickDepartment(department.id)"
+                  >
+                    <span class="pick-code">{{ department.code }}</span>
+                    <span class="pick-name">
+                      {{ department.name }}
+                      @if (department.head) {
+                        <span class="pick-sub">{{ department.head }}</span>
                       }
-                    </select>
-                  </div>
-                  <div class="field narrow">
-                    <label for="course-months">Duration in months</label>
-                    <input id="course-months" type="number" min="1" max="120" formControlName="duration_months" />
-                  </div>
-                </form>
-
+                    </span>
+                    <span class="pick-count">{{ batchCountOf(department) }}</span>
+                    <span class="icon" aria-hidden="true">chevron_right</span>
+                  </button>
+                } @empty {
+                  <p class="empty-row">
+                    @if (departments().length) {
+                      Nothing matches “{{ finderText() }}”.
+                    } @else {
+                      No department yet.
+                    }
+                  </p>
+                }
               </div>
-            }
+            </section>
 
-            <div class="inst-pair">
-              <!-- Specializations -->
-              <div class="card">
+            @if (selectedDepartment(); as dept) {
+              <!-- ========================================= 3 · courses -->
+              <section class="card" aria-labelledby="sec-courses">
                 <div class="card-head">
                   <div>
-                    <div class="card-title">Specializations · interview track</div>
-                    <div class="dt-sub">which mock interview a specialization's students sit</div>
+                    <h2 class="card-title" id="sec-courses">Courses</h2>
+                    <div class="card-sub">in {{ dept.code }} · {{ dept.name }}</div>
+                  </div>
+                  <a
+                    class="btn secondary sm"
+                    routerLink="/admin/setup"
+                    [queryParams]="{ college: college.id, step: 3 }"
+                  >
+                    <span class="icon" aria-hidden="true">add</span>Add a course
+                  </a>
+                </div>
+                <div class="pick-list">
+                  @for (course of visibleCourses(); track course.id) {
+                    <button
+                      type="button"
+                      class="pick-row"
+                      [class.selected]="course.id === selectedCourseId()"
+                      [attr.aria-pressed]="course.id === selectedCourseId()"
+                      (click)="pickCourse(course.id)"
+                    >
+                      <span class="pick-code">{{ course.code }}</span>
+                      <span class="pick-name">{{ course.name }}</span>
+                      @if (course.status === 'ARCHIVED') {
+                        <span class="chip neutral">Archived</span>
+                      }
+                      <span class="pick-count">{{ specializationCountOf(course) }}</span>
+                      <span class="icon" aria-hidden="true">chevron_right</span>
+                    </button>
+                  } @empty {
+                    <p class="empty-row">
+                      @if (courses().length) {
+                        Nothing matches “{{ finderText() }}”.
+                      } @else {
+                        No course yet.
+                      }
+                    </p>
+                  }
+                </div>
+                <!-- The picked course, editable in place: the four fields
+                     PATCH /academic-courses/{id} accepts. -->
+                @if (selectedCourse(); as course) {
+                  <div class="edit-block">
+                    <div class="edit-head">
+                      <h3 class="edit-title">{{ course.code }} · {{ course.name }}</h3>
+                      <div class="dt-toolbar">
+                        <button
+                          type="button"
+                          class="btn danger sm"
+                          (click)="archiveCourse()"
+                          [disabled]="busy() || course.status === 'ARCHIVED'"
+                        >
+                          Archive
+                        </button>
+                        <button
+                          type="button"
+                          class="btn secondary sm"
+                          (click)="saveCourse()"
+                          [disabled]="courseSaveBlocked()"
+                        >
+                          <span class="icon" aria-hidden="true">check</span>Save changes
+                        </button>
+                      </div>
+                    </div>
+
+                    @if (courseError()) {
+                      <div class="notice" role="alert">
+                        <span class="icon" aria-hidden="true">error</span>
+                        <div>{{ courseError() }}</div>
+                      </div>
+                    }
+
+                    <form class="form-row course-form" [formGroup]="courseForm">
+                      <div class="field narrow">
+                        <label for="course-code">Code</label>
+                        <input id="course-code" formControlName="code" />
+                      </div>
+                      <div class="field grow">
+                        <label for="course-name">Name</label>
+                        <input id="course-name" formControlName="name" />
+                      </div>
+                      <div class="field narrow">
+                        <label for="course-status">Status</label>
+                        <select id="course-status" class="ctrl" formControlName="status">
+                          @for (s of courseStatuses; track s) {
+                            <option [value]="s">
+                              {{ s === 'ACTIVE' ? 'Active' : 'Archived' }}
+                            </option>
+                          }
+                        </select>
+                      </div>
+                      <div class="field narrow">
+                        <label for="course-months">Months</label>
+                        <input
+                          id="course-months"
+                          type="number"
+                          min="1"
+                          max="120"
+                          formControlName="duration_months"
+                        />
+                      </div>
+                    </form>
+                  </div>
+                }
+              </section>
+
+              <!-- ================================= 4 · specializations -->
+              <section class="card" aria-labelledby="sec-specs">
+                <div class="card-head">
+                  <div>
+                    <h2 class="card-title" id="sec-specs">Specializations</h2>
+                    <div class="card-sub">
+                      @if (selectedCourse(); as course) {
+                        in {{ course.code }} · {{ course.name }}
+                      } @else {
+                        no course picked
+                      }
+                    </div>
                   </div>
                   <div class="dt-toolbar">
                     <button
@@ -406,23 +388,24 @@
                       [disabled]="!canMapTracks()"
                       [title]="mapTrackTitle()"
                     >
-                      <span class="icon" aria-hidden="true">link</span>Map track
+                      <span class="icon" aria-hidden="true">link</span>Map mock interview
                     </button>
-                    <button
-                      type="button"
-                      class="btn ghost sm"
-                      (click)="toggleAdd('specialization')"
-                      [disabled]="!selectedCourseId()"
+                    <a
+                      class="btn secondary sm"
+                      routerLink="/admin/setup"
+                      [queryParams]="{ college: college.id, step: 4 }"
                     >
-                      <span class="icon" aria-hidden="true">add</span>Add
-                    </button>
+                      <span class="icon" aria-hidden="true">add</span>Add a specialization
+                    </a>
                   </div>
                 </div>
 
                 @if (!selectedCourseId()) {
-                  <div class="empty">Choose a course first.</div>
+                  <p class="empty-row">No course picked.</p>
                 } @else if (specializations().length === 0) {
-                  <div class="empty">No specializations under {{ selectedCourse()?.code }} yet.</div>
+                  <p class="empty-row">No specialization under {{ selectedCourse()?.code }}.</p>
+                } @else if (visibleSpecializations().length === 0) {
+                  <p class="empty-row">Nothing matches “{{ finderText() }}”.</p>
                 } @else {
                   <div class="dt-frame">
                     <table class="dt-table">
@@ -430,12 +413,12 @@
                         <tr>
                           <th>Code</th>
                           <th>Specialization</th>
-                          <th>Track</th>
+                          <th>Mock interview</th>
                           <th>Batches</th>
                         </tr>
                       </thead>
                       <tbody>
-                        @for (s of specializations(); track s.id) {
+                        @for (s of visibleSpecializations(); track s.id) {
                           <tr>
                             <td class="b-code">{{ s.code }}</td>
                             <td>{{ s.name }}</td>
@@ -472,38 +455,40 @@
                         </div>
                       }
                     </div>
-                    <div class="field">
-                      <label for="track-pick">Interview track</label>
-                      <select
-                        id="track-pick"
-                        class="ctrl"
-                        [value]="trackChoice()"
-                        (change)="pickTrack($any($event.target).value)"
-                      >
-                        <option value="">Choose a track…</option>
-                        @for (t of mappableTracks(); track t.id) {
-                          <option [value]="t.id" [selected]="t.id === trackChoice()">
-                            {{ t.label }} ({{ t.code }})
-                          </option>
-                        }
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label for="track-target">Maps to</label>
-                      <select
-                        id="track-target"
-                        class="ctrl"
-                        [value]="trackTarget()"
-                        (change)="trackTarget.set($any($event.target).value)"
-                        [disabled]="!trackChoice()"
-                      >
-                        <option value="">Not mapped · every specialization</option>
-                        @for (s of specializations(); track s.id) {
-                          <option [value]="s.id" [selected]="s.id === trackTarget()">
-                            {{ s.code }} · {{ s.name }}
-                          </option>
-                        }
-                      </select>
+                    <div class="form-row">
+                      <div class="field grow">
+                        <label for="track-pick">Mock interview</label>
+                        <select
+                          id="track-pick"
+                          class="ctrl"
+                          [value]="trackChoice()"
+                          (change)="pickTrack($any($event.target).value)"
+                        >
+                          <option value="">Choose…</option>
+                          @for (t of mappableTracks(); track t.id) {
+                            <option [value]="t.id" [selected]="t.id === trackChoice()">
+                              {{ t.label }} ({{ t.code }})
+                            </option>
+                          }
+                        </select>
+                      </div>
+                      <div class="field grow">
+                        <label for="track-target">For</label>
+                        <select
+                          id="track-target"
+                          class="ctrl"
+                          [value]="trackTarget()"
+                          (change)="trackTarget.set($any($event.target).value)"
+                          [disabled]="!trackChoice()"
+                        >
+                          <option value="">Every specialization</option>
+                          @for (s of specializations(); track s.id) {
+                            <option [value]="s.id" [selected]="s.id === trackTarget()">
+                              {{ s.code }} · {{ s.name }}
+                            </option>
+                          }
+                        </select>
+                      </div>
                     </div>
                     <div class="footbar">
                       <button type="button" class="btn ghost" (click)="toggleTrackPanel()">
@@ -516,13 +501,9 @@
                         [disabled]="trackBusy() || !trackChoice()"
                       >
                         <span class="icon" aria-hidden="true">save</span>
-                        {{ trackBusy() ? 'Saving…' : 'Save mapping' }}
+                        {{ trackBusy() ? 'Saving…' : 'Save' }}
                       </button>
                     </div>
-                    <p class="help">
-                      An unmapped track is offered to every student; a mapped one only to this
-                      specialization.
-                    </p>
                   </div>
                 }
 
@@ -532,58 +513,32 @@
                     <div>{{ trackReadNote() }}</div>
                   </div>
                 }
+              </section>
 
-                @if (openAdd() === 'specialization') {
-                  <div class="add-form">
-                    <div class="field">
-                      <label for="spc-code">Code</label>
-                      <input id="spc-code" [value]="specializationDraft().code" (input)="setDraft('specialization', 'code', $any($event.target).value)" placeholder="FIN" />
-                    </div>
-                    <div class="field">
-                      <label for="spc-name">Name</label>
-                      <input id="spc-name" [value]="specializationDraft().name" (input)="setDraft('specialization', 'name', $any($event.target).value)" placeholder="Finance" />
-                    </div>
-                    <div class="footbar">
-                      <button type="button" class="btn ghost" (click)="toggleAdd('specialization')">Cancel</button>
-                      <button type="button" class="btn secondary" (click)="addSpecialization()" [disabled]="busy() || !specializationDraft().code || !specializationDraft().name">
-                        <span class="icon" aria-hidden="true">save</span>Add specialization
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <!-- Batches -->
-              <div class="card">
+              <!-- ========================================= 5 · batches -->
+              <section class="card" aria-labelledby="sec-batches">
                 <div class="card-head">
                   <div>
-                    <div class="card-title">
-                      Batches
-                      @if (selectedDepartment(); as d) {
-                        <span class="dt-sub">in {{ d.code }}</span>
-                      }
-                    </div>
-                    <div class="dt-sub">each batch carries its own degree level today</div>
+                    <h2 class="card-title" id="sec-batches">Batches</h2>
+                    <div class="card-sub">in {{ dept.code }} · {{ dept.name }}</div>
                   </div>
                   <button
                     type="button"
-                    class="btn ghost sm"
+                    class="btn primary sm"
                     (click)="openCreateBatch()"
-                    [disabled]="!selectedDepartmentId() || batchMode() !== 'closed'"
+                    [disabled]="batchMode() !== 'closed'"
                   >
                     <span class="icon" aria-hidden="true">add</span>Add batch
                   </button>
                 </div>
 
-                @if (!selectedDepartmentId()) {
-                  <div class="empty">Pick a department to see its batches.</div>
-                } @else if (batches().length === 0 && batchMode() === 'closed') {
-                  <div class="empty">No batches under {{ selectedDepartment()?.code }} yet.</div>
+                @if (batches().length === 0 && batchMode() === 'closed') {
+                  <p class="empty-row">No batch under {{ dept.code }} yet.</p>
                 } @else if (visibleBatches().length === 0 && batchMode() === 'closed') {
-                  <div class="empty">
-                    None of the {{ batches().length | plural: 'batch' }} under
-                    {{ selectedDepartment()?.code }} match “{{ finderText() }}”.
-                  </div>
+                  <p class="empty-row">
+                    None of the {{ batches().length | plural: 'batch' : 'batches' }} under
+                    {{ dept.code }} match “{{ finderText() }}”.
+                  </p>
                 } @else if (visibleBatches().length) {
                   <div class="dt-frame">
                     <table class="dt-table">
@@ -603,7 +558,10 @@
                               <div class="b-code">{{ b.code }}</div>
                               <div class="dt-sub">{{ b.batch_label }} · {{ b.name }}</div>
                               @for (m of b.missing_levels; track m) {
-                                <span class="chip warn"><span class="icon" aria-hidden="true">warning</span>Needs {{ m }}</span>
+                                <span class="chip warn"
+                                  ><span class="icon" aria-hidden="true">warning</span>Needs
+                                  {{ m }}</span
+                                >
                               }
                             </td>
                             <td>{{ levelsOf(b) }}</td>
@@ -611,9 +569,16 @@
                             <!-- 'UTC' on purpose: expected_completion is a calendar
                                  date, and rendering it in the reader's zone slides
                                  it a day west of Greenwich. -->
-                            <td class="tabular">{{ b.expected_completion | date: 'd MMM y' : 'UTC' }}</td>
+                            <td class="tabular">
+                              {{ b.expected_completion | date: 'd MMM y' : 'UTC' }}
+                            </td>
                             <td class="row-actions">
-                              <button type="button" class="btn ghost sm" (click)="openEditBatch(b)" [disabled]="batchMode() !== 'closed'">
+                              <button
+                                type="button"
+                                class="btn ghost sm"
+                                (click)="openEditBatch(b)"
+                                [disabled]="batchMode() !== 'closed'"
+                              >
                                 <span class="icon" aria-hidden="true">edit</span>Edit
                               </button>
                               <button
@@ -647,7 +612,7 @@
 
                     <div class="seat-add">
                       <div class="field">
-                        <label for="seat-pick">Add a student to this batch</label>
+                        <label for="seat-pick">Add a student</label>
                         <select
                           id="seat-pick"
                           class="ctrl"
@@ -656,20 +621,34 @@
                           [disabled]="busy() || unseated().length === 0"
                         >
                           <option value="">
-                            {{ unseated().length ? '— Choose a student not yet in any batch —' : 'Every student is already in a batch' }}
+                            {{
+                              unseated().length
+                                ? '— Choose a student not yet in any batch —'
+                                : 'Every student is already in a batch'
+                            }}
                           </option>
                           @for (s of unseated(); track s.student_id) {
-                            <option [value]="s.student_id">{{ s.name }}{{ s.usn ? ' · ' + s.usn : '' }}</option>
+                            <option [value]="s.student_id">
+                              {{ s.name }}{{ s.usn ? ' · ' + s.usn : '' }}
+                            </option>
                           }
                         </select>
                       </div>
-                      <button type="button" class="btn secondary" (click)="seat()" [disabled]="busy() || !seatPick()">
+                      <button
+                        type="button"
+                        class="btn secondary"
+                        (click)="seat()"
+                        [disabled]="busy() || !seatPick()"
+                      >
                         <span class="icon" aria-hidden="true">person_add</span>Add
                       </button>
                     </div>
 
                     @if (seated().length === 0) {
-                      <div class="empty"><span class="icon" aria-hidden="true">group_off</span>Nobody is seated in this batch yet.</div>
+                      <div class="empty">
+                        <span class="icon" aria-hidden="true">group_off</span>Nobody in this batch
+                        yet.
+                      </div>
                     } @else {
                       <div class="dt-frame">
                         <table class="dt-table">
@@ -691,7 +670,12 @@
                                 <td class="tabular">{{ s.usn ?? '—' }}</td>
                                 <td>{{ stageLabel(s.current_stage) }}</td>
                                 <td>
-                                  <button type="button" class="btn ghost sm" (click)="release(s)" [disabled]="busy()">
+                                  <button
+                                    type="button"
+                                    class="btn ghost sm"
+                                    (click)="release(s)"
+                                    [disabled]="busy()"
+                                  >
                                     <span class="icon" aria-hidden="true">person_remove</span>Remove
                                   </button>
                                 </td>
@@ -710,7 +694,10 @@
                     <h4>{{ batchMode() === 'create' ? 'New batch' : 'Edit batch' }}</h4>
 
                     @if (batchError()) {
-                      <div class="notice" role="alert"><span class="icon" aria-hidden="true">error</span><div>{{ batchError() }}</div></div>
+                      <div class="notice" role="alert">
+                        <span class="icon" aria-hidden="true">error</span>
+                        <div>{{ batchError() }}</div>
+                      </div>
                     }
 
                     <div class="reg-grid">
@@ -724,11 +711,20 @@
                       </div>
                       <div class="field wide">
                         <label for="b-name">Name</label>
-                        <input id="b-name" formControlName="name" placeholder="MBA Batch 2024-26 - Section B" />
+                        <input
+                          id="b-name"
+                          formControlName="name"
+                          placeholder="MBA Batch 2024-26 - Section B"
+                        />
                       </div>
                       <div class="field">
                         <label for="b-level">Degree level</label>
-                        <select id="b-level" class="ctrl" formControlName="degree_level" [attr.disabled]="batchMode() === 'edit' ? '' : null">
+                        <select
+                          id="b-level"
+                          class="ctrl"
+                          formControlName="degree_level"
+                          [attr.disabled]="batchMode() === 'edit' ? '' : null"
+                        >
                           @for (l of degreeLevels; track l) {
                             <option [value]="l">{{ l }}</option>
                           }
@@ -766,58 +762,48 @@
                             "
                             (change)="onLevelChange(lv)"
                           >
-                            <option [ngValue]="null">— {{ lv.required ? 'Select' : 'Not applicable' }} —</option>
+                            <option [ngValue]="null">
+                              — {{ lv.required ? 'Select' : 'Not applicable' }} —
+                            </option>
                             @for (opt of levelOptions(lv); track opt.id) {
                               <option [ngValue]="opt.id">{{ opt.code }} · {{ opt.name }}</option>
                             }
                           </select>
                           @if (isGrandfathered(lv)) {
-                            <span class="chip warn"><span class="icon" aria-hidden="true">history</span>Created before {{ lv.label }} was required — fill in when known</span>
+                            <span class="chip warn"
+                              ><span class="icon" aria-hidden="true">history</span>Created before
+                              {{ lv.label }} was required</span
+                            >
                           } @else if (levelDisabled(lv)) {
-                            <span class="dt-sub">Choose a course first.</span>
-                          } @else if (levelControl(lv).touched && levelControl(lv).hasError('required')) {
-                            <span class="chip warn" role="alert"><span class="icon" aria-hidden="true">error</span>{{ lv.label }} is required.</span>
+                            <span class="dt-sub">Needs a course first.</span>
+                          } @else if (
+                            levelControl(lv).touched && levelControl(lv).hasError('required')
+                          ) {
+                            <span class="chip warn" role="alert"
+                              ><span class="icon" aria-hidden="true">error</span>{{ lv.label }} is
+                              required.</span
+                            >
                           }
                         </div>
                       }
                     </div>
 
                     <div class="footbar">
-                      <button type="button" class="btn ghost" (click)="closeBatchForm()">Cancel</button>
+                      <button type="button" class="btn ghost" (click)="closeBatchForm()">
+                        Cancel
+                      </button>
                       <button type="submit" class="btn secondary" [disabled]="saveBlocked()">
-                        <span class="icon" aria-hidden="true">save</span>{{ batchMode() === 'create' ? 'Create batch' : 'Save' }}
+                        <span class="icon" aria-hidden="true">save</span
+                        >{{ batchMode() === 'create' ? 'Create batch' : 'Save' }}
                       </button>
                     </div>
                   </form>
                 }
-              </div>
-            </div>
-          </div>
+              </section>
+            }
+          }
         </div>
       }
     }
   }
 </div>
-
-<ng-template #collegeForm>
-  <div class="add-form">
-    <div class="field">
-      <label for="col-code">Code</label>
-      <input id="col-code" [value]="collegeDraft().code" (input)="setDraft('college', 'code', $any($event.target).value)" placeholder="BGSCET" />
-    </div>
-    <div class="field">
-      <label for="col-name">Name</label>
-      <input id="col-name" [value]="collegeDraft().name" (input)="setDraft('college', 'name', $any($event.target).value)" placeholder="BGS College of Engineering and Technology" />
-    </div>
-    <div class="field">
-      <label for="col-campus">Campus (optional)</label>
-      <input id="col-campus" [value]="collegeDraft().campus" (input)="setDraft('college', 'campus', $any($event.target).value)" placeholder="Bengaluru" />
-    </div>
-    <div class="footbar">
-      <button type="button" class="btn ghost" (click)="toggleAdd('college')">Cancel</button>
-      <button type="button" class="btn secondary" (click)="addCollege()" [disabled]="busy() || !collegeDraft().code || !collegeDraft().name">
-        <span class="icon" aria-hidden="true">save</span>Add college
-      </button>
-    </div>
-  </div>
-</ng-template>

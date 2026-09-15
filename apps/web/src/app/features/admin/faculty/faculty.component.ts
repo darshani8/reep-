@@ -20,12 +20,11 @@
  *   POST  /api/admin/users/{id}/enable              within 90 days of that
  *   POST  /api/admin/users/{id}/sign-out-everywhere retire every session
  *
- * WHAT IS STILL NOT, AND WHY IT IS DRAWN RATHER THAN LEFT OUT. One control
- * stays disabled and one column stays an em dash: "Grant function" and Sign-in.
- * Each has its reason on the constant that carries it, and NEITHER reason is a
- * missing endpoint any more — see GRANT_FUNCTION_REASON and faculty-grid.ts's
- * SIGN_IN_PENDING_REASON. Nothing on this screen names a phase, because nothing
- * left on it is waiting for one.
+ * WHAT IS NOT HERE. "Grant function" (a disabled button pointing at
+ * Governance) and the Sign-in column (always a dash: no admin endpoint reads
+ * another account's sign-ins) were drawn for board fidelity and removed on
+ * 2026-09-15 — a control that can never work is the first one a first-day
+ * clerk presses. Nothing on this screen names a phase.
  *
  * "Review expiring grants" WAS the third, on the grounds that B2.4's endpoint
  * existed but nothing drew its queue. Governance drew it, so the button is a
@@ -77,8 +76,6 @@ import {
   FACULTY_COLUMNS,
   FACULTY_ROW_SELECTION,
   FACULTY_SELECTION_COLUMN,
-  SIGN_IN_PENDING_REASON,
-  STATUS_UNKNOWN_REASON,
   TOGGLEABLE_FACULTY_COLUMNS,
 } from './faculty-grid';
 import {
@@ -143,8 +140,6 @@ export class AdminFacultyComponent {
   readonly gridTheme = reepGridTheme;
   readonly pageSizes = PAGE_SIZES;
   readonly notReadable = NOT_READABLE;
-  readonly statusUnknownReason = STATUS_UNKNOWN_REASON;
-  readonly signInPendingReason = SIGN_IN_PENDING_REASON;
   readonly enableWindowDays = ENABLE_WINDOW_DAYS;
 
   // --- what the server said ----------------------------------------------

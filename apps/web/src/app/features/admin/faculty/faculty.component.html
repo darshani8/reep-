@@ -100,13 +100,6 @@
     </a>
   </div>
 
-  <div class="notice accent columns-note">
-    <span class="icon" aria-hidden="true">info</span>
-    Sign-in reads “{{ notReadable }}”: {{ signInPendingReason }} {{ statusUnknownReason }}
-    Functions shows the mentor group the office has assigned — HOD, placement officer and verifier are
-    grants and are made in Governance. Everything else on this grid is live.
-  </div>
-
   <!-- Only once the reads have finished, and only when the DIRECTORY itself was
        readable: mentorGroups() is null before the first response too, and a
        warning that flashes on every load is a warning nobody reads. -->
@@ -385,10 +378,9 @@
 
               <div class="notice accent">
                 <span class="icon" aria-hidden="true">info</span>
-                The mentor function is a group the office creates by assigning the first student. HOD,
-                placement officer and verifier are grants with a scope, a reason and an expiry, and they
-                are made on <a routerLink="/admin/governance">Who can do what</a> — this drawer does not carry
-                a second copy of that form.
+                <div>
+                  Access is given on <a routerLink="/admin/governance">Who can do what</a>.
+                </div>
               </div>
             }
 
@@ -473,8 +465,9 @@
       <aside class="drawer drawer--empty">
         <div class="notice accent">
           <span class="icon" aria-hidden="true">person</span>
-          Pick a faculty member to edit where they are filed, hand over an activation link, or disable
-          the account.
+          <div>
+            Pick a faculty member.
+          </div>
         </div>
       </aside>
     }

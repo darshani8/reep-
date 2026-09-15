@@ -382,12 +382,6 @@
                  batch on day one: grey exactly where it would matter. Seating
                  capacity is a course-shape decision and belongs with the
                  catalogue, not with the review queue. -->
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              The first lines are the server's own checks — the same guards Approve applies. The
-              batch and the attachments are read from this application. There is no seat check:
-              batches carry no capacity, so nothing here counts seats.
-            </div>
           }
         </div>
       } @else if (hasDecisionTarget()) {
@@ -403,8 +397,9 @@
         </div>
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          A decision note applies to every application in the selection. Untick all but one to read a
-          single applicant's details and checks.
+          <div>
+            A decision note applies to every application in the selection.
+          </div>
         </div>
       } @else {
         <div class="panel-empty">
@@ -440,15 +435,9 @@
 
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          Approve creates the login, seats the student in the batch above, moves the CV and photo onto
-          their record and emails the onboarding link; a note you type is kept on the decision, not
-          emailed. Reject emails your reason and can be undone from the notice at the top of this
-          screen; an approved application cannot, because someone has already been told to sign in.
-          <!-- HOLD IS INTERNAL and this sentence is the reason the reviewer can
-               be trusted with it: a note they believe was emailed is a note
-               that leaves the applicant waiting for a message nobody sent. -->
-          Hold parks it here with your note and sends the applicant nothing at all — they can still
-          attach the document you are waiting for.
+          <div>
+            Approve creates the login and emails the student a setup link; your note is kept, not emailed. Reject emails your reason and can be undone from the notice at the top. Hold keeps it here with your note and sends nothing.
+          </div>
         </div>
 
         <div class="panel-actions">

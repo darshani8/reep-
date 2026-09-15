@@ -95,10 +95,9 @@
         @if (editorIntent() === 'batch') {
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
-            <span
-              >Pick the new batch below. A student can also be left with no batch — the roster calls
-              that unseated.</span
-            >
+            <div>
+              Pick the new batch below.
+            </div>
           </div>
         }
         <div class="editor-grid">
@@ -197,12 +196,9 @@
         @if (menteeReadsRefusal(); as refusal) {
           <div class="notice warn" role="status">
             <span class="icon" aria-hidden="true">lock</span>
-            <span
-              >The time sheet and the English baseline were not readable with this account:
-              {{ refusal }} They are a faculty member's instruments, so the placement office grants
-              itself the Mentee log function in Governance — with a reason, on the audit trail —
-              when it needs to look.</span
-            >
+            <div>
+              Not readable with this account’s access: {{ refusal }}
+            </div>
           </div>
         }
 
@@ -283,10 +279,9 @@
           }
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
-            <span>{{ courseLengthLine() }} A semester whose start and end were never recorded
-              carries no ledger, interview or badge counts — those are attributed by date, and
-              guessing the window would file three semesters of work under whichever one the
-              student is in today.</span>
+            <div>
+              {{ courseLengthLine() }}
+            </div>
           </div>
         </div>
 
@@ -407,12 +402,9 @@
               @if (confirmingSignOut()) {
                 <div class="notice accent" role="alert">
                   <span class="icon" aria-hidden="true">info</span>
-                  <span
-                    >Sign {{ studentName() }} out of every device — phone, laptop, the lab machine
-                    they left themselves signed in on. They are not locked out: the next time they
-                    open REEP they sign in again as usual. Nothing else changes — no password is
-                    reset, no account is disabled, and there is nothing to undo.</span
-                  >
+                  <div>
+                    Sign {{ studentName() }} out of every device. They can sign in again as usual; nothing else changes.
+                  </div>
                 </div>
                 <div class="row-actions" role="group" aria-label="Confirm signing this student out">
                   <button
@@ -474,16 +466,6 @@
                 </div>
               }
 
-              <div class="notice accent">
-                <span class="icon" aria-hidden="true">info</span>
-                <span
-                  >Nothing reads a student's interview count: the cap is a rolling 24-hour count
-                  taken at the moment they start one, and the only endpoint that reports the pair is
-                  the reset above — so this card knows it after a reset and not before. Their
-                  consent grant is not shown either, and that is deliberate: consent is read by the
-                  account that gave it, and there is no admin read of somebody else's.</span
-                >
-              </div>
             </div>
 
             <div class="card">
@@ -511,14 +493,6 @@
                   for this student.
                 </div>
               }
-              <div class="notice accent">
-                <span class="icon" aria-hidden="true">info</span>
-                <span
-                  >These are the student's own mock interviews. What STAFF have done to this record
-                  — every edit, move and decision — is the Audit view, which reads the trail rows
-                  filed against this student and this account.</span
-                >
-              </div>
             </div>
           </div>
 
@@ -648,14 +622,9 @@
                 </div>
                 <div class="notice accent">
                   <span class="icon" aria-hidden="true">info</span>
-                  <span
-                    >The score is weighed over the checks that could be MEASURED, so it answers
-                    "against what is known about this student" and rises as the imports land. A
-                    check marked <b>Not measured</b> has not been run — nothing has been imported or
-                    recorded for it — which is not the same fact as failing it, and when too little
-                    is measurable to score at all the band says so in words instead of printing a
-                    zero.</span
-                  >
+                  <div>
+                    A check marked <b>Not measured</b> has not been run yet.
+                  </div>
                 </div>
               } @else {
                 <div class="empty">
@@ -723,11 +692,9 @@
               @if (weeklyRefusal(); as refusal) {
                 <div class="notice warn" role="status">
                   <span class="icon" aria-hidden="true">lock</span>
-                  <span
-                    >Attendance and verified skills were not readable with this account:
-                    {{ refusal }} They are the Analytics function, which is granted separately from
-                    the student roster.</span
-                  >
+                  <div>
+                    Not readable with this account’s access: {{ refusal }}
+                  </div>
                 </div>
               }
 
@@ -835,10 +802,9 @@
           @if (weeklyRefusal(); as refusal) {
             <div class="notice warn" role="status">
               <span class="icon" aria-hidden="true">lock</span>
-              <span
-                >This was not readable with this account: {{ refusal }} Attendance is the Analytics
-                function, granted separately from the student roster.</span
-              >
+              <div>
+                Not readable with this account’s access: {{ refusal }}
+              </div>
             </div>
           } @else if (attendanceWeeks().length > 0) {
             <div class="table-scroll">
@@ -868,16 +834,6 @@
                 </tbody>
               </table>
             </div>
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              <span
-                >The mean above the score counts only the weeks that HAD sessions.
-                <code>attendance_records</code> carries a course code and a session number and no
-                semester column at all, so no query on this schema can answer "attendance for
-                semester 3" — which is why the semester timeline shows ledger days, interviews and
-                badges, and not this.</span
-              >
-            </div>
           } @else {
             <div class="empty">
               <span class="icon" aria-hidden="true">event_available</span>No attendance sessions in
@@ -902,11 +858,9 @@
           @if (menteeReadsRefusal(); as refusal) {
             <div class="notice warn" role="status">
               <span class="icon" aria-hidden="true">lock</span>
-              <span
-                >The ledger was not readable with this account: {{ refusal }} It is a faculty
-                member's instrument; the placement office grants itself the Mentee log function in
-                Governance — with a reason, on the audit trail — when it needs to look.</span
-              >
+              <div>
+                Not readable with this account’s access: {{ refusal }}
+              </div>
             </div>
           } @else if (ledger(); as summary) {
             <dl class="facts">
@@ -951,14 +905,6 @@
                   }
                 </tbody>
               </table>
-            </div>
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              <span
-                >Per-semester reconciled days are on the semester timeline, where a semester with no
-                recorded start and end carries no count at all — a ledger day knows its date and
-                not its semester.</span
-              >
             </div>
           } @else {
             <div class="empty">
@@ -1033,15 +979,6 @@
                 </tbody>
               </table>
             </div>
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              <span
-                >Audio is captured only where the operator, the college's policy and the student's
-                own live grant all say so, and it is reachable only by whoever holds the interview
-                audio function. This column says whether a recording exists, not that it can be
-                opened from here.</span
-              >
-            </div>
           } @else {
             <div class="empty">
               <span class="icon" aria-hidden="true">record_voice_over</span>This student has not sat
@@ -1093,17 +1030,6 @@
                   }
                 </tbody>
               </table>
-            </div>
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              <span
-                >Reading a record writes no row of its own — opening a student is the most frequent
-                thing the console does, and a trail that logged every read would bury the writes it
-                exists to show. The approval that minted this account is filed against the
-                APPLICATION, not against this student, and is deliberately not chased through the
-                email address: matching a person by a string they typed on a public form is how the
-                wrong person's application ends up on somebody's record.</span
-              >
             </div>
           } @else {
             <div class="empty">

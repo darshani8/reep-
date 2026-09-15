@@ -173,15 +173,6 @@
               </div>
             </div>
 
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              <div>
-                The department decides who this person can see: their HOD, the batches they may
-                mentor, and the leave approvals they receive. It can be changed later from the
-                Faculty screen.
-              </div>
-            </div>
-
             <div class="card next-card">
               <h2 class="next-title">What happens next</h2>
               <div class="next-grid">
@@ -274,11 +265,7 @@
           <div class="notice warn" role="status">
             <span class="icon" aria-hidden="true">shield_person</span>
             <div>
-              <strong>{{ emailDomain() }}</strong> is not one of this college’s domains
-              ({{ collegeDomains().join(', ') }}). The server refuses it unless the box below is
-              ticked with a reason. Check the address first — a typo in a domain mints a REEP
-              account on an address the institution does not control, and the roster is the access
-              control.
+              <strong>{{ emailDomain() }}</strong> is not one of this college’s domains ({{ collegeDomains().join(', ') }}). Tick the box below and give a reason to allow it.
             </div>
           </div>
         }
@@ -364,27 +351,14 @@
               <div class="notice good" role="status">
                 <span class="icon" aria-hidden="true">mail</span>
                 <div>
-                  <strong>The activation link was emailed</strong> to {{ account.email }} and expires
-                  in {{ account.expires_in_hours | plural: 'hour' }}. It is deliberately not shown
-                  here as well, and it cannot be read back — if the mail never arrives, mint a fresh
-                  one with <strong>Activation link</strong> on the
-                  <a routerLink="/admin/faculty">Faculty</a> screen.
+                  <strong>The sign-in link was emailed</strong> to {{ account.email }} and expires in {{ account.expires_in_hours | plural: 'hour' }}. If it never arrives, make a new one on the <a routerLink="/admin/faculty">Faculty</a> screen.
                 </div>
               </div>
             } @else {
               <div class="notice warn" role="status">
                 <span class="icon" aria-hidden="true">warning</span>
                 <div>
-                  <strong>No mail was sent</strong> — this deployment has no mail transport
-                  configured, so the link below is the only way {{ account.name }} gets in. Hand it
-                  over yourself. It expires in
-                  {{ account.expires_in_hours | plural: 'hour' }}.
-                  @if (account.shown_once) {
-                    It is shown <strong>once</strong>: only its fingerprint is stored, so leaving
-                    this page loses it and the
-                    <a routerLink="/admin/faculty">Faculty</a> screen mints a new one rather than
-                    repeating this one.
-                  }
+                  <strong>No mail was sent.</strong> The link below is the only way {{ account.name }} gets in — hand it over yourself. It expires in {{ account.expires_in_hours | plural: 'hour' }} and is shown once.
                 </div>
               </div>
 

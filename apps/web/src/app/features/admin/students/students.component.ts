@@ -33,14 +33,11 @@
  * a batch rather than returning the part they may see — so a refusal that
  * rendered as "nothing on record" would report the opposite of the truth.
  *
- * WHAT IS STILL AN EM DASH, AND WHY IT IS NOT A PHASE. Readiness, CGPA and
- * Attendance are on the board's grid and are NOT on `GET /api/admin/students`:
- * that endpoint answers identity, seating and stage. All three are real and
- * readable per student — on Student 360, one request per student — and a
- * roster that fetched them would be one request per ROW on every page. So the
- * three cells render an em dash, the `.notice.accent` points at the screen that
- * does answer them, and no number is invented: a plausible number in a
- * screenshot is indistinguishable from working software.
+ * NO READINESS, CGPA OR ATTENDANCE COLUMNS. The board drew them and
+ * `GET /api/admin/students` carries none of the three — it answers identity,
+ * seating and stage — so they were always a dash. A roster that fetched them
+ * from Student 360 would be one request per ROW on every page. Removed on
+ * 2026-09-15; they are read per student on the student's own record.
  *
  * THE SELECTION ACTIONS ARE REAL, one PATCH per student. B9.3 will make
  * "assign N selected" a single audited request; until it exists the honest
@@ -1155,9 +1152,6 @@ export class AdminStudentsComponent {
       statusLabel: hasSignedIn ? 'Active' : 'Invited',
       statusTone: hasSignedIn ? 'good' : 'warn',
       lastLoginAt: row.last_login_at,
-      readiness: null,
-      cgpa: null,
-      attendancePercent: null,
     };
   }
 

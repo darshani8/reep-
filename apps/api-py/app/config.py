@@ -634,6 +634,26 @@ class Settings(BaseSettings):
     # stay on the local audio volume, no queue -> bulk uploads store straight
     # into Postgres, no table -> in-memory session state, no endpoint -> no
     # search index. GET /api/platform/admin/status says which are on.
+    # ---------------------------------------------------------------- #
+    # THE IDENTITY LEDGER (app/export_identity.py). Blank bucket means the
+    # ledger is not being kept, and `python -m app.export_identity` says so
+    # rather than pretending -- the same honesty rule as the platform
+    # projections below.
+    #
+    # THIS IS NOT A BACKUP SETTING AND MUST NOT BORROW A BACKUP'S LIFECYCLE.
+    # Every database artefact this deployment has is bounded by
+    # `backupRetentionDays`, which RDS caps at 35; this bucket is the one place
+    # a login survives past that, so its retention is "never" and its bucket is
+    # its own. A prefix under an existing bucket would inherit that bucket's
+    # lifecycle rules, which is how "permanent" quietly becomes 35 days again.
+    identity_ledger_bucket: str = ""
+    identity_ledger_prefix: str = "identity"
+    # Blank falls back to the ordinary AWS environment, like every other client
+    # here. Named separately because the ledger may deliberately live in a
+    # different region from the database it describes -- a bucket in the same
+    # region as the thing it is protecting against losing is half a plan.
+    identity_ledger_region: str = ""
+
     platform_aws_region: str = ""
     platform_ug_queue_url: str = ""
     platform_pg_queue_url: str = ""

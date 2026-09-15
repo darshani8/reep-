@@ -90,6 +90,7 @@ from aws_cdk import (
     CfnOutput,
     CfnResource,
     Duration,
+    Fn,
     IAspect,
     RemovalPolicy,
     Stack,
@@ -113,6 +114,7 @@ from aws_cdk import (
     aws_secretsmanager as sm,
     aws_sns as sns,
     aws_sns_subscriptions as subs,
+    aws_ssm as ssm,
 )
 from constructs import Construct, IConstruct
 import jsii
@@ -502,22 +504,182 @@ class CoreStack(Stack):
             )
             for i in range(2)
         ]
-        nat_eip = ec2.CfnEIP(self, "NatEip", domain="vpc")
-        nat = ec2.CfnNatGateway(
-            self, "Nat", allocation_id=nat_eip.attr_allocation_id, subnet_id=public_subnets[0].ref
-        )
-        nat.add_dependency(igw_attach)
+        # EGRESS FOR THE PRIVATE SUBNETS, AND IT IS TWO FLAGS BECAUSE THE SWAP
+        # MUST BE REVERSIBLE IN ONE FLIP.
+        #
+        # The managed NAT gateway is ~$43.6/month at list price for a workload
+        # that pushed 48 GB in a month (docs/cost-review-2026-09.md). A
+        # `t4g.nano` doing the same job is ~$4.6/month and, unlike the gateway,
+        # has NO per-GB processing charge at all.
+        #
+        # WHY AN INSTANCE AND NOT PUBLIC SUBNETS. Moving the tasks to public
+        # subnets with `assignPublicIp=ENABLED` saves slightly more and looked
+        # like the obvious answer until the call sites were counted: SEVEN
+        # places pin the private subnets and `DISABLED` — this service, the
+        # retention schedule, the identity-ledger schedule, the db-dump
+        # schedule, and three `run-task` invocations in deploy.yml and
+        # ops-task.yml whose subnet DEFAULTS are hardcoded subnet ids. Three of
+        # those seven are SCHEDULED and would have failed at 23:30, 01:00 and
+        # 03:00 with nobody watching and no alarm that covers them — the backup
+        # alarms watch AWS Backup, not these tasks. Swapping the route target
+        # changes ONE thing and leaves all seven working, and it keeps the
+        # egress address stable, which a per-task public IP does not.
+        #
+        # TWO FLAGS, the `hardenEcs` precedent:
+        #   natInstance=true   builds the instance and points the private
+        #                      default route at it. The GATEWAY STAYS UP. If
+        #                      egress misbehaves, flip this back and the route
+        #                      returns to a gateway that never went away.
+        #   natGateway=false   only once the instance is proven: deletes the
+        #                      gateway and its EIP, which is where the money
+        #                      actually stops.
+        #
+        # Deleting the gateway in the same update that first routes away from
+        # it would make the rollback a re-create, and a re-created gateway gets
+        # a NEW public address — so anything that ever allowlisted the old one
+        # breaks on the worst possible day. Hence the middle state.
+        use_nat_gateway = flag("natGateway", True)
+        use_nat_instance = flag("natInstance", False)
+        if not use_nat_gateway and not use_nat_instance:
+            raise ValueError(
+                "natGateway=false with natInstance=false leaves the private subnets with NO route to "
+                "the internet. Every task would fail to START (the ECS agent reads Secrets Manager over "
+                "that route and there are no VPC endpoints), Google sign-in's JWKS fetch would fail and "
+                "the nightly ledger, dump and retention tasks would stop. Set natInstance=true first, "
+                "prove egress, and only then set natGateway=false."
+            )
+
+        nat = nat_eip = None
+        if use_nat_gateway:
+            nat_eip = ec2.CfnEIP(self, "NatEip", domain="vpc")
+            nat = ec2.CfnNatGateway(
+                self, "Nat", allocation_id=nat_eip.attr_allocation_id, subnet_id=public_subnets[0].ref
+            )
+            nat.add_dependency(igw_attach)
+
+        nat_instance = None
+        if use_nat_instance:
+            # Ingress from the VPC only. This box forwards for the private
+            # subnets and is not a service anybody dials from outside.
+            nat_sg = ec2.CfnSecurityGroup(
+                self,
+                "NatInstanceSg",
+                group_description=f"{project} NAT instance - forwards egress for the private subnets",
+                vpc_id=vpc.ref,
+                security_group_ingress=[
+                    ec2.CfnSecurityGroup.IngressProperty(
+                        ip_protocol="-1", cidr_ip="10.42.0.0/16", description="all traffic from inside the VPC"
+                    )
+                ],
+                security_group_egress=[
+                    ec2.CfnSecurityGroup.EgressProperty(ip_protocol="-1", cidr_ip="0.0.0.0/0", description="egress to the internet")
+                ],
+                tags=[{"key": "Name", "value": f"{project}-nat"}],
+            )
+            # SSM Session Manager and nothing else: this instance sits in the
+            # data path, so it has to be patchable without opening SSH to it
+            # and without a bastion. No inbound port is ever required for that.
+            nat_role = iam.CfnRole(
+                self,
+                "NatInstanceRole",
+                role_name=f"{project}-nat-instance",
+                assume_role_policy_document={
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {"Effect": "Allow", "Principal": {"Service": "ec2.amazonaws.com"}, "Action": "sts:AssumeRole"}
+                    ],
+                },
+                managed_policy_arns=["arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"],
+            )
+            nat_profile = iam.CfnInstanceProfile(
+                self, "NatInstanceProfile", roles=[nat_role.ref], instance_profile_name=f"{project}-nat-instance"
+            )
+            # The AMI is resolved by CloudFormation from AWS's own public SSM
+            # parameter at deploy time, not looked up at synth: the synth guards
+            # run in CI with no credentials and must not need a region read.
+            # ARM64 for the same reason apiArm64 exists — a t4g is cheaper than
+            # the x86 equivalent for identical work.
+            nat_ami = ssm.StringParameter.value_for_typed_string_parameter_v2(
+                self,
+                "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
+                ssm.ParameterValueType.AWS_EC2_IMAGE_ID,
+            )
+            # cloud-init runs user data on FIRST boot only, so the forwarding
+            # rules are installed as a systemd unit rather than applied inline —
+            # otherwise the first reboot silently turns this back into a plain
+            # EC2 instance that routes nothing, and the symptom is the whole
+            # deployment losing egress with a green instance in the console.
+            # Every rule is applied idempotently (-C before -A) so a restart of
+            # the unit cannot stack duplicates.
+            nat_user_data = Fn.base64(
+                "\n".join(
+                    [
+                        "#!/bin/bash",
+                        "set -euxo pipefail",
+                        "cat >/usr/local/sbin/reep-nat.sh <<'NATEOF'",
+                        "#!/bin/bash",
+                        "set -eu",
+                        "sysctl -w net.ipv4.ip_forward=1",
+                        "IFACE=$(ip -o -4 route show to default | awk '{print $5}' | head -1)",
+                        'iptables -t nat -C POSTROUTING -o "$IFACE" -s 10.42.0.0/16 -j MASQUERADE 2>/dev/null || \\',
+                        '  iptables -t nat -A POSTROUTING -o "$IFACE" -s 10.42.0.0/16 -j MASQUERADE',
+                        "iptables -C FORWARD -s 10.42.0.0/16 -j ACCEPT 2>/dev/null || \\",
+                        "  iptables -A FORWARD -s 10.42.0.0/16 -j ACCEPT",
+                        "NATEOF",
+                        "chmod +x /usr/local/sbin/reep-nat.sh",
+                        "cat >/etc/systemd/system/reep-nat.service <<'UNITEOF'",
+                        "[Unit]",
+                        "Description=REEP NAT forwarding for the private subnets",
+                        "After=network-online.target",
+                        "Wants=network-online.target",
+                        "[Service]",
+                        "Type=oneshot",
+                        "RemainAfterExit=yes",
+                        "ExecStart=/usr/local/sbin/reep-nat.sh",
+                        "[Install]",
+                        "WantedBy=multi-user.target",
+                        "UNITEOF",
+                        "systemctl daemon-reload",
+                        "systemctl enable --now reep-nat.service",
+                        "",
+                    ]
+                )
+            )
+            nat_instance = ec2.CfnInstance(
+                self,
+                "NatInstance",
+                instance_type="t4g.nano",
+                image_id=nat_ami,
+                subnet_id=public_subnets[0].ref,
+                security_group_ids=[nat_sg.ref],
+                iam_instance_profile=nat_profile.ref,
+                # WITHOUT THIS THE INSTANCE FORWARDS NOTHING. EC2 drops any
+                # packet whose source or destination is not the instance itself
+                # unless the check is off, and the failure is total and silent:
+                # the instance is healthy, the route is correct, and every
+                # connection from a private subnet simply times out.
+                source_dest_check=False,
+                user_data=nat_user_data,
+                tags=[{"key": "Name", "value": f"{project}-nat"}],
+            )
+            nat_instance.add_dependency(igw_attach)
         public_rt = ec2.CfnRouteTable(self, "PublicRouteTable", vpc_id=vpc.ref)
         ec2.CfnRoute(
             self, "PublicDefaultRoute", route_table_id=public_rt.ref, destination_cidr_block="0.0.0.0/0", gateway_id=igw.ref
         ).add_dependency(igw_attach)
         private_rt = ec2.CfnRouteTable(self, "PrivateRouteTable", vpc_id=vpc.ref)
+        # Changing this target is a REPLACEMENT of the route (CloudFormation
+        # deletes and recreates it), so the private subnets lose egress for a
+        # few seconds during the swap. Harmless for requests already in flight
+        # through the ALB, but it will interrupt a live interview's upstream
+        # stream — run the flip outside interview hours.
         ec2.CfnRoute(
             self,
             "PrivateDefaultRoute",
             route_table_id=private_rt.ref,
             destination_cidr_block="0.0.0.0/0",
-            nat_gateway_id=nat.ref,
+            instance_id=nat_instance.ref if nat_instance is not None else None,
+            nat_gateway_id=None if nat_instance is not None else nat.ref,
         )
         for i, sn in enumerate(public_subnets):
             ec2.CfnSubnetRouteTableAssociation(self, f"PublicRta{i}", subnet_id=sn.ref, route_table_id=public_rt.ref)

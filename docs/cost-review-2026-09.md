@@ -273,6 +273,83 @@ evidence above is from PyPI's index, not from a build. The first
 stops a half-built image reaching the flag.
 
 
+### 3b. The NAT gateway — built as an instance swap, both flags OFF
+
+~$43.6/month at list price (hours $40.9 + $2.7 of processing on **48 GB a
+month**) for the egress of a deployment that peaks at 1,851 requests a day. A
+`t4g.nano` doing the identical job is **~$4.6/month** and carries **no per-GB
+charge at all**, so the saving is ~$39/month.
+
+**Why an instance and not public subnets.** Moving the tasks to public subnets
+with `assignPublicIp=ENABLED` saves slightly more and was the plan until the
+call sites were counted. **Seven** places pin the private subnets and
+`DISABLED`:
+
+| | |
+|---|---|
+| `_api_service` | the API service |
+| `RetentionSchedule` | nightly sweep, 03:00 IST |
+| `IdentityLedgerSchedule` | 23:30 IST |
+| `DbDumpSchedule` | 01:00 IST |
+| `deploy.yml` | migrations, and seed_kb |
+| `ops-task.yml` | every ops task |
+
+The three workflow call sites even hardcode `subnet-0792c0ddcdd02f34f,subnet-0a41b8c5a98485d1a`
+as their defaults, and the override is a GitHub repository variable that lives
+outside this repository. **Three of the seven are scheduled**, so a missed one
+does not fail a deploy — it fails at 23:30, 01:00 or 03:00 with nobody watching,
+and no alarm covers them (the backup alarms watch AWS Backup, not these tasks).
+Swapping the route target changes ONE thing and leaves all seven working
+untouched. It also keeps the egress address stable, which per-task public IPs do
+not — so the question "does anything allowlist our IP?" never has to be answered.
+
+**VPC endpoints were rejected outright**: roughly seven interface endpoints at
+~$7.30/month each is ~$51/month, *more* than the gateway — and it would not even
+work, because Google's JWKS, Sentry and the LLM providers are not AWS services
+and Bedrock is in **Tokyo**, where an ap-south-1 endpoint cannot reach it.
+
+**TWO FLAGS, and the middle state is the point.**
+
+1. `core-nat-instance` → `-c natInstance=true`. Builds the instance and points
+   the private default route at it. **The gateway stays up.** If egress
+   misbehaves, flip back and the route returns to a gateway that never went
+   away.
+2. `core-nat-retire` → `-c natInstance=true -c natGateway=false`. Deletes the
+   gateway and its EIP. This is where the money stops, and it demands the typed
+   sentence **`EGRESS IS PROVEN`** for `core-9b`'s reason: nothing in this
+   repository, this workflow's role, the template or the diff can tell you
+   whether the instance is actually forwarding packets.
+
+Deleting the gateway in the same update that first routes away from it would
+make the rollback a *re-create*, and a re-created gateway gets a **new public
+address** — breaking anything that allowlisted the old one, on the worst possible
+day. `natGateway=false` **without** `natInstance=true` raises at synth rather
+than deploying a template with no egress at all.
+
+Two failure modes are guarded because both are total and silent:
+
+* **`SourceDestCheck: false`.** Without it EC2 drops every packet whose source
+  is not the instance. The instance is healthy, the route is correct, and every
+  connection from a private subnet simply times out.
+* **A systemd unit, not inline rules.** cloud-init runs user data on FIRST BOOT
+  ONLY, so rules applied inline vanish on the first reboot — and the deployment
+  loses egress behind a green instance.
+
+**WHAT IS NOT PROVEN: no packet has ever crossed this instance.** The synth
+guards prove the template, not that the box forwards. That is the whole reason
+step 1 leaves the gateway standing, and the reason step 2 asks for a sentence a
+human can only type after checking. After step 1, before step 2, run an outbound
+HTTPS call from a task in a private subnet and confirm it answers.
+
+What the swap costs honestly: a `t4g.nano` is now an instance somebody patches
+(Session Manager is attached for exactly that, with no inbound port). It is a
+single point of failure — but so is what it replaces: **the current gateway is
+one gateway in `ap-south-1a` serving both private subnets**, so an
+`ap-south-1a` failure already takes egress away from the `ap-south-1b` task.
+This swap does not make availability worse; it makes the same topology cheaper.
+Two gateways, the genuinely-HA answer, would be ~$87/month.
+
+
 ### 4. Two things I declined to change
 
 **`apiCpu` stays at 512.** Dropping to 256 would save about $16/month and it is

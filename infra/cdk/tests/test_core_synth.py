@@ -1175,3 +1175,85 @@ def test_graviton_changes_nothing_but_the_platform() -> None:
     assert {k: v for k, v in a.items() if k != "RuntimePlatform"} == {
         k: v for k, v in b.items() if k != "RuntimePlatform"
     }, "apiArm64 changed more than the platform"
+
+
+def test_nat_egress_is_unchanged_by_default(hardened: Template) -> None:
+    """No flag set means the managed gateway, exactly as it is live today."""
+    hardened.resource_count_is("AWS::EC2::NatGateway", 1)
+    hardened.resource_count_is("AWS::EC2::Instance", 0)
+    route = hardened.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
+    assert "NatGatewayId" in route, "the private subnets stopped routing through the gateway"
+    assert "InstanceId" not in route
+
+
+def test_nat_instance_does_not_remove_the_gateway() -> None:
+    """THE REVERSIBILITY, and the whole reason this is two flags.
+
+    `natInstance=true` points the route at the instance and LEAVES THE GATEWAY
+    STANDING. Flipping the flag back restores egress through a gateway that
+    never went away — no re-create, and so no new public address for anything
+    that allowlisted the old one.
+    """
+    t = _core("harden", natInstance="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    t.resource_count_is("AWS::EC2::NatGateway", 1)
+    t.resource_count_is("AWS::EC2::Instance", 1)
+    route = t.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
+    assert "InstanceId" in route and "NatGatewayId" not in route
+
+
+def test_nat_instance_forwards_at_all() -> None:
+    """`SourceDestCheck: false` and IP forwarding, pinned.
+
+    Without the first, EC2 drops every packet whose source is not the instance
+    and the box forwards NOTHING — with a healthy instance, a correct route and
+    connections that simply time out. Without the second the kernel does not
+    route between interfaces. Both are invisible from the console and total.
+    """
+    t = _core("harden", natInstance="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    inst = next(v for v in t.to_json()["Resources"].values() if v["Type"] == "AWS::EC2::Instance")
+    p = inst["Properties"]
+    assert p["SourceDestCheck"] is False, "the NAT instance would forward nothing"
+    assert p["InstanceType"] == "t4g.nano"
+    user_data = p["UserData"]["Fn::Base64"]
+    assert "net.ipv4.ip_forward=1" in user_data
+    assert "MASQUERADE" in user_data
+    # A systemd unit, not an inline apply: cloud-init runs user data on FIRST
+    # BOOT ONLY, so rules applied inline vanish on the first reboot and the
+    # deployment loses egress behind a green instance.
+    assert "systemctl enable --now reep-nat.service" in user_data
+    assert "RemainAfterExit=yes" in user_data
+
+
+def test_nat_instance_takes_no_traffic_from_outside_the_vpc() -> None:
+    """It forwards for the private subnets; it is not dialled from anywhere."""
+    t = _core("harden", natInstance="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    sg = next(v for v in t.to_json()["Resources"].values()
+              if v["Type"] == "AWS::EC2::SecurityGroup"
+              and "NAT instance" in str(v["Properties"].get("GroupDescription", "")))
+    for rule in sg["Properties"]["SecurityGroupIngress"]:
+        assert rule.get("CidrIp") == "10.42.0.0/16", f"NAT instance ingress is open beyond the VPC: {rule}"
+
+
+def test_retiring_the_gateway_needs_the_instance_first() -> None:
+    """`natGateway=false` alone is a template with NO egress at all.
+
+    It synthesises perfectly and it would take the deployment down: every task
+    fails to START (the ECS agent reads Secrets Manager over that route and
+    there are no VPC endpoints), Google sign-in's JWKS fetch fails, and the
+    three scheduled tasks stop at 23:30, 01:00 and 03:00 with no alarm that
+    covers them. Refused at synth rather than discovered at 3am.
+    """
+    with pytest.raises(ValueError, match="NO route to the internet"):
+        _core("harden", natGateway="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+
+
+def test_the_money_only_stops_when_the_gateway_goes() -> None:
+    """Both flags together: the instance carries egress and the gateway and its
+    EIP are gone. This is the state that actually saves the ~$43.6/month."""
+    t = _core("harden", natInstance="true", natGateway="false",
+              drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    t.resource_count_is("AWS::EC2::NatGateway", 0)
+    t.resource_count_is("AWS::EC2::EIP", 0)
+    t.resource_count_is("AWS::EC2::Instance", 1)
+    route = t.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
+    assert "InstanceId" in route

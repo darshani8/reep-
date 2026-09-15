@@ -409,3 +409,65 @@ no permission is worse than no cost check.
   placeholder**, exactly as `infra/cdk/reep_core/stack.py` says. Storage is
   negligible today and unbounded by construction; it becomes a real number once
   the college answers the retention question.
+
+## STOP — `cdk deploy reep-core` is not safe today (found 2026-09-15, NOT fixed)
+
+**Deploying `reep-core` from `main` right now removes TLS and silences every
+alarm.** This predates all the work above; it is not caused by it. But the
+`core-arm64`, `core-nat-instance` and `core-nat-retire` buttons added here would
+trigger it, and so would the `core-9a` / `core-9b` buttons that were already
+there.
+
+The deployed stack has **86** resources. The repository synthesises **80**. The
+difference, computed by fetching the live template with `cloudformation
+get-template` and diffing it against an in-process synth:
+
+| A deploy from `main` would | Resource |
+|---|---|
+| **DELETE** | `AlbHttpsB7CA700A` — the **HTTPS listener** (cert `c158dc7d…`, `ELBSecurityPolicy-TLS13-1-2-2021-06`) |
+| **DELETE** | `AlbHttpRedirect2E78FE2C` — the HTTP→HTTPS redirect |
+| **DELETE** | `Alertsbdarshan5bgscetacin…` — the **only** alert subscription |
+| **DELETE** | `DocumentArchiveSchedule`, `DocumentArchiveBucket` + its policy |
+| **CREATE** | `AlbHttpOrigin…` — a plain **HTTP** listener in place of the two above |
+
+### Why
+
+Seven context values the live stack depends on are **absent from `cdk.json`**.
+They were passed as `-c` flags at deploy time and recorded nowhere, so a synth
+from the repository renders a *different stack* — one plain HTTP listener where
+the live ALB has two listeners and a certificate. This is exactly the failure
+`infra/cdk/tools/tfvars_from_state.py` was written to fix for Terraform
+("the first apply's values were typed as `-var` flags and recorded nowhere, and
+without them the plan can never be clean"), recurring in CDK.
+
+Recovered from the live resources on 2026-09-15 — **paste these into
+`cdk.json`'s `context` and re-run `cdk diff reep-core` until it is empty:**
+
+```json
+"domainName": "reep.sast-skills.com",
+"albOriginDomain": "origin.reep.sast-skills.com",
+"albAcmCertificateArn": "arn:aws:acm:ap-south-1:445363794125:certificate/c158dc7d-3d8c-460c-8aec-58f8a52b1597",
+"cloudfrontAcmCertificateArn": "arn:aws:acm:us-east-1:445363794125:certificate/d206fc76-8ee8-43fb-80be-2a82a1d34feb",
+"wafWebAclArn": "arn:aws:wafv2:us-east-1:445363794125:global/webacl/reep-edge/452a8dc8-6b3e-4ea8-a24f-b6aca6c9abc2",
+"drVaultArn": "arn:aws:backup:ap-southeast-1:445363794125:backup-vault:reep-vault-dr",
+"alertEmail": "bdarshan5@bgscet.ac.in"
+```
+
+None of these is a secret: an ACM ARN and a vault ARN are identifiers, and the
+address is already the logical id of the subscription in the deployed template.
+`cdk diff` being empty afterwards is the proof, and it is the check that was
+never run — **do not deploy `reep-core` until it is.**
+
+### The other half: `app.archive_documents` does not exist
+
+`DocumentArchiveSchedule` is ENABLED, fires `cron(30 20 * * ? *)` UTC and runs
+`python -m app.archive_documents`. That module is **not in this repository** — not
+on `main`, not in any branch here — and nothing in `reep_core/stack.py` creates
+that schedule. It was deployed at 16:20 UTC on 2026-09-15 from code that is not
+here. So the schedule fails nightly with `ModuleNotFoundError`, silently, because
+no alarm covers the scheduled tasks. Either the code needs to land or the
+schedule needs to go; right now it is a nightly failure nobody is told about.
+
+**`infra-drift.yml` (in this same change) is what turns all of the above from a
+discovery into a daily report.** Its first run would have opened an issue naming
+these seven resources.

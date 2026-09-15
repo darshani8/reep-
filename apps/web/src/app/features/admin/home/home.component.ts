@@ -259,11 +259,18 @@ export const HOME_GROUPS: readonly TaskGroup[] = [
     title: 'Setup',
     tiles: [
       {
-        label: 'Add a college',
+        label: 'Set up a college',
+        icon: 'add_circle',
+        path: '/admin/setup',
+        capability: 'admin.institution',
+        words: 'new college departments courses specializations batches setup wizard',
+      },
+      {
+        label: 'Colleges',
         icon: 'apartment',
         path: '/admin/colleges',
         capability: 'admin.institution',
-        words: 'colleges campus domains',
+        words: 'add a college campus domains',
       },
       {
         label: 'Departments, courses & batches',

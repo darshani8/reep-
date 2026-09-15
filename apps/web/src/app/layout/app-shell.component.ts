@@ -197,6 +197,12 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
     title: 'College setup',
     items: [
       {
+        label: 'Set up a college',
+        icon: 'add_circle',
+        path: '/admin/setup',
+        capability: 'admin.institution',
+      },
+      {
         label: 'Colleges',
         icon: 'apartment',
         path: '/admin/colleges',

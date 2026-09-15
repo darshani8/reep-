@@ -372,6 +372,17 @@ export const routes: Routes = [
             (m) => m.AdminCollegesComponent,
           ),
       },
+      // Set up a college: the spine typed once and written in one press, on
+      // the same five POSTs College structure makes. The same key as the two
+      // screens it replaces the fifteen forms of.
+      {
+        path: 'admin/setup',
+        canActivate: [capabilityGuard('admin.institution')],
+        loadComponent: () =>
+          import('./features/admin/college-setup/college-setup.component').then(
+            (m) => m.AdminCollegeSetupComponent,
+          ),
+      },
       // The institution console: College -> Department -> Course ->
       // Specialization -> Batch, and seating. First and only caller of
       // /api/admin/*. Lazy like every other route (AGENTS.md: one re-eager-ed

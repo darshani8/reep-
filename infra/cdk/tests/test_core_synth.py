@@ -612,6 +612,43 @@ def test_a_configuration_set_on_the_task_is_never_ungranted() -> None:
         assert not granted, "a configuration set is granted that nothing names"
 
 
+def test_a_mail_send_that_fails_raises_an_alarm(hardened: Template) -> None:
+    """The alarm the 2026-09-15 outage did not have.
+
+    Eighty minutes of total mail failure produced no alarm, no log line and no
+    failed request: `deliver_once` swallows the driver's exception so a decision
+    stands whether or not its mail went, and the only witness was a
+    `mail_logs.error` column nothing reads.
+
+    NOT_BREACHING is right here and would be wrong for the backup sweep: no
+    failures publishes no datapoint, and a quiet hour means mail is FINE. The
+    state this cannot see -- the api not running at all -- belongs to
+    `reep-no-healthy-api`, which treats missing data as breaching for exactly
+    that reason.
+    """
+    hardened.has_resource_properties(
+        "AWS::Logs::MetricFilter",
+        {
+            "FilterName": "mail-send-failed",
+            "FilterPattern": '"Mail send failed"',
+            "MetricTransformations": Match.array_with(
+                [Match.object_like({"MetricNamespace": "REEP/Mail", "MetricName": "MailSendFailed"})]
+            ),
+        },
+    )
+    hardened.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmName": "reep-mail-send-failed",
+            "Namespace": "REEP/Mail",
+            "MetricName": "MailSendFailed",
+            "Threshold": 1,
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+            "TreatMissingData": "notBreaching",
+        },
+    )
+
+
 # ------------------------------------------------------ ses (the mail path) --
 
 
@@ -1570,3 +1607,143 @@ def test_the_tls_branch_synthesises_with_terraforms_listener_policy() -> None:
 def test_an_existing_oidc_provider_is_referenced_not_redeclared() -> None:
     t = _core("import", githubOidcProviderArn="arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com")
     t.resource_count_is("AWS::IAM::OIDCProvider", 0)
+
+
+def test_graviton_is_off_by_default_and_renders_nothing(hardened: Template) -> None:
+    """The api task definition carries NO RuntimePlatform unless asked.
+
+    Not tidiness — the live task definition has no such property, so rendering
+    one (even `X86_64`, which is what ECS defaults to anyway) is a diff against
+    the import mirror, and `test_the_database_half_does_not_touch_the_ecs_trio`
+    would fail on a change that alters nothing about how the api runs. CDK
+    renders the property only when `runtime_platform` is not None, which is why
+    the flag passes None rather than an explicit X86_64.
+    """
+    for td in hardened.find_resources("AWS::ECS::TaskDefinition").values():
+        assert "RuntimePlatform" not in td["Properties"], (
+            "a RuntimePlatform appeared with apiArm64 unset — the import mirror has none"
+        )
+
+
+def test_graviton_flag_moves_every_api_family_to_arm64() -> None:
+    """`-c apiArm64=true` puts ARM64 on the task definition, and on EVERY api
+    family rather than one of them.
+
+    Under blue/green there are three (`reep-api`, `-blue`, `-green`) built by
+    one helper, and a colour left on x86 while the others move is a service
+    whose rollback target cannot pull the image the live colour is running.
+    """
+    t = _core(
+        "harden",
+        apiArm64="true",
+        blueGreen="true",
+        drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr",
+    )
+    tds = t.find_resources("AWS::ECS::TaskDefinition")
+    assert len(tds) == 3, f"expected the three api families under blueGreen, found {len(tds)}"
+    for lid, td in tds.items():
+        rp = td["Properties"].get("RuntimePlatform")
+        assert rp is not None, f"{lid} kept no RuntimePlatform while apiArm64 was set"
+        assert rp.get("CpuArchitecture") == "ARM64", f"{lid} is not ARM64: {rp}"
+        assert rp.get("OperatingSystemFamily") == "LINUX", f"{lid} lost its OS family: {rp}"
+
+
+def test_graviton_changes_nothing_but_the_platform() -> None:
+    """Flipping the flag must not move cpu, memory, the image or the secrets.
+
+    The whole claim of this change is "same capacity, 20% cheaper". If the flag
+    were ever to alter a sizing property as well, that claim stops being true
+    and nothing else would notice.
+    """
+    base = _core("harden", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    arm = _core("harden", apiArm64="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    b = next(iter(base.find_resources("AWS::ECS::TaskDefinition").values()))["Properties"]
+    a = next(iter(arm.find_resources("AWS::ECS::TaskDefinition").values()))["Properties"]
+    assert a["Cpu"] == b["Cpu"], "apiArm64 changed the vCPU allocation"
+    assert a["Memory"] == b["Memory"], "apiArm64 changed the memory allocation"
+    assert a["ContainerDefinitions"] == b["ContainerDefinitions"], "apiArm64 changed the container"
+    assert {k: v for k, v in a.items() if k != "RuntimePlatform"} == {
+        k: v for k, v in b.items() if k != "RuntimePlatform"
+    }, "apiArm64 changed more than the platform"
+
+
+def test_nat_egress_is_unchanged_by_default(hardened: Template) -> None:
+    """No flag set means the managed gateway, exactly as it is live today."""
+    hardened.resource_count_is("AWS::EC2::NatGateway", 1)
+    hardened.resource_count_is("AWS::EC2::Instance", 0)
+    route = hardened.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
+    assert "NatGatewayId" in route, "the private subnets stopped routing through the gateway"
+    assert "InstanceId" not in route
+
+
+def test_nat_instance_does_not_remove_the_gateway() -> None:
+    """THE REVERSIBILITY, and the whole reason this is two flags.
+
+    `natInstance=true` points the route at the instance and LEAVES THE GATEWAY
+    STANDING. Flipping the flag back restores egress through a gateway that
+    never went away — no re-create, and so no new public address for anything
+    that allowlisted the old one.
+    """
+    t = _core("harden", natInstance="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    t.resource_count_is("AWS::EC2::NatGateway", 1)
+    t.resource_count_is("AWS::EC2::Instance", 1)
+    route = t.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
+    assert "InstanceId" in route and "NatGatewayId" not in route
+
+
+def test_nat_instance_forwards_at_all() -> None:
+    """`SourceDestCheck: false` and IP forwarding, pinned.
+
+    Without the first, EC2 drops every packet whose source is not the instance
+    and the box forwards NOTHING — with a healthy instance, a correct route and
+    connections that simply time out. Without the second the kernel does not
+    route between interfaces. Both are invisible from the console and total.
+    """
+    t = _core("harden", natInstance="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    inst = next(v for v in t.to_json()["Resources"].values() if v["Type"] == "AWS::EC2::Instance")
+    p = inst["Properties"]
+    assert p["SourceDestCheck"] is False, "the NAT instance would forward nothing"
+    assert p["InstanceType"] == "t4g.nano"
+    user_data = p["UserData"]["Fn::Base64"]
+    assert "net.ipv4.ip_forward=1" in user_data
+    assert "MASQUERADE" in user_data
+    # A systemd unit, not an inline apply: cloud-init runs user data on FIRST
+    # BOOT ONLY, so rules applied inline vanish on the first reboot and the
+    # deployment loses egress behind a green instance.
+    assert "systemctl enable --now reep-nat.service" in user_data
+    assert "RemainAfterExit=yes" in user_data
+
+
+def test_nat_instance_takes_no_traffic_from_outside_the_vpc() -> None:
+    """It forwards for the private subnets; it is not dialled from anywhere."""
+    t = _core("harden", natInstance="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    sg = next(v for v in t.to_json()["Resources"].values()
+              if v["Type"] == "AWS::EC2::SecurityGroup"
+              and "NAT instance" in str(v["Properties"].get("GroupDescription", "")))
+    for rule in sg["Properties"]["SecurityGroupIngress"]:
+        assert rule.get("CidrIp") == "10.42.0.0/16", f"NAT instance ingress is open beyond the VPC: {rule}"
+
+
+def test_retiring_the_gateway_needs_the_instance_first() -> None:
+    """`natGateway=false` alone is a template with NO egress at all.
+
+    It synthesises perfectly and it would take the deployment down: every task
+    fails to START (the ECS agent reads Secrets Manager over that route and
+    there are no VPC endpoints), Google sign-in's JWKS fetch fails, and the
+    three scheduled tasks stop at 23:30, 01:00 and 03:00 with no alarm that
+    covers them. Refused at synth rather than discovered at 3am.
+    """
+    with pytest.raises(ValueError, match="NO route to the internet"):
+        _core("harden", natGateway="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+
+
+def test_the_money_only_stops_when_the_gateway_goes() -> None:
+    """Both flags together: the instance carries egress and the gateway and its
+    EIP are gone. This is the state that actually saves the ~$43.6/month."""
+    t = _core("harden", natInstance="true", natGateway="false",
+              drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    t.resource_count_is("AWS::EC2::NatGateway", 0)
+    t.resource_count_is("AWS::EC2::EIP", 0)
+    t.resource_count_is("AWS::EC2::Instance", 1)
+    route = t.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
+    assert "InstanceId" in route

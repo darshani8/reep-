@@ -1,19 +1,20 @@
 <div class="panel" data-p="colleges">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>College setup</span><span class="sep">/</span><span>Colleges</span></div>
+      <div class="crumb">
+        <span>College setup</span><span class="sep">/</span><span>Colleges</span>
+      </div>
       <h1 class="dt-title">Colleges</h1>
-      <p class="dt-sub">Every college on this deployment.</p>
+      @if (state() === 'ready' && colleges().length) {
+        <div class="dt-sub">
+          {{ colleges().length | plural: 'college' }} · {{ activeCount() }} active
+        </div>
+      }
     </div>
     <div class="dt-toolbar">
-      <!-- The panel this button opens is rendered inside the ready state, so the
-           button is only offered there: shown while the list is loading or after
-           it failed, it is a control that removes itself and opens nothing. -->
-      @if (state() === 'ready' && !addPanelOpen()) {
-        <button type="button" class="btn primary" (click)="openAddPanel()">
-          <span class="icon" aria-hidden="true">add</span> Add college
-        </button>
-      }
+      <a class="btn primary" routerLink="/admin/setup">
+        <span class="icon" aria-hidden="true">add_circle</span> Set up a college
+      </a>
     </div>
   </div>
 
@@ -32,393 +33,208 @@
   }
 
   @if (state() === 'ready') {
-    <div class="colleges-layout">
-      <div class="colleges-main">
-        <div class="filter-row">
-          <div class="select">
-            <span class="lbl">Status</span>
-            <span class="val">{{ statusFilterLabel() }}</span>
-            <span class="icon" aria-hidden="true">expand_more</span>
-            <select aria-label="Status" (change)="setStatusFilter($any($event.target).value)">
-              <option value="all" [selected]="statusFilter() === 'all'">All</option>
-              <option value="ACTIVE" [selected]="statusFilter() === 'ACTIVE'">Active</option>
-              <option value="DRAFT" [selected]="statusFilter() === 'DRAFT'">Draft</option>
-              <option value="ARCHIVED" [selected]="statusFilter() === 'ARCHIVED'">Archived</option>
-            </select>
-          </div>
+    @if (appointNote(); as note) {
+      <p class="note-line" role="status">
+        <span class="icon" aria-hidden="true">check_circle</span>
+        {{ note }}
+      </p>
+    }
 
-          <div class="select">
-            <span class="lbl">Campus</span>
-            <span class="val">{{ campusFilterLabel() }}</span>
-            <span class="icon" aria-hidden="true">expand_more</span>
-            <select aria-label="Campus" (change)="setCampusFilter($any($event.target).value)">
-              <option value="all" [selected]="campusFilter() === 'all'">All</option>
-              @for (campus of campusesOnRecord(); track campus) {
-                <option [value]="campus" [selected]="campusFilter() === campus">{{ campus }}</option>
-              }
-            </select>
-          </div>
+    @if (appointError(); as problem) {
+      <div class="notice" role="alert">
+        <span class="icon" aria-hidden="true">error</span>
+        <div>{{ problem }}</div>
+      </div>
+    }
 
-          <p class="filter-note">
-            Admin functions granted at college scope stop at the college boundary — including
-            analytics, exports and the agent.
-          </p>
-        </div>
+    @if (adminsState() === 'error') {
+      <div class="notice accent" role="status">
+        <span class="icon" aria-hidden="true">info</span>
+        <div>The college admin could not be read: {{ adminsError() }}</div>
+      </div>
+    }
 
-        @if (createdCollegeName(); as created) {
-          <p class="created-note" role="status">
-            <span class="icon" aria-hidden="true">check_circle</span>
-            {{ created }} created. It seats no one yet — add its departments, courses and batches in
-            <a routerLink="/admin/institution">College structure</a>.
-          </p>
+    <!-- ---------------------------------------------------------- Filters -->
+    <div class="filter-row">
+      <div class="seg" role="group" aria-label="Status">
+        @for (option of statusOptions; track option.value) {
+          <button
+            type="button"
+            [class.active]="statusFilter() === option.value"
+            [attr.aria-pressed]="statusFilter() === option.value"
+            (click)="setStatusFilter(option.value)"
+          >
+            {{ option.label }}
+          </button>
         }
-
-        @if (appointNote(); as note) {
-          <p class="created-note" role="status">
-            <span class="icon" aria-hidden="true">check_circle</span>
-            {{ note }}
-          </p>
-        }
-
-        @if (appointError(); as problem) {
-          <div class="notice" role="alert">
-            <span class="icon" aria-hidden="true">error</span>
-            <div>{{ problem }}</div>
-          </div>
-        }
-
-        <!-- WHAT THIS NOTICE IS FOR: it explains the columns that are still
-             empty, and nothing else. B1.1 and B1.3 landed in Phase 3, so the
-             sentences about domains and the college admin are gone with the
-             dashes they described; what is left is the two counts, which no
-             endpoint reports and no backlog task promises. -->
-        @if (adminsState() === 'off' || adminsState() === 'error') {
-          <div class="notice accent" role="status">
-            <span class="icon" aria-hidden="true">info</span>
-            <div>
-              @if (adminsState() === 'off') {
-                This session cannot read college admins, so that column is not shown.
-              }
-              @if (adminsState() === 'error') {
-                The college admin could not be read: {{ adminsError() }}
-              }
-            </div>
-          </div>
-        }
-
-        <div class="dt-frame">
-          <div class="colleges-scroll">
-            <table class="dt-table colleges-table">
-              <caption class="sr-only">
-                Every college on this deployment, with its registration domains, its administrator
-                and its status.
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">College</th>
-                  <th scope="col">Domains</th>
-                  <th scope="col">
-                    College admin
-                    @if (adminsState() === 'off') {
-                      <span class="col-pending">Governance only</span>
-                    }
-                  </th>
-                  <th scope="col">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (college of visibleColleges(); track college.id) {
-                  <tr [class.selected]="college.id === selectedCollege()?.id">
-                    <td>
-                      <button
-                        type="button"
-                        class="college-cell"
-                        [attr.aria-pressed]="college.id === selectedCollege()?.id"
-                        (click)="selectCollege(college.id)"
-                      >
-                        <span class="college-name">{{ college.name }}</span>
-                        <span class="college-sub">{{ collegeSubLine(college) }}</span>
-                      </button>
-                    </td>
-                    <td>
-                      <!-- No domains of its own is a REAL setting, not a gap: the
-                           deployment's provisionable_email_domains applies. A dash
-                           here would read as "this college admits nobody". -->
-                      <span [class.cell-empty]="!hasDomains(college)" class="domains-cell">
-                        {{ domainsLabel(college) }}
-                      </span>
-                    </td>
-                    <td>
-                      @switch (adminsState()) {
-                        @case ('ready') {
-                          @for (admin of adminsFor(college); track admin.user_id) {
-                            @let summary = adminSummary(admin);
-                            <span class="admin-cell">
-                              <span class="admin-name">{{ admin.name }}</span>
-                              <span [class]="'chip ' + summary.tone">{{ summary.label }}</span>
-                            </span>
-                          } @empty {
-                            <span class="cell-empty">Not appointed</span>
-                          }
-                        }
-                        @case ('loading') {
-                          <span class="cell-empty">Reading…</span>
-                        }
-                        @default {
-                          <span class="cell-empty">—</span>
-                        }
-                      }
-                    </td>
-                    <td>
-                      <span [class]="statusChipClass(college.status)">
-                        {{ statusLabel(college.status) }}
-                      </span>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="4">
-                      <p class="empty">
-                        <span class="icon" aria-hidden="true">apartment</span>
-                        @if (colleges().length === 0) {
-                          No college has been created yet. "Add college" writes the first one.
-                        } @else {
-                          No college matches this filter.
-                        }
-                      </p>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <div class="dt-statusbar">
-            <span>Rows: <b>{{ visibleColleges().length }}</b></span>
-            <span>Selected: <b>{{ selectedCollege() ? 1 : 0 }}</b></span>
-            <span class="pager">{{ visibleColleges().length }} of {{ colleges().length }} shown</span>
-          </div>
-        </div>
-
-        <div class="card functions-card">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title">What a college admin can do inside {{ selectedCollegeName() }}</h2>
-              <p class="card-sub">a person given this college’s screens — not a second role</p>
-            </div>
-          </div>
-
-          <!-- B1.2 and B1.3 landed, so this notice no longer says the boundary
-               does not exist. What it says now is the half that still surprises
-               people: appointing somebody writes eleven grants and five of them
-               hold nothing until a second person approves them. -->
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">info</span>
-            <div>
-              Appointing a college admin gives them the eleven screens below, for this college only.
-              Five of them read students' own records, so each waits for a second approval in
-              <a routerLink="/admin/governance">Who can do what</a>; the table's chip says how many
-              are live.
-            </div>
-          </div>
-
-          <div class="functions-grid">
-            <div>
-              <h3 class="functions-heading">Can, when the function is granted at college scope</h3>
-              <ul class="functions-list">
-                @for (fn of collegeAdminCan; track fn.summary) {
-                  <li>
-                    <span class="icon good" aria-hidden="true">check_circle</span>
-                    <span>
-                      {{ fn.summary }}
-                      <span class="functions-keys">{{ fn.capabilityKeys }}</span>
-                    </span>
-                  </li>
-                }
-              </ul>
-            </div>
-            <div>
-              <h3 class="functions-heading">Never, at any scope</h3>
-              <ul class="functions-list">
-                @for (limit of collegeAdminNever; track limit) {
-                  <li>
-                    <span class="icon risk" aria-hidden="true">cancel</span>
-                    <span>{{ limit }}</span>
-                  </li>
-                }
-              </ul>
-              <p class="functions-foot">
-                These are the keys <code>COLLEGE_ADMIN_CAPABILITIES</code> appoints and no others. A
-                faculty instrument — sanctioning leave, a mentor group, verifying evidence — is a
-                separate grant made in
-                <a routerLink="/admin/governance">Who can do what</a>; Governance and the
-                platform card stay the Main Admin's.
-              </p>
-            </div>
-          </div>
-        </div>
-
       </div>
 
-      @if (addPanelOpen()) {
-        <aside class="card add-panel" aria-label="Add college">
-          <h2 class="card-title">Add college</h2>
+      @if (campusesOnRecord().length > 1) {
+        <div class="select">
+          <span class="lbl">Campus</span>
+          <span class="val">{{ campusFilterLabel() }}</span>
+          <span class="icon" aria-hidden="true">expand_more</span>
+          <select aria-label="Campus" (change)="setCampusFilter($any($event.target).value)">
+            <option value="all" [selected]="campusFilter() === 'all'">All</option>
+            @for (campus of campusesOnRecord(); track campus) {
+              <option [value]="campus" [selected]="campusFilter() === campus">{{ campus }}</option>
+            }
+          </select>
+        </div>
+      }
 
-          @if (createError(); as message) {
-            <div class="notice" role="alert">
-              <span class="icon" aria-hidden="true">error</span>
-              <div>{{ message }}</div>
+      @if (visibleColleges().length !== colleges().length) {
+        <span class="filter-count">{{ visibleColleges().length }} of {{ colleges().length }}</span>
+      }
+    </div>
+
+    <!-- ------------------------------------------------- One card per college -->
+    <div class="college-grid">
+      @for (college of visibleColleges(); track college.id) {
+        <article class="card college-card">
+          <div class="college-head">
+            <div class="college-id">
+              <h2 class="college-title">{{ college.name }}</h2>
+              <div class="college-meta">{{ collegeSubLine(college) }}</div>
+            </div>
+            <span [class]="statusChipClass(college.status)">
+              {{ statusLabel(college.status) }}
+            </span>
+          </div>
+
+          <dl class="college-facts">
+            <div>
+              <dt>Email domains</dt>
+              <!-- No domains of its own is a REAL setting, not a gap: the
+                   deployment's provisionable_email_domains applies. A dash here
+                   would read as "this college admits nobody". -->
+              <dd [class.cell-empty]="!hasDomains(college)">{{ domainsLabel(college) }}</dd>
+            </div>
+            <div>
+              <dt>College admin</dt>
+              <dd class="admin-fact">
+                @switch (adminsState()) {
+                  @case ('ready') {
+                    @for (admin of adminsFor(college); track admin.user_id) {
+                      @let summary = adminSummary(admin);
+                      <span class="admin-cell">
+                        <span class="admin-name">{{ admin.name }}</span>
+                        <span [class]="'chip ' + summary.tone">{{ summary.label }}</span>
+                      </span>
+                    } @empty {
+                      <span class="cell-empty">Not appointed</span>
+                    }
+                    <!-- Offered only where BOTH endpoints behind it can answer:
+                         the faculty list (Main Admin) and the appointment
+                         (admin.governance). A filter, never the gate. -->
+                    @if (canAppointAdmin() && appointingCollegeId() !== college.id) {
+                      <button type="button" class="btn ghost sm" (click)="openAppoint(college)">
+                        <span class="icon" aria-hidden="true">person_add</span> Appoint
+                      </button>
+                    }
+                  }
+                  @case ('loading') {
+                    <span class="cell-empty">Reading…</span>
+                  }
+                  @default {
+                    <span class="cell-empty">Not read</span>
+                  }
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Contact</dt>
+              <dd [class.cell-empty]="!college.contact">{{ college.contact || '—' }}</dd>
+            </div>
+          </dl>
+
+          @if (appointingCollegeId() === college.id) {
+            <div class="appoint-form" [attr.aria-label]="'Appoint an admin for ' + college.name">
+              <div class="field">
+                <label [for]="'appoint-who-' + college.id">Faculty account</label>
+                <select
+                  [id]="'appoint-who-' + college.id"
+                  [disabled]="facultyLoading() || faculty().length === 0"
+                  (change)="setAppointUserId($any($event.target).value)"
+                >
+                  <option value="" [selected]="appointUserId() === ''">Choose…</option>
+                  @for (person of faculty(); track person.user_id) {
+                    <option
+                      [value]="person.user_id"
+                      [selected]="appointUserId() === person.user_id"
+                    >
+                      {{ facultyLabel(person) }}
+                    </option>
+                  }
+                </select>
+                @if (facultyError(); as problem) {
+                  <p class="err" role="alert">
+                    <span class="icon" aria-hidden="true">error</span>
+                    {{ problem }}
+                  </p>
+                } @else if (!facultyLoading() && faculty().length === 0) {
+                  <p class="help">
+                    No faculty account yet — <a routerLink="/admin/faculty">Faculty</a>.
+                  </p>
+                }
+              </div>
+              <div class="field">
+                <label [for]="'appoint-why-' + college.id"
+                  >Reason <span class="required-mark">*</span></label
+                >
+                <textarea
+                  [id]="'appoint-why-' + college.id"
+                  rows="2"
+                  [value]="appointReason()"
+                  (input)="setAppointReason($any($event.target).value)"
+                  placeholder="Why this account runs this college"
+                ></textarea>
+                <p class="help">{{ appointReasonLength() }} of {{ minReasonChars }} characters</p>
+              </div>
+              <div class="footbar">
+                <button type="button" class="btn ghost" (click)="closeAppoint()">Cancel</button>
+                <button
+                  type="button"
+                  class="btn secondary"
+                  [disabled]="!canAppoint()"
+                  (click)="appoint(college)"
+                >
+                  <span class="icon" aria-hidden="true">check</span>
+                  {{ appointBusy() ? 'Appointing…' : 'Appoint' }}
+                </button>
+              </div>
             </div>
           }
 
-          <div class="add-row">
-            <div class="field code-field">
-              <label for="college-code">Code <span class="req">*</span></label>
-              <input
-                id="college-code"
-                [value]="newCollegeDraft().code"
-                (input)="setNewCollegeField('code', $any($event.target).value)"
-                placeholder="e.g. SJBIT"
-                autocomplete="off"
-              />
-            </div>
-            <div class="field">
-              <label for="college-name">Name <span class="req">*</span></label>
-              <input
-                id="college-name"
-                [value]="newCollegeDraft().name"
-                (input)="setNewCollegeField('name', $any($event.target).value)"
-                placeholder="Full name as on the affiliation letter"
-                autocomplete="off"
-              />
-            </div>
+          <div class="college-actions">
+            <a
+              class="btn secondary sm"
+              routerLink="/admin/institution"
+              [queryParams]="{ college: college.id }"
+            >
+              <span class="icon" aria-hidden="true">school</span> Open
+            </a>
+            <a
+              class="btn ghost sm"
+              routerLink="/admin/setup"
+              [queryParams]="{ college: college.id }"
+            >
+              <span class="icon" aria-hidden="true">add_circle</span> Add departments, courses,
+              batches
+            </a>
           </div>
-
-          <div class="add-row">
-            <div class="field">
-              <label for="college-campus">City</label>
-              <input
-                id="college-campus"
-                [value]="newCollegeDraft().campus"
-                (input)="setNewCollegeField('campus', $any($event.target).value)"
-                placeholder="Bengaluru"
-                autocomplete="off"
-              />
-            </div>
-            <div class="field">
-              <label for="college-contact">Contact</label>
-              <input
-                id="college-contact"
-                [value]="newCollegeDraft().contact"
-                (input)="setNewCollegeField('contact', $any($event.target).value)"
-                placeholder="Office email or phone"
-                autocomplete="off"
-              />
-              <p class="help">Optional · who the placement cell calls about this college</p>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="college-domains">Registration email domains</label>
-            <input
-              id="college-domains"
-              [value]="newCollegeDraft().domains"
-              (input)="setNewCollegeField('domains', $any($event.target).value)"
-              placeholder="bgscet.ac.in, sjbit.ac.in"
-              autocomplete="off"
-            />
-            <p class="help">
-              Optional. Only an address on one of these domains can be approved onto this college.
-              Separate several with commas.
-            </p>
-          </div>
-
-          <div class="field">
-            <label for="college-admin">College admin</label>
-            @if (canAppointAdmin()) {
-              <select
-                id="college-admin"
-                [disabled]="facultyLoading() || faculty().length === 0"
-                (change)="setAppointUserId($any($event.target).value)"
-              >
-                <option value="" [selected]="appointUserId() === ''">Nobody yet</option>
-                @for (person of faculty(); track person.user_id) {
-                  <option [value]="person.user_id" [selected]="appointUserId() === person.user_id">
-                    {{ facultyLabel(person) }}
-                  </option>
-                }
-              </select>
-              @if (facultyError(); as problem) {
-                <p class="err" role="alert">
-                  <span class="icon" aria-hidden="true">error</span>
-                  {{ problem }}
-                </p>
-              } @else if (!facultyLoading() && faculty().length === 0) {
-                <p class="help">
-                  No faculty account exists yet. One is created in
-                  <a routerLink="/admin/faculty">Faculty</a>, and this college can be handed over
-                  afterwards.
-                </p>
-              } @else {
-                <p class="help">
-                  Optional. They get the eleven screens below, for this college only, and stay a
-                  faculty account.
-                </p>
-              }
+        </article>
+      } @empty {
+        <div class="card college-empty">
+          <div class="empty">
+            <span class="icon" aria-hidden="true">apartment</span>
+            @if (colleges().length === 0) {
+              No college yet.
             } @else {
-              <!-- NOT a phase: both college-admin endpoints are gated on
-                   admin.governance and the faculty list on the Main Admin, so
-                   this is a permission this session does not hold rather than an
-                   endpoint that does not exist. A "Phase N" label here would be
-                   a promise that a deploy fixes it. -->
-              <input
-                id="college-admin"
-                disabled
-                title="A college admin is appointed in Who can do what"
-                placeholder="Appointed in Who can do what"
-                autocomplete="off"
-              />
-              <p class="help">
-                Create the college here; appoint its admin in Who can do what.
-              </p>
+              No college matches this filter.
             }
           </div>
-
-          @if (canAppointAdmin() && appointUserId()) {
-            <div class="field">
-              <label for="college-admin-reason">Reason for the appointment <span class="req">*</span></label>
-              <textarea
-                id="college-admin-reason"
-                rows="2"
-                [value]="appointReason()"
-                (input)="setAppointReason($any($event.target).value)"
-                placeholder="Why this account runs this college"
-              ></textarea>
-              <p class="help">At least {{ minReasonChars }} characters — {{ appointReasonLength() }} so far.</p>
-            </div>
-          }
-
-          <div class="notice accent">
-            <span class="icon" aria-hidden="true">info</span>
-            <div>
-              Creating a college seats no one. Departments, courses and batches are added in
-              <a routerLink="/admin/institution">College structure</a>.
-            </div>
-          </div>
-
-          <div class="panel-actions">
-            <button type="button" class="btn secondary" (click)="closeAddPanel()">Cancel</button>
-            <button
-              type="button"
-              class="btn primary"
-              [disabled]="!canCreateCollege()"
-              (click)="createCollege()"
-            >
-              <span class="icon" aria-hidden="true">check</span>
-              {{ creatingCollege() ? 'Creating…' : 'Create college' }}
-            </button>
-          </div>
-        </aside>
+        </div>
       }
     </div>
   }

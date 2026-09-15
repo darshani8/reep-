@@ -605,6 +605,46 @@ def test_stop_timeout_is_within_fargates_ceiling() -> None:
     assert _cdk_constant("STOP_TIMEOUT_SECONDS") <= 120
 
 
+API_DOCKERFILE = REPO / "apps" / "api-py" / "Dockerfile"
+
+
+def test_the_backups_pg_dump_is_the_databases_own_major_version() -> None:
+    """One fact written in two files, compared in the one place that can.
+
+    `pg_dump` REFUSES to dump a server newer than itself. That is the right
+    behaviour — it stops rather than writing something subtly wrong — but it
+    stops at 01:00 with nobody watching, and what does not get written is the
+    only copy of the database that does not need RDS to read (M2,
+    `app/backup_database.py`). The api keeps serving, every test passes, and the
+    gap is invisible until somebody asks for a dump.
+
+    Debian bookworm ships PostgreSQL 16's client, so the Dockerfile pins the
+    major explicitly from PGDG. The database's major lives in
+    `infra/cdk/reep_core/stack.py` as `engine_version`. An RDS engine upgrade
+    touches that file and has no reason to touch the Dockerfile — which is
+    exactly why this comparison exists, and why it fails in the `api` job rather
+    than waiting for a night nobody is watching.
+    """
+    engine = re.search(r'engine_version="(\d+)"', CDK_CORE.read_text(encoding="utf-8"))
+    assert engine, "engine_version is no longer a plain major-version string in the CDK stack"
+
+    client = re.search(
+        r"postgresql-client-(\d+)", API_DOCKERFILE.read_text(encoding="utf-8")
+    )
+    assert client, (
+        "apps/api-py/Dockerfile installs no pinned postgresql-client-N. The "
+        "nightly logical backup needs pg_dump, and the distribution's client is "
+        "older than the server, which pg_dump refuses outright."
+    )
+
+    assert client.group(1) == engine.group(1), (
+        f"the api image installs postgresql-client-{client.group(1)} but the "
+        f"database is PostgreSQL {engine.group(1)}. pg_dump refuses a server "
+        "newer than itself, so the nightly logical backup would stop running — "
+        "quietly, because nothing else in the product uses pg_dump."
+    )
+
+
 def test_sentry_never_ships_local_variables_or_request_bodies() -> None:
     """Sentry must not carry a student's words off the account.
 

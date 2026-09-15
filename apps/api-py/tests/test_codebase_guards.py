@@ -11,6 +11,7 @@ The pattern for each: state the incident, then assert it cannot recur.
 
 from __future__ import annotations
 
+import ast
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -1632,3 +1633,192 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
         "a developer discovers from a runner after the push, which is what that "
         "script exists to prevent."
     )
+
+
+# --------------------------------------------------------------------------- #
+# §35  The nightly sweep never reaches identity                                #
+# --------------------------------------------------------------------------- #
+#
+# `app/retention.py` runs unattended every night and DELETES. It is the one
+# scheduled destructor in the product, and the column it must never reach is the
+# one that decides whether a student can sign in at all.
+#
+# It does not reach it today: the module imports no `User` and no `Student`, and
+# writes to six tables, none of which is `users` or `students`. That is a fact
+# nothing asserts, which is the wrong standard for this particular fact — a
+# durability review of this codebase asked for exactly this guard and was right
+# to.
+#
+# WHAT THE OBVIOUS VERSION OF THIS GUARD GETS WRONG, twice, because both traps
+# cost more than the guard does:
+#
+#   1. "Identity is out of scope for every destructor" is FALSE and cannot be
+#      made to pass. `users` is deliberately IN scope for both purge modules —
+#      `VERDICTS["users"] is SURVIVOR`, `STUDENT_VERDICTS["users"] is ACCOUNTS`
+#      — because deleting accounts is what they are FOR, and their own tests
+#      already pin that. A guard written to those words either fails on the day
+#      it lands or gets quietly weakened into one that asserts nothing. The
+#      subject here is the SWEEP, which deletes on a clock with nobody watching,
+#      not the destructors, which delete because a human typed a sentence.
+#
+#   2. An import guard is ONE CALL TOO SHALLOW. `purge_expired` calls
+#      `sweep_login_codes`, which lives in `app/account_links.py` — and that
+#      module DOES import `User`, because it is where activation and reset links
+#      are minted. A guard that reads only `retention.py`'s import list stays
+#      green forever while the helper it calls grows a write to `users`. So the
+#      helpers are checked in their own file, by name.
+#
+# An import guard is also blind to `text("DELETE FROM users ...")` by
+# construction, so raw SQL is refused outright on this path rather than parsed.
+
+#: What `retention.py` may import from the rest of `app/`. A new name here is
+#: not forbidden — it is UNREVIEWED, and adding it to this set is the review.
+#: Each entry is (module, imported name).
+RETENTION_APP_IMPORTS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("account_links", "sweep_login_codes"),
+        ("config", "settings"),
+        # Imported LAZILY, inside `_delete_interview_audio`, so the sweep's
+        # database half keeps running on a host where app/interview_audio.py is
+        # not importable. `_app_imports` walks the whole tree rather than the
+        # module header for exactly this reason — a function-local import is
+        # still an import, and is where an undeclared dependency hides.
+        ("interview_audio", "delete_session_audio"),
+        ("interview_summary", "ensure_summary"),
+        ("models.agent_run", "AgentRun"),
+        ("models.conversation", "Conversation"),
+        ("models.conversation", "Message"),
+        ("models.interview", "InterviewEvaluation"),
+        ("models.interview", "InterviewSession"),
+        ("models.interview", "InterviewTurn"),
+        ("redaction", "REDACTED"),
+        ("redaction", "redact_pii"),
+    }
+)
+
+#: Imported as a module rather than a name, so it carries no single function to
+#: walk. `document_store` is a file-store façade over a directory tree; it holds
+#: no ORM model at all, which the guard below checks rather than assumes.
+RETENTION_APP_MODULE_IMPORTS: frozenset[str] = frozenset({"document_store"})
+
+#: The names that mean "this code can write to an account".
+_IDENTITY_MODELS = ("User", "Student", "Mentor")
+
+
+def _app_imports(tree) -> tuple[set[tuple[str, str]], set[str]]:
+    """Relative imports of a module under `app/`, as (module, name) and bare
+    module imports. Absolute imports are not used inside `app/` and would not be
+    reachable through the package's own `.` form."""
+    names: set[tuple[str, str]] = set()
+    modules: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.level == 1:
+            if node.module is None:  # `from . import document_store`
+                modules.update(alias.name for alias in node.names)
+            else:
+                names.update((node.module, alias.name) for alias in node.names)
+    return names, modules
+
+
+def _writes_identity(node) -> list[str]:
+    """Every way the code under `node` could write an account row.
+
+    `delete(User)` / `update(User)` cover the Core form the sweep already uses;
+    an attribute assignment onto something typed as one of the models covers the
+    ORM form. Reads (`select(User)`) are deliberately NOT flagged: resolving a
+    row to log a name is harmless, and a guard that forbade it would be worked
+    around rather than kept.
+    """
+    found: list[str] = []
+    for child in ast.walk(node):
+        if isinstance(child, ast.Call) and isinstance(child.func, ast.Name):
+            if child.func.id in ("delete", "update"):
+                for arg in child.args:
+                    if isinstance(arg, ast.Name) and arg.id in _IDENTITY_MODELS:
+                        found.append(f"{child.func.id}({arg.id})")
+            if child.func.id == "text":
+                found.append("text(...) — raw SQL, which this guard cannot read")
+    return found
+
+
+def test_the_nightly_sweep_imports_nothing_that_can_write_an_account() -> None:
+    """`retention.py` names no identity model, and its import surface is pinned.
+
+    The pinning is the point: the module is correct today, and the way it stops
+    being correct is somebody adding `from .models.user import Student` to
+    resolve a name for a log line and then reusing it two months later.
+    """
+    source = (APP / "retention.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    names, modules = _app_imports(tree)
+
+    assert names == RETENTION_APP_IMPORTS, (
+        "app/retention.py's imports from the rest of `app/` have changed.\n"
+        f"  new, and unreviewed: {sorted(names - RETENTION_APP_IMPORTS)}\n"
+        f"  gone:                {sorted(RETENTION_APP_IMPORTS - names)}\n"
+        "This module deletes every night with nobody watching. Adding a name here "
+        "is the review — and if the new name is an identity model, or a helper "
+        "that writes one, that is what this guard exists to stop."
+    )
+    assert modules == RETENTION_APP_MODULE_IMPORTS, (
+        f"app/retention.py's module imports changed: {sorted(modules)}"
+    )
+    for model in _IDENTITY_MODELS:
+        assert not re.search(rf"\b{model}\b", source), (
+            f"app/retention.py names {model}. The nightly sweep has no business "
+            "reaching an account row; deleting people is app.purge_people's job, "
+            "and it asks a human first."
+        )
+    assert not _writes_identity(tree), f"app/retention.py: {_writes_identity(tree)}"
+
+
+def test_the_helpers_the_sweep_calls_write_no_account_either() -> None:
+    """One call deeper, which is where the hole actually is.
+
+    `account_links.py` imports `User` — it is where activation and reset links
+    are minted — so "retention.py imports no User" says nothing about what
+    `sweep_login_codes` does. This reads that function, and every other helper
+    the sweep imports, in its own file.
+    """
+    offenders: dict[str, list[str]] = {}
+    for module, name in sorted(RETENTION_APP_IMPORTS):
+        if module.startswith("models.") or name == "settings":
+            continue  # a model class and the settings object, not code to walk
+        path = APP.joinpath(*module.split(".")).with_suffix(".py")
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        fn = next(
+            (
+                n
+                for n in tree.body
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name
+            ),
+            None,
+        )
+        if fn is None:
+            continue  # a constant such as REDACTED
+        writes = _writes_identity(fn)
+        if writes:
+            offenders[f"{module}.{name}"] = writes
+
+    assert not offenders, (
+        f"a helper on the nightly sweep's path can write an account row: {offenders}. "
+        "The sweep runs unattended; a write to `users` or `students` from it is a "
+        "student who cannot sign in, discovered by the student."
+    )
+
+
+def test_the_sweep_path_uses_no_raw_sql() -> None:
+    """The guards above read the AST, and an AST cannot read a string.
+
+    `text("DELETE FROM users WHERE ...")` would pass every assertion in this
+    section. Neither module needs raw SQL today — every `db.execute` on this
+    path takes an ORM construct — so the cheap complement is to keep it that
+    way and make the next person say why.
+    """
+    for module in ("retention.py", "account_links.py", "interview_summary.py", "interview_audio.py"):
+        source = (APP / module).read_text(encoding="utf-8")
+        assert "text(" not in source, (
+            f"app/{module} grew raw SQL. It is on the nightly sweep's path, where "
+            "the identity guards above read the syntax tree and cannot see inside "
+            "a string."
+        )

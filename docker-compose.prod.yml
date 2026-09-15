@@ -209,6 +209,25 @@ services:
       # GROQ_API_KEY stays and is live: it is one of the LLM adapter's providers
       # (app/ai/llm.py), nothing to do with voice.
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # THE PERMANENT DOCUMENT ARCHIVE, AND ON THIS STACK IT IS OPT-IN.
+      #
+      # Blank is the default and it is a REAL CHOICE with a real cost, not a
+      # placeholder: with no bucket, the only copy of every marksheet,
+      # certificate, resume, signature and recording is `reep_uploads` below,
+      # and a file a student deletes from the website is gone the moment the
+      # unlink returns. The AWS deployment has EFS snapshots behind it; a
+      # self-hosted volume has whatever the operator arranged, which is often
+      # nothing.
+      #
+      # It was absent entirely until an audit pointed out the consequence: this
+      # file enumerates its environment explicitly, with no pass-through, so a
+      # `DOCUMENT_ARCHIVE_BUCKET` in the operator's `.env` reached nothing and
+      # every upload still returned 201. The deployment was indistinguishable
+      # from an archived one. The api now says which of the two states it is in
+      # at boot, and the `archive` sidecar below repeats it nightly.
+      DOCUMENT_ARCHIVE_BUCKET: ${DOCUMENT_ARCHIVE_BUCKET:-}
+      DOCUMENT_ARCHIVE_PREFIX: ${DOCUMENT_ARCHIVE_PREFIX:-}
+      DOCUMENT_ARCHIVE_REGION: ${DOCUMENT_ARCHIVE_REGION:-}
       # libpq reads these directly, so TLS verification works regardless of what
       # the DATABASE_URL query string carries.
       PGSSLMODE: ${PGSSLMODE:-prefer}
@@ -274,6 +293,76 @@ services:
     # A failed run logs, exits non-zero, and is retried tomorrow — app/retention_job.py
     # owns making the failure loud; this loop only owns the clock.
     command: ["sh", "-c", "while true; do python -m app.retention_job; sleep 86400; done"]
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 512M }
+
+  # The permanent document archive's backstop sweep, and the ONLY thing on this
+  # stack that archives interview audio at all.
+  #
+  # `document_store.save_bytes` PUTs each file as it is accepted, but that write
+  # is best-effort by contract — it raises nothing, because an S3 blip must
+  # never be why a student is told their valid certificate was rejected. This
+  # loop is what makes the promise hold anyway. It is also the only writer that
+  # can archive a recording: the interviewer writes its WAVs incrementally and
+  # closes them in `run()`'s `finally`, so mid-call there is no complete file.
+  #
+  # IT RUNS BEFORE THE REAPER, deliberately, and the offset is the whole reason
+  # this is a separate service rather than a second command in `retention`.
+  # `app/retention.py` DELETES expiring audio off the volume; a sweep that ran
+  # after it has missed those bytes permanently, with both jobs green. The
+  # 3600s head start costs one hour of freshness and buys the ordering. The CDK
+  # deployment makes the same guarantee with two EventBridge schedules an hour
+  # apart, pinned by test_the_archive_sweep_runs_strictly_before_the_retention_sweep.
+  #
+  # WRITES ONLY. Nothing here deletes, renames or moves a file, on the volume or
+  # in the bucket — an object with no file behind it is the normal state of
+  # every document a student has since removed, which is the point.
+  archive:
+    build:
+      context: ./apps/api-py
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      interview-audio-init: { condition: service_completed_successfully }
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+      ENV: prod
+      # Must MATCH the api's values: the sweep reads the DISK, so it has to look
+      # exactly where the api writes. The same argument the reaper's comment
+      # makes, and the same failure if they drift — a sweep pointed at an empty
+      # directory reports a healthy pass having archived nothing.
+      UPLOAD_DIR: /var/reep/uploads
+      INTERVIEW_AUDIO_DIR: /var/reep/interview-audio
+      DOCUMENT_ARCHIVE_BUCKET: ${DOCUMENT_ARCHIVE_BUCKET:-}
+      DOCUMENT_ARCHIVE_PREFIX: ${DOCUMENT_ARCHIVE_PREFIX:-}
+      DOCUMENT_ARCHIVE_REGION: ${DOCUMENT_ARCHIVE_REGION:-}
+      PGSSLMODE: ${PGSSLMODE:-prefer}
+      PGSSLROOTCERT: ${PGSSLROOTCERT:-}
+    volumes:
+      - reep_uploads:/var/reep/uploads
+      - reep_interview_audio:/var/reep/interview-audio
+    # THE 82800 IS 23 HOURS AND IT IS THE ORDERING, NOT A STAGGER.
+    #
+    # `retention` next to this one runs at T+0 and every 24h after. Sleeping
+    # 3600 first — which is what this said when it was written — puts the sweep
+    # an hour AFTER the reaper on every single day, which is precisely backwards:
+    # the reaper unlinks expiring audio, so a sweep behind it has missed those
+    # bytes permanently, with both loops green. 23 hours puts it an hour AHEAD
+    # of each subsequent reap instead.
+    #
+    # Day one has no sweep before the first reap, and that is safe rather than
+    # lucky: `purge_expired` only hard-deletes a record whose retention window
+    # AND the 30-day soft-delete grace have both elapsed, so nothing a
+    # day-old deployment holds is eligible.
+    #
+    # Unconfigured, `app.archive_documents` exits 0 after logging that this
+    # deployment keeps no permanent copy — so the loop is harmless when the
+    # feature is off and says so once a day rather than failing noisily.
+    command: ["sh", "-c", "sleep 82800; while true; do python -m app.archive_documents; sleep 86400; done"]
     deploy:
       resources:
         limits: { cpus: "1", memory: 512M }

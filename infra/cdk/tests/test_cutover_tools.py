@@ -288,37 +288,10 @@ def _expected_context(*, with_oidc_provider: bool = True, plain_http: bool = Fal
     return expected
 
 
-#: The context keys PASS 1 derives from the Terraform state. During the import
-#: phase they come from the tool, never from cdk.json — the mirror has to match
-#: the live stack, and cdk.json carries the HARDEN targets.
-#:
-#: They are blanked here explicitly, and that is new (2026-09-15). These tests
-#: used to get the same result from cdk.json's SILENCE: the file named none of
-#: them, so `{**CDK_JSON_CONTEXT, **context}` left them empty on its own. That
-#: silence was the bug the incident of 2026-09-15 turned on — seven values the
-#: deployed stack depends on, passed as `-c` flags and recorded nowhere, so a
-#: synth from this repository rendered a stack with no TLS and no alert
-#: subscriber. Completing cdk.json fixed that and broke two tests here, which is
-#: the correct direction: a scenario that differs from live must now SAY it
-#: differs rather than inherit a gap. Blanking restores exactly the behaviour
-#: these tests were written against, and states why.
-_PASS_ONE_KEYS = (
-    "albAcmCertificateArn",
-    "cloudfrontAcmCertificateArn",
-    "domainName",
-    "albOriginDomain",
-    "wafWebAclArn",
-)
-
-
 def _import_template(**context: Any) -> dict[str, Any]:
     """The import-phase template, synthesised the way the CLI does it:
-    cdk.json's context (harden targets included) plus what the tool wrote.
-
-    Pass 1's own keys are cleared before `context` is applied, so a caller that
-    passes none of them gets the "before pass 1" template — which is precisely
-    what `test_the_old_order_is_refused_with_a_pointer_to_pass_one` rehearses."""
-    app = cdk.App(context={**CDK_JSON_CONTEXT, **{k: "" for k in _PASS_ONE_KEYS}, "phase": "import", **context})
+    cdk.json's context (harden targets included) plus what the tool wrote."""
+    app = cdk.App(context={**CDK_JSON_CONTEXT, "phase": "import", **context})
     stack = CoreStack(app, "test-core", project="reep", env=cdk.Environment(account=ACCOUNT, region=REGION))
     return Template.from_stack(stack).to_json()
 

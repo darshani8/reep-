@@ -2264,10 +2264,25 @@ html.fonts-ready .icon {
  * Floating agent orb + voice overlay
  * ======================================================================= */
 
-.agent-orb {
+/* The floating REEP orb (layout/agent-orb.component.ts) and the dock it opens
+   (layout/agent-dock.component.ts). The wrap is what is dragged, so the live
+   pill above the button moves with it. While the dock is open the orb is its
+   Close control; while an interview runs it pulses and carries the clock —
+   text and colour together, never the pulse alone. */
+.agent-orb-wrap {
   position: fixed;
   right: 22px;
   bottom: 22px;
+  /* One below the dock (95): the consent dialog is a fixed full-viewport
+     backdrop INSIDE the dock's stacking context, and it must cover the orb. */
+  z-index: 94;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  touch-action: none;
+}
+.agent-orb {
   width: 58px;
   height: 58px;
   border-radius: var(--r-pill);
@@ -2276,15 +2291,62 @@ html.fonts-ready .icon {
   color: #fff;
   display: grid;
   place-items: center;
-  box-shadow: var(--sh-primary);
-  z-index: 90;
+  box-shadow: var(--sh-primary), 0 0 0 4px rgba(255, 255, 255, 0.55);
+  cursor: pointer;
   touch-action: none;
+  transition: box-shadow 160ms ease, transform 160ms ease;
 }
 .agent-orb:hover {
-  box-shadow: var(--sh-primary-hover);
+  box-shadow: var(--sh-primary-hover), 0 0 0 4px rgba(255, 255, 255, 0.7);
+}
+.agent-orb:focus-visible {
+  outline: 2px solid var(--brand-purple);
+  outline-offset: 5px;
 }
 .agent-orb .icon {
   font-size: 26px;
+}
+.agent-orb--open {
+  background: var(--ink);
+  box-shadow: var(--sh-ctrl), 0 0 0 4px rgba(255, 255, 255, 0.55);
+}
+.agent-orb--live {
+  animation: agent-orb-pulse 1.8s ease-in-out infinite;
+}
+@keyframes agent-orb-pulse {
+  0%,
+  100% {
+    box-shadow: var(--sh-primary), 0 0 0 4px rgba(255, 255, 255, 0.55);
+  }
+  50% {
+    box-shadow: var(--sh-primary-hover), 0 0 0 10px rgba(122, 47, 158, 0.18);
+  }
+}
+.agent-orb__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--sh-ctrl);
+  white-space: nowrap;
+}
+.agent-orb__live::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7fe0a8;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-orb--live {
+    animation: none;
+  }
 }
 
 .voice-overlay {

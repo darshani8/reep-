@@ -1,33 +1,19 @@
 /**
- * The REEP Agent — the Knowledge-Base TEXT assistant from the design handoff.
+ * The REEP Agent page — the Knowledge-Base TEXT assistant from the design
+ * handoff, at /student/agent, /mentor/agent and /admin/agent.
  *
- * This is NOT the mock interviewer (features/assistant, a WebSocket to
- * /api/interview). It is the general helper that answers on deadlines, the
- * placement process and how to read the dashboard, over the structured
- * POST /api/agent/ask path in apps/api-py/app/routers/agent.py: every answer
- * comes back with `actions` (routed next steps), `sources` (what grounded it),
- * `limitations` (what it could not do) and a `run_id` the thumbs-up/down attach
- * to. Re-pointing a client at /ask is exactly the rollback path that router was
- * retained for, and it is what flipped AGENT_RUNS_COLLECTED back to True.
+ * THE THREAD IS NOT HERE ANY MORE. It is `shared/agent-chat/`, one component
+ * rendered by this page and by the floating dock in the shell
+ * (layout/agent-dock.component.ts), which combines it with the mock
+ * interviewer under the one orb. This file keeps what is the PAGE's: the
+ * heading, the Rule 1 disclaimer, the Clear button in the page head, and the
+ * Main Admin's "What the agent can see" rail.
  *
- * ROLE-AGNOSTIC BY CONSTRUCTION. The coordinator routes this component at
- * /student/agent, /mentor/agent and /admin/agent. Nothing here reads the URL:
- * the copy that differs per role (the "your records" link is a student screen)
- * is decided from the session's role, and everything else — the conversation,
- * the starters, feedback — is the same surface. The server already degrades
- * honestly for staff: personalised intents answer with a stated limitation and a
- * 200, never a 4xx, so the screen renders the limitation rather than an error.
- *
- * THIS SCREEN IS TYPED ONLY. It once carried a "Start voice" button that asked
- * the shell's orb to open a LiveKit voice overlay; that stack was removed from
- * the repo, along with the button and the `reep:open-voice` CustomEvent that
- * was the whole coupling. The remaining voice experience is the mock
- * interviewer at /student/assistant, which is its own route and does not go
- * through here.
- *
- * RULE 1. Nothing here composes a student record into a request: the body of
- * /ask is the typed message and nothing else. What the server does with it is
- * governed in the orchestrator, not here.
+ * ROLE-AGNOSTIC BY CONSTRUCTION. Nothing here reads the URL: the copy that
+ * differs per role (the "your records" link is a student screen) is decided
+ * from the session's role, and everything else is the same surface. The
+ * server already degrades honestly for staff: personalised intents answer
+ * with a stated limitation and a 200, never a 4xx.
  *
  * ONE CARD IS THE MAIN ADMIN'S ALONE. The admin board (02 §23,
  * design/admin/Agent.html) adds "What the agent can see" in a 320px rail to the
@@ -37,123 +23,40 @@
  * the reader's own scope and Rule 1's status. It renders for role ADMIN only,
  * and everything it states is read from the session this client already holds
  * — the functions the server resolved on /auth/me — or is a rule written in
- * the code. It states NO REGION and no deployment setting: the board's
- * "ap-south-1" and its "Remote data · Off" chip are facts no endpoint reports
- * today, and `student_data_egress_allowed` (app/ai/llm.py) makes a narrower
- * promise than either — loopback is always allowed, and anything off-machine
- * is refused unless LLM_ALLOW_REMOTE_STUDENT_DATA is set. B16 is what makes
- * the server state its own scope and that flag as a boolean; until it lands
- * the card says which half is a rule and which half is not reported.
- *
- * Fetch, not HttpClient, with credentials: 'include' — the house pattern
- * (features/student/jobs/jobs.component.ts). The three states every list needs
- * are explicit: `historyState` for the initial load, `pending` while an answer
- * is in flight, `error` for the last failed send.
+ * the code. It states NO REGION and no deployment setting: `student_data_
+ * egress_allowed` (app/ai/llm.py) makes a narrower promise than the board's
+ * chips — loopback is always allowed, and anything off-machine is refused
+ * unless LLM_ALLOW_REMOTE_STUDENT_DATA is set. B16 is what makes the server
+ * state its own scope and that flag as a boolean; until it lands the card says
+ * which half is a rule and which half is not reported.
  */
 
-import {
-  Component,
-  ElementRef,
-  computed,
-  effect,
-  inject,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { Component, computed, inject, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
+import { AgentChatComponent } from '../../shared/agent-chat/agent-chat.component';
 
-/** One routed next step the agent suggests — rendered as an arrow card. */
-export interface AgentAction {
-  label: string;
-  route: string;
-  reason: string;
-}
-
-/** What grounded an answer. `policy` is an approved Knowledge-Base document. */
-export interface AgentSource {
-  label: string;
-  type: string; // "policy" | "student-record" | anything the server adds later
-}
-
-/** How a fresh answer was rated — the wire values of FeedbackRating. */
-export type Rating = 'HELPFUL' | 'NOT_HELPFUL' | 'REPORT';
-
-export interface AgentMessage {
-  id: number;
-  role: 'user' | 'assistant';
-  content: string;
-  /** Only on a fresh /ask reply; replayed history is plain text. */
-  actions?: AgentAction[];
-  sources?: AgentSource[];
-  limitations?: string[];
-  /** The AgentRun this answer came from; present ⇒ it can be rated. */
-  runId?: string;
-  /** The rating this session cast, if any — drives "Thanks for the feedback". */
-  rating?: Rating;
-  /** Set on a user turn whose send did not complete. */
-  status?: 'failed' | 'stopped';
-}
-
-interface AskOut {
-  answer: string;
-  actions: AgentAction[];
-  sources: AgentSource[];
-  limitations: string[];
-  conversation_id: string;
-  model: string;
-  run_id: string;
-}
-
-interface HistoryOut {
-  conversation_id: string;
-  turns: { role: 'user' | 'assistant'; content: string }[];
-}
-
-/** The starters from the handoff, verbatim. Shown centred when the thread is
- *  empty and as a row above the composer once it is not. */
-export const STARTERS: readonly string[] = [
-  'What should I complete this week?',
-  'Am I placement-ready?',
-  'Show jobs I qualify for',
-  'How do I verify a skill?',
-];
-
-const ERROR_TEXT = 'Could not reach the REEP Agent. Please try again.';
-const RATE_LIMIT_TEXT =
-  'You have asked a lot in the last minute — wait a moment and send it again.';
-
-/** The composer grows with its content, to this many pixels. */
-const COMPOSER_MAX_PX = 160;
+// Re-exported so nothing that imported these from the page breaks.
+export type {
+  AgentAction,
+  AgentMessage,
+  AgentSource,
+  Rating,
+} from '../../shared/agent-chat/agent-chat.component';
+export { STARTERS } from '../../shared/agent-chat/agent-chat.component';
 
 @Component({
   selector: 'app-agent',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, AgentChatComponent],
   templateUrl: './agent.component.html',
   styleUrl: './agent.component.scss',
 })
 export class AgentComponent {
   private readonly auth = inject(AuthService);
-  private readonly api = environment.apiBase;
 
-  readonly starters = STARTERS;
-
-  /** The thread, oldest first. */
-  readonly messages = signal<AgentMessage[]>([]);
-  /** The initial GET /history: its own state so a slow read shows as loading,
-   *  not as an empty conversation. */
-  readonly historyState = signal<'loading' | 'ready' | 'error'>('loading');
-  /** True while a /ask request is in flight — Send becomes Stop. */
-  readonly pending = signal(false);
-  /** The last send's failure, cleared by the next send. */
-  readonly error = signal<string | null>(null);
-  /** What is typed in the composer. */
-  readonly draft = signal('');
-  /** The message whose answer was just copied, for the transient "Copied" label. */
-  readonly copiedId = signal<number | null>(null);
+  private readonly chat = viewChild(AgentChatComponent);
 
   /** Staff see a different disclaimer: "your records" is a student screen. */
   readonly isStudent = computed(() => this.auth.session()?.role === 'STUDENT');
@@ -167,212 +70,16 @@ export class AgentComponent {
 
   /** The functions this session holds, exactly as the server resolved them on
    *  /auth/me (the role baseline plus any grant). They are the only scope this
-   *  screen can state: the college / department scope the board draws is a
-   *  grant field that does not exist yet (B1.2), so it is not claimed here. */
+   *  screen can state. */
   readonly grantedFunctions = computed(() => {
     const functionsOnThisSession = this.auth.session()?.capabilities ?? [];
     return [...functionsOnThisSession].sort();
   });
 
-  readonly isEmpty = computed(
-    () => this.historyState() !== 'loading' && this.messages().length === 0 && !this.pending(),
-  );
-  readonly canSend = computed(() => this.draft().trim().length > 0 && !this.pending());
+  /** Whether the page-head Clear button has anything to clear. */
+  readonly canClear = computed(() => this.chat()?.canClear() ?? false);
 
-  private readonly scroller = viewChild<ElementRef<HTMLDivElement>>('scroller');
-  private readonly composer = viewChild<ElementRef<HTMLTextAreaElement>>('composer');
-
-  private inflight: AbortController | null = null;
-  private nextId = 1;
-  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
-
-  constructor() {
-    void this.loadHistory();
-    // Keep the newest turn in view: every change to the thread or to the
-    // pending indicator scrolls the message pane to its bottom.
-    effect(() => {
-      this.messages();
-      this.pending();
-      const el = this.scroller()?.nativeElement;
-      if (el) queueMicrotask(() => (el.scrollTop = el.scrollHeight));
-    });
-  }
-
-  // --- history -------------------------------------------------------------
-
-  private async loadHistory(): Promise<void> {
-    this.historyState.set('loading');
-    try {
-      const res = await fetch(`${this.api}/agent/history`, { credentials: 'include' });
-      if (!res.ok) throw new Error(String(res.status));
-      const body = (await res.json()) as HistoryOut;
-      this.messages.set(
-        body.turns
-          .filter((t) => t.role === 'user' || t.role === 'assistant')
-          .map((t) => ({ id: this.nextId++, role: t.role, content: t.content })),
-      );
-      this.historyState.set('ready');
-    } catch {
-      // A failed history read is not a failed conversation: the screen stays
-      // usable, the error line says what happened, and a send will still work.
-      this.historyState.set('error');
-      this.error.set(ERROR_TEXT);
-    }
-  }
-
-  async clear(): Promise<void> {
-    this.stop();
-    this.error.set(null);
-    try {
-      const res = await fetch(`${this.api}/agent/conversation`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      this.messages.set([]);
-      this.historyState.set('ready');
-    } catch {
-      this.error.set(ERROR_TEXT);
-    }
-  }
-
-  // --- sending -------------------------------------------------------------
-
-  /** A starter chip is just a pre-written message. */
-  useStarter(text: string): void {
-    if (this.pending()) return;
-    void this.send(text);
-  }
-
-  submit(): void {
-    const text = this.draft().trim();
-    if (!text || this.pending()) return;
-    this.draft.set('');
-    this.resizeComposer();
-    void this.send(text);
-  }
-
-  /** Enter sends; Shift+Enter inserts a newline (the textarea's default). */
-  onComposerKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
-      event.preventDefault();
-      this.submit();
-    }
-  }
-
-  onComposerInput(event: Event): void {
-    this.draft.set((event.target as HTMLTextAreaElement).value);
-    this.resizeComposer();
-  }
-
-  private resizeComposer(): void {
-    const el = this.composer()?.nativeElement;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, COMPOSER_MAX_PX)}px`;
-  }
-
-  private async send(text: string): Promise<void> {
-    this.error.set(null);
-    const userTurn: AgentMessage = { id: this.nextId++, role: 'user', content: text };
-    this.messages.update((list) => [...list, userTurn]);
-    this.pending.set(true);
-
-    const controller = new AbortController();
-    this.inflight = controller;
-    try {
-      const res = await fetch(`${this.api}/agent/ask`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        this.markUser(userTurn.id, 'failed');
-        this.error.set(res.status === 429 ? RATE_LIMIT_TEXT : ERROR_TEXT);
-        return;
-      }
-      const body = (await res.json()) as AskOut;
-      this.messages.update((list) => [
-        ...list,
-        {
-          id: this.nextId++,
-          role: 'assistant',
-          content: body.answer,
-          actions: body.actions ?? [],
-          sources: body.sources ?? [],
-          limitations: body.limitations ?? [],
-          runId: body.run_id,
-        },
-      ]);
-    } catch (err) {
-      if ((err as { name?: string })?.name === 'AbortError') {
-        // Stopped by the student. The server may still have answered and saved
-        // the turn — the next history read will show it — but nothing is
-        // rendered here that they asked not to wait for.
-        this.markUser(userTurn.id, 'stopped');
-      } else {
-        this.markUser(userTurn.id, 'failed');
-        this.error.set(ERROR_TEXT);
-      }
-    } finally {
-      if (this.inflight === controller) this.inflight = null;
-      this.pending.set(false);
-    }
-  }
-
-  /** Abort the in-flight /ask. Send turns back into Send. */
-  stop(): void {
-    this.inflight?.abort();
-    this.inflight = null;
-  }
-
-  private markUser(id: number, status: 'failed' | 'stopped'): void {
-    this.messages.update((list) => list.map((m) => (m.id === id ? { ...m, status } : m)));
-  }
-
-  // --- per-answer controls -------------------------------------------------
-
-  async copy(message: AgentMessage): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(message.content);
-      this.copiedId.set(message.id);
-      if (this.copiedTimer) clearTimeout(this.copiedTimer);
-      this.copiedTimer = setTimeout(() => this.copiedId.set(null), 1600);
-    } catch {
-      // Clipboard access can be refused (insecure context, permissions). The
-      // text is on screen and selectable; nothing else to do.
-    }
-  }
-
-  /** Thumbs up / down / report. Optimistic: the acknowledgement shows at once
-   *  and is withdrawn only if the server refuses. */
-  async rate(message: AgentMessage, rating: Rating): Promise<void> {
-    if (!message.runId) return;
-    const previous = message.rating;
-    this.setRating(message.id, rating);
-    try {
-      const res = await fetch(`${this.api}/agent/feedback`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ run_id: message.runId, rating }),
-      });
-      if (!res.ok) this.setRating(message.id, previous);
-    } catch {
-      this.setRating(message.id, previous);
-    }
-  }
-
-  private setRating(id: number, rating: Rating | undefined): void {
-    this.messages.update((list) => list.map((m) => (m.id === id ? { ...m, rating } : m)));
-  }
-
-  /** The source chip tone: an approved policy document is the grounding the
-   *  handoff highlights; anything else (a student-record tool, a future type)
-   *  is the quiet neutral chip. */
-  sourceTone(source: AgentSource): 'policy' | 'other' {
-    return source.type === 'policy' ? 'policy' : 'other';
+  clear(): void {
+    void this.chat()?.clear();
   }
 }

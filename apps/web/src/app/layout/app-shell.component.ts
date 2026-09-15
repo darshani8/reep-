@@ -37,6 +37,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { environment } from '../../environments/environment';
 import { AuthService } from '../core/auth.service';
 import type { Role } from '../core/session';
+import { AgentDockComponent } from './agent-dock.component';
 import { AgentOrbComponent } from './agent-orb.component';
 
 /** One row in the sidebar. */
@@ -448,7 +449,14 @@ const CONSOLE_NAME: Record<Role, string> = {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, UpperCasePipe, AgentOrbComponent],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    UpperCasePipe,
+    AgentOrbComponent,
+    AgentDockComponent,
+  ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
 })

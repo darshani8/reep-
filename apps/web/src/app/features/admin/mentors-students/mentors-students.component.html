@@ -4,21 +4,19 @@
       <div class="crumb"><span>People</span><span class="sep">/</span><span>Assign faculty</span></div>
       <h1 class="dt-title">Assign faculty</h1>
       <div class="dt-sub">
-        Pick a faculty member, then add or remove their students.
         @if (pool() !== null) {
           @if (unassignedCount() > 0) {
             <!-- The pipe prints the count with the noun, so the verb after it cannot
                  go through the pipe as well; it agrees on its own. -->
             {{ unassignedCount() | plural: 'student' }}
-            {{ unassignedCount() === 1 ? 'has' : 'have' }} no mentor
+            {{ unassignedCount() === 1 ? 'has' : 'have' }} no faculty member
             @if (narrowed()) {
               in this view
             }
-            and cannot be reviewed until they do.
           } @else if (narrowed()) {
-            Every student in this view has a mentor.
+            Every student in this view has a faculty member.
           } @else {
-            Every student has a mentor.
+            Every student has a faculty member.
           }
         }
       </div>
@@ -60,8 +58,7 @@
       @if (cohorts() === null) {
         <div class="notice warn" role="status">
           <span class="icon" aria-hidden="true">warning</span>
-          The batch list could not be read, so there is nothing to pick. Reading batches needs the
-          admin.analytics function.
+          The batch list could not be read, so there is nothing to pick.
         </div>
       } @else {
         <div class="batch-bar__row">
@@ -180,7 +177,7 @@
         <select
           aria-label="Batch — narrows the students"
           disabled
-          title="The batch list could not be read, so there is nothing to narrow by. Reading batches needs the admin.analytics function."
+          title="The batch list could not be read, so there is nothing to narrow by."
         >
           <option>All batches</option>
         </select>
@@ -364,9 +361,9 @@
             <div class="notice good" role="status">
               <span class="icon" aria-hidden="true">check_circle</span>
               @if (narrowed()) {
-                Every student in this view has a mentor.
+                Every student in this view has a faculty member.
               } @else {
-                Every student has a mentor.
+                Every student has a faculty member.
               }
             </div>
           } @else {

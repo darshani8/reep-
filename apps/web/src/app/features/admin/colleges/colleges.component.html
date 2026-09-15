@@ -95,23 +95,19 @@
              sentences about domains and the college admin are gone with the
              dashes they described; what is left is the two counts, which no
              endpoint reports and no backlog task promises. -->
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          <div>
-            Students and faculty are not counted per college. <code>scope_filter</code> (B1.4) now
-            narrows every staff list to the caller's own reach, but no response carries a count for
-            a college, so a number here would be whatever the reader happens to be able to see,
-            printed as the college's own. A dash in those two columns means "nothing reports this",
-            never "none".
-            @if (adminsState() === 'off') {
-              The college admin is read through <code>admin.governance</code>, which this session
-              does not hold, so that column is not asked for either.
-            }
-            @if (adminsState() === 'error') {
-              The college admin could not be read: {{ adminsError() }}
-            }
+        @if (adminsState() === 'off' || adminsState() === 'error') {
+          <div class="notice accent" role="status">
+            <span class="icon" aria-hidden="true">info</span>
+            <div>
+              @if (adminsState() === 'off') {
+                This session cannot read college admins, so that column is not shown.
+              }
+              @if (adminsState() === 'error') {
+                The college admin could not be read: {{ adminsError() }}
+              }
+            </div>
           </div>
-        </div>
+        }
 
         <div class="dt-frame">
           <div class="colleges-scroll">
@@ -124,12 +120,6 @@
                 <tr>
                   <th scope="col">College</th>
                   <th scope="col">Domains</th>
-                  <th scope="col" class="num">
-                    Students <span class="col-pending">{{ countUnsourcedNote }}</span>
-                  </th>
-                  <th scope="col" class="num">
-                    Faculty <span class="col-pending">{{ countUnsourcedNote }}</span>
-                  </th>
                   <th scope="col">
                     College admin
                     @if (adminsState() === 'off') {
@@ -161,8 +151,6 @@
                         {{ domainsLabel(college) }}
                       </span>
                     </td>
-                    <td class="num"><span class="cell-empty">—</span></td>
-                    <td class="num"><span class="cell-empty">—</span></td>
                     <td>
                       @switch (adminsState()) {
                         @case ('ready') {
@@ -192,7 +180,7 @@
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="6">
+                    <td colspan="4">
                       <p class="empty">
                         <span class="icon" aria-hidden="true">apartment</span>
                         @if (colleges().length === 0) {
@@ -233,13 +221,10 @@
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
             <div>
-              Appointing a college admin writes the eleven functions below as grants SCOPED to this
-              college (<code>scope_level = college</code>, B1.2), under one recorded reason. Five of
-              them carry a student's own records, so they are written
-              <code>pending_approval</code> and hold nothing until a second holder of
-              <code>admin.governance</code> approves each in
-              <a routerLink="/admin/governance">Who can do what</a> (B2.4) — a freshly
-              appointed college admin is normally part live, and the table's chip says how much.
+              Appointing a college admin gives them the eleven screens below, for this college only.
+              Five of them read students' own records, so each waits for a second approval in
+              <a routerLink="/admin/governance">Who can do what</a>; the table's chip says how many
+              are live.
             </div>
           </div>
 
@@ -279,60 +264,6 @@
           </div>
         </div>
 
-        @if (isMainAdmin()) {
-          <div class="card platform-card">
-            <div class="card-head">
-              <div>
-                <h2 class="card-title">Platform · Main Admin only</h2>
-                <!-- The board's sub-line asserts a deployment fact ("the harden
-                     phase is not deployed"). This browser cannot know that, and
-                     the notice directly below says so — so the sub-line states
-                     what the card IS instead of what the host is. -->
-                <p class="card-sub">
-                  deployment facts, read from the host and never changed from here
-                </p>
-              </div>
-              <!-- A LINK to the runbook, never a button that deploys: nothing in
-                   this app may start an infrastructure change. -->
-              <a
-                class="btn secondary"
-                [href]="hardenRunbookUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span class="icon" aria-hidden="true">open_in_new</span> Deploy harden phase
-                (runbook)
-              </a>
-            </div>
-
-            <div class="notice accent">
-              <span class="icon" aria-hidden="true">info</span>
-              <div>
-                Nothing below is read by this browser. Mail transport, the sender's SES
-                verification, the region, the retention window and the session policy are facts
-                about the deployment, and
-                <code>GET /api/admin/platform/status</code> reports them from Phase
-                {{ platformStatusPhase }} (B3.7, which ships with the CDK harden deploy — Phase 3
-                and Phase 4 have both been and gone without it). The voice platform's own
-                <code>/api/platform/admin/status</code> is a different endpoint about different
-                facts and is not read here. A value copied from the repository's defaults would be
-                a claim about a host nobody checked.
-              </div>
-            </div>
-
-            <dl class="platform-rows">
-              @for (fact of platformFacts; track fact.label) {
-                <div class="platform-row">
-                  <dt>{{ fact.label }}</dt>
-                  <dd>
-                    <span class="chip dot neutral">Not reported yet</span>
-                    <span class="platform-reports">{{ fact.reports }}</span>
-                  </dd>
-                </div>
-              }
-            </dl>
-          </div>
-        }
       </div>
 
       @if (addPanelOpen()) {
@@ -403,13 +334,8 @@
               autocomplete="off"
             />
             <p class="help">
-              Optional · <code>colleges.email_domains</code> (B1.1). An applicant on one of these
-              can be provisioned for this college; every other address is refused — including one
-              a registration rule would otherwise auto-approve, which then lands in the review
-              queue carrying the refusal as its reason. This is not the rule engine's own domain
-              condition, which lives on a registration rule. Leave it empty and the deployment's
-              own <code>provisionable_email_domains</code> applies instead — which is what every
-              college gets today. Separate several with commas.
+              Optional. Only an address on one of these domains can be approved onto this college.
+              Separate several with commas.
             </p>
           </div>
 
@@ -441,8 +367,8 @@
                 </p>
               } @else {
                 <p class="help">
-                  Optional · receives the eleven <code>admin.*</code> functions scoped to this
-                  college (B1.3). Their role does not change: they stay a faculty account.
+                  Optional. They get the eleven screens below, for this college only, and stay a
+                  faculty account.
                 </p>
               }
             } @else {
@@ -454,15 +380,12 @@
               <input
                 id="college-admin"
                 disabled
-                title="Appointing a college admin needs admin.governance"
-                placeholder="Needs the Governance function"
+                title="A college admin is appointed in Who can do what"
+                placeholder="Appointed in Who can do what"
                 autocomplete="off"
               />
               <p class="help">
-                Appointing a college admin is Governance's act, not this screen's:
-                <code>POST /api/admin/colleges/&#123;id&#125;/admins</code> and the faculty list are
-                gated on <code>admin.governance</code> and the Main Admin. The college can be
-                created here and handed over afterwards.
+                Create the college here; appoint its admin in Who can do what.
               </p>
             }
           </div>

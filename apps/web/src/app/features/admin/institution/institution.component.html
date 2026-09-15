@@ -323,16 +323,8 @@
                 <div class="notice accent">
                   <span class="icon" aria-hidden="true">info</span>
                   <div>
-                    This is the fence checked when an application is approved and a roster
-                    row is minted (B1.1) — by a human in Registrations, and by the rule engine
-                    too. <strong>It is not the rule engine's own domain condition</strong>: that
-                    lives on a registration rule and is what decides auto-approval. The two meet
-                    here — a rule that would auto-approve is still refused by this fence, and the
-                    application lands in the review queue carrying the refusal as its reason.
-                    <strong>An empty list is not "no fence"</strong> — it means this college has
-                    named none of its own, and the deployment's provisionable-domains setting
-                    applies instead. Recording domains here takes this college off that shared
-                    list; removing the last one puts it back.
+                    Only an address on one of these domains can be approved onto this college.
+                    Leave the list empty and the deployment's own list applies.
                   </div>
                 </div>
               </div>
@@ -392,17 +384,6 @@
                   </div>
                 </form>
 
-                <div class="notice accent">
-                  <span class="icon" aria-hidden="true">info</span>
-                  <div>
-                    A course records its degree level and its total semesters, and the semester
-                    ceiling on a student is read from them — but nothing sets them from a screen:
-                    <code>PATCH /api/admin/academic-courses/&#123;id&#125;</code> takes code, name,
-                    duration in months and status, and nothing else. Semesters per year is not
-                    recorded anywhere at all. Until the endpoint takes them, a batch carries its
-                    own degree level and a student's semester is bounded by the programme default.
-                  </div>
-                </div>
               </div>
             }
 
@@ -536,10 +517,8 @@
                       </button>
                     </div>
                     <p class="help">
-                      A track's mapping is the track's own field, so this writes
-                      <code>PATCH /api/admin/interview-questions/tracks/&#123;id&#125;</code>. A
-                      track left unmapped is offered to every student; a track mapped here belongs
-                      to this specialization and to the course and college above it.
+                      An unmapped track is offered to every student; a mapped one only to this
+                      specialization.
                     </p>
                   </div>
                 }

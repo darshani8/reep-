@@ -96,11 +96,6 @@
                   Choose the college this person teaches in.
                 </p>
               }
-              <p class="help">
-                Every college on this deployment is listed, and it stays that way on purpose: this
-                whole screen is the Main Admin's (<code>require_admin</code>), so B1.4's scope
-                would narrow nothing here while reading as a fence that is doing work.
-              </p>
             </div>
 
             <div class="field">
@@ -131,11 +126,7 @@
                   {{ departmentRequiredMessage }}
                 </p>
               }
-              <p class="help">
-                The server refuses a faculty account without one (B3.1): the department is how this
-                login reaches its college, and the college is what decides which addresses may hold
-                it. Accounts created before that rule are listed for filing on the Faculty screen.
-              </p>
+              <p class="help">A faculty account must belong to a department.</p>
             </div>
 
             @if (departmentsError(); as message) {
@@ -302,11 +293,7 @@
             />
             <span>Allow an address outside the college domain</span>
           </label>
-          <p class="help">
-            A visiting lecturer on a personal address is a real case, so the fence has a gate — but
-            only a deliberate one. The tick, the reason, the address’s domain and the college’s own
-            list are all written into the audit row for this account (B3.2).
-          </p>
+          <p class="help">For a visiting lecturer on a personal address. The reason is recorded.</p>
         </div>
 
         @if (draft().allowExternal) {
@@ -436,11 +423,8 @@
           <div class="notice accent">
             <span class="icon" aria-hidden="true">mail</span>
             <div>
-              Creating the account mints an activation link. The server emails it when this
-              deployment has a mail transport and tells this screen, afterwards, whether it managed
-              to; a status endpoint that could answer that beforehand is B3.7 and does not exist, so
-              nothing here promises an email. When no mail went out the link is shown on the next
-              screen — once, because only its fingerprint is stored — to hand over yourself.
+              Creating the account makes a sign-in link. It is emailed when this deployment can
+              send mail; otherwise the link is shown once, on the next screen, for you to hand over.
             </div>
           </div>
 

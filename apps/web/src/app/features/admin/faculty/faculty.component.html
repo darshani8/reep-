@@ -113,9 +113,8 @@
   @if (!isLoading() && !directoryRefused() && !mentorGroupsAreReadable()) {
     <div class="notice warn" role="status">
       <span class="icon" aria-hidden="true">warning</span>
-      The mentor assignment list could not be read with this account’s access, so Functions reads
-      “{{ notReadable }}” rather than “No mentor group”. It is served by
-      <code>GET /api/admin/mentor-load</code>, which asks for the analytics function.
+      The mentor groups could not be read with this account’s access, so Functions reads
+      “{{ notReadable }}”.
     </div>
   }
 
@@ -447,12 +446,6 @@
                 REEP holds one live session per account, so a new sign-in retires the previous device.
               </p>
 
-              <div class="notice accent">
-                <span class="icon" aria-hidden="true">history</span>
-                Sign-ins are recorded (B15), but the only endpoint that reads them serves the signed-in
-                account its own history on My account. Nothing answers “when did this person last sign
-                in”, so no list is drawn here.
-              </div>
             }
 
           }

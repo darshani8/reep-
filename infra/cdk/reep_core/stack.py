@@ -203,6 +203,20 @@ DUMP_LIFECYCLE_LAG_DAYS = 7
 #: nobody agreed to. It costs a few dollars a year at this data volume.
 DEFAULT_DUMP_ARCHIVE_YEARS = 10
 
+#: How long an uploaded DOCUMENT is locked in the permanent archive, in years.
+#:
+#: THE SAME PLACEHOLDER CAVEAT `DEFAULT_DUMP_ARCHIVE_YEARS` CARRIES, and the
+#: same unanswered question: "how long must a graduate's academic record remain
+#: retrievable" is a records-retention policy and not an engineering choice.
+#: The difference is what the number governs. That one bounds a `pg_dump` --
+#: rows, re-derivable in principle from a later dump. This one bounds the only
+#: copy of a scanned marksheet a student has since deleted, which nothing
+#: regenerates. It is deliberately the same ten so the two tiers expire
+#: together: a deployment holding the rows that describe a certificate for a
+#: decade and the certificate itself for one year has a record that decays into
+#: a set of dangling pointers.
+DEFAULT_DOCUMENT_ARCHIVE_YEARS = 10
+
 #: CloudFront's managed policy ids, the same three cdn.tf hardcodes.
 _CACHE_OPTIMIZED = "658327ea-f89d-4fab-a63d-7e88639e58f6"
 _CACHE_DISABLED = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
@@ -339,6 +353,42 @@ class CoreStack(Stack):
                 f"{archive_retention_days}. Shorter than the daily rule is not an "
                 "archive, and the DR vault's lock refuses a copy whose lifecycle is "
                 "below its minimum retention."
+            )
+        # THE PERMANENT DOCUMENT ARCHIVE (app/document_archive.py). The FILE
+        # half of the two tiers above, and the only one of the three that
+        # carries bytes.
+        #
+        # WHY IT IS NOT COVERED BY ANYTHING ALREADY HERE. The daily backup
+        # selection below reaches the EFS file system, so an uploaded file had
+        # exactly one copy beyond the volume and that copy expires at
+        # `backupRetentionDays` -- 35, because RDS refuses more and both halves
+        # read one number. The ARCHIVE selection that reaches past 35 days
+        # deliberately names `[db_arn]` and nothing else, for the reason
+        # written at that selection: a multi-year lifecycle over EFS would keep
+        # every recorded interview for years too. And both `pg_dump` tiers and
+        # the identity ledger carry Postgres rows, never file bytes. So a
+        # marksheet deleted from the website was recoverable for 35 days and
+        # then gone in both regions at once, with nothing on any screen saying
+        # so. A college keeps a student's academic record for decades; 35 days
+        # is not a retention policy, it is the absence of one.
+        #
+        # ITS OWN BUCKET, for the ledger's reason stated above: a prefix under
+        # an existing bucket inherits whatever that bucket's lifecycle becomes,
+        # and a permanent archive that quietly acquires an expiry reads as
+        # protection right up until the day it is asked for something older
+        # than the rule nobody remembered setting.
+        document_archive = harden and flag("documentArchive", True)
+        # GOVERNANCE, matching the ledger and the dump archive. Compliance mode
+        # is the correct end state and the wrong thing to switch on in the
+        # change that creates the bucket: a retention typed wrong would be
+        # permanent too, on objects nobody -- including root -- could remove.
+        document_archive_compliance = flag("documentArchiveCompliance", False)
+        document_archive_years = int(opt("documentArchiveYears", DEFAULT_DOCUMENT_ARCHIVE_YEARS))
+        if not 1 <= document_archive_years <= 100:
+            raise ValueError(
+                f"documentArchiveYears must be 1..100, not {document_archive_years}. "
+                "It is an Object Lock retention in years and cannot be shortened "
+                "on objects already written."
             )
         allocated_storage = str(opt("liveAllocatedStorage", 20))
         # hardenEcs=false: the database/backup half of harden without the ECS
@@ -730,6 +780,54 @@ class CoreStack(Stack):
                 description="DB_DUMP_ARCHIVE_BUCKET for the api task",
             )
 
+        document_archive_bucket = None
+        if document_archive:
+            # THE PERMANENT DOCUMENT ARCHIVE: every uploaded file and every
+            # finished interview recording, written once as it is stored and
+            # never removed. See the knob's comment above for why nothing
+            # already in this stack covers it.
+            #
+            # NO LIFECYCLE RULE AT ALL -- the ledger's deliberate absence and the
+            # monthly dump archive's, for the same reason. This is the copy that
+            # outlives the 35-day ceiling, and a rule it acquires by accident is
+            # that promise quietly expiring, in the one direction S3 never
+            # reports: an expiration aimed at an object whose lock has not
+            # lapsed deletes nothing, forever, behind a console showing a rule
+            # that looks like it works.
+            #
+            # VERSIONED, and not optional. `document_store` mints a fresh
+            # `uuid4().hex` for every file, so a key is written once and a
+            # second PUT to the same key cannot happen through the app -- but
+            # versioning is what makes that a property of the BUCKET rather than
+            # of the current shape of one module, and it is what the sweep's
+            # "writes only, never deletes" promise rests on.
+            document_archive_bucket = s3.Bucket(
+                self,
+                "DocumentArchiveBucket",
+                bucket_name=f"{project}-documents-archive-{self.account}",
+                versioned=True,
+                # OBJECT LOCK CAN ONLY BE SET AT CREATION, the ledger's rule: a
+                # bucket created without it has to be REPLACED, copying every
+                # object by hand under a new name. That is the whole reason it
+                # is here on day one rather than deferred.
+                object_lock_enabled=True,
+                object_lock_default_retention=(
+                    s3.ObjectLockRetention.compliance(Duration.days(365 * document_archive_years))
+                    if document_archive_compliance
+                    else s3.ObjectLockRetention.governance(Duration.days(365 * document_archive_years))
+                ),
+                encryption=s3.BucketEncryption.S3_MANAGED,
+                enforce_ssl=True,
+                block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+                removal_policy=RemovalPolicy.RETAIN,
+            )
+            CfnOutput(
+                self,
+                "DocumentArchiveBucketName",
+                value=document_archive_bucket.bucket_name,
+                description="DOCUMENT_ARCHIVE_BUCKET for the api task",
+            )
+
         alb_logs_bucket = s3.Bucket(
             self,
             "AlbLogsBucket",
@@ -1083,6 +1181,34 @@ class CoreStack(Stack):
                     ]
                 )
 
+        if document_archive_bucket is not None:
+            # PUT AND LIST, NEVER GET, and here the rule bites hardest of the
+            # three. This bucket accumulates every marksheet, certificate,
+            # photograph, CV, staff signature and recorded interview the college
+            # holds, in their original bytes -- not a dump that needs restoring,
+            # but files a browser opens. A task that can READ it is one
+            # compromise away from exfiltrating every document in the
+            # deployment, past rule 1 and past every control on the database.
+            #
+            # `archive_documents` must ask which objects already exist, and the
+            # obvious `head_object` is authorised by `s3:GetObject` -- S3 has no
+            # separate permission for it -- so the sweep uses `list_objects_v2`,
+            # which returns key names and never contents. No Delete and no
+            # PutObjectRetention either: the writer must not be able to weaken
+            # the lock protecting its own output.
+            inline["write-document-archive"] = iam.PolicyDocument(
+                statements=[
+                    iam.PolicyStatement(
+                        actions=["s3:PutObject"],
+                        resources=[document_archive_bucket.arn_for_objects("*")],
+                    ),
+                    iam.PolicyStatement(
+                        actions=["s3:ListBucket"],
+                        resources=[document_archive_bucket.bucket_arn],
+                    ),
+                ]
+            )
+
         if harden and ses_identity_domain:
             # Activation, reset and confirmation mail (app/mail_transport.py).
             # Scoped to the college's verified identity, and only from the
@@ -1295,6 +1421,35 @@ class CoreStack(Stack):
             api_environment["DB_DUMP_REGION"] = self.region
             if dump_archive_bucket is not None:
                 api_environment["DB_DUMP_ARCHIVE_BUCKET"] = dump_archive_bucket.bucket_name
+        if harden_ecs and document_archive_bucket is not None:
+            # `harden_ecs` and not `harden`, the ledger's rule and the same
+            # two-gates-for-one-feature shape: the GRANT can go early because it
+            # is inert without the name (a task holding s3:PutObject that cannot
+            # name a bucket writes nothing), while the VARIABLE registers a new
+            # task-definition revision the service rolls onto, which step 9a
+            # exists to keep out of the Multi-AZ conversion.
+            api_environment["DOCUMENT_ARCHIVE_BUCKET"] = document_archive_bucket.bucket_name
+        if harden_ecs:
+            # INTERVIEW_AUDIO_DIR, SET EXPLICITLY AND NOT LEFT TO THE FALLBACK.
+            # `interview_audio._store_root()` falls back to
+            # `settings.uploads_path.parent / "interview-audio"`, which resolves
+            # to /data/interview-audio here only because UPLOAD_DIR happens to
+            # be /data/uploads and /data happens to be the EFS mount.
+            # app/config.py records what that coincidence cost the last time it
+            # broke: the fallback landed in the container's WRITABLE LAYER, so
+            # consented recordings were destroyed on every redeploy, silently.
+            # Naming it makes the mount an explicit statement rather than an
+            # accident of another variable, and docker-compose.prod.yml already
+            # sets it for exactly this reason.
+            #
+            # GATED ON `harden_ecs` LIKE EVERY OTHER VARIABLE HERE, and not
+            # because it needs a grant -- it needs nothing. A task definition is
+            # IMMUTABLE: any added variable registers a new revision. The import
+            # mirror must stay byte-identical to what Terraform left behind, and
+            # step 9a (`hardenEcs=false`) must not roll the service while the
+            # database is converting to Multi-AZ. A variable whose value is a
+            # constant is still a new revision.
+            api_environment["INTERVIEW_AUDIO_DIR"] = "/data/interview-audio"
 
         def _api_task_def(cid: str, family: str, image_tag: str) -> tuple[ecs.FargateTaskDefinition, ecs.ContainerDefinition]:
             """One api task definition. ONE helper for the three families
@@ -1633,6 +1788,75 @@ class CoreStack(Stack):
                     ),
                     input=json.dumps(
                         {"containerOverrides": [{"name": "api", "command": ["python", "-m", "app.backup_database"]}]},
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    ),
+                ),
+            )
+
+        if harden_ecs and document_archive_bucket is not None:
+            # THE DOCUMENT ARCHIVE SWEEP, DAILY AT 02:00 IST.
+            #
+            # WHY A SWEEP EXISTS AT ALL, when `document_store.save_bytes`
+            # already PUTs every file as it is stored: that inline write is
+            # BEST-EFFORT by contract and raises nothing, because an S3 blip
+            # must never be the reason a student is told their valid certificate
+            # was rejected. This job is what makes the promise hold anyway -- it
+            # uploads whatever the bucket does not already have, so an inline
+            # failure costs hours rather than the file.
+            #
+            # It is also the ONLY writer that archives INTERVIEW AUDIO. The
+            # recorder writes its WAVs incrementally and closes them in `run()`'s
+            # `finally`; during a live interview there is no complete file to
+            # upload, and a mid-call PUT would ship a truncated container into a
+            # bucket where it could never be replaced or removed.
+            #
+            # 20:30 UTC, and the ordering against the other four clocks is the
+            # whole reason it is not simply "some quiet hour":
+            #   * AFTER the identity ledger (18:00) and the logical dump
+            #     (19:30), which are small and must not queue behind a sweep
+            #     that walks the entire volume.
+            #   * STRICTLY BEFORE the retention sweep (21:30). This is the
+            #     ordering that matters most and it is not the ledger's polite
+            #     version of it: `retention.purge_expired` DELETES interview
+            #     audio off the volume, so an archive pass that ran after it has
+            #     permanently missed every recording that expired that night --
+            #     there is no second chance, because the bytes are gone and no
+            #     row points at them. An hour of clearance on a job that reads
+            #     files and uploads the new ones.
+            #   * CLEAR OF THE RDS WINDOW (20:30-21:30) in the only sense that
+            #     applies: this job never touches the database. It is listed
+            #     here so the next person adding a schedule sees all five in one
+            #     place, which is what
+            #     test_backup_schedule_clears_the_rds_windows exists to protect.
+            #
+            # It reuses the api task definition and so the scheduler role's
+            # existing ecs:RunTask on `{project}-api:*`, and it runs in the same
+            # subnets and security group because it needs the EFS mount -- which
+            # is the one way this job differs from the other three, all of which
+            # only need the database or nothing at all.
+            scheduler.CfnSchedule(
+                self,
+                "DocumentArchiveSchedule",
+                name=f"{project}-document-archive-daily",
+                schedule_expression="cron(30 20 * * ? *)",  # 02:00 IST
+                flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(mode="OFF"),
+                target=scheduler.CfnSchedule.TargetProperty(
+                    arn=cluster.cluster_arn,
+                    role_arn=scheduler_role.role_arn,
+                    ecs_parameters=scheduler.CfnSchedule.EcsParametersProperty(
+                        task_definition_arn=task_def.task_definition_arn,
+                        launch_type="FARGATE",
+                        network_configuration=scheduler.CfnSchedule.NetworkConfigurationProperty(
+                            awsvpc_configuration=scheduler.CfnSchedule.AwsVpcConfigurationProperty(
+                                subnets=[s.ref for s in private_subnets],
+                                security_groups=[api_sg.ref],
+                                assign_public_ip="DISABLED",
+                            )
+                        ),
+                    ),
+                    input=json.dumps(
+                        {"containerOverrides": [{"name": "api", "command": ["python", "-m", "app.archive_documents"]}]},
                         separators=(",", ":"),
                         sort_keys=True,
                     ),

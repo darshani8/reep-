@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 
 import { AuthService } from '../../../core/auth.service';
 import { AdminCollegeSetupComponent } from './college-setup.component';
@@ -144,5 +144,95 @@ describe('Set up a college · Create everything', () => {
     c.goNext();
     expect(c.step()).toBe(2);
     expect(c.stepComplete()).toBe(false);
+  });
+});
+
+/** Poll until `check` holds: the component's loads are plain fetch promises
+ *  that `whenStable` does not track. */
+async function until(check: () => boolean, tries = 400): Promise<void> {
+  for (let i = 0; i < tries; i++) {
+    if (check()) return;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error('the condition never held');
+}
+
+/**
+ * Opened from a college card or a College structure section: `?college=` loads
+ * that college on step 1 exactly as picking it in the select would, and
+ * `?step=` opens on that step — so "Add a course" on College structure is one
+ * press away from the course rows rather than six.
+ */
+describe('Set up a college · opened with ?college= and ?step=', () => {
+  const calls: Call[] = [];
+  const realFetch = globalThis.fetch;
+
+  function existingCollegeFetch(): typeof fetch {
+    const reply = (status: number, body: unknown) =>
+      ({ ok: status < 400, status, json: async () => body }) as unknown as Response;
+    return (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const path = url.slice(url.indexOf('/api') + 4);
+      const method = init?.method ?? 'GET';
+      calls.push({ method, path, body: null });
+      switch (path) {
+        case '/admin/colleges':
+          return reply(200, [
+            {
+              id: 'c1',
+              code: '1MP',
+              name: 'BGSCET',
+              campus: null,
+              contact: null,
+              email_domains: [],
+            },
+          ]);
+        case '/admin/colleges/c1/departments':
+          return reply(200, [{ id: 'd1', code: 'MBA', name: 'Management', head: null }]);
+        case '/admin/departments/d1/academic-courses':
+          return reply(200, [{ id: 'k1', code: 'MBA', name: 'General MBA', duration_months: 24 }]);
+        case '/admin/departments/d1/cohorts':
+          return reply(200, []);
+        case '/admin/academic-courses/k1/academic-specializations':
+          return reply(200, []);
+      }
+      return reply(404, { detail: `unscripted ${method} ${path}` });
+    }) as typeof fetch;
+  }
+
+  beforeEach(async () => {
+    calls.length = 0;
+    globalThis.fetch = existingCollegeFetch();
+    await TestBed.configureTestingModule({
+      imports: [AdminCollegeSetupComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { queryParamMap: convertToParamMap({ college: 'c1', step: '3' }) },
+          },
+        },
+        {
+          provide: AuthService,
+          useValue: { session: signal({ role: 'ADMIN', capabilities: ['admin.institution'] }) },
+        },
+      ],
+    }).compileComponents();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it('loads the named college and opens on the named step', async () => {
+    const fixture = TestBed.createComponent(AdminCollegeSetupComponent);
+    const c = fixture.componentInstance;
+    await until(() => c.step() === 3);
+    expect(c.existingCollege()?.id).toBe('c1');
+    expect(c.departments().map((d) => d.existingId)).toEqual(['d1']);
+    expect(c.courses().map((k) => k.existingId)).toEqual(['k1']);
+    expect(c.stepComplete()).toBe(true);
+    expect(calls.filter((k) => k.method === 'POST')).toEqual([]);
   });
 });

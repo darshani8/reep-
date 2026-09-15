@@ -1,89 +1,54 @@
 /**
- * Colleges — the tenant list, the Add-college panel, and the two cards that
- * say what a college admin and what the platform can do.
+ * Colleges — one card per college, and the Add-college card above them.
  *
- * The approved board is `docs/redesign-2026-09/design/admin/Colleges.html`,
- * specified in `02-admin-console-spec.md` §3. `PATCH /api/admin/colleges/{id}`
- * exists on main and NOTHING here reaches it: the board shows no edit and no
- * archive control, so fixing a typo in a code or name and archiving a college
- * are API-only from this screen. That is a gap in the board, not in the API —
- * it wants a decision, not a button invented here.
+ * ONE CARD PER COLLEGE, NOT A ROW IN A TABLE (2026-09-15). The screen used to
+ * be a four-column grid with a status bar, a selection that only re-titled an
+ * explanatory card, and a 380px side panel for the form. It is now the setup
+ * screen's shape: each college is a card carrying the facts a stored value can
+ * answer — code, campus, department count, email domains, college admin,
+ * contact, status — and two buttons: "Open" (College structure, with this
+ * college picked) and "Continue setup" (Set up a college, with this college
+ * loaded). The card that described what a college admin may and may not do
+ * was prose about the capability catalogue, which Who can do what already
+ * lists, and it is gone with the selection that titled it.
  *
- * CHANGING AN ALREADY-CREATED COLLEGE'S DOMAINS IS THE ONE EXCEPTION, and it is
- * not on this screen: `features/admin/institution` edits the fence on the
- * college it has selected, through that same PATCH. This screen writes the list
- * at CREATION and reads it back in the column; that one lives where an admin is
- * already looking at a single college's shape. Two screens, one column, one
- * writer each — which is only safe while they agree about what an empty list
- * means, so both say it in the same words.
+ * THIS SCREEN CREATES NOTHING (2026-09-15). It carried its own Add-college
+ * form beside the header's "Set up a college" button — two buttons that both
+ * created a college, and the owner named the repetition. The setup flow's
+ * step 1 now takes every field the form took (code, name, campus, contact,
+ * email domains), so the form is gone and the one thing it did that the flow
+ * cannot — appointing a college admin — is an action on each card instead,
+ * which also makes it possible for a college that already exists rather than
+ * only at the moment of creation.
  *
- * WHAT PHASE 3 TURNED ON HERE (2026-09-13). Two of the four columns the board
- * draws, and two of the three greyed fields in the Add-college panel, had no
- * endpoint when this screen was built. They have one now:
+ * `PATCH /api/admin/colleges/{id}` exists and NOTHING here reaches it: renaming
+ * a college and archiving one are API-only from this screen. The DOMAINS are
+ * edited on `features/admin/institution`, on the college it has picked,
+ * through that same PATCH; this screen only reads them back on the card. Two
+ * screens, one column, one writer — which is only safe while they agree about
+ * what an empty list means, so both say it in the same words.
  *
- *   - registered email domains (`B1.1`) are `colleges.email_domains`, carried on
- *     `CollegeOut` and accepted by `CollegeIn`. The column renders the list, and
- *     the panel's field writes it at creation. An EMPTY list is not "nobody may
- *     join" — `app/institution_domains.py` falls back to the deployment's own
- *     `provisionable_email_domains` — so the cell says so in words rather than
- *     showing a dash, which would read as a fence that admits no one.
+ *   - registered email domains (`B1.1`) are `colleges.email_domains`, carried
+ *     on `CollegeOut` and accepted by `CollegeIn`. An EMPTY list is not "nobody
+ *     may join" — `app/institution_domains.py` falls back to the deployment's
+ *     own `provisionable_email_domains` — so the card says "Deployment list"
+ *     rather than showing a dash, which would read as a fence that admits no
+ *     one.
  *   - the college admin (`B1.3`) is a FACULTY account holding the eleven scoped
  *     `admin.*` grants `COLLEGE_ADMIN_CAPABILITIES` names. `GET` and `POST
- *     /api/admin/colleges/{id}/admins` read and write them, and the panel's
- *     field is a picker over `GET /api/admin/faculty` plus the reason the
- *     endpoint records.
- *
- * The THIRD greyed field, "Copy catalogues from", is a different answer and
- * Phase 4 is the reason it is now final rather than pending: B13 shipped `POST
- * /api/admin/catalogue/copy`, and its shape settles the question — a catalogue
- * is copied between COURSES, and a college being created has none. See
- * `CATALOGUE_COPY_REASON`.
+ *     /api/admin/colleges/{id}/admins` read and write them, and the card's
+ *     "Appoint" form is a picker over `GET /api/admin/faculty` plus the reason
+ *     the endpoint records.
  *
  * BOTH ADMIN ENDPOINTS ARE GATED ON `admin.governance`, NOT ON THIS SCREEN'S
  * `admin.institution` (`require_governance` in `app/routers/governance.py`),
  * and that is deliberate on the API's side: who holds what is Governance's
  * subject, so renaming a department must not also read the access map. A
  * granted faculty member therefore reaches this screen and cannot see or write
- * the college-admin column. The client checks `session.capabilities` to decide
+ * the college admin. The client checks `session.capabilities` to decide
  * whether to ASK — a filter that keeps a 403 off the screen, never an
  * authorisation; the API refuses regardless.
  *
- * WHAT STILL HAS NO SOURCE, AND WHY IT IS NOT A PHASE. Students and faculty per
- * college are the board's other two columns. `B1.4` landed and narrowed every
- * staff list to the caller's reach, but a per-college COUNT is not a field on
- * any response and no backlog item promises one — so those two headers no
- * longer carry a phase badge (a "Phase 3" label on a screen running Phase 3
- * code reads as a bug). They carry the reason instead, and the cells stay
- * dashes: a count computed here out of a list that is itself scoped and capped
- * would be a different number for every reader, presented as the college's.
- *
- * THE COLLEGE-ADMIN CARD IS EXPLANATORY TEXT, NOT DATA. The board's lines
- * describe what a person holding college-scoped `admin.*` functions may and may
- * not do. They are written here from `02-admin-console-spec.md` §3 and the
- * capability catalogue in `apps/api-py/app/models/governance.py`, and each
- * allowed line names the keys it is made of, so a reader can check the sentence
- * against Governance and against `COLLEGE_ADMIN_CAPABILITIES`.
- *
- * THE PLATFORM CARD REPORTS NOTHING, AND SAYS SO. Mail transport, the sender's
- * SES verification, the region, the retention window and the session policy are
- * facts about the deployment this browser cannot read; `GET
- * /api/admin/platform/status` is `B3.7`, which `05-delivery-workflow.md` puts
- * in PHASE 5 with the CDK harden deploy — it did not ship with Phase 3. Printing
- * "ap-south-1" or "180 days" from the repository's defaults would be a value
- * nobody computed on the host it is being read on. So each row states WHAT it
- * will report and shows "Not reported yet". It is rendered for the Main Admin
- * alone (the route admits a granted faculty member through `admin.institution`,
- * and this card is the office's).
- *
- * "DEPLOY HARDEN PHASE" IS A LINK TO THE RUNBOOK. `02-admin-console-spec.md` §3
- * is explicit: never a button that deploys. Nothing in this SPA may start an
- * infrastructure change — the deploy role in CI holds no CloudFormation rights
- * at all (AGENTS.md, "Infrastructure") — so the control is an anchor to the
- * cutover runbook and opens in a new tab.
- *
- * ONE PRIMARY BUTTON AT A TIME. "Add college" in the header is the view's
- * primary until the panel opens; from then on the panel's "Create college" is,
- * and the header button is not rendered.
  */
 
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
@@ -91,7 +56,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
-import { plural } from '../../../shared/text/plural.pipe';
+import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 /** `CollegeOut` in `app/routers/admin.py`, snake_case exactly as it arrives. */
 interface CollegeOut {
@@ -145,17 +110,9 @@ type ScreenState = 'loading' | 'ready' | 'error';
  *  — nothing was asked, so nothing is claimed. */
 type AdminsState = 'off' | 'loading' | 'ready' | 'error';
 
-/** One allowed line of the college-admin card, with the catalogue keys it is
- *  made of so the sentence can be checked against Governance. */
-interface CollegeAdminFunction {
-  summary: string;
-  capabilityKeys: string;
-}
-
-/** `MIN_REASON_CHARS` in `app/routers/governance.py`. Checked here so the panel
- *  can say why "Create college" is not available BEFORE the college is written
- *  — a 422 from the appointment after the college exists is a half-done act the
- *  reader has to unpick. The server checks it again and is the authority. */
+/** `MIN_REASON_CHARS` in `app/routers/governance.py`. Checked here so the card
+ *  can say why "Appoint" is not available before the request is sent. The
+ *  server checks it again and is the authority. */
 const MIN_REASON_CHARS = 20;
 
 /** `require_governance` (`app/routers/governance.py`) gates both college-admin
@@ -186,7 +143,7 @@ interface AdminSummary {
 @Component({
   selector: 'app-admin-colleges',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, PluralPipe],
   templateUrl: './colleges.component.html',
   styleUrl: './colleges.component.scss',
 })
@@ -198,7 +155,6 @@ export class AdminCollegesComponent implements OnInit {
   readonly state = signal<ScreenState>('loading');
   readonly loadError = signal<string | null>(null);
   readonly colleges = signal<CollegeOut[]>([]);
-  readonly selectedCollegeId = signal<string | null>(null);
 
   readonly statusFilter = signal<string>('all');
   readonly campusFilter = signal<string>('all');
@@ -210,24 +166,21 @@ export class AdminCollegesComponent implements OnInit {
   readonly adminsState = signal<AdminsState>('off');
   readonly adminsError = signal<string | null>(null);
 
-  readonly addPanelOpen = signal(false);
-  readonly creatingCollege = signal(false);
-  readonly createError = signal<string | null>(null);
-  readonly createdCollegeName = signal<string | null>(null);
+  /** The card whose "Appoint" form is open, and the write in flight. */
+  readonly appointingCollegeId = signal<string | null>(null);
+  readonly appointBusy = signal(false);
   readonly appointNote = signal<string | null>(null);
   readonly appointError = signal<string | null>(null);
-  readonly newCollegeDraft = signal({ code: '', name: '', campus: '', contact: '', domains: '' });
 
-  /** The faculty account to appoint as this college's admin, and the reason the
-   *  appointment records. Both belong to the panel, not to the college row. */
+  /** The faculty account to appoint as the open card's admin, and the reason
+   *  the appointment records. Both belong to the form, not to the college. */
   readonly appointUserId = signal<string>('');
   readonly appointReason = signal<string>('');
   readonly faculty = signal<FacultyRow[]>([]);
   readonly facultyError = signal<string | null>(null);
   readonly facultyLoading = signal(false);
 
-  /** The platform card is the office's. A faculty member granted
-   *  `admin.institution` reaches this screen and does not see it. */
+  /** The faculty list behind the admin picker is Main-Admin-only on the API. */
   readonly isMainAdmin = computed(() => this.auth.session()?.role === 'ADMIN');
 
   /** Whether to ASK for the college-admin data at all. A client-side capability
@@ -250,6 +203,18 @@ export class AdminCollegesComponent implements OnInit {
     return [...campuses].sort();
   });
 
+  /** The status filter as four buttons — one press, no menu. */
+  readonly statusOptions: { value: string; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'ACTIVE', label: 'Active' },
+    { value: 'DRAFT', label: 'Draft' },
+    { value: 'ARCHIVED', label: 'Archived' },
+  ];
+
+  readonly activeCount = computed(
+    () => this.colleges().filter((college) => college.status === 'ACTIVE').length,
+  );
+
   readonly visibleColleges = computed(() => {
     const status = this.statusFilter();
     const campus = this.campusFilter();
@@ -258,29 +223,6 @@ export class AdminCollegesComponent implements OnInit {
       const campusMatches = campus === 'all' || college.campus === campus;
       return statusMatches && campusMatches;
     });
-  });
-
-  /** The selected row, resolved INSIDE the filtered set and never outside it.
-   *  A selection the filter has hidden would title the college-admin card after
-   *  a college that is not on screen and leave the status bar reading
-   *  "Selected: 1" over a list that shows no selected row — two statements the
-   *  reader cannot check. Falling back to the first visible row keeps the card,
-   *  the highlight and the count describing the same college. */
-  readonly selectedCollege = computed(() => {
-    const visible = this.visibleColleges();
-    const id = this.selectedCollegeId();
-    return visible.find((college) => college.id === id) ?? visible[0] ?? null;
-  });
-
-  /** The college-admin card is titled after the selected row, as on the board. */
-  readonly selectedCollegeName = computed(() => this.selectedCollege()?.name ?? 'a college');
-
-  readonly statusFilterLabel = computed(() => {
-    const status = this.statusFilter();
-    if (status === 'all') {
-      return 'All';
-    }
-    return this.statusLabel(status);
   });
 
   readonly campusFilterLabel = computed(() => {
@@ -301,43 +243,9 @@ export class AdminCollegesComponent implements OnInit {
     () => this.appointReasonLength() >= MIN_REASON_CHARS,
   );
 
-  readonly canCreateCollege = computed(() => {
-    const draft = this.newCollegeDraft();
-    const hasCode = draft.code.trim().length > 0;
-    const hasName = draft.name.trim().length > 0;
-    // A picked faculty account without a usable reason blocks the WHOLE act,
-    // rather than creating the college and failing the appointment after it.
-    const appointReady = !this.appointUserId() || this.appointReasonReady();
-    return hasCode && hasName && appointReady && !this.creatingCollege();
-  });
-
-  /** The lines of the board's college-admin card, in its order. */
-  readonly collegeAdminCan: CollegeAdminFunction[] = [
-    {
-      summary: 'Structure, faculty, students and mentor mapping for the college',
-      capabilityKeys: 'admin.institution · admin.students · admin.mentors',
-    },
-    {
-      summary: "Registrations from the college's own email domains",
-      capabilityKeys: 'admin.registrations',
-    },
-    {
-      summary: 'Analytics, exports, SWOC notes and placement',
-      capabilityKeys: 'admin.analytics · admin.exports · admin.swoc · admin.placement',
-    },
-    {
-      summary: 'Jobs, catalogue and the interview question bank',
-      capabilityKeys: 'admin.jobs · admin.catalogue · admin.interview_questions',
-    },
-  ];
-
-  readonly collegeAdminNever: string[] = [
-    'See or export another college',
-    'Create a college, or a second Main Admin',
-    'Grant a function to anybody, including themselves — admin.governance is not in the set',
-    'Play back an interview recording — admin.interview_audio is its own decision',
-    'Change platform settings — mail, region, retention',
-  ];
+  readonly canAppoint = computed(
+    () => this.appointUserId() !== '' && this.appointReasonReady() && !this.appointBusy(),
+  );
 
   ngOnInit(): void {
     void this.loadColleges();
@@ -357,9 +265,6 @@ export class AdminCollegesComponent implements OnInit {
       }
       const colleges = (await response.json()) as CollegeOut[];
       this.colleges.set(colleges);
-      // No opening selection is set here: `selectedCollege` already resolves to
-      // the first VISIBLE row, so seeding an id would only add a second place
-      // that decides which college the card is about.
       this.state.set('ready');
       void this.loadCollegeAdmins(colleges);
     } catch {
@@ -451,32 +356,19 @@ export class AdminCollegesComponent implements OnInit {
     }
   }
 
-  selectCollege(collegeId: string): void {
-    this.selectedCollegeId.set(collegeId);
-  }
-
-  openAddPanel(): void {
-    this.createError.set(null);
-    this.createdCollegeName.set(null);
+  openAppoint(college: CollegeOut): void {
+    this.appointingCollegeId.set(college.id);
     this.appointNote.set(null);
     this.appointError.set(null);
-    this.addPanelOpen.set(true);
+    this.appointUserId.set('');
+    this.appointReason.set('');
     void this.loadFaculty();
   }
 
-  closeAddPanel(): void {
-    this.addPanelOpen.set(false);
-    this.createError.set(null);
-    this.newCollegeDraft.set({ code: '', name: '', campus: '', contact: '', domains: '' });
+  closeAppoint(): void {
+    this.appointingCollegeId.set(null);
     this.appointUserId.set('');
     this.appointReason.set('');
-  }
-
-  setNewCollegeField(
-    field: 'code' | 'name' | 'campus' | 'contact' | 'domains',
-    value: string,
-  ): void {
-    this.newCollegeDraft.update((draft) => ({ ...draft, [field]: value }));
   }
 
   setAppointUserId(value: string): void {
@@ -496,71 +388,22 @@ export class AdminCollegesComponent implements OnInit {
   }
 
   /**
-   * POST /api/admin/colleges, then — when a faculty account was picked — POST
-   * /api/admin/colleges/{id}/admins. The API's own refusals are shown verbatim;
-   * "A college with code BGSCET already exists." is written for the reader.
-   *
-   * TWO WRITES, REPORTED SEPARATELY. The appointment cannot be folded into the
-   * create (it needs the college's id, and it is a different endpoint behind a
-   * different capability), so the second one can fail after the first has
-   * succeeded. The college is then real and un-administered, and the panel says
-   * exactly that rather than reporting either a clean success or a clean
-   * failure — both of which would leave the reader to discover the truth from
-   * the table.
+   * POST /api/admin/colleges/{id}/admins with the picked faculty account and
+   * the reason. The API's own refusal is shown verbatim. On success the card
+   * shows the row the server returned, and the note says how many of the
+   * eleven functions are live — five carry a student's own records and hold
+   * nothing until a second holder of admin.governance approves each in Who
+   * can do what.
    */
-  async createCollege(): Promise<void> {
-    if (!this.canCreateCollege()) {
+  async appoint(college: CollegeOut): Promise<void> {
+    if (!this.canAppoint()) {
       return;
     }
-    const draft = this.newCollegeDraft();
-    this.creatingCollege.set(true);
-    this.createError.set(null);
-    this.createdCollegeName.set(null);
+    const userId = this.appointUserId();
+    const person = this.faculty().find((row) => row.user_id === userId);
+    this.appointBusy.set(true);
     this.appointNote.set(null);
     this.appointError.set(null);
-    try {
-      const response = await fetch(`${environment.apiBase}/admin/colleges`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: draft.code.trim(),
-          name: draft.name.trim(),
-          campus: draft.campus.trim() || null,
-          contact: draft.contact.trim() || null,
-          email_domains: this.parseDomains(draft.domains),
-        }),
-      });
-      if (!response.ok) {
-        this.createError.set(await this.detailOf(response));
-        return;
-      }
-      const created = (await response.json()) as CollegeOut;
-      this.colleges.update((list) => [...list, created].sort((a, b) => a.name.localeCompare(b.name)));
-      this.selectedCollegeId.set(created.id);
-      this.createdCollegeName.set(created.name);
-      this.collegeAdmins.update((map) => ({ ...map, [created.id]: [] }));
-      await this.appointAdmin(created);
-      this.newCollegeDraft.set({ code: '', name: '', campus: '', contact: '', domains: '' });
-      this.appointUserId.set('');
-      this.appointReason.set('');
-      this.addPanelOpen.set(false);
-    } catch {
-      this.createError.set('The server could not be reached. No college was created.');
-    } finally {
-      this.creatingCollege.set(false);
-    }
-  }
-
-  /** The second write. Silent when no faculty account was picked — appointing
-   *  nobody is the normal case, and a college with no admin is a state the
-   *  table already renders. */
-  private async appointAdmin(college: CollegeOut): Promise<void> {
-    const userId = this.appointUserId();
-    if (!userId) {
-      return;
-    }
-    const person = this.faculty().find((row) => row.user_id === userId);
     try {
       const response = await fetch(
         `${environment.apiBase}/admin/colleges/${college.id}/admins`,
@@ -573,39 +416,35 @@ export class AdminCollegesComponent implements OnInit {
       );
       if (!response.ok) {
         this.appointError.set(
-          `${college.name} was created, but ${person?.name ?? 'that account'} was not appointed: ${await this.detailOf(response)}`,
+          `${person?.name ?? 'That account'} was not appointed to ${college.name}: ${await this.detailOf(response)}`,
         );
         return;
       }
       const admin = (await response.json()) as CollegeAdminOut;
-      this.collegeAdmins.update((map) => ({ ...map, [college.id]: [admin] }));
+      this.collegeAdmins.update((map) => ({
+        ...map,
+        [college.id]: [
+          ...(map[college.id] ?? []).filter((row) => row.user_id !== admin.user_id),
+          admin,
+        ],
+      }));
       const pending = admin.capabilities.filter(
         (grant) => grant.approval_state !== 'active',
       ).length;
       const live = admin.capabilities.length - pending;
       this.appointNote.set(
         pending > 0
-          ? `${admin.name} was appointed: ${live} of ${admin.capabilities.length} functions are live and ${pending} carry a student's own records, so they hold nothing until a second holder of admin.governance approves each in Who can do what.`
-          : `${admin.name} was appointed with ${plural(admin.capabilities.length, 'function')}.`,
+          ? `${admin.name} appointed to ${college.name}: ${live} of ${admin.capabilities.length} functions live, ${pending} awaiting a second approval in Who can do what.`
+          : `${admin.name} appointed to ${college.name} with ${plural(admin.capabilities.length, 'function')}.`,
       );
+      this.closeAppoint();
     } catch {
       this.appointError.set(
-        `${college.name} was created, but the server could not be reached to appoint ${person?.name ?? 'that account'}.`,
+        `The server could not be reached. ${person?.name ?? 'That account'} was not appointed.`,
       );
+    } finally {
+      this.appointBusy.set(false);
     }
-  }
-
-  /** "bgscet.ac.in, @sjbit.ac.in" -> ["bgscet.ac.in", "sjbit.ac.in"].
-   *
-   *  Split on commas, spaces and newlines because all three are how a list
-   *  gets pasted. The API normalises and de-duplicates again (`_clean_domains`)
-   *  and is the authority; this only keeps an empty entry from a trailing
-   *  comma out of the request. */
-  private parseDomains(value: string): string[] {
-    return value
-      .split(/[\s,;]+/)
-      .map((domain) => domain.trim().replace(/^@/, '').toLowerCase())
-      .filter((domain) => domain.length > 0);
   }
 
   /** "BGSCET · Bengaluru · 3 departments" — every part of it a stored value. */

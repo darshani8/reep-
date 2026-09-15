@@ -86,11 +86,10 @@ class VoicePlatformStack(Stack):
             # selection covers the database and EFS, nothing in S3 — so before
             # this, an overwritten or deleted roster was gone with no second
             # copy anywhere. Versioning is the only thing standing behind them.
-            # Deliberately NOT set on `recordings` below: that bucket expires
-            # student voice on a clock, and a non-current version outlives the
-            # delete marker, so versioning there would quietly keep audio past
-            # the retention the student consented to. RETAIN keeps the bucket;
-            # versioning keeps its contents. They are different promises.
+            # `recordings` below is versioned too now, and the paragraph that
+            # used to stand here explaining why it must NOT be has moved there,
+            # to the line that reverses it. RETAIN keeps the bucket; versioning
+            # keeps its contents. They are different promises.
             versioned=True,
         )
         recordings = s3.Bucket(
@@ -100,16 +99,63 @@ class VoicePlatformStack(Stack):
             encryption=s3.BucketEncryption.S3_MANAGED,
             enforce_ssl=True,
             removal_policy=RemovalPolicy.RETAIN,
-            # Student voice is deleted on a clock, like the per-speaker WAVs on
-            # EFS. Mirror the per-degree recording policy's retention_days; the
-            # shorter of the two wins.
-            lifecycle_rules=[
-                s3.LifecycleRule(
-                    id="expire-recordings",
-                    prefix="recordings/",
-                    expiration=Duration.days(int(recording_retention_days)),
-                )
-            ],
+            # VERSIONED, WHICH REVERSES A DELIBERATE DECISION -- so the decision
+            # it reverses is written out rather than deleted.
+            #
+            # This bucket previously carried no versioning, and the comment on
+            # `Uploads` above said why in terms that were correct at the time:
+            # "that bucket expires student voice on a clock, and a non-current
+            # version outlives the delete marker, so versioning there would
+            # quietly keep audio past the retention the student consented to."
+            # That argument holds only while the deployment's rule is the
+            # consented clock. The college's rule is now that NOTHING in storage
+            # is deleted -- student and faculty records are kept permanently --
+            # so the clock is no longer the governing promise and versioning is
+            # what makes the new one true. `RecordingStore.delete` issues a real
+            # `delete_object`; on a versioned bucket that writes a DELETE MARKER
+            # and leaves the object, so an admin removing a call from the
+            # console still sees it go and the bytes stay.
+            #
+            # WHAT THIS OBLIGES SOMEBODY TO CHANGE, said here because nothing
+            # else will say it: the interview consent panel tells the student
+            # their recording is destroyed after the policy's `retention_days`,
+            # and `interview_policies.retention_days` is still the number it
+            # shows. That copy is now inaccurate. Fixing it is a product change
+            # in `app/interview_policy.py` and the consent screen, not an infra
+            # one, and it must land before this is described to students as
+            # their policy.
+            versioned=True,
+            # NO LIFECYCLE RULE when `recording_retention_days` is 0, which is
+            # the deployment default now -- the identity ledger's and the dump
+            # archive's deliberate absence, for the same reason: this is a copy
+            # meant to outlive every bounded tier, and a rule it acquires by
+            # accident is that promise quietly expiring in the one direction S3
+            # never reports.
+            #
+            # A NUMBER IS STILL ACCEPTED, and 0 is off rather than the code
+            # default being "forever", so a synth with no context renders a
+            # bucket that still expires -- `archiveRetentionDays`' idiom, where
+            # the durable choice is written down in cdk.json because it is a
+            # decision and decisions are read where they are made.
+            lifecycle_rules=(
+                [
+                    s3.LifecycleRule(
+                        id="expire-recordings",
+                        prefix="recordings/",
+                        expiration=Duration.days(int(recording_retention_days)),
+                        # On a versioned bucket an expiration writes a delete
+                        # marker and leaves the version stored and billed. If a
+                        # deployment does turn the clock back on, it has to mean
+                        # it -- a rule without this half frees nothing while
+                        # looking right in the console.
+                        noncurrent_version_expiration=Duration.days(
+                            int(recording_retention_days)
+                        ),
+                    )
+                ]
+                if int(recording_retention_days) > 0
+                else None
+            ),
         )
 
         # --- SQS: one stream per degree level, each with a DLQ ------------

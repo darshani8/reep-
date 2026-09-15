@@ -27,6 +27,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..document_manifest import release, save_and_record
+from ..models.archived_document import DocumentOwnerKind
 from ..document_store import (
     QuotaRejected,
     UploadRejected,
@@ -34,7 +36,7 @@ from ..document_store import (
     content_disposition,
     delete as delete_stored,
     read_bytes,
-    save_bytes,
+    sniff,
 )
 from ..identity import get_current_session
 from ..models.staff_signature import StaffSignature
@@ -90,18 +92,32 @@ def upload_signature(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Keep the signature image under 2 MB.",
         )
+    # THE TYPE IS DECIDED BEFORE ANYTHING IS STORED -- see the same change in
+    # routers/registration.py and `document_store.sniff`. Storing first and
+    # deleting on the way out leaves an unnamed object in the permanent
+    # archive, which no delete on this side can reach.
     try:
-        stored_name, mime, size = save_bytes(content, quota=VolumeQuota.single_slot("signature"))
-    except QuotaRejected as exc:
-        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+        sniffed, _ext = sniff(content)
     except UploadRejected as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
-    if mime not in IMAGE_TYPES:
-        delete_stored(stored_name)
+    if sniffed not in IMAGE_TYPES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="A signature is an image: upload a PNG or a JPEG.",
         )
+    try:
+        stored_name, mime, size = save_and_record(
+            db,
+            content,
+            quota=VolumeQuota.single_slot("signature"),
+            kind=DocumentOwnerKind.STAFF_SIGNATURE,
+            owner_id=session["userId"],
+            original_name=file.filename or "signature",
+        )
+    except QuotaRejected as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+    except UploadRejected as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
 
     row = _mine(db, session)
     if row is None:
@@ -109,6 +125,12 @@ def upload_signature(
         db.add(row)
     else:
         old = row.stored_name
+        # `staff_signatures.user_id` is UNIQUE and this PUT replaces in place,
+        # so there is no second row to soft-delete and nowhere on this one to
+        # keep the old name. The manifest is what remembers it -- see
+        # models/archived_document.py, where this constraint is the worked
+        # example of why that table exists.
+        release(db, old, reason="signature replaced")
         row.stored_name = stored_name
         row.mime_type = mime
         row.size_bytes = size
@@ -157,6 +179,7 @@ def remove_signature(
             delete_stored(row.stored_name)
         except FileNotFoundError:
             pass
+        release(db, row.stored_name, reason="signature removed")
         db.delete(row)
         db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -16,6 +16,8 @@ from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
 from ..db import get_db
 from ..governance import require_feature
 from ..identity import get_current_session
+from ..document_manifest import release, save_and_record
+from ..models.archived_document import DocumentOwnerKind
 from ..document_store import (
     MAX_BYTES,
     MAX_UPLOAD_BYTES_PER_STUDENT,
@@ -26,7 +28,6 @@ from ..document_store import (
     read_bytes,
     VolumeQuota,
     QuotaRejected,
-    save_bytes,
 )
 from ..resume_pdf import EvidenceProof, append_evidence, render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
@@ -2418,7 +2419,15 @@ def create_upload(
     # directly (the documented dev setup, or a different ingress).
     content = file.file.read(MAX_BYTES + 1)
     try:
-        stored_name, mime, size = save_bytes(content, quota=quota)
+        stored_name, mime, size = save_and_record(
+            db,
+            content,
+            quota=quota,
+            kind=DocumentOwnerKind.STUDENT_UPLOAD,
+            owner_id=student_id,
+            original_name=file.filename or "upload",
+            title=title.strip() or (file.filename or "Upload"),
+        )
     except QuotaRejected as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc))
     except UploadRejected as exc:
@@ -2481,6 +2490,12 @@ def delete_upload(
     if upload is None or upload.student_id != student_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
     document_store_delete(upload.stored_name)
+    # The bytes leave the volume and the row goes, exactly as before -- the
+    # student's screen, their quota and the store are all correct a second
+    # later. The file itself is already in the permanent archive and stays
+    # there; this marks the manifest row so a restore can tell "the student
+    # removed this" from "this is still on their shelf".
+    release(db, upload.stored_name, reason="student deleted upload")
     db.delete(upload)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

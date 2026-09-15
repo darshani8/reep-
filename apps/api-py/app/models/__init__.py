@@ -7,6 +7,7 @@ from . import agent_run  # noqa: F401
 from . import alert  # noqa: F401
 from . import alumni  # noqa: F401
 from . import analytics_snapshot  # noqa: F401
+from . import archived_document  # noqa: F401
 from . import auth_token  # noqa: F401
 from . import attendance  # noqa: F401
 from . import badge  # noqa: F401
